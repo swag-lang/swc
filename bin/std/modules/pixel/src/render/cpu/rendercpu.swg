@@ -108,7 +108,17 @@ internal struct CpuTexture
         handle:  TextureHandle
         image:   Image
         stencil: Array'u8
+        planar:  CpuPlanarTexture
     }
+}
+
+// CPU-owned copies of the source planes, sampled before RGB conversion like the GPU shader.
+private struct CpuPlanarTexture
+{
+    luma, chromaB, chromaR: Array'u8
+    width, height, chromaWidth, chromaHeight: s32 = 0
+    matrix: YuvMatrix = .Bt601
+    studioRange: bool = false
 }
 
 // Inclusive device-pixel rectangle a draw batch can touch inside its target.
@@ -196,6 +206,7 @@ private struct RasterBatch
 
     solidPaint: bool        // The paint multiplies by opaque white, which is the identity.
     paintImage: *Image?     // Storage of a bound texture paint, resolved once.
+    paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
     atlas:      const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
 
     blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.
@@ -849,6 +860,44 @@ private impl RenderCpu
         return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
+    // Samples a top-down byte plane at the normalized coordinates used by a GPU texture.
+    func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
+    {
+        let x  = Math.clamp(u * width - 0.5, 0.0, cast(f32, width - 1))
+        let y  = Math.clamp((1.0 - v) * height - 0.5, 0.0, cast(f32, height - 1))
+        let x0 = cast(s32, Math.floor(x))
+        let y0 = cast(s32, Math.floor(y))
+        let x1 = Math.min(x0 + 1, width - 1)
+        let y1 = Math.min(y0 + 1, height - 1)
+        let tx = x - x0
+        let ty = y - y0
+        let pixels = plane.storage()
+        let c00 = cast(f32, pixels[cast(u64, (y0 * width + x0))])
+        let c10 = cast(f32, pixels[cast(u64, (y0 * width + x1))])
+        let c01 = cast(f32, pixels[cast(u64, (y1 * width + x0))])
+        let c11 = cast(f32, pixels[cast(u64, (y1 * width + x1))])
+        let top = c00 + (c10 - c00) * tx
+        let bot = c01 + (c11 - c01) * tx
+        return top + (bot - top) * ty
+    }
+
+    // Filters all source planes at the draw coordinate and applies the color matrix afterward.
+    func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32)->Color
+    {
+        let y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+        let d = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
+        let e = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
+        let factors = yuvConversionFactors(texture.matrix, texture.studioRange)
+        let c = Math.max(y - cast(f32, factors.lumaOffset), 0.0) * cast(f32, factors.lumaScale)
+        let r = (c + cast(f32, factors.redCr) * e + 128.0) / 256.0
+        let g = (c + cast(f32, factors.greenCb) * d + cast(f32, factors.greenCr) * e + 128.0) / 256.0
+        let b = (c + cast(f32, factors.blueCb) * d + 128.0) / 256.0
+        return Color{a: 255,
+                     r: cast(u8, Math.round(Math.clamp(r, 0.0, 255.0))),
+                     g: cast(u8, Math.round(Math.clamp(g, 0.0, 255.0))),
+                     b: cast(u8, Math.round(Math.clamp(b, 0.0, 255.0)))}
+    }
+
     func sampleSubRect(image: *Image, paintPos: Vector2, p: const *BrushBinding, contentScale: f32)->Color
     {
         let minX = cast(s32, p.texturePixelBounds.x)
@@ -1147,8 +1196,20 @@ private impl RenderCpu
             if p.uvMode == .FillSubRect and
                .program != CpuProgram_Blur and
                .program != CpuProgram_Resolve and
-               .program != CpuProgram_Backdrop do
+               .program != CpuProgram_Backdrop
+            {
+                if batch.paintPlanar
+                {
+                    let dstW = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
+                    let dstH = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
+                    let tx   = (paintPos.x - p.boundRect.x) / dstW
+                    let ty   = (paintPos.y - p.boundRect.y) / dstH
+                    let u    = p.textureRect.x + tx * (p.textureRect.z - p.textureRect.x)
+                    let v    = 1.0 - (p.textureRect.y + ty * (p.textureRect.w - p.textureRect.y))
+                    return RenderCpu.samplePlanar(batch.paintPlanar, u, v)
+                }
                 return sampleSubRect(image, paintPos, &.paint, .contentScale)
+            }
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
             let h      = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
@@ -1166,6 +1227,9 @@ private impl RenderCpu
                 u = (paintPos.x - p.boundRect.x) / Math.max(p.textureRect.z, 0.000001)
                 v = 1.0 - (paintPos.y - p.boundRect.y) / Math.max(p.textureRect.w, 0.000001)
             }
+
+            if batch.paintPlanar do
+                return RenderCpu.samplePlanar(batch.paintPlanar, u, v)
 
             if .program == CpuProgram_Blur do
                 return .sampleBlur(batch, image, u, v)
@@ -2077,13 +2141,18 @@ private impl RenderCpu
 
         batch.solidPaint      = not .paintOn or .paint.type == .SolidColor
         batch.paintImage      = null
+        batch.paintPlanar     = null
         batch.blurWeights     = null
         batch.blurWeightCount = 0
         if .paintOn and .paint.type == .Texture
         {
             let storage = .findTexture(.paint.texture.handle)
-            if storage do
+            if storage
+            {
                 batch.paintImage = &storage.image
+                if storage.planar.width > 0 do
+                    batch.paintPlanar = &storage.planar
+            }
         }
 
         batch.atlas = .fontAtlas()
@@ -3148,6 +3217,7 @@ impl RenderCpu
         var storage: CpuTexture
         storage.handle = result.handle
         storage.image  = #move image
+        .copyPlanar(view, &storage.planar)
         .textures.add(#move storage)
         return result
     }
@@ -3160,6 +3230,36 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         view.convertToRgb(&storage.image)
+        .copyPlanar(view, &storage.planar)
+    }
+
+    // Reuses the renderer-owned plane buffers as decoded video frames replace each other.
+    private mtd copyPlanar(view: const *YuvPlanarView, target: *CpuPlanarTexture)
+    {
+        target.width = view.width
+        target.height = view.height
+        target.chromaWidth = view.chromaWidth()
+        target.chromaHeight = view.chromaHeight()
+        target.matrix = view.matrix
+        target.studioRange = view.studioRange
+        target.luma.resize(cast(u64, target.width * target.height))
+        target.chromaB.resize(cast(u64, target.chromaWidth * target.chromaHeight))
+        target.chromaR.resize(cast(u64, target.chromaWidth * target.chromaHeight))
+        for y in target.height
+        {
+            Memory.copy(target.luma.storage() + cast(u64, (y * target.width)),
+                        view.luma + cast(u64, y) * view.lumaStride,
+                        cast(u64, target.width))
+        }
+        for y in target.chromaHeight
+        {
+            Memory.copy(target.chromaB.storage() + cast(u64, (y * target.chromaWidth)),
+                        view.chromaB + cast(u64, y) * view.chromaStride,
+                        cast(u64, target.chromaWidth))
+            Memory.copy(target.chromaR.storage() + cast(u64, (y * target.chromaWidth)),
+                        view.chromaR + cast(u64, y) * view.chromaStride,
+                        cast(u64, target.chromaWidth))
+        }
     }
 
     // Copies an image into a renderer-owned CPU texture.

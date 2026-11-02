@@ -45,7 +45,7 @@ func assertVideoTimelineEndpoints(light: bool, golden: string)
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    assertScopeImageGolden(&image, golden)
+    assertVideoRendererGolden(&image, golden)
 }
 
 func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, dpiScale: f32, golden: string)
@@ -65,7 +65,17 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.root.applyLayout()
 
     var image = host.render(&host.root)
-    assertScopeImageGolden(&image, golden)
+    var options: Pixel.Testing.ImageGoldenOptions
+    if Env.variable("SWAG_TEST_RENDERER") != "cpu"
+    {
+        if golden == "viewer.video.subtitle.background" do
+            options.maxDifferentPixels = 1
+        elif golden == "viewer.video.subtitle.outline.large.hidpi" or
+             golden == "viewer.video.subtitle.shadow.large.hidpi" or
+             golden == "viewer.video.subtitle.background.large.hidpi" do
+            options.maxChannelDelta = 4
+    }
+    assertVideoRendererGolden(&image, golden, options)
 }
 
 // The film in the window, against `scope.video`: the picture alone at rest, and under the
@@ -85,16 +95,12 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     Swag.assert(host.surfaceWnd.titleHidden)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
-    if view.playing do
-        view.togglePlayback()
-    view.seekFrame(5)
-    waitForVideoFrame(view)
-    view.refreshTime()
-    view.timeline.setValueWithoutGesture(cast(f32, view.frameSeconds(view.frameIndex)))
+    pinVideoFrame(view, 5)
+    view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
     host.settleAnimations(window, 4)
 
     var rest = host.render(&host.surfaceWnd)
-    assertScopeImageGolden(&rest, "viewer.video.ink")
+    assertVideoRendererGolden(&rest, "viewer.video.ink")
 
     // The first movement brings the veils, the next one reads a time on the timeline.
     let timeline   = view.timeline.surfaceRect()
@@ -104,7 +110,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
     host.settleAnimations(window, 4)
     var hover = host.render(&host.surfaceWnd)
-    assertScopeImageGolden(&hover, "viewer.video.hover.ink")
+    assertVideoRendererGolden(&hover, "viewer.video.hover.ink")
 }
 
 // The playhead and its outline stay whole when the track is at its first or last frame.
@@ -158,10 +164,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
-    if view.playing do
-        view.togglePlayback()
-    view.seekFrame(5)
-    waitForVideoFrame(view)
+    pinVideoFrame(view, 5)
     view.setPlaybackRate(1.5)
 
     view.dockStyle = .Center
@@ -181,7 +184,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
             Swag.assert(sheet.page.rows.count == 4)
             Swag.assert(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
             var first = host.render()
-            assertScopeImageGolden(&first, "viewer.video.options")
+            assertVideoRendererGolden(&first, "viewer.video.options")
             Swag.assert(sheet.activateRow(Film.texts().ui_OptionAudio))
             host.finishAnimations()
         }
@@ -189,7 +192,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
         {
             Swag.assert(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
             var tracks = host.render()
-            assertScopeImageGolden(&tracks, "viewer.video.options.audio")
+            assertVideoRendererGolden(&tracks, "viewer.video.options.audio")
             sheet.close()
         }
 

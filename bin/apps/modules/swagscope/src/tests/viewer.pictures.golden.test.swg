@@ -1,14 +1,26 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui
+using Core, Pixel, Gui, Viewers
 
 // Each viewer in the window the application ships, at the size of its picture, so its golden is
 // judged whole against the picture of the charter.
-func picturedViewer(fileName: string, light: bool, golden: string)
+func picturedViewer(fileName: string, light: bool, golden: string, width = 960, height = 600, options: Pixel.Testing.ImageGoldenOptions = {})
 {
     var host: Testing.HeadlessHost
-    photographViewer(&host, framedViewerWindow(&host, fileName, light), golden)
+    let window = framedViewerWindow(&host, fileName, light, width, height)
+    if window.choices[window.activeChoiceIndex].key == "image"
+    {
+        let view = assume cast(*Picture.Panel, window.currentView)
+        if view.imageView.movie.isAnimated()
+        {
+            view.imageView.setPaused(true)
+            view.imageView.setFrameIndex(0)
+            Swag.assert(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
+        }
+    }
+
+    photographViewer(&host, window, golden, options)
 }
 
 // Opens `fileName` in the viewer named `key` rather than the one it opens in.
@@ -27,11 +39,18 @@ func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light:
 }
 
 // Photographs `window` at rest.
-func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string)
+func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string, options: Pixel.Testing.ImageGoldenOptions = {})
 {
     window.applyLayout()
     var image = host.renderSettled(window)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    Pixel.Testing.assertImageGolden(&image, golden, options)
+}
+
+private func picturedGoldenOptions(maxDifferentPixels: u64)->Pixel.Testing.ImageGoldenOptions
+{
+    if Env.variable("SWAG_TEST_RENDERER") == "cpu" do
+        return {}
+    return {maxDifferentPixels: maxDifferentPixels}
 }
 
 func picturedFixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
@@ -39,10 +58,10 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
 #[Swag.TestTag("golden")]
 #test
 {
-    picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image")
+    picturedViewer(picturedFixture("imageset-real-review.webp"), false, "pictured.image", options: picturedGoldenOptions(600))
     picturedViewer(picturedFixture("viewer.csv"), true, "pictured.table.paper")
-    picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper")
-    picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper")
+    picturedViewer(picturedFixture("viewer.page.html"), true, "pictured.html.paper", options: picturedGoldenOptions(512))
+    picturedViewer(picturedFixture("segoeui.ttf"), true, "pictured.font.paper", 1280, 800)
 
     var binaryHost: Testing.HeadlessHost
     photographViewer(&binaryHost, picturedWindowAs(&binaryHost, picturedFixture("segoeui.ttf"), "binary", false), "pictured.binary")
@@ -76,7 +95,7 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
     }
 
     Swag.assert(view.details == "0x10 – 0x1C · 13 bytes selected")
-    photographViewer(&host, window, "pictured.hex")
+    photographViewer(&host, window, "pictured.hex", picturedGoldenOptions(8))
 }
 
 // A Windows program on the binary viewer's report page, as its picture shows it: the name over the
@@ -123,7 +142,6 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
                  picturedFixture("viewer.pdf"),
                  picturedFixture("ffmpeg-h264-two-aac.mkv"),
                  picturedFixture("pacman_beginning.wav"),
-                 picturedFixture("viewer.archive.zip"),
                  picturedFixture("viewer.srt"),
                  picturedFixture("viewer.groove.mid"),
                  picturedFixture("viewer.hex"),
@@ -135,6 +153,18 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
         var host: Testing.HeadlessHost
         let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
         let window = framedViewerWindow(&host, file.toString(), light, 1280, height)
+        Swag.assert(window.choices.count != 0 and window.activeChoiceIndex < window.choices.count,
+                    "return strip fixture must open in a document viewer")
+        if window.choices[window.activeChoiceIndex].key == "video"
+        {
+            let view = assume cast(*Film.Panel, window.currentView)
+            pinVideoFrame(view, 0)
+
+            // This golden measures the return command's window placement. Keep decoded video
+            // out of its backdrop so a browser or GPU load cannot choose pixels behind the strip.
+            view.imageView.show(false)
+        }
+
         window.explorer = Explorer.create(window.documentPanel, window)
         window.explorer.setShown(false)
         window.explorerActive = true

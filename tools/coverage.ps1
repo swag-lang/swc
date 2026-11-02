@@ -2,16 +2,18 @@
 .SYNOPSIS
 Run fast functional, stress, golden, full, or GPU parity coverage for standard modules and applications.
 .DESCRIPTION
-Fast uses CPU hosts and excludes golden and stress tests. GPU runs the same selection
-with mandatory offscreen OpenGL hosts. Stress selects scale-boundary tests. Full includes all
-ordinary tests, stress, and CPU goldens. Goldens and parity select complete visual and renderer
-integration campaigns.
+GPU hosts are the default for every suite. Use -Renderer cpu explicitly for CI or cloud hosts
+without a usable OpenGL device. Fast excludes golden and stress tests. Stress selects scale-boundary
+tests. Full includes all ordinary tests, stress and goldens. Goldens and parity select complete
+visual and renderer-integration campaigns.
 .EXAMPLE
 tools\coverage.bat -DevMode -Workspace apps -Module swagcapture
 .EXAMPLE
 tools\coverage.bat -DevMode -Suite stress -Workspace apps -Module swagscope
 .EXAMPLE
 tools\coverage.bat -DevMode -Suite parity
+.EXAMPLE
+tools\coverage.bat -DevMode -Renderer cpu
 #>
 [CmdletBinding()]
 param(
@@ -21,6 +23,8 @@ param(
     [string] $Workspace = 'all',
     [string] $Module,
     [string[]] $TestFile,
+    [ValidateSet('cpu', 'gpu')]
+    [string] $Renderer = 'gpu',
     [switch] $DevMode,
     [ValidateSet('devmode', 'release')]
     [string] $Configuration = 'devmode',
@@ -50,9 +54,10 @@ function Invoke-Coverage([string] $Tool, [string[]] $Options) {
 }
 
 try {
-    # A requested GPU is mandatory. HeadlessHost reports initialization failure; no fallback
-    # can silently change coverage or send GPU pixels through canonical CPU references.
-    $env:SWAG_TEST_RENDERER = if ($Suite -eq 'gpu') { 'gpu' } else { 'cpu' }
+    # GPU is the default; CPU is an explicit opt-in for environments without a graphics device.
+    # HeadlessHost reports GPU initialization failure instead of silently changing the backend.
+    if ($Suite -eq 'gpu' -and $Renderer -eq 'cpu') { throw '-Suite gpu cannot be combined with -Renderer cpu.' }
+    $env:SWAG_TEST_RENDERER = if ($Suite -eq 'gpu') { 'gpu' } else { $Renderer }
     Write-Host "[coverage] suite=$Suite renderer=$env:SWAG_TEST_RENDERER"
     if ($Suite -eq 'goldens') {
         Invoke-Coverage 'goldens' @()

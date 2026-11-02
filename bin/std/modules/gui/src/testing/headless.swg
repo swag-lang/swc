@@ -49,7 +49,7 @@ struct HeadlessHost
     public
     {
         app:          Application     // Application driven by the host.
-        renderer:     RenderCpu       // Software backend; `app.renderer` exposes the selected backend.
+        renderer:     RenderCpu       // Software reference backend; `app.renderer` exposes the selected backend.
         surface:      Surface         // Offscreen surface the host renders through.
         surfaceWnd:   SurfaceWnd      // Root window of that surface.
         root:         Wnd             // Root view a test builds its tree under.
@@ -94,7 +94,7 @@ impl HeadlessHost
     // `width` and `height` are logical units. `dpiScale` above one renders the same
     // logical tree into a proportionally larger physical target, like a surface on a
     // scaled display; the window tree and input stay logical either way.
-    // `SWAG_TEST_RENDERER=cpu` (the default) uses [[Pixel.RenderCpu]]; `gpu` uses
+    // `SWAG_TEST_RENDERER=cpu` uses [[Pixel.RenderCpu]]; unset or `gpu` uses
     // [[Pixel.RenderOgl]] with invisible context hosts. An unavailable GPU fails setup rather
     // than silently changing the backend. Access the selected renderer through `app.renderer`.
     mtd setup(width, height: f32, dpiScale = 1.0'f32)
@@ -111,7 +111,7 @@ impl HeadlessHost
 
         let backend = Env.variable("SWAG_TEST_RENDERER")
         Swag.assert(backend == "" or backend == "cpu" or backend == "gpu", "SWAG_TEST_RENDERER accepts cpu or gpu")
-        if backend == "gpu"
+        if backend != "cpu"
         {
             .gpuRenderer.setOffscreen()
             .app.setRenderer(&.gpuRenderer)

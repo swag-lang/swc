@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global internal
 
-using Core, Gui, Viewers
+using Core, Gui, Video, Viewers
 
 // Locates shared fixtures while viewer plans remain beside their viewer implementations.
 func scopeTestDataDirectory()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
@@ -13,6 +13,22 @@ func scopeTestDataPath(name: string)->String => Path.combine(scopeTestDataDirect
 func assertScopeImageGolden(image: const *Pixel.Image, name: string)
 {
     Pixel.Testing.assertImageGolden(image, name)
+}
+
+// A few full-size film captures retain a visible CPU/GPU filter difference. GPU references are
+// the default; CPU hosts use a reviewed reference for those named cases, while small parity tests
+// keep the actual renderer difference bounded.
+func assertVideoRendererGolden(image: const *Pixel.Image, name: string, options: Pixel.Testing.ImageGoldenOptions = {})
+{
+    let cpuSpecific = Env.variable("SWAG_TEST_RENDERER") == "cpu" and
+                      (name == "viewer.video.ink" or
+                       name == "viewer.video.timeline.endpoints.encre" or
+                       name == "viewer.video.subtitle.outline" or
+                       name == "viewer.video.subtitle.shadow" or
+                       name == "viewer.video.options" or
+                       name == "viewer.video.hover.ink" or
+                       name == "viewer.video.options.audio")
+    Pixel.Testing.assertImageGolden(image, cpuSpecific ? Format.toString("%.cpu", name) : name, options)
 }
 
 // Verifies that an information-band control keeps its breathing room outside its own frame.
@@ -230,6 +246,37 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
     expireViewerLoadingLinger(window)
 }
 
+// Pauses a film on one decoded picture so load speed cannot choose the photographed frame.
+func pinVideoFrame(view: *Film.Panel, index: u64)
+{
+    var attempts: u32
+    while (not view.openFinished or not view.hasFrame or view.awaitingFrame) and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        view.updatePlayback()
+        attempts += 1
+    }
+
+    Swag.assert(view.openFinished and view.hasFrame and not view.awaitingFrame)
+    if view.playing do
+        view.togglePlayback()
+    Swag.assert(view.showFrame(index))
+
+    attempts = 0
+    while view.awaitingFrame and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        view.updatePlayback()
+        attempts += 1
+    }
+
+    Swag.assert(not view.awaitingFrame and view.frameIndex == index)
+    view.elapsed = index == 0 ? 0 : view.frameSeconds(index)
+    view.refreshTime()
+    view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
+    Swag.assert(not view.playing and view.frameIndex == index)
+}
+
 // Completes queued text reads at the GUI publication boundary, including superseded requests.
 func completeTextReads(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
@@ -341,12 +388,12 @@ func shipFrame(host: *Testing.HeadlessHost)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
 }
 
-// Opens `fileName` in a viewer window built inside the frame of the shipped surface, at the size
-// of the charter's pictures, in Encre or in Papier, and lets the viewer finish loading.
+// Opens `fileName` in the shipped frame at a compact test viewport, in Encre or in Papier, and lets
+// the viewer finish loading. Tests about a larger viewport pass its dimensions explicitly.
 //
 // The strip floats over the document with the glyph, the name and the window buttons, so a
 // picture of the window is judged whole against its charter picture.
-func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 1280, height = 800)->*ViewerWindow
+func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600)->*ViewerWindow
 {
     host.setup(width, height)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)

@@ -26,13 +26,20 @@ exit /b 0
         $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
         $expectedCount = if ($suite -in @('goldens', 'parity')) { 1 } else { 2 }
         if ($calls.Count -ne $expectedCount) { throw "Suite $suite dispatched $($calls.Count) commands." }
-        $renderer = if ($suite -eq 'gpu') { 'gpu' } else { 'cpu' }
+        $renderer = 'gpu'
         foreach ($call in $calls) {
             if (!$call.Contains("|$renderer|dm test") -or !$call.Contains('--num-cores 3')) { throw "Wrong environment or compiler: $call" }
             if (($suite -in @('fast', 'gpu')) -ne $call.Contains('--test-tag !golden')) { throw "Wrong fast filter: $call" }
         }
         if ($suite -eq 'parity' -and !$calls[0].Contains('pixel --test-tag integration.renderer.opengl')) { throw 'Parity selection changed.' }
         if ($suite -eq 'goldens' -and !$calls[0].StartsWith('goldens|')) { throw 'Golden campaign was narrowed.' }
+    }
+    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Renderer cpu | Out-Null
+    if ($LASTEXITCODE) { throw 'The explicit CPU campaign failed.' }
+    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
+    if ($calls.Count -ne 2 -or @($calls | Where-Object { !$_.StartsWith('std|cpu|') -and !$_.StartsWith('apps|cpu|') }).Count) {
+        throw 'The explicit CPU campaign did not select CPU hosts for every workspace.'
     }
     $env:SWAG_COVERAGE_FAILURE = 'std'
     Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''

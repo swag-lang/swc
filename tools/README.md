@@ -89,12 +89,12 @@ tools\coverage.bat -DevMode -Suite full
 
 | Suite | Backend and coverage | Environment / frequency |
 | --- | --- | --- |
-| `fast` (default) | CPU hosts; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
+| `fast` (default) | GPU hosts by default; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
 | `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
-| `stress` | CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Complete repository `golden` campaign, CPU hosts and existing references | Controlled CI environment, rendering changes and scheduled runs |
+| `stress` | Selected GPU or CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
+| `goldens` | Complete repository `golden` campaign on the selected renderer | Controlled CI environment, rendering changes and scheduled runs |
 | `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
-| `full` | All standard-module and application tests, including goldens and stress, using CPU hosts | Complete functional/visual pass before integration |
+| `full` | All standard-module and application tests, including goldens and stress, on the selected renderer | Complete functional/visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release` selects the program preset; goldens are recorded in devmode.
@@ -102,12 +102,12 @@ Each workspace reports elapsed wall time including compilation. Shared-machine a
 still apply. Integration tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
 
-`HeadlessHost` accepts `SWAG_TEST_RENDERER=cpu|gpu` for direct test commands. Unset means CPU.
-GPU means an invisible drawable and render targets, with no desktop presentation. Context and
-shader initialization can outweigh drawing in layout-heavy suites; measure the same selection
-before choosing GPU for speed. The default fast suite therefore keeps CPU hosts. OpenGL must
-initialize successfully; there is no automatic CPU fallback. Pixel's explicit CPU renderer tests
-continue testing CPU in either environment. Keep canonical image-golden runs on CPU.
+`HeadlessHost` uses GPU hosts by default. `-Renderer cpu` opts into CPU rendering for CI or cloud
+machines without a usable graphics device; direct compiler test commands can set
+`SWAG_TEST_RENDERER=cpu`. GPU uses an invisible drawable and render targets, with no desktop
+presentation. OpenGL must initialize successfully; there is no automatic CPU fallback. Pixel's
+explicit CPU renderer tests continue testing CPU in either environment. Goldens run on the selected
+renderer, so review and update references only after investigating a mismatch.
 
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.

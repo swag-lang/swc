@@ -19,8 +19,8 @@ core.so and compiles its test sources. Public suites pass in JIT/native for memo
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
-Pixel passes 92 native golden tests after synchronizing master and adding collection-face
-cache keys. Its four direct typeface tests pass in JIT and native execution. The complete golden
+Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its four direct
+typeface tests pass in JIT and native execution. The complete golden
 campaign still stops before GUI and application tests because Linux GUI services are incomplete.
 Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
@@ -151,8 +151,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.058 — No second-platform GUI font integration
 
-- Next: connect GUI font selection and fallback to the installed-font catalog for the chosen
-  platform.
+- Next: connect GUI font selection to `FontCatalog` and exercise mixed-script text through an
+  actual Linux GUI. Pixel's `Font.resolveRune` now uses the installed Linux catalog with cached
+  misses and style-preserving fallback; the GUI selection path still needs its portable source.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
 
@@ -528,9 +529,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.018 — Finish installed-family grouping and cache integration
 
-- Next: integrate `FontCatalog`'s deterministic family/style selection with installed-font caching
-  and replace the Windows grouping callbacks. Add typographic family/subfamily names and legacy
-  aliases so separately named light and semibold faces can join their intended family.
+- Next: replace the Windows grouping callbacks and process cache with the common catalog and
+  fallback policy. Linux uses an owned process snapshot and caches successful and unsuccessful
+  rune lookups. The catalog groups typographic names and retains legacy-name lookup for light
+  and semibold faces; Windows parity still needs validation.
 - Related: platform.portability.016
 - Done when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
 
@@ -867,7 +869,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   same descriptor accepts the conventional Linux `FontCatalog.loadSystem` source.
 - Related: platform.portability.016, platform.portability.019
 
-### platform.portability.019 — A system face cannot load directly from file and face index
+### platform.portability.019 — Windows installed-family selection still requires GDI
 
 - Evidence: `TypeFace.createAt(fullName, bytes, faceIndex)` and
   `TypeFace.loadAt(fullName, faceIndex)` now select a zero-based collection face. Existing
@@ -875,8 +877,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   regressions cover distinct styles, repeated lookups, invalid indices, and copied-byte lifetime.
   Installed-family selection still uses `createFromHfont`; it does not yet supply a portable
   descriptor to these APIs.
-- Next: connect a portable installed-font descriptor's file and face index to `TypeFace`
-  creation, keeping `createFromHfont` as an optional Windows adapter.
+- Next: migrate Windows installed-family selection to the file/index path already used by
+  `FontFileFace.load` and Linux fallback, keeping `createFromHfont` as an optional adapter.
 - Done when: a system-family selection loads the requested collection face from its
   descriptor without manufacturing a GDI font handle.
 - Related: platform.portability.067, platform.portability.016

@@ -59,6 +59,23 @@ On Linux, [[Pixel.FontCatalog.loadSystem]] scans conventional system and user fo
 into a fresh snapshot. It includes the XDG user data directory and legacy `$HOME/.fonts`,
 ignores unavailable directories and invalid fonts, and does not consult Fontconfig aliases.
 
+## Choose fallback fonts
+
+[[Pixel.Font.resolveRune]] keeps a character in the primary face when it is covered, then
+searches the ordered list supplied to [[Pixel.FontCache.setFallbackTypeFaces]]. Windows and
+Linux search installed fonts last unless system fallback is disabled. Resolved fonts preserve
+the primary size and render mode and synthesize bold or italic when needed. A character absent
+from every candidate keeps the primary font's missing glyph.
+
+```swag
+var cache: Pixel.FontCache
+let symbols = try Pixel.TypeFace.load("fonts/symbols.ttf")
+cache.setFallbackTypeFaces([symbols], false)
+```
+
+Passing `false` limits lookup to the supplied faces. System discovery and rune lookups are
+cached; Linux builds its installed-font snapshot on the first eligible missing character.
+
 ## Rich text
 
 [[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.

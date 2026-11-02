@@ -264,7 +264,7 @@ public impl FontCache
     // Sets the ordered typefaces searched when a font lacks a Unicode character.
     //
     // The list is copied; typefaces retain their process-wide lifetime. The primary face
-    // always wins. Installed system fonts are searched last on Windows when `useSystemFonts`
+    // always wins. Installed system fonts are searched last on Windows and Linux when `useSystemFonts`
     // is true (the default). Other platforms use only this list. An empty list with false
     // disables fallback. Existing font views adopt the policy; reshape any retained text runs.
     // Fallback preserves size and rendering mode and synthesizes missing bold or italic styles.
@@ -472,7 +472,7 @@ public impl Font
             }
         }
 
-        #static if #os == Swag.TargetOs.Windows
+        #static if #os == Swag.TargetOs.Windows or #os == Swag.TargetOs.Linux
         {
             if not face and .owner.useSystemFallback do
                 face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)

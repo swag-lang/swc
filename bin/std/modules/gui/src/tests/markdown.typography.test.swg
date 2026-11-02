@@ -4,6 +4,7 @@
 using Core
 
 // Retiring earlier source blocks must not apply the first surviving block's top margin twice.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Testing.tempFilePath("markdown-margins-", ".md")

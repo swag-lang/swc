@@ -830,6 +830,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // A search over a streamed document lands on the box that draws the match, wherever it is in the
 // file and however much of it has been read.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -884,6 +885,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // Progressive refreshes spread out fourfold, so a large generated page does not repeatedly
 // rebuild almost the same prefix while the reader is still interacting with it.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

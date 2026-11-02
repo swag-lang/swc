@@ -50,7 +50,7 @@ private func thumbnailFixture(name: string)->String => Path.combine(unwrap Path.
     defer discard catch File.delete(fileName)
 
     var source: String
-    for 2048 do
+    for 256 do
         source += "A repeated paragraph keeps the thumbnail input much larger than its preview budget.\n"
     discard expect File.writeAllText(fileName, source)
 

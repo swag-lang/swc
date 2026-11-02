@@ -1,4 +1,4 @@
-"""Run focused compiler suites on Linux with isolated resources, outputs and caches."""
+"""Run focused compiler and standard-module tests on Linux with isolated resources and caches."""
 
 import argparse
 import os
@@ -12,11 +12,14 @@ import tempfile
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('suite', choices=('cpp', 'lexer', 'parser', 'native', 'dynamic-library'))
+    parser.add_argument('suite', choices=('cpp', 'lexer', 'parser', 'native', 'std', 'dynamic-library'))
     parser.add_argument('--compiler', required=True, type=Path, help='built Linux compiler executable')
     parser.add_argument('--dev-full', action='store_true', help='include filesystem tests and extra IR/native validation in the C++ suite')
-    parser.add_argument('--execution', choices=('both', 'jit', 'native'), help='native suite execution mode (default: both)')
+    parser.add_argument('--execution', choices=('both', 'jit', 'native'), help='native or std suite execution mode (default: both)')
     parser.add_argument('--file-filter', help='select standalone source files whose path contains this text')
+    parser.add_argument('--module', help='standard module to test with the std suite')
+    parser.add_argument('--test-file', action='append', default=[], help='select module test source paths without dropping implementation files')
+    parser.add_argument('--test-tag', action='append', default=[], help='select module tests by tag, including opt-in integrations')
     parser.add_argument('--timeout', type=int, default=180, help='maximum seconds per compiler invocation')
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
@@ -25,9 +28,14 @@ def main():
         parser.error('--timeout must be positive')
     if args.dev_full and args.suite != 'cpp':
         parser.error('--dev-full only applies to the C++ suite')
-    if args.execution and args.suite != 'native':
-        parser.error('--execution only applies to the native suite')
-    if args.file_filter is not None and (args.suite in ('cpp', 'dynamic-library') or not args.file_filter):
+    if args.execution and args.suite not in ('native', 'std'):
+        parser.error('--execution only applies to the native and std suites')
+    if args.suite == 'std':
+        if not args.module or Path(args.module).name != args.module or args.module in ('.', '..'):
+            parser.error('--module must name one standard module for the std suite')
+    elif args.module or args.test_file or args.test_tag:
+        parser.error('--module, --test-file and --test-tag only apply to the std suite')
+    if args.file_filter is not None and (args.suite in ('cpp', 'std', 'dynamic-library') or not args.file_filter):
         parser.error('--file-filter requires a nonempty source-suite filter')
     import resource
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
@@ -36,6 +44,8 @@ def main():
         parser.error('--compiler must name an executable file')
 
     root = Path(__file__).resolve().parent.parent
+    if args.suite == 'std' and not (root / 'bin/std/modules' / args.module / 'module.swg').is_file():
+        parser.error('--module must name an existing standard module')
     admission = [sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
     # Stage the executable together with this checkout's runtime. Neither its
     # original installation nor another checkout supplies resources or caches.
@@ -58,6 +68,22 @@ def main():
             commands = [['unittest', '--num-cores', '3', '--verbose-unittest']]
             if args.dev_full:
                 commands[0].append('--dev-full')
+        elif args.suite == 'std':
+            # Copy the workspace so module data, relative fixtures and dependencies
+            # retain their layout without writing outputs into the source checkout.
+            workspace = scratch / 'std'
+            shutil.copytree(root / 'bin/std/modules', workspace / 'modules')
+            command = ['test', '--workspace', str(workspace), '--workspace-module', args.module,
+                       '--artifact-kind', 'executable', '--num-cores', '3', '--rebuild']
+            for path in args.test_file:
+                command += ['--test-file', path]
+            for tag in args.test_tag:
+                command += ['--test-tag', tag]
+            if args.execution == 'jit':
+                command.append('--no-test-native')
+            elif args.execution == 'native':
+                command.append('--no-test-jit')
+            commands = [command]
         elif args.suite == 'dynamic-library':
             workspace = scratch / 'workspace'
             for module in ('runtime_context_dynamic_dll', 'runtime_context_dynamic_consumer'):

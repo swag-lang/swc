@@ -3,6 +3,35 @@
 
 using Swag, Core
 
+// Stretching includes separators and padding, and never invents horizontal overflow.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(700, 360)
+    let list = ListCtrl.createMultiColumns(&host.root, {0, 0, 600, 300})
+    list.addColumn("Name", 220)
+    list.addColumn("Modified", 110)
+    list.addColumn("Size", 72)
+    list.updateFlags(.StretchFirstColumn)
+    list.header.hide()
+
+    for count in [0, 2, 30, 0]
+    {
+        list.clear()
+        for count do
+            discard list.createLine("Folder")
+        for width in [600.0, 420.0, 660.0]
+        {
+            list.resize(width, 300)
+            list.computeLayout()
+            host.root.applyLayout()
+            Swag.assert(not list.scrollWnd.showBarH, Format.toString("rows %, width %, content %, viewport %, first %, vertical %", count, width, list.header.contentWidth(), list.listView.position.width, list.header.itemWidthAt(0), list.scrollWnd.showBarV))
+            list.scrollWnd.setScrollPos(100, 0)
+            Swag.assert(list.scrollWnd.scrollPosition().x == 0)
+        }
+    }
+}
+
 var ListCtrlHeadlessSelCount: u32
 
 func listCtrlHeadlessSel(_: *ListCtrl)

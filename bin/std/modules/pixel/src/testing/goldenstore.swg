@@ -173,6 +173,7 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
         result.maxChannelDelta    = Math.max(result.maxChannelDelta, 2)
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
+
     if Env.variable("SWAG_TEST_RENDERER") == "gpu" do
         result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
 
@@ -198,10 +199,10 @@ private
     // packed bytes directly; only associated translucent pixels need logical conversion.
     struct ComparisonPixels
     {
-        image: const *Image
+        image:  const *Image
         packed: bool
-        red: u32
-        blue: u32
+        red:    u32
+        blue:   u32
     }
 
     impl ComparisonPixels
@@ -210,8 +211,10 @@ private
         {
             var result: #returntype
             result.image  = image
-            result.packed = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or
-                            image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+            result.packed = image.pixelFormat == .RGB8 or
+                            image.pixelFormat == .RGBA8 or
+                            image.pixelFormat == .BGR8 or
+                            image.pixelFormat == .BGRA8
             let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
             result.red  = blueFirst ? 2 : 0
             result.blue = blueFirst ? 0 : 2
@@ -245,16 +248,23 @@ private
 
         let expectedPixels = ComparisonPixels.create(expected)
         let actualPixels   = ComparisonPixels.create(actual)
-        let sameStorage    = expectedPixels.packed and actualPixels.packed and
-                             expected.pixelFormat == actual.pixelFormat and expected.alphaMode == actual.alphaMode
-        if options.maxChannelDelta == 0 and expectedPixels.packed and actualPixels.packed and
-           expected.alphaMode == .Straight and actual.alphaMode == .Straight and not sameStorage
+        let sameStorage    = expectedPixels.packed and
+                             actualPixels.packed and
+                             expected.pixelFormat == actual.pixelFormat and
+                             expected.alphaMode == actual.alphaMode
+        if options.maxChannelDelta == 0 and
+           expectedPixels.packed and
+           actualPixels.packed and
+           expected.bytesPerPixel == actual.bytesPerPixel and
+           expected.alphaMode == .Straight and
+           actual.alphaMode == .Straight and
+           not sameStorage
         {
             // PNG stores red before blue, while headless surfaces return BGRA. Convert once with
             // the packed SIMD path, then compare whole rows instead of computing four deltas per pixel.
             let normalizedExpected = expected.convertedTo(actual.pixelFormat)
-            let rowBytes           = cast(u64, actual.width) * actual.bytesPerPixel
-            var rowsMatch          = true
+            let rowBytes  = cast(u64, actual.width) * actual.bytesPerPixel
+            var rowsMatch = true
             for y in actual.height
             {
                 let expectedRow = normalizedExpected.pixels.storage() + cast(u64, normalizedExpected.height - y - 1) * normalizedExpected.rowStride
@@ -265,6 +275,7 @@ private
                     break
                 }
             }
+
             if rowsMatch do
                 return result
         }

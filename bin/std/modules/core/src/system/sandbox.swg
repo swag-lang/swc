@@ -356,13 +356,14 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
 //
 // Every operation in [[Core.File]] and [[Core.Directory]] that creates, modifies or removes
 // something calls this first. Outside a sandbox it is a single boolean test.
-internal func guardWrite(path: string) fail
+// Set `followFinalEntry` to false only when removing the named entry without following it.
+internal func guardWrite(path: string, followFinalEntry = true) fail
 {
     if not g_Sandboxed do
         return
     if isInsideSandbox(path) or isInsideCorpus(path)
     {
-        if try containsReparsePoint(path) do
+        if try containsReparsePoint(path, followFinalEntry) do
             fail SandboxError{"refusing to write through a reparse point", path: absolutePath(path).toString()}
         return
     }

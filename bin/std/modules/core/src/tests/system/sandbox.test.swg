@@ -255,4 +255,17 @@ func createSandboxTestJunction(link, target: string)->bool
     discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.SandboxError)
     Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
+
+    // Removing the link itself is safe; traversing it to remove a child is still refused.
+    let targetChild = Path.combine(target.toString(), "child")
+    expect Directory.create(targetChild.toString())
+    var deleteOutcome: Swag.Error
+    catch Directory.delete(Path.combine(link.toString(), "child"), recurse: true) as deleteOutcome
+    Swag.assert(deleteOutcome.value() is Errors.SandboxError)
+    Swag.assert(Directory.exists(targetChild.toString()))
+
+    expect Directory.delete(link.toString(), recurse: true)
+    Swag.assert(not Directory.exists(link.toString()))
+    Swag.assert(Directory.exists(targetChild.toString()))
+    Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
 }

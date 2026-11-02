@@ -125,7 +125,7 @@ internal func absolutePath(path: string)->String
 }
 
 // Reports whether an existing component of `path` is a reparse point.
-internal func containsReparsePoint(path: string)->bool fail
+internal func containsReparsePoint(path: string, includeFinalEntry = true)->bool fail
 {
     let full         = absolutePath(path)
     let fullPath     = full.toString()
@@ -139,6 +139,8 @@ internal func containsReparsePoint(path: string)->bool fail
             continue
 
         let end = c == '/' ? index : index + 1
+        if end == fullPath.count and not includeFinalEntry do
+            break
         if end > segmentBegin
         {
             let prefix = fullPath[until end]

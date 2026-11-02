@@ -568,3 +568,29 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let observed = fstat(original, &after)
     Swag.assert(observed == 0 and after.st_size == 0 and after.st_ino == before.st_ino)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var guarded: { before: u64, entry: passwd, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    var buffer: [16384] u8
+    var found:  *passwd?
+    let uid     = getuid()
+    let queried = getpwuid_r(uid, &guarded.entry, buffer.buffer, buffer.count, &found)
+    Swag.assert(queried == 0)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    if found
+    {
+        Swag.assert(found == &guarded.entry and guarded.entry.pw_uid == uid)
+        let homeAddress   = cast(u64, guarded.entry.pw_dir)
+        let bufferAddress = cast(u64, buffer.buffer)
+        Swag.assert(homeAddress >= bufferAddress and homeAddress < bufferAddress + buffer.count)
+        var small: [1] u8
+        found = null
+        let shortBuffer = getpwuid_r(uid, &guarded.entry, small.buffer, small.count, &found)
+        Swag.assert(shortBuffer == ERANGE and found == null)
+        Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    }
+}

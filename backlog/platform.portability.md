@@ -304,10 +304,22 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.036, platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
-### platform.portability.038 — Environment services have no second-platform backend
+### platform.portability.038 — Finish Linux environment services and validation
 
-- Next: implement environment variables, arguments, locale, special directories, and generic desktop
-  actions for the chosen second platform.
+- Progress: Linux keeps runtime argv, looks up case-sensitive environment variables, and resolves
+  special directories. TMPDIR is made absolute; HOME falls back to reentrant getpwuid_r. XDG base
+  directories reject relative overrides. Quoted absolute/$HOME user-directory assignments are
+  parsed as data, including escaped literal characters and last valid assignment precedence;
+  commands and other variable expansion are not executed. Missing configuration uses documented
+  conventional subdirectories. Shared media directories explicitly report an unavailable path.
+  Sandboxed queries retain the common per-kind scratch-directory redirection.
+- Validation: 17 raw Linux tests pass JIT/native, including passwd layout/canaries, caller-owned
+  string storage and ERANGE. A separate importing module passes the same user-database call in
+  both modes and its real executable exits 37. Public path/configuration/sandbox tests are added
+  but blocked by 28 whole-Core missing-service diagnostics, so the XDG parser and owner-level
+  path behavior have not executed yet.
+- Next: run the public environment/path and sandbox tests with complete Core; finish environment
+  enumeration/mutation, locale and desktop actions, with explicit unsupported outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 

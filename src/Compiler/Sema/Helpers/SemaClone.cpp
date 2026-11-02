@@ -1222,30 +1222,9 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            const AstNodeRef resolvedChildRef                     = sema.resolvedNodeRef(sourceChildRef);
-            const bool       shouldReexpandChild                  = shouldReexpandDetachedExpr(sema, sourceChildRef, resolvedChildRef);
-            const bool       sourceChildHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceChildRef, resolvedChildRef);
-            if (!shouldReexpandChild && !sourceChildHasImplicitCastSubstitute)
-                sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
-            else if (!shouldReexpandChild && sourceChildHasImplicitCastSubstitute)
-            {
-                if (sema.hasSubstitute(clonedChildRef))
-                    inheritStoredPayloadUnderSubstitute(sema, clonedChildRef, sourceChildRef);
-                else
-                    inheritStoredPayload(sema, clonedChildRef, sourceChildRef);
-            }
-
-            if (!shouldReexpandChild &&
-                resolvedChildRef.isValid() &&
-                resolvedChildRef != sourceChildRef &&
-                !sourceChildHasImplicitCastSubstitute &&
-                !activeSourceRefSet.contains(resolvedChildRef))
-            {
-                const AstNodeRef clonedResolvedChildRef = cloneDetachedExprImpl(sema, resolvedChildRef, needsReanalysis);
-                sema.setSubstitute(clonedChildRef, clonedResolvedChildRef);
-                continue;
-            }
-
+            // A substituted expression can revisit its original syntax (for example,
+            // a .buffer projection). Preserve those children's bindings as well as
+            // the substitute so they cannot resolve in the inline callee's scope.
             copyDetachedBindingExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefSet, needsReanalysis);
         }
 

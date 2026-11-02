@@ -991,6 +991,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
 // to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
 // thousands of siblings for each match. Small documents cannot expose that failure mode.
+#[Swag.TestTag("stress")]
 #test
 {
     let allocator = Swag.defaultAllocator()

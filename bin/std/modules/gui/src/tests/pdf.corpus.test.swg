@@ -27,6 +27,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 // Real documents from several LLVM subprojects exercise 354 pages produced by different PDF
 // writers. Every page is decoded lazily and rendered, so one incompatible late page fails here.
 // Quarter-size pages keep this compatibility sweep small; visual and zoom tests own full detail.
+#[Swag.TestTag("stress")]
 #test
 {
     const fixtures: [5] CorpusPdf = [
@@ -38,6 +39,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     renderCorpus(fixtures)
 }
 
+#[Swag.TestTag("stress")]
 #test
 {
     const fixtures: [3] CorpusPdf = [
@@ -47,12 +49,14 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     renderCorpus(fixtures)
 }
 
+#[Swag.TestTag("stress")]
 #test
 {
     const fixtures: [1] CorpusPdf = [CorpusPdf{"llvm-polly-grosser-diploma-thesis.pdf", 101}]
     renderCorpus(fixtures)
 }
 
+#[Swag.TestTag("stress")]
 #test
 {
     const fixtures: [2] CorpusPdf = [

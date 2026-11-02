@@ -126,6 +126,7 @@ impl Window
             fail Errors.BadParameterError{"window is closed"}
         let window = cast #unconst (*LinuxDesktop.WindowState, .nativeHandle)
         try LinuxDesktop.requireUiThread(unwrap window.context)
+        window.owner = me
         return window
     }
 
@@ -242,6 +243,35 @@ impl Window
         if error or not reply do
             fail Swag.SystemError{"cannot query X11 window geometry"}
         return {cast(s32, reply.width), cast(s32, reply.height)}
+    }
+
+    internal mtd setPositionNative(x, y: s32) fail
+    {
+        let window  = try .x11State()
+        let context = unwrap window.context
+
+        // X11 top-level placement uses signed 16-bit physical coordinates.
+        if x < -32768 or x > 32767 or y < -32768 or y > 32767 do
+            fail Errors.BadParameterError{"X11 window coordinates must be between -32768 and 32767 pixels"}
+        let position: [2]u32 = [cast #bit(u32, x), cast #bit(u32, y)]
+        try LinuxDesktop.check(context, context.xcb_configure_window_checked(unwrap context.connection, window.id, 1 | 2, position))
+    }
+
+    internal mtd hideNative() fail
+    {
+        let window  = try .x11State()
+        let context = unwrap window.context
+        try LinuxDesktop.check(context, context.xcb_unmap_window_checked(unwrap context.connection, window.id))
+    }
+
+    internal mtd requestFocusNative() fail
+    {
+        let window  = try .x11State()
+        let context = unwrap window.context
+
+        // Revert to the parent when this window becomes unviewable; CurrentTime lets
+        // the server order this explicit request after its most recent focus change.
+        try LinuxDesktop.check(context, context.xcb_set_input_focus_checked(unwrap context.connection, 2, window.id, 0))
     }
 
     internal mtd showNative() fail

@@ -32,7 +32,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,086 declarations and 386 exposed members have comments.
+Core API generation succeeds: all 2,089 declarations and 386 exposed members have comments.
 The only unresolved documentation link in this probe points to the separate GUI API page,
 which is not built here.
 
@@ -804,7 +804,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   independently confirm the layouts. Libraries are dynamically loaded, so headless consumers
   do not acquire a mandatory desktop dependency.
 - Core progress: native-allocated window ownership, owner rebinding after moves, checked create/
-  resize/show/close requests, UTF-8 titles and window-manager hints, bounded event dispatch,
+  resize/position/show/hide/focus/close requests, UTF-8 titles and window-manager hints, bounded event dispatch,
   close-request versus destruction semantics and offscreen realization are implemented. Two
   public cases pass JIT/native under Xvfb, covering moved owners, resize callbacks, monitor/pointer
   queries, WM_DELETE_WINDOW, repeated close, external destruction and closing from a paint callback. A separate opt-in
@@ -818,6 +818,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   tests change real Xvfb focus between windows, move an owner with a queued event, and close from
   the callback. A separate importing module also passes both modes. The common callback and
   Windows dispatch adapter are shared; actual GUI focus policy remains part of GUI integration.
+  Public placement, hide and focus requests enforce open-window and owning-thread contracts.
+  Xvfb tests cover actual geometry and visibility, hidden-window focus rejection, moved owners,
+  callbacks closing their owner and a separately linked importer. Placement remains a native
+  request; decorated window-manager policy and complete GUI integration remain unvalidated.
   Core cursor visibility uses optional XFixes 4 and a serialized process-wide show/hide counter.
   Only zero crossings issue native requests; a rejected request leaves the counter unchanged.
   Missing displays or extensions are neutral, and extension presence is checked before negotiation.

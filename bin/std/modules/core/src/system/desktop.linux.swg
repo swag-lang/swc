@@ -56,6 +56,7 @@ internal struct Context
         xcb_warp_pointer_checked:                Linux.xcb_warp_pointer_checked_fn
         xcb_clear_area_checked:                  Linux.xcb_clear_area_checked_fn
         xcb_send_event_checked:                  Linux.xcb_send_event_checked_fn
+        xcb_set_input_focus_checked:             Linux.xcb_set_input_focus_checked_fn
     }
 }
 
@@ -148,6 +149,7 @@ internal func ensure()->*Context fail
     state.xcb_warp_pointer_checked                = try symbol'Linux.xcb_warp_pointer_checked_fn(library, "xcb_warp_pointer_checked")
     state.xcb_clear_area_checked                  = try symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
     state.xcb_send_event_checked                  = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+    state.xcb_set_input_focus_checked             = try symbol'Linux.xcb_set_input_focus_checked_fn(library, "xcb_set_input_focus_checked")
     var screenIndex: s32
     let connection = state.xcb_connect(null, &screenIndex)
     if not connection do

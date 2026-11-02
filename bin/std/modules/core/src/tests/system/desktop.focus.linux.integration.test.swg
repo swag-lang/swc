@@ -4,7 +4,7 @@
 
 struct WindowFocusNotice
 {
-    owner: *Env.Window?
+    owner:   *Env.Window?
     focused: bool
 }
 
@@ -17,7 +17,7 @@ func recordWindowFocus(owner: *Env.Window, focused: bool)
 
 func setWindowFocusForTest(window: u32)
 {
-    let context = expect LinuxDesktop.ensure()
+    let context  = expect LinuxDesktop.ensure()
     let setFocus = expect LinuxDesktop.symbol'Linux.xcb_set_input_focus_checked_fn(unwrap context.library, "xcb_set_input_focus_checked")
     expect LinuxDesktop.check(context, setFocus(unwrap context.connection, 0, window, 0))
 }
@@ -26,23 +26,24 @@ func setWindowFocusForTest(window: u32)
 #[Swag.TestTag("integration.desktop")]
 #test
 {
-    var first = expect Env.createWindow({identifier: "swag-focus-first", title: "Focus first", width: 80, height: 60})
+    var first  = expect Env.createWindow({identifier: "swag-focus-first", title: "Focus first", width: 80, height: 60})
     var second = expect Env.createWindow({identifier: "swag-focus-second", title: "Focus second", width: 80, height: 60})
-    first.callbacks.onFocus = &recordWindowFocus
+    first.callbacks.onFocus  = &recordWindowFocus
     second.callbacks.onFocus = &recordWindowFocus
     expect first.showOffScreen()
     expect second.showOffScreen()
     Swag.assert(Env.processWindowMessages())
     g_WindowFocusNotices.clear()
 
-    setWindowFocusForTest((expect first.xcbDrawable()).window)
+    expect first.requestFocus()
+
     // The event is already queued; moving must rebind it to the new owner.
     var moved = #move first
     Swag.assert(Env.processWindowMessages())
     Swag.assert(g_WindowFocusNotices.count == 1)
     Swag.assert(g_WindowFocusNotices[0].owner == &moved and g_WindowFocusNotices[0].focused)
 
-    setWindowFocusForTest((expect second.xcbDrawable()).window)
+    expect second.requestFocus()
     Swag.assert(Env.processWindowMessages())
     Swag.assert(g_WindowFocusNotices.count == 3)
     Swag.assert(g_WindowFocusNotices[1].owner == &moved and not g_WindowFocusNotices[1].focused)
@@ -68,7 +69,7 @@ func closeWindowOnFocus(owner: *Env.Window, focused: bool)
     window.callbacks.onFocus = &closeWindowOnFocus
     expect window.showOffScreen()
     Swag.assert(Env.processWindowMessages())
-    setWindowFocusForTest((expect window.xcbDrawable()).window)
+    expect window.requestFocus()
     Swag.assert(not Env.processWindowMessages())
     Swag.assert(not window.isOpen())
 }

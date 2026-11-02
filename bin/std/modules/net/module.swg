@@ -23,7 +23,8 @@ using Net
 ```
 
 Streams own their connections and close them on drop. Operations can fail and may transfer fewer
-bytes than requested. Networking is available on Windows in this implementation.
+bytes than requested. Blocking IPv4 TCP is available on Windows and Linux.
+HTTP and HTTPS requests currently require Windows.
 
 ## Request an HTTPS resource
 
@@ -44,6 +45,8 @@ HTTPS uses the Windows trust store. Requests have bounded response bodies and re
 without following them, so the caller can decide which destinations are acceptable.
 */
 #import("core")
+#static if #os == Swag.TargetOs.Linux do
+    #import("linux")
 #static if #os == Swag.TargetOs.Windows do
     #import("win32")
 

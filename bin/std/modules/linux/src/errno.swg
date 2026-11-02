@@ -25,7 +25,9 @@ const ENOTEMPTY    = 39's32
 
 const ELOOP = 40's32
 
-const ENOTSUP = 95's32
+const ENOTSUP      = 95's32
+const EADDRINUSE   = 98's32
+const ECONNREFUSED = 111's32
 
 // Returns the address of the calling thread's native errno value.
 //

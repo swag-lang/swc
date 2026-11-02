@@ -1034,11 +1034,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.088 — Network transports need portable host backends
 
 - Owner: the `net` module from std.core.001.
-- Evidence: the Windows leaf implements blocking IPv4 TCP. There is no POSIX leaf, IPv6,
-  datagram transport or resolver backend yet.
-- Next: extend the address and ownership contracts and implement the missing host leaves for
-  blocking TCP, UDP, and host/service resolution. Keep native handles and error translation
-  inside those leaves; add readiness only after the common concurrency contract is decided.
+- Evidence: Windows and Linux leaves implement blocking IPv4 TCP behind the same stream and
+  listener owners. Linux uses close-on-exec sockets, suppresses SIGPIPE per send, retries interrupted
+  transfers/accept, and completes interrupted connects through poll and SO_ERROR. Failed acquisition
+  closes its socket. The two ordinary TCP tests and four tagged Linux integration cases pass in
+  JIT/native, covering loopback, EOF, close/drop, descriptor inheritance flags, error preservation,
+  SIGPIPE suppression and repeated failed bind/connect without leaked sockets.
+  A separately linked Net consumer passes in JIT/native, including short reads and drop/EOF.
+  Generated Net API docs have 25 documented declarations and 18 documented members, with no
+  unresolved links. The existing Windows socket cleanup is preserved by inspection; Windows
+  execution has not been rerun for this change.
+  HTTP/HTTPS remains Windows-only; IPv6, datagram transport and resolver backends remain absent.
+- Next: implement Linux HTTP/HTTPS and extend the address and ownership contracts for IPv6, UDP,
+  and host/service resolution. Add cancellation and interrupted-connect integration coverage;
+  keep native handles and error translation inside host leaves, and add readiness only after
+  the common concurrency contract is decided.
 - Done when: both host backends pass the same loopback, partial-transfer, cancellation,
   resolution-failure, and handle-lifetime tests without exposing native types to callers.
 - Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.

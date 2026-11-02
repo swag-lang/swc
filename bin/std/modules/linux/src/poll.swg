@@ -2,6 +2,7 @@
 #global export
 
 const POLLIN   = 0x001's16
+const POLLOUT  = 0x004's16
 const POLLERR  = 0x008's16
 const POLLHUP  = 0x010's16
 const POLLNVAL = 0x020's16

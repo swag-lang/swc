@@ -112,7 +112,7 @@ private
 }
 
 // Returns the shared serialization plan of a struct type, building it on first use.
-public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
+public func planFor(structType: const *Swag.TypeInfoStruct)->const *Plan fail
 {
     let key = cast(u64, structType)
 
@@ -132,8 +132,10 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
     if existing do
         return existing.value
 
+    var built: Plan
+    try built.build(structType)
     let plan = g_PlanPool.addNew()
-    try plan.build(structType)
+    plan[] = #move built
     g_Plans.add(key, plan)
     return plan
 }

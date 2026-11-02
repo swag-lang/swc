@@ -37,6 +37,7 @@ struct CompilationCache
     entries:    Array'*BuildArtifact
     generation: u64
     buildCount: u64
+    executor:   Swag.Executor     // Builds progress even when the shared pool waits for their leases.
 }
 
 impl CompilationCache
@@ -96,10 +97,13 @@ impl CompilationCache
         }
 
         .entries.add(entry)
+        if not .executor.isStarted() do
+            .executor.start()
         entry.task.submit(func|entry|()
         {
             catch entry.run() { entry.result = {text: appStrings().msg_BuildFailed, failed: true} }
-        })
+        },
+                          executor: &.executor)
         return {cache: me, artifact: entry}
     }
 
@@ -126,5 +130,6 @@ impl CompilationCache
         }
 
         .entries.clear()
+        .executor.close()
     }
 }

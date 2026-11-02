@@ -8,7 +8,8 @@ Pixel and OpenGL examples still use low-level native windows; moving those rende
 same Swag-drawn chrome is unresolved in [`design.silence.md`](design.silence.md).
 Examples with multiple pages or palettes keep their navigation and theme selector visible. GUI
 examples use Encre and Papier through the toolkit and may show menus, toolbars and other controls
-that the toolkit provides. The
+that the toolkit provides. Standalone scripts keep their title and border and follow this same
+teaching-program scope; they require neither an application strip nor lens-only commands. The
 pictures in [imgs/](imgs/)
 are the validated target for the toolkit and standard applications; the text below states the
 rules they follow. Where a picture and a rule disagree, the rule wins.

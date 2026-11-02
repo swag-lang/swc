@@ -109,6 +109,7 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 // packet codec states its duration in the packet itself, which [[Audio.packetFrameCount]] reads.
 // One probe serves one stream: create it from the decoder configuration the container carries,
 // then feed it every packet of the stream in order.
+#[Swag.NoCopy]
 public struct PacketDurationProbe
 {
     encoding: SoundFileEncoding
@@ -127,12 +128,15 @@ public impl PacketDurationProbe
     // Prepares the probe for one stream of `encoding`, whose decoder configuration is `config`.
     mtd initialize(encoding: SoundFileEncoding, config: const [..] u8) fail
     {
+        if .vorbis != null do
+            Memory.delete(cast(*Vorbis.DurationProbe, .vorbis))
+        .vorbis   = null
         .encoding = encoding
         if encoding != .Vorbis do
             return
-        let probe = Memory.new'Vorbis.DurationProbe()
+        .vorbis = Memory.new'Vorbis.DurationProbe()
+        let probe = cast(*Vorbis.DurationProbe, .vorbis)
         try probe.initialize(config)
-        .vorbis = probe
     }
 
     // Returns the number of sample frames `packet` decodes to.

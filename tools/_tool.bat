@@ -46,7 +46,7 @@ if /i "%tool%"=="reference" if /i "%first%"=="test" set "options=%remaining%"
 
 if not defined options goto invoke
 for /f "tokens=1,*" %%A in ("%options%") do (
-    set "firstOption=%%A"
+    set "firstOption=%%~A"
     set "optionTail=%%B"
 )
 if not "%firstOption:~0,1%"=="-" if /i not "%firstOption%"=="dm" (
@@ -70,15 +70,23 @@ if /i "%tool%"=="apps" if /i "%action%"=="run" if not defined module (
     echo error: running an application needs its name
     exit /b 1
 )
-set "appTest="
+set "workspaceTest="
 set "appRunArguments="
-if /i "%tool%"=="apps" if /i "%action%"=="test" set "appTest=--no-test-jit"
-if /i "%tool%"=="apps" if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=3"
-if /i "%tool%"=="apps" if /i not "%action%"=="build" if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=3"
+set "compilerWorkers=3"
+call :readCompilerWorkers %options%
+if %compilerWorkers% EQU 0 set "compilerWorkers=3"
+if %compilerWorkers% GTR 3 set "compilerWorkers=3"
+if /i "%tool%"=="apps" if /i "%action%"=="test" set "workspaceTest=--no-test-jit"
+if /i "%tool%"=="std" if /i "%action%"=="test" set "workspaceTest=--no-test-jit --artifact-kind executable"
+if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=%compilerWorkers%"
+if /i "%tool%"=="apps" if /i not "%action%"=="build" (
+    if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
+    if not defined module set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
+)
 if defined module (
-    "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %appTest% %appRunArguments% --num-cores 3 %options%
+    "%compiler%" %action% --workspace "%workspace%" --workspace-module "%module%" %workspaceTest% %appRunArguments% --num-cores 3 %options%
 ) else (
-    "%compiler%" %action% --workspace "%workspace%" %appTest% %appRunArguments% --num-cores 3 %options%
+    "%compiler%" %action% --workspace "%workspace%" %workspaceTest% %appRunArguments% --num-cores 3 %options%
 )
 set "result=%ERRORLEVEL%"
 if not "%result%"=="0" exit /b %result%
@@ -91,9 +99,26 @@ if /i "%tool%"=="std" echo Usage: std.bat [dm] [build^|test] [module] [swc optio
 if /i "%tool%"=="reference" echo Usage: reference.bat [dm] [build^|test] [swc options]
 if /i "%tool%"=="examples" echo Usage: examples.bat [dm] [build^|run^|test^|smoke] [module] [swc options]
 if /i "%tool%"=="apps" echo Usage: apps.bat [dm] [build^|run^|test^|smoke] [application] [swc options]
-if /i "%tool%"=="apps" echo Set SWAG_RUNTIME_THREADS to cap the runtime pool; tests default to 3 threads.
+if /i "%tool%"=="std" echo Tests use cached native executables. Add --test-jit --no-test-native to exercise the JIT.
+echo Tests inherit --num-cores for their runtime pool, capped at 3.
+if /i "%tool%"=="apps" echo Child compilers inherit the same capped worker count.
+echo Set SWAG_RUNTIME_THREADS to override the test runtime pool.
 echo Use -h with the compiler for compiler command options.
 exit /b 0
+
+:readCompilerWorkers
+if "%~1"=="" exit /b 0
+set "workerOption=%~1"
+set "workerValue="
+if /i "%workerOption%"=="-j" set "workerValue=%~2"
+if /i "%workerOption%"=="--num-cores" set "workerValue=%~2"
+if /i "%workerOption:~0,12%"=="--num-cores=" set "workerValue=%workerOption:~12%"
+if defined workerValue (
+    for /f "delims=0123456789" %%A in ("%workerValue%") do set "workerValue="
+)
+if defined workerValue set "compilerWorkers=%workerValue%"
+shift
+goto readCompilerWorkers
 
 :packageVault
 echo(%module%| findstr /i /x "swagvault" >nul

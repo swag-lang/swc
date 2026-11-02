@@ -644,7 +644,7 @@ impl QuickWnd
     // Shows the quick-style menu at `pos`: keep the current style, edit a saved preset, or reset.
     mtd btnPopup(btn: *Button?, pos: Math.Point)
     {
-        let canAdd = .canAddCurrentStyle()
+        let canAdd    = .canAddCurrentStyle()
         with let menu = MenuCtrl.createPopup(me)
         {
             if canAdd do
@@ -667,6 +667,7 @@ impl QuickWnd
             .addCurrentStyle()
             return
         }
+
         if not btn do
             return
 
@@ -1142,8 +1143,8 @@ impl QuickWnd
     {
         if not .currentStyle do
             return
-        var done = false
-        let mode = .presetMode().mode
+        var done  = false
+        let mode  = .presetMode().mode
         let model = .main.editModeToModel(mode)
         let selectionMatches = .selectionMatches(model)
 
@@ -1408,6 +1409,7 @@ impl QuickWnd
             let corner = btnp.themeRects().btnIcon_RoundSquareBk.radius
             painter.fillRoundRect(btnp.clientRect(), corner, corner, colors.btnIcon_HotBk)
         }
+
         painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.line, metrics.separator_HairlineSize)
         paintPresetRing(painter, btnp, cell)
         var icon = btnp.theme().icon(more ? ThemeIcons.More : ThemeIcons.Plus, AddGlyphSize)
@@ -1430,8 +1432,8 @@ impl QuickWnd
             // more thing painted in the cell rather than as the state of the cell.
             .setCheckIndicator(.None)
             clearChipGround(button)
-            .formItf  = form
-            .quickWnd = me
+            .formItf     = form
+            .quickWnd    = me
             .isTransient = isTransient
             .focusPolicy = .Inner
             var name: String
@@ -1440,10 +1442,7 @@ impl QuickWnd
             .toolTip = isTransient ? "" : (name.isEmpty() ? appStrings().tip_QuickStyleActions : Format.toString(appStrings().ui_QuickStyleTip, name))
 
             .iconPainter     = func(button, bc, _, flags) { paintPreset(bc.painter, assume cast(*QuickButton, button), flags.has(.Hot)) }
-            .sigRightPressed += func(button)
-            {
-                button.quickWnd.btnPopup(button.isTransient ? null : button, button.surfaceRect().center())
-            }
+            .sigRightPressed += func(button) { button.quickWnd.btnPopup(button.isTransient ? null : button, button.surfaceRect().center()) }
         }
 
         button.sigCheckedChanged += func(button)
@@ -1509,7 +1508,7 @@ impl QuickWnd
             .setCheckIndicator(.None)
             .setArrowPosition(.None)
             .backgroundStyle = .Transparent
-            .focusPolicy = .Inner
+            .focusPolicy     = .Inner
             clearChipGround(btn)
             .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true, hot: flags.has(.Hot)) }
         }
@@ -1658,15 +1657,15 @@ impl QuickWnd
         if not style do
             return
 
-        let model     = .main.editModeToModel(.presetMode().mode)
+        let model       = .main.editModeToModel(.presetMode().mode)
         let showCurrent = .canAddCurrentStyle()
         let count       = style.forms.count + (showCurrent ? 2 : 0)
-        let perRow    = cast(u64, QuickPopoverColumns)
-        let rows      = (count + perRow - 1) / perRow
-        let width     = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
-        let height    = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
-        let frame     = button.createAnchorPopup(width, height)
-        with let body = Wnd.create'PresetPopover(frame, null, {})
+        let perRow      = cast(u64, QuickPopoverColumns)
+        let rows        = (count + perRow - 1) / perRow
+        let width       = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
+        let height      = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
+        let frame       = button.createAnchorPopup(width, height)
+        with let body   = Wnd.create'PresetPopover(frame, null, {})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -1677,7 +1676,7 @@ impl QuickWnd
 
         .allPresets = body
 
-        let mode = .presetMode().mode
+        let mode   = .presetMode().mode
         var offset = 0'u64
         if showCurrent
         {
@@ -1694,7 +1693,9 @@ impl QuickWnd
             cell.inPopover = true
             let item = i + offset
             cell.setPosition(Math.Rectangle{QuickPopoverPad + cast(f32, item % perRow) * QuickChipWidth, QuickPopoverPad + cast(f32, item / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
-            cell.setChecked(.selectionMatches(it) and mode == MainWnd.formToolMode(it) and it.isSame(.main.modelFor(Swag.kindOf(it))))
+            cell.setChecked(.selectionMatches(it) and
+                            mode == MainWnd.formToolMode(it) and
+                            it.isSame(.main.modelFor(Swag.kindOf(it))))
         }
 
         // "+" closes the popover too, keeping the current style as a new preset.
@@ -1731,7 +1732,7 @@ impl QuickWnd
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.None)
             .backgroundStyle = .Transparent
-            .focusPolicy = .Inner
+            .focusPolicy     = .Inner
             clearChipGround(btn)
             .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), hot: flags.has(.Hot)) }
         }
@@ -1782,13 +1783,14 @@ impl QuickWnd
             .parent?.applyLayout()
         }
 
-        let formItf     = .main.editModeToModel(presets.mode)
+        let formItf = .main.editModeToModel(presets.mode)
+
         // Light path: same style target and same button population. Destroying and
         // recreating every button is only needed when the style set itself changed;
         // check states and the model button repaint from live data.
         let showCurrent = .canAddCurrentStyle()
         let wantBtns    = style.forms.count + 1 + (showCurrent ? 2 : 0)
-        var liveBtns = 0'u64
+        var liveBtns    = 0'u64
         for c in .layout.children where not c.isPendingDestroy do
             liveBtns += 1
         if not forceRebuild and style == prevStyle and liveBtns == wantBtns
@@ -1819,10 +1821,10 @@ impl QuickWnd
         if .layout == null do
             return
 
-        var presets:  Array'(*Wnd)
+        var presets:   Array'(*Wnd)
         var transient: *Wnd?
-        var more:     *Wnd?
-        var model:    *Wnd?
+        var more:      *Wnd?
+        var model:     *Wnd?
         for c in .layout.children where not c.isPendingDestroy
         {
             let button = assume cast(*QuickButton, c)
@@ -1837,14 +1839,14 @@ impl QuickWnd
         }
 
         // Keep the live style and its save action first; overflow only saved presets.
-        let perRow = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
+        let perRow   = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
         let capacity = perRow * QuickVisibleRows
-        var fixed = 0'u64
+        var fixed    = 0'u64
         if transient do
             fixed += 1
         if model do
             fixed += 1
-        let all = presets.count + fixed <= capacity
+        let all   = presets.count + fixed <= capacity
         let shown = all ? presets.count : (capacity > fixed ? capacity - fixed - 1 : 0)
 
         var index = 0'u64

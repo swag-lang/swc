@@ -38,12 +38,13 @@ impl ViewerWindow
         {
             .dockStyle = .Center
         }
+
         grid.addStruct(media[], appStrings().explore_MediaOptions)
         for &plugin in .index.plugins where plugin.options do
             plugin.options(grid, plugin.displayName())
 
         let mediaSection = unwrap grid.list.selectedLine()
-        let mediaName = RichString.plainText(mediaSection.items[0]!.name.raw)
+        let mediaName    = RichString.plainText(mediaSection.items[0]!.name.raw)
         grid.setSectionIcon(mediaName, .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
         for &plugin in .index.plugins where plugin.options do
             grid.setSectionIcon(plugin.displayName(), .pluginIcon(plugin))
@@ -56,9 +57,9 @@ impl ViewerWindow
     {
         let hasToken = not tmdbStoredCredential("tmdb.token").isEmpty() or
                        not Env.variable("SWAG_SCOPE_TMDB_TOKEN").isEmpty()
-        let hasKey   = not tmdbStoredCredential("tmdb.key").isEmpty() or
-                       not Env.variable("SWAG_SCOPE_TMDB_KEY").isEmpty()
-        var status   = appStrings().ui_TMDBNoneConfigured
+        let hasKey = not tmdbStoredCredential("tmdb.key").isEmpty() or
+                     not Env.variable("SWAG_SCOPE_TMDB_KEY").isEmpty()
+        var status = appStrings().ui_TMDBNoneConfigured
         if hasToken and hasKey do
             status = appStrings().ui_TMDBBothConfigured
         elif hasToken do
@@ -70,16 +71,17 @@ impl ViewerWindow
         let oldMarkdown = Viewers.MarkdownText.g_ViewerSettings
         let oldMidi     = Viewers.Midi.g_ViewerSettings
         let oldSubtitle = Viewers.Film.g_SubtitleSettings
-        var saved = false
+        var saved       = false
         defer
         {
             if not saved
             {
                 Viewers.MarkdownText.g_ViewerSettings = oldMarkdown
-                Viewers.Midi.g_ViewerSettings = oldMidi
-                Viewers.Film.g_SubtitleSettings = oldSubtitle
+                Viewers.Midi.g_ViewerSettings         = oldMidi
+                Viewers.Film.g_SubtitleSettings       = oldSubtitle
             }
         }
+
         let dialog = .createGeneralOptionsDialog(&media)
 
         if dialog.doModal() != Dialog.BtnOk do
@@ -91,11 +93,13 @@ impl ViewerWindow
             MessageDlg.error(unwrap .surface, appStrings().ui_InvalidTMDBToken)
             return
         }
+
         if not media.clearTMDB and key.count and not validTMDBKey(key)
         {
             MessageDlg.error(unwrap .surface, appStrings().ui_InvalidTMDBKey)
             return
         }
+
         catch
         {
             try saveTMDBCredentials(tmdbSettingsDirectory(), token, key, media.clearTMDB)

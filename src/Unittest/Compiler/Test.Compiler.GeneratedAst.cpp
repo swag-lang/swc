@@ -178,7 +178,7 @@ func touch()
         cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_lifecycle_init_wrapper_stress_{}", seed);
         cmdLine.silent    = true;
-        cmdLine.numCores  = 4;
+        cmdLine.numCores  = Unittest::compilerWorkerCount(ctx);
         cmdLine.randomize = true;
         cmdLine.randSeed  = seed;
         cmdLine.files.insert(sourcePath);
@@ -312,7 +312,7 @@ func touch()
         cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_generated_spec_op_stress_{}", seed);
         cmdLine.silent    = true;
-        cmdLine.numCores  = 4;
+        cmdLine.numCores  = Unittest::compilerWorkerCount(ctx);
         cmdLine.randomize = true;
         cmdLine.randSeed  = seed;
         cmdLine.files.insert(sourcePath);

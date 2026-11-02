@@ -59,7 +59,7 @@ using Core, Gui, Pixel
 
     let grid = explorer.grid
     Swag.assert(grid.nameTimer == null)
-    grid.board = .Posters
+    grid.board   = .Posters
     grid.posters = true
     explorer.entries[0].movie.title = "Short title"
     grid.select(0)

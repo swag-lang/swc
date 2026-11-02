@@ -180,6 +180,8 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     Swag.assert(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
+    if WINDOWS do
+        Swag.assert(ArchiveExtraction.destination("C:/t", "", ".. /evil.txt").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
     Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
 
@@ -246,6 +248,8 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.currentView != null and not explorer.isLocallyVisible())
     Swag.assert(Utf8.endsWith(explorer.displayPath(window.currentFile), "docs/readme.txt"))
+    Swag.assert(Path.isValidPathName(explorer.logicalPath(window.currentFile)))
+    Swag.assert(Path.fileName(explorer.logicalPath(window.currentFile)) == "readme.txt")
     Swag.assert(window.folderFiles.isEmpty())
     window.setFilePanelVisible(true)
     Swag.assert(window.isArchivePreview() and window.folderList.lineCount() == 1)

@@ -387,11 +387,12 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JobManager_ProgressiveWorkersDrainQueuedJobs)
 {
     CommandLine cmdLine;
-    cmdLine.numCores = 4;
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
 
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
-    if (jobMgr.numWorkers() != 4 || jobMgr.isSingleThreaded())
+    const bool singleThreaded = cmdLine.numCores == 1;
+    if (jobMgr.numWorkers() != (singleThreaded ? 0 : cmdLine.numCores) || jobMgr.isSingleThreaded() != singleThreaded)
         return Result::Error;
 
     const Global      global;
@@ -496,7 +497,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JobManager_ParallelForksDrainEveryClient)
 {
     CommandLine cmdLine;
-    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
 
@@ -545,7 +546,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JobManager_ParallelTargetedWakePreservesOtherSleepers)
 {
     CommandLine cmdLine;
-    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
 
@@ -592,7 +593,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JobManager_ClientAndDependencyWakeIndexesStayConsistent)
 {
     CommandLine cmdLine;
-    cmdLine.numCores = ctx.global().jobMgr().isSingleThreaded() ? 1 : ctx.global().jobMgr().numWorkers();
+    cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
 

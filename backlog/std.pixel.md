@@ -57,7 +57,8 @@ ships; history lives in Git, not here.
 ### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
 
 - Evidence: `tools/integrations.bat opengl` runs only tests tagged
-  `integration.renderer.opengl`, in both configurations with `--all-cfg`. `sampling.ogl.test.swg`
+  `integration.renderer.opengl`; select each configuration explicitly with `-bc release` or
+  `-bc devmode`. The fixtures realize their windows with `showOffScreen`. `sampling.ogl.test.swg`
   compares CPU and GPU texture sampling, and `renderthread.test.swg` checks a worker-owned
   context and render-target readback. The stroke, text and layer scenes in
   `render.parity.test.swg` run only against `RenderCpu` and its goldens. Stroke output has

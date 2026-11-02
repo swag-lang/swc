@@ -310,8 +310,10 @@ impl PropertiesCtrl
                     if item.name == section do
                         item.icon = icon
                 }
+
                 .tab.applyLayout()
             }
+
             .list.setFirstColumnIconMargin(true)
             .list.invalidate()
             return
@@ -327,8 +329,10 @@ impl PropertiesCtrl
                 if item.name == section do
                     item.icon = icon
             }
+
             .tab.applyLayout()
         }
+
         .list.setFirstColumnIconMargin(true)
         .list.invalidate()
     }

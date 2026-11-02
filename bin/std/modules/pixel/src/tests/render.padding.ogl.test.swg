@@ -5,7 +5,8 @@ using Core
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window  = expect Env.createWindow({identifier: "pixel-padding-test", title: "Pixel padding test", width: 64, height: 64})
+    var window = expect Env.createWindow({identifier: "pixel-padding-test", title: "Pixel padding test", width: 64, height: 64})
+    expect window.showOffScreen()
     var ogl:      RenderOgl
     let renderer: IRenderer = &ogl
     var context = expect renderer.createContext(window.nativeRenderHandle(), 64, 64)

@@ -89,8 +89,15 @@ private impl BitReader
                     var byteIndex = .bitPosition >> 3
                     if .littleEndianWords do
                         byteIndex ^= 1
-                    let bitIndex = 7 - (.bitPosition & 7)
-                    result |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
+                    if byteIndex >= .bitSize / 8
+                    {
+                        .overrun = true
+                    }
+                    else
+                    {
+                        let bitIndex = 7 - (.bitPosition & 7)
+                        result |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
+                    }
                 }
             }
 

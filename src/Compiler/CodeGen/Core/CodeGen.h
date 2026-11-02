@@ -169,7 +169,7 @@ public:
     struct InlineContext
     {
         const SemaInlinePayload* payload          = nullptr;
-        SymbolVariable*         resultStorageSym = nullptr;
+        SymbolVariable*          resultStorageSym = nullptr;
 
         AstNodeRef    rootNodeRef      = AstNodeRef::invalid();
         MicroLabelRef doneLabel        = MicroLabelRef::invalid();

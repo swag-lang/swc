@@ -28,7 +28,7 @@ struct(K, V) OrderedMap
     public readonly count: u64     // The number of key-value pairs in the map.
 }
 
-// Iterates a borrowed ordered map from its greatest key to its least key.
+// Iterates a borrowed ordered map from its greatest key to its least key, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K, V) ReversedOrderedMap
 {
@@ -45,12 +45,12 @@ impl ReversedOrderedMap
         for offset in .source.count
         {
             let entryIndex = .source.count - offset - 1
-            let entry      = &.source.entries[entryIndex]
+            let entry      = .source.entries.storage() + entryIndex
             scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &entry.key),
+                            key = cast(const *K, &entry.key),
                             value = cast(*V, &entry.value),
                             index = offset,
                             break = break to Up,
@@ -294,6 +294,8 @@ impl OrderedMap
     }
 
     // Iterates entries from the least key to the greatest key.
+    //
+    // Visiting by address binds the key through a constant pointer and the value through a mutable pointer.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, value, index: u64))
     {
@@ -305,7 +307,7 @@ impl OrderedMap
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &entry.key),
+                            key = cast(const *K, &entry.key),
                             value = cast(*V, &entry.value),
                             index = entryIndex,
                             break = break to Up,

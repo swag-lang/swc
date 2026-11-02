@@ -4,6 +4,22 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.101 — Preserve enum context inside a generic constraint block
+
+- Evidence: in the integer-bound constraints of `bin/runtime/iteration.swg`, replacing the
+  qualified `Swag.TypeInfoNativeKind.S8` and `.U64` values with leading-dot `.S8` and `.U64`
+  makes a three-worker DevMode Pixel build reject `native.nativeKind >= .S8` as a comparison
+  between `TypeInfoNativeKind` and `u8`. A forced dependency rebuild reproduces it; the same
+  constraint passes the standalone `native/flow/for.swg` tests. The qualified values compile
+  the Pixel module. The constraint obtains `native` through an `assume cast` of a typeinfo
+  pointer after unwrapping aliases.
+- Next: restore that leading-dot expression in an isolated worktree and reproduce with
+  `tools/std.bat dm build pixel --rebuild`. Reduce the constraint and its importing module,
+  then inspect the expected enum type and constant type assigned to the leading-dot value
+  during generic instantiation.
+- Done when: the reduced case compiles identically with leading-dot and qualified enum values,
+  and a regression covers the failing module boundary.
+
 ### compiler.core.088 — Capture the intermittent standard-library documentation exception
 
 - Evidence: `doc --workspace <private std> --rebuild --num-cores 6` exited with code 3 and a

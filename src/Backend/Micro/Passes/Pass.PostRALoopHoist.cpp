@@ -1399,8 +1399,8 @@ namespace
         };
 
         const uint64_t frameBases = MicroPhysLiveness::maskOf(conv.stackPointer) |
-                                   MicroPhysLiveness::maskOf(conv.framePointer) |
-                                   MicroPhysLiveness::maskOf(reach.localBaseReg);
+                                    MicroPhysLiveness::maskOf(conv.framePointer) |
+                                    MicroPhysLiveness::maskOf(reach.localBaseReg);
 
         for (const NaturalLoop* loop : loops)
         {

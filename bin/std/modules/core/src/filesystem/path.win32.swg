@@ -11,13 +11,16 @@ func absolute(path: string)->String fail
 
     var buffer: Array'u16
     buffer.reserve(100)
-    var length = cast(u64, try GetFullPathNameW(winPath.buffer, cast(DWORD, buffer.capacity), buffer.buffer, null))
-
-    // The buffer was too small: the call returned the size it needs, terminator included.
-    if length >= buffer.capacity
+    var length: u64
+    for
     {
-        buffer.reserve(length)
         length = cast(u64, try GetFullPathNameW(winPath.buffer, cast(DWORD, buffer.capacity), buffer.buffer, null))
+        if length < buffer.capacity do
+            break
+
+        // When the buffer is too small, the API returns the required size including its
+        // terminator. Retry because the path or current directory may change between calls.
+        buffer.reserve(length)
     }
 
     buffer.count = length

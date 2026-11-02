@@ -331,12 +331,14 @@ internal func denySystemMutation(mutation: SystemMutation)->bool
 
 // Reports whether `path` names `root` itself or something below it.
 //
-// Both sides are resolved first. Windows normalizes separator style and case; Linux preserves
+// Invalid platform path names are rejected before resolution. Both sides are resolved first. Windows normalizes separator style and case; Linux preserves
 // case and treats backslashes as ordinary filename bytes. An invalid or unresolvable path
 // contains nothing. Linux resolves existing symbolic links before comparing containment.
 func isInsideDirectory(root: string, path: string)->bool
 {
     if root.count == 0 do
+        return false
+    if not Path.isValidPathName(root) or not Path.isValidPathName(path) do
         return false
 
     var full = absolutePath(path)

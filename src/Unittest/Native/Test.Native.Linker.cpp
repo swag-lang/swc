@@ -372,7 +372,7 @@ var gCallback = &reflect
 }
 )";
     SWC_RESULT(testDir.write("main.swg", source));
-    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args = {"run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "emitted", "--artifact-kind", "executable", "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "RetainedReflectionPayload"));
 
     ByteArray               bytes;
@@ -518,7 +518,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
     const LinkerTestDirectory testDir("rejected_callee");
     const fs::path            source = Os::getExeFullName().parent_path() / "unittests" / "sanity" / "expected_error_native_roots.swg";
     // Running the JIT first would already filter the failed functions and hide this boundary.
-    const std::vector<Utf8> args = {"test", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args = {"test", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--artifact-kind", "executable", "-f", Utf8(source), "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"), "--build-cfg", "devmode", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));
 }
 SWC_TEST_END()
@@ -678,7 +678,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
     const LinkerTestDirectory testDir("missing_resource");
     SWC_RESULT(testDir.write("module.swg", "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.resAppIcoFileName = \"missing.ico\"\n}\n"));
     SWC_RESULT(testDir.write("src/main.swg", "#main {}\n"));
-    const std::vector<Utf8> args = {"build", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
+    const std::vector<Utf8> args = {"build", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::CompileError, "cannot read resource"));
 }
 SWC_TEST_END()
@@ -742,7 +742,7 @@ func(T) accumulate(value: T)
         for (uint32_t round = 0; round < 3; ++round)
         {
             const fs::path          roundDir = testDir.path() / kind.name / std::to_string(round);
-            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", "3", "--no-log-color"};
+            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
             SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
 
             ByteArray               bytes;

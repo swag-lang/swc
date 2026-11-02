@@ -35,12 +35,12 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         std::string          output;
     };
 
-    Result runPrintMicro(PrintMicroRun& run, const fs::path& directory, std::string_view source, std::string_view buildCfg, std::span<const std::string_view> requests)
+    Result runPrintMicro(const TaskContext& ctx, PrintMicroRun& run, const fs::path& directory, std::string_view source, std::string_view buildCfg, std::span<const std::string_view> requests)
     {
         const fs::path sourcePath = directory / "print_micro.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", "3", "--no-log-color", "-f", Utf8(sourcePath.string())};
+        std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color", "-f", Utf8(sourcePath.string())};
         if (!buildCfg.empty())
         {
             args.emplace_back("-bc");
@@ -236,7 +236,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
     for (const Case& test : cases)
     {
         PrintMicroRun run;
-        SWC_RESULT(runPrintMicro(run, directory, PRINT_MICRO_SOURCE, {}, test.requests));
+        SWC_RESULT(runPrintMicro(ctx, run, directory, PRINT_MICRO_SOURCE, {}, test.requests));
         if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 ||
             countListings(run.output, "addOne") != test.addOneListings ||
             countListings(run.output, "subOne") != test.subOneListings ||
@@ -256,7 +256,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
 
         PrintMicroRun          run;
         const std::string_view request[] = {invalid};
-        SWC_RESULT(runPrintMicro(run, directory, PRINT_MICRO_SOURCE, {}, request));
+        SWC_RESULT(runPrintMicro(ctx, run, directory, PRINT_MICRO_SOURCE, {}, request));
         if (run.process != Os::ProcessRunResult::Ok || run.exitCode == 0 ||
             run.output.find("argument '--print-micro' does not accept value") == std::string::npos)
         {
@@ -289,7 +289,7 @@ public func exported()->u32 => 23
     const fs::path source = directory / "print_micro_library.swg";
     SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
 
-    const std::vector<Utf8> args = {"build", "--num-cores", "3", "--no-log-color", "--artifact-kind", "static-library",
+    const std::vector<Utf8> args = {"build", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color", "--artifact-kind", "static-library",
                                     "--out-dir", Utf8((directory / "out").string()), "--work-dir", Utf8((directory / "work").string()),
                                     "-f", Utf8(source.string()), "--print-micro", "listedByCommandLine"};
     PrintMicroRun           run;
@@ -388,7 +388,7 @@ func sumPointer(dst: [*] s64, view: const *View)->s64
 
     PrintMicroRun          run;
     const std::string_view requests[] = {"sumValue:pre-emit", "sumPointer:pre-emit"};
-    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "release", requests));
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "release", requests));
     fs::remove_all(directory, ec);
 
     const ListingLoop value   = loopOfListing(run.output, "sumValue");
@@ -462,7 +462,7 @@ func writeAfterBorrowingCall(value: Pair)->u64
 
     PrintMicroRun          run;
     const std::string_view requests[] = {"writeLocals", "writeThroughPointer", "writeBorrowingLocals", "writeAfterBorrowingCall"};
-    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
     const size_t locals          = occurrencesInListing(run.output, "writeLocals", "__valueBorrowWrite");
@@ -531,7 +531,7 @@ func writeFrameWhileBorrowed(seed: u64)->u64
 
     PrintMicroRun          run;
     const std::string_view requests[] = {"writeFrameThroughPointer", "writeFrameWhileBorrowed"};
-    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
     const size_t frame    = occurrencesInListing(run.output, "writeFrameThroughPointer", "__valueBorrowWrite");
@@ -572,7 +572,7 @@ func readThroughCall(value: Pair)->u64 => readPair(value) + value.first
 
     PrintMicroRun          run;
     const std::string_view requests[] = {"readPair", "readThroughCall"};
-    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
     const size_t reader = occurrencesInListing(run.output, "readPair", "__valueBorrowEnter");
@@ -627,7 +627,7 @@ func readAfterRead(count: u32)->s32
 
     PrintMicroRun          run;
     const std::string_view requests[] = {"readAfterStore", "readAfterRead"};
-    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    SWC_RESULT(runPrintMicro(ctx, run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
     const size_t afterStore = occurrencesInListing(run.output, "readAfterStore", "read of a 'late'");

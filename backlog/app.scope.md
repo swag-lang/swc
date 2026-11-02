@@ -20,6 +20,27 @@ owned by a viewer lives in the corresponding domain:
 
 Reusable engine work remains in the backlog of the standard module that owns it.
 
+### app.scope.011 — Reduce repeated rendering in Scope's visual tests
+
+- Evidence: with the existing DevMode compiler, devmode artifacts and three workers,
+  `tools/apps.bat dm test swagscope` reuses its test executable and passes 353 tests in
+  282.6 seconds; native execution accounts for about 280 seconds. A separate cached
+  `--test-tag golden` run passes 70 tests in about 210 seconds (209 in execution), compared
+  with 20.5 seconds for the 51 tests in `viewerwindow.test.swg` and 7.1 seconds for the
+  28 tests in `video.test.swg`. These are single runs, not matched benchmark medians.
+  Terminal progress attributes approximately 32 and 35 seconds to the Markdown and Explorer
+  lens cases in `viewerwindow.golden.test.swg`, and 31 seconds to the return-caption case in
+  `viewer.pictures.golden.test.swg`. That case opens 15 viewers in both themes, paints full
+  1280-by-800 windows repeatedly through `framedViewerWindow`, settling and capture, then
+  crops to the caption. Each `settleAnimations` call paints twice; it does not sleep.
+- Next: separate preparation from settling/capture in the picture helpers and measure the
+  necessary paints at each checkpoint. Profile lens setup, CPU backdrop rendering and golden
+  comparison separately before attributing its time to the Gaussian blur. Preserve whole-window
+  composition checks and both themes; do not replace the real viewers or disable effects merely
+  to shorten the campaign. Keep a focused test-file command for local changes.
+- Done when: repeatable cached-run measurements show lower native test time with the same
+  visual assertions and reviewed golden pixels, and individual test costs remain observable.
+
 ### app.scope.010 — Explorer intermittently presents corrupted library pixels
 
 - Evidence: a user capture of a large Films folder shows repeated horizontal colored streaks

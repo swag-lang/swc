@@ -3,6 +3,28 @@
 
 using Swag
 
+func assertHashSetKeysAreReadOnly(values: *HashSet's32)
+{
+    for &key in values[]
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+
+    for &key in values[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+    }
+}
+
+struct RejectHashSetGrowthAllocator {}
+
+impl Swag.IAllocator for RejectHashSetGrowthAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertStringSetHas(values: HashSet'String, expected: string)->bool
 {
     for value in values
@@ -45,6 +67,8 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(1)
     values.add(3)
     values.add(1)
+
+    assertHashSetKeysAreReadOnly(&values)
 
     Swag.assert(values.count == 2)
     Swag.assert(values.contains(1))
@@ -159,6 +183,43 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
     Swag.assert(result.raised)
     Swag.assert(result.message() == "HashSet capacity exceeds addressable memory")
+}
+
+#test
+{
+    var reject: RejectHashSetGrowthAllocator
+    var values: HashSet's32
+    values.add(42)
+
+    let oldCapacity  = values.capacity
+    let oldAllocator = values.allocator
+    values.allocator = &reject
+
+    let failed = Swag.catchPanic(func|&values, oldCapacity|() { values.reserve(oldCapacity + 1) })
+    values.allocator = oldAllocator
+
+    Swag.assert(failed.raised)
+    Swag.assert(values.capacity == oldCapacity and values.count == 1 and values.contains(42))
+}
+
+#test
+{
+    var reject: RejectHashSetGrowthAllocator
+    var values: HashSet's32
+    for value in 16 do
+        values.add(cast(s32, value))
+
+    let oldCapacity  = values.capacity
+    let oldAllocator = values.allocator
+    values.allocator = &reject
+
+    let duplicateFailed = Swag.catchPanic(func|&values|() { discard values.add(7) })
+    var toggleResult    = true
+    let toggleFailed    = Swag.catchPanic(func|&values, &toggleResult|() { toggleResult = values.toggle(7) })
+    values.allocator = oldAllocator
+
+    Swag.assert(not duplicateFailed.raised and not toggleFailed.raised and not toggleResult)
+    Swag.assert(values.capacity == oldCapacity and values.count == 15 and not values.contains(7))
 }
 
 #test

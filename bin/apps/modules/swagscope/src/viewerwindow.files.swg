@@ -258,7 +258,7 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
+        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString())
         .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do

@@ -11,6 +11,26 @@ struct RecordingAllocationAllocator
     storage: [128] u8
 }
 
+struct ScratchOverflowAllocator
+{
+    calls: u32
+    #[Swag.Align(16)]
+    storage: [16] u8
+}
+
+impl Swag.IAllocator for ScratchOverflowAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        .calls += 1
+        if .calls == 1 do
+            request.address = &.storage[0]
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 impl Swag.IAllocator for RecordingAllocationAllocator
 {
     mtd impl alloc(request: *Swag.AllocatorRequest)
@@ -68,6 +88,24 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     let caught = Swag.catchPanic(func|allocator|() { discard Memory.alloc(777, allocator, 32, "asset cache") })
     Swag.assert(caught.raised)
     Swag.assert(caught.message() == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]")
+}
+
+// A leak allocation must reject sizes whose header and alignment overhead would overflow.
+#test
+{
+    var backing:    ScratchOverflowAllocator
+    var scratch:    ScratchAllocator
+    let backingItf: IAllocator = &backing
+    scratch.setCapacity(1, backingItf)
+    defer scratch.release()
+
+    let scratchItf: IAllocator = &scratch
+    let caught = Swag.catchPanic(func|scratchItf|()
+    {
+        discard Memory.alloc(Swag.U64.Max, scratchItf)
+    })
+    Swag.assert(caught.raised)
+    Swag.assert(backing.calls == 1)
 }
 
 // Both explicit and context-selected custom allocators receive the complete request.

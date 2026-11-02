@@ -92,6 +92,8 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(value[0] == 'a'u8)
     Swag.assert(value.back() == 'f'u8)
     Swag.assert(value[1 to 3] == "bcd")
+    Swag.assert(not (value == value[0 to 2]))
+    Swag.assert(value == value[0 to 5])
     Swag.assert(value < "abcdeg")
     Swag.assert(value > "abcdee")
     Swag.assert((value <=> "abcdef") == 0)

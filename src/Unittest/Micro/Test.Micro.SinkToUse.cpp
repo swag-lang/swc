@@ -49,7 +49,7 @@ SWC_TEST_BEGIN(SinkToUse_StraightlineDoesNotBuildCfg)
     builder.emitLoadRegReg(result, value, MicroOpBits::B64);
     builder.emitRet();
 
-    const uint64_t cfgBuildId = builder.controlFlowGraphBuildId();
+    const uint64_t     cfgBuildId = builder.controlFlowGraphBuildId();
     MicroSinkToUsePass pass;
     MicroPassContext   context;
     context.builder      = &builder;

@@ -189,11 +189,7 @@ impl LibraryWnd
 
     mtd requestClose()
     {
-        if .view.thread.isValid()
-        {
-            .view.thread.safeForceEnd()
-            .view.thread.wait()
-        }
+        .view.stopLoading()
     }
 
     mtd const hasSelected()->bool => not .view.selModel.isEmpty()

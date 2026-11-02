@@ -36,7 +36,7 @@ struct Inspector
         foldKey: string = "I"     // Key the application binds to fold and unfold the inspector, written on the edge tab.
 
         sigFoldChanged: SigArray'func||(*Inspector)     // Emitted after the inspector folds or unfolds.
-        topOffset: f32 = 0     // Moves the inspector from its strip-aware top edge, in logical pixels.
+        topOffset:      f32 = 0     // Moves the inspector from its strip-aware top edge, in logical pixels.
 
         readonly
         {

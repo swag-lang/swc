@@ -9,7 +9,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     host.setup(880, 420)
     registerAppStrings(&host.app.resources)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer       = explorer
     window.explorerActive = true
@@ -18,7 +18,7 @@ using Core, Gui, Pixel
     explorer.show()
     window.applyLayout()
 
-    let line     = unwrap explorer.tools.parent
+    let line      = unwrap explorer.tools.parent
     let fullRight = line.clientRect().right()
     explorer.showInformation()
     Swag.assert(explorer.padding.z > 0 and line.clientRect().right() < fullRight)

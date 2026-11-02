@@ -10,9 +10,11 @@
 //
 // Start it before submitting to it. Closing it, or leaving its scope, runs every task already
 // submitted, then stops its thread. The executor holds a submitted task until it runs, so declare
-// the tasks before the executor, as a group's borrowed storage is declared before the group. A task that waits for another task of the same executor never
-// finishes: one thread runs them in order. Under compile-time execution there is no thread, and a
-// task runs inside its submission.
+// the tasks before the executor, as a group's borrowed storage is declared before the group. A
+// task that waits for another task of the same executor never finishes: one thread runs them in
+// order. A task running on the executor must not close it, because closing waits for that thread
+// to finish. Under compile-time execution there is no thread, and a task runs inside its
+// submission.
 //
 // ```swag
 // var renderer: Swag.Executor
@@ -86,6 +88,8 @@ impl Executor
     {
         if not .isStarted() do
             return
+        if Swag.getContext() == &.context do
+            Swag.panic("an executor cannot close itself from its own thread", #curlocation)
 
         .mutex.lock()
         .stopping = true

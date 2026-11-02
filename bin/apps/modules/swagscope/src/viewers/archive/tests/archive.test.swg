@@ -234,3 +234,19 @@ func writeZipFixture()->String
     let extractError = extractErrorOutcome.value()
     Swag.assert(extractError is Errors.InvalidFormatError)
 }
+
+// Extraction refuses an occupied destination and leaves its bytes untouched.
+#test
+{
+    let archiveFile = writeZipFixture()
+    defer discard catch File.delete(archiveFile)
+    let archive = expect Archive.Zip.load(archiveFile)
+    let output  = Gui.Testing.tempFilePath("scope-archive-occupied-", ".txt")
+    defer discard catch File.delete(output)
+    discard expect File.writeAllText(output, "keep existing file")
+
+    var extractErrorOutcome: Swag.Error
+    catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as extractErrorOutcome
+    Swag.assert(extractErrorOutcome.value() is Swag.SystemError)
+    Swag.assert((expect File.readAllText(output)) == "keep existing file")
+}

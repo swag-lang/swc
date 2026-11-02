@@ -2,6 +2,28 @@
 
 using Swag, Core
 
+// A data chunk cannot extend beyond the declared RIFF container or the physical file.
+#test
+{
+    let source    = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-bounds-%.wav", Guid128.random()))
+    defer discard catch File.delete(temporary)
+
+    for fieldOffset in [4'u64, 40]
+    {
+        var bytes  = source
+        var writer = ByteStream.openWrite(&bytes)
+        writer.setPosition(fieldOffset)
+        writer.writeLittleEndian(fieldOffset == 4 ? 36'u32 : 100'u32)
+        discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+        var error: Swag.Error
+        discard catch SoundFile.load(temporary) as error
+        Swag.assert(error.value() is Errors.InvalidFormatError)
+    }
+}
+
 #test
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")

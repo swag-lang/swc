@@ -7,7 +7,8 @@ using Core, Ogl
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window  = expect Env.createWindow({identifier: "pixel-readback-test", title: "Pixel readback test", width: 64, height: 48})
+    var window = expect Env.createWindow({identifier: "pixel-readback-test", title: "Pixel readback test", width: 64, height: 48})
+    expect window.showOffScreen()
     var renderer: RenderOgl
     let gpu:      IRenderer = &renderer
     var context = expect gpu.createContext(window.nativeRenderHandle(), 64, 48)

@@ -94,6 +94,13 @@ func stallHttp(thread: const *Threading.Thread)
 
 #test
 {
+    var error: Swag.Error
+    discard catch Http.get("127.0.0.1", 80, "/resource#fragment", false) as error
+    Swag.assert(error.value() is Errors.BadParameterError)
+}
+
+#test
+{
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
     var fixture  = HttpServerFixture{listener: &listener, response: "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nConnection: close\r\n\r\n123456"}

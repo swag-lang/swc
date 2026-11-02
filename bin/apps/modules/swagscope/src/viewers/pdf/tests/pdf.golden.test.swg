@@ -38,7 +38,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(view.nextButton.position.right() <= view.zoomLabel.position.x)
 
     var image = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&image, "viewer.pdf.info-bar")
+    assertScopeImageGolden(&image, "viewer.pdf.info-bar")
 }
 
 // A document is paper standing on the ground of the window, its outline in the margin beside the
@@ -90,6 +90,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         Swag.assert(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
         Swag.assert(margin.position.right() <= view.pdfView.pageColumn().x)
         var image = host.render(window)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.pdf.page.paper" : "viewer.pdf.page")
+        assertScopeImageGolden(&image, light ? "viewer.pdf.page.paper" : "viewer.pdf.page")
     }
 }

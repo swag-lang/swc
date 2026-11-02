@@ -8,10 +8,10 @@ class TaskContext;
 
 struct DebugSourceInfo
 {
-    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-    uint16_t      sanityMaskOverride     = 0;
-    bool          hasSanityMaskOverride  = false;
-    bool          debugNoStep            = false;
+    SourceCodeRef sourceCodeRef         = SourceCodeRef::invalid();
+    uint16_t      sanityMaskOverride    = 0;
+    bool          hasSanityMaskOverride = false;
+    bool          debugNoStep           = false;
 
     bool isValid() const { return sourceCodeRef.isValid(); }
     bool isStepVisible() const { return isValid() && !debugNoStep; }

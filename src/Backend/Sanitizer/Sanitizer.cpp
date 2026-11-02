@@ -605,7 +605,7 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
 
         if (!checks.empty())
         {
-            const uint8_t interests = sanitizerCheckInterests(inst, def);
+            const uint8_t  interests  = sanitizerCheckInterests(inst, def);
             const uint16_t sanityMask = inst.debugSourceInfo.hasSanityMaskOverride ? inst.debugSourceInfo.sanityMaskOverride : context_.sanitizerSafetyMask;
             for (const EnabledCheck& enabled : checks)
                 if ((interests & enabled.interests) && (sanityMask & enabled.safetyMask))
@@ -1143,7 +1143,7 @@ namespace
     void clearMovedFromOverlaps(SanitizerState& state, const int64_t slot, const uint64_t size)
     {
         std::vector<std::pair<int64_t, SanitizerMovedRange>> retained;
-        const int64_t writeEnd = slot + static_cast<int64_t>(size);
+        const int64_t                                        writeEnd = slot + static_cast<int64_t>(size);
         for (auto it = state.movedFrom.begin(); it != state.movedFrom.end();)
         {
             const int64_t rangeStart = it->first;
@@ -2206,10 +2206,10 @@ void Sanitizer::reportAccessToMovedRange(const MicroInstr& inst, const MicroInst
 
     const bool     readsVolatileMemory = inst.op == MicroInstrOpcode::LoadVolatileRegMem;
     const uint64_t accessSize          = def.flags.has(MicroInstrFlagsE::WritesMemory) && !readsVolatileMemory ? memoryWriteSize(inst, ops) : memoryReadSize(inst, ops);
-    const int64_t  accessEnd            = slot + static_cast<int64_t>(accessSize);
+    const int64_t  accessEnd           = slot + static_cast<int64_t>(accessSize);
     for (const auto& [rangeStart, range] : state.movedFrom)
     {
-        const int64_t  rangeEnd   = rangeStart + static_cast<int64_t>(range.size);
+        const int64_t rangeEnd = rangeStart + static_cast<int64_t>(range.size);
         if (accessEnd <= rangeStart || slot >= rangeEnd)
             continue;
 

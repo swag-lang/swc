@@ -29,6 +29,15 @@ using Swag
 
 #test
 {
+    var bytes: Array'u8
+    var stream = ByteStream.openRead(bytes.toSlice())
+
+    Swag.assert(stream.remainingBytes().count == 0)
+    Swag.assert(stream.remainingString().count == 0)
+}
+
+#test
+{
     var buffer: Array'u8
     var stream = ByteStream.openWrite(&buffer)
     stream.writeBytes([0xAB, 0xCD, 0xEF])
@@ -42,6 +51,36 @@ using Swag
     Swag.assert(stream.peekU8() == 0xAB)
     Swag.assert(stream.readU8() == 0xAB)
     Swag.assert(Slice.equals(stream.remainingBytes(), [0xCD, 0xEF]))
+}
+
+#test
+{
+    var buffer: Array'u8
+    buffer.reserve(4)
+    buffer.add([10'u8, 20, 30, 40])
+
+    var stream = ByteStream.openWrite(&buffer)
+    stream.setPosition(1)
+    stream.writeBytes(buffer[0 until 3])
+    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30]))
+
+    stream.setPosition(4)
+    stream.writeBytes(buffer.toSlice())
+    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30, 10, 10, 20, 30]))
+}
+
+#test
+{
+    var buffer: Array'u8
+    buffer.reserve(8)
+    buffer.add([0x41'u8, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48])
+    let value = Swag.makeString(buffer.buffer, buffer.count)
+
+    var stream = ByteStream.openWrite(&buffer)
+    stream.writeSizedString(value)
+
+    let expected: [12] u8 = [8, 0, 0, 0, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48]
+    Swag.assert(Slice.equals(buffer.toSlice(), expected))
 }
 
 // LEB128 varints round-trip across the byte widths, and a truncated or over-long

@@ -64,6 +64,13 @@ public struct ScrollWnd
     paddingZ:      f32      // Width the vertical bar takes from the view.
     paddingW:      f32      // Height the horizontal bar takes from the view.
 
+    // A responsive view can change its content size when a bar narrows it. Keep bars needed
+    // during one layout until the next external resize, so that feedback reaches a fixed size.
+    layingView:      bool
+    viewLayoutAgain: bool
+    layoutBarV:      bool
+    layoutBarH:      bool
+
     aniBkBarV: BlendColor     // Hover color of the vertical track.
     aniBkBarH: BlendColor     // Hover color of the horizontal track.
     aniBoxV:   BlendColor     // Color of the vertical thumb.
@@ -108,14 +115,30 @@ public impl IWnd for ScrollWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .computeLayout()
-        if .view == null do
+        if .layingView
+        {
+            .viewLayoutAgain = true
             return
-        var rect = .paddedClientRect()
-        rect.width  -= .paddingZ
-        rect.height -= .paddingW
-        rect.applyPadding(.view.margin)
-        .view.setPosition(rect)
+        }
+
+        .layingView = true
+        defer .layingView = false
+        .layoutBarV, .layoutBarH = false
+        .viewLayoutAgain         = true
+        while .viewLayoutAgain
+        {
+            .viewLayoutAgain = false
+            .computeLayout()
+            .layoutBarV = .layoutBarV or .showBarV
+            .layoutBarH = .layoutBarH or .showBarH
+            if .view == null do
+                return
+            var rect = .paddedClientRect()
+            rect.width  -= .paddingZ
+            rect.height -= .paddingW
+            rect.applyPadding(.view.margin)
+            .view.setPosition(rect)
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -436,12 +459,12 @@ impl ScrollWnd
 
         if sy > clientRect.height do
             .needV = true
-        if .needV or .flags.has(.AlwaysShowVertical) do
+        if .needV or .flags.has(.AlwaysShowVertical) or .layoutBarV do
             .showBarV = true
 
         if not .flags.has(.DisableHorizontal) and sx > clientRect.width do
             .needH = true
-        if .needH or .flags.has(.AlwaysShowHorizontal) do
+        if .needH or .flags.has(.AlwaysShowHorizontal) or .layoutBarH do
             .showBarH = true
 
         if not .flags.has(.DisableHorizontal) and

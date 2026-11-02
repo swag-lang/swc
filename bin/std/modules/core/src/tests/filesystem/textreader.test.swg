@@ -95,3 +95,28 @@ using Swag
     Swag.assert(expect reader.readLine(&line))
     Swag.assert(line == "second")
 }
+
+// TextReader rejects malformed UTF-8 in a line and in an unterminated final line.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textreader_invalid_utf8.tmp")
+    defer discard catch File.delete(fileName)
+
+    discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF, '\n'u8])
+    var reader: File.TextReader
+    expect reader.open(fileName)
+    defer reader.close()
+
+    var line:      String
+    var lineError: Swag.Error
+    discard catch reader.readLine(&line) as lineError
+    Swag.assert(lineError.value() is Errors.InvalidFormatError)
+
+    reader.close()
+    discard expect File.writeAllBytes(fileName, ['a'u8, 0xC3])
+    expect reader.open(fileName)
+
+    var textError: Swag.Error
+    discard catch reader.readToEnd() as textError
+    Swag.assert(textError.value() is Errors.InvalidFormatError)
+}

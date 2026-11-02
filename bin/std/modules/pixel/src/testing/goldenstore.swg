@@ -178,7 +178,7 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
 
 private
 {
-    struct ImageDifference
+    internal struct ImageDifference
     {
         sameSize:        bool
         differentPixels: u64
@@ -191,19 +191,69 @@ private
 
     func isWithinTolerance(difference: const *ImageDifference, options: ImageGoldenOptions)->bool => difference.sameSize and difference.differentPixels <= options.maxDifferentPixels
 
-    func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
+    // Golden PNGs and rendered surfaces usually use different channel orders. Read their
+    // packed bytes directly; only associated translucent pixels need logical conversion.
+    struct ComparisonPixels
+    {
+        image: const *Image
+        packed: bool
+        red: u32
+        blue: u32
+    }
+
+    impl ComparisonPixels
+    {
+        func create(image: const *Image)->ComparisonPixels
+        {
+            var result: #returntype
+            result.image  = image
+            result.packed = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 or
+                            image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+            let blueFirst = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+            result.red  = blueFirst ? 2 : 0
+            result.blue = blueFirst ? 0 : 2
+            return result
+        }
+
+        #[Swag.Inline]
+        mtd const color(row: const [*] u8, x, y: s32)->Color
+        {
+            if not .packed do
+                return .image.pixelColor(x, y)
+            let pixel = row + cast(u64, x) * .image.bytesPerPixel
+            let alpha = .image.bytesPerPixel == 4 ? pixel[3] : 255'u8
+            if .image.alphaMode == .Premultiplied and alpha != 255 do
+                return .image.pixelColor(x, y)
+            var result: #returntype
+            result.r = pixel[.red]
+            result.g = pixel[1]
+            result.b = pixel[.blue]
+            result.a = alpha
+            return result
+        }
+    }
+
+    internal func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
     {
         var result: #returntype
         result.sameSize = expected.width == actual.width and expected.height == actual.height
         if not result.sameSize do
             return result
 
+        let expectedPixels = ComparisonPixels.create(expected)
+        let actualPixels   = ComparisonPixels.create(actual)
+        let sameStorage    = expectedPixels.packed and actualPixels.packed and
+                             expected.pixelFormat == actual.pixelFormat and expected.alphaMode == actual.alphaMode
         for y in actual.height
         {
+            let expectedRow = expected.pixels.storage() + cast(u64, expected.height - y - 1) * expected.rowStride
+            let actualRow   = actual.pixels.storage() + cast(u64, actual.height - y - 1) * actual.rowStride
+            if sameStorage and Memory.compare(expectedRow, actualRow, actual.rowStride) == 0 do
+                continue
             for x in actual.width
             {
-                let expectedColor = expected.pixelColor(x, y)
-                let actualColor   = actual.pixelColor(x, y)
+                let expectedColor = expectedPixels.color(expectedRow, x, y)
+                let actualColor   = actualPixels.color(actualRow, x, y)
                 let deltaA        = Math.abs(cast(s32, expectedColor.a) - actualColor.a)
                 let deltaR        = Math.abs(cast(s32, expectedColor.r) - actualColor.r)
                 let deltaG        = Math.abs(cast(s32, expectedColor.g) - actualColor.g)

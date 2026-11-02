@@ -34,7 +34,7 @@ impl ViewerWindow
 
         .pendingFile = fileName
         .pendingEmpty.clear()
-        .pendingRemember = remember
+        .pendingRemember      = remember
         .pendingForgetMissing = offerForgetMissing
 
         // Normal opens hide the home before the first frame. A recent-row open keeps it in place
@@ -44,6 +44,7 @@ impl ViewerWindow
             .home.hide()
             .hintLine.hide()
         }
+
         if .explorer
         {
             .explorer.leave()
@@ -123,10 +124,10 @@ impl ViewerWindow
                 return
             }
 
-            let remember   = .pendingRemember
+            let remember           = .pendingRemember
             let offerForgetMissing = .pendingForgetMissing
-            let requested  = String.from(.pendingFile)
-            var classified = .choiceLoad.finish()
+            let requested          = String.from(.pendingFile)
+            var classified         = .choiceLoad.finish()
             .pendingFile.clear()
             if not classified.exists
             {
@@ -412,6 +413,7 @@ impl ViewerWindow
             .explorerTransition = false
             .refreshExplorerCaption()
         }
+
         .adoptSession(instance)
         .armSlide()
         .currentView!.dockStyle = .Center
@@ -613,8 +615,10 @@ impl ViewerWindow
             .outgoingSidePanelHost?.bringToFront()
             .outgoingSidePanelButton?.bringToFront()
         }
-        elif .explorerTransition do
+        elif .explorerTransition
+        {
             .explorer!.bringToFront()
+        }
     }
 
     // Shows the viewer of `choices[index]`, creating its session on first use; a viewer that fails

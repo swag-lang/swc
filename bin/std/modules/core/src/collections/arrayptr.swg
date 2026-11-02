@@ -68,10 +68,11 @@ impl ArrayPtr
         .count = 0
     }
 
-    // Deletes the object `item` points to, without touching the array.
+    // Deletes the object `item` points to, without removing its pointer from the array.
     //
     // `item` must come from this array's allocator, typically through [[allocate]]. A null `item`
-    // does nothing.
+    // does nothing. Remove its entry before clearing or dropping the array, or it will be deleted
+    // again. Use [[deleteAt]], [[deleteAtUnordered]], or [[deleteBack]] to delete and remove it together.
     mtd destroy(item: *T?)
     {
         Memory.delete(item, .allocator)
@@ -83,6 +84,7 @@ impl ArrayPtr
     // Allocates a default-initialized object, appends its pointer, and returns it.
     mtd addNew()->*T
     {
+        .grow(.count + 1)
         let ptr = .allocate()
         .add(ptr)
         return ptr
@@ -91,6 +93,8 @@ impl ArrayPtr
     // Allocates a default-initialized object, inserts its pointer at `index`, and returns it.
     mtd insertNew(index: u64)->*T
     {
+        Debug.safetyBoundCheck(index <= .count, "index out of range")
+        .grow(.count + 1)
         let ptr = .allocate()
         .insertAt(index, ptr)
         return ptr

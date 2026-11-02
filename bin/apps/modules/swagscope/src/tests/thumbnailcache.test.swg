@@ -87,17 +87,17 @@ using Core, Pixel, Gui
     let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-staged-%.mkv", Guid64.random()))
     discard expect File.writeAllText(source, "fixture")
     defer catch File.delete(source)
-    var buffer: ConcatBuffer
+    var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true})
     let settings = buffer.toString()
-    let key = expect ThumbnailCache.key(source, settings: settings)
+    let key      = expect ThumbnailCache.key(source, settings: settings)
     defer catch File.delete(key)
     var frame = Image.create(24, 18, .RGB8)
     expect ThumbnailCache.write(key, &frame)
 
     var preview: ExplorerPreview
-    preview.path = source
+    preview.path     = source
     preview.settings = settings
     preview.start(&host.surfaceWnd)
     preview.wait()
@@ -108,7 +108,7 @@ using Core, Pixel, Gui
     stampMovieCache(&frame)
     expect ThumbnailCache.write(key, &frame)
     var visited: ExplorerPreview
-    visited.path = source
+    visited.path     = source
     visited.settings = settings
     visited.start(&host.surfaceWnd)
     visited.wait()
@@ -121,7 +121,7 @@ using Core, Pixel, Gui
     let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-album-%", Guid64.random()))
     expect Directory.create(folder)
     defer catch Directory.delete(folder, recurse: true)
-    let song = Path.combine(folder, "01.flac")
+    let song  = Path.combine(folder, "01.flac")
     let cover = Path.combine(folder, "cover.jpg")
     discard expect File.writeAllText(song, "fixture")
     Swag.assert(localAlbumArtwork(song).isEmpty())

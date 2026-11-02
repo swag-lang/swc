@@ -173,10 +173,11 @@ private impl Decoder
             var offset    = 0'u64
             while offset < config.count and completed < 2
             {
-                let page = try Ogg.readPageHeader(config, offset)
-                if offset + page.totalBytes() > config.count do
+                let page      = try Ogg.readPageHeader(config, offset)
+                let pageBytes = page.totalBytes()
+                if pageBytes > config.count - offset do
                     fail InvalidFormatError{"Opus header pages are truncated"}
-                let body = config[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = config[offset + page.headerBytes until offset + pageBytes]
                 if not hasSerial and
                    (page.flags & Ogg.FirstPage) and
                    body.count >= 8 and
@@ -207,14 +208,14 @@ private impl Decoder
                             completed += 1
                             if completed == 2
                             {
-                                .firstAudioSequence = page.sequence + 1
+                                .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
                                 break
                             }
                         }
                     }
                 }
 
-                offset += page.totalBytes()
+                offset += pageBytes
             }
 
             if completed < 2 do
@@ -497,8 +498,9 @@ private impl Decoder
         .packet.clear()
         while offset < run.count
         {
-            let page = try Ogg.readPageHeader(run, offset)
-            if offset + page.totalBytes() > run.count do
+            let page      = try Ogg.readPageHeader(run, offset)
+            let pageBytes = page.totalBytes()
+            if pageBytes > run.count - offset do
                 fail InvalidFormatError{"Ogg page run is truncated"}
             if page.serial == .serial
             {
@@ -506,7 +508,7 @@ private impl Decoder
                     firstSequence = page.sequence
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
-                let body = run[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = run[offset + page.headerBytes until offset + pageBytes]
                 var at   = 0'u64
                 for index in page.segments
                 {
@@ -522,7 +524,7 @@ private impl Decoder
                 }
             }
 
-            offset += page.totalBytes()
+            offset += pageBytes
         }
 
         if lastGranule == Ogg.NoGranule do

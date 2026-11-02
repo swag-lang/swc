@@ -144,7 +144,7 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
 
     var release: Swag.AtomicFlag
     var running, foreground, completed: Swag.AtomicValue'u32
-    var order: [8] u32
+    var order:   [8] u32
     var first, normal, helped: Swag.Task
     var queued:  [8] Swag.Task
     defer

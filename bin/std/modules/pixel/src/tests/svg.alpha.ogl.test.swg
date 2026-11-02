@@ -7,7 +7,8 @@ using Core
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window  = expect Env.createWindow({identifier: "svg-white-mask-test", title: "SVG white mask test", width: 96, height: 80})
+    var window = expect Env.createWindow({identifier: "svg-white-mask-test", title: "SVG white mask test", width: 96, height: 80})
+    expect window.showOffScreen()
     var ogl:      RenderOgl
     let renderer: IRenderer = &ogl
     var context = expect renderer.createContext(window.nativeRenderHandle(), 96, 80)

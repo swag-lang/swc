@@ -354,7 +354,7 @@ func floatingHost(host: *Testing.HeadlessHost, width, height: f32, light: bool)
     host.surfaceWnd.create(&host.root, null)
     host.surfaceWnd.sendResizeEvent()
 
-    let metrics = host.theme.metrics
+    let metrics   = host.theme.metrics
     let inspector = Inspector.create(&host.root)
     inspector.topOffset = -8
     host.root.applyLayout()

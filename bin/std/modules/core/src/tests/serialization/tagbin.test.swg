@@ -426,9 +426,11 @@ func(T) encodeTagBin(value: T)->String
 // of its shape metadata.
 struct TagBinV1Field
 {
-    seek:          u64     // Absolute file position of the field payload.
-    shapeFlags:    u8      // Shape flags of the field.
-    shapeTypeSeek: u64     // Absolute file position of the crcType word of its shape entry.
+    seek:           u64     // Absolute file position of the field payload.
+    fatEntrySeek:   u64     // Absolute file position of the field's relative offset.
+    fatStartOffset: u32     // Relative offset of the fat table from the payload start.
+    shapeFlags:     u8      // Shape flags of the field.
+    shapeTypeSeek:  u64     // Absolute file position of the crcType word of its shape entry.
 }
 
 // Walks the version 1 header, the root section header, its fat and the shape
@@ -453,6 +455,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
     Swag.assert(shapeId != Serialization.Write.TagBinAdHocShape)
     let fatOffset    = expect stream.readNative'u64()
     let payloadStart = stream.position() - bodyStart
+    result.fatStartOffset = cast(u32, fatOffset - payloadStart)
 
     // Walk the shape directory up to the field entry.
     stream.setPosition(bodyStart + shapeDirOffset)
@@ -480,6 +483,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
 
                 // The matching fat entry holds the payload offset of the field.
                 stream.setPosition(bodyStart + fatOffset + i * #sizeof(u32))
+                result.fatEntrySeek = stream.position()
                 let rel = expect stream.readNative'u32()
                 result.seek = bodyStart + payloadStart + rel
                 return result
@@ -531,6 +535,42 @@ func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(field.seek + #sizeof(u32))
     writer.writeNative(newLen)
+    return result
+}
+
+func corruptTagBinRootFatSeek(bytes: String, fatSeek: u64)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    var stream = ByteStream.openRead(result.toSlice())
+    discard expect stream.readNative'u32()
+    discard expect stream.readNative'u32()
+    let schemaLength = expect stream.readVarint()
+    stream.advance(schemaLength)
+    discard expect stream.readNative'u32()
+    discard expect stream.readNative'u64()
+    discard expect stream.readNative'u32()     // Root section version signature.
+    discard expect stream.readNative'u32()     // Struct version.
+    discard expect stream.readNative'u32()     // Fat signature.
+    discard expect stream.readNative'u32()     // Shape id.
+    let fatSeekPosition = stream.position()
+
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(fatSeekPosition)
+    writer.writeNative(fatSeek)
+    return result
+}
+
+func corruptTagBinFieldOffset(bytes: String, fieldName: string, offset: u32)->Array'u8
+{
+    var result: #returntype
+    result.add(bytes.toSlice())
+
+    let field  = findTagBinV1Field(result.toSlice(), fieldName)
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(field.fatEntrySeek)
+    writer.writeNative(offset)
     return result
 }
 
@@ -1126,6 +1166,20 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     Swag.assert(errsz != null)
 }
 
+// A compressed field cannot announce an expansion beyond Deflate's format bound.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", Swag.U64.Max, sizes.compressed)
+
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.assert(errorOutcome.value() != null)
+}
+
 // A field whose header does not decode is skipped without unbalancing the element
 // stack, so the fields around it still read back.
 #test
@@ -1215,4 +1269,32 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errlnOutcome
     let errln = errlnOutcome.value()
     Swag.assert(errln != null)
+}
+
+// A fat offset near U64.Max is rejected without wrapping the computed table end.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let patched = corruptTagBinRootFatSeek(bytes, Swag.U64.Max)
+
+    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.assert(errorOutcome.value() != null)
+}
+
+// An indexed shaped field offset cannot point into the fat table itself.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let field   = findTagBinV1Field(bytes.toSlice(), "id")
+    let patched = corruptTagBinFieldOffset(bytes, "id", field.fatStartOffset)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    decoder.serializer.ignoreElements.add("name")
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    Swag.assert(errorOutcome.value() != null)
 }

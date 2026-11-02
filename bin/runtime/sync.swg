@@ -150,13 +150,19 @@ impl Semaphore
         return true
     }
 
-    // Returns `count` permits and wakes that many waiters.
+    // Returns `count` permits and wakes that many waiters. Panics if the permit count would overflow.
     mtd release(count: u32 = 1)
     {
         if count == 0 do
             return
 
         .mutex.lock()
+        if .permits > Swag.U32.Max - count
+        {
+            .mutex.unlock()
+            Swag.safetyPanic("semaphore permit count overflow", #curlocation)
+        }
+
         .permits += count
         .mutex.unlock()
 

@@ -21,6 +21,8 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         fail BadParameterError{"PBKDF2 needs at least one iteration"}
     if not destination.count do
         return
+    if salt.count > Swag.U64.Max - 4 do
+        fail OverflowError{"PBKDF2 salt is too large"}
 
     const DigestSize = #sizeof(HmacSha256Digest)
     let blockCount = ((destination.count - 1) / DigestSize) + 1

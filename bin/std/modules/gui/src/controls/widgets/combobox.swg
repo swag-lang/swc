@@ -30,11 +30,14 @@ struct ComboBoxItem
         // The style the words of the entry are set in where the combo shows its entries as
         // segments, such as a choice of font styles lettered each in its own style.
         fontStyle = FontFamilyStyle.Regular
+
         // Keeps the item visible in the list or segment group while preventing selection.
         disabled: bool
+
         // Paints alternate content in a segmented combo; `name` remains the popup label. The
         // callback receives a borrowed painter and content rectangle.
         paint: (func||(*Painter, Math.Rectangle))?
+
         // Width of the alternate segment content in logical units; zero measures `name`.
         paintWidth: f32
     }
@@ -71,7 +74,7 @@ struct ComboBox
     pointerFocusReturn: *Wnd?                  // Focus owner restored after pointer use.
     maxIconSize:        s32                    // Widest item icon, sizing the icon column.
     hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
-    segmentWidths:      Array'f32             // Optional content widths for a hosted segmented choice.
+    segmentWidths:      Array'f32              // Optional content widths for a hosted segmented choice.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -239,6 +242,7 @@ impl IWnd for ComboBox
                 for item in .items where not item!.isSeparator do
                     width += Painter.measureString(item.name.raw, unwrap .font().regular).width + 2 * metrics.comboBox_Padding
             }
+
             return Math.Point{width + 2 * metrics.comboBox_SegmentInset, metrics.comboBox_Height}
         }
 
@@ -399,12 +403,14 @@ private impl ComboBox
                     return false
                 total += .segmentWidths[index]
             }
+
             return total <= .clientRect().width
         }
-        let share   = (.clientRect().width - 2 * metrics.comboBox_SegmentInset) / cast(f32, .items.count)
+
+        let share = (.clientRect().width - 2 * metrics.comboBox_SegmentInset) / cast(f32, .items.count)
         for item in .items
         {
-            let item = unwrap item
+            let item  = unwrap item
             let width = item.paintWidth > 0 ? item.paintWidth : Painter.measureString(item.name.raw, font).width
             if item.isSeparator or width + 2 * metrics.comboBox_Padding > share do
                 return false
@@ -427,6 +433,7 @@ private impl ComboBox
                 x += .segmentWidths[i]
             return Math.Rectangle{x, frame.y, .segmentWidths[index], frame.height}
         }
+
         let width = frame.width / cast(f32, Math.max(count, 1))
         return Math.Rectangle{frame.x + width * cast(f32, index), frame.y, width, frame.height}
     }
@@ -441,6 +448,7 @@ private impl ComboBox
                 return Swag.U32.Max
             return cast(u32, i)
         }
+
         return Swag.U32.Max
     }
 
@@ -448,12 +456,12 @@ private impl ComboBox
     // lifted where the theme lifts it, the others in the soft ink.
     mtd paintSegments(painter: *Painter, disabled: bool)
     {
-        let colors = .themeColors()
+        let colors  = .themeColors()
         let metrics = .themeMetrics()
-        let rects  = .themeRects()
-        let theme  = .theme()
-        let count  = .items.count
-        let font   = unwrap .font().regular
+        let rects   = .themeRects()
+        let theme   = .theme()
+        let count   = .items.count
+        let font    = unwrap .font().regular
 
         theme.drawSubRect(painter, .clientRect(), &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
         painter.setParams(.Antialiased)
@@ -561,8 +569,10 @@ private impl ComboBox
         for itemIt in .items
         {
             let item = unwrap itemIt
-            if item.isSeparator do
+            if item.isSeparator
+            {
                 popup.addSeparator()
+            }
             else
             {
                 let popupItem = popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)

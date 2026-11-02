@@ -1,5 +1,13 @@
 #global namespace File
 
+using Core.Errors
+
+private func validateUtf8(value: const *String) fail
+{
+    if not Utf8.isValid(value[].toSlice()) do
+        fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
+}
+
 // Reads a UTF-8 text file through an owned, buffered [[Core.File.FileStream]].
 //
 // A byte-order mark at the start of the file is skipped.
@@ -36,11 +44,13 @@ public impl TextReader
     mtd open(fullName: string) fail
     {
         Swag.assert(not .stream.isOpen())
-        .stream = try openRead(fullName)
+        var stream = try openRead(fullName)
 
         // Small files are read in one refill; large ones through a 64 KiB window.
+        let capacity = Math.clamp(try stream.size(), 16'u64, 64 * 1024'u64)
         .buffer.clear()
-        .buffer.reserve(Math.clamp(try .stream.size(), 16'u64, 64 * 1024'u64))
+        .buffer.reserve(capacity)
+        .stream        = #move stream
         .byteSeek      = 0
         .checkPreamble = true
     }
@@ -74,7 +84,7 @@ public impl TextReader
             let bufferEnd    = .buffer.buffer + .buffer.count
 
             // Scan eight bytes at a time for a line ending, then finish byte by byte.
-            while cursor + 8'u64 <= bufferEnd
+            while cast(u64, (bufferEnd - cursor)) >= 8
             {
                 let word = cast(const *u64, cursor)[]
                 if Math.hasByte(word, '\r') or Math.hasByte(word, '\n') do
@@ -92,8 +102,12 @@ public impl TextReader
             if cursor == bufferEnd
             {
                 try .readBuffer()
-                if .buffer.isEmpty() do
+                if .buffer.isEmpty()
+                {
+                    try validateUtf8(result)
                     return true
+                }
+
                 continue
             }
 
@@ -119,6 +133,7 @@ public impl TextReader
             break
         }
 
+        try validateUtf8(result)
         return true
     }
 
@@ -138,6 +153,7 @@ public impl TextReader
             try .readBuffer()
         }
 
+        try validateUtf8(&result)
         return result
     }
 }

@@ -469,6 +469,7 @@ private impl RenderCpu
     // Reads one clamped BGRA8 pixel: the exact bytes [[readPixel]] returns for that format,
     // without the per-pixel format dispatch. The sampling helpers call this on every fetch of
     // a texture paint, which is most of what a themed frame rasterizes.
+    #[Swag.Inline]
     func fetchBgra8(image: *Image, x, y: s32)->Color
     {
         let cx  = Math.clamp(x, 0, image.width - 1)
@@ -909,41 +910,44 @@ private impl RenderCpu
         return bilinearColor(c00, c10, c01, c11, fx, fy)
     }
 
+    // Inline the sampler and byte reads into the convolution: a captured callback here
+    // otherwise adds an indirect call for every tap of every blurred pixel.
+    #[Swag.Inline]
+    func backdropChannels(color: Color)->Math.Simd.F32x4
+    {
+        return cast(Math.Simd.F32x4, [cast(f32, color.r), cast(f32, color.g), cast(f32, color.b), cast(f32, color.a)]) / 255.0
+    }
+
+    #[Swag.Inline]
+    func sampleBackdropLinear(image: *Image, params: const *BackdropPass, su, sv: f32)->Math.Simd.F32x4
+    {
+        // Keep interpolation in float until the pass is complete. Quantizing each of the
+        // two bilinear lerps loses brightness repeatedly on the reconstruction pyramid.
+        let x   = Math.clamp(su * image.width - 0.5, 0.0, cast(f32, params.width - 1))
+        let y   = Math.clamp((1 - sv) * image.height - 0.5, 0.0, cast(f32, params.height - 1))
+        let x0  = cast(s32, Math.floor(x))
+        let y0  = cast(s32, Math.floor(y))
+        let x1  = Math.min(x0 + 1, params.width - 1)
+        let y1  = Math.min(y0 + 1, params.height - 1)
+        let c00 = backdropChannels(fetchBgra8(image, x0, y0))
+
+        // Aligned texel centers need no interpolation. Keep fractional coordinates on
+        // the same bilinear path, without an epsilon that could change edge pixels.
+        if x == x0 and y == y0 do
+            return c00
+        let c10    = backdropChannels(fetchBgra8(image, x1, y0))
+        let c01    = backdropChannels(fetchBgra8(image, x0, y1))
+        let c11    = backdropChannels(fetchBgra8(image, x1, y1))
+        let top    = c00 + (c10 - c00) * (x - x0)
+        let bottom = c01 + (c11 - c01) * (x - x0)
+        return top + (bottom - top) * (y - y0)
+    }
+
     mtd sampleBackdrop(batch: *RasterBatch, image: *Image, u, v: f32)->Color
     {
-        // Packed channel arithmetic keeps every bilinear operation and its rounding order,
-        // while evaluating all four channels together throughout the convolution.
-        func channels(color: Color)->Math.Simd.F32x4
-        {
-            return cast(Math.Simd.F32x4, [cast(f32, color.r), cast(f32, color.g), cast(f32, color.b), cast(f32, color.a)]) / 255.0
-        }
-
         let params  = &.backdropPass
         let sourceU = u * params.width / image.width
         let sourceV = 1 - (1 - v) * params.height / image.height
-        let sample  = func|image, params|(su, sv: f32)->Math.Simd.F32x4
-        {
-            // Keep interpolation in float until the pass is complete. Quantizing each of the
-            // two bilinear lerps loses brightness repeatedly on the reconstruction pyramid.
-            let x   = Math.clamp(su * image.width - 0.5, 0.0, cast(f32, params.width - 1))
-            let y   = Math.clamp((1 - sv) * image.height - 0.5, 0.0, cast(f32, params.height - 1))
-            let x0  = cast(s32, Math.floor(x))
-            let y0  = cast(s32, Math.floor(y))
-            let x1  = Math.min(x0 + 1, params.width - 1)
-            let y1  = Math.min(y0 + 1, params.height - 1)
-            let c00 = channels(fetchBgra8(image, x0, y0))
-
-            // Aligned texel centers need no interpolation. Keep fractional coordinates on
-            // the same bilinear path, without an epsilon that could change edge pixels.
-            if x == x0 and y == y0 do
-                return c00
-            let c10    = channels(fetchBgra8(image, x1, y0))
-            let c01    = channels(fetchBgra8(image, x0, y1))
-            let c11    = channels(fetchBgra8(image, x1, y1))
-            let top    = c00 + (c10 - c00) * (x - x0)
-            let bottom = c01 + (c11 - c01) * (x - x0)
-            return top + (bottom - top) * (y - y0)
-        }
 
         var sum: Math.Simd.F32x4
         if params.mode < 2
@@ -954,37 +958,37 @@ private impl RenderCpu
                 let offset = cast(f32, i) - reach
                 let su     = params.mode == 0 ? sourceU + offset / image.width : sourceU
                 let sv     = params.mode == 1 ? sourceV + offset / image.height : sourceV
-                sum += sample(su, sv) * batch.blurWeights![i]
+                sum += sampleBackdropLinear(image, params, su, sv) * batch.blurWeights![i]
             }
         }
         elif params.mode < 4
         {
             let dx       = params.radius / image.width
             let dy       = params.radius / image.height
-            let diagonal = sample(sourceU + dx, sourceV + dy) +
-                           sample(sourceU - dx, sourceV - dy) +
-                           sample(sourceU + dx, sourceV - dy) +
-                           sample(sourceU - dx, sourceV + dy)
+            let diagonal = sampleBackdropLinear(image, params, sourceU + dx, sourceV + dy) +
+                           sampleBackdropLinear(image, params, sourceU - dx, sourceV - dy) +
+                           sampleBackdropLinear(image, params, sourceU + dx, sourceV - dy) +
+                           sampleBackdropLinear(image, params, sourceU - dx, sourceV + dy)
             if params.mode == 2
             {
-                sum = (sample(sourceU, sourceV) * 4 + diagonal) / 8
+                sum = (sampleBackdropLinear(image, params, sourceU, sourceV) * 4 + diagonal) / 8
             }
             else
             {
-                sum = sample(sourceU - 2 * dx, sourceV) +
-                      sample(sourceU + 2 * dx, sourceV) +
-                      sample(sourceU, sourceV - 2 * dy) +
-                      sample(sourceU, sourceV + 2 * dy)
+                sum = sampleBackdropLinear(image, params, sourceU - 2 * dx, sourceV) +
+                      sampleBackdropLinear(image, params, sourceU + 2 * dx, sourceV) +
+                      sampleBackdropLinear(image, params, sourceU, sourceV - 2 * dy) +
+                      sampleBackdropLinear(image, params, sourceU, sourceV + 2 * dy)
                 sum = (sum + diagonal * 2) / 12
             }
         }
         else
         {
-            sum = sample(sourceU, sourceV)
+            sum = sampleBackdropLinear(image, params, sourceU, sourceV)
             let luminance = sum[0] * 0.2126 + sum[1] * 0.7152 + sum[2] * 0.0722
             let gray      = cast(Math.Simd.F32x4, [luminance, luminance, luminance, 1.0])
             sum = gray + (sum - gray) * params.saturation
-            let tint = channels(params.tint)
+            let tint = backdropChannels(params.tint)
             sum = sum * (1 - tint[3]) + tint * tint[3]
         }
 

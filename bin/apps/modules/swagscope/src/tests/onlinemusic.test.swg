@@ -17,7 +17,8 @@ using Core, Net, Pixel, Audio
     Swag.assert(search.choose(&compilation) == 0)
     let local = localMusicSummary(&compilation)
     Swag.assert(local.title == "A collaboration" and
-                local.artist == "Artist One & Artist Two" and
+                local.artist == "Guest Performer" and
+                local.albumArtist == "Artist One & Artist Two" and
                 local.source == "tags")
 }
 

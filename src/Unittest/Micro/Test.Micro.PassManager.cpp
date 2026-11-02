@@ -4,6 +4,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
@@ -19,7 +20,6 @@
 #include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
-#include "Backend/Encoder/X64Encoder.h"
 #include "Main/Stats.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -134,8 +134,8 @@ namespace
 
 SWC_TEST_BEGIN(LoopPasses_SkipCfgForBuildersWithoutLabels)
 {
-    MicroBuilder builder(ctx);
-    X64Encoder   encoder(ctx);
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
     const MicroReg value = MicroReg::virtualIntReg(1);
     for (uint32_t index = 0; index < 6; ++index)
         builder.emitOpBinaryRegImm(value, ApInt(index + 1, 64), MicroOp::Add, MicroOpBits::B64);

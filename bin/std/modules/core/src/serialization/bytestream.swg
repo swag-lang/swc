@@ -43,7 +43,12 @@ public impl ByteStream
     mtd const length()->u64 => .writeBuffer ? .writeBuffer.count : (.readBuffer).count
 
     // Returns the start of the underlying buffer.
-    internal mtd data()->const [*] u8 => .writeBuffer ? unwrap .writeBuffer.buffer : unwrap .readBuffer.buffer
+    internal mtd data()->const [*] u8
+    {
+        if .writeBuffer do
+            return .writeBuffer.storage()
+        return .readBuffer.buffer orelse cast(const [*] u8, cast(u64, 1))
+    }
 
     // Returns whether [[Core.ByteStream.advance]], [[Core.ByteStream.readU8]], or [[Core.ByteStream.setPosition]] reached the end of the buffer.
     mtd const isEof()->bool => .eof
@@ -63,6 +68,8 @@ public impl ByteStream
     }
 
     // Writes the bytes of `slice` and advances past them.
+    //
+    // `slice` may borrow from the destination.
     mtd writeBytes(slice: const [..] u8)
     {
         Swag.assert(.writeBuffer != null)
@@ -72,6 +79,17 @@ public impl ByteStream
             return
 
         let wb = .writeBuffer
+        if wb.buffer
+        {
+            let sourceData = slice.buffer
+            if sourceData >= wb.buffer and sourceData < wb.buffer + wb.count
+            {
+                var copy: Array'u8
+                copy.add(slice)
+                return .writeBytes(copy.toSlice())
+            }
+        }
+
         if .seek + count > wb.count do
             wb.grow(.seek + count)
         let buffer = wb.storage()
@@ -93,14 +111,14 @@ public impl ByteStream
 
     // Copies the next `count` bytes to `dest` and advances past them.
     //
-    // `dest` must be non-null, including when `count` is zero.
+    // `dest` may overlap the borrowed input, and must be non-null even when `count` is zero.
     mtd readBytes(dest: *u8, count: u64) fail
     {
         if count > .length() - .seek do
             fail OverflowError{"byte stream overflow"}
         if not count do
             return
-        Memory.copy(dest, .data() + .seek, count)
+        Memory.copyOverlapping(dest, .data() + .seek, count)
         .seek += count
     }
 
@@ -170,12 +188,26 @@ public impl ByteStream
     // Writes a string as a little-endian `u32` byte count followed by its bytes.
     //
     // This is the framing [[Core.ByteStream.readSizedString]] expects. The count is a byte count,
-    // not a character count.
+    // not a character count. `value` may borrow from the destination.
     // Panics when `value` exceeds the maximum encodable byte count.
     mtd writeSizedString(value: string)
     {
         if value.count > Swag.U32.Max do
             Swag.panic("sized string exceeds the 32-bit byte-count limit", #curlocation)
+
+        if .writeBuffer and value.count
+        {
+            let wb = .writeBuffer
+            if wb.buffer
+            {
+                let sourceData = value.buffer
+                if sourceData >= wb.buffer and sourceData < wb.buffer + wb.count
+                {
+                    let copy = String.from(value)
+                    return .writeSizedString(copy.toString())
+                }
+            }
+        }
 
         .writeLittleEndian(cast(u32, value.count))
         .writeBytes(cast(const [..] u8, value))

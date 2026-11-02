@@ -93,9 +93,13 @@ func waitBuild(lease: *Pipeline.BuildLease)
     Swag.assert(not survivor.artifact!.task.isCancelled())
 }
 
-// Pixel execution and inspection consume the same native build when settings match.
+// Pixel execution and inspection share a build and progress with only one shared worker.
 #test
 {
+    let workers = Swag.workerCount()
+    Swag.setWorkerCount(1)
+    defer Swag.setWorkerCount(workers)
+
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     window.panels[1].setLevel(.O2, notify: false)

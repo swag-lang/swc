@@ -44,7 +44,7 @@ struct(K) HashSet
     }
 }
 
-// Iterates a borrowed hash set by descending storage slot.
+// Iterates a borrowed hash set by descending storage slot, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K) ReversedHashSet
 {
@@ -70,7 +70,7 @@ impl ReversedHashSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
                 elif Reflection.isStruct(K) do
@@ -181,8 +181,8 @@ impl HashSet
 
     // Visits every key in storage-slot order, binding it to `key`.
     //
-    // The order is unspecified and changes when the set grows. Visiting by address binds a mutable
-    // pointer; otherwise a struct key is bound through a constant pointer and any other by value.
+    // The order is unspecified and changes when the set grows. Visiting by address binds a
+    // constant pointer so a key cannot be changed without updating its hash position.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key))
     {
@@ -201,7 +201,7 @@ impl HashSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             break = break to Up,
                             continue = break to Down)
                 elif Reflection.isStruct(K) do
@@ -283,13 +283,13 @@ impl HashSet
         if reqCapacity <= .capacity do
             return
 
-        let oldTable = .table
-        .count, .deleted = 0
+        let oldTable         = .table
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashSetEntry'(K), Memory.alloc(newCapacityBytes, .allocator))
+        .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
@@ -377,6 +377,23 @@ impl HashSet
     #[Discardable]
     mtd add(key: #fwd K)->*HashSetEntry
     {
+        if not .table
+        {
+            .grow()
+            return .add(#fwd key)
+        }
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+
+        index = .getNewIndex(key, index, hashVal)
+        scope
+        {
+            let table = .tablePtr()
+            if table[index].hash >= HashSet.HASH_FIRST do
+                return table + index
+        }
+
         // Growing rehashes the set a struct `key` may live in, so take it out first.
         if .growsOnInsert()
         {
@@ -389,17 +406,11 @@ impl HashSet
             else
             {
                 .grow()
+                return .add(#fwd key)
             }
         }
 
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashSet.HASH_FIRST do
-            return table + index
-
+        let table = .tablePtr()
         if table[index].hash == HashSet.HASH_FREE
         {
             table[index].key = #nodrop #fwd key
@@ -453,7 +464,41 @@ impl HashSet
     #[Discardable]
     mtd toggle(key: #fwd K)->bool
     {
-        // Growing rehashes the set a struct `key` may live in, so take it out first.
+        if not .table
+        {
+            .grow()
+            return .toggle(#fwd key)
+        }
+
+        let hashVal      = hashKey(key)
+        let mask         = .capacity - 1
+        var firstDeleted = Swag.U64.Max
+        var index        = cast(u64, hashVal) & mask
+        scope
+        {
+            let table = .tablePtr()
+            for
+            {
+                let entryHash = table[index].hash
+                if entryHash == HashSet.HASH_FREE do
+                    break
+                if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
+                {
+                    firstDeleted = index
+                }
+                elif entryHash == hashVal and table[index].key == key
+                {
+                    table[index].hash = HashSet.HASH_DELETED
+                    .count   -= 1
+                    .deleted += 1
+                    return false
+                }
+
+                index = (index + 1) & mask
+            }
+        }
+
+        // Preserve a borrowed key before growth invalidates the old storage.
         if .growsOnInsert()
         {
             #static if Reflection.isStruct(K)
@@ -465,50 +510,25 @@ impl HashSet
             else
             {
                 .grow()
+                return .toggle(#fwd key)
             }
         }
 
-        let hashVal      = hashKey(key)
-        let mask         = .capacity - 1
-        var firstDeleted = Swag.U64.Max
-        var index        = cast(u64, hashVal) & mask
-        let table        = .tablePtr()
-
-        for
+        let table       = .tablePtr()
+        let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
+        if table[targetIndex].hash == HashSet.HASH_FREE
         {
-            let entryHash = table[index].hash
-            if entryHash == HashSet.HASH_FREE
-            {
-                let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
-                if table[targetIndex].hash == HashSet.HASH_FREE
-                {
-                    table[targetIndex].key = #nodrop #fwd key
-                }
-                else
-                {
-                    .deleted -= 1
-                    table[targetIndex].key = #fwd key
-                }
-
-                table[targetIndex].hash = hashVal
-                .count += 1
-                return true
-            }
-
-            if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
-            {
-                firstDeleted = index
-            }
-            elif entryHash == hashVal and table[index].key == key
-            {
-                table[index].hash = HashSet.HASH_DELETED
-                .count   -= 1
-                .deleted += 1
-                return false
-            }
-
-            index = (index + 1) & mask
+            table[targetIndex].key = #nodrop #fwd key
         }
+        else
+        {
+            .deleted -= 1
+            table[targetIndex].key = #fwd key
+        }
+
+        table[targetIndex].hash = hashVal
+        .count += 1
+        return true
     }
 
     // Removes `key`; does nothing when it is absent.

@@ -48,8 +48,8 @@ namespace
 
 SWC_TEST_BEGIN(ColdBlockLayout_EmptyStreamIsUnchanged)
 {
-    MicroBuilder      builder(ctx);
-    MicroPassContext  passContext;
+    MicroBuilder     builder(ctx);
+    MicroPassContext passContext;
     SWC_RESULT(runColdBlockLayoutPass(builder, passContext));
     return builder.instructions().count() == 0 && !passContext.coldTailRef.isValid() ? Result::Continue : Result::Error;
 }

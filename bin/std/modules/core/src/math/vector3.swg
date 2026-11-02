@@ -451,11 +451,14 @@ impl Vector3
 
     // Moves this vector toward `target` by at most `maxDistance`.
     //
-    // It lands exactly on `target` once that is within `maxDistance`.
+    // A negative `maxDistance` moves away from `target`. If the two vectors already match, there
+    // is no movement.
     mtd moveTowards(target: Vector3, maxDistance: f32)
     {
         let dir  = target - me
         let dist = dir.length()
+        if dist == 0 do
+            return
         if dist <= maxDistance do
             me[] = target
         else do
@@ -464,11 +467,14 @@ impl Vector3
 
     // Returns this vector moved toward `target` by at most `maxDistance`.
     //
-    // The result is exactly `target` once that is within `maxDistance`.
+    // A negative `maxDistance` moves away from `target`. If the two vectors already match, the
+    // result is unchanged.
     mtd const movedTowards(target: Vector3, maxDistance: f32)->Vector3
     {
         let dir  = target - me
         let dist = dir.length()
+        if dist == 0 do
+            return me[]
         if dist <= maxDistance do
             return target
         return me[] + (dir * (maxDistance / dist))

@@ -56,17 +56,17 @@ enum SubtitleColor
 struct SubtitleSettings
 {
     #[Properties.Name("Subtitle Font")]
-    font:     SubtitleFont
+    font: SubtitleFont
     #[Properties.Name("Subtitle Size")]
-    size:     SubtitleSize = .Normal
+    size: SubtitleSize = .Normal
     #[Properties.Name("Subtitle Effect")]
-    effect:   SubtitleEffect
+    effect: SubtitleEffect
     #[Properties.Name("Subtitle Position")]
     position: SubtitlePosition
     #[Properties.Name("Subtitle Color")]
-    color:    SubtitleColor
+    color: SubtitleColor
     #[Properties.Name("Subtitle Delay"), Properties.SliderMinMax(-60, 60), Properties.Unit("s")]
-    delay:    f64
+    delay: f64
 }
 
 impl SubtitleSettings

@@ -38,7 +38,7 @@ namespace
 SWC_TEST_BEGIN(MemToReg_NoFrameSlotsIsUnchanged)
 {
     constexpr MicroReg value = MicroReg::virtualIntReg(1);
-    MicroBuilder      builder(ctx);
+    MicroBuilder       builder(ctx);
     builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
     const auto load = builder.instructions().lastInstructionRef();
     builder.emitOpBinaryRegImm(value, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);

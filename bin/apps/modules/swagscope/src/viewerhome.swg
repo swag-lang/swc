@@ -15,20 +15,21 @@ struct ViewerHomeRow
 //
 // It stays quiet on purpose: no title, no path at rest, no groups. The row under the pointer comes
 // up on the raised ground with its folder and a faint `×` that takes it out of the history;
-// "Clear…" appears under the list with the pointer and offers the partial clears and, apart, the
+// the Clear menu stays below the list and offers the partial clears and, apart, the
 // whole one. Everything older is in the lens, under `/`.
 struct ViewerHome
 {
     using wnd: Wnd
 
-    late window: *ViewerWindow
-    message:     String     // Sentence standing in for the invitation, such as why a file did not open.
-    rows:        Array'ViewerHomeRow
-    hovered:     u64 = Swag.U64.Max
-    chosen:      u64 = Swag.U64.Max
-    pointerIn:   bool
-    clearHot:    bool
-    now:         u64     // Local ticks the times are written against; zero for the clock.
+    late window:      *ViewerWindow
+    late clearButton: *IconButton
+
+    message:   String     // Sentence standing in for the invitation, such as why a file did not open.
+    rows:      Array'ViewerHomeRow
+    hovered:   u64 = Swag.U64.Max
+    chosen:    u64 = Swag.U64.Max
+    pointerIn: bool
+    now:       u64     // Local ticks the times are written against; zero for the clock.
 }
 
 impl ViewerHome
@@ -55,6 +56,13 @@ impl ViewerHome
             .backgroundStyle = .Transparent
             .focusPolicy     = .Click
             .window          = window
+        }
+
+        with result.clearButton = IconButton.createQuiet(result)
+        {
+            .setQuietText(appStrings().home_Clear)
+            .sigPressed += func|home = result|(_) { home.showClearMenu() }
+            .hide()
         }
 
         return result
@@ -87,6 +95,9 @@ impl ViewerHome
             .hovered = Swag.U64.Max
         if .chosen >= .rows.count do
             .chosen = .rows.isEmpty() ? Swag.U64.Max : .rows.count - 1
+        .clearButton.setQuietText(appStrings().home_Clear)
+        .clearButton.show(not .rows.isEmpty())
+        .layoutClearButton()
         .invalidate()
     }
 
@@ -115,12 +126,14 @@ impl ViewerHome
         return {list.x, list.y + cast(f32, index) * RowHeight, list.width, RowHeight}
     }
 
-    private mtd clearRect()->Math.Rectangle
+    private mtd layoutClearButton()
     {
-        let list  = .layout().list
-        let font  = .theme().createDefaultFont(FontSize - 1)
-        let width = Painter.measureString(appStrings().home_Clear, font).width
-        return {list.right() - width, list.bottom() + RowsToClear - RowHeight * 0.5 + 6, width, RowHeight * 0.6}
+        if .clearButton == null do
+            return
+        let list   = .layout().list
+        let width  = .clearButton.position.width
+        let height = .themeMetrics().quiet_Height
+        .clearButton.setPosition({list.right() - width, list.bottom() + RowsToClear - height * 0.5, width, height})
     }
 
     private mtd removeRect(index: u64)->Math.Rectangle
@@ -197,9 +210,7 @@ impl ViewerHome
         menu.addSeparator()
         menu.addItem(texts.home_ClearAll, AllId).critical = true
 
-        var anchor = .clearRect()
-        let point  = .localToSurface(Math.Point{anchor.right(), anchor.bottom() + 4})
-        switch menu.doModal(point, .TopRight, autoDestroy: true) orelse ""
+        switch menu.doModal(.clearButton, autoDestroy: true) orelse ""
         {
         case MissingId: .window.removeMissingRecent()
         case OlderId:   .window.removeOlderRecent()
@@ -217,6 +228,16 @@ impl ViewerHome
 
 impl IWnd for ViewerHome
 {
+    mtd impl onLayout()
+    {
+        .layoutClearButton()
+    }
+
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        .layoutClearButton()
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
@@ -327,13 +348,6 @@ impl IWnd for ViewerHome
 
             painter.popClippingRect()
         }
-
-        if .pointerIn
-        {
-            let clear = .clearRect()
-            let font  = theme.createDefaultFont(FontSize - 1)
-            painter.drawString(clear.x, font.opticalLineTop(clear.vertCenter()), appStrings().home_Clear, font, .clearHot ? colors.softText : colors.faintText)
-        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -342,13 +356,11 @@ impl IWnd for ViewerHome
         switch evt.kind
         {
         case .Enter, .Move:
-            let row   = .rowAt(pos)
-            let clear = not .rows.isEmpty() and .clearRect().contains(pos)
-            if row != .hovered or not .pointerIn or clear != .clearHot
+            let row = .rowAt(pos)
+            if row != .hovered or not .pointerIn
             {
                 .hovered   = row
                 .pointerIn = true
-                .clearHot  = clear
                 .invalidate()
             }
 
@@ -357,17 +369,10 @@ impl IWnd for ViewerHome
         case .Leave:
             .hovered   = Swag.U64.Max
             .pointerIn = false
-            .clearHot  = false
             .invalidate()
 
         case .Pressed where evt.button == .Left:
             .setFocus()
-            if not .rows.isEmpty() and .clearRect().contains(pos)
-            {
-                .showClearMenu()
-                return
-            }
-
             let row = .rowAt(pos)
             if row >= .rows.count do
                 return

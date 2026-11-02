@@ -41,10 +41,10 @@ public struct SurfaceWnd
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
-    captionButtons:       Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    captionButtons:        Array'(*IconButton)     // Application actions immediately before the native caption controls.
     leadingCaptionButtons: Array'(*IconButton)     // Application actions after the app glyph and before the title.
-    chromePalette:    ThemePalette            // Document palette copied by setChromePalette.
-    hasChromePalette: bool                    // Whether chrome follows the document rather than the application.
+    chromePalette:         ThemePalette            // Document palette copied by setChromePalette.
+    hasChromePalette:      bool                    // Whether chrome follows the document rather than the application.
 }
 
 impl IWnd for SurfaceWnd
@@ -214,7 +214,7 @@ impl IWnd for SurfaceWnd
         pos.y      = Math.round((strip - pos.height) * 0.5)
 
         var leadingButtonX = clientRect.x + metrics.wnd_CaptionMarginTitle
-        var icon            = .icon
+        var icon = .icon
         if not icon.isValid() do
             icon = surface.app.appGlyph(metrics.wnd_CaptionIconSize)
         if icon.isValid() do
@@ -225,7 +225,7 @@ impl IWnd for SurfaceWnd
                 continue
             var leadingPos = pos
             leadingPos.width = Math.max(button.preferredSize.x, Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75))
-            leadingPos.x = leadingButtonX
+            leadingPos.x     = leadingButtonX
             button.setPosition(leadingPos)
             leadingButtonX = leadingPos.right() + metrics.wnd_CaptionActionGap
         }
@@ -338,6 +338,7 @@ impl SurfaceWnd
             icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
             leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
         }
+
         for button in .leadingCaptionButtons where isShownCaptionButton(button) do
             leading = Math.max(leading, button.position.right() + metrics.wnd_CaptionActionGap)
 
@@ -452,6 +453,7 @@ impl SurfaceWnd
             if button.position.contains(pos.x, pos.y) do
                 return true
         }
+
         for button in .leadingCaptionButtons where isShownCaptionButton(button)
         {
             if button.position.contains(pos.x, pos.y) do

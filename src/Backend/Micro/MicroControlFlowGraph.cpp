@@ -132,7 +132,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
         successors_[instructionIndex].clear();
         predecessors_[instructionIndex].clear();
         instructionRefs_.push_back(it.current);
-        maxSlot_               = std::max(maxSlot_, it.current.get());
+        maxSlot_                  = std::max(maxSlot_, it.current.get());
         const MicroInstr&    inst = *it;
         const MicroInstrDef& info = MicroInstr::info(inst.op);
         hasControlFlowInstruction |= inst.op == MicroInstrOpcode::Label || inst.op == MicroInstrOpcode::LoadLabelAddress ||

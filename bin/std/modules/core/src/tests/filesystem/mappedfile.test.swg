@@ -10,13 +10,15 @@
     for &value, index in source do
         value[] = cast(u8, (index % 251))
     discard expect File.writeAllBytes(fileName, source)
-    var mapped = expect File.MappedFile.openSnapshot(fileName)
-    var region = expect mapped.mapAll()
+    var mapped       = expect File.MappedFile.openSnapshot(fileName)
+    let snapshotPath = mapped.temporary
+    var region       = expect mapped.mapAll()
     mapped.close()
     discard expect File.writeAllText(fileName, "short")
     expect File.delete(fileName)
     Swag.assert(Slice.equals(region.bytes(), source))
     region.close()
+    Swag.assert(not File.exists(snapshotPath))
 
     discard expect File.writeAllText(fileName, "")
     var empty       = expect File.MappedFile.openSnapshot(fileName)

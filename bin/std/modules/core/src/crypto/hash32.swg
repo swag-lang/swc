@@ -33,7 +33,7 @@ public func hashBytes32(buffer: const [..] u8?)->u32
             var offset = 0'u64
             while length - offset >= 8
             {
-                result ^= cast(const *u64, (data + offset))[]
+                result ^= Math.littleEndianToNative(cast(const *u64, (data + offset))[])
                 result *= Mix2
                 result ^= result >> 29
                 offset += 8
@@ -42,14 +42,14 @@ public func hashBytes32(buffer: const [..] u8?)->u32
             // Re-reading the last 8 bytes is cheaper than a byte loop and stays in bounds
             if offset != length
             {
-                result ^= cast(const *u64, (data + length - 8))[]
+                result ^= Math.littleEndianToNative(cast(const *u64, (data + length - 8))[])
                 result *= Mix2
             }
         }
         elif length >= 4
         {
-            let head = cast(u64, cast(const *u32, data)[])
-            let tail = cast(u64, cast(const *u32, (data + length - 4))[])
+            let head = cast(u64, Math.littleEndianToNative(cast(const *u32, data)[]))
+            let tail = cast(u64, Math.littleEndianToNative(cast(const *u32, (data + length - 4))[]))
             result ^= head | (tail << 32)
             result *= Mix2
         }

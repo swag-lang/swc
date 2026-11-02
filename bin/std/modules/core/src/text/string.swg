@@ -71,11 +71,9 @@ impl String
 
     // Returns the byte storage as a pointer the caller walks itself.
     //
-    // A String that holds nothing owns no block, and a caller asking it for its storage is
-    // about to walk zero bytes. The answer is then a dangling address that is never read,
-    // rather than a null every caller would have to assert: walking is bounded by 'length',
-    // and a read through the dangling address faults exactly as loudly as a read through
-    // null. Ask 'isNull' or 'isNullOrEmpty' whether there is anything to walk.
+    // A String with no buffer returns a non-null sentinel aligned for bytes. That address must
+    // not be dereferenced. An empty String may still own storage; check 'isNullOrEmpty' before
+    // reading bytes.
     #[Inline]
     mtd const storage()->[*] u8 => .buffer orelse cast([*] u8, cast(u64, 1))
 
@@ -131,10 +129,10 @@ impl String
     // Returns whether the string holds the same bytes as `other`.
     mtd const opEquals(other: string?)->bool
     {
-        if .buffer == other.buffer do
-            return true
         if .length != other.count do
             return false
+        if .buffer == other.buffer do
+            return true
         if not .length do
             return true
         return Memory.compare(unwrap .buffer, other!.buffer, .length) == 0

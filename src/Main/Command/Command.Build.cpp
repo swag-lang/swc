@@ -275,7 +275,10 @@ namespace Command
             sema(compiler);
             if (Stats::getNumErrors() == errorsBefore)
             {
-                const Result result = compiler.cmdLine().scriptMode ? finishScriptBackend(compiler) : finishBuildBackend(compiler, true);
+                // Smoke scripts use the same setup as scripts run directly, but execute in a
+                // child process so the native runner can enforce their deadline.
+                const bool   jitScript = compiler.cmdLine().scriptMode && compiler.cmdLine().command == CommandKind::Run;
+                const Result result    = jitScript ? finishScriptBackend(compiler) : finishBuildBackend(compiler, true);
                 if (result != Result::Continue)
                 {
                     if (stage)

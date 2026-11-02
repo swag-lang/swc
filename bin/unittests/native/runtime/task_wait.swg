@@ -80,6 +80,38 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
     child.submit(func|depth, completed|() { completeDescendants(depth - 1, completed) })
 }
 
+// Joining a group allows inline and overflow children to be reused with fresh captures.
+#test
+{
+    var total: Swag.AtomicValue'u32
+    var group: Swag.TaskGroup
+    for round in 3'u32
+    {
+        let value = round + 1
+        for 5 do group.spawn(func|&total, value|() { total.add(value) })
+        expect group.join()
+        Swag.assert(not group.isCancelled())
+        Swag.assert(total.load() == 5 * value * (value + 1) / 2)
+    }
+}
+
+// Recycled groups stop observing the cancellation scope that submitted their last child.
+#test
+{
+    var group: Swag.TaskGroup
+    var task:  Swag.Task
+    let owner = &task
+    task.submit(func|&group, owner|()
+    {
+        owner.cancel()
+        group.spawn(func() {})
+        Swag.assert(group.isCancelled())
+        expect group.join()
+        Swag.assert(not group.isCancelled())
+    })
+    expect task.take()
+}
+
 // Successful nesting uses task frames, not error stack levels.
 #test
 {

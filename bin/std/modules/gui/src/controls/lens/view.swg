@@ -86,10 +86,10 @@ struct View
 
 internal struct InlineChoice
 {
-    combo:  *ComboBox
+    combo:   *ComboBox
     section: *Section
-    row:    u64
-    width:  f32
+    row:     u64
+    width:   f32
 }
 
 // A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
@@ -205,7 +205,9 @@ impl IWnd for View
 
             // A real child ComboBox owns pointer movement and selection for inline rows.
             let row = .rowAt(pos)
-            if row != Swag.U64.Max and .rows[row].entry != InlineRow and (evt.delta.x != 0 or evt.delta.y != 0)
+            if row != Swag.U64.Max and
+               .rows[row].entry != InlineRow and
+               (evt.delta.x != 0 or evt.delta.y != 0)
             {
                 if row != .chosen
                 {
@@ -504,6 +506,7 @@ impl View
     private mtd updateBackdrop()
     {
         let metrics = .themeMetrics()
+
         // The renderer takes the kernel's support; a Gaussian reaches three standard deviations.
         .backdrop = BackdropEffect{algorithm: .Gaussian,
                                    radius: metrics.lens_BlurRadius * 3,
@@ -548,6 +551,7 @@ impl View
             choice.combo.clear()
             choice.combo.setSegmentWidths(noWidths)
         }
+
         .results.reset(split.rest, split.prefix)
 
         // At rest the lens is a palette of the context and the commands chosen last; an
@@ -1061,12 +1065,13 @@ private impl View
                 let titleWidth = entry.paintWidth > 0 ? entry.paintWidth : Painter.measureString(entry.title, font).width
                 widths.add(Math.ceil(titleWidth + 2 * metrics.comboBox_Padding))
             }
+
             choice.combo.setSegmentWidths(widths)
 
             var width = 2 * metrics.comboBox_SegmentInset
             for segmentWidth in widths do
                 width += segmentWidth
-            choice.width       = width
+            choice.width = width
             choice.combo.minSize.x = width
 
             let resting = .restingSegment(row.section)
@@ -1107,6 +1112,7 @@ private impl View
                 combo.setPosition(control)
                 combo.show()
             }
+
             choiceIndex += 1
         }
     }
@@ -1358,6 +1364,7 @@ private impl View
 
             painter.drawString(titleLeft, top, entry.title, font, inkText)
         }
+
         painter.popClippingRect()
     }
 

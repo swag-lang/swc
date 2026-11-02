@@ -42,12 +42,12 @@ struct MusicSource
 
 struct MusicSummary
 {
-    title:  String
-    track:  String
-    artist: String
+    title:       String
+    track:       String
+    artist:      String
     albumArtist: String
-    date:   String
-    source: String
+    date:        String
+    source:      String
 }
 
 struct CoverTarget
@@ -188,8 +188,8 @@ func stampMusicCache(image: *Image)
 }
 
 func localMusicSummary(tags: const *SoundTags)->MusicSummary =>
-    {title: tags.album, track: tags.title, artist: tags.artist, albumArtist: tags.albumArtist, date: tags.year,
-     source: tags.album.isEmpty() ? "" : "tags"}
+{title: tags.album, track: tags.title, artist: tags.artist, albumArtist: tags.albumArtist, date: tags.year,
+ source: tags.album.isEmpty() ? "" : "tags"}
 
 func labelLocalMusic(image: *Image, tags: const *SoundTags)
 {
@@ -250,8 +250,8 @@ impl MusicSummary
     {
         if .title.isEmpty() do
             return {}
-        let origin = .source == "tags" ? appStrings().explore_FileTags : "MusicBrainz"
-        var result = Format.toString("%  ·  %", safeMediaText(.title), origin)
+        let origin  = .source == "tags" ? appStrings().explore_FileTags : "MusicBrainz"
+        var result  = Format.toString("%  ·  %", safeMediaText(.title), origin)
         let strings = appStrings()
         if not .artist.isEmpty() do
             result += Format.toString("\n%", Format.toString(strings.explore_MusicArtist, safeMediaText(.artist)))

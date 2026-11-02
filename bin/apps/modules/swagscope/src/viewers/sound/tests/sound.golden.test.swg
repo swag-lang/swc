@@ -35,6 +35,6 @@ using Core, Pixel, Gui, Audio, Viewers
         host.settleAnimations(window, 4)
 
         var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "viewer.sound.paper" : "viewer.sound.ink")
+        assertScopeImageGolden(&image, light ? "viewer.sound.paper" : "viewer.sound.ink")
     }
 }

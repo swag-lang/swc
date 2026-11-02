@@ -145,9 +145,9 @@ SWC_TEST_BEGIN(PostRAPeephole_UpperHalfFlowSkipsCfgWithoutLabels)
     const auto copy = builder.instructions().lastInstructionRef();
 
     PostRaPeephole::Context context;
-    context.builder  = &builder;
-    context.storage  = &builder.instructions();
-    context.operands = &builder.operands();
+    context.builder           = &builder;
+    context.storage           = &builder.instructions();
+    context.operands          = &builder.operands();
     const uint64_t cfgBuildId = builder.controlFlowGraphBuildId();
     if (!context.isUpperHalfZeroBefore(copy, reg))
         return Result::Error;
@@ -1070,10 +1070,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_KeepsReloadForOutOfOrderAddressTakenLabels)
 {
-    MicroBuilder      builder(ctx);
-    X64Encoder        encoder(ctx);
-    const MicroReg    value       = MicroReg::intReg(0);
-    const MicroReg    base        = MicroReg::intReg(7);
+    MicroBuilder        builder(ctx);
+    X64Encoder          encoder(ctx);
+    const MicroReg      value     = MicroReg::intReg(0);
+    const MicroReg      base      = MicroReg::intReg(7);
     const MicroLabelRef first     = builder.createLabel();
     const MicroLabelRef addressed = builder.createLabel();
 

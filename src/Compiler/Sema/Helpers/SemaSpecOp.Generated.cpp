@@ -675,7 +675,9 @@ namespace
             {
                 if (!function || function->idRef() != idRef)
                     continue;
-                const bool typedSelfTarget = function->parameters().size() >= 2 &&
+                // Signature construction can still reallocate the parameter vector. The
+                // Typed publication acquires it; until then, inspect only the declaration.
+                const bool typedSelfTarget = function->isTyped() && function->parameters().size() >= 2 &&
                                              function->parameters()[1]->typeRef().isValid() &&
                                              SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, function->parameters()[1]->typeRef());
                 if (typedSelfTarget || declaredEqualityTargetsOwner(sema, *function, ownerStruct))

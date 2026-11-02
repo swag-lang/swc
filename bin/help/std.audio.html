@@ -668,7 +668,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_Codec" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Codec</span> <a class="api-item-permalink" href="#Audio_Codec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L265">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_Codec" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Codec</span> <a class="api-item-permalink" href="#Audio_Codec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L269">src</a></div>
 <p>Stores the source, destination, and concrete type of a codec instance.</p>
 <p>Every codec implementation declares a <span class="code-inline">Codec</span> as its first field: a voice reads the concrete type and the allocator back from it to destroy the instance. <a href="#Audio_registerCodec">Audio.registerCodec</a> and <a href="#Audio_registerPacketCodec">Audio.registerPacketCodec</a> check this layout at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_Codec">Codec</a></span></span></div>
@@ -684,7 +684,7 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_CodecProgress" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.CodecProgress</span> <a class="api-item-permalink" href="#Audio_CodecProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L163">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_CodecProgress" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.CodecProgress</span> <a class="api-item-permalink" href="#Audio_CodecProgress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L167">src</a></div>
 <p>Describes the byte-level progress of one incremental codec operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_CodecProgress">CodecProgress</a></span></span></div>
 </section>
@@ -739,10 +739,11 @@ voice.<span class="SFct">destroy</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Audio_PacketDurationProbe" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketDurationProbe</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L112">src</a></div>
+<div class="api-item api-item-struct"><span id="Audio_PacketDurationProbe" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.PacketDurationProbe</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L113">src</a></div>
 <p>Measures the duration of the packets a container indexes, in stream order.</p>
 <p>A Vorbis packet's duration depends on the block size of the packet before it and on the modes the stream's setup header declares, and an Opus packet's on its table of contents; every other packet codec states its duration in the packet itself, which <a href="#Audio_packetFrameCount">Audio.packetFrameCount</a> reads. One probe serves one stream: create it from the decoder configuration the container carries, then feed it every packet of the stream in order.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_PacketDurationProbe">PacketDurationProbe</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_PacketDurationProbe">PacketDurationProbe</a></span></span></div>
 </section>
 <h3 id="Audio_PacketDurationProbe_methods">Methods</h3>
 <table class="api-summary">
@@ -1175,13 +1176,13 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <span class="SKwd">func</span> <span class="SFct">packetFrameCount</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, packet: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_registerCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerCodec</span> <a class="api-item-permalink" href="#Audio_registerCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L208">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_registerCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerCodec</span> <a class="api-item-permalink" href="#Audio_registerCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L212">src</a></div>
 <p>Registers a codec implementation for subsequent voice creation.</p>
 <p><span class="code-inline">T</span> must implement <a href="#Audio_ICodec">Audio.ICodec</a>. Registration stores its type and interface dispatch table; codec instances are allocated on demand.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerCodec</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_registerPacketCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerPacketCodec</span> <a class="api-item-permalink" href="#Audio_registerPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L228">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_registerPacketCodec" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.registerPacketCodec</span> <a class="api-item-permalink" href="#Audio_registerPacketCodec" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L232">src</a></div>
 <p>Registers a packet codec implementation for subsequent voice creation.</p>
 <p><span class="code-inline">T</span> must implement <a href="#Audio_IPacketCodec">Audio.IPacketCodec</a>. Registration stores its type and interface dispatch table; codec instances are allocated on demand.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">registerPacketCodec</span>()</span></div>
@@ -1274,18 +1275,18 @@ voice.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_frames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.frames</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_frames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_frames" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.frames</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_frames" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L146">src</a></div>
 <p>Returns the number of sample frames <span class="code-inline">packet</span> decodes to.</p>
 <p>The probe also remembers what the next packet needs to know about this one, so packets must be fed in stream order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">frames</span>(packet: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.initialize</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.initialize</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L129">src</a></div>
 <p>Prepares the probe for one stream of <span class="code-inline">encoding</span>, whose decoder configuration is <span class="code-inline">config</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(encoding: <span class="SCst"><a href="#Audio_SoundFileEncoding">SoundFileEncoding</a></span>, config: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.opDrop</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L121">src</a></div>
+<div class="api-item api-item-func"><span id="Audio_PacketDurationProbe_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PacketDurationProbe.opDrop</span> <a class="api-item-permalink" href="#Audio_PacketDurationProbe_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L122">src</a></div>
 <p>Releases the duration-tracking state owned by this probe.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>

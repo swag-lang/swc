@@ -179,6 +179,15 @@ namespace Unittest
         testRegistry().push_back(test);
     }
 
+    uint32_t compilerWorkerCount(const TaskContext& ctx)
+    {
+        const CommandLine& command = ctx.cmdLine();
+        if (command.randomize)
+            return 1;
+        const uint32_t requested = command.numCores ? command.numCores : std::max(std::thread::hardware_concurrency(), 1u);
+        return std::min(requested, MAX_COMPILER_WORKERS);
+    }
+
     void registerSetup(SetupFn setupFn)
     {
         setupRegistry().push_back(setupFn);
@@ -236,13 +245,13 @@ namespace Unittest
             // Each fixture owns its compiler jobs. A diagnostic from an earlier
             // fixture must not abort this one's sema or native preparation, but it
             // still contributes to the campaign's final error count and failure.
-            auto&             errorCount = Stats::get().numErrors;
+            auto&             errorCount  = Stats::get().numErrors;
             const uint64_t    priorErrors = errorCount.exchange(0, std::memory_order_relaxed);
-            const Timer::Tick startTick  = Timer::Clock::now();
-            const Result      result     = test.fn(testCtx);
-            const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
-            const uint64_t    testErrors = errorCount.fetch_add(priorErrors, std::memory_order_relaxed);
-            const bool        ok         = result == Result::Continue && testErrors == 0;
+            const Timer::Tick startTick   = Timer::Clock::now();
+            const Result      result      = test.fn(testCtx);
+            const uint64_t    durationNs  = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
+            const uint64_t    testErrors  = errorCount.fetch_add(priorErrors, std::memory_order_relaxed);
+            const bool        ok          = result == Result::Continue && testErrors == 0;
             executedTestCount++;
             if (!ok)
                 failedTestCount++;

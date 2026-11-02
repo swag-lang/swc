@@ -9,8 +9,9 @@ using Core, Ogl
 #test
 {
     var window = expect Env.createWindow({identifier: "pixel-clip-feedback-test", title: "Pixel clipping test", width: 96, height: 64})
+    expect window.showOffScreen()
     var renderer: RenderOgl
-    let gpu: IRenderer = &renderer
+    let gpu:      IRenderer = &renderer
     var context = expect gpu.createContext(window.nativeRenderHandle(), 96, 64)
     defer gpu.deleteContext(&context)
     gpu.setCurrentContext(context)
@@ -31,8 +32,7 @@ using Core, Ogl
         gpu.draw(&painter)
 
         var attachment, sampled: GLint
-        glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                               GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachment)
+        glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachment)
         glActiveTexture(GL_TEXTURE5)
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &sampled)
         glActiveTexture(GL_TEXTURE0)

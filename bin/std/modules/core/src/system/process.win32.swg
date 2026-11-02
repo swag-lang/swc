@@ -259,13 +259,47 @@ internal func startProcessNative(info: StartInfo)->Process fail
         for entry in entries do
             result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
 
-        // One more zero closes the block. It is the whole block when there is no variable at all,
-        // which is a legitimate request: the child then starts with nothing.
+        // One more zero closes the block. An empty environment still needs the two-zero
+        // terminator, so add the first one explicitly when there are no entries.
+        if entries.isEmpty() do
+            result.add(0)
         result.add(0)
         return result
     }
 
     Swag.assert(info.fileName != null, "missing process filename")
+    if not info.fileName.count do
+        fail BadParameterError{"process filename is empty"}
+    for c in info.fileName where c == 0 do
+        fail BadParameterError{"process strings cannot contain NUL"}
+    if info.arguments
+    {
+        for c in info.arguments where c == 0 do
+            fail BadParameterError{"process strings cannot contain NUL"}
+    }
+
+    if info.workingDirectory
+    {
+        for c in info.workingDirectory where c == 0 do
+            fail BadParameterError{"process strings cannot contain NUL"}
+    }
+
+    if info.environment
+    {
+        for name, value in info.environment.variables
+        {
+            if name.isEmpty() do
+                fail BadParameterError{"process environment names cannot be empty"}
+            for c in name.toString()
+            {
+                if c == '=' or c == 0 do
+                    fail BadParameterError{"process environment names cannot contain '=' or NUL"}
+            }
+
+            for c in value.toString() where c == 0 do
+                fail BadParameterError{"process environment values cannot contain NUL"}
+        }
+    }
 
     var result: #returntype
 

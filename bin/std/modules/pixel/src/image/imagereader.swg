@@ -90,6 +90,7 @@ public interface IImageSetDecoder
 //     var image = try reader.read(cast(u32, index))
 // }
 // ```
+#[Swag.NoCopy]
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.

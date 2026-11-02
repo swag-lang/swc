@@ -207,6 +207,10 @@ func decode(text: string)->Array'u8 fail
     // A final group of two or three digits spells one or two bytes; a lone digit spells nothing.
     if count == 1 do
         fail Errors.InvalidFormatError{"truncated base64 data"}
+    if count == 2 and (digits[1] & 0x0F) do
+        fail Errors.InvalidFormatError{"non-zero unused bits in base64 data"}
+    if count == 3 and (digits[2] & 0x03) do
+        fail Errors.InvalidFormatError{"non-zero unused bits in base64 data"}
     if padding and padding != 4 - count do
         fail Errors.InvalidFormatError{"incomplete base64 padding"}
     if count >= 2

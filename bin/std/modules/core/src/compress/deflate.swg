@@ -177,7 +177,7 @@ internal
 // Call [[Core.Compress.Deflate.init]] before each [[Core.Compress.Deflate.compress]]; the
 // compressor state is allocated once and reused by later calls. Use [[Core.Compress.ZLib]]
 // for a zlib stream, which wraps Deflate data with a header and a checksum.
-#[Swag.Opaque]
+#[Swag.Opaque, Swag.NoCopy]
 public struct Deflate
 {
     // Compression state, established by 'init' and consumed by 'compress'.
@@ -1256,19 +1256,31 @@ public impl Deflate
 
     // Compresses `src` and appends one complete Deflate stream to `result`.
     //
+    // `src` may borrow from `result`; its bytes are preserved before output can reallocate it.
     // [[Core.Compress.Deflate.init]] must be called before each call. Fails with
     // [[Core.Errors.UnsupportedFormatError]] when `src` holds more than `Swag.U32.Max` bytes.
     mtd compress(result: *Array'u8, src: const [..] u8) fail
     {
         if src.count > Swag.U32.Max do
             fail UnsupportedFormatError{"source buffer too big"}
-
         Swag.assert(.state != null, "'init' not called")
+
+        var sourceCopy: Array'u8
+        var source = src
+        if src.count and result.count and result.buffer
+        {
+            let sourceData = src.buffer
+            if sourceData >= result.buffer and sourceData < result.buffer + result.count
+            {
+                sourceCopy.add(src)
+                source = sourceCopy.toSlice()
+            }
+        }
 
         let d = .state
         d.result     = result
-        d.inSrc      = src.buffer
-        d.srcBufLeft = src.count
+        d.inSrc      = source.buffer
+        d.srcBufLeft = source.count
         d.outBufOfs  = result.count
 
         try .compress()
@@ -1278,7 +1290,7 @@ public impl Deflate
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {
             .adler.reset()
-            .adler.update(src)
+            .adler.update(source)
         }
     }
 }

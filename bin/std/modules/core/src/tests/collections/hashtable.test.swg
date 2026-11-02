@@ -3,6 +3,30 @@
 
 using Swag
 
+func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
+{
+    for &key, value in table[]
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *s32)
+    }
+
+    for &key, value in table[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == *s32)
+    }
+}
+
+struct RejectHashTableGrowthAllocator {}
+
+impl Swag.IAllocator for RejectHashTableGrowthAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 {
     var forwardKeys:   Array's32
@@ -46,6 +70,8 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(1, 10)
     table[1] = 11
     table[3] = 30
+
+    assertHashTableBorrowTypes(&table)
 
     Swag.assert(table.count == 2)
     Swag.assert(table.contains(1))
@@ -243,6 +269,55 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     let result = Swag.catchPanic(func|&table|() { table.reserve(Swag.U64.Max) })
     Swag.assert(result.raised)
     Swag.assert(result.message() == "HashTable capacity exceeds addressable memory")
+}
+
+#test
+{
+    var reject: RejectHashTableGrowthAllocator
+    var table:  HashTable'(s32, s32)
+    table.add(42, 420)
+
+    let oldCapacity  = table.capacity
+    let oldAllocator = table.allocator
+    table.allocator = &reject
+
+    let failed = Swag.catchPanic(func|&table, oldCapacity|() { table.reserve(oldCapacity + 1) })
+    table.allocator = oldAllocator
+
+    Swag.assert(failed.raised)
+    Swag.assert(table.capacity == oldCapacity and table.count == 1 and table[42] == 420)
+}
+
+#test
+{
+    var reject: RejectHashTableGrowthAllocator
+    var table:  HashTable'(s32, s32)
+    for key in 16 do
+        table.add(cast(s32, key), cast(s32, key + 100))
+
+    let oldCapacity  = table.capacity
+    let oldAllocator = table.allocator
+    table.allocator = &reject
+
+    let updateFailed       = Swag.catchPanic(func|&table|() { table.add(7, 700) })
+    let preserveFailed     = Swag.catchPanic(func|&table|() { table.add(7, 777, updateValue: false) })
+    let findFailed         = Swag.catchPanic(func|&table|() { discard table.findOrAdd(7) })
+    let borrowedFindFailed = Swag.catchPanic(func|&table|()
+    {
+        discard table.findOrAddBorrowed(&table.find(7).key)
+    })
+    let borrowedUpdateFailed = Swag.catchPanic(func|&table|()
+    {
+        discard table.addBorrowed(&table.find(7).key, &table.find(8).value)
+    })
+    table.allocator = oldAllocator
+
+    Swag.assert(not updateFailed.raised and
+                not preserveFailed.raised and
+                not findFailed.raised and
+                not borrowedFindFailed.raised and
+                not borrowedUpdateFailed.raised)
+    Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 108)
 }
 
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries

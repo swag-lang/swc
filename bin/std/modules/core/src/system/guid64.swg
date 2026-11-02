@@ -46,14 +46,14 @@ impl Guid64
 {
     // Creates an identifier that orders by creation time.
     //
-    // From the most significant bits: 32 bits of seconds since 1970 in local time, 16 bits of
+    // From the most significant bits: 32 bits of seconds since 1970 UTC, 16 bits of
     // milliseconds, a 12-bit counter of the calling thread, then 4 random bits.
     func timestamped()->Guid64
     {
         initRng()
 
         var result: #returntype
-        let now = Time.DateTime.now()
+        let now = Time.DateTime.utcNow()
 
         let dateTicks = Time.dateToTicks(now.year, now.month, now.day) +
                         Time.timeToTicks(now.hour, now.minute, now.second, now.millisecond)

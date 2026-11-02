@@ -46,7 +46,7 @@ struct(K, V) HashTable
     }
 }
 
-// Iterates a borrowed hash table by descending storage slot.
+// Iterates a borrowed hash table by descending storage slot, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K, V) ReversedHashTable
 {
@@ -59,7 +59,7 @@ impl ReversedHashTable
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
-        let table  = .source.constTablePtr()
+        let table  = .source.tablePtr()
         var remain = .source.count
         scope(Up)
         for offset in .source.capacity
@@ -72,7 +72,7 @@ impl ReversedHashTable
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
@@ -129,7 +129,7 @@ impl HashTable
         return result
     }
 
-    private mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
+    private mtd const tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
 
     private mtd const constTablePtr()->const [*] HashTableEntry
     {
@@ -226,15 +226,15 @@ impl HashTable
 
     // Visits every entry in storage-slot order, binding `key` and `value`.
     //
-    // The order is unspecified and changes when the table grows. Visiting by address binds mutable
-    // pointers; otherwise struct halves are bound through constant pointers and others by value.
+    // The order is unspecified and changes when the table grows. Visiting by address binds the
+    // key through a constant pointer and the value through a mutable pointer.
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value))
     {
         if not .count do
             return
 
-        let table  = .constTablePtr()
+        let table  = .tablePtr()
         var remain = .count
         scope(Up)
         for tableIndex in .capacity
@@ -246,7 +246,7 @@ impl HashTable
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &table[tableIndex].key),
+                            key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
@@ -344,13 +344,13 @@ impl HashTable
         if reqCapacity <= .capacity do
             return
 
-        let oldTable = .table
-        .count, .deleted = 0
+        let oldTable         = .table
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
         .table = cast([*] HashTableEntry'(K, V), Memory.alloc(newCapacityBytes, .allocator))
+        .count, .deleted = 0
         let table = .tablePtr()
 
         // Every slot starts free, which is a zero hash.
@@ -443,6 +443,27 @@ impl HashTable
     mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
+        if not .table
+        {
+            .grow()
+            return .add(key, #fwd value, updateValue)
+        }
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+
+        index = .getNewIndex(key, index, hashVal)
+        scope
+        {
+            let table = .tablePtr()
+            if table[index].hash >= HashTable.HASH_FIRST
+            {
+                if updateValue do
+                    table[index].value = #fwd value
+                return table + index
+            }
+        }
+
         // Growing rehashes the table a struct `key` or `value` may live in, so take them out first.
         // Any other key or value arrives by value and cannot alias the table.
         if .growsOnInsert()
@@ -459,27 +480,17 @@ impl HashTable
                 else
                 {
                     .grow()
-                    return .add(stagedKey, value, updateValue)
+                    return .add(stagedKey, #fwd value, updateValue)
                 }
             }
             else
             {
                 .grow()
+                return .add(key, #fwd value, updateValue)
             }
         }
 
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST
-        {
-            if updateValue do
-                table[index].value = #fwd value
-            return table + index
-        }
-
+        let table = .tablePtr()
         if table[index].hash == HashTable.HASH_FREE
         {
             table[index].key   = #nodrop key
@@ -506,6 +517,17 @@ impl HashTable
     mtd addBorrowed(key: const *K, value: const *V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(K) and Reflection.canCopy(V)
     {
+        if .table
+        {
+            let existing = .tryFind(key[])
+            if existing
+            {
+                if updateValue and &existing.value != value do
+                    existing.value = value[]
+                return existing
+            }
+        }
+
         if .growsOnInsert()
         {
             let stagedKey   = key[]
@@ -517,10 +539,6 @@ impl HashTable
                 return .add(stagedKey, stagedValue, updateValue)
         }
 
-        // Avoid assigning an owning value to the very storage it was borrowed from.
-        let existing = .tryFind(key[])
-        if existing and &existing.value == value do
-            return existing
         return .add(key[], value[], updateValue)
     }
 
@@ -702,6 +720,20 @@ impl HashTable
     mtd findOrAdd(key: K)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
+        if not .table do
+            .grow()
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64, hashVal) & (.capacity - 1)
+
+        index = .getNewIndex(key, index, hashVal)
+        scope
+        {
+            let table = .tablePtr()
+            if table[index].hash >= HashTable.HASH_FIRST do
+                return table + index
+        }
+
         // Growing rehashes the table a struct `key` may live in, so take it out first.
         if .growsOnInsert()
         {
@@ -714,17 +746,11 @@ impl HashTable
             else
             {
                 .grow()
+                return .findOrAdd(key)
             }
         }
 
-        let hashVal = hashKey(key)
-        var index   = cast(u64, hashVal) & (.capacity - 1)
-        let table   = .tablePtr()
-
-        index = .getNewIndex(key, index, hashVal)
-        if table[index].hash >= HashTable.HASH_FIRST do
-            return table + index
-
+        let table = .tablePtr()
         var val: V
         if table[index].hash == HashTable.HASH_FREE
         {
@@ -749,13 +775,6 @@ impl HashTable
     mtd findOrAddBorrowed(key: const *K)->*HashTableEntry
         where Reflection.canCopy(K)
     {
-        if .growsOnInsert()
-        {
-            let stagedKey = key[]
-            .grow()
-            return .findOrAdd(stagedKey)
-        }
-
         return .findOrAdd(key[])
     }
 

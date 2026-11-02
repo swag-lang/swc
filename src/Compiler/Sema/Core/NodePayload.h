@@ -134,10 +134,10 @@ protected:
     SymbolNamespace&       fileNamespace() { return *(fileNamespace_); }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
-    bool                 hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    ConstantRef          getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
-    void                 setConstant(AstNodeRef nodeRef, ConstantRef ref);
-    void                 clearConstant(AstNodeRef nodeRef);
+    bool        hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    ConstantRef getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    void        setConstant(AstNodeRef nodeRef, ConstantRef ref);
+    void        clearConstant(AstNodeRef nodeRef);
 
     bool hasSubstitute(AstNodeRef nodeRef) const;
     void setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);

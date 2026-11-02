@@ -332,6 +332,10 @@ impl Inflate
             }
 
             value -= 257
+
+            // RFC 1951 reserves literal/length symbols 286 and 287.
+            if value >= 29 do
+                fail InvalidFormatError{"bad length"}
             var length = cast(u64, LengthBase[value])
             let lextra = cast(u32, LengthExtra[value])
             if lextra

@@ -73,6 +73,22 @@
     Swag.assert(ready)
 }
 
+// Rejecting permit overflow leaves the semaphore usable and preserves its count.
+#test
+{
+    var permits: Swag.Semaphore
+    permits.setPermits(Swag.U32.Max)
+    let result = Swag.catchPanic(func|&permits|() { permits.release() })
+    Swag.assert(result.raised and result.message() == "semaphore permit count overflow")
+    let acquired = permits.tryAcquire()
+    Swag.assert(acquired)
+    permits.release()
+    permits.setPermits(1)
+    let last  = permits.tryAcquire()
+    let empty = permits.tryAcquire()
+    Swag.assert(last and not empty)
+}
+
 // A semaphore hands out exactly its permits.
 #test
 {

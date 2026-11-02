@@ -710,8 +710,8 @@ private:
 
     Result waitName(IdentifierRef idRef, const SourceCodeRef& codeRef, NameScope scope);
 
-    TypeRef              typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
-    ConstantRef          constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
+    TypeRef     typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
+    ConstantRef constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
 
     AstNodeRef getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
 

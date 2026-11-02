@@ -10,7 +10,7 @@ using Swag, Core
 
     let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
     password.setPlaceholder("Password")
-    host.focus(password.edit)
+    password.edit.setFocus()
     host.sendRune(Input.Key.A, 'A')
     host.sendRune(Input.Key.A, '\u00E9')
     host.sendRune(Input.Key.A, '\U0001F642')
@@ -36,7 +36,7 @@ using Swag, Core
     host.setup(280, 60)
 
     let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
-    host.focus(password.edit)
+    password.edit.setFocus()
     host.sendRune(Input.Key.A, 's')
     host.sendRune(Input.Key.A, 'e')
     host.sendRune(Input.Key.A, 'c')

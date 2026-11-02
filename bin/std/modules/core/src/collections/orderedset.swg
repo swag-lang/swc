@@ -18,7 +18,7 @@ struct(K) OrderedSet
     public readonly count: u64     // The number of keys in the set.
 }
 
-// Iterates a borrowed ordered set from its greatest key to its least key.
+// Iterates a borrowed ordered set from its greatest key to its least key, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K) ReversedOrderedSet
 {
@@ -39,7 +39,7 @@ impl ReversedOrderedSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &.source.keys[keyIndex]),
+                            key = cast(const *K, &.source.keys[keyIndex]),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
@@ -216,6 +216,8 @@ impl OrderedSet
     }
 
     // Iterates keys from least to greatest.
+    //
+    // Visiting by address binds each key through a constant pointer so the sort order is preserved.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, index: u64))
     {
@@ -226,7 +228,7 @@ impl OrderedSet
             {
                 #static if ptr do
                     #inject(stmt,
-                            key = cast(*K, &.keys[keyIndex]),
+                            key = cast(const *K, &.keys[keyIndex]),
                             index = keyIndex,
                             break = break to Up,
                             continue = break to Down)

@@ -244,6 +244,9 @@ internal impl Watcher
 
         if not transferred
         {
+            // A zero-byte completion means the native notification buffer overflowed. The
+            // rename half may have lost its matching record, so do not pair it with a later batch.
+            state.pendingRename.clear()
             return {status: .Overflow}
         }
 

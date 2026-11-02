@@ -45,8 +45,19 @@ func isWebUrl(url: string)->bool
         return false
     }
 
-    for character in url where character <= ' ' or character == 0x7F do
+    let bytes = cast(const [..] u8, url)
+    if not Utf8.isValid(bytes) do
         return false
+
+    var offset = 0'u64
+    while offset < bytes.count
+    {
+        let {c, eat} = Utf8.decodeRune(bytes[offset to])
+        if Unicode.isSpace(c) or Unicode.isControl(c) do
+            return false
+        offset += eat
+    }
+
     return true
 }
 

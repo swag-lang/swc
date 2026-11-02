@@ -112,9 +112,20 @@ impl ThumbnailCache
         if not path.count do
             return
         try Directory.create(unwrap Path.directoryName(path), recurse: true)
-        let temporary = Path.combine(unwrap Path.directoryName(path), Format.toString("%.png", Guid64.random()))
-        defer catch File.delete(temporary)
-        try image.save(temporary)
+        let temporary     = Path.combine(unwrap Path.directoryName(path), Format.toString("%.png", Guid64.random()))
+        let encoded       = try image.encodeToBytes(temporary)
+        var ownsTemporary = false
+        defer
+        {
+            if ownsTemporary do
+                discard catch File.delete(temporary)
+        }
+
+        var stream = try File.open(temporary, .CreateNew, .Write, .Delete)
+        ownsTemporary = true
+        try stream.writeAll(encoded.toSlice())
+        stream.close()
         try File.move(path, temporary)
+        ownsTemporary = false
     }
 }

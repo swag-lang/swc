@@ -203,7 +203,11 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         fail InvalidFormatError{"WAV sample rate must be greater than zero"}
 
     // The oldest chunks state no sample width; the byte rate implies it.
-    result.bitsPerSample = (averageBytes * 8 / result.channels) / result.sampleRate
+    let frameByteRate = cast(u64, result.channels) * cast(u64, result.sampleRate)
+    let inferredBits  = cast(u64, averageBytes) * 8 / frameByteRate
+    if inferredBits > Swag.U32.Max do
+        fail InvalidFormatError{"WAV inferred sample width exceeds the supported range"}
+    result.bitsPerSample = cast(u32, inferredBits)
     if size >= FormatBitsSize
     {
         result.bitsPerSample = readU16(bytes, 14)
@@ -216,20 +220,16 @@ private func parseFormat(bytes: const [..] u8)->Format fail
         extraEnd = Math.min(size, FormatExtraSize + readU16(bytes, 16))
 
     var classicTag = tag
-    if size >= FormatExtensibleSize
+    if tag == WAVE_FORMAT_EXTENSIBLE
     {
+        if size < FormatExtensibleSize or extraEnd < FormatExtensibleSize do
+            fail InvalidFormatError{"invalid wav"}
+
         result.validBits     = cast(u16, readU16(bytes, 18))
         result.speakerMask   = readU32(bytes, 20)
         result.hasExtensible = true
-        if tag == WAVE_FORMAT_EXTENSIBLE
-        {
-            classicTag = try subformatTag(bytes[24 until 40])
-            extraStart = FormatExtensibleSize
-        }
-    }
-    elif tag == WAVE_FORMAT_EXTENSIBLE
-    {
-        fail InvalidFormatError{"invalid wav"}
+        classicTag           = try subformatTag(bytes[24 until 40])
+        extraStart           = FormatExtensibleSize
     }
 
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
@@ -265,28 +265,58 @@ private func readLayout(stream: *File.FileStream)->Layout fail
     var stage:  Stage = FindRiff
     var header: ChunkHeader
     let fileBytes     = try stream.size()
+    var riffEnd       = fileBytes
 
     for
     {
         let chunkOffset = try stream.position()
-        if chunkOffset >= fileBytes do
+        if chunkOffset >= riffEnd do
             fail InvalidFormatError{"invalid wav"}
         if chunkOffset & 1 do
             try stream.skip(1)
 
+        let headerOffset = try stream.position()
+        if headerOffset > riffEnd do
+            fail InvalidFormatError{"invalid wav"}
+        if riffEnd - headerOffset < #sizeof(ChunkHeader) do
+            fail InvalidFormatError{"invalid wav"}
         if not (try stream.readValue(&header)) do
             fail InvalidFormatError{"invalid wav"}
+        let payloadOffset = try stream.position()
+
+        // Each chunk's odd-sized payload has one padding byte inside the RIFF boundary.
+        // Before the RIFF header is found, the file itself is the only available boundary.
+        if stage != .FindRiff or header.chunkID != .SND_WAV_FOURCC_RIFF
+        {
+            let chunkEnd   = stage == .FindRiff ? fileBytes : riffEnd
+            let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
+            if payloadOffset > chunkEnd do
+                fail InvalidFormatError{"invalid wav"}
+            if paddedSize > chunkEnd - payloadOffset do
+                fail InvalidFormatError{"invalid wav"}
+        }
 
         switch header.chunkID
         {
         case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
+                if payloadOffset > fileBytes do
+                    fail InvalidFormatError{"invalid riff chunk"}
+                if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset do
+                    fail InvalidFormatError{"invalid riff chunk"}
+                riffEnd = payloadOffset + cast(u64, header.chunkSize)
                 if not (try stream.readValue(&header.chunkID)) do
                     fail InvalidFormatError{"invalid riff chunk"}
                 if header.chunkID != SND_WAV_FOURCC_WAVE do
                     fail InvalidFormatError{"not a wav"}
+                if (try stream.position()) > riffEnd do
+                    fail InvalidFormatError{"invalid riff chunk"}
                 stage = .FindFmt
+            }
+            else
+            {
+                try stream.skip(header.chunkSize)
             }
 
         case .SND_WAV_FOURCC_fmt:
@@ -300,6 +330,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                     fail InvalidFormatError{"invalid wav"}
                 result.format = try parseFormat(bytes.toSlice())
                 stage         = .FindData
+            }
+            else
+            {
+                try stream.skip(header.chunkSize)
             }
 
         case .SND_WAV_FOURCC_fact:
@@ -321,8 +355,16 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             {
                 result.hasData    = true
                 result.dataOffset = try stream.position()
-                result.dataSize   = header.chunkSize
+                if result.dataOffset > fileBytes do
+                    fail InvalidFormatError{"WAV audio data is truncated"}
+                if cast(u64, header.chunkSize) > fileBytes - result.dataOffset do
+                    fail InvalidFormatError{"WAV audio data is truncated"}
+                result.dataSize = header.chunkSize
                 return result
+            }
+            else
+            {
+                try stream.skip(header.chunkSize)
             }
 
         case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl,
@@ -330,10 +372,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             try stream.skip(header.chunkSize)
 
         default:
-            if header.chunkSize do
-                try stream.skip(header.chunkSize)
-            else do
-                fail InvalidFormatError{"invalid wav"}
+
+            // A zero-byte unknown chunk is valid RIFF too; reading its header already
+            // advanced the cursor, so skipping zero cannot stall traversal.
+            try stream.skip(header.chunkSize)
         }
     }
 }
@@ -359,7 +401,7 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
         let blockBytes  = Math.min(cast(u64, format.blockAlign), layout.dataSize - dataOffset)
         let blockFrames = Adpcm.blockFrameCount(format.encoding, format.channels, blockBytes)
         if not blockFrames do
-            break
+            fail InvalidFormatError{"WAV ADPCM block is shorter than its header"}
         packets.add(SoundPacket{layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
         totalFrames += blockFrames
         dataOffset  += blockBytes

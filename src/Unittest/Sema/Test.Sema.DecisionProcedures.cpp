@@ -10,9 +10,11 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -296,6 +298,32 @@ SWC_TEST_BEGIN(Sema_GlobalStoragePublicationSurvivesConcurrentFlags)
     for (auto& worker : workers)
         worker.join();
     if (failed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_EqualityDoesNotReadUnpublishedParameters)
+{
+    SemaDecisionFixture fixture(ctx, "EqualityUnpublishedParameters");
+    Sema&               sema    = fixture.sema();
+    const IdentifierRef ownerId = ctx.idMgr().addIdentifierOwned("EqualityPublicationOwner");
+    auto*               owner   = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), ownerId, SymbolFlagsE::Typed);
+    auto*               field   = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Typed);
+    field->setTypeRef(ctx.typeMgr().typeU32());
+    owner->addField(field);
+
+    auto* impl = Symbol::make<SymbolImpl>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Declared);
+    owner->addImpl(sema, *impl);
+    const IdentifierRef equalsId = ctx.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
+    auto*               function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), equalsId, SymbolFlagsE::Declared);
+    function->setSpecOpKind(SpecOpKind::OpEquals);
+    impl->addFunction(ctx, function);
+
+    // Model storage visible while a different walk is constructing the signature.
+    // Its size does not publish its elements: none may be read before Typed.
+    function->parameters().resize(2, nullptr);
+    SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, *owner));
+    if (!owner->generatedEqualityPublished() || function->isTyped())
         return Result::Error;
 }
 SWC_TEST_END()

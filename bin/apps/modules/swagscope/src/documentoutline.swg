@@ -166,6 +166,7 @@ impl DocumentOutline
                     panel.list.listView.toolTip = ""
                 }
             }
+
             return false
         }
 
@@ -191,7 +192,7 @@ impl DocumentOutline
             return
         }
 
-        let y = local.y + .list.scrollWnd.scrollPosition().y
+        let y     = local.y + .list.scrollWnd.scrollPosition().y
         let index = cast(u32, y / .list.lineHeight())
         .list.listView.toolTip = index < .rowTitles.count ? .rowTitles[index].toString() : ""
     }

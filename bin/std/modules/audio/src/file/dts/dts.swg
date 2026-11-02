@@ -24,12 +24,16 @@ internal func openElementaryStream(path: string)->SoundFile fail
     var channelCount = 0'u32
     var speakerMask  = 0'u32
 
-    while byteOffset + 16 <= fileBytes
+    for
     {
+        if byteOffset > fileBytes do
+            break
+        if fileBytes - byteOffset < 16 do
+            break
         try source.seek(byteOffset)
         let probe = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let info  = try frameInfo(probe)
-        if not info.frameBytes or byteOffset + info.frameBytes > fileBytes do
+        if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
             break
 
         if not packets.count
@@ -48,7 +52,10 @@ internal func openElementaryStream(path: string)->SoundFile fail
         if info.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"DTS core frame is larger than a packet may be"}
         packets.add(SoundPacket{byteOffset, cast(u32, info.frameBytes), info.frames})
-        totalFrames += cast(u64, info.frames)
+        let frameCount = cast(u64, info.frames)
+        if totalFrames > Swag.U64.Max - frameCount do
+            fail OverflowError{"DTS stream sample count overflows"}
+        totalFrames += frameCount
         byteOffset  += info.frameBytes
     }
 

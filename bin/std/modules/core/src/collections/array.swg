@@ -129,11 +129,11 @@ impl Array
         where Reflection.canCopy(T)
     {
         // Preserve an aliased source before clearing the destination.
-        let countof = arr.count
-        if countof and .buffer
+        let sourceCount = arr.count
+        if sourceCount and .buffer
         {
-            let dataof = arr.buffer
-            if dataof >= .buffer and dataof < .buffer + .count
+            let sourceData = arr.buffer
+            if sourceData >= .buffer and sourceData < .buffer + .count
             {
                 var copy: Array'T
                 copy.add(arr)
@@ -143,25 +143,25 @@ impl Array
         }
 
         .clear()
-        if not countof do
+        if not sourceCount do
             return
-        var dataof = arr.buffer
+        let sourceData = arr.buffer
 
-        .grow(countof)
+        .grow(sourceCount)
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            .initNewSlots(0, countof)
+            .initNewSlots(0, sourceCount)
             let buffer = unwrap .buffer
-            let srcPtr = unwrap dataof
-            for i in countof do
+            let srcPtr = unwrap sourceData
+            for i in sourceCount do
                 buffer[i] = #nodrop srcPtr[i]
         }
         else
         {
-            Memory.copy(unwrap .buffer, dataof, #sizeof(T) * countof)
+            Memory.copy(unwrap .buffer, sourceData, #sizeof(T) * sourceCount)
         }
 
-        .count += countof
+        .count += sourceCount
     }
 
     // Visits every element in order, binding `item` to the element and `index` to its position.
@@ -288,12 +288,9 @@ impl Array
 
     // Returns the contiguous storage as a pointer the caller walks itself.
     //
-    // An empty array owns no block, and a caller asking an empty array for its storage is
-    // about to walk zero elements. The answer is then a dangling address, aligned for the
-    // element type and never read, rather than a null every caller would have to assert:
-    // walking is bounded by 'count', and a read through the dangling address faults exactly
-    // as loudly as a read through null. Ask 'isEmpty' whether there is anything to walk, and
-    // 'toSlice' when the walk should carry its own bounds.
+    // An array with no allocated buffer returns a non-null sentinel aligned for the element
+    // type. That address must not be dereferenced. An empty array may still own reserved storage;
+    // check 'isEmpty' before walking, or use 'toSlice' when the walk should carry its own bounds.
     //
     // The pointer is mutable whatever the receiver, exactly like reading the field was: a
     // container that hands out its storage hands out the storage itself.
@@ -541,13 +538,13 @@ impl Array
     mtd insertAt(index: u64, values: const [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = values.count
-        if not sliceCount do
+        let sourceCount = values.count
+        if not sourceCount do
             return
         if .buffer
         {
-            let dataof = values.buffer
-            if dataof >= .buffer and dataof < .buffer + .count
+            let sourceData = values.buffer
+            if sourceData >= .buffer and sourceData < .buffer + .count
             {
                 var copy: Array'T
                 copy.add(values)
@@ -556,31 +553,31 @@ impl Array
         }
 
         Debug.safetyBoundCheck(index <= .count, "index out of range")
-        .grow(.count + sliceCount)
-        .count += sliceCount
-        .initNewSlots(.count - sliceCount, sliceCount)
+        .grow(.count + sourceCount)
+        .count += sourceCount
+        .initNewSlots(.count - sourceCount, sourceCount)
         let buffer = unwrap .buffer
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                buffer[idx] = #relocate buffer[idx - sliceCount]
+            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1 do
+                buffer[idx] = #relocate buffer[idx - sourceCount]
         }
         else
         {
-            Memory.copyOverlapping(buffer + index + sliceCount,
+            Memory.copyOverlapping(buffer + index + sourceCount,
                                    buffer + index,
-                                   #sizeof(T) * (.count - sliceCount - index))
+                                   #sizeof(T) * (.count - sourceCount - index))
         }
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = 0; idx < sliceCount; idx += 1 do
+            for var idx = 0; idx < sourceCount; idx += 1 do
                 buffer[index + idx] = #nodrop values[idx]
         }
         else
         {
-            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sourceCount)
         }
     }
 
@@ -588,13 +585,13 @@ impl Array
     mtd emplaceAt(index: u64, values: [..] T)
         where Reflection.canCopy(T)
     {
-        var sliceCount = values.count
-        if not sliceCount do
+        let sourceCount = values.count
+        if not sourceCount do
             return
         if .buffer
         {
-            let dataof = values.buffer
-            if dataof >= .buffer and dataof < .buffer + .count
+            let sourceData = values.buffer
+            if sourceData >= .buffer and sourceData < .buffer + .count
             {
                 var copy: Array'T
                 copy.add(values)
@@ -603,36 +600,36 @@ impl Array
         }
 
         Debug.safetyBoundCheck(index <= .count, "index out of range")
-        .grow(.count + sliceCount)
-        .count += sliceCount
-        .initNewSlots(.count - sliceCount, sliceCount)
+        .grow(.count + sourceCount)
+        .count += sourceCount
+        .initNewSlots(.count - sourceCount, sourceCount)
         let buffer = unwrap .buffer
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                buffer[idx] = #relocate buffer[idx - sliceCount]
+            for var idx = .count - 1; idx >= index + sourceCount; idx -= 1 do
+                buffer[idx] = #relocate buffer[idx - sourceCount]
         }
         else
         {
-            Memory.copyOverlapping(buffer + index + values.count,
+            Memory.copyOverlapping(buffer + index + sourceCount,
                                    buffer + index,
-                                   #sizeof(T) * (.count - sliceCount - index))
+                                   #sizeof(T) * (.count - sourceCount - index))
         }
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            for var idx = 0; idx < sliceCount; idx += 1 do
+            for var idx = 0; idx < sourceCount; idx += 1 do
                 buffer[index + idx] = #nodrop #move values[idx]
         }
         else
         {
-            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, values.buffer, #sizeof(T) * sourceCount)
 
             // A bitwise move leaves the source holding the same resources: reset it so that its
             // own drop releases nothing.
             #static if Reflection.hasDrop(T) do
-                Swag.init(values.buffer, sliceCount)
+                Swag.init(values.buffer, sourceCount)
         }
     }
 
@@ -642,13 +639,13 @@ impl Array
     mtd add(values: const [..] T?)
         where Reflection.canCopy(T)
     {
-        var sliceCount = values.count
-        if not sliceCount do
+        let sourceCount = values.count
+        if not sourceCount do
             return
         if .buffer
         {
-            let dataof = values.buffer
-            if dataof >= .buffer and dataof < .buffer + .count
+            let sourceData = values.buffer
+            if sourceData >= .buffer and sourceData < .buffer + .count
             {
                 var copy: Array'T
                 copy.add(values)
@@ -656,17 +653,17 @@ impl Array
             }
         }
 
-        .grow(.count + sliceCount)
-        var oldCount = .count
-        .count += sliceCount
-        .initNewSlots(oldCount, sliceCount)
+        .grow(.count + sourceCount)
+        let oldCount = .count
+        .count += sourceCount
+        .initNewSlots(oldCount, sourceCount)
         let buffer = unwrap .buffer
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             let vals    = unwrap values
             var destPtr = buffer + oldCount
-            for index in sliceCount
+            for index in sourceCount
             {
                 destPtr[] = #nodrop vals[index]
                 destPtr   += 1
@@ -674,7 +671,7 @@ impl Array
         }
         else
         {
-            Memory.copy(buffer + oldCount, values!.buffer, sliceCount * #sizeof(T))
+            Memory.copy(buffer + oldCount, values!.buffer, sourceCount * #sizeof(T))
         }
     }
 

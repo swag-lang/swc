@@ -71,7 +71,7 @@ impl ConvertFormatFloat
         if cpt < countof
         {
             let {value: userWidth, eat: eatCount, ovf: _} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, (countof - cpt))))
-            Swag.assert(userWidth <= 255, "precision overflow")
+            Swag.assert(userWidth <= cast(u64, Swag.S8.Max), "precision overflow")
             if eatCount do
                 .precision = cast(s8, userWidth)
         }
@@ -123,6 +123,8 @@ impl ConvertFormatInt
         }
 
         // Base
+        if cpt >= countof do
+            return
         switch buffer[cpt]
         {
         case 'B'u8:

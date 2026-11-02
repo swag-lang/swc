@@ -30,5 +30,5 @@ using Core, Pixel, Gui, TrueType, Viewers
     let document = view.document
     document.scroll.setScrollPos(0, document.layout.gridTop + document.layout.cellHeight * 1.5)
     var scrolled = host.render(&host.root)
-    Pixel.Testing.assertImageGolden(&scrolled, "viewer.font.scrolled")
+    assertScopeImageGolden(&scrolled, "viewer.font.scrolled")
 }

@@ -4323,7 +4323,7 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_ImageReader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.ImageReader</span> <a class="api-item-permalink" href="#Pixel_ImageReader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L93">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_ImageReader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.ImageReader</span> <a class="api-item-permalink" href="#Pixel_ImageReader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L94">src</a></div>
 <p>Owns encoded input and decodes individual images through a format-neutral interface.</p>
 <p>Animation reads return complete composited canvases. Independent pages, variants, layers, and texture subresources retain their own dimensions and pixel format. Forward animation reads reuse the preceding canvas; seeking backwards replays from the beginning. Decoded frames are not cached. Returned images own their pixels and survive subsequent reads or closing the reader. A failed read resets animation state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> reader = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span>.<span class="SFct">load</span>(<span class="SStr">"animation.webp"</span>)
@@ -4331,7 +4331,8 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 {
     <span class="SKwd">var</span> image = <span class="SKwd">try</span> reader.<span class="SFct">read</span>(<span class="SKwd">cast</span>(<span class="STpe">u32</span>, index))
 }</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -8979,34 +8980,34 @@ canvas.painter.<span class="SFct">drawString</span>(<span class="SNum">8</span>,
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSlice</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.close</span> <a class="api-item-permalink" href="#Pixel_ImageReader_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L171">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.close</span> <a class="api-item-permalink" href="#Pixel_ImageReader_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L172">src</a></div>
 <p>Closes the reader; repeated calls are harmless.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.decode</span> <a class="api-item-permalink" href="#Pixel_ImageReader_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L185">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_decode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.decode</span> <a class="api-item-permalink" href="#Pixel_ImageReader_decode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L186">src</a></div>
 <p>Indexes an owned copy of encoded bytes, selecting the decoder by the extension of <span class="code-inline">fileName</span>.</p>
 <p>Unsupported or malformed input reports <span class="code-inline">fail</span>. Still-only registered decoders automatically appear as a one-image set. Limits apply before frame decoding. The first frame represents animated containers; icon containers retain their largest-entry representative selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decode</span>(fileName: <span class="STpe">string</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.isOpen</span> <a class="api-item-permalink" href="#Pixel_ImageReader_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.isOpen</span> <a class="api-item-permalink" href="#Pixel_ImageReader_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L179">src</a></div>
 <p>Reports whether encoded input is open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.load</span> <a class="api-item-permalink" href="#Pixel_ImageReader_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.load</span> <a class="api-item-permalink" href="#Pixel_ImageReader_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L234">src</a></div>
 <p>Loads a file into owned storage and indexes its images.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Propagate]</span>
 <span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_DecodeOptions">DecodeOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_ImageReader">ImageReader</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.opDrop</span> <a class="api-item-permalink" href="#Pixel_ImageReader_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L168">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.opDrop</span> <a class="api-item-permalink" href="#Pixel_ImageReader_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L169">src</a></div>
 <p>Releases the decoder and all owned storage automatically.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageReader_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.read</span> <a class="api-item-permalink" href="#Pixel_ImageReader_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L243">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageReader_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageReader.read</span> <a class="api-item-permalink" href="#Pixel_ImageReader_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagereader.swg#L244">src</a></div>
 <p>Decodes a zero-based image index, failing for a closed reader or an out-of-range index.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(index: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
 </section>

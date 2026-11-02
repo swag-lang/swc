@@ -396,11 +396,11 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 
     switch
     {
-    case src <= 0x7F:
+    case 0 <= src and src <= 0x7F:
         dest[0] = cast(u8, src)
         return 1
 
-    case src <= 0x07FF:
+    case 0x80 <= src and src <= 0x07FF:
         dest[0] = cast(u8, (((src >> 6) & 0x1F) | 0xC0))
         dest[1] = cast(u8, (((src >> 0) & 0x3F) | 0x80))
         return 2
@@ -844,7 +844,7 @@ func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 {
     // The ASCII case is what a scanner asks for, and it is one comparison per byte rather than a
     // needle array built for the general one.
-    if what <= 0x7F
+    if 0 <= what and what <= 0x7F
     {
         let length = src.count
         if startByteIndex >= length
@@ -1012,7 +1012,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
         var ascii: [4] u8
         for value, index in what
         {
-            if value > 0x7F do
+            if value < 0 or value > 0x7F do
                 break
             ascii[index] = cast(u8, value)
             if index + 1 == countof
@@ -1074,7 +1074,7 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
         var ascii: [4] u8
         for value, index in what
         {
-            if value > 0x7F do
+            if value < 0 or value > 0x7F do
                 break
             ascii[index] = cast(u8, value)
             if index + 1 == countof do

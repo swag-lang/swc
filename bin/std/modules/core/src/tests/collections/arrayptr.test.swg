@@ -3,6 +3,25 @@
 
 using Swag
 
+struct ArrayPtrGrowthProbeAllocator
+{
+    allocationCount: u32
+    #[Swag.Align(16)]
+    storage: [16] u8
+}
+
+impl Swag.IAllocator for ArrayPtrGrowthProbeAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        .allocationCount += 1
+        request.address  = &.storage[0]
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
 func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 {
     if values.count != expected.count do
@@ -60,6 +79,27 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
     Swag.assert(copy[2] != values[2])
     Swag.assert(copy[0]![] == 7)
     Swag.assert(copy[2]![] == 9)
+}
+
+#test
+{
+    var allocator:    ArrayPtrGrowthProbeAllocator
+    let allocatorItf: IAllocator = &allocator
+    let context = Swag.getContext()
+    let originalAllocator        = context.allocator
+    context.allocator = allocatorItf
+    defer context.allocator = originalAllocator
+
+    var values: ArrayPtr's32
+    let failed = Swag.catchPanic(func|&values|() { discard values.addNew() })
+    Swag.assert(failed.raised)
+    Swag.assert(allocator.allocationCount == 0 and values.isEmpty())
+
+    #static if #safety(Swag.SafetyWhat.BoundCheck)
+    {
+        let invalidIndex = Swag.catchPanic(func|&values|() { discard values.insertNew(1) })
+        Swag.assert(invalidIndex.raised and allocator.allocationCount == 0 and values.isEmpty())
+    }
 }
 
 var g_ApDropCount: s32

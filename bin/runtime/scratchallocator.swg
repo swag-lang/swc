@@ -193,15 +193,26 @@ impl IAllocator for ScratchAllocator
             return
         }
 
-        // Otherwise this is a leak
-        // We prepend a LeakHeader to the user block, and linked it in
-        // the chained list of leak allocations (at the first position)
-        let alignment   = request.alignment != 0 ? request.alignment : cast(u32, #sizeof(*void))
-        let totalSize   = request.size + #sizeof(LeakHeader) + alignment - 1
-        let allocation  = cast([*] u8, unwrap .alloc(totalSize, alignment))
-        let leakAddress = ScratchAllocator.align(cast(u64, (allocation + #sizeof(LeakHeader))), alignment) - #sizeof(LeakHeader)
-        let ptr         = cast([*] LeakHeader, leakAddress)
-        let leak        = cast([*] LeakHeader?, .firstLeak)
+        // Otherwise track the allocation in the leak list. The header and payload share an
+        // address aligned for the request, the default pointer alignment, and LeakHeader.
+        let headerAlignment  = cast(u32, #alignof(LeakHeader))
+        let requestAlignment = request.alignment != 0 ? request.alignment : cast(u32, #sizeof(*void))
+        let alignment        = Swag.max(requestAlignment, headerAlignment)
+        let overhead         = #sizeof(LeakHeader) + alignment - 1
+        if request.size > Swag.U64.Max - overhead
+        {
+            request.address = null
+            return
+        }
+
+        let totalSize  = request.size + overhead
+        let allocation = cast([*] u8, unwrap .alloc(totalSize, alignment))
+
+        let headerEnd       = cast(u64, allocation) + #sizeof(LeakHeader)
+        let alignedUserAddr = ScratchAllocator.align(headerEnd, alignment)
+        let leakAddress     = alignedUserAddr - #sizeof(LeakHeader)
+        let ptr             = cast([*] LeakHeader, leakAddress)
+        let leak            = cast([*] LeakHeader?, .firstLeak)
         if leak do
             leak.prev = ptr
         ptr.prev           = null

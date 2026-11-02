@@ -15,6 +15,7 @@ func localAlbumArtwork(file: string)->String
         if File.exists(image) do
             return image
     }
+
     return {}
 }
 
@@ -74,8 +75,8 @@ impl ExplorerPreview
 {
     mtd start(owner: *Wnd)
     {
-        .image = {}
-        .needsOnline = false
+        .image         = {}
+        .needsOnline   = false
         .posterPending = false
         .error.clear()
         .temporary.clear()
@@ -102,29 +103,32 @@ impl ExplorerPreview
                 if .mediaFile.isEmpty() do
                     .mediaFile = entry.fullName
             }
+
             if not tracks or tracks * 2 < inside.count do
                 return
         }
 
-        let source = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
-        let media  = .mediaFile.isEmpty() ? .path.toString() : .mediaFile.toString()
-        var member = String.from(.archivePath.isEmpty() ? "" : .path.toString())
+        let source       = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
+        let media        = .mediaFile.isEmpty() ? .path.toString() : .mediaFile.toString()
+        var member       = String.from(.archivePath.isEmpty() ? "" : .path.toString())
         let localArtwork = .archivePath.isEmpty() ? localAlbumArtwork(media) : String.from("")
         if not localArtwork.isEmpty()
         {
             let info = catch File.info(localArtwork)
             member += Format.toString("\n%\n%\n%", localArtwork, info.size, Hash.hash64(info.lastWriteTime))
         }
+
         var cache: String
         if not .opening
         {
             ThumbnailCache.pruneOnce()
-            cache = catch ThumbnailCache.key(source, member, settings: .settings)
+            cache  = catch ThumbnailCache.key(source, member, settings: .settings)
             .image = ThumbnailCache.read(cache)
             if .image.isValid() and not .online
             {
                 let settings = try ThumbnailSettings.decode(.settings)
-                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(media, &settings) and
+                .needsOnline = .archivePath.isEmpty() and
+                               onlinePreviewWanted(media, &settings) and
                                not onlinePreviewStamped(&.image)
                 return
             }
@@ -140,9 +144,10 @@ impl ExplorerPreview
             name += extension
             if not Path.isValidFileName(name) do
                 fail Errors.InvalidFormatError{}
-            .temporary = Path.combine(Env.getSpecialDirectory(.Temp), name)
-            try Viewers.Archive.Zip.extractEntry(.archivePath, &.entry, .temporary)
-            file = .temporary
+            let temporary = Path.combine(Env.getSpecialDirectory(.Temp), name)
+            try Viewers.Archive.Zip.extractEntry(.archivePath, &.entry, temporary)
+            .temporary = temporary
+            file       = .temporary
         }
 
         defer
@@ -179,10 +184,16 @@ impl ExplorerPreview
                     labelLocalMusic(&.image, &tags)
                     labelPreviewDuration(&.image, localSoundDuration(file))
                 }
-                else do
+                else
+                {
                     .image = try .service.render(file, .settings)
-                .posterPending = .needsOnline and settings.onlineMovies and not settings.localArtworkOnly and
-                                 not albumAudio(file) and Reader.canOpen(file)
+                }
+
+                .posterPending = .needsOnline and
+                                 settings.onlineMovies and
+                                 not settings.localArtworkOnly and
+                                 not albumAudio(file) and
+                                 Reader.canOpen(file)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings)
                 if not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image)
@@ -197,8 +208,11 @@ impl ExplorerPreview
                 localDuration = localSoundDuration(file)
             var providerFailed    = false
             var providerAttempted = false
-            if settings.onlineMovies and not settings.localArtworkOnly and .archivePath.isEmpty() and
-               not albumAudio(file) and Reader.canOpen(file)
+            if settings.onlineMovies and
+               not settings.localArtworkOnly and
+               .archivePath.isEmpty() and
+               not albumAudio(file) and
+               Reader.canOpen(file)
             {
                 providerAttempted = true
                 catch
@@ -215,7 +229,10 @@ impl ExplorerPreview
                     providerFailed = true
                 }
             }
-            elif settings.onlineMusic and not settings.localArtworkOnly and .archivePath.isEmpty() and albumAudio(file)
+            elif settings.onlineMusic and
+                 not settings.localArtworkOnly and
+                 .archivePath.isEmpty() and
+                 albumAudio(file)
             {
                 musicTags = SoundTags.read(file)
                 if not settings.musicId.isEmpty() or (not musicTags.album.isEmpty() and musicSearchArtist(&musicTags).count > 0)
@@ -248,15 +265,22 @@ impl ExplorerPreview
                     if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                 }
-                else do
+                else
+                {
                     .image = try .service.render(file, .settings)
+                }
             }
+
             labelPreviewDuration(&.image, localDuration)
             if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do
                 music.label(&.image, &musicTags)
-            elif settings.onlineMusic and not settings.localArtworkOnly and albumAudio(file) and not providerFailed and .image.isValid() do
+            elif settings.onlineMusic and
+                 not settings.localArtworkOnly and
+                 albumAudio(file) and
+                 not providerFailed and
+                 .image.isValid() do
                 stampMusicCache(&.image)
             elif providerAttempted and not providerFailed and .image.isValid() do
                 stampMovieCache(&.image)
@@ -285,8 +309,17 @@ impl ExplorerPreview
         var name = Format.toString("scope-artwork-%", Guid64.random())
         name += extension
         let file = Path.combine(Env.getSpecialDirectory(.Temp), name)
-        defer catch File.delete(file)
-        discard try File.writeAllBytes(file, bytes)
+        var ownsTemporary = false
+        defer
+        {
+            if ownsTemporary do
+                discard catch File.delete(file)
+        }
+
+        var output = try File.open(file, .CreateNew, .Write, .Delete)
+        ownsTemporary = true
+        discard try output.writeAll(bytes)
+        output.close()
         return try .service.render(file)
     }
 

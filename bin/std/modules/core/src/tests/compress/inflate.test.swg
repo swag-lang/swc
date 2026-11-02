@@ -241,6 +241,31 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     Swag.assert(decoded.isEmpty())
 }
 
+// Literal/length symbols 286 and 287 are reserved even when the decoded length would be zero.
+#test
+{
+    // Final fixed block: reserved length symbol 286, distance zero, then end-of-block.
+    let reservedLength: [3] u8 = [0x1B, 0x03, 0x00]
+    var inflater:       Compress.Inflate
+    var decoded:        Array'u8
+    var errorOutcome:   Swag.Error
+    catch inflater.decompress(&decoded, reservedLength) as errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.assert(decoded.isEmpty())
+}
+
+#test
+{
+    // Final fixed block: reserved length symbol 287, distance zero, then end-of-block.
+    let reservedLength: [3] u8 = [0x1B, 0x07, 0x00]
+    var inflater:       Compress.Inflate
+    var decoded:        Array'u8
+    var errorOutcome:   Swag.Error
+    catch inflater.decompress(&decoded, reservedLength) as errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.assert(decoded.isEmpty())
+}
+
 // A dynamic block cannot announce more than 286 literal/length codes.
 #test
 {

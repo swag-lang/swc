@@ -156,6 +156,55 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesRunnableScript)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
+{
+    static constexpr std::string_view SOURCE = R"(#import("core", location: "swag@std")
+
+#main
+{
+    for argument in Core.Env.arguments() do
+        Swag.print(argument, "\n")
+}
+)";
+    NewCommandTestDirectory           directory("SmokeScriptModuleSetup");
+    const fs::path                    source    = directory.path() / "smoke_script.swgs";
+    const fs::path                    outputDir = directory.path() / "output";
+    SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
+
+    std::string           output;
+    Os::ProcessRunOptions options;
+    options.capturedOutput           = &output;
+    options.forwardOutput            = false;
+    options.timeoutMs                = 60000;
+    uint32_t                exitCode = UINT32_MAX;
+    const std::vector<Utf8> args     = {
+        "smoke",
+        "--file",
+        Utf8(source),
+        "--out-dir",
+        Utf8(outputDir),
+        "--work-dir",
+        Utf8(directory.path() / "work"),
+        "--num-cores",
+        Utf8(std::to_string(Unittest::compilerWorkerCount(ctx))),
+        "--frames",
+        "2",
+        "--run-timeout",
+        "5",
+        "--run-arg=smoke-script-ran",
+    };
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    if (output.find("smoke-script-ran") == std::string::npos || output.find("swag.smoke=2") == std::string::npos || output.find("swag.sandbox") == std::string::npos)
+        return Result::Error;
+
+    // A successful JIT run would print the same arguments, but would bypass the native timeout.
+    std::error_code ec;
+    if (!fs::exists(outputDir / "smoke_script.exe", ec) || ec)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_NewCommandCreatesAndExtendsWorkspace)
 {
     static constexpr std::string_view EXPECTED_MAIN   = "#main\n{\n    Swag.print(\"Hello, world!\\n\")\n}\n";

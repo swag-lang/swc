@@ -23,7 +23,11 @@ struct MappedFile
         access: MapAccess     // Access granted to every region created from this file.
     }
 
-    internal stream: FileStream
+    internal
+    {
+        stream:    FileStream
+        temporary: String     // Snapshot storage removed when the owning file closes.
+    }
 }
 
 impl MappedFile
@@ -61,9 +65,16 @@ impl MappedFile
         var source    = try File.open(name, .Open, .Read, .ReadWrite | .Delete)
         let temporary = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-mapped-%.tmp", Guid128.random()))
         var result: #returntype
-        result.name   = name
+        result.name = name
+        var ownsTemporary = false
+        defer
+        {
+            if ownsTemporary do
+                discard catch File.delete(temporary)
+        }
+
         result.stream = try File.open(temporary, .CreateNew, .ReadWrite, .ReadWrite | .Delete)
-        defer discard catch File.delete(temporary)
+        ownsTemporary = true
 
         var buffer: [64 * 1024] u8
         var remaining = Math.min(try source.size(), maxBytes)
@@ -76,6 +87,8 @@ impl MappedFile
             remaining -= count
         }
 
+        result.temporary = temporary
+        ownsTemporary    = false
         return result
     }
 
@@ -83,6 +96,11 @@ impl MappedFile
     mtd close()
     {
         .stream.close()
+        if not .temporary.isEmpty()
+        {
+            discard catch File.delete(.temporary.toString())
+            .temporary.clear()
+        }
     }
 
     // Releases this value's open file handle.

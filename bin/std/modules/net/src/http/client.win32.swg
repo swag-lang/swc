@@ -27,7 +27,8 @@ private func queryLocation(request: HINTERNET)->String fail
 
 // Issues a bounded HTTP or HTTPS GET to `host`, `port` and an absolute request `path`.
 //
-// `path` must already be percent-encoded. HTTPS verifies the peer using the Windows trust store.
+// `path` must be absolute, fragment-free and already percent-encoded. HTTPS verifies the peer
+// using the Windows trust store.
 // Redirects are returned to the caller instead of being followed. Each phase has the configured
 // timeout setting; WinHTTP may enforce it with coarse timing and can exceed the requested value.
 // The operation is synchronous and cannot be cancelled while a native call is blocked.
@@ -56,7 +57,7 @@ func get(host: string, port: u16, path: string, secure = true, options: GetOptio
         fail Errors.BadParameterError{}
     for c in host where c <= ' ' or c == 0x7F do
         fail Errors.BadParameterError{}
-    for c in path where c <= ' ' or c == 0x7F do
+    for c in path where c <= ' ' or c == 0x7F or c == '#' do
         fail Errors.BadParameterError{}
     for c in options.userAgent where c < ' ' or c == 0x7F do
         fail Errors.BadParameterError{}

@@ -80,11 +80,12 @@ impl IActionUI for ActionFile
             if main.libraryMode
             {
                 evt.updatedFields |= .Shortcut
-                evt.shortcut = main.libWnd.keyShortcutName(ActionLibSel.Delete)
+                evt.shortcut      = main.libWnd.keyShortcutName(ActionLibSel.Delete)
             }
-            evt.name          = appStrings().act_Delete
-            evt.disabled      = not capture
-            evt.icon          = main.theme().icon(.Remove)
+
+            evt.name     = appStrings().act_Delete
+            evt.disabled = not capture
+            evt.icon     = main.theme().icon(.Remove)
 
         case .DupCapture:
             evt.updatedFields |= .Name | .Disabled | .Icon

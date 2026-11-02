@@ -688,11 +688,26 @@ impl Wnd
     // form to call from an event handler.
     mtd destroy()
     {
+        if not .beginDestruction() do
+            return
+        for c in .children do
+            c.destroy()
+        .surface!.app.postDestroy.add(me)
+        .invalidate()
+
+        if .parent and not .parent.isPendingDestroy do
+            .parent.applyLayout()
+    }
+
+    // Enters teardown before any child is retired. The headless host shares this transition
+    // for its embedded surface window, whose storage and native lifetime it owns itself.
+    internal mtd beginDestruction()->bool
+    {
         let srfn = unwrap .surface
         if .isPendingDestroy
         {
             .wndFlags.add(.Hidden)
-            return
+            return false
         }
 
         // The keyboard does not go down with the window: it continues to the stop that follows,
@@ -708,13 +723,7 @@ impl Wnd
         // of the frame. A popup, for example, posts its selected command and then destroys itself.
         srfn.app.animator.cancelTarget(me)
         srfn.app.unregisterWndTimers(me)
-        for c in .children do
-            c.destroy()
-        srfn.app.postDestroy.add(me)
-        .invalidate()
-
-        if .parent and not .parent.isPendingDestroy do
-            .parent.applyLayout()
+        return true
     }
 
     private mtd firstTopMostIndex()->u64

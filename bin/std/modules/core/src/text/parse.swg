@@ -24,6 +24,8 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
     while consumedBytes < byteCount and Latin1.isHexDigit(buffer[])
     {
+        if consumedBytes == Swag.U32.Max do
+            fail OverflowError{"numeric token exceeds the supported length"}
         if value & 0xF0000000_00000000
         {
             result.ovf = true
@@ -69,6 +71,8 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
     while consumedBytes < byteCount and Latin1.isBinDigit(buffer[])
     {
+        if consumedBytes == Swag.U32.Max do
+            fail OverflowError{"numeric token exceeds the supported length"}
         if value & 0x80000000_00000000
         {
             result.ovf = true
@@ -134,12 +138,14 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
 
     // Detect 0x for hexadecimal, 0b for binary.
-    if byteCount > 2 and str[0] == '0'u8
+    if byteCount >= 2 and str[0] == '0'u8
     {
         let prefix = str[1] | 32
         if prefix == 'x'u8
         {
             {value: result.value, eat: result.eat, ovf: result.ovf} = try parseX64(str[2 to])
+            if result.eat > Swag.U32.Max - 2 do
+                fail OverflowError{"numeric token exceeds the supported length"}
             result.eat += 2
             return result
         }
@@ -147,6 +153,8 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         if prefix == 'b'u8
         {
             {value: result.value, eat: result.eat, ovf: result.ovf} = try parseB64(str[2 to])
+            if result.eat > Swag.U32.Max - 2 do
+                fail OverflowError{"numeric token exceeds the supported length"}
             result.eat += 2
             return result
         }
@@ -163,6 +171,8 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
     while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
+        if consumedBytes == Swag.U32.Max do
+            fail OverflowError{"numeric token exceeds the supported length"}
         let digit = cast(u64, (buffer[] - '0'u8))
         if value > maxQuotient or (value == maxQuotient and digit > maxRemainder)
         {
@@ -265,6 +275,8 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
     let maxRemainder = maxValue % 10
     while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
+        if consumedBytes == Swag.U32.Max do
+            fail OverflowError{"numeric token exceeds the supported length"}
         let digit = cast(u64, (buffer[] - '0'u8))
         if value > maxQuotient or (value == maxQuotient and digit > maxRemainder)
         {
@@ -391,7 +403,7 @@ func parseString(result: *String, str: string)->u32 fail
     result.clear()
 
     var isQuoted      = false
-    var consumedBytes = 0
+    var consumedBytes = 0'u64
     if str[0] == '"'u8
     {
         isQuoted      = true
@@ -400,12 +412,16 @@ func parseString(result: *String, str: string)->u32 fail
 
     while consumedBytes < byteCount
     {
+        if consumedBytes >= Swag.U32.Max do
+            fail OverflowError{"string token exceeds the supported length"}
         if str[consumedBytes] == '"'u8 and isQuoted do
             break
 
         if str[consumedBytes] == '\\'u8
         {
             consumedBytes += 1
+            if consumedBytes >= Swag.U32.Max do
+                fail OverflowError{"string token exceeds the supported length"}
             if consumedBytes == byteCount do
                 fail SyntaxError{}
             switch str[consumedBytes]
@@ -427,6 +443,8 @@ func parseString(result: *String, str: string)->u32 fail
         fail ParseIncompleteError{}
     if isQuoted do
         consumedBytes += 1
+    if consumedBytes > Swag.U32.Max do
+        fail OverflowError{"string token exceeds the supported length"}
     return cast(u32, consumedBytes)
 }
 

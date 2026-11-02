@@ -94,7 +94,7 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 
         result.add(#move info)
 
-        let next = catch FindNextFileW(handle, &findData)
+        let next = try FindNextFileW(handle, &findData)
         if not next do
             break
     }
@@ -153,12 +153,34 @@ func drives()->Array'String fail
 // by the processors: a caller that fans work out over the files of a folder sizes it by this.
 func isRemote(path: string)->bool
 {
-    if path.count >= 2 and (path[0] == '\\' or path[0] == '/') and (path[1] == '\\' or path[1] == '/') do
+    const ExtendedUncPrefix = #raw "\\?\UNC\"
+    const ExtendedPrefix = #raw "\\?\"
+    const DevicePrefix = #raw "\\.\"
+
+    if path.count >= ExtendedUncPrefix.count and
+       Path.equals(path[until ExtendedUncPrefix.count], ExtendedUncPrefix) do
         return true
-    if path.count < 2 or path[1] != ':' do
+
+    var normalized = path
+    if path.count >= ExtendedPrefix.count and
+       Path.equals(path[until ExtendedPrefix.count], ExtendedPrefix)
+    {
+        normalized = path[ExtendedPrefix.count to]
+    }
+    elif path.count >= DevicePrefix.count and
+         Path.equals(path[until DevicePrefix.count], DevicePrefix)
+    {
+        normalized = path[DevicePrefix.count to]
+    }
+
+    if normalized.count >= 2 and
+       (normalized[0] == '\\' or normalized[0] == '/') and
+       (normalized[1] == '\\' or normalized[1] == '/') do
+        return true
+    if normalized.count < 2 or normalized[1] != ':' do
         return false
 
-    var root = String.from(path[until 2])
+    var root = String.from(normalized[until 2])
     root += "\\"
     let winRoot = Utf16.toZeroTerminated(root)
     return GetDriveTypeW(winRoot.buffer) == DRIVE_REMOTE
@@ -193,25 +215,44 @@ func volumes()->Array'String fail
     var result: #returntype
 
     var volumeName: [MAX_PATH] u8
-    var driveName:  [MAX_PATH] u8
 
     let handle = try FindFirstVolumeA(volumeName, MAX_PATH)
     if handle == INVALID_HANDLE_VALUE do
         return result
     defer discard catch FindVolumeClose(handle)
 
+    var pathNames: Array'u8
     for
     {
+        pathNames.resize(MAX_PATH)
         var requiredLength: DWORD
         var errOutcome:     Swag.Error
-        catch GetVolumePathNamesForVolumeNameA(volumeName, driveName, MAX_PATH, &requiredLength) as errOutcome
+        catch GetVolumePathNamesForVolumeNameA(volumeName, unwrap pathNames.buffer, MAX_PATH, &requiredLength) as errOutcome
         let err = errOutcome.value()
-        if err == null
+        var hasPathNames = true
+        if err != null
         {
-            let length = cast(cstring, driveName).count
+            let systemError = assume cast(const *Swag.SystemError, err)
+            if systemError.errorID == ERROR_MORE_DATA and requiredLength > MAX_PATH
+            {
+                pathNames.resize(requiredLength)
+                let pathCapacity = requiredLength
+                var retryOutcome: Swag.Error
+                catch GetVolumePathNamesForVolumeNameA(volumeName, unwrap pathNames.buffer, pathCapacity, &requiredLength) as retryOutcome
+                hasPathNames = retryOutcome.value() == null
+            }
+            else
+            {
+                hasPathNames = false
+            }
+        }
+
+        if hasPathNames
+        {
+            let length = cast(cstring, unwrap pathNames.buffer).count
             if length
             {
-                var mountPoint = String.from(Swag.makeString(&driveName[0], length))
+                var mountPoint = String.from(Swag.makeString(pathNames.buffer, length))
                 Path.normalize(&mountPoint)
                 result.add(#move mountPoint)
             }

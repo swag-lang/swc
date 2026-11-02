@@ -97,12 +97,16 @@ internal func openFile(path: string)->SoundFile fail
     var sampleRate   = 0'u32
     var channelCount = 0'u32
 
-    while byteOffset + 7 <= fileBytes
+    for
     {
+        if byteOffset > fileBytes do
+            break
+        if fileBytes - byteOffset < 7 do
+            break
         try source.seek(byteOffset)
         let probe  = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let header = try readAdtsHeader(probe)
-        if byteOffset + header.frameBytes > fileBytes do
+        if header.frameBytes > fileBytes - byteOffset do
             break
 
         if not packets.count
@@ -125,7 +129,10 @@ internal func openFile(path: string)->SoundFile fail
         if not payload do
             fail InvalidFormatError{"ADTS frame carries no audio"}
         packets.add(SoundPacket{byteOffset + header.headerBytes, cast(u32, payload), header.blocks * 1024})
-        totalFrames += cast(u64, header.blocks) * 1024
+        let frameCount = cast(u64, header.blocks) * 1024
+        if totalFrames > Swag.U64.Max - frameCount do
+            fail OverflowError{"ADTS stream sample count overflows"}
+        totalFrames += frameCount
         byteOffset  += header.frameBytes
     }
 

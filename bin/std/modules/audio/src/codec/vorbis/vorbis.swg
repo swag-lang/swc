@@ -62,6 +62,8 @@ private impl BitReader
 {
     func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count, 0, false}
 
+    mtd const remainingBits()->u64 => .size * 8 - .bitPos
+
     // Reads `count` bits, at most 32, as an unsigned value.
     mtd read(count: u32)->u32
     {
@@ -309,7 +311,12 @@ private impl Codebook
         let delta     = unpackFloat(reader.read(32))
         let valueBits = reader.read(4) + 1
         let sequence  = reader.readFlag()
-        let quantized = .lookupType == 1 ? .lookup1Values() : .entries * .dimensions
+        let quantized = .lookupType == 1 ? cast(u64, .lookup1Values()) :
+                        cast(u64, .entries) * cast(u64, .dimensions)
+        let quantizedBits = quantized * cast(u64, valueBits)
+        if quantizedBits > reader.remainingBits() do
+            fail InvalidFormatError{"Vorbis codebook lookup values are truncated"}
+
         var quant: Array'f32
         quant.resize(quantized)
         for index in quantized do
@@ -317,7 +324,8 @@ private impl Codebook
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
 
-        .values.resize(cast(u64, .entries) * .dimensions)
+        let valueCount = cast(u64, .entries) * cast(u64, .dimensions)
+        .values.resize(valueCount)
         for entry in .entries
         {
             var last    = 0.0'f32
@@ -332,13 +340,13 @@ private impl Codebook
                 }
                 else
                 {
-                    index = cast(u64, entry) * .dimensions + dimension
+                    index = cast(u64, entry) * cast(u64, .dimensions) + dimension
                 }
 
                 let value = quant[index] * delta + minimum + last
                 if sequence do
                     last = value
-                .values[cast(u64, entry) * .dimensions + dimension] = value
+                .values[cast(u64, entry) * cast(u64, .dimensions) + dimension] = value
             }
         }
     }
@@ -827,10 +835,11 @@ private impl Codec
             var offset    = 0'u64
             while offset < config.count and completed < 3
             {
-                let page = try Ogg.readPageHeader(config, offset)
-                if offset + page.totalBytes() > config.count do
+                let page      = try Ogg.readPageHeader(config, offset)
+                let pageBytes = page.totalBytes()
+                if pageBytes > config.count - offset do
                     fail InvalidFormatError{"Vorbis header pages are truncated"}
-                let body = config[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = config[offset + page.headerBytes until offset + pageBytes]
                 if not hasSerial
                 {
                     if (page.flags & Ogg.FirstPage) and
@@ -861,14 +870,14 @@ private impl Codec
                             completed += 1
                             if completed == 3
                             {
-                                .firstAudioSequence = page.sequence + 1
+                                .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
                                 break
                             }
                         }
                     }
                 }
 
-                offset += page.totalBytes()
+                offset += pageBytes
             }
 
             if completed < 3 do
@@ -888,16 +897,24 @@ private impl Codec
                     let byte = config[offset]
                     offset       += 1
                     sizes[index] += byte
+                    if sizes[index] > config.count - offset do
+                        fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
                     if byte != 255 do
                         break
                 }
             }
 
-            if sizes[0] + sizes[1] > config.count - offset do
+            let remaining = config.count - offset
+            if sizes[0] > remaining do
                 fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
-            headers[0].add(config[offset until offset + sizes[0]])
-            headers[1].add(config[offset + sizes[0] until offset + sizes[0] + sizes[1]])
-            headers[2].add(config[offset + sizes[0] + sizes[1] until config.count])
+            let remainingAfterFirst = remaining - sizes[0]
+            if sizes[1] > remainingAfterFirst do
+                fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
+            let firstEnd  = offset + sizes[0]
+            let secondEnd = firstEnd + sizes[1]
+            headers[0].add(config[offset until firstEnd])
+            headers[1].add(config[firstEnd until secondEnd])
+            headers[2].add(config[secondEnd until config.count])
         }
         else
         {
@@ -1496,8 +1513,9 @@ private impl Codec
         .packet.clear()
         while offset < run.count
         {
-            let page = try Ogg.readPageHeader(run, offset)
-            if offset + page.totalBytes() > run.count do
+            let page      = try Ogg.readPageHeader(run, offset)
+            let pageBytes = page.totalBytes()
+            if pageBytes > run.count - offset do
                 fail InvalidFormatError{"Ogg page run is truncated"}
             if page.serial == .serial
             {
@@ -1505,7 +1523,7 @@ private impl Codec
                     firstSequence = page.sequence
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
-                let body = run[offset + page.headerBytes until offset + page.totalBytes()]
+                let body = run[offset + page.headerBytes until offset + pageBytes]
                 var at   = 0'u64
                 for index in page.segments
                 {
@@ -1521,7 +1539,7 @@ private impl Codec
                 }
             }
 
-            offset += page.totalBytes()
+            offset += pageBytes
         }
 
         if lastGranule == Ogg.NoGranule do
@@ -1643,6 +1661,8 @@ internal impl DurationProbe
         if reader.readFlag() do
             fail InvalidFormatError{"Vorbis packet is not an audio packet"}
         let modeIndex = reader.read(.codec.modeBits)
+        if reader.overran do
+            fail InvalidFormatError{"Vorbis audio packet is truncated"}
         if modeIndex >= .codec.modes.count do
             fail InvalidFormatError{"Vorbis packet names a mode that does not exist"}
         let size   = .codec.blockSizes[.codec.modes[modeIndex].longBlock ? 1 : 0]

@@ -53,6 +53,10 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
 
     Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/./a.txt"))
     Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/../a.txt"))
+    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/.. /a.txt"))
+    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/name. /a.txt"))
+    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/NUL.txt"))
+    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/COM1.log"))
 }
 
 // An empty root contains nothing. Answering true would turn a failure to configure the

@@ -718,8 +718,13 @@ void CompilerInstance::setupRuntimeCompiler()
     runtimeCompilerITable_[0] = nullptr;
     runtimeCompilerITable_[1] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetMessage), 1);
     runtimeCompilerITable_[2] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerGetBuildCfg), 1);
-    // Both ABIs pass this string indirectly; the native callback only reads the borrowed value.
-    runtimeCompilerITable_[3] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&CompilerInstance::runtimeCompilerCompileString), 2);
+    // Swag borrows the string descriptor indirectly. The host C++ ABI may instead split a
+    // by-value Runtime::String into registers, so dereference it inside a native scalar bridge.
+    const auto compileBorrowedString = +[](const CompilerInstance* owner, const Runtime::String* str) {
+        SWC_ASSERT(str != nullptr);
+        runtimeCompilerCompileString(owner, *str);
+    };
+    runtimeCompilerITable_[3] = JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(compileBorrowedString), 2);
 }
 
 uint64_t* CompilerInstance::runtimeContextTlsIdStorage()

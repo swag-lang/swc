@@ -808,6 +808,47 @@ public impl Window
         return {width: clientRect.right - clientRect.left, height: clientRect.bottom - clientRect.top}
     }
 
+    private mtd checkedMutationHandle()->HWND fail
+    {
+        if not .isOpen() do
+            fail Errors.BadParameterError{"window is closed"}
+        let handle = .win32Handle()
+        let thread = GetWindowThreadProcessId(handle, null)
+        if thread == 0 do
+            try failWinError(GetLastError())
+        if thread != GetCurrentThreadId() do
+            fail Errors.BadParameterError{"window operations require their creating thread"}
+        .rebindNative()
+        return handle
+    }
+
+    internal mtd setPositionNative(x, y: s32) fail
+    {
+        let handle = try .checkedMutationHandle()
+        try SetWindowPos(handle, null, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+    }
+
+    internal mtd hideNative() fail
+    {
+        let handle = try .checkedMutationHandle()
+        ShowWindow(handle, SW_HIDE)
+    }
+
+    internal mtd requestFocusNative() fail
+    {
+        let handle = try .checkedMutationHandle()
+        if not IsWindowVisible(handle) do
+            fail Errors.BadParameterError{"window is hidden"}
+        SetLastError(0)
+        let previous = SetFocus(handle)
+        if not previous
+        {
+            let error = GetLastError()
+            if error != 0 do
+                try failWinError(error)
+        }
+    }
+
     internal mtd showNative() fail
     {
         ShowWindow(.win32Handle(), SW_SHOW)

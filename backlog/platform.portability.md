@@ -418,6 +418,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
+- Further compiler repair: a single forward type now waits for declaration admission before
+  lookup publishes it; layout can still remain unfinished for recursive types. The evdev port
+  exposed a pre-existing KeyboardStateNative reference whose only declaration was in an inactive
+  Windows file. That reference silently poisoned its owner and sometimes produced an internal
+  job failure. A three-file #run-false fixture now reports the missing source name on DevMode
+  and Release. The new permanent C++ regression and all 1,747 C++ tests pass; recursive/global
+  semantic fixtures and expected ambiguity checks pass, as does the existing conditional-homonym
+  fixture in Release JIT/native. This reveals a real missing Linux keyboard backend, not a new
+  backend implementation. Counts above still describe the preceding backend checkpoint.
 - Compiler repair: named-type lookup now waits for conditional homonyms before diagnosing
   ambiguity, while one unfinished type still supports recursive declarations. The watcher port
   exposed a disabled Windows private struct competing with its Linux counterpart before the

@@ -944,7 +944,7 @@ impl MainWnd
             {
                 if index != 0 do
                     names += ", "
-                names += name
+                names += name.toString()
             }
 
             var msg = Format.toString(appStrings().msg_ShortcutsTaken, names)

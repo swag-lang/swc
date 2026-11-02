@@ -363,3 +363,38 @@ func makeAuto(value: s64)->FreshOwner
     }
     expectFresh(0, 1, 2, 30)
 }
+
+// A runtime literal with scalar fields still owns its own destructor, even without an
+// adopted call result or nested literal to mark it as an owner.
+#[Swag.NoInline]
+func readFresh(owner: FreshOwner)->s64 => owner.value
+
+#test
+{
+    resetFresh(41)
+    let value = readFresh(FreshOwner{FreshSeed, FreshSeed + 1})
+    Swag.assert(value == 41)
+    expectFresh(0, 0, 1, 41)
+}
+
+#test
+{
+    resetFresh(43)
+    discard FreshOwner{FreshSeed}
+    expectFresh(0, 0, 1, 43)
+}
+
+// A temporary containing copied owners drops its copies after the borrowing call; the
+// original locals remain alive until their enclosing scope ends.
+#test
+{
+    resetFresh(45)
+    scope
+    {
+        let first  = FreshOwner{FreshSeed}
+        let second = FreshOwner{FreshSeed + 1}
+        Swag.assert(sumPair(FreshPair{first, second}) == 91)
+        expectFresh(2, 0, 2, 4645)
+    }
+    expectFresh(2, 0, 4, 46_454_645)
+}

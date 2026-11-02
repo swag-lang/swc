@@ -2,6 +2,9 @@
 
 using Serialization
 
+// Identifies a clipboard format, as returned by [[Gui.Clipboard.registerFormat]].
+public alias ValueFormat = u64
+
 var g_ValueFormat: ValueFormat
 
 // Publishes the value `value` points to, of type `type`, on the clipboard.

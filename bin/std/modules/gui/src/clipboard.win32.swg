@@ -4,9 +4,6 @@
 
 using Core, Win32, Pixel
 
-// Identifies a clipboard format, as returned by [[Gui.Clipboard.registerFormat]].
-alias ValueFormat = u64
-
 private var g_PngFormat: UINT
 
 // Publishes a copy of `bytes` under `fmt` on the clipboard the caller opened.

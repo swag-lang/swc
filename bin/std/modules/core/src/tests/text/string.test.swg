@@ -470,3 +470,19 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
         Swag.assert(assertString(replacement, sample.valueReplaced))
     }
 }
+
+// Owned strings retain text equality when nested in composite values.
+#test
+{
+    struct Item { label: String; id: u32 }
+    struct Wrapper { item: Item }
+    let first = Item{String.from("same text"), 7}
+    let equal = Item{String.from("same text"), 7}
+    Swag.assert(first.label.toSlice().buffer != equal.label.toSlice().buffer)
+    Swag.assert(first.label == equal.label)
+    Swag.assert(first == equal)
+    Swag.assert(Wrapper{first} == Wrapper{equal})
+    Swag.assert(first != Item{String.from("other text"), 7})
+    Swag.assert(first != Item{String.from("same text"), 8})
+    Swag.assert(Item{String{}, 0} == Item{String.from(""), 0})
+}

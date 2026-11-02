@@ -832,7 +832,7 @@ func caller()
             return Result::Error;
         const auto leaf   = output.find("NativeSymbols.leaf --> ");
         const auto caller = output.find("SymbolConsumer.caller --> ");
-        if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:3", caller) == std::string::npos)
+        if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:4", caller) == std::string::npos)
         {
             std::println(stderr, "[ELF runtime symbols] {}", output);
             return Result::Error;

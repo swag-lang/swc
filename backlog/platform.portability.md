@@ -83,19 +83,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Next: finish the remaining memory, display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
-### platform.portability.043 — Stack capture has no second-platform backend
+### platform.portability.043 — Complete Linux stack-capture edge coverage
 
-- Next: provide address capture and current-image discovery for the chosen second platform behind
-  the runtime host boundary.
-- Related: platform.portability.003, platform.portability.045, platform.portability.044
-- Done when: A stack captured on the chosen second host returns ordered addresses and their owning images for native and generated frames, with deterministic behavior when frames or images cannot be resolved.
-
-### platform.portability.044 — Debug-symbol access has no second-platform backend
-
-- Next: locate and read the target's debug information for captured addresses, leaving parsing and
-  presentation in the existing common layer.
-- Related: platform.portability.043
-- Done when: The chosen second host resolves captured addresses from its debug information to function and source locations when symbols are present, and reports missing or stripped symbols without losing the raw addresses.
+- Evidence: libc backtrace and image discovery supply native addresses; linked ELF symbol
+  contributions resolve ordered executable/static/shared source frames. Removing the symbol
+  section leaves ordinary panic reporting usable.
+- Next: cover empty destinations, skip bounds and generated frames with no owning loader image
+  through the runtime boundary, including compile-time execution.
+- Related: platform.portability.003, platform.portability.045
+- Done when: stack capture returns deterministic ordered addresses for these boundary cases
+  without requiring symbols or a loader-owned image.
 
 ### platform.portability.045 — Finish Linux debugger attachment and output
 
@@ -1005,17 +1002,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: a neutral input compilation contains no virtual-key declaration or native
   adapter dependency, while Windows keyboard conversion tests still cover the mapping.
 
-### platform.portability.065 — Audio has no real non-Windows backend
+### platform.portability.065 — Complete Linux audio consumer and hardware validation
 
-- `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
-- The backend dispatcher already supports explicit `NoSound`, uses it as the non-Windows
-  default, and rejects unavailable `XAudio2`. Its repeated compile-time branches still need the
-  interface work in platform.portability.027 before another backend is added. CoreAudio and ALSA or PulseAudio are the obvious
-  targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
-- Next: once platform.portability.027's backend interface exists, implement one non-Windows
-  output backend (CoreAudio, or ALSA/PulseAudio) behind it.
-- Done when: one chosen non-Windows target opens a real output device and passes the common
-  engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
+- Evidence: Linux Default selects the dynamically loaded FAudio backend; NoSound remains explicit.
+  Real PCM disk-output tests cover source/submix/mastering voices, gain, pitch, routes, seek,
+  looping and repeated stop. Missing libraries/devices and portable teardown regressions pass.
+- Next: exercise Swag Scope playback with the complete GUI backend, then validate a physical
+  output device and device loss/recovery. Keep PCM software-device evidence distinct from
+  physical hardware coverage.
+- Done when: the application consumer and device lifecycle preserve the common voice, bus and
+  streaming contracts on Linux, including unavailable-device behavior.
 - Related: platform.portability.027
 
 ### platform.portability.048 — Accessibility has no portable semantic tree or Windows adapter

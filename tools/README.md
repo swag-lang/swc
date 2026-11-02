@@ -32,7 +32,9 @@ and shared runtime initialization. Shared libraries are position-independent and
 text relocations; relocated constants become read-only after loading. Native `--debug` emits DWARF 4
 source lines, functions, basic types and recorded stack-home variables. Dedicated executable/shared
 fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
-variables and richer debug records remain unsupported. Linux output-local incremental native-object
+variables and richer debug records remain unsupported. Runtime panic traces resolve function names
+and recorded source locations across executables, static archives and shared libraries without
+`--debug`; stripping `.swagdbg` removes those runtime frame names. Linux output-local incremental native-object
 archives remain unfinished; see the portability backlog.
 
 An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
@@ -74,7 +76,7 @@ JIT and native tests by default; `--execution jit` or `--execution native` selec
 `--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
 cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,765 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+passes 1,773 tests as of 2026-11-02, including ELF linking, native ABI, runtime symbols and module-publication cases.
 The native language suite passes 4,047 tests in each execution mode.
 The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
 It builds a shared library and tests native context sharing, initialization, repeated loads,

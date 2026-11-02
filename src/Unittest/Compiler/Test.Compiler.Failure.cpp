@@ -426,6 +426,36 @@ func injectStatement(statement: #code) { #inject(statement) }
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExportModuleJitTestsPrepareRuntime)
+{
+    RecoveryTestDirectory directory;
+    const fs::path sourcePath = directory.path() / "export_tests.swg";
+    constexpr std::string_view source = R"(#global private
+var initialized: bool
+#init { initialized = true }
+#test
+{
+    Swag.assert(initialized)
+    Swag.print("export-test-ran\n")
+}
+)";
+    SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
+    const std::vector<Utf8> arguments = {
+        "test", "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", "3", "--no-log-color",
+        "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string output;
+    uint32_t exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const auto result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success) || output.find("export-test-ran") == std::string::npos)
+    {
+        std::println(stderr, "[export module tests] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

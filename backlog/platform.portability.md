@@ -207,12 +207,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 
-### platform.portability.036 — Clocks have no second-platform backend
+### platform.portability.036 — Validate the Linux calendar and monotonic clocks
 
-- Evidence: Linux monotonic ticks use clock_gettime with nanosecond frequency. Raw clock
-  bindings execute in JIT and native ELF; the Core stopwatch tests still need thread sleep
-  and the remaining Core host services.
-- Next: implement wall-clock fields and run the common stopwatch and elapsed-time tests.
+- Evidence: Linux monotonic ticks use clock_gettime with nanosecond frequency. UTC/local calendar
+  fields use reentrant glibc conversions, preserving milliseconds and historical zone offsets.
+  Raw clock tests execute in JIT with UTC and native ELF with America/New_York, including negative
+  epochs, leap days, summer/winter offsets and post-2038 dates. Core calendar and stopwatch tests
+  still need the remaining Core host services, including thread sleep.
+- Next: run the public DateTime, Timestamp, stopwatch and elapsed-time tests on Linux.
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
@@ -249,8 +251,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
-  Core still lacks Linux filesystem, process, environment, thread, wall-clock, timer and
-  window operations. These prevent execution of its focused public API tests.
+  Core still lacks Linux filesystem, process, environment, thread, timer and window operations.
+  These prevent execution of its focused public API tests.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.

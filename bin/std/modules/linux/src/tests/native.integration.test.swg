@@ -115,3 +115,33 @@ alias UnaryDouble = func(f64)->f64
     Swag.assert(wallRead == 0 and wall.tv_sec > 0)
     Swag.assert(wall.tv_nsec >= 0 and wall.tv_nsec < 1_000_000_000)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    // UTC conversion must preserve negative epochs, the leap day and post-2038 dates.
+    for seconds in [-1's64, 0, 951_827_696, 1_719_792_000, 2_208_988_800]
+    {
+        var universal: tm
+        let utcResult = gmtime_r(&seconds, &universal)
+        Swag.assert(utcResult == &universal)
+        let roundTrip = timegm(&universal)
+        Swag.assert(roundTrip == seconds)
+        if seconds == -1 do
+            Swag.assert(universal.tm_year == 69 and
+                        universal.tm_mon == 11 and
+                        universal.tm_mday == 31 and
+                        universal.tm_sec == 59)
+        if seconds == 951_827_696 do
+            Swag.assert(universal.tm_year == 100 and universal.tm_mon == 1 and universal.tm_mday == 29)
+
+        var local: tm
+        let localResult = localtime_r(&seconds, &local)
+        Swag.assert(localResult == &local)
+        let localRoundTrip = mktime(&local)
+        Swag.assert(localRoundTrip == seconds)
+        let offset = local.tm_gmtoff
+        let asUtc  = timegm(&local)
+        Swag.assert(asUtc == seconds + offset)
+    }
+}

@@ -397,7 +397,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and the sandbox-path case pass JIT/native. Empty and relative HOME/XDG overrides are exercised
   in separate invocations. Validate a path before calling isRooted: it requires a valid nonempty
   path, so the previous order asserted on empty variables or zero bytes in configuration data.
-- Next: finish environment mutation, locale and desktop actions, with explicit unsupported outcomes.
+  Message-locale lookup now follows LC_ALL, LC_MESSAGES and LANG precedence, omitting encoding/
+  modifier suffixes and mapping separators to hyphens. C/POSIX and malformed names return empty.
+  Two parser/precedence cases pass JIT/native; a separate archive consumer passes seven controlled
+  environment configurations in both modes. No process-wide C locale is changed.
+- Next: finish environment mutation and desktop actions, with explicit unsupported outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 

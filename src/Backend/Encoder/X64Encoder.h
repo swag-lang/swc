@@ -54,6 +54,7 @@ protected:
     void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv) override;
     void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv) override;
     void encodeCallReg(MicroReg reg, CallConvKind callConv) override;
+    void encodeAlignedCallReg(MicroReg reg, CallConvKind callConv, AlignedCallStack stack) override;
     void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits) override;
     void encodePatchJump(const MicroJump& jump, uint64_t offsetDestination) override;
     void encodePatchJump(const MicroJump& jump) override;

@@ -222,6 +222,7 @@ namespace
             case MicroInstrOpcode::VecGatherS32:
                 return 3;
 
+            case MicroInstrOpcode::CallAlignedIndirect:
             case MicroInstrOpcode::TestMemReg:
             case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::LoadRegMem:
@@ -350,6 +351,7 @@ namespace
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
+            case MicroInstrOpcode::CallAlignedIndirect:
                 if (!isValidCallConv(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
                     return reportError(context, phase, std::format("call instruction #{} uses unsupported calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;

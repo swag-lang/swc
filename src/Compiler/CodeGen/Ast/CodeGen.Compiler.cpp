@@ -110,7 +110,8 @@ namespace
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
 
-        uint64_t frameSize = 0;
+        uint64_t frameSize      = 0;
+        uint32_t frameAlignment = 1;
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -139,7 +140,8 @@ namespace
 
             // Compiler-run functions share the same runtime payload locals as normal codegen, so rebuild
             // offsets from the final lowered sizes here as well.
-            frameSize = Math::alignUpU64(frameSize, alignment);
+            frameAlignment = std::max(frameAlignment, alignment);
+            frameSize      = Math::alignUpU64(frameSize, alignment);
             SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
             symVar->setOffset(static_cast<uint32_t>(frameSize));
             symVar->setCodeGenLocalSize(size);
@@ -150,9 +152,10 @@ namespace
         CodeGenSafety::configureValueBorrowSites(codeGen, bodyRef, frameSize);
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
+        const uint32_t realignment    = frameAlignment > stackAlignment ? frameAlignment : 0;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
-        SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
-        codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
+        SWC_ASSERT(frameSize + realignment <= std::numeric_limits<uint32_t>::max());
+        codeGen.setLocalStackFrameLayout(static_cast<uint32_t>(frameSize), realignment);
     }
 
     void buildCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)

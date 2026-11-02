@@ -1086,6 +1086,7 @@ namespace
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
                 return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Function, relocValue));
+            case MicroInstrOpcode::CallAlignedIndirect:
             case MicroInstrOpcode::CallIndirect:
                 return std::format("{} {}", tagInstructionToken("call"), regName(ops[0].reg, regPrintMode, encoder));
 
@@ -1929,6 +1930,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendColored(out, ctx, SyntaxColor::Number, std::format("{}", ops[1].valueU64));
                 break;
 
+            case MicroInstrOpcode::CallAlignedIndirect:
             case MicroInstrOpcode::CallIndirect:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);

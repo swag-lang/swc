@@ -120,6 +120,7 @@ protected:
     virtual void encodeCallRelative(Symbol* targetSymbol, CallConvKind callConv)                         = 0;
     virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)   = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv)                                      = 0;
+    virtual void encodeAlignedCallReg(MicroReg reg, CallConvKind callConv, AlignedCallStack stack)       = 0;
     virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)                      = 0;
     virtual void encodePatchJump(const MicroJump& jump, uint64_t offsetDestination)                      = 0;
     virtual void encodePatchJump(const MicroJump& jump)                                                  = 0;

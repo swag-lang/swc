@@ -236,6 +236,13 @@ namespace
             builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), op, MicroOpBits::B64);
     }
 
+    void callAlignedSymbol(MicroBuilder& builder, const CallConvKind callConvKind, const Symbol* targetSymbol, const ABICall::PreparedCall& preparedCall, const ABICall::Return& ret)
+    {
+        const MicroReg target = MicroReg::intReg(11);
+        builder.emitLoadRegPtrReloc(target, 0, ConstantRef::invalid(), targetSymbol);
+        ABICall::callReg(builder, callConvKind, target, preparedCall, ret);
+    }
+
     void forbidFloatBitCarrierIntArgRegs(MicroBuilder& builder, const CallConv& conv, const ABICall::PreparedArg& arg)
     {
         if (!arg.isFloat || !arg.srcReg.isVirtualInt())
@@ -879,6 +886,8 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const 
 {
     SWC_ASSERT(targetSymbol != nullptr);
     SWC_UNUSED(targetReg);
+    if (preparedCall.stackAlignmentLog2)
+        return callAlignedSymbol(builder, callConvKind, targetSymbol, preparedCall, ret);
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
     const CallConv&               conv        = CallConv::get(callConvKind);
@@ -898,6 +907,8 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const
 {
     SWC_ASSERT(targetSymbol != nullptr);
     SWC_UNUSED(targetReg);
+    if (preparedCall.stackAlignmentLog2)
+        return callAlignedSymbol(builder, callConvKind, targetSymbol, preparedCall, ret);
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
     const CallConv&               conv        = CallConv::get(callConvKind);
@@ -935,7 +946,14 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     }
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitCallReg(targetReg, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
+    if (preparedCall.stackAlignmentLog2)
+    {
+        SWC_ASSERT(preparedCall.stackAlreadyAdjusted && preparedCall.stackAdjust >= AlignedCallStack::K_SAVE_SIZE);
+        const AlignedCallStack stack{preparedCall.stackAdjust - AlignedCallStack::K_SAVE_SIZE, 1u << preparedCall.stackAlignmentLog2};
+        builder.emitAlignedCallReg(targetReg, callConvKind, stack, preparedCall.intArgMask, preparedCall.floatArgMask);
+    }
+    else
+        builder.emitCallReg(targetReg, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }

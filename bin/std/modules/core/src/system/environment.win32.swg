@@ -546,6 +546,63 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     #[Swag.Inline]
     func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?, cast #bit (u64, GetWindowLongPtrA(hWnd, GWLP_USERDATA)))
 
+    func dispatchPointer(window: *Window, hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)
+    {
+        let callback = window.callbacks.onPointer
+        if not callback do
+            return
+        with var event: WindowPointerEvent
+        {
+            .x = GET_X_LPARAM(lParam)
+            .y = GET_Y_LPARAM(lParam)
+        }
+
+        switch msg
+        {
+        case WM_MOUSEMOVE:
+            event.kind = .Move
+
+        case WM_LBUTTONDOWN, WM_LBUTTONUP:
+            event.kind   = msg == WM_LBUTTONDOWN ? .ButtonDown : .ButtonUp
+            event.button = .Left
+
+        case WM_MBUTTONDOWN, WM_MBUTTONUP:
+            event.kind   = msg == WM_MBUTTONDOWN ? .ButtonDown : .ButtonUp
+            event.button = .Middle
+
+        case WM_RBUTTONDOWN, WM_RBUTTONUP:
+            event.kind   = msg == WM_RBUTTONDOWN ? .ButtonDown : .ButtonUp
+            event.button = .Right
+
+        case WM_XBUTTONDOWN, WM_XBUTTONUP:
+            let button = HIWORD(wParam)
+            if button != 1 and button != 2 do
+                return
+            event.kind   = msg == WM_XBUTTONDOWN ? .ButtonDown : .ButtonUp
+            event.button = button == 1 ? .XButton1 : .XButton2
+
+        case WM_MOUSEWHEEL, WM_MOUSEHWHEEL:
+
+            // Wheel messages carry screen coordinates, unlike the other mouse messages.
+            var position: POINT = {event.x, event.y}
+            if not ScreenToClient(hWnd, &position) do
+                return
+            event.x    = position.x
+            event.y    = position.y
+            event.kind = .Wheel
+            let delta = cast(f32, GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA
+            if msg == WM_MOUSEHWHEEL do
+                event.wheelX = delta
+            else do
+                event.wheelY = delta
+
+        default:
+            return
+        }
+
+        callback(window, event)
+    }
+
     if msg == WM_CREATE
     {
         let createStruct = cast(*CREATESTRUCTA, cast #bit (u64, lParam))
@@ -575,6 +632,21 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             if onPaint do
                 onPaint(safeWindow)
             EndPaint(hWnd, &ps)
+            return 0
+
+        case WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+             WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN,
+             WM_XBUTTONUP, WM_MOUSEWHEEL, WM_MOUSEHWHEEL:
+            if window.callbacks.onPointer
+            {
+                dispatchPointer(safeWindow, hWnd, msg, wParam, lParam)
+                return msg == WM_XBUTTONDOWN or msg == WM_XBUTTONUP ? 1 : 0
+            }
+
+        case WM_SETFOCUS, WM_KILLFOCUS:
+            let onFocus = window.callbacks.onFocus
+            if onFocus do
+                onFocus(safeWindow, msg == WM_SETFOCUS)
             return 0
 
         case WM_SIZE:

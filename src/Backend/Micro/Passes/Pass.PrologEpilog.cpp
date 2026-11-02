@@ -727,6 +727,13 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     for (const auto& inst : context.instructions->view())
     {
         visitRegOperands(inst, storeOps, classify);
+        if (inst.op == MicroInstrOpcode::CallAlignedIndirect)
+        {
+            // RSP changes inside the encoded call. Keep an explicit frame register so
+            // unwinding from the callee never depends on that temporary stack position.
+            classify(conv.framePointer, MicroInstrRegMode::Use);
+            context.forceFramePointer = true;
+        }
 
         // The encoder may write a register no operand names: VPGATHERDD destroys its
         // XMM15 mask. A nonvolatile one among them is still owed to the caller.

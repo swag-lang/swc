@@ -19,7 +19,7 @@ using Core
 let text = try File.readAllText("settings.txt")
 
 var lines: Array'String
-for line in text.splitLines() do
+for line in Tokenize.splitLines(text.toString()) do
     lines.add(line)
 ```
 

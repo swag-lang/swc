@@ -620,9 +620,14 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         switch msg
         {
         case WM_CLOSE:
+            let stopLoop       = window.stopLoopOnClose
+            let onCloseRequest = window.callbacks.onCloseRequest
+            if onCloseRequest do
+                onCloseRequest(safeWindow)
 
-            // Let the owner release resources borrowed from this window before it closes.
-            PostQuitMessage(0)
+            // The callback may move or destroy its owner. Only the captured policy remains.
+            if stopLoop do
+                PostQuitMessage(0)
             return 0
 
         case WM_PAINT:
@@ -670,7 +675,8 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             return 0
 
         case WM_DESTROY:
-            PostQuitMessage(0)
+            if window.stopLoopOnClose do
+                PostQuitMessage(0)
             return 0
 
         case WM_NCDESTROY:
@@ -734,6 +740,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 }
 
 // Processes all pending window messages and returns false when the application should exit.
+//
+// A close request or destruction posts a quit message only for a window created with
+// [[Core.Env.WindowOptions.stopLoopOnClose]] true. An external quit message still stops the
+// pump. Native close requests leave the window owned unless its close-request callback closes it.
 public func processWindowMessages()->bool
 {
     var msg: MSG

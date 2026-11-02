@@ -442,7 +442,7 @@ var initialized: bool
 )";
     SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
     const std::vector<Utf8> arguments = {
-        "test", "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", "3", "--no-log-color",
+        "test", "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string output;
     uint32_t exitCode = 0;
@@ -466,7 +466,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_GlobalIfRetiresInactiveDeclarationsAndImpls)
         return Result::Error;
     const fs::path source   = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_platform";
     const std::vector<Utf8> arguments = {
-        "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string output;
     uint32_t    exitCode = 0;
@@ -490,7 +490,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
         return Result::Error;
     const fs::path source   = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_pending_type";
     const std::vector<Utf8> arguments = {
-        "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string output;
     uint32_t    exitCode = 0;
@@ -520,7 +520,7 @@ struct State { value: s32 }
 )"));
     SWC_RESULT(CompilerTestFile::writeText(source / "condition.swg", "#global namespace Probe\nconst Disabled = #run false\n"));
     const std::vector<Utf8> arguments = {
-        "sema", "--directory", Utf8(source), "--num-cores", "3", "--no-log-color",
+        "sema", "--directory", Utf8(source), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string output;
     uint32_t    exitCode = 0;

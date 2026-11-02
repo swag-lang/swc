@@ -979,7 +979,7 @@ func directProcessId()->u32
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
-        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", "3", "--no-log-color"};
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
         Os::ProcessRunOptions options;
         std::string           output;
         options.capturedOutput = &output;

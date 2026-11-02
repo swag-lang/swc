@@ -4247,6 +4247,35 @@ void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
     emitModRm(store_, MODRM_REG_2, reg);
 }
 
+void X64Encoder::encodeAlignedCallReg(const MicroReg reg, const CallConvKind callConv, const AlignedCallStack stack)
+{
+    const CallConv& conv    = CallConv::get(callConv);
+    const MicroReg  base    = MicroReg::intReg(10);
+    const MicroReg  scratch = MicroReg::intReg(11);
+    const MicroReg  sp      = conv.stackPointer;
+    SWC_ASSERT(reg != sp);
+    SWC_ASSERT(microRegSpanContains(conv.intTransientRegs, base) && microRegSpanContains(conv.intTransientRegs, scratch));
+    SWC_ASSERT(!conv.isIntArgReg(base) && !conv.isIntArgReg(scratch));
+    SWC_ASSERT(stack.alignment > conv.stackAlignment && std::has_single_bit(stack.alignment));
+    SWC_ASSERT(stack.copySize % sizeof(uint64_t) == 0);
+
+    // Save the target before either scratch register is reused. The destination can overlap
+    // the source, so copy forwards into the lower aligned address before saving the old RSP.
+    encodeLoadMemReg(sp, stack.copySize + sizeof(uint64_t), reg, MicroOpBits::B64);
+    encodeLoadRegReg(base, sp, MicroOpBits::B64);
+    encodeOpBinaryRegImm(base, ApInt(~(static_cast<uint64_t>(stack.alignment) - 1), 64), MicroOp::And, MicroOpBits::B64);
+    for (uint32_t offset = 0; offset < stack.copySize; offset += sizeof(uint64_t))
+    {
+        encodeLoadRegMem(scratch, sp, offset, MicroOpBits::B64);
+        encodeLoadMemReg(base, offset, scratch, MicroOpBits::B64);
+    }
+    encodeLoadMemReg(base, stack.copySize, sp, MicroOpBits::B64);
+    encodeLoadRegMem(scratch, sp, stack.copySize + sizeof(uint64_t), MicroOpBits::B64);
+    encodeLoadRegReg(sp, base, MicroOpBits::B64);
+    encodeCallReg(scratch, callConv);
+    encodeLoadRegMem(sp, sp, stack.copySize, MicroOpBits::B64);
+}
+
 void X64Encoder::encodeNop()
 {
     emitCpuOp(store_, 0x90);

@@ -10,7 +10,7 @@ void NullDerefCheck::run(Sanitizer& sanitizer, const SanitizerState& state, cons
 {
     // Calling through a null function pointer (a never-assigned lambda/closure) faults
     // just like a data dereference.
-    if (inst.op == MicroInstrOpcode::CallIndirect)
+    if (inst.op == MicroInstrOpcode::CallIndirect || inst.op == MicroInstrOpcode::CallAlignedIndirect)
     {
         if (ops && sanitizer.getReg(state, ops[0].reg).isZero())
             sanitizer.report(inst, DiagnosticId::sanity_err_null_call);

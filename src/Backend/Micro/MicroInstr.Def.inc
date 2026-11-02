@@ -170,6 +170,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 
+// The encoder aligns, copies and restores the outgoing stack within this one instruction.
+// Register allocation only sees the original stack pointer on either side of the call.
+SWC_MICRO_INSTR_DEF(
+    CallAlignedIndirect,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 1,
+        .flags                 = MicroInstrFlagsE::IsCallInstruction | MicroInstrFlagsE::RegisterDefsAtOutput,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+
 SWC_MICRO_INSTR_DEF(
     JumpCond,
     MicroInstrDef{

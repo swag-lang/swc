@@ -5,6 +5,7 @@
 
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Encoder/X64Unwind.Windows.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -12,6 +13,8 @@
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/TaskContext.h"
 #include "Support/Core/ByteArray.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -1102,6 +1105,98 @@ SWC_TEST_BEGIN(EncodeX64_UnwindSlotWidthsAndPadding)
     unwind.buildInfo(bytes, 1);
     if (!bytes.empty())
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Encoder_AlignedCallsPreserveStackArgumentsAndRegisters)
+{
+    const CallConv&    conv     = CallConv::get(CallConvKind::C);
+    const MicroReg     data     = conv.intArgRegs[0];
+    const MicroReg     integer  = conv.intArgRegs[1];
+    constexpr uint64_t K_FIRST  = 0x123456789ABCDEF0;
+    constexpr uint64_t K_LAST   = 0xFEDCBA9876543210;
+    constexpr uint64_t K_RESULT = 0x43216789;
+    const uint32_t     copySize = conv.stackShadowSpace + 40;
+    JITMemoryManager   manager;
+
+    for (const uint32_t alignment : {32u, 64u, 128u})
+    {
+        MicroBuilder callee(ctx);
+        callee.emitLoadMemReg(data, 7 * sizeof(uint64_t), RAX, MicroOpBits::B64);
+        callee.emitLoadRegReg(RAX, RSP, MicroOpBits::B64);
+        callee.emitOpBinaryRegImm(RAX, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        callee.emitOpBinaryRegImm(RAX, ApInt(alignment - 1, 64), MicroOp::And, MicroOpBits::B64);
+        callee.emitLoadMemReg(data, 0, RAX, MicroOpBits::B64);
+        callee.emitLoadRegMem(RAX, RSP, conv.stackShadowSpace + 8, MicroOpBits::B64);
+        callee.emitLoadMemReg(data, 8, RAX, MicroOpBits::B64);
+        callee.emitLoadRegMem(RAX, RSP, conv.stackShadowSpace + 40, MicroOpBits::B64);
+        callee.emitLoadMemReg(data, 16, RAX, MicroOpBits::B64);
+        callee.emitLoadMemReg(data, 5 * sizeof(uint64_t), integer, MicroOpBits::B64);
+        callee.emitLoadMemReg(data, 6 * sizeof(uint64_t), XMM0, MicroOpBits::B64);
+        callee.emitLoadRegImm(RAX, ApInt(K_RESULT, 64), MicroOpBits::B64);
+        callee.emitRet();
+        X64Encoder calleeEncoder(ctx);
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroEmitPass>(callee, &calleeEncoder, CallConvKind::C));
+        ByteArray calleeBytes;
+        calleeBytes.resize(calleeEncoder.size());
+        calleeEncoder.copyTo(calleeBytes);
+        JITMemory calleeMemory;
+        manager.allocateAndCopy(calleeMemory, calleeBytes.span());
+
+        // Every possible incoming eightbyte residue is covered, including overlapping copies
+        // and an already aligned stack. Both scratch registers can initially hold the target.
+        for (uint32_t padding = 0; padding < alignment; padding += 8)
+        {
+            for (const MicroReg target : {R10, R11})
+            {
+                const uint32_t reservation = copySize + AlignedCallStack::K_SAVE_SIZE + padding;
+                MicroBuilder   caller(ctx);
+                caller.emitPush(RBP);
+                caller.emitLoadRegReg(RBP, RSP, MicroOpBits::B64);
+                caller.emitOpBinaryRegImm(RSP, ApInt(reservation, 64), MicroOp::Subtract, MicroOpBits::B64);
+                caller.emitLoadRegImm(RAX, ApInt(K_FIRST, 64), MicroOpBits::B64);
+                caller.emitLoadMemReg(RSP, conv.stackShadowSpace, RAX, MicroOpBits::B64);
+                caller.emitLoadRegImm(RAX, ApInt(K_LAST, 64), MicroOpBits::B64);
+                caller.emitLoadMemReg(RSP, conv.stackShadowSpace + 32, RAX, MicroOpBits::B64);
+                caller.emitLoadRegImm(integer, ApInt(71, 64), MicroOpBits::B64);
+                caller.emitLoadRegImm(RAX, ApInt(K_FIRST, 64), MicroOpBits::B64);
+                caller.emitLoadRegReg(XMM0, RAX, MicroOpBits::B64);
+                caller.emitLoadRegImm(target, ApInt(reinterpret_cast<uint64_t>(calleeMemory.entryPoint()), 64), MicroOpBits::B64);
+                caller.emitLoadRegImm(RAX, ApInt(3, 64), MicroOpBits::B64);
+                caller.emitAlignedCallReg(target, CallConvKind::C, {copySize, alignment}, 3, 1);
+                caller.emitLoadMemReg(data, 3 * sizeof(uint64_t), RAX, MicroOpBits::B64);
+                caller.emitLoadRegReg(RAX, RBP, MicroOpBits::B64);
+                caller.emitOpBinaryRegReg(RAX, RSP, MicroOp::Subtract, MicroOpBits::B64);
+                caller.emitLoadMemReg(data, 4 * sizeof(uint64_t), RAX, MicroOpBits::B64);
+                caller.emitOpBinaryRegImm(RSP, ApInt(reservation, 64), MicroOp::Add, MicroOpBits::B64);
+                caller.emitPop(RBP);
+                caller.emitRet();
+                X64Encoder callerEncoder(ctx);
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroEmitPass>(caller, &callerEncoder, CallConvKind::C));
+                ByteArray callerBytes;
+                callerBytes.resize(callerEncoder.size());
+                callerEncoder.copyTo(callerBytes);
+                JITMemory callerMemory;
+                manager.allocateAndCopy(callerMemory, callerBytes.span());
+                uint64_t values[8] = {};
+#if defined(__linux__) && defined(__x86_64__)
+                if (ctx.cmdLine().targetOs == Runtime::TargetOs::Windows)
+                {
+                    using WindowsTestFn = void(__attribute__((ms_abi))*)(uint64_t*);
+                    reinterpret_cast<WindowsTestFn>(callerMemory.entryPoint())(values);
+                }
+                else
+#endif
+                {
+                    using TestFn = void (*)(uint64_t*);
+                    reinterpret_cast<TestFn>(callerMemory.entryPoint())(values);
+                }
+                if (values[0] || values[1] != K_FIRST || values[2] != K_LAST || values[3] != K_RESULT ||
+                    values[4] != reservation || values[5] != 71 || values[6] != K_FIRST || values[7] != 3)
+                    return Result::Error;
+            }
+        }
+    }
 }
 SWC_TEST_END()
 

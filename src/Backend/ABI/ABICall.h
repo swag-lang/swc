@@ -141,7 +141,8 @@ namespace ABICall
             uint32_t numPreparedArgs = 0;
             uint32_t stackAdjust;
         };
-        bool          stackAlreadyAdjusted = false;
+        bool          stackAlreadyAdjusted : 1 = false;
+        uint8_t       stackAlignmentLog2 : 7   = 0;
         uint8_t       intArgMask           = 0;
         CallFloatArgs floatArgMask;
     };

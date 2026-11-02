@@ -8,6 +8,8 @@
     func free(ptr: *void?)
     func mkdtemp(template: [*] u8)->[*] u8?
     func getenv(name: const [*] u8)->[*] u8?
+    func setenv(name: const [*] u8, value: const [*] u8, overwrite: s32)->s32
+    func unsetenv(name: const [*] u8)->s32
     #[Swag.NoReturn]
     func exit(status: s32)
 }

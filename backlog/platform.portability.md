@@ -12,15 +12,15 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,754 tests. The raw Linux module
-passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core builds
-core.so and passes all 866 ordinary tests in JIT and native execution. Additional public boundary
+passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
+core.so and passed 866 ordinary tests in JIT and native execution. Additional public boundary
 suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. Tagged platform integration coverage remains limited to the boundaries
-listed above; the 866-test count covers the complete ordinary Core inventory.
+listed above; one additional ordinary desktop-action validation case now passes in both modes.
 Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its six direct
 typeface tests pass in JIT and native execution; installed-family loading also passes through
 a separate importing module, including synthetic styles with independent glyph workspaces.
@@ -31,9 +31,9 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,080 declarations and 386 exposed members have comments;
-Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
-built in this probe. Those three documentation references remain unresolved.
+Core API generation succeeds: all 2,082 declarations and 386 exposed members have comments;
+Linux still lacks the referenced Debugger surface, and the separate GUI API page is not
+built in this probe. Those two documentation references remain unresolved.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
@@ -411,7 +411,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   modifier suffixes and mapping separators to hyphens. C/POSIX and malformed names return empty.
   Two parser/precedence cases pass JIT/native; a separate archive consumer passes seven controlled
   environment configurations in both modes. No process-wide C locale is changed.
-- Next: finish environment mutation and desktop actions, with explicit unsupported outcomes.
+- Desktop actions: `openFile` and `openUrl` launch `xdg-open` through separate argument values,
+  without shell parsing or inherited streams. Relative file paths become absolute without
+  changing symlink semantics. The result describes launcher startup, not later handler success;
+  missing launchers and invalid inputs return false. JIT/native tests cover exact Unicode and
+  metacharacter transmission, relative/absolute paths, invalid inputs and a missing launcher.
+  A separate importer also exercises the installed `xdg-open` with a controlled BROWSER handler
+  in both modes. Interactive desktop presentation remains unverified.
+- Next: finish environment mutation, file-manager reveal and application-chooser actions,
+  with explicit unsupported outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 

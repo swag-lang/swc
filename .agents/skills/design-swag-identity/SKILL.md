@@ -1,6 +1,6 @@
 ---
 name: design-swag-identity
-description: Apply the Swag visual identity to the logo, favicons, application icon tiles, generated documentation, the website, the VSCode theme and syntax colors, and frame every GUI surface by the six laws of the Silence charter. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository; GUI details then continue in design-swag-themes, design-swag-dialogs and build-swag-standard-apps.
+description: Apply the Swag visual identity to the logo, favicons, application icon tiles, generated documentation, the website, the VSCode theme and syntax colors, and frame every GUI surface by the seven laws of the Silence charter. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository; GUI details then continue in design-swag-themes, design-swag-dialogs and build-swag-standard-apps.
 ---
 
 # Design The Swag Identity
@@ -28,21 +28,24 @@ at a time.
 
 ## The GUI Follows Silence
 
-The charter states the six laws. This is why each one exists. A surface that follows the letter
+The charter states the seven laws. This is why each one exists. A surface that follows the letter
 of a rule but breaks one of these laws is wrong.
 
 1. **The work comes first.** Remove decorative bands and duplicate readouts. Keep frequent task
    controls beside the work: folder navigation, playback transport, editing tools and output.
 2. **Details are asked for.** Secondary readings and settings can wait for a gesture. Current
    mode, selection, progress, failures and the next essential action must remain understandable.
-3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+3. **A visible fact can open its operation.** When a displayed value describes an object with a
+   natural operation, let it open the relevant actions for that object. Reuse existing commands
+   and keep the menu anchor quiet; do not make labels clickable without a clear operation.
+4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
    open the same complete lens. Frequent actions also have direct controls; command names and
    keyboard shortcuts must not be prerequisites for using the application.
-4. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
+5. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
    do*, so two Voltage marks on one screen mean nothing.
-5. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by
+6. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by
    what it draws: clean first, dense never.
-6. **The default theme carries the hand.** The toolkit ships Encre (dark) and Papier (light),
+7. **The default theme carries the hand.** The toolkit ships Encre (dark) and Papier (light),
    both recognizably Swag. An application that wants another look adds a theme sheet on top. The
    toolkit maintains two themes and no more.
 

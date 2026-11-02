@@ -668,7 +668,44 @@ impl MainWnd
     mtd createHintLine()
     {
         .hintLine = HintLine.create(.editArea)
+        with .sizeReading = IconButton.createQuiet(.editArea)
+        {
+            .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
+            .sigPressed += func|main = me|(button) { main.showSizeMenu(button) }
+        }
+        with .zoomReading = IconButton.createQuiet(.editArea)
+        {
+            .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
+            .sigPressed += func|main = me|(button) { main.showZoomMenu(button) }
+        }
+        .hintLine.setReading(null)
+        .updateReading()
         .fillHintLine()
+    }
+
+    // Reserves the first part of the hint line for the two readings and puts each menu anchor
+    // on the same baseline as the line's words.
+    mtd placeReadings()
+    {
+        if .hintLine == null or .sizeReading == null do
+            return
+
+        let metrics = .themeMetrics()
+        let insets  = .floatingInsets()
+        var x       = insets.left
+        let y       = Math.round(.editArea.clientRect().bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height)
+
+        if .sizeReading.isLocallyVisible()
+        {
+            .sizeReading.setPosition(Math.Rectangle{x, y, .sizeReading.position.width, metrics.hintLine_Height})
+            x += .sizeReading.position.width + metrics.hintLine_GroupGap
+
+            .zoomReading.setPosition(Math.Rectangle{x, y, .zoomReading.position.width, metrics.hintLine_Height})
+            x += .zoomReading.position.width + metrics.hintLine_GroupGap
+        }
+
+        .hintLine.margin = {x, 0, insets.right, 0}
+        .hintLine.setReading(null)
     }
 
     // Writes the foot line: what the tool in hand does, the key of the inspector while it is
@@ -679,8 +716,7 @@ impl MainWnd
             return
 
         // The line stands in the room the dock and the inspector leave, never under them.
-        let insets = .floatingInsets()
-        .hintLine.margin = {insets.left, 0, insets.right, 0}
+        .placeReadings()
         .hintLine.clearHints()
         if .editWnd != null and .editWnd.editView.isEditingText()
         {

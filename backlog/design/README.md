@@ -18,7 +18,7 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
 
 ![The two themes](imgs/silence.themes.png)
 
-## The six laws
+## The seven laws
 
 1. **The work comes first.** Keep the document, image or list dominant. Repeated task controls
    belong beside it: navigation in a folder, transport in a player, tools and output in an
@@ -26,15 +26,20 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
 2. **Details are asked for.** Metadata, advanced settings and secondary readings appear on
    request. Current mode, selection, progress, failures and the next essential action remain
    understandable without knowing a shortcut or discovering a hover target.
-3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+3. **A visible fact can open its operation.** When a displayed value describes an object with a
+   natural operation, let that value open the relevant actions for the object. A capture's
+   dimensions can open resize commands; its zoom can open zoom and fit commands. Keep the value
+   as a quiet menu anchor and reuse the existing commands. Do not make labels clickable when no
+   clear operation follows from them.
+4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
    open the same lens: search, go to, open, switch view, run any command. Every command remains
    reachable from it. Frequent actions also have direct controls; the lens never makes learning
    command names a prerequisite for using an application.
-4. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
+5. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
    many.
-5. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
+6. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
    boxed that space can separate.
-6. **The default theme carries the hand.** The toolkit ships two themes, Encre (dark) and Papier
+7. **The default theme carries the hand.** The toolkit ships two themes, Encre (dark) and Papier
    (light), both recognisable as Swag. An application that wants another look adds its own theme
    on top; the toolkit keeps two to maintain.
 
@@ -658,7 +663,9 @@ the screen to its work.
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
   selection and the inspector at the right (foldable). Its compact task controls offer capture
   and image output directly. Every command remains in the lens, including capture modes, recent
-  captures and the library; secondary choices may use adjacent menus.
+  captures and the library; secondary choices may use adjacent menus. The size and zoom readings
+  at the foot of the editor are quiet menu anchors: size opens image-size commands and zoom opens
+  zoom, actual-size and fit commands. These menus reuse the commands already in the lens.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
   mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
   after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then

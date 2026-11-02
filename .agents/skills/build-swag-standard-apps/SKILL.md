@@ -17,7 +17,7 @@ is built to match them. What each application still lacks is tracked in
 ## Establish The Change
 
 1. Read `../modify-swag-codebase/SKILL.md` and `../write-idiomatic-swag-code/SKILL.md`.
-2. Before touching UI, colour, layout or icons, read `../design-swag-identity/SKILL.md` (the six
+2. Before touching UI, colour, layout or icons, read `../design-swag-identity/SKILL.md` (the seven
    laws, the tile) and `../design-swag-themes/SKILL.md` (tokens, roles, measures, type,
    controls). Before touching a modal box, read `../design-swag-dialogs/SKILL.md`.
 3. Open the charter pictures of the surface you change, in both themes, and keep them open.
@@ -122,7 +122,7 @@ theme-atlas glyph, another app's icon or a letter tile.
 
 ## Leave The Window To The Work
 
-The six laws (see [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence))
+The seven laws (see [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence))
 bind an application like this:
 
 - **Keep frequent task controls beside the work.** Folder navigation, playback transport,
@@ -477,12 +477,12 @@ different contracts; none replaces the other two. Keep maintained snapshots in
 `<subject>.golden.test.swg`, with the `golden` tag.
 
 1. While iterating, run the owning test file:
-   `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
+   `tools/apps.bat test <application> --test-file <name>.test.swg`.
 2. Run the application's routine functional selection only when shared application state or
    several test families changed:
 
    ```text
-   tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module <application>
+   tools\coverage.bat -Suite fast -Workspace apps -Module <application>
    ```
 
    Run related scale cases separately with `-Suite stress` when their boundary changed.

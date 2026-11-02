@@ -94,7 +94,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">192</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">195</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Core_CommandLine_FieldResult">CommandLine.FieldResult</a></li>
@@ -157,9 +157,12 @@
 <li><a href="#Core_Env_StartInfo">Env.StartInfo</a></li>
 <li><a href="#Core_Env_Window">Env.Window</a></li>
 <li><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></li>
+<li><a href="#Core_Env_WindowFocusCallback">Env.WindowFocusCallback</a></li>
 <li><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></li>
 <li><a href="#Core_Env_WindowOptions">Env.WindowOptions</a></li>
 <li><a href="#Core_Env_WindowPaintCallback">Env.WindowPaintCallback</a></li>
+<li><a href="#Core_Env_WindowPointerCallback">Env.WindowPointerCallback</a></li>
+<li><a href="#Core_Env_WindowPointerEvent">Env.WindowPointerEvent</a></li>
 <li><a href="#Core_Env_WindowResizeCallback">Env.WindowResizeCallback</a></li>
 <li><a href="#Core_Errors_BadParameterError">Errors.BadParameterError</a></li>
 <li><a href="#Core_Errors_FileNotFoundError">Errors.FileNotFoundError</a></li>
@@ -292,7 +295,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Enumerations</span><span class="toc-count">47</span></summary>
+<summary><span class="toc-label">Enumerations</span><span class="toc-count">48</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-enumerations">All Enumerations</a></li>
 <li><a href="#Core_Console_Color">Console.Color</a></li>
@@ -309,6 +312,7 @@
 <li><a href="#Core_Env_SystemMetric">Env.SystemMetric</a></li>
 <li><a href="#Core_Env_SystemMutation">Env.SystemMutation</a></li>
 <li><a href="#Core_Env_WindowFlags">Env.WindowFlags</a></li>
+<li><a href="#Core_Env_WindowPointerKind">Env.WindowPointerKind</a></li>
 <li><a href="#Core_File_FileAccess">File.FileAccess</a></li>
 <li><a href="#Core_File_FileAttributes">File.FileAttributes</a></li>
 <li><a href="#Core_File_FileMode">File.FileMode</a></li>
@@ -2178,7 +2182,7 @@
 <span class="SKwd">let</span> text = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SFct">readAllText</span>(<span class="SStr">"settings.txt"</span>)
 
 <span class="SKwd">var</span> lines: <span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span>
-<span class="SLgc">for</span> line <span class="SLgc">in</span> text.<span class="SFct">splitLines</span>() <span class="SLgc">do</span>
+<span class="SLgc">for</span> line <span class="SLgc">in</span> <span class="SCst"><a href="#namespace_Core_Tokenize">Tokenize</a></span>.<span class="SFct">splitLines</span>(text.<span class="SFct">toString</span>()) <span class="SLgc">do</span>
     lines.<span class="SFct">add</span>(line)</span></div>
 <p>Owned containers release their storage automatically. Slices and string views borrow storage instead; keep their source alive and do not retain them across an operation that can reallocate that source.</p>
 <h2 id="overview_Derive_short-lived_key_material">Derive short-lived key material</h2>
@@ -2615,11 +2619,17 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowFocusCallback">Env.WindowFocusCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles native keyboard-focus gain (<span class="code-inline">true</span>) or loss (<span class="code-inline">false</span>) for a window.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowOptions">Env.WindowOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures top-level window creation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowPaintCallback">Env.WindowPaintCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a window paint request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerCallback">Env.WindowPointerCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a mouse action delivered to a window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerEvent">Env.WindowPointerEvent</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one mouse action in a window's client coordinate system.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowResizeCallback">Env.WindowResizeCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a window resize and receives the new client size in physical pixels.</p>
 </td></tr>
@@ -2912,6 +2922,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Env_SystemMutation">Env.SystemMutation</a></td><td><p>Names a category of machine state an application mutates outside its own files.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowFlags">Env.WindowFlags</a></td><td><p>Configures the capabilities exposed by a top-level window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerKind">Env.WindowPointerKind</a></td><td><p>Identifies the mouse action delivered to a window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_File_FileAccess">File.FileAccess</a></td><td><p>Access requested when opening a file.</p>
 </td></tr>
@@ -5821,7 +5833,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_String_opDrop">String.opDrop</a></td><td><p>Releases the allocated storage, if any.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_String_opEquals">String.opEquals</a></td><td><p>Returns whether the string holds the same bytes as <span class="code-inline">other</span>.</p>
+<tr><td class="code-type"><a href="#Core_String_opEquals">String.opEquals</a></td><td><p>Compares two owned strings by their text, including inside composite values.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_String_opIndex">String.opIndex</a></td><td><p>Returns the byte at <span class="code-inline">index</span>.</p>
 </td></tr>
@@ -7116,11 +7128,17 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowCallbacks">Env.WindowCallbacks</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowFocusCallback">Env.WindowFocusCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles native keyboard-focus gain (<span class="code-inline">true</span>) or loss (<span class="code-inline">false</span>) for a window.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowLoop">Env.WindowLoop</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowOptions">Env.WindowOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Configures top-level window creation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowPaintCallback">Env.WindowPaintCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a window paint request.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerCallback">Env.WindowPointerCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a mouse action delivered to a window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerEvent">Env.WindowPointerEvent</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes one mouse action in a window's client coordinate system.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowResizeCallback">Env.WindowResizeCallback</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td><p>Handles a window resize and receives the new client size in physical pixels.</p>
 </td></tr>
@@ -7139,6 +7157,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Env_SystemMutation">Env.SystemMutation</a></td><td><p>Names a category of machine state an application mutates outside its own files.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Env_WindowFlags">Env.WindowFlags</a></td><td><p>Configures the capabilities exposed by a top-level window.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Env_WindowPointerKind">Env.WindowPointerKind</a></td><td><p>Identifies the mouse action delivered to a window.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10597,7 +10617,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_String_opDrop">opDrop</a></td><td><p>Releases the allocated storage, if any.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_String_opEquals">opEquals</a></td><td><p>Returns whether the string holds the same bytes as <span class="code-inline">other</span>.</p>
+<tr><td class="code-type"><a href="#Core_String_opEquals">opEquals</a></td><td><p>Compares two owned strings by their text, including inside composite values.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_String_opIndex">opIndex</a></td><td><p>Returns the byte at <span class="code-inline">index</span>.</p>
 </td></tr>
@@ -11030,7 +11050,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </section>
 </div>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L53">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_Window" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.Window</span> <a class="api-item-permalink" href="#Core_Env_Window" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L96">src</a></div>
 <p>Owns one top-level application window.</p>
 <p>Create a window with <a href="#Core_Env_createWindow">Core.Env.createWindow</a>. The value closes any remaining window when it leaves scope; call <a href="#Core_Env_Window_close">Core.Env.Window.close</a> to release it earlier.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
@@ -11075,7 +11095,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowCallbacks" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowCallbacks</span> <a class="api-item-permalink" href="#Core_Env_WindowCallbacks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L11">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowCallbacks" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowCallbacks</span> <a class="api-item-permalink" href="#Core_Env_WindowCallbacks" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L52">src</a></div>
 <p>Groups the optional callbacks dispatched by a <a href="#Core_Env_Window">Core.Env.Window</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowCallbacks">WindowCallbacks</a></span></span></div>
 </section>
@@ -11083,14 +11103,24 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td id="Core_Env_WindowCallbacks_onFocus" class="code-type">onFocus</td><td class="code-type">(func||(*<a href="#Core_Env_Window">Core.Env.Window</a>, bool))?</td><td><p>Invoked when native keyboard focus is gained or lost.</p>
+</td></tr>
 <tr><td id="Core_Env_WindowCallbacks_onPaint" class="code-type">onPaint</td><td class="code-type">(func||(*<a href="#Core_Env_Window">Core.Env.Window</a>))?</td><td><p>Invoked for a paint request.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowCallbacks_onPointer" class="code-type">onPointer</td><td class="code-type">(func||(*<a href="#Core_Env_Window">Core.Env.Window</a>, <a href="#Core_Env_WindowPointerEvent">Core.Env.WindowPointerEvent</a>))?</td><td><p>Invoked for mouse movement, buttons, or wheel input.</p>
 </td></tr>
 <tr><td id="Core_Env_WindowCallbacks_onResize" class="code-type">onResize</td><td class="code-type">(func||(*<a href="#Core_Env_Window">Core.Env.Window</a>, s32, s32))?</td><td><p>Invoked with the new client size in physical pixels.</p>
 </td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L67">src</a></div>
+<div class="api-item api-item-alias"><span id="Core_Env_WindowFocusCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowFocusCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowFocusCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L14">src</a></div>
+<p>Handles native keyboard-focus gain (<span class="code-inline">true</span>) or loss (<span class="code-inline">false</span>) for a window.</p>
+<p>Runs during platform event dispatch on the window-owning thread. The callback may close its window; the dispatcher does not access the owner after returning from this callback.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_WindowFocusCallback">WindowFocusCallback</a></span> = <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Env_Window">Window</a></span>, <span class="STpe">bool</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Env_WindowLoop" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowLoop</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L110">src</a></div>
 <p>Pumps window events until closing is requested or a smoke run's frame budget is spent.</p>
 <p>A close request stops the loop while the window is still open. Release resources that use its native handle before closing the window or leaving its scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowLoop">WindowLoop</a></span></span></div>
@@ -11119,7 +11149,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Env_WindowOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowOptions</span> <a class="api-item-permalink" href="#Core_Env_WindowOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L36">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Env_WindowOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowOptions</span> <a class="api-item-permalink" href="#Core_Env_WindowOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L79">src</a></div>
 <p>Configures top-level window creation.</p>
 <p><span class="code-inline">width</span> and <span class="code-inline">height</span> are logical units: the created window is proportionally larger, in physical pixels, on a scaled display. The client size reported to <a href="#Core_Env_WindowResizeCallback">Core.Env.WindowResizeCallback</a> is physical.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span></span></div>
@@ -11145,6 +11175,36 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <p>Handles a window paint request.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_WindowPaintCallback">WindowPaintCallback</a></span> = <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Env_Window">Window</a></span>)</span></div>
 </section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="Core_Env_WindowPointerCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowPointerCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowPointerCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L49">src</a></div>
+<p>Handles a mouse action delivered to a window.</p>
+<p>Runs during platform event dispatch on the window-owning thread. The callback may close its window. Delivery follows the platform's native pointer routing; installing this callback does not request pointer capture, keyboard focus, or double-click recognition.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Core_Env_WindowPointerCallback">WindowPointerCallback</a></span> = <span class="SKwd">func</span>||(*<span class="SCst"><a href="#Core_Env_Window">Window</a></span>, <span class="SCst"><a href="#Core_Env_WindowPointerEvent">WindowPointerEvent</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Core_Env_WindowPointerEvent" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Env.WindowPointerEvent</span> <a class="api-item-permalink" href="#Core_Env_WindowPointerEvent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L31">src</a></div>
+<p>Describes one mouse action in a window's client coordinate system.</p>
+<p>Coordinates are physical pixels from the client area's top-left corner and may be negative. Wheel deltas are measured in notches: positive X scrolls right and positive Y scrolls up. Fractional wheel deltas are preserved when the backend supplies them. This value contains no borrowed storage and may be copied by the receiver.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Env_WindowPointerEvent">WindowPointerEvent</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Env_WindowPointerEvent_button" class="code-type">button</td><td class="code-type"><a href="#Core_Input_MouseButton">Core.Input.MouseButton</a></td><td><p>Meaningful only for ButtonDown and ButtonUp.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerEvent_kind" class="code-type">kind</td><td class="code-type"><a href="#Core_Env_WindowPointerKind">Core.Env.WindowPointerKind</a></td><td><p>Selects the meaningful action fields.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerEvent_wheelX" class="code-type">wheelX</td><td class="code-type">f32</td><td><p>Horizontal notches for Wheel; zero for other actions.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerEvent_wheelY" class="code-type">wheelY</td><td class="code-type">f32</td><td><p>Vertical notches for Wheel; zero for other actions.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerEvent_x" class="code-type">x</td><td class="code-type">s32</td><td><p>Horizontal client coordinate in physical pixels.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerEvent_y" class="code-type">y</td><td class="code-type">s32</td><td><p>Vertical client coordinate in physical pixels.</p>
+</td></tr>
+</tbody>
+</table>
 <section class="api-symbol">
 <div class="api-item api-item-alias"><span id="Core_Env_WindowResizeCallback" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Env.WindowResizeCallback</span> <a class="api-item-permalink" href="#Core_Env_WindowResizeCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L8">src</a></div>
 <p>Handles a window resize and receives the new client size in physical pixels.</p>
@@ -14544,9 +14604,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Threading_Thread" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Threading.Thread</span> <a class="api-item-permalink" href="#Core_Threading_Thread" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L23">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Threading_Thread" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Threading.Thread</span> <a class="api-item-permalink" href="#Core_Threading_Thread" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L25">src</a></div>
 <p>Owns an operating-system thread with inherited context settings and independent scratch storage.</p>
-<p><a href="#Core_Threading_Thread_init">Core.Threading.Thread.init</a> creates the thread suspended and <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> runs it. The value must be waited for, with <a href="#Core_Threading_Thread_wait">Core.Threading.Thread.wait</a> or <a href="#Core_Threading_wait">Core.Threading.wait</a>, before it is dropped, and it must not move while the thread runs.</p>
+<p><a href="#Core_Threading_Thread_init">Core.Threading.Thread.init</a> creates the thread suspended and <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> runs it. Calls that change or query the same thread's native handle must be serialized by the owner. The body can read its published context, user data and cooperative stop flag. The value must be waited for, with <a href="#Core_Threading_Thread_wait">Core.Threading.Thread.wait</a> or <a href="#Core_Threading_wait">Core.Threading.wait</a>, before it is dropped, and it must not move while the thread runs.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span></span></div>
 </section>
@@ -15262,7 +15322,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Core_Env_WindowFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.WindowFlags</span> <a class="api-item-permalink" href="#Core_Env_WindowFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L22">src</a></div>
+<div class="api-item api-item-enum"><span id="Core_Env_WindowFlags" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.WindowFlags</span> <a class="api-item-permalink" href="#Core_Env_WindowFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L65">src</a></div>
 <p>Configures the capabilities exposed by a top-level window.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_WindowFlags">WindowFlags</a></span></span></div>
@@ -15280,6 +15340,25 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <tr><td id="Core_Env_WindowFlags_Resizable" class="code-type">Resizable</td><td><p>Lets the user resize the window.</p>
 </td></tr>
 <tr><td id="Core_Env_WindowFlags_Standard" class="code-type">Standard</td><td><p>Creates a standard resizable application window.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Core_Env_WindowPointerKind" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Env.WindowPointerKind</span> <a class="api-item-permalink" href="#Core_Env_WindowPointerKind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L17">src</a></div>
+<p>Identifies the mouse action delivered to a window.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Core_Env_WindowPointerKind">WindowPointerKind</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Core_Env_WindowPointerKind_ButtonDown" class="code-type">ButtonDown</td><td><p>A supported mouse button was pressed.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerKind_ButtonUp" class="code-type">ButtonUp</td><td><p>A supported mouse button was released.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerKind_Move" class="code-type">Move</td><td><p>The pointer moved in the client area.</p>
+</td></tr>
+<tr><td id="Core_Env_WindowPointerKind_Wheel" class="code-type">Wheel</td><td><p>A horizontal or vertical wheel moved.</p>
 </td></tr>
 </tbody>
 </table>
@@ -19201,7 +19280,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Directory_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.delete</span> <a class="api-item-permalink" href="#Core_Directory_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L55">src</a></div>
 <p>Deletes <span class="code-inline">dirName</span>, optionally deleting its complete contents first.</p>
-<p>Recursive deletion is not atomic: entries removed before a later failure stay removed. Directory reparse points are removed without traversing their targets.</p>
+<p>Recursive deletion is not atomic: entries removed before a later failure stay removed. Directory reparse points, including the requested root, are removed without traversing their targets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">delete</span>(dirName: <span class="STpe">string</span>, recurse = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -19211,18 +19290,18 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">drives</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Directory_enumerate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerate</span> <a class="api-item-permalink" href="#Core_Directory_enumerate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L87">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Directory_enumerate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerate</span> <a class="api-item-permalink" href="#Core_Directory_enumerate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L111">src</a></div>
 <p>Returns the entries of <span class="code-inline">dirName</span> selected by <span class="code-inline">options</span>, or an empty array when <span class="code-inline">dirName</span> is null. A missing directory or a native enumeration failure reports an error.</p>
 <p>When both <span class="code-inline">matchExtension</span> and <span class="code-inline">matchFileName</span> are set, an entry matching either one is kept.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enumerate</span>(dirName: <span class="STpe">string</span>?, options: <span class="SCst"><a href="#Core_Directory_EnumerationOptions">EnumerationOptions</a></span>)-&gt;<span class="SFct">Array</span>'(<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SCst"><a href="#Core_File_FileInfo">FileInfo</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Directory_enumerateDirectories" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerateDirectories</span> <a class="api-item-permalink" href="#Core_Directory_enumerateDirectories" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Directory_enumerateDirectories" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerateDirectories</span> <a class="api-item-permalink" href="#Core_Directory_enumerateDirectories" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L177">src</a></div>
 <p>Returns the subdirectories of <span class="code-inline">dirName</span>, optionally restricted to one extension and extended to their own subdirectories.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enumerateDirectories</span>(dirName: <span class="STpe">string</span>, matchExtension: <span class="STpe">string</span>? = <span class="SKwd">null</span>, recurse = <span class="SKwd">false</span>)-&gt;<span class="SFct">Array</span>'(<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SCst"><a href="#Core_File_FileInfo">FileInfo</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Directory_enumerateFiles" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerateFiles</span> <a class="api-item-permalink" href="#Core_Directory_enumerateFiles" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Directory_enumerateFiles" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Directory.enumerateFiles</span> <a class="api-item-permalink" href="#Core_Directory_enumerateFiles" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/directory.swg#L171">src</a></div>
 <p>Returns the files of <span class="code-inline">dirName</span>, optionally restricted to one extension and extended to its subdirectories.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">enumerateFiles</span>(dirName: <span class="STpe">string</span>, matchExtension: <span class="STpe">string</span>? = <span class="SKwd">null</span>, recurse = <span class="SKwd">false</span>)-&gt;<span class="SFct">Array</span>'(<span class="SCst"><a href="#namespace_Core_File">File</a></span>.<span class="SCst"><a href="#Core_File_FileInfo">FileInfo</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -19362,7 +19441,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">corpusRoot</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_createWindow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.createWindow</span> <a class="api-item-permalink" href="#Core_Env_createWindow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L234">src</a></div>
 <p>Creates and owns a top-level application window.</p>
 <p>The returned <a href="#Core_Env_Window">Core.Env.Window</a> keeps its platform-specific state opaque and closes the window when it leaves scope. The logical <span class="code-inline">options</span> size is realized in the physical pixels of the monitor where the platform creates it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createWindow</span>(options: <span class="SCst"><a href="#Core_Env_WindowOptions">WindowOptions</a></span>)-&gt;<span class="SCst"><a href="#Core_Env_Window">Window</a></span> <span class="SKwd">fail</span></span></div>
@@ -19510,7 +19589,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">openUrl</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L665">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_processWindowMessages" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Env.processWindowMessages</span> <a class="api-item-permalink" href="#Core_Env_processWindowMessages" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L737">src</a></div>
 <p>Processes all pending window messages and returns false when the application should exit.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processWindowMessages</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -25212,7 +25291,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toU8</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_append" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.append</span> <a class="api-item-permalink" href="#Core_String_append" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L481">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_append" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.append</span> <a class="api-item-permalink" href="#Core_String_append" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L487">src</a></div>
 <p>Appends the byte <span class="code-inline">value</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">append</span>(value: <span class="STpe">u8</span>)</span></div>
@@ -25222,17 +25301,17 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">append</span>(value: <span class="STpe">string</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_appendFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.appendFormat</span> <a class="api-item-permalink" href="#Core_String_appendFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L474">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_appendFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.appendFormat</span> <a class="api-item-permalink" href="#Core_String_appendFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L480">src</a></div>
 <p>Appends <span class="code-inline">format</span> formatted with <span class="code-inline">values</span>, following the rules of <a href="#Core_Format_toString">Core.Format.toString</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">appendFormat</span>(format: <span class="STpe">string</span>, values: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.back</span> <a class="api-item-permalink" href="#Core_String_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L395">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_back" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.back</span> <a class="api-item-permalink" href="#Core_String_back" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L401">src</a></div>
 <p>Returns the last byte, or 0 when the string is empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">back</span>()-&gt;<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_bytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.bytes</span> <a class="api-item-permalink" href="#Core_String_bytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L251">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_bytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.bytes</span> <a class="api-item-permalink" href="#Core_String_bytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L257">src</a></div>
 <p>Returns a mutable borrowed view of the UTF-8 bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">bytes</span>()-&gt;[..] <span class="STpe">u8</span></span></div>
@@ -25241,13 +25320,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">bytes</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.clear</span> <a class="api-item-permalink" href="#Core_String_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L285">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.clear</span> <a class="api-item-permalink" href="#Core_String_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L291">src</a></div>
 <p>Empties the string, keeping its storage.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.contains</span> <a class="api-item-permalink" href="#Core_String_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L753">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_contains" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.contains</span> <a class="api-item-permalink" href="#Core_String_contains" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L759">src</a></div>
 <p>Returns whether the string contains <span class="code-inline">what</span>, as <a href="#Core_Utf8_contains">Core.Utf8.contains</a> decides.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(what: <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(what: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -25255,34 +25334,34 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">contains</span>(what: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.endsWith</span> <a class="api-item-permalink" href="#Core_String_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L765">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_endsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.endsWith</span> <a class="api-item-permalink" href="#Core_String_endsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L771">src</a></div>
 <p>Returns whether the string ends with <span class="code-inline">str</span> under the case policy <span class="code-inline">comparisonType</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">endsWith</span>(str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>.<span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_ensureNotNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.ensureNotNull</span> <a class="api-item-permalink" href="#Core_String_ensureNotNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L310">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_ensureNotNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.ensureNotNull</span> <a class="api-item-permalink" href="#Core_String_ensureNotNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L316">src</a></div>
 <p>Makes a null string empty, pointing it at its inline storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ensureNotNull</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_from" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.from</span> <a class="api-item-permalink" href="#Core_String_from" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L657">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_from" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.from</span> <a class="api-item-permalink" href="#Core_String_from" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L663">src</a></div>
 <p>Returns a new string holding a copy of <span class="code-inline">value</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">from</span>(value: <span class="STpe">string</span>?)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_grow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.grow</span> <a class="api-item-permalink" href="#Core_String_grow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L552">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_grow" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.grow</span> <a class="api-item-permalink" href="#Core_String_grow" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L558">src</a></div>
 <p>Ensures room for <span class="code-inline">wantedCapacity</span> bytes, at least doubling the capacity when it grows.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">grow</span>(wantedCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.indexOf</span> <a class="api-item-permalink" href="#Core_String_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L771">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_indexOf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.indexOf</span> <a class="api-item-permalink" href="#Core_String_indexOf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L777">src</a></div>
 <p>Returns the byte index of the first <span class="code-inline">what</span> at or after <span class="code-inline">startByteIndex</span>, or <span class="code-inline">Swag.U64.Max</span> when it is absent.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">indexOf</span>(what: <span class="STpe">string</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>, comparisonType = <span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>.<span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">u64</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">indexOf</span>(what: <span class="STpe">rune</span>, startByteIndex = <span class="SNum">0</span>'<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_insert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.insert</span> <a class="api-item-permalink" href="#Core_String_insert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L427">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_insert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.insert</span> <a class="api-item-permalink" href="#Core_String_insert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L433">src</a></div>
 <p>Inserts the byte <span class="code-inline">value</span> at <span class="code-inline">byteIndex</span>, which may be the length to append it.</p>
 <p><span class="code-inline">value</span> must not be zero.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">insert</span>(byteIndex: <span class="STpe">u64</span>, value: <span class="STpe">u8</span>)</span></div>
@@ -25291,47 +25370,47 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">insert</span>(byteIndex: <span class="STpe">u64</span>, value: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isEmpty</span> <a class="api-item-permalink" href="#Core_String_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L299">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isEmpty</span> <a class="api-item-permalink" href="#Core_String_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L305">src</a></div>
 <p>Returns whether the length is zero.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isNull</span> <a class="api-item-permalink" href="#Core_String_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L303">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_isNull" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isNull</span> <a class="api-item-permalink" href="#Core_String_isNull" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L309">src</a></div>
 <p>Returns whether the string owns no storage.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isNull</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_isNullOrEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isNullOrEmpty</span> <a class="api-item-permalink" href="#Core_String_isNullOrEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L307">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_isNullOrEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.isNullOrEmpty</span> <a class="api-item-permalink" href="#Core_String_isNullOrEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L313">src</a></div>
 <p>Returns whether the string owns no storage or has zero length.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isNullOrEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.join</span> <a class="api-item-permalink" href="#Core_String_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L528">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.join</span> <a class="api-item-permalink" href="#Core_String_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L534">src</a></div>
 <p>Returns the concatenation of <span class="code-inline">values</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">join</span>(values: <span class="STpe">string</span>...)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_joinWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.joinWith</span> <a class="api-item-permalink" href="#Core_String_joinWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L537">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_joinWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.joinWith</span> <a class="api-item-permalink" href="#Core_String_joinWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L543">src</a></div>
 <p>Returns the concatenation of <span class="code-inline">values</span>, with <span class="code-inline">separator</span> between each pair.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">joinWith</span>(separator: <span class="STpe">string</span>, values: <span class="STpe">string</span>...)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_makeLower" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.makeLower</span> <a class="api-item-permalink" href="#Core_String_makeLower" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L705">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_makeLower" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.makeLower</span> <a class="api-item-permalink" href="#Core_String_makeLower" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L711">src</a></div>
 <p>Converts the string to lower case in place.</p>
 <p><span class="code-inline">.Latin1</span> keeps the byte count; <span class="code-inline">.Unicode</span> re-encodes the whole text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeLower</span>(set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_makeUpper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.makeUpper</span> <a class="api-item-permalink" href="#Core_String_makeUpper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L688">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_makeUpper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.makeUpper</span> <a class="api-item-permalink" href="#Core_String_makeUpper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L694">src</a></div>
 <p>Converts the string to upper case in place.</p>
 <p><span class="code-inline">.Latin1</span> keeps the byte count; <span class="code-inline">.Unicode</span> re-encodes the whole text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">makeUpper</span>(set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opAssign</span> <a class="api-item-permalink" href="#Core_String_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L165">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opAssign</span> <a class="api-item-permalink" href="#Core_String_opAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L171">src</a></div>
 <p>Appends <span class="code-inline">value</span> with <span class="code-inline">+=</span>: a string, a rune or a byte, or a slice of them appended in order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opAssign</span>(value: <span class="SKwd">const</span> [..] <span class="STpe">string</span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span></span></div>
@@ -25357,7 +25436,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCast</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opCompare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opCompare</span> <a class="api-item-permalink" href="#Core_String_opCompare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L142">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opCompare" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opCompare</span> <a class="api-item-permalink" href="#Core_String_opCompare" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L148">src</a></div>
 <p>Compares the bytes of the string with <span class="code-inline">other</span>, returning -1, 0 or 1.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCompare</span>(other: <span class="STpe">string</span>)-&gt;<span class="STpe">s32</span></span></div>
 </section>
@@ -25374,39 +25453,43 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opDrop</span> <a class="api-item-permalink" href="#Core_String_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L232">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opDrop</span> <a class="api-item-permalink" href="#Core_String_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L238">src</a></div>
 <p>Releases the allocated storage, if any.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_String_opEquals" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opEquals</span> <a class="api-item-permalink" href="#Core_String_opEquals" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L130">src</a></div>
+<p>Compares two owned strings by their text, including inside composite values.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="SCst"><a href="#Core_String">String</a></span>)-&gt;<span class="STpe">bool</span></span></div>
+<p>Compares a non-null string view with the owned text.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns whether the string holds the same bytes as <span class="code-inline">other</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opEquals</span>(other: <span class="STpe">string</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndex</span> <a class="api-item-permalink" href="#Core_String_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L243">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndex</span> <a class="api-item-permalink" href="#Core_String_opIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L249">src</a></div>
 <p>Returns the byte at <span class="code-inline">index</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opIndex</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opIndexAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndexAssign</span> <a class="api-item-permalink" href="#Core_String_opIndexAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opIndexAssign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndexAssign</span> <a class="api-item-permalink" href="#Core_String_opIndexAssign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L151">src</a></div>
 <p>Adds <span class="code-inline">value</span> to, or subtracts it from, the byte at <span class="code-inline">index</span>, wrapping around.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(op: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Operator">Operator</a></span>) <span class="SFct">opIndexAssign</span>(index: <span class="STpe">u64</span>, value: <span class="STpe">u8</span>)
     <span class="SLgc">where</span> op == .<span class="SCst">AddAssign</span> <span class="SLgc">or</span> op == .<span class="SCst">SubAssign</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndexSet</span> <a class="api-item-permalink" href="#Core_String_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opIndexSet" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opIndexSet</span> <a class="api-item-permalink" href="#Core_String_opIndexSet" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L164">src</a></div>
 <p>Sets the byte at <span class="code-inline">index</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opIndexSet</span>(index: <span class="STpe">u64</span>, value: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opPostCopy</span> <a class="api-item-permalink" href="#Core_String_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opPostCopy</span> <a class="api-item-permalink" href="#Core_String_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L218">src</a></div>
 <p>Gives a copied string storage of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opPostMove</span> <a class="api-item-permalink" href="#Core_String_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L205">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opPostMove</span> <a class="api-item-permalink" href="#Core_String_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L211">src</a></div>
 <p>Points a moved small string back at its own inline storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
 </section>
@@ -25423,23 +25506,23 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opSlice</span>(lower, upper: <span class="STpe">u64</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opVisit</span> <a class="api-item-permalink" href="#Core_String_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L269">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_opVisit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.opVisit</span> <a class="api-item-permalink" href="#Core_String_opVisit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L275">src</a></div>
 <p>Visits each byte with its index, in storage order.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Macro]</span>
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SKwd">const</span> <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> item, <span class="SKwd">var</span> index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.remove</span> <a class="api-item-permalink" href="#Core_String_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L403">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_remove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.remove</span> <a class="api-item-permalink" href="#Core_String_remove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L409">src</a></div>
 <p>Removes <span class="code-inline">byteCount</span> bytes starting at <span class="code-inline">byteIndex</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">remove</span>(byteIndex: <span class="STpe">u64</span>, byteCount: <span class="STpe">u64</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_removeBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.removeBack</span> <a class="api-item-permalink" href="#Core_String_removeBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L415">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_removeBack" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.removeBack</span> <a class="api-item-permalink" href="#Core_String_removeBack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L421">src</a></div>
 <p>Removes the last <span class="code-inline">byteCount</span> bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">removeBack</span>(byteCount: <span class="STpe">u64</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_replace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.replace</span> <a class="api-item-permalink" href="#Core_String_replace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L318">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_replace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.replace</span> <a class="api-item-permalink" href="#Core_String_replace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L324">src</a></div>
 <p>Replaces every occurrence of the rune <span class="code-inline">what</span> with <span class="code-inline">by</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replace</span>(what: <span class="STpe">rune</span>, by: <span class="STpe">string</span>)</span></div>
 <p>Replaces every occurrence of <span class="code-inline">what</span> with <span class="code-inline">by</span> under the case policy <span class="code-inline">comparisonType</span>.</p>
@@ -25447,26 +25530,26 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">replace</span>(what: <span class="STpe">string</span>, by: <span class="STpe">string</span>?, comparisonType = <span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>.<span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.reserve</span> <a class="api-item-permalink" href="#Core_String_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L562">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_reserve" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.reserve</span> <a class="api-item-permalink" href="#Core_String_reserve" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L568">src</a></div>
 <p>Sets the capacity to <span class="code-inline">newCapacity</span> bytes, truncating the text that no longer fits.</p>
 <p>A capacity up to <a href="#Core_StringSmallSize">Core.StringSmallSize</a> uses the inline storage and releases any allocation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserve</span>(newCapacity: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.reversed</span> <a class="api-item-permalink" href="#Core_String_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L262">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_reversed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.reversed</span> <a class="api-item-permalink" href="#Core_String_reversed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L268">src</a></div>
 <p>Returns a zero-allocation view that traverses the UTF-8 bytes from last to first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ReversedSlice</span>'<span class="STpe">u8</span></span></div>
 <p>Returns an immutable zero-allocation view that traverses the UTF-8 bytes from last to first.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">reversed</span>()-&gt;<span class="SFct">ConstReversedSlice</span>'<span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_runes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.runes</span> <a class="api-item-permalink" href="#Core_String_runes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L259">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_runes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.runes</span> <a class="api-item-permalink" href="#Core_String_runes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L265">src</a></div>
 <p>Returns a zero-allocation view that decodes Unicode scalar values lazily.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">runes</span>()-&gt;<span class="SCst"><a href="#Core_StringRunes">StringRunes</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.startsWith</span> <a class="api-item-permalink" href="#Core_String_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L759">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_startsWith" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.startsWith</span> <a class="api-item-permalink" href="#Core_String_startsWith" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L765">src</a></div>
 <p>Returns whether the string starts with <span class="code-inline">str</span> under the case policy <span class="code-inline">comparisonType</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">startsWith</span>(str: <span class="STpe">string</span>, comparisonType = <span class="SCst"><a href="#namespace_Core_Utf8">Utf8</a></span>.<span class="SCst"><a href="#Core_Utf8_ComparisonType">ComparisonType</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -25478,19 +25561,19 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">storage</span>()-&gt;[*] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_toLower" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toLower</span> <a class="api-item-permalink" href="#Core_String_toLower" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L736">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_toLower" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toLower</span> <a class="api-item-permalink" href="#Core_String_toLower" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L742">src</a></div>
 <p>Returns a copy of the string converted to lower case, like <a href="#Core_String_makeLower">Core.String.makeLower</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toLower</span>(set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 <p>Returns a new string holding <span class="code-inline">str</span> converted to lower case, like <a href="#Core_String_makeLower">Core.String.makeLower</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toLower</span>(str: <span class="STpe">string</span>?, set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_toRuneArray" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toRuneArray</span> <a class="api-item-permalink" href="#Core_String_toRuneArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L654">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_toRuneArray" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toRuneArray</span> <a class="api-item-permalink" href="#Core_String_toRuneArray" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L660">src</a></div>
 <p>Returns the runes of the string, decoded from UTF-8.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toRuneArray</span>()-&gt;<span class="SFct">Array</span>'<span class="STpe">rune</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toSlice</span> <a class="api-item-permalink" href="#Core_String_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L669">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_toSlice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toSlice</span> <a class="api-item-permalink" href="#Core_String_toSlice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L675">src</a></div>
 <p>Returns a mutable view of the bytes, borrowing the storage.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">toSlice</span>()-&gt;[..] <span class="STpe">u8</span></span></div>
@@ -25499,30 +25582,30 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSlice</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toString</span> <a class="api-item-permalink" href="#Core_String_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L665">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toString</span> <a class="api-item-permalink" href="#Core_String_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L671">src</a></div>
 <p>Returns a <span class="code-inline">string</span> view of the bytes, borrowing the storage.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_toUpper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toUpper</span> <a class="api-item-permalink" href="#Core_String_toUpper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L720">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_toUpper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.toUpper</span> <a class="api-item-permalink" href="#Core_String_toUpper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L726">src</a></div>
 <p>Returns a copy of the string converted to upper case, like <a href="#Core_String_makeUpper">Core.String.makeUpper</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toUpper</span>(set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 <p>Returns a new string holding <span class="code-inline">str</span> converted to upper case, like <a href="#Core_String_makeUpper">Core.String.makeUpper</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toUpper</span>(str: <span class="STpe">string</span>, set = <span class="SCst"><a href="#Core_CharacterSet">CharacterSet</a></span>.<span class="SCst"><a href="#namespace_Core_Latin1">Latin1</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_trim" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trim</span> <a class="api-item-permalink" href="#Core_String_trim" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L647">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_trim" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trim</span> <a class="api-item-permalink" href="#Core_String_trim" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L653">src</a></div>
 <p>Removes the white space at both ends of the string, as judged by <a href="#Core_Unicode_isSpace">Core.Unicode.isSpace</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">trim</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_trimEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trimEnd</span> <a class="api-item-permalink" href="#Core_String_trimEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L628">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_trimEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trimEnd</span> <a class="api-item-permalink" href="#Core_String_trimEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L634">src</a></div>
 <p>Removes the white space at the end of the string, as judged by <a href="#Core_Unicode_isSpace">Core.Unicode.isSpace</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">trimEnd</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_String_trimStart" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trimStart</span> <a class="api-item-permalink" href="#Core_String_trimStart" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L605">src</a></div>
+<div class="api-item api-item-func"><span id="Core_String_trimStart" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">String.trimStart</span> <a class="api-item-permalink" href="#Core_String_trimStart" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/string.swg#L611">src</a></div>
 <p>Removes the white space at the start of the string, as judged by <a href="#Core_Unicode_isSpace">Core.Unicode.isSpace</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">trimStart</span>()</span></div>
 </section>
@@ -25852,58 +25935,58 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readToEnd</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L86">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L89">src</a></div>
 <p>Creates a suspended thread that runs <span class="code-inline">lambda</span> with the calling thread's context settings.</p>
-<p><span class="code-inline">tempAllocSize</span> sets the capacity of the thread's temporary allocator in bytes; zero leaves it without capacity. Error storage and propagation state are never shared with the creating thread. The body receives a pointer to this value: it reads <span class="code-inline">userParam</span> through it and polls <span class="code-inline">requestEnd</span> to stop when <a href="#Core_Threading_Thread_safeForceEnd">Core.Threading.Thread.safeForceEnd</a> asks. Call <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> to run the thread.</p>
+<p><span class="code-inline">tempAllocSize</span> sets the capacity of the thread's temporary allocator in bytes; zero leaves it without capacity. Error storage and propagation state are never shared with the creating thread. The body receives a pointer to this value: it reads <span class="code-inline">userParam</span> through it and polls <span class="code-inline">requestEnd</span> to stop when <a href="#Core_Threading_Thread_safeForceEnd">Core.Threading.Thread.safeForceEnd</a> asks. Call <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> to run the thread. On failure, the body never runs and the value owns no thread; it can be initialized again.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(lambda: <span class="SKwd">func</span>||(<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>), userParam: *<span class="STpe">void</span>? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>.<span class="SCst">Normal</span>, tempAllocSize: <span class="STpe">s32</span> = -<span class="SNum">1</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L135">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L156">src</a></div>
 <p>Returns whether this thread has finished without blocking.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isDone</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isValid</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L52">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isValid</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L54">src</a></div>
 <p>Returns whether this value owns a thread, from <a href="#Core_Threading_Thread_init">Core.Threading.Thread.init</a> until it is waited for.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.opDrop</span> <a class="api-item-permalink" href="#Core_Threading_Thread_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L46">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.opDrop</span> <a class="api-item-permalink" href="#Core_Threading_Thread_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L48">src</a></div>
 <p>Asserts that the thread was waited for before its owner goes away.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_safeForceEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.safeForceEnd</span> <a class="api-item-permalink" href="#Core_Threading_Thread_safeForceEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_safeForceEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.safeForceEnd</span> <a class="api-item-permalink" href="#Core_Threading_Thread_safeForceEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L57">src</a></div>
 <p>Asks the thread to stop by raising <span class="code-inline">requestEnd</span>, which its body must poll.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">safeForceEnd</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L139">src</a></div>
 <p>Changes this thread's scheduling priority.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPriority</span>(priority: <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_sleep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.sleep</span> <a class="api-item-permalink" href="#Core_Threading_Thread_sleep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_sleep" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.sleep</span> <a class="api-item-permalink" href="#Core_Threading_Thread_sleep" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L63">src</a></div>
 <p>Suspends the current thread for at least <span class="code-inline">duration</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sleep</span>(duration: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L109">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L132">src</a></div>
 <p>Starts this suspended thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L126">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L147">src</a></div>
 <p>Waits for this thread to finish and releases its handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_yield" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.yield</span> <a class="api-item-permalink" href="#Core_Threading_Thread_yield" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_yield" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.yield</span> <a class="api-item-permalink" href="#Core_Threading_Thread_yield" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L76">src</a></div>
 <p>Yields the remainder of the current thread's time slice.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">yield</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L179">src</a></div>
 <p>Waits for every thread and releases all their native handles.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(threads: *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>...)</span></div>
 </section>
@@ -27436,73 +27519,73 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L686">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_acquireWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.acquireWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_acquireWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L758">src</a></div>
 <p>Acquires the Windows device context used by an explicit Windows rendering adapter.</p>
 <p>Every successful call must be paired with <a href="#Core_Env_Window_releaseWin32DeviceContext">Core.Env.Window.releaseWin32DeviceContext</a> on the same window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquireWin32DeviceContext</span>()-&gt;<span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.close</span> <a class="api-item-permalink" href="#Core_Env_Window_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L158">src</a></div>
 <p>Closes the window if it is still open.</p>
 <p>Calling <span class="code-inline">close</span> repeatedly is safe. Failure leaves the platform resource owned by this value, so a later call or scope cleanup can retry the release.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L705">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_dpiScale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.dpiScale</span> <a class="api-item-permalink" href="#Core_Env_Window_dpiScale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L777">src</a></div>
 <p>Returns the physical device pixels per logical unit on the window's monitor.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dpiScale</span>()-&gt;<span class="STpe">f32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.isOpen</span> <a class="api-item-permalink" href="#Core_Env_Window_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.isOpen</span> <a class="api-item-permalink" href="#Core_Env_Window_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L142">src</a></div>
 <p>Returns whether the window still owns a platform resource.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_nativeRenderHandle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.nativeRenderHandle</span> <a class="api-item-permalink" href="#Core_Env_Window_nativeRenderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L104">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_nativeRenderHandle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.nativeRenderHandle</span> <a class="api-item-permalink" href="#Core_Env_Window_nativeRenderHandle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L147">src</a></div>
 <p>Returns the borrowed opaque drawable used to create a rendering context.</p>
 <p>Only a platform rendering adapter should interpret this value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">nativeRenderHandle</span>()-&gt;<span class="SKwd">const</span> *<span class="STpe">void</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Window_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L93">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opDrop</span> <a class="api-item-permalink" href="#Core_Env_Window_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L136">src</a></div>
 <p>Closes any remaining window when this value leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opPostMove</span> <a class="api-item-permalink" href="#Core_Env_Window_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L86">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_opPostMove" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.opPostMove</span> <a class="api-item-permalink" href="#Core_Env_Window_opPostMove" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L129">src</a></div>
 <p>Rebinds the platform callback state when an owning window value moves.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostMove</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L689">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_releaseWin32DeviceContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.releaseWin32DeviceContext</span> <a class="api-item-permalink" href="#Core_Env_Window_releaseWin32DeviceContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.win32.swg#L761">src</a></div>
 <p>Releases a device context returned by <a href="#Core_Env_Window_acquireWin32DeviceContext">Core.Env.Window.acquireWin32DeviceContext</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseWin32DeviceContext</span>(deviceContext: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_requestPaint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.requestPaint</span> <a class="api-item-permalink" href="#Core_Env_Window_requestPaint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L171">src</a></div>
 <p>Queues a paint request for this window.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">requestPaint</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_setClientSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.setClientSize</span> <a class="api-item-permalink" href="#Core_Env_Window_setClientSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L182">src</a></div>
 <p>Resizes the client area to <span class="code-inline">width</span> by <span class="code-inline">height</span> logical units, keeping the window position.</p>
 <p>The realized client area is proportionally larger, in physical pixels, on a scaled display; <a href="#Core_Env_WindowResizeCallback">Core.Env.WindowResizeCallback</a> reports that physical size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setClientSize</span>(width, height: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_show" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.show</span> <a class="api-item-permalink" href="#Core_Env_Window_show" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L196">src</a></div>
 <p>Shows the window and updates its client area.</p>
 <p>The resize callback receives the initial physical client size before the window becomes visible, so a renderer never draws a frame at a stale size.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">show</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_Window_showOffScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.showOffScreen</span> <a class="api-item-permalink" href="#Core_Env_Window_showOffScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L172">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_Window_showOffScreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Window.showOffScreen</span> <a class="api-item-permalink" href="#Core_Env_Window_showOffScreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L215">src</a></div>
 <p>Realizes the window without putting it in front of the user.</p>
 <p>The window is placed outside the visible desktop and shown without taking activation, so its drawable is complete — which is what a graphics context needs before it can render and read back — while nothing appears on screen and nothing steals the focus. A headless check that needs a real drawable asks for this instead of <a href="#Core_Env_Window_show">Core.Env.Window.show</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">showOffScreen</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L203">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Env_WindowLoop_next" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WindowLoop.next</span> <a class="api-item-permalink" href="#Core_Env_WindowLoop_next" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/system/environment.window.swg#L246">src</a></div>
 <p>Processes pending events and returns whether the application should continue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">next</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -27640,7 +27723,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </section>
 </article>
 <footer class="site-footer">
-<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1173</div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
 </footer>
 </section>
 </main>
@@ -28377,7 +28460,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "s|Core.Env.Window|Core_Env_Window|Owns one top-level application window.",
 "v|Core.Env.Window.callbacks|Core_Env_Window_callbacks|Callbacks dispatched by the platform event adapter.",
 "s|Core.Env.WindowCallbacks|Core_Env_WindowCallbacks|Groups the optional callbacks dispatched by a Core.Env.Window.",
+"v|Core.Env.WindowCallbacks.onFocus|Core_Env_WindowCallbacks_onFocus|Invoked when native keyboard focus is gained or lost.",
 "v|Core.Env.WindowCallbacks.onPaint|Core_Env_WindowCallbacks_onPaint|Invoked for a paint request.",
+"v|Core.Env.WindowCallbacks.onPointer|Core_Env_WindowCallbacks_onPointer|Invoked for mouse movement, buttons, or wheel input.",
 "v|Core.Env.WindowCallbacks.onResize|Core_Env_WindowCallbacks_onResize|Invoked with the new client size in physical pixels.",
 "s|Core.Env.WindowLoop|Core_Env_WindowLoop|Pumps window events until closing is requested or a smoke run's frame budget is spent.",
 "v|Core.Env.WindowLoop.smokeFrames|Core_Env_WindowLoop_smokeFrames|Frames a smoke run should render for this program, or zero to take the launcher's budget.",
@@ -28387,6 +28472,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "v|Core.Env.WindowOptions.identifier|Core_Env_WindowOptions_identifier|Unique backend-independent window identifier.",
 "v|Core.Env.WindowOptions.title|Core_Env_WindowOptions_title|Initial window title.",
 "v|Core.Env.WindowOptions.width|Core_Env_WindowOptions_width|Width in logical units.",
+"s|Core.Env.WindowPointerEvent|Core_Env_WindowPointerEvent|Describes one mouse action in a window's client coordinate system.",
+"v|Core.Env.WindowPointerEvent.button|Core_Env_WindowPointerEvent_button|Meaningful only for ButtonDown and ButtonUp.",
+"v|Core.Env.WindowPointerEvent.kind|Core_Env_WindowPointerEvent_kind|Selects the meaningful action fields.",
+"v|Core.Env.WindowPointerEvent.wheelX|Core_Env_WindowPointerEvent_wheelX|Horizontal notches for Wheel; zero for other actions.",
+"v|Core.Env.WindowPointerEvent.wheelY|Core_Env_WindowPointerEvent_wheelY|Vertical notches for Wheel; zero for other actions.",
+"v|Core.Env.WindowPointerEvent.x|Core_Env_WindowPointerEvent_x|Horizontal client coordinate in physical pixels.",
+"v|Core.Env.WindowPointerEvent.y|Core_Env_WindowPointerEvent_y|Vertical client coordinate in physical pixels.",
 "s|Core.Errors.BadParameterError|Core_Errors_BadParameterError|Reports an argument outside what an operation accepts.",
 "v|Core.Errors.BadParameterError.base|Core_Errors_BadParameterError_base|Embedded base state.",
 "s|Core.Errors.FileNotFoundError|Core_Errors_FileNotFoundError|Reports a file or directory that does not exist.",
@@ -28945,6 +29037,11 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "k|Core.Env.WindowFlags.None|Core_Env_WindowFlags_None|Creates a fixed-size window without minimize or maximize controls.",
 "k|Core.Env.WindowFlags.Resizable|Core_Env_WindowFlags_Resizable|Lets the user resize the window.",
 "k|Core.Env.WindowFlags.Standard|Core_Env_WindowFlags_Standard|Creates a standard resizable application window.",
+"e|Core.Env.WindowPointerKind|Core_Env_WindowPointerKind|Identifies the mouse action delivered to a window.",
+"k|Core.Env.WindowPointerKind.ButtonDown|Core_Env_WindowPointerKind_ButtonDown|A supported mouse button was pressed.",
+"k|Core.Env.WindowPointerKind.ButtonUp|Core_Env_WindowPointerKind_ButtonUp|A supported mouse button was released.",
+"k|Core.Env.WindowPointerKind.Move|Core_Env_WindowPointerKind_Move|The pointer moved in the client area.",
+"k|Core.Env.WindowPointerKind.Wheel|Core_Env_WindowPointerKind_Wheel|A horizontal or vertical wheel moved.",
 "e|Core.CharacterSet|Core_CharacterSet|Selects which letters a case conversion maps.",
 "k|Core.CharacterSet.Latin1|Core_CharacterSet_Latin1|ASCII and Latin-1 letters only, keeping the byte count.",
 "k|Core.CharacterSet.Unicode|Core_CharacterSet_Unicode|Every letter with a Unicode simple case mapping.",
@@ -29111,7 +29208,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "a|Core.Math.Simd.U8x16|Core_Math_Simd_U8x16|Sixteen unsigned 8-bit lanes.",
 "a|Core.Serialization.Read.Buffer|Core_Serialization_Read_Buffer|Byte array that holds a decompressed payload.",
 "a|Core.Env.ProcessHandle|Core_Env_ProcessHandle|Opaque platform handle of a process or of one of its pipes.",
+"a|Core.Env.WindowFocusCallback|Core_Env_WindowFocusCallback|Handles native keyboard-focus gain (true) or loss (false) for a window.",
 "a|Core.Env.WindowPaintCallback|Core_Env_WindowPaintCallback|Handles a window paint request.",
+"a|Core.Env.WindowPointerCallback|Core_Env_WindowPointerCallback|Handles a mouse action delivered to a window.",
 "a|Core.Env.WindowResizeCallback|Core_Env_WindowResizeCallback|Handles a window resize and receives the new client size in physical pixels.",
 "a|Core.Threading.ThreadHandle|Core_Threading_ThreadHandle|Opaque platform handle of a thread.",
 "a|Core.Time.Ticks|Core_Time_Ticks|Counts 100-nanosecond intervals.",
@@ -30638,7 +30737,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.String.opCount|Core_String_opCount|Returns the length in bytes.",
 "f|Core.String.opData|Core_String_opData|Returns the address of the bytes, null when the string owns no storage.",
 "f|Core.String.opDrop|Core_String_opDrop|Releases the allocated storage, if any.",
-"f|Core.String.opEquals|Core_String_opEquals|Returns whether the string holds the same bytes as other.",
+"f|Core.String.opEquals|Core_String_opEquals|Compares two owned strings by their text, including inside composite values.",
 "f|Core.String.opIndex|Core_String_opIndex|Returns the byte at index.",
 "f|Core.String.opIndexAssign|Core_String_opIndexAssign|Adds value to, or subtracts it from, the byte at index, wrapping around.",
 "f|Core.String.opIndexSet|Core_String_opIndexSet|Sets the byte at index.",

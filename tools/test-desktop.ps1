@@ -2,7 +2,7 @@
 .SYNOPSIS
 Runs native GUI scenarios on a private Windows desktop without switching the user's desktop.
 .EXAMPLE
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -DevMode
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope
 #>
 [CmdletBinding()]
 param(

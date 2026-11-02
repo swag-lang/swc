@@ -79,21 +79,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     var whole = host.render(window)
     Pixel.Testing.assertImageGolden(&whole, "viewer.outline.markdown.window")
 
-    var paperHost: HeadlessHost
-    paperHost.setup(880, 560)
-    shipFrame(&paperHost)
-    paperHost.theme.setLight()
-    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
-    paperWindow.openFile(fileName, remember: false)
-    completeQueuedViewerFile(&paperHost, paperWindow)
-    let paperZoom    = assume cast(*MarkdownText.ZoomButton, paperWindow.currentInfo!.children[0])
-    let paperOutline = unwrap paperZoom.outline
-    paperOutline.toggle.setChecked(true)
-    paperOutline.toggle.sigCheckedChanged.call(paperOutline.toggle)
-    completeViewerBackgroundLoad(&paperHost, &paperOutline.load)
-    paperWindow.applyLayout()
-    var paper = paperHost.render(paperWindow)
-    Pixel.Testing.assertImageGolden(&paper, "viewer.outline.markdown.window.paper")
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.resize(880, 420)

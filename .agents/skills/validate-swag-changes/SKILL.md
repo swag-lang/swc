@@ -40,19 +40,22 @@ Inspect the final diff and decide, in order:
    file, module test file, application consumer, smoke, generated diff, or golden.
 
 Do not confuse the first two axes. `dm` chooses the DevMode compiler executable; `-bc release`
-chooses the configuration of the Swag program that compiler builds.
+chooses the configuration of the Swag program that compiler builds. Application iteration uses
+`swc.exe` by default (`tools/apps.bat` without `dm`, or `coverage.bat` without `-DevMode`), while
+the program configuration remains a separate choice.
 
 Write the intended validation before launching it. Add a surface only when the changed behavior
 can reach it.
 
 ## Choose The Compiler Executable
 
-- Use the DevMode compiler by default. Its assertions, validators, statistics, and C++ unit tests
-  give the strongest and fastest iteration signal.
-- Build and use the Release compiler only when changing compiler architecture, scheduling,
-  locking, job ownership, shutdown, process orchestration, or code guarded by
-  `SWC_DEV_MODE`/a Release-only define; when reproducing a Release-compiler-only failure; or when
-  measuring shipped compiler time, memory, or binary size.
+- Use `swc.exe` by default when iterating on `bin/apps` applications. This exercises the compiler
+  that ships to users; choose the compiled program configuration separately with `-bc` or
+  `-Configuration`.
+- Use the DevMode compiler (`swc.dm.exe`) when debugging compiler problems, including compiler
+  source changes that need its assertions, validators, statistics or C++ unit tests. For compiler
+  changes guarded by `SWC_DEV_MODE`, use DevMode; for Release-only branches, Release-only failures,
+  or shipped compiler time, memory and size, use the Release compiler.
 - Treat a new possible deadlock, race, use-after-lifetime, or timing-dependent ordering as an
   architecture change. Exercise both compiler executables with real parallelism and repeat the
   focused reproducer when timing is part of the risk.
@@ -100,7 +103,7 @@ the owning workspace and module:
 
 ```text
 tools\coverage.bat -DevMode -Suite fast -Workspace std -Module gui
-tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module swagscope
+tools\coverage.bat -Suite fast -Workspace apps -Module swagscope
 ```
 
 During a change, prefer the exact test file first; run the module's `fast` selection when several
@@ -219,7 +222,7 @@ Repeat it to select a union:
 ```text
 tools/std.bat dm test gui --test-file htmlview.test.swg
 tools/std.bat dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
-tools/apps.bat dm test swagscope --test-file viewer.video.test.swg
+tools/apps.bat test swagscope --test-file viewer.video.test.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.

@@ -54,7 +54,7 @@ using Swag
 #test
 {
     Swag.assert(Path.isDirectorySeparator('/'u8))
-    Swag.assert(Path.isDirectorySeparator('\\'u8))
+    Swag.assert(Path.isDirectorySeparator('\\'u8) == WINDOWS)
     Swag.assert(not Path.isDirectorySeparator('a'u8))
 
     Swag.assert(Path.isValidPathName("src/tests/core.swg"))
@@ -62,13 +62,13 @@ using Swag
     Swag.assert(Path.isValidPathName("src:tests/core.swg"))
     Swag.assert(not Path.isValidPathName(""))
     Swag.assert(not Path.isValidPathName("\x00"))
-    Swag.assert(not Path.isValidPathName("\x1f"))
-    Swag.assert(not Path.isValidPathName(#raw """bad"name"""))
-    Swag.assert(not Path.isValidPathName("bad<name"))
-    Swag.assert(not Path.isValidPathName("bad>name"))
-    Swag.assert(not Path.isValidPathName("bad|name"))
-    Swag.assert(not Path.isValidPathName("bad*name"))
-    Swag.assert(not Path.isValidPathName("bad?name"))
+    Swag.assert(Path.isValidPathName("\x1f") == not WINDOWS)
+    Swag.assert(Path.isValidPathName(#raw """bad"name""") == not WINDOWS)
+    Swag.assert(Path.isValidPathName("bad<name") == not WINDOWS)
+    Swag.assert(Path.isValidPathName("bad>name") == not WINDOWS)
+    Swag.assert(Path.isValidPathName("bad|name") == not WINDOWS)
+    Swag.assert(Path.isValidPathName("bad*name") == not WINDOWS)
+    Swag.assert(Path.isValidPathName("bad?name") == not WINDOWS)
     if WINDOWS
     {
         Swag.assert(not Path.isValidPathName("C:/sandbox/.. /outside.txt"))
@@ -88,16 +88,16 @@ using Swag
     Swag.assert(not Path.isValidFileName(".."))
     Swag.assert(not Path.isValidFileName(""))
     Swag.assert(not Path.isValidFileName("\x00"))
-    Swag.assert(not Path.isValidFileName("\x1f"))
-    Swag.assert(not Path.isValidFileName(#raw """bad"name"""))
-    Swag.assert(not Path.isValidFileName("bad<name"))
-    Swag.assert(not Path.isValidFileName("bad>name"))
-    Swag.assert(not Path.isValidFileName("bad|name"))
-    Swag.assert(not Path.isValidFileName("bad:name"))
-    Swag.assert(not Path.isValidFileName("bad*name"))
-    Swag.assert(not Path.isValidFileName("bad?name"))
+    Swag.assert(Path.isValidFileName("\x1f") == not WINDOWS)
+    Swag.assert(Path.isValidFileName(#raw """bad"name""") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad<name") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad>name") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad|name") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad:name") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad*name") == not WINDOWS)
+    Swag.assert(Path.isValidFileName("bad?name") == not WINDOWS)
     Swag.assert(not Path.isValidFileName("src/core.swg"))
-    Swag.assert(not Path.isValidFileName(#raw "src\core.swg"))
+    Swag.assert(Path.isValidFileName(#raw "src\core.swg") == not WINDOWS)
     if WINDOWS
     {
         Swag.assert(not Path.isValidFileName("name."))
@@ -117,41 +117,55 @@ using Swag
     Swag.assert(Path.rootLength("/src/core.swg") == 1)
     Swag.assert(Path.equals(Path.rootName("/src/core.swg") orelse "", "/"))
     Swag.assert(Path.isRooted("/src/core.swg"))
-    Swag.assert(Path.rootLength("C:/src/core.swg") == 3)
-    Swag.assert(Path.equals(Path.rootName("C:/src/core.swg") orelse "", "C:/"))
-    Swag.assert(Path.isRooted("C:/src/core.swg"))
-    Swag.assert(Path.rootLength("C:core.swg") == 2)
-    Swag.assert(Path.equals(Path.rootName("C:core.swg") orelse "", "C:"))
-    Swag.assert(Path.isRooted("C:core.swg"))
-    Swag.assert(Path.rootLength(#raw "\\?\C:\src\core.swg") == (#raw "\\?\C:\").count)
-    Swag.assert(Path.equals(Path.rootName(#raw "\\?\C:\src\core.swg") orelse "", #raw "\\?\C:\"))
-    Swag.assert(Path.isRooted(#raw "\\?\C:\src\core.swg"))
-    Swag.assert(Path.rootLength(#raw "\\server\share\src\core.swg") == (#raw "\\server\share\").count)
-    Swag.assert(Path.equals(Path.rootName(#raw "\\server\share\src\core.swg") orelse "", #raw "\\server\share\"))
-    Swag.assert(Path.isRooted(#raw "\\server\share\src\core.swg"))
-    Swag.assert(Path.rootLength(#raw "\\?\UNC\server\share\src\core.swg") == (#raw "\\?\UNC\server\share\").count)
-    Swag.assert(Path.equals(Path.rootName(#raw "\\?\UNC\server\share\src\core.swg") orelse "", #raw "\\?\UNC\server\share\"))
-    Swag.assert(Path.isRooted(#raw "\\?\UNC\server\share\src\core.swg"))
+    if WINDOWS
+    {
+        Swag.assert(Path.rootLength("C:/src/core.swg") == 3)
+        Swag.assert(Path.equals(Path.rootName("C:/src/core.swg") orelse "", "C:/"))
+        Swag.assert(Path.isRooted("C:/src/core.swg"))
+        Swag.assert(Path.rootLength("C:core.swg") == 2)
+        Swag.assert(Path.equals(Path.rootName("C:core.swg") orelse "", "C:"))
+        Swag.assert(Path.isRooted("C:core.swg"))
+        Swag.assert(Path.rootLength(#raw "\\?\C:\src\core.swg") == (#raw "\\?\C:\").count)
+        Swag.assert(Path.equals(Path.rootName(#raw "\\?\C:\src\core.swg") orelse "", #raw "\\?\C:\"))
+        Swag.assert(Path.isRooted(#raw "\\?\C:\src\core.swg"))
+        Swag.assert(Path.rootLength(#raw "\\server\share\src\core.swg") == (#raw "\\server\share\").count)
+        Swag.assert(Path.equals(Path.rootName(#raw "\\server\share\src\core.swg") orelse "", #raw "\\server\share\"))
+        Swag.assert(Path.isRooted(#raw "\\server\share\src\core.swg"))
+        Swag.assert(Path.rootLength(#raw "\\?\UNC\server\share\src\core.swg") == (#raw "\\?\UNC\server\share\").count)
+        Swag.assert(Path.equals(Path.rootName(#raw "\\?\UNC\server\share\src\core.swg") orelse "", #raw "\\?\UNC\server\share\"))
+        Swag.assert(Path.isRooted(#raw "\\?\UNC\server\share\src\core.swg"))
+    }
+    else
+    {
+        // Drive and UNC spellings are ordinary relative names on POSIX targets.
+        for path in ["C:/src/core.swg", "C:core.swg", #raw "\\?\C:\src\core.swg",
+                     #raw "\\server\share\src\core.swg", #raw "\\?\UNC\server\share\src\core.swg"]
+        {
+            Swag.assert(Path.rootLength(path) == 0)
+            Swag.assert(Path.rootName(path) == null and not Path.isRooted(path))
+        }
+        Swag.assert(Path.rootLength("//src/core.swg") == 1)
+    }
 
     Swag.assert(Path.equals(Path.directoryName("src/tests/core.swg") orelse "", "src/tests"))
     Swag.assert(Path.equals(Path.directoryName("src/tests/") orelse "", "src/tests"))
-    Swag.assert(Path.equals(Path.directoryName("src\\tests\\core.swg") orelse "", "src\\tests"))
+    Swag.assert(Path.equals(Path.directoryName("src\\tests\\core.swg") orelse "", WINDOWS ? "src\\tests" : ""))
     Swag.assert(Path.equals(Path.directoryName("C:/src/core.swg") orelse "", "C:/src"))
     Swag.assert(Path.equals(Path.directoryName("C:/src/") orelse "", "C:/src"))
     Swag.assert(Path.directoryName("core.swg") == null)
     Swag.assert(Path.equals(Path.directoryName("/core.swg") orelse "", "/"))
-    Swag.assert(Path.equals(Path.directoryName("C:/core.swg") orelse "", "C:/"))
-    Swag.assert(Path.equals(Path.directoryName(#raw "C:\core.swg") orelse "", #raw "C:\"))
-    Swag.assert(Path.equals(Path.directoryName(#raw "\\server\share\core.swg") orelse "", #raw "\\server\share\"))
+    Swag.assert(Path.equals(Path.directoryName("C:/core.swg") orelse "", WINDOWS ? "C:/" : "C:"))
+    Swag.assert(Path.equals(Path.directoryName(#raw "C:\core.swg") orelse "", WINDOWS ? #raw "C:\" : ""))
+    Swag.assert(Path.equals(Path.directoryName(#raw "\\server\share\core.swg") orelse "", WINDOWS ? #raw "\\server\share\" : ""))
     Swag.assert(Path.directoryName("/") == null)
-    Swag.assert(Path.directoryName("C:/") == null)
+    Swag.assert(Path.directoryName("C:/") == (WINDOWS ? null : "C:"))
     Swag.assert(Path.directoryName(#raw "\\server\share\") == null)
 
     Swag.assert(Path.equals(Path.fileName("src/tests/core.swg") orelse "", "core.swg"))
     Swag.assert(Path.equals(Path.fileName("core.swg") orelse "", "core.swg"))
     Swag.assert(Path.equals(Path.fileName("C:/src/core.swg") orelse "", "core.swg"))
-    Swag.assert(Path.equals(Path.fileName("src\\tests\\core.swg") orelse "", "core.swg"))
-    Swag.assert(Path.equals(Path.fileName("C:core.swg") orelse "", "core.swg"))
+    Swag.assert(Path.equals(Path.fileName("src\\tests\\core.swg") orelse "", WINDOWS ? "core.swg" : "src\\tests\\core.swg"))
+    Swag.assert(Path.equals(Path.fileName("C:core.swg") orelse "", WINDOWS ? "core.swg" : "C:core.swg"))
     Swag.assert(Path.fileName("src/tests/") == null)
     Swag.assert(Path.fileName("C:/src/") == null)
 
@@ -179,24 +193,24 @@ using Swag
         Swag.assert(Path.hasExtension("core."))
     Swag.assert(not Path.hasExtension("core"))
     Swag.assert(not Path.hasExtension("src.tests/core"))
-    Swag.assert(Path.hasExtension("CORE.SWG", ".swg"))
-    Swag.assert(Path.hasExtension("core.SWG", ".SwG"))
+    Swag.assert(Path.hasExtension("CORE.SWG", ".swg") == WINDOWS)
+    Swag.assert(Path.hasExtension("core.SWG", ".SwG") == WINDOWS)
     Swag.assert(not Path.hasExtension("core.swg", ".txt"))
 
     Swag.assert(Path.combine("src", "tests", "core.swg") == "src/tests/core.swg")
     Swag.assert(Path.combine("", "src/", "tests", "core.swg") == "src/tests/core.swg")
     Swag.assert(Path.combine("src", "", "", "core.swg") == "src/core.swg")
     Swag.assert(Path.combine("src/", "/core.swg") == "src//core.swg")
-    Swag.assert(Path.equals("SRC/Tests/Core.swg", "src/tests/core.swg"))
+    Swag.assert(Path.equals("SRC/Tests/Core.swg", "src/tests/core.swg") == WINDOWS)
     Swag.assert(not Path.equals("SRC/Tests/Core.swg", "src/tests/other.swg"))
 
     var normalized: String = "src\\tests\\core.swg"
     Path.normalize(&normalized)
-    Swag.assert(normalized == "src/tests/core.swg")
+    Swag.assert(normalized == (WINDOWS ? "src/tests/core.swg" : #raw "src\tests\core.swg"))
 
     normalized = #raw "C:\src\tests\core.swg"
     Path.normalize(&normalized)
-    Swag.assert(normalized == "C:/src/tests/core.swg")
+    Swag.assert(normalized == (WINDOWS ? "C:/src/tests/core.swg" : #raw "C:\src\tests\core.swg"))
 }
 
 // Distinct UTF-8 directory names must remain distinct under every target case policy.

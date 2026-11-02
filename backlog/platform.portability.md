@@ -12,13 +12,15 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,754 tests. The raw Linux module
-passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
-core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
+passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core builds
+core.so and passes all 866 ordinary tests in JIT and native execution. Additional public boundary
+suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
-HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
+HOME/XDG overrides. Tagged platform integration coverage remains limited to the boundaries
+listed above; the 866-test count covers the complete ordinary Core inventory.
 Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its six direct
 typeface tests pass in JIT and native execution; installed-family loading also passes through
 a separate importing module, including synthetic styles with independent glyph workspaces.

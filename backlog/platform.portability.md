@@ -11,10 +11,9 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
-passes 23 tests in JIT and native ELF. Whole-Core compilation still reports 15 missing-service
-diagnostics (windows/monitors and input); Core ownership, timer and
-sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
+Current Linux validation: the last complete C++ run passed 1,747 tests. The raw Linux module
+passes 24 tests in JIT and native ELF. Whole-Core compilation still reports 14 missing-service
+diagnostics (windows/monitors, mouse and keyboard); Core ownership, timer and sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
@@ -96,10 +95,31 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.003, platform.portability.043
 - Done when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
 
-### platform.portability.046 — Input devices have no second-platform backend
+### platform.portability.046 — Finish Linux input backends and hardware validation
 
-- Next: implement keyboard and gamepad acquisition for the chosen second platform while keeping
-  normalized state and policy in common code.
+- Progress: Linux gamepads share readable evdev enumeration in event-node order. State queries
+  read key bits and advertised axes, normalize full signed ranges without overflow, invert stick
+  Y, map standard X/Y and RX/RY sticks, Z/RZ triggers, and HAT0/button D-pads; optional controls
+  are neutral. No device-specific remapping/deadzone database or atomic multi-ioctl packet is
+  promised. Hotplug/permission changes may renumber indices; write access never renumbers them.
+- Rumble: writable FF_RUMBLE devices retain one effect/file owner per slot. Finite speeds clamp
+  to 0..1; left/right map to native strong/weak motors. Zero stops and closes, native update errors
+  release the prior effect, inode/device changes replace stale ownership, and module shutdown
+  closes every retained descriptor. Native calloc/free storage does not borrow a caller allocator.
+  Zero replay length requests continuous playback, matching the Linux ff-memless implementation;
+  real hardware behavior, driver differences, disconnection and cleanup remain unverified.
+- Validation: a C probe of linux/input.h confirms input_absinfo/input_event (24 bytes), ff_effect
+  (48 bytes, union offset 16, replay 10, trigger 6) and ioctl request values. All 24 raw bindings
+  tests pass JIT/native; the last test also passes through a separately published/imported module.
+  This covers layout, rumble union representation, rejected /dev/null ioctls and canaries, not
+  successful hardware acquisition or motor behavior. No /dev/input or /dev/uinput is exposed.
+  Pure normalization and missing-index public tests are added but cannot execute while Core has
+  14 desktop/mouse/keyboard diagnostics; whole-Core semantic/test/doc checks confirm that block.
+  Raw API HTML has no broken anchors/duplicate IDs; the existing errno synthetic-name finding remains.
+- Next: implement keyboard/mouse acquisition, unblock and execute public normalization/absence
+  tests, then validate real or uinput devices for connect/disconnect, permissions, calibration,
+  optional controls, rumble replacement/stop/shutdown and focus loss. Keep normalized state and
+  policy common.
 - Done when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
 
 ### platform.portability.053 — No second-platform text-input routing
@@ -414,7 +434,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
   Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
-  watching is also implemented; process launch, desktop and input still block focused API tests.
+  watching, process launch and evdev gamepads are also implemented; desktop, mouse and keyboard
+  still block focused API tests.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
@@ -426,7 +447,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and Release. The new permanent C++ regression and all 1,747 C++ tests pass; recursive/global
   semantic fixtures and expected ambiguity checks pass, as does the existing conditional-homonym
   fixture in Release JIT/native. This reveals a real missing Linux keyboard backend, not a new
-  backend implementation. Counts above still describe the preceding backend checkpoint.
+  backend implementation.
 - Compiler repair: named-type lookup now waits for conditional homonyms before diagnosing
   ambiguity, while one unfinished type still supports recursive declarations. The watcher port
   exposed a disabled Windows private struct competing with its Linux counterpart before the

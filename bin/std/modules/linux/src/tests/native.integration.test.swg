@@ -955,3 +955,34 @@ func pthreadProbeEntry(argument: *void?)->*void?
     for index in 4 do
         Swag.assert(words[index] == 0)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    // Layout and ioctl values cross-checked with linux/input.h on GNU/Linux x86-64.
+    Swag.assert(#sizeof(input_absinfo) == 24 and #sizeof(input_event) == 24)
+    Swag.assert(#sizeof(ff_effect) == 48 and #offsetof(ff_effect.u) == 16)
+    Swag.assert(#offsetof(ff_effect.trigger) == 6 and #offsetof(ff_effect.replay) == 10)
+    Swag.assert(EVIOCGKEY(96) == 0x80604518 and EVIOCGABS(ABS_X) == 0x80184540)
+    Swag.assert(EVIOCSFF == 0x40304580 and EVIOCRMFF == 0x40044581)
+    var guarded: struct { before: u64; effect: ff_effect; after: u64 }
+    guarded.before      = 0x123456789ABCDEF0
+    guarded.after       = 0xFEDCBA9876543210
+    guarded.effect.type = FF_RUMBLE
+    guarded.effect.id   = -1
+    let rumble = cast(*ff_rumble_effect, cast(*void, &guarded.effect.u))
+    rumble.strong_magnitude = 0x1234
+    rumble.weak_magnitude   = 0x5678
+    Swag.assert(guarded.effect.u[0] == 0x56781234)
+    let fd = openat(AT_FDCWD, "/dev/null".buffer, O_RDWR | O_CLOEXEC)
+    Swag.assert(fd >= 0)
+    defer discard close(fd)
+    let uploaded    = ioctl(fd, EVIOCSFF, &guarded.effect)
+    let uploadError = errno()
+    Swag.assert(uploaded == -1 and uploadError == ENOTTY and guarded.effect.id == -1)
+    var axes: input_absinfo
+    let queried    = ioctl(fd, EVIOCGABS(ABS_X), &axes)
+    let queryError = errno()
+    Swag.assert(queried == -1 and queryError == ENOTTY)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+}

@@ -85,3 +85,77 @@ using Core
     catch closed.makeCurrent() as outcome
     Swag.assert(outcome.value() is Errors.BadParameterError)
 }
+
+// Surfaces share one context's objects; releasing its first window keeps the second drawable alive.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    var firstWindow  = expect Env.createWindow({identifier: "egl-shared-first", title: "First shared drawable", width: 32, height: 32})
+    var secondWindow = expect Env.createWindow({identifier: "egl-shared-second", title: "Second shared drawable", width: 32, height: 32})
+    var context      = expect Platform.Xcb.createContext(&firstWindow)
+    var first        = expect context.takeSurface()
+    let drawable     = cast(const *Env.XcbDrawable, unwrap secondWindow.nativeRenderHandle())[]
+    var second       = expect context.createSurface(drawable)
+    glInitExtensions()
+    var texture: GLuint
+    glGenTextures(1, &texture)
+    glBindTexture(GL_TEXTURE_2D, texture)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)
+    defer glDeleteTextures(1, &texture)
+    expect second.makeCurrent()
+    Swag.assert(glIsTexture(texture) != 0)
+    first.destroy()
+    expect firstWindow.close()
+    glClearColor(0, 1, 0, 1)
+    glClear(GL_COLOR_BUFFER_BIT)
+    var pixel: u32
+    glReadPixels(16, 16, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel)
+    Swag.assert(pixel == 0xFF00FF00 and glGetError() == GL_NO_ERROR)
+    expect Platform.Xcb.setSwapInterval(1)
+    expect second.swapBuffers()
+    expect context.clearCurrent()
+    expect second.makeCurrent()
+    Swag.assert(glIsTexture(texture) != 0)
+
+    var invalid = drawable
+    invalid.visual = 0
+    var outcome: Swag.Error
+    discard catch context.createSurface(invalid) as outcome
+    Swag.assert(outcome.value() is Errors.BadParameterError)
+    outcome = {}
+    discard catch context.takeSurface() as outcome
+    Swag.assert(outcome.value() is Errors.BadParameterError)
+}
+
+struct WorkerContextProbe
+{
+    drawable:  Env.XcbDrawable
+    pixel:     u32
+    succeeded: bool
+}
+
+func renderOnWorker(thread: const *Threading.Thread)
+{
+    let probe = cast(*WorkerContextProbe, unwrap thread.userParam)
+    catch
+    {
+        var context = try Platform.Xcb.createContextForDrawable(probe.drawable)
+        glClearColor(1, 0, 1, 1)
+        glClear(GL_COLOR_BUFFER_BIT)
+        glReadPixels(8, 8, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &probe.pixel)
+        probe.succeeded = glGetError() == GL_NO_ERROR
+    }
+}
+
+// A drawable obtained by the UI thread can be borrowed by a separate rendering thread.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "egl-worker", title: "Worker context", width: 16, height: 16})
+    var probe  = WorkerContextProbe{drawable: cast(const *Env.XcbDrawable, unwrap window.nativeRenderHandle())[]}
+    var thread: Threading.Thread
+    expect thread.init(&renderOnWorker, &probe)
+    expect thread.start()
+    thread.wait()
+    Swag.assert(probe.succeeded and probe.pixel == 0xFFFF00FF)
+}

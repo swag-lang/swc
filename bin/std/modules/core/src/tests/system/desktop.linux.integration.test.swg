@@ -31,8 +31,11 @@ func returnedDesktopWindow()->Env.Window fail
 #test
 {
     var returned = expect returnedDesktopWindow()
+    let renderHandle = returned.nativeRenderHandle()
     var window   = #move returned
-    Swag.assert(window.isOpen() and window.nativeRenderHandle() != null)
+    Swag.assert(window.isOpen() and window.nativeRenderHandle() == renderHandle)
+    let drawable = cast(const *Env.XcbDrawable, unwrap renderHandle)[]
+    Swag.assert(drawable == (expect window.xcbDrawable()))
     let context = expect LinuxDesktop.ensure()
     let native  = unwrap context.windows
     Swag.assert(native.owner == &window)
@@ -83,7 +86,7 @@ func returnedDesktopWindow()->Env.Window fail
     Swag.assert(window.isOpen())
     expect window.close()
     expect window.close()
-    Swag.assert(not window.isOpen() and context.windows == null)
+    Swag.assert(not window.isOpen() and window.nativeRenderHandle() == null and context.windows == null)
 
     // Callback closure must not leave a dangling owner in event dispatch.
     var callbackWindow = expect returnedDesktopWindow()

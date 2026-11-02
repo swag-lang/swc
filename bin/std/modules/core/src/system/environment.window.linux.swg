@@ -51,6 +51,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     window.context       = context
     window.resizable     = (options.flags & .Resizable) != .None
     window.id            = context.xcb_generate_id(connection)
+    window.drawable      = {context.connection, window.id, context.screen.root_visual, context.screenIndex}
     window.protocolsAtom = try LinuxDesktop.atom(context, "WM_PROTOCOLS")
     window.deleteAtom    = try LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
     let values: [2]u32 = [context.screen.black_pixel, (1 << 15) | (1 << 17)]
@@ -123,6 +124,14 @@ impl Window
         let window = cast #unconst (*LinuxDesktop.WindowState, .nativeHandle)
         try LinuxDesktop.requireUiThread(unwrap window.context)
         return window
+    }
+
+    internal mtd renderHandleNative()->const *void?
+    {
+        if not .nativeHandle do
+            return null
+        let window = cast(const *LinuxDesktop.WindowState, .nativeHandle)
+        return &window.drawable
     }
 
     internal mtd rebindNative()

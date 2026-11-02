@@ -9,9 +9,13 @@ constants, scalar widths, and pointer shapes follow the pinned Khronos registry.
 
 On Windows, `Ogl.Platform.Win32.createContext` provides an owned WGL context.
 On Linux, `Ogl.Platform.Xcb.createContext` provides an owned EGL OpenGL 3.3
-compatibility context for an X11 window. Both borrow a [[Core.Env.Window]]; destroy
-the rendering context before destroying its window. The Linux adapter needs libGL.so.1,
-libEGL.so.1 and EGL_EXT_platform_xcb. Native Wayland and headless contexts are not provided.
+compatibility context for an X11 window. Both initially own a rendering surface that borrows
+a [[Core.Env.Window]]; destroy that surface before its window. The Linux adapter needs
+libGL.so.1, libEGL.so.1 and EGL_EXT_platform_xcb. Linux renderers can use `Context.takeSurface` and
+`Context.createSurface` to own several window surfaces independently while sharing one context.
+Each surface must be destroyed before its window and before the context. A drawable borrowed
+on the UI thread can be passed to `createContextForDrawable` on the rendering thread.
+Native Wayland and headless contexts are not provided.
 */
 
 #import("core")

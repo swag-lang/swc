@@ -789,10 +789,20 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The disabled-extension case failed before the presence guard by losing its XCB connection.
   Cursor visibility on screen is not visually measured, and a real window manager remains untested.
   Ogl now supplies an EGL/XCB OpenGL 3.3 compatibility context owner matching Core window visuals.
-  Three framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering.
-  Separate shared-library and companion-archive consumers render and read back pixels in both modes; the Ogl
-  API page passes its structural/link audit. Native artifact work remains tracked in .093.
-  Core still has no mandatory GL/EGL dependency. Pixel/GUI integration and physical GPU validation
+  Five framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering,
+  including context creation on a rendering worker and independently owned surfaces sharing GL objects.
+  The stable XCB render descriptor survives moving its Core window owner; native desktop tests cover
+  that identity and its invalidation on close in JIT and native execution. Separate shared-library and companion-archive consumers
+  render and read back pixels in both modes; the Ogl API page passes its structural/link audit.
+  Pixel now has a Linux EGL adapter: one renderer-owned context outlives its individual window surfaces.
+  Eight Pixel integration cases pass JIT/native: render-worker presentation, asynchronous cropped/strided
+  readback, render-target survival after closing the first of two windows, clipping, SVG alpha, sampling,
+  padding and backdrop effects. Six ordinary native renderer/thread tests also pass, including failure
+  retirement. All 92 Pixel golden tests pass natively without changing references. The full golden-only
+  campaign reaches GUI and all four applications, but they stop before execution at missing Linux GUI
+  services (application/surface/cursor types, clipboard, installed fonts and user locale).
+  Native artifact work remains in .093.
+  Core still has no mandatory GL/EGL dependency. GUI integration and physical GPU validation
   remain open, as do GUI surfaces, cursor shapes and native Wayland.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
@@ -834,8 +844,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
 - Linux x86-64 now has an EGL/XCB context and buffer-swap adapter for the existing OpenGL backend.
   The tested configuration is Xvfb plus Mesa software rendering, requiring EGL_EXT_platform_xcb
-  and OpenGL 3.3 compatibility. This establishes native context/readback ownership, not Pixel or
-  GUI presentation, GPU-driver coverage, native Wayland, or a production fallback policy.
+  and OpenGL 3.3 compatibility. Pixel's native and JIT integrations now exercise worker presentation,
+  asynchronous readback and renderer resources shared across independent window surfaces. GUI
+  presentation, physical GPU-driver coverage, native Wayland and a production fallback policy remain open.
 - No measured OS/GPU capability matrix currently establishes which backend can present on each
   intended target; the CPU renderer is an existing fallback, not a substitute for that matrix.
 - This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the

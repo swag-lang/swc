@@ -626,6 +626,8 @@ impl Window
 
     private mtd const win32Handle()->HWND => cast(HWND, .nativeHandle)
 
+    internal mtd renderHandleNative()->const *void? => .nativeHandle
+
     mtd rebindNative() { SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR, cast(u64, me))) }
 }
 

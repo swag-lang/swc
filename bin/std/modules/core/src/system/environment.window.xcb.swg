@@ -5,6 +5,8 @@
 //
 // The connection and identifiers remain valid only while the window is open and Core is loaded.
 // Never disconnect the connection, destroy the window, or consume its event queue through this view.
+// On Linux, [[Core.Env.Window.nativeRenderHandle]] borrows a const pointer to this descriptor.
+// Its fields stay immutable for the window lifetime, including when its owner moves.
 public struct XcbDrawable
 {
     public
@@ -30,6 +32,6 @@ impl Window
         let context = unwrap window.context
         try LinuxDesktop.requireUiThread(context)
         .rebindNative()
-        return {context.connection, window.id, context.screen.root_visual, context.screenIndex}
+        return window.drawable
     }
 }

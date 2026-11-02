@@ -12,6 +12,9 @@ alias EGLBoolean = u32
 alias EGLenum    = u32
 alias EGLint     = s32
 
+const EGL_DRAW = 0x3059's32
+const EGL_READ = 0x305A's32
+
 const EGL_NONE                            = 0x3038's32
 const EGL_EXTENSIONS                      = 0x3055's32
 const EGL_SURFACE_TYPE                    = 0x3033's32
@@ -53,6 +56,8 @@ alias eglCreatePlatformWindowSurfaceEXT_fn = func(EGLDisplay, EGLConfig, *void?,
     func eglDestroySurface(display: EGLDisplay, surface: EGLSurface)->EGLBoolean
     func eglMakeCurrent(display: EGLDisplay, draw: EGLSurface, read: EGLSurface, context: EGLContext)->EGLBoolean
     func eglGetCurrentContext()->EGLContext
+    func eglGetCurrentDisplay()->EGLDisplay
+    func eglGetCurrentSurface(which: EGLint)->EGLSurface
     func eglSwapBuffers(display: EGLDisplay, surface: EGLSurface)->EGLBoolean
     func eglSwapInterval(display: EGLDisplay, interval: EGLint)->EGLBoolean
 }

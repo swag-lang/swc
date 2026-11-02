@@ -104,12 +104,14 @@ impl Window
 
     // Returns the borrowed opaque drawable used to create a rendering context.
     //
-    // Only a platform rendering adapter should interpret this value.
+    // Only a platform rendering adapter should interpret this value. Obtain it on the owning
+    // window thread; the borrowed descriptor may then be read by a rendering worker while the
+    // window stays open. Closing the window invalidates it; moving the owner does not.
     mtd nativeRenderHandle()->const *void?
     {
         if .isOpen() do
             .rebindNative()
-        return .nativeHandle
+        return .renderHandleNative()
     }
 
     // Closes the window if it is still open.

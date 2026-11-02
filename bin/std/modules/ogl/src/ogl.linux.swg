@@ -66,8 +66,9 @@ namespace Platform.Xcb
 
     // Owns an EGL OpenGL 3.3 compatibility context and an XCB window surface.
     //
-    // The environment window is borrowed and must outlive this owner. Create, use and destroy
-    // the context on the window thread. Multiple owners have independent OpenGL objects.
+    // The initial window is borrowed until its surface is destroyed or transferred. Create, use and destroy
+    // the context on its creating thread. Multiple owners have independent OpenGL objects.
+    // Extra surfaces from this context share its objects and must be destroyed before it.
     // Destroy every owner before unloading Ogl; the shared EGL display is retained until then.
     #[Swag.NoCopy, Swag.Opaque]
     public struct Context
@@ -76,6 +77,35 @@ namespace Platform.Xcb
         surface: Linux.EGLSurface
         context: Linux.EGLContext
         thread:  s32
+        config:  Linux.EGLConfig
+    }
+
+    // Owns one XCB window surface and borrows its OpenGL context.
+    //
+    // Destroy this surface before its window and context. Create, bind, present and destroy it
+    // on the context's creating thread. Several surfaces may use the same context in turn.
+    #[Swag.NoCopy, Swag.Opaque]
+    public struct Surface
+    {
+        display: Linux.EGLDisplay
+        handle:  Linux.EGLSurface
+        context: Linux.EGLContext
+        thread:  s32
+    }
+
+    private func createWindowSurface(display: Linux.EGLDisplay, config: Linux.EGLConfig, drawable: Env.XcbDrawable)->Linux.EGLSurface fail
+    {
+        var visual: s32
+        try check(Linux.eglGetConfigAttrib(display, config, Linux.EGL_NATIVE_VISUAL_ID, &visual), "eglGetConfigAttrib")
+        if cast(u32, visual) != drawable.visual do
+            fail Errors.BadParameterError{"drawable visual does not match the EGL context"}
+        let createSurface = cast(Linux.eglCreatePlatformWindowSurfaceEXT_fn?, Linux.eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT".buffer))
+        if not createSurface do
+            fail Swag.SystemError{"EGL has no eglCreatePlatformWindowSurfaceEXT entry point"}
+        var windowId = drawable.window
+        let result   = createSurface(display, config, &windowId, null)
+        try check(result != null ? 1 : 0, "eglCreatePlatformWindowSurfaceEXT")
+        return result
     }
 
     // Creates a context for an open XCB window and makes it current on its owning thread.
@@ -84,10 +114,19 @@ namespace Platform.Xcb
     // configuration matches the window visual and provides RGB8, alpha8 and stencil8 or better.
     // Failure releases partial context/surface ownership and preserves the previously current
     // context. Success selects the OpenGL client API; call [[Ogl.glInitExtensions]] before using
-    // post-1.1 entry points. Destroy this context before closing its window.
-    public func createContext(window: *Env.Window)->Context fail
+    // post-1.1 entry points. Destroy its surface before closing the window; takeSurface can
+    // transfer that surface to an independent owner while keeping this context alive.
+    public func createContext(window: *Env.Window)->Context fail => try createContextForDrawable(try window.xcbDrawable())
+
+    // Creates a context on the calling rendering thread from a borrowed XCB descriptor.
+    //
+    // Obtain the descriptor on the window thread first, then keep the window open until its
+    // rendering surface has been destroyed. This does not consume XCB events.
+    // The context is made current and otherwise follows [[Ogl.Platform.Xcb.createContext]].
+    public func createContextForDrawable(drawable: Env.XcbDrawable)->Context fail
     {
-        let drawable = try window.xcbDrawable()
+        if not drawable.connection or drawable.window == 0 or drawable.visual == 0 do
+            fail Errors.BadParameterError{"an EGL context needs a valid XCB drawable"}
         var result: #returntype
         result.display = try displayFor(drawable)
         result.thread  = Linux.gettid()
@@ -118,12 +157,8 @@ namespace Platform.Xcb
 
         if not config do
             fail Swag.SystemError{"EGL has no configuration matching the XCB window visual"}
-        let createSurface = cast(Linux.eglCreatePlatformWindowSurfaceEXT_fn?, Linux.eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT".buffer))
-        if not createSurface do
-            fail Swag.SystemError{"EGL has no eglCreatePlatformWindowSurfaceEXT entry point"}
-        var windowId = drawable.window
-        result.surface = createSurface(result.display, config, &windowId, null)
-        try check(result.surface != null ? 1 : 0, "eglCreatePlatformWindowSurfaceEXT")
+        result.config  = config
+        result.surface = try createWindowSurface(result.display, config, drawable)
         let previousApi = Linux.eglQueryAPI()
         try check(Linux.eglBindAPI(Linux.EGL_OPENGL_API), "eglBindAPI")
         defer #fail discard Linux.eglBindAPI(previousApi)
@@ -146,11 +181,44 @@ namespace Platform.Xcb
         // Reports whether this owner contains a rendering context.
         mtd const isValid()->bool => .context != null
 
-        // Makes this context current on its creating thread, or fails if it is closed.
-        mtd makeCurrent() fail
+        // Transfers the initial window surface to a separate owner, preserving its current binding.
+        //
+        // The context remains valid. Destroy the returned surface before this context and its
+        // window. After transfer, bind and present through the surface's methods; calling this
+        // again fails because the context no longer owns an initial surface.
+        mtd takeSurface()->Surface fail
+        {
+            if not .isValid() or not .surface do
+                fail Errors.BadParameterError{"EGL context has no owned surface to transfer"}
+            Swag.assert(.thread == Linux.gettid(), "EGL contexts stay on their creating thread")
+            var result = Surface{.display, .surface, .context, .thread}
+            .surface = null
+            return result
+        }
+
+        // Creates another window surface using this context's display and visual configuration.
+        //
+        // The returned owner borrows this context and the drawable's window. It must be destroyed
+        // before both. Creation leaves the current binding unchanged and fails for an incompatible
+        // connection, screen or visual. Bind through [[Ogl.Platform.Xcb.Surface.makeCurrent]].
+        mtd createSurface(drawable: Env.XcbDrawable)->Surface fail
         {
             if not .isValid() do
-                fail Errors.BadParameterError{"cannot make a closed EGL context current"}
+                fail Errors.BadParameterError{"cannot create a surface for a closed EGL context"}
+            Swag.assert(.thread == Linux.gettid(), "EGL contexts stay on their creating thread")
+            if not drawable.connection or drawable.window == 0 or drawable.visual == 0 do
+                fail Errors.BadParameterError{"an EGL surface needs a valid XCB drawable"}
+            if (try displayFor(drawable)) != .display do
+                fail Errors.BadParameterError{"drawable belongs to another EGL display"}
+            let surface = try createWindowSurface(.display, .config, drawable)
+            return {.display, surface, .context, .thread}
+        }
+
+        // Makes the owned initial surface current, or fails if the context or surface was released.
+        mtd makeCurrent() fail
+        {
+            if not .isValid() or not .surface do
+                fail Errors.BadParameterError{"EGL context has no owned surface to bind"}
             Swag.assert(.thread == Linux.gettid(), "EGL contexts stay on their creating thread")
             try check(Linux.eglBindAPI(Linux.EGL_OPENGL_API), "eglBindAPI")
             try check(Linux.eglMakeCurrent(.display, .surface, .surface, .context), "eglMakeCurrent")
@@ -169,10 +237,12 @@ namespace Platform.Xcb
         // Presents this context's window back buffer; the context must be current.
         mtd swapBuffers() fail
         {
-            if not .isValid() do
-                fail Errors.BadParameterError{"cannot present a closed EGL context"}
-            Swag.assert(.thread == Linux.gettid() and Linux.eglGetCurrentContext() == .context,
-                        "presenting needs this EGL context current on its creating thread")
+            if not .isValid() or not .surface do
+                fail Errors.BadParameterError{"EGL context has no owned surface to present"}
+            Swag.assert(.thread == Linux.gettid() and
+                        Linux.eglGetCurrentContext() == .context and
+                        Linux.eglGetCurrentSurface(Linux.EGL_DRAW) == .surface,
+                        "presenting needs this EGL surface current on its creating thread")
             try check(Linux.eglSwapBuffers(.display, .surface), "eglSwapBuffers")
         }
 
@@ -189,6 +259,68 @@ namespace Platform.Xcb
                 discard Linux.eglDestroySurface(.display, .surface)
             Swag.init(me, 1)
         }
+    }
+
+    public impl Surface
+    {
+        // Destroys the owned native surface when this value leaves scope.
+        mtd opDrop() { .destroy() }
+
+        // Reports whether this owner still holds a native window surface.
+        mtd const isValid()->bool => .handle != null
+
+        // Makes this surface and its borrowed context current on their creating thread.
+        //
+        // Fails for a destroyed surface. Its borrowed context and window must still be alive.
+        mtd makeCurrent() fail
+        {
+            if not .isValid() do
+                fail Errors.BadParameterError{"cannot bind a destroyed EGL surface"}
+            Swag.assert(.thread == Linux.gettid(), "EGL surfaces stay on their creating thread")
+            try check(Linux.eglBindAPI(Linux.EGL_OPENGL_API), "eglBindAPI")
+            if Linux.eglGetCurrentContext() == .context and
+               Linux.eglGetCurrentSurface(Linux.EGL_DRAW) == .handle and
+               Linux.eglGetCurrentSurface(Linux.EGL_READ) == .handle do
+                return
+            try check(Linux.eglMakeCurrent(.display, .handle, .handle, .context), "eglMakeCurrent")
+        }
+
+        // Presents the window back buffer; this surface and its borrowed context must be current.
+        mtd swapBuffers() fail
+        {
+            if not .isValid() do
+                fail Errors.BadParameterError{"cannot present a destroyed EGL surface"}
+            Swag.assert(.thread == Linux.gettid() and
+                        Linux.eglGetCurrentContext() == .context and
+                        Linux.eglGetCurrentSurface(Linux.EGL_DRAW) == .handle,
+                        "presenting needs this EGL surface current on its creating thread")
+            try check(Linux.eglSwapBuffers(.display, .handle), "eglSwapBuffers")
+        }
+
+        // Destroys the surface, unbinding it only if it is current; repeated calls are harmless.
+        //
+        // The borrowed OpenGL context remains alive and can be bound to another surface.
+        mtd destroy()
+        {
+            if not .handle do
+                return
+            Swag.assert(.thread == Linux.gettid(), "EGL surfaces stay on their creating thread")
+            if Linux.eglGetCurrentSurface(Linux.EGL_DRAW) == .handle or Linux.eglGetCurrentSurface(Linux.EGL_READ) == .handle do
+                discard Linux.eglMakeCurrent(.display, null, null, null)
+            discard Linux.eglDestroySurface(.display, .handle)
+            Swag.init(me, 1)
+        }
+    }
+
+    // Requests the number of display refresh intervals between swaps of the current EGL surface.
+    //
+    // Zero requests uncapped presentation. The driver may clamp the interval to its configuration's
+    // supported range. Fails for a negative interval or when no EGL context is current.
+    public func setSwapInterval(interval: s32) fail
+    {
+        if interval < 0 do
+            fail Errors.BadParameterError{"EGL swap interval cannot be negative"}
+        try check(Linux.eglSwapInterval(Linux.eglGetCurrentDisplay(), interval), "eglSwapInterval")
     }
 
     #drop

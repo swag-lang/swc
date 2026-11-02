@@ -49,3 +49,11 @@ alias sd_pid_get_session_fn             = func(s32, *([*]u8?))->s32
 
 #[Swag.CallingConvention(.C)]
 alias sd_bus_path_encode_fn             = func(const [*]u8, const [*]u8, *([*]u8?))->s32
+
+// Opens an owned connection to the calling user's D-Bus session.
+#[Swag.CallingConvention(.C)]
+alias sd_bus_open_user_fn = func(*(*void?))->s32
+
+// Reports whether a D-Bus connection remains open.
+#[Swag.CallingConvention(.C)]
+alias sd_bus_is_open_fn = func(*void)->s32

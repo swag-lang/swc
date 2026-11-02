@@ -153,10 +153,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   ordinary file loads remain unchanged. A separate consumer passes four tests in JIT/native,
   including real Open Sans legacy aliases and DejaVu synthetic styles. An installed-family
   integration test passes in both modes, and Pixel's 92 native golden tests remain green.
-- Next: migrate application family-loading consumers to the name-based API and exercise
-  mixed-script text in an actual Linux GUI. The property editor already consumes portable owned
-  family names, and `Font.resolveRune` uses cached installed fallback. Native GUI application,
-  surface, cursor and clipboard services still block execution.
+- Owned Linux family and face descriptors now expose actual file paths, collection indices
+  and style metadata through `enumerateSystemFonts` and `findSystemFont`. Two focused cases pass
+  JIT/native, and the complete Pixel API page passes its structure and link audit.
+  Native GUI application, surface, cursor and clipboard services now execute on X11; Capture
+  and Vault startup smokes render their font consumers successfully.
+- Next: exercise mixed-script text and fallback in complete Linux application workflows. The
+  property editor consumes portable owned family names, and `Font.resolveRune` uses cached
+  installed fallback.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
 
@@ -425,8 +429,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Controlled launcher checks and an importing consumer on a private D-Bus session pass JIT/native:
   Unicode/reserved characters, accepted/rejected requests, missing service and tools, timeout,
   and request-process cleanup. Interactive desktop presentation remains unverified.
-- Next: finish environment mutation and application-chooser actions, with explicit unsupported
-  outcomes.
+- Application chooser: `openFileWith` now uses the optional session OpenURI portal through
+  libsystemd. It passes a real file/directory descriptor and `ask=true`, refuses portal versions
+  below 3, bounds each D-Bus exchange to two seconds and retains the connection until Core
+  unload so acknowledged dialogs survive the API return. A native integration on a private
+  bus passes real descriptor contents, directory identity, repeated requests, sender lifetime,
+  old-version refusal, explicit rejection, timeout/recovery, missing library/bus, invalid targets
+  and sandbox refusal. Core API generation covers 2,099/2,099 declarations and 388/388 members;
+  the isolated Core-only output still lacks the existing linked Gui page. No default-application
+  fallback substitutes for the chooser. Sandboxed
+  target applications receive no writable document-portal grant.
+- Next: finish environment mutation and validate chooser presentation on a real desktop. The
+  return value reports request acknowledgement, not eventual user selection or application launch.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 
@@ -842,8 +856,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Eight Pixel integration cases pass JIT/native: render-worker presentation, asynchronous cropped/strided
   readback, render-target survival after closing the first of two windows, clipping, SVG alpha, sampling,
   padding and backdrop effects. Six ordinary native renderer/thread tests also pass, including failure
-  retirement. All 92 Pixel golden tests pass natively without changing references. Full GUI and
-  application execution is now under validation for Swag Capture, Swag Scope and Swag Vault.
+  retirement. All 92 Pixel golden tests pass natively without changing references. Native
+  application startup, rendering and close now pass for Swag Capture and Swag Vault
+  under Xvfb/Openbox, with captured window pixels inspected. Capture reports unavailable
+  shortcuts when the window manager owns Print/Alt+Print; Ctrl+Print is exercised by real XTEST
+  input after canonical Linux key mapping was corrected. Full workflows and Scope remain under
+  validation.
   GUI application/surface/cursor services, XKB input, clipboard selections and XDND/XDS are
   implemented. Thirteen JIT/native cases compare complete window pixels under Xvfb/Openbox
   with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard

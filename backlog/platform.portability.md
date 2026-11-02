@@ -246,11 +246,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
-  The first Core probe reaches 370 source files. Supplying page-release and gamepad-discovery
-  declarations exposes 60 unresolved dependency reports, including files/streams, process and
-  sandbox services, threads/clocks, keyboard state and windows. These also block focused Core
-  tests. The new `linux` ABI module independently tests descriptor, directory, ioctl and mapping
-  calls in JIT and native ELF; Core's anonymous/private page-release tests remain blocked.
+  The Core probe reaches 370 source files. Its initial 60 unresolved dependency reports mixed
+  missing host services with declarations retained from inactive Windows files. Retiring those
+  `#global if` declarations exposes a compiler assertion while analyzing `buffer.buffer` in
+  `Crypto.randomBytes`; isolate that expression before treating stalled reports as missing APIs.
+  The `linux` ABI module independently tests descriptor, directory, ioctl and mapping calls in
+  JIT and native ELF; Core's anonymous/private page-release tests remain blocked.
 - Next: complete the Core resource owners and their Linux host primitives, starting with
   streams/mappings and startup environment/sandbox services. Finish gamepad state and vibration
   and validate discovery on an input-enabled host. Select headless/no-sound backends only where

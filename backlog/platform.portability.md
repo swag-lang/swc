@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,760 tests. The native language suite
+Current Linux validation: the complete C++ suite passes 1,761 tests. The native language suite
 passes 4,047 tests in JIT and native execution. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
@@ -1207,10 +1207,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: ELF executables, shared libraries and GNU archives support foreign imports,
   transitive module initialization and cleanup, published dependencies and distinct module
-  symbols. Shared-library linking still permits text relocations. Source-level DWARF output is
+  symbols. Shared-library linking still permits text relocations for absolute function-address
+  loads. Source-level DWARF output is
   explicitly rejected, and persistent native function caches remain COFF-specific and disabled
   for Linux.
-- Next: finish PIC relocations, source-level DWARF and target-specific incremental caches.
+- Next: emit position-independent function-address loads while preserving canonical pointer
+  identity in JIT and native execution, then finish source-level DWARF and target-specific
+  incremental caches.
 - Done when: Linux native output supports position-independent shared libraries, emits source
   debug information and reuses native caches while preserving foreign calls, runtime context
   sharing and module load/unload lifecycle behavior.

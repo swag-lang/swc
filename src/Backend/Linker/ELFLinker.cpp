@@ -168,7 +168,7 @@ namespace
         }
         else
         {
-            std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
+            std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
             if (job.output == LinkJob::Output::Executable)
                 arguments.emplace_back("-no-pie");
             else

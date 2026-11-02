@@ -65,7 +65,7 @@ JIT and native tests by default; `--execution jit` or `--execution native` selec
 `--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
 cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,760 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+passes 1,761 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
 The native language suite passes 4,047 tests in each execution mode.
 The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
 It builds a shared library and tests native context sharing, initialization, repeated loads,

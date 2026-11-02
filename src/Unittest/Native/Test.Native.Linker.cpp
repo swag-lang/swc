@@ -800,6 +800,81 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(ELFObject_RelocatedConstantsBecomeReadOnlyAfterLoading)
+{
+    const LinkerTestDirectory directory("elf_relro");
+    LinkImage                 image;
+    LinkSection               pointer;
+    pointer.name  = ".rdata";
+    pointer.align = 64;
+    pointer.flags = LinkSectionFlagsE::Read;
+    pointer.bytes.appendLe64(0);
+    pointer.relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = "literal"});
+    image.sections.push_back(std::move(pointer));
+    LinkSection literal;
+    literal.name  = ".rdata";
+    literal.flags = LinkSectionFlagsE::Read;
+    literal.bytes.appendLe64(42);
+    image.sections.push_back(std::move(literal));
+    image.symbols = {{.name = "pointer", .sectionIndex = 0}, {.name = "literal", .sectionIndex = 1}};
+    ByteArray  bytes;
+    Diagnostic diagnostic;
+    if (!buildElfObject(bytes, diagnostic, image))
+        return Result::Error;
+    SWC_RESULT(directory.write("generated.o", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    SWC_RESULT(directory.write("consumer.cpp", R"(#include <cstdint>
+#include <cstdio>
+#include <dlfcn.h>
+bool readOnly(const void* address)
+{
+    auto* maps = std::fopen("/proc/self/maps", "r");
+    if (!maps) return false;
+    char line[1024];
+    bool result = false;
+    while (std::fgets(line, sizeof(line), maps))
+    {
+        unsigned long start = 0, end = 0;
+        char permissions[5]{};
+        if (std::sscanf(line, "%lx-%lx %4s", &start, &end, permissions) == 3 &&
+            reinterpret_cast<uintptr_t>(address) >= start && reinterpret_cast<uintptr_t>(address) < end)
+        {
+            result = permissions[0] == 'r' && permissions[1] == '-' && permissions[2] == '-';
+            break;
+        }
+    }
+    std::fclose(maps);
+    return result;
+}
+int main()
+{
+    void* library = dlopen("./generated.so", RTLD_NOW | RTLD_LOCAL);
+    if (!library) return 1;
+    auto* pointer = static_cast<const uint64_t* const*>(dlsym(library, "pointer"));
+    auto* literal = static_cast<const uint64_t*>(dlsym(library, "literal"));
+    const bool valid = pointer && literal && *pointer == literal && *literal == 42 &&
+        reinterpret_cast<uintptr_t>(pointer) % 64 == 0 && readOnly(pointer) && readOnly(literal);
+    return dlclose(library) == 0 && valid ? 0 : 2;
+}
+)"));
+    std::string                 output;
+    uint32_t                    exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    // -z text rejects a dynamic relocation in read-only storage; RELRO must then restore
+    // read-only permissions after the loader has resolved the pointer.
+    const std::vector<Utf8> libraryArguments = {"-shared", "-Wl,-z,text,-z,relro,-z,now", "generated.o", "-o", "generated.so"};
+    if (Os::runProcess(exitCode, "c++", libraryArguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "[ELF relocated constants] {}", output);
+        return Result::Error;
+    }
+    const std::vector<Utf8> consumerArguments = {"consumer.cpp", "-ldl", "-o", "consumer"};
+    if (Os::runProcess(exitCode, "c++", consumerArguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    if (Os::runProcess(exitCode, directory.path() / "consumer", {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ELFObject_GnuLinkerResolvesCodeDataBssAndImports)
 {
     const LinkerTestDirectory directory("elf_object");

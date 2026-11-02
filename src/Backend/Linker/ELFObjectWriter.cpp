@@ -89,6 +89,15 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
             section.flags |= K_WRITE;
         if (source.flags.has(LinkSectionFlagsE::Execute))
             section.flags |= K_EXEC;
+        // Pointer-bearing constants need loader relocations. GNU ld places .data.rel.ro
+        // in its RELRO range, writable during relocation and read-only before user code.
+        // Keep plain constants in read-only .rdata and code in executable sections.
+        if (source.name == ".rdata" && !(section.flags & (K_WRITE | K_EXEC)) &&
+            std::ranges::any_of(source.relocs, [](const LinkReloc& relocation) { return relocation.kind == LinkRelocKind::Abs64; }))
+        {
+            section.name = ".data.rel.ro";
+            section.flags |= K_WRITE;
+        }
         section.alignment = source.align;
         section.size = source.virtualSize();
         section.bytes = source.bytes;
@@ -170,7 +179,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
         if (source.relocs.empty())
             continue;
         ElfSection relocs;
-        relocs.name = ".rela" + source.name;
+        relocs.name      = ".rela" + sections[index + 1].name;
         relocs.type = K_RELA;
         relocs.alignment = 8;
         relocs.entrySize = 24;

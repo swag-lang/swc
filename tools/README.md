@@ -52,14 +52,20 @@ GUI and the desktop applications still require additional platform services.
 python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py parser --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py cpp --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --execution native
+python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
 
 The launcher stages the selected executable and this checkout's runtime in an external temporary
 folder, isolates caches with `TMPDIR`, and removes the staging folder afterwards. Each invocation
 has its own load-admission check, three compiler workers and a 180-second timeout (`--timeout`
-overrides it). Lexer/parser suites include their expected-error inputs. The C++ suite requires
+overrides it). Lexer/parser suites include their expected-error inputs. The native suite runs
+JIT and native tests by default; `--execution jit` or `--execution native` selects one path.
+`--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
+cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,750 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+passes 1,760 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+The native language suite passes 4,047 tests in each execution mode.
 This is compiler coverage; it does not establish complete Linux support for every `bin/` module.
 
 ## Linux host primitives

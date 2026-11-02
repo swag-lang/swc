@@ -1400,7 +1400,6 @@ Result NativeBackendBuilder::remapRDataReferences(NativeSectionData& section)
 Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation)
 {
     SWC_ASSERT(std::has_single_bit(allocation.align));
-    const uint32_t alignment = (std::countr_zero(std::min(allocation.align, 8192u)) + 1) << 20;
     SWC_ASSERT(allocation.emittedOffset + allocation.size <= mergedRData.bytes.size());
 
     // The collector emits allocations in offset order and sorts each allocation's relocations.
@@ -1415,14 +1414,16 @@ Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& sect
         // Keep all-zero allocations as uninitialized data without copying bytes
         // into a section that would immediately discard them again.
         section.name            = ".rbss";
-        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | alignment;
+        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ;
+        section.requireAlignment(allocation.align);
         section.bss             = true;
         section.bssSize         = allocation.size;
         return Result::Continue;
     }
 
     section.name            = ".rdata";
-    section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | alignment;
+    section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ;
+    section.requireAlignment(allocation.align);
     section.bytes.append(allocationBytes);
 
     for (auto it = first; it != relocations.end(); ++it)

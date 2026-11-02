@@ -11,9 +11,8 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,758 tests. The native language suite
-passes 4,045 tests in JIT; native execution has one remaining section-alignment failure
-tracked in platform.portability.093. The raw Linux module
+Current Linux validation: the complete C++ suite passes 1,760 tests. The native language suite
+passes 4,047 tests in JIT and native execution. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
 suites pass in JIT/native for memory (2), filesystem
@@ -1204,21 +1203,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
 - Related: platform.portability.001, platform.portability.093
 
-### platform.portability.093 — Finish Linux native storage alignment, PIC, debug and cache support
+### platform.portability.093 — Finish Linux native PIC, debug and cache support
 
 - Evidence: ELF executables, shared libraries and GNU archives support foreign imports,
   transitive module initialization and cleanup, published dependencies and distinct module
   symbols. Shared-library linking still permits text relocations. Source-level DWARF output is
   explicitly rejected, and persistent native function caches remain COFF-specific and disabled
   for Linux. Dynamic load/unload lifecycle coverage remains incomplete.
-- The native language suite exposes a shared storage-layout defect: merged `.data`, `.bss`
-  and `.rdata` sections advertise only 16-byte alignment even when their allocations require
-  more. `global_cache_line_alignment.swg` passes in JIT but fails in the Linux executable;
-  section bases must retain the strongest required allocation alignment.
-- Next: fix the section-alignment metadata and verify serialized objects plus the native
-  language suite. Then validate dynamic load/unload lifecycle and finish PIC relocations,
-  source-level DWARF and target-specific incremental caches.
-- Done when: Linux native output preserves storage alignment, supports position-independent
-  shared libraries with verified load/unload hooks, emits source debug information and reuses
+- Next: validate dynamic load/unload lifecycle and finish PIC relocations, source-level DWARF
+  and target-specific incremental caches.
+- Done when: Linux native output supports position-independent shared libraries with verified
+  load/unload hooks, emits source debug information and reuses
   native caches while preserving foreign calls and module lifecycle behavior.
 - Related: platform.portability.005

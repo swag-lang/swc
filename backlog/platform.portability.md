@@ -612,6 +612,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   implemented. Xvfb and no-display checks pass JIT/native. Extra buttons, additional groups,
   dead keys/compose, IME, layout-change routing and synthetic key-transition tests remain pending;
   polling snapshots are separate native requests, not one atomic input sample.
+  Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
+  The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
+  coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
+  these are protocol tests, not normalized input routing or real-device key transitions.
 - Next: translate native key identity, modifier, repeat, and layout state into the portable keyboard
   events.
 - Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054

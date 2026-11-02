@@ -134,6 +134,58 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     }
 
     Swag.assert(exposed and resized)
+
+    // SendEvent marks the response bit but preserves signed coordinates and input state.
+    // Focus packets have a smaller C view; the request still reads a full 32-byte wire event.
+    let send = xcbTestSymbol'xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+    for kind in [XCB_KEY_PRESS, XCB_KEY_RELEASE, XCB_BUTTON_PRESS, XCB_BUTTON_RELEASE,
+                 XCB_MOTION_NOTIFY, XCB_ENTER_NOTIFY, XCB_LEAVE_NOTIFY, XCB_FOCUS_IN, XCB_FOCUS_OUT]
+    {
+        var storage: [8]u32
+        let bytes = cast([*]u8, &storage)
+        if kind == XCB_FOCUS_IN or kind == XCB_FOCUS_OUT
+        {
+            let focus = cast(*xcb_focus_in_event_t, cast(*void, bytes))
+            focus.response_type = kind
+            focus.event         = window
+            focus.detail        = 3
+            focus.mode          = 1
+        }
+        else
+        {
+            let input = cast(*xcb_key_press_event_t, cast(*void, bytes))
+            input.response_type = kind
+            input.detail        = 38
+            input.time          = 0x12345678
+            input.root          = screen.root
+            input.event         = window
+            input.root_x        = -321
+            input.root_y        = 456
+            input.event_x       = -123
+            input.event_y       = 234
+            input.state         = 0x104
+            input.same_screen   = 1
+            if kind == XCB_ENTER_NOTIFY or kind == XCB_LEAVE_NOTIFY
+            {
+                let crossing = cast(*xcb_enter_notify_event_t, cast(*void, bytes))
+                crossing.mode              = 2
+                crossing.same_screen_focus = 3
+            }
+        }
+
+        let sendError = check(connection, send(connection, 0, window, 0, bytes))
+        defer free(sendError)
+        Swag.assert(sendError == null)
+        let event = pollEvent(connection)
+        Swag.assert(event != null)
+        defer free(event)
+        Swag.assert(event.response_type == (kind | 0x80))
+        let received = cast([*]u8, event)
+        // X11 replaces the sequence field, but none of the input payload.
+        Swag.assert(received[1] == bytes[1])
+        for index in 4 until 32 do
+            Swag.assert(received[index] == bytes[index])
+    }
     let destroyError = check(connection, destroy(connection, window))
     defer free(destroyError)
     Swag.assert(destroyError == null)

@@ -195,6 +195,32 @@ impl Window
         try .setClientSizeNative(physicalWidth, physicalHeight)
     }
 
+    // Requests a window position in physical screen pixels without resizing or activating it.
+    //
+    // `x` and `y` name the native top-level placement request. Unlike client sizes, screen
+    // positions are not multiplied by the window's DPI scale. A window manager may adjust or
+    // defer that request and account for its own decoration frame; this does not guarantee an
+    // exact outer-frame or client-area origin. Completion does not promise that the desktop has
+    // already presented the new placement.
+    // Platform coordinate limits may reject the request. Fails for a closed window, a rejected
+    // native request, or a call outside the window-owning thread.
+    mtd setPosition(x, y: s32) fail => try .setPositionNative(x, y)
+
+    // Hides the window without releasing its drawable or callbacks.
+    //
+    // Repeated calls on an open hidden window are harmless. Call [[Core.Env.Window.show]] to
+    // display it again. Fails for a closed window, a rejected native request, or a call outside
+    // the window-owning thread. The desktop may deliver focus loss during this operation.
+    mtd hide() fail => try .hideNative()
+
+    // Requests keyboard focus for an open, visible window.
+    //
+    // Does not show a hidden window. Native focus rules and the window manager may reject or
+    // override the request; [[Core.Env.WindowCallbacks.onFocus]] reports actual transitions.
+    // Fails for a closed or hidden window, a rejected native request, or a call outside the
+    // window-owning thread. Focus callbacks may run before this call returns.
+    mtd requestFocus() fail => try .requestFocusNative()
+
     // Shows the window and updates its client area.
     //
     // The resize callback receives the initial physical client size before the

@@ -1,5 +1,8 @@
 #global if #os == Swag.TargetOs.Linux
 
+#foreignlib("libEGL.so.1")
+#foreignlib("libGL.so.1")
+
 using Core
 
 // Resolves an OpenGL entry point through the EGL client API dispatcher.

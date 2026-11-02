@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,748 tests. The raw Linux module
+Current Linux validation: the last complete C++ run passed 1,750 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
 core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), timer lifecycle (2), processes
@@ -779,7 +779,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Cursor visibility on screen is not visually measured, and a real window manager remains untested.
   Ogl now supplies an EGL/XCB OpenGL 3.3 compatibility context owner matching Core window visuals.
   Three framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering.
-  A separate shared-library consumer also renders and reads back pixels in both modes; the Ogl
+  Separate shared-library and companion-archive consumers render and read back pixels in both modes; the Ogl
   API page passes its structural/link audit. Static composition remains tracked in .093.
   Core still has no mandatory GL/EGL dependency. Pixel/GUI integration and physical GPU validation
   remain open, as do GUI surfaces, cursor shapes and native Wayland.
@@ -1214,9 +1214,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Static composition also remains incomplete: linking Core and Ogl archives into one consumer
-  reports duplicate `__swc_rt_stage` aliases and omits Ogl's private EGL link dependency. Keep
-  module-specific runtime hooks distinct and publish the native link closure of archive providers.
+  Companion archives retain only module-specific runtime hooks; the generic lookup alias is
+  created when linking the shared object. Static transitive consumers pass with DevMode and
+  Release compilers, and a Core/Ogl archive consumer renders and reads pixels in JIT/native.
 - Export identity remains unsafe for equal public names in distinct modules: a leaf and middle
   module both exporting `value` cause the middle's foreign call to bind to its own `value` under
   `-Bsymbolic`, producing direct recursion. Module-qualified ELF names and published import

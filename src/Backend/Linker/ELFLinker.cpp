@@ -2,6 +2,8 @@
 #include "Backend/Linker/ELFLinker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeNames.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -209,6 +211,11 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
     if (kind != Runtime::BuildCfgBackendKind::StaticLibrary)
         SWC_RESULT(builder_->buildObjectBytes());
     takeObjects(outJob.archiveMembers, *builder_);
+    if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
+    {
+        const Utf8 scope = nativeArtifactScopeName(builder_->compiler());
+        outJob.elfLinkArguments.emplace_back("-Wl,--defsym," + Utf8(K_SHARED_RUNTIME_HOOK_SYMBOL) + "=" + runtimeHookSymbolName(scope.view()));
+    }
 
     std::set<Utf8> libraries = {"c", "m", "dl"};
     for (const Utf8& library : builder_->compiler().foreignLibs())

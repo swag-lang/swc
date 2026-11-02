@@ -574,6 +574,30 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxTransitiveSharedModulesExecuteDuringCompil
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxCompanionArchivesKeepRuntimeHooksDistinct)
+{
+    LinkerTestDirectory directory("companion_archive_runtime_hooks");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
+    for (const std::string_view module : {"artifact_transitive_middle", "artifact_transitive_consumer"})
+    {
+        const fs::path setupPath = fs::path("modules") / module / "module.swg";
+        std::string setup;
+        FileSystem::IoErrorInfo ioError;
+        SWC_RESULT(FileSystem::readTextFile(directory.path() / setupPath, setup, ioError));
+        constexpr std::string_view sharedLink = ", link: \"shared-library\"";
+        const size_t offset = setup.find(sharedLink);
+        if (offset == std::string::npos)
+            return Result::Error;
+        setup.erase(offset, sharedLink.size());
+        SWC_RESULT(directory.write(setupPath, setup));
+    }
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
+        "--num-cores", "3", "--no-log-color"};
+    return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
 {
     LinkerTestDirectory directory("published_shared_library");

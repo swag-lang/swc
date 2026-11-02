@@ -431,7 +431,9 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     info.machineCode = machineCode.get();
     info.sortKey     = runtimeHookSymbolName(artifactScope.view());
     info.symbolName  = info.sortKey;
-    if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+    // ELF publishes the generic lookup alias at shared-library link time. Object members
+    // also enter companion archives, where that alias would collide across modules.
+    if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary && compiler.cmdLine().targetOs != Runtime::TargetOs::Linux)
         info.exportName = K_SHARED_RUNTIME_HOOK_SYMBOL;
     info.debugName = std::format("{}::__runtimeHook", artifactScope);
     info.exported  = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;

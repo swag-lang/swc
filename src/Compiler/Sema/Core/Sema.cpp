@@ -74,12 +74,24 @@ namespace
         return nullptr;
     }
 
-    void cleanupPendingImplRegistrations(Sema& sema, AstNodeRef nodeRef)
+    void cleanupUnvisitedDeclarations(Sema& sema, AstNodeRef nodeRef, const bool excludedByCondition)
     {
         if (nodeRef.isInvalid())
             return;
 
         AstNode& node = sema.node(nodeRef);
+        if (excludedByCondition)
+        {
+            const SemaNodeView view = sema.viewSymbol(nodeRef);
+            for (Symbol* symbol : view.symbols())
+            {
+                // Namespaces can be shared with another active source file. Only the
+                // declarations owned by this skipped subtree are excluded from lookup.
+                if (symbol && symbol->decl() == &node && !symbol->isNamespace())
+                    symbol->setExcludedByCondition(sema.ctx());
+            }
+        }
+
         if (node.is(AstNodeId::Impl))
         {
             const SemaNodeView view = sema.viewSymbol(nodeRef);
@@ -105,7 +117,7 @@ namespace
         node.collectChildrenFromAst(children, sema.ast());
 
         for (const AstNodeRef childRef : children)
-            cleanupPendingImplRegistrations(sema, childRef);
+            cleanupUnvisitedDeclarations(sema, childRef, excludedByCondition);
     }
 
     bool isCompilerRunFunction(const Sema& sema, const AstNode& node)
@@ -1692,13 +1704,18 @@ void Sema::cleanupFailedVisit()
 
     // A failure can stop the walk before later `impl` nodes in the same subtree are visited.
     // Resolve their pending registration bookkeeping so struct completion barriers cannot stall.
-    cleanupPendingImplRegistrations(*this, visit().root());
+    cleanupUnvisitedDeclarations(*this, visit().root(), false);
 }
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (curScope_->isTopLevel() && !frame().globalCompilerIfEnabled())
+    {
+        // The declaration pass ran before this file-level condition was evaluated.
+        // Retire its placeholders and impl barriers before other files wait on them.
+        cleanupUnvisitedDeclarations(*this, childRef, true);
         return Result::SkipChildren;
+    }
     if (isImplicitCodeBlockArg(curNodeRef(), childRef))
         return Result::SkipChildren;
 

@@ -16,4 +16,8 @@
     let malformed     = [0xFF'u8]
     let malformedFile = Env.openFile(cast(string, malformed))
     Swag.assert(not emptyFile and not zeroFile and not malformedFile)
+    let emptyReveal     = Env.showInFileExplorer("")
+    let zeroReveal      = Env.showInFileExplorer("/tmp/value\0suffix")
+    let malformedReveal = Env.showInFileExplorer(cast(string, malformed))
+    Swag.assert(not emptyReveal and not zeroReveal and not malformedReveal)
 }

@@ -31,7 +31,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,082 declarations and 386 exposed members have comments;
+Core API generation succeeds: all 2,083 declarations and 386 exposed members have comments;
 Linux still lacks the referenced Debugger surface, and the separate GUI API page is not
 built in this probe. Those two documentation references remain unresolved.
 
@@ -417,9 +417,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   missing launchers and invalid inputs return false. JIT/native tests cover exact Unicode and
   metacharacter transmission, relative/absolute paths, invalid inputs and a missing launcher.
   A separate importer also exercises the installed `xdg-open` with a controlled BROWSER handler
-  in both modes. Interactive desktop presentation remains unverified.
-- Next: finish environment mutation, file-manager reveal and application-chooser actions,
-  with explicit unsupported outcomes.
+  in both modes. `showInFileExplorer` sends an encoded local file URI to FileManager1.ShowItems
+  through `gdbus`, waits for acknowledgement and bounds the request to approximately two seconds.
+  Controlled launcher checks and an importing consumer on a private D-Bus session pass JIT/native:
+  Unicode/reserved characters, accepted/rejected requests, missing service and tools, timeout,
+  and request-process cleanup. Interactive desktop presentation remains unverified.
+- Next: finish environment mutation and application-chooser actions, with explicit unsupported
+  outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 

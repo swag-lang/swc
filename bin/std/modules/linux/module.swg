@@ -4,7 +4,8 @@ Raw GNU/Linux x86-64 bindings for standard-library host backends.
 Names, return values and errno follow the native interfaces documented by the
 [Linux man-pages project](https://www.kernel.org/doc/man-pages/). Calls do not
 translate errors or take ownership on behalf of their caller. Core supplies the
-portable resource owners and error contracts.
+portable resource owners and error contracts. EGL declarations follow the
+[Khronos EGL registry](https://registry.khronos.org/EGL/); Ogl owns its rendering contexts.
 */
 #run
 {

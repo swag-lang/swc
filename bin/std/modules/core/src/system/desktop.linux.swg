@@ -11,6 +11,7 @@ internal struct Context
         cursorBalance:                           s64
         xcb_xfixes_hide_cursor_checked:          Linux.xcb_xfixes_hide_cursor_checked_fn
         xcb_xfixes_show_cursor_checked:          Linux.xcb_xfixes_show_cursor_checked_fn
+        screenIndex:                             s32
         libraryRandr:                            *void?
         library:                                 *void?
         connection:                              *void?
@@ -153,6 +154,7 @@ internal func ensure()->*Context fail
     defer #fail state.xcb_disconnect(unwrap connection)
     if state.xcb_connection_has_error(connection) != 0 do
         fail Swag.SystemError{"cannot connect to the X11 display selected by DISPLAY"}
+    state.screenIndex = screenIndex
     let setup   = state.xcb_get_setup(connection)
     var screens = state.xcb_setup_roots_iterator(setup)
     while screenIndex > 0 and screens.rem > 0

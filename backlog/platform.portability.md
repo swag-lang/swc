@@ -11,15 +11,15 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,747 tests. The raw Linux module
+Current Linux validation: the last complete C++ run passed 1,748 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
 core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
-(3, including an unavailable display). The XDG public path case also passes with empty and relative
+(5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
-Core API generation now succeeds: all 2,057 declarations and 374 exposed members have comments;
+Core API generation succeeds: all 2,060 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
 
@@ -777,7 +777,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   recovery, missing-display neutrality, and a server with RandR/XFixes explicitly disabled.
   The disabled-extension case failed before the presence guard by losing its XCB connection.
   Cursor visibility on screen is not visually measured, and a real window manager remains untested.
-  GUI surface, renderer presentation, cursor shapes and native Wayland remain incomplete.
+  Ogl now supplies an EGL/XCB OpenGL 3.3 compatibility context owner matching Core window visuals.
+  Three framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering.
+  A separate shared-library consumer also renders and reads back pixels in both modes; the Ogl
+  API page passes its structural/link audit. Static composition remains tracked in .093.
+  Core still has no mandatory GL/EGL dependency. Pixel/GUI integration and physical GPU validation
+  remain open, as do GUI surfaces, cursor shapes and native Wayland.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
@@ -816,6 +821,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
+- Linux x86-64 now has an EGL/XCB context and buffer-swap adapter for the existing OpenGL backend.
+  The tested configuration is Xvfb plus Mesa software rendering, requiring EGL_EXT_platform_xcb
+  and OpenGL 3.3 compatibility. This establishes native context/readback ownership, not Pixel or
+  GUI presentation, GPU-driver coverage, native Wayland, or a production fallback policy.
 - No measured OS/GPU capability matrix currently establishes which backend can present on each
   intended target; the CPU renderer is an existing fallback, not a substitute for that matrix.
 - This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the
@@ -1195,6 +1204,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   survive relocation, and disabling publication removes the old copies. Shared imports also
   execute from `#run`: lookup accepts both Swag module.so and conventional libmodule.so names,
   with context/argument sharing verified by DevMode and Release compilers.
+  Nested shared dependencies are preloaded from the resolved graph for JIT calls; GNU ld receives
+  link-only search paths for their DT_NEEDED entries. A three-module consumer executes compile-time
+  and native calls with DevMode and Release compilers without publishing dependencies beside it.
   API publication reconstructs resolved foreign module, symbol, link and ABI attributes, including
   declarations inside attribute blocks and a directly annotated function inheriting its ABI.
   Export and static-library consumers call libc/libm through these declarations in JIT and native
@@ -1202,7 +1214,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.
-- Next: validate dynamic load/unload lifecycle, and finish PIC relocations, source-level
+- Static composition also remains incomplete: linking Core and Ogl archives into one consumer
+  reports duplicate `__swc_rt_stage` aliases and omits Ogl's private EGL link dependency. Keep
+  module-specific runtime hooks distinct and publish the native link closure of archive providers.
+- Export identity remains unsafe for equal public names in distinct modules: a leaf and middle
+  module both exporting `value` cause the middle's foreign call to bind to its own `value` under
+  `-Bsymbolic`, producing direct recursion. Module-qualified ELF names and published import
+  metadata need one consistent identity; removing `-Bsymbolic` alone does not distinguish the calls.
+- Next: isolate public ELF symbol identities across modules, validate dynamic load/unload
+  lifecycle, and finish PIC relocations, source-level
   DWARF and target-specific incremental caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
   including foreign imports, arguments and cross-module initialization/cleanup.

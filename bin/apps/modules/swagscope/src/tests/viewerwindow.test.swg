@@ -858,6 +858,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Keeps the virtual document extent monotonic while several large-file chunks arrive between
 // paints, and exercises complete keyboard navigation through the real focused editor.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-large-scroll-", ".txt")
@@ -934,6 +935,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 // Rapid scrollbar scrubbing coalesces to the latest byte window and remains stable when the
 // direction changes repeatedly. Each completed seek keeps the requested viewport instead of
 // snapping back to the resident window it replaced.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-text-scrub-", ".txt")
@@ -1070,6 +1072,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
 // Finds a match split across scanner chunks in a multi-megabyte file and materializes it in the
 // resident text window without losing the virtual scroll range.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-large-search-", ".txt")

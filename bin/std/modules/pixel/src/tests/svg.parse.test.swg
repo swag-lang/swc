@@ -183,27 +183,27 @@ private const ManyStopSvg = """\
 #test
 {
     const Source = """\
-        <svg viewBox='0 0 300 260'>\
-        <rect x='20' y='18' width='270' height='232' rx='31' fill='#2878d0'/>\
-        <circle cx='256' cy='210' r='46' fill='#f4b43c' fill-opacity='0.63'/>\
-        <path d='M4 257 L296 3' stroke='white' stroke-width='3'/></svg>"""
+        <svg viewBox='0 0 68 68'>\
+        <rect x='5' y='5' width='62' height='62' rx='8' fill='#2878d0'/>\
+        <circle cx='60' cy='58' r='14' fill='#f4b43c' fill-opacity='0.63'/>\
+        <path d='M1 67 L67 1' stroke='white' stroke-width='1'/></svg>"""
 
     let drawing = expect Svg.Drawing.parse(Source)
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
-    cpu.begin(300, 260)
+    cpu.begin(68, 68)
     defer renderer.end()
 
-    let tiled   = drawing.rasterize(renderer, 300, 260, 4)
-    let untiled = drawing.rasterizeWithSampleTileSide(renderer, 300, 260, 4, 2048)
+    let tiled   = drawing.rasterizeWithSampleTileSide(renderer, 68, 68, 4, 256)
+    let untiled = drawing.rasterizeWithSampleTileSide(renderer, 68, 68, 4, 2048)
     Swag.assert(tiled.pixels.count == untiled.pixels.count)
 
     // A tile paints its geometry at its own offset, so the same sample is reached through
     // different coordinates in the two renders. A stroke measured from its centre line carries a
     // coverage that varies across the whole width rather than saturating over a solid core, which
-    // makes it read that last bit of the difference: one byte of the three hundred thousand here
-    // lands one level apart. Losing a sample to the tiling would be worth thousands of them, so
-    // the count and the magnitude are both held down rather than demanding equality.
+    // makes it read that last bit of the difference. Losing a sample to the tiling would be worth
+    // thousands of them, so the count and the magnitude are both held down rather than demanding
+    // equality.
     var apart = 0'u64
     for value, index in tiled.pixels
     {

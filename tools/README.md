@@ -73,14 +73,15 @@ runtime before they honor the variable.
 
 ### Frequent application and rendering coverage
 
-`coverage.bat` separates functional feedback from the complete CPU image references and
-driver parity checks. It runs existing tests and retains their assertions; no image tolerance
-or golden is changed by choosing a suite.
+`coverage.bat` separates frequent functional feedback from deliberate stress cases, complete CPU
+image references and driver parity checks. It runs existing tests and retains their assertions; no
+image tolerance or golden is changed by choosing a suite.
 
 ```text
 tools\coverage.bat -DevMode
 tools\coverage.bat -DevMode -Workspace apps -Module swagscope
 tools\coverage.bat -DevMode -Suite gpu -Workspace apps -Module swagscope
+tools\coverage.bat -DevMode -Suite stress
 tools\coverage.bat -DevMode -Suite goldens
 tools\coverage.bat -DevMode -Suite parity
 tools\coverage.bat -DevMode -Suite full
@@ -88,11 +89,12 @@ tools\coverage.bat -DevMode -Suite full
 
 | Suite | Backend and coverage | Environment / frequency |
 | --- | --- | --- |
-| `fast` (default) | CPU hosts; all ordinary standard-module and application tests except `golden` | Workstation or CI, frequent iteration |
+| `fast` (default) | CPU hosts; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
 | `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
+| `stress` | CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
 | `goldens` | Complete repository `golden` campaign, CPU hosts and existing references | Controlled CI environment, rendering changes and scheduled runs |
 | `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
-| `full` | All ordinary standard-module and application tests, including goldens, using CPU hosts | Complete functional/visual pass before integration |
+| `full` | All standard-module and application tests, including goldens and stress, using CPU hosts | Complete functional/visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release` selects the program preset; goldens are recorded in devmode.

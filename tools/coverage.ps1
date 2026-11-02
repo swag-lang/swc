@@ -2,9 +2,10 @@
 .SYNOPSIS
 Run functional, golden, or GPU parity coverage for standard modules and applications.
 .DESCRIPTION
-Fast uses CPU hosts and excludes only golden-tagged tests. GPU runs the same selection
-with mandatory offscreen OpenGL hosts. Full includes ordinary tests and CPU goldens.
-Goldens and parity select complete visual and renderer integration campaigns.
+Fast uses CPU hosts and excludes golden and stress tests. GPU runs the same selection
+with mandatory offscreen OpenGL hosts. Stress selects scale-boundary tests. Full includes all
+ordinary tests, stress, and CPU goldens. Goldens and parity select complete visual and renderer
+integration campaigns.
 .EXAMPLE
 tools\coverage.bat -DevMode -Workspace apps -Module swagcapture
 .EXAMPLE
@@ -12,7 +13,7 @@ tools\coverage.bat -DevMode -Suite parity
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('fast', 'gpu', 'full', 'goldens', 'parity')]
+[ValidateSet('fast', 'gpu', 'full', 'stress', 'goldens', 'parity')]
     [string] $Suite = 'fast',
     [ValidateSet('all', 'std', 'apps')]
     [string] $Workspace = 'all',
@@ -58,7 +59,8 @@ try {
     } else {
         $options = @()
         if ($Module) { $options += $Module }
-        if ($Suite -in @('fast', 'gpu')) { $options += @('--test-tag', '!golden') }
+        if ($Suite -in @('fast', 'gpu')) { $options += @('--test-tag', '!golden', '--test-tag', '!stress') }
+        if ($Suite -eq 'stress') { $options += @('--test-tag', 'stress') }
         foreach ($file in $TestFile) { $options += @('--test-file', $file) }
         $workspaces = if ($Workspace -eq 'all') { @('std', 'apps') } else { @($Workspace) }
         foreach ($item in $workspaces) { Invoke-Coverage $item $options }

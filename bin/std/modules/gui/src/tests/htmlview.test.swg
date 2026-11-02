@@ -1040,6 +1040,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
 // generic window may start at a recovery boundary, but it must never make file size become DOM
 // size and revisiting one byte offset must choose the same resident source.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1136,6 +1137,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // A virtual HTML document follows the latest scrollbar position through repeated long seeks and
 // reversals. Revisiting a stop must materialize the same source window and the same pixels.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -2554,6 +2556,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 
 // A hostile document nested thousands of elements deep flattens at the depth bound instead of
 // walking the recursive passes off the native stack, and its content stays readable.
+#[Swag.TestTag("stress")]
 #test
 {
     var source: String

@@ -67,6 +67,7 @@ using Swag, Core
 
 // Delaying the loader cannot expose its unfinished tail, and a reverse overlap retains the
 // visible windows until the same source block has its replacement at exactly the same y.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Testing.tempFilePath("markdown-continuous-scroll-", ".md")
@@ -1243,6 +1244,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
 // Sequential wheel reading releases distant blocks while retaining a reverse-scroll reserve.
 // Resident geometry stays bounded independently of the amount of source already traversed.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_markdown_resident_cap_%.md", Guid64.random()).toString())
@@ -1293,6 +1295,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
 // boundary through the real focused keyboard path; End reaches the real EOF on its next paint.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1398,6 +1401,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 // A resident window opened near EOF retains blocks before its target and requests the preceding
 // window while those blocks are still visible. Reverse scrolling must never alternate between a
 // forward-only island and an empty virtual gap.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1465,6 +1469,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
 // A scrollbar reversal supersedes a seek that is still materializing. The earlier target must
 // never win one timer later and pull the document back in the direction the reader just left.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)

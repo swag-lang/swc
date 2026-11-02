@@ -18,7 +18,7 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
 
 ![The two themes](imgs/silence.themes.png)
 
-## The six laws
+## The seven laws
 
 1. **The work comes first.** Keep the document, image or list dominant. Repeated task controls
    belong beside it: navigation in a folder, transport in a player, tools and output in an
@@ -26,15 +26,20 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
 2. **Details are asked for.** Metadata, advanced settings and secondary readings appear on
    request. Current mode, selection, progress, failures and the next essential action remain
    understandable without knowing a shortcut or discovering a hover target.
-3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+3. **A visible fact can open its operation.** When a displayed value describes an object with a
+   natural operation, let that value open the relevant actions for the object. A capture's
+   dimensions can open resize commands; its zoom can open zoom and fit commands. Keep the value
+   as a quiet menu anchor and reuse the existing commands. Do not make labels clickable when no
+   clear operation follows from them.
+4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
    open the same lens: search, go to, open, switch view, run any command. Every command remains
    reachable from it. Frequent actions also have direct controls; the lens never makes learning
    command names a prerequisite for using an application.
-4. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
+5. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
    many.
-5. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
+6. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
    boxed that space can separate.
-6. **The default theme carries the hand.** The toolkit ships two themes, Encre (dark) and Papier
+7. **The default theme carries the hand.** The toolkit ships two themes, Encre (dark) and Papier
    (light), both recognisable as Swag. An application that wants another look adds its own theme
    on top; the toolkit keeps two to maintain.
 
@@ -145,6 +150,29 @@ prepositions of four letters or fewer, unless first or last: "Add Cursor to Line
 sentence case. Translations follow their language: French stays in sentence case ("Enregistrer
 comme image…"). An ellipsis marks a command that asks for more before acting.
 
+## References inside messages
+
+Never add quotation marks around a file name, folder, command, value or other referenced item
+in interface messages, titles, confirmations or help. This includes straight quotes, curly
+quotes and French guillemets in every translation. Distinguish an inline reference with the
+theme's soft text ink, keeping readable contrast; use a separate line for a long name when
+needed. It remains ordinary text, without link colour, underline, badge or interaction feedback.
+In plain text, write the name directly. Preserve punctuation that belongs to the actual name,
+literal content or required syntax; never strip characters from user data.
+
+## Shared rendering
+
+Shared visual families use one rendering implementation in `gui`. Use a widget for an element
+with its own interaction lifecycle, and content/options-based rendering helpers for repeated
+cells in virtualized views. File tiles share image fitting, hover and selection outlines, names,
+metadata and badges across applications; loading, caching and application actions remain with
+their hosts. A rendering improvement must reach every consumer without copying paint code.
+
+Golden tests choose one palette each, arbitrarily when authored and fixed across runs. Cover
+Encre and Papier across different tests, never by repeating a composition or looping through
+palettes in the same test. Color-role and contrast assertions can cover both palettes without
+duplicating screenshots.
+
 ## Window chrome
 
 ![Reading in Encre](imgs/scope.read.png)
@@ -152,7 +180,7 @@ comme image…"). An ellipsis marks a command that asks for more before acting.
 - No caption band, no menu bar, no accent rail, no caption glow, no status bar.
 - The top 52 px is part of the content area and draggable wherever no control sits;
   double-click maximizes.
-- The application glyph sits at (18, 16), 18 px, about 55 % opacity, monochrome soft colour.
+- The non-interactive application mark is 24 px, centred vertically in the top strip. It shows the glyph alone, in Voltage on Encre and Arc on Papier, distinct from the monochrome command glyphs. It has no tile or interaction feedback.
 - The document's name is centred at the top, 12 px, faint. A quiet Commands control gives the
   lens a visible pointer entrance in the existing strip, with its shortcut in the tooltip. It
   stays available without hovering an invisible target; at narrow widths it keeps a named
@@ -635,7 +663,9 @@ the screen to its work.
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
   selection and the inspector at the right (foldable). Its compact task controls offer capture
   and image output directly. Every command remains in the lens, including capture modes, recent
-  captures and the library; secondary choices may use adjacent menus.
+  captures and the library; secondary choices may use adjacent menus. The size and zoom readings
+  at the foot of the editor are quiet menu anchors: size opens image-size commands and zoom opens
+  zoom, actual-size and fit commands. These menus reuse the commands already in the lens.
 - Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
   mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
   after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then

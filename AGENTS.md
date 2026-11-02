@@ -12,13 +12,18 @@ runtime, standard modules, examples, applications, and language-reference tests.
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
 Build/test guidance and shared-machine load admission rules are in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.bat`.
-For routine `bin/std` and `bin/apps` development feedback, use `tools/coverage.bat -DevMode`
-(`fast` by default), narrowed with `-Workspace` and `-Module` as needed. Keep large scale-boundary
+For routine `bin/std` development feedback, use `tools/coverage.bat -DevMode` (`fast` by default),
+narrowed with `-Workspace` and `-Module` as needed. For `bin/apps` iteration, use `swc.exe` by
+default: omit `-DevMode` from `tools/coverage.bat` and omit `dm` from `tools/apps.bat` commands.
+Reserve `swc.dm.exe` for debugging compiler problems. `-Configuration` and `-bc` select the
+compiled program configuration independently of the compiler executable. Keep large scale-boundary
 tests in `stress`; run `goldens`, `parity`, and `full` only for the validation needs described in
 `validate-swag-changes`.
 Visual tests cover Encre and Papier across each application and shared control family. Use one
-palette per screenshot scenario by default and rotate palettes across sibling cases; keep paired
-captures when the palette difference itself is the behavior under test.
+palette per screenshot scenario and rotate palettes across sibling cases. Do not duplicate the
+same composition in both themes; test palette roles and contrast with assertions instead.
+Choose the theme arbitrarily once when writing each golden test and keep that choice fixed.
+Cover the other theme in different tests, never in a palette loop within the same golden test.
 Use the checkout-local `bin\\swc.exe` or `bin\\swc.dm.exe` when multiple worktrees may be
 present. Treat [bin/help/](bin/help/) as generated output: edit its source under `bin/reference` or the
 relevant module, then regenerate it through `tools/help.bat`.

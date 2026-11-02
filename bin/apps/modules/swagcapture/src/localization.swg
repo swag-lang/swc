@@ -123,9 +123,9 @@ struct AppStrings
     msg_FailedSaveMetadata:    string = "Cannot save capture metadata"
     msg_FailedExportCaptures:  string = "Cannot export the selected captures"
     msg_FailedMoveCaptures:    string = "Some captures could not be moved. They are still where they were."
-    msg_ShortcutTaken:         string = "Cannot register global shortcut '%'. "
+    msg_ShortcutTaken:         string = "Cannot register global shortcut %. "
     msg_ShortcutTakenWhy:      string = "Another running application is probably already using it!"
-    msg_ShortcutsTaken:        string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, each one quoted.
+    msg_ShortcutsTaken:        string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, separated by commas.
     msg_ShortcutsTakenWhy:     string = "Other running applications are probably already using them!"
     msg_ResetStyles:           string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:    string = "Rename Capture"     // Title of the capture rename dialog.

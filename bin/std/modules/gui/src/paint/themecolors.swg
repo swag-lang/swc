@@ -543,10 +543,6 @@ impl ThemeColors
     // separate a white chip from a pale frame, never enough to read as a floating surface.
     private const SegmentLiftAlpha = 0x1A'u8
 
-    // Strength of the application glyph in the corner of a window: about 55 %, so it signs the
-    // window in either theme and is never read before the work.
-    private const CaptionMarkAlpha = 0x8C'u8
-
     // Strength of the ground laid over the work while the lens is open: the document behind
     // reads at about a sixth of its strength, present but out of the way.
     private const LensDimAlpha = 0xD6'u8
@@ -729,11 +725,11 @@ impl ThemeColors
         .veilMedium = p.veil.withAlpha(VeilMediumAlpha)
         .veilStrong = p.veil.withAlpha(VeilStrongAlpha)
 
-        // The window is the document: no caption band, no glow. The glyph is the soft ink at a
-        // little over half strength, so it signs the corner without becoming a block of brand.
+        // The application keeps an electric mark without a tile: Voltage where it reads on the
+        // ground, Arc on light paper. Command glyphs keep their quiet monochrome treatment.
         .wnd_Bk                = p.ground
         .wnd_CaptionText       = p.faintText
-        .wnd_CaptionMark       = p.softText.withAlpha(CaptionMarkAlpha)
+        .wnd_CaptionMark       = markReadsOn(p.ground) ? p.signature.ground : alternate.mark
         .wnd_Border            = p.line
         .wnd_BtnIcon           = p.faintText
         .wnd_BtnHotIcon        = p.text

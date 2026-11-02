@@ -8,7 +8,7 @@ description: Add, change, or review a GUI theme — the two Silence palettes Enc
 The GUI follows one charter, **Silence**: [backlog/design/README.md](../../../backlog/design/README.md)
 and its pictures in [backlog/design/imgs/](../../../backlog/design/imgs/). The charter gives the
 values: Themes, Roles, Measures, Type, Controls, Property grid and Motion. This skill says where
-each value lives in the code and which rules keep the code faithful to it. Read the six laws in
+each value lives in the code and which rules keep the code faithful to it. Read the seven laws in
 [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence) first. If a
 picture and a rule of the charter disagree, the rule wins.
 

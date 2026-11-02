@@ -90,22 +90,6 @@ struct FilePlacesBar
     moreButton:           *IconButton?              // Opens built-in folders, drives and preferred places that do not fit.
 }
 
-// The path of the current folder, written before the filter in the path field of a file browser.
-//
-// The steps start at the place the folder lies in, or at its root; a click on a step browses
-// there. Steps that would take more than half the field are folded into an ellipsis.
-struct FileCrumbs
-{
-    public
-    {
-        using wnd: Wnd     // Embedded window behavior and presentation.
-    }
-
-    late browser: *FileBrowserCtrl          // Browser the steps lead.
-    stops:        Array'FileBrowserStop     // Steps in display order, the first possibly an ellipsis.
-    hotIdx = Swag.U64.Max     // Step under the pointer.
-}
-
 // Browses folders with places as text tabs, a path field that filters, a quiet file list, and name and type editors.
 struct FileBrowserCtrl
 {
@@ -122,6 +106,7 @@ struct FileBrowserCtrl
             late
             {
                 listCtrl:        *ListCtrl       // Sortable file and folder list.
+                pathBar:         *PathBar        // Shared editable breadcrumbs for the current folder.
                 pathField:       *EditBox        // The current folder as a path, then a filter or a path typed after it.
                 editFile:        *EditBox        // Name of the file a save creates; in the other modes, the chosen names.
                 comboType:       *ComboBox       // Active file-type filter selector.
@@ -138,8 +123,7 @@ struct FileBrowserCtrl
         sigChoiceChanged:      SigArray'func||(*Wnd)     // Emitted after what the browser would answer with changes.
     }
 
-    late crumbs:    *FileCrumbs           // Path written at the start of the path field.
-    late typeRow:   *Wnd                  // Row holding the type filter when the browser keeps it.
+    late typeRow:   *Wnd     // Row holding the type filter when the browser keeps it.
     currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
     history:        NavigationHistory     // Folder-navigation history.
 }
@@ -306,118 +290,6 @@ impl FilePlacesBar
     }
 }
 
-impl IWnd for FileCrumbs
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let colors  = .themeColors()
-        let font    = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        for &stop, idx in .stops
-        {
-            let y = font.opticalLineTop(stop.rect.vertCenter())
-            painter.drawString(stop.rect.x, y, stop.name.toString(), font, idx == .hotIdx ? colors.softText : colors.faintText)
-            painter.drawString(stop.rect.right(), y, " / ", font, colors.faintText)
-        }
-    }
-
-    mtd impl onMouseEvent(evt: *MouseEvent)
-    {
-        let hit = hitStop(.stops.toSlice(), .surfaceToLocal(evt.surfacePos))
-        switch evt.kind
-        {
-        case .Move:
-            if hit != .hotIdx
-            {
-                .hotIdx = hit
-                if hit == Swag.U64.Max do
-                    .cursor.clear()
-                else do
-                    .cursor = Cursor.from(CursorShape.Hand)
-                .invalidate()
-            }
-
-        case .Leave:
-            .hotIdx = Swag.U64.Max
-            .invalidate()
-
-        case .Pressed:
-            if evt.button == .Left and hit != Swag.U64.Max do
-                .browser.setCurrentFolder(.stops[hit].path)
-        }
-    }
-}
-
-impl FileCrumbs
-{
-    // Rebuilds the steps of the current folder and returns the width they take, separators included.
-    //
-    // At most `maximum` wide: the steps after the first are folded into an ellipsis, oldest first,
-    // until the rest fits.
-    mtd rebuild(maximum: f32)->f32
-    {
-        .stops.clear()
-        .hotIdx = Swag.U64.Max
-
-        let folder = .browser.currentFolder.toString()
-        var start  = 0'u64
-        let places = .browser.placesBar
-        if places
-        {
-            let place = places.currentIndex()
-            if place != Swag.U64.Max
-            {
-                let stop = &places.stops[place]
-                .stops.add({name: stop.name, path: stop.path})
-                start = stop.path.length
-            }
-        }
-
-        // The remaining folders, each step leading to the path up to it.
-        var path = String.from(folder[until start])
-        for part in Tokenize.split(folder[start until folder.count], '/'rune) where part.count
-        {
-            if not path.isEmpty() and path.back() != '/' do
-                path += '/'u8
-            path += part
-            .stops.add({name: String.from(part), path: path})
-        }
-
-        // Fold the oldest steps behind the first into one ellipsis until the path fits.
-        let font  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
-        let slash = Painter.measureString(" / ", font).width
-        var total = 0'f32
-        for &stop in .stops do
-            total += Painter.measureString(stop.name.toString(), font).width + slash
-        if total > maximum and .stops.count > 2
-        {
-            total -= Painter.measureString(.stops[1].name.toString(), font).width
-            total += Painter.measureString("…", font).width
-            .stops[1].name = String.from("…")
-
-            // The ellipsis leads to the deepest folder it hides.
-            while total > maximum and .stops.count > 3
-            {
-                total -= Painter.measureString(.stops[2].name.toString(), font).width + slash
-                .stops[1].path = .stops[2].path
-                .stops.removeAtOrdered(2)
-            }
-        }
-
-        let height = .clientRect().height
-        var x      = 0'f32
-        for &stop in .stops
-        {
-            let width = Painter.measureString(stop.name.toString(), font).width
-            stop.rect = Math.Rectangle{x, 0, width, height}
-            x         += width + slash
-        }
-
-        .invalidate()
-        return x
-    }
-}
-
 // Reports whether `folder` is `place` or lies under it; both are normalized.
 private func isInside(folder, place: string)->bool
 {
@@ -438,6 +310,23 @@ private func hitStop(stops: const [..] FileBrowserStop, pos: Math.Point)->u64
 
 private impl FileBrowserCtrl
 {
+    mtd fillPathMenu(index: u64, menu: *MenuCtrl)
+    {
+        let folder  = .pathBar.breadcrumb.items[index].tag
+        var entries = catch Directory.enumerateDirectories(folder)
+        {
+            return
+        }
+
+        entries.sort(func(a, b) => Latin1.compareNatural(a.fullName, b.fullName))
+        for &entry in entries where entry.isDirectory()
+        {
+            let name     = Path.fileName(entry.fullName) orelse entry.fullName.toString()
+            let selected = index + 1 < .pathBar.breadcrumb.items.count and .pathBar.breadcrumb.items[index + 1].tag == entry.fullName
+            menu.addItem(name, entry.fullName, checked: selected)
+        }
+    }
+
     mtd updateNavigationState()
     {
         .historyButton.enable(.options.state != null and not .options.state.recentFolders.isEmpty())
@@ -494,6 +383,7 @@ private impl FileBrowserCtrl
         .pathField.setText(null, notify: false)
         .placesBar?.invalidate()
         .placesBar?.updateSelection()
+        .pathBar.setPath(.currentFolder)
         .placeCrumbs()
         .fillFileList()
         .sigFolderChanged.call(me)
@@ -506,9 +396,12 @@ private impl FileBrowserCtrl
         let field = .pathField
         let inset = field.padding.x
         let room  = Math.max(field.position.width * 0.5, 0)
-        .crumbs.setPosition(Math.Rectangle{inset, 0, room, field.position.height})
-        let width = .crumbs.rebuild(room)
-        .crumbs.resize(width, field.position.height)
+        .pathBar.setPosition(Math.Rectangle{inset, 0, room, field.position.height})
+        .pathBar.refreshPath()
+        let items   = .pathBar.breadcrumb.items
+        let content = items.isEmpty() ? 0.0 : items.back().arrowRect.right()
+        let width   = Math.min(content + .themeMetrics().fileBrowser_GlyphGap, room)
+        .pathBar.resize(width, field.position.height)
         field.setLeadingMargin(width)
     }
 
@@ -644,6 +537,7 @@ private impl FileBrowserCtrl
         }
 
         .choiceLabel.setText(text.toString())
+        .choiceLabel.toolTip = text
         .sigChoiceChanged.call(me)
     }
 
@@ -730,9 +624,29 @@ private impl FileBrowserCtrl
             .hookOnEvent  = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
         }
 
-        .crumbs             = Wnd.create'FileCrumbs(.pathField, "", {})
-        .crumbs.browser     = me
-        .crumbs.focusPolicy = .Click
+        with .pathBar = PathBar.create(.pathField)
+        {
+            .sigNavigate += func|browser = me|(_, path)
+            {
+                browser.setCurrentFolder(path)
+            }
+
+            .sigSubmitted += func|browser = me|(_, path)
+            {
+                browser.pathField.setText(path)
+                browser.submitPath()
+            }
+
+            .sigEditFinished += func|browser = me|(_)
+            {
+                browser.pathField.setFocus()
+            }
+
+            .breadcrumb.sigFillMenu += func|browser = me|(_, index, menu)
+            {
+                browser.fillPathMenu(index, menu)
+            }
+        }
     }
 
     mtd createFileList(view: *Wnd)
@@ -912,18 +826,23 @@ impl FileBrowserCtrl
         return .typeRow
     }
 
-    // Returns the path of the current folder as the path field writes it, its steps parted by slashes.
+    // Names the current folder relative to a known place for the compact selection summary.
     mtd displayPath()->String
     {
-        var result: String
-        for &stop, idx in .crumbs.stops
+        if .placesBar
         {
-            if idx do
-                result += " / "
-            result += stop.name
+            let index = .placesBar.currentIndex()
+            if index != Swag.U64.Max
+            {
+                let place  = &.placesBar.stops[index]
+                var result = String.from(place.name)
+                for part in Tokenize.split(.currentFolder.toString()[place.path.length to], '/'rune) where part.count do
+                    result += Format.toString(" / %", part)
+                return result
+            }
         }
 
-        return result
+        return String.from(.currentFolder)
     }
 
     // Puts the keyboard where a name is chosen: the name field of a save, the path field otherwise.
@@ -1296,6 +1215,7 @@ impl FileBrowserCtrl
     mtd setFileName(name: string?)
     {
         .editFile.setText(name)
+        .updateChoice()
     }
 
     // Returns the current contents of the file or folder name editor.

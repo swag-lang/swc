@@ -139,6 +139,9 @@ internal func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWind
     let forward  = &window.forwardCaptionButton.button
     let up       = &window.upCaptionButton.button
     window.updateCommandState()
+    Swag.assert(back.position.right() <= forward.position.x)
+    Swag.assert(forward.position.right() <= up.position.x)
+    Swag.assert(window.informationCaptionButton.position.x > window.clientRect().width / 2)
     Swag.assert(not back.isEnabled() and not forward.isEnabled())
     explorer.navigate(explorer.listing.path, "docs/")
     completeExplorer(&host, explorer)

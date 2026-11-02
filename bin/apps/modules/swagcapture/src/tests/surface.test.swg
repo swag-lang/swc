@@ -869,6 +869,35 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         Swag.assert(hint.text != appStrings().hint_Nudge)
 }
 
+// The size and zoom readings open the existing image and camera commands.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    Swag.assert(main.sizeReading.text() == "400 × 240")
+    Swag.assert(main.zoomReading.text() == "100 %")
+
+    // The zoom menu runs the existing fit command and refreshes the displayed percentage.
+    main.editWnd.editView.setZoom(0.5)
+    Swag.assert(main.zoomReading.text() == "50 %")
+    host.clickPopupMenuItemWhenShown(ActionZoom.ZoomFit)
+    host.clickWnd(main.zoomReading)
+    Swag.assert(main.editWnd.editView.zoom > 0.5)
+
+    // Choosing Resize Image from the size menu reaches its dialog; cancel keeps the canvas.
+    host.clickPopupMenuItemWhenShown(ActionImage.ResizeImage)
+    host.thenClickModalButton(Dialog.BtnCancel)
+    host.clickWnd(main.sizeReading)
+    Swag.assert(main.getCapture()!.width == 400 and main.getCapture()!.height == 240)
+}
+
 // One selected object is named by the tool that draws it: a pixel selection and a highlighter
 // stroke are not called a shape and a drawing.
 #test

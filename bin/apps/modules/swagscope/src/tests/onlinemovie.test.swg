@@ -8,7 +8,8 @@ struct MovieServerFixture
     late listener: *TcpListener
     port:          u16
     poster:        Array'u8
-    requests:      [4] String
+    requests:      [8] String
+    cancelTask:    *Swag.Task?
     appleMiss:     bool
     tmdbHit:       bool
     tmdbMiss:      bool
@@ -29,7 +30,7 @@ func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 func serveMovies(thread: const *Threading.Thread)
 {
     let fixture = cast(*MovieServerFixture, unwrap thread.userParam)
-    for index in (fixture.tmdbMiss ? 4 : (fixture.appleMiss or fixture.tmdbHit ? 3 : 2))
+    for index in (fixture.cancelTask ? 8 : (fixture.tmdbMiss ? 4 : (fixture.appleMiss or fixture.tmdbHit ? 3 : 2)))
     {
         var stream = expect fixture.listener.accept()
         var bytes: [1024] u8
@@ -42,7 +43,12 @@ func serveMovies(thread: const *Threading.Thread)
         }
 
         var body: Array'u8
-        if fixture.tmdbMiss and index < 2
+        if fixture.cancelTask
+        {
+            fixture.cancelTask.cancel()
+            body.add(cast(const [..] u8, """{"results":[],"resultCount":0,"query":{"pages":[]}}"""))
+        }
+        elif fixture.tmdbMiss and index < 2
         {
             body.add(cast(const [..] u8, """{"results":[]}"""))
         }
@@ -84,7 +90,33 @@ func serveMovies(thread: const *Threading.Thread)
         let header = Format.toString("HTTP/1.1 200 OK\r\nContent-Length: %\r\nConnection: close\r\n\r\n", body.count)
         writeMovieBytes(&stream, cast(const [..] u8, header.toString()))
         writeMovieBytes(&stream, body.toSlice())
+        if Utf8.contains(fixture.requests[index], "GET /stop ") do
+            return
     }
+}
+
+// Switching to local previews retires an online query before another locale or provider starts.
+#test
+{
+    var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
+    let endpoint = expect listener.localEndpoint()
+    var task:   Swag.Task
+    var fixture  = MovieServerFixture{listener: &listener, port: endpoint.port, cancelTask: &task}
+    var thread: Threading.Thread
+    expect thread.init(&serveMovies, &fixture)
+    expect thread.start()
+    task.submit(func|port = endpoint.port|()
+    {
+        let source = MovieSource{tmdbHost: "127.0.0.1", tmdbToken: "fixture-token-abcdefghijkl", appleHost: "127.0.0.1",
+                                 wikiHost: "127.0.0.1", dataHost: "127.0.0.1", port: port, secure: false, useLocalCredentials: false}
+        let movie = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source)
+        Swag.assert(not movie.found())
+    })
+    task.wait()
+    discard expect Http.get("127.0.0.1", endpoint.port, "/stop", false)
+    thread.wait()
+    Swag.assert(Utf8.contains(fixture.requests[0], "/3/search/movie?"))
+    Swag.assert(Utf8.contains(fixture.requests[1], "GET /stop "))
 }
 
 // A TMDB miss still reaches the Apple catalogue before Wikipedia.

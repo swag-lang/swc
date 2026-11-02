@@ -757,6 +757,18 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   while reusing their unchanged production dependencies, and edits affecting exported code
   or build configuration still invalidate every required consumer.
 
+### compiler.core.102 — Reduce a null-pointer diagnosis for grouped rectangle resets
+
+- Evidence: in `BreadcrumbCtrl.layout`, resetting the two rectangle members of a mutable
+  array element with `it.bodyRect, it.arrowRect = {}` made the DevMode compiler report
+  `cannot dereference a null pointer` on the second member while building GUI. Assigning
+  `{}` to each member in two statements compiles and runs the same layout tests.
+- Next: reduce the grouped assignment with two scalar-only structs inside a mutable array
+  iteration. Determine whether lowering corrupts the receiver or sanity analysis loses it;
+  if the grouped form is unsupported, diagnose that contract instead of a null dereference.
+- Done when: the reduced form either resets both members correctly or receives a precise
+  source-level rejection, with a regression at the owning compiler boundary.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

@@ -56,7 +56,10 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
 {
     let explorer = unwrap window.explorer
     explorer.address.breadcrumb.clear()
+    explorer.address.breadcrumb.addItem("Z:/")
     explorer.address.breadcrumb.addItem(parent)
+    explorer.address.breadcrumb.addItem(folder)
+    explorer.address.setText(Format.toString("Z:/%/%", parent, folder))
     explorer.address.refreshPath()
     explorer.title.setText(folder)
     explorer.setMode(.Medium)

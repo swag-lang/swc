@@ -64,8 +64,8 @@ public struct ScrollWnd
     paddingZ:      f32      // Width the vertical bar takes from the view.
     paddingW:      f32      // Height the horizontal bar takes from the view.
 
-    // A responsive view can change its content size when a bar narrows it. Keep bars needed
-    // during one layout until the next external resize, so that feedback reaches a fixed size.
+    // A responsive view can change its content size when a bar narrows it. Retain bars only
+    // when that feedback cycles; an initial stale extent must not leave an unnecessary bar.
     layingView:      bool
     viewLayoutAgain: bool
     layoutBarV:      bool
@@ -125,12 +125,25 @@ public impl IWnd for ScrollWnd
         defer .layingView = false
         .layoutBarV, .layoutBarH = false
         .viewLayoutAgain         = true
+        var visited  = 0'u32
+        var previous = Swag.U32.Max
+        var sawVertical, sawHorizontal: bool
         while .viewLayoutAgain
         {
             .viewLayoutAgain = false
             .computeLayout()
-            .layoutBarV = .layoutBarV or .showBarV
-            .layoutBarH = .layoutBarH or .showBarH
+            let state = (.showBarV ? 1'u32 : 0'u32) | (.showBarH ? 2'u32 : 0'u32)
+            if state != previous and (visited & (1'u32 << state)) != 0
+            {
+                .layoutBarV = sawVertical
+                .layoutBarH = sawHorizontal
+                .computeLayout()
+            }
+
+            visited       |= 1'u32 << state
+            previous      = state
+            sawVertical   = sawVertical or .showBarV
+            sawHorizontal = sawHorizontal or .showBarH
             if .view == null do
                 return
             var rect = .paddedClientRect()

@@ -68,7 +68,7 @@ struct ThemeMetrics
         wnd_SmallCaptionCY:        f32 = 36      // Height of the top strip of a dialog or a tool window, kept above its content.
         wnd_CaptionButtonHeight:   f32 = 32      // Tallest a window button gets; it is centred in the strip.
         wnd_CaptionMarginTitle:    f32 = 18      // Air between the leading edge of a window and its glyph.
-        wnd_CaptionIconSize:       f32 = 18      // Side of the application glyph in the corner of a window.
+        wnd_CaptionIconSize:       f32 = 24      // Side of the application glyph in the corner of a window.
         wnd_TitleFontSize:         u32 = 12      // Size of the title centred in the top strip.
         wnd_CaptionButtonMargin:   f32 = 5       // Air around a window button, inside the top strip.
         wnd_CaptionButtonGap:      f32 = 2       // Air between neighboring window buttons.
@@ -351,6 +351,16 @@ struct ThemeMetrics
         focusRing_Radius: f32 = 4     // Softest corner the ring takes when the control lends it none.
 
         richEdit_Padding: f32 = 5     // Inset of the text of a rich editor.
+
+        // Virtualized file cells share their preview framing and caption rhythm.
+        fileTile_Inset:         f32 = 12     // Inset around a whole preview or between metadata fields.
+        fileTile_NameGap:       f32 = 8      // Gap between the image and its caption.
+        fileTile_NameHeight:    f32 = 20     // Height of the display-name line.
+        fileTile_FactsHeight:   f32 = 18     // Height of the metadata line.
+        fileTile_FactsFontSize: u32 = 11     // Fixed-width metadata and badge font size.
+        fileTile_RingWidth:     f32 = 2      // Weight of the hover and selection outlines.
+        fileTile_RingGap:       f32 = 1      // Air beyond the selection outline's own width.
+        fileTile_BadgePadding:  f32 = 6      // Horizontal inset of a label over the image.
 
         // A tool tip is exactly as large as the words it holds. It wraps rather than grow past
         // `toolTip_MaxWidth`, it ends its last line with an ellipsis rather than grow past

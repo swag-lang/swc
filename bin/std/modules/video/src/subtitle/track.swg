@@ -272,7 +272,9 @@ private func decodeWebVtt(track: *Track, source: string) fail
             index += 1
         if index >= lines.count do
             break
-        if Utf8.startsWith(Latin1.trim(lines[index]), "NOTE")
+        let block = Latin1.trim(lines[index])
+        if block == "STYLE" or block == "REGION" or block == "NOTE" or
+           Utf8.startsWith(block, "NOTE ") or Utf8.startsWith(block, "NOTE\t")
         {
             while index < lines.count and (Latin1.trim(lines[index])).count do
                 index += 1
@@ -281,8 +283,15 @@ private func decodeWebVtt(track: *Track, source: string) fail
 
         if Utf8.indexOf(lines[index], "-->") == Swag.U64.Max do
             index += 1
-        if index >= lines.count or Utf8.indexOf(lines[index], "-->") == Swag.U64.Max do
+        if index >= lines.count do
+            break
+        if Utf8.indexOf(lines[index], "-->") == Swag.U64.Max
+        {
+            // Ignore the rest of a metadata block, without consuming the next cue's timing.
+            while index < lines.count and (Latin1.trim(lines[index])).count do
+                index += 1
             continue
+        }
         let times = try cueTimeLine(lines[index])
         index += 1
         let first = index

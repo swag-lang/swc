@@ -1,6 +1,6 @@
 ---
 name: design-swag-identity
-description: Apply the Swag visual identity to the logo, favicons, application icon tiles, generated documentation, the website, the VSCode theme and syntax colors, and frame every GUI surface by the six laws of the Silence charter. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository; GUI details then continue in design-swag-themes, design-swag-dialogs and build-swag-standard-apps.
+description: Apply the Swag visual identity to the logo, favicons, application icon tiles, generated documentation, the website, the VSCode theme and syntax colors, and frame every GUI surface by the seven laws of the Silence charter. Use whenever adding or changing a brand asset, a stylesheet, a page layout, an editor theme, a color, or an icon anywhere in this repository; GUI details then continue in design-swag-themes, design-swag-dialogs and build-swag-standard-apps.
 ---
 
 # Design The Swag Identity
@@ -28,21 +28,24 @@ at a time.
 
 ## The GUI Follows Silence
 
-The charter states the six laws. This is why each one exists. A surface that follows the letter
+The charter states the seven laws. This is why each one exists. A surface that follows the letter
 of a rule but breaks one of these laws is wrong.
 
 1. **The work comes first.** Remove decorative bands and duplicate readouts. Keep frequent task
    controls beside the work: folder navigation, playback transport, editing tools and output.
 2. **Details are asked for.** Secondary readings and settings can wait for a gesture. Current
    mode, selection, progress, failures and the next essential action must remain understandable.
-3. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
+3. **A visible fact can open its operation.** When a displayed value describes an object with a
+   natural operation, let it open the relevant actions for that object. Reuse existing commands
+   and keep the menu anchor quiet; do not make labels clickable without a clear operation.
+4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
    open the same complete lens. Frequent actions also have direct controls; command names and
    keyboard shortcuts must not be prerequisites for using the application.
-4. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
+5. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
    do*, so two Voltage marks on one screen mean nothing.
-5. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by
+6. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by
    what it draws: clean first, dense never.
-6. **The default theme carries the hand.** The toolkit ships Encre (dark) and Papier (light),
+7. **The default theme carries the hand.** The toolkit ships Encre (dark) and Papier (light),
    both recognizably Swag. An application that wants another look adds a theme sheet on top. The
    toolkit maintains two themes and no more.
 
@@ -224,11 +227,12 @@ show syntax the compiler no longer accepts.
 
 - Keep clear space of at least one stroke (20 units, scaled) on every side.
 - Below 24 pixels, use the icon tile rather than the bare mark.
-- **The tile is for the desktop and the About box. A window shows the glyph.** The tile is one
+- **The application mark keeps its identity in the window.** The tile is one
   Voltage glyph on one ink ground, for the taskbar, the task switcher, an installer and the About
-  box (52, corner 12). Inside a window the application glyph is drawn monochrome in
-  `ThemeColors.wnd_CaptionMark` (soft ink at about 55 %), 18 px, at the top-left corner. The
-  toolkit draws it. See [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#generate-a-specific-icon).
+  box (52, corner 12). Inside a window the non-interactive application mark is 24 px, centred in the top strip,
+  with the glyph alone in Voltage on Encre and Arc on Papier, without a tile or interaction feedback.
+  It stays distinct from monochrome command glyphs. The toolkit uses `Application.appGlyph`
+  and `ThemeColors.wnd_CaptionMark`. See [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md#generate-a-specific-icon).
 - **A tile has two crops.** In an application icon the mark fills 56 % (`ICON_FILL`). In a
   favicon it fills 74 % (`FAVICON_FILL`), because at 16 pixels the margin would cost the counters.
 - The mark is the whole logo. `SWAG` is set in type beside it (weight 800, `.2em` tracking).

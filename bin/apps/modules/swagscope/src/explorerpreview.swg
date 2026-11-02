@@ -67,7 +67,6 @@ struct ExplorerPreview
     opening:         bool
     online:          bool     // The second pass looks up online artwork before publishing a movie frame.
     needsOnline:     bool
-    posterPending:   bool     // Keep a movie frame hidden while its preferred poster is fetched.
     settings:        String
 }
 
@@ -75,9 +74,8 @@ impl ExplorerPreview
 {
     mtd start(owner: *Wnd)
     {
-        .image         = {}
-        .needsOnline   = false
-        .posterPending = false
+        .image       = {}
+        .needsOnline = false
         .error.clear()
         .temporary.clear()
         let operation = me
@@ -186,16 +184,14 @@ impl ExplorerPreview
                 }
                 else
                 {
-                    .image = try .service.render(file, .settings)
+                    // Online artwork does not depend on the local codec succeeding.
+                    var failure: Swag.Error
+                    .image = catch .service.render(file, .settings) as failure
+                    .error = Viewer.failureText(failure.value())
                 }
 
-                .posterPending = .needsOnline and
-                                 settings.onlineMovies and
-                                 not settings.localArtworkOnly and
-                                 not albumAudio(file) and
-                                 Reader.canOpen(file)
                 let current = catch ThumbnailCache.key(source, member, settings: .settings)
-                if not Swag.isCancelled() and cache == current do
+                if .image.isValid() and not Swag.isCancelled() and cache == current do
                     catch ThumbnailCache.write(cache, &.image)
                 return
             }
@@ -256,6 +252,9 @@ impl ExplorerPreview
                 }
             }
 
+            // Retired online work must not decode another frame before releasing its worker.
+            if Swag.isCancelled() do
+                return
             if not .image.isValid()
             {
                 if albumAudio(file)

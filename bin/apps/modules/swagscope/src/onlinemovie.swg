@@ -576,15 +576,21 @@ impl OnlineMovie
     // TMDB supplies the preferred poster and synopsis; Apple and Wikipedia remain fallbacks.
     func lookup(path: string, source: MovieSource = {}, language: string = "en")->OnlineMovie fail
     {
+        if Swag.isCancelled() do
+            return {}
         let query = MovieQuery.fromFile(path)
         if query.title.isEmpty() or query.title.length > 256 do
             return {}
         var movie: OnlineMovie
         catch movie.lookupTMDB(query, source, language)
+        if Swag.isCancelled() do
+            return {}
         if not movie.posterUrl.isEmpty() do
             return movie
         var apple: OnlineMovie
         catch apple.lookupApple(query, source, language)
+        if Swag.isCancelled() do
+            return {}
         if not apple.posterUrl.isEmpty()
         {
             if movie.id.isEmpty() do
@@ -597,6 +603,8 @@ impl OnlineMovie
         var article: OnlineMovie
         var articleErrorOutcome: Swag.Error
         catch { article = try lookupArticle(query, source, language) } as articleErrorOutcome
+        if Swag.isCancelled() do
+            return {}
         if article.posterUrl.isEmpty()
         {
             var alternate: OnlineMovie
@@ -677,6 +685,8 @@ impl OnlineMovie
 
     private mtd lookupTMDBAtLocale(query: MovieQuery, source: MovieSource, locale, token, key: string)->OnlineMovie fail
     {
+        if Swag.isCancelled() do
+            return {}
         var path = Format.toString("/3/search/movie?query=%&language=%&include_adult=false", Url.encodeComponent(cast(const [..] u8, query.title.toString())), locale)
         if not query.year.isEmpty() do
             path += Format.toString("&year=%", query.year)
@@ -736,6 +746,8 @@ impl OnlineMovie
 
     private mtd loadTMDBDetails(id: u64, source: MovieSource, locale, token, key: string) fail
     {
+        if Swag.isCancelled() do
+            return
         var path = Format.toString("/3/movie/%?language=%&append_to_response=credits", id, locale)
         var authorization: String
         var options:       Http.GetOptions
@@ -841,6 +853,8 @@ impl OnlineMovie
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail
     {
+        if Swag.isCancelled() do
+            return {}
         let french     = Utf8.startsWith(language, "fr")
         let wikiHost   = source.wikiHost.count ? source.wikiHost : (french ? "fr.wikipedia.org" : "en.wikipedia.org")
         let term       = Format.toString("% film", query.title)
@@ -877,6 +891,8 @@ impl OnlineMovie
 
     private mtd loadEnglishPoster(query: MovieQuery, source: MovieSource, path: string, options: Http.GetOptions) fail
     {
+        if Swag.isCancelled() do
+            return
         let host     = source.wikiHost.count ? source.wikiHost : "en.wikipedia.org"
         let response = try Http.get(host, source.port, path, source.secure, options)
         if response.status != 200 do
@@ -894,7 +910,7 @@ impl OnlineMovie
 
     private mtd loadDetails(source: MovieSource, options: Http.GetOptions, language: string) fail
     {
-        if not validWikiId(.id) do
+        if Swag.isCancelled() or not validWikiId(.id) do
             return
         let lang     = Utf8.startsWith(language, "fr") ? "fr,en" : "en"
         let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?genreLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% wdt:P136 ?genre } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, .id, lang)

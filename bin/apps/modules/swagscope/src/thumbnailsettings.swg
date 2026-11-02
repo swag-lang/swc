@@ -15,17 +15,22 @@ struct ThumbnailSettings
     choiceSize:          u64
     choiceCreationStamp: u64
     choiceModifiedStamp: u64
+    previewEpoch:        u64
 }
 
 impl ThumbnailSettings
 {
-    func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null, localArtworkOnly = false)->String
+    func capture(window: *ViewerWindow,
+                 entry: const *ExplorerEntry? = null,
+                 localArtworkOnly = false,
+                 previewEpoch: u64 = 0)->String
     {
         var settings: ThumbnailSettings
         settings.preferences      = window.preferences
         settings.onlineMovies     = window.onlineMovies
         settings.localArtworkOnly = localArtworkOnly
         settings.onlineMusic      = window.onlineMusic
+        settings.previewEpoch     = previewEpoch
         if window.onlineMovies
         {
             settings.movieLanguage = window.app().language()

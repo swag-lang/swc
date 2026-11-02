@@ -279,8 +279,8 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
 
-// Pins the open-document composition in Encre and Papier: the document and its faint readings,
-// nothing above it but the strip, and the find bar floating at its top while a query runs.
+// Pins the open-document composition in Encre: the document and its faint readings, nothing above
+// it but the strip, and the find bar floating at its top while a query runs.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -313,33 +313,19 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Swag.assert(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())
     Swag.assert(window.currentCommands.backgroundStyle == .Transparent)
     Swag.assert(window.searchBox.isEnabled() and not window.searchBar.isLocallyVisible())
-    var dark = host.render(window)
-    assertViewerPanelCorner(&dark, window.documentPanel)
-    Pixel.Testing.assertImageGolden(&dark, "viewer.dark")
+    var image = host.render(window)
+    assertViewerPanelCorner(&image, window.documentPanel)
+    Pixel.Testing.assertImageGolden(&image, "viewer.dark")
 
     window.showSearch()
     window.searchBox.setText("verification marker")
     completeViewerSearch(&host, window)
     discard host.render(window)
     host.fireTimers()
-    var searchDark = host.render(window)
-    Pixel.Testing.assertImageGolden(&searchDark, "search.dark")
+    var search = host.render(window)
+    Pixel.Testing.assertImageGolden(&search, "search.dark")
     window.searchBox.setText("")
     window.hideSearch()
-
-    window.applyTheme(cast(u32, AppearanceTheme.Light))
-    host.notify(.ThemeChanged)
-    var light = host.renderSettled(window)
-    assertViewerPanelCorner(&light, window.documentPanel)
-    Pixel.Testing.assertImageGolden(&light, "viewer.light")
-
-    window.showSearch()
-    window.searchBox.setText("verification marker")
-    completeViewerSearch(&host, window)
-    discard host.render(window)
-    host.fireTimers()
-    var searchLight = host.render(window)
-    Pixel.Testing.assertImageGolden(&searchLight, "search.light")
 }
 
 // Opening the lens on a Markdown document keeps its basic actions and outline in the first viewport.
@@ -404,18 +390,6 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.lens.markdown.encre")
 
-    var paperHost: Testing.HeadlessHost
-    paperHost.setup(960, 680)
-    shipFrame(&paperHost)
-    paperHost.theme.setLight()
-    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
-    paperWindow.resize(960, 680)
-    paperWindow.openFile(fileName, remember: false)
-    completeQueuedViewerFile(&paperHost, paperWindow)
-    paperWindow.lens.open()
-    paperHost.finishAnimations()
-    var paper = paperHost.render(paperWindow)
-    Pixel.Testing.assertImageGolden(&paper, "viewer.lens.markdown.paper")
 }
 
 // Entering folder exploration puts its common actions in the lens without a command query.
@@ -433,7 +407,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     shipFrame(&host)
-    host.theme.setDark()
+    host.theme.setLight()
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.resize(960, 680)
@@ -475,33 +449,5 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
     var image = host.render(window)
     image.crop(window.lens.body())
-    Pixel.Testing.assertImageGolden(&image, "viewer.lens.explorer.encre")
-
-    var paperHost: Testing.HeadlessHost
-    paperHost.setup(960, 680)
-    shipFrame(&paperHost)
-    paperHost.theme.setLight()
-    paperHost.notify(.ThemeChanged)
-    let paperWindow = ViewerWindow.create(&paperHost.surfaceWnd, createViewerPluginRegistry())
-    paperWindow.resize(960, 680)
-    paperWindow.openFile(fileName, remember: false)
-    completeQueuedViewerFile(&paperHost, paperWindow)
-    paperWindow.exploreFolder()
-    let paperExplorer = unwrap paperWindow.explorer
-    completeLensExplorer(&paperHost, paperExplorer)
-    paperHost.notify(.ThemeChanged)
-    selected = Swag.U64.Max
-    for &entry, index in paperExplorer.entries where entry.name == Path.fileName(fileName) do
-        selected = index
-    Swag.assert(selected != Swag.U64.Max)
-    paperExplorer.selected = selected
-    paperWindow.lens.open()
-    Swag.assert(paperWindow.isExploring())
-    Swag.assert(paperWindow.lens.results.sections[0]!.label == appStrings().lens_Folder)
-    Swag.assert(lensHasEntry(paperWindow, appStrings().explore_Up))
-    Swag.assert(lensEntryOnFirstPage(paperWindow, appStrings().explore_Up))
-    paperHost.finishAnimations()
-    var paper = paperHost.render(paperWindow)
-    paper.crop(paperWindow.lens.body())
-    Pixel.Testing.assertImageGolden(&paper, "viewer.lens.explorer.paper")
+    Pixel.Testing.assertImageGolden(&image, "viewer.lens.explorer.paper")
 }

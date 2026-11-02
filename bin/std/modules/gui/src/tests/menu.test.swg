@@ -3,6 +3,22 @@
 
 using Swag, Core
 
+// Dynamic navigation targets remain valid after the source collection has been released.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 240)
+    let menu     = MenuCtrl.createPopup(&host.root)
+    let expected = "C:/Projects/A folder path longer than inline string storage/Documents"
+    scope
+    {
+        let target = Core.String.from(expected)
+        menu.addItem("Documents", target)
+    }
+
+    Swag.assert(menu.items[0]!.id == expected)
+}
+
 // An automatically destroyed popup retires its surface-sibling submenus before their owner.
 #test
 {

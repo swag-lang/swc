@@ -5,6 +5,22 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
 private func thumbnailFixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
 
+// The isolated worker renders subtitle content and can reuse that process for a video frame.
+#test
+{
+    let file = Testing.tempFilePath("scope-subtitle-preview-", ".vtt")
+    defer catch File.delete(file)
+    discard expect File.writeAllText(file, "WEBVTT\n\n00:00.000 --> 00:01.000\nVisible subtitle words\n")
+    var service: ThumbnailService
+    var buffer: ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&buffer, ThumbnailSettings{localArtworkOnly: true})
+    let subtitle = expect service.render(file, buffer.toString())
+    Swag.assert(subtitle.width == 256 and subtitle.height == 320)
+    let video = expect service.render(thumbnailFixture("glint-aac-mjpeg.mp4"), buffer.toString())
+    Swag.assert(video.isValid())
+}
+
 // Both source paths render without creating a GUI application or a viewer window.
 #test
 {

@@ -45,12 +45,15 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 - Evidence: a user capture of a large Films folder shows repeated horizontal colored streaks
   across the content while the page title remains legible. The responsible rendering or
-  presentation boundary is not established. Existing CPU goldens and loader checks cannot
-  establish the pixels transferred by the native application.
-- Next: run `browsemedialibrary.smoke.test.swg` through the private-desktop launcher and extend its
-  deterministic corpus toward the failing library, including varied media and thumbnail cache
-  turnover. Compare the GPU target, native presentation bitmap and, in an explicit interactive
-  run if necessary, displayed pixels. Extend resize checks with DPI transitions and partial repaint
+  presentation boundary is not established. The reported trigger includes repeated Online/Local
+  preview switches, refreshes and waiting on a network library. Native checks of odd-width RGB
+  uploads, texture eviction and the 639-entry library have not reproduced the corruption. The
+  extended library probe completed eight Online/Local phases and two refreshes in 95 seconds,
+  comparing settled cached pixels with uploaded textures and checking native presentation.
+- Next: extend `browsemedialibrary.smoke.test.swg` and the opt-in
+  `explorerlibrary.integration.test.swg` toward longer refresh sequences on the failing library.
+  Compare decoded pixels, uploaded textures, the GPU target, native presentation bitmap and,
+  in an explicit interactive run if necessary, displayed pixels. Extend resize checks with DPI transitions and partial repaint
   checkpoints. Reduce any failure to the owning renderer or transfer test before changing it.
 - Done when: the corruption is reproduced and fixed with a regression that fails without the
   fix; a green smoke alone does not close this report.

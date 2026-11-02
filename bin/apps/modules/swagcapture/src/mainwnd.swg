@@ -100,6 +100,8 @@ struct MainWnd
         inspector:           *Inspector
         miniBar:             *MiniBar
         hintLine:            *HintLine
+        sizeReading:         *IconButton
+        zoomReading:         *IconButton
         toast:               *Toast
         lens:                *Lens.View
         quickWnd:            *QuickWnd
@@ -221,6 +223,8 @@ impl IWnd for MainWnd
     {
         if .miniBar != null do
             .placeMiniBar()
+        if .sizeReading != null do
+            .placeReadings()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -627,24 +631,57 @@ impl MainWnd
             .recentWnd.updateRecent()
     }
 
-    // Writes the size and the zoom of the capture at the head of the hint line. Both are machine
-    // data, set in the fixed-width family by the line itself.
+    // Writes the size and zoom as quiet menu controls at the head of the hint line.
     mtd updateReading()
     {
-        if .hintLine == null do
+        if .hintLine == null or .sizeReading == null do
             return
 
         let capture = .editWnd.getCapture()
-        if not capture
+        if not capture or .libraryMode
         {
-            .hintLine.setReading(null)
+            .sizeReading.hide()
+            .zoomReading.hide()
+            .placeReadings()
             return
         }
 
         // The percent sign is appended rather than formatted: '%' is the placeholder itself.
-        var reading = Format.toString("% × % · %", capture.width, capture.height, cast(s32, Math.round(.editWnd.editView.zoom * 100)))
-        reading += " %"
-        .hintLine.setReading(reading)
+        .sizeReading.show()
+        .zoomReading.show()
+        .sizeReading.setQuietText(Format.toString("% × %", capture.width, capture.height))
+        .zoomReading.setQuietText(Format.toString("% %", cast(s32, Math.round(.editWnd.editView.zoom * 100)), "%"))
+        .placeReadings()
+        .fillHintLine()
+    }
+
+    // Opens the existing image-size commands from the size shown on the editor.
+    mtd showSizeMenu(button: *IconButton)
+    {
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addItem(ActionImage.ResizeImage)
+            .addItem(ActionImage.ExpandImage)
+            .addItem(ActionImage.ExpandCapture)
+            .addItem(ActionImage.TrimCapture)
+        }
+
+        discard menu.doModal(button, autoDestroy: true)
+    }
+
+    // Opens the existing camera commands from the zoom shown on the editor.
+    mtd showZoomMenu(button: *IconButton)
+    {
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addItem(ActionZoom.ZoomFit)
+            .addItem(ActionZoom.Zoom1)
+            .addSeparator()
+            .addItem(ActionZoom.ZoomIn)
+            .addItem(ActionZoom.ZoomOut)
+        }
+
+        discard menu.doModal(button, autoDestroy: true)
     }
 
     // Returns the name of a tool, as the inspector heads the properties it edits.
@@ -944,7 +981,7 @@ impl MainWnd
             {
                 if index != 0 do
                     names += ", "
-                names += Format.toString("'%'", name)
+                names += name.toString()
             }
 
             var msg = Format.toString(appStrings().msg_ShortcutsTaken, names)

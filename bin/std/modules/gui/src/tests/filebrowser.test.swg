@@ -3,6 +3,88 @@
 
 using Swag, Core, File
 
+// Folder selection stays inside a narrow, scaled dialog and lets the action shrink again.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-dialog-polish-%", Guid64.random().toString()))
+    expect Directory.create(root, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    expect Directory.create(Path.combine(root, "Short"))
+    let longName = "A folder with a very long name that must never displace the Cancel button"
+    expect Directory.create(Path.combine(root, longName))
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 700, dpiScale: 1.5)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+    expect host.app.setLanguage("fr")
+    let dlg  = FileDlg.create(&host.surface, {mode: .SelectFolder, initialFolder: root.toString(), showLocationsPane: false})
+    var rect = dlg.surface!.position
+    rect.width = 540 * dlg.surface.dpiScale
+    dlg.surface.setPosition(rect)
+    let primary     = unwrap dlg.surface.defaultButton
+    let normalWidth = primary.position.width
+
+    for name in [longName, "Short", ""]
+    {
+        rect.width = 1400 * dlg.surface.dpiScale
+        dlg.surface.setPosition(rect)
+        dlg.browser.setFileName(name)
+        if name == "Short" do
+            Swag.assert(Utf8.contains(primary.name.raw, name))
+        rect.width = 540 * dlg.surface.dpiScale
+        dlg.surface.setPosition(rect)
+        dlg.applyLayout()
+        let slot   = unwrap dlg.leadingControl!.parent
+        let cancel = unwrap dlg.cancelButton()
+        Swag.assert(slot.surfaceRect().right() + dlg.themeMetrics().dialog_BtnPadding <= cancel.surfaceRect().x)
+        Swag.assert(cancel.surfaceRect().right() < primary.surfaceRect().x)
+        Swag.assert(primary.surfaceRect().right() <= dlg.surfaceRect().right() - dlg.padding.z)
+        Swag.assert(not dlg.browser.listCtrl.scrollWnd.showBarH)
+    }
+
+    Swag.assert(primary.position.width == normalWidth)
+    dlg.browser.pathField.setText("no matching folders")
+    Swag.assert(dlg.browser.listCtrl.lineCount() == 0)
+    dlg.browser.listCtrl.scrollWnd.setScrollPos(100, 0)
+    Swag.assert(dlg.browser.listCtrl.scrollWnd.scrollPosition().x == 0)
+    dlg.surface.destroy()
+    host.pump()
+}
+
+// A breadcrumb popup sorts folder names naturally, marks the current branch, and navigates.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-path-menu-%", Guid64.random().toString()))
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    for name in ["Folder 10", "Folder 2", "Folder 1"] do
+        expect Directory.create(Path.combine(root, name))
+
+    var host: Testing.HeadlessHost
+    host.setup(700, 460)
+    let current = Path.combine(root, "Folder 2")
+    let browser = FileBrowserCtrl.create(&host.root, {initialFolder: current.toString(), showLocationsPane: false}, {0, 0, 680, 420})
+    var opened: bool
+    host.app.sigFrame += func|host = &host, &opened|(_)
+    {
+        if opened do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.assert(menu.items.count == 3)
+        Swag.assert(menu.items[0]!.name.raw == "Folder 1")
+        Swag.assert(menu.items[1]!.name.raw == "Folder 2" and menu.items[1]!.checked)
+        Swag.assert(menu.items[2]!.name.raw == "Folder 10")
+        opened = true
+        menu.setEndModal(menu.items[0]!.id)
+    }
+
+    browser.pathBar.breadcrumb.openMenu(browser.pathBar.breadcrumb.items.count - 2)
+    Swag.assert(opened)
+    var expected = Path.combine(root, "Folder 1")
+    Path.normalize(&expected)
+    Swag.assert(browser.currentFolder == expected, Format.toString("expected %, found %", expected, browser.currentFolder))
+}
+
 // The file browser composite builds its sub-controls and resolves selections
 // independently of any dialog/surface.
 //

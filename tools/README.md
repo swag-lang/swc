@@ -11,6 +11,10 @@ runtime pool and application child compilers, capped at three; zero uses that ca
 overrides the test runtime pool. Other compiled programs manage their own runtime threads.
 Compiler options can be forwarded after the command and module.
 
+For application iteration, use the default `bin\swc.exe` by omitting `dm` or `-DevMode`. Reserve
+`swc.dm.exe` for debugging compiler problems. `-bc` and `-Configuration` select the compiled
+program configuration independently.
+
 ## Linux compiler build
 
 ```sh
@@ -134,7 +138,7 @@ Examples:
 
 ```text
 tools\examples.bat run gui2
-tools\apps.bat dm test swagcapture --test-file files.test.swg
+tools\apps.bat test swagcapture --test-file files.test.swg
 tools\std.bat dm test gui --test-tag golden
 tools\scripts.bat snake
 ```
@@ -162,7 +166,7 @@ Set `SWAG_RUNTIME_THREADS` before launching a compiled program or its test execu
 
 ```powershell
 $env:SWAG_RUNTIME_THREADS = '2'
-tools\apps.bat dm test swagcapture --test-file files.test.swg
+tools\apps.bat test swagcapture --test-file files.test.swg
 # An already built test executable honors the same variable when launched from its prepared directory.
 .\app.test.exe
 Remove-Item Env:SWAG_RUNTIME_THREADS
@@ -188,8 +192,8 @@ image tolerance or golden is changed by choosing a suite.
 
 ```text
 tools\coverage.bat -DevMode
-tools\coverage.bat -DevMode -Workspace apps -Module swagscope
-tools\coverage.bat -DevMode -Suite gpu -Workspace apps -Module swagscope
+tools\coverage.bat -Workspace apps -Module swagscope
+tools\coverage.bat -Suite gpu -Workspace apps -Module swagscope
 tools\coverage.bat -DevMode -Suite stress
 tools\coverage.bat -DevMode -Suite goldens
 tools\coverage.bat -DevMode -Suite parity
@@ -246,7 +250,7 @@ test runner; integration tags keep them out of default headless tests. See
 On Windows, run a scenario without taking focus or showing test windows on the user's desktop:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -DevMode -TestFile browsemedialibrary.smoke.test.swg
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -TestFile browsemedialibrary.smoke.test.swg
 ```
 
 The launcher creates a private desktop without switching to it, invokes `apps.bat test`, and
@@ -255,7 +259,7 @@ the process timeout is 15 minutes including compilation, and `-RunTimeout` bound
 executable (60 seconds by default). `-Configuration release` selects the program configuration;
 omitting `-DevMode` selects `swc.exe`. `-Workspace std -Module gui -TestTag integration.host.windows`
 selects native GUI integration tests instead. It never automates the user's mouse or keyboard.
-Use `-Action smoke -Module swagscope -DevMode` for the shipped executable's startup smoke on the
+Use `-Action smoke -Module swagscope` for the shipped executable's startup smoke on the
 same private-desktop boundary, without test filters.
 
 Native GPU rendering still depends on the installed driver. A private desktop does not reproduce

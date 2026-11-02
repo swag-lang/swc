@@ -22,7 +22,7 @@ using Core, Gui, Pixel
     // Selecting the tile draws a ring around the picture; its text stays on the page ground.
     let rect           = explorer.grid.surfaceRect()
     let left           = cast(s32, rect.x + 16)
-    let top            = cast(s32, rect.y + explorer.grid.cell.y - 24 - ExplorerGrid.ReadingHeight)
+    let top            = cast(s32, rect.y + explorer.grid.cell.y - 24 - explorer.grid.themeMetrics().fileTile_FactsHeight)
     let restingGround  = resting.pixelColor(left + 2, top + 22).argb
     let selectedGround = selected.pixelColor(left + 2, top + 22).argb
     var ink: u64

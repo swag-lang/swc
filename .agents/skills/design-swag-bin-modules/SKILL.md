@@ -53,6 +53,15 @@ it no longer matches upstream.
 
 ## Name the surface predictably
 
+For shared GUI presentation, choose the boundary that fits the host. Use a widget when the
+element needs an independent window, focus, input routing or lifecycle. Use rendering helpers
+under `gui/src/paint` for repeated cells in a virtualized view. Group each visual family behind
+explicit content and options types and a paint operation, as `Gui.FileTile` does. Helpers borrow
+graphics and text for the call, take the host's theme and coordinate system, and own no I/O,
+decoding, textures or hidden windows. Keep interaction state and scheduling with the host.
+Share fitting, hover, selection and caption drawing across consumers; do not fork a renderer
+inside each application or create one retained control per item merely to reuse its paint.
+
 - Use `UpperCamelCase` for namespaces, types, interfaces, aliases, attributes,
   enum types, and enum cases. Use `lowerCamelCase` for functions, methods,
   parameters, local values, and fields.

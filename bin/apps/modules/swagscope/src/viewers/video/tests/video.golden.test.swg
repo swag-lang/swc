@@ -75,6 +75,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
              golden == "viewer.video.subtitle.background.large.hidpi" do
             options.maxChannelDelta = 4
     }
+
     assertVideoRendererGolden(&image, golden, options)
 }
 
@@ -111,6 +112,14 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.settleAnimations(window, 4)
     var hover = host.render(&host.surfaceWnd)
     assertVideoRendererGolden(&hover, "viewer.video.hover.ink")
+
+    // Returning to Explorer adds a leading action; the film's own title uses its new inset.
+    window.returnExplorerCaptionButton.show()
+    let titleRoom  = view.topVeil.titleRoom()
+    let titleStart = view.topVeil.localToSurface(Math.Point{titleRoom.x, titleRoom.y})
+    Swag.assert(titleStart.x > window.returnExplorerCaptionButton.surfaceRect().right())
+    var returning = host.renderSettled(&host.surfaceWnd)
+    assertVideoRendererGolden(&returning, "viewer.video.return.ink")
 }
 
 // The playhead and its outline stay whole when the track is at its first or last frame.

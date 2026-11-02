@@ -996,7 +996,7 @@ impl ViewerWindow
             .hide()
         }
 
-        with result.informationCaptionButton = CaptionButton.createLeading(result.surface, .Information, ViewerCommands.Information)
+        with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)
         {
             .toolTip    = appStrings().cmd_Information
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }

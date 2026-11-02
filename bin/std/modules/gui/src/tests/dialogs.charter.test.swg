@@ -197,7 +197,7 @@ func assertDialogCharter(dlg: *Dialog)
     dlg.addButton("Open", Dialog.BtnOk, true)
     dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
 
-    let filter = Label.create(&dlg.wnd, "All files", {0, 0, 120, 0})
+    let filter = Label.create(&dlg.wnd, "All files", {0, 0, 400, 0})
     dlg.setLeadingControl(filter)
     discard dlg.createContentView()
     dlg.fitHeightToContent(120)
@@ -205,6 +205,22 @@ func assertDialogCharter(dlg: *Dialog)
     let slot = unwrap filter.parent
     Swag.assert(slot.position.x == host.theme.metrics.dialog_Padding)
     Swag.assert(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+
+    // A long leading control yields to the actions, then recovers its preferred width.
+    for width in [420.0, 800.0, 520.0]
+    {
+        var rect = dlg.surface!.position
+        rect.width = width * dlg.surface.dpiScale
+        dlg.surface.setPosition(rect)
+        dlg.applyLayout()
+        var first = dlg.position.width
+        for button in dlg.buttons do
+            first = Math.min(first, dlg.buttonBar.position.x + button.position.x)
+        Swag.assert(slot.position.right() <= first - dlg.themeMetrics().dialog_BtnPadding)
+        Swag.assert(filter.position.width == slot.position.width)
+        if width == 800 do
+            Swag.assert(filter.position.width == 400)
+    }
 
     // The control follows the action row when the box changes height.
     dlg.fitHeightToContent(220)

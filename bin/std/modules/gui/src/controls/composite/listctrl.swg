@@ -1438,13 +1438,12 @@ impl ListCtrl
         // The room of a vertical scroll bar stays out of it whether the bar shows or not, so the
         // columns do not move when enough rows arrive to need one; a bar already shown has taken
         // that room from the view.
-        if .listFlags.has(.StretchFirstColumn) and .header != null and .header.items.count > 1
+        if .listFlags.has(.StretchFirstColumn) and .header != null and not .header.items.isEmpty()
         {
             let metrics = .themeMetrics()
-            var others  = .scrollWnd.showBarV ? 0 : metrics.scrollBar_Size
-            for i in 1 until .header.items.count do
-                others += .header.items[i]!.width
-            .header.setItemWidth(0, Math.max(.listView.position.width - others, metrics.list_LineHeight * 4))
+            let others  = .header.contentWidth() - .header.itemWidthAt(0)
+            let width   = clientRect.width - metrics.scrollBar_Size - others
+            .header.setItemWidth(0, Math.max(Math.floor(width), metrics.list_LineHeight * 4))
         }
 
         var scrollWidth: f32

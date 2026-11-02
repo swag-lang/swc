@@ -73,7 +73,7 @@ struct Strings
         fileDlg_ErrFolderName:     string = "The folder name is not valid."               // Rejected folder name.
         fileDlg_ErrFolderExists:   string = "A folder with this name already exists."     // Name collision when creating a folder.
         fileDlg_ErrFolderCreate:   string = "The folder could not be created."            // Filesystem refusal when creating a folder.
-        fileDlg_ReplaceTitle:      string = "“%” already exists."                         // Title of the overwrite confirmation, naming the file.
+        fileDlg_ReplaceTitle:      string = "<p1>%</p> already exists."                   // Title of the overwrite confirmation, naming the file in quiet ink.
         fileDlg_ReplaceText:       string = "Replace it? The old file is lost."           // Body of the overwrite confirmation.
         fileDlg_ReplaceDetail:     string = "% · modified %"                              // Size and date of the file a save would replace.
         fileDlg_BtnReplace:        string = "Replace"                                     // Destructive action of the overwrite confirmation.

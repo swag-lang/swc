@@ -28,6 +28,18 @@ impl IWnd for CaptionButton
 
 impl CaptionButton
 {
+    // Shows or hides this action and rearranges the caption before its next paint.
+    mtd show(visible = true)
+    {
+        if .isLocallyVisible() == visible do
+            return
+        .button.wnd.show(visible)
+        .parent!.sendResizeEvent()
+    }
+
+    // Hides this action and gives its space back to the caption title.
+    mtd hide() => .show(false)
+
     // Creates a caption action using a theme icon at the caption glyph size.
     //
     // The surface owns the button. Connect [[Gui.Button.sigPressed]] to run the action and set

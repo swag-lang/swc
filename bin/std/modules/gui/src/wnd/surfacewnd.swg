@@ -318,7 +318,7 @@ impl SurfaceWnd
     //
     // There is no band to draw: the strip is the window's own ground, so the work reads as
     // starting at the top edge. What remains is quiet enough to read past — the application glyph
-    // in one faint ink at the leading corner, and the title centred in small faint type, kept
+    // in its brand colors at the leading corner, and the title centred in small faint type, kept
     // clear of both the glyph and the buttons and cut with an ellipsis rather than run under them.
     private mtd paintTopStrip(painter: *Painter)
     {
@@ -335,15 +335,13 @@ impl SurfaceWnd
             icon = srfn.app.appGlyph(metrics.wnd_CaptionIconSize)
         if icon.isValid()
         {
-            icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
+            icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, icon.color.a ? icon.color : colors.wnd_CaptionMark)
             leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
         }
 
-        for button in .leadingCaptionButtons where isShownCaptionButton(button) do
-            leading = Math.max(leading, button.position.right() + metrics.wnd_CaptionActionGap)
-
+        let content  = .captionContentRect()
         let center   = strip.horzCenter()
-        let halfSpan = Math.min(center - leading, .chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - center)
+        let halfSpan = Math.min(center - content.x, content.right() - center)
         if halfSpan <= 0 or .name.isEmpty() or .titleHidden do
             return
 
@@ -354,6 +352,30 @@ impl SurfaceWnd
         sf.flags         = .Ellipsis
         sf.palette[0]    = colors.wnd_CaptionText
         painter.drawRichString(Math.Rectangle{center - halfSpan, strip.y, 2 * halfSpan, strip.height}, &.name, sf)
+    }
+
+    // Returns the logical caption area left between the application mark and visible buttons.
+    //
+    // Coordinates are local to this window. A document drawing its own title uses this same
+    // area; an empty rectangle means the surface has no caption, as in full screen.
+    public mtd captionContentRect()->Math.Rectangle
+    {
+        var room = .clientRect()
+        room.height = .stripHeight()
+        if room.height <= 0 do
+            return {}
+        let metrics = .themeMetrics()
+        var leading = room.x + metrics.wnd_CaptionMarginTitle
+        var icon    = .icon
+        if not icon.isValid() do
+            icon = .surface!.app.appGlyph(metrics.wnd_CaptionIconSize)
+        if icon.isValid() do
+            leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
+        for button in .leadingCaptionButtons where isShownCaptionButton(button) do
+            leading = Math.max(leading, button.position.right() + metrics.wnd_CaptionActionGap)
+        room.x     = leading
+        room.width = Math.max(.chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - leading, 0)
+        return room
     }
 
     // Leaves the title out of the strip, or writes it there again.

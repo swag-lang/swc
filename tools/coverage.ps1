@@ -7,9 +7,9 @@ without a usable OpenGL device. Fast excludes golden and stress tests. Stress se
 tests. Full includes all ordinary tests, stress and goldens. Goldens and parity select complete
 visual and renderer-integration campaigns.
 .EXAMPLE
-tools\coverage.bat -DevMode -Workspace apps -Module swagcapture
+tools\coverage.bat -Workspace apps -Module swagcapture
 .EXAMPLE
-tools\coverage.bat -DevMode -Suite stress -Workspace apps -Module swagscope
+tools\coverage.bat -Suite stress -Workspace apps -Module swagscope
 .EXAMPLE
 tools\coverage.bat -DevMode -Suite parity
 .EXAMPLE

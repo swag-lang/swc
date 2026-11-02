@@ -55,7 +55,7 @@ fileDlg_NewFolderHint     Nom du dossier
 fileDlg_ErrFolderName     Le nom du dossier n'est pas valide.
 fileDlg_ErrFolderExists   Un dossier portant ce nom existe déjà.
 fileDlg_ErrFolderCreate   Le dossier n'a pas pu être créé.
-fileDlg_ReplaceTitle      « % » existe déjà.
+fileDlg_ReplaceTitle      <p1>%</p> existe déjà.
 fileDlg_ReplaceText       Le remplacer ? L'ancien fichier est perdu.
 fileDlg_ReplaceDetail     % · modifié le %
 fileDlg_BtnReplace        Remplacer

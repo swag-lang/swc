@@ -17,7 +17,7 @@ is built to match them. What each application still lacks is tracked in
 ## Establish The Change
 
 1. Read `../modify-swag-codebase/SKILL.md` and `../write-idiomatic-swag-code/SKILL.md`.
-2. Before touching UI, colour, layout or icons, read `../design-swag-identity/SKILL.md` (the six
+2. Before touching UI, colour, layout or icons, read `../design-swag-identity/SKILL.md` (the seven
    laws, the tile) and `../design-swag-themes/SKILL.md` (tokens, roles, measures, type,
    controls). Before touching a modal box, read `../design-swag-dialogs/SKILL.md`.
 3. Open the charter pictures of the surface you change, in both themes, and keep them open.
@@ -56,8 +56,8 @@ without hiding those contracts behind framework ceremony.
   application composes them and never re-implements one.**
 - Protect the composition at both boundaries. Structural tests assert parentage, order,
   alignment and visibility. Across each app's golden family, cover both themes while assigning one
-  palette to each screenshot scenario; keep paired captures only when the palette changes the
-  behavior under test.
+  palette to each screenshot scenario. Do not duplicate a scenario in the other theme;
+  use assertions for palette roles and contrast, and distinct scenarios for theme switching.
 
 ## Name The Product Once
 
@@ -112,18 +112,17 @@ theme-atlas glyph, another app's icon or a letter tile.
 
 6. Set `BuildCfg.resAppIcoFileName` in `module.swg`, with a path relative to the module folder.
    Decode `appicon.png` and pass it to `Application.setAppIcon` before creating the first surface.
-7. **The tile is for the desktop and the About box. The window carries the glyph.** The toolkit
-   draws the glyph monochrome in `wnd_CaptionMark`, 18 px, at the top-left corner of the window,
-   and the About box shows the tile at `dialog_TileSize`. `setAppIcon` feeds both, so never place
-   or tint the window glyph by hand. Because the window lifts the glyph off its ink ground, the
-   master must use exactly the two declared colours.
+7. **The application mark stays distinct from window commands.** The toolkit draws it at 24 px
+   in the top-left corner, with the glyph alone in Voltage on Encre and Arc on Papier,
+   without a tile or interaction feedback. The About box uses `dialog_TileSize`. `setAppIcon` feeds both,
+   so never place or tint the window mark by hand. The master uses exactly the two declared colours.
 8. Inspect the PNG, the 16, 32, 48 and 256 pixel ICO entries, and the window glyph in both themes.
    If the negative space closes or the meaning disappears, regenerate the glyph. Do not repair a
    weak concept with text.
 
 ## Leave The Window To The Work
 
-The six laws (see [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence))
+The seven laws (see [design-swag-identity](../design-swag-identity/SKILL.md#the-gui-follows-silence))
 bind an application like this:
 
 - **Keep frequent task controls beside the work.** Folder navigation, playback transport,
@@ -164,6 +163,13 @@ entrance; do not add a second caption band.
   separated by spaces (`Ctrl Shift S`). What a key does is a few lowercase words after it.
 
 ### Compose the shared components
+
+Reuse shared rendering as well as controls. A standalone interactive element belongs in a
+widget; repeated items in a virtualized board use a `gui/src/paint` helper with explicit content
+and options. Scope's Explorer and Capture's Library use `Gui.FileTile` for preview fitting,
+hover, selection, captions and metadata. Hosts own loading, caches, selection models and actions;
+they do not copy that drawing code. Custom previews may supply the content inside a shared cell,
+while the common helper retains the frame, state and caption treatment.
 
 The charter's Shared components section and the pictures describe what each component looks
 like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
@@ -228,6 +234,10 @@ quick-style names.
   Cursor to Line Ends", "Save as Image…", "Open With…", "Show in Folder".
 - **Sentences keep sentence case**: help text, descriptions, messages, notices, placeholders that
   are sentences, the words of the hint line, a dialog title that reports a situation.
+- **No decorative quotation marks around referenced names.** Files, folders, commands and values
+  use a quiet text-ink difference in messages, titles and help, in every language. Plain-text
+  surfaces write the name directly. Preserve punctuation that belongs to the actual data; see
+  [References inside messages](../../../backlog/design/README.md#references-inside-messages).
 - **Translations follow their own language.** French stays in sentence case ("Enregistrer comme
   image…").
 - **An ellipsis `…` marks a command that asks for more before acting.** Use the single
@@ -415,13 +425,15 @@ var image = host.render(window)
 Pixel.Testing.assertImageGolden(&image, "surface.encre")
 ```
 
-- **Use one host per theme, never one host repainted.** A render target keeps what the last
-  paint left behind.
+- **Use a fresh host for each golden test.** A render target keeps what the last paint left
+  behind; do not repaint a previous test's host in another theme.
 - **A theme change is not only an event.** `HeadlessHost.notify` reaches the styles that keep a
   private copy of the theme.
-- **Commit one image per theme, at a bounded size.** Shoot at the window's minimum size, or at the
-  region that changed, rather than dropping a theme. A floating component that is part of the
-  change (the lens open, the sheet shown, the inspector unfolded) gets its own pair.
+- **Commit one image per scenario, at a bounded size.** Rotate Encre and Papier across distinct
+  scenarios. A floating component gets its own scenario in one theme, never an automatic pair.
+  Test palette selection and contrast through assertions without duplicating the composition.
+  Choose the palette arbitrarily once per golden test and keep it fixed for deterministic runs;
+  cover the other palette in different tests, not a palette loop within the same test.
 - **Shoot the window in its shipped frame**, with the strip, as the charter pictures show it.
 
 ## Keep The Workspace Shippable
@@ -465,12 +477,12 @@ different contracts; none replaces the other two. Keep maintained snapshots in
 `<subject>.golden.test.swg`, with the `golden` tag.
 
 1. While iterating, run the owning test file:
-   `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
+   `tools/apps.bat test <application> --test-file <name>.test.swg`.
 2. Run the application's routine functional selection only when shared application state or
    several test families changed:
 
    ```text
-   tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module <application>
+   tools\coverage.bat -Suite fast -Workspace apps -Module <application>
    ```
 
    Run related scale cases separately with `-Suite stress` when their boundary changed.

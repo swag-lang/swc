@@ -6,6 +6,48 @@ using Swag, Core
 var BreadcrumbPressedIndex: u64 = Swag.U64.Max
 var BreadcrumbPressedCount: u32
 
+// Fitting keeps whole trailing levels and makes every hidden parent reachable.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(700, 160)
+    let path = BreadcrumbCtrl.create(&host.root, {0, 0, 260, 34})
+    path.fitToWidth = true
+    path.addItem("Root")
+    path.addItem("A long ancestor folder")
+    path.addItem("Documents")
+    path.addItem("Current")
+    path.layout()
+    Swag.assert(path.firstVisible > 0)
+    Swag.assert(path.items[path.firstVisible].bodyRect.x == path.overflowRect.right())
+    Swag.assert(path.items.back().arrowRect.right() <= path.clientRect().right())
+
+    path.resize(700, 34)
+    path.layout()
+    Swag.assert(path.firstVisible == 0 and path.overflowRect.isEmpty())
+    path.resize(110, 34)
+    path.layout()
+    Swag.assert(path.firstVisible == 3)
+    Swag.assert(path.items.back().bodyRect.width > 0)
+    Swag.assert(path.items.back().arrowRect.right() <= 110)
+
+    BreadcrumbPressedIndex = Swag.U64.Max
+    path.sigItemPressed    += &breadcrumbPressed
+    var opened: bool
+    host.app.sigFrame += func|host = &host, &opened|(_)
+    {
+        if opened do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.assert(menu.items.count == 3)
+        opened = true
+        menu.setEndModal("1")
+    }
+
+    host.click(path.localToSurface(path.overflowRect.center()))
+    Swag.assert(opened and BreadcrumbPressedIndex == 1)
+}
+
 func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     BreadcrumbPressedIndex = idx

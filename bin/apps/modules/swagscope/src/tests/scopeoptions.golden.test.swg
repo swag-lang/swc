@@ -7,25 +7,19 @@ using Core, Gui, Pixel
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        host.setup(1100, 860)
-        shipFrame(&host)
-        registerAppStrings(&host.app.resources)
-        if light do
-            host.theme.setLight()
-        else do
-            host.theme.setDark()
-        host.notify(.ThemeChanged)
+    var host: Testing.HeadlessHost
+    host.setup(1100, 860)
+    shipFrame(&host)
+    registerAppStrings(&host.app.resources)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
 
-        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-        var media  = ScopeMediaOptions{onlineMovies: true, onlineMusic: true}
-        let dialog = window.createGeneralOptionsDialog(&media)
-        dialog.applyLayout()
-        Swag.assert(dialog.surface != null)
-        var image = host.renderSurface(dialog.surface)
-        Pixel.Testing.assertImageGolden(&image, light ? "options.paper" : "options.ink")
-        dialog.surface.destroy()
-    }
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    var media  = ScopeMediaOptions{onlineMovies: true, onlineMusic: true}
+    let dialog = window.createGeneralOptionsDialog(&media)
+    dialog.applyLayout()
+    Swag.assert(dialog.surface != null)
+    var image = host.renderSurface(dialog.surface)
+    Pixel.Testing.assertImageGolden(&image, "options.paper")
+    dialog.surface.destroy()
 }

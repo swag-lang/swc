@@ -3,21 +3,17 @@
 
 using Core, Gui, Pixel
 
-// Details show known media durations alongside the file information in Encre and both languages.
+// Details show known media durations alongside the file information in Papier and both languages.
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = false
     for language in [ReferenceLanguage, "fr"]
     {
         var host: Testing.HeadlessHost
         host.setup(ViewerWindow.MinWidth, 680)
         shipFrame(&host)
         registerAppStrings(&host.app.resources)
-        if light do
-            host.theme.setLight()
-        else do
-            host.theme.setDark()
+        host.theme.setLight()
         host.notify(.ThemeChanged)
         let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.onlineMovies = false
@@ -28,7 +24,7 @@ using Core, Gui, Pixel
         expect host.app.setLanguage(language)
         host.notify(.LanguageChanged)
         explorer.address.breadcrumb.clear()
-        explorer.address.breadcrumb.addItem("Videos")
+        explorer.address.setPath("Z:/Films")
         explorer.address.refreshPath()
         explorer.title.setText("Films")
         explorer.entries.add({name: "A Film.mkv", path: "A Film.mkv", size: 2_400_000_000,
@@ -55,8 +51,7 @@ using Core, Gui, Pixel
         Swag.assert(first.itemAt(4).name.raw == "1:57:00")
         Swag.assert(second.itemAt(4).name.raw == "3:57")
         let image = host.render(window)
-        let name  = light ? (language == "fr" ? "explorer.details.paper.fr" : "explorer.details.paper") :
-                    (language == "fr" ? "explorer.details.encre.fr" : "explorer.details.encre")
+        let name  = language == "fr" ? "explorer.details.paper.fr" : "explorer.details.paper"
         Pixel.Testing.assertImageGolden(&image, name)
     }
 }

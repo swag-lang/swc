@@ -464,8 +464,14 @@ different contracts; none replaces the other two. Keep maintained snapshots in
 
 1. While iterating, run the owning test file:
    `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
-2. Run the whole application's tests only when shared application state or several test families
-   changed.
+2. Run the application's routine functional selection only when shared application state or
+   several test families changed:
+
+   ```text
+   tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module <application>
+   ```
+
+   Run related scale cases separately with `-Suite stress` when their boundary changed.
 3. For a visible change, review **every** `.actual.png` the run left as a whole screen against its
    charter picture, in Encre and in Papier. Do not review only the diff or only the part you
    meant to change. A golden that changed in a part you did not touch is a finding. Promote each

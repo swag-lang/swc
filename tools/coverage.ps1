@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Run functional, golden, or GPU parity coverage for standard modules and applications.
+Run fast functional, stress, golden, full, or GPU parity coverage for standard modules and applications.
 .DESCRIPTION
 Fast uses CPU hosts and excludes golden and stress tests. GPU runs the same selection
 with mandatory offscreen OpenGL hosts. Stress selects scale-boundary tests. Full includes all
@@ -8,6 +8,8 @@ ordinary tests, stress, and CPU goldens. Goldens and parity select complete visu
 integration campaigns.
 .EXAMPLE
 tools\coverage.bat -DevMode -Workspace apps -Module swagcapture
+.EXAMPLE
+tools\coverage.bat -DevMode -Suite stress -Workspace apps -Module swagscope
 .EXAMPLE
 tools\coverage.bat -DevMode -Suite parity
 #>

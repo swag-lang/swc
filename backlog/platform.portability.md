@@ -696,7 +696,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Five public cases pass in JIT/native: deferred error handling without allocation/hooks,
   pre-wait coalescing, publication between threads, broadcast and reset during active waits.
   A separate archive consumer completes 100 request/completion exchanges in both modes.
-  Native storage sizes and alignments agree with the host glibc C headers.
+  Native storage sizes and alignments agree with the host glibc C headers. The pthread bindings
+  declare that they do not dispatch callbacks, and event status paths avoid panic hooks, preserving
+  the temporary-borrow retirement contract used by Pixel's synchronous render requests.
+  Pixel's six ordinary renderer/thread tests pass natively, including failed wait/signal retirement.
   Windows still needs native validation; cross-target Core sema on Linux stops at the existing
   Windows runtime log/logf imports, before it can validate the complete module.
 - Named scope remains Windows-only: Prism's interprocess event must retain shared-name scope,

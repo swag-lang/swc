@@ -17,7 +17,7 @@ internal func raiseEventFailure(errorCode: u32) fail
     fail Swag.SystemError{"event operation failed", errorID: errorCode}
 }
 
-private func eventStatus(error: s32)->EventStatus => {succeeded: error == 0, errorCode: cast(u32, error)}
+private func eventStatus(error: s32)->EventStatus => {succeeded: error == 0, errorCode: cast #bit (u32, error)}
 
 private func createEventState(manual, initState: bool)->*EventState fail
 {
@@ -113,7 +113,7 @@ public impl Event
         }
         elif state.waiters > state.permits
         {
-            state.permits += 1
+            state.permits += #wrap 1
         }
         else
         {
@@ -158,7 +158,7 @@ public impl Event
         }
 
         let generation = state.generation
-        state.waiters += 1
+        state.waiters += #wrap 1
         var waited: s32
         while state.manual ? not state.signaled and state.generation == generation : state.permits == 0 and not state.signaled
         {
@@ -167,11 +167,11 @@ public impl Event
                 break
         }
 
-        state.waiters -= 1
+        state.waiters -= #wrap 1
         if waited == 0 and not state.manual
         {
             if state.permits != 0 do
-                state.permits -= 1
+                state.permits -= #wrap 1
             else do
                 state.signaled = false
         }

@@ -12,7 +12,9 @@ struct pthread_cond_t { private storage: [48] u8 }
 #assert(#sizeof(pthread_mutex_t) == 40 and #alignof(pthread_mutex_t) == 8)
 #assert(#sizeof(pthread_cond_t) == 48 and #alignof(pthread_cond_t) == 8)
 
-#[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
+// These calls touch only the explicit synchronization objects and do not dispatch callbacks.
+// Keep that native contract visible to callers that clear a temporary borrow before returning.
+#[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C), Swag.BorrowSummary(0, observesExternal: false)]
 {
     func pthread_mutex_init(mutex: *pthread_mutex_t, attributes: const *void?)->s32
     func pthread_mutex_destroy(mutex: *pthread_mutex_t)->s32

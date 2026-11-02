@@ -94,7 +94,7 @@ Apply these reductions:
 
 ### Use The Development Coverage Modes
 
-For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects CPU-hosted
+For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects GPU-hosted
 functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider feedback run to
 the owning workspace and module:
 
@@ -114,10 +114,11 @@ boundary with `tools/coverage.bat -DevMode -Suite stress`, narrowed to its works
 file; run the broader stress selection on a scheduled or cross-cutting pass. Do not tag a test as
 stress solely because it is new or somewhat slower.
 
-Use `gpu` when the changed behavior needs the offscreen OpenGL host. It runs the same functional
-selection as `fast`; context setup can make it slower, so it is a backend check rather than a speed
-shortcut. Use `goldens` for the complete CPU golden campaign when shared rendering behavior can
-reach snapshots beyond a confidently bounded set. Use `parity` for Pixel tests tagged
+GPU is the default renderer for all coverage suites and direct `HeadlessHost` tests. Pass
+`-Renderer cpu` to `tools/coverage.bat` or set `SWAG_TEST_RENDERER=cpu` for a direct compiler test
+command in CI/cloud environments without a usable graphics device. Use `goldens` for the complete
+golden campaign on the selected renderer when shared rendering behavior can reach snapshots beyond
+a confidently bounded set. Use `parity` for Pixel tests tagged
 `integration.renderer.opengl`. Reserve `full` for scheduled complete standard-module and
 application coverage, including golden and stress tests; it does not include privileged or
 external integration campaigns.

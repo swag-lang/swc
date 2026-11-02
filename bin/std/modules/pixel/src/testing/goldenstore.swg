@@ -113,7 +113,8 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // The check remains active when Pixel is built as a release dependency. Goldens are recorded from
 // devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
 // samples slightly differently: a release build also accepts a channel delta of two and four
-// pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase.
+// pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase. GPU-hosted
+// test runs also accept a channel delta of two, with no pixels outside that tolerance.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
@@ -172,6 +173,8 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
         result.maxChannelDelta    = Math.max(result.maxChannelDelta, 2)
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
+    if Env.variable("SWAG_TEST_RENDERER") == "gpu" do
+        result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
 
     return result
 }

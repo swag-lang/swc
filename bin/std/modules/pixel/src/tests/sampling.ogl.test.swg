@@ -51,6 +51,57 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     return renderer.readRenderTarget(&target, 0, 0, 192, 160)
 }
 
+// Reconstructs 4:2:0 chroma across a sharp color edge on an eight-pixel video frame.
+func renderPlanarSamplingScene(renderer: IRenderer, scale: f32)->Image
+{
+    const Width       = 8'u64
+    const Height      = 8'u64
+    const ChromaWidth = 4'u64
+    const PlaneSize   = ChromaWidth * 4
+
+    var storage: Array'u8
+    storage.resize(Width * Height + PlaneSize * 2)
+    let luma    = storage.storage()
+    let chromaB = luma + Width * Height
+    let chromaR = chromaB + PlaneSize
+    for pixel in Width * Height do
+        luma[pixel] = 126'u8
+    for y in 4'u64
+    {
+        for x in ChromaWidth
+        {
+            chromaB[y * ChromaWidth + x] = x < 2 ? 88'u8 : 184'u8
+            chromaR[y * ChromaWidth + x] = y < 2 ? 96'u8 : 168'u8
+        }
+    }
+
+    let picture = YuvPlanarView{
+        luma: luma,
+        chromaB: chromaB,
+        chromaR: chromaR,
+        lumaStride: Width,
+        chromaStride: ChromaWidth,
+        width: cast(s32, Width),
+        height: cast(s32, Height),
+        matrix: .Bt709}
+    var texture = renderer.addImage(&picture)
+    defer renderer.removeTexture(&texture)
+    var target = renderer.createRenderTarget(16, 16)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Argb.Black)
+    painter.drawTexture({0, 0, cast(f32, Width) * scale, cast(f32, Height) * scale}, texture)
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+    return renderer.readRenderTarget(&target, 0, 0, 16, 16)
+}
+
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
@@ -74,5 +125,12 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
         // Interpolation and alpha blending round on both backends. The existing four-fetch
         // shader differs by up to three channel levels; no outlier pixels are allowed.
         Testing.assertImagesNear(&expected, &actual, "sampling.ogl", {maxChannelDelta: 3})
+    }
+
+    for scale in [1.0'f32, 2.0]
+    {
+        let planarExpected = renderPlanarSamplingScene(reference, scale)
+        let planarActual   = renderPlanarSamplingScene(gpu, scale)
+        Testing.assertImagesNear(&planarExpected, &planarActual, "sampling.ogl.planar", {maxChannelDelta: 3})
     }
 }

@@ -61,6 +61,8 @@ impl YuvPlanarView
 
     // Converts the picture into `target`, which is created or reused as RGB8.
     //
+    // Subsampled chroma is linearly upsampled at luma pixel centers, matching texture sampling
+    // used by hardware video renderers.
     // Bands of rows are independent, so the work fans through the scheduler when one is running.
     // A caller drawing through a renderer should not need this at all: converting a large picture
     // costs more processor time than decoding it, and a renderer converts where it draws.
@@ -98,22 +100,23 @@ impl YuvPlanarView
             if .chromaShift == 0 do
                 convertRowFullChroma(destination, luma, cbRow, crRow, .width, &factors)
             else do
-                convertRowHalfChroma(destination, luma, cbRow, crRow, .width, &factors)
+                convertRowHalfChroma(destination,
+                                     luma,
+                                     .chromaB,
+                                     .chromaR,
+                                     .width,
+                                     .height,
+                                     .chromaWidth(),
+                                     .chromaHeight(),
+                                     .chromaStride,
+                                     y,
+                                     &factors)
         }
     }
 
     // Returns the fixed-point factors shared by the scalar, SIMD, CPU-renderer, and shader paths.
     internal mtd const conversionFactors()->YuvConversionFactors
-    {
-        let lumaScale  = .studioRange ? 298 : 256
-        let lumaOffset = .studioRange ? 16 : 0
-        switch #complete .matrix
-        {
-        case .Bt601:  return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 409, -100, -208, 516} : YuvConversionFactors{lumaScale, lumaOffset, 359, -88, -183, 454}
-        case .Bt709:  return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 459, -55, -136, 541} : YuvConversionFactors{lumaScale, lumaOffset, 403, -48, -120, 475}
-        case .Bt2020: return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 430, -48, -167, 548} : YuvConversionFactors{lumaScale, lumaOffset, 377, -42, -146, 483}
-        }
-    }
+        => yuvConversionFactors(.matrix, .studioRange)
 }
 
 // Converts one row whose chroma planes carry a sample per pixel.
@@ -149,48 +152,71 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
 }
 
 // Converts one row whose chroma planes carry a sample per pair of pixels.
-private func convertRowHalfChroma(destination: [*] u8, luma, cb, cr: const [*] u8, width: s32, factors: const *YuvConversionFactors)
+private func convertRowHalfChroma(destination: [*] u8,
+                                  luma, cb, cr: const [*] u8,
+                                  width, height, chromaWidth, chromaHeight: s32,
+                                  chromaStride: u64,
+                                  y: s32,
+                                  factors: const *YuvConversionFactors)
 {
-    var out       = destination
-    var y         = luma
-    var at        = 0'u64
-    var remaining = width
-    while remaining >= 16
+    var chromaB: [16] u8
+    var chromaR: [16] u8
+    var x = 0's32
+    while width - x >= 16
     {
-        convertYuvRgb16(out, y, cb + at, cr + at, factors)
-        out       += 48
-        y         += 16
-        at        += 8
-        remaining -= 16
+        for lane in 16
+        {
+            let pixelX = x + cast(s32, lane)
+            chromaB[lane] = sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
+            chromaR[lane] = sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
+        }
+
+        convertYuvRgb16Full(destination + cast(u64, x * 3),
+                            luma + cast(u64, x),
+                            &chromaB[0],
+                            &chromaR[0],
+                            factors)
+        x += 16
     }
 
-    // Two horizontal luma samples share one chroma sample, so the chroma terms of the
-    // conversion are computed once per pair.
-    while remaining >= 2
+    while x < width
     {
-        let d     = cast(s32, cb[at]) - 128
-        let e     = cast(s32, cr[at]) - 128
-        let rTerm = factors.redCr * e + 128
-        let gTerm = factors.greenCb * d + factors.greenCr * e + 128
-        let bTerm = factors.blueCb * d + 128
-        storeYuvRgbPixel(out, yuvLumaTerm(y[0], factors), rTerm, gTerm, bTerm)
-        storeYuvRgbPixel(out + 3, yuvLumaTerm(y[1], factors), rTerm, gTerm, bTerm)
-        out       += 6
-        y         += 2
-        at        += 1
-        remaining -= 2
-    }
-
-    if remaining
-    {
-        let d = cast(s32, cb[at]) - 128
-        let e = cast(s32, cr[at]) - 128
-        storeYuvRgbPixel(out,
-                         yuvLumaTerm(y[0], factors),
+        let d = cast(s32, sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, x, y)) - 128
+        let e = cast(s32, sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, x, y)) - 128
+        storeYuvRgbPixel(destination + cast(u64, x * 3),
+                         yuvLumaTerm(luma[cast(u64, x)], factors),
                          factors.redCr * e + 128,
                          factors.greenCb * d + factors.greenCr * e + 128,
                          factors.blueCb * d + 128)
+        x += 1
     }
+}
+
+// Reconstructs one chroma value at the normalized texture coordinate of a luma pixel center.
+private func sampleLinearChroma(plane: const [*] u8,
+                                stride: u64,
+                                planeWidth, planeHeight, imageWidth, imageHeight, x, y: s32)->u8
+{
+    let px = Math.clamp((cast(f32, x) + 0.5) * cast(f32, planeWidth) / cast(f32, imageWidth) - 0.5,
+                        0.0,
+                        cast(f32, planeWidth - 1))
+    let py = Math.clamp((cast(f32, y) + 0.5) * cast(f32, planeHeight) / cast(f32, imageHeight) - 0.5,
+                        0.0,
+                        cast(f32, planeHeight - 1))
+    let x0 = cast(s32, Math.floor(px))
+    let y0 = cast(s32, Math.floor(py))
+    let x1 = Math.min(x0 + 1, planeWidth - 1)
+    let y1 = Math.min(y0 + 1, planeHeight - 1)
+    let tx = px - cast(f32, x0)
+    let ty = py - cast(f32, y0)
+
+    let c00 = cast(f32, plane[cast(u64, y0) * stride + cast(u64, x0)])
+    let c10 = cast(f32, plane[cast(u64, y0) * stride + cast(u64, x1)])
+    let c01 = cast(f32, plane[cast(u64, y1) * stride + cast(u64, x0)])
+    let c11 = cast(f32, plane[cast(u64, y1) * stride + cast(u64, x1)])
+    let top = c00 + (c10 - c00) * tx
+    let bot = c01 + (c11 - c01) * tx
+    return cast(u8, Math.round(top + (bot - top) * ty))
 }
 
 // Public only because it is embedded in backend-owned storage; callers never construct it.
@@ -203,6 +229,20 @@ internal struct YuvConversionFactors
     greenCr:    s32
     blueCb:     s32
 }
+
+// Returns the fixed-point factors shared by conversion, CPU sampling and the GPU shader.
+internal func yuvConversionFactors(matrix: YuvMatrix, studioRange: bool)->YuvConversionFactors
+{
+    let lumaScale  = studioRange ? 298 : 256
+    let lumaOffset = studioRange ? 16 : 0
+    switch #complete matrix
+    {
+    case .Bt601:  return studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 409, -100, -208, 516} : YuvConversionFactors{lumaScale, lumaOffset, 359, -88, -183, 454}
+    case .Bt709:  return studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 459, -55, -136, 541} : YuvConversionFactors{lumaScale, lumaOffset, 403, -48, -120, 475}
+    case .Bt2020: return studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 430, -48, -167, 548} : YuvConversionFactors{lumaScale, lumaOffset, 377, -42, -146, 483}
+    }
+}
+
 
 // Returns the scaled luma term of the selected conversion.
 #[Swag.Inline]

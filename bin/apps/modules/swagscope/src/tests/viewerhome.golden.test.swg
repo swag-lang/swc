@@ -16,9 +16,7 @@ using Core, Pixel, Gui
         Swag.assert(window.home.isLocallyVisible() and window.home.rows.count == 6)
         Swag.assert(ViewerHome.openedText(window.home.rows[0].opened, HomeNow) == "17:42")
         Swag.assert(ViewerHome.openedText(window.home.rows[3].opened, HomeNow) == appStrings().home_Yesterday)
-        host.settleAnimations(window, 4)
-
-        var rest = host.render(window)
+        var rest = host.renderSettled(window)
         Pixel.Testing.assertImageGolden(&rest, light ? "home.paper" : "home.ink")
 
         host.moveMouse(window.home.localToSurface(window.home.rowRect(1).center()))

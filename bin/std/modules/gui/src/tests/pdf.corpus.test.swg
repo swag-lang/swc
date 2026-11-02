@@ -6,7 +6,7 @@ private struct CorpusPdf
 {
     name:      string
     pageCount: u64
-    scale:     f32 = 0.5
+    scale:     f32 = 0.25
 }
 
 private func renderCorpus(fixtures: const [..] CorpusPdf)
@@ -26,6 +26,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 
 // Real documents from several LLVM subprojects exercise 354 pages produced by different PDF
 // writers. Every page is decoded lazily and rendered, so one incompatible late page fails here.
+// Quarter-size pages keep this compatibility sweep small; visual and zoom tests own full detail.
 #test
 {
     const fixtures: [5] CorpusPdf = [
@@ -41,7 +42,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 {
     const fixtures: [3] CorpusPdf = [
         CorpusPdf{"llvm-polly-impact-2011-paper.pdf", 6},
-        CorpusPdf{"llvm-polly-impact-2011-slides.pdf", 27, 96.0 / 72.0},
+        CorpusPdf{"llvm-polly-impact-2011-slides.pdf", 27},
         CorpusPdf{"llvm-polly-raghesh-masters-thesis.pdf", 70}]
     renderCorpus(fixtures)
 }

@@ -5,8 +5,7 @@ using Core, Gui, Pixel
 
 func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWindow, explorer: *Explorer)
 {
-    host.settleAnimations(window)
-    let before = host.render(window)
+    let before = host.renderSettled(window)
     let after  = host.render(window)
     let rect   = explorer.surfaceRect()
     var changed: u32

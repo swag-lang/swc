@@ -736,6 +736,17 @@ impl HeadlessHost
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
+    // Completes animations and returns owned BGRA pixels of the settled tree.
+    //
+    // `wnd` defaults to the host root. This combines [[Gui.Testing.HeadlessHost.settleAnimations]]
+    // and image capture without repainting an unchanged final frame. Use
+    // [[Gui.Testing.HeadlessHost.render]] when the repaint itself is under test.
+    mtd renderSettled(wnd: *Wnd? = null)->Pixel.Image
+    {
+        .settleAnimations(wnd)
+        return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
+    }
+
     // Paints another surface of the host's application — a dialog opened over the host — as the eye sees it.
     //
     // The image is the whole surface: the box, its outline and the shadow it casts into its
@@ -769,9 +780,14 @@ impl HeadlessHost
         .pump()
         .surface.invalidate()
         .surface.paintWnd(target)
+        let animated = .app.animator.activeCount() != 0
         .app.animator.finishAll()
-        .surface.invalidate()
-        .surface.paintWnd(target)
+        .pump()
+        if animated or .surface.isDirty
+        {
+            .surface.invalidate()
+            .surface.paintWnd(target)
+        }
     }
 
     // Fires one active timer immediately and drains resulting queues.

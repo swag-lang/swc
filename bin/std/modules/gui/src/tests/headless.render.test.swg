@@ -3,6 +3,64 @@
 
 using Swag, Core, Pixel
 
+struct SettledPaintWnd
+{
+    using wnd: Wnd
+    paints:    u32
+    animate:   bool
+    value:     f32
+}
+
+impl IWnd for SettledPaintWnd
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if evt.kind != .Content do
+            return
+        .paints += 1
+        if .animate and .paints == 1
+        {
+            discard .app().animator.animateF32(me,
+                                                AnimationChannel.from("test.settled.paint"),
+                                                0,
+                                                1,
+                                                func(wnd, value)
+                                                {
+                                                    let target = assume cast(*SettledPaintWnd, wnd)
+                                                    target.value = value
+                                                },
+                                                {duration: 100'ms})
+        }
+
+        evt.paintContext.painter.fillRect(.clientRect(), .value == 1 ? Argb.White : Argb.Black)
+    }
+}
+
+// Capturing an idle tree paints it once; a paint-started track reaches its endpoint before capture.
+#test
+{
+    for animated in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(48, 32)
+        host.setReducedMotion(false)
+        let view = Wnd.create'SettledPaintWnd(&host.root, {0, 0, 48, 32})
+        // The first paint resolves style and can invalidate layout. Measure an idle tree
+        // after that initialization, rather than requiring initialization to be paint-free.
+        discard host.render()
+        view.paints = 0
+        view.animate = animated
+        let image = host.renderSettled()
+        Swag.assert(image.pixelColor(20, 16) == (animated ? Argb.White : Argb.Black))
+        Swag.assert(view.paints == (animated ? 2 : 1), Format.toString("animated=% paints=% dirty=%", animated, view.paints, host.surface.isDirty).toString())
+        Swag.assert(host.app.animator.activeCount() == 0)
+
+        // A later explicit render still repaints: callers may be testing repaint/cache behavior.
+        discard host.render()
+        Swag.assert(view.paints == (animated ? 3 : 2))
+    }
+}
+
 // An application can select the CPU backend before its first surface; creation then follows the
 // normal GUI lifecycle without allocating a native window or replacing that backend with OpenGL.
 #test

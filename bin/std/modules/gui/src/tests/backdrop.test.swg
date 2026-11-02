@@ -85,8 +85,7 @@ func backdropMaterialSheet(light: bool)->Image
         var host: Testing.HeadlessHost
         let lens = backdropLens(&host, light)
         lens.open()
-        host.settleAnimations()
-        let image = host.render()
+        let image = host.renderSettled()
         Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")
     }
 }
@@ -97,8 +96,7 @@ func backdropMaterialSheet(light: bool)->Image
     var host: Testing.HeadlessHost
     let lens = backdropLens(&host, false, 1.5, compact: true)
     lens.open()
-    host.settleAnimations()
-    let expected = host.render()
+    let expected = host.renderSettled()
     for count in 3
     {
         discard count
@@ -120,8 +118,7 @@ func backdropMaterialSheet(light: bool)->Image
     let lens  = backdropLens(&host, true, compact: true)
     let clear = host.render()
     lens.open()
-    host.settleAnimations()
-    let blurred = host.render()
+    let blurred = host.renderSettled()
     lens.setPresentationOpacity(0.5)
     let halfway = host.render()
     let x       = 46

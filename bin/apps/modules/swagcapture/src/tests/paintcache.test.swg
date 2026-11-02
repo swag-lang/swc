@@ -14,30 +14,35 @@ const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
 
 func testPopulate(capture: *Capture)
 {
-    discard testAddShape(capture, 20, 20, 100, 70)
-    let rotated = testAddShape(capture, 150, 20, 90, 60)
+    // Cache invalidation needs varied forms and a complete 2x zoom, not a desktop-sized image.
+    capture.width, capture.widthOrg   = 200
+    capture.height, capture.heightOrg = 150
+    capture.backImg = Image.create(200, 150, .BGRA8)
+    discard testAddShape(capture, 10, 10, 50, 35)
+    let rotated = testAddShape(capture, 75, 10, 45, 30)
     rotated.rotate = 35
-    discard testAddArrow(capture, 30, 130, 130, 180)
-    discard testAddLine(capture, 160, 130, 240, 190)
-    let text = testAddText(capture, 250, 40, 120, 60)
+    discard testAddArrow(capture, 15, 65, 65, 90)
+    discard testAddLine(capture, 80, 65, 120, 95)
+    let text = testAddText(capture, 125, 20, 60, 30)
     text.text = "Cache"
-    discard testAddStep(capture, 300, 150, 40, 40)
+    text.fontSize = 24
+    discard testAddStep(capture, 150, 75, 20, 20)
 
     var polyPoints: Array'Math.Vector2
-    polyPoints.add({30, 220})
-    polyPoints.add({90, 205})
-    polyPoints.add({110, 260})
-    polyPoints.add({50, 275})
+    polyPoints.add({15, 110})
+    polyPoints.add({45, 102.5})
+    polyPoints.add({55, 130})
+    polyPoints.add({25, 137.5})
     discard testAddPolygon(capture, polyPoints.toSlice())
 
     var drawPoints: Array'Math.Vector2
-    drawPoints.add({150, 220})
-    drawPoints.add({190, 240})
-    drawPoints.add({230, 225})
-    drawPoints.add({260, 255})
+    drawPoints.add({75, 110})
+    drawPoints.add({95, 120})
+    drawPoints.add({115, 112.5})
+    drawPoints.add({130, 127.5})
     discard testAddDraw(capture, drawPoints.toSlice())
 
-    discard testAddShape(capture, 280, 210, 90, 60, .Highlight)
+    discard testAddShape(capture, 140, 105, 45, 30, .Highlight)
 }
 
 // A repaint that changed nothing draws every form from its retained rendering and must
@@ -45,7 +50,7 @@ func testPopulate(capture: *Capture)
 #test
 {
     var f: HeadlessFixture
-    f.setup()
+    f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
 
@@ -59,7 +64,7 @@ func testPopulate(capture: *Capture)
 #test
 {
     var f: HeadlessFixture
-    f.setup()
+    f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
     discard f.gui.render(f.main)
@@ -67,8 +72,8 @@ func testPopulate(capture: *Capture)
     f.capture.selection.add(0)
     with let u = f.capture.newUndo(.OffsetSelection)
     {
-        .newPosX = 60
-        .newPosY = 25
+        .newPosX = 30
+        .newPosY = 12
     }
 
     f.capture.pushUndo(u)
@@ -84,12 +89,15 @@ func testPopulate(capture: *Capture)
 #test
 {
     var f: HeadlessFixture
-    f.setup()
+    f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
     discard f.gui.render(f.main)
 
     f.editView.setZoom(2)
+    let captureRect = f.editView.getCaptureRect()
+    Swag.assert(captureRect.x >= 0 and captureRect.y >= 0 and
+                captureRect.right() <= f.editView.position.width and captureRect.bottom() <= f.editView.position.height)
     for 12 do
         discard f.gui.render(f.main)
     Swag.assert(not f.capture.cacheNeedsRefine)
@@ -105,7 +113,7 @@ func testPopulate(capture: *Capture)
 #test
 {
     var f: HeadlessFixture
-    f.setup()
+    f.setup(520, 380)
     defer f.shutdown()
     testPopulate(f.capture)
     discard f.gui.render(f.main)

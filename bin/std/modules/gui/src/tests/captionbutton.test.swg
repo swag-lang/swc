@@ -36,8 +36,7 @@ using Swag, Core
         host.pump()
         Swag.assert(button.name.raw == "Commandes")
         Swag.assert(button.position.width >= button.itf.measureContent({}).x)
-        host.settleAnimations(&host.surfaceWnd, 4)
-        var image = host.render(&host.surfaceWnd)
+        var image = host.renderSettled(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, light ? "lens.launcher.light" : "lens.launcher.dark")
 
         button.destroy()

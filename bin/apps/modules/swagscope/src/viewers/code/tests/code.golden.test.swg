@@ -58,8 +58,7 @@ func swagSampleSource()->String
 
     Swag.assert(colored)
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     assertScopeImageGolden(&image, "viewer.code.document")
 }
 

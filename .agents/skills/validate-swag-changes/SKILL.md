@@ -213,6 +213,12 @@ consumer that activates the changed behavior.
 
 ## Treat Goldens As Behavioral Evidence
 
+- Size each fixture for the behavior it proves. Prefer compact functional images and scenes,
+  keeping every asserted form visible, and the smallest complete, readable surface for a
+  golden. Keep dedicated large-resolution, DPI, tiling and memory-budget tests where size is
+  the contract. Do not shrink those boundaries, remove assertions, or loosen tolerances to
+  improve a suite's timing. Use `HeadlessHost.renderSettled` for a final capture; retain repeated
+  `render` calls when repaint or cache behavior is what the test proves.
 - Any change to rendering, layout, typography, themes, icons, image decoding, or paint commands
   must run the exact test files that own affected text or PNG goldens.
 - Every `#test` that records or compares a text or PNG golden must carry

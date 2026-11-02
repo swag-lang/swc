@@ -2231,6 +2231,10 @@ private impl RenderCpu
 
         func resolveRows(source, target: *Image, factor, firstRow, endRow: s32)
         {
+            var previousTop, previousBottom: u64
+            var previousColor: u32
+            var hasPrevious: bool
+
             // Keep the shader's normalized additions in the same top-to-bottom sample order.
             // Integer averaging changes truncation at byte boundaries, even for opaque mattes.
             for y in firstRow until endRow
@@ -2238,6 +2242,26 @@ private impl RenderCpu
                 let destination = target.pixels.storage() + cast(u64, y) * cast(u64, target.rowStride)
                 for x in target.width
                 {
+                    let pixel = destination + cast(u64, x) * 4
+                    if factor == 2
+                    {
+                        // SVG mattes and UI grounds repeat many identical 2x2 blocks. Reuse
+                        // their exact resolved bytes, including float rounding and straight-alpha
+                        // conversion, instead of normalizing the same four samples again.
+                        let sourceOffset = cast(u64, y * 2) * cast(u64, source.rowStride) + cast(u64, x) * 8
+                        let bottom = cast(const [*] u64, source.pixels.storage() + sourceOffset)[0]
+                        let top    = cast(const [*] u64, source.pixels.storage() + sourceOffset + cast(u64, source.rowStride))[0]
+                        if hasPrevious and top == previousTop and bottom == previousBottom
+                        {
+                            cast([*] u32, pixel)[0] = previousColor
+                            continue
+                        }
+
+                        previousTop    = top
+                        previousBottom = bottom
+                        hasPrevious    = true
+                    }
+
                     var sum: Math.Simd.F32x4
                     for row in factor
                     {
@@ -2252,11 +2276,11 @@ private impl RenderCpu
 
                     let alpha = sum[3] / cast(f32, factor * factor)
                     let color = sum[3] <= 0.00001 ? Color.fromArgbF32(alpha, 0, 0, 0) : Color.fromArgbF32(alpha, sum[2] / sum[3], sum[1] / sum[3], sum[0] / sum[3])
-                    let pixel = destination + cast(u64, x) * 4
                     pixel[0] = color.b
                     pixel[1] = color.g
                     pixel[2] = color.r
                     pixel[3] = color.a
+                    previousColor = cast(const [*] u32, pixel)[0]
                 }
             }
         }

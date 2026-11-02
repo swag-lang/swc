@@ -40,8 +40,7 @@ var TabHeadlessSelChangedCount: u32
 
         host.finishAnimations()
         host.moveMouse(Math.Point{40, tab.barHeight / 2})
-        host.settleAnimations()
-        let hovered = host.render()
+        let hovered = host.renderSettled()
         Swag.assert(hovered.pixelColor(40, y) == colors.tabBar_FlatLine)
         let chosen = unwrap tab.items[3]
         Swag.assert(hovered.pixelColor(cast(u32, chosen.pos + chosen.width / 2), y) == colors.tabItem_FlatSelected)

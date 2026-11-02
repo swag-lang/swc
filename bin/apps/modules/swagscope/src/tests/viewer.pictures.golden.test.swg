@@ -30,8 +30,7 @@ func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light:
 func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string)
 {
     window.applyLayout()
-    host.settleAnimations(window, 8)
-    var image = host.render(window)
+    var image = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&image, golden)
 }
 
@@ -151,8 +150,7 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
             Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
             Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
 
-            host.settleAnimations(&host.surfaceWnd, 4)
-            var image = host.render(&host.surfaceWnd)
+            var image = host.renderSettled(&host.surfaceWnd)
             image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})
             var golden = Format.toString("viewer.return.%", Path.fileName(file.toString()) orelse "document")
             if window.outlineCaptionButton.isLocallyVisible() do

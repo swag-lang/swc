@@ -988,8 +988,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     for index in inline.lines.count - 1 do
         Swag.assert(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
 
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
+    var image = host.renderSettled(&host.root)
 
     // A column an early word stands in, walked across the boundary between the first two lines.
     let ground = view.themeColors().view_Bk

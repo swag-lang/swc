@@ -107,6 +107,17 @@ before choosing GPU for speed. The default fast suite therefore keeps CPU hosts.
 initialize successfully; there is no automatic CPU fallback. Pixel's explicit CPU renderer tests
 continue testing CPU in either environment. Keep canonical image-golden runs on CPU.
 
+Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
+images and scenes that still exercise every branch and keep all compared content visible.
+Reserve large images for explicit dimension, tiling, DPI, memory-budget and stress boundaries;
+do not repeat a desktop-sized render merely to check that a decoded page is valid. Goldens
+should show the smallest complete, readable surface that owns the regression. Changing their
+size still requires reviewing each new reference.
+
+Use `HeadlessHost.renderSettled(wnd)` to finish animations and capture their final frame.
+It avoids repainting an unchanged frame after `settleAnimations`. Keep explicit consecutive
+`render` calls when repainting or retained caches are the behavior under test.
+
 Tag inclusion is an exact match. Repeating `--test-tag` forms a union; `--test-tag !golden`
 excludes that tag, with exclusions taking precedence. Exclusions alone retain ordinary tests
 and do not enable `integration.*`. File filters still intersect the tag selection. Filters

@@ -15,7 +15,6 @@ using Core, Gui, Viewers
     roll.refreshLayout()
     roll.applyPitchZoom(2)
     roll.scroll.setScrollPos(0, 120)
-    host.settleAnimations(&host.root, 4)
-    let image = host.render(&host.root)
+    let image = host.renderSettled(&host.root)
     assertScopeImageGolden(&image, "viewer.midi.vertical-zoom")
 }

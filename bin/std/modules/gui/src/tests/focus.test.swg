@@ -680,15 +680,13 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     ok.setFocus()
     host.app.setFocusVisible(true)
-    host.settleAnimations()
-    let onDefault = host.render()
+    let onDefault = host.renderSettled()
     Pixel.Testing.assertImageGolden(&onDefault, "focus.default.on.named.action")
 
     // The fill crosses the bar as an animation, so the image is taken once it has arrived.
     host.keyPress(.Right)
     Swag.assert(cancel.hasFocus())
-    host.settleAnimations()
-    let onOther = host.render()
+    let onOther = host.renderSettled()
     Swag.assert(not Slice.equals(onOther.pixels.toSlice(), onDefault.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&onOther, "focus.default.follows.keyboard")
 }
@@ -731,7 +729,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.keyPress(.Tab)
     Swag.assert(toggle.hasVisibleFocus())
 
-    host.settleAnimations()
-    let ringed = host.render()
+    let ringed = host.renderSettled()
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.toggle.on")
 }

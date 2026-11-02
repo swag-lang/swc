@@ -23,7 +23,6 @@ using Core, Pixel, Gui, Viewers
     view.dockStyle = .Center
 
     host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
+    var image = host.renderSettled(&host.root)
     assertScopeImageGolden(&image, "viewer.table.document")
 }

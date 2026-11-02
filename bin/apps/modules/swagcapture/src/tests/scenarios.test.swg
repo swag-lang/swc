@@ -50,8 +50,7 @@ impl ScenarioFixture
 
         .gui.pump()
         .main.applyLayout()
-        .gui.settleAnimations(.main)
-        var rendered = .gui.render(.main)
+        var rendered = .gui.renderSettled(.main)
         Swag.assert(rendered.isValid())
     }
 

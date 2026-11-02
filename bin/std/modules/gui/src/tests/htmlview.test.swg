@@ -824,8 +824,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     Swag.assert(view.layout.documentHeight > 680)
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.document")
 }
 
@@ -1939,8 +1938,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.applyLayout()
     view.rebuild()
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.preserved-whitespace")
 }
 
@@ -1965,8 +1963,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     }
 
     Swag.assert(not view.isLoading())
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.tables")
 }
 
@@ -2056,8 +2053,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     }
 
     Swag.assert(not view.isLoading())
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.flex-grid")
 }
 
@@ -2304,8 +2300,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.applyLayout()
     view.rebuild()
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.floats")
 }
 

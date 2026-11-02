@@ -64,3 +64,62 @@ func checkResolve(width, height: s32)
     defer Swag.setWorkerCount(workers)
     checkResolve(128, 35)
 }
+
+// Repeated 2x2 blocks must keep the general resolve's exact rounding and alpha conversion.
+// Mixed blocks between repeated runs also exercise replacement of the remembered result.
+#test
+{
+    Swag.startWorkers()
+    const Height = 65's32
+    for width in [17's32, 257]
+    {
+        var source = Image.create(width * 2, Height * 2, .BGRA8)
+        const Colors = [0x00000000'u32, 0x01010101, 0x7F351C59, 0x80804020,
+                        0xFE417DAD, 0xFF416987, 0xFFFFFFFF, 0x00010203]
+        for y in source.height
+        {
+            for x in source.width
+            {
+                let index = cast(u64, (x / 6 + y / 2)) % Colors.count
+                var color = Color.fromArgb(Colors[index])
+                if x / 2 % 7 == 0 do
+                    color.g = cast(u8, (x * 11 + y * 13) % 256)
+                let pixel = source.pixels.storage() + cast(u64, y) * cast(u64, source.rowStride) + cast(u64, x) * 4
+                pixel[0] = color.b
+                pixel[1] = color.g
+                pixel[2] = color.r
+                pixel[3] = color.a
+            }
+        }
+
+        var cpu: RenderCpu
+        let renderer: IRenderer = &cpu
+        var texture = renderer.addImage(source)
+        defer renderer.removeTexture(&texture)
+        var target = renderer.createRenderTarget(width, Height)
+        defer renderer.deleteRenderTarget(&target)
+        var images: [2] Image
+        for general, index in [false, true]
+        {
+            var painter = Painter.create(renderer)
+            painter.begin()
+            painter.bindRenderTarget(&target)
+            painter.setResolveShader(2)
+            painter.setColorMaskFull()
+            painter.setBlendingMode(.Copy)
+            let rect = Math.Rectangle{0, 0, width, Height}
+            // A full-target scissor preserves every pixel but selects the general shader.
+            if general do
+                painter.setClippingRect(rect)
+            painter.drawTexture(rect, {0, 0, source.width, source.height}, texture)
+            painter.setDefaultShader()
+            painter.unbindRenderTarget()
+            painter.end()
+            renderer.draw(&painter)
+            images[index] = renderer.readRenderTarget(&target, 0, 0, width, Height)
+        }
+
+        for value, index in images[0].pixels do
+            Swag.assert(value == images[1].pixels[index])
+    }
+}

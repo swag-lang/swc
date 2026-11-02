@@ -613,11 +613,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builder_  = &symbolFunc.microInstrBuilder(ctx());
         visit_.start(ast(), root);
 
-        nextVirtualRegister_ = 1;
-        localStackFrameSize_ = 0;
-        localStackBaseReg_   = MicroReg::invalid();
-        vectorZeroReg_       = MicroReg::invalid();
-        bodyEntryRef_        = MicroInstrRef::invalid();
+        nextVirtualRegister_        = 1;
+        localStackFrameSize_        = 0;
+        localStackFrameRealignment_ = 0;
+        localStackBaseReg_          = MicroReg::invalid();
+        vectorZeroReg_              = MicroReg::invalid();
+        bodyEntryRef_               = MicroInstrRef::invalid();
 
         currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
         currentFunctionIndirectReturnReg_         = MicroReg::invalid();

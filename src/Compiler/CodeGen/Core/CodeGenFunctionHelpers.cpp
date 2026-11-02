@@ -627,7 +627,7 @@ void CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(CodeGen& codeGen, CallC
 
     const CallConv& callConv = CallConv::get(callConvKind);
     MicroBuilder&   builder  = codeGen.builder();
-    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameAllocationSize(), 64), MicroOp::Add, MicroOpBits::B64);
 }
 
 void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
@@ -649,8 +649,15 @@ void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallC
         forbiddenRegs.push_back(callConv.framePointer);
     builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
 
-    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
+    // Keep the stack pointer adjustment constant for spills and unwinding. Only the local storage
+    // base moves within the reserved padding; the logical frame extent excludes that padding.
+    builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameAllocationSize(), 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+    if (const uint32_t alignment = codeGen.localStackFrameRealignment())
+    {
+        builder.emitOpBinaryRegImm(frameBaseReg, ApInt(alignment - 1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(frameBaseReg, ApInt(~(static_cast<uint64_t>(alignment) - 1), 64), MicroOp::And, MicroOpBits::B64);
+    }
     codeGen.setLocalStackBaseReg(frameBaseReg);
 
     codeGen.function().setDebugStackFrameSize(frameSize);

@@ -424,9 +424,15 @@ public:
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     CodeGenNodePayload        conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef);
 
-    void     setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
+    void setLocalStackFrameLayout(uint32_t frameSize, uint32_t realignment)
+    {
+        localStackFrameSize_        = frameSize;
+        localStackFrameRealignment_ = realignment;
+    }
     uint32_t valueBorrowStackOffset = 0;
     uint32_t localStackFrameSize() const { return localStackFrameSize_; }
+    uint32_t localStackFrameAllocationSize() const { return localStackFrameSize_ + localStackFrameRealignment_; }
+    uint32_t localStackFrameRealignment() const { return localStackFrameRealignment_; }
     bool     hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
     void     setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
     MicroReg localStackBaseReg() const { return localStackBaseReg_; }
@@ -614,7 +620,8 @@ private:
     MicroBuilder*   builder_             = nullptr;
     uint32_t        nextVirtualRegister_ = 1;
 
-    uint32_t      localStackFrameSize_ = 0;
+    uint32_t      localStackFrameSize_        = 0;
+    uint32_t      localStackFrameRealignment_ = 0;
     MicroReg      localStackBaseReg_;
     MicroReg      vectorZeroReg_;
     MicroInstrRef bodyEntryRef_;

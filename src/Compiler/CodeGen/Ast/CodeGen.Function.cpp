@@ -188,7 +188,8 @@ namespace
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
         SWC_ASSERT(paramInfos.size() == params.size());
 
-        uint64_t frameSize = 0;
+        uint64_t frameSize      = 0;
+        uint32_t frameAlignment = 1;
         codeGen.clearCurrentFunctionIndirectReturnStackOffset();
 
         for (SymbolVariable* symVar : localSymbols)
@@ -217,6 +218,7 @@ namespace
             // Recompute local offsets from the finalized runtime sizes. Sema-time offsets can become stale
             // when expression-backed locals (notably closures) expand to larger runtime payloads later on.
             assignLocalStackSlot(*symVar, frameSize, size, alignment);
+            frameAlignment = std::max(frameAlignment, alignment);
         }
 
         for (size_t i = 0; i < params.size(); ++i)
@@ -239,6 +241,7 @@ namespace
                 continue;
 
             assignLocalStackSlot(*symVar, frameSize, size, alignment);
+            frameAlignment = std::max(frameAlignment, alignment);
         }
 
         const auto* decl    = codeGen.function().decl();
@@ -276,9 +279,10 @@ namespace
         }
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
+        const uint32_t realignment    = frameAlignment > stackAlignment ? frameAlignment : 0;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
-        SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
-        codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
+        SWC_ASSERT(frameSize + realignment <= std::numeric_limits<uint32_t>::max());
+        codeGen.setLocalStackFrameLayout(static_cast<uint32_t>(frameSize), realignment);
     }
 
     void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)

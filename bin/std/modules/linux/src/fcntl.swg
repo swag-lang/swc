@@ -13,6 +13,7 @@ const O_RDONLY    = 0's32
 const O_WRONLY    = 1's32
 const O_CREAT     = 0x40's32
 const O_EXCL      = 0x80's32
+const O_NOCTTY    = 0x100's32
 const O_TRUNC     = 0x200's32
 const O_RDWR      = 2's32
 const O_NONBLOCK  = 0x800's32

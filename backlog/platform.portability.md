@@ -233,14 +233,23 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Recursive deletion now inspects the requested root before enumerating it, including trailing
   separator and '/.' spellings. Linux symlinks and Windows junctions have regression cases, but
   these public Core cases remain pending; Windows execution is not available on this host.
-  Whole-Core analysis still reports 40 missing-service diagnostics, none in the new filesystem
-  or error leaves. This does not establish public filesystem conformance.
-- Open decision: FileShare currently promises Windows-style read/write/delete exclusion.
-  POSIX open does not supply that contract; flock is advisory and cannot represent every
-  combination. The Linux opener must establish an explicit supported policy before being
-  reported as implemented, rather than silently discarding the requested sharing flags.
-- Next: finish file opening and watching, resolve the sharing contract, and run the common
-  filesystem/stream/mapping tests, including root-link deletion, with the complete Core module.
+  File opening now maps all creation modes to openat, creates with 0666 filtered by umask,
+  sets close-on-exec atomically unless inheritance is requested, retries interrupted open/stat,
+  and closes failed directory handles. Create/Truncate reject read-only access before opening;
+  Append is an initial seek, so subsequent explicit seeks retain their effect.
+  Sixteen raw tests pass JIT/native, including exclusive creation preserving existing content,
+  close-on-exec/inheritable flags and truncation observed through an existing descriptor.
+  Whole-Core analysis reports 29 missing-service diagnostics, none in the filesystem/error
+  leaves. Public opening tests cover all modes, preservation on failed opens, inheritance flags,
+  append seeks, directory rejection, concurrent handles and unlink-while-open, but remain blocked.
+  This does not establish public filesystem conformance.
+- Linux sharing contract: this port adopts documented POSIX sharing. Read/Write/Delete/Zero
+  impose no Windows-style exclusion; Inheritable controls exec inheritance. The public FileShare,
+  open and openWrite documentation states this explicitly. No advisory lock is presented as a
+  mandatory sharing guarantee. This was the default implementation choice, not a user-confirmed
+  requirement; a request for stricter behavior would require an explicit capability/API decision.
+- Next: finish watching and run the common filesystem/stream/mapping tests, including root-link
+  deletion and the sharing/opening contract, with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Finish the Linux thread lifecycle backend

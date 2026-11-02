@@ -10,6 +10,7 @@ const EBUSY        = 16's32
 const EEXIST       = 17's32
 const EXDEV        = 18's32
 const ENOTDIR      = 20's32
+const EISDIR       = 21's32
 const EINVAL       = 22's32
 const ERANGE       = 34's32
 const ENAMETOOLONG = 36's32

@@ -528,3 +528,43 @@ func pthreadProbeEntry(argument: *void?)->*void?
         hasProcessor = true
     Swag.assert(hasProcessor)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    const Template = "/tmp/swag-linux-open-XXXXXX"
+    var temporary: [128] u8
+    for byte, index in Template do
+        temporary[index] = byte
+    let created = mkdtemp(temporary.buffer)
+    Swag.assert(created == temporary.buffer)
+    defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+    Swag.assert(directory >= 0)
+    defer discard close(directory)
+    let original = openat(directory, "data".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOCTTY, 0x180'u32)
+    Swag.assert(original >= 0)
+    defer discard close(original)
+    defer discard unlinkat(directory, "data".buffer, 0)
+    let written = write(original, "abc".buffer, 3)
+    Swag.assert(written == 3)
+    let flags = fcntl(original, F_GETFD)
+    Swag.assert(flags >= 0 and (flags & FD_CLOEXEC) != 0)
+    let duplicate      = openat(directory, "data".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    let duplicateError = errno()
+    Swag.assert(duplicate == -1 and duplicateError == EEXIST)
+    var before: stat
+    let preserved = fstat(original, &before)
+    Swag.assert(preserved == 0 and before.st_size == 3 and (before.st_mode & 0x7F) == 0)
+    let inherited = openat(directory, "data".buffer, O_RDONLY | O_NOCTTY)
+    Swag.assert(inherited >= 0)
+    defer discard close(inherited)
+    let inheritedFlags = fcntl(inherited, F_GETFD)
+    Swag.assert(inheritedFlags >= 0 and (inheritedFlags & FD_CLOEXEC) == 0)
+    let truncated = openat(directory, "data".buffer, O_WRONLY | O_TRUNC | O_CLOEXEC)
+    Swag.assert(truncated >= 0)
+    defer discard close(truncated)
+    var after: stat
+    let observed = fstat(original, &after)
+    Swag.assert(observed == 0 and after.st_size == 0 and after.st_ino == before.st_ino)
+}

@@ -31,16 +31,22 @@ enum FileMode
     Truncate         // Opens an existing file and truncates its content to zero length
 }
 
-// Access other handles keep to a file while it is open.
+// Windows sharing permissions and cross-platform handle inheritance.
+//
+// Windows enforces the requested read, write and delete sharing permissions. Linux uses POSIX
+// sharing: `Zero`, `Read`, `Write` and `Delete` impose no exclusion on other handles, renames or
+// unlinking. Filesystem permissions still apply; these flags are not a portable locking API.
+// `Inheritable` permits the descriptor to survive exec on Linux; otherwise it is opened with
+// close-on-exec atomically. A fork still inherits open descriptors until exec or an explicit close.
 #[Swag.EnumFlags]
 enum FileShare
 {
-    Zero = 0        // No sharing
-    Delete          // Allows the file to be deleted by others
-    Inheritable     // Child processes inherit the handle
-    Read            // Allows shared read access
-    Write           // Allows shared write access
-    ReadWrite = Read | Write     // Allows shared read and write access
+    Zero = 0        // No sharing on Windows; ordinary POSIX sharing on Linux
+    Delete          // Allows deletion by others on Windows
+    Inheritable     // Allows inheritance by child programs
+    Read            // Allows shared read access on Windows
+    Write           // Allows shared write access on Windows
+    ReadWrite = Read | Write     // Allows shared read and write access on Windows
 }
 
 // Deletes `fullName` permanently after enforcing the process sandbox.
@@ -68,6 +74,11 @@ func touch(fullName: string) fail
 }
 
 // Opens a file with the requested creation, access, and sharing policy.
+//
+// Linux uses the POSIX sharing contract documented by [[Core.File.FileShare]]. New files use
+// permissions 0666 filtered by the process umask. `Create` and `Truncate` require write access
+// on Linux; invalid access/sharing flags and directory handles are rejected before ownership
+// is returned. `Append` moves the initial cursor to the end but permits later explicit seeks.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
     if mode != .Open or access.has(.Write) do
@@ -92,7 +103,7 @@ func openRead(fullName: string)->FileStream fail => try open(fullName, .Open, .R
 // Each read, seek, or size query reopens the path with read, write, and delete sharing. The
 // cursor survives between calls, but the file may be replaced, truncated, or removed; subsequent
 // operations observe the current path and can fail. No native handle is retained while idle,
-// so even an exclusive writer can save the source. This is not a consistent snapshot.
+// so even an exclusive Windows writer can save the source. This is not a consistent snapshot.
 func openReadLive(fullName: string)->FileStream fail
 {
     var result = try open(fullName, .Open, .Read, .ReadWrite | .Delete)
@@ -101,7 +112,9 @@ func openReadLive(fullName: string)->FileStream fail
     return result
 }
 
-// Creates or replaces a file for exclusive writing.
+// Creates or replaces a file for writing.
+//
+// Windows opens exclusively. Linux permits other handles and unlinking under POSIX sharing.
 func openWrite(fullName: string)->FileStream fail => try open(fullName, .Create, .Write, .Zero)
 
 // Reads a whole UTF-8 file and returns its text.

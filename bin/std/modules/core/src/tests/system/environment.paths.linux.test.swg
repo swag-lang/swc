@@ -12,6 +12,8 @@
     Swag.assert(Env.userDirectoryFromConfig("XDG_DOWNLOAD_DIR=\"/mnt/é.事\" # redirected", Key, Home) == "/mnt/é.事")
     Swag.assert(Env.userDirectoryFromConfig("XDG_DOWNLOAD_DIR=\"/mnt/\\$literal\"", Key, Home) == "/mnt/$literal")
     Swag.assert(Env.userDirectoryFromConfig("XDG_DOWNLOAD_DIR=\"/first\"\nXDG_DOWNLOAD_DIR=\"/second\"", Key, Home) == "/second")
+    Swag.assert(Env.userDirectoryFromConfig("XDG_DOWNLOAD_DIR=\"$HOME\"", Key, "").isEmpty())
+    Swag.assert(Env.userDirectoryFromConfig("XDG_DOWNLOAD_DIR=\"$HOME/Downloads\"", Key, "/bad\0home").isEmpty())
     for invalid in ["# XDG_DOWNLOAD_DIR=\"/ignored\"",
                     "XDG_DOWNLOAD_DIR_EXTRA=\"/ignored\"",
                     "XDG_DOWNLOAD_DIR=\"relative\"",
@@ -34,6 +36,14 @@
     Swag.assert(Env.realSpecialDirectory(.CommonPictures).isEmpty())
     Swag.assert(Env.realSpecialDirectory(.CommonVideos).isEmpty())
     Swag.assert(Env.realSpecialDirectory(.CommonMusic).isEmpty())
+
+    // Missing or relative HOME/XDG overrides must use their fallback without asserting.
+    for what in [Env.SpecialDirectory.UserAppData, .UserDocuments, .Desktop, .Downloads, .UserPictures, .UserVideos, .UserMusic]
+    {
+        let directory = Env.realSpecialDirectory(what)
+        Swag.assert(directory.isEmpty() or Path.isRooted(directory))
+    }
+
     if Env.isSandboxed()
     {
         let documents = Env.getSpecialDirectory(.UserDocuments)

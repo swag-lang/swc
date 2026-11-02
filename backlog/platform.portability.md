@@ -16,8 +16,9 @@ passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole C
 core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
-(31), and the initial X11 desktop (3, including an unavailable display). XDG malformed-input and
-empty-environment checks, plus common thread/timer context tests, are still being completed.
+(31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
+(3, including an unavailable display). The XDG public path case also passes with empty and relative
+HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
 Core API generation now succeeds: all 2,057 declarations and 374 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
@@ -346,9 +347,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
   identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
   Three public Core thread cases pass in JIT/native, covering reuse, priority-init failure cleanup,
-  completion probes, wait-many and sleep/yield. Context-isolation and additional failure/lifetime
-  stress remain; Windows execution is unavailable here.
-- Next: run the common context tests, exercise start failures and the batching boundary,
+  completion probes, wait-many and sleep/yield. Four common thread/timer cases also pass in
+  JIT/native for context inheritance, one-shot and periodic behavior. Windows execution is unavailable.
+- Next: exercise start failures, additional lifetime stress and the batching boundary,
   and decide whether to extend Linux priority support.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
@@ -375,7 +376,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   first deadline, serialized periodic callbacks, waiting for an active callback and repeated release.
   Windows-target analysis stops at the refusal to JIT-load target Windows log/logf; native Windows
   execution is unavailable.
-- Next: execute common one-shot/periodic and callback-context tests, then validate the Windows leaf.
+  Four common thread/timer cases also pass JIT/native, including inherited callback context.
+- Next: validate the Windows leaf and stress shutdown/concurrent-owner behavior.
 - Related: platform.portability.036, platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
@@ -390,10 +392,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Sandboxed queries retain the common per-kind scratch-directory redirection.
 - Validation: 17 raw Linux tests pass JIT/native, including passwd layout/canaries, caller-owned
   string storage and ERANGE. A separate importing module passes the same user-database call in
-  both modes and its real executable exits 37. Public path/configuration/sandbox tests are
-  ready to execute with complete Core.
-- Next: run the public environment/path and sandbox tests with complete Core; finish environment
-  enumeration/mutation, locale and desktop actions, with explicit unsupported outcomes.
+  both modes and its real executable exits 37. Three public environment cases, the XDG parser case
+  and the sandbox-path case pass JIT/native. Empty and relative HOME/XDG overrides are exercised
+  in separate invocations. Validate a path before calling isRooted: it requires a valid nonempty
+  path, so the previous order asserted on empty variables or zero bytes in configuration data.
+- Next: finish environment mutation, locale and desktop actions, with explicit unsupported outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 
@@ -861,10 +864,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   leaves only create/join a thread. The public contract states that distinct timers may run
   concurrently while a single timer never overlaps its own callbacks; this replaces the former
   Windows timer-queue behavior that allowed overlap.
-- Two public lifecycle cases pass in Linux JIT/native for cancellation and active callback release.
-  Common one-shot/periodic and context tests remain; native Windows validation is unavailable.
-- Next: run the same one-shot, periodic, cancellation, context-isolation and active-release tests
-  on both hosts, and assess the dedicated-thread cost for consumers creating many timers.
+- Two public lifecycle and four common thread/timer cases pass Linux JIT/native for cancellation,
+  active callback release, one-shot/periodic behavior and context inheritance.
+- Next: run the same cases on Windows and assess the dedicated-thread cost for many timers.
 - Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
 - Related: platform.portability.036

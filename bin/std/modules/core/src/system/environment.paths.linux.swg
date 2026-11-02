@@ -4,7 +4,7 @@
 private func homeDirectory()->String
 {
     let home = variable("HOME")
-    if Path.isRooted(home) do
+    if Path.isValidPathName(home) and Path.isRooted(home) do
         return home
     var buffer: Array'u8
     buffer.resize(1024)
@@ -24,7 +24,7 @@ private func homeDirectory()->String
         if error != 0 or not found or not entry.pw_dir do
             return ""
         let result = String.from(cast(string, cast(cstring, entry.pw_dir)))
-        return Path.isRooted(result) ? result : String{}
+        return Path.isValidPathName(result) and Path.isRooted(result) ? result : String{}
     }
 }
 
@@ -32,7 +32,7 @@ private func homeDirectory()->String
 private func xdgBaseDirectory(name, home, fallback: string)->String
 {
     let configured = variable(name)
-    if Path.isRooted(configured) do
+    if Path.isValidPathName(configured) and Path.isRooted(configured) do
         return configured
     return Path.combine(home, fallback)
 }
@@ -70,7 +70,7 @@ private func userDirectoryValue(value, home: string)->String
             let trailing = Latin1.trim(value[cursor + 1 to])
             if trailing.count != 0 and trailing[0] != '#' do
                 return ""
-            if not Path.isRooted(result) or not Path.isValidPathName(result) do
+            if not Path.isValidPathName(result) or not Path.isRooted(result) do
                 return ""
             return result
         }

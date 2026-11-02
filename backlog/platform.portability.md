@@ -11,6 +11,11 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
+Current Linux validation: the last complete C++ run passed 1,745 tests. The raw Linux module
+passes 18 tests in JIT and native ELF. Whole-Core compilation still reports 21 missing-service
+diagnostics (watchers, process launch, windows/monitors and input); Core ownership, timer and
+sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
+
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
 Windows-only. The debt begins when portable code or a cross-platform product must mention their
@@ -329,10 +334,23 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   native detail without leaking native codes into portable callers.
 - Done when: Representative filesystem and process failures on the chosen second host map to portable core failures while retaining inspectable native detail, and common callers branch only on portable errors.
 
-### platform.portability.040 — The sandbox has no second-platform backend
+### platform.portability.040 — Validate Linux sandbox enforcement and startup
 
-- Next: implement the sandbox's platform enforcement and early-startup behavior for the chosen
-  second platform independently of general environment services.
+- Progress: Linux early lookup uses runtime argv through common name/value matching. Existing
+  path prefixes are canonicalized with realpath before missing suffixes are normalized, preserving
+  symlink/parent semantics; failed resolutions contain nothing. Common containment preserves Linux
+  case and backslashes, retains Windows normalization, and correctly includes descendants of a
+  filesystem root. Windows canonicalization now fails closed instead of using the literal input.
+  Reparse-point scanning is shared. Unlinking a final file/directory link checks its authorized
+  parent without following that final link; writes and traversal through parent links still fail.
+  Shared tests distinguish Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
+- Validation: 18 raw binding tests pass JIT/native, including realpath allocation/free, a link
+  followed by '..' and ELOOP. Whole-Core analysis reports 21 unrelated missing-service diagnostics.
+  Public tests for argv matching, case, root containment, invalid paths, escaped writes/deletes
+  and safe link removal are added but have not executed; native Windows validation is unavailable.
+- Next: run public sandbox, startup, filesystem and root-link deletion suites with complete Core.
+  The guards protect Core's operations; they are not an OS security boundary for arbitrary native
+  calls and do not make path checks and subsequent mutations atomic against concurrent renames.
 - Related: platform.portability.038, platform.portability.010
 - Done when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
 
@@ -749,11 +767,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.010 — Early argument lookup retains a Windows command-line fallback
 
 - Evidence: Core's premain command-line string fallback is confined to environment.win32.swg.
-  `Env.findRunArgument` already searches `Swag.args()` first, including compile-time test
-  execution. Native sandbox initialization can precede argument-vector population, so it then parses
-  `GetCommandLineA` in `sandbox.win32.swg`.
-- Next: make the runtime argument vector available before native module initialization, then
-  share the name/value matching code and remove the early Windows command-line fallback.
+  Name/value matching now lives in `findRunArgumentIn`, shared by both backends. Linux uses argv
+  directly because ELF startup publishes it before module initialization. Windows still searches
+  `Swag.args()` first, then parses `GetCommandLineA` when native early startup needs the fallback.
+- Next: validate Linux sandbox startup with complete Core, make Windows argv available before
+  native module initialization, and remove that platform's early command-line fallback.
 - Done when: native and compile-time early argument lookup use the same populated vector
   and preserve sandbox, smoke, and corpus argument behavior.
 - Related: platform.portability.005, platform.portability.008

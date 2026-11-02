@@ -594,3 +594,53 @@ func pthreadProbeEntry(argument: *void?)->*void?
         Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
     }
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    const Template = "/tmp/swag-linux-realpath-XXXXXX"
+    var temporary: [128] u8
+    for byte, index in Template do
+        temporary[index] = byte
+    let created = mkdtemp(temporary.buffer)
+    Swag.assert(created == temporary.buffer)
+    defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+    Swag.assert(directory >= 0)
+    defer discard close(directory)
+    let target = mkdirat(directory, "target".buffer, 0x1C0)
+    Swag.assert(target == 0)
+    defer discard unlinkat(directory, "target".buffer, AT_REMOVEDIR)
+    let deep = mkdirat(directory, "target/deep".buffer, 0x1C0)
+    Swag.assert(deep == 0)
+    defer discard unlinkat(directory, "target/deep".buffer, AT_REMOVEDIR)
+    let linked = symlinkat("target/deep".buffer, directory, "link".buffer)
+    Swag.assert(linked == 0)
+    defer discard unlinkat(directory, "link".buffer, 0)
+    let root = unwrap realpath(temporary.buffer, null)
+    defer free(root)
+    let rootView = cast(string, cast(cstring, root))
+    var input, expected: [4096] u8
+    for byte, index in rootView
+    {
+        input[index]    = byte
+        expected[index] = byte
+    }
+
+    for byte, index in "/link/.." do
+        input[rootView.count + index] = byte
+    for byte, index in "/target" do
+        expected[rootView.count + index] = byte
+    let resolved = unwrap realpath(input.buffer, null)
+    defer free(resolved)
+    Swag.assert(cast(string, cast(cstring, resolved)) == cast(string, cast(cstring, expected.buffer)))
+    let looped = symlinkat("loop".buffer, directory, "loop".buffer)
+    Swag.assert(looped == 0)
+    defer discard unlinkat(directory, "loop".buffer, 0)
+    for byte, index in "/loop" do
+        input[rootView.count + index] = byte
+    input[rootView.count + 5] = 0
+    let loopResult = realpath(input.buffer, null)
+    let loopError  = errno()
+    Swag.assert(loopResult == null and loopError == ELOOP)
+}

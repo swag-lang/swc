@@ -15,6 +15,9 @@ performs on startup are refused.
 It is armed by the runtime from the process command line before any `#init`, `#premain` or
 `#main` code runs, so an application needs no knowledge of it.
 
+These guards apply to Core operations, not arbitrary native calls. They do not make a path
+check and its later filesystem mutation atomic against another process changing the path.
+
 A run may also be granted a *corpus*: one directory outside the root that stays writable, for a
 test whose reference data lives with its source. See [[Core.Env.grantCorpus]].
 
@@ -45,6 +48,33 @@ private const DefaultSmokeFrames = 50'u32
 // Default-root names the arming hook tries before giving up: the plain process-id name first,
 // then the fallback siblings for when a leftover under a name refuses to clear.
 private const MaxDefaultRootNames = 4'u32
+
+// Returns the operating-system identifier of the running process.
+internal func currentProcessId()->u32 => cast(u32, Process.currentProcessId())
+
+internal func findRunArgumentIn(arguments: const [..] string, name: string)->{ found: bool, value: String }
+{
+    var result: #returntype
+    for arg in arguments
+    {
+        if not Utf8.startsWith(arg, name) do
+            continue
+        if arg.count == name.count
+        {
+            result.found = true
+            return result
+        }
+
+        if arg[name.count] == '='
+        {
+            result.found = true
+            result.value = String.from(arg[name.count + 1 to])
+            return result
+        }
+    }
+
+    return result
+}
 
 // Builds a private sandbox root for this process under the real temporary directory.
 //
@@ -299,17 +329,26 @@ internal func denySystemMutation(mutation: SystemMutation)->bool
 
 // Reports whether `path` names `root` itself or something below it.
 //
-// Both sides are resolved and normalized first, so a relative path, a mixed separator style
-// or a difference in case cannot smuggle a location past the check.
+// Both sides are resolved first. Windows normalizes separator style and case; Linux preserves
+// case and treats backslashes as ordinary filename bytes. An invalid or unresolvable path
+// contains nothing. Linux resolves existing symbolic links before comparing containment.
 func isInsideDirectory(root: string, path: string)->bool
 {
     if root.count == 0 do
         return false
 
-    let full = absolutePath(path).toLower()
-    let base = absolutePath(root).toLower()
-    let f    = full.toString()
-    let r    = base.toString()
+    var full = absolutePath(path)
+    var base = absolutePath(root)
+    if full.isEmpty() or base.isEmpty() do
+        return false
+    #static if WINDOWS
+    {
+        full = full.toLower()
+        base = base.toLower()
+    }
+
+    let f = full.toString()
+    let r = base.toString()
 
     if f.count < r.count do
         return false
@@ -319,7 +358,7 @@ func isInsideDirectory(root: string, path: string)->bool
     // A prefix match is not containment: 'C:/tmp/sandboxed' starts with 'C:/tmp/sandbox'.
     if f.count == r.count do
         return true
-    return Path.isDirectorySeparator(f[r.count])
+    return Path.isDirectorySeparator(r[r.count - 1]) or Path.isDirectorySeparator(f[r.count])
 }
 
 // Reports whether `path` is inside the sandbox, which is always true when no sandbox is armed.
@@ -352,17 +391,72 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
 // Fails when `path` would be written outside the sandbox and outside the granted corpus.
 //
 // Every operation in [[Core.File]] and [[Core.Directory]] that creates, modifies or removes
-// something calls this first. Outside a sandbox it is a single boolean test.
-internal func guardWrite(path: string) fail
+// something calls this first. Outside a sandbox it is a single boolean test. Operations that
+// remove the final directory entry itself pass followLeaf=false; every parent is still checked.
+internal func guardWrite(path: string, followLeaf = true) fail
 {
     if not g_Sandboxed do
         return
-    if isInsideSandbox(path) or isInsideCorpus(path)
+    if not Path.isValidPathName(path) do
+        fail InvalidFileNameError{fileName: mkString(path)}
+    var checked = String.from(path)
+    if not followLeaf
     {
-        if try containsReparsePoint(path) do
+        let full = try Path.absolute(path)
+        let name = Path.fileName(full)
+        if name != null and name != "." and name != ".."
+        {
+            let parent = Path.directoryName(full)
+            if parent != null and (isInsideSandbox(parent) or isInsideCorpus(parent)) do
+                checked = parent
+        }
+    }
+
+    if isInsideSandbox(checked) or isInsideCorpus(checked)
+    {
+        if try containsReparsePoint(checked) do
             fail SandboxError{"refusing to write through a reparse point", path: absolutePath(path).toString()}
         return
     }
 
     fail SandboxError{"refusing to write outside the sandbox", path: absolutePath(path).toString()}
+}
+
+// Reports whether an existing component of `path` is a reparse point.
+internal func containsReparsePoint(path: string)->bool fail
+{
+    let full         = try Path.absolute(path)
+    let fullPath     = full.toString()
+    let rootLength   = cast(u64, Path.rootLength(fullPath))
+    var segmentBegin = rootLength
+
+    for index in fullPath.count where index >= rootLength
+    {
+        let c = index < fullPath.count ? fullPath[index] : 0'u8
+        if c != '/' and index != fullPath.count - 1 do
+            continue
+
+        let end = c == '/' ? index : index + 1
+        if end > segmentBegin
+        {
+            let prefix = fullPath[until end]
+            var attributes: File.FileAttributes
+            var outcome:    Swag.Error
+            catch { attributes = try File.attributes(prefix) } as outcome
+            let error = outcome.value()
+            if error != null
+            {
+                if error is Errors.FileNotFoundError do
+                    return false
+                try outcome.raise()
+            }
+
+            if attributes.has(.ReparsePoint) do
+                return true
+        }
+
+        segmentBegin = index + 1
+    }
+
+    return false
 }

@@ -14,6 +14,7 @@ const SEEK_END = 2's32
     func gettid()->s32
     func getpid()->s32
     func getcwd(buf: [*] u8?, size: u64)->[*] u8?
+    func readlinkat(dirfd: s32, pathname: const [*] u8, buf: [*] u8, bufsiz: u64)->s64
     func chdir(path: const [*] u8)->s32
     func unlinkat(dirfd: s32, pathname: const [*] u8, flags: s32)->s32
     func symlinkat(target: const [*] u8, newdirfd: s32, linkpath: const [*] u8)->s32

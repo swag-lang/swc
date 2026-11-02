@@ -12,7 +12,7 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
-passes 21 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
+passes 22 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
 diagnostics (process launch, windows/monitors and input); Core ownership, timer and
 sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
@@ -215,6 +215,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   redirected output, direct spawn error codes, nonblocking wait, signal exit and single reaping.
   A separate module executes both process probes through the published opaque types/functions.
   This does not validate the Core Process owner, duplex draining or timeout/drop behavior.
+- Process context: Linux currentEnvironment copies glibc's current environ table, preserving
+  case and distinguishing snapshot mutation from process mutation. The table's address is
+  resolved from the current image; its mutable contents remain caller-synchronized native data.
+  currentExecutablePath reads /proc/self/exe with a growing buffer and retains Linux's deleted
+  image spelling. Procfs failures propagate. The 22 raw tests pass JIT/native and an imported
+  consumer, including truncated readlink without a terminator, image inode identity, missing
+  procfs links and environ/getenv agreement. The public snapshot/ownership test has not run;
+  whole-Core semantic/test/doc checks still report 17 missing-service diagnostics.
 - Lifecycle constraint: the current public close releases handles without waiting or terminating
   the child. A Linux implementation must preserve deliberate child ownership/reaping and code
   lifetime; do not silently introduce zombie leaks, kill-on-close or an untracked JIT callback.

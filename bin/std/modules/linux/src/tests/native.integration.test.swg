@@ -844,3 +844,60 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let reapError   = errno()
     Swag.assert(reapedAgain == -1 and reapError == ECHILD)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var guarded: { before: u64, bytes: [4097] u8, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    let tiny = readlinkat(AT_FDCWD, "/proc/self/exe".buffer, guarded.bytes.buffer, 1)
+    Swag.assert(tiny == 1 and guarded.bytes[0] == '/' and guarded.bytes[1] == 0)
+    let length = readlinkat(AT_FDCWD, "/proc/self/exe".buffer, guarded.bytes.buffer, 4096)
+    Swag.assert(length > 0 and length < 4096 and guarded.bytes[cast(u64, length)] == 0)
+    let original = openat(AT_FDCWD, "/proc/self/exe".buffer, O_RDONLY | O_CLOEXEC)
+    Swag.assert(original >= 0)
+    defer discard close(original)
+    let resolved = openat(AT_FDCWD, guarded.bytes.buffer, O_RDONLY | O_CLOEXEC)
+    Swag.assert(resolved >= 0)
+    defer discard close(resolved)
+    var originalInfo, resolvedInfo: stat
+    let originalRead = fstat(original, &originalInfo)
+    let resolvedRead = fstat(resolved, &resolvedInfo)
+    Swag.assert(originalRead == 0 and resolvedRead == 0)
+    Swag.assert(originalInfo.st_dev == resolvedInfo.st_dev and originalInfo.st_ino == resolvedInfo.st_ino)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    let missing      = readlinkat(AT_FDCWD, "/proc/self/swag-missing-exe".buffer, guarded.bytes.buffer, guarded.bytes.count)
+    let missingError = errno()
+    Swag.assert(missing == -1 and missingError == ENOENT)
+    let image = dlopen(null, RTLD_NOW | RTLD_LOCAL)
+    Swag.assert(image != null)
+    defer discard dlclose(unwrap image)
+    let address = dlsym(image, "environ".buffer)
+    Swag.assert(address != null)
+    let tableAddress = cast(const *([*] ([*] u8?)?), address)
+    let table        = tableAddress[]
+    let directPath   = getenv("PATH".buffer)
+    var foundPath    = false
+    if table
+    {
+        var index = 0'u64
+        for
+        {
+            let entry = table[index]
+            if not entry do
+                break
+            let text = cast(string, cast(cstring, entry))
+            if text.count >= 5 and text[until 5] == "PATH="
+            {
+                Swag.assert(directPath != null)
+                Swag.assert(text[5 to ] == cast(string, cast(cstring, directPath)))
+                foundPath = true
+            }
+
+            index += 1
+        }
+    }
+
+    Swag.assert(foundPath == (directPath != null))
+}

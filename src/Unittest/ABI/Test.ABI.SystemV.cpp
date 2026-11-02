@@ -1347,7 +1347,7 @@ SWC_TEST_BEGIN(ABI_SystemVCodeGenHomesPreserveIncomingScalarAndAggregateParamete
         builder.setBackendBuildCfg(backend);
         std::array<CodeGenFunctionHelpers::FunctionParameterInfo, parameterTypes.size()> infos;
         CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, infos, *function, false, false);
-        codeGen.setLocalStackFrameSize(128);
+        codeGen.setLocalStackFrameLayout(128, 0);
         uint32_t localOffset = 0;
         for (size_t i = 0; i < parameterTypes.size(); ++i)
         {

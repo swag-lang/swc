@@ -1,14 +1,14 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if #os == Swag.TargetOs.Windows
+#global if #os == Swag.TargetOs.Windows or #os == Swag.TargetOs.Linux
 #global private
 
 using Core
 
-// Requires the system font installed with Windows.
+// Requires Segoe UI on Windows or DejaVu Sans on Linux.
 #[Swag.TestTag("integration.fonts")]
 #test
 {
-    const Name = "Segoe UI"
+    const Name = #os == Swag.TargetOs.Windows ? "Segoe UI" : "DejaVu Sans"
     let names = FontFamily.enumerateSystemFontNames()
     Swag.assert(names.contains(String.from(Name)))
     Swag.assert((expect FontFamily.createTypeFace("Pixel missing family 6e2cbf11", .Regular)) == null)

@@ -7,9 +7,10 @@ using Core, Pixel
 func planarPixel(picture: const *PlanarFrame, x, y: s32)->Color
 {
     let luma = cast(s32, picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)])
-    let base = cast(u64, (y / 2)) * cast(u64, picture.strideChroma) + cast(u64, (x / 2))
-    let d    = cast(s32, picture.chromaB[base]) - 128
-    let e    = cast(s32, picture.chromaR[base]) - 128
+    let cb   = videoReferenceChroma(picture.chromaB.storage(), picture.strideChroma, (picture.width + 1) / 2, (picture.height + 1) / 2, picture.width, picture.height, x, y)
+    let cr   = videoReferenceChroma(picture.chromaR.storage(), picture.strideChroma, (picture.width + 1) / 2, (picture.height + 1) / 2, picture.width, picture.height, x, y)
+    let d    = cast(s32, cb) - 128
+    let e    = cast(s32, cr) - 128
     let c    = Math.max(luma - 16, 0) * 298
 
     return Color.fromRgb(cast(u8, Math.clamp((c + 409 * e + 128) >> 8, 0, 255)),

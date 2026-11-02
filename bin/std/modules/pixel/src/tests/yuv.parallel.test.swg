@@ -15,7 +15,7 @@ using Core
     Swag.assert(scheduler.started.load() == started)
 }
 
-// Odd, padded planes exercise SIMD, scalar pairs, the last pixel and the last row across
+// Odd, padded planes exercise SIMD, scalar tails, the last pixel and the last row across
 // every matrix and range. Reusing one target must join every writer before returning.
 #[Swag.TestTag("parallel")]
 #test
@@ -47,8 +47,9 @@ using Core
                 {
                     for x in Width
                     {
-                        let chromaAt = cast(u64, (y / 2)) * ChromaStride + cast(u64, (x / 2))
-                        let expected = expectedPlanarColor(view.luma[cast(u64, y) * LumaStride + cast(u64, x)], view.chromaB[chromaAt], view.chromaR[chromaAt], matrix, view.studioRange)
+                        let cb       = expectedChromaSample(view.chromaB, ChromaStride, (Width + 1) / 2, (Height + 1) / 2, Width, Height, x, y)
+                        let cr       = expectedChromaSample(view.chromaR, ChromaStride, (Width + 1) / 2, (Height + 1) / 2, Width, Height, x, y)
+                        let expected = expectedPlanarColor(view.luma[cast(u64, y) * LumaStride + cast(u64, x)], cb, cr, matrix, view.studioRange)
                         Swag.assert(image.pixelColor(x, y) == expected)
                     }
                 }

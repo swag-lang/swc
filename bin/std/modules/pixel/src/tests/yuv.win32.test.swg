@@ -3,8 +3,8 @@
 
 using Win32
 
-// A tightly packed final chroma row ends at an inaccessible page. Sixteen luma samples
-// consume only eight chroma bytes, including when the visible crop is unaligned.
+// A tightly packed final chroma row ends at an inaccessible page. Linear reconstruction
+// clamps its final neighbor instead of reading beyond the plane, even for odd crop widths.
 #test
 {
     let pages = cast([*] u8, unwrap VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE))
@@ -25,8 +25,11 @@ using Win32
         view.convertRowsToRgb(&image, 0, 2)
         for y in 2's32
         {
-            for x in width do
-                Swag.assert(image.pixelColor(x, y) == expectedPlanarColor(luma[y * width + x], chroma[x / 2], chroma[x / 2]))
+            for x in width
+            {
+                let sample = expectedChromaSample(chroma, chromaWidth, cast(s32, chromaWidth), 1, width, 2, x, y)
+                Swag.assert(image.pixelColor(x, y) == expectedPlanarColor(luma[y * width + x], sample, sample))
+            }
         }
     }
 }

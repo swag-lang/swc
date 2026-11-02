@@ -2,6 +2,31 @@
 
 using Core, Pixel
 
+// Samples centered chroma with integer area weights, independently of the renderer's floats.
+// Clamping repeats the plane's edge samples.
+func videoReferenceChroma(plane: const [*] u8, stride: u64, planeWidth, planeHeight, width, height, x, y: s32)->u8
+{
+    let dx = cast(s64, width) * 2
+    let dy = cast(s64, height) * 2
+    let px = Math.clamp((cast(s64, x) * 2 + 1) * planeWidth - width, 0, (planeWidth - 1) * dx)
+    let py = Math.clamp((cast(s64, y) * 2 + 1) * planeHeight - height, 0, (planeHeight - 1) * dy)
+    let x0 = px / dx
+    let y0 = py / dy
+    let x1 = Math.min(x0 + 1, cast(s64, planeWidth - 1))
+    let y1 = Math.min(y0 + 1, cast(s64, planeHeight - 1))
+    let wx = px % dx
+    let wy = py % dy
+
+    let a   = cast(s64, plane[cast(u64, y0) * stride + cast(u64, x0)])
+    let b   = cast(s64, plane[cast(u64, y0) * stride + cast(u64, x1)])
+    let c   = cast(s64, plane[cast(u64, y1) * stride + cast(u64, x0)])
+    let d   = cast(s64, plane[cast(u64, y1) * stride + cast(u64, x1)])
+    let sum = (a * (dx - wx) + b * wx) * (dy - wy) +
+              (c * (dx - wx) + d * wx) * wy
+    let divisor = dx * dy
+    return cast(u8, (sum + divisor / 2) / divisor)
+}
+
 // Returns the path of a fixture of this test suite.
 func videoFixturePath(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), Format.toString("datas/%", name).toString())
 
@@ -140,12 +165,13 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
         let destinationRow = cast(u64, (height - y - 1)) * cast(u64, result.rowStride)
         for x in width
         {
-            let luma         = cast(s32, bytes[base + cast(u64, y) * cast(u64, width) + cast(u64, x)])
-            let chromaSource = cast(u64, (y >> chromaShift)) * chromaWidth + cast(u64, (x >> chromaShift))
-            let d            = cast(s32, bytes[base + lumaSize + chromaSource]) - 128
-            let e            = cast(s32, bytes[base + lumaSize + chromaSize + chromaSource]) - 128
-            let c            = Math.max(luma - 16, 0)
-            let destination  = result.pixels.storage() + destinationRow + cast(u64, x) * 3
+            let luma        = cast(s32, bytes[base + cast(u64, y) * cast(u64, width) + cast(u64, x)])
+            let cb          = videoReferenceChroma(bytes.buffer + base + lumaSize, chromaWidth, cast(s32, chromaWidth), cast(s32, chromaHeight), width, height, x, y)
+            let cr          = videoReferenceChroma(bytes.buffer + base + lumaSize + chromaSize, chromaWidth, cast(s32, chromaWidth), cast(s32, chromaHeight), width, height, x, y)
+            let d           = cast(s32, cb) - 128
+            let e           = cast(s32, cr) - 128
+            let c           = Math.max(luma - 16, 0)
+            let destination = result.pixels.storage() + destinationRow + cast(u64, x) * 3
             destination[0] = cast(u8, Math.clamp((298 * c + 409 * e + 128) >> 8, 0, 255))
             destination[1] = cast(u8, Math.clamp((298 * c - 100 * d - 208 * e + 128) >> 8, 0, 255))
             destination[2] = cast(u8, Math.clamp((298 * c + 516 * d + 128) >> 8, 0, 255))

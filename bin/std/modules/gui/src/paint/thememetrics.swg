@@ -352,6 +352,16 @@ struct ThemeMetrics
 
         richEdit_Padding: f32 = 5     // Inset of the text of a rich editor.
 
+        // Virtualized file cells share their preview framing and caption rhythm.
+        fileTile_Inset:         f32 = 12     // Inset around a whole preview or between metadata fields.
+        fileTile_NameGap:       f32 = 8      // Gap between the image and its caption.
+        fileTile_NameHeight:    f32 = 20     // Height of the display-name line.
+        fileTile_FactsHeight:   f32 = 18     // Height of the metadata line.
+        fileTile_FactsFontSize: u32 = 11     // Fixed-width metadata and badge font size.
+        fileTile_RingWidth:     f32 = 2      // Weight of the hover and selection outlines.
+        fileTile_RingGap:       f32 = 1      // Air beyond the selection outline's own width.
+        fileTile_BadgePadding:  f32 = 6      // Horizontal inset of a label over the image.
+
         // A tool tip is exactly as large as the words it holds. It wraps rather than grow past
         // `toolTip_MaxWidth`, it ends its last line with an ellipsis rather than grow past
         // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the

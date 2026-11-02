@@ -22,16 +22,9 @@ var g_DirtyList:   bool = true
 const RatingGlyphSize = 12.0
 
 // The grid of the library: thumbnails with their name and a mono line of facts under them.
-const LibraryCellGap     = 32.0     // Air between two cells of a row.
-const LibraryRowGap      = 24.0     // Air between two rows of cells.
-const LibraryCaptionGap  = 10.0     // Air between a thumbnail and its name.
-const LibraryCaptionLine = 18.0     // Height of the name line, and of the line of facts.
-const LibraryCellRing    = 4.0      // Room kept around the grid for the ring of a chosen thumbnail.
-const LibraryRingGap     = 2.0      // Air between a chosen thumbnail and its Arc ring.
-const LibraryRingSize    = 2.0      // Weight of the Arc ring of a chosen thumbnail.
-
-// Height a cell spends under its thumbnail.
-const LibraryCaptionHeight = LibraryCaptionGap + 2 * LibraryCaptionLine
+const LibraryCellGap  = 32.0     // Air between two cells of a row.
+const LibraryRowGap   = 24.0     // Air between two rows of cells.
+const LibraryCellRing = 4.0      // Room kept around the grid for the ring of a chosen thumbnail.
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each
 // loaded capture marks the list dirty, so without a cadence the rebuild runs on every
@@ -130,11 +123,22 @@ struct LibraryView
     filterMonth:  u64
     filterDay:    u64
     listRefresh:  Time.Stopwatch
+    nameTimer:    *Gui.Timer?
+    nameTick:     u64
     late imgSpin: *Spinner
 }
 
 impl IWnd for LibraryView
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer == .nameTimer
+        {
+            .nameTick += 1
+            .invalidate()
+        }
+    }
+
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         // The loader borrows this view and its items, and can still post repaint events.
@@ -171,7 +175,8 @@ impl IWnd for LibraryView
         if ht != .hotItem
         {
             .invalidate()
-            .hotItem = ht
+            .hotItem  = ht
+            .nameTick = 0
         }
 
         let shiftPressed = evt.modifiers.has(.Shift)
@@ -286,136 +291,48 @@ impl IWnd for LibraryView
         }
     }
 
-    // Paints a thumbnail filling `rect`: the picture cropped to the cell on the control corner,
-    // its link mark, and the Arc ring of a chosen one around it.
-    mtd paintThumbnail(painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
+    // The library owns the item's facts and actions; Gui supplies the common file-tile rendering.
+    mtd paintItem(painter: *Painter, it: *LibraryItem, index: u64, capture: *Capture?, itemLoaded: bool)->bool
     {
-        let metrics = .themeMetrics()
-        let colors  = .themeColors()
-        let corner  = metrics.corner_Control
-
-        painter.setParams(.Antialiased)
-        painter.fillRoundRect(rect, corner, corner, colors.raised)
-        if texture.isValid()
-        {
-            // Cover the cell: keep the middle of the picture at the aspect of the cell.
-            var src   = Math.Rectangle{0, 0, cast(f32, texture.width), cast(f32, texture.height)}
-            let ratio = rect.width / rect.height
-            if src.width / src.height > ratio
-            {
-                let width = src.height * ratio
-                src.x     = (src.width - width) * 0.5
-                src.width = width
-            }
-            else
-            {
-                let height = src.width / ratio
-                src.y      = (src.height - height) * 0.5
-                src.height = height
-            }
-
-            painter.startClippingRegion()
-            painter.fillRoundRect(rect, corner, corner, Argb.White)
-            painter.endClippingRegion()
-            painter.setInterpolationMode(.Linear)
-            painter.drawTexture(rect, src, texture)
-            painter.resetClippingRegion()
-        }
-
-        // The picture is the cell's surface. A light theme veil makes its hover visible without
-        // replacing the thumbnail or introducing a separate outline language.
-        if infos.hot do
-            painter.fillRoundRect(rect, corner, corner, colors.veilSoft)
-
-        RecentView.paintLinkBadge(me, painter, rect, infos, corner)
-
-        if infos.selected
-        {
-            var ring = rect
-            ring.inflate(LibraryRingGap)
-            painter.drawRoundRect(ring, corner + LibraryRingGap, corner + LibraryRingGap, colors.arc, LibraryRingSize)
-        }
-    }
-
-    // Paints one visible cell: the thumbnail, ringed in Arc when it is chosen, with the image
-    // badge and the link mark over it; then its name, and a mono line of facts under it — the
-    // date, the favorite and the rating at its start, the size of the picture at its end.
-    mtd paintItem(painter: *Painter, it: *LibraryItem, index: u64, capture: *Capture?, itemLoaded: bool)
-    {
-        with var infos: RecentInfos
-        {
-            .hot      = index == me.hotItem
-            .selected = me.selModel.isSelected(cast(index))
-        }
-
-        if capture
-        {
-            infos.linkedUpToDate = capture.linkedUpToDate
-            infos.linked         = capture.linkedImage
-            infos.showLinked     = .libWnd.showLinkOverlay
-        }
-
-        let colors    = .themeColors()
-        let theme     = .theme()
-        let {w, h}    = .getPreviewSize()
-        let thumbRect = Math.Rectangle{it.rect.x, it.rect.y, w, h}
-        .paintThumbnail(painter, it.texture, thumbRect, infos)
-
-        if it.kind == .Image
-        {
-            let font = unwrap theme.res.fontDefaultFs.regular
-            let text = appStrings().ui_ImageBadge
-            let ms   = Painter.measureString(text, font)
-            let rc   = Math.Rectangle{thumbRect.x + 8, thumbRect.y + 8, ms.width + 12, font.height + 4}
-            painter.fillRect(rc, colors.wnd_Bk)
-            painter.drawString(rc.x + 6, rc.y + 2, text, font, colors.label_TextLight)
-        }
-
-        // The name: the title the reader gave, the application it was taken from, or the file.
         let label = LibraryItem.nameOf(it.fi.fullName, capture)
-
-        let nameFont = theme.createDefaultFont(.themeMetrics().defaultFontSize)
-        let nameTop  = thumbRect.bottom() + LibraryCaptionGap
-        painter.pushClippingRect(Math.Rectangle{it.rect.x, nameTop, it.rect.width, LibraryCaptionHeight})
-        painter.drawString(it.rect.x, nameFont.opticalLineTop(nameTop + LibraryCaptionLine * 0.5), label, nameFont, infos.selected ? colors.text : colors.softText)
-
-        // The facts are measures, so they are set in the fixed-width family.
-        let factFont = theme.createDefaultFontFs(.themeMetrics().defaultFontSize - 2)
-        let factY    = factFont.opticalLineTop(nameTop + LibraryCaptionLine * 1.5)
-        let date     = it.fi.lastWriteTime
-        var facts    = Format.toString("%/%", twoDigits(date.day), twoDigits(date.month))
+        let date  = it.fi.lastWriteTime
+        var facts = Format.toString("%/%", twoDigits(date.day), twoDigits(date.month))
         if capture and capture.favorite do
             facts += " · ♥"
         if capture and capture.rating and .libWnd.showRatingOverlay do
             facts += Format.toString(" · ★ %", capture.rating)
-        painter.drawString(it.rect.x, factY, facts, factFont, colors.faintText)
-
-        var size: String
+        var size: String = ""
         if capture do
             size = Format.toString("%×%", capture.width, capture.height)
         elif it.image.isValid() do
             size = Format.toString("%×%", it.image.width, it.image.height)
-        if not size.isEmpty()
+
+        var content: FileTile.Content
+        content.texture     = it.texture
+        content.name        = label
+        content.facts       = facts
+        content.detail      = size
+        content.badge       = it.kind == .Image ? appStrings().ui_ImageBadge : ""
+        content.placeholder = ""
+        content.icon        = .theme().icon(.HourGlass, 32)
+        if itemLoaded and it.kind == .Image do
+            content.icon = .theme().icon(.Warning, 32)
+        elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
+            content.icon = .mainWnd.icon(.Archive, 32)
+        var options: FileTile.Options
+        options.hovered  = index == .hotItem
+        options.selected = .selModel.isSelected(cast(index))
+        options.nameTick = .nameTick
+        let {w, h}  = .getPreviewSize()
+        let rect    = Math.Rectangle{it.rect.x, it.rect.y, w, h}
+        let animate = FileTile.paint(me, painter, rect, &content, options)
+        if capture and .libWnd.showLinkOverlay
         {
-            let sizeWidth = Painter.measureString(size, factFont).width
-            painter.drawString(it.rect.right() - sizeWidth, factY, size, factFont, colors.faintText)
+            let infos = RecentInfos{linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, showLinked: true}
+            RecentView.paintLinkBadge(me, painter, rect, infos, .themeMetrics().corner_Control)
         }
 
-        painter.popClippingRect()
-
-        // Loading, a decode this frame did not have the budget for, a legacy preview-less
-        // capture, or an image the decoder rejected.
-        if not it.texture.isValid()
-        {
-            var icon = .theme().icon(.HourGlass, 48)
-            if itemLoaded and it.kind == .Image do
-                icon = .theme().icon(.Warning, 48)
-            elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
-                icon = .mainWnd.icon(.Archive, 48)
-            let color       = Color.fromArgb(50, Argb.White)
-            let thumbCenter = it.rect.y + (it.rect.height - LibraryCaptionHeight) * 0.5
-            icon.paint(painter, it.rect.horzCenter() - icon.sizeX * 0.5, thumbCenter - icon.sizeY * 0.5, color)
-        }
+        return animate
     }
 
     // Releases the thumbnail texture of `it`. SCC items retain their compressed PNG, not a decoded
@@ -498,8 +415,9 @@ impl IWnd for LibraryView
 
         var decodeBudget  = MaxPreviewDecodesPerPaint
         var decodesRemain = false
+        var animateNames  = false
 
-        let cellHeight = h + LibraryCaptionHeight
+        let cellHeight = h + FileTile.captionHeight(me)
         for it, i in .items
         {
             it.rect    = Math.Rectangle{x, y, w, cellHeight}
@@ -543,7 +461,18 @@ impl IWnd for LibraryView
                 it.texture = evt.paintContext.renderer.addImage(image)
             }
 
-            .paintItem(painter, it, i, capture, itemLoaded)
+            if .paintItem(painter, it, i, capture, itemLoaded) do
+                animateNames = true
+        }
+
+        if animateNames
+        {
+            if not .nameTimer do
+                .nameTimer = .addTimer(50'ms)
+        }
+        else
+        {
+            .stopTimer(&.nameTimer)
         }
 
         // An empty page says why, faint, where the first row would stand: nothing captured yet, or
@@ -552,7 +481,7 @@ impl IWnd for LibraryView
         {
             let font = unwrap .theme().createDefaultFontFamily(.themeMetrics().defaultFontSize).regular
             let text = .allItems.count == 0 ? appStrings().ui_LibraryEmpty : appStrings().ui_LibraryNoMatch
-            painter.drawString(clientRect.x, font.opticalLineTop(clientRect.y + LibraryCaptionLine), text, font, .themeColors().faintText)
+            painter.drawString(clientRect.x, font.opticalLineTop(clientRect.y + .themeMetrics().fileTile_NameHeight), text, font, .themeColors().faintText)
         }
 
         .scrollWnd.setScrollSize(0, y + cellHeight + LibraryCellRing)

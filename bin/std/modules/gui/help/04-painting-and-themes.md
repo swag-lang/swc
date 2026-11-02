@@ -67,6 +67,35 @@ Paint only inside the invalidated region when possible. Call
 [[Gui.Application.notifyThemeChanged]] recomputes styles and invalidates the
 interface after editing shared theme data.
 
+## Share rendering without creating a window per item
+
+Use a widget for an element that owns focus, input routing or an independent lifecycle. A
+virtualized view can share the same visual vocabulary through rendering helpers while retaining
+its own layout, selection model and loading policy. Helpers take explicit content and options,
+borrow graphics for the call, and read the host's theme. They do not create hidden windows,
+decode files, own textures or schedule work.
+
+[[Gui.FileTile.paint]] is the common renderer used by Scope's Explorer and Capture's Library.
+[[Gui.FileTile.Content]] supplies the preview, fallback icon, name, metadata and optional badge.
+[[Gui.FileTile.Options]] supplies the image fit, hover and selection state, caption visibility
+and name-animation position. Cover crops around the centre, Contain preserves the whole image,
+and Poster keeps landscape frames visible inside a portrait tile.
+
+```swag
+func paintLibraryCell(host: *Gui.Wnd, painter: *Pixel.Painter, preview: Pixel.Texture)
+{
+    let content = Gui.FileTile.Content{texture: preview, name: "Landscape.png", facts: "1920 × 1080", detail: "2 MB"}
+    let options = Gui.FileTile.Options{fit: .Contain, selected: true}
+    Gui.FileTile.paint(host, painter, Core.Math.Rectangle{16, 16, 180, 135}, &content, options)
+}
+```
+
+The rectangle describes the image. Reserve [[Gui.FileTile.captionHeight]] below it and the
+theme's outline outset around it. Paint only visible cells. A custom preview callback can draw
+a document excerpt inside the cell; the helper still owns its caption and interaction outline.
+The paint operation returns whether an active name overflows, allowing the host to advance
+`nameTick` on its existing timer rather than animating every item in the library.
+
 ## Defocus the backdrop of a floating window
 
 Set [[Gui.Wnd.backdrop]] to a [[Pixel.BackdropEffect]] before showing the window.

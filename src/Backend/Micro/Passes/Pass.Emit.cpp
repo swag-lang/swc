@@ -335,6 +335,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             // Call target is already materialized in ops[0] by earlier lowering stages.
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv);
             break;
+        case MicroInstrOpcode::CallAlignedIndirect:
+            encoder.encodeAlignedCallReg(ops[0].reg, ops[1].callConv, {static_cast<uint32_t>(ops[2].valueU64 >> 32), static_cast<uint32_t>(ops[3].valueU64 >> 32)});
+            break;
         case MicroInstrOpcode::LoadLabelAddress:
         {
             const uint32_t loadStart = encoder.size();

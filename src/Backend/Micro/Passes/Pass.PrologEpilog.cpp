@@ -727,6 +727,13 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     for (const auto& inst : context.instructions->view())
     {
         visitRegOperands(inst, storeOps, classify);
+        if (inst.op == MicroInstrOpcode::CallAlignedIndirect)
+        {
+            // RSP changes inside the encoded call. Keep an explicit frame register so
+            // unwinding from the callee never depends on that temporary stack position.
+            classify(conv.framePointer, MicroInstrRegMode::Use);
+            context.forceFramePointer = true;
+        }
 
         // A foreign convention can clobber registers that this function owes its
         // caller (System V XMM6-XMM15 inside a Swag function, for example). Same-ABI

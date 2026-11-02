@@ -29,6 +29,14 @@ struct StructReturnPassingInfo
     uint64_t passByValueSizeMask = 0;
 };
 
+struct AlignedCallStack
+{
+    // The caller reserves these bytes after copySize for the saved RSP and call target.
+    static constexpr uint32_t K_SAVE_SIZE = 2 * sizeof(uint64_t);
+    uint32_t                  copySize    = 0;
+    uint32_t                  alignment   = 0;
+};
+
 struct CallFloatArgs
 {
     // Two bits per ABI register: absent, f32, f64, or full/unknown width.

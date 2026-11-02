@@ -132,6 +132,7 @@ public:
     void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitAlignedCallReg(MicroReg reg, CallConvKind callConv, AlignedCallStack stack, uint8_t intArgMask, CallFloatArgs floatArgMask);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg, std::span<const MicroLabelRef> targetLabels = {});
     void emitLoadLabelAddress(MicroReg reg, MicroLabelRef labelRef);

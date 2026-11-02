@@ -491,6 +491,19 @@ void MicroBuilder::emitCallReg(const MicroReg reg, const CallConvKind callConv, 
     ops[3].valueU32         = floatArgMask.widths;
 }
 
+void MicroBuilder::emitAlignedCallReg(const MicroReg reg, const CallConvKind callConv, const AlignedCallStack stack, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
+{
+    SWC_ASSERT(stack.alignment > CallConv::get(callConv).stackAlignment && std::has_single_bit(stack.alignment));
+    SWC_ASSERT(stack.copySize % sizeof(uint64_t) == 0);
+    const auto&        inst = addInstruction(MicroInstrOpcode::CallAlignedIndirect, 4);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].callConv         = callConv;
+    // Keep the ordinary call masks in the low word for shared liveness queries.
+    ops[2].valueU64 = intArgMask | (static_cast<uint64_t>(stack.copySize) << 32);
+    ops[3].valueU64 = floatArgMask.widths | (static_cast<uint64_t>(stack.alignment) << 32);
+}
+
 void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::JumpCond, 3);

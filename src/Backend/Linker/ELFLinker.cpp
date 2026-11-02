@@ -139,7 +139,9 @@ namespace
             const fs::path path = directory / fs::path(object.name.c_str()).filename();
             if (!writeBytes(job, path, object.bytes))
                 return false;
-            paths.emplace_back(path);
+            // Tools run in the parent directory. Short relative operands avoid GNU ar's
+            // expensive comparisons of the shared absolute prefix in large member lists.
+            paths.emplace_back(path.lexically_relative(directory.parent_path()));
         }
         return true;
     }

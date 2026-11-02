@@ -1239,6 +1239,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Companion archives retain only module-specific runtime hooks; the generic lookup alias is
   created when linking the shared object. Static transitive consumers pass with DevMode and
   Release compilers, and a Core/Ogl archive consumer renders and reads pixels in JIT/native.
+  GNU tool response files use short paths relative to their working directory. On Pixel's
+  30,124-member archive, controlled rebuilding with the same ar options took 68 seconds with
+  long absolute operands versus 16 seconds with short operands; both 40 MB archives were byte-identical.
+  The compiler's 1,750 C++ tests pass with relative operands, including native/shared linking,
+  companion archives, deterministic artifacts and transitive initialization.
   Public ELF names include a lossless artifact identity, also emitted into generated Foreign
   attributes. Two modules exporting `value` now retain distinct calls in shared and static
   compositions; DevMode/Release consumers, the full C++ suite and a native Ogl importer pass.

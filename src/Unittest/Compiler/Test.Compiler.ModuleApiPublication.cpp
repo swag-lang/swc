@@ -90,6 +90,43 @@ namespace
     constexpr std::string_view CONSUMER_SOURCE = "#test\n{\n    const value: s32 = PublicationValue\n}\n";
 }
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
+{
+    ApiPublicationTestDirectory directory("UsingAfterDeclaration");
+    const fs::path module = directory.path() / "provider";
+    const fs::path api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+namespace Types { struct Value { number: s32 } }
+using Types
+func read(value: Value)->s32 => value.number
+)"));
+    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "UsingApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", "3"};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[using API export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { discard UsingApi.read(UsingApi.Types.Value{}) }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", "3", "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[using API import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebuilt)
 {
     ApiPublicationTestDirectory directory("Incomplete");

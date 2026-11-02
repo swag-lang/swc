@@ -630,10 +630,13 @@ namespace
 
         SmallVector<AstNodeRef> usingRefs;
         file.ast().appendNodes(usingRefs, rootNode.cast<AstFile>().spanUsingsRef);
+        // File-scope usings after a declaration live among the ordinary children.
+        // They still participate in signatures copied into the generated API.
+        file.ast().appendNodes(usingRefs, rootNode.cast<AstFile>().spanChildrenRef);
 
         for (const AstNodeRef usingRef : usingRefs)
         {
-            if (usingRef.isInvalid())
+            if (usingRef.isInvalid() || file.ast().node(usingRef).isNot(AstNodeId::UsingDecl))
                 continue;
 
             std::string_view snippetText;

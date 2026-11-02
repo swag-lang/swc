@@ -427,6 +427,84 @@ func injectStatement(statement: #code) { #inject(statement) }
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_JitTestsDropModuleStateBeforeRestoringGlobals)
+{
+    const RecoveryTestDirectory directory;
+    for (uint32_t phase = 0; phase < 4; ++phase)
+    {
+        const fs::path module = directory.path() / std::format("phase-{}", phase);
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#import(\"core\", location: \"swag@std\", link: \"shared-library\")\n"));
+        const std::string source = std::format("#global private\nconst FailurePhase = {}\n", phase) + R"(using Core
+var finished: Swag.AtomicValue'u32
+var thread: Threading.Thread
+
+func worker(current: const *Threading.Thread)
+{
+    let deadline = Time.monotonicMilliseconds() + 2000
+    while Time.monotonicMilliseconds() < deadline
+    {
+        if current.requestEnd.isRaised()
+        {
+            finished.store(1)
+            return
+        }
+        Threading.Thread.sleep(Time.Duration.fromMilliseconds(1))
+    }
+    finished.store(2)
+}
+
+#init
+{
+    expect thread.init(&worker)
+    expect thread.start()
+    if FailurePhase == 1 do
+        Swag.assert(false, "init-original")
+}
+
+#test
+{
+    if FailurePhase == 2 do
+        Swag.assert(false, "test-original")
+    Swag.print("test-called\n")
+}
+
+#drop
+{
+    Swag.print("drop-first\n")
+    if FailurePhase == 3 do
+        Swag.assert(false, "drop-original")
+}
+
+#drop
+{
+    thread.safeForceEnd()
+    thread.wait()
+    Swag.assert(finished.load() == 1)
+    Swag.print("drop-joined\n")
+}
+)";
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "lifecycle.swg", source));
+        const std::vector<Utf8> arguments = {
+            "test", "--module", Utf8(module), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        std::string                               output;
+        uint32_t                                  exitCode = 0;
+        const Os::ProcessRunOptions               options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 60000};
+        const auto                                result       = Os::runProcess(exitCode, Os::getExeFullName(), arguments, module, &options);
+        const uint32_t                            expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
+        constexpr std::array<std::string_view, 4> diagnostics  = {"", "init-original", "test-original", "drop-original"};
+        const size_t                              firstDrop    = output.find("drop-first");
+        const size_t                              joinedDrop   = output.find("drop-joined");
+        if (result != Os::ProcessRunResult::Ok || exitCode != expectedExit ||
+            firstDrop == std::string::npos || joinedDrop == std::string::npos || firstDrop >= joinedDrop ||
+            (phase && output.find(diagnostics[phase]) == std::string::npos) || output.find("compiler assertion") != std::string::npos)
+        {
+            std::println(stderr, "[JIT module cleanup phase {}] result={}, exit={}\n{}", phase, static_cast<uint32_t>(result), exitCode, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExportModuleJitTestsPrepareRuntime)
 {
     RecoveryTestDirectory directory;

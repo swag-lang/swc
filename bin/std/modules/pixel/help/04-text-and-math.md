@@ -8,6 +8,10 @@ or hit-testable links.
 
 ## Load a font
 
+Use [[Pixel.TypeFace.loadAt]] to select a zero-based face from a `.ttc` or `.otc` collection,
+or [[Pixel.TypeFace.createAt]] when the collection bytes are already in memory. The cache
+distinguishes the supplied name and face index; the returned typeface remains owned by Pixel.
+
 ```swag
 using Pixel
 

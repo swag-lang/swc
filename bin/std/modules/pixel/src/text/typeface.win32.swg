@@ -98,8 +98,8 @@ impl TypeFace
     {
         Sync.scopedLock(&lock)
 
-        let str  = String.from(fullName)
-        let here = g_HashTypeFace.tryFind(str)
+        let key  = TypeFaceCacheKey{String.from(fullName), 0}
+        let here = g_HashTypeFace.tryFind(key)
         if here do
             return here.value
 
@@ -118,7 +118,7 @@ impl TypeFace
         tf.face       = face
         tf.faceLoaded = true
 
-        g_HashTypeFace.add(str, tf)
+        g_HashTypeFace.add(key, tf)
         return tf
     }
 }

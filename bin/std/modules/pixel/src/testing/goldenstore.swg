@@ -244,6 +244,28 @@ private
         let actualPixels   = ComparisonPixels.create(actual)
         let sameStorage    = expectedPixels.packed and actualPixels.packed and
                              expected.pixelFormat == actual.pixelFormat and expected.alphaMode == actual.alphaMode
+        if options.maxChannelDelta == 0 and expectedPixels.packed and actualPixels.packed and
+           expected.alphaMode == .Straight and actual.alphaMode == .Straight and not sameStorage
+        {
+            // PNG stores red before blue, while headless surfaces return BGRA. Convert once with
+            // the packed SIMD path, then compare whole rows instead of computing four deltas per pixel.
+            let normalizedExpected = expected.convertedTo(actual.pixelFormat)
+            let rowBytes           = cast(u64, actual.width) * actual.bytesPerPixel
+            var rowsMatch          = true
+            for y in actual.height
+            {
+                let expectedRow = normalizedExpected.pixels.storage() + cast(u64, normalizedExpected.height - y - 1) * normalizedExpected.rowStride
+                let actualRow   = actual.pixels.storage() + cast(u64, actual.height - y - 1) * actual.rowStride
+                if Memory.compare(expectedRow, actualRow, rowBytes) != 0
+                {
+                    rowsMatch = false
+                    break
+                }
+            }
+            if rowsMatch do
+                return result
+        }
+
         for y in actual.height
         {
             let expectedRow = expected.pixels.storage() + cast(u64, expected.height - y - 1) * expected.rowStride

@@ -49,9 +49,26 @@ prove it. Operating-system integrations live in
   A call that omits position and size still succeeds, but the screen keeps the previous
   image (4e7ee4e873 froze every repaint after the first that way).
   Existing captures ran at 12â€“30 fps under load, so they cannot exclude a one-refresh artifact.
+- Reported failure: Swag Scope's explorer and Swag Vault intermittently flicker with horizontal
+  corruption on a DisplayLink-connected monitor. The user associates it with high GPU load;
+  it can disappear and return without restarting the application. The supplied 2751 x 1891
+  capture retains the top of the window while lower content is repeated or scrambled. The
+  original host report names Intel Arc graphics (32.0.101.8860) and DisplayLink USB devices
+  (11.5.6380.0). Neither GPU load nor
+  thumbnail decoding is established as the cause; the second application points to the shared
+  presentation path. The large native presentation test compares the GPU target with the CPU
+  bitmap across monitor placements, but cannot validate DisplayLink's final displayed pixels.
+- Windows also records `dlidusb4.dll` user-mode driver host termination and takes the DisplayLink
+  device and USB graphics dock offline (DriverFrameworks events 10121 and 10111). An OpenGL SVG
+  mask comparison failed during the same validation period and passed in isolation and in its
+  complete suite afterwards. That correlation does not establish the first corrupt stage.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.
-- Next: measure physical border-drag latency against std.gui.056 on both displays, and capture
+- Next: capture the GPU target, CPU presentation bitmap and desktop image from the same failing
+  frame on DisplayLink, comparing asynchronous dirty-region presentation with the existing
+  synchronous diagnostic path. Locate the first corrupt stage before changing synchronization,
+  row packing or render-target reuse. Also measure physical border-drag latency against
+  std.gui.056 on both displays, and capture
   discrete placement at verified display cadence across DPI and adapter boundaries. Measure
   sustained repaint cost with asynchronous dirty-region transfers. Keep the
   single-HWND publication contract for any faster presenter.
@@ -524,7 +541,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   ownership contract on the chosen backend.
 - Related: std.gui.054, platform.portability.066
 
-### std.gui.058 — Guard application teardown against late task notifications
+### std.gui.058 â€” Guard application teardown against late task notifications
 
 - Evidence: `Wnd.taskNotifier` gives worker closures a raw application pointer. Teardown
   destroys hosted window trees and surfaces, but no application invariant proves that every
@@ -605,7 +622,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: cache growth cannot invalidate an image being uploaded, reset/lifetime rules are
   explicit, and the concurrency boundary has a native regression test.
 
-### std.gui.062 — Reduce GPU setup cost in short headless tests
+### std.gui.062 â€” Reduce GPU setup cost in short headless tests
 
 - Evidence: `HeadlessHost` creates an OpenGL context, shaders, buffers and atlas uploads for
   every GPU host, including layout-only tests. On the same 283 functional Scope tests,

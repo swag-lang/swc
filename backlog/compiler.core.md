@@ -617,16 +617,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.095 — Workspace golden tests can lose their writable corpus
 
-- Evidence: `tools/goldens.bat dm test -bc devmode` with `SWAG_GOLDEN_CONTINUE=1`
-  reaches the GUI tests after Pixel, but refuses to write `backdrop.lens.paper.actual.png`,
+- Evidence: an earlier workspace JIT golden collection with `SWAG_GOLDEN_CONTINUE=1`
+  reached the GUI tests after Pixel, but refused to write `backdrop.lens.paper.actual.png`,
   `lens.paper.actual.png`, and `lens.inline.paper.actual.png` as outside the sandbox.
-  The collection continues without producing those images. The test command is supposed to
+  The collection continued without producing those images. The test command is supposed to
   grant the module or workspace corpus through `effectiveGeneratedArtifactRunArgs`.
-- Workaround verified on this campaign: pass
-  `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` explicitly. The missing GUI
-  images are then recorded with the sandbox still enabled.
-- Next: reduce this to two workspace modules that record a file beside their tests; trace the
-  generated run arguments and the lifetime of Core's process-wide corpus across JIT modules.
+- An explicit `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` allowed those
+  writes with the sandbox still enabled. The current golden tool starts a separate native test
+  command for each module, so its passing collection does not exercise that JIT transition.
+- Next: select JIT execution explicitly and reduce this to two workspace modules that record a
+  file beside their tests; trace the generated run arguments and the lifetime of Core's
+  process-wide corpus across JIT modules.
 - Done when: every module can record inside its own authorized corpus in a workspace test,
   writes outside that corpus remain refused, and a workspace regression covers the transition.
 
@@ -715,8 +716,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   operand lists and mapped cache publication. Check warm/incremental cache behavior as well as
   full builds, and separate resident memory from private backing. Keep the independent
   no-large-pages allocator candidate in compiler.core.097 separate from accepted defaults.
-  Rebuild DevMode from the integrated source before resuming: its retained executable predates
-  master's independent `MemToReg` repair; the final integrated Release build/application passed.
 - Preserve unresolved failures and variation: compiler.core.085 owns generic instance/string
   differences and the varying `Lens.View.create` borrow mask; compiler.core.096 owns the heap
   visitor assertion. Improve generic specialization identity in Micro listings before treating
@@ -743,7 +742,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: separate-workspace consumers can call both forwarding forms after producer
   specialization, with native and JIT coverage and no ambiguous import candidates.
 
-### compiler.core.101 — Avoid rebuilding production dependencies for test-only edits
+### compiler.core.103 — Avoid rebuilding production dependencies for test-only edits
 
 - Evidence: changing an assertion in GUI's guarded `src/tests/headless.render.test.swg`
   makes `swc test --workspace bin/std --workspace-module gui` rebuild `gui.dll` before
@@ -775,7 +774,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
 - **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
 
-### compiler.core.102 — Align module drop-hook order across native, script and JIT execution
+### compiler.core.104 — Align module drop-hook order across native, script and JIT execution
 
 - Evidence: `NativeBackendBuilder` sorts drop functions by source position, while
   `NativeArtifactBuilder` and `Command.Build` invoke the list forwards. The lifecycle reference

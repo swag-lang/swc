@@ -57,16 +57,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   checkpoints. Reduce any failure to the owning renderer or transfer test before changing it.
 - Done when: the corruption is reproduced and fixed with a regression that fails without the
   fix; a green smoke alone does not close this report.
-- Related: std.pixel.025, repo.tooling.012
-
-### app.scope.009 — The Markdown lens golden omits the outline icon and shortcut
-
-- Evidence: `viewer.lens.markdown.encre` in `viewerwindow.test.swg` differs on the CPU
-  headless renderer only around the Outline entry: the current row includes its icon and
-  `Ctrl Shift O`, which the reference omits.
-- Next: confirm the intended Outline entry and update its approved golden through the golden
-  tool, preserving the rest of the lens.
-- Done when: the Markdown lens golden agrees with its intended icon and shortcut and passes.
+- Related: repo.tooling.012
 
 ### app.scope.001 — One document per window
 

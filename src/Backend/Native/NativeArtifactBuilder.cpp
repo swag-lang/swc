@@ -738,6 +738,8 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
     // code reference; constant offsets are only known once every root has been emitted.
     NativeGlobalLayout& layout = builder_->globalLayout;
     layout.build(*builder_);
+    builder_->mergedData.requireAlignment(layout.initAlignment());
+    builder_->mergedBss.requireAlignment(layout.zeroAlignment());
     SWC_RESULT(rdataCollector.collectGlobalRoots());
     SWC_RESULT(rdataCollector.emitCollectedRoots());
 

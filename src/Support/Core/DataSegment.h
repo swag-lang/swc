@@ -57,6 +57,7 @@ public:
     struct LargeBlockStorageDeleter
     {
         uint32_t proximitySize = 0;
+        uint32_t alignment     = alignof(std::max_align_t);
 
         void operator()(std::byte* ptr) const noexcept;
     };

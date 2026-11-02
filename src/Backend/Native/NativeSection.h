@@ -1,6 +1,7 @@
 #pragma once
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,6 +25,15 @@ struct NativeSectionData
     uint32_t                             characteristics = 0;
     bool                                 bss             = false;
     uint32_t                             bssSize         = 0;
+
+    // Storage offsets and the section base must both satisfy every contained allocation.
+    void requireAlignment(const uint32_t alignment)
+    {
+        SWC_ASSERT(std::has_single_bit(alignment));
+        constexpr uint32_t K_ALIGNMENT_MASK = 0x00F00000u;
+        const uint32_t     flags            = (std::countr_zero(std::min(alignment, 8192u)) + 1) << 20;
+        characteristics                     = (characteristics & ~K_ALIGNMENT_MASK) | std::max(characteristics & K_ALIGNMENT_MASK, flags);
+    }
 };
 
 struct NativeCodeRelocationTarget

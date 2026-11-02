@@ -30,6 +30,8 @@ public:
     std::span<const Allocation> initAllocations() const { return init_.order; }
     uint32_t                    initSize() const { return init_.size; }
     uint32_t                    zeroSize() const { return zero_.size; }
+    uint32_t                    initAlignment() const { return init_.align; }
+    uint32_t                    zeroAlignment() const { return zero_.align; }
 
     // The emitted offset of a segment offset that the layout reached.
     uint32_t map(DataSegmentKind kind, uint32_t sourceOffset) const noexcept;
@@ -40,7 +42,8 @@ private:
         std::vector<Allocation>      order;
         std::vector<Allocation>      bySource;
         std::unordered_set<uint32_t> reached;
-        uint32_t                     size = 0;
+        uint32_t                     size  = 0;
+        uint32_t                     align = 1;
     };
 
     const Segment& segment(DataSegmentKind kind) const noexcept;

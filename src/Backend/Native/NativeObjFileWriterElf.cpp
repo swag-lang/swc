@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeObjFileWriterElf.h"
 #include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Linker/ELFSymbolTable.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeImageBuilder.h"
 #include "Main/CompilerInstance.h"
@@ -12,11 +13,17 @@ Result NativeObjFileWriterElf::buildObjectFile(ByteArray& outBytes, const Native
     outBytes.clear();
     LinkImage image;
     SWC_RESULT(NativeImageBuilder::buildObject(image, *builder_, description));
+    std::vector<SymbolTable::Entry> symbols;
+    symbols.reserve(description.functions.size());
     for (const NativeFunctionInfo* function : description.functions)
     {
         if (function->exported && !function->exportName.empty())
             image.exports.push_back({.name = function->exportName, .symbolName = function->symbolName});
+        SymbolTable::Entry entry;
+        if (SymbolTable::makeEntry(entry, builder_->ctx(), *function))
+            symbols.push_back(std::move(entry));
     }
+    ELFSymbolTable::appendObject(image, symbols);
     Diagnostic diagnostic;
     if (!buildElfObject(outBytes, diagnostic, image))
         return builder_->reportError(diagnostic);

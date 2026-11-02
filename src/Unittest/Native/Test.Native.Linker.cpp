@@ -800,6 +800,64 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRuntimeSymbolsResolveStaticAndSharedFrames)
+{
+    for (const bool shared : {false, true})
+    {
+        const LinkerTestDirectory directory(shared ? "runtime_symbols_shared" : "runtime_symbols_static");
+        SWC_RESULT(directory.write("modules/symbols/module.swg", std::format("#run {{ let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"NativeSymbols\"; cfg.backendKind = .{} }}\n", shared ? "SharedLibrary" : "StaticLibrary")));
+        SWC_RESULT(directory.write("modules/symbols/src/leaf.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
+public func leaf()
+{
+    Swag.panic("native-symbol-probe", #curlocation)
+}
+)"));
+        SWC_RESULT(directory.write("modules/consumer/module.swg", std::format("#import(\"symbols\"{})\n#run {{ let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"SymbolConsumer\"; cfg.backendKind = .Executable; cfg.publishDependencies = true }}\n", shared ? ", link: \"shared-library\"" : "")));
+        SWC_RESULT(directory.write("modules/consumer/src/caller.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
+func caller()
+{
+    NativeSymbols.leaf()
+}
+#main { caller() }
+)"));
+        const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", "3", "--rebuild", "--no-log-color"};
+        SWC_RESULT(runCompiler(arguments, ExitCode::Success, ""));
+        const fs::path              artifacts  = directory.path() / ".output/consumer/executable/devmode/x86_64";
+        const fs::path              executable = artifacts / "consumer";
+        const fs::path              library    = artifacts / "symbols.so";
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102)
+            return Result::Error;
+        const auto leaf   = output.find("NativeSymbols.leaf --> ");
+        const auto caller = output.find("SymbolConsumer.caller --> ");
+        if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:3", caller) == std::string::npos)
+        {
+            std::println(stderr, "[ELF runtime symbols] {}", output);
+            return Result::Error;
+        }
+
+        // Runtime tables are file metadata: they must not create loaded segments or
+        // text relocations. Removing them leaves ordinary panic reporting usable.
+        for (const fs::path& artifact : shared ? std::vector<fs::path>{executable, library} : std::vector<fs::path>{executable})
+        {
+            output.clear();
+            const std::vector<Utf8> inspect = {"-lW", "-d", Utf8(artifact)};
+            if (Os::runProcess(exitCode, "readelf", inspect, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
+                return Result::Error;
+            output.clear();
+            const std::vector<Utf8> strip = {"--remove-section=.swagdbg", Utf8(artifact)};
+            if (Os::runProcess(exitCode, "objcopy", strip, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode)
+                return Result::Error;
+        }
+        output.clear();
+        if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("native-symbol-probe") == std::string::npos || output.find("runtime trace") != std::string::npos)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDwarfResolvesSourceAcrossObjectContributions)
 {
     const LinkerTestDirectory directory("dwarf_source");

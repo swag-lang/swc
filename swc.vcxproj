@@ -205,6 +205,7 @@
         <ClCompile Include="src\Unittest\Native\Test.Native.CoffReader.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.Linker.cpp"/>
+        <ClCompile Include="src\Unittest\Native\Test.Native.ElfSymbolTable.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.PeWriter.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.Pdb.cpp"/>
         <ClCompile Include="src\Unittest\Sema\Test.Sema.DecisionProcedures.cpp"/>
@@ -252,6 +253,7 @@
         <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp"/>
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\ELFObjectWriter.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFSymbolTable.cpp"/>
         <ClCompile Include="src\Backend\Linker\ELFLinker.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp"/>
@@ -928,6 +930,7 @@
         <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\ELFObjectWriter.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFSymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\ELFLinker.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h"/>

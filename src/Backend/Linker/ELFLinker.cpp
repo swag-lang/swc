@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/ELFLinker.h"
+#include "Backend/Linker/ELFSymbolTable.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
@@ -115,6 +116,9 @@ namespace
                                      bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
         if (!valid)
             return linkError(job, "the GNU toolchain did not produce the requested ELF64 artifact");
+        Utf8 symbolError;
+        if (!archive && !ELFSymbolTable::finalizeImage(bytes, symbolError))
+            return linkError(job, symbolError.view());
         const auto replacement = archive ? FileSystem::FileReplacement::Mapped : FileSystem::FileReplacement::Ordinary;
         if (FileSystem::writeBinaryFileAtomic(destination, bytes.data(), bytes.size(), error, replacement) != Result::Continue)
             return linkError(job, FileSystem::describeIoFailure(error));

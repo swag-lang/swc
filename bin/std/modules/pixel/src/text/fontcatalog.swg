@@ -57,7 +57,7 @@ private func compareFontCatalogFaces(a, b: FontFileFace)->s32
     return a.faceIndex <=> b.faceIndex
 }
 
-private func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamilyStyle)->u32
+internal func fontCatalogStyleScore(face: const *FontFileFace, style: FontFamilyStyle)->u32
 {
     let italic     = (face.metadata.style & .Italic) != 0
     let wantItalic = style == .Italic or style == .BoldItalic

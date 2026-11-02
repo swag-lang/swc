@@ -31,7 +31,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
+Core API generation succeeds: all 2,077 declarations and 379 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
 
@@ -786,6 +786,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   identities accumulating from repeated unload/reload. Window operations stay on the creating
   thread; module shutdown invalidates owners before releasing native state. Connection-loss,
   module-unload stress and window-manager integration still need dedicated execution.
+  `WindowCallbacks.onFocus` now routes X11 focus gain/loss on the owning thread. Two native/JIT
+  tests change real Xvfb focus between windows, move an owner with a queued event, and close from
+  the callback. A separate importing module also passes both modes. The common callback and
+  Windows dispatch adapter are shared; actual GUI focus policy remains part of GUI integration.
   Core cursor visibility uses optional XFixes 4 and a serialized process-wide show/hide counter.
   Only zero crossings issue native requests; a rejected request leaves the counter unchanged.
   Missing displays or extensions are neutral, and extension presence is checked before negotiation.

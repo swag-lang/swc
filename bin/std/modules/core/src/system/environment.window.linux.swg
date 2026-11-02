@@ -54,7 +54,7 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     window.drawable      = {context.connection, window.id, context.screen.root_visual, context.screenIndex}
     window.protocolsAtom = try LinuxDesktop.atom(context, "WM_PROTOCOLS")
     window.deleteAtom    = try LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
-    let values: [2]u32 = [context.screen.black_pixel, (1 << 15) | (1 << 17)]
+    let values: [2]u32 = [context.screen.black_pixel, (1 << 15) | (1 << 17) | Linux.XCB_EVENT_MASK_FOCUS_CHANGE]
     try LinuxDesktop.check(context,
                            context.xcb_create_window_checked(connection,
                                                              context.screen.root_depth,
@@ -288,6 +288,8 @@ public func processWindowMessages()->bool
         var id: u32
         switch kind
         {
+        case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT:
+            id = cast(*Linux.xcb_focus_in_event_t, cast(*void, event)).event
         case 12: id = cast(*Linux.xcb_expose_event_t, cast(*void, event)).window
         case 17: id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
         case 22: id = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event)).window
@@ -303,6 +305,11 @@ public func processWindowMessages()->bool
         let owner = window.owner
         switch kind
         {
+        case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT:
+            let callback = owner.callbacks.onFocus
+            if callback do
+                callback(owner, kind == Linux.XCB_FOCUS_IN)
+
         case 12:
             let paint    = cast(*Linux.xcb_expose_event_t, cast(*void, event))
             let callback = owner.callbacks.onPaint

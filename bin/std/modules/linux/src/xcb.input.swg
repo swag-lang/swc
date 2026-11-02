@@ -138,3 +138,9 @@ alias xcb_leave_notify_event_t = xcb_enter_notify_event_t
 
 // Shares the native focus in packet layout.
 alias xcb_focus_out_event_t = xcb_focus_in_event_t
+
+// Sets native input focus; the target must be viewable unless it is None or PointerRoot.
+//
+// The returned cookie is checked with xcb_request_check; this call owns no connection.
+#[Swag.CallingConvention(.C)]
+alias xcb_set_input_focus_checked_fn = func(*void, u8, u32, u32)->xcb_void_cookie_t

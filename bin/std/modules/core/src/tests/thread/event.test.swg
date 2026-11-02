@@ -1,8 +1,16 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if WINDOWS
 #global private
 
 using Swag
+
+#static if #os == Swag.TargetOs.Windows
+{
+    const InvalidEventError = 6
+}
+else
+{
+    const InvalidEventError = 22
+}
 
 var eventStatusPanicCount:     u32
 var eventStatusBorrowLive:     bool
@@ -69,7 +77,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
         catch signal.raise() as errorOutcome
         let error = errorOutcome.value()
         if error is SystemError as value do
-            validCodes = validCodes and value.errorID == 6
+            validCodes = validCodes and value.errorID == InvalidEventError
         else do
             validCodes = false
     }
@@ -82,7 +90,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
         catch reset.raise() as errorOutcome
         let error = errorOutcome.value()
         if error is SystemError as value do
-            validCodes = validCodes and value.errorID == 6
+            validCodes = validCodes and value.errorID == InvalidEventError
         else do
             validCodes = false
     }
@@ -95,7 +103,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
         catch wait.raise() as errorOutcome
         let error = errorOutcome.value()
         if error is SystemError as value do
-            validCodes = validCodes and value.errorID == 6
+            validCodes = validCodes and value.errorID == InvalidEventError
         else do
             validCodes = false
     }

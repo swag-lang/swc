@@ -14,12 +14,12 @@ The checked dependency layers and their path ownership are defined in
 Current Linux validation: the last complete C++ run passed 1,750 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
 core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
-(8), environment (3), hardware (1), native libraries (2), threads (3), timer lifecycle (2), processes
+(8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
-Core API generation succeeds: all 2,060 declarations and 378 exposed members have comments;
+Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
 
@@ -685,18 +685,26 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.022
 - Done when: A sender can release or mutate its source buffer after posting a message without changing the payload observed during dispatch, and tests cover queued delivery, cancellation or target destruction, and payload cleanup without exposing native handles in the common event API.
 
-### platform.portability.035 — Synchronization primitives have no second-platform backend
+### platform.portability.035 — Named Linux events and synchronization stress remain
 
-- Next: implement mutexes, read-write locks, conditions, and events for the chosen second platform
-  behind the existing portable contracts.
-- Evidence: `bin/runtime` reaches them through its `__hostLock*`, `__hostCondition*` and
-  `__hostThread*` functions. Core also retains Windows-only `Sync.Event`, including the named
-  interprocess event used by Prism through `initNamed`; that contract is not supplied by the runtime
-  lock/condition hooks alone. A second backend must match its shared-name scope, reset mode,
-  signal-before-wait behavior, and independent handle lifetimes without exposing Windows handles or
-  the `Local\` namespace to common callers.
+- Next: implement named interprocess events behind `Sync.Event.initNamed`, then extend runtime
+  lock, read-write lock, condition and event stress across shutdown and module boundaries.
+- Evidence: Linux runtime locks and conditions use the `__hostLock*` and `__hostCondition*`
+  hooks. Core now implements unnamed auto-reset and manual-reset events with pthread mutexes
+  and conditions. Signals assigned to existing waiters survive a subsequent reset; signals
+  with no waiter coalesce. Ownership requires all operations to finish before release.
+  Five public cases pass in JIT/native: deferred error handling without allocation/hooks,
+  pre-wait coalescing, publication between threads, broadcast and reset during active waits.
+  A separate archive consumer completes 100 request/completion exchanges in both modes.
+  Native storage sizes and alignments agree with the host glibc C headers.
+  Windows still needs native validation; cross-target Core sema on Linux stops at the existing
+  Windows runtime log/logf imports, before it can validate the complete module.
+- Named scope remains Windows-only: Prism's interprocess event must retain shared-name scope,
+  reset mode, signal-before-wait behavior and independent opener lifetimes without exposing
+  Windows handles or the `Local\` namespace to common callers.
 - Related: platform.portability.034, language.parallelism.003
-- Done when: The chosen second platform passes runtime lock, read-write lock, condition, thread, and event contract tests, including concurrent waits and shutdown; named Core events preserve cross-process scope, reset and signal-before-wait semantics without leaking native handle or namespace types into common callers.
+- Done when: Linux passes synchronization stress and shutdown tests, and named Core events
+  preserve cross-process scope, reset and lifetime semantics through the portable contract.
 
 ### platform.portability.062 — Drag and drop has no second-platform integration
 

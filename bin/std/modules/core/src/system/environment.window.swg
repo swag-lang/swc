@@ -13,6 +13,15 @@ alias WindowResizeCallback = func||(*Window, s32, s32)
 // its window; the dispatcher does not access the owner after returning from this callback.
 alias WindowFocusCallback = func||(*Window, bool)
 
+// Handles a native close request without automatically destroying the window.
+//
+// Runs on the window-owning thread. The callback may move or close its window; the dispatcher
+// does not access the owner after it returns. It may also leave the window open to defer or
+// decline the request. [[Core.Env.WindowOptions.stopLoopOnClose]] independently determines
+// whether the request stops the event loop. Explicit [[Core.Env.Window.close]] calls and native
+// destruction do not invoke this callback.
+alias WindowCloseRequestCallback = func||(*Window)
+
 // Identifies the mouse action delivered to a window.
 enum WindowPointerKind
 {
@@ -53,10 +62,11 @@ struct WindowCallbacks
 {
     public
     {
-        onPaint:   WindowPaintCallback?       // Invoked for a paint request.
-        onResize:  WindowResizeCallback?      // Invoked with the new client size in physical pixels.
-        onFocus:   WindowFocusCallback?       // Invoked when native keyboard focus is gained or lost.
-        onPointer: WindowPointerCallback?     // Invoked for mouse movement, buttons, or wheel input.
+        onPaint:        WindowPaintCallback?            // Invoked for a paint request.
+        onResize:       WindowResizeCallback?           // Invoked with the new client size in physical pixels.
+        onFocus:        WindowFocusCallback?            // Invoked when native keyboard focus is gained or lost.
+        onPointer:      WindowPointerCallback?          // Invoked for mouse movement, buttons, or wheel input.
+        onCloseRequest: WindowCloseRequestCallback?     // Invoked when the desktop asks to close this window.
     }
 }
 
@@ -85,6 +95,17 @@ struct WindowOptions
         width:      s32        // Width in logical units.
         height:     s32        // Height in logical units.
         flags:      WindowFlags = .Standard     // Window-manager capabilities.
+
+        // Whether closing this window requests termination of the shared window event loop.
+        //
+        // Defaults to true: a native close request or destruction stops the loop, even when
+        // another window remains open. False leaves both closure and loop termination to the
+        // application, including when its last window closes. A close request never destroys
+        // the window automatically; [[Core.Env.WindowCallbacks.onCloseRequest]] may handle it.
+        // Without a callback, false leaves close requests unhandled. The policy is fixed when
+        // [[Core.Env.createWindow]] creates the window and follows it through ownership moves.
+        // It does not suppress an external quit message, display failure or smoke frame limit.
+        stopLoopOnClose: bool = true
     }
 }
 
@@ -101,23 +122,26 @@ struct Window
 {
     internal
     {
-        nativeHandle: const *void?     // Opaque platform window storage.
+        nativeHandle:    const *void?     // Opaque platform window storage.
+        stopLoopOnClose: bool = true      // Creation policy retained through ownership moves.
     }
 
     public callbacks: WindowCallbacks     // Callbacks dispatched by the platform event adapter.
 }
 
-// Pumps window events until closing is requested or a smoke run's frame budget is spent.
+// Pumps window events until the desktop requests exit or a smoke run's frame budget is spent.
 //
-// A close request stops the loop while the window is still open. Release resources that use
-// its native handle before closing the window or leaving its scope.
+// By default, a close request stops the loop while the window is still open. Release resources
+// that use its native handle before closing it or leaving its scope. Windows created with
+// [[Core.Env.WindowOptions.stopLoopOnClose]] false leave closure and loop termination to the
+// application; even closing the last such window does not stop this loop.
 struct WindowLoop
 {
     // Frames a smoke run should render for this program, or zero to take the launcher's budget.
     //
     // A program that cycles through pages knows how many frames it takes to show them all,
     // and that count is a property of its content rather than of whoever launched it. It has
-    // no effect on a normal run, which ends when the window is asked to close.
+    // no effect on a normal run, which follows each window's close policy.
     public smokeFrames: u32
 
     internal
@@ -160,7 +184,9 @@ impl Window
     // Closes the window if it is still open.
     //
     // Calling `close` repeatedly is safe. Failure leaves the platform resource owned by this
-    // value, so a later call or scope cleanup can retry the release.
+    // value, so a later call or scope cleanup can retry the release. Does not invoke
+    // [[Core.Env.WindowCallbacks.onCloseRequest]]. Successful destruction requests loop
+    // termination only when the window was created with [[Core.Env.WindowOptions.stopLoopOnClose]] true.
     mtd close() fail
     {
         if not .isOpen() do
@@ -268,6 +294,7 @@ impl Window
 func createWindow(options: WindowOptions)->Window fail
 {
     var result: #returntype
+    result.stopLoopOnClose = options.stopLoopOnClose
     defer #fail catch result.close()
     try createWindowNative(&result, options)
     try result.setClientSize(options.width, options.height)

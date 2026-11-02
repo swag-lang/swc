@@ -137,6 +137,7 @@ struct Explorer
     artworkSource:   ExplorerArtworkSource = .Online
     menuPaths:       Array'String
     previewSettings: String
+    previewEpoch:    u64
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     extraction:      ArchiveExtraction
     toast:           *Toast?
@@ -1107,10 +1108,12 @@ impl Explorer
             .startListing()
     }
 
-    // Lists the folder again. Changed files have new cache identities; unchanged previews remain
-    // immediately available while the listing is refreshed.
+    // Lists the folder again and gives its previews a fresh cache identity. This also refreshes
+    // media on shares whose timestamps do not change when their contents do.
     mtd forceRefresh()
     {
+        .previewEpoch = Time.Timestamp.utcNow().ticks
+        .previewSettings.clear()
         .navigate(.listing.path, .folder, false)
     }
 
@@ -1727,7 +1730,8 @@ impl Explorer
     mtd refreshPreviewSettings()
     {
         let settings = ThumbnailSettings.capture(.window,
-                                                 localArtworkOnly: .artworkSource == .Local)
+                                                 localArtworkOnly: .artworkSource == .Local,
+                                                 previewEpoch: .previewEpoch)
         if .previewSettings == settings do
             return
 
@@ -1875,7 +1879,7 @@ impl Explorer
         preview.generation  = .generation
         preview.opening     = opening
         preview.online      = online
-        preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local)
+        preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -1946,6 +1950,10 @@ impl IWnd for Explorer
 
                 if preview.generation == .generation
                 {
+                    if not preview.opening and not preview.online do
+                        .entries[preview.index].onlinePending = preview.needsOnline
+                    if preview.index == .selected and not preview.error.isEmpty() do
+                        .setStatus(preview.error)
                     if preview.opening
                     {
                         if preview.error.isEmpty() and not .temporaryFiles.isEmpty() do
@@ -1957,16 +1965,6 @@ impl IWnd for Explorer
                     {
                         if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
                             .entries[preview.index].albumTrack = preview.mediaFile
-                        if not preview.online do
-                            .entries[preview.index].onlinePending = preview.needsOnline
-                        if preview.posterPending
-                        {
-                            .requestPreview()
-                            return
-                        }
-
-                        if preview.index == .selected and not preview.error.isEmpty() do
-                            .setStatus(preview.error)
                         let replacing = .entries[preview.index].texture.isValid()
                         if not replacing and .cached.count >= 128
                         {

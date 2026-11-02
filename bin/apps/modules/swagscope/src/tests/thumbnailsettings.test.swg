@@ -3,6 +3,29 @@
 
 using Core, Gui, Pixel, Viewers
 
+// Refresh retries unchanged files instead of reusing a failed or stale preview identity.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.setMode(.Names)
+    let source = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", "comprehensive.txt")
+    explorer.listing.path = unwrap Path.directoryName(source)
+    explorer.refreshPreviewSettings()
+    let original = expect ThumbnailCache.key(source, settings: explorer.previewSettings)
+    explorer.forceRefresh()
+    completeExplorer(&host, explorer)
+    explorer.refreshPreviewSettings()
+    let refreshed = expect ThumbnailCache.key(source, settings: explorer.previewSettings)
+    Swag.assert(refreshed != original)
+    explorer.forceRefresh()
+    completeExplorer(&host, explorer)
+    explorer.refreshPreviewSettings()
+    Swag.assert((expect ThumbnailCache.key(source, settings: explorer.previewSettings)) != refreshed)
+}
+
 // Appearance changes leave previews intact; changing the selected viewer retires them.
 #test
 {

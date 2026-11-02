@@ -32,7 +32,7 @@ private func subtitleFixturePath()->String => Path.combine(unwrap Path.directory
 // WebVTT accepts cue identifiers and settings while exposing only readable text.
 #test
 {
-    const Source = "WEBVTT\n\nintro\n00:00.100 --> 00:02.500 align:start position:10%\n<v Narrator>Hello &amp; <b>welcome</b></v>\n"
+    const Source = "WEBVTT\n\nSTYLE\n::cue {\ncolor: lime;\n}\n\nREGION\nid:main\nwidth:80%\n\nNOTE ignored comment\nnot a cue\n\nintro\n00:00.100 --> 00:02.500 align:start position:10%\n<v Narrator>Hello &amp; <b>welcome</b></v>\n"
     let track = expect Subtitle.Track.decode("sample.vtt", Source)
     Swag.assert(track.format == .WebVtt and track.cues.count == 1)
     Swag.assert(track.cueContent(0) == "Hello & welcome")

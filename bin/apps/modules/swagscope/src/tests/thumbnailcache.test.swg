@@ -53,6 +53,27 @@ using Core, Pixel, Gui
     Swag.assert(changed != (expect ThumbnailCache.key(source, executable: app)))
 }
 
+// A local codec failure still leaves the online artwork pass eligible.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-no-codec-%.mkv", Guid64.random()))
+    discard expect File.writeAllText(source, "not a decodable film")
+    defer catch File.delete(source)
+    var buffer:  ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true})
+    var preview: ExplorerPreview
+    preview.path     = source
+    preview.settings = buffer.toString()
+    preview.start(&host.surfaceWnd)
+    preview.wait()
+    host.pump()
+    Swag.assert(not preview.image.isValid() and not preview.error.isEmpty())
+    Swag.assert(preview.needsOnline)
+}
+
 // A cached preview survives a fresh operation and avoids launching the renderer process.
 #test
 {

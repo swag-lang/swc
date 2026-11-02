@@ -50,7 +50,7 @@ impl ThumbnailService
         let output  = Path.combine(.directory, "preview.png")
         catch File.delete(done)
         catch File.delete(output)
-        discard try File.writeAllText(Path.combine(.directory, "settings"), settings)
+        discard try File.writeAllBytes(Path.combine(.directory, "settings"), cast(const [..] u8, settings))
         discard try File.writeAllText(request, path)
         discard try File.writeAllText(Path.combine(.directory, "ready"), "")
         let started = Time.monotonicMicroseconds()
@@ -129,8 +129,8 @@ func runThumbnailWorker(directory: string) fail
         catch
         {
             let settingsPath = Path.combine(directory, "settings")
-            let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : {}
-            var settings     = try ThumbnailSettings.decode(bytes)
+            let bytes        = File.exists(settingsPath) ? try File.readAllBytes(settingsPath) : {}
+            var settings     = try ThumbnailSettings.decode(cast(string, bytes.toSlice()))
             var image        = try renderThumbnail(&registry, &renderer, &settings, path)
 
             let largest = Math.max(image.width, image.height)

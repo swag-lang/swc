@@ -25,8 +25,8 @@
     environment.set("SWAG_PROCESS_VALUE", "exact value")
     let arguments = ["-c", "printf '<%s>' \"$@\"; printf '|%s|%s' \"$SWAG_PROCESS_VALUE\" \"$PWD\"; printf error >&2; exit 37", "probe",
                      "", "two words", "quote\"value", "back\\slash", "é"]
-    var process = expect Env.runProcess({fileName: "/bin/sh", arguments: arguments, environment: &environment,
-                                         workingDirectory: "/", standardInput: .Discard, standardOutput: .Pipe, standardError: .Pipe})
+    var process = expect Env.runProcess(Env.StartInfo{fileName: "/bin/sh", arguments: arguments, environment: &environment,
+                                                      workingDirectory: "/", standardInput: .Discard, standardOutput: .Pipe, standardError: .Pipe})
     Swag.assert(process.exitCode() == 37 and not process.isRunning())
     Swag.assert(process.standardOutput() == "<><two words><quote\"value><back\\slash><é>|exact value|/")
     Swag.assert(process.standardError() == "error")
@@ -41,7 +41,7 @@
 #test
 {
     // More than pipe capacity in both directions exposes a writer that forgets to drain stdout.
-    var process = expect Env.startProcess({fileName: "/bin/cat", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe})
+    var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/cat", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe})
     var data: String
     for 32768 do
         data.append("abcdefgh")
@@ -76,7 +76,7 @@
 #test
 {
     // The exit is observed before writing, so no reader remains and EPIPE is deterministic.
-    var process = expect Env.startProcess({fileName: "/bin/true", standardInput: .Pipe})
+    var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/true", standardInput: .Pipe})
     discard expect process.waitForExit()
     var outcome: Swag.Error
     catch process.writeStandardInput("closed reader") as outcome
@@ -118,7 +118,7 @@
     unsupported({fileName: "/swag-missing-process", affinityMask: 1})
     unsupported({fileName: "/swag-missing-process", measureResources: true})
     var outcome: Swag.Error
-    discard catch Env.startProcess({fileName: "/swag-missing-process", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe}) as outcome
+    discard catch Env.startProcess(Env.StartInfo{fileName: "/swag-missing-process", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe}) as outcome
     Swag.assert(outcome.value() is Errors.FileNotFoundError)
 }
 

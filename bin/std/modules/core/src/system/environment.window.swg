@@ -49,6 +49,10 @@ struct WindowOptions
 //
 // Create a window with [[Core.Env.createWindow]]. The value closes any remaining window
 // when it leaves scope; call [[Core.Env.Window.close]] to release it earlier.
+// On Linux, windows use X11/XWayland and belong to the thread that creates the first
+// window. Creation, methods, moves, destruction and event dispatch must stay on that
+// thread. Logical units equal physical pixels; native Wayland and automatic scaling
+// are not provided. Console-only use of Core does not load a desktop library.
 #[Swag.NoCopy]
 struct Window
 {
@@ -169,6 +173,8 @@ impl Window
     // its drawable is complete — which is what a graphics context needs before it can render and
     // read back — while nothing appears on screen and nothing steals the focus. A headless check
     // that needs a real drawable asks for this instead of [[Core.Env.Window.show]].
+    // On Linux, at least one client dimension must be at most 32768 pixels so X11 can
+    // place the complete drawable outside its root screen; larger pairs fail.
     mtd showOffScreen() fail
     {
         if .isOpen() do

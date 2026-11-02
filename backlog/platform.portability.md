@@ -12,8 +12,14 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,747 tests. The raw Linux module
-passes 24 tests in JIT and native ELF. Whole-Core compilation still reports 14 missing-service
-diagnostics (windows/monitors, mouse and keyboard); Core ownership, timer and sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
+passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
+core.so and compiles its test sources. Two public memory cases pass in JIT; the initial X11
+window/monitor/input cases pass in JIT/native, including an unavailable-display run. The remaining
+resource-owner, timer, process and sandbox suites are ready to execute. Older entry-level counts
+and missing-service blockers below record earlier checkpoints, not the current compilation state.
+Core API generation now succeeds: all 2,057 declarations and 374 exposed members have comments;
+Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
+built in this probe. Those three documentation references remain unresolved.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
@@ -434,8 +440,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
   Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
-  watching, process launch and evdev gamepads are also implemented; desktop, mouse and keyboard
-  still block focused API tests.
+  watching, process launch and evdev gamepads are also implemented. Initial X11 desktop, mouse
+  and keyboard leaves now unblock whole-Core linking and public test compilation.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
@@ -591,7 +597,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   so descendant-held pipes cannot make waiting for the direct child wait for EOF. Windows and
   Linux supply spawn, wait/status, stream operations and native lifetime/reaping.
   Linux writes service captured output during pipe backpressure; Windows input writes remain
-  blocking and need the equivalent duplex behavior. Public lifecycle execution remains blocked.
+  blocking and need the equivalent duplex behavior. Public lifecycle execution is now pending
+  after the initial X11 leaves unblocked whole-Core compilation.
 - Evidence: the process value, environment map, recorded-status accessors, and convenience
   `startProcess`/`runProcess` overloads already live in common `process.swg`.
 - Next: finish sharing redirection preparation/rollback policy where native ownership permits,
@@ -623,6 +630,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.051 — No second-platform monitor and DPI integration
 
+- Progress (Linux): Core enumerates active RandR 1.5 monitors, clips the current EWMH desktop
+  work area to each, and falls back to real root-screen geometry when RandR is unavailable.
+  Missing displays return an empty array. Coordinates are explicitly physical pixels with scale
+  one; physical dimensions are not used to invent scaling. Xvfb JIT/native coverage passes.
 - Next: implement monitor enumeration and per-monitor scale for the platform whose surface exists
   under platform.portability.050.
 - Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
@@ -630,6 +641,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.052 — No second-platform keyboard routing
 
+- Progress (Linux): Core polls X11 keymaps and keyboard mappings, exposes canonical keysyms as
+  VirtualKey values, maps common modifiers and the first three mouse buttons, and snapshots basic
+  Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
+  implemented. Xvfb and no-display checks pass JIT/native. Extra buttons, additional groups,
+  dead keys/compose, IME, layout-change routing and synthetic key-transition tests remain pending;
+  polling snapshots are separate native requests, not one atomic input sample.
 - Next: translate native key identity, modifier, repeat, and layout state into the portable keyboard
   events.
 - Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
@@ -777,15 +794,26 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `integration.xcb` tests pass in JIT and native ELF on an isolated Xvfb display, including
   a separate importing module, BadWindow recovery and malformed-display failure. C headers
   independently confirm the layouts. Libraries are dynamically loaded, so headless consumers
-  do not acquire a mandatory desktop dependency. This establishes the raw ABI only; the Core
-  window owner, callback lifecycle, GUI surface and renderer integration remain to implement.
+  do not acquire a mandatory desktop dependency.
+- Core progress: native-allocated window ownership, owner rebinding after moves, checked create/
+  resize/show/close requests, UTF-8 titles and window-manager hints, bounded event dispatch,
+  close-request versus destruction semantics and offscreen realization are implemented. Two
+  public cases pass JIT/native under Xvfb, covering moved owners, resize callbacks, monitor/pointer
+  queries, WM_DELETE_WINDOW, repeated close, external destruction and closing from a paint callback. A separate opt-in
+  case validates neutral queries and failed creation without a display. Explicit paint events
+  also work for fully offscreen windows, where ClearArea would produce no Expose event.
+  The lazy connection retains optional RandR libraries until disconnect, avoiding extension-cache
+  identities accumulating from repeated unload/reload. Window operations stay on the creating
+  thread; module shutdown invalidates owners before releasing native state. Connection-loss,
+  module-unload stress and window-manager integration still need dedicated execution.
+  GUI surface, renderer presentation, cursor visibility and native Wayland remain incomplete.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
   themes, controls and the toolkit-owned file dialog are platform-neutral. These leaves identify
   mechanisms to replace; their file count is not a porting plan.
-- Next: choose one platform and implement the application loop, surface creation/destruction, native
-  resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
+- Next: build the GUI application/surface and renderer adapters on the Core X11 owner, finish
+  cursor visibility and input routing, and run a rendered application with a window manager.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and
   headless contract tests remain green. Focus, DPI, clipboard and input integrations retain

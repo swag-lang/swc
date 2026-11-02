@@ -100,7 +100,8 @@
     {
         let linked = Linux.symlinkat(target.storage(), Linux.AT_FDCWD, link.storage())
         Swag.assert(linked == 0)
-        let requested = String.from(link) + suffix
+        var requested = String.from(link)
+        requested.append(suffix)
         expect Directory.delete(requested, recurse: true)
         Swag.assert(not Directory.exists(link))
         Swag.assert(Directory.exists(target) and File.exists(marker))

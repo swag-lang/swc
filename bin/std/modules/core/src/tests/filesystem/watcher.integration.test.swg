@@ -13,7 +13,7 @@ func cancelWatcherThread(thread: const *Threading.Thread)
     payload.watcher.cancel()
 }
 
-func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind, path: string, oldPath: string? = null)->bool fail
+internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind, path: string, oldPath: string? = null)->bool fail
 {
     for 12
     {

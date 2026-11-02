@@ -42,8 +42,8 @@ their normal library artifacts. Add `--test-jit --no-test-native` to exercise th
 Compiler JIT suites and reference tests retain their existing execution modes.
 Workspace test launchers set `SWAG_RUNTIME_THREADS` from
 `--num-cores`, capped at three, unless that environment variable is already defined. The setting
-is local to the launcher and its children. Prism child compilers inherit the same capped count,
-including when testing the entire application workspace.
+is local to the launcher and its children. Application helper processes inherit the same capped
+count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
 

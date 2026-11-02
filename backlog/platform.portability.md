@@ -466,8 +466,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Next: implement mutexes, read-write locks, conditions, and events for the chosen second platform
   behind the existing portable contracts.
 - Evidence: `bin/runtime` reaches them through its `__hostLock*`, `__hostCondition*` and
-  `__hostThread*` functions. Core also retains Windows-only `Sync.Event`, including the named
-  interprocess event used by Prism through `initNamed`; that contract is not supplied by the runtime
+  `__hostThread*` functions. Core also retains Windows-only `Sync.Event`, including a named
+  interprocess event; that contract is not supplied by the runtime
   lock/condition hooks alone. A second backend must match its shared-name scope, reset mode,
   signal-before-wait behavior, and independent handle lifetimes without exposing Windows handles or
   the `Local\` namespace to common callers.

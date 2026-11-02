@@ -1,8 +1,8 @@
 # Silence — the Swag GUI charter
 
 This folder is the design contract of the GUI toolkit's controls, widgets, dialogs and two
-themes, and of the four standard applications (Swag Scope, Swag Capture, Swag Prism, Swag
-Vault). The examples under `bin/examples/` are teaching programs, not Silence applications.
+themes, and of the three standard applications (Swag Scope, Swag Capture, Swag Vault). The
+examples under `bin/examples/` are teaching programs, not Silence applications.
 Examples built on the GUI toolkit use its Swag-rendered caption, title and border. The direct
 Pixel and OpenGL examples still use low-level native windows; moving those renderers under the
 same Swag-drawn chrome is unresolved in [`design.silence.md`](design.silence.md).
@@ -130,7 +130,7 @@ tracking −0.03 em. Sheet titles 20–22/800. Dialog titles 17/650. Body 13–1
 Inter 200–300 at 26–120.
 
 The toolkit ships Inter in four upright weights, and each role takes one: `Light` (300) for a
-large fact — Vault's percentage and capacity, the sheet's figures, Prism's instruction counts;
+large fact — Vault's percentage and capacity, or the sheet's figures;
 `Regular` for body text; `SemiBold` (600) for a section label and for a name that leads a row, such
 as a vault's; `Bold` for titles, which stand in for the 650–800 weights. Roboto Mono keeps its
 regular and bold faces: a light or semibold measure is set regular or bold.
@@ -277,7 +277,6 @@ from observed user sessions. They set the acceptance tasks for lens and applicat
 | Open a film, pause, seek, change volume | Modal search interrupts watching and hides the timeline | A transport with play/pause, seek, volume and full screen; subtitles, audio and speed in its adjacent controls |
 | Browse films, open one, return to the folder | Repeated lens calls for Back or Up make ordinary exploration expensive | Stable Back/Forward/Up and current location in the page header; sorting and view choices remain nearby |
 | Resume a film later | A beautifully empty player cannot replace a missing resume feature | Store playback position and offer Resume / Start from Beginning; this is product behavior, not a cosmetic lens fix |
-| Compile edited code in Prism | When automatic compilation is off, a keyboard hint alone leaves a mouse user searching | Keep Compile beside the source; compile, format and live-edit actions lead the lens before stage-specific actions |
 | Create or unlock a Vault | An unfamiliar command entrance must not be required before the first task | Visible New Vault and Open File, an explicit return from the creation form, and Mount in the unlocked row; keep file actions first in the lens |
 | Find an unfamiliar action | A blank search field requires the product's exact vocabulary | Browse command families without typing; search recognizes localized synonyms and restrained spelling errors |
 
@@ -342,8 +341,6 @@ The executable corpus includes these task phrases in the application's active la
 | Scope | open movie | ouvrir film | Open |
 | Scope | media library | mediatheque | Explore |
 | Scope | cinema | cinema | Full Screen |
-| Prism | run code | executer code | Compile |
-| Prism | indent | indenter | Format Source |
 | Vault | new container | nouveau conteneur | New Vault |
 | Vault | open container | ouvrir conteneur | Open File |
 
@@ -734,20 +731,6 @@ the screen to its work.
   outlined squares standing for a shape.
 
 ![Quick styles](imgs/capture.presets.png) ![Quick styles, Papier](imgs/capture.presets.paper.png)
-
-### Swag Prism
-
-- Two columns separated by one hairline: source and output; their settings are quiet text menus
-  above each column (view, stage, optimisation level); compile with `Ctrl ⏎`; compile time in
-  mono at the bottom right.
-- Stages as a frieze of dots browsed with `← →`, the change since the previous stage shown as
-  struck-out and Arc-marked lines with counts in a margin.
-- Comparison: two outputs with their instruction counts in large light type and the gain in Arc;
-  the loop marked by an Arc left rule in both.
-- 2D render: source left, the image right, live statistics in mono, the live-edit switch.
-
-![Columns](imgs/prism.columns.paper.png) ![Stages](imgs/prism.stages.paper.png)
-![Compare](imgs/prism.compare.png) ![Render](imgs/prism.render.png)
 
 ### Swag Vault
 

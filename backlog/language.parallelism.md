@@ -196,8 +196,7 @@ of simplicity when every useful helper needs an unchecked contract.
   request the body reads, not an outcome: it returns a partial value or fails, and
   `Task.waitUnlessCancelled` lets a waiting task give up as soon as it is asked to stop. But a task
   that waits -- for another task, a lock, a foreign call -- still occupies its worker for the whole
-  wait, reducing the capacity available to execute queued operations; Prism's build lease is such a
-  wait.
+  wait, reducing the capacity available to execute queued operations.
 - Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
   effect in the callable type, stackless frame ownership, stable frame addresses, and the async
   boundary for both native and JIT execution. Decide what `try`, a catch-all, `defer #fail` and

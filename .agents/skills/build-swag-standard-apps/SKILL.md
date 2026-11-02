@@ -6,8 +6,8 @@ description: Build, migrate, rename, review, style, package, and test official S
 # Build Swag Standard Apps
 
 Every application should be recognizable as part of Swag before its title is read, and
-recognizable by what it leaves out. The four standard applications, Swag Scope, Swag Capture,
-Swag Prism and Swag Vault, follow the **Silence** charter:
+recognizable by what it leaves out. The three standard applications, Swag Scope, Swag Capture,
+and Swag Vault, follow the **Silence** charter:
 [backlog/design/README.md](../../../backlog/design/README.md), with its pictures in
 [backlog/design/imgs/](../../../backlog/design/imgs/). The charter's Window chrome, Shared
 components and Applications sections describe each screen. This skill says how an application
@@ -264,15 +264,13 @@ The same rule governs the toolkit's `Strings` and every application's reference 
 The charter's Applications section describes each application screen by screen, with one picture
 per screen. Build to those pictures, and check the application's entry in
 [design.silence.md](../../../backlog/design/design.silence.md) for what is known to differ. What
-the four share:
+the three share:
 
 - **Swag Scope**: the lens holds the viewers' commands, the sheet (`I`) holds the readings, and
   viewer controls stand on a floating bar. Explorer pages use a page title with quiet sort and
   view menus, and the cells take the shape of what the folder holds.
 - **Swag Capture**: the editor composes the dock, the mini-bar, the inspector and the hint line.
   There are no menus. The charter's key table is the contract for its keys.
-- **Swag Prism**: two columns parted by one hairline, with quiet text menus above each one and
-  readings in the sheet.
 - **Swag Vault**: a list of vaults under a page title, the live dot (`ThemeColors.live`) for a
   mounted vault and a soft ring for a locked one, and pages with a back link instead of tabs.
 

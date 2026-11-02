@@ -80,7 +80,6 @@ if /i "%tool%"=="apps" if /i "%action%"=="test" set "workspaceTest=--no-test-jit
 if /i "%tool%"=="std" if /i "%action%"=="test" set "workspaceTest=--no-test-jit --artifact-kind executable"
 if /i "%action%"=="test" if not defined SWAG_RUNTIME_THREADS set "SWAG_RUNTIME_THREADS=%compilerWorkers%"
 if /i "%tool%"=="apps" if /i not "%action%"=="build" (
-    if /i "%module%"=="swagprism" set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
     if not defined module set "appRunArguments=--run-arg=--compiler="%compiler%" --run-arg=--compiler-workers=%compilerWorkers%"
 )
 if defined module (

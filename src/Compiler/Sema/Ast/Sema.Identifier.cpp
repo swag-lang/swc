@@ -36,6 +36,31 @@ namespace
         return parentNode.is(AstNodeId::UsingDecl) || parentNode.is(AstNodeId::NamedType);
     }
 
+    bool symbolMayBeExcludedByGlobalCompilerIf(Sema& sema, const Symbol& symbol)
+    {
+        const SourceView&      sourceView = sema.compiler().srcView(symbol.srcViewRef());
+        const std::vector<Token>& tokens  = sourceView.tokens();
+        const size_t           end        = std::min<size_t>(symbol.tokRef().get(), tokens.size());
+        for (size_t index = 0; index + 1 < end; ++index)
+        {
+            if (tokens[index].id == TokenId::CompilerGlobal && tokens[index + 1].id == TokenId::KwdIf)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isUnconditionalForwardType(Sema& sema, const Symbol& symbol, const SourceCodeRef& codeRef)
+    {
+        if (!symbol.isType() || symbolMayBeExcludedByGlobalCompilerIf(sema, symbol))
+            return false;
+
+        if (symbol.srcViewRef() != codeRef.srcViewRef)
+            return false;
+
+        return symbol.tokRef().get() > codeRef.tokRef.get();
+    }
+
     bool isMemberAccessLeftOperand(Sema& sema, AstNodeRef parentRef, AstNodeRef nodeRef)
     {
         if (parentRef.isInvalid())
@@ -716,6 +741,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         while (lookUpCxt.noWaitOnPendingSymbols && lookUpCxt.count() == 1)
         {
             const Symbol* candidate = lookUpCxt.symbols().front();
+            if (isUnconditionalForwardType(sema, *candidate, codeRef()))
+                break;
+
             const Result  ready     = sema.waitDeclared(candidate, codeRef());
             if (!candidate->isExcludedByCondition())
             {

@@ -25,7 +25,7 @@ persisted settings into the owned temporary directory. An empty test shell can m
 Use the same commands and input handlers as the UI. OS-level input delivery remains a separate
 integration boundary: calling an action directly does not test keyboard routing or hit testing.
 Native test entry points omit `#main`. An application that relaunches itself as a worker must
-dispatch that explicit helper mode before UI startup, as Scope and Prism do in `#premain`;
+dispatch that explicit helper mode before UI startup, as Scope does in `#premain`;
 otherwise the child can exit successfully without performing any work. Exercise that protocol
 in the scenario instead of replacing the child with an in-process decoder.
 

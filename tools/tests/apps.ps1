@@ -42,23 +42,18 @@ public static class ApplicationCompilerProbe
     }
 }
 '@
-    foreach ($module in @('', 'swagprism')) {
-        $prefix = @('dm', 'test')
-        if ($module) { $prefix += $module }
-        Invoke-Apps $prefix '3' '3'
-        foreach ($workers in @('1', '2', '0', '8')) {
-            $expected = if ($workers -eq '1' -or $workers -eq '2') { $workers } else { '3' }
-            Invoke-Apps ($prefix + @('--num-cores', $workers)) $expected $expected
-        }
-        Invoke-Apps ($prefix + @('--num-cores=1')) '1' '1'
-        Invoke-Apps ($prefix + @('-j', '2', '--num-cores', '1')) '1' '1'
+    $prefix = @('dm', 'test')
+    Invoke-Apps $prefix '3' '3'
+    foreach ($workers in @('1', '2', '0', '8')) {
+        $expected = if ($workers -eq '1' -or $workers -eq '2') { $workers } else { '3' }
+        Invoke-Apps ($prefix + @('--num-cores', $workers)) $expected $expected
     }
-    Invoke-Apps @('dm', 'run', 'swagprism', '--num-cores', '1') '1' 'unset'
-    Invoke-Apps @('dm', 'build', 'swagprism', '--num-cores', '1') '' 'unset'
+    Invoke-Apps ($prefix + @('--num-cores=1')) '1' '1'
+    Invoke-Apps ($prefix + @('-j', '2', '--num-cores', '1')) '1' '1'
     Invoke-Apps @('dm', 'test', 'swagscope', '--num-cores', '1') '' '1'
     $env:SWAG_RUNTIME_THREADS = '2'
     Invoke-Apps @('dm', 'test', '--num-cores', '1') '1' '2'
-    Write-Output 'Application runner: 18 regression cases passed.'
+    Write-Output 'Application runner: 9 regression cases passed.'
 
     $runner = Join-Path $scratch 'tools\_tool.bat'
     $env:SWAG_RUNTIME_THREADS = $null

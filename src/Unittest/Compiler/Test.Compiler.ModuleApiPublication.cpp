@@ -90,6 +90,55 @@ namespace
     constexpr std::string_view CONSUMER_SOURCE = "#test\n{\n    const value: s32 = PublicationValue\n}\n";
 }
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
+{
+    ApiPublicationTestDirectory directory("WorkspaceSemaDependencies");
+    for (const bool filtered : {true, false})
+    {
+        const fs::path workspace = directory.path() / (filtered ? "selected" : "all");
+        const fs::path modules   = workspace / "modules";
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Provider"
+    cfg.backendKind = .SharedLibrary
+}
+)"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#[Swag.NoInline]\npublic func answer()->s32 => 42\n"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", R"(#import("provider")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Consumer"
+    cfg.backendKind = .Executable
+}
+)"));
+        // No #main: semantic checking must not attempt to link the selected leaf.
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "use.swg", "#run { Swag.assert(Provider.answer() == 42) }\n"));
+        std::vector<Utf8> arguments = {"sema", "--os", K_HOST_OS_ARGUMENT, "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        if (filtered)
+        {
+            arguments.emplace_back("--workspace-module");
+            arguments.emplace_back("consumer");
+        }
+        ImportResult                result;
+        const Os::ProcessRunOptions options{.capturedOutput = &result.output, .forwardOutput = false, .timeoutMs = 20000};
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), arguments, workspace, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode)
+        {
+            std::println(stderr, "[workspace sema native dependency] {}", result.output);
+            return Result::Error;
+        }
+        const fs::path published  = workspace / ".output";
+        const char*    library    = hostTargetOs() == Runtime::TargetOs::Windows ? "provider.dll" : "provider.so";
+        const char*    executable = hostTargetOs() == Runtime::TargetOs::Windows ? "consumer.exe" : "consumer";
+        if (!fs::is_regular_file(published / "provider" / "shared-library" / "devmode" / "x86_64" / library) ||
+            fs::exists(published / "consumer" / "executable" / "devmode" / "x86_64" / executable))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
 {
     ApiPublicationTestDirectory directory("UsingAfterDeclaration");
@@ -1229,6 +1278,52 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
 }
 SWC_TEST_END()
 #endif
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_EmptyFunctionAliasesKeepDelimiters)
+{
+    ApiPublicationTestDirectory directory("EmptyFunctionAliases");
+    const fs::path module = directory.path() / "provider";
+    const fs::path api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+#[Swag.CallingConvention(.C)]
+alias Empty = func()
+alias Closure = func||()
+alias Nested = func(func())
+const Following = 42
+)"));
+    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, R"(func verify(empty: Callbacks.Empty, closure: Callbacks.Closure, nested: Callbacks.Nested)
+{
+    empty()
+    closure()
+    nested(func() {})
+}
+#assert(Callbacks.Following == 42)
+)"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
 
 SWC_END_NAMESPACE();
 

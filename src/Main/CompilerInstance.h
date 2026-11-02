@@ -546,8 +546,9 @@ private:
         const WorkspaceModuleBuild*           moduleBuild    = nullptr;
         const DependencyPlan*                 dependencyPlan = nullptr;
         WorkspaceModuleLogState               logState;
-        bool                                  writeModuleApi    = false;
-        std::unique_ptr<WorkspaceModuleLink>* pendingDependency = nullptr;
+        bool                                  writeModuleApi        = false;
+        bool                                  buildNativeDependency = false;
+        std::unique_ptr<WorkspaceModuleLink>* pendingDependency     = nullptr;
     };
 
     struct CompilerMessageTypeInfoPrepRequest

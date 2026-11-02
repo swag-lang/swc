@@ -1,6 +1,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
+const EPERM        = 1's32
 const ENOENT       = 2's32
 const ESRCH        = 3's32
 const EINTR        = 4's32
@@ -18,6 +19,10 @@ const ENOTTY       = 25's32
 const ENOTDIR      = 20's32
 const EISDIR       = 21's32
 const EINVAL       = 22's32
+const ENOSPC       = 28's32
+const EROFS        = 30's32
+const ENOSYS       = 38's32
+const EOVERFLOW    = 75's32
 const EPIPE        = 32's32
 const ERANGE       = 34's32
 const ENAMETOOLONG = 36's32

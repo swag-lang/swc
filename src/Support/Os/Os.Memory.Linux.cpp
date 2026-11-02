@@ -211,9 +211,9 @@ void* Os::processStorage(const uint32_t key, const uint32_t size)
     // Match os.linux.memory.swg's anchor, including its fork-isolating PID and
     // retained CLOEXEC descriptor. A C++-private registry would split borrow guards
     // between compiler instances and loaded native runtimes.
-    const std::string name = std::format("Swag.Rt.{:08x}.{:08x}", currentProcessId(), key);
-    const std::string wanted = "/memfd:" + name + " (deleted)";
-    const std::unique_ptr<DIR, decltype(&closedir)> directory(opendir("/proc/self/fd"), &closedir);
+    const std::string                         name   = std::format("Swag.Rt.{:08x}.{:08x}", currentProcessId(), key);
+    const std::string                         wanted = "/memfd:" + name + " (deleted)";
+    const std::unique_ptr<DIR, int (*)(DIR*)> directory(opendir("/proc/self/fd"), &closedir);
     if (!directory)
         return nullptr;
     const int directoryId = dirfd(directory.get());

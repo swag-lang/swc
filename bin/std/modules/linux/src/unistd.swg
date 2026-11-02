@@ -11,6 +11,9 @@ const SEEK_END = 2's32
     func getpagesize()->s32
     func isatty(fd: s32)->s32
     func getuid()->u32
+    func geteuid()->u32
+    func getgid()->u32
+    func getegid()->u32
     func gettid()->s32
     func getpid()->s32
     func getcwd(buf: [*] u8?, size: u64)->[*] u8?

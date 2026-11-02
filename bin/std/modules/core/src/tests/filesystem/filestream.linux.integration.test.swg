@@ -58,3 +58,25 @@
     Swag.assert(nativeError.errorID == cast(u64, Linux.EBADF))
     Swag.assert(Errors.message(failure.value()).count > 0)
 }
+
+// A descriptor is borrowed from the stream; closing the owner invalidates it.
+#[Swag.TestTag("integration.filesystem")]
+#test
+{
+    var closed: File.FileStream
+    var error: Swag.Error
+    discard catch closed.nativeFileDescriptor() as error
+    Swag.assert(error.value() is Errors.BadParameterError)
+    let path = CoreTests.makeFilesystemTestPath("linux-borrowed-descriptor")
+    defer discard catch File.delete(path)
+    var stream = expect File.open(path, .CreateNew, .ReadWrite, .Read)
+    let descriptor = expect stream.nativeFileDescriptor()
+    var info: Linux.stat
+    Swag.assert(Linux.fstat(descriptor, &info) == 0)
+    expect stream.writeAll("owned by stream")
+    stream.close()
+    Swag.assert(Linux.fstat(descriptor, &info) == -1 and Linux.errno() == Linux.EBADF)
+    var live = expect File.openReadLive(path)
+    discard catch live.nativeFileDescriptor() as error
+    Swag.assert(error.value() is Errors.BadParameterError)
+}

@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
+#global if #command == Swag.CompilerCommand.Test
 #global private
 
 using Core
@@ -57,8 +57,14 @@ func stallHttp(thread: const *Threading.Thread)
     let elapsed = Time.monotonicMilliseconds() - started
     thread.wait()
     Swag.assert(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
-        Swag.assert(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
+    if error.value() is NetworkError as networkError
+    {
+        #static if #os == Swag.TargetOs.Windows do
+            Swag.assert(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
+        else do
+            Swag.assert(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
+    }
+
     Swag.assert(elapsed < 7_000)
 }
 

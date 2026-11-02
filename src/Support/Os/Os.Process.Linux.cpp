@@ -194,8 +194,10 @@ namespace
         return true;
     }
 
-    // Everything below that runs after fork uses fixed storage and native calls only. The
-    // compiler can fork while other threads own allocator, iostream or loader locks.
+    // Everything below that runs after _Fork uses fixed storage and async-signal-safe native
+    // calls only, until execve or _exit. Unlike fork, _Fork does not run pthread_atfork
+    // handlers against snapshots of concurrently mutating allocator or loader state.
+    // Child paths must never allocate, run C++ destructors or enter those libraries.
     bool closeOtherDescriptors(int* keep, const size_t count)
     {
         for (size_t i = 0; i < count; ++i)
@@ -328,8 +330,8 @@ namespace
         const int procDirectory = ready ? open("/proc", O_RDONLY | O_DIRECTORY | O_CLOEXEC) : -1;
         ready = ready && procDirectory >= 0;
         ready = ready && pipe2(execError, O_CLOEXEC | O_NONBLOCK) == 0;
-        const pid_t supervisor = getpid();
-        const pid_t command = ready ? fork() : -1;
+        const pid_t supervisor  = getpid();
+        const pid_t command     = ready ? _Fork() : -1;
         if (command == 0)
             executeCommand(args, handles, execError[1], supervisor);
         if (command < 0)
@@ -445,7 +447,7 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
     handles.parent = pidfd_open(getpid(), 0);
     if (handles.parent < 0 || !makePipe(handles.control) || !makePipe(handles.status) || (output.needsPipe() && !makePipe(handles.output)))
         return ProcessRunResult::StartFailed;
-    handles.supervisor = fork();
+    handles.supervisor = _Fork();
     if (handles.supervisor < 0)
         return ProcessRunResult::StartFailed;
     if (handles.supervisor == 0)
@@ -485,7 +487,13 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
                 count = read(handles.status[0], &result, sizeof(result));
             while (count < 0 && errno == EINTR);
             if (count != sizeof(result))
+            {
+                // A dead supervisor closes its pipe without a result. Do not report an
+                // unrelated errno left over from PATH discovery as a missing executable.
+                if (count >= 0)
+                    errno = EIO;
                 return ProcessRunResult::WaitFailed;
+            }
             receivedStatus = true;
             closeDescriptor(handles.status[0]);
         }

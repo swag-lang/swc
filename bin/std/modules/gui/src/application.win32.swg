@@ -25,6 +25,8 @@ struct ApplicationNative
 
 impl Application
 {
+    internal mtd releaseNativeApplication() { .releaseNativeFrameTimer() }
+
     internal mtd releaseNativeFrameTimer()
     {
         if .frameTimer do

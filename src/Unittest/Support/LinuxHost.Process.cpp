@@ -3,6 +3,7 @@
 #include "Support/Os/ProcessOutput.h"
 #include "Unittest/Support/LinuxHostTests.h"
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
@@ -87,6 +88,25 @@ namespace swc::LinuxHostTests
         if (argc < 3 || std::string_view(argv[1]) != "--host-child")
             return 2;
         const std::string_view mode = argv[2];
+        if (mode == "fork-hooks")
+        {
+            // Allocator child hooks may require all other threads to be quiescent. An
+            // exec-only launch must not enter them while compiler workers keep running.
+            if (pthread_atfork(nullptr, nullptr, [] { _exit(83); }) != 0)
+                return 2;
+            std::jthread                worker([](const std::stop_token stop) {
+                while (!stop.stop_requested())
+                {
+                    std::vector<std::string> allocations(128, std::string(257, 'x'));
+                    std::this_thread::yield();
+                }
+            });
+            uint32_t                    code = 0;
+            const Os::ProcessRunOptions options{.forwardOutput = false, .timeoutMs = 3000};
+            const std::array<Utf8, 3>   arguments{"--host-child", "exit", "19"};
+            const auto                  result = Os::runProcess(code, Os::getExeFullName(), arguments, {}, &options);
+            return result == Os::ProcessRunResult::Ok && code == 19 ? 0 : 3;
+        }
         if (mode == "echo")
         {
             for (int i = 3; i < argc; ++i)
@@ -219,6 +239,8 @@ namespace swc::LinuxHostTests
             const std::array<Utf8, 3> exitArgs{"--host-child", "exit", std::to_string(code)};
             require(Os::runProcess(exitCode, executable, exitArgs, {}, &options) == Os::ProcessRunResult::Ok && exitCode == static_cast<uint32_t>(code), "process exit status differs");
         }
+        const std::array<Utf8, 2> hookArgs{"--host-child", "fork-hooks"};
+        require(Os::runProcess(exitCode, executable, hookArgs, {}, &options) == Os::ProcessRunResult::Ok && !exitCode, "exec-only launch entered an unsafe child hook");
         const std::array<Utf8, 2> echoArgs{"--host-child", "echo"};
         require(Os::runProcess(exitCode, "/swc-missing-program", echoArgs, {}, &options) == Os::ProcessRunResult::StartFailed && errno == ENOENT, "missing executable was not a startup failure");
         require(Os::runProcess(exitCode, executable, echoArgs, "missing-working-directory", &options) == Os::ProcessRunResult::StartFailed && errno == ENOENT, "missing working directory was not a startup failure");

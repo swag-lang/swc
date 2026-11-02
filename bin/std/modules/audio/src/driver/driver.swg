@@ -62,8 +62,14 @@ internal func updateThreadProc(th: const *Threading.Thread)
         for cmd in copyVoices
         {
             let voice = cmd.voice
-            if th.requestEnd.isRaised() do
-                break
+            if th.requestEnd.isRaised()
+            {
+                // The local batch owns these registrations even after shutdown starts.
+                // Keep their native resources visible to Driver.destroy.
+                if cmd.command == .Register do
+                    driver.activeVoices.add(voice)
+                continue
+            }
 
             switch cmd.command
             {
@@ -155,7 +161,7 @@ impl Driver
         for cmd in .voicesToUpdate
         {
             if cmd.command == .Register do
-                .toRecycleVoices.add(cmd.voice)
+                .activeVoices.add(cmd.voice)
         }
 
         .voicesToUpdate.clear()
@@ -185,9 +191,11 @@ impl Driver
 
         .activeVoices.clear()
 
-        // Destroy buses
-        for bus in .buses
+        // A parent must outlive all its children. Bus.create appends only after its
+        // parent exists, and Bus.destroy preserves that order when removing entries.
+        while not .buses.isEmpty()
         {
+            let bus = .buses.popBack()
             bus.destroyNative()
             let allocator = bus.allocationAllocator
             Memory.delete(bus, allocator)

@@ -5,6 +5,21 @@
 internal func nativeFileHandle(descriptor: s32)->FileHandle => cast(FileHandle, cast(u64, cast(s64, descriptor) + 1))
 internal func nativeFileDescriptor(handle: FileHandle)->s32 => cast(s32, cast(s64, handle) - 1)
 
+public impl FileStream
+{
+    // Borrows the Linux descriptor of an ordinary open stream.
+    //
+    // The descriptor remains owned by this stream and is valid until it closes or reopens.
+    // Do not close it, or change its offset or status flags behind the stream. A closed stream
+    // or a live-read stream has no persistent descriptor and fails with a bad-parameter error.
+    mtd const nativeFileDescriptor()->s32 fail
+    {
+        if not .handle or .liveRead do
+            fail Errors.BadParameterError{"a persistent file descriptor requires an ordinary open stream"}
+        return File.nativeFileDescriptor(.handle)
+    }
+}
+
 internal impl FileStream
 {
     mtd readNative(buffer: *void, length: u32)->u32 fail

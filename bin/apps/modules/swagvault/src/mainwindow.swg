@@ -988,6 +988,8 @@ impl IWnd for MainWindow
         }
         elif evt.timer == .securityTimer
         {
+            #static if #os == Swag.TargetOs.Linux do
+                .securityMonitor.poll()
             if .autoUnmount.onIdle and autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000 do
                 .handleAutoUnmount(.Idle)
         }

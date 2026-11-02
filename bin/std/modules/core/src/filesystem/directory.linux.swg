@@ -125,3 +125,64 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         result.add(#move info)
     }
 }
+
+// Returns the accessible directory mount points in the process's Linux mount namespace.
+//
+// Each path is absolute and ends in `/`; the root is `/`. Duplicate mount points and
+// mounts on individual files are omitted. This includes virtual filesystems and bind mounts,
+// not only physical disks. Fails when `/proc/self/mountinfo` cannot be read or decoded.
+func drives()->Array'String fail
+{
+    let mounts = try File.readAllText("/proc/self/mountinfo")
+    var result: #returntype
+    for line in Tokenize.splitLines(mounts)
+    {
+        var path = try mountPointNative(line)
+        if not exists(path) do
+            continue
+        if path[path.length - 1] != '/' do
+            path += '/'u8
+        var duplicate = false
+        for &previous in result where previous[] == path do
+            duplicate = true
+        if not duplicate do
+            result.add(#move path)
+    }
+
+    return result
+}
+
+internal func mountPointNative(line: string)->String fail
+{
+    let fields = Tokenize.split(line, ' 'u8)
+    if fields.count < 10 or fields[4].count == 0 or fields[4][0] != '/' do
+        fail Errors.InvalidFormatError{"invalid Linux mount information"}
+    let encoded = fields[4]
+    var result: #returntype
+    var index   = 0'u64
+    while index < encoded.count
+    {
+        if encoded[index] != '\\'
+        {
+            result += encoded[index]
+            index  += 1
+            continue
+        }
+
+        if encoded.count - index < 4 do
+            fail Errors.InvalidFormatError{"incomplete Linux mount path escape"}
+        let escape = encoded[index + 1 until index + 4]
+        switch escape
+        {
+        case "040": result += ' 'u8
+        case "011": result += '\t'u8
+        case "012": result += '\n'u8
+        case "134": result += '\\'u8
+        default:    fail Errors.InvalidFormatError{"invalid Linux mount path escape"}
+        }
+
+        index += 4
+    }
+
+    return result
+}

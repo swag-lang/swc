@@ -993,7 +993,8 @@ impl FileBrowserCtrl
                     for &v in volumes
                     {
                         let path = String.from(v.toString())
-                        v.removeBack()
+                        if v.count > 1 do
+                            v.removeBack()
                         .addPlace(v.toString(), path.toString())
                     }
                 }

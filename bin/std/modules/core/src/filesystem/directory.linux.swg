@@ -261,3 +261,41 @@ internal func remoteMountNative(mounts: string, mountId: u64)->bool
 
     return false
 }
+
+// Returns the free bytes reported as available to unprivileged users on this filesystem.
+//
+// `dirName` must name an existing directory; symbolic links are followed. Fails for a file,
+// missing or inaccessible path, a failed filesystem query, or a byte count exceeding `u64`.
+// The filesystem's available-block count need not account for every per-user quota; allocation
+// can still fail because of quotas or concurrent writes after this snapshot.
+func freeSpace(dirName: string)->u64 fail
+{
+    let native = try Path.nativePath(dirName)
+    var descriptor: s32 = -1
+    for
+    {
+        descriptor = Linux.openat(Linux.AT_FDCWD, native.storage(), Linux.O_PATH | Linux.O_DIRECTORY | Linux.O_CLOEXEC)
+        if descriptor >= 0 do
+            break
+        let error = Linux.errno()
+        if error != Linux.EINTR do
+            try Errors.failLinuxError(error, dirName)
+    }
+
+    defer discard Linux.close(descriptor)
+    var space: Linux.statvfs
+    for
+    {
+        if Linux.fstatvfs(descriptor, &space) == 0 do
+            break
+        let error = Linux.errno()
+        if error != Linux.EINTR do
+            try Errors.failLinuxError(error, dirName)
+    }
+
+    if space.f_frsize == 0 do
+        try Errors.failLinuxError(Linux.EIO, dirName)
+    if space.f_bavail > Swag.U64.Max / space.f_frsize do
+        fail Errors.OverflowError{}
+    return space.f_bavail * space.f_frsize
+}

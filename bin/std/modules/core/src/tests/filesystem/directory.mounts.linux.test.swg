@@ -70,3 +70,28 @@
     Swag.assert(not Directory.isRemote(link))
     Swag.assert(not Directory.isRemote(Path.combine(link, "not-created-yet")))
 }
+
+#[Swag.TestTag("integration.filesystem")]
+#test
+{
+    let root      = Env.getSpecialDirectory(.Temp)
+    let available = expect Directory.freeSpace(root)
+    Swag.assert(available > 0, "filesystem integration requires free temporary storage")
+    let procAvailable = expect Directory.freeSpace("/proc")
+    Swag.assert(procAvailable == 0)
+    let file = Path.combine(root, Format.toString("space-query-%", Guid64.random()))
+    expect File.writeAllText(file, "content")
+    defer expect File.delete(file)
+    let notDirectory = Path.combine(file, "not-a-directory")
+    for path in ["", file.toString(), notDirectory.toString()]
+    {
+        var outcome: Swag.Error
+        discard catch Directory.freeSpace(path) as outcome
+        Swag.assert(not outcome.isEmpty())
+    }
+
+    let missing = Path.combine(root, Format.toString("missing-space-query-%", Guid64.random()))
+    var missingOutcome: Swag.Error
+    discard catch Directory.freeSpace(missing) as missingOutcome
+    Swag.assert(not missingOutcome.isEmpty())
+}

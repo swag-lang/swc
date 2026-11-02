@@ -44,25 +44,6 @@ struct fuse_context
     }
 }
 
-struct statvfs
-{
-    public
-    {
-        f_bsize:   u64
-        f_frsize:  u64
-        f_blocks:  u64
-        f_bfree:   u64
-        f_bavail:  u64
-        f_files:   u64
-        f_ffree:   u64
-        f_favail:  u64
-        f_fsid:    u64
-        f_flag:    u64
-        f_namemax: u64
-        spare:     [6]s32
-    }
-}
-
 #[Swag.CallingConvention(.C)]
 alias fuse_getattr_fn       = func(const [*]u8, *stat, *fuse_file_info?)->s32
 
@@ -192,6 +173,5 @@ struct fuse_operations
 #assert(#offsetof(fuse_file_info.fh) == 16)
 #assert(#sizeof(fuse_context) == 40)
 #assert(#offsetof(fuse_context.private_data) == 24)
-#assert(#sizeof(statvfs) == 112)
 #assert(#sizeof(fuse_operations) == 336)
 #assert(#offsetof(fuse_operations.create) == 240)

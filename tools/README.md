@@ -6,8 +6,8 @@ once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
 Run the checkout's own compiler whenever more than one worktree exists. `dm` selects
 `bin\swc.dm.exe`; without it, tools use `bin\swc.exe`. Tool compiler calls default to three workers.
-Pass `--num-cores` to change compiler parallelism. Application tests inherit this count for their
-runtime pool and nested compilers, capped at three; zero uses that cap. `SWAG_RUNTIME_THREADS`
+Pass `--num-cores` to change compiler parallelism. Workspace tests inherit this count for their
+runtime pool and application child compilers, capped at three; zero uses that cap. `SWAG_RUNTIME_THREADS`
 overrides the test runtime pool. Other compiled programs manage their own runtime threads.
 Compiler options can be forwarded after the command and module.
 
@@ -34,8 +34,13 @@ Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
 `scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
 with the smoke frame budget, isolation arguments, and executable timeout.
-For application tests, `--test-file` and `--test-tag` select which tests execute; the complete
-application module is still compiled. `apps.bat test` sets `SWAG_RUNTIME_THREADS` from
+For module and application tests, `--test-file` and `--test-tag` select which tests execute; the complete
+owning module is still compiled. Standard module and application tests use native executables,
+which the compiler reuses while their inputs and dependencies are unchanged. Standard module
+tests override the library artifact kind only for the selected test module; dependencies retain
+their normal library artifacts. Add `--test-jit --no-test-native` to exercise the JIT explicitly.
+Compiler JIT suites and reference tests retain their existing execution modes.
+Workspace test launchers set `SWAG_RUNTIME_THREADS` from
 `--num-cores`, capped at three, unless that environment variable is already defined. The setting
 is local to the launcher and its children. Prism child compilers inherit the same capped count,
 including when testing the entire application workspace.

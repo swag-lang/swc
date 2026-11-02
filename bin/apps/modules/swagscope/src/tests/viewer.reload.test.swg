@@ -18,6 +18,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 }
 
 // External edits keep the Markdown reading position and zoom through progressive replacement.
+#[Swag.TestTag("stress")]
 #test
 {
     let previous = MarkdownText.g_ViewerSettings

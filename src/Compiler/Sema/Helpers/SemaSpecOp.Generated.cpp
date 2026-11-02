@@ -1312,7 +1312,7 @@ namespace
         symAlias->setSemaCompleted(ctx);
     }
 
-    Result declareGeneratedImplBlockSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source, bool withSelfTypeAlias)
+    Result declareGeneratedImplBlockSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source, const bool equality)
     {
         if (source.empty())
             return Result::Continue;
@@ -1322,6 +1322,8 @@ namespace
         PreparedGeneratedSourceView prepared;
         SWC_RESULT(prepareGeneratedSourceView(sema, source, ownerStruct.codeRef(), prepared));
         SourceView& srcView = *prepared.sourceView;
+        if (equality)
+            srcView.setGeneratedEqualitySource();
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
@@ -1335,7 +1337,7 @@ namespace
         symImpl->setOwnerSymMap(ownerStruct.ownerSymMap());
         symImpl->setSymStruct(&ownerStruct);
         ownerStruct.addImpl(sema, *symImpl);
-        if (withSelfTypeAlias)
+        if (equality)
             addGeneratedSelfTypeAlias(ctx, *symImpl, ownerStruct);
 
         SWC_RESULT(runGeneratedImplPass(ctx, sema, generatedRoot, *symImpl, ownerStruct.attributes(), true));

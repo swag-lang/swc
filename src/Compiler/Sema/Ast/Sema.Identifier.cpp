@@ -710,6 +710,30 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
         SWC_RESULT(ret);
 
+        // A forward type can be used before its layout is ready, but only after its
+        // declaration has passed the enclosing compiler conditions. Otherwise a lone
+        // inactive candidate can escape lookup and silently poison its field owner.
+        while (lookUpCxt.noWaitOnPendingSymbols && lookUpCxt.count() == 1)
+        {
+            const Symbol* candidate = lookUpCxt.symbols().front();
+            const Result  ready     = sema.waitDeclared(candidate, codeRef());
+            if (!candidate->isExcludedByCondition())
+            {
+                SWC_RESULT(ready);
+                break;
+            }
+
+            SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        }
+
+        // A named type may use one unfinished declaration to support recursive types.
+        // With homonyms, first resolve conditional declarations before deciding ambiguity.
+        if (lookUpCxt.noWaitOnPendingSymbols && lookUpCxt.count() > 1)
+        {
+            lookUpCxt.noWaitOnPendingSymbols = false;
+            SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        }
+
         // A call inside an impl can see the current impl before sibling impls have
         // finished registering. Wait once so overload resolution sees the whole set.
         const IdentifierRef pendingImplTargetIdRef = pendingImplOverloadTargetId(sema, allowOverloadSet, lookUpCxt.symbols().span());

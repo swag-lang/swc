@@ -59,6 +59,6 @@ SWC_DIAG_DEF(parser_err_tuple_pattern_comma, Error, "one-element tuple pattern n
 SWC_DIAG_DEF(parser_err_named_pattern_field, Error, "named pattern needs a field name; [help] write 'field: _' to ignore a named field")
 SWC_DIAG_DEF(parser_err_mixed_destructuring, Error, "positional tuple pattern does not accept a field name; [help] use '{field: binding}' for named destructuring")
 SWC_DIAG_DEF(parser_err_bare_scope, Error, "a '{' cannot open a scope by itself; [help] write 'scope { ... }' to open a scope")
-SWC_DIAG_DEF(parser_err_catch_else, Error, "'catch' does not take 'else'; [help] write 'orelse <value>' for a replacement value, and put a handler block or 'do' statement directly after the operand")
+SWC_DIAG_DEF(parser_err_catch_else, Error, "'catch' does not accept 'else'; [help] write 'orelse <value>' for a replacement value, or put a handler block directly after the operand; a catch statement also accepts 'do <statement>'")
 SWC_DIAG_DEF(parser_err_discard_list_not_variable, Error, "a 'discard' list can only hold variable names; [help] discard this expression with its own 'discard'")
 SWC_DIAG_DEF(parser_err_simd_expected_array, Error, "'#simd' needs a fixed-size array type; [help] write the vector shape as '#simd [16] u8', '#simd [4] f32', or another 16-byte form")

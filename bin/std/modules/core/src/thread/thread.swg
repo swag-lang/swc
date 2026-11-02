@@ -17,7 +17,9 @@ enum ThreadPriority
 // Owns an operating-system thread with inherited context settings and independent scratch storage.
 //
 // [[Core.Threading.Thread.init]] creates the thread suspended and [[Core.Threading.Thread.start]]
-// runs it. The value must be waited for, with [[Core.Threading.Thread.wait]] or
+// runs it. Calls that change or query the same thread's native handle must be serialized by
+// the owner. The body can read its published context, user data and cooperative stop flag.
+// The value must be waited for, with [[Core.Threading.Thread.wait]] or
 // [[Core.Threading.wait]], before it is dropped, and it must not move while the thread runs.
 #[Swag.NoCopy]
 struct Thread
@@ -82,7 +84,8 @@ impl Thread
     // leaves it without capacity. Error storage and propagation state are never shared with the
     // creating thread. The body receives a pointer to this value: it reads `userParam` through
     // it and polls `requestEnd` to stop when [[Core.Threading.Thread.safeForceEnd]] asks. Call
-    // [[Core.Threading.Thread.start]] to run the thread.
+    // [[Core.Threading.Thread.start]] to run the thread. On failure, the body never runs and
+    // the value owns no thread; it can be initialized again.
     mtd init(lambda: func||(const *Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Swag.assert(not .isValid(), "thread already created")
@@ -92,6 +95,25 @@ impl Thread
 
         // A worker inherits allocator policy, not the creator's live scratch blocks or errors.
         .context.resetThreadState()
+
+        var initialized = false
+        defer if not initialized
+        {
+            if .handle
+            {
+                // The suspended native thread owns the context only after it starts. Run an
+                // empty body so its usual teardown releases all per-thread state, then join it.
+                .userLambda = null
+                expect startNative(.handle)
+                .wait()
+            }
+            else
+            {
+                .context.tempAllocator.release()
+            }
+
+            .id = 0
+        }
 
         let allocator = unwrap .context.allocator
         if tempAllocSize < 0 do
@@ -103,6 +125,7 @@ impl Thread
         .userParam  = userParam
         .requestEnd.reset()
         try .setPriority(priority)
+        initialized = true
     }
 
     // Starts this suspended thread.
@@ -116,8 +139,6 @@ impl Thread
     mtd setPriority(priority: ThreadPriority) fail
     {
         Swag.assert(.isValid())
-        if .priority == priority do
-            return
         try setPriorityNative(.handle, priority)
         .priority = priority
     }

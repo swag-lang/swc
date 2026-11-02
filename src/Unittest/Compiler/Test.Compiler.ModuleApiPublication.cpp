@@ -928,6 +928,75 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
 SWC_TEST_END()
 
 #ifdef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication)
+{
+    ApiPublicationTestDirectory directory("InheritedForeign");
+    constexpr std::string_view providerSource = R"(#global public
+#[Foreign(module: "kernel32", link: "kernel32", callconv: .C)]
+{
+    func GetCurrentProcessId()->u32
+    #[Discardable]
+    func GetCurrentThreadId()->u32
+}
+#[Foreign(module: "kernel32", function: "GetCurrentProcess", link: "kernel32", callconv: .C)]
+{
+    func currentProcess()->*void
+}
+#[CallingConvention(.C)]
+{
+    #[Foreign(module: "kernel32", function: "GetProcessId", link: "kernel32")]
+    func processId(process: *void?)->u32
+}
+#[Foreign(module: "kernel32", function: "GetCurrentProcessId", link: "kernel32", callconv: .C)]
+func directProcessId()->u32
+)";
+    constexpr std::string_view consumerSetup = R"(#import("provider")
+#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
+)";
+    constexpr std::string_view consumerSource = R"(func verify()
+{
+    let processId = Provider.GetCurrentProcessId()
+    Swag.assert(processId != 0)
+    Swag.assert(Provider.GetCurrentThreadId() != 0)
+    Provider.GetCurrentThreadId()
+    Swag.assert(Provider.processId(Provider.currentProcess()) == processId)
+    Swag.assert(Provider.processId(null) == 0)
+    Swag.assert(Provider.directProcessId() == processId)
+}
+#main { verify() }
+#test { verify() }
+)";
+
+    // Export copies declaration snippets; a compiled library emits foreign-only
+    // prefixes. Both must recover attributes inherited outside those snippets.
+    for (const std::string_view backend : {"Export", "StaticLibrary"})
+    {
+        const fs::path workspace = directory.path() / backend;
+        const fs::path modules   = workspace / "modules";
+        const Utf8 setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", setup.view()));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
+
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        Os::ProcessRunOptions options;
+        std::string           output;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        options.timeoutMs      = 30000;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        {
+            std::println(stderr, "inherited foreign attributes failed through {} publication:\n{}", backend, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+#endif
+
+#ifdef _WIN32
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
 {
     ApiPublicationTestDirectory directory("LocalForeignCollision");

@@ -1696,7 +1696,10 @@ Result NativeBackendBuilder::prepare()
     orderLocationTies(ctx_, regularGlobals);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     std::vector<SymbolFunction*> executableRoots;
-    if (executable || library)
+    // Export-only modules can still run JIT tests. Their runtime entry points are lazy and
+    // must be prepared even though there will be no executable or library to link.
+    const bool jitTests = compiler_->cmdLine().command == CommandKind::Test && compiler_->cmdLine().testJit && !testFunctions.empty();
+    if (executable || library || jitTests)
     {
         executableRoots = collectExecutableFunctionRoots(*this);
         for (SymbolFunction* function : executableRoots)

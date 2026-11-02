@@ -58,6 +58,20 @@ for index in count
 }
 ```
 
+## Catalog metadata
+
+[[TrueType.Face.metadataAt]] reads the family and subfamily names, weight, width
+class, and style flags of one sfnt or collection face without loading its glyphs.
+The returned [[TrueType.FaceMetadata]] owns its strings, so the input buffer can
+be released immediately. This is enough to group installed faces and choose a
+style before paying for [[TrueType.Face.loadAt]]. Metadata inspection does not
+prove that the font's glyph tables are complete.
+
+```swag
+let metadata = try Face.metadataAt(bytes.toSlice(), 0)
+Swag.print(metadata.familyName.toString(), ": ", metadata.weight)
+```
+
 ## The reusable glyph slot
 
 Each face exposes one [[TrueType.GlyphSlot]] through [[TrueType.Face.glyph]].

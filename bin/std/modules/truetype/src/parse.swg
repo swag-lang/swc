@@ -414,6 +414,54 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
     return familyName
 }
 
+// Catalog readers need names and style tables, not a glyph workspace or a copy of the file.
+#[Swag.Propagate]
+func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
+{
+    let faceOffset = findFaceOffset(data, faceIndex)
+    let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
+    if not nameTable do
+        fault(0x91)
+
+    let names = unwrap nameTable
+    var result: FaceMetadata
+    result.familyName = decodeBestName(names, NAME_ID_FAMILY)
+    result.styleName  = decodeBestName(names, NAME_ID_STYLE)
+    if result.familyName.isEmpty() do
+        result.familyName = DEFAULT_FAMILY_NAME
+    if result.styleName.isEmpty() do
+        result.styleName = DEFAULT_STYLE_NAME
+
+    var bold   = result.styleName.contains("Bold")
+    var italic = result.styleName.contains("Italic") or result.styleName.contains("Oblique")
+    if let head = findTableAt(data, faceOffset, TAG_HEAD)
+    {
+        let macStyle = readU16(head, 44)
+        bold   = bold or (macStyle & 1) != 0
+        italic = italic or (macStyle & 2) != 0
+    }
+
+    var weight = 0'u16
+    if let os2 = findTableAt(data, faceOffset, TAG_OS2)
+    {
+        weight = readU16(os2, 4)
+        let widthClass = readU16(os2, 6)
+        if widthClass >= 1 and widthClass <= 9 do
+            result.widthClass = widthClass
+        let version   = readU16(os2, 0)
+        let selection = readU16(os2, 62)
+        bold   = bold or (selection & 0x20) != 0
+        italic = italic or (selection & 1) != 0 or (version >= 4 and (selection & 0x200) != 0)
+    }
+
+    result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16
+    if bold or result.weight >= 700 do
+        result.style |= .Bold
+    if italic do
+        result.style |= .Italic
+    return result
+}
+
 // Fills the per-glyph advances of a PostScript face from its charstrings.
 //
 // A bare CFF or Type 1 program ships no `hmtx`, and the advance of a charstring glyph is

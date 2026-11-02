@@ -174,6 +174,12 @@ impl FontFamily
         return TRUE
     }
 
+    internal func systemTypeFaceNative(fontFamily: string, style: FontFamilyStyle)->*TypeFace? fail
+    {
+        let family = findSystemFont(fontFamily)
+        return try createTypeFace(family, style)
+    }
+
     internal func systemFontNamesNative()->Array'String
     {
         var result: #returntype

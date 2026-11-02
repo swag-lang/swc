@@ -24,11 +24,12 @@ struct TypeFaceCacheKey
 {
     name:  String
     index: u32
+    style: u8     // Zero for ordinary loads, otherwise the requested family style plus one.
 }
 
 impl Hash.IHash32 for TypeFaceCacheKey
 {
-    mtd const impl compute()->u32 => Hash.hash32(.name) ^ Hash.hash32(.index)
+    mtd const impl compute()->u32 => Hash.hash32(.name) ^ Hash.hash32(.index) ^ Hash.hash32(.style)
 }
 
 var g_HashTypeFace: HashTable'(TypeFaceCacheKey, *TypeFace)
@@ -157,11 +158,18 @@ public impl TypeFace
     // Uses the same file lookup as [[Pixel.TypeFace.load]], with a separate cache entry for each
     // (`fullName`, `faceIndex`) pair. A standalone font accepts only index zero. File, format and
     // index errors fail without adding a cache entry. Never delete the returned pointer.
-    func loadAt(fullName: string, faceIndex: u32)->*TypeFace fail
+    func loadAt(fullName: string, faceIndex: u32)->*TypeFace fail =>
+        try loadWithKey(TypeFaceCacheKey{String.from(fullName), faceIndex})
+
+    // Style variants own independent glyph workspaces and never mutate an ordinary cached face.
+    internal func loadStyledAt(fullName: string, faceIndex: u32, style: FontFamilyStyle)->*TypeFace fail =>
+        try loadWithKey(TypeFaceCacheKey{String.from(fullName), faceIndex, cast(u8, style) + 1})
+
+    private func loadWithKey(key: TypeFaceCacheKey)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
+        let fullName = key.name.toString()
         if let here = g_HashTypeFace.tryFind(key) do
             return here.value
 
@@ -186,8 +194,15 @@ public impl TypeFace
             buffer = try File.readAllBytes(fullName)
         }
 
-        tf.face       = try Face.loadAt(buffer.toSlice(), faceIndex, allocator)
+        tf.face       = try Face.loadAt(buffer.toSlice(), key.index, allocator)
         tf.faceLoaded = true
+
+        if key.style != 0
+        {
+            let style = cast(FontFamilyStyle, key.style - 1)
+            tf.forceBold   = (style == .Bold or style == .BoldItalic) and not tf.isBold()
+            tf.forceItalic = (style == .Italic or style == .BoldItalic) and not tf.isItalic()
+        }
 
         g_HashTypeFace.add(key, tf)
         return tf

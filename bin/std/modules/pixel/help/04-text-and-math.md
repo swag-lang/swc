@@ -59,6 +59,21 @@ On Linux, [[Pixel.FontCatalog.loadSystem]] scans conventional system and user fo
 into a fresh snapshot. It includes the XDG user data directory and legacy `$HOME/.fonts`,
 ignores unavailable directories and invalid fonts, and does not consult Fontconfig aliases.
 
+## Load an installed family
+
+On Windows and Linux, [[Pixel.FontFamily.enumerateSystemFontNames]] returns owned names for a
+font selector. [[Pixel.FontFamily.createTypeFace]] accepts a name and style directly, returning
+`null` for an unknown family. Its result belongs to Pixel and is cached for subsequent calls.
+Missing bold or italic traits are synthesized without changing other style slots or file loads.
+
+```swag
+var cache: Pixel.FontCache
+if let face = try Pixel.FontFamily.createTypeFace("Example Sans", .BoldItalic)
+{
+    let font = cache.createFont(face, 20)
+}
+```
+
 ## Choose fallback fonts
 
 [[Pixel.Font.resolveRune]] keeps a character in the primary face when it is covered, then

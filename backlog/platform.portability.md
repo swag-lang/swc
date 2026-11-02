@@ -1239,9 +1239,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   also checks that a Swag post-copy hook updates both System V result lanes without dropping
   the borrowed argument at O0 and O2. Owned-local and temporary cleanup, end-to-end source
   execution and over-aligned stack values still need validation or integration.
-- Next: validate owned-local and temporary return cleanup and complete end-to-end source execution; add
-  dynamic alignment for over-aligned stack values.
-  Compare with native C/C++ fixtures and complete Linux runtime lifecycle and signal support.
+- An explicit C-convention function receiving a `#[Swag.Align(32)]` aggregate by value
+  currently aborts in `ABICall.SystemV.cpp::reserveCallStorage`: the argument planner requests
+  32-byte alignment, but call storage only supports the ordinary 16-byte stack boundary.
+  Masking RSP in the existing instruction stream would invalidate the register allocator's
+  constant-depth spill offsets. Local storage alignment is a separate, shared codegen concern.
+- Next: implement aligned outgoing calls with stable spill addresses and correct unwind rules;
+  validate direct, indirect and foreign calls against native C/C++ fixtures, including live
+  values across calls and owned-local/temporary return cleanup. Complete Linux runtime lifecycle
+  and signal support.
 - Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
   preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
 - Related: platform.portability.001, platform.portability.081

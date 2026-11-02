@@ -25,8 +25,11 @@ DevMode and Release compilers build on Linux x86-64. The target defaults to the 
 Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
 executables, GNU static archives and shared modules are available, including transitive imports
 and shared runtime initialization. Shared libraries are position-independent and reject dynamic
-text relocations; relocated constants become read-only after loading. Source-level DWARF debug
-information and persistent Linux native caches remain unfinished; see the portability backlog.
+text relocations; relocated constants become read-only after loading. Native `--debug` emits DWARF 4
+source lines, functions, basic types and recorded stack-home variables. Dedicated executable/shared
+fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
+variables and richer debug records remain unsupported. Linux output-local incremental native-object
+archives remain unfinished; see the portability backlog.
 
 An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
 standard-module fallback; it does not redirect runtime lookup. From the repository root, prepare
@@ -67,7 +70,7 @@ JIT and native tests by default; `--execution jit` or `--execution native` selec
 `--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
 cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,764 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+passes 1,765 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
 The native language suite passes 4,047 tests in each execution mode.
 The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
 It builds a shared library and tests native context sharing, initialization, repeated loads,

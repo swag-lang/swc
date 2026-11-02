@@ -36,6 +36,13 @@ namespace
     }
 }
 
+uint32_t X64DwarfFrame::registerNumber(const MicroReg reg)
+{
+    SWC_ASSERT((reg.isInt() || reg.isFloat()) && reg.index() < 16);
+    constexpr uint8_t integers[] = {0, 3, 2, 1, 7, 6, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15};
+    return reg.isFloat() ? reg.index() + 17 : integers[reg.index()];
+}
+
 void X64DwarfFrame::reset()
 {
     instructions_.clear();

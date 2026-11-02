@@ -22,6 +22,7 @@ enum class LinkSectionFlagsE : uint32_t
     Execute   = 1u << 3,
     Uninit    = 1u << 4, // bss: no file bytes, zero-initialised at load
     Exception = 1u << 5, // unwind function table (.pdata)
+    Debug     = 1u << 6, // non-allocated source debugging data
 };
 
 // Generic relocation semantics, independent of the COFF/ELF encoding it was decoded from.

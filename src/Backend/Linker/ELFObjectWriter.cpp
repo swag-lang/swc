@@ -84,8 +84,8 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
             return objectError(outDiag, "a zero-filled section cannot hold file bytes or relocations");
         ElfSection section;
         section.name = source.name;
-        section.type = source.isUninit() ? K_NOBITS : K_PROGBITS;
-        section.flags = K_ALLOC;
+        section.type  = source.isUninit() ? K_NOBITS : K_PROGBITS;
+        section.flags = source.flags.has(LinkSectionFlagsE::Debug) ? 0 : K_ALLOC;
         if (source.flags.has(LinkSectionFlagsE::Write))
             section.flags |= K_WRITE;
         if (source.flags.has(LinkSectionFlagsE::Execute))
@@ -152,11 +152,24 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     symbols.info = 1; // Only the null symbol is local.
     symbols.bytes.resize(24);
     std::map<Utf8, uint32_t> symbolIndices;
-    for (const auto& [name, symbol] : definitions)
+    // Debug contribution bases are local symbols: they join section offsets across
+    // object files, but must never enter a shared library's dynamic symbol table.
+    const bool hasDebugSections = std::ranges::any_of(image.sections, [](const LinkSection& section) { return section.flags.has(LinkSectionFlagsE::Debug); });
+    for (const bool local : {true, false})
     {
-        symbolIndices.emplace(name, static_cast<uint32_t>(symbols.bytes.size() / 24));
-        const uint8_t type = image.sections[symbol->sectionIndex].flags.has(LinkSectionFlagsE::Code) ? 2 : 1;
-        appendSymbol(symbols.bytes, appendString(strings.bytes, name.view()), 0x10 | type, static_cast<uint16_t>(symbol->sectionIndex + 1), symbol->value);
+        if (local && !hasDebugSections)
+            continue;
+        for (const auto& [name, symbol] : definitions)
+        {
+            const LinkSection& section = image.sections[symbol->sectionIndex];
+            if (section.flags.has(LinkSectionFlagsE::Debug) != local)
+                continue;
+            symbolIndices.emplace(name, static_cast<uint32_t>(symbols.bytes.size() / 24));
+            const uint8_t type = section.flags.has(LinkSectionFlagsE::Code) ? 2 : 1;
+            appendSymbol(symbols.bytes, appendString(strings.bytes, name.view()), (local ? 0 : 0x10) | type, static_cast<uint16_t>(symbol->sectionIndex + 1), symbol->value);
+            if (local)
+                ++symbols.info;
+        }
     }
     for (const Utf8& name : undefined)
     {

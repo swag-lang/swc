@@ -800,6 +800,89 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDwarfResolvesSourceAcrossObjectContributions)
+{
+    const LinkerTestDirectory directory("dwarf_source");
+    // Inspect stable stack homes while the second function exercises optimized line mappings.
+    SWC_RESULT(directory.write("first.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
+public func first(value: s64)->s64
+{
+    var adjusted = value + 1
+    adjusted += 2
+    return adjusted
+}
+)"));
+    SWC_RESULT(directory.write("second.swg", R"(#[Swag.NoInline]
+public func second(value: s64)->s64
+{
+    return first(value) + 1
+}
+)"));
+    SWC_RESULT(directory.write("main.swg", "#main { Swag.assert(second(1) == 5) }\n"));
+    for (const bool shared : {false, true})
+    {
+        const Utf8        outputDirectory = Utf8(directory.path() / (shared ? "shared" : "executable"));
+        std::vector<Utf8> args            = {"build", "--os", "linux", "--artifact-kind", shared ? "shared-library" : "executable", "--debug", "-f", Utf8(directory.path() / "first.swg"), "-f", Utf8(directory.path() / "second.swg"), "-n", "dwarf", "--out-dir", outputDirectory, "--work-dir", Utf8(directory.path() / (shared ? "work-shared" : "work-executable")), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild", "--no-log-color"};
+        if (!shared)
+        {
+            args.emplace_back("-f");
+            args.emplace_back(directory.path() / "main.swg");
+        }
+        SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
+        const Utf8                  artifact = Utf8(fs::path(outputDirectory.c_str()) / (shared ? "dwarf.so" : "dwarf"));
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const std::vector<Utf8>     debugInfo = {"--debug-dump=info", "--debug-dump=loc", "--debug-dump=decodedline", artifact};
+        if (Os::runProcess(exitCode, "readelf", debugInfo, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("DW_TAG_formal_parameter") == std::string::npos || output.find("adjusted") == std::string::npos || output.find("DW_OP_bregx") == std::string::npos || output.find("first.swg") == std::string::npos || output.find("second.swg") == std::string::npos || output.find("Warning:") != std::string::npos)
+        {
+            std::println(stderr, "[DWARF records] {}", output);
+            return Result::Error;
+        }
+        const auto firstUnit = output.find("Compilation Unit @ offset");
+        if (firstUnit == std::string::npos || output.find("Compilation Unit @ offset", firstUnit + 1) == std::string::npos)
+            return Result::Error;
+        output.clear();
+        const std::vector<Utf8> segments = {"-lW", artifact};
+        if (Os::runProcess(exitCode, "readelf", segments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(".debug_") != std::string::npos)
+            return Result::Error;
+        if (!shared)
+        {
+            output.clear();
+            if (Os::runProcess(exitCode, artifact.c_str(), {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+                return Result::Error;
+            continue;
+        }
+        output.clear();
+        const std::vector<Utf8> dynamic = {"-d", artifact};
+        if (Os::runProcess(exitCode, "readelf", dynamic, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos)
+            return Result::Error;
+        output.clear();
+        const std::vector<Utf8> symbols = {"--defined-only", artifact};
+        if (Os::runProcess(exitCode, "nm", symbols, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+            return Result::Error;
+        const std::string symbolTable = output;
+        for (const std::string_view name : {"first", "second"})
+        {
+            const auto found = symbolTable.find(std::format(" __swc_api_6477617266__{}", name));
+            if (found == std::string::npos)
+                return Result::Error;
+            const auto              preceding = symbolTable.rfind('\n', found);
+            const auto              start     = preceding == std::string::npos ? 0 : preceding + 1;
+            const auto              end       = symbolTable.find(' ', start);
+            const Utf8              address   = symbolTable.substr(start, end - start);
+            const std::vector<Utf8> resolve   = {"-f", "-e", artifact, address};
+            output.clear();
+            if (Os::runProcess(exitCode, "addr2line", resolve, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(std::format("{}.swg:", name)) == std::string::npos || output.find("??") != std::string::npos)
+            {
+                std::println(stderr, "[DWARF address lookup] {}", output);
+                return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedFunctionPointersPreserveIdentityWithoutTextRelocations)
 {
     const LinkerTestDirectory directory("pic_functions");

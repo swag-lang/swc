@@ -29,8 +29,7 @@ uint32_t X64UnwindLinux::registerSlot(const MicroReg reg)
 
 uint32_t X64UnwindLinux::dwarfRegister(const uint32_t slot)
 {
-    constexpr uint8_t integers[] = {0, 3, 2, 1, 7, 6, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15};
-    return slot < 16 ? integers[slot] : slot + 1; // DWARF 16 is RIP; XMM0 starts at 17.
+    return X64DwarfFrame::registerNumber(slot < 16 ? MicroReg::intReg(slot) : MicroReg::floatReg(slot - 16));
 }
 
 X64UnwindLinux::State X64UnwindLinux::initialState() const

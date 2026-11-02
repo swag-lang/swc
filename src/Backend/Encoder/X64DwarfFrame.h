@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroReg.h"
 #include "Support/Core/ByteArray.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -8,6 +9,8 @@ SWC_BEGIN_NAMESPACE();
 class X64DwarfFrame
 {
 public:
+    static uint32_t registerNumber(MicroReg reg);
+
     void reset();
     void advance(uint32_t codeOffset);
     void defineCfa(uint32_t reg, uint32_t offset);

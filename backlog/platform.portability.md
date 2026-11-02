@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,764 tests. The native language suite
+Current Linux validation: the complete C++ suite passes 1,765 tests. The native language suite
 passes 4,047 tests in JIT and native execution. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
@@ -1224,13 +1224,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   transitive module initialization and cleanup, published dependencies and distinct module
   symbols. Shared libraries use position-independent function addresses and unwind records,
   reject dynamic text relocations, and preserve canonical local/foreign pointer identity.
-  Source-level DWARF output is explicitly rejected, and persistent native function caches remain
-  COFF-specific and disabled for Linux.
-- Next: emit DWARF source lines, function/type records and variable locations from the existing
-  debug records; route `.debug*` sections through the ELF object path as non-allocated sections.
-  `NativeImageBuilder` currently discards them and `NativeObjFileWriterElf` rejects `--debug`.
-  Validate source stepping and variable inspection with a debugger before removing that rejection.
-  Then add target-specific incremental caches without reusing the COFF archive decoder.
+  Native `--debug` now emits DWARF 4 source lines, functions, basic types, pointers, fixed arrays,
+  struct fields and stack-home parameter/local locations. Debug sections remain non-allocated;
+  contribution-local symbols resolve offsets across multiple ELF objects without TEXTREL.
+  Executable and shared-library fixtures pass readelf/addr2line checks, and GDB source breakpoints,
+  stepping, stacks and scalar/struct/array/pointer inspection work on dedicated fixtures.
+  Optimized variables without recorded stack homes are absent. Register locations, precise lexical
+  lifetimes, inline records, global/constant DIEs and enum names remain unsupported; other composite
+  types retain opaque names/sizes. GDB expression probes select C because Swag has no DWARF language
+  identifier. The output-local incremental native-object archive remains COFF-specific and disabled
+  for Linux; this is separate from the shared machine-code cache.
+- Next: extend source/debug type and location coverage, then add a target-specific incremental
+  native-object cache without reusing the COFF archive decoder.
 - Done when: Linux native output emits source debug information and reuses native caches while
   preserving foreign calls, runtime context sharing and module load/unload lifecycle behavior.
 - Related: platform.portability.005

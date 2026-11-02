@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Backend/Native/NativeImageBuilder.h"
-#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Debug/DebugInfo.h"
+#include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/PEFormat.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -150,14 +152,19 @@ namespace
 
         Result buildUnwindSections(DebugInfoObjectResult& debugInfoResult, const NativeObjDescription& description, const std::vector<DebugInfoFunctionRecord>& debugFunctions) const
         {
+            CollectedDebugRecords records;
+            const bool            emitDwarf = builder_->ctx().cmdLine().targetOs == Runtime::TargetOs::Linux && builder_->compiler().buildCfg().backend.debugInfo;
+            if (emitDwarf)
+                collectDebugRecords(*builder_, description.functions, description.startup, false, records);
             const DebugInfoObjectRequest debugInfoRequest = {
                 .ctx             = &builder_->ctx(),
                 .targetOs        = builder_->ctx().cmdLine().targetOs,
                 .objectPath      = description.objPath,
                 .objectIndex     = description.index,
                 .symbolScopeHash = builder_->scopedSymbolNames().scopeHash,
-                .functions       = debugFunctions,
+                .functions       = emitDwarf ? std::span<const DebugInfoFunctionRecord>{records.functions} : std::span<const DebugInfoFunctionRecord>{debugFunctions},
                 .emitCodeView    = false,
+                .emitDwarf       = emitDwarf,
             };
 
             return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);
@@ -168,7 +175,7 @@ namespace
             std::unordered_map<Utf8, SectionPlacement> placements;
             for (NativeSectionData& section : debugInfoResult.sections)
             {
-                if (section.name.view().starts_with(".debug"))
+                if (section.name.view().starts_with(".debug") && builder_->ctx().cmdLine().targetOs != Runtime::TargetOs::Linux)
                     continue;
                 SectionPlacement placement;
                 SWC_RESULT(appendNativeSection(placement, std::move(section)));
@@ -213,8 +220,9 @@ namespace
         // False when the section takes no place in the image.
         bool placeNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
         {
-            outPlacement = {};
-            if (section.name.view().starts_with(".debug"))
+            outPlacement       = {};
+            const bool isDebug = section.name.view().starts_with(".debug");
+            if (isDebug && builder_->ctx().cmdLine().targetOs != Runtime::TargetOs::Linux)
                 return false;
 
             uint32_t   sectionIndex = 0;
@@ -237,6 +245,8 @@ namespace
             const uint32_t align       = coffSectionAlignmentFromCharacteristics(section.characteristics);
             linkSection.align          = std::max(linkSection.align, align);
             linkSection.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
+            if (isDebug)
+                linkSection.flags.add(LinkSectionFlagsE::Debug);
 
             uint32_t base = 0;
             if (section.bss)

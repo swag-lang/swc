@@ -239,6 +239,7 @@
         <ClCompile Include="src\Backend\JIT\JITPatchJob.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfo.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
+        <ClCompile Include="src\Backend\Debug\DebugInfoDwarf.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugRecordCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeImageBuilder.cpp"/>
@@ -738,6 +739,7 @@
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
         <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfoCodeView.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugInfoDwarf.h"/>
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\X64Encoder.h"/>

@@ -126,6 +126,12 @@ impl String
         return Swag.makeString(.buffer + lower, (upper + 1) - lower)
     }
 
+    // Compares two owned strings by their text, including inside composite values.
+    mtd const opEquals(other: String)->bool => .opEquals(cast(string?, other.toString()))
+
+    // Compares a non-null string view with the owned text.
+    mtd const opEquals(other: string)->bool => .opEquals(cast(string?, other))
+
     // Returns whether the string holds the same bytes as `other`.
     mtd const opEquals(other: string?)->bool
     {

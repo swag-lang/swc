@@ -79,7 +79,12 @@ impl ProcessEnvironment
 // Only `fileName` is required. Arguments are separate values, excluding the executable name;
 // empty values, spaces, quotes and backslashes are preserved. All views are borrowed only for
 // the start call. No shell is selected implicitly. Bare executable names follow the host's
-// search rules; pass a full path when the selected executable must be unambiguous.
+// search rules; pass a full path when the selected executable must be unambiguous. Linux uses
+// the parent's PATH to search, even when `environment` supplies a different PATH for the child.
+// Synchronize starts that inherit the environment with native environment mutation.
+//
+// Linux rejects `nativeArguments`, nonzero `affinityMask` and `measureResources` as unsupported
+// before starting a child. It inherits the current terminal/session; `consoleWindow` has no effect.
 //
 // Windows alone serializes the vector with its C-runtime quoting rules. Programs with another
 // grammar, such as cmd.exe, can instead use `nativeArguments`; that Windows escape hatch must
@@ -117,8 +122,10 @@ struct StartInfo
 What a measured process and everything it started consumed.
 
 Answered by [[Core.Env.Process.resources]] once the process was started with
-`StartInfo.measureResources`. The whole tree is accounted, not just the process that was named:
-a program that does its work in helpers it spawns would otherwise report almost nothing.
+`StartInfo.measureResources`. Query [[Core.Env.Process.supportsResourceMeasurement]] before
+requesting it; unsupported hosts reject the request before starting a child. The whole tree is
+accounted, not just the process that was named: a program that does its work in helpers it spawns
+would otherwise report almost nothing.
 
 The peaks are the highest each figure ever reached, so they stay meaningful after the processes
 that produced them are gone. Times are totals across the tree.
@@ -140,7 +147,12 @@ Owns a started child process, its pipes, and everything captured from it.
 
 Start one with [[Core.Env.startProcess]] and drive it, or use [[Core.Env.runProcess]] to start it
 and wait for it in one step. The value closes every handle it still owns when it leaves scope, so
-a process is never leaked by an early return.
+its native resources are released on an early return. Serialize all operations on the same owner.
+
+On Linux, `close` transfers a live child to Core's reaper without killing it or waiting. Core's
+module shutdown waits for those children before unloading the worker code. A late global
+destructor after shutdown waits for its own child. Do not externally reap an owned child or
+configure automatic SIGCHLD reaping; that loses its exit status and makes a wait fail.
 
 Text captured from a redirected stream accumulates inside the value and outlives
 [[Core.Env.Process.close]], which is what lets a run be inspected after the child is gone.
@@ -239,10 +251,101 @@ func runProcess(info: StartInfo)->Process fail
 
 impl Process
 {
+    // Releases the process and pipe resources when this owner leaves scope.
+    mtd opDrop() => .close()
+
+    // Releases owned resources, retaining captured text and any observed exit code.
+    //
+    // Repeated calls are safe. Closing does not kill a child. Linux queues a live child for
+    // reaping; Core shutdown waits for it, and a close after shutdown waits synchronously.
+    mtd close() => .closeNative()
+
+    // Reads currently available output without waiting, at most 64 KiB from each stream.
+    //
+    // Bounded reads keep a continuously writing stream from starving its peer or a timeout.
+    // EOF or a native pipe-read failure closes that stream; already captured text is retained.
+    mtd readAvailable()
+    {
+        .drainPipeNative(&.outputPipe, &.output, 65536)
+        .drainPipeNative(&.errorPipe, &.error, 65536)
+    }
+
+    internal mtd captureExitOutput()
+    {
+        // Each native drain snapshots availability; inherited pipes in grandchildren do not
+        // make a process wait promise EOF or wait for those grandchildren to terminate.
+        .drainPipeNative(&.outputPipe, &.output, Swag.U64.Max)
+        .drainPipeNative(&.errorPipe, &.error, Swag.U64.Max)
+    }
+
+    // Waits for the child, draining both captured streams while it runs, and returns its status.
+    //
+    // After exit, captures bytes available at that instant without waiting for descendant-held
+    // pipes to close. Linux reports normal exit codes 0..255, or 128 plus the terminating signal.
+    mtd waitForExit()->s32 fail
+    {
+        if .exited do
+            return .status
+        Swag.assert(.handle != null, "invalid process handle")
+        while not .exited
+        {
+            .readAvailable()
+            try .pollExitNative(.hasCapturedStream() ? 5 : Swag.U32.Max)
+        }
+
+        .captureExitOutput()
+        return .status
+    }
+
+    // Waits up to a finite nonnegative timeout while draining both captured streams.
+    //
+    // Zero performs one poll. Elapsed drain time counts against the deadline. Scheduling and
+    // a single bounded drain can delay return beyond it. Timeout retains ownership of the child.
+    mtd tryWaitForExit(timeout: Time.Duration)->bool fail
+    {
+        if not Math.isFinite(timeout.seconds) or
+           timeout.seconds < 0 or
+           timeout.seconds >= 18_446_744_073_709_550.0 do
+            fail BadParameterError{"process timeout is outside the supported range"}
+        if .exited do
+            return true
+        Swag.assert(.handle != null, "invalid process handle")
+        let duration = timeout.milliseconds()
+        var clock: Time.Stopwatch
+        clock.start()
+        for
+        {
+            .readAvailable()
+            let elapsed   = clock.elapsedMilliseconds()
+            let remaining = elapsed >= duration ? 0'u64 : duration - elapsed
+            try .pollExitNative(cast(u32, Math.min(remaining, 5'u64)))
+            if .exited
+            {
+                .captureExitOutput()
+                return true
+            }
+
+            if clock.elapsedMilliseconds() >= duration do
+                return false
+        }
+    }
+
+    // Requests immediate termination; wait afterward to observe the status and capture output.
+    //
+    // Linux sends SIGKILL (observed status 137); Windows requests exit code 1. An already exited
+    // or closed owner is unchanged. Windows also provides an overload taking a native exit code.
+    mtd kill() fail
+    {
+        try .killNative()
+    }
+
+    // Closes the input pipe so a child waiting for EOF can finish. Repeated calls are safe.
+    mtd closeStandardInput() => .closeStandardInputNative()
+
     // Returns whether the process is still running as far as the last wait could tell.
     //
-    // This reports recorded state and never queries the system, so it stays true until a wait,
-    // a kill or a close observes the exit.
+    // This reports recorded state and never queries the system. A successful termination
+    // request does not by itself guarantee the child has exited; wait to observe its status.
     mtd const isRunning()->bool => .handle != null and not .exited
 
     // Returns the exit code reported by the process.
@@ -312,4 +415,9 @@ internal func validateProcessStartInfo(info: StartInfo) fail
                 fail BadParameterError{"process environment names must not contain '='"}
         }
     }
+}
+
+#drop
+{
+    shutdownProcessesNative()
 }

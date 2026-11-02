@@ -13,6 +13,7 @@ alias PthreadEntry = func(*void?)->*void?
     func pthread_create(thread: *pthread_t, attributes: const *void?, entry: PthreadEntry, argument: *void?)->s32
     func pthread_join(thread: pthread_t, result: *(*void?)?)->s32
     func pthread_tryjoin_np(thread: pthread_t, result: *(*void?)?)->s32
+    func pthread_sigmask(how: s32, set: const *sigset_t?, oldset: *sigset_t?)->s32
     func pthread_self()->pthread_t
     func pthread_getschedparam(thread: pthread_t, policy: *s32, parameter: *sched_param)->s32
     func pthread_setschedparam(thread: pthread_t, policy: s32, parameter: const *sched_param)->s32

@@ -197,6 +197,8 @@ internal func clearLeftoverDefaultRoot(root: string) fail
 // its drop hooks keeps its root, which is what makes a failure findable afterwards.
 #drop
 {
+    // Closed child owners can still write into the private root until the reaper joins them.
+    shutdownProcessesNative()
     if not g_Sandboxed or not g_DefaultRoot or (Swag.runtimeFlags() & .FromCompiler) do
         return
     discard catch Directory.delete(g_SandboxRoot.toString(), recurse: true)

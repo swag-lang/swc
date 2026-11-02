@@ -901,3 +901,57 @@ func pthreadProbeEntry(argument: *void?)->*void?
 
     Swag.assert(foundPath == (directPath != null))
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var blocked, previous, pending: sigset_t
+    let emptied = sigemptyset(&blocked)
+    let added   = sigaddset(&blocked, SIGPIPE)
+    Swag.assert(emptied == 0 and added == 0)
+    let masked = pthread_sigmask(SIG_BLOCK, &blocked, &previous)
+    Swag.assert(masked == 0)
+    defer discard pthread_sigmask(SIG_SETMASK, &previous, null)
+    let queried        = sigpending(&pending)
+    let alreadyPending = sigismember(&pending, SIGPIPE)
+    Swag.assert(queried == 0 and alreadyPending >= 0)
+    var immediate: timespec
+    defer if alreadyPending == 0 do
+        discard sigtimedwait(&blocked, null, &immediate)
+    var descriptors: [2] s32
+    let piped = pipe2(descriptors.buffer, O_CLOEXEC | O_NONBLOCK)
+    Swag.assert(piped == 0)
+    defer discard close(descriptors[1])
+    let flags      = fcntl(descriptors[0], F_GETFL)
+    let reset      = fcntl(descriptors[0], F_SETFL, flags & ~O_NONBLOCK)
+    let readFlags  = fcntl(descriptors[0], F_GETFL)
+    let writeFlags = fcntl(descriptors[1], F_GETFL)
+    Swag.assert(flags >= 0 and reset == 0 and (readFlags & O_NONBLOCK) == 0 and (writeFlags & O_NONBLOCK) != 0)
+    let sent     = write(descriptors[1], "bytes".buffer, 5)
+    var available: s32
+    let measured = ioctl(descriptors[0], FIONREAD, &available)
+    Swag.assert(sent == 5 and measured == 0 and available == 5)
+    let closedRead = close(descriptors[0])
+    Swag.assert(closedRead == 0)
+    let written    = write(descriptors[1], "x".buffer, 1)
+    let writeError = errno()
+    Swag.assert(written == -1 and writeError == EPIPE)
+    let pendingAfter = sigpending(&pending)
+    let pipePending  = sigismember(&pending, SIGPIPE)
+    Swag.assert(pendingAfter == 0 and pipePending == 1)
+    if alreadyPending == 0
+    {
+        let consumed = sigtimedwait(&blocked, null, &immediate)
+        Swag.assert(consumed == SIGPIPE)
+        let noMore      = sigtimedwait(&blocked, null, &immediate)
+        let noMoreError = errno()
+        Swag.assert(noMore == -1 and noMoreError == EAGAIN)
+    }
+
+    let memory = calloc(4, #sizeof(u64))
+    Swag.assert(memory != null)
+    defer free(memory)
+    let words = cast([*] u64, memory)
+    for index in 4 do
+        Swag.assert(words[index] == 0)
+}

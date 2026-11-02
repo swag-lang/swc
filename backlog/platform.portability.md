@@ -12,8 +12,8 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
-passes 22 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
-diagnostics (process launch, windows/monitors and input); Core ownership, timer and
+passes 23 tests in JIT and native ELF. Whole-Core compilation still reports 15 missing-service
+diagnostics (windows/monitors and input); Core ownership, timer and
 sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
@@ -207,7 +207,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.065
 - Done when: Engine, voice, bus, streaming, gain, and state operations dispatch through one backend interface instead of repeated OS branches, and the NoSound and XAudio2 contract suites retain the same observable behavior.
 
-### platform.portability.032 — Process services have no second-platform backend
+### platform.portability.032 — Validate Linux process ownership and lifecycle
 
 - Native groundwork: glibc spawn attributes/file actions and signal-set layouts, posix_spawn(p),
   waitpid/status macros and kill are now bound. The 21 raw Linux tests pass in JIT/native, including
@@ -223,12 +223,31 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   consumer, including truncated readlink without a terminator, image inode identity, missing
   procfs links and environ/getenv agreement. The public snapshot/ownership test has not run;
   whole-Core semantic/test/doc checks still report 17 missing-service diagnostics.
-- Lifecycle constraint: the current public close releases handles without waiting or terminating
-  the child. A Linux implementation must preserve deliberate child ownership/reaping and code
-  lifetime; do not silently introduce zombie leaks, kill-on-close or an untracked JIT callback.
-- Next: add process creation, waiting, termination, pipes, exit status, and resource semantics for
-  the chosen second platform. The common-policy extraction is tracked separately in
-  platform.portability.008 and platform.portability.009.
+- Owner implemented: posix_spawnp receives owned argv/environment strings and native file actions
+  for redirection/chdir. Pipe sources are normalized above fd 2; only parent endpoints are
+  nonblocking, and all intermediate descriptors close on failure. Linux rejects raw native
+  arguments, pre-exec affinity and tree accounting before launch. Search uses the parent PATH.
+  Waits own waitpid status, map signal exits to 128+signal, and retry EINTR. Input writes drain
+  both outputs on backpressure and block/consume only a newly generated SIGPIPE on the caller's
+  thread; no process-wide signal disposition changes. kill sends SIGKILL without inventing an
+  arbitrary Windows exit code. Query supportsResourceMeasurement before requesting accounting.
+- Lifecycle implemented: ordinary close transfers a live child to one lazily started reaper;
+  it neither kills nor waits. Native calloc/free state outlives the caller's allocator. Core
+  shutdown joins queued children before unloading worker code or deleting the sandbox root.
+  A destructor after shutdown waits synchronously. This intentional Linux shutdown constraint
+  is documented; owner operations must be serialized and external child reaping is prohibited.
+- Validation: 23 raw tests pass JIT/native, including per-thread SIGPIPE preservation/consumption,
+  EPIPE, zeroed native allocation, independent pipe endpoint flags and FIONREAD. The last probe
+  also passes through a separately published/imported Linux module and native consumer exit 37.
+  Eight Linux public process tests cover context, argv/env/cwd/status, 256 KiB duplex I/O,
+  timeout/kill, broken stdin, close/reaping, unsupported options and simultaneous output/error.
+  They have NOT executed: whole-Core test/doc still stops at 15 desktop/input diagnostics.
+  Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
+  Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
+  audit finding remains. These checks do not prove the reaper's JIT/unload or native lifetime.
+- Next: unblock Core, execute its process tests, add unload/late-destructor and descriptor-leak
+  stress, exercise closed standard descriptors, continuous-output deadlines and descendant-held
+  pipes, and run Windows process regressions. Do not mark lifecycle conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 
@@ -431,17 +450,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Windows serializes them with the existing C-runtime quoting algorithm. Programs with their own
   grammar, including cmd.exe tests, explicitly use the Windows-only nativeArguments escape hatch.
   The common entry validates zero bytes, empty required names, environment names and conflicting
-  argument forms before calling the host leaf. Linux must reject nativeArguments explicitly.
+  argument forms before calling the host leaf. Linux explicitly rejects nativeArguments.
 - Migration: Prism build/format/preview workers, Scope thumbnails, Pixel child tests, Vault's
   visibility probe and debugger launch now pass vectors without manual quoting. This is a source
   API change: callers passing a command-line string must pass a vector or explicitly choose
   StartInfo.nativeArguments for Windows. No shell is inserted implicitly.
 - Validation: raw Linux spawn probes preserve exact argv in JIT/native and an imported consumer.
-  Whole-Core test/doc compilation remains blocked by 17 Linux service diagnostics. Windows
+  Whole-Core test/doc compilation remains blocked by 15 Linux service diagnostics. Windows
   semantic/test compilation on this Linux host stops at the known foreign log/logf imports.
   The public argument-validation tests, native Windows quoting path and application consumers
   still need execution with a complete Core backend; formatting is not their runtime validation.
-- Next: connect the Linux owner to the vector, then run public child roundtrips and focused
+- Next: execute public Linux child roundtrips and focused
   Prism/Scope/Pixel/Vault consumers on supported hosts.
 - Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix
   direct argv preserve empty, spaced, quoted, and backslash-containing arguments in
@@ -449,6 +468,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.011 — Process-tree resource accounting has no portable capability contract
 
+- Progress: Process.supportsResourceMeasurement reports true on Windows, false on Linux. Linux
+  rejects StartInfo.measureResources with ENOTSUP before launch; unmeasured resources remain zero.
+  Public capability/error tests await the complete Core backend.
 - Next: preserve the stronger resource contract deliberately. Windows Job Objects account a process
   tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
   the capability is unavailable rather than silently measuring only the first child.
@@ -513,17 +535,20 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.075
 - Done when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
 
-### platform.portability.009 — Process orchestration remains in the Windows backend
+### platform.portability.009 — Finish shared process orchestration and conformance
 
-- Progress: startProcess(StartInfo) and input validation now live in the common layer; the
-  Windows creation mechanism is an internal startProcessNative leaf. Waiting, draining,
-  closing and termination still need common orchestration and Linux resource owners.
+- Progress: input validation, start/run overloads, close/drop dispatch, paired output draining,
+  wait loops, real monotonic timeout budgets and portable termination dispatch live in common
+  process.swg. Ordinary drains cap each stream at 64 KiB; final drains snapshot available bytes
+  so descendant-held pipes cannot make waiting for the direct child wait for EOF. Windows and
+  Linux supply spawn, wait/status, stream operations and native lifetime/reaping.
+  Linux writes service captured output during pipe backpressure; Windows input writes remain
+  blocking and need the equivalent duplex behavior. Public lifecycle execution remains blocked.
 - Evidence: the process value, environment map, recorded-status accessors, and convenience
   `startProcess`/`runProcess` overloads already live in common `process.swg`.
-- Next: move the remaining portable orchestration out of `process.win32.swg`: redirection setup
-  policy, ownership and cleanup order, output/error accumulation, draining both pipes while waiting,
-  and timeout loops. The host leaf should spawn, poll/wait, terminate, and read/write/close one
-  native endpoint.
+- Next: finish sharing redirection preparation/rollback policy where native ownership permits,
+  address Windows duplex input backpressure, and execute the same process contract cases on both
+  hosts. Native leaves should spawn, poll/wait, terminate, and read/write/close native endpoints.
 - Related: platform.portability.032, platform.portability.008, platform.portability.011
 - Done when: Redirection ownership, concurrent stdout/stderr draining, timeout, and cleanup live in common code; Windows and the chosen second host pass the same process contract tests while native leaves only spawn, wait, terminate, and operate endpoints.
 

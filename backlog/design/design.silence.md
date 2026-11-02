@@ -146,13 +146,6 @@ dialogs, then each application, then the written rules.
   size.
 - Done when: the preset row of the inspector matches its picture.
 
-### design.silence.011 — Standalone example scripts stay outside Silence
-
-- Decision: standalone scripts are examples, not Silence applications. A window-using script keeps
-  its title and border and uses the GUI toolkit's Encre and Papier themes where applicable.
-- Out of scope: a Silence application strip, lens-only commands, or application-specific layout
-  rules in a standalone script.
-
 ### design.silence.017 — All examples use Swag-drawn windows
 
 - Decision: examples are teaching programs, not Silence applications. Every top-level example

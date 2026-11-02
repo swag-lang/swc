@@ -210,7 +210,7 @@ in its module backlog; a general request for better names is not a missing langu
   is rejected on decode, and `Scc.MetadataValue` is a tagged union.
 - Related: language.design.001 — a switch over a tagged union has a closed domain, which is the
   strongest case for default exhaustiveness; decide both together. language.design.039,
-  compiler.safety.033, std.gui.pdf.043, std.core.036. compiler.safety.010 owns forged tags coming
+  std.gui.pdf.043, std.core.036. compiler.safety.010 owns forged tags coming
   from `Swag.memcpy`, `#relocate`, a binary read or a `#[Foreign]` call: the `!` check and the
   Switch guard catch them only when safety is enabled.
 

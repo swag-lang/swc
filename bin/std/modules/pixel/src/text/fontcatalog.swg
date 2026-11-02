@@ -27,7 +27,7 @@ public impl FontFileFace
 // Add files with [[Pixel.FontCatalog.addFile]], list families with
 // [[Pixel.FontCatalog.familyNames]], then select a face with [[Pixel.FontCatalog.findFace]].
 // File contents are read only when adding a new path; clear and rebuild to refresh the snapshot.
-// Families use the legacy family names exposed by [[TrueType.FaceMetadata]].
+// Families use typographic names when present; legacy names remain available for lookup.
 //
 // ```swag
 // var catalog: Pixel.FontCatalog
@@ -45,10 +45,10 @@ public struct FontCatalog
 
 private func compareFontCatalogFaces(a, b: FontFileFace)->s32
 {
-    let family = Utf8.compare(a.metadata.familyName.toString(), b.metadata.familyName.toString(), .UnicodeNoCase)
+    let family = Utf8.compare(a.metadata.typographicFamilyName.toString(), b.metadata.typographicFamilyName.toString(), .UnicodeNoCase)
     if family != 0 do
         return family
-    let spelling = a.metadata.familyName <=> b.metadata.familyName
+    let spelling = a.metadata.typographicFamilyName <=> b.metadata.typographicFamilyName
     if spelling != 0 do
         return spelling
     let path = a.path <=> b.path
@@ -147,9 +147,9 @@ public impl FontCatalog
         for &face in .entries
         {
             if not result.isEmpty() and
-               Utf8.compare(result.back().toString(), face.metadata.familyName.toString(), .UnicodeNoCase) == 0 do
+               Utf8.compare(result.back().toString(), face.metadata.typographicFamilyName.toString(), .UnicodeNoCase) == 0 do
                 continue
-            result.add(face.metadata.familyName)
+            result.add(face.metadata.typographicFamilyName)
         }
 
         return result
@@ -157,17 +157,29 @@ public impl FontCatalog
 
     // Borrows the closest available face of a family, or returns `null` if it is absent.
     //
-    // Matches the family with Unicode simple case folding. Prefers the requested slant, then
+    // Matches typographic family names with Unicode simple case folding. If no such family
+    // exists, searches legacy family names instead. Prefers the requested slant, then
     // normal width, then the nearest weight (300 light, 400 regular, 600 semibold, 700 bold).
     // Ties follow the catalog's stable ordering, independently of insertion order. No synthetic
     // style is applied. The pointer remains valid until this catalog is mutated or destroyed.
     mtd const findFace(family: string, style = FontFamilyStyle.Regular)->const *FontFileFace?
     {
+        var useTypographicName = false
+        for &face in .entries
+        {
+            if Utf8.compare(face.metadata.typographicFamilyName.toString(), family, .UnicodeNoCase) == 0
+            {
+                useTypographicName = true
+                break
+            }
+        }
+
         var result: const *FontFileFace?
         var score = 0xFFFFFFFF'u32
         for &face in .entries
         {
-            if Utf8.compare(face.metadata.familyName.toString(), family, .UnicodeNoCase) != 0 do
+            let name = useTypographicName ? face.metadata.typographicFamilyName.toString() : face.metadata.familyName.toString()
+            if Utf8.compare(name, family, .UnicodeNoCase) != 0 do
                 continue
             let candidate = fontCatalogStyleScore(face, style)
             if candidate < score

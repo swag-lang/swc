@@ -1,10 +1,12 @@
 using Swag, Core
 
-const NAME_ID_COPYRIGHT = 0'u16
-const NAME_ID_FAMILY    = 1'u16
-const NAME_ID_STYLE     = 2'u16
-const NAME_ID_VERSION   = 5'u16
-const NAME_ID_DESIGNER  = 9'u16
+const NAME_ID_COPYRIGHT          = 0'u16
+const NAME_ID_FAMILY             = 1'u16
+const NAME_ID_STYLE              = 2'u16
+const NAME_ID_VERSION            = 5'u16
+const NAME_ID_DESIGNER           = 9'u16
+const NAME_ID_TYPOGRAPHIC_FAMILY = 16'u16
+const NAME_ID_TYPOGRAPHIC_STYLE  = 17'u16
 
 // What a face is called when its 'name' table declares no record this module can
 // read. Both are reported like any other name, so a caller never sees an empty one.
@@ -431,6 +433,13 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
         result.familyName = DEFAULT_FAMILY_NAME
     if result.styleName.isEmpty() do
         result.styleName = DEFAULT_STYLE_NAME
+
+    result.typographicFamilyName = decodeBestName(names, NAME_ID_TYPOGRAPHIC_FAMILY)
+    result.typographicStyleName  = decodeBestName(names, NAME_ID_TYPOGRAPHIC_STYLE)
+    if result.typographicFamilyName.isEmpty() do
+        result.typographicFamilyName = result.familyName
+    if result.typographicStyleName.isEmpty() do
+        result.typographicStyleName = result.styleName
 
     var bold   = result.styleName.contains("Bold")
     var italic = result.styleName.contains("Italic") or result.styleName.contains("Oblique")

@@ -74,7 +74,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 
         host.clickWnd(&window.findCaptionButton.button)
         Swag.assert(explorer.filter.isVisible() and explorer.filter.hasFocus())
-        Swag.assert(explorer.filter.surfaceRect().y == explorer.sortMenu.surfaceRect().y)
+        Swag.assert(explorer.filter.surfaceRect().y < explorer.sortMenu.surfaceRect().y)
+        Swag.assert(Math.abs(explorer.filterPanel.surfaceRect().x - window.findCaptionButton.surfaceRect().x) < 1)
         explorer.filter.setText("missing")
         Swag.assert(explorer.shown.isEmpty())
         host.settleAnimations(window)

@@ -678,7 +678,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
     const LinkerTestDirectory testDir("missing_resource");
     SWC_RESULT(testDir.write("module.swg", "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.resAppIcoFileName = \"missing.ico\"\n}\n"));
     SWC_RESULT(testDir.write("src/main.swg", "#main {}\n"));
-    const std::vector<Utf8> args = {"build", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    const std::vector<Utf8> args = {"build", "--os", "windows", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::CompileError, "cannot read resource"));
 }
 SWC_TEST_END()

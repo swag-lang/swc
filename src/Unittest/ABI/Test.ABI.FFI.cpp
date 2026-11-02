@@ -328,7 +328,9 @@ SWC_TEST_BEGIN(ABI_CallPreservesFloatingArgumentWidths)
         const auto                   floatArgs = call.callFloatArgs(builder.operands());
         const auto                   useDef    = call.collectUseDef(builder.operands(), nullptr);
         const auto&                  conv      = CallConv::get(kind);
-        const std::array<uint8_t, 8> expected  = kind == CallConvKind::Swag
+        const std::array<uint8_t, 8> expected  = conv.isSystemVAMD64
+                                                     ? std::array<uint8_t, 8>{1, 3, 15, 1, 3, 15, 3, 0}
+                                                 : kind == CallConvKind::Swag
                                                      ? std::array<uint8_t, 8>{1, 3, 15, 1, 3, 15, 0, 0}
                                                      : std::array<uint8_t, 8>{0, 1, 3, 15, 0, 0, 0, 0};
         for (uint32_t index = 0; index < expected.size(); ++index)

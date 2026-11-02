@@ -2266,9 +2266,12 @@ SWC_TEST_BEGIN(RegAlloc_FreeFallbackKeepsItsCallBoundary)
         builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
         constexpr MicroReg owner   = MicroReg::virtualIntReg(7000);
         constexpr MicroReg current = MicroReg::virtualIntReg(7001);
+        // RAX also carries the vector argument count for System V calls. Use a
+        // transient carrier that has no implicit input at the call boundary.
+        const MicroReg carrier = conv.intTransientRegs.back();
         for (const MicroReg reg : conv.intRegs)
         {
-            if (reg != conv.intReturn)
+            if (reg != carrier)
             {
                 builder.addVirtualRegForbiddenPhysReg(owner, reg);
                 builder.addVirtualRegForbiddenPhysReg(current, reg);

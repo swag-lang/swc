@@ -40,4 +40,5 @@ func nestedFailures(levels: u32)->u32 fail
 }
 
 // Only the first levels of the error stack live in the context, which keeps it small.
-#assert(#sizeof(Swag.Context) <= 3040)
+// This bound includes the compiler-owned diagnostic transport callback.
+#assert(#sizeof(Swag.Context) <= 3048)

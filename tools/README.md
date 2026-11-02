@@ -21,8 +21,8 @@ This incremental GNU Make build reuses the compiler source inventory in `swc.vcx
 Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
 `--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
 files, the precompiled header and the executable remain under the supplied build directory.
-DevMode and Release compilers build on Linux x86-64. `--os linux` selects Linux target queries
-and the System V C ABI explicitly; the default target remains Windows. JIT execution, ELF
+DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
+Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
 executables, GNU static archives and shared modules are available, including transitive imports
 and shared runtime initialization. Source-level DWARF debug information, position-independent
 code and persistent Linux native caches remain unfinished; see the portability backlog.
@@ -34,9 +34,9 @@ the runtime and invoke Linux workspaces directly:
 ```sh
 mkdir -p /absolute/build/devmode/runtime
 cp -a bin/runtime/. /absolute/build/devmode/runtime/
-SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build --os linux \
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build \
   --workspace bin/std --workspace-module pixel --num-cores 3
-SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test --os linux \
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
   --workspace bin/std --workspace-module pixel --num-cores 3 \
   --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
 ```

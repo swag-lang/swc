@@ -6503,7 +6503,8 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTransfersCallLaneDemands)
                     builder.emitRet();
                     SWC_RESULT(runPostRaPeepholePass(builder));
                     const auto* inst = builder.instructions().ptr(copy);
-                    const bool  wide = variant == 0 || variant == 3 || variant == 5 || (variant == 6 && bits == MicroOpBits::B64);
+                    const bool  wide = variant == 0 || variant == 3 || variant == 5 || (variant == 6 && bits == MicroOpBits::B64) ||
+                                       (variant == 4 && !CallConv::get(convention).isFloatPersistentReg(copied));
                     if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
                         inst->ops(builder.operands())[2].opBits != (wide ? MicroOpBits::B128 : bits))
                         return Result::Error;

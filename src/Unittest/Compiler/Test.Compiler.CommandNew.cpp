@@ -182,8 +182,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
     uint32_t                exitCode = UINT32_MAX;
     const std::vector<Utf8> args     = {
         "smoke",
-        "--os",
-        hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows",
         "--file",
         Utf8(source),
         "--out-dir",

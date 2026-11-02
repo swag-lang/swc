@@ -827,7 +827,7 @@ namespace
 {
     void emitBoundedPairScan(MicroBuilder& builder, MicroCond condition, bool signedBound, bool reuseLoad, uint32_t variant = 0)
     {
-        const auto data   = MicroReg::intReg(2);
+        const auto data   = CallConv::get(CallConvKind::C).intArgRegs[0];
         const auto left   = MicroReg::intReg(3);
         const auto index  = MicroReg::intReg(8);
         const auto limit  = MicroReg::intReg(9);
@@ -837,6 +837,18 @@ namespace
         const auto header = builder.createLabel();
         const auto exit   = builder.createLabel();
         const auto other  = builder.createLabel();
+        // Keep every extra caller-saved register live so the reuse cases exercise
+        // the same register pressure on both host ABIs.
+        const std::array      occupied = {data, left, index, limit, right, value, spare};
+        SmallVector<MicroReg> extraLive;
+        for (const MicroReg reg : CallConv::get(CallConvKind::C).intTransientRegs)
+        {
+            if (std::ranges::find(occupied, reg) == occupied.end())
+            {
+                extraLive.push_back(reg);
+                builder.emitLoadRegImm(reg, ApInt(0x2468, 64), MicroOpBits::B64);
+            }
+        }
         builder.emitLoadRegMem(left, data, 0, MicroOpBits::B64);
         builder.emitLoadRegMem(right, data, 8, MicroOpBits::B64);
         builder.emitLoadRegMem(index, data, 16, MicroOpBits::B64);
@@ -879,6 +891,8 @@ namespace
             builder.emitLoadMemReg(data, 56, spare, MicroOpBits::B64);
         builder.emitLoadMemReg(data, 64, left, MicroOpBits::B64);
         builder.emitLoadMemReg(data, 72, right, MicroOpBits::B64);
+        for (size_t index = 0; index < extraLive.size(); ++index)
+            builder.emitLoadMemReg(data, 80 + index * 8, extraLive[index], MicroOpBits::B64);
         builder.placeLabel(other);
         builder.emitClearReg(spare, MicroOpBits::B64);
         builder.emitRet();
@@ -930,7 +944,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_PairScanKeepsAnIndexUsedAsItsLoadBase)
         for (size_t index = 0; index < 8; ++index)
             left[2 * index] = 128;
         const auto               first      = reinterpret_cast<uint64_t>(left.data()) / 2;
-        uint64_t                 values[10] = {reinterpret_cast<uint64_t>(left.data()), reinterpret_cast<uint64_t>(right.data()) - first, first, first + 8};
+        uint64_t                 values[18] = {reinterpret_cast<uint64_t>(left.data()), reinterpret_cast<uint64_t>(right.data()) - first, first, first + 8};
         MicroBuilder             builder(ctx);
         Runtime::BuildCfgBackend config{};
         config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
@@ -961,10 +975,10 @@ SWC_TEST_BEGIN(PostRALoopRotate_BoundedPairScanPreservesReadsIndexAndFlags)
                             right.fill(condition == MicroCond::Equal ? 127 : 128);
                             if (match < length)
                                 right[match] = condition == MicroCond::Equal ? 128 : 127;
-                            uint64_t reference[10] = {};
+                            uint64_t reference[18] = {};
                             for (const bool optimize : {false, true})
                             {
-                                uint64_t                 values[10] = {reinterpret_cast<uint64_t>(left.data()) - bias, reinterpret_cast<uint64_t>(right.data()) - bias, bias, bias + length};
+                                uint64_t                 values[18] = {reinterpret_cast<uint64_t>(left.data()) - bias, reinterpret_cast<uint64_t>(right.data()) - bias, bias, bias + length};
                                 MicroBuilder             builder(ctx);
                                 Runtime::BuildCfgBackend config{};
                                 config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
@@ -982,8 +996,8 @@ SWC_TEST_BEGIN(PostRALoopRotate_BoundedPairScanPreservesReadsIndexAndFlags)
                                 if (values[4] != (empty ? bias : bias + match))
                                     return Result::Error;
                                 if (!optimize)
-                                    std::copy_n(values, 10, reference);
-                                else if (!std::equal(values, values + 10, reference))
+                                    std::copy_n(values, 18, reference);
+                                else if (!std::equal(values, values + 18, reference))
                                     return Result::Error;
                             }
                         }
@@ -1027,7 +1041,7 @@ namespace
         builder.placeLabel(exit);
         builder.emitSetCondReg(flag, MicroCond::Equal);
         if (variant == 9)
-            builder.emitCallReg(flag, CallConvKind::C, 0, 0);
+            builder.emitCallReg(flag, CallConvKind::Swag, 0, 0);
         if (variant == 15)
         {
             builder.emitClearReg(value, MicroOpBits::B64);
@@ -1170,7 +1184,7 @@ namespace
 {
     void emitOpposingSwapLoop(MicroBuilder& builder, int64_t seed, bool signedBound, uint32_t variant = 0)
     {
-        const auto data   = MicroReg::intReg(2);
+        const auto data   = CallConv::get(CallConvKind::C).intArgRegs[0];
         const auto base   = MicroReg::intReg(3);
         const auto left   = MicroReg::intReg(8);
         const auto right  = MicroReg::intReg(9);

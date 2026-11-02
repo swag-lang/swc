@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/RuntimeBuildConfig.h"
+#include "Backend/RuntimeName.h"
 #include "Format/FormatOptions.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/Utf8.h"
@@ -152,7 +153,7 @@ struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;
 
-    Runtime::TargetOs            targetOs    = Runtime::TargetOs::Windows;
+    Runtime::TargetOs            targetOs    = hostTargetOs();
     Runtime::TargetArch          targetArch  = Runtime::TargetArch::X86_64;
     Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::Executable;
     FormatNamedStyle             formatStyle = FormatNamedStyle::Swag;

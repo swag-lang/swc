@@ -83,6 +83,8 @@ namespace
     CommandLine makeNativeArtifactCmdLine()
     {
         CommandLine cmdLine;
+        // These object and debug fixtures inspect COFF sections and CodeView records.
+        cmdLine.targetOs         = Runtime::TargetOs::Windows;
         cmdLine.command          = CommandKind::Build;
         cmdLine.name             = "native_paths";
         cmdLine.sourceDrivenTest = false;

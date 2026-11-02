@@ -8,6 +8,19 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(Compiler_CommandLineDefaultsToHostTarget)
+{
+    CommandLine       commandLine;
+    char              arg0[] = "swc";
+    char              arg1[] = "syntax";
+    char*             argv[] = {arg0, arg1};
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), commandLine);
+    SWC_RESULT(parser.parse(std::size(argv), argv));
+    if (commandLine.targetOs != hostTargetOs())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_CommandLineSelectsTargetOs)
 {
     for (const auto target : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})

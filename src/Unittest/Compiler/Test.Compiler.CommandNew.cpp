@@ -158,11 +158,11 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
 {
-    static constexpr std::string_view SOURCE = R"(#import("core", location: "swag@std")
+    static constexpr std::string_view SOURCE = R"(#import("smoke_support", location: ".")
 
 #main
 {
-    for argument in Core.Env.arguments() do
+    for argument in SmokeSupport.arguments() do
         Swag.print(argument, "\n")
 }
 )";
@@ -170,6 +170,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
     const fs::path                    source    = directory.path() / "smoke_script.swgs";
     const fs::path                    outputDir = directory.path() / "output";
     SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
+    const fs::path supportApi = directory.path() / "smoke_support" / "export" / "devmode" / "x86_64" / "support.swg";
+    SWC_RESULT(CompilerTestFile::writeText(supportApi, "#global public\nnamespace SmokeSupport { func arguments()->const [..] string => Swag.args() }\n"));
 
     std::string           output;
     Os::ProcessRunOptions options;
@@ -194,7 +196,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
         "--run-arg=smoke-script-ran",
     };
     if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "[smoke script] exit={}\n{}", exitCode, output);
         return Result::Error;
+    }
     if (output.find("smoke-script-ran") == std::string::npos || output.find("swag.smoke=2") == std::string::npos || output.find("swag.sandbox") == std::string::npos)
         return Result::Error;
 

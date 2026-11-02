@@ -425,8 +425,8 @@ var image = host.render(window)
 Pixel.Testing.assertImageGolden(&image, "surface.encre")
 ```
 
-- **Use one host per theme, never one host repainted.** A render target keeps what the last
-  paint left behind.
+- **Use a fresh host for each golden test.** A render target keeps what the last paint left
+  behind; do not repaint a previous test's host in another theme.
 - **A theme change is not only an event.** `HeadlessHost.notify` reaches the styles that keep a
   private copy of the theme.
 - **Commit one image per scenario, at a bounded size.** Rotate Encre and Papier across distinct

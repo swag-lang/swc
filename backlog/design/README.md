@@ -163,6 +163,13 @@ cells in virtualized views. File tiles share image fitting, hover and selection 
 metadata and badges across applications; loading, caching and application actions remain with
 their hosts. A rendering improvement must reach every consumer without copying paint code.
 
+Golden tests choose one palette each, arbitrarily when authored and fixed across runs. Cover
+Encre and Papier across different tests, never by repeating a composition or looping through
+palettes in the same test. Color-role and contrast assertions can cover both palettes without
+duplicating screenshots.
+
+## Window chrome
+
 ![Reading in Encre](imgs/scope.read.png)
 
 - No caption band, no menu bar, no accent rail, no caption glow, no status bar.

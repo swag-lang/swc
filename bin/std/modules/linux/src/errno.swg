@@ -5,6 +5,7 @@ const ENOENT       = 2's32
 const ESRCH        = 3's32
 const EINTR        = 4's32
 const EBADF        = 9's32
+const EAGAIN       = 11's32
 const EACCES       = 13's32
 const EBUSY        = 16's32
 const EEXIST       = 17's32

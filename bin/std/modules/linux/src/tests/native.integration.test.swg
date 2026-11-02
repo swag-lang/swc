@@ -644,3 +644,71 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let loopError  = errno()
     Swag.assert(loopResult == null and loopError == ELOOP)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    const Template = "/tmp/swag-linux-inotify-XXXXXX"
+    var temporary: [128] u8
+    for byte, index in Template do
+        temporary[index] = byte
+    let created = mkdtemp(temporary.buffer)
+    Swag.assert(created == temporary.buffer)
+    defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+    Swag.assert(directory >= 0)
+    defer discard close(directory)
+    let notification = inotify_init1(IN_CLOEXEC | IN_NONBLOCK)
+    Swag.assert(notification >= 0)
+    defer discard close(notification)
+    let flags = fcntl(notification, F_GETFD)
+    Swag.assert(flags >= 0 and (flags & FD_CLOEXEC) != 0)
+    let wd = inotify_add_watch(notification, temporary.buffer, IN_CREATE | IN_MOVED_FROM | IN_MOVED_TO | IN_ONLYDIR)
+    Swag.assert(wd >= 0)
+    var fds: [2] pollfd
+    var cancellation: [2] s32
+    let piped = pipe2(cancellation.buffer, O_CLOEXEC | O_NONBLOCK)
+    Swag.assert(piped == 0)
+    defer discard close(cancellation[0])
+    defer discard close(cancellation[1])
+    fds[0] = {fd: notification, events: POLLIN}
+    fds[1] = {fd: cancellation[0], events: POLLIN}
+    let idle = poll(fds.buffer, fds.count, 0)
+    Swag.assert(idle == 0)
+    let file = openat(directory, "before".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    Swag.assert(file >= 0)
+    discard close(file)
+    defer discard unlinkat(directory, "before".buffer, 0)
+    defer discard unlinkat(directory, "after".buffer, 0)
+    let ready = poll(fds.buffer, fds.count, 1000)
+    Swag.assert(ready == 1 and (fds[0].revents & POLLIN) != 0 and fds[1].revents == 0)
+    var guarded: { before: u64, bytes: [32] u8, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    let added = read(notification, guarded.bytes.buffer, guarded.bytes.count)
+    Swag.assert(added == 32)
+    let event = cast(const *inotify_event, cast(const *void, guarded.bytes.buffer))
+    Swag.assert(event.wd == wd and event.mask == IN_CREATE and event.len == 16)
+    Swag.assert(cast(string, cast(cstring, guarded.bytes.buffer + 16)) == "before")
+    let moved = renameat(directory, "before".buffer, directory, "after".buffer)
+    Swag.assert(moved == 0)
+    let oldRead = read(notification, guarded.bytes.buffer, guarded.bytes.count)
+    Swag.assert(oldRead == 32 and event.mask == IN_MOVED_FROM and event.cookie != 0)
+    let cookie = event.cookie
+    Swag.assert(cast(string, cast(cstring, guarded.bytes.buffer + 16)) == "before")
+    let newRead = read(notification, guarded.bytes.buffer, guarded.bytes.count)
+    Swag.assert(newRead == 32 and event.mask == IN_MOVED_TO and event.cookie == cookie)
+    Swag.assert(cast(string, cast(cstring, guarded.bytes.buffer + 16)) == "after")
+    let emptyRead  = read(notification, guarded.bytes.buffer, guarded.bytes.count)
+    let emptyError = errno()
+    Swag.assert(emptyRead == -1 and emptyError == EAGAIN)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    let signalled = write(cancellation[1], "x".buffer, 1)
+    Swag.assert(signalled == 1)
+    let awakened = poll(fds.buffer, fds.count, 1000)
+    Swag.assert(awakened == 1 and fds[0].revents == 0 and (fds[1].revents & POLLIN) != 0)
+    let removed = inotify_rm_watch(notification, wd)
+    Swag.assert(removed == 0)
+    let ignored = read(notification, guarded.bytes.buffer, guarded.bytes.count)
+    Swag.assert(ignored == 16 and event.mask == IN_IGNORED and event.wd == wd and event.len == 0)
+}

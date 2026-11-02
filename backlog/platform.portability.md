@@ -253,6 +253,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   open and openWrite documentation states this explicitly. No advisory lock is presented as a
   mandatory sharing guarantee. This was the default implementation choice, not a user-confirmed
   requirement; a request for stricter behavior would require an explicit capability/API decision.
+- Watcher ABI checkpoint: inotify and poll declarations now pass 19 raw tests in JIT/native,
+  including split-buffer rename cookies, nonblocking exhaustion, explicit watch removal and
+  a cancellation pipe waking poll. A separate consumer executes the exported structures/calls
+  in both modes. The Core watcher backend is still being implemented; these raw tests do not
+  establish public cancellation, recursive coverage or ownership correctness.
 - Next: finish watching and run the common filesystem/stream/mapping tests, including root-link
   deletion and the sharing/opening contract, with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
@@ -344,7 +349,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Reparse-point scanning is shared. Unlinking a final file/directory link checks its authorized
   parent without following that final link; writes and traversal through parent links still fail.
   Shared tests distinguish Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
-- Validation: 18 raw binding tests pass JIT/native, including realpath allocation/free, a link
+- Validation: 19 raw binding tests pass JIT/native, including realpath allocation/free, a link
   followed by '..' and ELOOP. Whole-Core analysis reports 21 unrelated missing-service diagnostics.
   Public tests for argv matching, case, root containment, invalid paths, escaped writes/deletes
   and safe link removal are added but have not executed; native Windows validation is unavailable.

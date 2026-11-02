@@ -122,3 +122,17 @@ func waitManyThreads(threads: [..] Threading.Thread)
     second.reset()
     Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
 }
+
+// Reusing an owner must apply its priority to the new native thread each time.
+#test
+{
+    var thread: Threading.Thread
+    for 2
+    {
+        expect thread.init(&idleThread, priority: .Highest)
+        let priority = expect GetThreadPriority(cast(HANDLE, thread.handle))
+        expect thread.start()
+        thread.wait()
+        Swag.assert(priority == THREAD_PRIORITY_HIGHEST)
+    }
+}

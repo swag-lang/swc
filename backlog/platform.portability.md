@@ -519,35 +519,20 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.016 — Replace the native installed-font descriptor
 
 - Evidence: `SystemFontFaceInfo` currently stores `LOGFONTW`, so Pixel's public system-font model is
-  a Windows descriptor.
-- Next: replace it with family/subfamily names, normalized style properties, file path, and face
-  index. The platform hook should enumerate font files or configured font directories, not
-  manufacture a native font handle.
+  a Windows descriptor. `FontFileFace` and `FontCatalog` already provide owned portable
+  metadata and file/index loading, including a conventional Linux installed-font source.
+- Next: migrate the Windows installed-font source and shared `FontFamily` consumers to
+  `FontCatalog`/`FontFileFace`, preserving installed-face selection. Keep native handle creation
+  only in an optional Windows adapter, not in the portable descriptor.
 - Done when: The public installed-font descriptor contains normalized family, subfamily, style, path, and face index without LOGFONTW or native handles, while Windows enumeration still loads and selects the same installed faces.
-
-### platform.portability.017 — Connect installed-font sources to the common scanner
-
-- Next: feed host-discovered files into `Pixel.FontCatalog.addFile` and replace installed-family
-  callers of the native descriptors with the resulting `FontFileFace` file/index metadata.
-  The common catalog can already parse collections and load a selected face without GDI.
-- Related: platform.portability.016, platform.portability.019, platform.portability.020, platform.portability.018
-- Done when: Common Swag code scans font files and collections with the existing TrueType/OpenType reader into portable face descriptors, and a host-supplied file list produces the same catalog independently of enumeration backend.
 
 ### platform.portability.018 — Finish installed-family grouping and cache integration
 
 - Next: integrate `FontCatalog`'s deterministic family/style selection with installed-font caching
   and replace the Windows grouping callbacks. Add typographic family/subfamily names and legacy
   aliases so separately named light and semibold faces can join their intended family.
-- Related: platform.portability.016, platform.portability.017
+- Related: platform.portability.016
 - Done when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
-
-### platform.portability.020 — Linux has no installed-font source
-
-- Next: a first Linux backend may provide conventional directories. Fontconfig can be added later
-  for aliases, user configuration and substitutions without making basic parsing and grouping depend
-  on it.
-- Related: platform.portability.017
-- Done when: A Linux backend discovers installed fonts from documented system and user directories and feeds the common scanner, with tests for collections, missing directories, duplicates, and readable fallback families.
 
 ### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
@@ -879,8 +864,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   so it reads the font twice.
 - Done when: the Windows adapter returns the portable file-and-face-index descriptor from
   platform.portability.016/platform.portability.019 without locale-dependent matching, and the
-  same descriptor accepts platform.portability.020's source.
-- Related: platform.portability.016, platform.portability.019, platform.portability.020
+  same descriptor accepts the conventional Linux `FontCatalog.loadSystem` source.
+- Related: platform.portability.016, platform.portability.019
 
 ### platform.portability.019 — A system face cannot load directly from file and face index
 
@@ -894,7 +879,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   creation, keeping `createFromHfont` as an optional Windows adapter.
 - Done when: a system-family selection loads the requested collection face from its
   descriptor without manufacturing a GDI font handle.
-- Related: platform.portability.067, platform.portability.016, platform.portability.017
+- Related: platform.portability.067, platform.portability.016
 
 ### platform.portability.025 — Drag-preview premultiplication still lives in the Windows adapter
 

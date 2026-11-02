@@ -53,6 +53,10 @@ borrowed until the next catalog mutation; loading it uses the exact file/index p
 usual typeface cache. Selection does not synthesize bold or italic. The catalog currently uses
 legacy family names, so a separately named light or condensed family remains separately listed.
 
+On Linux, [[Pixel.FontCatalog.loadSystem]] scans conventional system and user font directories
+into a fresh snapshot. It includes the XDG user data directory and legacy `$HOME/.fonts`,
+ignores unavailable directories and invalid fonts, and does not consult Fontconfig aliases.
+
 ## Rich text
 
 [[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.

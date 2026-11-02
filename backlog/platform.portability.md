@@ -32,7 +32,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,089 declarations and 386 exposed members have comments.
+Core API generation succeeds: all 2,090 declarations and 388 exposed members have comments.
 The only unresolved documentation link in this probe points to the separate GUI API page,
 which is not built here.
 
@@ -851,15 +851,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
   themes, controls and the toolkit-owned file dialog are platform-neutral. These leaves identify
   mechanisms to replace; their file count is not a porting plan.
-- Next: add an opt-in per-window close-request and independent-window lifetime contract before
-  adapting GUI surfaces. Core currently stops its shared pump on any close/destruction; its
-  documented default leaves a close-requested window open so callers can retire borrowed renderer
-  resources first. Preserve that default for existing WindowLoop consumers. Prove managed closure
-  with two real Core/Pixel windows: defer or accept one close request while the other still pumps
-  events and renders. The application should explicitly decide when to quit; do not introduce an
-  implicit last-window rule. The existing pointer integration test deliberately asserts the current
-  stop-on-any-close behavior, so this is an additive policy extension, not a general bug fix.
-  Build the GUI application/surface and renderer adapters on the Core X11 owner, finish cursor
+  Core provides opt-in independent window lifetimes through `WindowOptions.stopLoopOnClose`
+  and `WindowCallbacks.onCloseRequest`. GUI can defer native close requests until renderer borrows
+  are retired and explicitly decide when its application quits; there is no implicit last-window
+  shutdown. Existing WindowLoop consumers retain their default close behavior.
+- Next: build the GUI application/surface and renderer adapters on the Core X11 owner, finish cursor
   shapes and keyboard/text/pointer routing, and run a rendered application with a window manager.
   GUI also needs title/coordinate/state operations, clipboard selection ownership and drag/drop.
   Define frameless-window and compositor-alpha behavior explicitly: current Core windows use the

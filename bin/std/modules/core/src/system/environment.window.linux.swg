@@ -25,7 +25,8 @@ private func releaseX11Window(window: *LinuxDesktop.WindowState)
 
     if window.owner do
         window.owner.nativeHandle = null
-    context.stopRequested = true
+    if window.stopLoopOnClose do
+        context.stopRequested = true
     Linux.free(window)
 }
 
@@ -48,12 +49,13 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
         try Errors.failLinuxError(Linux.ENOMEM)
     let window = cast(*LinuxDesktop.WindowState, unwrap allocation)
     defer #fail Linux.free(window)
-    window.context       = context
-    window.resizable     = (options.flags & .Resizable) != .None
-    window.id            = context.xcb_generate_id(connection)
-    window.drawable      = {context.connection, window.id, context.screen.root_visual, context.screenIndex}
-    window.protocolsAtom = try LinuxDesktop.atom(context, "WM_PROTOCOLS")
-    window.deleteAtom    = try LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
+    window.context         = context
+    window.stopLoopOnClose = options.stopLoopOnClose
+    window.resizable       = (options.flags & .Resizable) != .None
+    window.id              = context.xcb_generate_id(connection)
+    window.drawable        = {context.connection, window.id, context.screen.root_visual, context.screenIndex}
+    window.protocolsAtom   = try LinuxDesktop.atom(context, "WM_PROTOCOLS")
+    window.deleteAtom      = try LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
     let eventMask = (1 << 15) | (1 << 17) | Linux.XCB_EVENT_MASK_FOCUS_CHANGE |
                     Linux.XCB_EVENT_MASK_POINTER_MOTION | Linux.XCB_EVENT_MASK_BUTTON_PRESS |
                     Linux.XCB_EVENT_MASK_BUTTON_RELEASE
@@ -300,10 +302,11 @@ impl Window
     }
 }
 
-// Dispatches pending X11 paint/resize callbacks on the window-creating thread.
+// Dispatches pending X11 window events on the window-owning thread.
 //
-// Returns false on a close request, destruction or a lost/unavailable display. A close
-// request leaves the window owned. Callbacks may close or move their window. At most
+// Returns false when a window with [[Core.Env.WindowOptions.stopLoopOnClose]] requests closing or is destroyed,
+// or when the display is lost/unavailable. A request leaves the window owned unless
+// its callback closes it. Callbacks may close or move their window. At most
 // 4096 events are consumed per call, so continuously arriving input cannot starve frames.
 public func processWindowMessages()->bool
 {
@@ -400,7 +403,6 @@ public func processWindowMessages()->bool
 
         case 17:
             releaseX11Window(window)
-            return false
 
         case 22:
             let resize   = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event))
@@ -412,12 +414,19 @@ public func processWindowMessages()->bool
             let message = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
             if message.format == 32 and
                message.type == window.protocolsAtom and
-               message.data[0] == window.deleteAtom do
-                return false
+               message.data[0] == window.deleteAtom
+            {
+                let stop     = window.stopLoopOnClose
+                let callback = owner.callbacks.onCloseRequest
+                if callback do
+                    callback(owner)
+                if stop do
+                    return false
+            }
         }
 
         // The callback may have released window and owner; neither is used again.
     }
 
-    return true
+    return not context.stopRequested
 }

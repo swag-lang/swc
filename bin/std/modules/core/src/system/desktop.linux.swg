@@ -64,14 +64,15 @@ internal struct WindowState
 {
     internal
     {
-        next:          *WindowState?
-        owner:         *Env.Window?
-        context:       *Context?
-        id:            u32
-        drawable:      Env.XcbDrawable
-        deleteAtom:    u32
-        protocolsAtom: u32
-        resizable:     bool
+        next:            *WindowState?
+        owner:           *Env.Window?
+        context:         *Context?
+        id:              u32
+        drawable:        Env.XcbDrawable
+        deleteAtom:      u32
+        protocolsAtom:   u32
+        resizable:       bool
+        stopLoopOnClose: bool
     }
 }
 

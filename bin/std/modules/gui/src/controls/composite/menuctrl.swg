@@ -56,7 +56,8 @@ public struct PopupMenuItem
         critical:   bool          // Whether the item destroys something: its words take the critical ink.
     }
 
-    submenuOpensLeft: bool     // Resolved opening side used by layout and painting.
+    submenuOpensLeft: bool       // Resolved opening side used by layout and painting.
+    commandId:        String     // Owns a dynamically supplied identifier for as long as this item exists.
 }
 
 // Displays either a persistent menu bar or a modal popup menu.
@@ -1231,6 +1232,8 @@ public impl MenuCtrl
     }
 
     // Adds a command with explicit presentation and returns its mutable item descriptor.
+    //
+    // Copies both the label and identifier, so temporary filesystem entries can fill a menu.
     #[Swag.Discardable]
     mtd addItem(name: string?, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
@@ -1238,7 +1241,8 @@ public impl MenuCtrl
         {
             .name.set(name)
             .icon      = icon
-            .id        = id
+            .commandId = id
+            .id        = .commandId.toString()
             .rightName = rightName orelse ""
             .disabled  = disabled
             .checked   = checked

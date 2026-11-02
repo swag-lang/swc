@@ -28,8 +28,9 @@ struct BreadcrumbCtrl
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        iconSize: f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
-        quiet:    bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
+        iconSize:   f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
+        quiet:      bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
+        fitToWidth: bool         // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
 
         readonly
         {
@@ -48,11 +49,15 @@ struct BreadcrumbCtrl
         sigEmptyPressed: SigArray'func||(*Wnd)
     }
 
-    hotItem   = Swag.U64.Max     // Level currently under the pointer.
-    hotArrow:   bool             // Whether the pointer is over that level's arrow.
-    pressItem = Swag.U64.Max     // Level on which the current press began.
-    pressArrow: bool             // Whether the current press began on its arrow.
-    pressEmpty: bool             // Whether the current press began where no level is.
+    hotItem   = Swag.U64.Max          // Level currently under the pointer.
+    hotArrow:      bool               // Whether the pointer is over that level's arrow.
+    pressItem = Swag.U64.Max          // Level on which the current press began.
+    pressArrow:    bool               // Whether the current press began on its arrow.
+    pressEmpty:    bool               // Whether the current press began where no level is.
+    overflowRect:  Math.Rectangle     // Overflow trigger when ancestors do not fit.
+    firstVisible:  u64                // First level after the overflow trigger.
+    hotOverflow:   bool
+    pressOverflow: bool
 }
 
 impl BreadcrumbCtrl
@@ -79,6 +84,7 @@ impl BreadcrumbCtrl
         .pressItem  = Swag.U64.Max
         .pressArrow = false
         .pressEmpty = false
+        .hotOverflow, .pressOverflow = false
         .invalidate()
     }
 
@@ -119,6 +125,7 @@ impl BreadcrumbCtrl
         .pressItem  = Swag.U64.Max
         .pressArrow = false
         .pressEmpty = false
+        .hotOverflow, .pressOverflow = false
         .invalidate()
     }
 
@@ -147,7 +154,7 @@ impl BreadcrumbCtrl
             var w = .padX
             if it.icon.isValid() do
                 w += (.iconSize != 0 ? .iconSize : it.icon.sizeX) + .iconGap
-            w += Painter.measureString(it.name.toString(), font).width + .padX
+            w += Math.ceil(Painter.measureStringSnapped(it.name, font, deviceScale: .deviceScale())) + .padX
 
             it.bodyRect = Math.Rectangle{x, client.y, w, client.height}
             x += w
@@ -164,6 +171,46 @@ impl BreadcrumbCtrl
                 it.arrowRect = {}
             }
         }
+
+        .overflowRect = {}
+        .firstVisible = 0
+        if not .fitToWidth or .items.isEmpty() or x <= client.right() do
+            return
+
+        // Keep whole ancestors, never the trailing letters of one. The leaf always stays.
+        let overflowWidth = Math.min(m.control_DialogHeight, client.width)
+        let available     = Math.max(client.width - overflowWidth, 0)
+        .firstVisible = .items.count - 1
+        var used = .items.back().bodyRect.width + .items.back().arrowRect.width
+        while .firstVisible > 0
+        {
+            let previous = .items[.firstVisible - 1]
+            let width    = previous.bodyRect.width + previous.arrowRect.width
+            if used + width > available do
+                break
+            used += width
+            .firstVisible -= 1
+        }
+
+        .overflowRect = {client.x, client.y, .firstVisible > 0 ? overflowWidth : 0, client.height}
+        x = .overflowRect.right()
+        for &it, index in .items
+        {
+            if index < .firstVisible
+            {
+                it.bodyRect  = {}
+                it.arrowRect = {}
+                continue
+            }
+
+            let arrowWidth = Math.min(it.arrowRect.width, Math.max(client.right() - x, 0))
+            it.bodyRect.x      = x
+            it.bodyRect.width  = Math.min(it.bodyRect.width, Math.max(client.right() - x - arrowWidth, 0))
+            x                  = it.bodyRect.right()
+            it.arrowRect.x     = x
+            it.arrowRect.width = arrowWidth
+            x                  += arrowWidth
+        }
     }
 
     // Opens the child menu of the level at `index` and reports the command chosen in it.
@@ -175,22 +222,48 @@ impl BreadcrumbCtrl
         if index >= .items.count do
             return
 
+        .layout()
         let menu = MenuCtrl.createPopup(me)
+        defer menu.destroy()
         .sigFillMenu.call(me, index, menu)
 
         // Nothing to show: drop the empty popup rather than flashing an empty box.
-        if menu.items.isEmpty()
-        {
-            menu.destroy()
+        if menu.items.isEmpty() do
             return
-        }
 
-        let ar  = .items[index].arrowRect
-        let sr  = .surfaceRect()
-        let sp  = Math.Point{sr.x + ar.horzCenter() - .scrollPos.x, sr.y + ar.bottom() - .scrollPos.y}
-        let sel = menu.doModal(sp, .AnchorTopCenter, autoDestroy: true)
+        var rect = .items[index].bodyRect
+        rect.width += .items[index].arrowRect.width
+        let sel = .showLevelMenu(menu, rect, .items[index].name)
         if sel.count != 0 do
             .sigMenuSelected.call(me, index, sel)
+    }
+}
+
+private impl BreadcrumbCtrl
+{
+    // Use the same attached tab as other menu buttons, aligned with the complete level.
+    mtd showLevelMenu(menu: *MenuCtrl, rect: Math.Rectangle, name: string, overflow = false)->String
+    {
+        let anchor = IconButton.createQuiet(me, menu: not overflow)
+        defer anchor.destroy()
+        anchor.style.setFont(.font())
+        let arrowRoom = overflow ? 0.0 : .themeMetrics().btnIcon_ArrowSize + .themeMetrics().btnIcon_SpacingTextH
+        let room      = Math.max(rect.width - .padX * 2 - arrowRoom, 0)
+        anchor.setQuietText(Painter.elideString(name, nnFont(.font().regular), room, .deviceScale()))
+        anchor.setPosition({rect.x - .scrollPos.x, rect.y - .scrollPos.y, rect.width, rect.height})
+        return String.from(menu.doModal(anchor) orelse "")
+    }
+
+    mtd openAncestors()
+    {
+        let menu = MenuCtrl.createPopup(me)
+        defer menu.destroy()
+        for index in 0 until .firstVisible do
+            menu.addItem(.items[index].name, Format.toString("%", index))
+        var rect     = .overflowRect
+        let selected = .showLevelMenu(menu, rect, "…", overflow: true)
+        if selected.count do
+            .sigItemPressed.call(me, (expect StrConv.parseU64(selected)).value)
     }
 }
 
@@ -200,9 +273,10 @@ impl IWnd for BreadcrumbCtrl
     {
         if evt.kind == .Leave
         {
-            if .hotItem != Swag.U64.Max
+            if .hotItem != Swag.U64.Max or .hotOverflow
             {
-                .hotItem = Swag.U64.Max
+                .hotItem     = Swag.U64.Max
+                .hotOverflow = false
                 .invalidate()
             }
 
@@ -214,7 +288,7 @@ impl IWnd for BreadcrumbCtrl
 
         var nh      = Swag.U64.Max
         var nhArrow = false
-        for it, i in .items
+        for it, i in .items where not it.bodyRect.isEmpty()
         {
             if it.hasArrow and it.arrowRect.contains(pos)
             {
@@ -230,37 +304,49 @@ impl IWnd for BreadcrumbCtrl
             }
         }
 
-        if nh != .hotItem or nhArrow != .hotArrow
+        let overflow = not .overflowRect.isEmpty() and .overflowRect.contains(pos)
+        if nh != .hotItem or nhArrow != .hotArrow or overflow != .hotOverflow
         {
-            .hotItem  = nh
-            .hotArrow = nhArrow
+            .hotItem     = nh
+            .hotArrow    = nhArrow
+            .hotOverflow = overflow
             .invalidate()
         }
 
         // Act on a completed click (press then release over the same target), like a
         // button. Opening the chevron popup on press would start its modal loop while the
         // button is still down, and the release would dismiss it immediately.
-        let empty = nh == Swag.U64.Max and .clientRect().contains(pos - .scrollPos)
+        let empty = nh == Swag.U64.Max and not overflow and .clientRect().contains(pos - .scrollPos)
         if evt.kind == .Pressed and evt.button == .Left
         {
-            if nh != Swag.U64.Max or empty
+            if nh != Swag.U64.Max or empty or overflow
             {
-                .pressItem  = nh
-                .pressArrow = nhArrow
-                .pressEmpty = empty
+                .pressItem     = nh
+                .pressArrow    = nhArrow
+                .pressEmpty    = empty
+                .pressOverflow = overflow
                 .captureMouse()
             }
         }
-        elif evt.kind == .Released and evt.button == .Left and (.pressItem != Swag.U64.Max or .pressEmpty)
+        elif evt.kind == .Released and
+             evt.button == .Left and
+             (.pressItem != Swag.U64.Max or .pressEmpty or .pressOverflow)
         {
             let pi = .pressItem
             let pa = .pressArrow
             let pe = .pressEmpty
-            .pressItem  = Swag.U64.Max
-            .pressEmpty = false
+            let po = .pressOverflow
+            .pressItem     = Swag.U64.Max
+            .pressEmpty    = false
+            .pressOverflow = false
             .releaseMouse()
 
-            if pe
+            if po
+            {
+                if overflow do
+                    .openAncestors()
+            }
+            elif pe
             {
                 if empty do
                     .sigEmptyPressed.call(me)
@@ -287,16 +373,24 @@ impl IWnd for BreadcrumbCtrl
 
         painter.setParams(.Antialiased)
 
-        for it, i in .items
+        if not .overflowRect.isEmpty()
+        {
+            if .hotOverflow do
+                painter.fillRoundRect(.overflowRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
+            let mark = theme.icon(.More, m.fileBrowser_GlyphSize)
+            mark.paint(painter, .overflowRect.horzCenter() - mark.sizeX * 0.5, font.opticalTop(.overflowRect.vertCenter(), mark.sizeY), colors.softText)
+        }
+
+        for it, i in .items where not it.bodyRect.isEmpty()
         {
             let hotBody = i == .hotItem and not .hotArrow
             let hotArr  = i == .hotItem and .hotArrow
 
             // Body background + text
             if hotBody do
-                painter.fillRoundRect(it.bodyRect, 4, 4, colors.btnIcon_HotBk)
+                painter.fillRoundRect(it.bodyRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
 
-            let restText  = .quiet ? colors.faintText : colors.btnIcon_Text
+            let restText  = i + 1 == .items.count ? colors.text : (.quiet ? colors.faintText : colors.softText)
             let textColor = hotBody ? colors.btnIcon_HotText : restText
             let iconColor = hotBody ? colors.btnIcon_HotText : colors.btnIcon_Icon
 
@@ -310,25 +404,26 @@ impl IWnd for BreadcrumbCtrl
                 cx += icon.sizeX + .iconGap
             }
 
-            painter.drawString(cx, it.bodyRect.vertCenter() - font.height * 0.5, it.name.toString(), font, textColor)
+            let name = Painter.elideString(it.name, font, Math.max(it.bodyRect.right() - .padX - cx, 0), .deviceScale())
+            painter.drawString(cx, font.opticalLineTop(it.bodyRect.vertCenter()), name, font, textColor)
 
             // Chevron (right-pointing), same orientation as the icon-button right arrow.
             if it.hasArrow
             {
                 if hotArr do
-                    painter.fillRoundRect(it.arrowRect, 4, 4, colors.btnIcon_HotBk)
+                    painter.fillRoundRect(it.arrowRect, m.corner_Control, m.corner_Control, colors.btnIcon_HotBk)
 
                 if .quiet
                 {
                     let color = hotArr ? colors.btnIcon_HotText : colors.faintText
                     let width = Painter.measureString(QuietSeparator, font).width
-                    painter.drawString(it.arrowRect.horzCenter() - width * 0.5, it.arrowRect.vertCenter() - font.height * 0.5, QuietSeparator, font, color)
+                    painter.drawString(it.arrowRect.horzCenter() - width * 0.5, font.opticalLineTop(it.arrowRect.vertCenter()), QuietSeparator, font, color)
                     continue
                 }
 
                 let arrow      = theme.icon(ThemeIcons.ChevronRight, m.chevron_Size)
                 let arrowColor = hotArr ? colors.btnIcon_HotText : colors.btnIcon_Icon
-                arrow.paint(painter, it.arrowRect.horzCenter() - arrow.sizeX * 0.5, it.arrowRect.vertCenter() - arrow.sizeY * 0.5, arrowColor)
+                arrow.paint(painter, it.arrowRect.horzCenter() - arrow.sizeX * 0.5, font.opticalTop(it.arrowRect.vertCenter(), arrow.sizeY), arrowColor)
             }
         }
     }

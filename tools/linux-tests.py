@@ -12,7 +12,7 @@ import tempfile
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('suite', choices=('cpp', 'lexer', 'parser', 'native'))
+    parser.add_argument('suite', choices=('cpp', 'lexer', 'parser', 'native', 'dynamic-library'))
     parser.add_argument('--compiler', required=True, type=Path, help='built Linux compiler executable')
     parser.add_argument('--dev-full', action='store_true', help='include filesystem tests and extra IR/native validation in the C++ suite')
     parser.add_argument('--execution', choices=('both', 'jit', 'native'), help='native suite execution mode (default: both)')
@@ -27,7 +27,7 @@ def main():
         parser.error('--dev-full only applies to the C++ suite')
     if args.execution and args.suite != 'native':
         parser.error('--execution only applies to the native suite')
-    if args.file_filter is not None and (args.suite == 'cpp' or not args.file_filter):
+    if args.file_filter is not None and (args.suite in ('cpp', 'dynamic-library') or not args.file_filter):
         parser.error('--file-filter requires a nonempty source-suite filter')
     import resource
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
@@ -58,6 +58,19 @@ def main():
             commands = [['unittest', '--num-cores', '3', '--verbose-unittest']]
             if args.dev_full:
                 commands[0].append('--dev-full')
+        elif args.suite == 'dynamic-library':
+            workspace = scratch / 'workspace'
+            for module in ('runtime_context_dynamic_dll', 'runtime_context_dynamic_consumer'):
+                shutil.copytree(root / 'bin/unittests/workspace/modules' / module, workspace / 'modules' / module)
+            for module in ('core', 'linux'):
+                shutil.copytree(root / 'bin/std/modules' / module, scratch / 'std/modules' / module)
+            library = workspace / '.output/runtime_context_dynamic_dll/shared-library/devmode/x86_64/runtime_context_dynamic_dll.so'
+            common = ['--workspace', str(workspace), '--num-cores', '3', '--rebuild']
+            commands = [
+                ['build', *common, '--workspace-module', 'runtime_context_dynamic_dll'],
+                ['test', *common, '--workspace-module', 'runtime_context_dynamic_consumer',
+                 '--no-test-jit', '--run-arg=--dynamic-runtime-library=' + str(library)],
+            ]
         else:
             stages = {'lexer': ['--lex-only'], 'parser': ['--syntax-only'], 'native': []}
             directories = [args.suite] if args.suite == 'native' else [args.suite, 'errors/' + args.suite]

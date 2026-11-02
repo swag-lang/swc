@@ -1,9 +1,11 @@
-// Pinned, and it has to be: this program loads a Swag shared library at run time, and that library
-// was built against 'core.dll'. Linking core in here as well would put two copies of it in the
-// process — two allocators, two runtime contexts — and nothing the compiler sees says so, because
-// the library is named by a path this program computes while it runs.
+// Pin shared Core: the dynamically loaded library was built against that same instance.
+// A separate copy here would duplicate allocators and runtime contexts; the compiler cannot
+// infer this dependency from the library path computed at run time.
 #import("core", location: "swag@std", link: "shared-library")
-#import("win32", location: "swag@std")
+#static if #os == Swag.TargetOs.Windows
+{
+    #import("win32", location: "swag@std")
+}
 
 #run
 {

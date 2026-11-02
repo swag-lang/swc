@@ -52,6 +52,7 @@ GUI and the desktop applications still require additional platform services.
 python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py parser --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py cpp --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py dynamic-library --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --execution native
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
@@ -66,6 +67,9 @@ cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
 passes 1,760 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
 The native language suite passes 4,047 tests in each execution mode.
+The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
+It builds a shared library and tests native context sharing, initialization, repeated loads,
+final-close destruction and reloading through `Core.NativeLibrary`.
 This is compiler coverage; it does not establish complete Linux support for every `bin/` module.
 
 ## Linux host primitives

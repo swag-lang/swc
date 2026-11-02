@@ -1209,10 +1209,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   transitive module initialization and cleanup, published dependencies and distinct module
   symbols. Shared-library linking still permits text relocations. Source-level DWARF output is
   explicitly rejected, and persistent native function caches remain COFF-specific and disabled
-  for Linux. Dynamic load/unload lifecycle coverage remains incomplete.
-- Next: validate dynamic load/unload lifecycle and finish PIC relocations, source-level DWARF
-  and target-specific incremental caches.
-- Done when: Linux native output supports position-independent shared libraries with verified
-  load/unload hooks, emits source debug information and reuses
-  native caches while preserving foreign calls and module lifecycle behavior.
+  for Linux.
+- Next: finish PIC relocations, source-level DWARF and target-specific incremental caches.
+- Done when: Linux native output supports position-independent shared libraries, emits source
+  debug information and reuses native caches while preserving foreign calls, runtime context
+  sharing and module load/unload lifecycle behavior.
 - Related: platform.portability.005

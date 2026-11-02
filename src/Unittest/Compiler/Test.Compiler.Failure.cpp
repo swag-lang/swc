@@ -481,6 +481,30 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_GlobalIfRetiresInactiveDeclarationsAndImpls)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
+{
+    RecoveryTestDirectory directory;
+    std::error_code error;
+    fs::create_directories(directory.path(), error);
+    if (error)
+        return Result::Error;
+    const fs::path source   = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "unittests" / "jit" / "compiler" / "global_if_pending_type";
+    const std::vector<Utf8> arguments = {
+        "test", "--directory", Utf8(source), "--artifact-kind", "executable", "--num-cores", "3", "--no-log-color",
+        "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string output;
+    uint32_t    exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const auto                 result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
+    {
+        std::println(stderr, "[conditional named type candidates] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

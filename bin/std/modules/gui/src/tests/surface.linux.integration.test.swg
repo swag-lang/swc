@@ -12,7 +12,7 @@ using Core, Pixel
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(70, 60, 360, 240, surfaceId: "linux-native-gui")
     surface.setTitle("Native GUI — é")
-    discard PushButton.create(surface.wnd.view, "Native button", {24, 24, 160, 36})
+    discard PushButton.create(surface.wnd.view, "Native button", {24, 72, 160, 36})
     surface.show()
     for 8 do
         app.runFrame()
@@ -41,25 +41,32 @@ using Core, Pixel
     Swag.assert(bytes[3] == expected.a and expected.a == 255)
     Linux.free(image)
 
-    let capturePath = Env.variable("SWAG_GUI_NATIVE_CAPTURE")
-    if not capturePath.isEmpty()
+    // XCB rows start at the top; Pixel.Image storage starts at the bottom.
+    let snapshot = context.xcb_get_image_reply(connection,
+                                               context.xcb_get_image(connection,
+                                                                     2,
+                                                                     drawable.window,
+                                                                     0,
+                                                                     0,
+                                                                     cast(u16, surface.rc.width),
+                                                                     cast(u16, surface.rc.height),
+                                                                     0xFFFFFFFF),
+                                               null)
+    Swag.assert(snapshot != null)
+    defer Linux.free(snapshot)
+    var saved = Image.create(surface.rc.width, surface.rc.height, .BGRA8)
+    Swag.assert(cast(u64, context.xcb_get_image_data_length(snapshot)) == saved.byteCount)
+    Memory.copy(unwrap saved.pixels.buffer, context.xcb_get_image_data(snapshot), saved.byteCount)
+    saved.flip()
+    let reference = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    for index in saved.byteCount do
+        Swag.assert(Math.abs(cast(s32, saved.pixels[index]) - reference.pixels[index]) <= 1,
+                    "native presentation differs from its render target")
+    if Env.variable("SWAG_GUI_NATIVE_CAPTURE") == "1"
     {
-        let snapshot = context.xcb_get_image_reply(connection,
-                                                   context.xcb_get_image(connection,
-                                                                         2,
-                                                                         drawable.window,
-                                                                         0,
-                                                                         0,
-                                                                         cast(u16, surface.rc.width),
-                                                                         cast(u16, surface.rc.height),
-                                                                         0xFFFFFFFF),
-                                                   null)
-        Swag.assert(snapshot != null)
-        defer Linux.free(snapshot)
-        var saved = Image.create(surface.rc.width, surface.rc.height, .BGRA8)
-        Swag.assert(cast(u64, context.xcb_get_image_data_length(snapshot)) == saved.byteCount)
-        Memory.copy(unwrap saved.pixels.buffer, context.xcb_get_image_data(snapshot), saved.byteCount)
+        let capturePath = Path.combine(Env.getSpecialDirectory(.Temp), "gui-native-window.png")
         expect saved.save(capturePath.toString())
+        Console.println("Native GUI capture: ", capturePath)
     }
 
     var message: u64
@@ -128,6 +135,8 @@ struct NativeInputProbe
     surface.show()
     for 4 do
         app.runFrame()
+    surface.wnd.view.focusPolicy = .Click
+    surface.wnd.view.setFocus()
     var probe: NativeInputProbe
     surface.wnd.view.hookOnEvent = func|&probe|(_, event)->bool
     {

@@ -34,3 +34,39 @@
 
     Swag.assert(foundRoot)
 }
+
+// Mount identity, rather than a lexical path prefix, selects the visible filesystem.
+#[Swag.TestTag("filesystem.mountinfo")]
+#test
+{
+    const Mounts = "10 1 0:1 / / rw - ext4 /dev/root rw\n20 10 0:2 / /same rw shared:7 - nfs4 server:/share rw\n21 10 0:3 / /same rw - tmpfs tmpfs rw\n"
+    Swag.assert(not Directory.remoteMountNative(Mounts, 10))
+    Swag.assert(Directory.remoteMountNative(Mounts, 20))
+    Swag.assert(not Directory.remoteMountNative(Mounts, 21))
+    Swag.assert(not Directory.remoteMountNative(Mounts, 99))
+    for kind in ["nfs", "nfs4", "cifs", "smb3", "afs", "ceph", "9p", "fuse.sshfs", "fuse.rclone", "fuse.s3fs", "fuse.glusterfs"]
+    {
+        let record = Format.toString("90 1 0:1 / /remote rw - % source rw", kind)
+        Swag.assert(Directory.remoteMountNative(record, 90))
+    }
+
+    Swag.assert(not Directory.remoteMountNative("90 1 0:1 / /local rw - fuse.swagvault vault rw", 90))
+    Swag.assert(not Directory.remoteMountNative("90 1 0:1 / /bad rw shared:2 master:3 -", 90))
+}
+
+// Requires a local temporary filesystem; exercises real fdinfo/mountinfo resolution and symlinks.
+#[Swag.TestTag("integration.filesystem")]
+#test
+{
+    let root = Env.getSpecialDirectory(.Temp)
+    Swag.assert(not Directory.isRemote(root))
+    Swag.assert(not Directory.isRemote(Path.combine(root, "not-created-yet/volume.svlt")))
+    Swag.assert(not Directory.isRemote(""))
+    Swag.assert(not Directory.isRemote("/tmp\0not-a-path"))
+    let link   = Path.combine(root, Format.toString("remote-query-%", Guid64.random()))
+    let linked = Linux.symlinkat(root.storage(), Linux.AT_FDCWD, link.storage())
+    Swag.assert(linked == 0)
+    defer discard Linux.unlinkat(Linux.AT_FDCWD, link.storage(), 0)
+    Swag.assert(not Directory.isRemote(link))
+    Swag.assert(not Directory.isRemote(Path.combine(link, "not-created-yet")))
+}

@@ -186,3 +186,78 @@ internal func mountPointNative(line: string)->String fail
 
     return result
 }
+
+// Returns whether the filesystem holding `path` is a recognized remote filesystem.
+//
+// Follows symbolic links and uses the closest existing ancestor when the final path does
+// not yet exist. Mount IDs distinguish bind mounts and overlapping mount points. Recognized
+// types include NFS, SMB/CIFS, AFS, Ceph, 9P and common network FUSE drivers. An invalid path,
+// inaccessible ancestor, unreadable procfs, or unrecognized filesystem returns `false`.
+// This is a storage classification, not a reachability check or an estimate of I/O latency.
+func isRemote(path: string)->bool
+{
+    var candidate       = catch Path.absolute(path) { return false }
+    var descriptor: s32 = -1
+    for
+    {
+        descriptor = Linux.openat(Linux.AT_FDCWD, candidate.storage(), Linux.O_PATH | Linux.O_CLOEXEC)
+        if descriptor >= 0 do
+            break
+        let error = Linux.errno()
+        if error == Linux.EINTR do
+            continue
+        if error != Linux.ENOENT do
+            return false
+        let parent = Path.directoryName(candidate)
+        if not parent do
+            return false
+        candidate = String.from(parent)
+    }
+
+    defer discard Linux.close(descriptor)
+    let infoPath = Format.toString("/proc/self/fdinfo/%", descriptor)
+    let info     = catch File.readAllText(infoPath) { return false }
+    var mountId  = 0'u64
+    for line in Tokenize.splitLines(info) where Utf8.startsWith(line, "mnt_id:")
+    {
+        mountId = catch StrConv.toU64(Latin1.trim(line[7 to])) { return false }
+        break
+    }
+
+    if mountId == 0 do
+        return false
+    let mounts = catch File.readAllText("/proc/self/mountinfo") { return false }
+    return remoteMountNative(mounts, mountId)
+}
+
+internal func remoteMountNative(mounts: string, mountId: u64)->bool
+{
+    for line in Tokenize.splitLines(mounts)
+    {
+        let fields = Tokenize.split(line, ' 'u8)
+        if fields.count < 10 do
+            continue
+        let id = catch StrConv.toU64(fields[0]) { continue }
+        if id != mountId do
+            continue
+        for index in 6'u64 until fields.count where fields[index] == "-"
+        {
+            if index + 3 >= fields.count do
+                return false
+            let kind = fields[index + 1]
+            switch kind
+            {
+            case "nfs", "nfs4", "cifs", "smb3", "smbfs", "afs", "coda", "ncpfs",
+                 "ceph", "9p", "fuse.sshfs", "fuse.rclone", "fuse.s3fs", "fuse.gcsfuse",
+                 "fuse.glusterfs", "fuse.curlftpfs", "fuse.davfs", "fuse.gvfsd-fuse":
+                return true
+
+            default: return false
+            }
+        }
+
+        return false
+    }
+
+    return false
+}

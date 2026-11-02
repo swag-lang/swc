@@ -1,4 +1,4 @@
-# Exercises worker propagation to application tests and nested compilers without running swc.
+# Exercises workspace test defaults and worker propagation without running swc.
 param([string] $Tool = (Join-Path $PSScriptRoot '..\_tool.bat'))
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +59,35 @@ public static class ApplicationCompilerProbe
     $env:SWAG_RUNTIME_THREADS = '2'
     Invoke-Apps @('dm', 'test', '--num-cores', '1') '1' '2'
     Write-Output 'Application runner: 18 regression cases passed.'
+
+    $runner = Join-Path $scratch 'tools\_tool.bat'
+    $env:SWAG_RUNTIME_THREADS = $null
+    & $runner std dm test '"gui"' --test-file headless.render.test.swg | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Quoted standard module was rejected.' }
+    $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
+    if ($call[0] -ne '3' -or $call[$call.IndexOf('--workspace-module') + 1] -ne 'gui' -or
+        $call -notcontains '--no-test-jit' -or $call[$call.IndexOf('--artifact-kind') + 1] -ne 'executable' -or
+        $call[$call.IndexOf('--test-file') + 1] -ne 'headless.render.test.swg') {
+        throw 'Standard tests lost their native defaults, module, filter, or runtime ceiling.'
+    }
+
+    $env:SWAG_RUNTIME_THREADS = '2'
+    & $runner std dm test pixel --test-jit --no-test-native --num-cores 1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Explicit JIT test mode was rejected.' }
+    $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
+    if ($call[0] -ne '2' -or $call.IndexOf('--test-jit') -le $call.IndexOf('--no-test-jit') -or
+        $call -notcontains '--no-test-native') {
+        throw 'Explicit test mode or runtime ceiling no longer overrides the defaults.'
+    }
+
+    $env:SWAG_RUNTIME_THREADS = $null
+    & $runner std dm build pixel | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Standard library build was rejected.' }
+    $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
+    if ($call[0] -ne 'unset' -or $call -contains '--artifact-kind' -or $call -contains '--no-test-jit') {
+        throw 'Test defaults reached an ordinary library build.'
+    }
+    Write-Output 'Standard runner: 3 regression cases passed.'
 }
 finally {
     $env:SWC_RUNNER_TEST_LOG = $previousLog

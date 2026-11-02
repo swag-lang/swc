@@ -20,6 +20,7 @@ import select
 import socket
 import ssl
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -27,6 +28,12 @@ import time
 
 class Server(http.server.ThreadingHTTPServer):
     daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        # Negative TLS/timeout cases deliberately disconnect before a response is read.
+        if isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError, ssl.SSLError)):
+            return
+        super().handle_error(request, client_address)
 
 
 class Handler(http.server.BaseHTTPRequestHandler):

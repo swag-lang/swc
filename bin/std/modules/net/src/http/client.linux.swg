@@ -5,7 +5,7 @@ using Core
 
 private struct CurlLibrary
 {
-    library:       NativeLibrary
+    library:            NativeLibrary
     late globalInit:    Curl.curl_global_init_fn
     late globalCleanup: Curl.curl_global_cleanup_fn
     late versionInfo:   Curl.curl_version_info_fn
@@ -19,6 +19,8 @@ private struct CurlLibrary
     late createUrl:     Curl.curl_url_fn
     late freeUrl:       Curl.curl_url_cleanup_fn
     late setUrlPart:    Curl.curl_url_set_fn
+    late getUrlPart:    Curl.curl_url_get_fn
+    late freeUrlText:   Curl.curl_free_fn
 }
 
 private var g_Curl:      CurlLibrary
@@ -64,6 +66,8 @@ private func ensureCurl()->*CurlLibrary fail
     state.createUrl     = try symbol'Curl.curl_url_fn(&state.library, "curl_url")
     state.freeUrl       = try symbol'Curl.curl_url_cleanup_fn(&state.library, "curl_url_cleanup")
     state.setUrlPart    = try symbol'Curl.curl_url_set_fn(&state.library, "curl_url_set")
+    state.getUrlPart    = try symbol'Curl.curl_url_get_fn(&state.library, "curl_url_get")
+    state.freeUrlText   = try symbol'Curl.curl_free_fn(&state.library, "curl_free")
 
     // Lazy initialization happens in an already threaded program. NOSIGNAL also needs an
     // asynchronous resolver for the request deadline to cover DNS lookup.
@@ -92,13 +96,13 @@ private func ensureCurl()->*CurlLibrary fail
 
 private struct CurlResponse
 {
-    response:     Response
-    maxBodyBytes: u64
-    headerBytes:  u64
-    overflow:     bool
-    hasLocation:  bool
+    response:             Response
+    maxBodyBytes:         u64
+    headerBytes:          u64
+    overflow:             bool
+    hasLocation:          bool
     locationContinuation: bool
-    inHeaders:    bool
+    inHeaders:            bool
 }
 
 #[Swag.CallingConvention(.C)]
@@ -147,7 +151,7 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
         state.response.location.clear()
         state.hasLocation = false
         state.locationContinuation = false
-        state.inHeaders = true
+        state.inHeaders   = true
     }
     elif line == "\r\n" or line == "\n"
     {
@@ -162,11 +166,14 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
         if state.locationContinuation
         {
             var start = continuation ? 0'u64 : 9'u64
-            var end = length
+            var end   = length
             while start < end and (line[start] == ' ' or line[start] == '\t') do
                 start += 1
-            while end > start and (line[end - 1] == '\r' or line[end - 1] == '\n' or
-                                   line[end - 1] == ' ' or line[end - 1] == '\t') do
+            while end > start and
+                  (line[end - 1] == '\r' or
+                   line[end - 1] == '\n' or
+                   line[end - 1] == ' ' or
+                   line[end - 1] == '\t') do
                 end -= 1
             let separator = continuation and not state.response.location.isEmpty() ? 1'u64 : 0'u64
             if separator + end - start > 4096 - state.response.location.count
@@ -174,12 +181,14 @@ private func receiveHeader(bytes: [*]u8, size, count: u64, user: *void?)->u64
                 state.overflow = true
                 return 0
             }
+
             if separator do
                 state.response.location += " "
             state.response.location += line[start until end]
-            state.hasLocation = true
+            state.hasLocation       = true
         }
     }
+
     return length
 }
 
@@ -207,17 +216,17 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
        api.setUrlPart(url, Curl.CURLUPART_HOST, server.storage(), 0) != Curl.CURLUE_OK or
        api.setUrlPart(url, Curl.CURLUPART_PORT, service.storage(), 0) != Curl.CURLUE_OK do
         fail Errors.BadParameterError{}
-    try checkCurl(api.setOption(request, Curl.CURLOPT_CURLU, url))
-    let query  = Utf8.indexOf(path, '?')
-    let target = String.from(query == Swag.U64.Max ? path : path[until query])
-    if api.setUrlPart(url, Curl.CURLUPART_PATH, target.storage(), 0) != Curl.CURLUE_OK do
+    var authorityText: [*]u8?
+    if api.getUrlPart(url, Curl.CURLUPART_URL, &authorityText, 0) != Curl.CURLUE_OK or not authorityText do
         fail Errors.BadParameterError{}
-    if query != Swag.U64.Max
-    {
-        let parameters = String.from(path[query + 1 to])
-        if api.setUrlPart(url, Curl.CURLUPART_QUERY, parameters.storage(), 0) != Curl.CURLUE_OK do
-            fail Errors.BadParameterError{}
-    }
+    defer api.freeUrlText(unwrap authorityText)
+    let authority = cast(string, cast(cstring, authorityText))
+
+    // CURLU component setters lowercase percent escapes. Serialize only the validated
+    // authority, then preserve the caller's already encoded request target verbatim.
+    var target = String.from(authority[until authority.count - 1])
+    target += path
+    try checkCurl(api.setOption(request, Curl.CURLOPT_URL, target.storage()))
 
     let agent = String.from(options.userAgent)
     try checkCurl(api.setOption(request, Curl.CURLOPT_PATH_AS_IS, 1's64))
@@ -235,6 +244,7 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
     try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYPEER, 1's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_SSL_VERIFYHOST, 2's64))
     try checkCurl(api.setOption(request, Curl.CURLOPT_SUPPRESS_CONNECT_HEADERS, 1's64))
+
     // Origin headers, especially Authorization, do not belong on a proxy CONNECT request.
     try checkCurl(api.setOption(request, Curl.CURLOPT_HEADEROPT, cast(s64, Curl.CURLHEADER_SEPARATE)))
 
@@ -245,6 +255,7 @@ internal func getNative(host: string, port: u16, path: string, secure: bool, opt
         try checkCurl(api.setOption(request, Curl.CURLOPT_CAINFO, certFile.storage()))
         try checkCurl(api.setOption(request, Curl.CURLOPT_PROXY_CAINFO, certFile.storage()))
     }
+
     let certDirectory = Env.variable("SSL_CERT_DIR")
     if not certDirectory.isEmpty()
     {

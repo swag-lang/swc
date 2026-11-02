@@ -21,7 +21,7 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
 #[Swag.TestTag("integration.network.http")]
 #test
 {
-    let port = httpFixturePort("SWAG_TEST_HTTP_PORT")
+    let port     = httpFixturePort("SWAG_TEST_HTTP_PORT")
     let response = expect Http.get("localhost", port, "/chunked", false, {maxBodyBytes: 6})
     Swag.assert(response.status == 200 and cast(string, response.body.toSlice()) == "abcdef")
     Swag.assert(response.location.isEmpty())
@@ -57,7 +57,7 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     options.headers.add({name: "X-Test", value: "custom"})
     let response = expect Http.get("localhost", port, "/headers", false, options)
     Swag.assert(cast(string, response.body.toSlice()) == "|custom|Swag HTTP integration")
-    let path = "/a/../encoded%2F?q=%2B"
+    let path  = "/a/../encoded%2F?q=%2B"
     let exact = expect Http.get("localhost", port, path, false)
     Swag.assert(cast(string, exact.body.toSlice()) == path)
     let redirect = expect Http.get("localhost", port, "/redirect", false)
@@ -84,10 +84,11 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
 #[Swag.TestTag("integration.network.http")]
 #test
 {
-    let port = httpFixturePort("SWAG_TEST_HTTPS_PORT")
+    let port     = httpFixturePort("SWAG_TEST_HTTPS_PORT")
     let response = expect Http.get("localhost", port, "/body")
     Swag.assert(response.status == 200 and cast(string, response.body.toSlice()) == "hello")
     var error: Swag.Error
+
     // The trusted certificate names localhost, not the numeric address.
     discard catch Http.get("127.0.0.1", port, "/body") as error
     Swag.assert(error.value() is NetworkError)
@@ -115,7 +116,7 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
 #[Swag.TestTag("integration.network.proxy")]
 #test
 {
-    let port = httpFixturePort("SWAG_TEST_HTTP_PORT")
+    let port     = httpFixturePort("SWAG_TEST_HTTP_PORT")
     let response = expect Http.get("proxy-target.invalid", port, "/a/../encoded%2F?q=%2B", false)
     var expected = Format.toString("proxy|http://proxy-target.invalid:%", port)
     expected += "/a/../encoded%2F?q=%2B"
@@ -160,15 +161,17 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
                 Swag.assert(Linux.errno() == 0)
                 break
             }
+
             var buffer: [256]u8
             let count = Linux.readlinkat(descriptor, &entry.d_name[0], &buffer[0], buffer.count)
             if count >= 8 and Utf8.startsWith(cast(string, buffer[until cast(u64, count)]), "socket:[") do
                 result += 1
         }
+
         return result
     }
 
-    let port = httpFixturePort("SWAG_TEST_HTTP_PORT")
+    let port      = httpFixturePort("SWAG_TEST_HTTP_PORT")
     let untrusted = httpFixturePort("SWAG_TEST_UNTRUSTED_HTTPS_PORT")
     expectHttpOverflow(port, "/chunked", 5)
     var error: Swag.Error
@@ -181,6 +184,7 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
         discard catch Http.get("localhost", untrusted, "/body") as error
         Swag.assert(error.value() is NetworkError)
     }
+
     let after = socketCount()
     Swag.assert(after == before)
 }

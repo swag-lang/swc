@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,765 tests. The native language suite
+Current Linux validation: the complete C++ suite passes 1,768 tests. The native language suite
 passes 4,047 tests in JIT and native execution. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
@@ -32,7 +32,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,090 declarations and 388 exposed members have comments.
+Core API generation succeeds: all 2,092 declarations and 388 exposed members have comments.
 The only unresolved documentation link in this probe points to the separate GUI API page,
 which is not built here.
 
@@ -1056,9 +1056,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Generated Net API docs have 25 documented declarations and 18 documented members, with no
   unresolved links. The existing Windows socket cleanup is preserved by inspection; Windows
   execution has not been rerun for this change.
-  HTTP/HTTPS remains Windows-only; IPv6, datagram transport and resolver backends remain absent.
-- Next: implement Linux HTTP/HTTPS and extend the address and ownership contracts for IPv6, UDP,
-  and host/service resolution. Add cancellation and interrupted-connect integration coverage;
+  Linux HTTP/HTTPS now uses a lazily loaded libcurl backend with strict target and proxy TLS,
+  bounded bodies/headers, preserved request-target bytes, explicit redirects and whole-transfer
+  deadlines. Six ordinary HTTP tests, seven direct HTTP/TLS cases, three proxy scenarios and a
+  separate importing consumer pass in JIT/native execution. The generated Net API has 26 documented
+  declarations and 18 documented members, with no unresolved links. IPv6, datagram transport,
+  resolver APIs and cancellation remain absent from the common transport surface.
+- Next: extend the address and ownership contracts for IPv6, UDP and host/service resolution. Add cancellation and interrupted-connect integration coverage;
   keep native handles and error translation inside host leaves, and add readiness only after
   the common concurrency contract is decided.
 - Done when: both host backends pass the same loopback, partial-transfer, cancellation,

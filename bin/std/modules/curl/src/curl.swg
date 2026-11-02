@@ -7,6 +7,8 @@ const CURLE_NOT_BUILT_IN               = 4's32
 const CURLE_OUT_OF_MEMORY              = 27's32
 const CURLE_OPERATION_TIMEDOUT         = 28's32
 const CURLE_PEER_FAILED_VERIFICATION   = 60's32
+const CURLOPT_URL                      = 10002's32
+const CURLUPART_URL                    = 0's32
 const CURLOPT_WRITEDATA                = 10001's32
 const CURLOPT_WRITEFUNCTION            = 20011's32
 const CURLOPT_USERAGENT                = 10018's32
@@ -24,9 +26,9 @@ const CURLOPT_CAPATH                   = 10097's32
 const CURLOPT_TIMEOUT_MS               = 155's32
 const CURLOPT_CONNECTTIMEOUT_MS        = 156's32
 const CURLOPT_PROTOCOLS                = 181's32
-const CURLOPT_PROXY_CAINFO = 10246's32
-const CURLOPT_PROXY_CAPATH = 10247's32
-const CURLOPT_HEADEROPT = 229's32
+const CURLOPT_PROXY_CAINFO             = 10246's32
+const CURLOPT_PROXY_CAPATH             = 10247's32
+const CURLOPT_HEADEROPT                = 229's32
 const CURLOPT_PROXY_SSL_VERIFYPEER     = 248's32
 const CURLOPT_PROXY_SSL_VERIFYHOST     = 249's32
 const CURLOPT_SUPPRESS_CONNECT_HEADERS = 265's32
@@ -44,7 +46,7 @@ const CURLVERSION_FIRST                = 0's32
 const CURL_VERSION_ASYNCHDNS           = 128's32
 const CURL_VERSION_THREADSAFE          = 1073741824's32
 
-const CURLHEADER_SEPARATE = 1's32
+const CURLHEADER_SEPARATE   = 1's32
 const CURL_GLOBAL_DEFAULT   = 3's64
 const CURL_HTTP_VERSION_1_1 = 2's64
 const CURLPROTO_HTTP        = 1's64
@@ -107,3 +109,8 @@ alias curl_url_fn            = func()->*void?
 alias curl_url_cleanup_fn    = func(*void)
 #[Swag.CallingConvention(.C)]
 alias curl_url_set_fn        = func(*void, s32, const [*]u8?, u32)->s32
+
+#[Swag.CallingConvention(.C)]
+alias curl_url_get_fn        = func(const *void, s32, *([*]u8?), u32)->s32
+#[Swag.CallingConvention(.C)]
+alias curl_free_fn           = func(*void?)

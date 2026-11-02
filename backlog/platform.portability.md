@@ -851,8 +851,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
   themes, controls and the toolkit-owned file dialog are platform-neutral. These leaves identify
   mechanisms to replace; their file count is not a porting plan.
-- Next: build the GUI application/surface and renderer adapters on the Core X11 owner, finish
-  cursor shapes and input routing, and run a rendered application with a window manager.
+- Next: add an opt-in per-window close-request and independent-window lifetime contract before
+  adapting GUI surfaces. Core currently stops its shared pump on any close/destruction; its
+  documented default leaves a close-requested window open so callers can retire borrowed renderer
+  resources first. Preserve that default for existing WindowLoop consumers. Prove managed closure
+  with two real Core/Pixel windows: defer or accept one close request while the other still pumps
+  events and renders. The application should explicitly decide when to quit; do not introduce an
+  implicit last-window rule. The existing pointer integration test deliberately asserts the current
+  stop-on-any-close behavior, so this is an additive policy extension, not a general bug fix.
+  Build the GUI application/surface and renderer adapters on the Core X11 owner, finish cursor
+  shapes and keyboard/text/pointer routing, and run a rendered application with a window manager.
+  GUI also needs title/coordinate/state operations, clipboard selection ownership and drag/drop.
+  Define frameless-window and compositor-alpha behavior explicitly: current Core windows use the
+  root visual/depth, and EGL framebuffer alpha does not establish transparent desktop composition.
+  A cursor-only leaf cannot make the whole GUI module importable while its native surface and
+  application types and methods remain missing.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and
   headless contract tests remain green. Focus, DPI, clipboard and input integrations retain

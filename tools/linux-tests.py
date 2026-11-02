@@ -57,6 +57,9 @@ def main():
         if args.suite == 'cpp' and args.dev_full:
             # Native fixture subprocesses resolve installed test inputs beside the executable.
             shutil.copytree(root / 'bin/unittests', scratch / 'unittests')
+            # JIT lifecycle fixtures exercise module-owned native threads through Core.
+            for module in ('core', 'linux'):
+                shutil.copytree(root / 'bin/std/modules' / module, scratch / 'std/modules' / module)
         temporary = scratch / 'temp'
         temporary.mkdir()
         environment = os.environ.copy()

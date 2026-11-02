@@ -51,16 +51,40 @@ func create(dirName: string, recurse = false) fail
 // Deletes `dirName`, optionally deleting its complete contents first.
 //
 // Recursive deletion is not atomic: entries removed before a later failure stay removed.
-// Directory reparse points are removed without traversing their targets.
+// Directory reparse points, including the requested root, are removed without traversing their targets.
 func delete(dirName: string, recurse = false) fail
 {
     if not dirName.count do
         fail Errors.BadParameterError{}
-    try Env.guardWrite(dirName)
+
+    // A trailing slash or '/.' makes a native no-follow query resolve a link's target.
+    // Strip only these directory suffixes before inspecting or removing the named entry;
+    // keep '..' and every intermediate component for the filesystem to resolve.
+    var path = dirName
+    let root = cast(u64, Path.rootLength(path))
+    while path.count > root
+    {
+        if Path.isDirectorySeparator(path[path.count - 1]) do
+            path = path[until path.count - 1]
+        elif path.count >= root + 2 and
+             path[path.count - 1] == '.' and
+             Path.isDirectorySeparator(path[path.count - 2]) do
+            path = path[until path.count - 1]
+        else do
+            break
+    }
+
+    try Env.guardWrite(path)
 
     if recurse
     {
-        let entries = try enumerate(dirName, {})
+        if (try File.attributes(path)).has(File.FileAttributes.ReparsePoint)
+        {
+            try deleteEmptyNative(path)
+            return
+        }
+
+        let entries = try enumerate(path, {})
         for entry in entries
         {
             if entry.isDirectory()
@@ -77,7 +101,7 @@ func delete(dirName: string, recurse = false) fail
         }
     }
 
-    try deleteEmptyNative(dirName)
+    try deleteEmptyNative(path)
 }
 
 // Returns the entries of `dirName` selected by `options`, or an empty array when `dirName` is null.

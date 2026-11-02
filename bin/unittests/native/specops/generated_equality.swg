@@ -407,3 +407,19 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     Swag.assert(A == B)
     Swag.assert(A != c)
 }
+
+// Array expressions keep the same element equality as explicitly typed arrays.
+#test
+{
+    let first = OverloadHolder{inner: AlwaysEqual{1}, tag: 7}
+    let equal = OverloadHolder{inner: AlwaysEqual{2}, tag: 7}
+    let different = OverloadHolder{inner: AlwaysEqual{1}, tag: 8}
+    Swag.assert([first] == [equal])
+    Swag.assert(not ([first] != [equal]))
+    Swag.assert([first] != [different])
+    Swag.assert([[first, first]] == [[equal, equal]])
+
+    let typed: [2] OverloadHolder = [first, first]
+    Swag.assert(typed == [equal, equal])
+    Swag.assert([equal, equal] == typed)
+}

@@ -743,19 +743,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: separate-workspace consumers can call both forwarding forms after producer
   specialization, with native and JIT coverage and no ambiguous import candidates.
 
-### compiler.core.102 — Preserve owned-string equality inside array expressions
-
-- Evidence: on Linux x86-64 with the DevMode compiler, an `Item { label: Core.String;
-  id: u32 }` compares equal to an independently allocated copy after `String` declares
-  its self-type `opEquals`. A nested `Wrapper { item: Item }` also compares equal, but
-  `[first] == [equal]` still returns false. The reduced test uses two
-  `Item{String.from("same text"), 7}` values and verifies their buffers differ.
-- Next: distinguish inferred aggregate-array comparison from explicitly typed fixed arrays
-  and slices; inspect the selected semantic comparison and element overload invocation.
-  Retain a standalone language regression and a Core consumer regression.
-- Done when: composite array equality honors the applicable element equality contract in
-  JIT and native execution, including unequal elements and independent string buffers.
-
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

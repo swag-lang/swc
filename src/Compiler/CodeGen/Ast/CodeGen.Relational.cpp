@@ -502,7 +502,7 @@ namespace
             return;
         }
 
-        if (type.isAggregateStruct())
+        if (type.isAggregate())
         {
             CodeGenStructHelpers::StructLikeFieldLayoutCursor cursor;
             for (size_t i = 0; i < type.payloadAggregate().types.size(); ++i)

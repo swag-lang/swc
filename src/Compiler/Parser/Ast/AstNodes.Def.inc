@@ -72,7 +72,7 @@ SWC_NODE_DEF(LambdaParam, AstNodeIdFlagsE::Zero)
 // ============================================================================
 
 // Interfaces
-SWC_NODE_DEF(InterfaceDecl, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(InterfaceDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(InterfaceBody, AstNodeIdFlagsE::Zero)
 
 // Structs & Unions

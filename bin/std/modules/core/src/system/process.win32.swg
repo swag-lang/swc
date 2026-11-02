@@ -267,40 +267,6 @@ internal func startProcessNative(info: StartInfo)->Process fail
         return result
     }
 
-    Swag.assert(info.fileName != null, "missing process filename")
-    if not info.fileName.count do
-        fail BadParameterError{"process filename is empty"}
-    for c in info.fileName where c == 0 do
-        fail BadParameterError{"process strings cannot contain NUL"}
-    if info.arguments
-    {
-        for c in info.arguments where c == 0 do
-            fail BadParameterError{"process strings cannot contain NUL"}
-    }
-
-    if info.workingDirectory
-    {
-        for c in info.workingDirectory where c == 0 do
-            fail BadParameterError{"process strings cannot contain NUL"}
-    }
-
-    if info.environment
-    {
-        for name, value in info.environment.variables
-        {
-            if name.isEmpty() do
-                fail BadParameterError{"process environment names cannot be empty"}
-            for c in name.toString()
-            {
-                if c == '=' or c == 0 do
-                    fail BadParameterError{"process environment names cannot contain '=' or NUL"}
-            }
-
-            for c in value.toString() where c == 0 do
-                fail BadParameterError{"process environment values cannot contain NUL"}
-        }
-    }
-
     var result: #returntype
 
     // The ends this side created for the child. Each is released as soon as the child has its

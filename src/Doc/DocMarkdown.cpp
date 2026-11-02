@@ -130,8 +130,12 @@ Utf8 DocMarkdown::renderTypeName(const DocRenderContext& renderCtx, const std::s
         while (end > pos && typeName[end - 1] == '.')
             end--;
 
-        const std::string_view token     = typeName.substr(pos, end - pos);
-        const Utf8             reference = resolveReference(renderCtx, token);
+        // Structural types include field and parameter declarations. Their local names
+        // must not acquire links to unrelated API symbols with the same spelling.
+        const size_t           following       = typeName.find_first_not_of(" \t\r\n", end);
+        const bool             declarationName = following != std::string_view::npos && typeName[following] == ':';
+        const std::string_view token           = typeName.substr(pos, end - pos);
+        const Utf8             reference       = declarationName ? Utf8{} : resolveReference(renderCtx, token);
         result += reference.empty() ? Utf8Helper::escapeHtml(token) : reference;
         pos = end;
     }

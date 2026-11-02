@@ -155,7 +155,7 @@ needed. It remains ordinary text, without link colour, underline, badge or inter
 In plain text, write the name directly. Preserve punctuation that belongs to the actual name,
 literal content or required syntax; never strip characters from user data.
 
-## Window chrome
+## Shared rendering
 
 Shared visual families use one rendering implementation in `gui`. Use a widget for an element
 with its own interaction lifecycle, and content/options-based rendering helpers for repeated

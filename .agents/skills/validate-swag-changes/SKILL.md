@@ -268,9 +268,11 @@ consumer that activates the changed behavior.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside
   the intended part is a regression or a new finding, not noise.
 - Cover each rendering branch that the change reaches. Across one visual test family, rotate Encre
-  and Papier across sibling scenarios and capture each state once. Pair palettes when the changed
-  behavior is specifically theme-dependent, such as contrast, palette selection, or theme switching.
-  Do not multiply states that share the same unchanged path.
+  and Papier across sibling scenarios and capture each state once. Do not duplicate the same
+  composition in both themes, including for contrast or palette selection: assert those roles
+  directly. Give theme-switching behavior its own distinct scenario instead of a duplicate pair.
+  Pick the palette arbitrarily once per golden test, keep it fixed across runs, and cover the
+  other palette in different tests. Never loop over palettes inside the same golden test.
 - A focused change with a bounded owner may stop at its exact golden files. Do not replace the
   complete golden-only pass with representative samples when a shared primitive or uncertain
   reach can affect additional snapshots.

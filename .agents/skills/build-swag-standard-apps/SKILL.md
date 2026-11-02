@@ -56,8 +56,8 @@ without hiding those contracts behind framework ceremony.
   application composes them and never re-implements one.**
 - Protect the composition at both boundaries. Structural tests assert parentage, order,
   alignment and visibility. Across each app's golden family, cover both themes while assigning one
-  palette to each screenshot scenario; keep paired captures only when the palette changes the
-  behavior under test.
+  palette to each screenshot scenario. Do not duplicate a scenario in the other theme;
+  use assertions for palette roles and contrast, and distinct scenarios for theme switching.
 
 ## Name The Product Once
 
@@ -429,9 +429,11 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
   paint left behind.
 - **A theme change is not only an event.** `HeadlessHost.notify` reaches the styles that keep a
   private copy of the theme.
-- **Commit one image per theme, at a bounded size.** Shoot at the window's minimum size, or at the
-  region that changed, rather than dropping a theme. A floating component that is part of the
-  change (the lens open, the sheet shown, the inspector unfolded) gets its own pair.
+- **Commit one image per scenario, at a bounded size.** Rotate Encre and Papier across distinct
+  scenarios. A floating component gets its own scenario in one theme, never an automatic pair.
+  Test palette selection and contrast through assertions without duplicating the composition.
+  Choose the palette arbitrarily once per golden test and keep it fixed for deterministic runs;
+  cover the other palette in different tests, not a palette loop within the same test.
 - **Shoot the window in its shipped frame**, with the strip, as the charter pictures show it.
 
 ## Keep The Workspace Shippable

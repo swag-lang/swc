@@ -64,31 +64,25 @@ impl IWnd for FileTileProbe
     }
 }
 
-// Contrast and interaction states share one renderer in both shipped palettes.
+// The renderer covers fitting and interaction states once; application cases cover Papier.
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        host.setup(690, 470)
-        if light do
-            host.theme.setLight()
-        host.notify(.ThemeChanged)
-        var landscape = Image.create(79, 37, .RGB8)
-        landscape.fillGradient(Color.fromArgb(0xFF316589), Color.fromArgb(0xFFE5B87A), Color.fromArgb(0xFF234D34), Color.fromArgb(0xFF793B68))
-        var portrait = Image.create(37, 79, .RGB8)
-        portrait.fillGradient(Color.fromArgb(0xFF793B68), Color.fromArgb(0xFFE5B87A))
-        var wide = host.app.renderer.addImage(landscape)
-        var tall = host.app.renderer.addImage(portrait)
-        defer host.app.renderer.removeTexture(&wide)
-        defer host.app.renderer.removeTexture(&tall)
-        let probe = Wnd.create'FileTileProbe(&host.root)
-        probe.dockStyle = .Center
-        probe.landscape = wide
-        probe.portrait  = tall
-        host.root.applyLayout()
-        var image = host.render(&host.root)
-        Pixel.Testing.assertImageGolden(&image, light ? "filetile.paper" : "filetile.ink")
-    }
+    var host: Testing.HeadlessHost
+    host.setup(690, 470)
+    var landscape = Image.create(79, 37, .RGB8)
+    landscape.fillGradient(Color.fromArgb(0xFF316589), Color.fromArgb(0xFFE5B87A), Color.fromArgb(0xFF234D34), Color.fromArgb(0xFF793B68))
+    var portrait = Image.create(37, 79, .RGB8)
+    portrait.fillGradient(Color.fromArgb(0xFF793B68), Color.fromArgb(0xFFE5B87A))
+    var wide = host.app.renderer.addImage(landscape)
+    var tall = host.app.renderer.addImage(portrait)
+    defer host.app.renderer.removeTexture(&wide)
+    defer host.app.renderer.removeTexture(&tall)
+    let probe = Wnd.create'FileTileProbe(&host.root)
+    probe.dockStyle = .Center
+    probe.landscape = wide
+    probe.portrait  = tall
+    host.root.applyLayout()
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "filetile.ink")
 }

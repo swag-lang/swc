@@ -11,7 +11,9 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the default C++ suite passes 1,660 tests. The raw Linux module
+Current Linux validation: the complete C++ suite passes 1,758 tests. The native language suite
+passes 4,045 tests in JIT; native execution has one remaining section-alignment failure
+tracked in platform.portability.093. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
 suites pass in JIT/native for memory (2), filesystem
@@ -466,7 +468,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: DevMode and Release Linux compilers build from source. Lexer/parser and C++ suites
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
-  default target is still Windows, and neutral standard/application modules have no Linux gate.
+  host target is selected by default, but neutral standard/application modules have no Linux gate.
   Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
   watching, process launch and evdev gamepads are also implemented. Initial X11 desktop, mouse
   and keyboard leaves now unblock whole-Core linking and public test compilation.
@@ -1200,64 +1202,23 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   coverage across native callbacks and nested JIT calls while preserving C++ cleanup.
 - Done when: concurrent cleanup cannot invalidate an active reader/publication generation,
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
-- Related: platform.portability.001, platform.portability.092, platform.portability.093
+- Related: platform.portability.001, platform.portability.093
 
-### platform.portability.092 — Activate the Linux host target by default
+### platform.portability.093 — Finish Linux native storage alignment, PIC, debug and cache support
 
-- Evidence: Linux still defaults to the Windows target unless `--os linux` is supplied.
-  System V scalar, aggregate, variadic and indirect calls are implemented. Over-aligned
-  stack arguments now preserve live spills and native unwinding; source and foreign C
-  calls cover 32-, 64- and 128-byte alignment, hidden results and temporary ownership.
-- Next: select the host target by default, make Windows-only object/debug fixtures explicit,
-  and validate compiler startup, JIT/native execution and a Core consumer without `--os`.
-  Keep explicit target selection working independently of the host.
-- Done when: a Linux compiler produces and runs Linux programs without a target override,
-  and explicit Windows selection retains the existing cross-target semantic/object behavior.
-- Related: platform.portability.001, platform.portability.081, platform.portability.093
-
-### platform.portability.093 — Linux native output needs module, PIC and debug integration
-
-- Evidence: `ELFObjectWriter` emits ELF64 relocatable code/data/BSS with explicit RELA
-  addends, undefined symbols and exported aliases. A GNU linker consumer executes these
-  objects and verifies external calls, shared data and unwinding through generated code.
-  Prepared images share native code/data lowering; Linux unwind output uses relocatable
-  DWARF CIE/FDE records. The native object factory supports ELF partitions, and a GNU
-  archive consumer verifies writable-global pointers into separately extracted constants.
-  The Linux linker publishes GNU-linked ELF executables and deterministic GNU archives; its System V
-  main entry installs argc/argv before runtime initialization. Native startup, argument-byte
-  preservation, runtime synchronization, panic cleanup and deterministic parallel outputs pass.
-  Static module dependencies resolve their actual published filenames, including custom names;
-  executable consumers verify initialization, pre-main and cleanup for static and shared imports.
-  Shared providers observe their consumer's context and exact argument vector. Child launch paths
-  use LD_LIBRARY_PATH without changing the compiler environment. Published .so dependencies
-  survive relocation, and disabling publication removes the old copies. Shared imports also
-  execute from `#run`: lookup accepts both Swag module.so and conventional libmodule.so names,
-  with context/argument sharing verified by DevMode and Release compilers.
-  Nested shared dependencies are preloaded from the resolved graph for JIT calls; GNU ld receives
-  link-only search paths for their DT_NEEDED entries. A three-module consumer executes compile-time
-  and native calls with DevMode and Release compilers without publishing dependencies beside it.
-  API publication reconstructs resolved foreign module, symbol, link and ABI attributes, including
-  declarations inside attribute blocks and a directly annotated function inheriting its ABI.
-  Export and static-library consumers call libc/libm through these declarations in JIT and native
-  ELF; a real Linux-binding consumer also exercises read, errno and strerror across the import.
-  Source debug output is explicitly rejected until DWARF source records exist. Shared-library
-  linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
-  Persistent native function caches remain COFF-specific and are disabled for Linux.
-  Companion archives retain only module-specific runtime hooks; the generic lookup alias is
-  created when linking the shared object. Static transitive consumers pass with DevMode and
-  Release compilers, and a Core/Ogl archive consumer renders and reads pixels in JIT/native.
-  GNU tool response files use short paths relative to their working directory. On Pixel's
-  30,124-member archive, controlled rebuilding with the same ar options took 68 seconds with
-  long absolute operands versus 16 seconds with short operands; both 40 MB archives were byte-identical.
-  The compiler's 1,750 C++ tests pass with relative operands, including native/shared linking,
-  companion archives, deterministic artifacts and transitive initialization.
-  Public ELF names include a lossless artifact identity, also emitted into generated Foreign
-  attributes. Two modules exporting `value` now retain distinct calls in shared and static
-  compositions; DevMode/Release consumers, the full C++ suite and a native Ogl importer pass.
-  Existing Linux libraries and their generated APIs must be rebuilt together for this ABI change.
-- Next: validate dynamic load/unload
-  lifecycle, and finish PIC relocations, source-level
-  DWARF and target-specific incremental caches. Preserve the working native executable and archive consumers.
-- Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,
-  including foreign imports, arguments and cross-module initialization/cleanup.
-- Related: platform.portability.005, platform.portability.092
+- Evidence: ELF executables, shared libraries and GNU archives support foreign imports,
+  transitive module initialization and cleanup, published dependencies and distinct module
+  symbols. Shared-library linking still permits text relocations. Source-level DWARF output is
+  explicitly rejected, and persistent native function caches remain COFF-specific and disabled
+  for Linux. Dynamic load/unload lifecycle coverage remains incomplete.
+- The native language suite exposes a shared storage-layout defect: merged `.data`, `.bss`
+  and `.rdata` sections advertise only 16-byte alignment even when their allocations require
+  more. `global_cache_line_alignment.swg` passes in JIT but fails in the Linux executable;
+  section bases must retain the strongest required allocation alignment.
+- Next: fix the section-alignment metadata and verify serialized objects plus the native
+  language suite. Then validate dynamic load/unload lifecycle and finish PIC relocations,
+  source-level DWARF and target-specific incremental caches.
+- Done when: Linux native output preserves storage alignment, supports position-independent
+  shared libraries with verified load/unload hooks, emits source debug information and reuses
+  native caches while preserving foreign calls and module lifecycle behavior.
+- Related: platform.portability.005

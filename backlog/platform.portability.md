@@ -267,10 +267,20 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
-### platform.portability.037 — Timers have no second-platform backend
+### platform.portability.037 — Validate the Linux timer backend
 
-- Next: implement native timer wait/wake mechanisms for the chosen second platform behind the common
-  scheduler in platform.portability.029.
+- Progress: the shared timer worker now owns monotonic deadlines, serialized callbacks, missed-
+  period coalescing, cancellation wakeup and join-before-free. Linux supplies pthread creation
+  and join; Windows supplies CreateThread and wait/close. The original allocator is retained
+  until the worker has stopped, and callback context isolation remains common.
+- Validation: whole-Core Linux analysis reports 32 remaining missing-service diagnostics and none
+  in the timer implementation. Public tests cover cancellation before a long first deadline,
+  serialized periodic callbacks, waiting for an active callback and repeated release; they are
+  blocked by those missing services and have not executed. Windows-target analysis on Linux
+  stops at the existing refusal to JIT-load target Windows log/logf; native Windows execution
+  is unavailable. The 14 raw Linux binding tests establish pthread mechanisms, not Core timers.
+- Next: execute the common timer, callback-context and lifecycle tests on both hosts after the
+  remaining Core services are available.
 - Related: platform.portability.036, platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
@@ -676,15 +686,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   orientation, transparency, and bitmap lifetime across success and failed attachment.
 - Related: platform.portability.014, platform.portability.062
 
-### platform.portability.029 — Periodic timer scheduling still depends on the Windows timer queue
+### platform.portability.029 — Validate common periodic scheduling and cancellation
 
-- Evidence: `time/timer.swg` already owns `Timer.create`, delay validation, callback/context
-  dispatch, `release`, and scope-bound cleanup. The native leaf only adapts the callback and creates
-  or joins deletion of a Windows timer-queue timer, but periodic scheduling and cancellation/wake
-  semantics are still delegated to that platform service.
-- Next: settle a common periodic scheduling and cancellation contract over a monotonic wait/wake
-  primitive or scheduler before adding another backend. Preserve callback context and the rule
-  that release waits for an active callback.
+- Progress: `time/timer.worker.swg` now owns one worker per timer, monotonic deadlines, serialized
+  periodic callbacks, skipped missed periods, cancellation and join-before-free. Both native
+  leaves only create/join a thread. The public contract states that distinct timers may run
+  concurrently while a single timer never overlaps its own callbacks; this replaces the former
+  Windows timer-queue behavior that allowed overlap.
+- Validation remains open: common timer and context tests cannot execute until Linux Core's
+  remaining services compile, and native Windows validation is unavailable in this environment.
+- Next: run the same one-shot, periodic, cancellation, context-isolation and active-release tests
+  on both hosts, and assess the dedicated-thread cost for consumers creating many timers.
 - Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
 - Related: platform.portability.036

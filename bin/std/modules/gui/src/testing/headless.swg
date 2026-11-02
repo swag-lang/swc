@@ -37,7 +37,7 @@ struct AutoStage
     }
 }
 
-// Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without an OS window.
+// Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without visible windows.
 //
 // After [[Gui.Testing.HeadlessHost.setup]], keep the host at the same address until it is
 // dropped: its windows, surfaces, renderer, and callbacks borrow the host's storage.
@@ -49,8 +49,8 @@ struct HeadlessHost
     public
     {
         app:          Application     // Application driven by the host.
-        renderer:     RenderCpu       // Deterministic backend borrowed by `app.renderer`.
-        surface:      Surface         // Software surface the host renders through.
+        renderer:     RenderCpu       // Software backend; `app.renderer` exposes the selected backend.
+        surface:      Surface         // Offscreen surface the host renders through.
         surfaceWnd:   SurfaceWnd      // Root window of that surface.
         root:         Wnd             // Root view a test builds its tree under.
         late theme:   *Theme          // Theme created by `setup` and shared with the application.
@@ -81,6 +81,7 @@ struct HeadlessHost
     autoSawButton:      bool
     autoButtonIds:      Array'String
     lastCommandStorage: String
+    gpuRenderer:        RenderOgl
 }
 
 impl HeadlessHost
@@ -93,6 +94,9 @@ impl HeadlessHost
     // `width` and `height` are logical units. `dpiScale` above one renders the same
     // logical tree into a proportionally larger physical target, like a surface on a
     // scaled display; the window tree and input stay logical either way.
+    // `SWAG_TEST_RENDERER=cpu` (the default) uses [[Pixel.RenderCpu]]; `gpu` uses
+    // [[Pixel.RenderOgl]] with invisible context hosts. An unavailable GPU fails setup rather
+    // than silently changing the backend. Access the selected renderer through `app.renderer`.
     mtd setup(width, height: f32, dpiScale = 1.0'f32)
     {
         // The clipboard is already faked by the sandbox; start each host from an empty one so
@@ -105,7 +109,18 @@ impl HeadlessHost
         // strings rather than from whatever the last one was doing.
         discard catch applyLanguage(&.app.resources, ReferenceLanguage)
 
-        .app.setRenderer(&.renderer)
+        let backend = Env.variable("SWAG_TEST_RENDERER")
+        Swag.assert(backend == "" or backend == "cpu" or backend == "gpu", "SWAG_TEST_RENDERER accepts cpu or gpu")
+        if backend == "gpu"
+        {
+            .gpuRenderer.setOffscreen()
+            .app.setRenderer(&.gpuRenderer)
+        }
+        else
+        {
+            .app.setRenderer(&.renderer)
+        }
+
         .app.setMotionPreference(.Reduced)
         .app.deterministicStreaming = true
 
@@ -231,12 +246,18 @@ impl HeadlessHost
         if not .initialized do
             return
         .initialized = false
+        .app.renderer.setCurrentContext(.surface.rc)
 
         // A tip hangs off the surface window rather than the root view, so destroying the tree
         // would leave it behind. The host built the surface, so the host takes it down; a test
         // that showed a tip therefore needs no teardown of its own.
         .app.toolTip.hide()
         .app.unregisterSurface(&.surface)
+
+        // Dialogs and popups own additional contexts. Close them while the renderer and
+        // main drawable are still alive, even when a layout-only test never showed them.
+        for surface in .app.surfaces do
+            surface.destroy()
 
         // Applications replace the standalone root with their own view, and floating controls
         // can be siblings of that view. Retire every hosted child before releasing the renderer.
@@ -249,6 +270,7 @@ impl HeadlessHost
         if not .root.isPendingDestroy do
             .root.destroy()
         .pump()
+        .app.releaseRenderResources()
         .surface.destroyRendering()
     }
 
@@ -256,7 +278,7 @@ impl HeadlessHost
     //
     // The code under test may read its own module-global Application (theme, renderer,
     // options) while events flow through the host; both applications then share the host's
-    // CPU backend, theme, and style instead of rebuilding resources.
+    // selected backend, theme, and style instead of rebuilding resources.
     mtd bindApplication(app: *Application)
     {
         app.setRenderer(.app.renderer)
@@ -656,8 +678,10 @@ impl HeadlessHost
     // Drains posted events, destruction, deferred layout, and object deletion.
     mtd pump()
     {
+        .app.renderer.setCurrentContext(.surface.rc)
         .pumpPostedEvents()
         .pumpDestroyEvents()
+        .app.renderer.setCurrentContext(.surface.rc)
         .root.flushLayout()
         .deleteQueuedObjects()
     }
@@ -694,7 +718,7 @@ impl HeadlessHost
         .app.setMotionPreference(reduced ? .Reduced : .Full)
     }
 
-    // Paints the complete hosted tree with the software renderer and returns owned BGRA pixels.
+    // Paints the complete hosted tree with the selected renderer and returns owned BGRA pixels.
     //
     // Pending events are drained first so layout and widget state match the image. The returned
     // image has the requested host dimensions; callers own it and may compare, encode, or inspect it.

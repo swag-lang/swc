@@ -57,8 +57,13 @@ private func thumbnailFixture(name: string)->String => Path.combine(unwrap Path.
     var renderer = expect ThumbnailRenderer.create()
     let sample   = expect renderer.readText(fileName)
     Swag.assert(source.count > 16 * 1024 and sample.count == 16 * 1024)
-    let started = Time.monotonicMicroseconds()
-    let image   = expect renderer.render(fileName, "Markdown", true)
-    let elapsed = Time.monotonicMicroseconds() - started
-    Swag.assert(image.isValid() and elapsed < 1_000_000)
+    let image = expect renderer.render(fileName, "Markdown", true)
+    Swag.assert(image.isValid())
+
+    // The tail must not affect the result. Compare the same file truncated to its budget;
+    // a wall-clock deadline here would fail when unrelated work delays the process.
+    discard expect File.writeAllText(fileName, sample)
+    let bounded = expect renderer.render(fileName, "Markdown", true)
+    Swag.assert(image.width == bounded.width and image.height == bounded.height)
+    Swag.assert(Slice.equals(image.pixels.toSlice(), bounded.pixels.toSlice()))
 }

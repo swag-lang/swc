@@ -966,12 +966,19 @@ impl Application
             .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})
 
         .deletePointers()
+        .releaseRenderResources()
+    }
+
+    // Hosts call this before deleting their final context. Repeated cleanup is harmless.
+    internal mtd releaseRenderResources()
+    {
         if .appIconLoaded
         {
             if .appIconList.isValid() do
                 .appIconList.release(.renderer)
             if .appIconTileList.isValid() do
                 .appIconTileList.release(.renderer)
+            .appIconLoaded = false
         }
 
         if .theme != null do

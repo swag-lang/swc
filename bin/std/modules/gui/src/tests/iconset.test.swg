@@ -37,7 +37,7 @@ using Swag, Core, Pixel
     var atlas: IconAtlas
     expect atlas.setup(#raw """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect x="4" y="4" width="16" height="16" fill="black"/></svg>""")
     var icons: IconSet
-    icons.setup(&host.renderer, &atlas)
+    icons.setup(host.app.renderer, &atlas)
     defer icons.free()
 
     let small     = icons.icon(0, 16, 1)

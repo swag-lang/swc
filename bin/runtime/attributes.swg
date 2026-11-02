@@ -40,7 +40,8 @@ namespace Swag
 
     // Assigns one category to a '#test' function for selection with '--test-tag'.
     //
-    // Categories beginning with `integration.` run only when explicitly selected.
+    // Categories beginning with `integration.` run only when explicitly included.
+    // Prefix a filter with `!` to exclude a category; exclusions take precedence.
     #[AttrUsage(AttributeUsage.Function)]
     attr TestTag(name: string)
 

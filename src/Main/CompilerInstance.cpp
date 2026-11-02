@@ -970,9 +970,23 @@ bool CompilerInstance::matchesTestFilter(const SymbolFunction& symbol) const
     }
 
     const auto& tagFilters = cmdLine().testTagFilter;
-    if (tagFilters.empty())
-        return !testTag(symbol).starts_with("integration.");
-    return tagFilters.contains(testTag(symbol));
+    const auto  tag        = testTag(symbol);
+    bool        hasInclude = false;
+    bool        included   = false;
+    for (const auto& filter : tagFilters)
+    {
+        if (filter.starts_with("!"))
+        {
+            if (filter.view().substr(1) == tag)
+                return false;
+        }
+        else
+        {
+            hasInclude = true;
+            included |= filter.view() == tag;
+        }
+    }
+    return hasInclude ? included : !tag.starts_with("integration.");
 }
 
 void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)

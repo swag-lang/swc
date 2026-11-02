@@ -200,6 +200,7 @@ private struct RasterBatch
 
     blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.
     blurWeightCount: u64
+    backdropPixels:  const [*] Math.Simd.F32x4?     // Logical top-down samples prepared once for a Gaussian pass.
 }
 
 private struct FontLinearSample
@@ -919,7 +920,15 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func sampleBackdropLinear(image: *Image, params: const *BackdropPass, su, sv: f32)->Math.Simd.F32x4
+    func backdropTexel(image: *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, x, y: s32)->Math.Simd.F32x4
+    {
+        if pixels do
+            return pixels[cast(u64, y) * cast(u64, params.width) + cast(u64, x)]
+        return backdropChannels(fetchBgra8(image, x, y))
+    }
+
+    #[Swag.Inline]
+    func sampleBackdropLinear(image: *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, su, sv: f32)->Math.Simd.F32x4
     {
         // Keep interpolation in float until the pass is complete. Quantizing each of the
         // two bilinear lerps loses brightness repeatedly on the reconstruction pyramid.
@@ -929,15 +938,15 @@ private impl RenderCpu
         let y0  = cast(s32, Math.floor(y))
         let x1  = Math.min(x0 + 1, params.width - 1)
         let y1  = Math.min(y0 + 1, params.height - 1)
-        let c00 = backdropChannels(fetchBgra8(image, x0, y0))
+        let c00 = backdropTexel(image, params, pixels, x0, y0)
 
         // Aligned texel centers need no interpolation. Keep fractional coordinates on
         // the same bilinear path, without an epsilon that could change edge pixels.
         if x == x0 and y == y0 do
             return c00
-        let c10    = backdropChannels(fetchBgra8(image, x1, y0))
-        let c01    = backdropChannels(fetchBgra8(image, x0, y1))
-        let c11    = backdropChannels(fetchBgra8(image, x1, y1))
+        let c10    = backdropTexel(image, params, pixels, x1, y0)
+        let c01    = backdropTexel(image, params, pixels, x0, y1)
+        let c11    = backdropTexel(image, params, pixels, x1, y1)
         let top    = c00 + (c10 - c00) * (x - x0)
         let bottom = c01 + (c11 - c01) * (x - x0)
         return top + (bottom - top) * (y - y0)
@@ -958,33 +967,33 @@ private impl RenderCpu
                 let offset = cast(f32, i) - reach
                 let su     = params.mode == 0 ? sourceU + offset / image.width : sourceU
                 let sv     = params.mode == 1 ? sourceV + offset / image.height : sourceV
-                sum += sampleBackdropLinear(image, params, su, sv) * batch.blurWeights![i]
+                sum += sampleBackdropLinear(image, params, batch.backdropPixels, su, sv) * batch.blurWeights![i]
             }
         }
         elif params.mode < 4
         {
             let dx       = params.radius / image.width
             let dy       = params.radius / image.height
-            let diagonal = sampleBackdropLinear(image, params, sourceU + dx, sourceV + dy) +
-                           sampleBackdropLinear(image, params, sourceU - dx, sourceV - dy) +
-                           sampleBackdropLinear(image, params, sourceU + dx, sourceV - dy) +
-                           sampleBackdropLinear(image, params, sourceU - dx, sourceV + dy)
+            let diagonal = sampleBackdropLinear(image, params, batch.backdropPixels, sourceU + dx, sourceV + dy) +
+                           sampleBackdropLinear(image, params, batch.backdropPixels, sourceU - dx, sourceV - dy) +
+                           sampleBackdropLinear(image, params, batch.backdropPixels, sourceU + dx, sourceV - dy) +
+                           sampleBackdropLinear(image, params, batch.backdropPixels, sourceU - dx, sourceV + dy)
             if params.mode == 2
             {
-                sum = (sampleBackdropLinear(image, params, sourceU, sourceV) * 4 + diagonal) / 8
+                sum = (sampleBackdropLinear(image, params, batch.backdropPixels, sourceU, sourceV) * 4 + diagonal) / 8
             }
             else
             {
-                sum = sampleBackdropLinear(image, params, sourceU - 2 * dx, sourceV) +
-                      sampleBackdropLinear(image, params, sourceU + 2 * dx, sourceV) +
-                      sampleBackdropLinear(image, params, sourceU, sourceV - 2 * dy) +
-                      sampleBackdropLinear(image, params, sourceU, sourceV + 2 * dy)
+                sum = sampleBackdropLinear(image, params, batch.backdropPixels, sourceU - 2 * dx, sourceV) +
+                      sampleBackdropLinear(image, params, batch.backdropPixels, sourceU + 2 * dx, sourceV) +
+                      sampleBackdropLinear(image, params, batch.backdropPixels, sourceU, sourceV - 2 * dy) +
+                      sampleBackdropLinear(image, params, batch.backdropPixels, sourceU, sourceV + 2 * dy)
                 sum = (sum + diagonal * 2) / 12
             }
         }
         else
         {
-            sum = sampleBackdropLinear(image, params, sourceU, sourceV)
+            sum = sampleBackdropLinear(image, params, batch.backdropPixels, sourceU, sourceV)
             let luminance = sum[0] * 0.2126 + sum[1] * 0.7152 + sum[2] * 0.0722
             let gray      = cast(Math.Simd.F32x4, [luminance, luminance, luminance, 1.0])
             sum = gray + (sum - gray) * params.saturation
@@ -2469,7 +2478,26 @@ private impl RenderCpu
             Memory.copy(output, input, rowBytes)
         }
 
-        .rasterizeRange(batch, bounds)
+        // A Gaussian repeatedly fetches the same texels across neighbouring output pixels.
+        // Convert each source texel once, with the exact division used by the general sampler.
+        // Keep tiny draws allocation-free and bound transient storage independently of the cache.
+        var samples: Array'Math.Simd.F32x4
+        var prepared   = batch[]
+        let pixelCount = cast(u64, width) * cast(u64, height)
+        if pixelCount >= 4096 and pixelCount <= CpuBackdropCache.MaxBytes / #sizeof(Math.Simd.F32x4)
+        {
+            samples.resize(pixelCount)
+            for y in height
+            {
+                let row = samples.storage() + cast(u64, y) * cast(u64, width)
+                for x in width do
+                    row[x] = backdropChannels(fetchBgra8(source, x, y))
+            }
+
+            prepared.backdropPixels = samples.storage()
+        }
+
+        .rasterizeRange(&prepared, bounds)
         for y in height
         {
             let input  = target.pixels.storage() + cast(u64, target.height - y - 1) * cast(u64, target.rowStride)

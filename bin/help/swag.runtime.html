@@ -4145,7 +4145,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Swag_ExportWhat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.ExportWhat</span> <a class="api-item-permalink" href="#Swag_ExportWhat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L305">src</a></div>
+<div class="api-item api-item-enum"><span id="Swag_ExportWhat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.ExportWhat</span> <a class="api-item-permalink" href="#Swag_ExportWhat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L306">src</a></div>
 <p>Runtime reflection data that <a href="#Swag_ExportType">ExportType</a> adds to the type information of a struct.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Swag_ExportWhat">ExportWhat</a></span>: <span class="STpe">u32</span></span></div>
@@ -4161,7 +4161,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Swag_Operator" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.Operator</span> <a class="api-item-permalink" href="#Swag_Operator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L115">src</a></div>
+<div class="api-item api-item-enum"><span id="Swag_Operator" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.Operator</span> <a class="api-item-permalink" href="#Swag_Operator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L116">src</a></div>
 <p>The operator an overload hook is being asked to implement.</p>
 <p>The compiler passes it as the generic value argument of <span class="code-inline">opBinary</span>, <span class="code-inline">opBinaryRight</span>, <span class="code-inline">opUnary</span>, <span class="code-inline">opAssign</span> and <span class="code-inline">opIndexAssign</span>. Each spelling has its own member, so a hook never has to guess: <span class="code-inline">Sub</span> and <span class="code-inline">Neg</span> are distinct even though both are written <span class="code-inline">-</span>. The member order is part of the compiler contract; do not reorder or renumber.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Swag_Operator">Operator</a></span></span></div>
@@ -4213,7 +4213,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Swag_SafetyWhat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.SafetyWhat</span> <a class="api-item-permalink" href="#Swag_SafetyWhat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L374">src</a></div>
+<div class="api-item api-item-enum"><span id="Swag_SafetyWhat" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.SafetyWhat</span> <a class="api-item-permalink" href="#Swag_SafetyWhat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L375">src</a></div>
 <p>Safety checks, selected by <a href="#Swag_Safety">Safety</a> at runtime and by <a href="#Swag_Sanity">Sanity</a> at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>: <span class="STpe">u16</span></span></div>
@@ -4471,7 +4471,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Swag_WarningLevel" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.WarningLevel</span> <a class="api-item-permalink" href="#Swag_WarningLevel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L404">src</a></div>
+<div class="api-item api-item-enum"><span id="Swag_WarningLevel" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.WarningLevel</span> <a class="api-item-permalink" href="#Swag_WarningLevel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L405">src</a></div>
 <p>How a warning is reported. See <a href="#Swag_Warning">Warning</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>: <span class="STpe">u8</span></span></div>
 </section>
@@ -5868,7 +5868,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Align" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Align</span> <a class="api-item-permalink" href="#Swag_Align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L431">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Align" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Align</span> <a class="api-item-permalink" href="#Swag_Align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L432">src</a></div>
 <p>Sets the alignment of a struct or a struct field, in bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Align</span>(value: <span class="STpe">u8</span>)</span></div>
@@ -6103,7 +6103,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">AttrUsage</span>(usage: <span class="SCst"><a href="#Swag_AttributeUsage">AttributeUsage</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_BorrowSummary" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.BorrowSummary</span> <a class="api-item-permalink" href="#Swag_BorrowSummary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L370">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_BorrowSummary" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.BorrowSummary</span> <a class="api-item-permalink" href="#Swag_BorrowSummary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L371">src</a></div>
 <p>Computed borrow summary of a function, consumed by the static borrow analysis.</p>
 <p>Bit <span class="code-inline">i</span> of <span class="code-inline">returns</span> means the return value may borrow parameter #i; bit <span class="code-inline">i</span> of <span class="code-inline">stores</span> means parameter #i may be stored in storage that outlives the call; bit <span class="code-inline">i*8+j</span> of <span class="code-inline">into</span> means parameter #j may be stored into storage reachable from parameter #i after the call returns (packed 8x8); bit <span class="code-inline">i</span> of <span class="code-inline">frees</span> means the call invalidates what parameter #i points to (it reaches <a href="#Swag_IAllocator_free">IAllocator.free</a> or <a href="#Swag_IAllocator_realloc">IAllocator.realloc</a>); bit <span class="code-inline">i</span> of <span class="code-inline">reallocates</span> means the call may move or release the heap payload parameter #i OWNS, which is what invalidates the views taken into it; bit <span class="code-inline">i</span> of <span class="code-inline">returnsPayload</span> means the returned value is a view INTO that payload rather than merely a value that can reach parameter #i, which is what tells a container accessor apart from a factory handing back an object that keeps a back-reference. Emitted automatically in generated module APIs so summaries cross module boundaries; can also be written manually on a <a href="#Swag_Foreign">Foreign</a> function. Bit <span class="code-inline">i</span> of <span class="code-inline">returnsStorage</span> means the result aliases parameter #i's storage, rather than carrying a reference to it in a separate allocation. It only applies to bits also set in <span class="code-inline">returns</span>. Its default preserves the direct-alias assumption of annotations that omit it; generated APIs emit the computed mask explicitly. <span class="code-inline">observesExternal</span> means the call may observe application borrowed storage through globals, thread-local state, hidden aliases, or callbacks. Its default is conservative. A manual <span class="code-inline">false</span> on a <a href="#Swag_Foreign">Foreign</a> declaration promises that the native operation only observes application storage through its explicit arguments and invokes no callback that can observe other application storage. Parameter retention remains governed by the other masks. Ordinary function bodies always contribute their computed effects, even when this argument is explicitly <span class="code-inline">false</span>.</p>
 <p><span class="code-inline">returnsIndirect</span> and <span class="code-inline">storesIndirect</span> use the same parameter bits as <span class="code-inline">returns</span> and <span class="code-inline">stores</span>, but describe borrows carried by the value reached after one dereference of the parameter, rather than the address of that value. Bit <span class="code-inline">i*8+j</span> of <span class="code-inline">intoIndirect</span> means those borrows from parameter #j's pointee may be retained in storage reachable from parameter #i. The destination remains direct. For example, copying <span class="code-inline">source[]</span> into <span class="code-inline">destination[]</span> can retain a pointer field inside the source value without retaining the source's address. These masks add facts; their zero defaults do not erase any direct-mask bits. Bit <span class="code-inline">i</span> of <span class="code-inline">freesIndirect</span> means the call invalidates the pointer held in parameter #i's pointee, without releasing the box holding that pointer. Its zero default preserves summaries generated before this mask existed. Deeper indirection without a separate proof remains conservative.</p>
@@ -6127,13 +6127,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">byteSwap</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_CalleeReturn" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.CalleeReturn</span> <a class="api-item-permalink" href="#Swag_CalleeReturn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L202">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_CalleeReturn" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.CalleeReturn</span> <a class="api-item-permalink" href="#Swag_CalleeReturn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L203">src</a></div>
 <p>Makes a <span class="code-inline">return</span> in the macro or mixin leave the macro itself rather than its caller.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">CalleeReturn</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_CallingConvention" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.CallingConvention</span> <a class="api-item-permalink" href="#Swag_CallingConvention" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L232">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_CallingConvention" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.CallingConvention</span> <a class="api-item-permalink" href="#Swag_CallingConvention" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L233">src</a></div>
 <p>Chooses the ABI for functions and function values declared in this scope.</p>
 <p>Use <span class="code-inline">.C</span> for callbacks and vtables supplied to native libraries. An annotated function declaration is entered with that convention; an annotated function type calls its target with that convention. The unannotated convention is <span class="code-inline">.Swag</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function |
@@ -6161,14 +6161,14 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Commutative" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Commutative</span> <a class="api-item-permalink" href="#Swag_Commutative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L190">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Commutative" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Commutative</span> <a class="api-item-permalink" href="#Swag_Commutative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L191">src</a></div>
 <p>Lets an <span class="code-inline">opBinary</span> overload also apply when its receiver is the right operand.</p>
 <p>For a generic <span class="code-inline">opBinary</span>, the optional parameters restrict this to the listed operators.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Commutative</span>(operators: <span class="SCst"><a href="#Swag_Operator">Operator</a></span>...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Compiler" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Compiler</span> <a class="api-item-permalink" href="#Swag_Compiler" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L74">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Compiler" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Compiler</span> <a class="api-item-permalink" href="#Swag_Compiler" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L75">src</a></div>
 <p>Restricts a function, global variable, or constant to compile time: it is never emitted in generated code.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Compiler</span>()</span></div>
@@ -6189,7 +6189,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compilerWarning</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_ConstExpr" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ConstExpr</span> <a class="api-item-permalink" href="#Swag_ConstExpr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L49">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_ConstExpr" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ConstExpr</span> <a class="api-item-permalink" href="#Swag_ConstExpr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L50">src</a></div>
 <p>Allows the function, or the struct, to be evaluated at compile time.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]</span>
 <span class="SKwd">attr</span> <span class="SFct">ConstExpr</span>()</span></div>
@@ -6231,13 +6231,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">defaultAllocator</span>()-&gt;*<span class="SCst"><a href="#Swag_Allocator">Allocator</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Deprecated" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Deprecated</span> <a class="api-item-permalink" href="#Swag_Deprecated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L250">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Deprecated" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Deprecated</span> <a class="api-item-permalink" href="#Swag_Deprecated" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L251">src</a></div>
 <p>Marks a declaration as deprecated: each use is reported, with <span class="code-inline">msg</span> when one is given.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Deprecated</span>(msg: <span class="STpe">string</span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Discardable" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Discardable</span> <a class="api-item-permalink" href="#Swag_Discardable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L236">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Discardable" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Discardable</span> <a class="api-item-permalink" href="#Swag_Discardable" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L237">src</a></div>
 <p>Lets a caller ignore the function's result without writing <span class="code-inline">discard</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Discardable</span>()</span></div>
@@ -6249,7 +6249,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">drainWork</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_DynCast" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.DynCast</span> <a class="api-item-permalink" href="#Swag_DynCast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L276">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_DynCast" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.DynCast</span> <a class="api-item-permalink" href="#Swag_DynCast" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L277">src</a></div>
 <p>Enables dynamic type tests and checked downcasts through pointers to this struct.</p>
 <p>Adds one compiler-managed metadata pointer to its storage. Structs that embed a dynamic parent by value with <span class="code-inline">using</span> inherit this capability and reuse its slot. Ordinary pointers retain their size. Pointer-valued <span class="code-inline">using</span> fields do not propagate dynamic identity.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
@@ -6261,7 +6261,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">enterWorkerContext</span>(context: *<span class="SCst"><a href="#Swag_Context">Context</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_EnumFlags" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.EnumFlags</span> <a class="api-item-permalink" href="#Swag_EnumFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L291">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_EnumFlags" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.EnumFlags</span> <a class="api-item-permalink" href="#Swag_EnumFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L292">src</a></div>
 <p>Makes the enum a set of flags, combined with bitwise operators.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
 <span class="SKwd">attr</span> <span class="SFct">EnumFlags</span>()</span></div>
@@ -6282,7 +6282,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_ExportType" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ExportType</span> <a class="api-item-permalink" href="#Swag_ExportType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L317">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_ExportType" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ExportType</span> <a class="api-item-permalink" href="#Swag_ExportType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L318">src</a></div>
 <p>Adds runtime reflection data to the type information of the struct.</p>
 <p>With <span class="code-inline">.Methods</span>, the type information lists the methods of the struct's <span class="code-inline">impl</span> blocks.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
@@ -6298,14 +6298,14 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(value: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Foreign" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Foreign</span> <a class="api-item-permalink" href="#Swag_Foreign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L219">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Foreign" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Foreign</span> <a class="api-item-permalink" href="#Swag_Foreign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L220">src</a></div>
 <p>Declares a function implemented outside the current module.</p>
 <p><span class="code-inline">module</span> defaults to the module the declaring file belongs to, which only a generated module API leaves out. <span class="code-inline">function</span> defaults to the flattened public API name there, and to the declaration name for a function of a native library.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Foreign</span>(module: <span class="STpe">string</span> = <span class="SStr">""</span>, function: <span class="STpe">string</span> = <span class="SStr">""</span>, link: <span class="STpe">string</span> = <span class="SStr">""</span>, callconv: <span class="SCst"><a href="#Swag_CallConv">CallConv</a></span> = <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_CallConv">CallConv</a></span>.<span class="SCst">Swag</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_FullInit" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.FullInit</span> <a class="api-item-permalink" href="#Swag_FullInit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L107">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_FullInit" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.FullInit</span> <a class="api-item-permalink" href="#Swag_FullInit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L108">src</a></div>
 <p>Asserts that an opaque <span class="code-inline">opSet</span> body fully initializes its destination.</p>
 <p>Ordinary Swag bodies are inferred automatically. Reserve this assertion for bodies the compiler cannot inspect, such as foreign or generated implementations.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
@@ -6329,20 +6329,20 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">hasSerialWorkerPool</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Implicit" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Implicit</span> <a class="api-item-permalink" href="#Swag_Implicit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L100">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Implicit" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Implicit</span> <a class="api-item-permalink" href="#Swag_Implicit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L101">src</a></div>
 <p>Lets an <span class="code-inline">opCast</span> overload apply as an implicit conversion.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Implicit</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Incomplete" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Incomplete</span> <a class="api-item-permalink" href="#Swag_Incomplete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L301">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Incomplete" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Incomplete</span> <a class="api-item-permalink" href="#Swag_Incomplete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L302">src</a></div>
 <p>Declares that the values of the enum are not the full set.</p>
 <p>A value outside them is expected at runtime, so a switch on it is not meant to be exhaustive.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum | AttributeUsage.File)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Incomplete</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Inline" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Inline</span> <a class="api-item-permalink" href="#Swag_Inline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L78">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Inline" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Inline</span> <a class="api-item-permalink" href="#Swag_Inline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L79">src</a></div>
 <p>Inlines the function at every call site.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Inline</span>()</span></div>
@@ -6415,7 +6415,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Macro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Macro</span> <a class="api-item-permalink" href="#Swag_Macro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L92">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Macro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Macro</span> <a class="api-item-permalink" href="#Swag_Macro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L93">src</a></div>
 <p>Makes the function a macro: its body is expanded at each call site, in a scope of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Macro</span>()</span></div>
@@ -6500,7 +6500,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">min</span>(value1, value2: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Mixin" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Mixin</span> <a class="api-item-permalink" href="#Swag_Mixin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L96">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Mixin" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Mixin</span> <a class="api-item-permalink" href="#Swag_Mixin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L97">src</a></div>
 <p>Makes the function a mixin: its body is expanded at each call site, in the caller's scope.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Mixin</span>()</span></div>
@@ -6522,69 +6522,69 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">mulAdd</span>(val1, val2, val3: <span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span>)-&gt;<span class="SItr">#simd</span> [<span class="SNum">2</span>] <span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_NoCopy" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoCopy</span> <a class="api-item-permalink" href="#Swag_NoCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L258">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_NoCopy" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoCopy</span> <a class="api-item-permalink" href="#Swag_NoCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L259">src</a></div>
 <p>Forbids copying the struct.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
 <span class="SKwd">attr</span> <span class="SFct">NoCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_NoDoc" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDoc</span> <a class="api-item-permalink" href="#Swag_NoDoc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L321">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_NoDoc" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDoc</span> <a class="api-item-permalink" href="#Swag_NoDoc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L322">src</a></div>
 <p>Leaves the declaration, or the whole file, out of the generated documentation.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File)]</span>
 <span class="SKwd">attr</span> <span class="SFct">NoDoc</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_NoDuplicate" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDuplicate</span> <a class="api-item-permalink" href="#Swag_NoDuplicate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L295">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_NoDuplicate" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDuplicate</span> <a class="api-item-permalink" href="#Swag_NoDuplicate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L296">src</a></div>
 <p>Forbids two values of the enum from being equal.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
 <span class="SKwd">attr</span> <span class="SFct">NoDuplicate</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_NoInline" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoInline</span> <a class="api-item-permalink" href="#Swag_NoInline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L82">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_NoInline" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoInline</span> <a class="api-item-permalink" href="#Swag_NoInline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L83">src</a></div>
 <p>Asks the backend never to inline the function.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">NoInline</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_NoReturn" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoReturn</span> <a class="api-item-permalink" href="#Swag_NoReturn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L211">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_NoReturn" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoReturn</span> <a class="api-item-permalink" href="#Swag_NoReturn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L212">src</a></div>
 <p>Declares that a call to the function never comes back, like <span class="code-inline">Swag.panic</span>.</p>
 <p>The code after a call is reported as unreachable, and a function with a return type needs no <span class="code-inline">return</span> after it. The function itself has no return type, contains no <span class="code-inline">return</span>, and ends every path with <span class="code-inline">Swag.panic</span>, <span class="code-inline">unreachable</span>, or a call to another <span class="code-inline">NoReturn</span> function.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">NoReturn</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Offset" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Offset</span> <a class="api-item-permalink" href="#Swag_Offset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L287">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Offset" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Offset</span> <a class="api-item-permalink" href="#Swag_Offset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L288">src</a></div>
 <p>Places the struct field at the offset of the field <span class="code-inline">name</span>, so both share storage.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.StructVariable)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Offset</span>(name: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Opaque" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Opaque</span> <a class="api-item-permalink" href="#Swag_Opaque" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L283">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Opaque" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Opaque</span> <a class="api-item-permalink" href="#Swag_Opaque" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L284">src</a></div>
 <p>Exports the struct without its fields: users see its name and methods only.</p>
 <p><span class="code-inline">runtimeDefault</span> and <span class="code-inline">requiresInit</span> carry initialization metadata in generated module APIs. Source declarations normally leave both at their defaults.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Opaque</span>(runtimeDefault: <span class="STpe">bool</span> = <span class="SKwd">false</span>, requiresInit: <span class="STpe">bool</span> = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_OperatorIgnore" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.OperatorIgnore</span> <a class="api-item-permalink" href="#Swag_OperatorIgnore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L198">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_OperatorIgnore" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.OperatorIgnore</span> <a class="api-item-permalink" href="#Swag_OperatorIgnore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L199">src</a></div>
 <p>Excludes a struct field from generated operator overloads.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.StructVariable)]</span>
 <span class="SKwd">attr</span> <span class="SFct">OperatorIgnore</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Operators" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Operators</span> <a class="api-item-permalink" href="#Swag_Operators" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L194">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Operators" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Operators</span> <a class="api-item-permalink" href="#Swag_Operators" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L195">src</a></div>
 <p>Generates operator overloads for the struct.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Operators</span>(operators: <span class="STpe">string</span>...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Optimize" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Optimize</span> <a class="api-item-permalink" href="#Swag_Optimize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L401">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Optimize" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Optimize</span> <a class="api-item-permalink" href="#Swag_Optimize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L402">src</a></div>
 <p>Enables or disables optimized code generation in a function, a block, or a file.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
 <span class="SKwd">attr</span> <span class="SFct">Optimize</span>(level: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Pack" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Pack</span> <a class="api-item-permalink" href="#Swag_Pack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L254">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Pack" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Pack</span> <a class="api-item-permalink" href="#Swag_Pack" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L255">src</a></div>
 <p>Sets the packing of the struct: the largest alignment given to its fields, in bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Pack</span>(value: <span class="STpe">u8</span>)</span></div>
@@ -6596,7 +6596,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_PlaceHolder" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PlaceHolder</span> <a class="api-item-permalink" href="#Swag_PlaceHolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L88">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_PlaceHolder" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PlaceHolder</span> <a class="api-item-permalink" href="#Swag_PlaceHolder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L89">src</a></div>
 <p>Declares a body-less function that is generated empty and left out of the module API.</p>
 <p>A generator reads such placeholders at compile time and supplies the real implementations.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
@@ -6627,14 +6627,14 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">print</span>(params: ...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_PrintAst" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintAst</span> <a class="api-item-permalink" href="#Swag_PrintAst" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L70">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_PrintAst" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintAst</span> <a class="api-item-permalink" href="#Swag_PrintAst" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L71">src</a></div>
 <p>Prints the AST of a function, a struct, or a file.</p>
 <p>Without a parameter, prints after semantic analysis. The available stages are <span class="code-inline">pre-sema</span> and <span class="code-inline">post-sema</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]</span>
 <span class="SKwd">attr</span> <span class="SFct">PrintAst</span>(stages: <span class="STpe">string</span>...)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_PrintMicro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintMicro</span> <a class="api-item-permalink" href="#Swag_PrintMicro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L63">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_PrintMicro" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintMicro</span> <a class="api-item-permalink" href="#Swag_PrintMicro" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L64">src</a></div>
 <p>Prints the micro instructions generated for a function, a struct, or a file.</p>
 <p>Without a parameter, the instructions are printed right before the emit pass. Otherwise each parameter names a stage, spelled <span class="code-inline">pre-&lt;pass&gt;</span> or <span class="code-inline">post-&lt;pass&gt;</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]</span>
@@ -6646,14 +6646,14 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">processInfo</span>()-&gt;*<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_ProcessInfo">ProcessInfo</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Propagate" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Propagate</span> <a class="api-item-permalink" href="#Swag_Propagate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L246">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Propagate" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Propagate</span> <a class="api-item-permalink" href="#Swag_Propagate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L247">src</a></div>
 <p>Reads every unmarked fallible call in the function body as <span class="code-inline">try</span>.</p>
 <p>The function must be declared with <span class="code-inline">fail</span>. A call that spells <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, or <span class="code-inline">assume</span> keeps its own handling, and a written <span class="code-inline">try</span> is reported as redundant. The attribute governs the body it is written on: a function or lambda declared inside it spells its own error handling. A macro or a mixin cannot carry it, because its body belongs to the caller.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Propagate</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_ReadOnly" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ReadOnly</span> <a class="api-item-permalink" href="#Swag_ReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L56">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_ReadOnly" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ReadOnly</span> <a class="api-item-permalink" href="#Swag_ReadOnly" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L57">src</a></div>
 <p>Promises that a call does not write memory visible to its caller.</p>
 <p>The compiler may keep memory values across the call. Only use this on functions whose full implementation, including functions they call, upholds the promise.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
@@ -6705,7 +6705,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">runtimeFlags</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Safety" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Safety</span> <a class="api-item-permalink" href="#Swag_Safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L397">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Safety" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Safety</span> <a class="api-item-permalink" href="#Swag_Safety" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L398">src</a></div>
 <p>Enables or disables runtime safety checks in a declaration, a block, or a file.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
 <span class="SKwd">attr</span> <span class="SFct">Safety</span>(what: <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>, value: <span class="STpe">bool</span>)</span></div>
@@ -6716,7 +6716,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">func</span> <span class="SFct">safetyPanic</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Sanity" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Sanity</span> <a class="api-item-permalink" href="#Swag_Sanity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L329">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Sanity" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Sanity</span> <a class="api-item-permalink" href="#Swag_Sanity" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L330">src</a></div>
 <p>Enables or disables static sanity checks in a declaration, a block, or a file.</p>
 <p>The static checks are the borrow analysis and the proven-fault sanitizer (use after move, stack escapes, proven null dereferences, ...), selected with the <a href="#Swag_SafetyWhat">SafetyWhat</a> flags. Unlike <a href="#Swag_Safety">Safety</a>, they add no runtime cost and are enabled in every build configuration.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
@@ -6755,7 +6755,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setWorkerCount</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Signal" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Signal</span> <a class="api-item-permalink" href="#Swag_Signal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L267">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Signal" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Signal</span> <a class="api-item-permalink" href="#Swag_Signal" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L268">src</a></div>
 <p>Marks a struct that stores callbacks invoked with the object owning the field.</p>
 <p>A callback connected through <span class="code-inline">owner.field</span> with an operator or a method of the struct receives <span class="code-inline">owner</span> with its static type, which starts with the type the callback declares. The owner passes itself as the first argument when it invokes them, and the struct is not copyable, so callbacks never reach another owner.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
@@ -6792,7 +6792,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">startWorkers</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Strict" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Strict</span> <a class="api-item-permalink" href="#Swag_Strict" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L427">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Strict" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Strict</span> <a class="api-item-permalink" href="#Swag_Strict" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L428">src</a></div>
 <p>Keeps the alias distinct from its target: no implicit conversion goes between them.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Alias)]</span>
 <span class="SKwd">attr</span> <span class="SFct">Strict</span>()</span></div>
@@ -6827,9 +6827,9 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_TestTag" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.TestTag</span> <a class="api-item-permalink" href="#Swag_TestTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L45">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_TestTag" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.TestTag</span> <a class="api-item-permalink" href="#Swag_TestTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L46">src</a></div>
 <p>Assigns one category to a <span class="code-inline">#test</span> function for selection with <span class="code-inline">--test-tag</span>.</p>
-<p>Categories beginning with <span class="code-inline">integration.</span> run only when explicitly selected.</p>
+<p>Categories beginning with <span class="code-inline">integration.</span> run only when explicitly included. Prefix a filter with <span class="code-inline">!</span> to exclude a category; exclusions take precedence.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
 <span class="SKwd">attr</span> <span class="SFct">TestTag</span>(name: <span class="STpe">string</span>)</span></div>
 </section>
@@ -7179,7 +7179,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">wakeCancelledObservers</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-attr"><span id="Swag_Warning" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Warning</span> <a class="api-item-permalink" href="#Swag_Warning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L423">src</a></div>
+<div class="api-item api-item-attr"><span id="Swag_Warning" class="api-item-title"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Warning</span> <a class="api-item-permalink" href="#Swag_Warning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/attributes.swg#L424">src</a></div>
 <p>Sets how one warning, a list of warnings, or every warning is reported in a declaration, a block, or a file.</p>
 <p>A warning is named by its diagnostic identifier, the string <span class="code-inline">--diagnostic-id</span> prints; <span class="code-inline">"all"</span> names every warning at once.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Warning("sema_warn_unreachable_code", .Disable)]</span>

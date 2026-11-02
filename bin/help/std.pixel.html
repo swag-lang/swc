@@ -241,7 +241,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">490</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">491</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -660,6 +660,7 @@
 <li><a href="#Pixel_RenderOgl_opDrop">RenderOgl.opDrop</a></li>
 <li><a href="#Pixel_RenderOgl_resetScratchCounters">RenderOgl.resetScratchCounters</a></li>
 <li><a href="#Pixel_RenderOgl_selectProgram">RenderOgl.selectProgram</a></li>
+<li><a href="#Pixel_RenderOgl_setOffscreen">RenderOgl.setOffscreen</a></li>
 <li><a href="#Pixel_RenderOgl_setShader">RenderOgl.setShader</a></li>
 <li><a href="#Pixel_RenderOgl_supportsAdvancedBlending">RenderOgl.supportsAdvancedBlending</a></li>
 <li><a href="#Pixel_RenderOglReadback_cancel">RenderOglReadback.cancel</a></li>
@@ -2349,6 +2350,8 @@ material.<span class="SFct">draw</span>(&amp;painter, <span class="SCst"><a href
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_resetScratchCounters">RenderOgl.resetScratchCounters</a></td><td><p>Resets the scratch-clear counters, so a caller measures a frame rather than a session.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_selectProgram">RenderOgl.selectProgram</a></td><td><p>Makes <span class="code-inline">shader</span> the program of the commands that follow, as a painter command asks.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_setOffscreen">RenderOgl.setOffscreen</a></td><td><p>Selects GPU rendering without a visible native window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_setShader">RenderOgl.setShader</a></td><td><p>Makes <span class="code-inline">shader</span> the current OpenGL program, or the built-in antialiased program when <span class="code-inline">null</span>.</p>
 </td></tr>
@@ -5290,6 +5293,8 @@ painter.<span class="SFct">end</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_resetScratchCounters">resetScratchCounters</a></td><td><p>Resets the scratch-clear counters, so a caller measures a frame rather than a session.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_selectProgram">selectProgram</a></td><td><p>Makes <span class="code-inline">shader</span> the program of the commands that follow, as a painter command asks.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_setOffscreen">setOffscreen</a></td><td><p>Selects GPU rendering without a visible native window.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_setShader">setShader</a></td><td><p>Makes <span class="code-inline">shader</span> the current OpenGL program, or the built-in antialiased program when <span class="code-inline">null</span>.</p>
 </td></tr>
@@ -10325,51 +10330,57 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">name</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2894">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2926">src</a></div>
 <p>Starts a CPU frame with the requested positive BGRA surface dimensions.</p>
 <p>Reusing the same dimensions preserves the surface pixels until they are cleared or drawn over. No native context is created.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(width, height: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2875">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2907">src</a></div>
 <p>Releases pooled render-target descriptors owned by the renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2884">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2916">src</a></div>
 <p>Resets all renderer-owned resources and returns to an empty deterministic state.</p>
 <p>Every outstanding texture and render-target handle from this renderer becomes invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2936">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2968">src</a></div>
 <p>Returns an owned copy of the current surface pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L627">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L640">src</a></div>
 <p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L614">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetScratchCounters" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetScratchCounters</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetScratchCounters" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L627">src</a></div>
 <p>Resets the scratch-clear counters, so a caller measures a frame rather than a session.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetScratchCounters</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_selectProgram" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.selectProgram</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_selectProgram" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1957">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_selectProgram" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.selectProgram</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_selectProgram" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1970">src</a></div>
 <p>Makes <span class="code-inline">shader</span> the program of the commands that follow, as a painter command asks.</p>
 <p>A planar texture swaps in its own program and restores the displaced one when the next texture is bound; a program chosen after it supersedes that restore. Otherwise the reset that follows a font program's start would bring back the program the picture displaced, and the glyphs would be drawn by it: text right after a video frame came out as raw, blurred distance fields.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectProgram</span>(shader: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1966">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setOffscreen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setOffscreen</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setOffscreen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L620">src</a></div>
+<p>Selects GPU rendering without a visible native window.</p>
+<p>Call before creating any context. When enabled, <a href="#Pixel_IRenderer_createContext">Pixel.IRenderer.createContext</a> accepts a null drawable and owns an invisible platform context host. Frames are read through render targets; <span class="code-inline">end</span> does not swap a desktop back buffer. Disabling restores the normal window-backed contract. Context creation still fails when OpenGL is unavailable.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setOffscreen</span>(enabled = <span class="SKwd">true</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1979">src</a></div>
 <p>Makes <span class="code-inline">shader</span> the current OpenGL program, or the built-in antialiased program when <span class="code-inline">null</span>.</p>
 <p>The matrices, blending, and clipping uniforms of the program are refreshed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L624">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_supportsAdvancedBlending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.supportsAdvancedBlending</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_supportsAdvancedBlending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L637">src</a></div>
 <p>Reports whether the current context provides advanced blend equations.</p>
 <p>Call this after <a href="#Pixel_IRenderer_init">Pixel.IRenderer.init</a>. A <span class="code-inline">false</span> result means <a href="#Pixel_RenderCpu">Pixel.RenderCpu</a> remains available for the artistic blend modes, while this OpenGL context can use the traditional modes only.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">supportsAdvancedBlending</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -12422,6 +12433,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.RenderOgl.opDrop|Pixel_RenderOgl_opDrop|Releases queued and currently bound render-target descriptors, and the glyph atlases.",
 "f|Pixel.RenderOgl.resetScratchCounters|Pixel_RenderOgl_resetScratchCounters|Resets the scratch-clear counters, so a caller measures a frame rather than a session.",
 "f|Pixel.RenderOgl.selectProgram|Pixel_RenderOgl_selectProgram|Makes shader the program of the commands that follow, as a painter command asks.",
+"f|Pixel.RenderOgl.setOffscreen|Pixel_RenderOgl_setOffscreen|Selects GPU rendering without a visible native window.",
 "f|Pixel.RenderOgl.setShader|Pixel_RenderOgl_setShader|Makes shader the current OpenGL program, or the built-in antialiased program when null.",
 "f|Pixel.RenderOgl.supportsAdvancedBlending|Pixel_RenderOgl_supportsAdvancedBlending|Reports whether the current context provides advanced blend equations.",
 "f|Pixel.RenderOglReadback.cancel|Pixel_RenderOglReadback_cancel|Cancels a pending transfer without waiting, retaining buffer storage for later submissions.",

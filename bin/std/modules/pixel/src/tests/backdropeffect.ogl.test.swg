@@ -6,11 +6,10 @@ using Swag, Core
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var window = expect Env.createWindow({identifier: "pixel-backdrop-test", title: "Pixel backdrop test", width: 144, height: 96})
-    expect window.showOffScreen()
     var ogl: RenderOgl
+    ogl.setOffscreen()
     let gpu: IRenderer = &ogl
-    var context        = expect gpu.createContext(window.nativeRenderHandle(), 144, 96)
+    var context        = expect gpu.createContext(null, 144, 96)
     defer gpu.deleteContext(&context)
     gpu.setCurrentContext(context)
     gpu.init()

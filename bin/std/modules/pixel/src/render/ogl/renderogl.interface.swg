@@ -25,11 +25,11 @@ internal struct OglContext
 
 impl IRenderer for RenderOgl
 {
-    mtd const impl needsNativeWindow()->bool => true
+    mtd const impl needsNativeWindow()->bool => not .offscreen
 
     mtd impl createContext(renderHandle: const *void?, width, height: s32, shared: *RenderContext? = null)->RenderContext fail
     {
-        Swag.assert(renderHandle != null, "OpenGL renderer contexts need a platform drawable")
+        Swag.assert(.offscreen or renderHandle != null, "window-backed OpenGL contexts need a platform drawable")
         Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
 
         if shared
@@ -39,7 +39,7 @@ impl IRenderer for RenderOgl
         }
 
         let sharedRC = .nativeContext
-        var ogl      = try .native.createWindowContext(renderHandle, width, height, sharedRC)
+        var ogl      = try .native.createWindowContext(.offscreen ? null : renderHandle, width, height, sharedRC)
         if not .nativeContext
         {
             .nativeContext = ogl.hRC

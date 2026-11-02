@@ -78,6 +78,6 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     expect supplied.setRaster(32, decoded)
     Swag.assert(supplied.image(32).byteCount == decoded.byteCount)
 
-    host.theme.ensureAtlasScale(&host.renderer, 3)
+    host.theme.ensureAtlasScale(host.app.renderer, 3)
     Swag.assert(host.theme.res.imgWidgets.width == 352 * 3 and host.theme.res.imgWidgets.height == 352 * 3)
 }

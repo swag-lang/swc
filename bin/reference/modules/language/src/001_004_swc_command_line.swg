@@ -254,7 +254,7 @@ backend and emits native output. Narrow that behavior when diagnosing a layer:
 | '--test-jit', '-tj' / '--no-test-jit' | Enable or disable JIT tests |
 | '--test-native', '-tn' / '--no-test-native' | Enable or disable native tests |
 | '--test-file' 'TEXT' | Run '#test' functions from source paths containing 'TEXT'; repeat to select a union |
-| '--test-tag' 'TEXT' | Run '#test' functions whose 'Swag.TestTag' equals 'TEXT'; repeat to select a union |
+| '--test-tag' 'TEXT' | Select '#test' functions by tag; repeat to include more tags, or prefix with '!' to exclude |
 | '--output' / '--no-output' | Enable or disable native artifact generation |
 | '--lex-only' | Stop after lexing source-driven tests |
 | '--syntax-only' | Stop after parsing |

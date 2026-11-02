@@ -116,26 +116,35 @@ func __isTestFileSelected(path: string)->bool
     return not hasFilter
 }
 
-// Repeated tag filters form a union. Integration tags require an explicit filter so an ordinary
+// Positive tag filters form a union; !tag exclusions take precedence. Integration tags require
+// an explicit positive filter so an ordinary
 // test run never creates native windows or depends on hardware or an interactive desktop.
 func __isTestTagSelected(tag: string)->bool
 {
-    let prefix    = "swag.test-tag="
-    var hasFilter = false
+    let prefix = "swag.test-tag="
+    var hasInclude, included: bool
 
     for arg in Swag.args()
     {
         if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
             continue
 
-        hasFilter = true
         let filter = Swag.makeString(arg.buffer + prefix.count, arg.count - prefix.count)
-        if Swag.stringCmp(tag, filter) do
-            return true
+        if filter.count and filter.buffer[0] == '!'
+        {
+            let excluded = Swag.makeString(filter.buffer + 1, filter.count - 1)
+            if Swag.stringCmp(tag, excluded) do
+                return false
+        }
+        else
+        {
+            hasInclude = true
+            included   = included or Swag.stringCmp(tag, filter)
+        }
     }
 
-    if hasFilter do
-        return false
+    if hasInclude do
+        return included
 
     let integration = "integration."
     return tag.count < integration.count or Swag.memcmp(tag.buffer, integration.buffer, integration.count) != 0

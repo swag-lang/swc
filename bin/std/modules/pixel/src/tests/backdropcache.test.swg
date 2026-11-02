@@ -3,7 +3,7 @@
 
 using Core
 
-func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, scale = 1.0'f32, clipped = false, translated = false)->Image
+func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, scale = 1.0'f32, clipped = false, translated = false, fullClip = false)->Image
 {
     cpu.begin(source.width, source.height)
     let renderer: IRenderer = cpu
@@ -18,13 +18,15 @@ func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, sc
     painter.setBlendingMode(.Copy)
     painter.setAntialiased(false)
     painter.setInterpolationMode(.Linear)
-    if clipped do
+    if fullClip do
+        painter.pushClippingRect({0, 0, source.width / scale, source.height / scale})
+    elif clipped do
         painter.pushClippingRect({0, 0, source.width / (2 * scale), source.height / scale})
     if translated do
         painter.translateTransform(1, 0)
     painter.setBackdropShader({width: source.width, height: source.height, radius: radius, mode: mode})
     painter.drawTexture({0, 0, source.width / scale, source.height / scale}, texture)
-    if clipped do
+    if clipped or fullClip do
         painter.popClippingRect()
     painter.end()
     renderer.draw(&painter)
@@ -115,4 +117,25 @@ func assertSamePixels(first, second: Image)
     Swag.assert(not CpuBackdropCache.acceptsSize(4096, 4096))
     Swag.assert(not CpuBackdropCache.acceptsSize(0, 10))
     Swag.assert(not CpuBackdropCache.acceptsSize(Swag.S32.Max, Swag.S32.Max))
+}
+
+// Preconverted Gaussian samples must match the general sampler byte for byte, including
+// fractional device scale, both axes, translucent pixels, and clamped edge taps.
+#test
+{
+    var source = Image.create(321, 239, .BGRA8)
+    for i in source.pixels.count do
+        source.pixels[i] = cast(u8, (i * 37 + i / 11) % 256)
+    for mode in [0, 1]
+    {
+        for scale in [1.0'f32, 1.5]
+        {
+            var optimized, general: RenderCpu
+            let actual   = drawGaussian(&optimized, source, radius: 10.5, mode: mode, scale: scale)
+            let expected = drawGaussian(&general, source, radius: 10.5, mode: mode, scale: scale, fullClip: true)
+            Swag.assert(optimized.backdropCache[mode].valid)
+            Swag.assert(not general.backdropCache[mode].valid)
+            assertSamePixels(expected, actual)
+        }
+    }
 }

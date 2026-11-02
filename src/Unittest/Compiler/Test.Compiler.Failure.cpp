@@ -505,6 +505,37 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_InactiveNamedTypeReportsSourceError)
+{
+    RecoveryTestDirectory directory;
+    const fs::path source = directory.path() / "source";
+    SWC_RESULT(CompilerTestFile::writeText(source / "a_active.swg", R"(#global namespace Probe
+struct Owner { using native: State }
+impl Owner { mtd read()->s32 => .native.value }
+#test { var owner: Owner; Swag.assert(owner.read() == 0) }
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(source / "z_disabled.swg", R"(#global if Probe.Disabled
+#global namespace Probe
+struct State { value: s32 }
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(source / "condition.swg", "#global namespace Probe\nconst Disabled = #run false\n"));
+    const std::vector<Utf8> arguments = {
+        "sema", "--directory", Utf8(source), "--num-cores", "3", "--no-log-color",
+        "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    std::string output;
+    uint32_t    exitCode = 0;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const auto                 result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+    if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
+        output.find("unknown name 'State'") == std::string::npos || output.find("internal compiler error") != std::string::npos)
+    {
+        std::println(stderr, "[inactive named type] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

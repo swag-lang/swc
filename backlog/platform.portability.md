@@ -194,10 +194,24 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 
-### platform.portability.033 — Filesystem services have no second-platform backend
+### platform.portability.033 — Finish Linux filesystem services and ownership validation
 
-- Next: implement directory, file, stream, metadata, path-state, and mutation primitives for the
-  chosen second platform behind the existing common orchestration and path contracts.
+- Evidence: Linux stream leaves implement descriptor ownership (including descriptor zero),
+  partial/interrupted I/O, 64-bit seeking, truncation, metadata queries and flushing. Mapped
+  regions align native views, own close-on-exec duplicate descriptors, and synchronize shared
+  writes after the parent handle closes. errno is captured before translation to domain errors.
+  Raw Linux tests pass in JIT and native ELF, including sparse files beyond 4 GiB, stat layout
+  canaries, EOF, invalid descriptors and mapping lifetime. A separate module imports the real
+  bindings and calls read/errno/strerror in both execution modes.
+  Core owner tests are present but cannot execute until the remaining host services compile;
+  whole-Core analysis still reports 57 missing-service diagnostics, none in the new stream,
+  mapping or error leaves. This does not establish public filesystem conformance.
+- Open decision: FileShare currently promises Windows-style read/write/delete exclusion.
+  POSIX open does not supply that contract; flock is advisory and cannot represent every
+  combination. The Linux opener must establish an explicit supported policy before being
+  reported as implemented, rather than silently discarding the requested sharing flags.
+- Next: implement directory, file, metadata, path-state and mutation primitives; resolve the
+  sharing contract and run common stream/mapping ownership tests with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Threads have no second-platform backend

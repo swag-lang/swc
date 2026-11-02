@@ -145,3 +145,88 @@ alias UnaryDouble = func(f64)->f64
         Swag.assert(asUtc == seconds + offset)
     }
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    let descriptor = memfd_create("swag-stream-bindings".buffer, MFD_CLOEXEC)
+    Swag.assert(descriptor >= 0)
+    defer discard close(descriptor)
+
+    const LargeOffset = 4_294_967_297's64
+    let resized = ftruncate(descriptor, LargeOffset)
+    Swag.assert(resized == 0)
+    let sought = lseek(descriptor, LargeOffset, SEEK_SET)
+    Swag.assert(sought == LargeOffset)
+    let written = write(descriptor, "abc".buffer, 3)
+    Swag.assert(written == 3)
+    let flushed = fsync(descriptor)
+    Swag.assert(flushed == 0)
+
+    var guarded: { before: u64, info: stat, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    let queried = fstat(descriptor, &guarded.info)
+    Swag.assert(queried == 0 and guarded.info.st_size == LargeOffset + 3)
+    Swag.assert((guarded.info.st_mode & S_IFMT) == S_IFREG)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+
+    let rewound = lseek(descriptor, -3, SEEK_END)
+    Swag.assert(rewound == LargeOffset)
+    var bytes: [4] u8
+    bytes[3] = 57
+    let count = read(descriptor, &bytes[0], bytes.count)
+    Swag.assert(count == 3 and bytes[0] == 'a' and bytes[1] == 'b' and bytes[2] == 'c' and bytes[3] == 57)
+    let eof = read(descriptor, &bytes[0], 1)
+    Swag.assert(eof == 0)
+    let truncated = ftruncate(descriptor, 2)
+    Swag.assert(truncated == 0)
+    let position = lseek(descriptor, 0, SEEK_CUR)
+    Swag.assert(position == LargeOffset + 3)
+
+    let directory = fstatat(AT_FDCWD, ".".buffer, &guarded.info, 0)
+    Swag.assert(directory == 0 and (guarded.info.st_mode & S_IFMT) == S_IFDIR)
+    errno(0)
+    let invalid = fstat(-1, &guarded.info)
+    let error   = errno()
+    Swag.assert(invalid == -1 and error == EBADF)
+    let message = cast(string, cast(cstring, strerror(error)))
+    Swag.assert(message.count > 0)
+}
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var descriptor = memfd_create("swag-map-ownership".buffer, MFD_CLOEXEC)
+    Swag.assert(descriptor >= 0)
+    defer if descriptor >= 0 do
+        discard close(descriptor)
+    let length  = cast(u64, getpagesize()) * 2
+    let resized = ftruncate(descriptor, cast(s64, length))
+    Swag.assert(resized == 0)
+    let duplicate = fcntl(descriptor, F_DUPFD_CLOEXEC, 0's32)
+    Swag.assert(duplicate >= 0 and duplicate != descriptor)
+    defer discard close(duplicate)
+    let flags = fcntl(duplicate, F_GETFD)
+    Swag.assert(flags >= 0 and (flags & FD_CLOEXEC) != 0)
+
+    let view = mmap(null, length, PROT_READ | PROT_WRITE, MAP_SHARED, duplicate, 0)
+    Swag.assert(cast(s64, view) != -1 and view != null)
+    defer discard munmap(view, length)
+    let closed = close(descriptor)
+    descriptor = -1
+    Swag.assert(closed == 0)
+    let bytes = Swag.makeSlice(cast([*] u8, view), length)
+    bytes[17]         = 91
+    bytes[length - 1] = 83
+    let synced = msync(view, length, MS_SYNC)
+    Swag.assert(synced == 0)
+    let flushed = fsync(duplicate)
+    Swag.assert(flushed == 0)
+    let sought = lseek(duplicate, 17, SEEK_SET)
+    Swag.assert(sought == 17)
+    var value: u8
+    let count = read(duplicate, &value, 1)
+    Swag.assert(count == 1 and value == 91)
+    Swag.assert(bytes[length - 1] == 83)
+}

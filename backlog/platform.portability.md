@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,750 tests. The raw Linux module
+Current Linux validation: the last complete C++ run passed 1,754 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
 core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
@@ -19,6 +19,9 @@ core.so and compiles its test sources. Public suites pass in JIT/native for memo
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
+Pixel passes 92 native golden tests after synchronizing master and adding collection-face
+cache keys. Its four direct typeface tests pass in JIT and native execution. The complete golden
+campaign still stops before GUI and application tests because Linux GUI services are incomplete.
 Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.

@@ -50,8 +50,10 @@ if let selected = catalog.findFace("Example", .SemiBold)
 
 The catalog owns names and paths, but not file contents. A selected [[Pixel.FontFileFace]] is
 borrowed until the next catalog mutation; loading it uses the exact file/index pair and Pixel's
-usual typeface cache. Selection does not synthesize bold or italic. The catalog currently uses
-legacy family names, so a separately named light or condensed family remains separately listed.
+usual typeface cache. Selection does not synthesize bold or italic. The catalog groups by
+typographic family names when available, bringing light and semibold variants into the same
+family. If a query matches no typographic family, legacy family names are searched instead;
+asking for a separately named light family still selects that family's faces.
 
 ## Rich text
 

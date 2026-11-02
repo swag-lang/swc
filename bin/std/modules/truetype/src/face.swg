@@ -25,11 +25,13 @@ public struct FaceMetadata
 {
     public
     {
-        familyName: String        // Family name, using the same name records as [[TrueType.Face.familyNameAt]].
-        styleName:  String        // Subfamily name such as `Regular`, `Light`, or `Bold Italic`.
-        weight:     u16 = 400     // Weight from the font, or 400/700 when only regular/bold traits are available.
-        widthClass: u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
-        style:      StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
+        familyName:            String        // Family name, using the same name records as [[TrueType.Face.familyNameAt]].
+        styleName:             String        // Legacy subfamily name such as `Regular`, `Light`, or `Bold Italic`.
+        typographicFamilyName: String        // Preferred family name (name ID 16), falling back to `familyName`.
+        typographicStyleName:  String        // Preferred subfamily name (name ID 17), falling back to `styleName`.
+        weight:                u16 = 400     // Weight from the font, or 400/700 when only regular/bold traits are available.
+        widthClass:            u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
+        style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
     }
 }
 

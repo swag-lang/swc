@@ -33,6 +33,8 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
     Swag.assert(regular.widthClass == 5 and bold.widthClass == 5)
     Swag.assert(regular.style == .None and (bold.style & .Bold) != 0)
 
+    Swag.assert(regular.typographicFamilyName == "Arial" and bold.typographicFamilyName == "Arial")
+    Swag.assert(regular.typographicStyleName == "Regular" and bold.typographicStyleName == "Bold")
     bytes.fill(0)
     bytes.free()
     Swag.assert(regular.familyName == "Arial" and bold.styleName == "Bold")
@@ -108,4 +110,28 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
     var outcome: Swag.Error
     catch checkFaceLoad(bytes.toSlice()) as outcome
     Swag.assert(outcome.value() != null)
+}
+
+// Typographic records do not replace the legacy names used by the existing Face API.
+#test
+{
+    var bytes  = loadFontBytes("arialbd.ttf")
+    let record = metadataTableRecord(&bytes, TAG_NAME)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+    for index in readBigU16(&bytes, table + 2)
+    {
+        let nameId = table + 6 + cast(u64, index) * 12 + 6
+        let value  = readBigU16(&bytes, nameId)
+        if value == 1 do
+            writeMetadataU16(&bytes, nameId, 16)
+        elif value == 2 do
+            writeMetadataU16(&bytes, nameId, 17)
+    }
+
+    let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
+    Swag.assert(metadata.familyName == "Unknown" and metadata.styleName == "Regular")
+    Swag.assert(metadata.typographicFamilyName == "Arial" and metadata.typographicStyleName == "Bold")
+    bytes.fill(0)
+    bytes.free()
+    Swag.assert(metadata.typographicFamilyName == "Arial" and metadata.typographicStyleName == "Bold")
 }

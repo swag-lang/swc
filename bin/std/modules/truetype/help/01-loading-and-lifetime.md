@@ -60,6 +60,11 @@ for index in count
 
 ## Catalog metadata
 
+[[TrueType.FaceMetadata]] preserves legacy family/subfamily names and also exposes typographic
+names (name IDs 16/17). Missing typographic names fall back to the corresponding legacy name.
+A catalog can group light or semibold variants by typographic family while keeping legacy names
+available for lookup. [[TrueType.Face.familyNameAt]] continues to return the legacy family name.
+
 [[TrueType.Face.metadataAt]] reads the family and subfamily names, weight, width
 class, and style flags of one sfnt or collection face without loading its glyphs.
 The returned [[TrueType.FaceMetadata]] owns its strings, so the input buffer can

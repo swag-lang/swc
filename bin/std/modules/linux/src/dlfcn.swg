@@ -1,9 +1,10 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const RTLD_LOCAL = 0's32
-const RTLD_LAZY  = 1's32
-const RTLD_NOW   = 2's32
+const RTLD_LOCAL    = 0's32
+const RTLD_LAZY     = 1's32
+const RTLD_NOW      = 2's32
+const RTLD_NODELETE = 0x1000's32
 
 #[Swag.Foreign(module: "libc.so.6", link: "dl", callconv: .C)]
 {

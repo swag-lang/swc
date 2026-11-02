@@ -1194,13 +1194,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   thumbnail service can consume the same renderer contract.
 - Related: platform.portability.072
 
-### platform.portability.074 — File-type registration is Windows-only
+### platform.portability.074 — Validate desktop registration from packaged Linux applications
 
-- Intent: `Env.registerApplication`, `Env.associateFileExtension`, and the shell integration entries
-  above are the whole platform boundary; the viewers, streaming, and structure readers are portable.
-- Next: once platform.portability.015 settles the application-integration contract, move
-  Swag Scope's `--register-file-types` path onto it.
-- Done when: desktop registration goes through whatever portable contract platform.portability.015 settles on.
+- Evidence: Linux Env registration creates per-user XDG desktop entries and offers or claims
+  MIME associations through optional GIO. Isolated native tests cover preserved defaults,
+  custom MIME definitions, exact executable/filename quoting, unavailable GIO, failed writes
+  and sandbox refusal.
+- Next: exercise Capture and Scope registration entry points with installed resource and
+  executable locations, and package their desktop entries and icons. The API separation in
+  platform.portability.015 remains a distinct design task for both hosts.
+- Done when: packaged Linux applications register repeatably, launch the intended executable
+  with the selected file, and leave unrelated defaults and desktop entries intact.
 - Related: platform.portability.001, platform.portability.015
 
 ### platform.portability.075 — Keys live in pageable memory

@@ -89,6 +89,16 @@ as an X11 display still need to be supplied. Set the launcher's `TMPDIR` to an e
 disk directory when the system temporary directory is memory-backed and space is limited.
 These focused selections do not establish complete Linux support for every `bin/` module.
 
+The Linux desktop-registration integration is native-only because its peer is the generated
+executable. It uses private XDG directories and needs GIO, `gio`, `/usr/bin/env`, `chmod` and
+`update-mime-database`; it never changes the current user's associations:
+
+```sh
+python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core \
+  --execution native --test-file environment.registration.linux.integration.test.swg \
+  --test-tag integration.desktop.registration
+```
+
 ## Linux host primitives
 
 ```sh

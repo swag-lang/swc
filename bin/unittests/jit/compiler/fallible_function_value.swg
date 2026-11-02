@@ -37,3 +37,23 @@ func apply(value: Action, target: *s32) { value(target) }
     let pointer = expect checked'Pointer(&absent)
     Swag.assert(pointer() == null)
 }
+
+struct CallbackValues
+{
+    action:  Action
+    value:   Value
+    pointer: Pointer
+}
+
+#test
+{
+    var callbacks: CallbackValues
+    callbacks.action  = expect checked'Action(&increment)
+    callbacks.value   = expect checked'Value(&twice)
+    callbacks.pointer = expect checked'Pointer(&absent)
+    var count: s32
+    defer Swag.assert(count == 1)
+    defer callbacks.action(&count)
+    Swag.assert(callbacks.value(12) == 24)
+    Swag.assert(callbacks.pointer() == null)
+}

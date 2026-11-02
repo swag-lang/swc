@@ -5,13 +5,13 @@
 struct LinuxThreadProbe
 {
     ran: Swag.AtomicFlag
-    id:  s32
+    id:  u64
 }
 
 func linuxThreadBody(thread: const *Threading.Thread)
 {
     let probe = cast(*LinuxThreadProbe, unwrap thread.userParam)
-    probe.id = Linux.gettid()
+    probe.id = Env.Process.currentThreadId()
     probe.ran.raise()
 }
 
@@ -30,7 +30,7 @@ func linuxThreadBody(thread: const *Threading.Thread)
         expect thread.start()
         thread.wait()
         Swag.assert(not thread.isValid() and probe.ran.isRaised())
-        Swag.assert(thread.id == cast(u64, probe.id))
+        Swag.assert(thread.id == probe.id)
     }
 }
 

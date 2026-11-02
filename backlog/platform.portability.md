@@ -42,10 +42,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   reporting counters for work the host did not perform.
 - Related: platform.portability.003
 
-### platform.portability.041 — Hardware discovery has no second-platform backend
+### platform.portability.041 — Finish Linux hardware discovery validation
 
-- Next: implement the portable CPU, memory, display-adjacent, and machine capability queries
-  currently provided only by Windows.
+- Progress: Linux Hardware.processorCount reads the calling thread's affinity mask, with a
+  conservative one-processor fallback when unavailable; bandwidth quotas are explicitly outside
+  that count. Hardware.macAddress enumerates getifaddrs, skips loopback and unsupported address
+  lengths, and returns the first nonzero six-byte address in native enumeration order. Its
+  documentation excludes a stable machine-identity guarantee. Process/thread IDs now use getpid
+  and gettid, and the public Thread test checks its identity through Env.Process.currentThreadId.
+- Validation: 15 raw Linux binding tests pass JIT/native, including native interface indices,
+  linked-list layouts and affinity-buffer canaries. A separate importing module passes two tests
+  in both modes, including the anonymous native address union, and its executable exits 37.
+  Whole-Core analysis has 30 remaining missing-service diagnostics; public Hardware/Thread
+  execution is still blocked, so these probes do not establish their complete contracts.
+- Next: run public CPU/address/identity tests with complete Core; finish the remaining memory,
+  display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
 ### platform.portability.042 — Validate the Linux console backend

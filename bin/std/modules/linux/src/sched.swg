@@ -11,4 +11,7 @@ struct sched_param
 #assert(#sizeof(sched_param) == 4)
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
-func sched_yield()->s32
+{
+    func sched_yield()->s32
+    func sched_getaffinity(pid: s32, cpusetsize: u64, mask: *void)->s32
+}

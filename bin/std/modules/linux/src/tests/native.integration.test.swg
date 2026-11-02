@@ -487,3 +487,44 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let joined = pthread_join(thread, &result)
     Swag.assert(joined == 0 and result == &probe and probe.value == 73)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var first: *ifaddrs?
+    let queried = getifaddrs(&first)
+    Swag.assert(queried == 0)
+    if first
+    {
+        defer freeifaddrs(unwrap first)
+        var current = first
+        while current
+        {
+            let adapter = current
+            current = adapter.ifa_next
+            let name = unwrap adapter.ifa_name
+            Swag.assert(name[0] != 0)
+            if adapter.ifa_addr
+            {
+                let address = adapter.ifa_addr
+                if address.sa_family == AF_PACKET
+                {
+                    let packet = cast(const *sockaddr_ll, cast(const *void, address))
+                    let index  = if_nametoindex(name)
+                    Swag.assert(index != 0 and index == cast(u32, packet.sll_ifindex))
+                }
+            }
+        }
+    }
+
+    var guarded: { before: u64, mask: [1024] u8, after: u64 }
+    guarded.before = 0x123456789ABCDEF0
+    guarded.after  = 0xFEDCBA9876543210
+    let affinity = sched_getaffinity(0, #sizeof(guarded.mask), &guarded.mask[0])
+    Swag.assert(affinity == 0)
+    Swag.assert(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
+    var hasProcessor = false
+    for byte in guarded.mask where byte != 0 do
+        hasProcessor = true
+    Swag.assert(hasProcessor)
+}

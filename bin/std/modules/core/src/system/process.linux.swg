@@ -24,3 +24,12 @@ func variable(name: string)->String
         return ""
     return String.from(cast(string, cast(cstring, value)))
 }
+
+impl Process
+{
+    // Returns the current operating-system process identifier.
+    func currentProcessId()->u64 => cast(u64, Linux.getpid())
+
+    // Returns the current operating-system thread identifier (Linux TID, not pthread_t).
+    func currentThreadId()->u64 => cast(u64, Linux.gettid())
+}

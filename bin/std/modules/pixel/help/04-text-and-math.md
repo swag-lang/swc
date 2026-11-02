@@ -30,6 +30,27 @@ signed-distance-field rendering according to the effective on-screen size. Selec
 specific mode only when stable atlas behavior or a particular rendering technique
 matters more than automatic quality.
 
+## Inspect a font catalog
+
+[[Pixel.FontCatalog]] builds an owned metadata snapshot from application-supplied font files.
+It reads every face of a collection without loading glyphs, groups family names without case,
+and selects regular, bold, italic, light, or semibold by slant, width, and weight. File order does
+not affect selection. A rejected file leaves the existing catalog unchanged.
+
+```swag
+var catalog: Pixel.FontCatalog
+discard try catalog.addFile("fonts/Example.ttc")
+if let selected = catalog.findFace("Example", .SemiBold)
+{
+    let typeFace = try selected.load()
+}
+```
+
+The catalog owns names and paths, but not file contents. A selected [[Pixel.FontFileFace]] is
+borrowed until the next catalog mutation; loading it uses the exact file/index pair and Pixel's
+usual typeface cache. Selection does not synthesize bold or italic. The catalog currently uses
+legacy family names, so a separately named light or condensed family remains separately listed.
+
 ## Rich text
 
 [[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.

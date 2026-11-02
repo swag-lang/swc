@@ -111,3 +111,48 @@ func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
             Swag.assert(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
     }
 }
+
+// Reuse the existing font fixture. The second copy declares bold in head.macStyle,
+// making index selection observable without adding another font binary.
+func makeTypeFaceCollection()->Array'u8
+{
+    func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
+                                                    cast(u32, bytes[offset + 1]) << 16 |
+                                                    cast(u32, bytes[offset + 2]) << 8 |
+                                                    bytes[offset + 3]
+    func write32(bytes: *Array'u8, offset: u64, value: u32)
+    {
+        for index in 4 do
+            bytes[offset + index] = cast(u8, (value >> ((3 - index) * 8)) & 255)
+    }
+
+    let source = expect File.readAllBytes(getTestDataPath("segoeui.ttf"))
+    var bytes: Array'u8
+    bytes.resize(20)
+    write32(&bytes, 0, 0x74746366)
+    write32(&bytes, 4, 0x00010000)
+    write32(&bytes, 8, 2)
+    for index in 2
+    {
+        bytes.resize((bytes.count + 3) & ~3'u64)
+        let offset = cast(u32, bytes.count)
+        write32(&bytes, 12 + index * 4, offset)
+        bytes.add(source.toSlice())
+        let tables = cast(u32, bytes[offset + 4]) << 8 | bytes[offset + 5]
+        var foundHead = false
+        for table in tables
+        {
+            let record = cast(u64, offset) + 12 + table * 16
+            let target = read32(&bytes, record + 8) + offset
+            write32(&bytes, record + 8, target)
+            if read32(&bytes, record) == 0x68656164
+            {
+                bytes[target + 44] = 0
+                bytes[target + 45] = cast(u8, index)
+                foundHead = true
+            }
+        }
+        Swag.assert(foundHead)
+    }
+    return bytes
+}

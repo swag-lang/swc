@@ -860,8 +860,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   application startup, rendering and close now pass for Swag Capture and Swag Vault
   under Xvfb/Openbox, with captured window pixels inspected. Capture reports unavailable
   shortcuts when the window manager owns Print/Alt+Print; Ctrl+Print is exercised by real XTEST
-  input after canonical Linux key mapping was corrected. Full workflows and Scope remain under
-  validation.
+  input after canonical Linux key mapping was corrected. Scope now also passes native startup,
+  WAV loading, waveform display and PCM playback through FAudio's SDL disk device. Broader
+  application workflows and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input, clipboard selections and XDND/XDS are
   implemented. Thirteen JIT/native cases compare complete window pixels under Xvfb/Openbox
   with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard
@@ -1029,9 +1030,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: Linux Default selects the dynamically loaded FAudio backend; NoSound remains explicit.
   Real PCM disk-output tests cover source/submix/mastering voices, gain, pitch, routes, seek,
   looping and repeated stop. Missing libraries/devices and portable teardown regressions pass.
-- Next: exercise Swag Scope playback with the complete GUI backend, then validate a physical
-  output device and device loss/recovery. Keep PCM software-device evidence distinct from
-  physical hardware coverage.
+- Swag Scope now compiles with all eleven dependencies, loads a real WAV and renders its
+  waveform under Xvfb/Openbox. The sandboxed graphical smoke passes; its intentional NoSound
+  policy does not validate playback. A separate bounded native run outside that sandbox, with
+  private XDG directories and the real FAudio SDL disk driver, produces 3,002,880 bytes of PCM
+  after an XTEST playback shortcut, with measured peak amplitude 0.97866.
+- Next: validate a physical output device and device loss/recovery. Keep PCM software-device
+  evidence distinct from physical hardware coverage.
 - Done when: the application consumer and device lifecycle preserve the common voice, bus and
   streaming contracts on Linux, including unavailable-device behavior.
 - Related: platform.portability.027

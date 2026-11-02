@@ -54,7 +54,7 @@ SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
 The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
 EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software
 rendering; physical GPU coverage is separate. Core, Ogl, TrueType and Pixel build on Linux.
-GUI integration runs under Xvfb/Openbox with a compositor. Capture and Vault pass native graphical smokes;
+GUI integration runs under Xvfb/Openbox with a compositor. Capture, Scope and Vault pass native graphical smokes;
 complete application workflows and physical desktop/GPU validation remain.
 
 ## Linux compiler and standard-module suites

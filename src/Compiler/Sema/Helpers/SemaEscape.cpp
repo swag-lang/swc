@@ -2796,6 +2796,14 @@ namespace
                             }
                             else if (!structuralBorrowCarrierType(sema, leftTypeRef))
                                 return {};
+                            else if (info.kind == SemaEscapeKind::Parameter && info.sourceVar &&
+                                     structuralBorrowCarrierType(sema, info.sourceVar->typeRef()))
+                            {
+                                // A by-value carrier parameter supplies field contents, not
+                                // its own storage. Keep exact pointer origins from tracked
+                                // projections and locally assembled carriers unchanged.
+                                info.markStoredFieldBorrow();
+                            }
 
                             if (info.hasBorrow())
                                 info.typeRef = memberTypeRef;

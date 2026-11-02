@@ -209,7 +209,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.036 — Clocks have no second-platform backend
 
-- Next: implement wall-clock fields and monotonic ticks for the chosen second platform.
+- Evidence: Linux monotonic ticks use clock_gettime with nanosecond frequency. Raw clock
+  bindings execute in JIT and native ELF; the Core stopwatch tests still need thread sleep
+  and the remaining Core host services.
+- Next: implement wall-clock fields and run the common stopwatch and elapsed-time tests.
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
@@ -246,12 +249,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
-  The Core probe reaches 370 source files. Its initial 60 unresolved dependency reports mixed
-  missing host services with declarations retained from inactive Windows files. Retiring those
-  `#global if` declarations exposes a compiler assertion while analyzing `buffer.buffer` in
-  `Crypto.randomBytes`; isolate that expression before treating stalled reports as missing APIs.
-  The `linux` ABI module independently tests descriptor, directory, ioctl and mapping calls in
-  JIT and native ELF; Core's anonymous/private page-release tests remain blocked.
+  Core still lacks Linux filesystem, process, environment, thread, wall-clock, timer and
+  window operations. These prevent execution of its focused public API tests.
+  The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
+  secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
+  native-library and stopwatch tests still need the missing host services.
 - Next: complete the Core resource owners and their Linux host primitives, starting with
   streams/mappings and startup environment/sandbox services. Finish gamepad state and vibration
   and validate discovery on an input-enabled host. Select headless/no-sound backends only where
@@ -342,10 +344,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
-- Evidence: `crypto/security.win32.swg` already calls the foreign `RtlZeroMemory` routine; the
-  shipped implementation is no longer a plain Swag loop.
-- Next: give the same public operation a runtime/compiler primitive or narrow host implementations
-  on other targets, preserving its no-elide guarantee.
+- Evidence: `crypto/security.win32.swg` calls the foreign `RtlZeroMemory` routine. The Linux
+  leaf uses glibc explicit_bzero; raw tests verify zeroed bytes and surrounding canaries in
+  JIT and native ELF. Core's crypto tests remain blocked by its other missing host services.
+- Next: run the public Linux crypto tests, including empty buffers and getentropy chunk boundaries,
+  and inspect optimized secureClear calls to establish the no-elide guarantee end to end.
 - Related: platform.portability.075
 - Done when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
 

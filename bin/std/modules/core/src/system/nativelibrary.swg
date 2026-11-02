@@ -7,13 +7,16 @@ private const SwagRuntimeHookSync          = 0'u64
 private const SwagRuntimeHookDynamicLoad   = 4'u64
 private const SwagRuntimeHookDynamicUnload = 5'u64
 
+#[Swag.CallingConvention(.C)]
+private alias SwagRuntimeHook = func(u64, u64, u64, const *(string?))
+
 private func callSwagRuntimeHook(handle: const *void, stage: u64)
 {
     let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
     if not runtimeHook do
         return
 
-    let hook = cast(func(u64, u64, u64, const *(string?)), runtimeHook)
+    let hook = cast(SwagRuntimeHook, runtimeHook)
     hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64, Swag.getContext().runtimeFlags), &Swag.processInfo().args)
 }
 

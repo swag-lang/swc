@@ -3,6 +3,7 @@
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
+    func getentropy(buffer: *void, length: u64)->s32
     func getpagesize()->s32
     func ftruncate(fd: s32, length: s64)->s32
     func pipe2(pipefd: [*] s32, flags: s32)->s32

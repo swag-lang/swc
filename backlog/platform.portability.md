@@ -754,6 +754,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.050 — No second-platform surface and presentation backend
 
+- Progress (Linux): optional XCB/X11 protocol bindings now cover checked window requests,
+  events, properties, pointer/keyboard snapshots and RandR 1.5 monitor queries. Three opt-in
+  `integration.xcb` tests pass in JIT and native ELF on an isolated Xvfb display, including
+  a separate importing module, BadWindow recovery and malformed-display failure. C headers
+  independently confirm the layouts. Libraries are dynamically loaded, so headless consumers
+  do not acquire a mandatory desktop dependency. This establishes the raw ABI only; the Core
+  window owner, callback lifecycle, GUI surface and renderer integration remain to implement.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,

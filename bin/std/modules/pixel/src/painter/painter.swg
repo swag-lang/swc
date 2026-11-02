@@ -231,8 +231,9 @@ struct TriangleBatch
     }
 }
 
-// The paint source a `BindTexture0` command binds: what the brush samples, and how its
-// coordinates map onto the shapes drawn with it.
+// Describes the paint source bound by a `BindTexture0` command.
+//
+// Records what the brush samples and how its coordinates map onto the shapes drawn with it.
 struct BrushBinding
 {
     public
@@ -267,8 +268,7 @@ struct Command
 {
     public
     {
-        // Operation the command performs, with the parameters that operation reads.
-        using op: union(CommandId)
+        using op: union(CommandId)     // Operation performed and the parameters it reads.
         {
             case .Clear:                                       clear:           struct{ color: Color }
             case .DrawTriangles:                               drawTriangles:   TriangleBatch

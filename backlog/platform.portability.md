@@ -19,9 +19,11 @@ core.so and compiles its test sources. Public suites pass in JIT/native for memo
 (31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
 (5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
 HOME/XDG overrides. These are focused boundary suites, not the entire Core test inventory.
-Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its four direct
-typeface tests pass in JIT and native execution. The complete golden
-campaign still stops before GUI and application tests because Linux GUI services are incomplete.
+Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its six direct
+typeface tests pass in JIT and native execution; installed-family loading also passes through
+a separate importing module, including synthetic styles with independent glyph workspaces.
+The complete golden campaign still stops before GUI and application tests because Linux GUI
+services are incomplete.
 Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
@@ -151,10 +153,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.058 — No second-platform GUI font integration
 
-- Next: load selected GUI family names through the portable catalog and exercise mixed-script
-  text in an actual Linux GUI. The property editor now consumes portable owned family names;
-  Pixel's `Font.resolveRune` uses the installed Linux catalog with cached misses and style-preserving
-  fallback. Native GUI application, surface, cursor and clipboard services still block execution.
+- Progress: `FontFamily.createTypeFace(name, style)` now loads selected Linux families from the
+  shared catalog, accepting typographic and legacy names and preserving collection indices.
+  Missing bold/italic traits use separately cached typefaces with independent glyph workspaces;
+  ordinary file loads remain unchanged. A separate consumer passes four tests in JIT/native,
+  including real Open Sans legacy aliases and DejaVu synthetic styles. An installed-family
+  integration test passes in both modes, and Pixel's 92 native golden tests remain green.
+- Next: migrate application family-loading consumers to the name-based API and exercise
+  mixed-script text in an actual Linux GUI. The property editor already consumes portable owned
+  family names, and `Font.resolveRune` uses cached installed fallback. Native GUI application,
+  surface, cursor and clipboard services still block execution.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
 

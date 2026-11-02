@@ -19,6 +19,16 @@ impl FontFamily
         }
     }
 
+    internal func systemTypeFaceNative(fontFamily: string, style: FontFamilyStyle)->*TypeFace? fail
+    {
+        Sync.scopedLock(&g_LinuxFontFallbackLock)
+        ensureSystemFontCatalog()
+        let face = g_LinuxFontFallback.catalog.findFace(fontFamily, style)
+        if not face do
+            return null
+        return try TypeFace.loadStyledAt(face.path.toString(), face.faceIndex, style)
+    }
+
     internal func systemFontNamesNative()->Array'String
     {
         Sync.scopedLock(&g_LinuxFontFallbackLock)

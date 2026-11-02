@@ -89,7 +89,8 @@ cache.setFallbackTypeFaces([symbols], false)
 ```
 
 Passing `false` limits lookup to the supplied faces. System discovery and rune lookups are
-cached; Linux builds its installed-font snapshot on the first eligible missing character.
+cached; Linux shares one installed-font snapshot across family enumeration, selected-family
+loading, and missing-character lookup. The first such request initializes the snapshot.
 
 ## Rich text
 

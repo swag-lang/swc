@@ -11,8 +11,8 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,745 tests. The raw Linux module
-passes 18 tests in JIT and native ELF. Whole-Core compilation still reports 21 missing-service
+Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
+passes 19 tests in JIT and native ELF. Whole-Core compilation still reports 21 missing-service
 diagnostics (watchers, process launch, windows/monitors and input); Core ownership, timer and
 sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
@@ -349,7 +349,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Reparse-point scanning is shared. Unlinking a final file/directory link checks its authorized
   parent without following that final link; writes and traversal through parent links still fail.
   Shared tests distinguish Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
-- Validation: 19 raw binding tests pass JIT/native, including realpath allocation/free, a link
+- Validation: 18 raw binding tests pass JIT/native, including realpath allocation/free, a link
   followed by '..' and ELOOP. Whole-Core analysis reports 21 unrelated missing-service diagnostics.
   Public tests for argv matching, case, root containment, invalid paths, escaped writes/deletes
   and safe link removal are added but have not executed; native Windows validation is unavailable.
@@ -365,13 +365,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
-  Core still lacks Linux filesystem, process, environment, thread, timer and window operations.
-  These prevent execution of its focused public API tests.
+  Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
+  watching, process launch, desktop and input still block its focused public API tests.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
-- Next: complete the Core resource owners and their Linux host primitives, starting with
-  streams/mappings and startup environment/sandbox services. Finish gamepad state and vibration
+- Compiler repair: named-type lookup now waits for conditional homonyms before diagnosing
+  ambiguity, while one unfinished type still supports recursive declarations. The watcher port
+  exposed a disabled Windows private struct competing with its Linux counterpart before the
+  file condition finished. A permanent cross-file #run-condition fixture fails on the old binary
+  and passes JIT/native with DevMode and Release compilers. Focused recursive/global semantic
+  inputs and expected ambiguity diagnostics pass; the full C++ campaign passes 1,746 tests.
+- Next: complete the remaining Core host services and execute the public resource-owner suites. Finish gamepad state and vibration
   and validate discovery on an input-enabled host. Select headless/no-sound backends only where
   their contracts permit them; do not treat absent declarations or success stubs as a backend.
 - Done when: a Linux configuration compiles every neutral runtime and bin source and fails on

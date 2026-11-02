@@ -88,7 +88,7 @@ unimplemented. The C++ JIT page allocator and `bin/runtime`'s `__hostPage*` hook
 | GUI surfaces, presentation, native text, input, cursor, clipboard and drag/drop | `bin/std/modules/gui/src/*.win32.swg`, `src/paint/cursor.win32.swg` | Missing; headless policy is not a native desktop backend |
 | Capture screen/window/region acquisition | `bin/apps/modules/swagcapture/src/screenshot/screenshot.win32.swg` | Missing |
 | Vault filesystem mount and host lifecycle | `bin/apps/modules/swagvault/src/winfsp/`, `src/autounmount.win32.swg` | Missing FUSE backend |
-| Scope/Prism desktop integration and application packaging | Application module setup and Core/GUI/Pixel services above | Missing Linux packaging and desktop registration |
+| Application desktop integration and packaging | Swag Capture, Swag Scope and Swag Vault module setup; Core/GUI/Pixel services above | Missing Linux packaging and desktop registration |
 
 Portable algorithms, codecs and application models consume these capabilities. Their neutral
 source status does not prove that their entire module can compile on Linux. Optional raw Windows

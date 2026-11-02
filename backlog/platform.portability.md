@@ -835,9 +835,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Eight Pixel integration cases pass JIT/native: render-worker presentation, asynchronous cropped/strided
   readback, render-target survival after closing the first of two windows, clipping, SVG alpha, sampling,
   padding and backdrop effects. Six ordinary native renderer/thread tests also pass, including failure
-  retirement. All 92 Pixel golden tests pass natively without changing references. The full golden-only
-  campaign reaches GUI and all four applications, but they stop before execution at missing Linux GUI
-  services (application/surface/cursor types, clipboard, installed fonts and user locale).
+  retirement. All 92 Pixel golden tests pass natively without changing references. Full GUI and
+  application execution remains blocked by Linux GUI services, including application/surface/cursor
+  types and clipboard integration. The current application modules are Swag Capture, Swag Scope and
+  Swag Vault; their GUI font consumers still need integration with the portable installed-family API.
   Native artifact work remains in .093.
   Core still has no mandatory GL/EGL dependency. GUI integration and physical GPU validation
   remain open, as do GUI surfaces, cursor shapes and native Wayland.

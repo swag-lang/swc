@@ -1292,7 +1292,7 @@ alias Closure = func||()
 alias Nested = func(func())
 const Following = 42
 )"));
-    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    const std::vector<Utf8> exportArgs = {"sema", "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     ImportResult            result;
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
@@ -1314,7 +1314,7 @@ const Following = 42
 }
 #assert(Callbacks.Following == 42)
 )"));
-    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
     result.output.clear();
     result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)

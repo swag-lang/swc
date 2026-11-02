@@ -525,18 +525,19 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   manufacture a native font handle.
 - Done when: The public installed-font descriptor contains normalized family, subfamily, style, path, and face index without LOGFONTW or native handles, while Windows enumeration still loads and selects the same installed faces.
 
-### platform.portability.017 — Installed-font scanning is not common Swag
+### platform.portability.017 — Connect installed-font sources to the common scanner
 
-- Next: use the existing TrueType/OpenType readers (`Face.countFaces`, `familyNameAt`, style/name
-  tables, and `Face.loadAt`) to scan configured files and collections into portable face
-  descriptors.
+- Next: feed host-discovered files into `Pixel.FontCatalog.addFile` and replace installed-family
+  callers of the native descriptors with the resulting `FontFileFace` file/index metadata.
+  The common catalog can already parse collections and load a selected face without GDI.
 - Related: platform.portability.016, platform.portability.019, platform.portability.020, platform.portability.018
 - Done when: Common Swag code scans font files and collections with the existing TrueType/OpenType reader into portable face descriptors, and a host-supplied file list produces the same catalog independently of enumeration backend.
 
-### platform.portability.018 — Installed-font family grouping is not common Swag
+### platform.portability.018 — Finish installed-family grouping and cache integration
 
-- Next: group scanned descriptors into families, select regular/bold/italic fallbacks, sort, and
-  cache the catalog independently of platform enumeration.
+- Next: integrate `FontCatalog`'s deterministic family/style selection with installed-font caching
+  and replace the Windows grouping callbacks. Add typographic family/subfamily names and legacy
+  aliases so separately named light and semibold faces can join their intended family.
 - Related: platform.portability.016, platform.portability.017
 - Done when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
 

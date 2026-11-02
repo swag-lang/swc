@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
@@ -181,6 +182,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
     uint32_t                exitCode = UINT32_MAX;
     const std::vector<Utf8> args     = {
         "smoke",
+        "--os",
+        hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows",
         "--file",
         Utf8(source),
         "--out-dir",
@@ -205,7 +208,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
 
     // A successful JIT run would print the same arguments, but would bypass the native timeout.
     std::error_code ec;
-    if (!fs::exists(outputDir / "smoke_script.exe", ec) || ec)
+    if (!fs::exists(outputDir / (hostTargetOs() == Runtime::TargetOs::Linux ? "smoke_script" : "smoke_script.exe"), ec) || ec)
         return Result::Error;
 }
 SWC_TEST_END()

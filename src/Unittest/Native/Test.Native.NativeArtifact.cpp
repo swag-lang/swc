@@ -2543,6 +2543,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
     for (const std::string_view configuration : {"devmode", "release"})
     {
         CommandLine command = makeStandaloneNativeArtifactCmdLine(std::format("print_fractional_carries_{}", configuration), Runtime::BuildCfgBackendKind::Executable);
+        command.targetOs = hostTargetOs();
         command.directories.clear();
         command.files.insert(sourcePath);
         command.buildCfg          = Utf8(configuration);

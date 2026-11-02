@@ -31,9 +31,9 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,083 declarations and 386 exposed members have comments;
-Linux still lacks the referenced Debugger surface, and the separate GUI API page is not
-built in this probe. Those two documentation references remain unresolved.
+Core API generation succeeds: all 2,086 declarations and 386 exposed members have comments.
+The only unresolved documentation link in this probe points to the separate GUI API page,
+which is not built here.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
@@ -96,10 +96,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.043
 - Done when: The chosen second host resolves captured addresses from its debug information to function and source locations when symbols are present, and reports missing or stripped symbols without losing the raw addresses.
 
-### platform.portability.045 — Debugger integration has no second-platform backend
+### platform.portability.045 — Finish Linux debugger attachment and output
 
-- Next: implement debugger detection, break/attach behavior, and any debugger-facing host operations
-  independently of stack-symbol presentation.
+- Evidence: Linux `Debugger.isAttached` reads the calling thread's TracerPid through procfs;
+  an attachment limited to another thread does not count. Unavailable or malformed status returns
+  false, and the query is explicitly not signal-handler-safe. `debugBreak` emits the runtime
+  breakpoint instruction. The unattached main/worker test and a separate importer pass JIT/native.
+  A maintained native test run under ptrace observes the attached initial thread and an untraced
+  worker, stops on SIGTRAP and resumes successfully. The separate importer also verifies the
+  default fatal SIGTRAP action without a tracer and exits normally after traced continuation.
+- Next: define and implement Linux debugger launch/attach and debugger-directed output with
+  explicit capability and failure behavior, independently of stack-symbol presentation.
 - Related: platform.portability.003, platform.portability.043
 - Done when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
 

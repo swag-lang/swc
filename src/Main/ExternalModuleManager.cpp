@@ -20,7 +20,27 @@ void ExternalModuleManager::registerSearchPath(fs::path path)
     searchPaths_.push_back(std::move(path));
 }
 
-bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view moduleName)
+void ExternalModuleManager::registerDependencies(Utf8 moduleName, std::vector<Utf8> dependencies)
+{
+    const std::unique_lock lock(mutex_);
+    for (DependencyEntry& entry : dependencies_)
+    {
+        if (entry.moduleName != moduleName)
+            continue;
+        entry.dependencies = std::move(dependencies);
+        return;
+    }
+    dependencies_.push_back({std::move(moduleName), std::move(dependencies)});
+}
+
+bool ExternalModuleManager::loadModule(void*& outModuleHandle, const std::string_view moduleName)
+{
+    const std::unique_lock lock(mutex_);
+    std::vector<std::string_view> activeModules;
+    return loadModuleLocked(outModuleHandle, moduleName, activeModules);
+}
+
+bool ExternalModuleManager::loadModuleLocked(void*& outModuleHandle, const std::string_view moduleName, std::vector<std::string_view>& activeModules)
 {
     outModuleHandle = nullptr;
     if (moduleName.empty())
@@ -28,7 +48,6 @@ bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view 
 
     const fs::path requestedPath{Utf8(moduleName).c_str()};
 
-    const std::unique_lock lock(mutex_);
     for (const ModuleEntry& loadedModule : modules_)
     {
         if (loadedModule.moduleName != moduleName)
@@ -37,6 +56,28 @@ bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view 
         outModuleHandle = loadedModule.moduleHandle;
         return true;
     }
+
+    // dlopen searches DT_NEEDED using the loader's paths, not our registered workspace
+    // directories. Load the resolved dependency graph first so each SONAME is available.
+    if (std::ranges::find(activeModules, moduleName) != activeModules.end())
+        return false;
+    activeModules.push_back(moduleName);
+    for (const DependencyEntry& entry : dependencies_)
+    {
+        if (entry.moduleName != moduleName)
+            continue;
+        for (const Utf8& dependency : entry.dependencies)
+        {
+            void* dependencyHandle = nullptr;
+            if (!loadModuleLocked(dependencyHandle, dependency.view(), activeModules))
+            {
+                activeModules.pop_back();
+                return false;
+            }
+        }
+        break;
+    }
+    activeModules.pop_back();
 
     if (!Os::loadExternalModule(outModuleHandle, moduleName))
     {

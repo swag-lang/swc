@@ -2290,7 +2290,7 @@ struct DependencyPlanBuilder
     // file. Cache its import list so the global resolution visits it once.
     Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
     Result resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
-    void   collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex) const;
+    static void collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex);
 
     CompilerInstance& instance() const
     {
@@ -2479,6 +2479,21 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
             }
             instance().registerImportedDependencyLinkDir(linkDependenciesIn && !node.paths.staticDir.empty() ? node.paths.staticDir : node.paths.linkDir);
             instance().registerImportedSharedModuleDir(node.paths.sharedDir);
+            if (hostTargetOs() == Runtime::TargetOs::Linux && !node.paths.sharedDir.empty())
+            {
+                std::vector<size_t> closure;
+                std::vector<Utf8> transitiveModules;
+                DependencyPlanBuilder::collectClosure(closure, transitiveModules, *resolvedImport.plan, nodeIndex);
+                std::vector<Utf8> sharedDependencies;
+                for (const size_t dependencyIndex : closure)
+                {
+                    const auto& dependency = resolvedImport.plan->nodes[dependencyIndex];
+                    if (dependencyIndex != nodeIndex && !dependency.paths.sharedDir.empty())
+                        sharedDependencies.push_back(resolveDependencyLinkModuleName(dependency.paths.sharedDir, dependency.moduleName.view(), instance().cmdLine().targetOs));
+                }
+                const Utf8 library = resolveDependencyLinkModuleName(node.paths.sharedDir, node.moduleName.view(), instance().cmdLine().targetOs);
+                instance().externalModuleMgr().registerDependencies(library, std::move(sharedDependencies));
+            }
         }
 
         const CompilerInstance::ResolvedDependencyNode& directNode = resolvedImport.plan->nodes[resolvedImport.binding->nodeIndex];
@@ -2954,7 +2969,7 @@ Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::De
     return Result::Continue;
 }
 
-void DependencyPlanBuilder::collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, const size_t nodeIndex) const
+void DependencyPlanBuilder::collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, const size_t nodeIndex)
 {
     if (std::ranges::find(outClosure, nodeIndex) != outClosure.end())
         return;

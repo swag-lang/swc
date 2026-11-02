@@ -222,6 +222,12 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
     for (const fs::path& directory : builder_->compiler().importedDependencyLinkDirs())
     {
         outJob.elfLinkArguments.emplace_back("-L" + Utf8(fs::absolute(directory)));
+        // -L does not resolve DT_NEEDED entries of imported shared libraries. Keep this
+        // search path link-only so deployed artifacts retain their $ORIGIN runpath.
+        outJob.elfLinkArguments.emplace_back("-Xlinker");
+        outJob.elfLinkArguments.emplace_back("-rpath-link");
+        outJob.elfLinkArguments.emplace_back("-Xlinker");
+        outJob.elfLinkArguments.emplace_back(Utf8(fs::absolute(directory)));
         std::error_code error;
         for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, error), end; it != end && !error; it.increment(error))
         {

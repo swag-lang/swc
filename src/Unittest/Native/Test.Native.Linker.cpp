@@ -557,6 +557,23 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesExecuteDuringCompilation)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxTransitiveSharedModulesExecuteDuringCompilation)
+{
+    LinkerTestDirectory directory("transitive_shared_library_jit");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
+    // Build providers in a separate process so their earlier compilation cannot preload them.
+    const std::vector<Utf8> dependencies = {
+        "build", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_middle",
+        "--num-cores", "3", "--no-log-color"};
+    SWC_RESULT(runCompiler(dependencies, ExitCode::Success, ""));
+    const std::vector<Utf8> arguments = {
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
+        "--num-cores", "3", "--no-log-color"};
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed"));
+    return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
 {
     LinkerTestDirectory directory("published_shared_library");

@@ -1,5 +1,4 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if WINDOWS
 #global private
 
 struct CancelWatcherPayload
@@ -35,6 +34,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
     return false
 }
 
+#[Swag.TestTag("integration.watcher")]
 #test
 {
     let root = CoreTests.makeFilesystemTestPath("core_directory_watcher")
@@ -58,6 +58,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
     watcher.close()
 }
 
+#[Swag.TestTag("integration.watcher")]
 #test
 {
     let root = CoreTests.makeFilesystemTestPath("core_directory_watcher_cancel")
@@ -70,7 +71,48 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
     expect thread.init(&cancelWatcherThread, &payload)
     expect thread.start()
 
-    let batch = expect watcher.next()
+    let batch = expect watcher.next(5000)
     thread.wait()
     Swag.assert(batch.status == .Cancelled)
+    watcher.cancel()
+    Swag.assert((expect watcher.next(0)).status == .Cancelled)
+    watcher.close()
+    watcher.close()
+    Swag.assert(not watcher.isOpen())
+}
+
+#[Swag.TestTag("integration.watcher")]
+#test
+{
+    let root = CoreTests.makeFilesystemTestPath("core_directory_watcher_timeout")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    var watcher = expect Directory.watch(root, {filter: .FileName})
+    Swag.assert((expect watcher.next(0)).status == .TimedOut)
+    Swag.assert((expect watcher.next(20)).status == .TimedOut)
+    let file = Path.combine(root, "after-timeout")
+    discard expect File.writeAllBytes(file, ['x'u8])
+    Swag.assert(expect waitForWatchChange(&watcher, .Added, file.toString()))
+    discard expect File.writeAllBytes(file, ['y'u8])
+    Swag.assert((expect watcher.next(20)).status == .TimedOut)
+}
+
+#[Swag.TestTag("integration.watcher")]
+#test
+{
+    let root   = CoreTests.makeFilesystemTestPath("core_directory_watcher_recursive")
+    let child  = Path.combine(root, "before")
+    let nested = Path.combine(child, "nested")
+    expect Directory.create(nested)
+    defer discard catch Directory.delete(root, recurse: true)
+    var watcher = expect Directory.watch(root, {recurse: true})
+    let first   = Path.combine(nested, "first")
+    discard expect File.writeAllBytes(first, ['x'u8])
+    Swag.assert(expect waitForWatchChange(&watcher, .Added, first.toString()))
+    let renamed = Path.combine(root, "after")
+    expect File.move(renamed, child)
+    Swag.assert(expect waitForWatchChange(&watcher, .Renamed, renamed.toString(), child.toString()))
+    let second = Path.combine(renamed, "nested/second")
+    discard expect File.writeAllBytes(second, ['y'u8])
+    Swag.assert(expect waitForWatchChange(&watcher, .Added, second.toString()))
 }

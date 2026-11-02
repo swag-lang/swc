@@ -12,8 +12,8 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
-passes 19 tests in JIT and native ELF. Whole-Core compilation still reports 21 missing-service
-diagnostics (watchers, process launch, windows/monitors and input); Core ownership, timer and
+passes 19 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
+diagnostics (process launch, windows/monitors and input); Core ownership, timer and
 sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
@@ -256,9 +256,21 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Watcher ABI checkpoint: inotify and poll declarations now pass 19 raw tests in JIT/native,
   including split-buffer rename cookies, nonblocking exhaustion, explicit watch removal and
   a cancellation pipe waking poll. A separate consumer executes the exported structures/calls
-  in both modes. The Core watcher backend is still being implemented; these raw tests do not
-  establish public cancellation, recursive coverage or ownership correctness.
-- Next: finish watching and run the common filesystem/stream/mapping tests, including root-link
+  in both modes. These raw tests do not establish public cancellation, recursive coverage or
+  ownership correctness.
+- Watcher backend: Linux owns a nonblocking inotify descriptor and a close-on-exec cancellation
+  pipe. Poll uses monotonic deadlines and permanent cancellation wakes an outstanding wait.
+  Recursive subscriptions skip directory links, reject inode aliases, update descendant paths
+  on paired directory renames, and retain rename cookies across calls for a 50 ms move-out grace.
+  Adding a subtree reports Overflow for the unavoidable pre-subscription gap. Queue loss, root
+  invalidation, unmount and events overlapping an unresolved moved path report Overflow then
+  Cancelled; native failures cancel and propagate. Recreate after terminal overflow before
+  rescanning. Recursive traversal races may fail the stream rather than silently omit paths.
+  Whole-Core semantic/test/doc commands now report 17 remaining process/desktop/input diagnostics.
+  Ten public integration tests cover cancellation, repeated close, timeout continuity, filtering,
+  recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal and
+  link exclusion, but have not executed. Kernel-overflow stress and Windows comparison remain.
+- Next: run the common watcher/filesystem/stream/mapping tests, including root-link
   deletion and the sharing/opening contract, with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
@@ -366,7 +378,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   executables/archives. Static module consumers execute lifecycle hooks across imports. The
   default target is still Windows, and neutral standard/application modules have no Linux gate.
   Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
-  watching, process launch, desktop and input still block its focused public API tests.
+  watching is also implemented; process launch, desktop and input still block focused API tests.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
@@ -376,8 +388,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   file condition finished. A permanent cross-file #run-condition fixture fails on the old binary
   and passes JIT/native with DevMode and Release compilers. Focused recursive/global semantic
   inputs and expected ambiguity diagnostics pass; the full C++ campaign passes 1,746 tests.
-- Next: complete the remaining Core host services and execute the public resource-owner suites. Finish gamepad state and vibration
-  and validate discovery on an input-enabled host. Select headless/no-sound backends only where
+- Next: complete the remaining Core host services and execute the public resource-owner suites.
+  Finish gamepad state/vibration and validate discovery on an input-enabled host. Select headless/no-sound backends only where
   their contracts permit them; do not treat absent declarations or success stubs as a backend.
 - Done when: a Linux configuration compiles every neutral runtime and bin source and fails on
   an accidental native Windows import.

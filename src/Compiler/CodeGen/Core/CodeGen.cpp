@@ -1355,9 +1355,33 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 
 Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)
 {
-    // Emit failure-edge cleanups without retiring success-edge cleanups. Nested
-    // handlers leave earlier sibling operands intact. Every queued temporary is
-    // initialized, including ordinary call results without an explicit owned move.
+    // Abandoned call expressions no longer borrow their evaluated arguments. Release
+    // those guards before destroying the expression's temporaries, but keep inline
+    // parameter guards until their deferred bodies have run. A nested handler must
+    // also retain the borrows of the enclosing expression that will resume afterward.
+    if (!temporaryDrops_.empty())
+    {
+        for (size_t index = deferScopes_.size(); index != 0; --index)
+        {
+            const auto& scope = deferScopes_[index - 1];
+            if (scope.borrowOnly)
+            {
+                for (const auto& action : scope.actions)
+                {
+                    if (action.kind == CodeGenDeferredAction::Kind::EndValueBorrow)
+                        SWC_RESULT(CodeGenSafety::emitValueBorrowEnd(*this, action.borrowRecordOffset));
+                }
+            }
+
+            if (scope.scopeRef == scopeRef)
+                break;
+        }
+    }
+
+    // Preserve success-edge actions. Later failure unwinding can leave these records
+    // again: the runtime accepts an inactive record. Nested handlers leave earlier
+    // sibling operands intact. Every queued temporary is initialized, including
+    // ordinary call results without an explicit owned move.
     for (size_t i = temporaryDrops_.size(); i != 0; --i)
     {
         const CodeGenTemporaryDrop drop = temporaryDrops_[i - 1];

@@ -1189,16 +1189,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.091 — Finish Linux cache cleanup and fault-boundary validation
 
-- Evidence: complete DevMode and Release Linux compilers pass lexer/parser suites and focused
-  compile-time/native probes. The full C++ campaign passes all 1,743 tests, including the original
-  PE resource failure and added native/shared-module regressions. Cross-target JIT execution
-  uses host context, TLS and process storage; native output keeps its target instructions.
+- Evidence: cross-target JIT execution uses host context, TLS and process storage; native output
+  keeps its target instructions.
   DWARF frame registration preserves C++ cleanup through generated faults, and native ELF/JIT
   tests recover protected-page faults and stack exhaustion. Compiler-owned pthread callbacks
   now retire before their code is unmapped, including active callbacks which delete their key.
-  Linux directory locks still do not prohibit an uncoordinated cleaner's rename.
-- Next: coordinate directory cleanup with API readers/publication. Extend fault-boundary
-  coverage across native callbacks and nested JIT calls while preserving C++ cleanup.
+  Linux directory locks remain advisory: the cleaner in `Command.Clean.cpp` removes whole trees
+  without coordinating with API readers or publication locks in descendant directories.
+- Next: coordinate cleanup of entries and their ancestors with API readers/publication, including
+  a cleaner racing a waiting reader across directory replacement. Extend fault-boundary coverage
+  across native callbacks and nested JIT calls while preserving C++ cleanup.
 - Done when: concurrent cleanup cannot invalidate an active reader/publication generation,
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
 - Related: platform.portability.001, platform.portability.093
@@ -1211,8 +1211,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   reject dynamic text relocations, and preserve canonical local/foreign pointer identity.
   Source-level DWARF output is explicitly rejected, and persistent native function caches remain
   COFF-specific and disabled for Linux.
-- Next: implement source-level DWARF and target-specific incremental caches.
+- Next: emit DWARF source lines, function/type records and variable locations from the existing
+  debug records; route `.debug*` sections through the ELF object path as non-allocated sections.
+  `NativeImageBuilder` currently discards them and `NativeObjFileWriterElf` rejects `--debug`.
+  Validate source stepping and variable inspection with a debugger before removing that rejection.
+  Then add target-specific incremental caches without reusing the COFF archive decoder.
 - Done when: Linux native output emits source debug information and reuses native caches while
-  preserving foreign calls, runtime context
-  sharing and module load/unload lifecycle behavior.
+  preserving foreign calls, runtime context sharing and module load/unload lifecycle behavior.
 - Related: platform.portability.005

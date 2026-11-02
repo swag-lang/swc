@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
@@ -85,6 +86,55 @@ namespace
     constexpr std::string_view API_SOURCE      = "#global public\nconst PublicationValue = 42\n";
     constexpr std::string_view CONSUMER_SOURCE = "#test\n{\n    const value: s32 = PublicationValue\n}\n";
 }
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
+{
+    ApiPublicationTestDirectory directory("WorkspaceSemaDependencies");
+    for (const bool filtered : {true, false})
+    {
+        const fs::path workspace = directory.path() / (filtered ? "selected" : "all");
+        const fs::path modules   = workspace / "modules";
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Provider"
+    cfg.backendKind = .SharedLibrary
+}
+)"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#[Swag.NoInline]\npublic func answer()->s32 => 42\n"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", R"(#import("provider")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Consumer"
+    cfg.backendKind = .Executable
+}
+)"));
+        // No #main: semantic checking must not attempt to link the selected leaf.
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "use.swg", "#run { Swag.assert(Provider.answer() == 42) }\n"));
+        std::vector<Utf8> arguments = {"sema", "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        if (filtered)
+        {
+            arguments.emplace_back("--workspace-module");
+            arguments.emplace_back("consumer");
+        }
+        ImportResult                result;
+        const Os::ProcessRunOptions options{.capturedOutput = &result.output, .forwardOutput = false, .timeoutMs = 20000};
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), arguments, workspace, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode)
+        {
+            std::println(stderr, "[workspace sema native dependency] {}", result.output);
+            return Result::Error;
+        }
+        const fs::path published  = workspace / ".output";
+        const char*    library    = hostTargetOs() == Runtime::TargetOs::Windows ? "provider.dll" : "provider.so";
+        const char*    executable = hostTargetOs() == Runtime::TargetOs::Windows ? "consumer.exe" : "consumer";
+        if (!fs::is_regular_file(published / "provider" / "shared-library" / "devmode" / "x86_64" / library) ||
+            fs::exists(published / "consumer" / "executable" / "devmode" / "x86_64" / executable))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
 {

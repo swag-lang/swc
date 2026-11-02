@@ -7,6 +7,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// Compile-time execution uses the compiler host even when native output targets another OS.
+inline constexpr Runtime::TargetOs hostTargetOs()
+{
+#ifdef _WIN32
+    return Runtime::TargetOs::Windows;
+#elif defined(__linux__)
+    return Runtime::TargetOs::Linux;
+#endif
+}
+
 inline Utf8 targetArchName(const Runtime::TargetArch targetArch)
 {
     switch (targetArch)

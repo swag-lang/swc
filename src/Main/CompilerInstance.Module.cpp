@@ -3645,11 +3645,15 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         bool                                 compiled = false;
 
         const WorkspaceModuleRun moduleRun = {
-            .moduleBuild       = &moduleBuild,
-            .dependencyPlan    = preparedDependencies,
-            .logState          = {.name = moduleBuild.name, .ordinal = buildIndex + 1, .total = buildCount},
-            .writeModuleApi    = writeModuleApi,
-            .pendingDependency = parseAhead ? &pendingLink : nullptr,
+            .moduleBuild    = &moduleBuild,
+            .dependencyPlan = preparedDependencies,
+            .logState       = {.name = moduleBuild.name, .ordinal = buildIndex + 1, .total = buildCount},
+            .writeModuleApi = writeModuleApi,
+            // Host semantic analysis can execute an imported function in #run. Publish
+            // only its dependencies; the selected leaves remain semantic-only, even
+            // when they have no entry point. Cross-target analysis retains its policy.
+            .buildNativeDependency = cmdLine().command == CommandKind::Sema && cmdLine().targetOs == hostTargetOs() && !dependents[moduleIndex].empty(),
+            .pendingDependency     = parseAhead ? &pendingLink : nullptr,
         };
         if (runWorkspaceModule(moduleRun, compiled, modulePending) != Result::Continue)
         {
@@ -3698,7 +3702,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     outPending.reset();
     outCompiled = false;
 
-    CommandLine moduleCmdLine    = cmdLine();
+    CommandLine moduleCmdLine = cmdLine();
+    if (moduleRun.buildNativeDependency)
+        moduleCmdLine.command = CommandKind::Build;
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
     moduleCmdLine.moduleFilePath = moduleBuild.moduleFile;
     moduleCmdLine.directories.clear();

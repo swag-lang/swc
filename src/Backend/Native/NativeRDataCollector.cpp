@@ -193,6 +193,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         mapEntry.align         = std::max(allocation.align, 1u);
         mapEntry.emittedOffset = emittedOffset;
         mapEntry.zeroFilled    = zeroFilled;
+        builder_->mergedRData.requireAlignment(mapEntry.align);
 
         entry.allocation->emittedIndex = static_cast<uint32_t>(builder_->rdataAllocations.size());
         builder_->rdataAllocationMap[entry.shardIndex].push_back(mapEntry);

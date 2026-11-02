@@ -1372,6 +1372,53 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_GlobalAndConstantSectionsPreserveRequiredAlignment)
+{
+    for (const uint32_t alignment : {32u, 64u, 128u})
+    {
+        const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine(std::format("storage_alignment_{}", alignment), Runtime::BuildCfgBackendKind::SharedLibrary);
+        const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+        NativeBackendBuilder&           builder = *fixture.nativeBuilder;
+        for (const auto kind : {DataSegmentKind::GlobalInit, DataSegmentKind::GlobalZero})
+        {
+            DataSegment&   segment = kind == DataSegmentKind::GlobalInit ? fixture.compiler->globalInitSegment() : fixture.compiler->globalZeroSegment();
+            const uint32_t offset  = segment.reserveBlock(8, alignment, true);
+            auto*          global  = makeTestGlobal(*fixture.compilerCtx, kind == DataSegmentKind::GlobalInit ? "aligned_init" : "aligned_zero", fixture.compiler->typeMgr().typeU64());
+            global->setGlobalStorage(kind, offset);
+            builder.regularGlobals.push_back(global);
+        }
+
+        DataSegment& constants       = fixture.compiler->cstMgr().shardDataSegment(0);
+        const auto [offset, storage] = constants.reserveBytes(8, alignment, true);
+        storage[0]                   = std::byte{47};
+        ConstantValue value          = ConstantValue::makeValuePointer(*fixture.compilerCtx, fixture.compiler->typeMgr().typeU8(), reinterpret_cast<uint64_t>(storage), TypeInfoFlagsE::Const);
+        value.setDataSegmentRef({.shardIndex = 0, .offset = offset});
+        const ConstantRef constant = fixture.compiler->cstMgr().addConstant(*fixture.compilerCtx, value);
+        MachineCode       code     = makeConstantAddressCode(constant, storage);
+        addNativeFunctionInfo(builder, *fixture.compilerCtx, code, "aligned_constant");
+        SWC_RESULT(fixture.artifactBuilder->build());
+
+        // Inspect the serialized object: aligned offsets alone cannot align a section's base.
+        NativeObjDescription description;
+        description.includeData        = true;
+        description.includeMergedRData = true;
+        ByteArray  bytes;
+        const auto writer = NativeObjFileWriter::create(builder);
+        SWC_RESULT(writer->buildObjectFile(bytes, description));
+        Diagnostic diagnostic;
+        CoffObject object;
+        if (!readCoffObject(object, diagnostic, bytes))
+            return Result::Error;
+        for (const Utf8 name : {Utf8(".data"), Utf8(".bss"), Utf8(".rdata")})
+        {
+            const auto section = std::ranges::find(object.sections, name, &CoffInputSection::name);
+            if (section == object.sections.end() || coffSectionAlignmentFromCharacteristics(section->characteristics) != alignment)
+                return failNativeArtifactTest("NativeArtifact_GlobalAndConstantSectionsPreserveRequiredAlignment", "object section lost its storage alignment");
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("data_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);

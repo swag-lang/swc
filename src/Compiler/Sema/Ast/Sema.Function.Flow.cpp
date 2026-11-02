@@ -71,6 +71,17 @@ namespace
         if (resolvedCalleeRef.isInvalid() || sema.node(resolvedCalleeRef).isNot(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
 
+        // A function-valued field is already the callable. Its containing object is
+        // not an implicit argument, even when the written arguments fail to match.
+        // Retrying it as UFCS can hide a nullable argument behind a false arity error.
+        const SemaNodeView calleeView = sema.viewTypeSymbol(resolvedCalleeRef);
+        if (calleeView.sym() && calleeView.sym()->isVariable() && calleeView.typeRef().isValid())
+        {
+            const TypeRef calleeTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), calleeView.typeRef());
+            if (calleeTypeRef.isValid() && sema.typeMgr().get(calleeTypeRef).isFunction())
+                return AstNodeRef::invalid();
+        }
+
         const auto& outerMember = sema.node(resolvedCalleeRef).cast<AstMemberAccessExpr>();
         if (outerMember.nodeLeftRef.isInvalid())
             return AstNodeRef::invalid();

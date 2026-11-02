@@ -439,6 +439,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
+- Callback call repair: a function-valued field no longer retries a rejected call with its
+  containing object inserted as an implicit receiver. The XCB cleanup path exposed a nullable
+  deferred argument reported as a false zero-argument signature. The diagnostic now names the
+  actual nullable argument. Negative callback/arity fixtures, three function-value JIT/native
+  cases, eight UFCS cases, the signal-owner case and their existing negative fixtures pass;
+  the full C++ campaign remains at 1,747 passing tests.
 - Compiler repair exposed by the XCB loader: typed expression results no longer unwrap a
   returned function signature merely because error handling copied the original call arguments.
   A function returned through try/expect/catch previously became its own result type (including

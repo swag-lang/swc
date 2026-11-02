@@ -13,14 +13,50 @@ alias WindowResizeCallback = func||(*Window, s32, s32)
 // its window; the dispatcher does not access the owner after returning from this callback.
 alias WindowFocusCallback = func||(*Window, bool)
 
+// Identifies the mouse action delivered to a window.
+enum WindowPointerKind
+{
+    Move           // The pointer moved in the client area.
+    ButtonDown     // A supported mouse button was pressed.
+    ButtonUp       // A supported mouse button was released.
+    Wheel          // A horizontal or vertical wheel moved.
+}
+
+// Describes one mouse action in a window's client coordinate system.
+//
+// Coordinates are physical pixels from the client area's top-left corner and may be negative.
+// Wheel deltas are measured in notches: positive X scrolls right and positive Y scrolls up.
+// Fractional wheel deltas are preserved when the backend supplies them. This value contains
+// no borrowed storage and may be copied by the receiver.
+struct WindowPointerEvent
+{
+    public
+    {
+        kind:   WindowPointerKind     // Selects the meaningful action fields.
+        x:      s32                   // Horizontal client coordinate in physical pixels.
+        y:      s32                   // Vertical client coordinate in physical pixels.
+        button: Input.MouseButton     // Meaningful only for ButtonDown and ButtonUp.
+        wheelX: f32                   // Horizontal notches for Wheel; zero for other actions.
+        wheelY: f32                   // Vertical notches for Wheel; zero for other actions.
+    }
+}
+
+// Handles a mouse action delivered to a window.
+//
+// Runs during platform event dispatch on the window-owning thread. The callback may close
+// its window. Delivery follows the platform's native pointer routing; installing this callback
+// does not request pointer capture, keyboard focus, or double-click recognition.
+alias WindowPointerCallback = func||(*Window, WindowPointerEvent)
+
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 struct WindowCallbacks
 {
     public
     {
-        onPaint:  WindowPaintCallback?      // Invoked for a paint request.
-        onResize: WindowResizeCallback?     // Invoked with the new client size in physical pixels.
-        onFocus:  WindowFocusCallback?      // Invoked when native keyboard focus is gained or lost.
+        onPaint:   WindowPaintCallback?       // Invoked for a paint request.
+        onResize:  WindowResizeCallback?      // Invoked with the new client size in physical pixels.
+        onFocus:   WindowFocusCallback?       // Invoked when native keyboard focus is gained or lost.
+        onPointer: WindowPointerCallback?     // Invoked for mouse movement, buttons, or wheel input.
     }
 }
 

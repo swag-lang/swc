@@ -203,15 +203,22 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Raw Linux tests pass in JIT and native ELF, including sparse files beyond 4 GiB, stat layout
   canaries, EOF, invalid descriptors and mapping lifetime. A separate module imports the real
   bindings and calls read/errno/strerror in both execution modes.
+  Linux directory creation/removal, current-directory queries/changes, existence checks and
+  absolute path construction now have native leaves. Paths reject embedded zero bytes and
+  preserve dot components so a symbolic link followed by '..' keeps filesystem semantics.
+  File removal, same-filesystem replacement and modification-time updates also have leaves;
+  touch preserves access time, and cross-filesystem moves report EXDEV. Eleven raw tests pass
+  in JIT/native ELF, including symlinks, Linux-only filename characters, errno, replacement
+  identity, timestamps and open-descriptor lifetime after unlink.
   Core owner tests are present but cannot execute until the remaining host services compile;
-  whole-Core analysis still reports 57 missing-service diagnostics, none in the new stream,
-  mapping or error leaves. This does not establish public filesystem conformance.
+  whole-Core analysis still reports 48 missing-service diagnostics, none in the new filesystem
+  or error leaves. This does not establish public filesystem conformance.
 - Open decision: FileShare currently promises Windows-style read/write/delete exclusion.
   POSIX open does not supply that contract; flock is advisory and cannot represent every
   combination. The Linux opener must establish an explicit supported policy before being
   reported as implemented, rather than silently discarding the requested sharing flags.
-- Next: implement directory, file, metadata, path-state and mutation primitives; resolve the
-  sharing contract and run common stream/mapping ownership tests with the complete Core module.
+- Next: finish enumeration, metadata, file opening and watching; resolve the sharing contract
+  and run common filesystem/stream/mapping ownership tests with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Threads have no second-platform backend

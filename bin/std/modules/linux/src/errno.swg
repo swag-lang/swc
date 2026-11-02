@@ -5,9 +5,13 @@ const ENOENT       = 2's32
 const EINTR        = 4's32
 const EBADF        = 9's32
 const EACCES       = 13's32
+const EEXIST       = 17's32
+const EXDEV        = 18's32
 const ENOTDIR      = 20's32
 const EINVAL       = 22's32
+const ERANGE       = 34's32
 const ENAMETOOLONG = 36's32
+const ENOTEMPTY    = 39's32
 
 // Returns the address of the calling thread's native errno value.
 //

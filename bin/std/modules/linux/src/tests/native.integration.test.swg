@@ -230,3 +230,105 @@ alias UnaryDouble = func(f64)->f64
     Swag.assert(count == 1 and value == 91)
     Swag.assert(bytes[length - 1] == 83)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    const Template = "/tmp/swag-linux-directory-XXXXXX"
+    var temporary: [128] u8
+    for byte, index in Template do
+        temporary[index] = byte
+    let created = mkdtemp(temporary.buffer)
+    Swag.assert(created == temporary.buffer)
+    defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+    Swag.assert(directory >= 0)
+    defer discard close(directory)
+
+    const Child = "child?\\name"
+    let made = mkdirat(directory, Child.buffer, 0x1C0)
+    Swag.assert(made == 0)
+    defer discard unlinkat(directory, Child.buffer, AT_REMOVEDIR)
+    let duplicate      = mkdirat(directory, Child.buffer, 0x1C0)
+    let duplicateError = errno()
+    Swag.assert(duplicate == -1 and duplicateError == EEXIST)
+
+    var info: stat
+    let queried = fstatat(directory, Child.buffer, &info, 0)
+    Swag.assert(queried == 0 and (info.st_mode & S_IFMT) == S_IFDIR)
+    let linked = symlinkat(Child.buffer, directory, "link".buffer)
+    Swag.assert(linked == 0)
+    defer discard unlinkat(directory, "link".buffer, 0)
+    let linkInfo = fstatat(directory, "link".buffer, &info, AT_SYMLINK_NOFOLLOW)
+    Swag.assert(linkInfo == 0 and (info.st_mode & S_IFMT) == S_IFLNK)
+    let targetInfo = fstatat(directory, "link".buffer, &info, 0)
+    Swag.assert(targetInfo == 0 and (info.st_mode & S_IFMT) == S_IFDIR)
+    let nonEmpty      = unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let nonEmptyError = errno()
+    Swag.assert(nonEmpty == -1 and nonEmptyError == ENOTEMPTY)
+
+    var tiny: [1] u8
+    let tooSmall = getcwd(tiny.buffer, tiny.count)
+    let cwdError = errno()
+    Swag.assert(tooSmall == null and cwdError == ERANGE)
+    var current: [4096] u8
+    let currentPath = getcwd(current.buffer, current.count)
+    Swag.assert(currentPath == current.buffer and current[0] == '/')
+
+    // A failing chdir leaves the process directory unchanged for the other tests.
+    let invalidDirectory = chdir("".buffer)
+    let changeError      = errno()
+    Swag.assert(invalidDirectory == -1 and changeError == ENOENT)
+}
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    const Template = "/tmp/swag-linux-mutation-XXXXXX"
+    var temporary: [128] u8
+    for byte, index in Template do
+        temporary[index] = byte
+    let created = mkdtemp(temporary.buffer)
+    Swag.assert(created == temporary.buffer)
+    defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
+    let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+    Swag.assert(directory >= 0)
+    defer discard close(directory)
+    let source = openat(directory, "source".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    Swag.assert(source >= 0)
+    defer discard close(source)
+    defer discard unlinkat(directory, "source".buffer, 0)
+    let destination = openat(directory, "destination".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    Swag.assert(destination >= 0)
+    defer discard close(destination)
+    defer discard unlinkat(directory, "destination".buffer, 0)
+    let written = write(source, "abc".buffer, 3)
+    Swag.assert(written == 3)
+    var info: stat
+    let queried = fstat(source, &info)
+    Swag.assert(queried == 0)
+    let inode = info.st_ino
+    let moved = renameat(directory, "source".buffer, directory, "destination".buffer)
+    Swag.assert(moved == 0)
+    let replaced = fstatat(directory, "destination".buffer, &info, 0)
+    Swag.assert(replaced == 0 and info.st_ino == inode and info.st_size == 3)
+    let absent       = fstatat(directory, "source".buffer, &info, 0)
+    let missingError = errno()
+    Swag.assert(absent == -1 and missingError == ENOENT)
+
+    let initial: [2] timespec = [{tv_sec: 1_234_567_890, tv_nsec: 123_000_000}, {}]
+    let reset = utimensat(directory, "destination".buffer, initial.buffer, 0)
+    Swag.assert(reset == 0)
+    let update: [2] timespec = [{tv_nsec: UTIME_OMIT}, {tv_nsec: UTIME_NOW}]
+    let touched = utimensat(directory, "destination".buffer, update.buffer, 0)
+    Swag.assert(touched == 0)
+    let metadata = fstatat(directory, "destination".buffer, &info, 0)
+    Swag.assert(metadata == 0 and info.st_atim.tv_sec == 1_234_567_890 and info.st_atim.tv_nsec == 123_000_000)
+    Swag.assert(info.st_mtim.tv_sec > 0)
+    let removed = unlinkat(directory, "destination".buffer, 0)
+    Swag.assert(removed == 0)
+
+    // Unlinking the path does not invalidate an already open file descriptor.
+    let retained = fstat(source, &info)
+    Swag.assert(retained == 0 and info.st_nlink == 0 and info.st_size == 3)
+}

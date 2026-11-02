@@ -51,6 +51,8 @@ func delete(fullName: string) fail
 }
 
 // Moves `oldName` to `newName`, replacing the destination when it exists.
+//
+// On Linux both paths must be on the same filesystem; a cross-filesystem move reports an OS error.
 func move(newName, oldName: string) fail
 {
     try Env.guardWrite(oldName)

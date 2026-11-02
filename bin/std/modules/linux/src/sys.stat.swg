@@ -1,6 +1,9 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
+const UTIME_NOW  = 1_073_741_823's64
+const UTIME_OMIT = 1_073_741_822's64
+
 const S_IFMT  = 0xF000'u32
 const S_IFREG = 0x8000'u32
 const S_IFDIR = 0x4000'u32
@@ -38,6 +41,8 @@ struct stat
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
+    func mkdirat(dirfd: s32, pathname: const [*] u8, mode: u32)->s32
+    func utimensat(dirfd: s32, pathname: const [*] u8, times: const [*] timespec?, flags: s32)->s32
     func fstat(fd: s32, statbuf: *stat)->s32
     func fstatat(dirfd: s32, pathname: const [*] u8, statbuf: *stat, flags: s32)->s32
 }

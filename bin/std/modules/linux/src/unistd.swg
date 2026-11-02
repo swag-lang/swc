@@ -9,6 +9,10 @@ const SEEK_END = 2's32
 {
     func getentropy(buffer: *void, length: u64)->s32
     func getpagesize()->s32
+    func getcwd(buf: [*] u8?, size: u64)->[*] u8?
+    func chdir(path: const [*] u8)->s32
+    func unlinkat(dirfd: s32, pathname: const [*] u8, flags: s32)->s32
+    func symlinkat(target: const [*] u8, newdirfd: s32, linkpath: const [*] u8)->s32
     func ftruncate(fd: s32, length: s64)->s32
     func pipe2(pipefd: [*] s32, flags: s32)->s32
     func read(fd: s32, buf: *void, count: u64)->s64

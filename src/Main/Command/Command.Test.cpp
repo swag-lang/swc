@@ -503,6 +503,26 @@ namespace
         return Stats::getNumErrors() == errorsBefore;
     }
 
+    struct JitTestDropGuard
+    {
+        TaskContext*                     ctx = nullptr;
+        std::span<SymbolFunction* const> functions;
+
+        ~JitTestDropGuard() { run(); }
+
+        bool run()
+        {
+            const auto pending   = std::exchange(functions, {});
+            bool       succeeded = true;
+            // Keep the same intra-module order as native and script execution. An
+            // earlier test or hook failure must not prevent another hook's cleanup.
+            for (const SymbolFunction* function : pending)
+                if (!runJitTestFunction(*ctx, *function))
+                    succeeded = false;
+            return succeeded;
+        }
+    };
+
     bool runJitTests(CompilerInstance& compiler)
     {
         if (!hasJitEligibleInputs(compiler))
@@ -524,6 +544,7 @@ namespace
         std::vector<SymbolFunction*> initFunctions;
         std::vector<SymbolFunction*> preMainFunctions;
         std::vector<SymbolFunction*> testFunctions;
+        std::vector<SymbolFunction*> dropFunctions;
 
         {
             NativeBackendBuilder nativeBuilder(compiler, false);
@@ -540,17 +561,20 @@ namespace
             initFunctions                           = std::move(nativeBuilder.initFunctions);
             preMainFunctions                        = std::move(nativeBuilder.preMainFunctions);
             testFunctions                           = std::move(nativeBuilder.testFunctions);
+            dropFunctions                           = std::move(nativeBuilder.dropFunctions);
 
             filterJitFunctions(allFunctions, jitSelection);
             filterJitFunctions(initFunctions, jitSelection);
             filterJitFunctions(preMainFunctions, jitSelection);
             filterJitFunctions(testFunctions, jitSelection);
+            filterJitFunctions(dropFunctions, jitSelection);
         }
 
         SymbolSort::sortAndUniqueByLocation(allFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(initFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(preMainFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(testFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(dropFunctions, ctx.compiler());
 
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));
@@ -582,6 +606,9 @@ namespace
             .compiler = &compiler,
             .snapshot = snapshotDataSegments(compiler),
         };
+        // Stop module-owned work before the snapshot restores the globals it reads.
+        // Declaration order also guarantees this after an init/premain/test failure.
+        JitTestDropGuard dropGuard{.ctx = &ctx, .functions = dropFunctions};
 
         for (const SymbolFunction* function : initFunctions)
         {
@@ -630,13 +657,15 @@ namespace
             stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
         }
 
+        const bool dropped = dropGuard.run();
+
         Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
         Stats::get().numTestsFailed.fetch_add(failedTestCount, std::memory_order_relaxed);
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);
 
-        return !Stats::hasError();
+        return dropped && !Stats::hasError();
     }
 
     bool finishTestCommand(CompilerInstance& compiler)

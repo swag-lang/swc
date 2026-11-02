@@ -59,7 +59,11 @@ public impl Bus
         .destroyNative()
 
         Sync.scopedLock(&g_Driver.mutexBuses)
-        g_Driver.buses.remove(me)
+
+        // Preserve creation order: shutdown releases children before their parents.
+        let index = Slice.findLinear(g_Driver.buses.toSlice(), me)
+        if index != Swag.U64.Max do
+            g_Driver.buses.removeAtOrdered(index)
         let allocator = .allocationAllocator
         Memory.delete(me, allocator)
     }

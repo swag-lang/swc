@@ -108,6 +108,7 @@ void NativeGlobalLayout::place(Segment& segment)
     uint32_t cursor = 0;
     for (Allocation& allocation : segment.order)
     {
+        segment.align            = std::max(segment.align, allocation.align);
         allocation.emittedOffset = Math::alignUpU32(cursor, allocation.align);
         cursor                   = allocation.emittedOffset + allocation.size;
     }

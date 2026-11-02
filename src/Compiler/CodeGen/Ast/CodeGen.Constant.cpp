@@ -806,8 +806,10 @@ namespace
             codeGen.builder().emitLoadMemImm(dstBaseReg, 0, ApInt(SemaTagged::valueBits(codeGen.ctx(), taggedCaseRef), 64), tagBits);
         }
 
+        // The literal owns its destructor even when every field is scalar or copied from
+        // an existing value; ownership does not require adopting another temporary.
         const bool canDropFields = codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop);
-        bool       ownsValue     = false;
+        bool       ownsValue     = canDropFields;
         for (const AggregateElementLayout& entry : layout)
         {
             CodeGenNodePayload elementPayload;

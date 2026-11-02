@@ -181,6 +181,18 @@ impl Volume
             fail volumeError(.NotFound)
         let destinationParentId = parent.id
         let sourceIsDirectory   = .nodeById(id)!.isDirectory()
+        // Reject a cycle before replacing anything: a failed move must leave both names intact.
+        if sourceIsDirectory
+        {
+            var ancestor = destinationParentId
+            while ancestor != RootNodeId
+            {
+                if ancestor == id do
+                    fail volumeError(.InvalidInput)
+                ancestor = .nodeById(ancestor)!.parentId
+            }
+        }
+
         let existing = .findChild(parent.id, name)
         if existing and existing.id != id
         {
@@ -195,18 +207,6 @@ impl Volume
             .freeNodeBlocks(&.nodes[existingIndex])
             .removeNodeAt(existingIndex)
             .drop(existingId)
-        }
-
-        let node = unwrap .nodeById(id)
-        if node.isDirectory()
-        {
-            var ancestor = destinationParentId
-            while ancestor != RootNodeId
-            {
-                if ancestor == id do
-                    fail volumeError(.InvalidInput)
-                ancestor = .nodeById(ancestor)!.parentId
-            }
         }
 
         let updated      = unwrap .nodeById(id)

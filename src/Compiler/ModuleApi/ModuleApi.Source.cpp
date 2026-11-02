@@ -194,15 +194,33 @@ namespace
 
     void extendModuleApiSnippetEndOffset(const SourceView& srcView, const TokenRef startTokRef, const TokenRef endTokRef, uint32_t& ioEndOffset)
     {
-        ModuleApiDelimiterBalance balance;
+        TokenRef snippetEndTokRef = endTokRef;
+        // An empty function type has no parameter or return-type children, so its AST
+        // range ends at 'func'. Keep its punctuation before balancing enclosing types.
+        if (srcView.token(endTokRef).id == TokenId::KwdFunc)
+        {
+            uint32_t openIndex = endTokRef.get() + 1;
+            if (openIndex < srcView.numTokens() && srcView.token(TokenRef(openIndex)).id == TokenId::SymPipePipe)
+                openIndex++;
+            if (openIndex < srcView.numTokens() && srcView.token(TokenRef(openIndex)).id == TokenId::SymLeftParen)
+            {
+                const TokenRef closeTokRef = ModuleApi::matchingModuleApiDelimiter(srcView, TokenRef(openIndex), TokenId::SymLeftParen, TokenId::SymRightParen);
+                if (closeTokRef.isValid())
+                {
+                    snippetEndTokRef = closeTokRef;
+                    ioEndOffset     = srcView.tokenByteEnd(srcView.token(closeTokRef));
+                }
+            }
+        }
 
-        for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
+        ModuleApiDelimiterBalance balance;
+        for (uint32_t tokIndex = startTokRef.get(); tokIndex <= snippetEndTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
             updateModuleApiDelimiterBalance(balance, srcView.token(TokenRef(tokIndex)).id);
 
         if (balance.empty())
             return;
 
-        for (uint32_t tokIndex = endTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
+        for (uint32_t tokIndex = snippetEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
             const Token& token  = srcView.token(TokenRef(tokIndex));
             bool         extend = false;

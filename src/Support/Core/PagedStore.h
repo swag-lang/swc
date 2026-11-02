@@ -163,12 +163,10 @@ private:
     template<class T>
     friend class PagedStoreTyped;
 
-    // The largest alignment the store hands out. Simd globals and constants
-    // need 16, and a global with a '#[Swag.Align(64)]' field (the runtime
-    // allocator keeps its contended fields on their own cache lines) needs 64;
-    // page storage is allocated at least this aligned so an aligned offset
-    // stays aligned in memory (proximity carves are OS-page aligned).
-    static constexpr uint32_t K_MAX_ALIGN = 64;
+    // Swag.Align accepts powers of two through 128. Align page storage to that
+    // maximum so an aligned offset stays aligned in memory (proximity carves
+    // are OS-page aligned).
+    static constexpr uint32_t K_MAX_ALIGN = 128;
 
     struct Page
     {

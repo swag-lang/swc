@@ -324,6 +324,46 @@ SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_PagedAndLargeStoragePreserveRequiredAlignment)
+{
+    for (const bool proximity : {false, true})
+    {
+        DataSegment segment;
+        if (proximity)
+            segment.enableProximityStorage();
+        struct Allocation
+        {
+            uint32_t   offset;
+            uint32_t   size;
+            std::byte* bytes;
+        };
+        std::vector<Allocation> allocations;
+        // Begin in paged storage, then exercise new and reused large blocks.
+        for (const uint32_t baseSize : {8u, PagedStore::K_DEFAULT_PAGE_SIZE + 1, 17u, PagedStore::K_DEFAULT_PAGE_SIZE + 3, 23u})
+        {
+            for (const uint32_t alignment : {16u, 32u, 64u, 128u})
+            {
+                const auto [offset, bytes] = segment.reserveBytes(baseSize, alignment, true);
+                if (offset % alignment || reinterpret_cast<uintptr_t>(bytes) % alignment)
+                    return Result::Error;
+                if (!std::ranges::all_of(std::span{bytes, baseSize}, [](std::byte value) { return value == std::byte{0}; }))
+                    return Result::Error;
+                bytes[0]            = std::byte{0x31};
+                bytes[baseSize - 1] = std::byte{0x32};
+                allocations.push_back({offset, baseSize, bytes});
+            }
+        }
+        for (const Allocation& allocation : allocations)
+        {
+            if (segment.ptr<std::byte>(allocation.offset) != allocation.bytes || segment.findRef(allocation.bytes + allocation.size - 1) != allocation.offset + allocation.size - 1)
+                return Result::Error;
+            if (allocation.bytes[0] != std::byte{0x31} || allocation.bytes[allocation.size - 1] != std::byte{0x32})
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAllocations)
 {
     DataSegment segment;

@@ -12,7 +12,7 @@ void DataSegment::LargeBlockStorageDeleter::operator()(std::byte* ptr) const noe
     if (proximitySize)
         Os::freeProximityMemory(ptr, proximitySize);
     else
-        delete[] ptr;
+        ::operator delete(ptr, std::align_val_t(alignment));
 }
 
 namespace
@@ -498,10 +498,19 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         if (proximityStorage_)
         {
             if (auto* arena = static_cast<std::byte*>(Os::allocProximityMemory(block.capacity)))
-                block.storage = LargeBlockStorage(arena, {.proximitySize = block.capacity});
+            {
+                if (reinterpret_cast<uintptr_t>(arena) % align == 0)
+                    block.storage = LargeBlockStorage(arena, {.proximitySize = block.capacity});
+                else
+                    Os::freeProximityMemory(arena, block.capacity);
+            }
         }
         if (!block.storage)
-            block.storage = LargeBlockStorage(new std::byte[block.capacity], {});
+        {
+            const uint32_t alignment = std::max(align, static_cast<uint32_t>(alignof(std::max_align_t)));
+            auto*          storage   = static_cast<std::byte*>(::operator new(block.capacity, std::align_val_t(alignment)));
+            block.storage            = LargeBlockStorage(storage, {.alignment = alignment});
+        }
         if (zeroInit)
             std::memset(block.storage.get(), 0, size);
 

@@ -620,9 +620,14 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         switch msg
         {
         case WM_CLOSE:
+            let stopLoop       = window.stopLoopOnClose
+            let onCloseRequest = window.callbacks.onCloseRequest
+            if onCloseRequest do
+                onCloseRequest(safeWindow)
 
-            // Let the owner release resources borrowed from this window before it closes.
-            PostQuitMessage(0)
+            // The callback may move or destroy its owner. Only the captured policy remains.
+            if stopLoop do
+                PostQuitMessage(0)
             return 0
 
         case WM_PAINT:
@@ -670,7 +675,8 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             return 0
 
         case WM_DESTROY:
-            PostQuitMessage(0)
+            if window.stopLoopOnClose do
+                PostQuitMessage(0)
             return 0
 
         case WM_NCDESTROY:
@@ -734,6 +740,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
 }
 
 // Processes all pending window messages and returns false when the application should exit.
+//
+// A close request or destruction posts a quit message only for a window created with
+// [[Core.Env.WindowOptions.stopLoopOnClose]] true. An external quit message still stops the
+// pump. Native close requests leave the window owned unless its close-request callback closes it.
 public func processWindowMessages()->bool
 {
     var msg: MSG
@@ -806,6 +816,47 @@ public impl Window
         if not GetClientRect(.win32Handle(), &clientRect) do
             try failWinError(GetLastError())
         return {width: clientRect.right - clientRect.left, height: clientRect.bottom - clientRect.top}
+    }
+
+    private mtd checkedMutationHandle()->HWND fail
+    {
+        if not .isOpen() do
+            fail Errors.BadParameterError{"window is closed"}
+        let handle = .win32Handle()
+        let thread = GetWindowThreadProcessId(handle, null)
+        if thread == 0 do
+            try failWinError(GetLastError())
+        if thread != GetCurrentThreadId() do
+            fail Errors.BadParameterError{"window operations require their creating thread"}
+        .rebindNative()
+        return handle
+    }
+
+    internal mtd setPositionNative(x, y: s32) fail
+    {
+        let handle = try .checkedMutationHandle()
+        try SetWindowPos(handle, null, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+    }
+
+    internal mtd hideNative() fail
+    {
+        let handle = try .checkedMutationHandle()
+        ShowWindow(handle, SW_HIDE)
+    }
+
+    internal mtd requestFocusNative() fail
+    {
+        let handle = try .checkedMutationHandle()
+        if not IsWindowVisible(handle) do
+            fail Errors.BadParameterError{"window is hidden"}
+        SetLastError(0)
+        let previous = SetFocus(handle)
+        if not previous
+        {
+            let error = GetLastError()
+            if error != 0 do
+                try failWinError(error)
+        }
     }
 
     internal mtd showNative() fail

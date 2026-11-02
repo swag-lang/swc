@@ -17,6 +17,22 @@ public enum StyleFlag
     Bold         // The face declares a bold weight.
 }
 
+// Owned names and normalized style information for one font face.
+//
+// [[TrueType.Face.metadataAt]] reads this description without loading outlines or retaining
+// the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
+public struct FaceMetadata
+{
+    public
+    {
+        familyName: String        // Family name, using the same name records as [[TrueType.Face.familyNameAt]].
+        styleName:  String        // Subfamily name such as `Regular`, `Light`, or `Bold Italic`.
+        weight:     u16 = 400     // Weight from the font, or 400/700 when only regular/bold traits are available.
+        widthClass: u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
+        style:      StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
+    }
+}
+
 // Owns one parsed TrueType font face and its reusable glyph workspace.
 //
 // Create a face with [[TrueType.Face.load]] and release it exactly once with
@@ -256,6 +272,22 @@ public impl Face
     // }
     // ```
     func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail => try familyNameIn(bytes, faceIndex)
+
+    // Reads a face's names, weight, width class, and style without loading its glyphs.
+    //
+    // Accepts an sfnt font or a TrueType/OpenType collection. `faceIndex` is zero-based;
+    // a standalone font accepts only zero. The result owns its strings and retains no bytes.
+    // Missing style tables fall back to the subfamily name. Absent or out-of-range weight
+    // values use 400/700 according to the bold trait; absent or invalid width classes use 5.
+    // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
+    // This inspects metadata only; it does not validate that every glyph can be loaded.
+    //
+    // ```swag
+    // let bytes = try Core.File.readAllBytes("family.ttc")
+    // let metadata = try TrueType.Face.metadataAt(bytes.toSlice(), 1)
+    // Swag.print(metadata.familyName.toString(), ": ", metadata.styleName.toString())
+    // ```
+    func metadataAt(bytes: const [..] u8, faceIndex: u32)->FaceMetadata fail => try metadataIn(bytes, faceIndex)
 
     // Releases this face and every resource borrowed from it.
     //

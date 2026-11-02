@@ -97,7 +97,7 @@ namespace Types { struct Value { number: s32 } }
 using Types
 func read(value: Value)->s32 => value.number
 )"));
-    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "UsingApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", "3"};
+    const std::vector<Utf8> exportArgs = {"sema", "--module", Utf8(module), "--module-namespace", "UsingApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
     ImportResult            result;
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
@@ -112,7 +112,7 @@ func read(value: Value)->s32 => value.number
 
     const fs::path consumer = directory.path() / "consumer.swg";
     SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { discard UsingApi.read(UsingApi.Types.Value{}) }\n"));
-    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", "3", "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
     result.output.clear();
     result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)

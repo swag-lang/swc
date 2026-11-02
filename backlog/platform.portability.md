@@ -26,6 +26,11 @@ typeface tests pass in JIT and native execution; installed-family loading also p
 a separate importing module, including synthetic styles with independent glyph workspaces.
 The complete golden campaign still stops before GUI and application tests because Linux GUI
 services are incomplete.
+A separately linked Core consumer passes 13 Linux console scenarios: Unicode formatting and
+nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte output, color
+suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
+and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
+The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
 Core API generation succeeds: all 2,075 declarations and 378 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
@@ -76,16 +81,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   affinity count, hardware address shape and process/thread identity queries.
 - Next: finish the remaining memory, display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
-
-### platform.portability.042 — Validate the Linux console backend
-
-- Evidence: Linux byte output retries interrupted/partial writes. Prompt reads through the first
-  newline without consuming the next line. ANSI colors are restricted to a terminal with a
-  nonempty TERM other than dumb, and changed colors are reset at module drop. Redirected output
-  receives no color escapes. Whole Core compiles; public console execution remains unverified.
-- Next: run the common formatting layer against captured pipes and a pseudo-terminal, including
-  UTF-8 bytes, long lines, EOF, interrupted I/O, color suppression and cleanup.
-- Done when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
 
 ### platform.portability.043 — Stack capture has no second-platform backend
 

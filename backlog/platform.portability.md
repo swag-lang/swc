@@ -31,7 +31,7 @@ nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte o
 suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
 and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
 The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,077 declarations and 379 exposed members have comments;
+Core API generation succeeds: all 2,080 declarations and 386 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
 
@@ -481,7 +481,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   grammar, including cmd.exe tests, explicitly use the Windows-only nativeArguments escape hatch.
   The common entry validates zero bytes, empty required names, environment names and conflicting
   argument forms before calling the host leaf. Linux explicitly rejects nativeArguments.
-- Migration: Prism build/format/preview workers, Scope thumbnails, Pixel child tests, Vault's
+- Migration: Scope thumbnails, Pixel child tests, Vault's
   visibility probe and debugger launch now pass vectors without manual quoting. This is a source
   API change: callers passing a command-line string must pass a vector or explicitly choose
   StartInfo.nativeArguments for Windows. No shell is inserted implicitly.
@@ -491,7 +491,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The public argument-validation tests, native Windows quoting path and application consumers
   still need execution with a complete Core backend; formatting is not their runtime validation.
 - Next: execute public Linux child roundtrips and focused
-  Prism/Scope/Pixel/Vault consumers on supported hosts.
+  Scope/Pixel/Vault consumers on supported hosts.
 - Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix
   direct argv preserve empty, spaced, quoted, and backslash-containing arguments in
   child-process tests, with any raw command-line form explicitly named.
@@ -582,8 +582,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.054 — Native input has no portable mouse, touch, and pen adapter
 
-- Evidence: the current Windows backend polls mouse state but does not translate `WM_POINTER`,
-  `WM_TOUCH`, or `WM_GESTURE` into contacts.
+- Evidence: Core windows now expose mouse movement, five button transitions and both wheel axes
+  through `WindowCallbacks.onPointer`. X11 uses signed client coordinates and translates wheel
+  press packets once, ignoring their release packets and unsupported button numbers. Three Linux
+  integration cases pass in JIT/native: packet routing and queued-owner moves, callback closure
+  with stale-event disposal after loop restart, and real Xvfb pointer motion. A separate importing
+  module passes in both modes. Windows translates client/screen coordinates and preserves fractional
+  wheel deltas; its new native integration tests still require execution on Windows.
+  These mouse notifications do not provide keyboard modifier snapshots, capture ownership,
+  touch/pen identities, or contact cancellation. Windows `WM_POINTER`, `WM_TOUCH`, and `WM_GESTURE`
+  still need translation into contacts.
 - Next: implement native adapters for the pointer contract in std.gui.011. Add pointer identity,
   contact lifetime and capture cancellation, suppress duplicate compatibility mouse events, then map
   the same contract on the next platform. Keep gesture recognition and arbitration in the portable

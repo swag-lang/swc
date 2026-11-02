@@ -54,7 +54,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     window.drawable      = {context.connection, window.id, context.screen.root_visual, context.screenIndex}
     window.protocolsAtom = try LinuxDesktop.atom(context, "WM_PROTOCOLS")
     window.deleteAtom    = try LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
-    let values: [2]u32 = [context.screen.black_pixel, (1 << 15) | (1 << 17) | Linux.XCB_EVENT_MASK_FOCUS_CHANGE]
+    let eventMask = (1 << 15) | (1 << 17) | Linux.XCB_EVENT_MASK_FOCUS_CHANGE |
+                    Linux.XCB_EVENT_MASK_POINTER_MOTION | Linux.XCB_EVENT_MASK_BUTTON_PRESS |
+                    Linux.XCB_EVENT_MASK_BUTTON_RELEASE
+    let values: [2]u32 = [context.screen.black_pixel, eventMask]
     try LinuxDesktop.check(context,
                            context.xcb_create_window_checked(connection,
                                                              context.screen.root_depth,
@@ -274,6 +277,52 @@ impl Window
 // 4096 events are consumed per call, so continuously arriving input cannot starve frames.
 public func processWindowMessages()->bool
 {
+    func dispatchPointer(owner: *Window, kind: u8, packet: *Linux.xcb_button_press_event_t)
+    {
+        let callback = owner.callbacks.onPointer
+        if not callback do
+            return
+        with var event: WindowPointerEvent
+        {
+            .x = packet.event_x
+            .y = packet.event_y
+        }
+
+        if kind == Linux.XCB_MOTION_NOTIFY
+        {
+            event.kind = .Move
+        }
+        elif packet.detail >= 4 and packet.detail <= 7
+        {
+            // X11 encodes each wheel notch as a button press followed by a release.
+            if kind == Linux.XCB_BUTTON_RELEASE do
+                return
+            event.kind = .Wheel
+            switch packet.detail
+            {
+            case 4: event.wheelY = 1
+            case 5: event.wheelY = -1
+            case 6: event.wheelX = -1
+            case 7: event.wheelX = 1
+            }
+        }
+        else
+        {
+            event.kind = kind == Linux.XCB_BUTTON_PRESS ? .ButtonDown : .ButtonUp
+            switch packet.detail
+            {
+            case 1:  event.button = .Left
+            case 2:  event.button = .Middle
+            case 3:  event.button = .Right
+            case 8:  event.button = .XButton1
+            case 9:  event.button = .XButton2
+            default: return
+            }
+        }
+
+        callback(owner, event)
+    }
+
     let context = catch LinuxDesktop.ensure() { return false }
     catch LinuxDesktop.requireUiThread(context) do return false
     for 4096
@@ -288,8 +337,8 @@ public func processWindowMessages()->bool
         var id: u32
         switch kind
         {
-        case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT:
-            id = cast(*Linux.xcb_focus_in_event_t, cast(*void, event)).event
+        case Linux.XCB_MOTION_NOTIFY, Linux.XCB_BUTTON_PRESS, Linux.XCB_BUTTON_RELEASE: id = cast(*Linux.xcb_button_press_event_t, cast(*void, event)).event
+        case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT: id = cast(*Linux.xcb_focus_in_event_t, cast(*void, event)).event
         case 12: id = cast(*Linux.xcb_expose_event_t, cast(*void, event)).window
         case 17: id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
         case 22: id = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event)).window
@@ -305,6 +354,9 @@ public func processWindowMessages()->bool
         let owner = window.owner
         switch kind
         {
+        case Linux.XCB_MOTION_NOTIFY, Linux.XCB_BUTTON_PRESS, Linux.XCB_BUTTON_RELEASE:
+            dispatchPointer(owner, kind, cast(*Linux.xcb_button_press_event_t, cast(*void, event)))
+
         case Linux.XCB_FOCUS_IN, Linux.XCB_FOCUS_OUT:
             let callback = owner.callbacks.onFocus
             if callback do

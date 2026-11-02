@@ -430,3 +430,60 @@ alias UnaryDouble = func(f64)->f64
     if guarded.info.stx_mask & STATX_BTIME do
         Swag.assert(guarded.info.stx_btime.tv_nsec < 1_000_000_000)
 }
+
+struct PthreadProbe
+{
+    mutex:    Swag.Mutex
+    changed:  Swag.Condition
+    id:       s32
+    released: bool
+    value:    u32
+}
+
+#[Swag.CallingConvention(.C)]
+func pthreadProbeEntry(argument: *void?)->*void?
+{
+    let probe = cast(*PthreadProbe, unwrap argument)
+    probe.mutex.lock()
+    probe.id = gettid()
+    probe.changed.wake()
+    while not probe.released do
+        probe.changed.wait(&probe.mutex)
+    probe.mutex.unlock()
+    probe.value = 73
+    return argument
+}
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    // The gate proves that a nonblocking join observes a live native callback. The final
+    // join publishes its writes and returns the exact C pointer result.
+    var probe:  PthreadProbe
+    var thread: pthread_t
+    let created = pthread_create(&thread, null, &pthreadProbeEntry, &probe)
+    Swag.assert(created == 0)
+    probe.mutex.lock()
+    while probe.id == 0 do
+        probe.changed.wait(&probe.mutex)
+    probe.mutex.unlock()
+    Swag.assert(probe.id > 0 and probe.id != gettid())
+    let pending = pthread_tryjoin_np(thread, null)
+    Swag.assert(pending == EBUSY)
+    var policy:    s32
+    var parameter: sched_param
+    let queried = pthread_getschedparam(thread, &policy, &parameter)
+    Swag.assert(queried == 0)
+    let invalid = pthread_setschedparam(thread, -1, &parameter)
+    Swag.assert(invalid == EINVAL)
+    parameter.sched_priority = 0
+    let normalized = pthread_setschedparam(thread, SCHED_OTHER, &parameter)
+    Swag.assert(normalized == 0)
+    probe.mutex.lock()
+    probe.released = true
+    probe.changed.wake()
+    probe.mutex.unlock()
+    var result: *void?
+    let joined = pthread_join(thread, &result)
+    Swag.assert(joined == 0 and result == &probe and probe.value == 73)
+}

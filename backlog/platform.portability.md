@@ -237,8 +237,22 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: Linux sleep uses an absolute CLOCK_MONOTONIC deadline and retries EINTR without
   extending it; yield uses sched_yield. Raw bindings pass JIT/native lower-bound timing and
   invalid-timespec tests. Core Thread.sleep/yield tests await the remaining Core host services.
-- Next: implement thread creation, start, join, identity and priority without copying common
-  lifecycle policy into the native leaf, then run the public ownership and timing tests.
+- Progress: the pthread backend creates a gated thread, publishes its kernel TID before init
+  returns, starts once, joins, probes completion with pthread_tryjoin_np, and keeps its original
+  allocator until the owner closes it. A successful nonblocking join is remembered so wait
+  releases the owner without joining twice. Common init now cleans up a priority failure without
+  running the user body and always applies priority when a Thread value is reused.
+- Priority contract: Linux supports Normal through SCHED_OTHER; other levels fail with ENOTSUP.
+  Do not silently substitute real-time scheduling or process-wide nice changes. A broader mapping
+  needs an explicit contract and permission/failure tests.
+- Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
+  identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
+  Core thread lifecycle tests cover reuse, failed init, completion probes and wait-many, but are
+  blocked by 34 remaining whole-Core missing-service diagnostics. These raw tests do not prove
+  Core's allocator/context ownership or the new common failure cleanup; Windows execution is
+  also unavailable here.
+- Next: run the public lifecycle, context and timing tests with complete Core, exercise start
+  failures and the batching boundary, and decide whether to extend Linux priority support.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 

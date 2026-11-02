@@ -30,3 +30,129 @@ internal func yieldNative()
     if Linux.sched_yield() != 0 do
         Swag.panic("cannot yield the current thread", #curlocation)
 }
+
+internal const MaxThreadWaitCount = 64'u32
+
+#[Swag.CallingConvention(.C)]
+private alias ThreadEntry = func(*void?)->u32
+
+private struct NativeThread
+{
+    thread:     Linux.pthread_t
+    allocator:  Swag.IAllocator?
+    late entry: ThreadEntry
+    param:      *void?
+    mutex:      Swag.Mutex
+    changed:    Swag.Condition
+    id:         s32
+    started:    bool
+    joined:     bool
+}
+
+private func nativeThread(handle: ThreadHandle)->*NativeThread => cast #unconst (*NativeThread, unwrap handle)
+
+#[Swag.CallingConvention(.C)]
+private func nativeThreadEntry(param: *void?)->*void?
+{
+    let state = cast(*NativeThread, unwrap param)
+    state.mutex.lock()
+    state.id = Linux.gettid()
+    state.changed.wakeAll()
+    while not state.started do
+        state.changed.wait(&state.mutex)
+    state.mutex.unlock()
+
+    discard state.entry(state.param)
+    return null
+}
+
+internal func createSuspendedNative(entry: ThreadEntry, param: *void, id: *u64)->ThreadHandle fail
+{
+    let allocator = unwrap Swag.getContext().allocator
+    let state     = cast(*NativeThread, Memory.alloc(#sizeof(NativeThread), allocator))
+    Swag.init(state, 1)
+    state.allocator = allocator
+    state.entry     = entry
+    state.param     = param
+    let error = Linux.pthread_create(&state.thread, null, &nativeThreadEntry, state)
+    if error != 0
+    {
+        Swag.drop(state, 1)
+        Memory.free(state, #sizeof(NativeThread), allocator)
+        try Errors.failLinuxError(error)
+    }
+
+    // Publish the kernel identity before init returns, but keep the user's body gated.
+    state.mutex.lock()
+    while state.id == 0 do
+        state.changed.wait(&state.mutex)
+    id[] = cast(u64, state.id)
+    state.mutex.unlock()
+    return state
+}
+
+internal func startNative(handle: ThreadHandle) fail
+{
+    let state = nativeThread(handle)
+    state.mutex.lock()
+    defer state.mutex.unlock()
+    if state.started do
+        try Errors.failLinuxError(Linux.EINVAL)
+    state.started = true
+    state.changed.wake()
+}
+
+internal func setPriorityNative(handle: ThreadHandle, priority: ThreadPriority) fail
+{
+    // POSIX SCHED_OTHER has only priority zero. Do not silently substitute real-time
+    // scheduling or a per-process nice change for the five portable priority levels.
+    if priority != .Normal do
+        try Errors.failLinuxError(Linux.ENOTSUP)
+    let state = nativeThread(handle)
+    if state.joined do
+        try Errors.failLinuxError(Linux.ESRCH)
+    var parameter: Linux.sched_param
+    let error = Linux.pthread_setschedparam(state.thread, Linux.SCHED_OTHER, &parameter)
+    if error != 0 do
+        try Errors.failLinuxError(error)
+}
+
+internal func waitOneNative(handle: ThreadHandle)
+{
+    let state = nativeThread(handle)
+    if state.joined do
+        return
+    let error = Linux.pthread_join(state.thread, null)
+    if error != 0 do
+        Swag.panic("cannot join the thread", #curlocation)
+    state.joined = true
+}
+
+internal func waitManyNative(handles: const [..] ThreadHandle)
+{
+    for handle in handles do
+        waitOneNative(handle)
+}
+
+internal func isDoneNative(handle: ThreadHandle)->bool
+{
+    let state = nativeThread(handle)
+    if state.joined do
+        return true
+    let error = Linux.pthread_tryjoin_np(state.thread, null)
+    if error == Linux.EBUSY do
+        return false
+    if error != 0 do
+        Swag.panic("cannot query the thread's completion", #curlocation)
+    state.joined = true
+    return true
+}
+
+internal func closeNative(handle: ThreadHandle)
+{
+    let state = nativeThread(handle)
+    Swag.assert(state.joined)
+    let allocator = state.allocator
+    Swag.drop(state, 1)
+    Memory.free(state, #sizeof(NativeThread), allocator)
+}

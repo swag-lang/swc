@@ -8,8 +8,8 @@ using Core, Pixel
 // corner and shadow ([[Gui.SurfaceFlags.Sheet]]), with no caption band and no close cross: its
 // title is the first line of the body ([[Gui.Dialog.setTitle]]), the content follows in one
 // column ([[Gui.Dialog.createContentView]]), and the actions end the body at the bottom right,
-// the primary one rightmost ([[Gui.Dialog.addButton]]). A box that can be left without answering
-// it says so with the faint name of the Escape key at the bottom left. Every measure comes from
+// the primary one rightmost ([[Gui.Dialog.addButton]]). An optional quiet control takes the room
+// left beside the actions. Every measure comes from
 // the `dialog_` group of [[Gui.ThemeMetrics]].
 struct Dialog
 {
@@ -200,8 +200,8 @@ impl Dialog
     // Puts a quiet control in the bottom-left slot of the actions.
     //
     // The slot holds at most one thing that belongs to the actions without being one of them,
-    // such as the type filter of a file dialog. The control keeps its width and takes the height
-    // of an action.
+    // such as the type filter of a file dialog. Its initial width is its preferred width; it
+    // shrinks to the room before the actions and takes their height.
     mtd setLeadingControl(control: *Wnd)
     {
         Swag.assert(.leadingControl == null, "a dialog has one leading control")
@@ -210,8 +210,9 @@ impl Dialog
         // their row: the box can be fitted or resized after, and the control follows the row.
         with let slot = Wnd.create'DialogLeadingSlot(me, "", {})
         {
-            .dialog    = me
-            .dockStyle = .Float
+            .dialog         = me
+            .dockStyle      = .Float
+            .preferredWidth = control.position.width
         }
 
         control.setParent(slot)
@@ -398,9 +399,13 @@ private impl Dialog
         if not control do
             return
         let bar  = .buttonBar.position
-        let slot = unwrap control.parent
-        slot.setPosition(Math.Rectangle{.padding.x, bar.y, control.position.width, bar.height}, false)
-        control.setPosition(Math.Rectangle{0, 0, control.position.width, bar.height})
+        let slot = assume cast(*DialogLeadingSlot, unwrap control.parent)
+        var end  = bar.right()
+        for button in .buttons where button.isLocallyVisible() do
+            end = Math.min(end, bar.x + button.position.x - .themeMetrics().dialog_BtnPadding)
+        let width = Math.min(slot.preferredWidth, Math.max(end - .padding.x, 0))
+        slot.setPosition(Math.Rectangle{.padding.x, bar.y, width, bar.height}, false)
+        control.setPosition(Math.Rectangle{0, 0, width, bar.height})
     }
 }
 
@@ -411,7 +416,8 @@ struct DialogLeadingSlot
 {
     public using wnd: Wnd     // Embedded window behavior and presentation.
 
-    late dialog: *Dialog     // Dialog whose action row the slot stands on.
+    late dialog:    *Dialog     // Dialog whose action row the slot stands on.
+    preferredWidth: f32         // Width restored when the actions leave enough room.
 }
 
 impl IWnd for DialogLeadingSlot

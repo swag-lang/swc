@@ -62,6 +62,13 @@ struct FileDlg
 
 impl IWnd for FileDlg
 {
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .dialog.wnd.IWnd.onResizeEvent(evt)
+        if .browser != null do
+            .nameChoice(.options.confirmButtonText)
+    }
+
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         // The browser saves the folder and column widths in its own destruction event. At this
@@ -107,10 +114,16 @@ private impl FileDlg
                 text = Format.toString(strings().fileDlg_BtnOpenCount, count)
         }
 
-        if button.text() == text.toString() do
+        // A long folder name belongs in the summary, not across the action row.
+        let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize, .Bold)
+        let room = Math.max(.position.width - .padding.x - .padding.z, 0) * 0.5
+        if Pixel.Painter.measureString(text, font).width + .themeMetrics().btnPush_Padding * 2 > room do
+            text = confirmText
+
+        if text == button.text() do
             return
         button.setText(text.toString())
-        button.fitWidthToLabel(button.position.width)
+        button.fitWidthToLabel(.themeMetrics().btnPush_Width)
         .buttonBar.computeLayout()
         .applyLayout()
     }
@@ -288,6 +301,7 @@ impl FileDlg
             }
         }
 
+        dlg.options.confirmButtonText = confirmText
         dlg.addButton(confirmText, Dialog.BtnOk, true)
         dlg.addButton(strings().dlg_Cancel, Dialog.BtnCancel)
 

@@ -7,8 +7,8 @@ using Core, Pixel
 struct ApplicationNative
 {
     public hotKeysDisabled: bool
-    lastClickTime: [Input.MouseButton]u32
-    lastClickPosition: [Input.MouseButton]Math.Point
+    lastClickTime:          [Input.MouseButton]u32
+    lastClickPosition:      [Input.MouseButton]Math.Point
 }
 
 impl Application
@@ -51,7 +51,7 @@ impl Application
         let wait = .nativeFrameWaitMicroseconds(Time.monotonicMicroseconds() - startedAt)
         if wait == 0 do
             return
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         if context.pendingEvent do
             return
@@ -62,29 +62,31 @@ impl Application
         var descriptor = Linux.pollfd{context.xcb_get_file_descriptor(connection), Linux.POLLIN, 0}
         let result     = Linux.poll(&descriptor, 1, cast(s32, (wait + 999) / 1000))
         if result < 0 and Linux.errno() != Linux.EINTR do
-            expect Errors.failLinuxError(Linux.errno())
+            expect LinuxDesktop.failNative(Linux.errno())
         if descriptor.revents & (Linux.POLLERR | Linux.POLLHUP | Linux.POLLNVAL) do
             .mustQuit = true
     }
 
     internal mtd refreshSystemMotionPreference()
     {
-        let preference = Env.variable("GTK_ENABLE_ANIMATIONS")
-        let reduced    = preference == "0" or preference == "false"
+        if .renderer != null and not .renderer.needsNativeWindow() do
+            return
+        let preference = LinuxDesktop.preferences(expect LinuxDesktop.ensure())
         let previous   = .isReducedMotion()
-        .systemReducedMotion = reduced
+        .systemReducedMotion = preference.reducedMotion
         if not previous and .isReducedMotion() do
             .animator.finishDecorative()
     }
 
     internal mtd refreshSystemAppearance()
     {
-        let theme = Env.variable("GTK_THEME")
-        let light = not theme.contains(":dark")
+        if .renderer != null and not .renderer.needsNativeWindow() do
+            return
+        let preference = LinuxDesktop.preferences(expect LinuxDesktop.ensure())
         if .theme != null do
-            .setSystemPrefersLight(light)
+            .setSystemPrefersLight(preference.prefersLight)
         else do
-            .systemPrefersLight = light
+            .systemPrefersLight = preference.prefersLight
     }
 
     internal mtd captureMouse(window: *Wnd)
@@ -95,27 +97,33 @@ impl Application
             return
         }
 
-        let surface = unwrap window.surface
-        let context = expect LinuxDesktop.ensure()
+        let surface    = unwrap window.surface
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        let reply   = context.xcb_grab_pointer_reply(connection,
-                                                     context.xcb_grab_pointer(connection,
-                                                                              0,
-                                                                              surface.windowId,
-                                                                              (1 << 2) |
-                                                                              (1 << 3) |
-                                                                              (1 << 6),
-                                                                              1,
-                                                                              1,
-                                                                              0,
-                                                                              0,
-                                                                              0),
-                                                     null)
-        if not reply do
-            expect Errors.failLinuxError(Linux.EIO)
+        let reply      = context.xcb_grab_pointer_reply(connection,
+                                                        context.xcb_grab_pointer(connection,
+                                                                                 0,
+                                                                                 surface.windowId,
+                                                                                 (1 << 2) |
+                                                                                 (1 << 3) |
+                                                                                 (1 << 6),
+                                                                                 1,
+                                                                                 1,
+                                                                                 0,
+                                                                                 0,
+                                                                                 0),
+                                                        null)
+        if not reply
+
+        {
+            expect LinuxDesktop.failNative(Linux.EIO)
+
+            unreachable
+        }
+
         defer Linux.free(reply)
         if reply.status != 0 do
-            expect Errors.failLinuxError(Linux.EBUSY)
+            expect LinuxDesktop.failNative(Linux.EBUSY)
         context.pointerCapture = surface
         .mouseCaptureWnd       = window
     }
@@ -124,8 +132,8 @@ impl Application
     {
         if .mouseCaptureWnd and .renderer.needsNativeWindow()
         {
-            let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
+            let context    = expect LinuxDesktop.ensure()
+            let connection = unwrap context.connection
             expect LinuxDesktop.check(context, context.xcb_ungrab_pointer_checked(connection, 0))
             context.pointerCapture = null
         }
@@ -148,8 +156,8 @@ impl Application
     private func nativeKeyCode(context: *LinuxDesktop.Context, key: Input.Key)->u8 fail
     {
         let connection = unwrap context.connection
-        let setup = context.xcb_get_setup(connection)
-        let count = cast(u16, setup.max_keycode) - setup.min_keycode + 1
+        let setup      = context.xcb_get_setup(connection)
+        let count      = cast(u16, setup.max_keycode) - setup.min_keycode + 1
         if count > 255 do
             fail Swag.SystemError{"X11 keyboard map is too large"}
         let mapping = context.xcb_get_keyboard_mapping_reply(connection,
@@ -175,9 +183,10 @@ impl Application
     internal func registerNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key) fail
     {
         let context = try LinuxDesktop.ensure()
-        let connection = unwrap context.connection
-        let code    = try nativeKeyCode(context, key)
-        let mask    = nativeModifiers(modifiers)
+        try LinuxDesktop.initializeKeyboard(context)
+        let connection         = unwrap context.connection
+        let code               = try nativeKeyCode(context, key)
+        let mask               = nativeModifiers(modifiers)
         let locks:      [4]u16 = [0, 2, 16, 18]
         var registered: u32
         defer #fail
@@ -196,7 +205,7 @@ impl Application
     internal func unregisterNativeHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
         let context       = catch LinuxDesktop.ensure() { return; }
-        let connection = unwrap context.connection
+        let connection    = unwrap context.connection
         let code          = catch nativeKeyCode(context, key) { return; }
         let mask          = nativeModifiers(modifiers)
         let locks: [4]u16 = [0, 2, 16, 18]
@@ -209,8 +218,8 @@ impl Application
         if not .renderer.needsNativeWindow() do
             return
         .nativeKeyboardEvents = true
-        .nativeMouseButtons = true
-        let context = expect LinuxDesktop.ensure()
+        .nativeMouseButtons   = true
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         for 4096
         {
@@ -226,11 +235,34 @@ impl Application
             case 2, 3, 4, 5, 6: id = cast(*Linux.xcb_key_press_event_t, cast(*void, event)).event
             case 9, 10:         id = cast(*Linux.xcb_focus_in_event_t, cast(*void, event)).event
             case 12:            id = cast(*Linux.xcb_expose_event_t, cast(*void, event)).window
-            case 17:            id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
+            case 17, 19:        id = cast(*Linux.xcb_destroy_notify_event_t, cast(*void, event)).window
             case 22:            id = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event)).window
             case 28:            id = cast(*Linux.xcb_property_notify_event_t, cast(*void, event)).window
             case 33:            id = cast(*Linux.xcb_client_message_event_t, cast(*void, event)).window
             default:            continue
+            }
+
+            var refreshPreferences = id == context.settingsOwner and (kind == 28 or kind == 17)
+            if id == context.screen.root and kind == 28
+            {
+                refreshPreferences = cast(*Linux.xcb_property_notify_event_t, cast(*void, event)).atom == expect LinuxDesktop.atom(context, "RESOURCE_MANAGER")
+            }
+            elif id == context.screen.root and kind == 33
+            {
+                let notice = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
+                refreshPreferences = notice.type == expect LinuxDesktop.atom(context, "MANAGER") and
+                                     notice.data[1] == expect LinuxDesktop.atom(context, Format.toString("_XSETTINGS_S%", context.screenIndex))
+            }
+
+            if refreshPreferences
+            {
+                let preference = LinuxDesktop.preferences(context)
+                for owned in context.surfaces
+                {
+                    owned.app.refreshSystemMotionPreference()
+                    owned.app.refreshSystemAppearance()
+                    owned.acceptNativeScale(preference.scale)
+                }
             }
 
             if id == context.screen.root and kind == 2
@@ -253,21 +285,29 @@ impl Application
                 continue
             if id == surface.trayWindow
             {
-                if kind == 12 or kind == 22 do surface.paintTrayIcon()
-                elif kind == 17 do surface.trayWindow = 0
+                if kind == 12 or kind == 22
+                {
+                    surface.paintTrayIcon()
+                }
+                elif kind == 17
+                {
+                    surface.trayWindow = 0
+                }
                 elif kind == 4
                 {
                     let packet = cast(*Linux.xcb_button_press_event_t, cast(*void, event))
                     if packet.detail == 1 or packet.detail == 3
                     {
                         var notice = SysUserEvent{}
-                        notice.kind = .TrayIcon
+                        notice.kind       = .TrayIcon
                         notice.trayAction = packet.detail == 1 ? .Activate : .ContextMenu
                         surface.wnd.view.sendEvent(&notice)
                     }
                 }
+
                 continue
             }
+
             if dispatchDragNativeEvent(surface, event) do
                 continue
             switch kind
@@ -282,9 +322,13 @@ impl Application
                 {
                     if packet.detail == 4 or packet.detail == 5
                     {
-                        if kind == 4 do surface.app.sendMouseWheelEvent(surface, {packet.root_x, packet.root_y}, packet.detail == 4 ? 1 : -1)
+                        if kind == 4 do
+                            surface.app.sendMouseWheelEvent(surface, {packet.root_x, packet.root_y}, packet.detail == 4 ? 1 : -1)
                     }
-                    else do .dispatchNativeButton(surface, packet, kind == 4)
+                    else
+                    {
+                        .dispatchNativeButton(surface, packet, kind == 4)
+                    }
                 }
 
             case 9:
@@ -305,14 +349,13 @@ impl Application
                 surface.drawable = {}
                 surface.destroy()
 
+            case 19:
+                if not surface.isHidden and not surface.isDisabled do
+                    surface.setFocus()
+
             case 22:
                 let packet = cast(*Linux.xcb_configure_notify_event_t, cast(*void, event))
-                var origin: Math.Point
-                surface.surfaceToScreen(&origin)
-                surface.position.x = origin.x
-                surface.position.y = origin.y
-                if surface.rc.width != packet.width or surface.rc.height != packet.height do
-                    surface.sendResizeEvent(cast(f32, packet.width), cast(f32, packet.height))
+                surface.acceptNativeGeometry(packet.width, packet.height)
 
             case 28:
                 surface.refreshNativeState()
@@ -359,7 +402,7 @@ impl Application
     {
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-                var parent     = context.screen.root
+        var parent     = context.screen.root
         for 64
         {
             let reply = context.xcb_translate_coordinates_reply(connection,
@@ -413,16 +456,20 @@ namespace LinuxDesktop
     {
         let app = surface.app
         let key = portableKey(context, packet.detail)
-        app.keyboard.setCurrentKeyState(.Shift, (packet.state & 1) != 0)
-        app.keyboard.setCurrentKeyState(.Control, (packet.state & 4) != 0)
-        app.keyboard.setCurrentKeyState(.MenuCtrl, (packet.state & 8) != 0)
         app.keyboard.setCurrentKeyState(key, pressed)
         if pressed and not app.keyboardFocusWnd do
             app.seedKeyboardFocus()
         let target = app.keyboardFocusWnd
         if not target or target.isDisabled() do
             return
-        var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: app.keyboard.pressedModifiers()}
+        var modifiers: Input.KeyModifiers
+        if packet.state & 1 do
+            modifiers |= .Shift
+        if packet.state & 4 do
+            modifiers |= .Control
+        if packet.state & 8 do
+            modifiers |= .Alt
+        var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
         target.sendEvent(&event)
         if pressed and not event.accepted do
             app.routeUnhandledKey(target, key, event.modifiers)
@@ -451,22 +498,36 @@ namespace LinuxDesktop
     }
 }
 
-
 impl Application
 {
     // Samples the root drawable pixel under the pointer on the current X11 screen.
     func pickColorAtMouse()->Color
     {
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        let pointer = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
-        if not pointer do expect Errors.failLinuxError(Linux.EIO)
+        let pointer    = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
+        if not pointer
+
+        {
+            expect LinuxDesktop.failNative(Linux.EIO)
+
+            unreachable
+        }
+
         defer Linux.free(pointer)
         let reply = context.xcb_get_image_reply(connection,
-            context.xcb_get_image(connection, 2, context.screen.root, pointer.root_x, pointer.root_y, 1, 1, 0xFFFFFFFF), null)
-        if not reply do expect Errors.failLinuxError(Linux.EIO)
+                                                context.xcb_get_image(connection, 2, context.screen.root, pointer.root_x, pointer.root_y, 1, 1, 0xFFFFFFFF),
+                                                null)
+        if not reply
+
+        {
+            expect LinuxDesktop.failNative(Linux.EIO)
+
+            unreachable
+        }
+
         defer Linux.free(reply)
-        let setup = context.xcb_get_setup(connection)
+        let setup   = context.xcb_get_setup(connection)
         var formats = context.xcb_setup_pixmap_formats_iterator(setup)
         var bits: u8
         while formats.rem > 0
@@ -477,12 +538,15 @@ impl Application
                 bits = format.bits_per_pixel
                 break
             }
+
             context.xcb_format_next(&formats)
         }
+
         if bits != 16 and bits != 24 and bits != 32 do
-            expect Errors.failLinuxError(Linux.ENOTSUP)
+            expect LinuxDesktop.failNative(Linux.ENOTSUP)
         let count = bits / 8
-        if context.xcb_get_image_data_length(reply) < count do expect Errors.failLinuxError(Linux.EIO)
+        if context.xcb_get_image_data_length(reply) < count do
+            expect LinuxDesktop.failNative(Linux.EIO)
         let bytes = context.xcb_get_image_data(reply)
         var pixel: u32
         for index in count do
@@ -490,33 +554,41 @@ impl Application
         var depths = context.xcb_screen_allowed_depths_iterator(unwrap context.screenPtr)
         while depths.rem > 0
         {
-            let depth = unwrap depths.data
+            let depth   = unwrap depths.data
             var visuals = context.xcb_depth_visuals_iterator(depth)
             while visuals.rem > 0
             {
                 let visual = unwrap visuals.data
                 if visual.visual_id == context.screen.root_visual
                 {
-                    if visual._class != 4 do expect Errors.failLinuxError(Linux.ENOTSUP)
+                    if visual._class != 4 do
+                        expect LinuxDesktop.failNative(Linux.ENOTSUP)
+
                     func channel(value, mask: u32)->u8
                     {
-                        if mask == 0 do return 0
+                        if mask == 0 do
+                            return 0
                         var shifted = mask
-                        var result = value
+                        var result  = value
                         while shifted & 1 == 0
                         {
                             shifted >>= 1
-                            result >>= 1
+                            result  >>= 1
                         }
+
                         return cast(u8, ((result & shifted) * 255) / shifted)
                     }
+
                     return Color.fromRgb(channel(pixel, visual.red_mask), channel(pixel, visual.green_mask), channel(pixel, visual.blue_mask))
                 }
+
                 context.xcb_visualtype_next(&visuals)
             }
+
             context.xcb_depth_next(&depths)
         }
-        expect Errors.failLinuxError(Linux.ENOTSUP)
+
+        expect LinuxDesktop.failNative(Linux.ENOTSUP)
         unreachable
     }
 
@@ -525,44 +597,60 @@ impl Application
         var button: Input.MouseButton
         switch packet.detail
         {
-        case 1: button = .Left
-        case 2: button = .Middle
-        case 3: button = .Right
-        case 8: button = .XButton1
-        case 9: button = .XButton2
+        case 1:  button = .Left
+        case 2:  button = .Middle
+        case 3:  button = .Right
+        case 8:  button = .XButton1
+        case 9:  button = .XButton2
         default: return
         }
+
         let position = Math.Point{packet.root_x, packet.root_y}
         .mouse.setCurrentButtonState(button, pressed)
-        if .dragEnterWnd do return
+        .mouse.setPositions(.mouse.position(), position)
+        if .dragEnterWnd do
+            return
         var target = .mouseCaptureWnd orelse .windowAt(position) orelse surface.windowAt(position)
         target = skipDisabled(target)
-        if not target do return
-        var event = MouseEvent{kind: .Accept, target: target, surfacePos: target.screenToSurface(position)}
+        if not target do
+            return
+        var event = MouseEvent{kind: .Accept, surfacePos: target.screenToSurface(position)}
+        event.target = target
         .sendEventPrivate(&event, .mouseEnterWnd)
         target = event.target
-        if not target do return
+        if not target do
+            return
         event.button = button
-        event.modifiers = .keyboard.pressedModifiers()
+        if packet.state & 1 do
+            event.modifiers |= .Shift
+        if packet.state & 4 do
+            event.modifiers |= .Control
+        if packet.state & 8 do
+            event.modifiers |= .Alt
         event.kind = pressed ? .Pressed : .Released
         if pressed
         {
             // X11 timestamps wrap at 32 bits; unsigned subtraction preserves short intervals.
-            let delta = cast(u32, packet.time - .lastClickTime[button])
-            if .lastClickTime[button] != 0 and delta < .mouse.doubleClickTimeMs and .lastClickPosition[button] == position
+            let delta = cast(u32, (cast(u64, packet.time) + 0x100000000 - .lastClickTime[button]) & 0xFFFFFFFF)
+            if .lastClickTime[button] != 0 and
+               delta < .mouse.doubleClickTimeMs and
+               .lastClickPosition[button] == position
             {
                 event.kind = .DoubleClick
                 .lastClickTime[button] = 0
             }
             else
             {
-                .lastClickTime[button] = packet.time
+                .lastClickTime[button]     = packet.time
                 .lastClickPosition[button] = position
                 .setFocusVisible(false)
-                if target.focusPolicy != .None do target.setFocus()
+                if target.focusPolicy != .None do
+                    target.setFocus()
             }
+
             .toolTip.hide()
         }
+
         target.sendEvent(&event)
     }
 }

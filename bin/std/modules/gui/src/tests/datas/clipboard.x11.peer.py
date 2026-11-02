@@ -5,6 +5,7 @@ import select
 import struct
 import sys
 import time
+import zlib
 
 xcb = c.CDLL('libxcb.so.1')
 libc = c.CDLL('libc.so.6')
@@ -125,9 +126,16 @@ def read(target):
 def offer(mode):
     custom = atom('Swag.Selection.Peer')
     plain = b'q' * 262144 if mode == 'offer-large' else 'étranger'.encode()
+    if mode == 'offer-invalid-utf8':
+        plain = b'\xff'
     custom_data = struct.pack('<IQ', 0, 7) + b'payload'
-    entries = {utf8: plain, custom: custom_data}
-    entries[targets] = struct.pack('<' + 'I' * 3, targets, utf8, custom)
+    def png_chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+    png = b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', struct.pack('>IIBBBBB', 2, 1, 8, 6, 0, 0, 0))
+    png += png_chunk(b'IDAT', zlib.compress(b'\0\x10\x20\x30\xff\x40\x50\x60\xff')) + png_chunk(b'IEND', b'')
+    png_target = atom('image/png')
+    entries = {utf8: plain, custom: custom_data, png_target: png}
+    entries[targets] = struct.pack('<4I', targets, utf8, custom, png_target)
     check(set_owner(conn, window, clipboard, 0))
     print('ready', flush=True)
     deadline = time.monotonic() + 12
@@ -146,7 +154,9 @@ def offer(mode):
             reply_property = property if data is not None else 0
             if data is not None:
                 fmt = 32 if target == targets else 8
-                if len(data) > 65536:
+                if mode == 'offer-oversize' and target == utf8:
+                    put(requestor, property, incr, 32, struct.pack('<I', 64 * 1024 * 1024 + 1))
+                elif len(data) > 65536:
                     check(attributes(conn, requestor, 1 << 11, c.byref(mask)))
                     put(requestor, property, incr, 32, struct.pack('<I', len(data)))
                     pending[(requestor, property)] = [target, data, 0]
@@ -165,20 +175,21 @@ def offer(mode):
                 if not chunk:
                     del pending[key]
 
-try:
-    mode = sys.argv[1]
-    if mode.startswith('offer'):
-        offer(mode)
-    elif mode == 'read-text':
-        assert read(utf8) == 'native-é'.encode()
-        print('ok')
-    elif mode == 'read-large':
-        assert read(utf8) == b'x' * 262144
-        print('ok')
-    elif mode == 'read-png':
-        assert read(atom('image/png')).startswith(b'\x89PNG\r\n\x1a\n')
-        print('ok')
-    else:
-        raise AssertionError(mode)
-finally:
-    disconnect(conn)
+if __name__ == "__main__":
+    try:
+        mode = sys.argv[1]
+        if mode.startswith('offer'):
+            offer(mode)
+        elif mode == 'read-text':
+            assert read(utf8) == 'native-é'.encode()
+            print('ok')
+        elif mode == 'read-large':
+            assert read(utf8) == b'x' * 262144
+            print('ok')
+        elif mode == 'read-png':
+            assert read(atom('image/png')).startswith(b'\x89PNG\r\n\x1a\n')
+            print('ok')
+        else:
+            raise AssertionError(mode)
+    finally:
+        disconnect(conn)

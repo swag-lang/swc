@@ -29,14 +29,14 @@ public impl Cursor
     // Shared cursor resources are released when the GUI connection closes.
     func activate(cursor: Cursor)
     {
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        let shape   = cursor.cursor ? cursor.cursor[] : CursorShape.Arrow
+        let shape      = cursor.cursor ? cursor.cursor[] : CursorShape.Arrow
         if context.currentCursor == shape and context.cursors[shape] != 0 do
             return
         if context.cursors[shape] == 0
         {
-                        if context.cursorFont == 0
+            if context.cursorFont == 0
             {
                 let font = context.xcb_generate_id(connection)
                 expect LinuxDesktop.check(context, context.xcb_open_font_checked(connection, font, 6, "cursor".buffer))

@@ -44,6 +44,7 @@ const CURLVERSION_FIRST                = 0's32
 const CURL_VERSION_ASYNCHDNS           = 128's32
 const CURL_VERSION_THREADSAFE          = 1073741824's32
 
+const CURLHEADER_SEPARATE = 1's32
 const CURL_GLOBAL_DEFAULT   = 3's64
 const CURL_HTTP_VERSION_1_1 = 2's64
 const CURLPROTO_HTTP        = 1's64
@@ -74,6 +75,11 @@ struct curl_version_info_data
         protocols:       const [*](const [*]u8?)
     }
 }
+
+#assert(#sizeof(curl_slist) == 16)
+#assert(#offsetof(curl_slist.next) == 8)
+#assert(#sizeof(curl_version_info_data) == 72)
+#assert(#offsetof(curl_version_info_data.features) == 32)
 
 #[Swag.CallingConvention(.C)]
 alias curl_global_init_fn    = func(s64)->s32

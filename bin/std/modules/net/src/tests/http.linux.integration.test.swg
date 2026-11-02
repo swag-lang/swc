@@ -5,8 +5,9 @@ using Core
 
 func httpFixturePort(name: string)->u16
 {
-    let value = unwrap Linux.getenv(name.buffer)
-    return expect StrConv.toU16(cast(string, cast(cstring, value)))
+    let value = Env.variable(name)
+    Swag.assert(not value.isEmpty())
+    return expect StrConv.toU16(value)
 }
 
 func expectHttpOverflow(port: u16, path: string, limit: u64)
@@ -36,6 +37,9 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     let port = httpFixturePort("SWAG_TEST_HTTP_PORT")
     expectHttpOverflow(port, "/header-overflow", 0)
     expectHttpOverflow(port, "/location-overflow", 0)
+    expectHttpOverflow(port, "/folded-location-overflow", 0)
+    let folded = expect Http.get("localhost", port, "/folded-location", false)
+    Swag.assert(folded.location == "/first /second")
     let limit = expect Http.get("localhost", port, "/location-limit", false, {maxBodyBytes: 0})
     Swag.assert(limit.status == 302 and limit.location.count == 4096)
     let response = expect Http.get("localhost", port, "/informational", false)

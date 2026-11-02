@@ -1,5 +1,6 @@
 #global if #os == Swag.TargetOs.Linux and #command == Swag.CompilerCommand.Test
 #global private
+
 using Core
 
 // Tests the adapter at the same typed callback boundary used by libfuse, without a mount.
@@ -8,9 +9,9 @@ using Core
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault-fuse-%.bin", Guid64.random()))
     defer discard catch File.delete(path)
     var owner: Fuse.MountedVolume
-    owner.uid = Linux.geteuid()
-    owner.gid = Linux.getegid()
-    owner.volume = expect Volume.create(path, "fuse test password", MinimumSize)
+    owner.uid        = Linux.geteuid()
+    owner.gid        = Linux.getegid()
+    owner.volume     = expect Volume.create(path, "fuse test password", MinimumSize)
     owner.volumeOpen = true
     var info: Linux.fuse_file_info
     Swag.assert(Fuse.callbackMkdir(&owner, "/dir".buffer, 0x1C0) == 0)
@@ -21,9 +22,13 @@ using Core
     Swag.assert(Fuse.callbackRead(&owner, null, bytes.buffer, 8, 0, &info) == 5)
     Swag.assert(Slice.equals(bytes[until 5], cast(const [..] u8, "hello")))
     Swag.assert(Fuse.callbackRename(&owner, "/dir/data".buffer, "/renamed".buffer, 0) == 0)
+    Swag.assert(Fuse.callbackRename(&owner, "/renamed".buffer, "/renamed".buffer, 1) == -Linux.EEXIST)
+    Swag.assert(Fuse.callbackRename(&owner, "/renamed".buffer, "/dir".buffer, 0) == -Linux.EISDIR)
     var attributes: Linux.stat
     Swag.assert(Fuse.callbackGetattr(&owner, "/renamed".buffer, &attributes, null) == 0)
-    Swag.assert(attributes.st_size == 5 and attributes.st_uid == owner.uid and (attributes.st_mode & 0xFFF) == 0x180)
+    Swag.assert(attributes.st_size == 5 and
+                attributes.st_uid == owner.uid and
+                (attributes.st_mode & 0xFFF) == 0x180)
     Swag.assert(Fuse.callbackChmod(&owner, null, 0x1A4, &info) == -Linux.ENOTSUP)
     Swag.assert(Fuse.callbackChown(&owner, null, owner.uid + 1, owner.gid, &info) == -Linux.EPERM)
     Swag.assert(Fuse.callbackChmod(&owner, null, 0x100, &info) == 0)
@@ -38,7 +43,7 @@ using Core
     Swag.assert(Fuse.callbackRmdir(&owner, "/renamed".buffer) == -Linux.ENOTDIR)
     Swag.assert(Fuse.callbackUnlink(&owner, "/dir".buffer) == -Linux.EISDIR)
     expect owner.close()
-    owner.volume = expect Volume.open(path, "fuse test password", true)
+    owner.volume     = expect Volume.open(path, "fuse test password", true)
     owner.volumeOpen = true
     Swag.assert(Fuse.callbackGetattr(&owner, "/renamed".buffer, &attributes, null) == 0 and attributes.st_size == 3)
     Swag.assert(Fuse.callbackCreate(&owner, "/forbidden".buffer, 0x180, &info) == -Linux.EROFS)
@@ -57,11 +62,12 @@ using Core
     var error: Swag.Error
     discard catch Volume.open(path, "inode lock password") as error
     Swag.assert(error.value() is Error)
-    if error.value() is Error as typed do Swag.assert(typed.kind == .AccessDenied)
+    if error.value() is Error as typed do
+        Swag.assert(typed.kind == .AccessDenied)
     discard catch Volume.open(path, "inode lock password", true) as error
     Swag.assert(error.value() is Error)
     first.close()
-    var reader = expect Volume.open(path, "inode lock password", true)
+    var reader       = expect Volume.open(path, "inode lock password", true)
     var secondReader = expect Volume.open(path, "inode lock password", true)
     discard catch Volume.open(path, "inode lock password") as error
     Swag.assert(error.value() is Error)

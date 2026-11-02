@@ -64,12 +64,12 @@
 #test
 {
     var closed: File.FileStream
-    var error: Swag.Error
+    var error:  Swag.Error
     discard catch closed.nativeFileDescriptor() as error
     Swag.assert(error.value() is Errors.BadParameterError)
     let path = CoreTests.makeFilesystemTestPath("linux-borrowed-descriptor")
     defer discard catch File.delete(path)
-    var stream = expect File.open(path, .CreateNew, .ReadWrite, .Read)
+    var stream     = expect File.open(path, .CreateNew, .ReadWrite, .Read)
     let descriptor = expect stream.nativeFileDescriptor()
     var info: Linux.stat
     Swag.assert(Linux.fstat(descriptor, &info) == 0)

@@ -2,6 +2,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global private
 
+#[Swag.TestTag("filesystem.mountinfo")]
 #test
 {
     let root = expect Directory.mountPointNative("36 25 0:32 / / rw,relatime shared:1 - overlay overlay rw")
@@ -24,8 +25,9 @@
     for &mount, index in mounts
     {
         Swag.assert(mount.length > 0 and mount[0] == '/' and mount[mount.length - 1] == '/')
-        Swag.assert(Directory.exists(mount))
-        foundRoot |= mount[] == "/"
+        Swag.assert(Directory.exists(mount[]))
+        if mount[] == "/" do
+            foundRoot = true
         for previous in 0'u64 until index do
             Swag.assert(mounts[previous] != mount[])
     }

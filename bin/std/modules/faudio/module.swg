@@ -14,6 +14,8 @@ open an audio device; callers load `libFAudio.so.0` before resolving its entry p
     cfg.moduleNamespace   = "FAudio"
     cfg.backendKind       = .Export
     cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio"
+    cfg.genDoc.titleContent = "FAudio"
+    cfg.genDoc.titleToc = "FAudio documentation"
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.faudio"
     cfg.genDoc.icon       = "favicon.svg"

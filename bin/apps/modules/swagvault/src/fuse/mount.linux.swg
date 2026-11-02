@@ -6,19 +6,19 @@ namespace Fuse
 {
     struct Runtime
     {
-        library: *void?
-        references: u64
-        late create: Linux.fuse_new_fn
-        late mount: Linux.fuse_mount_fn
-        late exit: Linux.fuse_void_fn
-        late unmount: Linux.fuse_void_fn
-        late destroy: Linux.fuse_void_fn
-        late loop: Linux.fuse_loop_fn
-        late context: Linux.fuse_get_context_fn
+        library:       *void?
+        references:    u64
+        late create:   Linux.fuse_new_fn
+        late mount:    Linux.fuse_mount_fn
+        late exit:     Linux.fuse_void_fn
+        late unmount:  Linux.fuse_void_fn
+        late destroy:  Linux.fuse_void_fn
+        late loop:     Linux.fuse_loop_fn
+        late context:  Linux.fuse_get_context_fn
         late freeArgs: Linux.fuse_opt_free_args_fn
     }
 
-    private var g_Runtime: *Runtime?
+    private var g_Runtime:      *Runtime?
     private var g_RuntimeMutex: Swag.Mutex
 
     func acquireRuntime()->*Runtime fail
@@ -47,17 +47,17 @@ namespace Fuse
         defer #fail discard Linux.dlclose(unwrap library)
         let result = Memory.new'Runtime()
         defer #fail Memory.delete(result)
-        result.library = library
-        result.create = try symbol'Linux.fuse_new_fn(library, "fuse_new_31")
-        result.mount = try symbol'Linux.fuse_mount_fn(library, "fuse_mount")
-        result.exit = try symbol'Linux.fuse_void_fn(library, "fuse_exit")
-        result.unmount = try symbol'Linux.fuse_void_fn(library, "fuse_unmount")
-        result.destroy = try symbol'Linux.fuse_void_fn(library, "fuse_destroy")
-        result.loop = try symbol'Linux.fuse_loop_fn(library, "fuse_loop")
-        result.context = try symbol'Linux.fuse_get_context_fn(library, "fuse_get_context")
-        result.freeArgs = try symbol'Linux.fuse_opt_free_args_fn(library, "fuse_opt_free_args")
+        result.library    = library
+        result.create     = try symbol'Linux.fuse_new_fn(library, "fuse_new_31")
+        result.mount      = try symbol'Linux.fuse_mount_fn(library, "fuse_mount")
+        result.exit       = try symbol'Linux.fuse_void_fn(library, "fuse_exit")
+        result.unmount    = try symbol'Linux.fuse_void_fn(library, "fuse_unmount")
+        result.destroy    = try symbol'Linux.fuse_void_fn(library, "fuse_destroy")
+        result.loop       = try symbol'Linux.fuse_loop_fn(library, "fuse_loop")
+        result.context    = try symbol'Linux.fuse_get_context_fn(library, "fuse_get_context")
+        result.freeArgs   = try symbol'Linux.fuse_opt_free_args_fn(library, "fuse_opt_free_args")
         result.references = 1
-        g_Runtime = result
+        g_Runtime         = result
         return result
     }
 
@@ -82,32 +82,31 @@ namespace Fuse
     #[Swag.NoCopy]
     struct MountedVolume
     {
-        volume: Volume
-        volumeOpen: bool
-        runtime: *Runtime?
-        native: *void?
-        mounted: bool
+        volume:             Volume
+        volumeOpen:         bool
+        runtime:            *Runtime?
+        native:             *void?
+        mounted:            bool
         createdDestination: bool
-        destination: String
-        worker: Threading.Thread
-        workerStarted: bool
-        ready: u32
-        uid: u32
-        gid: u32
+        destination:        String
+        worker:             Threading.Thread
+        workerStarted:      bool
+        ready:              u32
+        uid:                u32
+        gid:                u32
     }
 
     impl MountedVolume
     {
-        mtd start(path: string, password: const [..]u8, target: string, readOnly: bool,
-                  protectionPassword: const [..]u8) fail
+        mtd start(path: string, password: const [..]u8, target: string, readOnly: bool, protectionPassword: const [..]u8) fail
         {
             if target.count == 0 or target[0] != '/' or not Utf8.isValid(target) do
                 fail volumeError(.InvalidInput)
             for byte in target where byte == 0 do
                 fail volumeError(.InvalidInput)
             .destination = target
-            .uid = Linux.geteuid()
-            .gid = Linux.getegid()
+            .uid         = Linux.geteuid()
+            .gid         = Linux.getegid()
             if not Directory.exists(target)
             {
                 let made = Linux.mkdirat(Linux.AT_FDCWD, unwrap .destination.buffer, 0x1C0)
@@ -118,18 +117,19 @@ namespace Fuse
 
             var info: Linux.stat
             if Linux.fstatat(Linux.AT_FDCWD, unwrap .destination.buffer, &info, Linux.AT_SYMLINK_NOFOLLOW) != 0 or
-               (info.st_mode & Linux.S_IFMT) != Linux.S_IFDIR or info.st_uid != .uid or
+               (info.st_mode & Linux.S_IFMT) != Linux.S_IFDIR or
+               info.st_uid != .uid or
                (info.st_mode & (Linux.S_IWGRP | Linux.S_IWOTH)) != 0 do
                 fail volumeError(.AccessDenied)
             let entries = try Directory.enumerate(target, {})
             if not entries.isEmpty() do
                 fail volumeError(.DirectoryNotEmpty)
 
-            .volume = try Volume.open(path, password, readOnly, protectionPassword)
+            .volume     = try Volume.open(path, password, readOnly, protectionPassword)
             .volumeOpen = true
-            .runtime = try acquireRuntime()
+            .runtime    = try acquireRuntime()
             var program = String.from("swagvault")
-            var flag = String.from("-o")
+            var flag    = String.from("-o")
             var options = String.from("fsname=SwagVault,subtype=swagvault,default_permissions,attr_timeout=0,entry_timeout=0,negative_timeout=0")
             if readOnly do
                 options += ",ro"
@@ -164,6 +164,7 @@ namespace Fuse
                 (.runtime.unmount)(.native)
                 .mounted = false
             }
+
             if .worker.isValid()
             {
                 if not .workerStarted
@@ -171,19 +172,23 @@ namespace Fuse
                     .worker.userLambda = null
                     expect .worker.start()
                 }
+
                 .worker.wait()
                 .workerStarted = false
             }
+
             if .native
             {
                 (.runtime!.destroy)(.native)
                 .native = null
             }
+
             if .runtime
             {
                 releaseRuntime(.runtime)
                 .runtime = null
             }
+
             if .createdDestination
             {
                 discard catch Directory.delete(.destination)
@@ -201,6 +206,7 @@ namespace Fuse
                 .volume.close()
                 .volumeOpen = false
             }
+
             if .volume.dirty and not .volume.readOnly do
                 try .volume.commit()
         }
@@ -216,8 +222,7 @@ namespace Fuse
     }
 }
 
-func mountVaultNative(path: string, password: const [..]u8, destination: string,
-                      readOnly: bool, protectionPassword: const [..]u8)->*void fail
+func mountVaultNative(path: string, password: const [..]u8, destination: string, readOnly: bool, protectionPassword: const [..]u8)->*void fail
 {
     let owner = Memory.new'Fuse.MountedVolume()
     defer #fail Memory.delete(owner)
@@ -251,9 +256,11 @@ func availableMountDestinationsNative()->Array'MountDestination
         if not Directory.exists(path) do
             result.add({id: path, label: path})
     }
+
     return result
 }
 
 func isMountHostInvocationNative()->bool => false
+
 // Linux serves mounts in this process; there is no helper command to execute.
 func runMountHostNative()->s32 => 1

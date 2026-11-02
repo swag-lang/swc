@@ -780,7 +780,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and no comment in the file asks a field to stay first.
 - Related: compiler.safety.006
 
-### platform.portability.078 — No Linux FUSE backend
+### platform.portability.078 — Complete Linux FUSE and session integration
 
 - Owner: Swag Vault
 - The existing boundary includes system backends for `Core.Crypto`, `Core.Time` and
@@ -789,8 +789,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and auto-unmount decisions live above those native mechanisms. The Linux mount backend remains
   this entry's outcome; native session and idle monitoring must also be accounted for before the
   full application port ships.
-- Next: map the logical filesystem to the chosen FUSE interface, specifying mount ownership,
-  permission translation, cancellation, and callback shutdown before packaging the backend.
+- Evidence: the FUSE3 backend mounts real volumes and passes read/write, rename, open-unlink,
+  retained-descriptor I/O, unmount and read-only remount checks. Per-volume advisory locks prevent
+  conflicting processes from opening writable containers. Session monitoring is under integration.
+- Next: finish login-session lock/suspend and idle protocol validation, failure/shutdown cases,
+  then validate the mounted workflow through the GUI and packaged application.
 - Done when: a Linux mount passes the common filesystem behavior and lifetime tests,
   including failed mounting and shutdown while requests are active.
 - Related: platform.portability.079
@@ -1175,8 +1178,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform
   boundary on the capture side. The editor, the forms, the library, and the serialization are
   already portable.
-- Next: choose the first non-Windows target and implement its screen/window/region capture beside
-  `screenshot.win32.swg`.
+- Next: validate the Linux X11 screen/region/cursor backend and window metadata queries, then
+  exercise the complete capture application with a compositor and window manager. Account for
+  native Wayland capture through the desktop portal rather than reading the XWayland root alone.
 - Done when: one chosen non-Windows backend captures the supported screen/window/region set and
   the application imports no raw OS binding outside named capture backends.
 

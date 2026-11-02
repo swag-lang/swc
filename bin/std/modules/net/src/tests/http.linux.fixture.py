@@ -65,6 +65,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_body(b"", headers=(("X-Large", "a" * 70000),))
             elif self.path == "/location-overflow":
                 self.send_body(b"", 302, (("Location", "/" + "a" * 4096),))
+            elif self.path in ("/folded-location", "/folded-location-overflow"):
+                tail = b"/second" if self.path == "/folded-location" else b"a" * 4090
+                self.wfile.write(b"HTTP/1.1 302 Found\r\nLocation: /first\r\n " + tail +
+                                 b"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                self.close_connection = True
             elif self.path == "/location-limit":
                 self.send_body(b"", 302, (("Location", "/" + "a" * 4095),))
             elif self.path == "/partial":

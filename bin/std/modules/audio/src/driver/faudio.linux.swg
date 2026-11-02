@@ -10,13 +10,13 @@ private func checkFAudio(code: u32, operation: string) fail
 
 struct FAudioDriverNative
 {
-    mixerMutex: Swag.Mutex
-    late FAudio_SetEngineProcedureEXT: FAudio.FAudio_SetEngineProcedureEXT_fn
-    library:                              NativeLibrary
-    engine:                               *void?
-    master:                               *void?
-    callbackContext:                      Swag.Context
-    callbacks:                            FAudio.FAudioVoiceCallback
+    mixerMutex:                                Swag.Mutex
+    late FAudio_SetEngineProcedureEXT:         FAudio.FAudio_SetEngineProcedureEXT_fn
+    library:                                   NativeLibrary
+    engine:                                    *void?
+    master:                                    *void?
+    callbackContext:                           Swag.Context
+    callbacks:                                 FAudio.FAudioVoiceCallback
     late FAudioCreate:                         FAudio.FAudioCreate_fn
     late FAudio_Release:                       FAudio.FAudio_Release_fn
     late FAudio_StopEngine:                    FAudio.FAudio_StopEngine_fn
@@ -50,7 +50,7 @@ impl FAudioDriverNative
     {
         .library = try NativeLibrary.load("libFAudio.so.0")
         defer #fail .destroyFAudio()
-        .FAudio_SetEngineProcedureEXT = try .symbol'FAudio.FAudio_SetEngineProcedureEXT_fn("FAudio_SetEngineProcedureEXT")
+        .FAudio_SetEngineProcedureEXT         = try .symbol'FAudio.FAudio_SetEngineProcedureEXT_fn("FAudio_SetEngineProcedureEXT")
         .FAudioCreate                         = try .symbol'FAudio.FAudioCreate_fn("FAudioCreate")
         .FAudio_Release                       = try .symbol'FAudio.FAudio_Release_fn("FAudio_Release")
         .FAudio_StopEngine                    = try .symbol'FAudio.FAudio_StopEngine_fn("FAudio_StopEngine")
@@ -130,10 +130,9 @@ impl FAudioDriverNative
 }
 
 #[Swag.CallingConvention(.C)]
-private func runFAudioMixer(procedure: FAudio.FAudioEngineCallEXT, engine: *FAudio.FAudio,
-                            output: *f32, user: *void)
+private func runFAudioMixer(procedure: FAudio.FAudioEngineCallEXT, engine: *FAudio.FAudio, output: *f32, user: *void)
 {
-    let native = cast(*FAudioDriverNative, user)
+    let native  = cast(*FAudioDriverNative, user)
     let context = Swag.getContext()
     if context == null or context.allocator.buffer == null do
         Swag.setContext(&native.callbackContext)
@@ -194,9 +193,9 @@ impl Voice
             voice.requestedEncoding      = .Pcm16
         }
 
-        format.Samples.wValidBitsPerSample    = format.Format.wBitsPerSample
-        format.Format.nBlockAlign     = cast(u16, file.channelCount * (format.Format.wBitsPerSample / 8))
-        format.Format.nAvgBytesPerSec = file.sampleRate * format.Format.nBlockAlign
+        format.Samples.wValidBitsPerSample = format.Format.wBitsPerSample
+        format.Format.nBlockAlign          = cast(u16, file.channelCount * (format.Format.wBitsPerSample / 8))
+        format.Format.nAvgBytesPerSec      = file.sampleRate * format.Format.nBlockAlign
         let flags  = createFlags.has(.PitchControl) ? 0'u32 : FAudio.FAUDIO_VOICE_NOPITCH
         let native = &g_Driver.fAudio
         try checkFAudio(native.FAudio_CreateSourceVoice(unwrap native.engine, &voice.handle, &format.Format, flags, FAudio.FAUDIO_DEFAULT_FREQ_RATIO, &native.callbacks, null, null), "cannot create FAudio source voice")
@@ -235,17 +234,20 @@ impl Voice
 
     mtd playFAudio(batchId: u32 = 0) fail
     {
+        Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
         try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_Start(unwrap .handle, 0, batchId), "cannot start FAudio voice")
     }
 
     mtd stopFAudio(batchId: u32 = 0) fail
     {
+        Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
         if .handle do
             try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_Stop(.handle, 0, batchId), "cannot pause FAudio voice")
     }
 
     mtd resetFAudio() fail
     {
+        Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
         if .handle do
             try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_FlushSourceBuffers(.handle), "cannot flush FAudio voice")
     }
@@ -274,6 +276,7 @@ impl Voice
 
     mtd setFrequencyRatioFAudio(ratio: f32, batchId: u32 = 0) fail
     {
+        Sync.scopedLock(&g_Driver.fAudio.mixerMutex)
         if not Math.isFinite(ratio) or ratio < 1.0 / 1024.0 or ratio > FAudio.FAUDIO_DEFAULT_FREQ_RATIO do
             fail BadParameterError{"FAudio frequency ratio must be between 1/1024 and 2"}
         try checkFAudio(g_Driver.fAudio.FAudioSourceVoice_SetFrequencyRatio(unwrap .handle, ratio, batchId),

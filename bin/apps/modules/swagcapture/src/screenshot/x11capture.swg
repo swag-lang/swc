@@ -7,27 +7,27 @@ using Core, Pixel
 #[Swag.NoCopy]
 struct X11Capture
 {
-    library:         *void?
-    fixesLibrary:    *void?
-    connection:      *void?
-    screen:          Linux.xcb_screen_t
-    screenPointer:   const *Linux.xcb_screen_t?
-    setup:           const *Linux.xcb_setup_t?
-    disconnect:      Linux.xcb_disconnect_fn
-    getGeometry:     Linux.xcb_get_geometry_fn
-    geometryReply:   Linux.xcb_get_geometry_reply_fn
-    getAttributes:   Linux.xcb_get_window_attributes_fn
-    attributesReply: Linux.xcb_get_window_attributes_reply_fn
-    translate:       Linux.xcb_translate_coordinates_fn
-    translateReply:  Linux.xcb_translate_coordinates_reply_fn
-    queryTree:       Linux.xcb_query_tree_fn
-    treeReply:       Linux.xcb_query_tree_reply_fn
-    treeChildren:    Linux.xcb_query_tree_children_fn
-    intern:          Linux.xcb_intern_atom_fn
-    internReply:     Linux.xcb_intern_atom_reply_fn
-    getProperty:     Linux.xcb_get_property_fn
-    propertyReply:   Linux.xcb_get_property_reply_fn
-    propertyValue:   Linux.xcb_get_property_value_fn
+    library:              *void?
+    fixesLibrary:         *void?
+    connection:           *void?
+    screen:               Linux.xcb_screen_t
+    screenPointer:        const *Linux.xcb_screen_t?
+    setup:                const *Linux.xcb_setup_t?
+    late disconnect:      Linux.xcb_disconnect_fn
+    late getGeometry:     Linux.xcb_get_geometry_fn
+    late geometryReply:   Linux.xcb_get_geometry_reply_fn
+    late getAttributes:   Linux.xcb_get_window_attributes_fn
+    late attributesReply: Linux.xcb_get_window_attributes_reply_fn
+    late translate:       Linux.xcb_translate_coordinates_fn
+    late translateReply:  Linux.xcb_translate_coordinates_reply_fn
+    late queryTree:       Linux.xcb_query_tree_fn
+    late treeReply:       Linux.xcb_query_tree_reply_fn
+    late treeChildren:    Linux.xcb_query_tree_children_fn
+    late intern:          Linux.xcb_intern_atom_fn
+    late internReply:     Linux.xcb_intern_atom_reply_fn
+    late getProperty:     Linux.xcb_get_property_fn
+    late propertyReply:   Linux.xcb_get_property_reply_fn
+    late propertyValue:   Linux.xcb_get_property_value_fn
 }
 
 impl X11Capture
@@ -46,7 +46,7 @@ impl X11Capture
         result.library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         if not result.library do
             fail Swag.SystemError{"desktop capture cannot load libxcb.so.1"}
-        let library = unwrap result.library
+        let library = result.library
         result.disconnect = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
         let connect         = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
         let connectionError = try symbol'Linux.xcb_connection_has_error_fn(library, "xcb_connection_has_error")
@@ -58,7 +58,7 @@ impl X11Capture
         if not result.connection or connectionError(result.connection) != 0 do
             fail Swag.SystemError{"desktop capture cannot connect to the X11 display"}
         result.setup = getSetup(result.connection)
-        var screens = roots(unwrap result.setup)
+        var screens = roots(result.setup)
         while selected > 0 and screens.rem > 0
         {
             nextScreen(&screens)
@@ -98,7 +98,8 @@ impl X11Capture
 
     mtd atom(name: string)->u32
     {
-        let reply = .internReply(unwrap .connection, .intern(unwrap .connection, 1, cast(u16, name.count), name.buffer), null)
+        let connection = unwrap .connection
+        let reply      = .internReply(connection, .intern(connection, 1, cast(u16, name.count), name.buffer), null)
         if not reply do
             return 0
         defer Linux.free(reply)
@@ -107,11 +108,12 @@ impl X11Capture
 
     mtd property(window: u32, name: string, format: u8, limit: u32 = 16384)->Array'u8
     {
-        let atom = .atom(name)
+        let connection = unwrap .connection
+        let atom       = .atom(name)
         if not atom do
             return {}
-        let reply = .propertyReply(unwrap .connection,
-                                   .getProperty(unwrap .connection, 0, window, atom, 0, 0, (limit + 3) / 4),
+        let reply = .propertyReply(connection,
+                                   .getProperty(connection, 0, window, atom, 0, 0, (limit + 3) / 4),
                                    null)
         if not reply do
             return {}
@@ -137,25 +139,48 @@ impl X11Capture
 
     mtd windowRect(window: u32)->Math.Rectangle
     {
+        let connection = unwrap .connection
         if not window do
             return {}
-        let geometry = .geometryReply(unwrap .connection, .getGeometry(unwrap .connection, window), null)
+        let geometry = .geometryReply(connection, .getGeometry(connection, window), null)
         if not geometry do
             return {}
         defer Linux.free(geometry)
-        let translated = .translateReply(unwrap .connection,
-                                         .translate(unwrap .connection, window, .screen.root, 0, 0),
+        let translated = .translateReply(connection,
+                                         .translate(connection, window, .screen.root, 0, 0),
                                          null)
         if not translated do
             return {}
         defer Linux.free(translated)
         if not translated.same_screen do
             return {}
-        return {translated.dst_x, translated.dst_y, geometry.width, geometry.height}
+        var result: #returntype = {translated.dst_x, translated.dst_y, geometry.width, geometry.height}
+        let frame = .property(window, "_NET_FRAME_EXTENTS", 32, 16)
+        if frame.count == 16
+        {
+            var extents: [4] u32
+            Memory.copy(&extents[0], frame.storage(), 16)
+
+            // Window-manager decorations belong to the captured window. Ignore malformed
+            // client properties rather than allowing an unbounded selection rectangle.
+            if extents[0] <= .screen.width_in_pixels and
+               extents[1] <= .screen.width_in_pixels and
+               extents[2] <= .screen.height_in_pixels and
+               extents[3] <= .screen.height_in_pixels
+            {
+                result.x      -= extents[0]
+                result.y      -= extents[2]
+                result.width  += extents[0] + extents[1]
+                result.height += extents[2] + extents[3]
+            }
+        }
+
+        return result
     }
 
     mtd windowAt(ignore: u32, x, y: f32)->u32
     {
+        let connection = unwrap .connection
         func contains(rect: Math.Rectangle, x, y: f32)->bool =>
             not rect.isEmpty() and
             x >= rect.x and
@@ -175,7 +200,7 @@ impl X11Capture
                 Memory.copy(&window, &clients[index * 4], 4)
                 if window == ignore do
                     continue
-                let attrs = .attributesReply(unwrap .connection, .getAttributes(unwrap .connection, window), null)
+                let attrs = .attributesReply(connection, .getAttributes(connection, window), null)
                 if not attrs do
                     continue
                 let visible = attrs.map_state == 2
@@ -188,7 +213,7 @@ impl X11Capture
         }
 
         // Unmanaged X servers (including Xvfb) have no EWMH list.
-        let tree = .treeReply(unwrap .connection, .queryTree(unwrap .connection, .screen.root), null)
+        let tree = .treeReply(connection, .queryTree(connection, .screen.root), null)
         if not tree do
             return 0
         defer Linux.free(tree)
@@ -200,7 +225,7 @@ impl X11Capture
             let window = children[index]
             if window == ignore do
                 continue
-            let attrs = .attributesReply(unwrap .connection, .getAttributes(unwrap .connection, window), null)
+            let attrs = .attributesReply(connection, .getAttributes(connection, window), null)
             if not attrs do
                 continue
             let visible = attrs.map_state == 2
@@ -251,6 +276,7 @@ impl X11Capture
 
     mtd image(drawCursor: bool, x, y, width, height: s32)->Image fail
     {
+        let connection = unwrap .connection
         if x < 0 or
            y < 0 or
            x > 32767 or
@@ -271,8 +297,8 @@ impl X11Capture
         let depthNext  = try symbol'Linux.xcb_depth_next_fn(library, "xcb_depth_next")
         let visuals    = try symbol'Linux.xcb_depth_visuals_iterator_fn(library, "xcb_depth_visuals_iterator")
         let visualNext = try symbol'Linux.xcb_visualtype_next_fn(library, "xcb_visualtype_next")
-        let captured   = reply(unwrap .connection,
-                               get(unwrap .connection, 2, .screen.root, cast(s16, x), cast(s16, y), cast(u16, width), cast(u16, height), Swag.U32.Max),
+        let captured   = reply(connection,
+                               get(connection, 2, .screen.root, cast(s16, x), cast(s16, y), cast(u16, width), cast(u16, height), Swag.U32.Max),
                                null)
         if not captured do
             fail Swag.SystemError{"X11 cannot read the requested desktop pixels"}
@@ -342,7 +368,7 @@ impl X11Capture
                 var pixel: u32
                 for component in cast(u32, bytes)
                 {
-                    let shift = .setup!.image_byte_order == 0 ? component * 8 : (bytes - component - 1) * 8
+                    let shift = .setup.image_byte_order == 0 ? component * 8 : (bytes - component - 1) * 8
                     pixel |= cast(u32, source[offset + component]) << shift
                 }
 
@@ -361,21 +387,22 @@ impl X11Capture
 
     private mtd drawCursor(image: *Image, x, y: s32) fail
     {
+        let connection = unwrap .connection
         if not .fixesLibrary do
             .fixesLibrary = Linux.dlopen("libxcb-xfixes.so.0".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         if not .fixesLibrary do
             fail Swag.SystemError{"cursor capture cannot load libxcb-xfixes.so.0"}
-        let library       = unwrap .fixesLibrary
+        let library       = .fixesLibrary
         let extension     = Linux.dlsym(library, "xcb_xfixes_id".buffer)
         let extensionData = try symbol'Linux.xcb_get_extension_data_fn(unwrap .library, "xcb_get_extension_data")
         if not extension do
             fail Swag.SystemError{"cursor capture cannot resolve the XFixes extension"}
-        let available = extensionData(unwrap .connection, cast(*Linux.xcb_extension_t, extension))
+        let available = extensionData(connection, cast(*Linux.xcb_extension_t, extension))
         if not available or not available.present do
             fail Swag.SystemError{"cursor capture needs the XFixes display extension"}
         let version      = try symbol'Linux.xcb_xfixes_query_version_fn(library, "xcb_xfixes_query_version")
         let versionReply = try symbol'Linux.xcb_xfixes_query_version_reply_fn(library, "xcb_xfixes_query_version_reply")
-        let negotiated   = versionReply(unwrap .connection, version(unwrap .connection, 4, 0), null)
+        let negotiated   = versionReply(connection, version(connection, 4, 0), null)
         if not negotiated do
             fail Swag.SystemError{"cursor capture cannot negotiate XFixes"}
         defer Linux.free(negotiated)
@@ -383,11 +410,12 @@ impl X11Capture
         let reply  = try symbol'Linux.xcb_xfixes_get_cursor_image_reply_fn(library, "xcb_xfixes_get_cursor_image_reply")
         let pixels = try symbol'Linux.xcb_xfixes_get_cursor_image_cursor_image_fn(library, "xcb_xfixes_get_cursor_image_cursor_image")
         let length = try symbol'Linux.xcb_xfixes_get_cursor_image_cursor_image_length_fn(library, "xcb_xfixes_get_cursor_image_cursor_image_length")
-        let cursor = reply(unwrap .connection, get(unwrap .connection), null)
+        let cursor = reply(connection, get(connection), null)
         if not cursor do
             fail Swag.SystemError{"X11 cannot read the cursor image"}
         defer Linux.free(cursor)
-        if length(cursor) < cast(s32, cursor.width) * cursor.height do
+        let pixelCount = length(cursor)
+        if pixelCount < 0 or cast(u64, pixelCount) < cast(u64, cursor.width) * cursor.height do
             fail Swag.SystemError{"X11 returned an incomplete cursor image"}
         let source = pixels(cursor)
         for row in cast(u32, cursor.height)

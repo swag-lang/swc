@@ -6,7 +6,7 @@ private var g_IdleMilliseconds: u64
 
 struct AutoUnmountMonitor
 {
-    window: *MainWindow?
+    window:  *MainWindow?
     session: SessionWatch.Monitor
 }
 
@@ -23,10 +23,12 @@ impl AutoUnmountMonitor
     // stays held until the synchronous suspension handler has finished committing and unmounting.
     mtd poll()
     {
-        if not .window do return
+        if not .window do
+            return
         let snapshot = .session.poll()
         g_IdleMilliseconds = snapshot.idleMilliseconds
-        if snapshot.locked do .window.handleAutoUnmount(.SessionLock)
+        if snapshot.locked do
+            .window.handleAutoUnmount(.SessionLock)
         if snapshot.suspending
         {
             .window.handleAutoUnmount(.Suspend)

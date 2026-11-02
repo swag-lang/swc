@@ -4,87 +4,87 @@ using Core, Pixel
 
 namespace LinuxSelection
 {
-    const MaxBytes = 64 * 1024 * 1024'u64
+    const MaxBytes   = 64 * 1024 * 1024'u64
     const ChunkBytes = 64 * 1024'u64
-    const TimeoutMs = 3000'u64
+    const TimeoutMs  = 3000'u64
 
     struct Payload
     {
         selection: u32
-        target: u32
-        type: u32
-        format: u8 = 8
-        bytes: Array'u8
-        deferred: bool
+        target:    u32
+        type:      u32
+        format:    u8 = 8
+        bytes:     Array'u8
+        deferred:  bool
     }
 
     struct Transfer
     {
         requestor: u32
-        property: u32
-        target: u32
-        type: u32
-        format: u8 = 8
-        offset: u64
-        deadline: u64
-        bytes: Array'u8
+        property:  u32
+        target:    u32
+        type:      u32
+        format:    u8 = 8
+        offset:    u64
+        deadline:  u64
+        bytes:     Array'u8
     }
 
     struct Value
     {
-        bytes: Array'u8
-        type: u32
+        bytes:  Array'u8
+        type:   u32
         format: u8
-        valid: bool
+        valid:  bool
     }
 
     struct Service
     {
-        library: *void?
-        connection: *void?
-        window: u32
-        root: u32
-        targets: u32
-        incr: u32
-        property: u32
-        clipboard: u32
-        allocator: IAllocator?
-        thread: Threading.Thread
-        payloads: Array'Payload
-        transfers: Array'Transfer
-        requests: Array'Linux.xcb_selection_request_event_t
-        clientMessages: Array'Linux.xcb_client_message_event_t
-        late xcb_connect: Linux.xcb_connect_fn
-        late xcb_disconnect: Linux.xcb_disconnect_fn
-        late xcb_connection_has_error: Linux.xcb_connection_has_error_fn
-        late xcb_get_setup: Linux.xcb_get_setup_fn
-        late xcb_setup_roots_iterator: Linux.xcb_setup_roots_iterator_fn
-        late xcb_screen_next: Linux.xcb_screen_next_fn
-        late xcb_generate_id: Linux.xcb_generate_id_fn
-        late xcb_request_check: Linux.xcb_request_check_fn
-        late xcb_flush: Linux.xcb_flush_fn
-        late xcb_poll_for_event: Linux.xcb_poll_for_event_fn
-        late xcb_create_window_checked: Linux.xcb_create_window_checked_fn
-        late xcb_destroy_window_checked: Linux.xcb_destroy_window_checked_fn
+        library:                                   *void?
+        connection:                                *void?
+        window:                                    u32
+        root:                                      u32
+        targets:                                   u32
+        incr:                                      u32
+        property:                                  u32
+        clipboard:                                 u32
+        allocator:                                 IAllocator?
+        thread:                                    Threading.Thread
+        payloads:                                  Array'Payload
+        transfers:                                 Array'Transfer
+        requests:                                  Array'Linux.xcb_selection_request_event_t
+        clientMessages:                            Array'Linux.xcb_client_message_event_t
+        late xcb_connect:                          Linux.xcb_connect_fn
+        late xcb_disconnect:                       Linux.xcb_disconnect_fn
+        late xcb_connection_has_error:             Linux.xcb_connection_has_error_fn
+        late xcb_get_setup:                        Linux.xcb_get_setup_fn
+        late xcb_setup_roots_iterator:             Linux.xcb_setup_roots_iterator_fn
+        late xcb_screen_next:                      Linux.xcb_screen_next_fn
+        late xcb_generate_id:                      Linux.xcb_generate_id_fn
+        late xcb_request_check:                    Linux.xcb_request_check_fn
+        late xcb_flush:                            Linux.xcb_flush_fn
+        late xcb_poll_for_event:                   Linux.xcb_poll_for_event_fn
+        late xcb_create_window_checked:            Linux.xcb_create_window_checked_fn
+        late xcb_destroy_window_checked:           Linux.xcb_destroy_window_checked_fn
         late xcb_change_window_attributes_checked: Linux.xcb_change_window_attributes_checked_fn
-        late xcb_change_property_checked: Linux.xcb_change_property_checked_fn
-        late xcb_intern_atom: Linux.xcb_intern_atom_fn
-        late xcb_intern_atom_reply: Linux.xcb_intern_atom_reply_fn
-        late xcb_get_property: Linux.xcb_get_property_fn
-        late xcb_get_property_reply: Linux.xcb_get_property_reply_fn
-        late xcb_get_property_value: Linux.xcb_get_property_value_fn
-        late xcb_get_property_value_length: Linux.xcb_get_property_value_length_fn
-        late xcb_send_event_checked: Linux.xcb_send_event_checked_fn
-        late xcb_set_selection_owner_checked: Linux.xcb_set_selection_owner_checked_fn
-        late xcb_get_selection_owner: Linux.xcb_get_selection_owner_fn
-        late xcb_get_selection_owner_reply: Linux.xcb_get_selection_owner_reply_fn
-        late xcb_convert_selection_checked: Linux.xcb_convert_selection_checked_fn
-        late xcb_delete_property_checked: Linux.xcb_delete_property_checked_fn
-        late xcb_get_file_descriptor: Linux.xcb_get_file_descriptor_fn
+        late xcb_change_property_checked:          Linux.xcb_change_property_checked_fn
+        late xcb_intern_atom:                      Linux.xcb_intern_atom_fn
+        late xcb_intern_atom_reply:                Linux.xcb_intern_atom_reply_fn
+        late xcb_get_property:                     Linux.xcb_get_property_fn
+        late xcb_get_property_reply:               Linux.xcb_get_property_reply_fn
+        late xcb_get_property_value:               Linux.xcb_get_property_value_fn
+        late xcb_get_property_value_length:        Linux.xcb_get_property_value_length_fn
+        late xcb_send_event_checked:               Linux.xcb_send_event_checked_fn
+        late xcb_set_selection_owner_checked:      Linux.xcb_set_selection_owner_checked_fn
+        late xcb_get_selection_owner:              Linux.xcb_get_selection_owner_fn
+        late xcb_get_selection_owner_reply:        Linux.xcb_get_selection_owner_reply_fn
+        late xcb_convert_selection_checked:        Linux.xcb_convert_selection_checked_fn
+        late xcb_delete_property_checked:          Linux.xcb_delete_property_checked_fn
+        late xcb_get_file_descriptor:              Linux.xcb_get_file_descriptor_fn
     }
 
     var service: Service
-    var mutex: Swag.Mutex
+    var mutex:   Swag.Mutex
     private var stopping: bool
 
     private func(T) symbol(library: *void, name: string)->T fail
@@ -103,6 +103,7 @@ namespace LinuxSelection
             Linux.free(error)
             return false
         }
+
         return service.xcb_connection_has_error(unwrap service.connection) == 0
     }
 
@@ -113,7 +114,8 @@ namespace LinuxSelection
         for byte in name where byte == 0 do
             fail Errors.BadParameterError{"selection format name contains a zero byte"}
         let reply = service.xcb_intern_atom_reply(unwrap service.connection,
-                                                  service.xcb_intern_atom(unwrap service.connection, 0, cast(u16, name.count), name.buffer), null)
+                                                  service.xcb_intern_atom(unwrap service.connection, 0, cast(u16, name.count), name.buffer),
+                                                  null)
         if not reply do
             fail Swag.SystemError{"cannot register X11 selection format"}
         defer Linux.free(reply)
@@ -123,7 +125,8 @@ namespace LinuxSelection
     func owner(selection: u32)->u32
     {
         let reply = service.xcb_get_selection_owner_reply(unwrap service.connection,
-                                                           service.xcb_get_selection_owner(unwrap service.connection, selection), null)
+                                                          service.xcb_get_selection_owner(unwrap service.connection, selection),
+                                                          null)
         if not reply do
             return 0
         defer Linux.free(reply)
@@ -132,10 +135,21 @@ namespace LinuxSelection
 
     func createRequestor()->u32
     {
-        let id = service.xcb_generate_id(unwrap service.connection)
+        let id   = service.xcb_generate_id(unwrap service.connection)
         let mask = 1 << 22'u32
-        if not check(service.xcb_create_window_checked(unwrap service.connection, 0, id, service.root,
-                                                       0, 0, 1, 1, 0, 2, 0, 1 << 11, &mask)) do
+        if not check(service.xcb_create_window_checked(unwrap service.connection,
+                                                       0,
+                                                       id,
+                                                       service.root,
+                                                       0,
+                                                       0,
+                                                       1,
+                                                       1,
+                                                       0,
+                                                       2,
+                                                       0,
+                                                       1 << 11,
+                                                       &mask)) do
             return 0
         return id
     }
@@ -164,11 +178,11 @@ namespace LinuxSelection
         var packet: [32] u8
         let reply = cast(*Linux.xcb_selection_notify_event_t, cast(*void, &packet[0]))
         reply.response_type = Linux.XCB_SELECTION_NOTIFY
-        reply.time = request.time
-        reply.requestor = request.requestor
-        reply.selection = request.selection
-        reply.target = request.target
-        reply.property = property
+        reply.time          = request.time
+        reply.requestor     = request.requestor
+        reply.selection     = request.selection
+        reply.target        = request.target
+        reply.property      = property
         discard check(service.xcb_send_event_checked(unwrap service.connection, 0, request.requestor, 0, packet))
     }
 
@@ -180,23 +194,32 @@ namespace LinuxSelection
             notify(request, 0)
             return
         }
+
         if request.target == service.targets
         {
             var targets: Array'u32
             targets.add(service.targets)
             for payload in service.payloads where payload.selection == request.selection do
                 targets.add(payload.target)
-            let ok = check(service.xcb_change_property_checked(unwrap service.connection, 0, request.requestor,
-                                                                property, 4, 32, cast(u32, targets.count), targets.storage()))
+            let ok = check(service.xcb_change_property_checked(unwrap service.connection,
+                                                               0,
+                                                               request.requestor,
+                                                               property,
+                                                               4,
+                                                               32,
+                                                               cast(u32, targets.count),
+                                                               targets.storage()))
             notify(request, ok ? property : 0)
             return
         }
+
         let payload = find(request.selection, request.target)
         if not payload
         {
             notify(request, 0)
             return
         }
+
         if payload.deferred
         {
             if service.requests.count < 16 do
@@ -205,14 +228,21 @@ namespace LinuxSelection
                 notify(request, 0)
             return
         }
+
         if payload.bytes.count <= ChunkBytes
         {
-            let ok = check(service.xcb_change_property_checked(unwrap service.connection, 0, request.requestor,
-                                                                property, payload.type ? payload.type : request.target, payload.format,
-                                                                cast(u32, payload.bytes.count / (payload.format / 8)), payload.bytes.storage()))
+            let ok = check(service.xcb_change_property_checked(unwrap service.connection,
+                                                               0,
+                                                               request.requestor,
+                                                               property,
+                                                               payload.type ? payload.type : request.target,
+                                                               payload.format,
+                                                               cast(u32, payload.bytes.count / (payload.format / 8)),
+                                                               payload.bytes.storage()))
             notify(request, ok ? property : 0)
             return
         }
+
         var outstanding = payload.bytes.count
         for transfer in service.transfers do
             outstanding += transfer.bytes.count
@@ -221,26 +251,35 @@ namespace LinuxSelection
             notify(request, 0)
             return
         }
+
         let mask = 1 << 22'u32
         if not check(service.xcb_change_window_attributes_checked(unwrap service.connection, request.requestor, 1 << 11, &mask))
         {
             notify(request, 0)
             return
         }
+
         with var transfer: Transfer
         {
-            .requestor = request.requestor
-            .property = property
-            .target = request.target
-            .type = payload.type ? payload.type : request.target
-            .format = payload.format
-            .deadline = Time.monotonicMilliseconds() + TimeoutMs
+            .requestor       = request.requestor
+            .property        = property
+            .target          = request.target
+            .type            = payload.type ? payload.type : request.target
+            .format          = payload.format
+            .deadline        = Time.monotonicMilliseconds() + TimeoutMs
             .bytes.allocator = service.allocator
             .bytes.add(payload.bytes.toSlice())
         }
+
         let count = cast(u32, transfer.bytes.count)
-        let ok = check(service.xcb_change_property_checked(unwrap service.connection, 0, request.requestor,
-                                                            property, service.incr, 32, 1, &count))
+        let ok    = check(service.xcb_change_property_checked(unwrap service.connection,
+                                                              0,
+                                                              request.requestor,
+                                                              property,
+                                                              service.incr,
+                                                              32,
+                                                              1,
+                                                              &count))
         if ok do
             service.transfers.add(#move transfer)
         notify(request, ok ? property : 0)
@@ -257,10 +296,8 @@ namespace LinuxSelection
                 continue
             let count = Math.min(ChunkBytes, transfer.bytes.count - transfer.offset)
             let bytes = transfer.bytes.toSlice()[transfer.offset until transfer.offset + count]
-            let ok = check(service.xcb_change_property_checked(unwrap service.connection, 0,
-                                                                transfer.requestor, transfer.property, transfer.type,
-                                                                transfer.format, cast(u32, count / (transfer.format / 8)), bytes.buffer))
-            transfer.offset += count
+            let ok    = check(service.xcb_change_property_checked(unwrap service.connection, 0, transfer.requestor, transfer.property, transfer.type, transfer.format, cast(u32, count / (transfer.format / 8)), bytes.buffer))
+            transfer.offset   += count
             transfer.deadline = Time.monotonicMilliseconds() + TimeoutMs
             if not ok or count == 0 do
                 service.transfers.removeAt(index)
@@ -275,12 +312,15 @@ namespace LinuxSelection
         case Linux.XCB_CLIENT_MESSAGE:
             if service.clientMessages.count < 64 do
                 service.clientMessages.add(cast(*Linux.xcb_client_message_event_t, cast(*void, event))[])
+
         case Linux.XCB_SELECTION_REQUEST:
             serve(cast(*Linux.xcb_selection_request_event_t, cast(*void, event))[])
+
         case Linux.XCB_SELECTION_CLEAR:
             let cleared = cast(*Linux.xcb_selection_clear_event_t, cast(*void, event))
             if cleared.owner == service.window and owner(cleared.selection) != service.window do
                 forget(cleared.selection)
+
         case Linux.XCB_PROPERTY_NOTIFY:
             advance(cast(*Linux.xcb_property_notify_event_t, cast(*void, event))[])
         }
@@ -299,6 +339,7 @@ namespace LinuxSelection
                 dispatch(event)
                 Linux.free(event)
             }
+
             var index = service.transfers.count
             while index
             {
@@ -306,6 +347,7 @@ namespace LinuxSelection
                 if service.transfers[index].deadline <= Time.monotonicMilliseconds() do
                     service.transfers.removeAt(index)
             }
+
             let disconnected = service.xcb_connection_has_error(unwrap service.connection) != 0
             let fd = service.xcb_get_file_descriptor(unwrap service.connection)
             mutex.unlock()
@@ -326,38 +368,39 @@ namespace LinuxSelection
                 fail Swag.SystemError{"X11 selection connection was lost"}
             return
         }
+
         let loaded = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         if not loaded do
             fail Swag.SystemError{"cannot load XCB selection services"}
         let library: *void = loaded
         defer #fail discard Linux.dlclose(library)
-        service.xcb_connect = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
-        service.xcb_disconnect = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
-        service.xcb_connection_has_error = try symbol'Linux.xcb_connection_has_error_fn(library, "xcb_connection_has_error")
-        service.xcb_get_setup = try symbol'Linux.xcb_get_setup_fn(library, "xcb_get_setup")
-        service.xcb_setup_roots_iterator = try symbol'Linux.xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
-        service.xcb_screen_next = try symbol'Linux.xcb_screen_next_fn(library, "xcb_screen_next")
-        service.xcb_generate_id = try symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
-        service.xcb_request_check = try symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
-        service.xcb_flush = try symbol'Linux.xcb_flush_fn(library, "xcb_flush")
-        service.xcb_poll_for_event = try symbol'Linux.xcb_poll_for_event_fn(library, "xcb_poll_for_event")
-        service.xcb_create_window_checked = try symbol'Linux.xcb_create_window_checked_fn(library, "xcb_create_window_checked")
-        service.xcb_destroy_window_checked = try symbol'Linux.xcb_destroy_window_checked_fn(library, "xcb_destroy_window_checked")
+        service.xcb_connect                          = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
+        service.xcb_disconnect                       = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
+        service.xcb_connection_has_error             = try symbol'Linux.xcb_connection_has_error_fn(library, "xcb_connection_has_error")
+        service.xcb_get_setup                        = try symbol'Linux.xcb_get_setup_fn(library, "xcb_get_setup")
+        service.xcb_setup_roots_iterator             = try symbol'Linux.xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
+        service.xcb_screen_next                      = try symbol'Linux.xcb_screen_next_fn(library, "xcb_screen_next")
+        service.xcb_generate_id                      = try symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
+        service.xcb_request_check                    = try symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+        service.xcb_flush                            = try symbol'Linux.xcb_flush_fn(library, "xcb_flush")
+        service.xcb_poll_for_event                   = try symbol'Linux.xcb_poll_for_event_fn(library, "xcb_poll_for_event")
+        service.xcb_create_window_checked            = try symbol'Linux.xcb_create_window_checked_fn(library, "xcb_create_window_checked")
+        service.xcb_destroy_window_checked           = try symbol'Linux.xcb_destroy_window_checked_fn(library, "xcb_destroy_window_checked")
         service.xcb_change_window_attributes_checked = try symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-        service.xcb_change_property_checked = try symbol'Linux.xcb_change_property_checked_fn(library, "xcb_change_property_checked")
-        service.xcb_intern_atom = try symbol'Linux.xcb_intern_atom_fn(library, "xcb_intern_atom")
-        service.xcb_intern_atom_reply = try symbol'Linux.xcb_intern_atom_reply_fn(library, "xcb_intern_atom_reply")
-        service.xcb_get_property = try symbol'Linux.xcb_get_property_fn(library, "xcb_get_property")
-        service.xcb_get_property_reply = try symbol'Linux.xcb_get_property_reply_fn(library, "xcb_get_property_reply")
-        service.xcb_get_property_value = try symbol'Linux.xcb_get_property_value_fn(library, "xcb_get_property_value")
-        service.xcb_get_property_value_length = try symbol'Linux.xcb_get_property_value_length_fn(library, "xcb_get_property_value_length")
-        service.xcb_send_event_checked = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
-        service.xcb_set_selection_owner_checked = try symbol'Linux.xcb_set_selection_owner_checked_fn(library, "xcb_set_selection_owner_checked")
-        service.xcb_get_selection_owner = try symbol'Linux.xcb_get_selection_owner_fn(library, "xcb_get_selection_owner")
-        service.xcb_get_selection_owner_reply = try symbol'Linux.xcb_get_selection_owner_reply_fn(library, "xcb_get_selection_owner_reply")
-        service.xcb_convert_selection_checked = try symbol'Linux.xcb_convert_selection_checked_fn(library, "xcb_convert_selection_checked")
-        service.xcb_delete_property_checked = try symbol'Linux.xcb_delete_property_checked_fn(library, "xcb_delete_property_checked")
-        service.xcb_get_file_descriptor = try symbol'Linux.xcb_get_file_descriptor_fn(library, "xcb_get_file_descriptor")
+        service.xcb_change_property_checked          = try symbol'Linux.xcb_change_property_checked_fn(library, "xcb_change_property_checked")
+        service.xcb_intern_atom                      = try symbol'Linux.xcb_intern_atom_fn(library, "xcb_intern_atom")
+        service.xcb_intern_atom_reply                = try symbol'Linux.xcb_intern_atom_reply_fn(library, "xcb_intern_atom_reply")
+        service.xcb_get_property                     = try symbol'Linux.xcb_get_property_fn(library, "xcb_get_property")
+        service.xcb_get_property_reply               = try symbol'Linux.xcb_get_property_reply_fn(library, "xcb_get_property_reply")
+        service.xcb_get_property_value               = try symbol'Linux.xcb_get_property_value_fn(library, "xcb_get_property_value")
+        service.xcb_get_property_value_length        = try symbol'Linux.xcb_get_property_value_length_fn(library, "xcb_get_property_value_length")
+        service.xcb_send_event_checked               = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+        service.xcb_set_selection_owner_checked      = try symbol'Linux.xcb_set_selection_owner_checked_fn(library, "xcb_set_selection_owner_checked")
+        service.xcb_get_selection_owner              = try symbol'Linux.xcb_get_selection_owner_fn(library, "xcb_get_selection_owner")
+        service.xcb_get_selection_owner_reply        = try symbol'Linux.xcb_get_selection_owner_reply_fn(library, "xcb_get_selection_owner_reply")
+        service.xcb_convert_selection_checked        = try symbol'Linux.xcb_convert_selection_checked_fn(library, "xcb_convert_selection_checked")
+        service.xcb_delete_property_checked          = try symbol'Linux.xcb_delete_property_checked_fn(library, "xcb_delete_property_checked")
+        service.xcb_get_file_descriptor              = try symbol'Linux.xcb_get_file_descriptor_fn(library, "xcb_get_file_descriptor")
         var screenIndex: s32
         let connected = service.xcb_connect(null, &screenIndex)
         if not connected do
@@ -373,21 +416,21 @@ namespace LinuxSelection
             fail Swag.SystemError{"X11 selection screen is unavailable"}
         service.connection = connection
         defer #fail service.connection = null
-        service.root = screens.data.root
-        service.targets = try atom("TARGETS")
-        service.incr = try atom("INCR")
-        service.property = try atom("_SWAG_SELECTION_VALUE")
+        service.root      = screens.data.root
+        service.targets   = try atom("TARGETS")
+        service.incr      = try atom("INCR")
+        service.property  = try atom("_SWAG_SELECTION_VALUE")
         service.clipboard = try atom("CLIPBOARD")
-        service.window = createRequestor()
+        service.window    = createRequestor()
         if not service.window do
             fail Swag.SystemError{"cannot create the X11 selection owner"}
         service.allocator = Swag.getContext().defaultAllocator orelse Swag.getContext().allocator
-        service.payloads.allocator = service.allocator
-        service.transfers.allocator = service.allocator
-        service.requests.allocator = service.allocator
+        service.payloads.allocator       = service.allocator
+        service.transfers.allocator      = service.allocator
+        service.requests.allocator       = service.allocator
         service.clientMessages.allocator = service.allocator
         try service.thread.init(&serviceThread, tempAllocSize: 0)
-        service.thread.context.allocator = service.allocator
+        service.thread.context.allocator        = service.allocator
         service.thread.context.defaultAllocator = service.allocator
         try service.thread.start()
         service.library = library
@@ -395,7 +438,7 @@ namespace LinuxSelection
 
     // The caller serializes all operations through mutex. Each conversion uses a fresh
     // requestor window, so a late reply from a timed-out transfer cannot satisfy a later call.
-    func read(selection, target: u32)->Value
+    func read(selection, target: u32, expiresAt: u64 = 0)->Value
     {
         var result: #returntype
         if owner(selection) == service.window
@@ -407,9 +450,9 @@ namespace LinuxSelection
                 for payload in service.payloads where payload.selection == selection do
                     targets.add(payload.target)
                 result.bytes.add(Swag.makeSlice(cast(const [*]u8, targets.storage()), targets.count * 4))
-                result.type = 4
+                result.type   = 4
                 result.format = 32
-                result.valid = true
+                result.valid  = true
             }
             else
             {
@@ -417,22 +460,29 @@ namespace LinuxSelection
                 if payload
                 {
                     result.bytes.add(payload.bytes.toSlice())
-                    result.type = payload.type ? payload.type : target
+                    result.type   = payload.type ? payload.type : target
                     result.format = payload.format
-                    result.valid = true
+                    result.valid  = true
                 }
             }
+
             return result
         }
+
         let requestor = createRequestor()
         if not requestor do
             return result
         defer discard check(service.xcb_destroy_window_checked(unwrap service.connection, requestor))
-        if not check(service.xcb_convert_selection_checked(unwrap service.connection, requestor, selection,
-                                                           target, service.property, 0)) do
+        if not check(service.xcb_convert_selection_checked(unwrap service.connection,
+                                                           requestor,
+                                                           selection,
+                                                           target,
+                                                           service.property,
+                                                           0)) do
             return result
-        let deadline = Time.monotonicMilliseconds() + TimeoutMs
-        var incremental = false
+        let localDeadline = Time.monotonicMilliseconds() + TimeoutMs
+        let deadline      = expiresAt ? Math.min(expiresAt, localDeadline) : localDeadline
+        var incremental   = false
         for
         {
             if Time.monotonicMilliseconds() >= deadline or service.xcb_connection_has_error(unwrap service.connection) != 0 do
@@ -444,13 +494,16 @@ namespace LinuxSelection
                 discard Linux.poll(&poll, 1, 20)
                 continue
             }
+
             defer Linux.free(event)
-            let kind = event.response_type & 0x7F
+            let kind  = event.response_type & 0x7F
             var ready = false
             if not incremental and kind == Linux.XCB_SELECTION_NOTIFY
             {
                 let reply = cast(*Linux.xcb_selection_notify_event_t, cast(*void, event))
-                if reply.requestor != requestor or reply.selection != selection or reply.target != target do
+                if reply.requestor != requestor or
+                   reply.selection != selection or
+                   reply.target != target do
                     continue
                 if reply.property != service.property do
                     return {}
@@ -459,18 +512,26 @@ namespace LinuxSelection
             elif incremental and kind == Linux.XCB_PROPERTY_NOTIFY
             {
                 let property = cast(*Linux.xcb_property_notify_event_t, cast(*void, event))
-                ready = property.window == requestor and property.atom == service.property and
+                ready = property.window == requestor and
+                        property.atom == service.property and
                         property.state == Linux.XCB_PROPERTY_NEW_VALUE
             }
+
             if not ready
             {
                 dispatch(event)
                 continue
             }
+
             let reply = service.xcb_get_property_reply(unwrap service.connection,
-                                                        service.xcb_get_property(unwrap service.connection, 0,
-                                                                                 requestor, service.property, 0, 0,
-                                                                                 cast(u32, MaxBytes / 4 + 1)), null)
+                                                       service.xcb_get_property(unwrap service.connection,
+                                                                                0,
+                                                                                requestor,
+                                                                                service.property,
+                                                                                0,
+                                                                                0,
+                                                                                cast(u32, MaxBytes / 4 + 1)),
+                                                       null)
             if not reply do
                 return {}
             defer Linux.free(reply)
@@ -492,7 +553,7 @@ namespace LinuxSelection
                     return {}
                 if result.type and (result.type != reply.type or result.format != reply.format) do
                     return {}
-                result.type = reply.type
+                result.type   = reply.type
                 result.format = reply.format
                 if count do
                     result.bytes.add(Swag.makeSlice(cast(const [*]u8, service.xcb_get_property_value(reply)), cast(u64, count)))
@@ -503,6 +564,7 @@ namespace LinuxSelection
                     return result
                 }
             }
+
             if not check(service.xcb_delete_property_checked(unwrap service.connection, requestor, service.property)) do
                 return {}
         }
@@ -519,37 +581,48 @@ namespace LinuxSelection
             // taking ownership; a changing owner or an unbounded transfer leaves it untouched.
             var inherited: Array'Payload
             inherited.allocator = service.allocator
-            var total = bytes.count
+            var total    = bytes.count
+            let deadline = Time.monotonicMilliseconds() + TimeoutMs
             if previous
             {
-                let targets = read(selection, service.targets)
-                if not targets.valid or targets.format != 32 or targets.bytes.count % 4 or targets.bytes.count > 2048 do
+                let targets = read(selection, service.targets, deadline)
+                if not targets.valid or
+                   targets.format != 32 or
+                   targets.bytes.count % 4 or
+                   targets.bytes.count > 2048 do
                     return false
-                let atoms = cast(const [*]u32, targets.bytes.storage())
-                let multiple = catch atom("MULTIPLE")
+                let atoms     = cast(const [*]u32, targets.bytes.storage())
+                let multiple  = catch atom("MULTIPLE")
                 let timestamp = catch atom("TIMESTAMP")
                 for index in targets.bytes.count / 4
                 {
                     let offered = atoms[index]
-                    if offered == target or offered == service.targets or offered == service.incr or
-                       offered == multiple or offered == timestamp do
+                    if offered == target or
+                       offered == service.targets or
+                       offered == service.incr or
+                       offered == multiple or
+                       offered == timestamp do
                         continue
-                    let value = read(selection, offered)
+                    if Time.monotonicMilliseconds() >= deadline do
+                        return false
+                    let value = read(selection, offered, deadline)
                     if not value.valid or value.bytes.count > MaxBytes - total do
                         return false
                     total += value.bytes.count
                     with var item: Payload
                     {
-                        .selection = selection
-                        .target = offered
-                        .type = value.type
-                        .format = value.format
+                        .selection       = selection
+                        .target          = offered
+                        .type            = value.type
+                        .format          = value.format
                         .bytes.allocator = service.allocator
                         .bytes.add(value.bytes.toSlice())
                     }
+
                     inherited.add(#move item)
                 }
             }
+
             if owner(selection) != previous do
                 return false
             if not check(service.xcb_set_selection_owner_checked(unwrap service.connection, service.window, selection, 0)) or
@@ -559,6 +632,7 @@ namespace LinuxSelection
             for &item in inherited do
                 service.payloads.add(#move item[])
         }
+
         var payload = find(selection, target)
         if not payload
         {
@@ -566,9 +640,10 @@ namespace LinuxSelection
             payload = service.payloads.backPtr()
             payload.bytes.allocator = service.allocator
         }
-        payload.type = target
+
+        payload.type     = target
         payload.deferred = false
-        payload.format = 8
+        payload.format   = 8
         payload.bytes.clear()
         payload.bytes.add(bytes)
         return true
@@ -592,8 +667,8 @@ namespace LinuxSelection
 
     func complete(selection, target: u32, bytes: const [..]u8)
     {
-        let published = publish(selection, target, bytes)
-        var index = service.requests.count
+        let published = owner(selection) == service.window and publish(selection, target, bytes)
+        var index     = service.requests.count
         while index
         {
             index -= 1
@@ -620,6 +695,7 @@ namespace LinuxSelection
             service.requests.removeAt(index)
             notify(request, 0)
         }
+
         forget(selection)
         if owner(selection) == service.window do
             discard check(service.xcb_set_selection_owner_checked(unwrap service.connection, 0, selection, 0))
@@ -675,9 +751,10 @@ namespace Clipboard
         for index in g_FormatNames.count where g_FormatNames[index].toString() == name do
             return index + 1
         let allocator = Swag.getContext().defaultAllocator orelse Swag.getContext().allocator
-        g_FormatNames.allocator = allocator
+        if not g_FormatNames.allocator do
+            g_FormatNames.allocator = allocator
         var saved: String
-        saved.allocator = allocator
+        saved.allocator = g_FormatNames.allocator
         saved = name
         g_FormatNames.add(#move saved)
         return g_FormatNames.count
@@ -720,6 +797,7 @@ namespace Clipboard
             let entry = fakeFind(fmt)
             return entry != null and (not type or entry.crc == type.crc)
         }
+
         if not type do
             return hasFormat(fmt)
         LinuxSelection.mutex.lock()
@@ -731,6 +809,7 @@ namespace Clipboard
             if value.valid and value.format == 8 and value.type == try nativeFormat(fmt) do
                 return (try TypedPayload.decode(value.bytes.toSlice())).matches(type)
         }
+
         return false
     }
 
@@ -768,6 +847,7 @@ namespace Clipboard
                     result.add(payload.data)
             }
         }
+
         return result
     }
 
@@ -791,10 +871,12 @@ namespace Clipboard
             if image.isValid()
             {
                 g_Fake.hasImg = true
-                g_Fake.img = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
+                g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
             }
+
             return
         }
+
         clear()
         if not image.isValid() do
             return
@@ -822,6 +904,7 @@ namespace Clipboard
             if value.valid and value.format == 8 and value.type == try LinuxSelection.atom("image/png") do
                 return try Image.decode("clipboard.png", value.bytes.toSlice(), {})
         }
+
         return {}
     }
 
@@ -837,6 +920,7 @@ namespace Clipboard
             try LinuxSelection.ensure()
             return hasTarget(try LinuxSelection.atom("UTF8_STRING")) or hasTarget(31)
         }
+
         return false
     }
 
@@ -853,9 +937,10 @@ namespace Clipboard
             if replace do
                 fakeClear()
             g_Fake.hasStr = true
-            g_Fake.str = str
+            g_Fake.str    = str
             return
         }
+
         if not Utf8.isValid(str) or str.count > LinuxSelection.MaxBytes do
             return
         LinuxSelection.mutex.lock()
@@ -895,12 +980,14 @@ namespace Clipboard
                         return String.from(cast(string, value.bytes.toSlice()))
                     return {}
                 }
+
                 var result: String
                 for byte in value.bytes.toSlice() do
                     result += cast(rune, byte)
                 return result
             }
         }
+
         return {}
     }
 

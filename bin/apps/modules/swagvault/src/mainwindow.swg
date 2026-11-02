@@ -577,7 +577,10 @@ impl MainWindow
 
         // The driver that shows a vault as a drive keeps its notice where the product's own is.
         let dialog = AboutDlg.createApplication(unwrap .surface, about)
-        dialog.addSection("WinFsp", appStrings().ui_AboutThirdParty)
+        #static if #os == Swag.TargetOs.Linux do
+            dialog.addSection("libfuse3", appStrings().ui_AboutLinuxRuntime)
+        else do
+            dialog.addSection("WinFsp", appStrings().ui_AboutThirdParty)
         discard dialog.doModal()
     }
 

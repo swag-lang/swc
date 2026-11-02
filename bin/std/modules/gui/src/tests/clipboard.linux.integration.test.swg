@@ -10,7 +10,7 @@ func startSelectionPeer(mode: string)->Env.Process
 {
     let path = selectionPeerPath()
     var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [path.toString(), mode],
-                                                       standardOutput: .Pipe, standardError: .Pipe})
+                                                     standardOutput: .Pipe, standardError: .Pipe})
     let deadline = Time.monotonicMilliseconds() + 3000
     for
     {
@@ -23,6 +23,7 @@ func startSelectionPeer(mode: string)->Env.Process
             discard catch peer.waitForExit()
             Swag.assert(false, "independent X11 peer did not become ready")
         }
+
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(5))
     }
 }
@@ -37,7 +38,7 @@ func readSelectionPeer(mode: string)
 {
     let path = selectionPeerPath()
     var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [path.toString(), mode],
-                                                       standardOutput: .Pipe, standardError: .Pipe})
+                                                     standardOutput: .Pipe, standardError: .Pipe})
     defer stopSelectionPeer(&peer)
     Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(8000)))
     Swag.assert(peer.exitCode() == 0, peer.standardError())
@@ -80,8 +81,13 @@ func readSelectionPeer(mode: string)
         var peer = startSelectionPeer("offer")
         defer stopSelectionPeer(&peer)
         Swag.assert(Clipboard.getString() == "étranger")
+        let externalImage = Clipboard.getImage()
+        Swag.assert(externalImage.isValid() and externalImage.width == 2 and externalImage.height == 1)
+        let color = externalImage.pixelColor(0, 0)
+        Swag.assert(color.r == 0x10 and color.g == 0x20 and color.b == 0x30 and color.a == 0xFF)
         let bytes = Clipboard.getTypedData(format, null)
         Swag.assert(cast(string, bytes.toSlice()) == "payload")
+
         // Claiming one format retains another owner's unrelated format.
         Clipboard.addString("native-é")
         Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
@@ -89,7 +95,9 @@ func readSelectionPeer(mode: string)
         Swag.assert(Clipboard.getString() == "native-é")
         let retained = Clipboard.getTypedData(format, null)
         Swag.assert(cast(string, retained.toSlice()) == "payload")
+        Swag.assert(Clipboard.hasImage())
     }
+
     scope
     {
         var peer = startSelectionPeer("offer-large")
@@ -102,6 +110,7 @@ func readSelectionPeer(mode: string)
         Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
         Swag.assert(peer.exitCode() == 0)
     }
+
     scope
     {
         var peer = startSelectionPeer("offer-silent")
@@ -113,6 +122,18 @@ func readSelectionPeer(mode: string)
         Clipboard.clear()
         Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
     }
+
+    for mode in ["offer-oversize", "offer-invalid-utf8"]
+    {
+        var peer = startSelectionPeer(mode)
+        defer stopSelectionPeer(&peer)
+        let started = Time.monotonicMilliseconds()
+        Swag.assert(Clipboard.getString().isEmpty())
+        Swag.assert(Time.monotonicMilliseconds() - started < 2000)
+        Clipboard.clear()
+        Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
+    }
+
     Clipboard.setString("native-é")
     readSelectionPeer("read-text")
     Clipboard.clear()

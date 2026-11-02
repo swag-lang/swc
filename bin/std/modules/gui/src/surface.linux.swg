@@ -20,8 +20,8 @@ internal struct NativeSurface
     presentationTarget: RenderTarget
     presentationWidth:  s32
     presentationHeight: s32
-    dropTarget: LinuxDrag.Target
-    dropTargetActive: bool
+    dropTarget:         LinuxDrag.Target
+    dropTargetActive:   bool
     trayWindow:         u32
     trayImage:          Image
 }
@@ -37,7 +37,7 @@ internal func postLinuxSurfaceCommand(surface: *Surface, kind: SysCommandEvent.K
 
 impl Surface
 {
-    internal func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags) fail
+    internal func createNative(_: *Application, result: *Surface, x, y, width, height: s32, _: SurfaceFlags) fail
     {
         if width <= 0 or
            width > 65535 or
@@ -48,11 +48,16 @@ impl Surface
            y < -32768 or
            y > 32767 do
             fail Errors.BadParameterError{"X11 GUI geometry is outside protocol limits"}
-        let context = try LinuxDesktop.ensure()
+        let context    = try LinuxDesktop.ensure()
         let connection = unwrap context.connection
         try LinuxDesktop.initializeKeyboard(context)
-                var visual: u32
-        var depths     = context.xcb_screen_allowed_depths_iterator(unwrap context.screenPtr)
+        let scale          = LinuxDesktop.preferences(context).scale
+        let physicalWidth  = cast(s32, Math.round(width * scale))
+        let physicalHeight = cast(s32, Math.round(height * scale))
+        if physicalWidth > 65535 or physicalHeight > 65535 do
+            fail Errors.BadParameterError{"scaled X11 GUI geometry is outside protocol limits"}
+        var visual: u32
+        var depths = context.xcb_screen_allowed_depths_iterator(unwrap context.screenPtr)
         while depths.rem > 0
         {
             let depth = unwrap depths.data
@@ -101,8 +106,8 @@ impl Surface
                                                                  context.screen.root,
                                                                  cast(s16, x),
                                                                  cast(s16, y),
-                                                                 cast(u16, width),
-                                                                 cast(u16, height),
+                                                                 cast(u16, physicalWidth),
+                                                                 cast(u16, physicalHeight),
                                                                  0,
                                                                  1,
                                                                  visual,
@@ -123,6 +128,12 @@ impl Surface
         result.compose = context.xkb_compose_state_new(unwrap context.composeTable, 0)
         if not result.compose do
             fail Swag.SystemError{"cannot create keyboard composition state"}
+        defer #fail
+        {
+            context.xkb_compose_state_unref(unwrap result.compose)
+            result.compose = null
+        }
+
         let protocols: [2]u32 = [try LinuxDesktop.atom(context, "WM_DELETE_WINDOW"), try LinuxDesktop.atom(context, "_NET_WM_PING")]
         try LinuxDesktop.property(context, id, try LinuxDesktop.atom(context, "WM_PROTOCOLS"), 4, 32, 2, protocols)
         let motif: [5]u32 = [2, 0, 0, 0, 0]
@@ -134,9 +145,15 @@ impl Surface
         try LinuxDesktop.property(context, id, 67, 31, 8, cast(u32, className.count), className.buffer)
         let process = cast(u32, Env.Process.currentProcessId())
         try LinuxDesktop.property(context, id, try LinuxDesktop.atom(context, "_NET_WM_PID"), 6, 32, 1, &process)
-        result.position = {x, y, width, height}
-        result.dpiScale = 1
+        result.position = {x, y, physicalWidth, physicalHeight}
+        result.dpiScale = scale
         result.applyNativeSurfaceFlags()
+        if context.cursors[context.currentCursor] != 0
+        {
+            let cursor = context.cursors[context.currentCursor]
+            try LinuxDesktop.check(context, context.xcb_change_window_attributes_checked(connection, id, 1 << 14, &cursor))
+        }
+
         context.surfaces.add(result)
         result.registerDropTarget()
     }
@@ -153,7 +170,7 @@ impl Surface
         .destroyRendering()
         if .windowId == 0 and .colormap == 0 do
             return
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         if context.pointerCapture == me do
             .app.releaseMouse()
@@ -166,7 +183,7 @@ impl Surface
         }
 
         if .compose do
-            context.xkb_compose_state_unref(unwrap .compose)
+            context.xkb_compose_state_unref(.compose)
         .compose = null
         if .windowId != 0 do
             discard catch LinuxDesktop.check(context, context.xcb_destroy_window_checked(connection, .windowId))
@@ -198,9 +215,22 @@ impl Surface
     {
         if .windowId == 0 or .isHidden or .isDisabled do
             return
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, .windowId, 0))
+        let manager    = expect LinuxDesktop.readProperty(context, context.screen.root, expect LinuxDesktop.atom(context, "_NET_SUPPORTING_WM_CHECK"))
+        if manager.count >= 4
+        {
+            expect LinuxDesktop.send(context, .windowId, expect LinuxDesktop.atom(context, "_NET_ACTIVE_WINDOW"), [1, 0, 0, 0, 0])
+            return
+        }
+
+        let attributes = context.xcb_get_window_attributes_reply(connection, context.xcb_get_window_attributes(connection, .windowId), null)
+        if not attributes do
+            return
+        let mapped = attributes.map_state == 2
+        Linux.free(attributes)
+        if mapped do
+            expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, .windowId, 0))
     }
 
     internal mtd bindNativePresentationTarget()
@@ -251,7 +281,6 @@ impl Surface
         if .windowId == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
         let title   = .wnd.name.raw.isEmpty() ? .surfaceId.toString() : .wnd.name.raw.toString()
         expect LinuxDesktop.property(context,
                                      .windowId,
@@ -268,7 +297,6 @@ impl Surface
         if .windowId == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
         let kind    = expect LinuxDesktop.atom(context, .flags.has(.ToolWindow) ? "_NET_WM_WINDOW_TYPE_UTILITY" : "_NET_WM_WINDOW_TYPE_NORMAL")
         expect LinuxDesktop.property(context, .windowId, expect LinuxDesktop.atom(context, "_NET_WM_WINDOW_TYPE"), 4, 32, 1, &kind)
         var hints: [18]u32
@@ -286,21 +314,24 @@ impl Surface
     {
         if .windowId == 0 do
             return
-        let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
+        let context       = expect LinuxDesktop.ensure()
         let stateProperty = expect LinuxDesktop.atom(context, "_NET_WM_STATE")
-        let state = expect LinuxDesktop.atom(context, name)
+        let state         = expect LinuxDesktop.atom(context, name)
         if .isHidden
         {
-            let bytes = expect LinuxDesktop.readProperty(context, .windowId, stateProperty)
+            let bytes  = expect LinuxDesktop.readProperty(context, .windowId, stateProperty)
             var states: Array'u32
-            let values = cast(const [*]u32, bytes.buffer)
-            for index in bytes.count / 4 where values[index] != state do states.add(values[index])
-            if enabled do states.add(state)
+            let values = cast(const [*]u32?, bytes.buffer)
+            for index in bytes.count / 4 where (unwrap values)[index] != state do
+                states.add(values[index])
+            if enabled do
+                states.add(state)
             expect LinuxDesktop.property(context, .windowId, stateProperty, 4, 32, cast(u32, states.count), states.buffer)
         }
-        else do
+        else
+        {
             expect LinuxDesktop.send(context, .windowId, stateProperty, [enabled ? 1'u32 : 0'u32, state, 0, 1, 0])
+        }
     }
 
     private mtd const clampToSizeLimits(pos: Math.Rectangle)->Math.Rectangle
@@ -322,8 +353,8 @@ impl Surface
         .position = next
         if .windowId != 0
         {
-            let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
+            let context    = expect LinuxDesktop.ensure()
+            let connection = unwrap context.connection
             Swag.assert(next.x >= -32768 and next.x <= 32767 and next.y >= -32768 and next.y <= 32767)
             Swag.assert(next.width <= 65535 and next.height <= 65535)
             let values: [4]u32 = [cast #bit(u32, cast(s32, next.x)), cast #bit(u32, cast(s32, next.y)), cast(u32, next.width), cast(u32, next.height)]
@@ -386,7 +417,6 @@ impl Surface
         if .windowId == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
         let value   = cast(u32, cast(f64, next) * 4294967295.0'f64)
         expect LinuxDesktop.property(context, .windowId, expect LinuxDesktop.atom(context, "_NET_WM_WINDOW_OPACITY"), 6, 32, 1, &value)
     }
@@ -399,8 +429,8 @@ impl Surface
         .isHidden = true
         if .windowId != 0
         {
-            let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
+            let context    = expect LinuxDesktop.ensure()
+            let connection = unwrap context.connection
             expect LinuxDesktop.check(context, context.xcb_unmap_window_checked(connection, .windowId))
         }
 
@@ -427,6 +457,7 @@ impl Surface
     {
         if not .isMaximized do
             .restoredPosition = restoreTo
+        .restoreNativeMapping()
         .isMaximized = true
         .isMinimized = false
         .setNativeState("_NET_WM_STATE_MAXIMIZED_HORZ", true)
@@ -438,12 +469,22 @@ impl Surface
     // Restores normal state and requests the supplied physical screen bounds.
     mtd showNormalAt(pos: Math.Rectangle)
     {
+        .restoreNativeMapping()
         .isMaximized = false
         .isMinimized = false
         .setNativeState("_NET_WM_STATE_MAXIMIZED_HORZ", false)
         .setNativeState("_NET_WM_STATE_MAXIMIZED_VERT", false)
         .setPosition(pos)
         .show()
+    }
+
+    private mtd restoreNativeMapping()
+    {
+        if .windowId != 0 and .isMinimized and not .isHidden
+        {
+            let context = expect LinuxDesktop.ensure()
+            expect LinuxDesktop.check(context, context.xcb_map_window_checked(unwrap context.connection, .windowId))
+        }
     }
 
     // Restores the normal bounds saved before minimization or maximization.
@@ -464,7 +505,6 @@ impl Surface
         if .windowId != 0
         {
             let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
             expect LinuxDesktop.send(context, .windowId, expect LinuxDesktop.atom(context, "WM_CHANGE_STATE"), [3, 0, 0, 0, 0])
         }
     }
@@ -474,13 +514,19 @@ impl Surface
     {
         if .windowId != 0
         {
-            let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
-            let reply   = context.xcb_translate_coordinates_reply(connection,
-                                                                  context.xcb_translate_coordinates(connection, context.screen.root, .windowId, cast(s16, point.x), cast(s16, point.y)),
-                                                                  null)
-            if not reply do
-                expect Errors.failLinuxError(Linux.EIO)
+            let context    = expect LinuxDesktop.ensure()
+            let connection = unwrap context.connection
+            let reply      = context.xcb_translate_coordinates_reply(connection,
+                                                                     context.xcb_translate_coordinates(connection, context.screen.root, .windowId, cast(s16, point.x), cast(s16, point.y)),
+                                                                     null)
+            if not reply
+
+            {
+                expect LinuxDesktop.failNative(Linux.EIO)
+
+                unreachable
+            }
+
             defer Linux.free(reply)
             point[] = {cast(f32, reply.dst_x) / .dpiScale, cast(f32, reply.dst_y) / .dpiScale}
             return
@@ -494,13 +540,19 @@ impl Surface
     {
         if .windowId != 0
         {
-            let context = expect LinuxDesktop.ensure()
-        let connection = unwrap context.connection
-            let reply   = context.xcb_translate_coordinates_reply(connection,
-                                                                  context.xcb_translate_coordinates(connection, .windowId, context.screen.root, cast(s16, point.x * .dpiScale), cast(s16, point.y * .dpiScale)),
-                                                                  null)
-            if not reply do
-                expect Errors.failLinuxError(Linux.EIO)
+            let context    = expect LinuxDesktop.ensure()
+            let connection = unwrap context.connection
+            let reply      = context.xcb_translate_coordinates_reply(connection,
+                                                                     context.xcb_translate_coordinates(connection, .windowId, context.screen.root, cast(s16, point.x * .dpiScale), cast(s16, point.y * .dpiScale)),
+                                                                     null)
+            if not reply
+
+            {
+                expect LinuxDesktop.failNative(Linux.EIO)
+
+                unreachable
+            }
+
             defer Linux.free(reply)
             point[] = {reply.dst_x, reply.dst_y}
             return
@@ -550,7 +602,7 @@ impl Surface
         .wnd.applyLayout(.size())
 
         // Render the first complete frame into the back buffer *before* the window
-        // becomes visible. Otherwise ShowWindow composites the still-empty (black)
+        // becomes visible. Otherwise the compositor displays the still-empty (black)
         // GL surface, and the user sees a black flash until the first runFrame()
         // paint completes (which is slow on the first frame because of the lazy
         // font/glyph generation it triggers). Painting while still hidden means the
@@ -568,7 +620,7 @@ impl Surface
             return
         }
 
-        let context = expect LinuxDesktop.ensure()
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         expect LinuxDesktop.check(context, context.xcb_map_window_checked(connection, .windowId))
 
@@ -586,25 +638,29 @@ impl Surface
 {
     internal mtd refreshNativeState()
     {
-        if .windowId == 0 do return
-        let context = expect LinuxDesktop.ensure()
-        let bytes = catch LinuxDesktop.readProperty(context, .windowId, expect LinuxDesktop.atom(context, "_NET_WM_STATE")) { return; }
-        let count = bytes.count / 4
-        let values = cast(const [*]u32, bytes.buffer)
+        if .windowId == 0 do
+            return
+        let context    = expect LinuxDesktop.ensure()
+        let bytes      = catch LinuxDesktop.readProperty(context, .windowId, expect LinuxDesktop.atom(context, "_NET_WM_STATE")) { return; }
+        let count      = bytes.count / 4
+        let values     = cast(const [*]u32?, bytes.buffer)
         let horizontal = expect LinuxDesktop.atom(context, "_NET_WM_STATE_MAXIMIZED_HORZ")
-        let vertical = expect LinuxDesktop.atom(context, "_NET_WM_STATE_MAXIMIZED_VERT")
-        let hidden = expect LinuxDesktop.atom(context, "_NET_WM_STATE_HIDDEN")
+        let vertical   = expect LinuxDesktop.atom(context, "_NET_WM_STATE_MAXIMIZED_VERT")
+        let hidden     = expect LinuxDesktop.atom(context, "_NET_WM_STATE_HIDDEN")
         var hasHorizontal, hasVertical, minimized: bool
         for index in count
         {
-            hasHorizontal |= values[index] == horizontal
-            hasVertical |= values[index] == vertical
-            minimized |= values[index] == hidden
+            let value = (unwrap values)[index]
+            hasHorizontal = hasHorizontal or value == horizontal
+            hasVertical   = hasVertical or value == vertical
+            minimized     = minimized or value == hidden
         }
+
         let maximized = hasHorizontal and hasVertical
         if maximized != .isMaximized or minimized != .isMinimized
         {
-            if maximized and not .isMaximized do .restoredPosition = .position
+            if maximized and not .isMaximized do
+                .restoredPosition = .position
             .isMaximized = maximized
             .isMinimized = minimized
             .invalidate()
@@ -617,10 +673,10 @@ impl Surface
     // when no matching surface exists or the server rejects the request.
     func sendCustomMessage(surfaceId: string, id: u32, param: u64)->bool
     {
-        let context = catch LinuxDesktop.ensure() { return false; }
+        let context    = catch LinuxDesktop.ensure() { return false; }
         let connection = unwrap context.connection
-        let identity = catch LinuxDesktop.atom(context, "_SWAG_GUI_SURFACE") { return false; }
-        let kind = catch LinuxDesktop.atom(context, "_SWAG_GUI_MESSAGE") { return false; }
+        let identity   = catch LinuxDesktop.atom(context, "_SWAG_GUI_SURFACE") { return false; }
+        let kind       = catch LinuxDesktop.atom(context, "_SWAG_GUI_MESSAGE") { return false; }
         var pending: Array'u32
         pending.add(context.screen.root)
         while not pending.isEmpty()
@@ -632,21 +688,24 @@ impl Surface
             {
                 var event: Linux.xcb_client_message_event_t
                 event.response_type = 33
-                event.format = 32
-                event.window = window
-                event.type = kind
-                event.data = [id, cast(u32, param & 0xFFFFFFFF), cast(u32, param >> 32), 0, 0]
+                event.format        = 32
+                event.window        = window
+                event.type          = kind
+                event.data          = [id, cast(u32, param & 0xFFFFFFFF), cast(u32, param >> 32), 0, 0]
                 var outcome: Swag.Error
                 catch LinuxDesktop.check(context, context.xcb_send_event_checked(connection, 0, window, 0, cast(const [*]u8, &event))) as outcome
                 return outcome.value() == null
             }
+
             let reply = context.xcb_query_tree_reply(connection, context.xcb_query_tree(connection, window), null)
-            if not reply do continue
+            if not reply do
+                continue
             defer Linux.free(reply)
             let children = context.xcb_query_tree_children(reply)
             for index in context.xcb_query_tree_children_length(reply) do
                 pending.add(children[index])
         }
+
         return false
     }
 
@@ -657,48 +716,74 @@ impl Surface
     // requests arrive through [[Gui.SysUserEvent]].
     mtd setTrayIcon(icon: Image, tip: string? = null)
     {
-        if .windowId == 0 or not icon.isValid() do return
-        let context = expect LinuxDesktop.ensure()
+        if .windowId == 0 or not icon.isValid() do
+            return
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        let selection = expect LinuxDesktop.atom(context, Format.toString("_NET_SYSTEM_TRAY_S%", context.screenIndex).toString())
-        let owner = context.xcb_get_selection_owner_reply(connection, context.xcb_get_selection_owner(connection, selection), null)
-        if not owner do return
+        let selection  = expect LinuxDesktop.atom(context, Format.toString("_NET_SYSTEM_TRAY_S%", context.screenIndex).toString())
+        let owner      = context.xcb_get_selection_owner_reply(connection, context.xcb_get_selection_owner(connection, selection), null)
+        if not owner do
+            return
         let manager = owner.owner
         Linux.free(owner)
-        if manager == 0 do return
+        if manager == 0 do
+            return
         .removeTrayIcon()
         let id = context.xcb_generate_id(connection)
         let values: [4]u32 = [0, 0, (1 << 2) | (1 << 15) | (1 << 17), .colormap]
-        expect LinuxDesktop.check(context, context.xcb_create_window_checked(connection, 32, id, context.screen.root,
-            0, 0, 32, 32, 0, 1, .drawable.visual, (1 << 1) | (1 << 3) | (1 << 11) | (1 << 13), values))
+        expect LinuxDesktop.check(context,
+                                  context.xcb_create_window_checked(connection,
+                                                                    32,
+                                                                    id,
+                                                                    context.screen.root,
+                                                                    0,
+                                                                    0,
+                                                                    32,
+                                                                    32,
+                                                                    0,
+                                                                    1,
+                                                                    .drawable.visual,
+                                                                    (1 << 1) |
+                                                                    (1 << 3) |
+                                                                    (1 << 11) |
+                                                                    (1 << 13),
+                                                                    values))
         .trayWindow = id
-        .trayImage = icon
+        .trayImage  = icon
         let info: [2]u32 = [0, 1]
-        let embed = expect LinuxDesktop.atom(context, "_XEMBED_INFO")
+        let embed        = expect LinuxDesktop.atom(context, "_XEMBED_INFO")
         expect LinuxDesktop.property(context, id, embed, embed, 32, 2, info)
         if tip do
-            expect LinuxDesktop.property(context, id, expect LinuxDesktop.atom(context, "_NET_WM_NAME"),
-                expect LinuxDesktop.atom(context, "UTF8_STRING"), 8, cast(u32, tip.count), tip.buffer)
+            expect LinuxDesktop.property(context,
+                                         id,
+                                         expect LinuxDesktop.atom(context, "_NET_WM_NAME"),
+                                         expect LinuxDesktop.atom(context, "UTF8_STRING"),
+                                         8,
+                                         cast(u32, tip.count),
+                                         tip.buffer)
         var event: Linux.xcb_client_message_event_t
         event.response_type = 33
-        event.format = 32
-        event.window = manager
-        event.type = expect LinuxDesktop.atom(context, "_NET_SYSTEM_TRAY_OPCODE")
-        event.data = [0, 0, id, 0, 0]
+        event.format        = 32
+        event.window        = manager
+        event.type          = expect LinuxDesktop.atom(context, "_NET_SYSTEM_TRAY_OPCODE")
+        event.data          = [0, 0, id, 0, 0]
         expect LinuxDesktop.check(context, context.xcb_send_event_checked(connection, 0, manager, 0, cast(const [*]u8, &event)))
     }
 
     internal mtd paintTrayIcon()
     {
-        if .trayWindow == 0 or not .trayImage.isValid() do return
-        let context = expect LinuxDesktop.ensure()
+        if .trayWindow == 0 or not .trayImage.isValid() do
+            return
+        let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        let geometry = context.xcb_get_geometry_reply(connection, context.xcb_get_geometry(connection, .trayWindow), null)
-        if not geometry do return
-        let width = geometry.width
+        let geometry   = context.xcb_get_geometry_reply(connection, context.xcb_get_geometry(connection, .trayWindow), null)
+        if not geometry do
+            return
+        let width  = geometry.width
         let height = geometry.height
         Linux.free(geometry)
-        if width == 0 or height == 0 or width > 512 or height > 512 do return
+        if width == 0 or height == 0 or width > 512 or height > 512 do
+            return
         var pixels: Array'u8
         let order = context.xcb_get_setup(connection).image_byte_order
         for y in height
@@ -709,23 +794,66 @@ impl Surface
                 let alpha = cast(u32, color.a)
                 let pixel = (alpha << 24) | (cast(u32, color.r) * alpha / 255 << 16) |
                             (cast(u32, color.g) * alpha / 255 << 8) | (cast(u32, color.b) * alpha / 255)
-                for byte in 4 do pixels.add(cast(u8, (pixel >> (order == 0 ? byte * 8 : (3 - byte) * 8)) & 255))
+                for byte in 4 do
+                    pixels.add(cast(u8, (pixel >> (order == 0 ? byte * 8 : (3 - byte) * 8)) & 255))
             }
         }
+
         let gc = context.xcb_generate_id(connection)
         expect LinuxDesktop.check(context, context.xcb_create_gc_checked(connection, gc, .trayWindow, 0, null))
         defer discard catch LinuxDesktop.check(context, context.xcb_free_gc_checked(connection, gc))
-        expect LinuxDesktop.check(context, context.xcb_put_image_checked(connection, 2, .trayWindow, gc,
-            width, height, 0, 0, 0, 32, cast(u32, pixels.count), pixels.buffer))
+        expect LinuxDesktop.check(context,
+                                  context.xcb_put_image_checked(connection,
+                                                                2,
+                                                                .trayWindow,
+                                                                gc,
+                                                                width,
+                                                                height,
+                                                                0,
+                                                                0,
+                                                                0,
+                                                                32,
+                                                                cast(u32, pixels.count),
+                                                                unwrap pixels.buffer))
     }
 
     // Removes the notification-area icon owned by this surface.
     mtd removeTrayIcon()
     {
-        if .trayWindow == 0 do return
+        if .trayWindow == 0 do
+            return
         let context = expect LinuxDesktop.ensure()
         expect LinuxDesktop.check(context, context.xcb_destroy_window_checked(unwrap context.connection, .trayWindow))
         .trayWindow = 0
-        .trayImage = {}
+        .trayImage  = {}
+    }
+}
+
+impl Surface
+{
+    internal mtd acceptNativeGeometry(width, height: u16)
+    {
+        var origin: Math.Point
+        .surfaceToScreen(&origin)
+        .position.x = origin.x
+        .position.y = origin.y
+        if .rc.width != width or .rc.height != height do
+            .sendResizeEvent(cast(f32, width), cast(f32, height))
+    }
+}
+
+impl Surface
+{
+    internal mtd acceptNativeScale(scale: f32)
+    {
+        if .dpiScale == scale do
+            return
+        let ratio  = scale / .dpiScale
+        var bounds = .position
+        bounds.width  = Math.round(bounds.width * ratio)
+        bounds.height = Math.round(bounds.height * ratio)
+        .setDpiScaleRaw(scale)
+        .setPosition(bounds)
+        .applyNativeSurfaceFlags()
     }
 }

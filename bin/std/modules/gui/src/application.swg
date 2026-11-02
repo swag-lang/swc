@@ -110,7 +110,7 @@ struct Application
     keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
     mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
     mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
-    nativeMouseButtons:   bool      // The native adapter dispatches queued mouse-button transitions.
+    nativeMouseButtons:    bool      // The native adapter dispatches queued mouse-button transitions.
     nativeKeyboardEvents:  bool      // The native adapter dispatches queued keyboard transitions.
     nativeFocusTransition: bool      // Whether a logical focus move is synchronously changing the native focus.
 
@@ -373,7 +373,8 @@ private impl Application
             return
 
         // Queued native button packets have already delivered their transitions.
-        if .nativeMouseButtons do return
+        if .nativeMouseButtons do
+            return
 
         // Detect changes
         for i in (.mouse.previousState.pressed).count

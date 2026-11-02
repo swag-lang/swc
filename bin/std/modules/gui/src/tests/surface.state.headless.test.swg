@@ -40,7 +40,7 @@ using Core
     app.setRenderer(&cpu)
 
     let surface = expect app.createSurface(40, 40, 320, 180)
-    Swag.assert(not surface.hWnd)
+    Swag.assert(surface.nativeRenderHandle() == null)
     surface.show()
     let normal = surface.position
 
@@ -56,7 +56,7 @@ using Core
     Swag.assert(not surface.isMaximized and not surface.isMinimized)
     Swag.assert(surface.position == normal)
     Swag.assert(surface.rc.width == normal.width and surface.rc.height == normal.height)
-    Swag.assert(not surface.hWnd)
+    Swag.assert(surface.nativeRenderHandle() == null)
 }
 
 // The application command path restores a minimized maximized surface to maximized state, and a
@@ -68,7 +68,7 @@ using Core
     app.setRenderer(&cpu)
 
     let surface = expect app.createSurface(40, 40, 640, 400)
-    Swag.assert(not surface.hWnd)
+    Swag.assert(surface.nativeRenderHandle() == null)
     surface.show()
 
     let normal = surface.position
@@ -102,5 +102,5 @@ using Core
     Swag.assert(not surface.isMinimized and not surface.isMaximized)
     Swag.assert(not surface.isHidden)
     Swag.assert(surface.position == normal)
-    Swag.assert(not surface.hWnd)
+    Swag.assert(surface.nativeRenderHandle() == null)
 }

@@ -57,7 +57,7 @@ alias xcb_ungrab_key_checked_fn          = func(*void, u8, u32, u16)->xcb_void_c
 alias xcb_create_gc_checked_fn = func(*void, u32, u32, u32, const *void?)->xcb_void_cookie_t
 
 #[Swag.CallingConvention(.C)]
-alias xcb_free_gc_checked_fn = func(*void, u32)->xcb_void_cookie_t
+alias xcb_free_gc_checked_fn   = func(*void, u32)->xcb_void_cookie_t
 
 #[Swag.CallingConvention(.C)]
 alias xcb_put_image_checked_fn = func(*void, u8, u32, u32, u16, u16, s16, s16, u8, u8, u32, const [*]u8)->xcb_void_cookie_t

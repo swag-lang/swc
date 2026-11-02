@@ -84,12 +84,12 @@ struct AppStrings
     ui_OptionsHelp:          string = "Keep vault locations private and choose when protected drives close automatically."
     ui_PrivacyMode:          string = "Privacy Mode"
     ui_PrivacyModeHelp:      string = "Do not save container paths, browse history, or startup mounts."
-    ui_UnmountOnLock:        string = "Unmount When Windows Locks"
-    ui_UnmountOnLockHelp:    string = "Protected drives close as soon as the current Windows session is locked."
+    ui_UnmountOnLock:        string = "Unmount on Session Lock"
+    ui_UnmountOnLockHelp:    string = "Protected drives close when the current session is locked."
     ui_UnmountOnSuspend:     string = "Unmount Before Sleep"
-    ui_UnmountOnSuspendHelp: string = "Protected drives close when Windows suspends the computer."
+    ui_UnmountOnSuspendHelp: string = "Protected drives close before the computer sleeps."
     ui_UnmountOnIdle:        string = "Unmount After Inactivity"
-    ui_UnmountOnIdleHelp:    string = "Protected drives close after Windows has received no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
+    ui_UnmountOnIdleHelp:    string = "Protected drives close after no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
     ui_Minutes:              string = "% minutes"
 
     // The boxes that change a vault. Their labels stand above the fields.
@@ -114,6 +114,7 @@ struct AppStrings
     ui_OuterReserveHelp:     string = "Minimum space left for ordinary files. This choice only limits hidden creation; it is not stored in the outer filesystem."
     ui_Desktop:              string = "Desktop"
     ui_AboutThirdParty:      string = "Windows File System Proxy, Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp"
+    ui_AboutLinuxRuntime:    string = "Filesystem in Userspace — github.com/libfuse/libfuse. Session events use systemd; desktop idle time uses X.Org. See THIRDPARTY.md for licences."
     dlg_TitleCreate:         string = "Create a Swag Vault Container"
     dlg_TitleOpen:           string = "Open an Encrypted Container"
     dlg_TitlePassword:       string = "Change the Vault Password"
@@ -147,7 +148,7 @@ struct AppStrings
     msg_ChooseExisting:       string = "Choose an existing container."
     msg_AlreadyMounted:       string = "A drive is already exposing this container."
     msg_UnmountFirst:         string = "This vault is mounted. Unmount it before changing it."
-    msg_NoDriveLetter:        string = "No drive letter is available."
+    msg_NoDriveLetter:        string = "No mount destination is available."
     msg_StartingDriver:       string = "Starting the portable filesystem driver..."
     msg_Unmounting:           string = "Synchronizing and unmounting the encrypted drive..."
     msg_CreateStopped:        string = "Container creation stopped."

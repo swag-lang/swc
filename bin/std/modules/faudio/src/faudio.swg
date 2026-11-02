@@ -30,7 +30,18 @@ struct FAudioWaveFormatEx
 #[Swag.Pack(1)]
 struct FAudioWaveFormatExtensible
 {
-    public { Format: FAudioWaveFormatEx; Samples: union { wValidBitsPerSample: u16; wSamplesPerBlock: u16; wReserved: u16 }; dwChannelMask: u32; SubFormat: FAudioGUID }
+    public
+    {
+        Format: FAudioWaveFormatEx
+        Samples: union
+        {
+            wValidBitsPerSample: u16
+            wSamplesPerBlock: u16
+            wReserved: u16
+        }
+        dwChannelMask: u32
+        SubFormat: FAudioGUID
+    }
 }
 
 #[Swag.Pack(1)]
@@ -146,8 +157,8 @@ alias FAudioSourceVoice_SetFrequencyRatio_fn  = func(*FAudioVoice, f32, u32)->u3
 alias FAudioSourceVoice_GetFrequencyRatio_fn  = func(*FAudioVoice, *f32)
 
 #[Swag.CallingConvention(.C)]
-alias FAudioEngineCallEXT = func(*FAudio, *f32)
+alias FAudioEngineCallEXT                     = func(*FAudio, *f32)
 #[Swag.CallingConvention(.C)]
-alias FAudioEngineProcedureEXT = func(FAudioEngineCallEXT, *FAudio, *f32, *void)
+alias FAudioEngineProcedureEXT                = func(FAudioEngineCallEXT, *FAudio, *f32, *void)
 #[Swag.CallingConvention(.C)]
-alias FAudio_SetEngineProcedureEXT_fn = func(*FAudio, FAudioEngineProcedureEXT, *void)
+alias FAudio_SetEngineProcedureEXT_fn         = func(*FAudio, FAudioEngineProcedureEXT, *void)

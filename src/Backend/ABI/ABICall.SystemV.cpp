@@ -120,10 +120,8 @@ namespace
 
     uint32_t reserveCallStorage(MicroBuilder& builder, const CallConv& conv, const uint64_t size, const uint32_t alignment)
     {
-        // Over-aligned stack values require dynamic stack realignment, which is not
-        // exposed by the source-level System V convention yet.
-        SWC_FORCE_ASSERT(alignment <= conv.stackAlignment);
-        const uint64_t adjustment = size + (conv.stackAlignment + sizeof(void*) - size % conv.stackAlignment) % conv.stackAlignment;
+        const uint64_t savedState = alignment > conv.stackAlignment ? AlignedCallStack::K_SAVE_SIZE : 0;
+        const uint64_t adjustment = size + savedState + (conv.stackAlignment + sizeof(void*) - size % conv.stackAlignment) % conv.stackAlignment;
         SWC_ASSERT(adjustment <= UINT32_MAX);
         builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(adjustment, 64), MicroOp::Subtract, MicroOpBits::B64);
         return static_cast<uint32_t>(adjustment);
@@ -163,6 +161,8 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
     PreparedCall prepared;
     prepared.stackAdjust = reserveCallStorage(builder, conv, allocator.stackSize(), allocator.stackAlignment());
     prepared.stackAlreadyAdjusted = true;
+    if (allocator.stackAlignment() > conv.stackAlignment)
+        prepared.stackAlignmentLog2 = static_cast<uint8_t>(std::countr_zero(allocator.stackAlignment()));
     prepared.intArgMask = hiddenReturn ? 1 : 0;
 
     MicroReg base, address;
@@ -312,6 +312,8 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
     PreparedCall prepared;
     prepared.stackAdjust = reserveCallStorage(builder, conv, storage, allocator.stackAlignment());
     prepared.stackAlreadyAdjusted = true;
+    if (allocator.stackAlignment() > conv.stackAlignment)
+        prepared.stackAlignmentLog2 = static_cast<uint8_t>(std::countr_zero(allocator.stackAlignment()));
     for (uint32_t index = 0; index < args.size(); ++index)
     {
         const PreparedArg& arg = args[index];

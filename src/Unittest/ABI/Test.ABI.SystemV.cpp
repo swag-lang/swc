@@ -42,6 +42,41 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<uint32_t Alignment>
+    struct alignas(Alignment) NativeAlignedValue
+    {
+        uint64_t values[Alignment / sizeof(uint64_t)];
+    };
+
+    struct AlignedProbeState
+    {
+        std::array<uintptr_t, 32> frames{};
+        uint32_t                  frameCount     = 0;
+        uintptr_t                 expectedCaller = 0;
+    };
+
+    template<uint32_t Alignment>
+    __attribute__((noinline)) double readAlignedNative(NativeAlignedValue<Alignment> value, AlignedProbeState* state, double floating)
+    {
+        uintptr_t address = reinterpret_cast<uintptr_t>(&value);
+        // Hide the static type alignment so the test observes the caller's actual address.
+        asm volatile("" : "+r"(address));
+        if (address % Alignment)
+            return -1;
+        state->frameCount = Os::captureCallStack(state->frames);
+        double result     = floating;
+        for (const uint64_t element : value.values)
+            result += element;
+        return result;
+    }
+
+    __attribute__((noinline)) void invokeAlignedProbe(void* entry, AlignedProbeState& state)
+    {
+        state.expectedCaller = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+        reinterpret_cast<void (*)()>(entry)();
+        asm volatile("" ::: "memory");
+    }
+
     constexpr auto K_SYSTEM_V = CallConvKind::SystemVAMD64;
 
     __attribute__((noinline)) double sumMixed(uint64_t a0, double f0, uint64_t a1, double f1, uint64_t a2, double f2, uint64_t a3, double f3, uint64_t a4, double f4, uint64_t a5, double f5, uint64_t a6, double f6, uint64_t a7, double f7, uint64_t a8, double f8, uint64_t a9, double f9)
@@ -2385,6 +2420,94 @@ func verifyFaultCleanup()
     SWC_ASSERT(entry != std::string::npos);
     nativeSource.replace(entry, 4, "#main");
     return runLinuxRuntimeProbe(ctx, "LinuxElfFaultRecovery", nativeSource, {.native = true});
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVOveralignedPackedCallsReachNativeCallees)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs    = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext      context(compiler);
+    using SystemVAbi::Class;
+    const std::array<uint32_t, 3> alignments{32, 64, 128};
+    const std::array<uint64_t, 3> targets{reinterpret_cast<uint64_t>(readAlignedNative<32>), reinterpret_cast<uint64_t>(readAlignedNative<64>), reinterpret_cast<uint64_t>(readAlignedNative<128>)};
+    alignas(128) uint64_t         values[16];
+    for (uint32_t index = 0; index < 16; ++index)
+        values[index] = index + 1;
+    for (uint32_t index = 0; index < alignments.size(); ++index)
+    {
+        const uint32_t                   alignment = alignments[index];
+        const SystemVAbi::Classification type{{Class::Memory, Class::None}, alignment, alignment};
+        AlignedProbeState                state;
+        const std::array                 args{
+            ABICall::Arg{.value = reinterpret_cast<uint64_t>(values), .systemVType = &type},
+            ABICall::Arg{.value = reinterpret_cast<uint64_t>(&state), .numBits = 64},
+            ABICall::Arg{.value = std::bit_cast<uint64_t>(2.5), .isFloat = true, .numBits = 64},
+        };
+        double       result = 0;
+        MicroBuilder builder(context);
+        ABICall::callAddress(builder, K_SYSTEM_V, targets[index], args, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
+        SWC_RESULT(executeSystemVThunk(context, builder, true));
+        const uint32_t count = alignment / sizeof(uint64_t);
+        if (result != count * (count + 1) / 2 + 2.5 || state.frameCount < 4)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_SystemVOveralignedPreparedCallPreservesSpillsAndUnwind)
+{
+    CommandLine commandLine = ctx.cmdLine();
+    commandLine.targetOs    = Runtime::TargetOs::Linux;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext      context(compiler);
+    using SystemVAbi::Class;
+    const SystemVAbi::Classification type{{Class::Memory, Class::None}, 64, 64};
+    const NativeAlignedValue<64>     value{{1, 3, 5, 7, 11, 13, 17, 19}};
+    AlignedProbeState                state;
+    uint64_t                         inputs[24];
+    for (uint32_t index = 0; index < 24; ++index)
+        inputs[index] = index + 1;
+    MicroBuilder   builder(context);
+    const MicroReg address = MicroReg::virtualIntReg(100);
+    builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(inputs));
+    for (uint32_t index = 0; index < 24; ++index)
+        builder.emitLoadRegMem(MicroReg::virtualIntReg(index + 1), address, index * sizeof(uint64_t), MicroOpBits::B64);
+    const MicroReg valueAddress = MicroReg::virtualIntReg(101);
+    const MicroReg stateAddress = MicroReg::virtualIntReg(102);
+    const MicroReg floating     = MicroReg::virtualIntReg(103);
+    builder.emitLoadRegPtrImm(valueAddress, reinterpret_cast<uint64_t>(&value));
+    builder.emitLoadRegPtrImm(stateAddress, reinterpret_cast<uint64_t>(&state));
+    builder.emitLoadRegImm(floating, ApInt(std::bit_cast<uint64_t>(2.5), 64), MicroOpBits::B64);
+    const std::array args{
+        ABICall::PreparedArg{.srcReg = valueAddress, .systemVType = &type},
+        ABICall::PreparedArg{.srcReg = stateAddress, .numBits = 64},
+        ABICall::PreparedArg{.srcReg = floating, .isFloat = true, .numBits = 64},
+    };
+    const auto     prepared = ABICall::prepareArgs(builder, K_SYSTEM_V, args);
+    const MicroReg target   = MicroReg::virtualIntReg(104);
+    builder.emitLoadRegPtrImm(target, reinterpret_cast<uint64_t>(readAlignedNative<64>));
+    double result = 0;
+    ABICall::callReg(builder, K_SYSTEM_V, target, prepared, {.valuePtr = &result, .isVoid = false, .isFloat = true, .numBits = 64});
+    const MicroReg sum = MicroReg::virtualIntReg(1);
+    for (uint32_t index = 1; index < 24; ++index)
+        builder.emitOpBinaryRegReg(sum, MicroReg::virtualIntReg(index + 1), MicroOp::Add, MicroOpBits::B64);
+    uint64_t actualSum = 0;
+    builder.emitLoadRegPtrImm(address, reinterpret_cast<uint64_t>(&actualSum));
+    builder.emitLoadMemReg(address, 0, sum, MicroOpBits::B64);
+    builder.emitRet();
+    MachineCode lowered;
+    SWC_RESULT(lowered.emit(context, builder));
+    JITMemoryManager manager;
+    JITMemory        memory;
+    installSystemVCode(manager, memory, lowered.bytes, lowered.unwindInfo);
+    invokeAlignedProbe(memory.entryPoint(), state);
+    if (result != 78.5 || actualSum != 300)
+        return Result::Error;
+    const std::span frames(state.frames.data(), state.frameCount);
+    if (std::ranges::find(frames, state.expectedCaller) == frames.end())
+        return Result::Error;
 }
 SWC_TEST_END()
 

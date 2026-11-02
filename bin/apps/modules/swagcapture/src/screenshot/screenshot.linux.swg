@@ -5,6 +5,11 @@ using Core, Pixel, Gui
 // X11 coordinates are physical pixels and need no thread-local DPI conversion.
 struct CapturePlatformScope {}
 
+impl CapturePlatformScope
+{
+    mtd close() {}
+}
+
 func beginCapturePlatformScope()->CapturePlatformScope => {}
 
 func getDesktopImage(drawCursor: bool)->Image fail
@@ -30,7 +35,7 @@ func captureWindowInfo(capture: *X11Capture, window: u32)->CaptureWindowInfo
         return result
     let path  = Format.toString("/proc/%/exe", native.processId)
     var buffer: [32768] u8
-    let count = Linux.readlinkat(Linux.AT_FDCWD, path.buffer, &buffer[0], buffer.count)
+    let count = Linux.readlinkat(Linux.AT_FDCWD, path.storage(), &buffer[0], buffer.count)
     if count <= 0 or count >= cast(s64, buffer.count) do
         return result
     let value = buffer[until cast(u64, count)]

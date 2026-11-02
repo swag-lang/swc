@@ -74,6 +74,14 @@ if let face = try Pixel.FontFamily.createTypeFace("Example Sans", .BoldItalic)
 }
 ```
 
+For a selector that retains native face descriptions, use
+[[Pixel.FontFamily.enumerateSystemFonts]] or [[Pixel.FontFamily.findSystemFont]] and pass the
+returned [[Pixel.SystemFontFamilyInfo]] to [[Pixel.FontFamily.createTypeFace]]. Linux descriptors
+own file paths, collection indices, and metadata; Windows descriptors contain GDI face data.
+Linux selects the closest installed face for every style slot from the shared process snapshot.
+A descriptor remains usable independently of the array that returned it, but its backing font
+file must still exist when first loaded.
+
 ## Choose fallback fonts
 
 [[Pixel.Font.resolveRune]] keeps a character in the primary face when it is covered, then

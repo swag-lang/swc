@@ -780,7 +780,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Ogl now supplies an EGL/XCB OpenGL 3.3 compatibility context owner matching Core window visuals.
   Three framebuffer/context/failure cases pass JIT/native under Xvfb with Mesa software rendering.
   Separate shared-library and companion-archive consumers render and read back pixels in both modes; the Ogl
-  API page passes its structural/link audit. Static composition remains tracked in .093.
+  API page passes its structural/link audit. Native artifact work remains tracked in .093.
   Core still has no mandatory GL/EGL dependency. Pixel/GUI integration and physical GPU validation
   remain open, as do GUI surfaces, cursor shapes and native Wayland.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
@@ -1217,11 +1217,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Companion archives retain only module-specific runtime hooks; the generic lookup alias is
   created when linking the shared object. Static transitive consumers pass with DevMode and
   Release compilers, and a Core/Ogl archive consumer renders and reads pixels in JIT/native.
-- Export identity remains unsafe for equal public names in distinct modules: a leaf and middle
-  module both exporting `value` cause the middle's foreign call to bind to its own `value` under
-  `-Bsymbolic`, producing direct recursion. Module-qualified ELF names and published import
-  metadata need one consistent identity; removing `-Bsymbolic` alone does not distinguish the calls.
-- Next: isolate public ELF symbol identities across modules, validate dynamic load/unload
+  Public ELF names include a lossless artifact identity, also emitted into generated Foreign
+  attributes. Two modules exporting `value` now retain distinct calls in shared and static
+  compositions; DevMode/Release consumers, the full C++ suite and a native Ogl importer pass.
+  Existing Linux libraries and their generated APIs must be rebuilt together for this ABI change.
+- Next: validate dynamic load/unload
   lifecycle, and finish PIC relocations, source-level
   DWARF and target-specific incremental caches. Preserve the working native executable and archive consumers.
 - Done when: Linux executables and shared libraries link and run a runtime/native workspace smoke,

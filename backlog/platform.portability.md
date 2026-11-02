@@ -596,10 +596,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.019 — A system face cannot load directly from file and face index
 
-- Evidence: `TypeFace.create(fullname, bytes)` already constructs a face from portable bytes, and
-  `TypeFace.load(fullname)` already reads a file, falling back to the system font directory. Neither
-  accepts a collection face index. Installed-family selection separately uses `createFromHfont`;
-  `TrueType.Face.loadAt` already supplies the lower-level indexed parser.
+- Evidence: `TypeFace.createAt(fullName, bytes, faceIndex)` and
+  `TypeFace.loadAt(fullName, faceIndex)` now select a zero-based collection face. Existing
+  `create`/`load` select index zero. Cache keys include both name and index; native and JIT
+  regressions cover distinct styles, repeated lookups, invalid indices, and copied-byte lifetime.
+  Installed-family selection still uses `createFromHfont`; it does not yet supply a portable
+  descriptor to these APIs.
 - Next: connect a portable installed-font descriptor's file and face index to `TypeFace`
   creation, keeping `createFromHfont` as an optional Windows adapter.
 - Done when: a system-family selection loads the requested collection face from its

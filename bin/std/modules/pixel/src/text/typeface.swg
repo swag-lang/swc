@@ -3,7 +3,7 @@ using Core, TrueType
 // Loaded font-face data used to create fonts and rasterize glyphs.
 //
 // Use [[Pixel.TypeFace.load]] for a font file or [[Pixel.TypeFace.create]] for
-// bytes already in memory. Returned pointers are shared by Pixel's process-wide
+// bytes already in memory. Their `At` variants select a face within a font collection. Returned pointers are shared by Pixel's process-wide
 // typeface cache and remain valid until module shutdown; never delete them.
 #[Swag.Opaque]
 public struct TypeFace
@@ -20,7 +20,18 @@ public struct TypeFace
     }
 }
 
-var g_HashTypeFace: HashTable'(String, *TypeFace)
+struct TypeFaceCacheKey
+{
+    name:  String
+    index: u32
+}
+
+impl Hash.IHash32 for TypeFaceCacheKey
+{
+    mtd const impl compute()->u32 => Hash.hash32(.name) ^ Hash.hash32(.index)
+}
+
+var g_HashTypeFace: HashTable'(TypeFaceCacheKey, *TypeFace)
 
 #drop
 {
@@ -85,11 +96,20 @@ public impl TypeFace
     //
     // The bytes are copied. `fullName` is both the cache identity and the fallback family name for a rendering-only
     // subset that legally omits standalone font metadata such as `name` and `post`.
-    func create(fullName: string, bytes: const [..] u8)->*TypeFace fail
+    func create(fullName: string, bytes: const [..] u8)->*TypeFace fail => try createAt(fullName, bytes, 0)
+
+    // Returns the shared typeface for one zero-based face in an in-memory font collection.
+    //
+    // The cache identity is the pair (`fullName`, `faceIndex`); repeated calls reuse that face.
+    // Bytes are copied on the first call. Index zero follows [[Pixel.TypeFace.create]], including
+    // its rendering-subset fallback name. Other indices require a collection; invalid indices
+    // fail without adding a cache entry. The returned pointer belongs to Pixel until shutdown.
+    func createAt(fullName: string, bytes: const [..] u8, faceIndex: u32)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        if let here = g_HashTypeFace.tryFind(fullName) do
+        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
+        if let here = g_HashTypeFace.tryFind(key) do
             return here.value
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
@@ -98,10 +118,10 @@ public impl TypeFace
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName
 
-        tf.face       = try Face.loadSubset(bytes, fullName, allocator)
+        tf.face       = faceIndex == 0 ? try Face.loadSubset(bytes, fullName, allocator) : try Face.loadAt(bytes, faceIndex, allocator)
         tf.faceLoaded = true
 
-        g_HashTypeFace.add(fullName, tf)
+        g_HashTypeFace.add(key, tf)
         return tf
     }
 
@@ -116,7 +136,7 @@ public impl TypeFace
         scope
         {
             Sync.scopedLock(&lock)
-            if g_HashTypeFace.tryFind(fullName) do
+            if g_HashTypeFace.tryFind(TypeFaceCacheKey{String.from(fullName), 0}) do
                 return true
         }
 
@@ -130,11 +150,19 @@ public impl TypeFace
     // `fullName` is a file path; when no such file exists, it is looked up in the system font
     // directory. The typeface is cached process-wide under `fullName`; never delete it. File and
     // parsing errors are reported through `fail`.
-    func load(fullName: string)->*TypeFace fail
+    func load(fullName: string)->*TypeFace fail => try loadAt(fullName, 0)
+
+    // Returns the shared typeface for one zero-based face of a font file or collection.
+    //
+    // Uses the same file lookup as [[Pixel.TypeFace.load]], with a separate cache entry for each
+    // (`fullName`, `faceIndex`) pair. A standalone font accepts only index zero. File, format and
+    // index errors fail without adding a cache entry. Never delete the returned pointer.
+    func loadAt(fullName: string, faceIndex: u32)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
-        if let here = g_HashTypeFace.tryFind(fullName) do
+        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
+        if let here = g_HashTypeFace.tryFind(key) do
             return here.value
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
@@ -158,10 +186,10 @@ public impl TypeFace
             buffer = try File.readAllBytes(fullName)
         }
 
-        tf.face       = try Face.load(buffer.toSlice(), allocator)
+        tf.face       = try Face.loadAt(buffer.toSlice(), faceIndex, allocator)
         tf.faceLoaded = true
 
-        g_HashTypeFace.add(fullName, tf)
+        g_HashTypeFace.add(key, tf)
         return tf
     }
 

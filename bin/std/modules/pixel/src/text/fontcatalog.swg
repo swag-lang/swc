@@ -105,6 +105,30 @@ public impl FontCatalog
         return count
     }
 
+    // Adds supported font files from a directory tree and returns the number of faces added.
+    //
+    // Searches `.ttf`, `.otf`, `.ttc`, and `.otc` files, ignoring extension case. Does not follow
+    // child directory symbolic links. Unreadable or malformed font files are skipped independently;
+    // use [[Pixel.FontCatalog.addFile]] when each file's failure must be reported. A directory
+    // enumeration failure leaves this catalog unchanged. Repeated paths add no duplicate faces.
+    mtd addDirectory(path: string)->u64 fail
+    {
+        let entries = try Directory.enumerate(path, {recurse: true, wantDirectories: false})
+        var added   = 0'u64
+        for &entry in entries
+        {
+            let extension = Path.lowercaseExtension(entry.fullName)
+            if extension != ".ttf" and
+               extension != ".otf" and
+               extension != ".ttc" and
+               extension != ".otc" do
+                continue
+            added += catch .addFile(entry.fullName) { continue }
+        }
+
+        return added
+    }
+
     // Removes all metadata and invalidates previously borrowed face pointers and slices.
     mtd clear() => .entries.clear()
 

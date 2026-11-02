@@ -36,6 +36,8 @@ matters more than automatic quality.
 It reads every face of a collection without loading glyphs, groups family names without case,
 and selects regular, bold, italic, light, or semibold by slant, width, and weight. File order does
 not affect selection. A rejected file leaves the existing catalog unchanged.
+Use [[Pixel.FontCatalog.addDirectory]] to search a directory tree; it skips malformed font
+files independently and reports directory enumeration failures.
 
 ```swag
 var catalog: Pixel.FontCatalog

@@ -11,9 +11,9 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the last complete C++ run passed 1,754 tests. The raw Linux module
+Current Linux validation: the default C++ suite passes 1,660 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
-core.so and passed 866 ordinary tests in JIT and native execution. Additional public boundary
+core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
 suites pass in JIT/native for memory (2), filesystem
 (8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
 (8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
@@ -1202,55 +1202,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
 - Related: platform.portability.001, platform.portability.092, platform.portability.093
 
-### platform.portability.092 — System V aggregate lowering and target activation are missing
+### platform.portability.092 — Activate the Linux host target by default
 
-- Evidence: the internal System V profile implements six integer/eight vector argument registers,
-  independent banks, callee-save rules, zero shadow space and variadic AL setup with explicit
-  liveness. Source-level C ellipses now pass individual ABI arguments with default numeric
-  promotions, including indirect calls and simultaneous integer/vector bank overflow. The
-  focused variadic source suite passes 106 tests in JIT and native ELF. Native C fixtures exercise mixed scalar banks, stack arguments, variadic floats and
-  indirect calls after physical-register DCE. Source attributes select the concrete profile
-  through C, resolved per compiler instance rather than the process-wide default. Windows remains the
-  default target while the Linux runtime is incomplete. The storage classifier and argument planner cover
-  mixed/nested records, unions, SIMD upper halves, unaligned fields and whole-argument bank
-  rollback. The packed-address call bridge now passes mixed/two-register/stack aggregates,
-  handles hidden memory results and variadic aggregate banks, and bounds partial eightbyte
-  reads/writes against guard pages. Prepared aggregate calls also preserve physical/virtual
-  sources before assigning mixed ABI lanes, including hidden memory results. Generated callees
-  receive register and stack aggregates without overwriting other incoming lanes, fill hidden
-  memory results and return mixed/two-register/partial/SIMD storage to native callers; liveness and machine-code
-  cache identity retain additional result registers. Runtime interface adapters translate Swag
-  arguments to the concrete host ABI and preserve its wider clobber set in the Swag frame.
-  Semantic type normalization now distinguishes by-value stack arguments from hidden-pointer
-  results and keeps prepared aggregate type handles stable through lowering. Source parameter
-  layout now uses the whole-argument planner, reserves hidden-pointer lanes and homes split
-  register/stack values before scalar captures. Native codegen fixtures cover those homes at
-  O0 and O2, including strings and later scalar lanes. Call expressions reserve caller-owned
-  result storage for split register returns and retain temporary ownership without adding
-  hidden arguments. Callees capture split results before cleanup, and ordinary AST function
-  visitors round-trip mixed/two-register/string/memory values at O0 and O2. Final emission uses
-  the function ABI, retains every result lane and fingerprints aggregate register classes.
-  A parsed deferred body can replace the source and publish a side effect while the captured
-  result stays intact at O0 and O2. Typed JIT invokers consume the host frame ABI and classify
-  register/stack arguments, hidden results and variadic vector counts; their cache stores full
-  aggregate shapes independently of semantic types and per-call addresses. Runtime setup/hooks
-  and one-argument evaluation entries use their Swag scalar ABI on the Linux host; the explicit
-  invocation boundary prevents GCC 14 from merging incompatible ABI calls. A native fixture
-  also checks that a Swag post-copy hook updates both System V result lanes without dropping
-  the borrowed argument at O0 and O2. Owned-local and temporary cleanup, end-to-end source
-  execution and over-aligned stack values still need validation or integration.
-- An explicit C-convention function receiving a `#[Swag.Align(32)]` aggregate by value
-  currently aborts in `ABICall.SystemV.cpp::reserveCallStorage`: the argument planner requests
-  32-byte alignment, but call storage only supports the ordinary 16-byte stack boundary.
-  Masking RSP in the existing instruction stream would invalidate the register allocator's
-  constant-depth spill offsets. Local storage alignment is a separate, shared codegen concern.
-- Next: implement aligned outgoing calls with stable spill addresses and correct unwind rules;
-  validate direct, indirect and foreign calls against native C/C++ fixtures, including live
-  values across calls and owned-local/temporary return cleanup. Complete Linux runtime lifecycle
-  and signal support.
-- Done when: generated Linux calls round-trip supported scalar and aggregate values through C,
-  preserve callee-save registers and stack alignment, and use the same ABI in JIT and native code.
-- Related: platform.portability.001, platform.portability.081
+- Evidence: Linux still defaults to the Windows target unless `--os linux` is supplied.
+  System V scalar, aggregate, variadic and indirect calls are implemented. Over-aligned
+  stack arguments now preserve live spills and native unwinding; source and foreign C
+  calls cover 32-, 64- and 128-byte alignment, hidden results and temporary ownership.
+- Next: select the host target by default, make Windows-only object/debug fixtures explicit,
+  and validate compiler startup, JIT/native execution and a Core consumer without `--os`.
+  Keep explicit target selection working independently of the host.
+- Done when: a Linux compiler produces and runs Linux programs without a target override,
+  and explicit Windows selection retains the existing cross-target semantic/object behavior.
+- Related: platform.portability.001, platform.portability.081, platform.portability.093
 
 ### platform.portability.093 — Linux native output needs module, PIC and debug integration
 

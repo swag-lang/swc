@@ -103,7 +103,7 @@ internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.Ch
     let root   = CoreTests.makeFilesystemTestPath("core_directory_watcher_recursive")
     let child  = Path.combine(root, "before")
     let nested = Path.combine(child, "nested")
-    expect Directory.create(nested)
+    expect Directory.create(nested, recurse: true)
     defer discard catch Directory.delete(root, recurse: true)
     var watcher = expect Directory.watch(root, {recurse: true})
     let first   = Path.combine(nested, "first")

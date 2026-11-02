@@ -13,10 +13,11 @@ The checked dependency layers and their path ownership are defined in
 
 Current Linux validation: the last complete C++ run passed 1,747 tests. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. Whole Core now builds
-core.so and compiles its test sources. Two public memory cases pass in JIT; the initial X11
-window/monitor/input cases pass in JIT/native, including an unavailable-display run. The remaining
-resource-owner, timer, process and sandbox suites are ready to execute. Older entry-level counts
-and missing-service blockers below record earlier checkpoints, not the current compilation state.
+core.so and compiles its test sources. Public suites pass in JIT/native for memory (2), filesystem
+(8), environment (3), hardware (1), native libraries (2), threads (3), timer lifecycle (2), processes
+(8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
+(31), and the initial X11 desktop (3, including an unavailable display). XDG malformed-input and
+empty-environment checks, plus common thread/timer context tests, are still being completed.
 Core API generation now succeeds: all 2,057 declarations and 374 exposed members have comments;
 Linux still lacks the referenced Debugger/openUrl surface, and the separate GUI API page is not
 built in this probe. Those three documentation references remain unresolved.
@@ -63,10 +64,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Validation: 15 raw Linux binding tests pass JIT/native, including native interface indices,
   linked-list layouts and affinity-buffer canaries. A separate importing module passes two tests
   in both modes, including the anonymous native address union, and its executable exits 37.
-  Whole-Core analysis has 30 remaining missing-service diagnostics; public Hardware/Thread
-  execution is still blocked, so these probes do not establish their complete contracts.
-- Next: run public CPU/address/identity tests with complete Core; finish the remaining memory,
-  display-adjacent and machine capability families.
+  The public hardware case and three thread lifecycle cases pass in JIT/native, including CPU
+  affinity count, hardware address shape and process/thread identity queries.
+- Next: finish the remaining memory, display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
 ### platform.portability.042 — Validate the Linux console backend
@@ -74,8 +74,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: Linux byte output retries interrupted/partial writes. Prompt reads through the first
   newline without consuming the next line. ANSI colors are restricted to a terminal with a
   nonempty TERM other than dumb, and changed colors are reset at module drop. Redirected output
-  receives no color escapes. These Core leaves pass semantic analysis, but the complete Core
-  module still has 41 missing-service diagnostics; public console execution remains unverified.
+  receives no color escapes. Whole Core compiles; public console execution remains unverified.
 - Next: run the common formatting layer against captured pipes and a pseudo-terminal, including
   UTF-8 bytes, long lines, EOF, interrupted I/O, color suppression and cleanup.
 - Done when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
@@ -119,11 +118,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   tests pass JIT/native; the last test also passes through a separately published/imported module.
   This covers layout, rumble union representation, rejected /dev/null ioctls and canaries, not
   successful hardware acquisition or motor behavior. No /dev/input or /dev/uinput is exposed.
-  Pure normalization and missing-index public tests are added but cannot execute while Core has
-  14 desktop/mouse/keyboard diagnostics; whole-Core semantic/test/doc checks confirm that block.
+  Public normalization and missing-index cases pass in JIT/native; real devices remain unavailable.
   Raw API HTML has no broken anchors/duplicate IDs; the existing errno synthetic-name finding remains.
-- Next: implement keyboard/mouse acquisition, unblock and execute public normalization/absence
-  tests, then validate real or uinput devices for connect/disconnect, permissions, calibration,
+- Next: validate real or uinput devices for connect/disconnect, permissions, calibration,
   optional controls, rumble replacement/stop/shutdown and focus loss. Keep normalized state and
   policy common.
 - Done when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
@@ -240,15 +237,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   exact empty/spaced/quoted/backslash/UTF-8 argv, explicit environment, child working directory,
   redirected output, direct spawn error codes, nonblocking wait, signal exit and single reaping.
   A separate module executes both process probes through the published opaque types/functions.
-  This does not validate the Core Process owner, duplex draining or timeout/drop behavior.
+  Public owner validation below additionally exercises duplex draining and timeout/drop behavior.
 - Process context: Linux currentEnvironment copies glibc's current environ table, preserving
   case and distinguishing snapshot mutation from process mutation. The table's address is
   resolved from the current image; its mutable contents remain caller-synchronized native data.
   currentExecutablePath reads /proc/self/exe with a growing buffer and retains Linux's deleted
   image spelling. Procfs failures propagate. The 22 raw tests pass JIT/native and an imported
   consumer, including truncated readlink without a terminator, image inode identity, missing
-  procfs links and environ/getenv agreement. The public snapshot/ownership test has not run;
-  whole-Core semantic/test/doc checks still report 17 missing-service diagnostics.
+  procfs links and environ/getenv agreement. The public snapshot/ownership case passes JIT/native.
 - Owner implemented: posix_spawnp receives owned argv/environment strings and native file actions
   for redirection/chdir. Pipe sources are normalized above fd 2; only parent endpoints are
   nonblocking, and all intermediate descriptors close on failure. Linux rejects raw native
@@ -267,12 +263,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   also passes through a separately published/imported Linux module and native consumer exit 37.
   Eight Linux public process tests cover context, argv/env/cwd/status, 256 KiB duplex I/O,
   timeout/kill, broken stdin, close/reaping, unsupported options and simultaneous output/error.
-  They have NOT executed: whole-Core test/doc still stops at 15 desktop/input diagnostics.
+  All eight public cases pass in JIT/native, including natural child reaping after close.
   Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
   Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
   audit finding remains. These checks do not prove the reaper's JIT/unload or native lifetime.
-- Next: unblock Core, execute its process tests, add unload/late-destructor and descriptor-leak
-  stress, exercise closed standard descriptors, continuous-output deadlines and descendant-held
+- Next: add unload/late-destructor and descriptor-leak stress, exercise closed standard descriptors, continuous-output deadlines and descendant-held
   pipes, and run Windows process regressions. Do not mark lifecycle conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
@@ -298,18 +293,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   from readdir errors. Raw statx layout/canary and no-follow enumeration tests pass in JIT/native;
   a separate consumer verifies the exported nested struct layout through a real native call.
   Recursive deletion now inspects the requested root before enumerating it, including trailing
-  separator and '/.' spellings. Linux symlinks and Windows junctions have regression cases, but
-  these public Core cases remain pending; Windows execution is not available on this host.
+  separator and '/.' spellings. Linux symlink-root cases pass through the public API in JIT/native;
+  the Windows junction regression still needs a Windows host.
   File opening now maps all creation modes to openat, creates with 0666 filtered by umask,
   sets close-on-exec atomically unless inheritance is requested, retries interrupted open/stat,
   and closes failed directory handles. Create/Truncate reject read-only access before opening;
   Append is an initial seek, so subsequent explicit seeks retain their effect.
   Sixteen raw tests pass JIT/native, including exclusive creation preserving existing content,
   close-on-exec/inheritable flags and truncation observed through an existing descriptor.
-  Whole-Core analysis reports 29 missing-service diagnostics, none in the filesystem/error
-  leaves. Public opening tests cover all modes, preservation on failed opens, inheritance flags,
-  append seeks, directory rejection, concurrent handles and unlink-while-open, but remain blocked.
-  This does not establish public filesystem conformance.
+  Eight public file/directory/stream tests and two mapping cases pass in JIT/native. They cover
+  opening modes, preservation on failed opens, inheritance flags, append seeks, directory rejection,
+  concurrent handles, unlink-while-open, root links and owned mappings. Partial/interrupted I/O,
+  permissions and broader common conformance still need dedicated execution.
 - Linux sharing contract: this port adopts documented POSIX sharing. Read/Write/Delete/Zero
   impose no Windows-style exclusion; Inheritable controls exec inheritance. The public FileShare,
   open and openWrite documentation states this explicitly. No advisory lock is presented as a
@@ -328,19 +323,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   invalidation, unmount and events overlapping an unresolved moved path report Overflow then
   Cancelled; native failures cancel and propagate. Recreate after terminal overflow before
   rescanning. Recursive traversal races may fail the stream rather than silently omit paths.
-  Whole-Core semantic/test/doc commands now report 17 remaining process/desktop/input diagnostics.
-  Ten public integration tests cover cancellation, repeated close, timeout continuity, filtering,
-  recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal and
-  link exclusion, but have not executed. Kernel-overflow stress and Windows comparison remain.
-- Next: run the common watcher/filesystem/stream/mapping tests, including root-link
-  deletion and the sharing/opening contract, with the complete Core module.
+  Ten public integration cases pass JIT/native for cancellation, repeated close, timeout continuity,
+  filtering, recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal
+  and link exclusion. Recursive fixture setup now explicitly requests parent creation.
+- Next: exercise kernel-overflow stress, interrupted/partial I/O and permissions, run the remaining
+  common filesystem/stream/mapping cases, and compare Windows ownership behavior.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Finish the Linux thread lifecycle backend
 
 - Evidence: Linux sleep uses an absolute CLOCK_MONOTONIC deadline and retries EINTR without
   extending it; yield uses sched_yield. Raw bindings pass JIT/native lower-bound timing and
-  invalid-timespec tests. Core Thread.sleep/yield tests await the remaining Core host services.
+  invalid-timespec tests. Public Linux thread lifecycle tests now execute through complete Core.
 - Progress: the pthread backend creates a gated thread, publishes its kernel TID before init
   returns, starts once, joins, probes completion with pthread_tryjoin_np, and keeps its original
   allocator until the owner closes it. A successful nonblocking join is remembered so wait
@@ -351,12 +345,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   needs an explicit contract and permission/failure tests.
 - Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
   identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
-  Core thread lifecycle tests cover reuse, failed init, completion probes and wait-many, but are
-  blocked by 34 remaining whole-Core missing-service diagnostics. These raw tests do not prove
-  Core's allocator/context ownership or the new common failure cleanup; Windows execution is
-  also unavailable here.
-- Next: run the public lifecycle, context and timing tests with complete Core, exercise start
-  failures and the batching boundary, and decide whether to extend Linux priority support.
+  Three public Core thread cases pass in JIT/native, covering reuse, priority-init failure cleanup,
+  completion probes, wait-many and sleep/yield. Context-isolation and additional failure/lifetime
+  stress remain; Windows execution is unavailable here.
+- Next: run the common context tests, exercise start failures and the batching boundary,
+  and decide whether to extend Linux priority support.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 
@@ -365,9 +358,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: Linux monotonic ticks use clock_gettime with nanosecond frequency. UTC/local calendar
   fields use reentrant glibc conversions, preserving milliseconds and historical zone offsets.
   Raw clock tests execute in JIT with UTC and native ELF with America/New_York, including negative
-  epochs, leap days, summer/winter offsets and post-2038 dates. Core calendar and stopwatch tests
-  still need the remaining Core host services; a Linux absolute-deadline sleep leaf is now present.
-- Next: run the public DateTime, Timestamp, stopwatch and elapsed-time tests on Linux.
+  epochs, leap days, summer/winter offsets and post-2038 dates. All 31 public DateTime, Timestamp,
+  stopwatch and time cases pass in JIT/native. Linux also supplies absolute-deadline sleep.
+- Next: exercise public local-calendar conversions under changed time zones and across a DST
+  transition; the raw conversion checks alone do not validate that public boundary.
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
@@ -377,14 +371,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   period coalescing, cancellation wakeup and join-before-free. Linux supplies pthread creation
   and join; Windows supplies CreateThread and wait/close. The original allocator is retained
   until the worker has stopped, and callback context isolation remains common.
-- Validation: whole-Core Linux analysis reports 32 remaining missing-service diagnostics and none
-  in the timer implementation. Public tests cover cancellation before a long first deadline,
-  serialized periodic callbacks, waiting for an active callback and repeated release; they are
-  blocked by those missing services and have not executed. Windows-target analysis on Linux
-  stops at the existing refusal to JIT-load target Windows log/logf; native Windows execution
-  is unavailable. The 14 raw Linux binding tests establish pthread mechanisms, not Core timers.
-- Next: execute the common timer, callback-context and lifecycle tests on both hosts after the
-  remaining Core services are available.
+- Validation: both public lifecycle cases pass in JIT/native, covering cancellation before a long
+  first deadline, serialized periodic callbacks, waiting for an active callback and repeated release.
+  Windows-target analysis stops at the refusal to JIT-load target Windows log/logf; native Windows
+  execution is unavailable.
+- Next: execute common one-shot/periodic and callback-context tests, then validate the Windows leaf.
 - Related: platform.portability.036, platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
@@ -399,9 +390,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Sandboxed queries retain the common per-kind scratch-directory redirection.
 - Validation: 17 raw Linux tests pass JIT/native, including passwd layout/canaries, caller-owned
   string storage and ERANGE. A separate importing module passes the same user-database call in
-  both modes and its real executable exits 37. Public path/configuration/sandbox tests are added
-  but blocked by 28 whole-Core missing-service diagnostics, so the XDG parser and owner-level
-  path behavior have not executed yet.
+  both modes and its real executable exits 37. Public path/configuration/sandbox tests are
+  ready to execute with complete Core.
 - Next: run the public environment/path and sandbox tests with complete Core; finish environment
   enumeration/mutation, locale and desktop actions, with explicit unsupported outcomes.
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
@@ -424,10 +414,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   parent without following that final link; writes and traversal through parent links still fail.
   Shared tests distinguish Windows delete-sharing exclusion from POSIX open-descriptor lifetime.
 - Validation: 18 raw binding tests pass JIT/native, including realpath allocation/free, a link
-  followed by '..' and ELOOP. Whole-Core analysis reports 21 unrelated missing-service diagnostics.
-  Public tests for argv matching, case, root containment, invalid paths, escaped writes/deletes
-  and safe link removal are added but have not executed; native Windows validation is unavailable.
-- Next: run public sandbox, startup, filesystem and root-link deletion suites with complete Core.
+  followed by '..' and ELOOP. Public tests for argv matching, case, root containment, invalid paths,
+  escaped writes/deletes and safe link removal pass in the public Linux integration case in
+  JIT/native; native Windows validation is unavailable.
+- Next: validate sandbox startup in separate processes before module/user code, then run the
+  remaining common sandbox and filesystem conformance cases.
   The guards protect Core's operations; they are not an OS security boundary for arbitrary native
   calls and do not make path checks and subsequent mutations atomic against concurrent renames.
 - Related: platform.portability.038, platform.portability.010
@@ -443,41 +434,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   watching, process launch and evdev gamepads are also implemented. Initial X11 desktop, mouse
   and keyboard leaves now unblock whole-Core linking and public test compilation.
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
-  secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
-  native-library and stopwatch tests still need the missing host services.
-- Generated equality repair: generic instances and tagged unions now mark their synthetic
-  equality source just like ordinary structs. Their private regenerated comparisons no longer
-  become public library symbols with colliding names. A two-instance shared-library consumer
-  fails to link before the fix and passes JIT/native after it; the native-library export
-  regression now includes generic instances, and all 1,747 C++ tests pass. This also allows
-  the complete Linux core.so to link, exposing the previously blocked public test sources.
-- Callback call repair: a function-valued field no longer retries a rejected call with its
-  containing object inserted as an implicit receiver. The XCB cleanup path exposed a nullable
-  deferred argument reported as a false zero-argument signature. The diagnostic now names the
-  actual nullable argument. Negative callback/arity fixtures, three function-value JIT/native
-  cases, eight UFCS cases, the signal-owner case and their existing negative fixtures pass;
-  the full C++ campaign remains at 1,747 passing tests.
-- Compiler repair exposed by the XCB loader: typed expression results no longer unwrap a
-  returned function signature merely because error handling copied the original call arguments.
-  A function returned through try/expect/catch previously became its own result type (including
-  void), breaking valid callback variables. The permanent two-case fixture fails on the previous
-  compiler and passes JIT/native after the fix; all 1,747 C++ tests pass. The parser's catch-else
-  help now distinguishes expression handler blocks from statement-only do handlers.
-- Further compiler repair: a single forward type now waits for declaration admission before
-  lookup publishes it; layout can still remain unfinished for recursive types. The evdev port
-  exposed a pre-existing KeyboardStateNative reference whose only declaration was in an inactive
-  Windows file. That reference silently poisoned its owner and sometimes produced an internal
-  job failure. A three-file #run-false fixture now reports the missing source name on DevMode
-  and Release. The new permanent C++ regression and all 1,747 C++ tests pass; recursive/global
-  semantic fixtures and expected ambiguity checks pass, as does the existing conditional-homonym
-  fixture in Release JIT/native. This reveals a real missing Linux keyboard backend, not a new
-  backend implementation.
-- Compiler repair: named-type lookup now waits for conditional homonyms before diagnosing
-  ambiguity, while one unfinished type still supports recursive declarations. The watcher port
-  exposed a disabled Windows private struct competing with its Linux counterpart before the
-  file condition finished. A permanent cross-file #run-condition fixture fails on the old binary
-  and passes JIT/native with DevMode and Release compilers. Focused recursive/global semantic
-  inputs and expected ambiguity diagnostics pass; the full C++ campaign passes 1,746 tests.
+  secure clearing, dynamic loading and clocks in JIT and native ELF. Core's public memory,
+  filesystem, thread and initial desktop tests execute; other service suites are being validated.
 - Next: complete the remaining Core host services and execute the public resource-owner suites.
   Validate gamepad state/vibration and discovery on an input-enabled host. Select headless/no-sound backends only where
   their contracts permit them; do not treat absent declarations or success stubs as a backend.
@@ -510,8 +468,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   API change: callers passing a command-line string must pass a vector or explicitly choose
   StartInfo.nativeArguments for Windows. No shell is inserted implicitly.
 - Validation: raw Linux spawn probes preserve exact argv in JIT/native and an imported consumer.
-  Whole-Core test/doc compilation remains blocked by 15 Linux service diagnostics. Windows
-  semantic/test compilation on this Linux host stops at the known foreign log/logf imports.
+  Whole-Core test/doc compilation succeeds. Windows semantic/test compilation on this Linux host
+  stops at the known foreign log/logf imports.
   The public argument-validation tests, native Windows quoting path and application consumers
   still need execution with a complete Core backend; formatting is not their runtime validation.
 - Next: execute public Linux child roundtrips and focused
@@ -524,7 +482,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Progress: Process.supportsResourceMeasurement reports true on Windows, false on Linux. Linux
   rejects StartInfo.measureResources with ENOTSUP before launch; unmeasured resources remain zero.
-  Public capability/error tests await the complete Core backend.
+  The public Linux capability/rejection case passes in JIT/native.
 - Next: preserve the stronger resource contract deliberately. Windows Job Objects account a process
   tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
   the capability is unavailable rather than silently measuring only the first child.
@@ -583,9 +541,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 - Evidence: `crypto/security.win32.swg` calls the foreign `RtlZeroMemory` routine. The Linux
   leaf uses glibc explicit_bzero; raw tests verify zeroed bytes and surrounding canaries in
-  JIT and native ELF. Core's crypto tests remain blocked by its other missing host services.
-- Next: run the public Linux crypto tests, including empty buffers and getentropy chunk boundaries,
-  and inspect optimized secureClear calls to establish the no-elide guarantee end to end.
+  JIT and native ELF. Five public crypto cases pass JIT/native, including empty buffers,
+  getentropy chunk boundaries, canaries and clearing.
+- Next: inspect optimized secureClear calls to establish the no-elide guarantee end to end.
 - Related: platform.portability.075
 - Done when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
 
@@ -597,8 +555,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   so descendant-held pipes cannot make waiting for the direct child wait for EOF. Windows and
   Linux supply spawn, wait/status, stream operations and native lifetime/reaping.
   Linux writes service captured output during pipe backpressure; Windows input writes remain
-  blocking and need the equivalent duplex behavior. Public lifecycle execution is now pending
-  after the initial X11 leaves unblocked whole-Core compilation.
+  blocking and need the equivalent duplex behavior. Eight public Linux lifecycle cases pass
+  JIT/native, including duplex stdin and simultaneous stdout/stderr output beyond pipe capacity.
 - Evidence: the process value, environment map, recorded-status accessors, and convenience
   `startProcess`/`runProcess` overloads already live in common `process.swg`.
 - Next: finish sharing redirection preparation/rollback policy where native ownership permits,
@@ -903,8 +861,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   leaves only create/join a thread. The public contract states that distinct timers may run
   concurrently while a single timer never overlaps its own callbacks; this replaces the former
   Windows timer-queue behavior that allowed overlap.
-- Validation remains open: common timer and context tests cannot execute until Linux Core's
-  remaining services compile, and native Windows validation is unavailable in this environment.
+- Two public lifecycle cases pass in Linux JIT/native for cancellation and active callback release.
+  Common one-shot/periodic and context tests remain; native Windows validation is unavailable.
 - Next: run the same one-shot, periodic, cancellation, context-isolation and active-release tests
   on both hosts, and assess the dedicated-thread cost for consumers creating many timers.
 - Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and

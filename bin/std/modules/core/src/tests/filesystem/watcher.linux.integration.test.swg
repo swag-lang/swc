@@ -98,7 +98,7 @@
     let root    = CoreTests.makeFilesystemTestPath("core_watcher_move_parent")
     let child   = Path.combine(root, "child")
     let outside = CoreTests.makeFilesystemTestPath("core_watcher_move_parent_outside")
-    expect Directory.create(child)
+    expect Directory.create(child, recurse: true)
     defer discard catch Directory.delete(root, recurse: true)
     defer discard catch File.delete(outside)
     let original = Path.combine(child, "original")

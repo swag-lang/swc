@@ -189,9 +189,9 @@ func createDirectoryJunction(link, target: string)->bool
     let link = Path.combine(root, "link")
     for suffix in ["", "/", "/./"]
     {
-        if not createDirectoryJunction(link, target) do
-            return
-        let requested = String.from(link) + suffix
+        Swag.assert(createDirectoryJunction(link, target))
+        var requested = String.from(link)
+        requested.append(suffix)
         expect Directory.delete(requested, recurse: true)
         Swag.assert(not Directory.exists(link))
         Swag.assert(Directory.exists(target) and File.exists(marker))

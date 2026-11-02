@@ -482,6 +482,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.assert(first.label == equal.label)
     Swag.assert(first == equal)
     Swag.assert(Wrapper{first} == Wrapper{equal})
+    Swag.assert([first] == [equal])
     Swag.assert(first != Item{String.from("other text"), 7})
     Swag.assert(first != Item{String.from("same text"), 8})
     Swag.assert(Item{String{}, 0} == Item{String.from(""), 0})

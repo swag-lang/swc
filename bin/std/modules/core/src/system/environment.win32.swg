@@ -587,6 +587,12 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             EndPaint(hWnd, &ps)
             return 0
 
+        case WM_SETFOCUS, WM_KILLFOCUS:
+            let onFocus = window.callbacks.onFocus
+            if onFocus do
+                onFocus(safeWindow, msg == WM_SETFOCUS)
+            return 0
+
         case WM_SIZE:
             let onResize = window.callbacks.onResize
             if onResize do

@@ -7,6 +7,12 @@ alias WindowPaintCallback = func||(*Window)
 // Handles a window resize and receives the new client size in physical pixels.
 alias WindowResizeCallback = func||(*Window, s32, s32)
 
+// Handles native keyboard-focus gain (`true`) or loss (`false`) for a window.
+//
+// Runs during platform event dispatch on the window-owning thread. The callback may close
+// its window; the dispatcher does not access the owner after returning from this callback.
+alias WindowFocusCallback = func||(*Window, bool)
+
 // Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 struct WindowCallbacks
 {
@@ -14,6 +20,7 @@ struct WindowCallbacks
     {
         onPaint:  WindowPaintCallback?      // Invoked for a paint request.
         onResize: WindowResizeCallback?     // Invoked with the new client size in physical pixels.
+        onFocus:  WindowFocusCallback?      // Invoked when native keyboard focus is gained or lost.
     }
 }
 

@@ -495,6 +495,16 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
 }
 
+#premain
+{
+    if not (Swag.runtimeFlags() & .FromCompiler)
+    {
+        let str = getNativeArgs()
+        if str.count do
+            Swag.processInfo().args = str
+    }
+}
+
 var g_StoreArgs: String
 
 func getNativeArgs()->string

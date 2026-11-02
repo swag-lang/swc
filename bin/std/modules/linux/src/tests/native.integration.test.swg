@@ -332,3 +332,43 @@ alias UnaryDouble = func(f64)->f64
     let retained = fstat(source, &info)
     Swag.assert(retained == 0 and info.st_nlink == 0 and info.st_size == 3)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var start: timespec
+    let sampled = clock_gettime(CLOCK_MONOTONIC, &start)
+    Swag.assert(sampled == 0)
+    var deadline = start
+    deadline.tv_nsec += 2_000_000
+    if deadline.tv_nsec >= 1_000_000_000
+    {
+        deadline.tv_nsec -= 1_000_000_000
+        deadline.tv_sec  += 1
+    }
+
+    for
+    {
+        let error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, null)
+        if error == EINTR do
+            continue
+        Swag.assert(error == 0)
+        break
+    }
+
+    var finish: timespec
+    let measured = clock_gettime(CLOCK_MONOTONIC, &finish)
+    Swag.assert(measured == 0)
+    Swag.assert(finish.tv_sec > deadline.tv_sec or finish.tv_sec == deadline.tv_sec and finish.tv_nsec >= deadline.tv_nsec)
+    let invalid = timespec{tv_nsec: 1_000_000_000}
+    let error   = clock_nanosleep(CLOCK_MONOTONIC, 0, &invalid, null)
+    Swag.assert(error == EINVAL)
+    let yielded = sched_yield()
+    Swag.assert(yielded == 0)
+    let terminal      = isatty(-1)
+    let terminalError = errno()
+    Swag.assert(terminal == 0 and terminalError == EBADF)
+    let emptyName = getenv("".buffer)
+    Swag.assert(emptyName == null)
+    Swag.assert(getpid() > 0)
+}

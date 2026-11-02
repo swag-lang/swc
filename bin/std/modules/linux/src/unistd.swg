@@ -9,6 +9,8 @@ const SEEK_END = 2's32
 {
     func getentropy(buffer: *void, length: u64)->s32
     func getpagesize()->s32
+    func isatty(fd: s32)->s32
+    func getpid()->s32
     func getcwd(buf: [*] u8?, size: u64)->[*] u8?
     func chdir(path: const [*] u8)->s32
     func unlinkat(dirfd: s32, pathname: const [*] u8, flags: s32)->s32

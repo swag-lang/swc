@@ -153,13 +153,3 @@ enum SystemMetric
     DesktopWidth      // Width of the virtual desktop.
     DesktopHeight     // Height of the virtual desktop.
 }
-
-#premain
-{
-    if not (Swag.runtimeFlags() & .FromCompiler)
-    {
-        let str = getNativeArgs()
-        if str.count do
-            Swag.processInfo().args = str
-    }
-}

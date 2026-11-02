@@ -48,10 +48,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   currently provided only by Windows.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
-### platform.portability.042 — Console I/O has no second-platform backend
+### platform.portability.042 — Validate the Linux console backend
 
-- Next: implement terminal encoding, capability, color, prompt, and byte output for the chosen
-  second platform behind the existing common formatting layer.
+- Evidence: Linux byte output retries interrupted/partial writes. Prompt reads through the first
+  newline without consuming the next line. ANSI colors are restricted to a terminal with a
+  nonempty TERM other than dumb, and changed colors are reset at module drop. Redirected output
+  receives no color escapes. These Core leaves pass semantic analysis, but the complete Core
+  module still has 41 missing-service diagnostics; public console execution remains unverified.
+- Next: run the common formatting layer against captured pipes and a pseudo-terminal, including
+  UTF-8 bytes, long lines, EOF, interrupted I/O, color suppression and cleanup.
 - Done when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
 
 ### platform.portability.043 — Stack capture has no second-platform backend
@@ -207,11 +212,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   absolute path construction now have native leaves. Paths reject embedded zero bytes and
   preserve dot components so a symbolic link followed by '..' keeps filesystem semantics.
   File removal, same-filesystem replacement and modification-time updates also have leaves;
-  touch preserves access time, and cross-filesystem moves report EXDEV. Eleven raw tests pass
+  touch preserves access time, and cross-filesystem moves report EXDEV. Raw filesystem tests pass
   in JIT/native ELF, including symlinks, Linux-only filename characters, errno, replacement
   identity, timestamps and open-descriptor lifetime after unlink.
   Core owner tests are present but cannot execute until the remaining host services compile;
-  whole-Core analysis still reports 48 missing-service diagnostics, none in the new filesystem
+  whole-Core analysis still reports 41 missing-service diagnostics, none in the new filesystem
   or error leaves. This does not establish public filesystem conformance.
 - Open decision: FileShare currently promises Windows-style read/write/delete exclusion.
   POSIX open does not supply that contract; flock is advisory and cannot represent every
@@ -221,10 +226,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and run common filesystem/stream/mapping ownership tests with the complete Core module.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
-### platform.portability.034 — Threads have no second-platform backend
+### platform.portability.034 — Finish the Linux thread lifecycle backend
 
-- Next: implement thread creation, start, join, yield, sleep, identity, and priority for the chosen
-  second platform without copying common lifecycle policy into the native leaf.
+- Evidence: Linux sleep uses an absolute CLOCK_MONOTONIC deadline and retries EINTR without
+  extending it; yield uses sched_yield. Raw bindings pass JIT/native lower-bound timing and
+  invalid-timespec tests. Core Thread.sleep/yield tests await the remaining Core host services.
+- Next: implement thread creation, start, join, identity and priority without copying common
+  lifecycle policy into the native leaf, then run the public ownership and timing tests.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 
@@ -234,7 +242,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   fields use reentrant glibc conversions, preserving milliseconds and historical zone offsets.
   Raw clock tests execute in JIT with UTC and native ELF with America/New_York, including negative
   epochs, leap days, summer/winter offsets and post-2038 dates. Core calendar and stopwatch tests
-  still need the remaining Core host services, including thread sleep.
+  still need the remaining Core host services; a Linux absolute-deadline sleep leaf is now present.
 - Next: run the public DateTime, Timestamp, stopwatch and elapsed-time tests on Linux.
 - Related: platform.portability.037
 - Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
@@ -289,7 +297,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: ELF startup passes argc/argv into `ProcessInfo.arguments` before runtime setup.
   Native executable probes preserve empty values, spaces, quotes, trailing backslashes, tabs
   and UTF-8. Shared-module consumers compare the full argument vector with their provider,
-  including after relocating a published executable/library pair.
+  including after relocating a published executable/library pair. Core's command-line string
+  fallback now lives entirely in the Windows leaf; Linux retains the runtime's original argv.
 - Next: validate argument lifetime through dynamic module unload. Retain the Windows
   command-line path.
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
@@ -675,7 +684,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.010 — Early argument lookup retains a Windows command-line fallback
 
-- Evidence: `Env.findRunArgument` already searches `Swag.args()` first, including compile-time test
+- Evidence: Core's premain command-line string fallback is confined to environment.win32.swg.
+  `Env.findRunArgument` already searches `Swag.args()` first, including compile-time test
   execution. Native sandbox initialization can precede argument-vector population, so it then parses
   `GetCommandLineA` in `sandbox.win32.swg`.
 - Next: make the runtime argument vector available before native module initialization, then

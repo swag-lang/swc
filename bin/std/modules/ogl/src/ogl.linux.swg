@@ -10,9 +10,15 @@ internal func getExtensionAddress(name: const [*]u8)->const *void? => Linux.eglG
 
 namespace Platform.Xcb
 {
-    private var g_Display:     Linux.EGLDisplay
-    private var g_Connection:  *void?
-    private var g_Screen:      s32
+    private struct DisplayOwner
+    {
+        display:    Linux.EGLDisplay
+        connection: *void?
+        screen:     s32
+        contexts:   u32
+    }
+
+    private var g_Displays:    Array'DisplayOwner
     private var g_DisplayLock: Swag.Mutex
 
     private func check(result: Linux.EGLBoolean, operation: string) fail
@@ -31,26 +37,30 @@ namespace Platform.Xcb
         return false
     }
 
-    private func displayFor(drawable: Env.XcbDrawable)->Linux.EGLDisplay fail
+    private func displayFor(connection: *void?, screen: s32, offscreen: bool)->Linux.EGLDisplay fail
     {
         g_DisplayLock.lock()
         defer g_DisplayLock.unlock()
-        if g_Display
+        for &owner in g_Displays where owner.connection == connection and owner.screen == screen
         {
-            if g_Connection != drawable.connection or g_Screen != drawable.screen do
-                fail Errors.BadParameterError{"EGL display belongs to another XCB connection or screen"}
-            return g_Display
+            owner.contexts += 1
+            return owner.display
         }
 
-        if not hasExtension(null, "EGL_EXT_platform_base") or not hasExtension(null, "EGL_EXT_platform_xcb") do
-            fail Swag.SystemError{"EGL needs EXT_platform_base and EXT_platform_xcb"}
+        if not hasExtension(null, "EGL_EXT_platform_base") do
+            fail Swag.SystemError{"EGL needs EXT_platform_base"}
+        let extension = offscreen ? "EGL_MESA_platform_surfaceless" : "EGL_EXT_platform_xcb"
+        if not hasExtension(null, extension) do
+            fail Swag.SystemError{extension}
         let getDisplay = cast(Linux.eglGetPlatformDisplayEXT_fn?, Linux.eglGetProcAddress("eglGetPlatformDisplayEXT".buffer))
         if not getDisplay do
             fail Swag.SystemError{"EGL has no eglGetPlatformDisplayEXT entry point"}
-        let attributes: [3]s32 = [Linux.EGL_PLATFORM_XCB_SCREEN_EXT, drawable.screen, Linux.EGL_NONE]
-        let display = getDisplay(Linux.EGL_PLATFORM_XCB_EXT, drawable.connection, &attributes[0])
+        let attributes: [3]s32 = [Linux.EGL_PLATFORM_XCB_SCREEN_EXT, screen, Linux.EGL_NONE]
+        let display = getDisplay(offscreen ? Linux.EGL_PLATFORM_SURFACELESS_MESA : Linux.EGL_PLATFORM_XCB_EXT,
+                                 connection,
+                                 offscreen ? null : &attributes[0])
         if not display do
-            fail Swag.SystemError{"cannot obtain an EGL display for the XCB connection"}
+            fail Swag.SystemError{"cannot obtain the requested EGL display"}
         var major, minor: s32
         try check(Linux.eglInitialize(display, &major, &minor), "eglInitialize")
         defer #fail discard Linux.eglTerminate(display)
@@ -58,29 +68,58 @@ namespace Platform.Xcb
             fail Swag.SystemError{"OpenGL contexts need EGL 1.4 or later"}
         if not hasExtension(display, "EGL_KHR_create_context") and major == 1 and minor < 5 do
             fail Swag.SystemError{"OpenGL 3.3 contexts need EGL_KHR_create_context or EGL 1.5"}
-        g_Connection = drawable.connection
-        g_Screen     = drawable.screen
-        g_Display    = display
+        g_Displays.add({display, connection, screen, 1})
         return display
     }
 
-    // Owns an EGL OpenGL 3.3 compatibility context and an XCB window surface.
+    private func releaseDisplay(display: Linux.EGLDisplay)
+    {
+        g_DisplayLock.lock()
+        defer g_DisplayLock.unlock()
+        for &owner, index in g_Displays where owner.display == display
+        {
+            Swag.assert(owner.contexts != 0)
+            owner.contexts -= 1
+            if owner.contexts == 0
+            {
+                discard Linux.eglTerminate(display)
+                g_Displays.removeAt(index)
+            }
+
+            return
+        }
+    }
+
+    private func createPbuffer(display: Linux.EGLDisplay, config: Linux.EGLConfig, width, height: s32)->Linux.EGLSurface fail
+    {
+        if width <= 0 or height <= 0 do
+            fail Errors.BadParameterError{"EGL pbuffer dimensions must be positive"}
+        let attributes: [5]s32 = [Linux.EGL_WIDTH, width, Linux.EGL_HEIGHT, height, Linux.EGL_NONE]
+        let result = Linux.eglCreatePbufferSurface(display, config, &attributes[0])
+        try check(result != null ? 1 : 0, "eglCreatePbufferSurface")
+        return result
+    }
+
+    // Owns an EGL OpenGL 3.3 compatibility context and its initial window surface or pbuffer.
     //
     // The initial window is borrowed until its surface is destroyed or transferred. Create, use and destroy
     // the context on its creating thread. Multiple owners have independent OpenGL objects.
     // Extra surfaces from this context share its objects and must be destroyed before it.
-    // Destroy every owner before unloading Ogl; the shared EGL display is retained until then.
+    // The EGL display is retained until its final context is destroyed. Destroy all window
+    // contexts before disconnecting their borrowed XCB connection.
     #[Swag.NoCopy, Swag.Opaque]
     public struct Context
     {
-        display: Linux.EGLDisplay
-        surface: Linux.EGLSurface
-        context: Linux.EGLContext
-        thread:  s32
-        config:  Linux.EGLConfig
+        display:    Linux.EGLDisplay
+        surface:    Linux.EGLSurface
+        context:    Linux.EGLContext
+        thread:     s32
+        config:     Linux.EGLConfig
+        connection: *void?
+        screen:     s32
     }
 
-    // Owns one XCB window surface and borrows its OpenGL context.
+    // Owns one EGL window surface or pbuffer and borrows its OpenGL context.
     //
     // Destroy this surface before its window and context. Create, bind, present and destroy it
     // on the context's creating thread. Several surfaces may use the same context in turn.
@@ -128,8 +167,10 @@ namespace Platform.Xcb
         if not drawable.connection or drawable.window == 0 or drawable.visual == 0 do
             fail Errors.BadParameterError{"an EGL context needs a valid XCB drawable"}
         var result: #returntype
-        result.display = try displayFor(drawable)
-        result.thread  = Linux.gettid()
+        result.display    = try displayFor(drawable.connection, drawable.screen, false)
+        result.connection = drawable.connection
+        result.screen     = drawable.screen
+        result.thread     = Linux.gettid()
         defer #fail result.destroy()
         let attributes: [15]s32 = [Linux.EGL_SURFACE_TYPE, Linux.EGL_WINDOW_BIT,
                                    Linux.EGL_RENDERABLE_TYPE, Linux.EGL_OPENGL_BIT,
@@ -208,9 +249,23 @@ namespace Platform.Xcb
             Swag.assert(.thread == Linux.gettid(), "EGL contexts stay on their creating thread")
             if not drawable.connection or drawable.window == 0 or drawable.visual == 0 do
                 fail Errors.BadParameterError{"an EGL surface needs a valid XCB drawable"}
-            if (try displayFor(drawable)) != .display do
+            if .connection != drawable.connection or .screen != drawable.screen do
                 fail Errors.BadParameterError{"drawable belongs to another EGL display"}
             let surface = try createWindowSurface(.display, .config, drawable)
+            return {.display, surface, .context, .thread}
+        }
+
+        // Creates an offscreen pbuffer on this context's existing EGL display and configuration.
+        //
+        // It shares this context's OpenGL objects, and must be destroyed before the context.
+        // No native window is needed. Fails if the configuration does not support pbuffers.
+        // Creation preserves the current binding; makeCurrent selects the returned surface.
+        mtd createPbufferSurface(width, height: s32)->Surface fail
+        {
+            if not .isValid() do
+                fail Errors.BadParameterError{"cannot create a pbuffer for a closed EGL context"}
+            Swag.assert(.thread == Linux.gettid(), "EGL contexts stay on their creating thread")
+            let surface = try createPbuffer(.display, .config, width, height)
             return {.display, surface, .context, .thread}
         }
 
@@ -257,6 +312,7 @@ namespace Platform.Xcb
                 discard Linux.eglDestroyContext(.display, .context)
             if .surface do
                 discard Linux.eglDestroySurface(.display, .surface)
+            releaseDisplay(.display)
             Swag.init(me, 1)
         }
     }
@@ -325,9 +381,55 @@ namespace Platform.Xcb
 
     #drop
     {
-        if g_Display do
-            discard Linux.eglTerminate(g_Display)
-        g_Display    = null
-        g_Connection = null
+        for owner in g_Displays do
+            discard Linux.eglTerminate(owner.display)
+        g_Displays.clear()
+    }
+}
+
+namespace Platform.Egl
+{
+    // EGL context owner; the Xcb spelling remains available for existing window consumers.
+    public alias Context = Ogl.Platform.Xcb.Context
+
+    // EGL surface owner, used for a native window or an offscreen pbuffer.
+    public alias Surface = Ogl.Platform.Xcb.Surface
+
+    // Creates an OpenGL pbuffer without opening an X11 connection or a visible window.
+    //
+    // Requires EGL_EXT_platform_base, EGL_MESA_platform_surfaceless and OpenGL 3.3
+    // compatibility support. RGB8, alpha8 and stencil8 are required. Makes the context
+    // current on its creating thread; failure preserves the previous context. The display
+    // remains initialized until its final context is destroyed. Call [[Ogl.glInitExtensions]]
+    // before using post-1.1 entry points. There is no software-renderer substitution.
+    public func createOffscreenContext(width, height: s32)->Context fail
+    {
+        if width <= 0 or height <= 0 do
+            fail Errors.BadParameterError{"EGL pbuffer dimensions must be positive"}
+        var result: #returntype
+        result.display = try Ogl.Platform.Xcb.displayFor(null, -1, true)
+        result.thread  = Linux.gettid()
+        result.screen  = -1
+        defer #fail result.destroy()
+        let attributes: [15]s32 = [Linux.EGL_SURFACE_TYPE, Linux.EGL_PBUFFER_BIT,
+                                   Linux.EGL_RENDERABLE_TYPE, Linux.EGL_OPENGL_BIT,
+                                   Linux.EGL_RED_SIZE, 8, Linux.EGL_GREEN_SIZE, 8,
+                                   Linux.EGL_BLUE_SIZE, 8, Linux.EGL_ALPHA_SIZE, 8,
+                                   Linux.EGL_STENCIL_SIZE, 8, Linux.EGL_NONE]
+        var count: s32
+        try Ogl.Platform.Xcb.check(Linux.eglChooseConfig(result.display, &attributes[0], &result.config, 1, &count), "eglChooseConfig")
+        if count == 0 do
+            fail Swag.SystemError{"EGL has no offscreen OpenGL configuration with RGB8, alpha8 and stencil8"}
+        result.surface = try Ogl.Platform.Xcb.createPbuffer(result.display, result.config, width, height)
+        let previousApi = Linux.eglQueryAPI()
+        try Ogl.Platform.Xcb.check(Linux.eglBindAPI(Linux.EGL_OPENGL_API), "eglBindAPI")
+        defer #fail discard Linux.eglBindAPI(previousApi)
+        let contextAttributes: [7]s32 = [Linux.EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+                                         Linux.EGL_CONTEXT_MINOR_VERSION_KHR, 3, Linux.EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+                                         Linux.EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR, Linux.EGL_NONE]
+        result.context = Linux.eglCreateContext(result.display, result.config, null, &contextAttributes[0])
+        try Ogl.Platform.Xcb.check(result.context != null ? 1 : 0, "eglCreateContext")
+        try result.makeCurrent()
+        return result
     }
 }

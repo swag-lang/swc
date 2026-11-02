@@ -15,7 +15,11 @@ libGL.so.1, libEGL.so.1 and EGL_EXT_platform_xcb. Linux renderers can use `Conte
 `Context.createSurface` to own several window surfaces independently while sharing one context.
 Each surface must be destroyed before its window and before the context. A drawable borrowed
 on the UI thread can be passed to `createContextForDrawable` on the rendering thread.
-Native Wayland and headless contexts are not provided.
+For offscreen GPU rendering, `Ogl.Platform.Egl.createOffscreenContext` creates an EGL pbuffer
+without an X11 connection. It requires EGL_MESA_platform_surfaceless. `Platform.Egl.Context`
+and `Surface` alias the existing EGL owners in `Platform.Xcb`; `Context.createPbufferSurface`
+creates another pbuffer on the same display, including a compatible window context's display.
+No CPU fallback is selected. Native Wayland contexts are not provided.
 */
 
 #import("core")

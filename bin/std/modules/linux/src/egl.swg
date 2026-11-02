@@ -18,6 +18,10 @@ const EGL_READ = 0x305A's32
 const EGL_NONE                            = 0x3038's32
 const EGL_EXTENSIONS                      = 0x3055's32
 const EGL_SURFACE_TYPE                    = 0x3033's32
+const EGL_PBUFFER_BIT                     = 0x0001's32
+const EGL_WIDTH                           = 0x3057's32
+const EGL_HEIGHT                          = 0x3056's32
+const EGL_PLATFORM_SURFACELESS_MESA       = 0x31DD'u32
 const EGL_WINDOW_BIT                      = 0x0004's32
 const EGL_RENDERABLE_TYPE                 = 0x3040's32
 const EGL_OPENGL_BIT                      = 0x0008's32
@@ -51,6 +55,7 @@ alias eglCreatePlatformWindowSurfaceEXT_fn = func(EGLDisplay, EGLConfig, *void?,
     func eglQueryAPI()->EGLenum
     func eglChooseConfig(display: EGLDisplay, attributes: const *EGLint?, configs: *EGLConfig?, size: EGLint, count: *EGLint)->EGLBoolean
     func eglGetConfigAttrib(display: EGLDisplay, config: EGLConfig, attribute: EGLint, value: *EGLint)->EGLBoolean
+    func eglCreatePbufferSurface(display: EGLDisplay, config: EGLConfig, attributes: const *EGLint?)->EGLSurface
     func eglCreateContext(display: EGLDisplay, config: EGLConfig, shared: EGLContext, attributes: const *EGLint?)->EGLContext
     func eglDestroyContext(display: EGLDisplay, context: EGLContext)->EGLBoolean
     func eglDestroySurface(display: EGLDisplay, surface: EGLSurface)->EGLBoolean

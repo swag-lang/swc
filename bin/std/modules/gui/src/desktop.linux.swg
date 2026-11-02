@@ -439,9 +439,11 @@ internal struct Preferences
 
 internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Preferences fail
 {
-    var result = fallback
-    var source = ByteStream.openRead(bytes)
-    let order  = try source.readNative'u8()
+    var result     = fallback
+    var themeLight = fallback.prefersLight
+    var preferDark = false
+    var source     = ByteStream.openRead(bytes)
+    let order      = try source.readNative'u8()
     if order > 1 do
         fail Errors.InvalidFormatError{"invalid XSETTINGS byte order"}
     source.advance(3)
@@ -464,6 +466,8 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
         if count > source.remainingBytes().count do
             fail Errors.InvalidFormatError{"truncated XSETTINGS string"}
         let result = String.from(Swag.makeString(source.remainingBytes().buffer, count))
+        if not Utf8.isValid(result.toString()) do
+            fail Errors.InvalidFormatError{"invalid UTF-8 in XSETTINGS string"}
         source.advance(count)
         return result
     }
@@ -487,7 +491,7 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
             if name == "Gtk/EnableAnimations" do
                 result.reducedMotion = value == 0
             elif name == "Gtk/ApplicationPreferDarkTheme" do
-                result.prefersLight = value == 0
+                preferDark = value != 0
             elif name == "Xft/DPI" and value >= 48 * 1024 and value <= 768 * 1024 do
                 result.scale = cast(f32, value) / (96 * 1024)
 
@@ -495,7 +499,7 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
             let value = try stringBytes(&source, try read32(&source, order))
             try padding(&source)
             if name == "Net/ThemeName" do
-                result.prefersLight = not value.toLower().contains("dark")
+                themeLight = not value.toLower().contains("dark")
 
         case 2:
             discard try source.readNative'u64()
@@ -505,6 +509,7 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
         }
     }
 
+    result.prefersLight = themeLight and not preferDark
     return result
 }
 

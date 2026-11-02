@@ -8,9 +8,6 @@ internal impl NativeRenderOgl
 {
     mtd createWindowContext(renderHandle: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
-        if not renderHandle do
-            fail Errors.BadParameterError{"OpenGL context needs an XCB drawable"}
-        let drawable = cast(const *Env.XcbDrawable, renderHandle)[]
         var context: *Ogl.Platform.Xcb.Context
         if mainRC do
             context = cast #unconst (*Ogl.Platform.Xcb.Context, mainRC)
@@ -20,13 +17,26 @@ internal impl NativeRenderOgl
             Memory.delete(context)
         let surface = Memory.new'Ogl.Platform.Xcb.Surface()
         defer #fail Memory.delete(surface)
-        if mainRC
+        if renderHandle
         {
-            surface[] = try context.createSurface(drawable)
+            let drawable = cast(const *Env.XcbDrawable, renderHandle)[]
+            if mainRC
+            {
+                surface[] = try context.createSurface(drawable)
+            }
+            else
+            {
+                context[] = try Ogl.Platform.Xcb.createContextForDrawable(drawable)
+                surface[] = try context.takeSurface()
+            }
+        }
+        elif mainRC
+        {
+            surface[] = try context.createPbufferSurface(width, height)
         }
         else
         {
-            context[] = try Ogl.Platform.Xcb.createContextForDrawable(drawable)
+            context[] = try Ogl.Platform.Egl.createOffscreenContext(width, height)
             surface[] = try context.takeSurface()
         }
 

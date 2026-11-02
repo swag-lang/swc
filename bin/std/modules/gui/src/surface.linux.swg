@@ -37,7 +37,7 @@ internal func postLinuxSurfaceCommand(surface: *Surface, kind: SysCommandEvent.K
 
 impl Surface
 {
-    internal func createNative(_: *Application, result: *Surface, x, y, width, height: s32, _: SurfaceFlags) fail
+    internal func createNative(app: *Application, result: *Surface, x, y, width, height: s32, _: SurfaceFlags) fail
     {
         if width <= 0 or
            width > 65535 or
@@ -145,6 +145,25 @@ impl Surface
         try LinuxDesktop.property(context, id, 67, 31, 8, cast(u32, className.count), className.buffer)
         let process = cast(u32, Env.Process.currentProcessId())
         try LinuxDesktop.property(context, id, try LinuxDesktop.atom(context, "_NET_WM_PID"), 6, 32, 1, &process)
+        if app.appIcon.isValid()
+        {
+            var icons: Array'u32
+            for size in [32, 64]
+            {
+                let icon = app.appIcon.resized(size, size, .Bilinear)
+                icons.add(cast(u32, size))
+                icons.add(cast(u32, size))
+                for row in size do
+                    for column in size do
+                        icons.add(icon.pixelColor(column, row).argb)
+            }
+
+            try LinuxDesktop.property(context, id, try LinuxDesktop.atom(context, "_NET_WM_ICON"), 6, 32, cast(u32, icons.count), icons.buffer)
+        }
+
+        let owner = app.mainSurface
+        if owner and owner.windowId != 0 do
+            try LinuxDesktop.property(context, id, 68, 33, 32, 1, &owner.windowId)
         result.position = {x, y, physicalWidth, physicalHeight}
         result.dpiScale = scale
         result.applyNativeSurfaceFlags()

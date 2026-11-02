@@ -41,6 +41,27 @@ using Core, Pixel
     Swag.assert(bytes[3] == expected.a and expected.a == 255)
     Linux.free(image)
 
+    let capturePath = Env.variable("SWAG_GUI_NATIVE_CAPTURE")
+    if not capturePath.isEmpty()
+    {
+        let snapshot = context.xcb_get_image_reply(connection,
+                                                   context.xcb_get_image(connection,
+                                                                         2,
+                                                                         drawable.window,
+                                                                         0,
+                                                                         0,
+                                                                         cast(u16, surface.rc.width),
+                                                                         cast(u16, surface.rc.height),
+                                                                         0xFFFFFFFF),
+                                                   null)
+        Swag.assert(snapshot != null)
+        defer Linux.free(snapshot)
+        var saved = Image.create(surface.rc.width, surface.rc.height, .BGRA8)
+        Swag.assert(cast(u64, context.xcb_get_image_data_length(snapshot)) == saved.byteCount)
+        Memory.copy(unwrap saved.pixels.buffer, context.xcb_get_image_data(snapshot), saved.byteCount)
+        expect saved.save(capturePath.toString())
+    }
+
     var message: u64
     surface.wnd.view.hookOnEvent = func|&message|(_, event)->bool
     {
@@ -86,5 +107,80 @@ using Core, Pixel
     Swag.assert(app.surfaces.count == 1 and not app.mustQuit)
     surface.destroy()
     app.runFrame()
+    app.runFrame()
     Swag.assert(app.surfaces.isEmpty() and app.mustQuit)
+}
+
+struct NativeInputProbe
+{
+    pressed, released, extra, wheel, shiftA, controlA, characters: u32
+    character: rune
+}
+
+// Actual queued X11 input preserves a click completed between GUI frames and modifier text.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.assert(Env.variable("SWAG_TEST_ISOLATED_X11") == "1")
+    var app: Application
+    app.setMotionPreference(.Reduced)
+    let surface = expect app.createSurface(60, 50, 320, 240, surfaceId: "linux-native-input")
+    surface.show()
+    for 4 do
+        app.runFrame()
+    var probe: NativeInputProbe
+    surface.wnd.view.hookOnEvent = func|&probe|(_, event)->bool
+    {
+        if event is MouseEvent as mouse
+        {
+            if mouse.kind == .Pressed and mouse.button == .Left do
+                probe.pressed += 1
+            elif mouse.kind == .Released and mouse.button == .Left do
+                probe.released += 1
+            elif mouse.kind == .Pressed and mouse.button == .XButton1 do
+                probe.extra += 1
+            elif mouse.kind == .Wheel do
+                probe.wheel += 1
+        }
+        elif event is KeyEvent as key
+        {
+            if key.kind == .Pressed and key.key == .A and key.modifiers.has(.Shift)
+            {
+                probe.shiftA += 1
+            }
+            elif key.kind == .Pressed and key.key == .A and key.modifiers.has(.Control)
+            {
+                probe.controlA += 1
+            }
+            elif key.kind == .Character
+            {
+                probe.characters += 1
+                probe.character  = key.character
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    defer surface.wnd.view.hookOnEvent = null
+    let script = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/input.x11.peer.py")
+    let id     = Format.toString("%", surface.windowId)
+    var peer   = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), id.toString()],
+                                                       standardOutput: .Pipe, standardError: .Pipe})
+    defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
+    let deadline = Time.monotonicMilliseconds() + 3000
+    while peer.isRunning() and Time.monotonicMilliseconds() < deadline
+    {
+        app.runFrame()
+        discard expect peer.tryWaitForExit(5'ms)
+    }
+
+    for 8 do
+        app.runFrame()
+    Swag.assert(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
+    Swag.assert(probe.pressed == 1 and probe.released == 1 and probe.extra == 1 and probe.wheel == 1)
+    Swag.assert(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
+                Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
 }

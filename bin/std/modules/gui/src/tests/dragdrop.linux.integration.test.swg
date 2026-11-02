@@ -88,7 +88,7 @@ func stopXdndPeer(peer: *Env.Process)
             if peer.standardOutput() == "ready\n" do
                 break
             Swag.assert(peer.isRunning() and Time.monotonicMilliseconds() < deadline, peer.standardError())
-            Threading.Thread.sleep(Time.Duration.fromMilliseconds(5))
+            discard expect peer.tryWaitForExit(5'ms)
         }
 
         var data: DragData

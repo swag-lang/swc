@@ -372,6 +372,7 @@ impl Application
                     }
                     elif message.data[0] == expect LinuxDesktop.atom(context, "_NET_WM_PING")
                     {
+                        message.window = context.screen.root
                         expect LinuxDesktop.check(context,
                                                   context.xcb_send_event_checked(connection,
                                                                                  0,

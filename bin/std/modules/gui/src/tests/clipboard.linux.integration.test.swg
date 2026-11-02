@@ -24,7 +24,7 @@ func startSelectionPeer(mode: string)->Env.Process
             Swag.assert(false, "independent X11 peer did not become ready")
         }
 
-        Threading.Thread.sleep(Time.Duration.fromMilliseconds(5))
+        discard expect peer.tryWaitForExit(5'ms)
     }
 }
 
@@ -34,13 +34,19 @@ func stopSelectionPeer(peer: *Env.Process)
     discard catch peer.waitForExit()
 }
 
+func waitSelectionPeer(peer: *Env.Process, milliseconds: s32)
+{
+    let finished = expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(milliseconds))
+    Swag.assert(finished, peer.standardError())
+}
+
 func readSelectionPeer(mode: string)
 {
     let path = selectionPeerPath()
     var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [path.toString(), mode],
                                                      standardOutput: .Pipe, standardError: .Pipe})
     defer stopSelectionPeer(&peer)
-    Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(8000)))
+    waitSelectionPeer(&peer, 8000)
     Swag.assert(peer.exitCode() == 0, peer.standardError())
     Swag.assert(peer.standardOutput() == "ok\n")
 }
@@ -90,7 +96,7 @@ func readSelectionPeer(mode: string)
 
         // Claiming one format retains another owner's unrelated format.
         Clipboard.addString("native-é")
-        Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
+        waitSelectionPeer(&peer, 3000)
         Swag.assert(peer.exitCode() == 0)
         Swag.assert(Clipboard.getString() == "native-é")
         let retained = Clipboard.getTypedData(format, null)
@@ -107,7 +113,7 @@ func readSelectionPeer(mode: string)
         for byte in copied.toString() do
             Swag.assert(byte == 'q')
         Clipboard.clear()
-        Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
+        waitSelectionPeer(&peer, 3000)
         Swag.assert(peer.exitCode() == 0)
     }
 
@@ -120,7 +126,7 @@ func readSelectionPeer(mode: string)
         let elapsed = Time.monotonicMilliseconds() - started
         Swag.assert(elapsed >= 3000 and elapsed < 7500)
         Clipboard.clear()
-        Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
+        waitSelectionPeer(&peer, 3000)
     }
 
     for mode in ["offer-oversize", "offer-invalid-utf8"]
@@ -131,7 +137,7 @@ func readSelectionPeer(mode: string)
         Swag.assert(Clipboard.getString().isEmpty())
         Swag.assert(Time.monotonicMilliseconds() - started < 2000)
         Clipboard.clear()
-        Swag.assert(expect peer.tryWaitForExit(Time.Duration.fromMilliseconds(3000)))
+        waitSelectionPeer(&peer, 3000)
     }
 
     Clipboard.setString("native-é")

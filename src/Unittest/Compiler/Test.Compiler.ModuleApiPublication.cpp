@@ -115,7 +115,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
 )"));
         // No #main: semantic checking must not attempt to link the selected leaf.
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "use.swg", "#run { Swag.assert(Provider.answer() == 42) }\n"));
-        std::vector<Utf8> arguments = {"sema", "--os", K_HOST_OS_ARGUMENT, "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        std::vector<Utf8> arguments = {"sema", "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
         if (filtered)
         {
             arguments.emplace_back("--workspace-module");

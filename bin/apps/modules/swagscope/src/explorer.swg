@@ -96,7 +96,7 @@ struct Explorer
         header:      *Wnd
         summary:     *Label
         tools:       *StackLayoutCtrl
-        address:     *ExplorerAddress
+        address:     *PathBar
         title:       *Label
         status:      *Label
         extractAll:  *IconButton
@@ -368,11 +368,14 @@ impl Explorer
             .sigPressed        += func|view = me|(_) { view.showArtworkMenu() }
         }
 
-        with .address = ExplorerAddress.create(line, me)
+        with .address = PathBar.create(.header, "scope.explorer.address")
         {
-            .dockStyle       = .Center
-            .position.width  = 220
-            .position.height = ToolHeight
+            .dockStyle              = .Top
+            .position.height        = ToolHeight
+            .sigNavigate            += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
+            .sigSubmitted           += func|explorer = me|(_, path) { explorer.navigateTyped(path) }
+            .sigEditFinished        += func|explorer = me|(_) { explorer.focusContent() }
+            .breadcrumb.sigFillMenu += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
         }
 
         with .title = Label.create(line, "", {}, null, .Ellipsis)
@@ -391,7 +394,7 @@ impl Explorer
         .filter.setFocus()
     }
 
-    // The header gives the address, title and tools one shared line, with a summary below if needed.
+    // The full address has its own line; the title and tools share the line below it.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -415,14 +418,13 @@ impl Explorer
         let line  = unwrap .tools.parent
         let gap   = metrics.infoSheet_BlockGap
         let space = line.clientRect().width
+        let titleFullWidth = Math.ceil(.title.itf.measureContent({}).x)
         .title.show(not album)
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
-        let compact      = space < 900
-        let veryCompact  = space < 500
-        var addressWidth = veryCompact ? (album ? 80 : 72) :
-                           (compact ? (album ? 120 : 96) : Math.min(180, space * 0.2))
+        let compact     = space < 900
+        let veryCompact = space < 500
         .filter.position.width = veryCompact ? 48 : (compact ? 72 : ViewerWindow.SearchFieldWidth)
         .tools.spacing         = veryCompact ? 0 : (compact ? 4 : 8)
         .sortMenu.setQuietText(compact ? "" : .sortName())
@@ -432,14 +434,11 @@ impl Explorer
         .artworkMenu.setQuietText(compact ? "" :
                                   (.artworkSource == .Online ? appStrings().artwork_OnlineShort : appStrings().artwork_LocalShort))
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + addressWidth + gap + MinTitleFontSize > space
+        if .status.isLocallyVisible() and width + titleFullWidth + gap > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
-
-        if width + addressWidth + gap > space do
-            addressWidth = Math.max(space - width - gap, 0)
 
         // Counts and failures move under the title instead of disappearing when space is tight.
         let summary = .listing.isArchive and
@@ -448,24 +447,22 @@ impl Explorer
                       .status.text().count != 0
         .summary.setText(summary ? .status.text() : "")
         .summary.show(summary)
-        var height = album ? ToolHeight + gap : HeaderHeight
+        var height = (album ? ToolHeight + gap : HeaderHeight) + ToolHeight
         if summary do
             height += SummaryHeight
         .header.position.height = height
-        .address.dockStyle      = .None
+        .address.dockStyle      = .Top
         .title.dockStyle        = .None
         .tools.dockStyle        = .None
 
         .applyLayout()
-        let bounds         = line.clientRect()
-        let titleFullWidth = Painter.measureString(.title.text(), .theme().createDefaultFont(TitleFontSize, .Bold)).width
-        let titleWidth     = album ? 0 : Math.min(titleFullWidth,
-                                                  Math.min(200, Math.max(bounds.width - addressWidth - width - 2 * gap, 0)))
+        let bounds     = line.clientRect()
+        let titleWidth = album ? 0 : Math.min(titleFullWidth,
+                                              Math.max(bounds.width - width - gap, 0))
         .title.setPosition({bounds.x, bounds.y, titleWidth, bounds.height})
-        let addressX = bounds.x + titleWidth + (titleWidth > 0 ? gap : 0)
-        .address.setPosition({addressX, Math.max(bounds.bottom() - ToolHeight, 0), addressWidth, ToolHeight})
         .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
         .tools.computeLayout()
+        .address.refreshPath()
     }
 
     // Shows the listing presentation and, for thumbnails, their organization in one menu.
@@ -1189,12 +1186,9 @@ impl Explorer
             path = parent
         }
 
-        // The breadcrumb names the levels above the page; the page's own name is its title.
-        let skipLast = not .listing.isArchive or .folder.isEmpty()
-        for ancestor, rank in ancestors.reversed()
+        // Include the current folder so the address names the complete location on its own.
+        for ancestor in ancestors.reversed()
         {
-            if skipLast and rank + 1 == ancestors.count do
-                break
             let full = ancestor.toString()
             let name = Path.fileName(full) orelse full
             breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
@@ -1203,8 +1197,7 @@ impl Explorer
         if .listing.isArchive
         {
             var begin: u64
-            let last = .folder.length ? .folder.length - 1 : 0
-            for offset in .folder.length where .folder[offset] == '/'u8 and offset != last
+            for offset in .folder.length where .folder[offset] == '/'u8
             {
                 breadcrumb.addItem(.folder.toString()[begin until offset],
                                    tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
@@ -1212,7 +1205,7 @@ impl Explorer
             }
         }
 
-        breadcrumb.toolTip = .locationText()
+        .address.setText(.locationText())
         .address.refreshPath()
         .title.setText(.locationName())
         .window.refreshTitle()

@@ -4259,19 +4259,19 @@ void X64Encoder::encodeAlignedCallReg(const MicroReg reg, const CallConvKind cal
     SWC_ASSERT(stack.alignment > conv.stackAlignment && std::has_single_bit(stack.alignment));
     SWC_ASSERT(stack.copySize % sizeof(uint64_t) == 0);
 
-    // Save the target before either scratch register is reused. The destination can overlap
-    // the source, so copy forwards into the lower aligned address before saving the old RSP.
+    // Save the target before either scratch register is reused. Reserve the lower aligned
+    // stack before writing it: memory below RSP need not survive an interrupt on every ABI.
+    // The destination can overlap the source, so copy forwards before saving the old RSP.
     encodeLoadMemReg(sp, stack.copySize + sizeof(uint64_t), reg, MicroOpBits::B64);
     encodeLoadRegReg(base, sp, MicroOpBits::B64);
-    encodeOpBinaryRegImm(base, ApInt(~(static_cast<uint64_t>(stack.alignment) - 1), 64), MicroOp::And, MicroOpBits::B64);
+    encodeOpBinaryRegImm(sp, ApInt(~(static_cast<uint64_t>(stack.alignment) - 1), 64), MicroOp::And, MicroOpBits::B64);
     for (uint32_t offset = 0; offset < stack.copySize; offset += sizeof(uint64_t))
     {
-        encodeLoadRegMem(scratch, sp, offset, MicroOpBits::B64);
-        encodeLoadMemReg(base, offset, scratch, MicroOpBits::B64);
+        encodeLoadRegMem(scratch, base, offset, MicroOpBits::B64);
+        encodeLoadMemReg(sp, offset, scratch, MicroOpBits::B64);
     }
-    encodeLoadMemReg(base, stack.copySize, sp, MicroOpBits::B64);
-    encodeLoadRegMem(scratch, sp, stack.copySize + sizeof(uint64_t), MicroOpBits::B64);
-    encodeLoadRegReg(sp, base, MicroOpBits::B64);
+    encodeLoadMemReg(sp, stack.copySize, base, MicroOpBits::B64);
+    encodeLoadRegMem(scratch, base, stack.copySize + sizeof(uint64_t), MicroOpBits::B64);
     encodeCallReg(scratch, callConv);
     encodeLoadRegMem(sp, sp, stack.copySize, MicroOpBits::B64);
 }

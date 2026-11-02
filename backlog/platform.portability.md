@@ -12,7 +12,7 @@ The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
 Current Linux validation: the last complete C++ run passed 1,746 tests. The raw Linux module
-passes 19 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
+passes 21 tests in JIT and native ELF. Whole-Core compilation still reports 17 missing-service
 diagnostics (process launch, windows/monitors and input); Core ownership, timer and
 sandbox tests remain blocked. Entry-level counts below record earlier checkpoints where stated.
 
@@ -209,6 +209,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.032 — Process services have no second-platform backend
 
+- Native groundwork: glibc spawn attributes/file actions and signal-set layouts, posix_spawn(p),
+  waitpid/status macros and kill are now bound. The 21 raw Linux tests pass in JIT/native, including
+  exact empty/spaced/quoted/backslash/UTF-8 argv, explicit environment, child working directory,
+  redirected output, direct spawn error codes, nonblocking wait, signal exit and single reaping.
+  A separate module executes both process probes through the published opaque types/functions.
+  This does not validate the Core Process owner, duplex draining or timeout/drop behavior.
+- Lifecycle constraint: the current public close releases handles without waiting or terminating
+  the child. A Linux implementation must preserve deliberate child ownership/reaping and code
+  lifetime; do not silently introduce zombie leaks, kill-on-close or an untracked JIT callback.
 - Next: add process creation, waiting, termination, pipes, exit status, and resource semantics for
   the chosen second platform. The common-policy extraction is tracked separately in
   platform.portability.008 and platform.portability.009.

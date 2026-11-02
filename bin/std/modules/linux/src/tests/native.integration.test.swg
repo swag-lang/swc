@@ -712,3 +712,135 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let ignored = read(notification, guarded.bytes.buffer, guarded.bytes.count)
     Swag.assert(ignored == 16 and event.mask == IN_IGNORED and event.wd == wd and event.len == 0)
 }
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var guardedActions:    { before: u64, value: posix_spawn_file_actions_t, after: u64 }
+    var guardedAttributes: { before: u64, value: posix_spawnattr_t, after: u64 }
+    guardedActions.before    = 0x123456789ABCDEF0
+    guardedActions.after     = 0xFEDCBA9876543210
+    guardedAttributes.before = guardedActions.before
+    guardedAttributes.after  = guardedActions.after
+    let actionsInitialized = posix_spawn_file_actions_init(&guardedActions.value)
+    Swag.assert(actionsInitialized == 0)
+    defer discard posix_spawn_file_actions_destroy(&guardedActions.value)
+    let attributesInitialized = posix_spawnattr_init(&guardedAttributes.value)
+    Swag.assert(attributesInitialized == 0)
+    defer discard posix_spawnattr_destroy(&guardedAttributes.value)
+    var mask, defaults: sigset_t
+    let emptyMask     = sigemptyset(&mask)
+    let emptyDefaults = sigemptyset(&defaults)
+    let defaultPipe   = sigaddset(&defaults, SIGPIPE)
+    Swag.assert(emptyMask == 0 and emptyDefaults == 0 and defaultPipe == 0)
+    let masked  = posix_spawnattr_setsigmask(&guardedAttributes.value, &mask)
+    let reset   = posix_spawnattr_setsigdefault(&guardedAttributes.value, &defaults)
+    let flagged = posix_spawnattr_setflags(&guardedAttributes.value, POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF)
+    Swag.assert(masked == 0 and reset == 0 and flagged == 0)
+    var descriptors: [2] s32
+    let piped = pipe2(descriptors.buffer, O_CLOEXEC)
+    Swag.assert(piped == 0)
+    defer discard close(descriptors[0])
+    defer if descriptors[1] >= 0 do
+        discard close(descriptors[1])
+    let redirected       = posix_spawn_file_actions_adddup2(&guardedActions.value, descriptors[1], 1)
+    let closedRead       = posix_spawn_file_actions_addclose(&guardedActions.value, descriptors[0])
+    let closedWrite      = posix_spawn_file_actions_addclose(&guardedActions.value, descriptors[1])
+    let changedDirectory = posix_spawn_file_actions_addchdir_np(&guardedActions.value, "/".buffer)
+    let openedInput      = posix_spawn_file_actions_addopen(&guardedActions.value, 0, "/dev/null".buffer, O_RDONLY, 0)
+    Swag.assert(redirected == 0 and
+                closedRead == 0 and
+                closedWrite == 0 and
+                changedDirectory == 0 and
+                openedInput == 0)
+    let arguments = ["sh", "-c", "printf '<%s>' \"$@\"; printf '<%s>' \"$SWAG_PROCESS_NATIVE\"; pwd; exit 37", "probe", "", "a b", "a\"b", "tail\\", "é"]
+    var argv: [10] ([*] u8?)
+    for argument, index in arguments do
+        argv[index] = cast #unconst ([*] u8, argument.buffer)
+    var envp: [2] ([*] u8?)
+    envp[0] = cast #unconst ([*] u8, "SWAG_PROCESS_NATIVE=value".buffer)
+    var child: s32
+    let spawned = posix_spawn(&child, "/bin/sh".buffer, &guardedActions.value, &guardedAttributes.value, argv.buffer, envp.buffer)
+    Swag.assert(spawned == 0 and child > 0)
+    defer if child > 0
+    {
+        discard kill(child, SIGKILL)
+        while waitpid(child, null, 0) < 0 and errno() == EINTR {}
+    }
+
+    let closed = close(descriptors[1])
+    descriptors[1] = -1
+    Swag.assert(closed == 0)
+    var buffer: [128] u8
+    var count = 0'u64
+    for
+    {
+        let received = read(descriptors[0], buffer.buffer + count, buffer.count - count)
+        if received == 0 do
+            break
+        if received < 0 and errno() == EINTR do
+            continue
+        Swag.assert(received > 0)
+        count += cast(u64, received)
+        Swag.assert(count < buffer.count)
+    }
+
+    var status: s32
+    var waited: s32
+    for
+    {
+        waited = waitpid(child, &status, 0)
+        if waited >= 0 or errno() != EINTR do
+            break
+    }
+
+    let expectedChild = child
+    if waited == child do
+        child = 0
+    Swag.assert(waited == expectedChild and WIFEXITED(status) and WEXITSTATUS(status) == 37)
+    Swag.assert(not WIFSIGNALED(status))
+    Swag.assert(cast(string, buffer[until count]) == "<><a b><a\"b><tail\\><é><value>/\n")
+    Swag.assert(guardedActions.before == 0x123456789ABCDEF0 and guardedActions.after == 0xFEDCBA9876543210)
+    Swag.assert(guardedAttributes.before == 0x123456789ABCDEF0 and guardedAttributes.after == 0xFEDCBA9876543210)
+    let missing = posix_spawnp(null, "/swag-process-does-not-exist".buffer, null, null, argv.buffer, envp.buffer)
+    Swag.assert(missing == ENOENT)
+}
+
+#[Swag.TestTag("integration.native")]
+#test
+{
+    var argv: [3] ([*] u8?)
+    argv[0] = cast #unconst ([*] u8, "sleep".buffer)
+    argv[1] = cast #unconst ([*] u8, "30".buffer)
+    var envp:  [1] ([*] u8?)
+    var child: s32
+    let spawned = posix_spawnp(&child, "/bin/sleep".buffer, null, null, argv.buffer, envp.buffer)
+    Swag.assert(spawned == 0 and child > 0)
+    defer if child > 0
+    {
+        discard kill(child, SIGKILL)
+        while waitpid(child, null, 0) < 0 and errno() == EINTR {}
+    }
+
+    var status: s32
+    let pending = waitpid(child, &status, WNOHANG)
+    Swag.assert(pending == 0)
+    let killed = kill(child, SIGKILL)
+    Swag.assert(killed == 0)
+    var waited: s32
+    for
+    {
+        waited = waitpid(child, &status, 0)
+        if waited >= 0 or errno() != EINTR do
+            break
+    }
+
+    let expectedChild = child
+    if waited == child do
+        child = 0
+    Swag.assert(waited == expectedChild and WIFSIGNALED(status) and WTERMSIG(status) == SIGKILL)
+    Swag.assert(not WIFEXITED(status))
+    let reapedAgain = waitpid(expectedChild, &status, WNOHANG)
+    let reapError   = errno()
+    Swag.assert(reapedAgain == -1 and reapError == ECHILD)
+}

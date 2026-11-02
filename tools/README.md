@@ -54,7 +54,8 @@ SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
 The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
 EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software
 rendering; physical GPU coverage is separate. Core, Ogl, TrueType and Pixel build on Linux.
-GUI and the desktop applications still require additional platform services.
+GUI integration runs under Xvfb/Openbox with a compositor. Vault passes a native graphical smoke;
+complete application workflows and physical desktop/GPU validation remain.
 
 ## Linux compiler and standard-module suites
 
@@ -76,7 +77,7 @@ JIT and native tests by default; `--execution jit` or `--execution native` selec
 `--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
 cache; the native suite uses the default host target. The C++ suite requires
 DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,773 tests as of 2026-11-02, including ELF linking, native ABI, runtime symbols and module-publication cases.
+passes 1,774 tests as of 2026-11-02, including ELF linking, native ABI, runtime stack/symbol boundaries and module-publication cases.
 The native language suite passes 4,047 tests in each execution mode.
 The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
 It builds a shared library and tests native context sharing, initialization, repeated loads,

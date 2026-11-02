@@ -1,7 +1,9 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-// Optional systemd login/session APIs. Callers own the library, bus, messages and returned strings.
+// Optional systemd login/session APIs.
+//
+// Callers own the library, bus, messages and returned strings.
 // Signatures follow https://www.freedesktop.org/software/systemd/man/latest/sd-bus.html.
 #[Swag.CallingConvention(.C)]
 alias sd_bus_message_handler_t          = func(*void, *void?, *void?)->s32

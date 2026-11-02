@@ -2,6 +2,7 @@
 #global export
 
 // High-level libfuse 3 ABI, from the upstream 3.17.2 headers.
+//
 // The optional library is loaded by its owner; these aliases do not acquire a mount.
 // File-info members used by the adapter belong to the stable libfuse 3 prefix.
 struct fuse_args

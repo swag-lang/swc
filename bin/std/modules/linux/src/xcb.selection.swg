@@ -106,8 +106,10 @@ alias xcb_get_file_descriptor_fn         = func(*void)->s32
 #assert(#sizeof(xcb_selection_notify_event_t) == 24)
 #assert(#sizeof(xcb_get_selection_owner_reply_t) == 12)
 
-// Xcursor image layout and loaders used for XDND pointer thumbnails. These functions borrow
-// the optional libX11/libXcursor handles; image and cursor resources have explicit destructors.
+// Xcursor image layout for XDND pointer thumbnails.
+//
+// The loaders borrow optional libX11/libXcursor handles; image and cursor resources
+// have explicit destructors.
 struct XcursorImage
 {
     public

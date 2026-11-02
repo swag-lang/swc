@@ -1,8 +1,10 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-// Optional GIO desktop integration. Object and allocated-string ownership follows GLib.
-// https://docs.gtk.org/gio/ and https://docs.gtk.org/glib/
+// Creates a desktop application object from a desktop-entry filename.
+//
+// Object and allocated-string ownership follows GLib. See https://docs.gtk.org/gio/
+// and https://docs.gtk.org/glib/; callers load the optional library explicitly.
 #[Swag.CallingConvention(.C)]
 alias g_desktop_app_info_new_from_filename_fn = func(const [*] u8)->*void?
 

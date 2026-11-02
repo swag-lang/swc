@@ -83,17 +83,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Next: finish the remaining memory, display-adjacent and machine capability families.
 - Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
-### platform.portability.043 — Complete Linux stack-capture edge coverage
-
-- Evidence: libc backtrace and image discovery supply native addresses; linked ELF symbol
-  contributions resolve ordered executable/static/shared source frames. Removing the symbol
-  section leaves ordinary panic reporting usable.
-- Next: cover empty destinations, skip bounds and generated frames with no owning loader image
-  through the runtime boundary, including compile-time execution.
-- Related: platform.portability.003, platform.portability.045
-- Done when: stack capture returns deterministic ordered addresses for these boundary cases
-  without requiring symbols or a loader-owned image.
-
 ### platform.portability.045 — Finish Linux debugger attachment and output
 
 - Evidence: Linux `Debugger.isAttached` reads the calling thread's TracerPid through procfs;
@@ -103,9 +92,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   A maintained native test run under ptrace observes the attached initial thread and an untraced
   worker, stops on SIGTRAP and resumes successfully. The separate importer also verifies the
   default fatal SIGTRAP action without a tracer and exits normally after traced continuation.
-- Next: define and implement Linux debugger launch/attach and debugger-directed output with
-  explicit capability and failure behavior, independently of stack-symbol presentation.
-- Related: platform.portability.003, platform.portability.043
+- Linux diagnostic output now writes exact bytes to stderr, retries interrupted writes, preserves
+  errno and prevents its own closed-pipe SIGPIPE from terminating the process. JIT/native tests
+  cover UTF-8, embedded zero bytes, bounded views and closed pipes.
+- Next: define and implement Linux debugger launch/attach with explicit capability and failure
+  behavior, independently of stack-symbol presentation.
+- Related: platform.portability.003
 - Done when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
 
 ### platform.portability.046 — Finish Linux input backends and hardware validation

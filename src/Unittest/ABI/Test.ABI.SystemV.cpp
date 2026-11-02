@@ -2042,6 +2042,81 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_CrossTargetContextFallbackUsesCompilerHost)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxStackCaptureBoundsAndImageOwnership)
+{
+    static constexpr std::string_view SOURCE = R"SWAG(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#[Swag.NoInline]
+func captureLeaf(skip: u32, destination: [..] (*void?))->u32
+{
+    return __captureStack(skip, destination)
+}
+
+#[Swag.NoInline]
+func checkStackBounds(imageExpected: bool)
+{
+    var marker:  u64 = 42
+    let sentinel     = cast(*void, &marker)
+    var guarded: [3] (*void?) = [sentinel, sentinel, sentinel]
+    let destination  = Swag.makeSlice(&guarded[1], 1)
+    Swag.assert(captureLeaf(0, destination) == 1)
+    Swag.assert(guarded[0] == sentinel and guarded[2] == sentinel)
+    Swag.assert(guarded[1] != null and guarded[1] != sentinel)
+
+    // Empty and excessive-skip calls must preserve all caller storage.
+    guarded[1] = sentinel
+    let empty = Swag.makeSlice(&guarded[1], 0)
+    Swag.assert(captureLeaf(0, empty) == 0)
+    Swag.assert(captureLeaf(128, destination) == 0)
+    Swag.assert(captureLeaf(Swag.U32.Max, destination) == 0)
+    Swag.assert(guarded[0] == sentinel and guarded[1] == sentinel and guarded[2] == sentinel)
+
+    // A stack address is not an ELF image. JIT code also has no loader-owned image.
+    Swag.assert(__hostImageBaseForAddress(sentinel) == null)
+    let image = __hostImageBaseForAddress(cast(*void, &captureLeaf))
+    Swag.assert(imageExpected ? image != null : image == null)
+}
+
+#[Swag.NoInline]
+func checkStackOrder()
+{
+    var captures: [3][128] (*void?)
+    var counts:   [3] u32
+
+    // All captures share one call site; skip advances through the same ordered frames.
+    for i in 3 do
+        counts[i] = captureLeaf(cast(u32, i), captures[i])
+    Swag.assert(counts[0] >= 3 and counts[0] < 128)
+    Swag.assert(counts[1] + 1 == counts[0] and counts[2] + 2 == counts[0])
+    for i in counts[2]
+    {
+        Swag.assert(captures[0][i + 2] != null)
+        Swag.assert(captures[0][i + 2] == captures[1][i + 1])
+        Swag.assert(captures[0][i + 2] == captures[2][i])
+    }
+}
+
+#run
+{
+    checkStackBounds(false)
+    checkStackOrder()
+}
+)SWAG";
+    SWC_RESULT(runLinuxRuntimeProbe(ctx, "LinuxJitStackCapture", SOURCE));
+    std::string  nativeSource(SOURCE);
+    const size_t entry = nativeSource.find("#run\n");
+    SWC_ASSERT(entry != std::string::npos);
+    nativeSource.replace(entry, 4, "#main");
+    // Bootstrap #run executes before the runtime context is initialized, so Swag.jit()
+    // cannot distinguish these probes. The native entry explicitly expects a loader image.
+    const size_t imageExpectation = nativeSource.find("checkStackBounds(false)");
+    SWC_ASSERT(imageExpectation != std::string::npos);
+    nativeSource.replace(imageExpectation, sizeof("checkStackBounds(false)") - 1, "checkStackBounds(true)");
+    return runLinuxRuntimeProbe(ctx, "LinuxElfStackCapture", nativeSource, {.native = true});
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxProcessStorageSharesCompilerAndNativeAnchor)
 {
     constexpr uint32_t key = 0x43504353;

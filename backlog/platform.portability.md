@@ -151,9 +151,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.058 — No second-platform GUI font integration
 
-- Next: connect GUI font selection to `FontCatalog` and exercise mixed-script text through an
-  actual Linux GUI. Pixel's `Font.resolveRune` now uses the installed Linux catalog with cached
-  misses and style-preserving fallback; the GUI selection path still needs its portable source.
+- Next: load selected GUI family names through the portable catalog and exercise mixed-script
+  text in an actual Linux GUI. The property editor now consumes portable owned family names;
+  Pixel's `Font.resolveRune` uses the installed Linux catalog with cached misses and style-preserving
+  fallback. Native GUI application, surface, cursor and clipboard services still block execution.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
 

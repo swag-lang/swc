@@ -55,6 +55,21 @@ typographic family names when available, bringing light and semibold variants in
 family. If a query matches no typographic family, legacy family names are searched instead;
 asking for a separately named light family still selects that family's faces.
 
+## Load an installed family
+
+On Windows and Linux, [[Pixel.FontFamily.enumerateSystemFontNames]] returns owned names for a
+font selector. [[Pixel.FontFamily.createTypeFace]] accepts a name and style directly, returning
+`null` for an unknown family. Its result belongs to Pixel and is cached for subsequent calls.
+Missing bold or italic traits are synthesized without changing other style slots or file loads.
+
+```swag
+var cache: Pixel.FontCache
+if let face = try Pixel.FontFamily.createTypeFace("Example Sans", .BoldItalic)
+{
+    let font = cache.createFont(face, 20)
+}
+```
+
 ## Rich text
 
 [[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.

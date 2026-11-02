@@ -18,8 +18,7 @@ using Swag, Core, Pixel
         IconButton.create(&host.root, host.theme.icon(icon, 16), Math.Rectangle{x, 52, 40, 36})
     }
 
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
+    var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, "themeicons.application-actions")
 }
 
@@ -41,8 +40,7 @@ using Swag, Core, Pixel
         IconButton.create(&host.root, host.theme.icon(icon, 20), Math.Rectangle{x, y, 40, 36})
     }
 
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
+    var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, "themeicons.document-media-actions")
 }
 

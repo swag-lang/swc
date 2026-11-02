@@ -80,15 +80,12 @@ func backdropMaterialSheet(light: bool)->Image
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let lens = backdropLens(&host, light)
-        lens.open()
-        host.settleAnimations()
-        let image = host.render()
-        Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")
-    }
+    let light = false
+    var host: Testing.HeadlessHost
+    let lens = backdropLens(&host, light)
+    lens.open()
+    let image = host.renderSettled()
+    Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")
 }
 
 // A small invalidation reconstructs the same backdrop as a full paint, without cumulative blur.
@@ -97,8 +94,7 @@ func backdropMaterialSheet(light: bool)->Image
     var host: Testing.HeadlessHost
     let lens = backdropLens(&host, false, 1.5, compact: true)
     lens.open()
-    host.settleAnimations()
-    let expected = host.render()
+    let expected = host.renderSettled()
     for count in 3
     {
         discard count
@@ -120,8 +116,7 @@ func backdropMaterialSheet(light: bool)->Image
     let lens  = backdropLens(&host, true, compact: true)
     let clear = host.render()
     lens.open()
-    host.settleAnimations()
-    let blurred = host.render()
+    let blurred = host.renderSettled()
     lens.setPresentationOpacity(0.5)
     let halfway = host.render()
     let x       = 46

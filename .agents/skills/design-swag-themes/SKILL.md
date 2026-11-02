@@ -21,8 +21,11 @@ The toolkit ships and maintains two themes: **Encre**, the dark one (`Theme.setD
 `ThemeColors.encrePalette()`), and **Papier**, the light one (`Theme.setLight()`,
 `ThemeColors.papierPalette()`). There is no neutral palette and no "Swag dark" variant. The
 appearance choice (`AppearanceTheme`) offers Dark, Light and System, and System follows the
-operating system. A third look is a theme sheet (see below). Every rule, control and golden is
-written for both themes. A widget that reads well in only one of them is unfinished.
+operating system. A third look is a theme sheet (see below). Every visual test family covers both
+themes across its scenarios, but a screenshot scenario normally uses one palette. Rotate Encre
+and Papier across sibling controls and states instead of duplicating every image. Keep a paired
+golden when palette-specific behavior, contrast or layout is the behavior under test. The controls
+charter remains paired as the shared reference for every control in both palettes.
 
 The charter's token table maps onto the code like this:
 

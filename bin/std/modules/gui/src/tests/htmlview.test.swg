@@ -824,13 +824,13 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     Swag.assert(view.layout.documentHeight > 680)
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.document")
 }
 
 // A search over a streamed document lands on the box that draws the match, wherever it is in the
 // file and however much of it has been read.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -885,6 +885,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // Progressive refreshes spread out fourfold, so a large generated page does not repeatedly
 // rebuild almost the same prefix while the reader is still interacting with it.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -990,6 +991,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
 // to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
 // thousands of siblings for each match. Small documents cannot expose that failure mode.
+#[Swag.TestTag("stress")]
 #test
 {
     let allocator = Swag.defaultAllocator()
@@ -1041,6 +1043,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 // Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
 // generic window may start at a recovery boundary, but it must never make file size become DOM
 // size and revisiting one byte offset must choose the same resident source.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1137,6 +1140,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
 // A virtual HTML document follows the latest scrollbar position through repeated long seeks and
 // reversals. Revisiting a stop must materialize the same source window and the same pixels.
+#[Swag.TestTag("stress")]
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -1939,8 +1943,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.applyLayout()
     view.rebuild()
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.preserved-whitespace")
 }
 
@@ -1965,8 +1968,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     }
 
     Swag.assert(not view.isLoading())
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.tables")
 }
 
@@ -2056,8 +2058,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     }
 
     Swag.assert(not view.isLoading())
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.flex-grid")
 }
 
@@ -2304,8 +2305,7 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.applyLayout()
     view.rebuild()
 
-    host.settleAnimations(view, 4)
-    var image = host.render(view)
+    var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.floats")
 }
 
@@ -2559,6 +2559,7 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 
 // A hostile document nested thousands of elements deep flattens at the depth bound instead of
 // walking the recursive passes off the native stack, and its content stays readable.
+#[Swag.TestTag("stress")]
 #test
 {
     var source: String

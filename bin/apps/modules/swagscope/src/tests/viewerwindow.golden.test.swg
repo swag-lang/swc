@@ -275,9 +275,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     window.applyLayout()
-    host.settleAnimations(window, 4)
-
-    var image = host.render(window)
+    var image = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
 
@@ -331,8 +329,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
     window.applyTheme(cast(u32, AppearanceTheme.Light))
     host.notify(.ThemeChanged)
-    host.settleAnimations(window, 4)
-    var light = host.render(window)
+    var light = host.renderSettled(window)
     assertViewerPanelCorner(&light, window.documentPanel)
     Pixel.Testing.assertImageGolden(&light, "viewer.light")
 

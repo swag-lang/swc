@@ -71,7 +71,12 @@ if /i "%suite%"=="sema" set "namespace=Sema"
 if /i "%suite%"=="sema" set "stage=--sema-only"
 call :source %suite% %namespace% executable %stage% %arguments%
 if errorlevel 1 exit /b %errorlevel%
+if /i "%suite%"=="sema" (
+    rem Keep this cross-file diagnostic corpus deterministic under parallel declaration analysis.
+    call :source errors\%suite% %namespace% executable %stage% --num-cores 1 %arguments%
+) else (
 call :source errors\%suite% %namespace% executable %stage% %arguments%
+)
 exit /b %errorlevel%
 
 :readOptions

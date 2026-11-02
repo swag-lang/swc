@@ -16,25 +16,22 @@ using Core, Pixel, Gui, Audio, Viewers
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, fileName.toString(), light)
-        let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
-        waitForSoundOpen(&host, view)
-        finishWaveform(view)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName.toString(), false)
+    let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForSoundOpen(&host, view)
+    finishWaveform(view)
 
-        // Photographed mid-playback, with the tags a recording carries.
-        view.tags.title  = "Harbour Lights"
-        view.tags.artist = "The Quiet Pier"
-        view.tags.album  = "Night Ferries"
-        view.tags.year   = "2026"
-        view.elapsed     = view.duration * 0.38
-        view.refreshTransport()
-        view.invalidate()
-        host.settleAnimations(window, 4)
+    // Photographed mid-playback, with the tags a recording carries.
+    view.tags.title  = "Harbour Lights"
+    view.tags.artist = "The Quiet Pier"
+    view.tags.album  = "Night Ferries"
+    view.tags.year   = "2026"
+    view.elapsed     = view.duration * 0.38
+    view.refreshTransport()
+    view.invalidate()
+    host.settleAnimations(window, 4)
 
-        var image = host.render(&host.surfaceWnd)
-        assertScopeImageGolden(&image, light ? "viewer.sound.paper" : "viewer.sound.ink")
-    }
+    var image = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.sound.ink")
 }

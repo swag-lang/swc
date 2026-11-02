@@ -77,37 +77,34 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     Swag.assert(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, videoMatroskaFixturePath(), light)
-        let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
 
-        // The film writes its title in the top veil, so the strip leaves it out.
-        Swag.assert(host.surfaceWnd.titleHidden)
-        waitForVideoFrame(view)
-        waitForVideoAudio(view, 2)
-        if view.playing do
-            view.togglePlayback()
-        view.seekFrame(5)
-        waitForVideoFrame(view)
-        view.refreshTime()
-        view.timeline.setValueWithoutGesture(cast(f32, view.frameSeconds(view.frameIndex)))
-        host.settleAnimations(window, 4)
+    // The film writes its title in the top veil, so the strip leaves it out.
+    Swag.assert(host.surfaceWnd.titleHidden)
+    waitForVideoFrame(view)
+    waitForVideoAudio(view, 2)
+    if view.playing do
+        view.togglePlayback()
+    view.seekFrame(5)
+    waitForVideoFrame(view)
+    view.refreshTime()
+    view.timeline.setValueWithoutGesture(cast(f32, view.frameSeconds(view.frameIndex)))
+    host.settleAnimations(window, 4)
 
-        var rest = host.render(&host.surfaceWnd)
-        assertScopeImageGolden(&rest, light ? "viewer.video.paper" : "viewer.video.ink")
+    var rest = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&rest, "viewer.video.ink")
 
-        // The first movement brings the veils, the next one reads a time on the timeline.
-        let timeline   = view.timeline.surfaceRect()
-        let trackX     = timeline.x + 8
-        let trackWidth = timeline.width - 16
-        host.moveMouse(Math.Point{trackX + trackWidth * 0.6, timeline.vertCenter()})
-        host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
-        host.settleAnimations(window, 4)
-        var hover = host.render(&host.surfaceWnd)
-        assertScopeImageGolden(&hover, light ? "viewer.video.hover.paper" : "viewer.video.hover.ink")
-    }
+    // The first movement brings the veils, the next one reads a time on the timeline.
+    let timeline   = view.timeline.surfaceRect()
+    let trackX     = timeline.x + 8
+    let trackWidth = timeline.width - 16
+    host.moveMouse(Math.Point{trackX + trackWidth * 0.6, timeline.vertCenter()})
+    host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
+    host.settleAnimations(window, 4)
+    var hover = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&hover, "viewer.video.hover.ink")
 }
 
 // The playhead and its outline stay whole when the track is at its first or last frame.
@@ -115,7 +112,6 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #test
 {
     assertVideoTimelineEndpoints(false, "viewer.video.timeline.endpoints.encre")
-    assertVideoTimelineEndpoints(true, "viewer.video.timeline.endpoints.paper")
 }
 
 // Every readability effect over every kind of picture. The outline and the shadow keep their

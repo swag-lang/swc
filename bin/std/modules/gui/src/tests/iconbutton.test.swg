@@ -372,7 +372,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     Swag.assert(withText.x > iconOnly.x + metrics.btnIcon_SpacingTextH)
     Swag.assert(withText.y == iconOnly.y)
 
-    host.settleAnimations(&host.root, 4)
-    var image = host.render(&host.root)
+    var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, "iconbutton.menu-arrow")
 }

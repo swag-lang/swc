@@ -79,7 +79,9 @@ operations do not prevent a body from being exposed.
 | 'TestTag(name: string)' | Assign one runtime-selection category to a '#test' function |
 
 Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating
-the option selects a union of tags. A test can have one 'TestTag'; omit it when
+the option selects a union of positive tags. Prefix a filter with '!' to exclude
+a tag; exclusions take precedence, so '--test-tag !golden' keeps ordinary tests
+without goldens and does not enable integration tests. A test can have one 'TestTag'; omit it when
 the test does not belong to a named campaign.
 Tags beginning with 'integration.' are excluded from ordinary test runs. Select
 them explicitly for tests that need a GPU, a native window, or another host resource.

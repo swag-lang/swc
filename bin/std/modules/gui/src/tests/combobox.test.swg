@@ -27,8 +27,7 @@ var ComboHeadlessLastIdx:      u32
         combo.setTextAlignment(alignment)
     }
 
-    host.settleAnimations()
-    var image = host.render()
+    var image = host.renderSettled()
     Pixel.Testing.assertImageGolden(&image, "combobox.alignment")
 }
 

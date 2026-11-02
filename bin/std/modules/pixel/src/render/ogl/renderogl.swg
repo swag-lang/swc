@@ -180,6 +180,7 @@ struct RenderOgl
         clipMaskWriting:       bool               // Whether fragments are writing the region.
         stackClipMaskOn:       Array'bool         // Regions suspended by the render targets bound inside them.
         nativeContext:         const *void?       // Shared native OpenGL context owned by interface-created drawables.
+        offscreen:             bool               // Contexts own invisible drawables and never present to the desktop.
         contextCount:          u32                // Number of live interface-created drawables.
         advancedBlending:      u8                 // Advanced blend-equation family supplied by the current context.
         advancedBarrierActive: bool               // Whether this context must keep later framebuffer touches in separate passes.
@@ -610,6 +611,18 @@ private impl RenderOgl
 
 impl RenderOgl
 {
+    // Selects GPU rendering without a visible native window.
+    //
+    // Call before creating any context. When enabled, [[Pixel.IRenderer.createContext]] accepts
+    // a null drawable and owns an invisible platform context host. Frames are read through
+    // render targets; `end` does not swap a desktop back buffer. Disabling restores the normal
+    // window-backed contract. Context creation still fails when OpenGL is unavailable.
+    mtd setOffscreen(enabled = true)
+    {
+        Swag.assert(.contextCount == 0, "offscreen mode can only change before creating renderer contexts")
+        .offscreen = enabled
+    }
+
     // Resets the scratch-clear counters, so a caller measures a frame rather than a session.
     mtd resetScratchCounters()
     {

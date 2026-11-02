@@ -130,8 +130,8 @@ their normal library artifacts. Add `--test-jit --no-test-native` to exercise th
 Compiler JIT suites and reference tests retain their existing execution modes.
 Workspace test launchers set `SWAG_RUNTIME_THREADS` from
 `--num-cores`, capped at three, unless that environment variable is already defined. The setting
-is local to the launcher and its children. Prism child compilers inherit the same capped count,
-including when testing the entire application workspace.
+is local to the launcher and its children. Application helper processes inherit the same capped
+count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
 
@@ -158,6 +158,61 @@ The hardware and runtime maximum still apply. Existing binaries need to be rebui
 runtime before they honor the variable.
 
 ## Compiler suites and campaigns
+
+### Frequent application and rendering coverage
+
+`coverage.bat` separates frequent functional feedback from deliberate stress cases, complete CPU
+image references and driver parity checks. It runs existing tests and retains their assertions; no
+image tolerance or golden is changed by choosing a suite.
+
+```text
+tools\coverage.bat -DevMode
+tools\coverage.bat -DevMode -Workspace apps -Module swagscope
+tools\coverage.bat -DevMode -Suite gpu -Workspace apps -Module swagscope
+tools\coverage.bat -DevMode -Suite stress
+tools\coverage.bat -DevMode -Suite goldens
+tools\coverage.bat -DevMode -Suite parity
+tools\coverage.bat -DevMode -Suite full
+```
+
+| Suite | Backend and coverage | Environment / frequency |
+| --- | --- | --- |
+| `fast` (default) | CPU hosts; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
+| `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
+| `stress` | CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
+| `goldens` | Complete repository `golden` campaign, CPU hosts and existing references | Controlled CI environment, rendering changes and scheduled runs |
+| `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
+| `full` | All standard-module and application tests, including goldens and stress, using CPU hosts | Complete functional/visual pass before integration |
+
+`-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
+`-Configuration devmode|release` selects the program preset; goldens are recorded in devmode.
+Each workspace reports elapsed wall time including compilation. Shared-machine admission rules
+still apply. Integration tests for native windows, application journeys, networks and drivers
+keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
+
+`HeadlessHost` accepts `SWAG_TEST_RENDERER=cpu|gpu` for direct test commands. Unset means CPU.
+GPU means an invisible drawable and render targets, with no desktop presentation. Context and
+shader initialization can outweigh drawing in layout-heavy suites; measure the same selection
+before choosing GPU for speed. The default fast suite therefore keeps CPU hosts. OpenGL must
+initialize successfully; there is no automatic CPU fallback. Pixel's explicit CPU renderer tests
+continue testing CPU in either environment. Keep canonical image-golden runs on CPU.
+
+Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
+images and scenes that still exercise every branch and keep all compared content visible.
+Reserve large images for explicit dimension, tiling, DPI, memory-budget and stress boundaries;
+do not repeat a desktop-sized render merely to check that a decoded page is valid. Goldens
+should show the smallest complete, readable surface that owns the regression. Changing their
+size still requires reviewing each new reference.
+
+Use `HeadlessHost.renderSettled(wnd)` to finish animations and capture their final frame.
+It avoids repainting an unchanged frame after `settleAnimations`. Keep explicit consecutive
+`render` calls when repainting or retained caches are the behavior under test.
+
+Tag inclusion is an exact match. Repeating `--test-tag` forms a union; `--test-tag !golden`
+excludes that tag, with exclusions taking precedence. Exclusions alone retain ordinary tests
+and do not enable `integration.*`. File filters still intersect the tag selection. Filters
+affect execution and reuse the same native test artifact; they do not remove implementation
+sources or rebuild a smaller test binary.
 
 ### Application smoke scenarios
 

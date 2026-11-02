@@ -346,9 +346,9 @@ func shipFrame(host: *Testing.HeadlessHost)
 //
 // The strip floats over the document with the glyph, the name and the window buttons, so a
 // picture of the window is judged whole against its charter picture.
-func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool)->*ViewerWindow
+func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 1280, height = 800)->*ViewerWindow
 {
-    host.setup(1280, 800)
+    host.setup(width, height)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     if light do

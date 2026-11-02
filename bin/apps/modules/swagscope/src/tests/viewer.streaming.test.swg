@@ -5,6 +5,7 @@ using Core, Pixel, Gui, Viewers
 
 // Scroll and paint only queue work. Rapid gestures retain one request and publish the latest
 // destination after the worker finishes, without synchronously reading at a resident edge.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Testing.tempFilePath("scope-text-continuous-", ".txt")
@@ -54,6 +55,7 @@ using Core, Pixel, Gui, Viewers
 
 // The code viewer starts replacing a resident window while several screens remain on
 // both sides. Even withheld timers cannot expose a blank viewport during a continuous gesture.
+#[Swag.TestTag("stress")]
 #test
 {
     let fileName = Testing.tempFilePath("scope-code-continuous-", ".swg")

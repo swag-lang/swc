@@ -30,8 +30,7 @@ func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light:
 func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string)
 {
     window.applyLayout()
-    host.settleAnimations(window, 8)
-    var image = host.render(window)
+    var image = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&image, golden)
 }
 
@@ -130,35 +129,33 @@ func picturedFixture(name: string)->String => Path.combine(unwrap Path.directory
                  picturedFixture("viewer.hex"),
                  picturedFixture("viewer.console.exe")]
 
-    for file in files
+    for file, index in files
     {
-        for light in [false, true]
-        {
-            var host: Testing.HeadlessHost
-            let window = framedViewerWindow(&host, file.toString(), light)
-            window.explorer = Explorer.create(window.documentPanel, window)
-            window.explorer.setShown(false)
-            window.explorerActive = true
-            window.refreshExplorerCaption()
-            host.surface.setTitle("Swag Scope")
-            host.surfaceWnd.sendResizeEvent()
+        let light = index % 2 == 1
+        var host: Testing.HeadlessHost
+        let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
+        let window = framedViewerWindow(&host, file.toString(), light, 1280, height)
+        window.explorer = Explorer.create(window.documentPanel, window)
+        window.explorer.setShown(false)
+        window.explorerActive = true
+        window.refreshExplorerCaption()
+        host.surface.setTitle("Swag Scope")
+        host.surfaceWnd.sendResizeEvent()
 
-            let button  = window.returnExplorerCaptionButton
-            let metrics = host.theme.metrics
-            let client  = host.surfaceWnd.clientRect()
-            button.show(true)
-            Swag.assert(button.isLocallyVisible())
-            Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
-            Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
+        let button  = window.returnExplorerCaptionButton
+        let metrics = host.theme.metrics
+        let client  = host.surfaceWnd.clientRect()
+        button.show(true)
+        Swag.assert(button.isLocallyVisible())
+        Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
+        Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
 
-            host.settleAnimations(&host.surfaceWnd, 4)
-            var image = host.render(&host.surfaceWnd)
-            image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})
-            var golden = Format.toString("viewer.return.%", Path.fileName(file.toString()) orelse "document")
-            if window.outlineCaptionButton.isLocallyVisible() do
-                golden += ".outline"
-            golden += light ? ".paper" : ".ink"
-            Pixel.Testing.assertImageGolden(&image, golden.toString())
-        }
+        var image = host.renderSettled(&host.surfaceWnd)
+        image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})
+        var golden = Format.toString("viewer.return.%", Path.fileName(file.toString()) orelse "document")
+        if window.outlineCaptionButton.isLocallyVisible() do
+            golden += ".outline"
+        golden += light ? ".paper" : ".ink"
+        Pixel.Testing.assertImageGolden(&image, golden.toString())
     }
 }

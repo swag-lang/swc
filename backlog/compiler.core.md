@@ -743,6 +743,20 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: separate-workspace consumers can call both forwarding forms after producer
   specialization, with native and JIT coverage and no ambiguous import candidates.
 
+### compiler.core.101 — Avoid rebuilding production dependencies for test-only edits
+
+- Evidence: changing an assertion in GUI's guarded `src/tests/headless.render.test.swg`
+  makes `swc test --workspace bin/std --workspace-module gui` rebuild `gui.dll` before
+  rebuilding `gui.test.exe`, even though the changed file is disabled outside `Test`.
+  Repeated focused edits pay about twelve seconds for that production-module stage alone.
+- Next: separate the dependency artifact's effective source/configuration identity from
+  the test executable's identity. Account for `#global if`, imported compile-time inputs,
+  generated exports and command-dependent setup; a filename convention alone is not proof
+  that an edit is irrelevant to the production artifact.
+- Done when: a guarded assertion-only edit rebuilds and executes the selected native tests
+  while reusing their unchanged production dependencies, and edits affecting exported code
+  or build configuration still invalidate every required consumer.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

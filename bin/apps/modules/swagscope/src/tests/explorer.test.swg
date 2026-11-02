@@ -265,6 +265,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 }
 
 // Tile geometry remains bounded by the viewport even for a large folder, and survives mode changes.
+#[Swag.TestTag("stress")]
 #test
 {
     var host: Testing.HeadlessHost

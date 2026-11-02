@@ -524,25 +524,17 @@ preview. Validate requested settings against the capabilities supplied by platfo
   ownership contract on the chosen backend.
 - Related: std.gui.054, platform.portability.066
 
-### std.gui.058 â€” A headless host leaves the windows built on its surface alive at shutdown
+### std.gui.058 — Guard application teardown against late task notifications
 
-- Evidence: a full Swag Scope run stopped once with "notnull on null value" in `Array.add` from
-  `Application.postEvent`, called by the `Wnd.taskNotifier` closure on a scheduler worker, then
-  "#test cannot resume while submitted work is unfinished": a task posted into an application
-  that had been dropped. `HeadlessHost.shutdown` destroys `root` only; a window a test creates on
-  `&host.surfaceWnd` (every `ViewerWindow` of the Scope tests, `framedViewerWindow`) is never
-  destroyed nor deleted, so the `Swag.Task` fields of its viewers are never dropped, never
-  joined, and a running load notifies after the host is gone. Nothing detects it before the
-  worker writes into freed memory.
-- Next: in `HeadlessHost.shutdown`, destroy every child of `surfaceWnd` with the root and pump
-  until `postDestroy` and `toDelete` are empty, so deleting the windows joins their tasks while
-  the application lives; count the notifications `Wnd.taskNotifier` hands out in an atomic on
-  `Application` (add on creation, subtract after the post â€” a task runs its notify exactly once,
-  cancelled or not) and assert it is zero in `Application.opDrop` after the surfaces are deleted.
-  Then run the gui suite, the Scope suite twice and the other applications' suites, since every
-  headless test tears down through this path.
-- Done when: the assert holds across the std and application suites and the Scope suite runs
-  twice green with the teardown change.
+- Evidence: `Wnd.taskNotifier` gives worker closures a raw application pointer. Teardown
+  destroys hosted window trees and surfaces, but no application invariant proves that every
+  outstanding notifier has posted before application storage is released. A late post reaches
+  `Application.postEvent` through that borrowed pointer.
+- Next: count outstanding `Wnd.taskNotifier` notifications on `Application` and assert the
+  count is zero after surface/window destruction and task joins. Cover cancellation and
+  custom executors, including a task paused immediately before posting.
+- Done when: the invariant holds across the standard and application suites, and repeated
+  Scope runs cannot post into a released application.
 - Related: app.scope.007
 
 ### std.gui.059 â€” Pack the widgets vector atlas more tightly
@@ -612,3 +604,17 @@ preview. Validate requested settings against the capabilities supplied by platfo
   before parallelizing atlas requests. Include widget scales and explicit cache reset in the review.
 - Done when: cache growth cannot invalidate an image being uploaded, reset/lifetime rules are
   explicit, and the concurrency boundary has a native regression test.
+
+### std.gui.062 — Reduce GPU setup cost in short headless tests
+
+- Evidence: `HeadlessHost` creates an OpenGL context, shaders, buffers and atlas uploads for
+  every GPU host, including layout-only tests. On the same 283 functional Scope tests,
+  offscreen OpenGL took 107 seconds versus 83 seconds with CPU hosts in workspace runs.
+  Isolated Capture runs with 211 tests benefited instead (28 seconds versus 35 seconds).
+  A blanket GPU default does not minimize feedback; compare isolated runs at equal load.
+- Next: time context creation, shader initialization, uploads, drawing and readback separately.
+  Evaluate bounded context/program reuse for headless hosts, preserving concurrent-host
+  isolation, deterministic initial state and explicit resource cleanup. Do not share mutable
+  renderer state or keep unowned test textures alive between tests.
+- Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
+  parity, multi-host teardown and cross-test resource/state isolation covered.

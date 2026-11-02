@@ -10,11 +10,11 @@ internal impl NativeRenderOgl
     mtd createWindowContext(hWnd: const *void?, width, height: s32, mainRC: const *void? = null)->OglContext fail
     {
         var nativeWindow = cast(HWND, hWnd)
-        let ownsWindow   = (GetWindowLongPtrW(nativeWindow, GWL_EXSTYLE) & WS_EX_LAYERED) != 0
+        let ownsWindow   = not nativeWindow or (GetWindowLongPtrW(nativeWindow, GWL_EXSTYLE) & WS_EX_LAYERED) != 0
         if ownsWindow
         {
-            // Layered windows publish an offscreen image through USER32. Keep WGL's drawable
-            // on a separate, fixed-size host so visible geometry never reallocates it.
+            // Layered presentation and offscreen rendering use a private invisible drawable.
+            // Its fixed size keeps capture dimensions independent of desktop geometry.
             let className = Utf16.toZeroTerminated("STATIC")
             let hostName  = Utf16.toZeroTerminated("Swag OpenGL context")
             nativeWindow = CreateWindowExW(0, className.buffer, hostName.buffer, WS_POPUP, 0, 0, 1, 1, null, null, GetModuleHandleW(null), null)

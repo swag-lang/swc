@@ -110,7 +110,8 @@ not the discovery.
   `Application.setAppIcon`, to `Gui.Pdf.ItemKind.Image` instead of `Pixel.Image`. The newly
   generated `IconAtlas.setRaster` signature inherits the same error, while explicit prose
   links and semantic field tables resolve the type correctly. The GUI page audit also finds
-  a broken cross-page `std.pixel.html#Property_name` link.
+  a broken cross-page `std.pixel.html#Property_name` link. Pixel's `Command.op` record similarly
+  links its `transform` field to the nonexistent `std.truetype.html#Outline_transform` anchor.
 - Next: preserve semantic symbol identity when coloring declaration signatures; do not let
   a same-spelled enum value win over the resolved parameter type. Reduce the broken property
   link separately and add generated-page assertions for both targets.

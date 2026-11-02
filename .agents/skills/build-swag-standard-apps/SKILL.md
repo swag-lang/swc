@@ -6,8 +6,8 @@ description: Build, migrate, rename, review, style, package, and test official S
 # Build Swag Standard Apps
 
 Every application should be recognizable as part of Swag before its title is read, and
-recognizable by what it leaves out. The four standard applications, Swag Scope, Swag Capture,
-Swag Prism and Swag Vault, follow the **Silence** charter:
+recognizable by what it leaves out. The three standard applications, Swag Scope, Swag Capture,
+and Swag Vault, follow the **Silence** charter:
 [backlog/design/README.md](../../../backlog/design/README.md), with its pictures in
 [backlog/design/imgs/](../../../backlog/design/imgs/). The charter's Window chrome, Shared
 components and Applications sections describe each screen. This skill says how an application
@@ -55,7 +55,9 @@ without hiding those contracts behind framework ceremony.
   dock, the hint line, the toast, the section label and the quiet menu are toolkit components. An
   application composes them and never re-implements one.**
 - Protect the composition at both boundaries. Structural tests assert parentage, order,
-  alignment and visibility, and a focused golden in each theme proves the result reads correctly.
+  alignment and visibility. Across each app's golden family, cover both themes while assigning one
+  palette to each screenshot scenario; keep paired captures only when the palette changes the
+  behavior under test.
 
 ## Name The Product Once
 
@@ -264,15 +266,13 @@ The same rule governs the toolkit's `Strings` and every application's reference 
 The charter's Applications section describes each application screen by screen, with one picture
 per screen. Build to those pictures, and check the application's entry in
 [design.silence.md](../../../backlog/design/design.silence.md) for what is known to differ. What
-the four share:
+the three share:
 
 - **Swag Scope**: the lens holds the viewers' commands, the sheet (`I`) holds the readings, and
   viewer controls stand on a floating bar. Explorer pages use a page title with quiet sort and
   view menus, and the cells take the shape of what the folder holds.
 - **Swag Capture**: the editor composes the dock, the mini-bar, the inspector and the hint line.
   There are no menus. The charter's key table is the contract for its keys.
-- **Swag Prism**: two columns parted by one hairline, with quiet text menus above each one and
-  readings in the sheet.
 - **Swag Vault**: a list of vaults under a page title, the live dot (`ThemeColors.live`) for a
   mounted vault and a soft ring for a locked one, and pages with a back link instead of tabs.
 
@@ -466,8 +466,14 @@ different contracts; none replaces the other two. Keep maintained snapshots in
 
 1. While iterating, run the owning test file:
    `tools/apps.bat dm test <application> --test-file <name>.test.swg`.
-2. Run the whole application's tests only when shared application state or several test families
-   changed.
+2. Run the application's routine functional selection only when shared application state or
+   several test families changed:
+
+   ```text
+   tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module <application>
+   ```
+
+   Run related scale cases separately with `-Suite stress` when their boundary changed.
 3. For a visible change, review **every** `.actual.png` the run left as a whole screen against its
    charter picture, in Encre and in Papier. Do not review only the diff or only the part you
    meant to change. A golden that changed in a part you did not touch is a finding. Promote each

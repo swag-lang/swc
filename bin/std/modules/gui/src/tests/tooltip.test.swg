@@ -115,8 +115,7 @@ func longAnnotation()->String
 
     Swag.assert(lbl.maxLines == 0)
 
-    host.settleAnimations(&host.surfaceWnd)
-    let rendered = host.render(&host.surfaceWnd)
+    let rendered = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&rendered, "tooltip.history-fractional")
 }
 
@@ -237,23 +236,19 @@ var g_LinkText:  String
     let btn = PushButton.create(&host.root, "Library", {20, 20, 100, 30})
 
     discard showTip(btn, "Refresh")
-    host.settleAnimations(&host.surfaceWnd)
-    let short = host.render(&host.surfaceWnd)
+    let short = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&short, "tooltip.short")
 
     discard showTip(btn, "Afficher la bibliothèque de captures et retrouver les images enregistrées pendant la session")
-    host.settleAnimations(&host.surfaceWnd)
-    let wrapped = host.render(&host.surfaceWnd)
+    let wrapped = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&wrapped, "tooltip.wrapped")
 
     let long = longAnnotation()
     discard showTip(btn, long.toString())
-    host.settleAnimations(&host.surfaceWnd)
-    let truncated = host.render(&host.surfaceWnd)
+    let truncated = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&truncated, "tooltip.truncated")
 
     discard showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url>, or ask on <p1>Discord</p>")
-    host.settleAnimations(&host.surfaceWnd)
-    let rich = host.render(&host.surfaceWnd)
+    let rich = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&rich, "tooltip.rich")
 }

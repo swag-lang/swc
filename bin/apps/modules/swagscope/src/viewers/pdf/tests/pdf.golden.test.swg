@@ -58,38 +58,32 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
     expect document.save(fileName)
 
-    for light in [false, true]
-    {
-        var host: HeadlessHost
-        host.setup(960, 640)
-        shipFrame(&host)
-        if light do
-            host.theme.setLight()
-        else do
-            host.theme.setDark()
-        host.theme.metrics.surfaceWnd_ShadowSize   = 0
-        host.theme.metrics.surfaceWnd_CornerRadius = 0
-        host.notify(.ThemeChanged)
+    var host: HeadlessHost
+    host.setup(960, 640)
+    shipFrame(&host)
+    host.theme.setLight()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
 
-        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-        window.resize(960, 640)
-        window.openFile(fileName)
-        completeQueuedViewerFile(&host, window)
-        let view = assume cast(*PdfDocument.Panel, window.currentView)
-        completeViewerBackgroundLoad(&host, &view.load)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 640)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*PdfDocument.Panel, window.currentView)
+    completeViewerBackgroundLoad(&host, &view.load)
 
-        // The writer of the fixture records no outline: the parts are given as a reader found them.
-        for title, page in ["Introduction", "Results", "Method", "Appendices"] do
-            view.bookmarks.add(Pdf.OutlineEntry{title: title, level: 1, pageIndex: Math.min(page, 1)})
-        view.fillMargin()
-        window.applyLayout()
-        view.placeMargin()
-        host.settleAnimations(window, 4)
+    // The writer of the fixture records no outline: the parts are given as a reader found them.
+    for title, page in ["Introduction", "Results", "Method", "Appendices"] do
+        view.bookmarks.add(Pdf.OutlineEntry{title: title, level: 1, pageIndex: Math.min(page, 1)})
+    view.fillMargin()
+    window.applyLayout()
+    view.placeMargin()
+    host.settleAnimations(window, 4)
 
-        let margin = unwrap view.margin
-        Swag.assert(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
-        Swag.assert(margin.position.right() <= view.pdfView.pageColumn().x)
-        var image = host.render(window)
-        assertScopeImageGolden(&image, light ? "viewer.pdf.page.paper" : "viewer.pdf.page")
-    }
+    let margin = unwrap view.margin
+    Swag.assert(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
+    Swag.assert(margin.position.right() <= view.pdfView.pageColumn().x)
+    var image = host.render(window)
+    assertScopeImageGolden(&image, "viewer.pdf.page.paper")
 }

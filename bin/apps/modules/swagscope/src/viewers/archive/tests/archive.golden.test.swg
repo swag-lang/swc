@@ -70,8 +70,7 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     host.fireTimer(textView.loadTimer)
 
     Swag.assert(not viewer.embedded.isLoading())
-    host.settleAnimations(window, 4)
-    var image = host.render(window)
+    var image = host.renderSettled(window)
     assertScopeImageGolden(&image, "viewer.archive.document")
 
     var matches: Array'Viewer.SearchMatch

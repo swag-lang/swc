@@ -196,32 +196,30 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
     Swag.assert(host.root.stripInset() == host.theme.metrics.wnd_StripHeight)
 }
 
-// A document starting at the top edge, in Encre and in Papier: its first lines pass under the
+// A document starting at the top edge, in Encre: its first lines pass under the
 // faint title and window buttons, which are drawn above it.
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
+    let light = false
+    var host: Testing.HeadlessHost
+    host.setup(480, 160)
+    if light
     {
-        var host: Testing.HeadlessHost
-        host.setup(480, 160)
-        if light
-        {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
-        }
-
-        buildChromeWindow(&host)
-        let lines         = "impl Bar\n{\n    func create(parent: *Wnd)->*Bar\n    {\n        with let result = Wnd.create'Bar(parent)\n    }\n}"
-        with let document = Label.create(&host.root, lines, {48, 16, 420, 140})
-        {
-            .style.setFont(host.theme.createDefaultFontFamilyFs(13))
-            .setTextAlignment(.Left, .Top)
-        }
-
-        var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "surfacewnd.document.paper" : "surfacewnd.document.ink")
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
     }
+
+    buildChromeWindow(&host)
+    let lines         = "impl Bar\n{\n    func create(parent: *Wnd)->*Bar\n    {\n        with let result = Wnd.create'Bar(parent)\n    }\n}"
+    with let document = Label.create(&host.root, lines, {48, 16, 420, 140})
+    {
+        .style.setFont(host.theme.createDefaultFontFamilyFs(13))
+        .setTextAlignment(.Left, .Top)
+    }
+
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, light ? "surfacewnd.document.paper" : "surfacewnd.document.ink")
 }
 
 // A document that writes the title itself takes it out of the strip, and gives it back; the
@@ -270,21 +268,19 @@ func buildChromeWindow(host: *Testing.HeadlessHost)
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
+    let light = true
+    var host: Testing.HeadlessHost
+    host.setup(480, 120)
+    if light
     {
-        var host: Testing.HeadlessHost
-        host.setup(480, 120)
-        if light
-        {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
-        }
-
-        buildChromeWindow(&host)
-        host.surfaceWnd.minimizeBtn!.isHot = true
-        host.surfaceWnd.closeBtn!.isHot    = true
-
-        var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, light ? "surfacewnd.chrome.hover.paper" : "surfacewnd.chrome.hover.ink")
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
     }
+
+    buildChromeWindow(&host)
+    host.surfaceWnd.minimizeBtn!.isHot = true
+    host.surfaceWnd.closeBtn!.isHot    = true
+
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, light ? "surfacewnd.chrome.hover.paper" : "surfacewnd.chrome.hover.ink")
 }

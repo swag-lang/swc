@@ -28,7 +28,6 @@ file. Do not add status, dates, or progress summaries to the index.
 | File | Area |
 | --- | --- |
 | [app.capture.md](app.capture.md) | Swag Capture |
-| [app.prism.md](app.prism.md) | Swag Prism |
 | [app.scope.audio.md](app.scope.audio.md) | Swag Scope audio viewer |
 | [app.scope.binary.md](app.scope.binary.md) | Swag Scope structured-binary and container viewer |
 | [app.scope.document.md](app.scope.document.md) | Swag Scope document viewers |

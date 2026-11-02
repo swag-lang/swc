@@ -252,7 +252,7 @@ void CommandLineParser::registerCommands()
         "Run #test functions whose source path contains this substring; repeat the option to accept more files");
     add(HelpOptionGroup::Testing, "test", "--test-tag", nullptr,
         &cmdLine_->testTagFilter,
-        "Run #test functions whose 'Swag.TestTag' equals this value; repeat the option to accept more tags");
+        "Select #test functions by tag; repeat to include more tags, or prefix a tag with ! to exclude it");
     add(HelpOptionGroup::Testing, "test", "--lex-only", nullptr,
         &cmdLine_->lexOnly,
         "Stop test inputs after lexing; excludes --syntax-only and --sema-only");

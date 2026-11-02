@@ -46,7 +46,9 @@ from the compiler input.
 
 Use `#[Swag.TestTag("golden")]` on every `#test` that records or compares a text or image golden.
 `--test-tag golden` selects that category independently of filenames and assertion helpers.
-Repeated tags form a union; combining `--test-file` and `--test-tag` requires both to match.
+Positive tags form a union; `--test-tag !golden` excludes that category, with exclusions taking precedence.
+Exclusions alone preserve the ordinary selection and never enable `integration.*`. Combining
+`--test-file` and `--test-tag` requires both to match.
 Tests must be headless by default. A test that requires a real OpenGL drawable or a host window
 uses an `integration.` tag, such as `integration.renderer.opengl` or
 `integration.host.windows`. Those tests run only when their tag is explicitly selected. Run the

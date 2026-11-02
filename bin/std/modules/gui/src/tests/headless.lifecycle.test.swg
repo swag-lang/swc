@@ -102,3 +102,16 @@ using Swag, Core
         Swag.assert(destroyed == 4)
     }
 }
+
+// Unshown dialogs own rendering contexts too; shutdown drains every hosted surface.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    discard EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Name"})
+    discard EditDlg.createMultiLine(&host.surface, {title: "Description"})
+    Swag.assert(host.openedSurfaceCount() == 2)
+    host.shutdown()
+    Swag.assert(host.app.surfaces.isEmpty())
+    host.shutdown()
+}

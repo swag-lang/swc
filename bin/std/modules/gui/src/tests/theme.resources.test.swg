@@ -42,7 +42,8 @@ using Swag, Core, Pixel
     Swag.assert(second.theme.res.icons.icon(0, 24, 1).imageList!.frameCount == 2)
     let secondPixels = second.theme.res.icons.atlas!.image(24)
     Swag.assert(secondPixels.pixelColor(12, 12).argb == 0xFF0000FF)
-    first.theme.ensureAtlasScale(&first.renderer, 2)
+    first.app.renderer.setCurrentContext(first.surface.rc)
+    first.theme.ensureAtlasScale(first.app.renderer, 2)
     Swag.assert(first.theme.res.imgWidgets.width == 48)
     Swag.assert(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
     Swag.assert(original.theme.res.imgWidgets.width == originalWidth)
@@ -55,7 +56,10 @@ using Swag, Core, Pixel
     fallback.app.resources.addFolder(root.toString())
     fallback.setup(80, 60)
     Swag.assert(fallback.theme.res.imgWidgets.width == originalWidth)
-    Swag.assert(fallback.theme.res.icons.atlas!.drawing.width == originalAtlas!.drawing.width)
+    let fallbackIcons = fallback.theme.res.icons.atlas!.image(24)
+    let originalIcons = originalAtlas!.image(24)
+    Swag.assert(fallbackIcons.width == originalIcons.width and fallbackIcons.height == originalIcons.height)
+    Swag.assert(Slice.equals(fallbackIcons.pixels.toSlice(), originalIcons.pixels.toSlice()))
 }
 
 // A logical font name cannot alias different disk payloads in the process typeface cache.

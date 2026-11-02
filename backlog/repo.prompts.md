@@ -182,9 +182,6 @@ RUN THE LADDER, STOP AT THE FIRST FAILURE
      compiler, with each program configuration selected explicitly.
   4. `tools\vsix.bat` - package the VSCode extension and inspect the result.
 
-Some applications (Swag Prism) launch `bin\swc.exe` itself, so keep the Release compiler current
-before running a campaign that reaches them.
-
 VALIDATE IN BATCHES; DO NOT REPEAT GREEN WORK
 
 - Keep successful gate results as evidence. A later failure does not invalidate an earlier green

@@ -33,12 +33,16 @@ internal func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool,
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = films
     window.onlineMusic  = false
-    window.openExplorer(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"))
+    // These tests supply their own entries and thumbnails. Opening the entire media corpus
+    // first would decode unrelated previews only to discard them before the assertion.
+    // Keep the normal asynchronous listing lifecycle, with an empty sandbox-owned directory.
+    let folder = Path.combine(Testing.tempFilePath("scope-board-", ""), "datas")
+    expect Directory.create(folder, recurse: true)
+    window.openExplorer(folder)
     let explorer = unwrap window.explorer
     settleBoardListing(host, explorer)
 
-    // The previews of the real folder are retired before the board takes its place: none of them
-    // may publish into the entries the test puts there.
+    // Retire listing/preview work before replacing the model, just as for a populated folder.
     explorer.suspend()
     for &preview in explorer.previews do
         preview.wait()

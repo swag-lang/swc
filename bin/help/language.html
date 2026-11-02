@@ -540,7 +540,7 @@ indent-style = spaces</span></div>
 <tr><td><span class="code-inline">--test-jit</span>, <span class="code-inline">-tj</span> / <span class="code-inline">--no-test-jit</span></td><td>Enable or disable JIT tests</td></tr>
 <tr><td><span class="code-inline">--test-native</span>, <span class="code-inline">-tn</span> / <span class="code-inline">--no-test-native</span></td><td>Enable or disable native tests</td></tr>
 <tr><td><span class="code-inline">--test-file</span> <span class="code-inline">TEXT</span></td><td>Run <span class="code-inline">#test</span> functions from source paths containing <span class="code-inline">TEXT</span>; repeat to select a union</td></tr>
-<tr><td><span class="code-inline">--test-tag</span> <span class="code-inline">TEXT</span></td><td>Run <span class="code-inline">#test</span> functions whose <span class="code-inline">Swag.TestTag</span> equals <span class="code-inline">TEXT</span>; repeat to select a union</td></tr>
+<tr><td><span class="code-inline">--test-tag</span> <span class="code-inline">TEXT</span></td><td>Select <span class="code-inline">#test</span> functions by tag; repeat to include more tags, or prefix with <span class="code-inline">!</span> to exclude</td></tr>
 <tr><td><span class="code-inline">--output</span> / <span class="code-inline">--no-output</span></td><td>Enable or disable native artifact generation</td></tr>
 <tr><td><span class="code-inline">--lex-only</span></td><td>Stop after lexing source-driven tests</td></tr>
 <tr><td><span class="code-inline">--syntax-only</span></td><td>Stop after parsing</td></tr>
@@ -8455,7 +8455,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td>'TestTag(name: string)'</td><td>Assign one runtime-selection category to a <span class="code-inline">#test</span> function</td></tr>
 </tbody>
 </table>
-<p>Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating the option selects a union of tags. A test can have one <span class="code-inline">TestTag</span>; omit it when the test does not belong to a named campaign. Tags beginning with <span class="code-inline">integration.</span> are excluded from ordinary test runs. Select them explicitly for tests that need a GPU, a native window, or another host resource.</p>
+<p>Use '--test-tag NAME' to run only tests with the exact matching tag. Repeating the option selects a union of positive tags. Prefix a filter with <span class="code-inline">!</span> to exclude a tag; exclusions take precedence, so '--test-tag !golden' keeps ordinary tests without goldens and does not enable integration tests. A test can have one <span class="code-inline">TestTag</span>; omit it when the test does not belong to a named campaign. Tags beginning with <span class="code-inline">integration.</span> are excluded from ordinary test runs. Select them explicitly for tests that need a GPU, a native window, or another host resource.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">TestTag("golden")]</span>
 <span class="SFct">#test</span>
 {

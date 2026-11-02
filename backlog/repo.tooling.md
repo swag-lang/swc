@@ -9,10 +9,9 @@ being compiled by it.
 
 - Evidence: bounded startup smokes do not perform user journeys. The explicit
   `integration.application.smoke` boundary and private-desktop launcher are described in
-  `tools/application-scenarios.md`; Capture, Prism and Vault have no scenarios under that tag.
+  `tools/application-scenarios.md`; Capture and Vault have no scenarios under that tag.
 - Next: add independent, sub-40-second `#test` journeys in each application's `src/tests`:
   Capture imports a real picture, annotates, undoes/redoes, exports and reopens the result;
-  Prism compares two real text trees, changes filters and refreshes after an isolated file edit;
   Vault creates, closes and reopens a temporary vault and verifies its contents, keeping driver,
   mount and UAC work in the dedicated privileged integration campaign. Exercise normal commands,
   real background services and native presentation, with stage deadlines and explicit outcomes.

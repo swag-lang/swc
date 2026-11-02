@@ -4,10 +4,10 @@
 using Core, Pixel, Gui
 
 // One specimen exercises the title hierarchy, prose rhythm, quote and code of each appearance.
-func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScale = 1'f32)
+func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScale = 1'f32, height = 1000'u32)
 {
     var host: Testing.HeadlessHost
-    host.setup(width, 1200, dpiScale)
+    host.setup(width, height, dpiScale)
     let source = """# A quiet document
 
                     A reading theme gives words room to breathe. **Emphasis** stays within the
@@ -38,7 +38,7 @@ func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScal
                     let count = 42
                     ```"""
     let view   = Markdown.View.createText(&host.root, source)
-    view.resize(width, 1200)
+    view.resize(width, height)
     Viewers.MarkdownText.applyViewerStyle(view, theme, 1)
     view.applyLayout()
     Testing.assertContentFits(view)
@@ -59,7 +59,7 @@ func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScal
 #test { assertMarkdownTypography(4, "viewer.markdown.typography.pixyll") }
 
 #[Swag.TestTag("golden")]
-#test { assertMarkdownTypography(5, "viewer.markdown.typography.whitey") }
+#test { assertMarkdownTypography(5, "viewer.markdown.typography.whitey", 960, 1, 1080) }
 
 #[Swag.TestTag("golden")]
-#test { assertMarkdownTypography(5, "viewer.markdown.typography.whitey.narrow", 640, 1.5) }
+#test { assertMarkdownTypography(5, "viewer.markdown.typography.whitey.narrow", 640, 1.5, 1200) }

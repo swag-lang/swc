@@ -92,6 +92,36 @@ Apply these reductions:
 
 ## Choose The Smallest Boundary
 
+### Use The Development Coverage Modes
+
+For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects CPU-hosted
+functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider feedback run to
+the owning workspace and module:
+
+```text
+tools\coverage.bat -DevMode -Suite fast -Workspace std -Module gui
+tools\coverage.bat -DevMode -Suite fast -Workspace apps -Module swagscope
+```
+
+During a change, prefer the exact test file first; run the module's `fast` selection when several
+test families or shared state changed. These modes do not replace the compiler suites under
+`tools/unittests.bat` when compiler behavior changed.
+
+Tag a test `stress` when its contract depends on deliberately large synthetic inputs, scale limits,
+large corpora, dimensions, memory bounds or sustained streaming work. Keep its smallest useful
+functional counterpart in `fast` when one can prove the ordinary behavior. Run the changed stress
+boundary with `tools/coverage.bat -DevMode -Suite stress`, narrowed to its workspace, module and
+file; run the broader stress selection on a scheduled or cross-cutting pass. Do not tag a test as
+stress solely because it is new or somewhat slower.
+
+Use `gpu` when the changed behavior needs the offscreen OpenGL host. It runs the same functional
+selection as `fast`; context setup can make it slower, so it is a backend check rather than a speed
+shortcut. Use `goldens` for the complete CPU golden campaign when shared rendering behavior can
+reach snapshots beyond a confidently bounded set. Use `parity` for Pixel tests tagged
+`integration.renderer.opengl`. Reserve `full` for scheduled complete standard-module and
+application coverage, including golden and stress tests; it does not include privileged or
+external integration campaigns.
+
 ### Generated-code optimizations
 
 For every optimization batch that can change generated code, compare final Micro listings for
@@ -213,6 +243,12 @@ consumer that activates the changed behavior.
 
 ## Treat Goldens As Behavioral Evidence
 
+- Size each fixture for the behavior it proves. Prefer compact functional images and scenes,
+  keeping every asserted form visible, and the smallest complete, readable surface for a
+  golden. Keep dedicated large-resolution, DPI, tiling and memory-budget tests where size is
+  the contract. Do not shrink those boundaries, remove assertions, or loosen tolerances to
+  improve a suite's timing. Use `HeadlessHost.renderSettled` for a final capture; retain repeated
+  `render` calls when repaint or cache behavior is what the test proves.
 - Any change to rendering, layout, typography, themes, icons, image decoding, or paint commands
   must run the exact test files that own affected text or PNG goldens.
 - Every `#test` that records or compares a text or PNG golden must carry
@@ -230,8 +266,10 @@ consumer that activates the changed behavior.
   left, then repeat the run without the variable before reporting green.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside
   the intended part is a regression or a new finding, not noise.
-- Cover each state whose rendering branch changed: palette, DPI, enabled/disabled state, backend,
-  or viewport. Do not multiply states that share the same unchanged path.
+- Cover each rendering branch that the change reaches. Across one visual test family, rotate Encre
+  and Papier across sibling scenarios and capture each state once. Pair palettes when the changed
+  behavior is specifically theme-dependent, such as contrast, palette selection, or theme switching.
+  Do not multiply states that share the same unchanged path.
 - A focused change with a bounded owner may stop at its exact golden files. Do not replace the
   complete golden-only pass with representative samples when a shared primitive or uncertain
   reach can affect additional snapshots.

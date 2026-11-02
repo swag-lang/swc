@@ -2330,6 +2330,21 @@ SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunT
     if (selectedCount != 3)
         return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "the default campaign selected an integration test");
 
+    cmdLine.testTagFilter.insert("!golden");
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 2)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "exclusion did not preserve ordinary tests or admitted integration tests");
+    cmdLine.testTagFilter.insert("golden");
+    cmdLine.testTagFilter.insert("slow");
+    selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
+        return function && compiler.matchesTestFilter(*function);
+    });
+    if (selectedCount != 1)
+        return failNativeArtifactTest("NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime", "exclusion did not take precedence over inclusion");
+    cmdLine.testTagFilter.clear();
+
     cmdLine.testTagFilter.insert("integration.renderer.opengl");
     selectedCount = std::ranges::count_if(compiler.nativeTestFunctions(), [&compiler](const SymbolFunction* function) {
         return function && compiler.matchesTestFilter(*function);

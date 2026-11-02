@@ -14,7 +14,7 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(1280, 800)
+    host.setup(1280, 560)
     shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     if light do

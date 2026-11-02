@@ -967,7 +967,7 @@ impl MenuCtrl
             if it.hidden do
                 continue
             if .onPrepareItem do
-                .onPrepareItem(i)
+                .onPrepareItem(me, i)
             if it.nameResolver do
                 it.name.set(it.nameResolver())
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
@@ -1006,7 +1006,7 @@ impl MenuCtrl
                 continue
 
             if .onPrepareItem do
-                .onPrepareItem(i)
+                .onPrepareItem(me, i)
             if it.nameResolver do
                 it.name.set(it.nameResolver())
             if idx do

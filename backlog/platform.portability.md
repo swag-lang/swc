@@ -707,7 +707,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Pixel's six ordinary renderer/thread tests pass natively, including failed wait/signal retirement.
   Windows still needs native validation; cross-target Core sema on Linux stops at the existing
   Windows runtime log/logf imports, before it can validate the complete module.
-- Named scope remains Windows-only: Prism's interprocess event must retain shared-name scope,
+- Named scope remains Windows-only: interprocess events must retain shared-name scope,
   reset mode, signal-before-wait behavior and independent opener lifetimes without exposing
   Windows handles or the `Local\` namespace to common callers.
 - Related: platform.portability.034, language.parallelism.003

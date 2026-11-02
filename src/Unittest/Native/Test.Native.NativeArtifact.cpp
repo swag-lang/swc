@@ -1836,6 +1836,18 @@ struct ExportedHolder
     text: string = ""
 }
 
+struct(T) GenericHolder
+{
+    text: string = ""
+    value: T
+}
+
+#[Swag.NoInline]
+func equalSmall(left, right: const *GenericHolder's32)->bool => left[] == right[]
+
+#[Swag.NoInline]
+func equalLarge(left, right: const *GenericHolder'u64)->bool => left[] == right[]
+
 #[Swag.NoInline]
 internal func reachedFromExport()->u32 => 11
 
@@ -1890,6 +1902,13 @@ func exported()->u32 => reachedFromExport()
     // An importer generates its own member-wise equality from the published struct.
     if (hasPrepared("ExportedHolder.opEquals"))
         return failNativeArtifactTest(TEST_NAME, "generated equality of a public struct was exported");
+    if (!hasPrepared("equalSmall") || !hasPrepared("equalLarge"))
+        return failNativeArtifactTest(TEST_NAME, "generic equality consumers were pruned");
+    for (const NativeFunctionInfo& info : nativeBuilder.functionInfos)
+    {
+        if (info.exported && info.symbol && info.symbol->specOpKind() == SpecOpKind::OpEquals)
+            return failNativeArtifactTest(TEST_NAME, "generated equality of a generic instance was exported");
+    }
 }
 SWC_TEST_END()
 

@@ -403,6 +403,24 @@ namespace
         appendOpaqueByteStorageRange(result, bytes.subspan(rangeStart), offset + rangeStart, eol);
     }
 
+    void appendModuleApiStringLiteral(Utf8& result, const std::string_view text)
+    {
+        result += '"';
+        for (const unsigned char value : text)
+        {
+            if (value == '"' || value == '\\')
+            {
+                result += '\\';
+                result += static_cast<char>(value);
+            }
+            else if (value < 0x20 || value == 0x7f)
+                result += std::format("\\x{:02x}", value);
+            else
+                result += static_cast<char>(value);
+        }
+        result += '"';
+    }
+
     void appendOpaqueStringStorage(Utf8& result, const OpaqueStringSlot& slot, std::string_view eol)
     {
         result += std::format("    internal swagOpaqueString{}: string", slot.offset);
@@ -410,22 +428,8 @@ namespace
             result += "? = null";
         else
         {
-            result += " = \"";
-
-            for (const unsigned char value : std::string_view{slot.value.ptr, slot.value.length})
-            {
-                if (value == '"' || value == '\\')
-                {
-                    result += '\\';
-                    result += static_cast<char>(value);
-                }
-                else if (value < 0x20 || value == 0x7f)
-                    result += std::format("\\x{:02x}", value);
-                else
-                    result += static_cast<char>(value);
-            }
-
-            result += '"';
+            result += " = ";
+            appendModuleApiStringLiteral(result, {slot.value.ptr, slot.value.length});
         }
 
         result += eol;
@@ -836,9 +840,36 @@ namespace
         }
     }
 
-    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody, Utf8& ioSnippet)
+    void appendResolvedForeignAttribute(TaskContext& ctx, SmallVector<Utf8>& attributes, Utf8& snippet, const SymbolFunction& function)
+    {
+        if (!function.isForeign())
+            return;
+
+        // The declaration's text omits enclosing attribute blocks. Even a directly
+        // written Foreign can inherit its ABI from CallingConvention on such a block.
+        // Reconstruct the complete resolved contract instead of copying that syntax.
+        static constexpr std::string_view FOREIGN_ATTRIBUTE[] = {"Foreign"};
+        removeModuleApiAttributes(ctx, snippet, FOREIGN_ATTRIBUTE);
+
+        Utf8 attribute = "Foreign(module: ";
+        appendModuleApiStringLiteral(attribute, function.foreignModuleName());
+        attribute += ", function: ";
+        appendModuleApiStringLiteral(attribute, function.foreignFunctionName());
+        attribute += ", link: ";
+        appendModuleApiStringLiteral(attribute, function.foreignLinkModuleName());
+
+        // SystemVAMD64 is internal; the public spelling selects it through the target C ABI.
+        static constexpr std::string_view CALL_CONVENTIONS[] = {"C", "WindowsX64", "Swag", "C"};
+        const auto convention = static_cast<size_t>(function.foreignCallConvKind());
+        SWC_ASSERT(convention < std::size(CALL_CONVENTIONS));
+        attribute += std::format(", callconv: .{})", CALL_CONVENTIONS[convention]);
+        attributes.push_back(std::move(attribute));
+    }
+
+    void prependMissingFunctionAttributes(TaskContext& ctx, Utf8& ioSnippet, const SymbolFunction& symbolFunction, const std::string_view eol, const bool hasExportedBody)
     {
         SmallVector<Utf8> attributes;
+        appendResolvedForeignAttribute(ctx, attributes, ioSnippet, symbolFunction);
         collectMissingFunctionAttributes(attributes, symbolFunction, hasExportedBody, ioSnippet);
 
         const Utf8 line = buildAttributeListLine(attributes.span(), eol);
@@ -1099,6 +1130,8 @@ namespace
             attributes.push_back(Utf8{std::format("Foreign(function: \"{}\")", compiledFunction->computePublicApiSymbolName(ctx).c_str())});
         else if (!symbolFunction->isForeign())
             attributes.push_back(buildModuleApiForeignAttribute(ctx, *symbolFunction));
+        else
+            appendResolvedForeignAttribute(ctx, attributes, prefix, *symbolFunction);
 
         collectMissingFunctionAttributes(attributes, *compiledFunction, false, prefix);
 
@@ -1235,7 +1268,7 @@ namespace
 
         outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
-            prependMissingFunctionAttributes(*symbolFunction, eol, true, outSnippet);
+            prependMissingFunctionAttributes(ctx, outSnippet, *symbolFunction, eol, true);
 
         return Result::Continue;
     }

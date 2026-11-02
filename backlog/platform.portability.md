@@ -952,6 +952,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   survive relocation, and disabling publication removes the old copies. Shared imports also
   execute from `#run`: lookup accepts both Swag module.so and conventional libmodule.so names,
   with context/argument sharing verified by DevMode and Release compilers.
+  API publication reconstructs resolved foreign module, symbol, link and ABI attributes, including
+  declarations inside attribute blocks and a directly annotated function inheriting its ABI.
+  Export and static-library consumers call libc/libm through these declarations in JIT and native
+  ELF; a real Linux-binding consumer also exercises read, errno and strerror across the import.
   Source debug output is explicitly rejected until DWARF source records exist. Shared-library
   linking currently permits text relocations; it does not establish PIC or loader lifecycle support.
   Persistent native function caches remain COFF-specific and are disabled for Linux.

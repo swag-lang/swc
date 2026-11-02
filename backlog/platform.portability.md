@@ -11,7 +11,7 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,761 tests. The native language suite
+Current Linux validation: the complete C++ suite passes 1,764 tests. The native language suite
 passes 4,047 tests in JIT and native execution. The raw Linux module
 passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
 core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary

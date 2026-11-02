@@ -1157,6 +1157,52 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
 SWC_TEST_END()
 #endif
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_EmptyFunctionAliasesKeepDelimiters)
+{
+    ApiPublicationTestDirectory directory("EmptyFunctionAliases");
+    const fs::path module = directory.path() / "provider";
+    const fs::path api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+#[Swag.CallingConvention(.C)]
+alias Empty = func()
+alias Closure = func||()
+alias Nested = func(func())
+const Following = 42
+)"));
+    const std::vector<Utf8> exportArgs = {"sema", "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, R"(func verify(empty: Callbacks.Empty, closure: Callbacks.Closure, nested: Callbacks.Nested)
+{
+    empty()
+    closure()
+    nested(func() {})
+}
+#assert(Callbacks.Following == 42)
+)"));
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

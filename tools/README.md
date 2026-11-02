@@ -9,7 +9,7 @@ Run the checkout's own compiler whenever more than one worktree exists. `dm` sel
 Pass `--num-cores` to change compiler parallelism; it does not limit a compiled program's runtime
 threads. Compiler options can be forwarded after the command and module.
 
-## Linux compiler build in progress
+## Linux compiler build
 
 ```sh
 python3 tools/linux-build.py --build-dir /absolute/path/outside/checkout --configuration devmode
@@ -19,11 +19,30 @@ This incremental GNU Make build reuses the compiler source inventory in `swc.vcx
 Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
 `--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
 files, the precompiled header and the executable remain under the supplied build directory.
-Complete DevMode and Release builds link and pass the lexer/parser suites including
-expected-error inputs. `--os linux` selects Linux target queries and the System V C ABI explicitly. The default
-target remains Windows. Linux semantic execution still needs the runtime host hooks; ELF native
-output is not implemented.
-Use the focused boundary below for implemented host services.
+DevMode and Release compilers build on Linux x86-64. `--os linux` selects Linux target queries
+and the System V C ABI explicitly; the default target remains Windows. JIT execution, ELF
+executables, GNU static archives and shared modules are available, including transitive imports
+and shared runtime initialization. Source-level DWARF debug information, position-independent
+code and persistent Linux native caches remain unfinished; see the portability backlog.
+
+An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
+standard-module fallback; it does not redirect runtime lookup. From the repository root, prepare
+the runtime and invoke Linux workspaces directly:
+
+```sh
+mkdir -p /absolute/build/devmode/runtime
+cp -a bin/runtime/. /absolute/build/devmode/runtime/
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build --os linux \
+  --workspace bin/std --workspace-module pixel --num-cores 3
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test --os linux \
+  --workspace bin/std --workspace-module pixel --num-cores 3 \
+  --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
+```
+
+The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
+EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software
+rendering; physical GPU coverage is separate. Core, Ogl, TrueType and Pixel build on Linux.
+GUI and the desktop applications still require additional platform services.
 
 ## Linux compiler suites
 
@@ -37,8 +56,9 @@ The launcher stages the selected executable and this checkout's runtime in an ex
 folder, isolates caches with `TMPDIR`, and removes the staging folder afterwards. Each invocation
 has its own load-admission check, three compiler workers and a 180-second timeout (`--timeout`
 overrides it). Lexer/parser suites include their expected-error inputs. The C++ suite requires
-DevMode; add `--dev-full` to include its filesystem tests. Linux execution/ABI-dependent tests
-remain unfinished, so the current C++ suite is not yet a passing gate.
+DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
+passes 1,750 tests as of 2026-11-02, including ELF linking, native ABI and module-publication cases.
+This is compiler coverage; it does not establish complete Linux support for every `bin/` module.
 
 ## Linux host primitives
 

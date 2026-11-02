@@ -547,7 +547,7 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
 #test
 {
     var showChoices = true
-    var chosen = Swag.U64.Max
+    var chosen      = Swag.U64.Max
     var host: Testing.HeadlessHost
     host.setup(800, 600)
     defer host.shutdown()

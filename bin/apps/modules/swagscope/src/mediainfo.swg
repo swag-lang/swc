@@ -344,6 +344,7 @@ impl MediaInfoPanel
                        Format.toString("%: %", row.label(), row.value)
             .lines[index].setItem(0, text)
         }
+
         .list.computeLayout()
         .applyLayout()
         .invalidate()

@@ -67,11 +67,11 @@ impl HeadlessFixture
 
         let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
         let view   = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
-        view.libWnd    = .main.libWnd
-        view.mainWnd   = .main
-        view.scrollWnd = scroll
+        view.libWnd      = .main.libWnd
+        view.mainWnd     = .main
+        view.scrollWnd   = scroll
         view.focusPolicy = .Tab
-        view.wndFlags   |= .NoFocusRing
+        view.wndFlags    |= .NoFocusRing
         scroll.setView(view)
         .main.libWnd.view = view
         return .main.libWnd

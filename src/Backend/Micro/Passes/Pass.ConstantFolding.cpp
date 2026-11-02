@@ -988,8 +988,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    MicroStorage&                storage  = *context.instructions;
-    MicroOperandStorage&         operands = *context.operands;
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
     if (storage.count() == 0)
         return Result::Continue;
 

@@ -169,7 +169,7 @@ namespace
         if (!n)
             return false;
 
-        auto&      scratch   = sinkScratch;
+        auto& scratch = sinkScratch;
 
         // Block ids from the linear listing: a label opens a block, a
         // terminator closes one.

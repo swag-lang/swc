@@ -81,6 +81,7 @@ impl IWnd for StartupProbeWnd
         var client: RECT
         Swag.assert(GetClientRect(surface.win32Handle(), &client))
         Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
+
         // Activation may invalidate focus decoration after the first complete frame.
         Swag.assert(surface.rt.colorBuffer.width >= client.right and surface.rt.colorBuffer.height >= client.bottom)
         surface.hide()

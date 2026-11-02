@@ -23,17 +23,17 @@ struct ExplorerEntry
     // writes under it, read beside the listing: a picture's size, a document's pages, the lines
     // of code, the sections of Markdown, a font's family and style, and the first lines of a
     // text.
-    width:     u32
-    height:    u32
-    pages:     u64
-    lines:     u64
-    sections:  u64
-    members:   u64
-    face:      String
-    excerpt:   String
-    movie:     MovieSummary
-    music:     MusicSummary
-    attempted: bool
+    width:         u32
+    height:        u32
+    pages:         u64
+    lines:         u64
+    sections:      u64
+    members:       u64
+    face:          String
+    excerpt:       String
+    movie:         MovieSummary
+    music:         MusicSummary
+    attempted:     bool
     onlinePending: bool
 }
 

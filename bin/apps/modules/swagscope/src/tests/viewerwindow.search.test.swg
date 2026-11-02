@@ -63,5 +63,6 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         Swag.assert(item.checked)
         matchCaseChecked = true
     }
+
     Swag.assert(matchCaseChecked)
 }

@@ -97,22 +97,22 @@ struct Explorer
 
     late
     {
-        window:     *ViewerWindow
-        header:     *Wnd
-        summary:    *Label
-        tools:      *StackLayoutCtrl
-        address:    *ExplorerAddress
-        title:      *Label
-        status:     *Label
-        extractAll: *IconButton
-        kindMenu:   *IconButton
-        sortMenu:   *IconButton
-        modeMenu:   *IconButton
+        window:      *ViewerWindow
+        header:      *Wnd
+        summary:     *Label
+        tools:       *StackLayoutCtrl
+        address:     *ExplorerAddress
+        title:       *Label
+        status:      *Label
+        extractAll:  *IconButton
+        kindMenu:    *IconButton
+        sortMenu:    *IconButton
+        modeMenu:    *IconButton
         artworkMenu: *IconButton
-        filter:     *EditBox
-        list:       *ListCtrl
-        scroll:     *ScrollWnd
-        grid:       *ExplorerGrid
+        filter:      *EditBox
+        list:        *ListCtrl
+        scroll:      *ScrollWnd
+        grid:        *ExplorerGrid
     }
 
     layingHeader:    bool
@@ -348,7 +348,7 @@ impl Explorer
         {
             .layoutSpec.alignY = .End
             .setIcon(me.theme().icon(.Sort, themeRowIconSize(me.themeMetrics())))
-            .sigPressed        += func|view = me|(_) { view.showSortMenu() }
+            .sigPressed += func|view = me|(_) { view.showSortMenu() }
         }
 
         with .kindMenu = IconButton.createQuiet(.tools)
@@ -363,13 +363,13 @@ impl Explorer
         {
             .layoutSpec.alignY = .End
             .toolTip           = appStrings().explore_View
-            .sigPressed       += func|view = me|(_) { view.showModeMenu() }
+            .sigPressed        += func|view = me|(_) { view.showModeMenu() }
         }
 
         with .artworkMenu = IconButton.createQuiet(.tools)
         {
             .layoutSpec.alignY = .End
-            .sigPressed       += func|view = me|(_) { view.showArtworkMenu() }
+            .sigPressed        += func|view = me|(_) { view.showArtworkMenu() }
         }
 
         with .address = ExplorerAddress.create(line, me)
@@ -415,20 +415,20 @@ impl Explorer
         .scroll.margin.z  = .list.margin.z
         .applyLayout()
 
-        let album    = .grid.board == .Album and .scroll.isLocallyVisible()
-        let line     = unwrap .tools.parent
-        let gap      = metrics.infoSheet_BlockGap
-        let space    = line.clientRect().width
+        let album = .grid.board == .Album and .scroll.isLocallyVisible()
+        let line  = unwrap .tools.parent
+        let gap   = metrics.infoSheet_BlockGap
+        let space = line.clientRect().width
         .title.show(not album)
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
-        let compact = space < 900
-        let veryCompact = space < 500
+        let compact      = space < 900
+        let veryCompact  = space < 500
         var addressWidth = veryCompact ? (album ? 80 : 72) :
                            (compact ? (album ? 120 : 96) : Math.min(180, space * 0.2))
         .filter.position.width = veryCompact ? 48 : (compact ? 72 : ViewerWindow.SearchFieldWidth)
-        .tools.spacing = veryCompact ? 0 : (compact ? 4 : 8)
+        .tools.spacing         = veryCompact ? 0 : (compact ? 4 : 8)
         .sortMenu.setQuietText(compact ? "" : .sortName())
         .kindMenu.setQuietText(compact ? "" : .filterKindName())
         .modeMenu.setQuietText("")
@@ -441,11 +441,15 @@ impl Explorer
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
+
         if width + addressWidth + gap > space do
             addressWidth = Math.max(space - width - gap, 0)
 
         // Counts and failures move under the title instead of disappearing when space is tight.
-        let summary = .listing.isArchive and not album and not .status.isLocallyVisible() and .status.text().count != 0
+        let summary = .listing.isArchive and
+                      not album and
+                      not .status.isLocallyVisible() and
+                      .status.text().count != 0
         .summary.setText(summary ? .status.text() : "")
         .summary.show(summary)
         var height = album ? ToolHeight + gap : HeaderHeight
@@ -457,10 +461,10 @@ impl Explorer
         .tools.dockStyle        = .None
 
         .applyLayout()
-        let bounds = line.clientRect()
+        let bounds         = line.clientRect()
         let titleFullWidth = Painter.measureString(.title.text(), .theme().createDefaultFont(TitleFontSize, .Bold)).width
-        let titleWidth = album ? 0 : Math.min(titleFullWidth,
-                                             Math.min(200, Math.max(bounds.width - addressWidth - width - 2 * gap, 0)))
+        let titleWidth     = album ? 0 : Math.min(titleFullWidth,
+                                                  Math.min(200, Math.max(bounds.width - addressWidth - width - 2 * gap, 0)))
         .title.setPosition({bounds.x, bounds.y, titleWidth, bounds.height})
         let addressX = bounds.x + titleWidth + (titleWidth > 0 ? gap : 0)
         .address.setPosition({addressX, Math.max(bounds.bottom() - ToolHeight, 0), addressWidth, ToolHeight})
@@ -471,8 +475,8 @@ impl Explorer
     // Shows the listing presentation and, for thumbnails, their organization in one menu.
     mtd showModeMenu()
     {
-        let text = appStrings()
-        let menu = MenuCtrl.createPopup(me, owner: me)
+        let text  = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
         let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
         let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
         for id, index in ViewerCommands.Modes
@@ -490,7 +494,7 @@ impl Explorer
             for id, index in ViewerCommands.Boards
             {
                 let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-                let item = menu.addRadioItem(boardNames[index], id, checked: checked)
+                let item    = menu.addRadioItem(boardNames[index], id, checked: checked)
                 item.icon = .theme().icon(boardIcons[index], themeRowIconSize(.themeMetrics()))
             }
         }
@@ -509,7 +513,7 @@ impl Explorer
         {
             let names = [text.artwork_Online, text.artwork_Local]
             let icons = [ThemeIcons.Link, ThemeIcons.FileImage]
-            let item = menu.addRadioItem(names[index], id, checked: cast(u64, .artworkSource) == index)
+            let item  = menu.addRadioItem(names[index], id, checked: cast(u64, .artworkSource) == index)
             item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
         }
 
@@ -584,14 +588,14 @@ impl Explorer
         let text = appStrings()
         switch .kindFilter
         {
-        case .Videos:     return text.explore_FilterVideos
-        case .Images:     return text.explore_FilterImages
-        case .Audio:      return text.explore_FilterAudio
-        case .Documents:  return text.explore_FilterDocuments
-        case .Subtitles:  return text.explore_FilterSubtitles
-        case .Archives:   return text.explore_FilterArchives
-        case .Folders:    return text.explore_FilterFolders
-        default:          return text.explore_FilterAll
+        case .Videos:    return text.explore_FilterVideos
+        case .Images:    return text.explore_FilterImages
+        case .Audio:     return text.explore_FilterAudio
+        case .Documents: return text.explore_FilterDocuments
+        case .Subtitles: return text.explore_FilterSubtitles
+        case .Archives:  return text.explore_FilterArchives
+        case .Folders:   return text.explore_FilterFolders
+        default:         return text.explore_FilterAll
         }
     }
 
@@ -629,12 +633,24 @@ impl Explorer
         {
             switch .forcedBoard
             {
-            case .Grid:    boardName = text.board_Grid;    boardIcon = .File
-            case .Posters: boardName = text.board_Posters; boardIcon = .FileVideo
-            case .Covers:  boardName = text.board_Covers;  boardIcon = .FileAudio
-            case .Mosaic:  boardName = text.board_Mosaic;  boardIcon = .FileImage
+            case .Grid:
+                boardName = text.board_Grid
+                boardIcon = .File
+
+            case .Posters:
+                boardName = text.board_Posters
+                boardIcon = .FileVideo
+
+            case .Covers:
+                boardName = text.board_Covers
+                boardIcon = .FileAudio
+
+            case .Mosaic:
+                boardName = text.board_Mosaic
+                boardIcon = .FileImage
             }
         }
+
         let modeIndex = cast(u64, .mode)
         .modeMenu.setIcon(.theme().icon(.isThumbnailView() ? boardIcon : viewIcons[modeIndex], themeRowIconSize(.themeMetrics())))
         if .isThumbnailView() do
@@ -669,9 +685,9 @@ impl Explorer
     // Returns the name of the explored location, as the page title and the window title show it.
     mtd locationName()->String
     {
-        let path = .logicalPath(.listing.path)
+        let path    = .logicalPath(.listing.path)
         let location: String = .folder.isEmpty() ? String.from(path) : Format.toString("%/%", path, .folder)
-        var trimmed  = location.toString()
+        var trimmed = location.toString()
         while trimmed.count > 1 and trimmed[trimmed.count - 1] == '/'u8 do
             trimmed = trimmed[0 until trimmed.count - 1]
         return Path.fileName(trimmed) orelse trimmed
@@ -843,6 +859,7 @@ impl Explorer
                 sheet.addSection(strings.explore_Synopsis)
                 sheet.addText(safeMediaText(entry.movie.overview))
             }
+
             sheet.addSection(strings.explore_MediaDetails)
             addSheetReading(sheet, strings.explore_MovieGenre, entry.movie.genre)
             addSheetReading(sheet, strings.explore_Director, entry.movie.director)
@@ -877,6 +894,7 @@ impl Explorer
                     identity += " · "
                 identity += safeMediaText(entry.music.date)
             }
+
             sheet.setIdentity(identity.length ? identity.toString() : entry.name.toString())
             if entry.duration do
                 sheet.addFact(formatDuration(entry.duration), strings.explore_Duration)
@@ -944,6 +962,7 @@ impl Explorer
             .window.queueFile(entry.albumTrack)
             return
         }
+
         .activate(.selected)
     }
 
@@ -1293,7 +1312,7 @@ impl Explorer
     {
         .clearTextures()
         let entering = .listing.isArchive and not .grid.rows
-        .entries  = #move .listing.entries
+        .entries = #move .listing.entries
         .shown.clear()
         .selected = Swag.U64.Max
         .showMediaInfo()
@@ -1363,6 +1382,7 @@ impl Explorer
                 oneAlbum = false
                 continue
             }
+
             let kind = .theme().fileGlyph(entry.name, false, 16).index
             if kind == cast(s32, ThemeIcons.FileVideo)
             {
@@ -1420,18 +1440,31 @@ impl Explorer
         var pluginIndex: u64
         if not .window.index.namePlugin(entry.path, &pluginIndex) do
             return false
-        let key = .window.index.plugins[pluginIndex].key
+        let key   = .window.index.plugins[pluginIndex].key
         let glyph = .theme().fileGlyph(entry.name, false, 16).index
         switch .kindFilter
         {
-        case .Videos:     return glyph == cast(s32, ThemeIcons.FileVideo)
-        case .Images:     return glyph == cast(s32, ThemeIcons.FileImage)
-        case .Audio:      return glyph == cast(s32, ThemeIcons.FileAudio)
-        case .Subtitles:  return key == "subtitle"
-        case .Archives:   return glyph == cast(s32, ThemeIcons.FileArchive)
-        case .Documents:  return glyph == cast(s32, ThemeIcons.FileCode) or
-                                 (glyph == cast(s32, ThemeIcons.File) and key != "binary")
-        default:          return true
+        case .Videos:
+            return glyph == cast(s32, ThemeIcons.FileVideo)
+
+        case .Images:
+            return glyph == cast(s32, ThemeIcons.FileImage)
+
+        case .Audio:
+            return glyph == cast(s32, ThemeIcons.FileAudio)
+
+        case .Subtitles:
+            return key == "subtitle"
+
+        case .Archives:
+            return glyph == cast(s32, ThemeIcons.FileArchive)
+
+        case .Documents:
+            return glyph == cast(s32, ThemeIcons.FileCode) or
+                   (glyph == cast(s32, ThemeIcons.File) and key != "binary")
+
+        default:
+            return true
         }
     }
 
@@ -1449,6 +1482,7 @@ impl Explorer
                 continue
             .shown.add(index)
         }
+
         var selectionVisible = false
         for index in .shown where index == .selected do
             selectionVisible = true
@@ -1491,7 +1525,8 @@ impl Explorer
                     albumFolders += 1
                     continue
                 }
-                let kind  = .theme().fileGlyph(entry.name, entry.directory, 16).index
+
+                let kind = .theme().fileGlyph(entry.name, entry.directory, 16).index
                 if kind == cast(s32, ThemeIcons.FileAudio)
                 {
                     tracks += 1
@@ -1580,6 +1615,7 @@ impl Explorer
                 else do
                     .entries[preview.index].attempted = false
             }
+
             preview.task.cancel()
         }
     }
@@ -1641,6 +1677,7 @@ impl Explorer
                     else do
                         .entries[preview.index].attempted = false
                 }
+
                 preview.generation = Swag.U64.Max
                 preview.task.cancel()
             }
@@ -1716,10 +1753,10 @@ impl Explorer
         .clearTextures()
         for &entry in .entries
         {
-            entry.attempted = false
+            entry.attempted     = false
             entry.onlinePending = false
-            entry.movie     = {}
-            entry.music     = {}
+            entry.movie         = {}
+            entry.music         = {}
         }
 
         .showMediaInfo()
@@ -1752,9 +1789,9 @@ impl Explorer
                     return
                 let selected = &.entries[.selected]
                 var pluginIndex: u64
-                let movie = File.exists(selected.path) and
-                            .window.index.namePlugin(selected.path, &pluginIndex) and
-                            .window.index.plugins[pluginIndex].key == "video"
+                let movie    = File.exists(selected.path) and
+                               .window.index.namePlugin(selected.path, &pluginIndex) and
+                               .window.index.plugins[pluginIndex].key == "video"
                 let music = File.exists(selected.path) and albumAudio(selected.path)
                 if (selected.directory and selected.albumTrack.isEmpty()) or
                    (selected.attempted and not selected.onlinePending) or
@@ -1771,8 +1808,7 @@ impl Explorer
                 {
                     let index = .shown[row]
                     if index < .entries.count and
-                       (not .entries[index].directory or not .entries[index].albumTrack.isEmpty() or
-                        (.grid.board == .Covers and .entries[index].children == Swag.U64.Max)) and
+                       (not .entries[index].directory or not .entries[index].albumTrack.isEmpty() or (.grid.board == .Covers and .entries[index].children == Swag.U64.Max)) and
                        not .entries[index].attempted and
                        .previewSlot(index) == Swag.U64.Max
                     {
@@ -1788,7 +1824,8 @@ impl Explorer
                     for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
                     {
                         let index = .shown[row]
-                        if index < .entries.count and .entries[index].onlinePending and
+                        if index < .entries.count and
+                           .entries[index].onlinePending and
                            .previewSlot(index) == Swag.U64.Max
                         {
                             wanted = index
@@ -1838,8 +1875,7 @@ impl Explorer
         preview.generation  = .generation
         preview.opening     = opening
         preview.online      = online
-        preview.settings    = ThumbnailSettings.capture(.window, entry,
-                                                        localArtworkOnly: .artworkSource == .Local)
+        preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -1928,6 +1964,7 @@ impl IWnd for Explorer
                             .requestPreview()
                             return
                         }
+
                         if preview.index == .selected and not preview.error.isEmpty() do
                             .setStatus(preview.error)
                         let replacing = .entries[preview.index].texture.isValid()
@@ -1943,12 +1980,12 @@ impl IWnd for Explorer
 
                         if replacing do
                             .app().renderer.removeTexture(&.entries[preview.index].texture)
-                        .entries[preview.index].texture  = .app().renderer.addImage(preview.image)
+                        .entries[preview.index].texture = .app().renderer.addImage(preview.image)
                         let duration = thumbnailDuration(&preview.image)
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration
-                        .entries[preview.index].movie    = MovieSummary.fromImage(&preview.image)
-                        var music = MusicSummary.fromImage(&preview.image)
+                        .entries[preview.index].movie = MovieSummary.fromImage(&preview.image)
+                        var music      = MusicSummary.fromImage(&preview.image)
                         let localMusic = &.entries[preview.index].music
                         if not localMusic.track.isEmpty() do
                             music.track = localMusic.track
@@ -1961,6 +1998,7 @@ impl IWnd for Explorer
                             if music.title.isEmpty() do
                                 music.title = .entries[preview.index].name
                         }
+
                         .entries[preview.index].music = #move music
                         if .selected == preview.index do
                             .showMediaInfo()
@@ -2161,10 +2199,10 @@ impl ExplorerGrid
             return
         }
 
-        let aspect    = .posters ? PosterAspect :
-                        (.board == .Covers ? 1.0 :
-                         (.board == .Grid and .explorer.previewAspect == ExplorerFilmPreviewAspect ?
-                          ExplorerFilmTileAspect : TileAspect))
+        let aspect = .posters ? PosterAspect :
+                     (.board == .Covers ? 1.0 :
+                      (.board == .Grid and .explorer.previewAspect == ExplorerFilmPreviewAspect ?
+                       ExplorerFilmTileAspect : TileAspect))
         var narrowest = .posters ? PosterWidth : TileWidth
         switch .explorer.mode
         {
@@ -2296,7 +2334,7 @@ impl ExplorerGrid
         let stacked  = width < CoverSide * 2 + AlbumGap
         let cover    = Math.min(stacked ? TileWidth : CoverSide, width)
         .albumCover = Math.Rectangle{CellInset, CellInset, cover, cover}
-        let gap = stacked ? .themeMetrics().floating_Inset : AlbumGap
+        let gap   = stacked ? .themeMetrics().floating_Inset : AlbumGap
         let textX = CellInset + cover + gap
         .albumText = Math.Rectangle{textX, CellInset, Math.max(width - cover - gap, 1), AlbumHead}
         .places.clear()
@@ -2400,7 +2438,7 @@ impl ExplorerGrid
                 ambient.setOpacityF32(0.16)
                 painter.fillRoundRect(tile, radius, radius, ambient)
                 let height = Math.round(tile.width * cast(f32, texture.height) / cast(f32, texture.width))
-                let frame = Math.Rectangle{tile.x, Math.round(tile.vertCenter() - height * 0.5), tile.width, height}
+                let frame  = Math.Rectangle{tile.x, Math.round(tile.vertCenter() - height * 0.5), tile.width, height}
                 painter.fillRoundRect(frame, radius, radius, Brush.createTexture(texture))
             }
             elif fills
@@ -2467,7 +2505,7 @@ impl ExplorerGrid
         // at the left, what it weighs at the right.
         let mono     = .theme().createDefaultFontFs(11)
         let nameRect = Math.Rectangle{tile.x, tile.bottom() + 8, tile.width, 20}
-        let title = .tileName(entry)
+        let title    = .tileName(entry)
         .paintName(painter, nameRect, row, index, title)
 
         let factsY = mono.opticalLineTop(tile.bottom() + 37)
@@ -2640,10 +2678,10 @@ impl ExplorerGrid
     // Writes the name of a tile, travelling only while its visible title exceeds the tile.
     mtd paintName(painter: *Painter, nameRect: Math.Rectangle, row, index: u64, text: string)
     {
-        let safe  = safeMediaText(text)
-        let width = Painter.measureString(safe, unwrap .font().regular).width
+        let safe    = safeMediaText(text)
+        let width   = Painter.measureString(safe, unwrap .font().regular).width
         let scrolls = width > nameRect.width and (.hovered == row or .explorer.selected == index)
-        var name: RichString = safe.toString()
+        var name:   RichString = safe.toString()
         var format: RichStringFormat
         format.font = .font()
         me.theme().setTextColors(&format, me.themeColors().text)
@@ -2906,8 +2944,10 @@ impl ExplorerGrid
                     result += " · "
                 result += entry.music.date.toString()[0 until 4]
             }
+
             return result
         }
+
         if entry.directory
         {
             if entry.children == 1 do
@@ -3011,8 +3051,10 @@ impl ExplorerGrid
             if not .nameTimer do
                 .nameTimer = .addTimer(50'ms)
         }
-        else do
+        else
+        {
             .stopTimer(&.nameTimer)
+        }
     }
 
     mtd select(row: u64)

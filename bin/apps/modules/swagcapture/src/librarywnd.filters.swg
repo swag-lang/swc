@@ -170,24 +170,27 @@ impl LibraryWnd
         {
             let family  = texts.lens_Selection
             let focused = .view.items[.view.focusItem]
-            describeAction(results, "", family, texts.act_OpenSelected, .theme().icon(.OpenFile),
-                           func|libWnd = me, focused|() { libWnd.view.openItem(focused) },
-                           Input.formatKeyShortcut(.None, .Return))
+            describeAction(results, "", family, texts.act_OpenSelected, .theme().icon(.OpenFile), func|libWnd = me, focused|() { libWnd.view.openItem(focused) }, Input.formatKeyShortcut(.None, .Return))
             if focused.kind == .Image do
-                describeAction(results, "", family, texts.act_LocateImage, .theme().icon(.OpenExternal),
+                describeAction(results,
+                               "",
+                               family,
+                               texts.act_LocateImage,
+                               .theme().icon(.OpenExternal),
                                func|focused|() { discard Env.showInFileExplorer(focused.fi.fullName) })
             else
             {
-                describeAction(results, "", family, texts.act_ExportSelected, .theme().icon(.Export),
+                describeAction(results,
+                               "",
+                               family,
+                               texts.act_ExportSelected,
+                               .theme().icon(.Export),
                                func|libWnd = me|() { libWnd.exportSelected() })
-                describeAction(results, "", family, texts.act_EditTags, .theme().icon(.Edit),
-                               func|libWnd = me|() { libWnd.editSelectedTags() })
-                describeAction(results, "", family, texts.act_FavoriteCapture, .theme().icon(.Star),
-                               func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
+                describeAction(results, "", family, texts.act_EditTags, .theme().icon(.Edit), func|libWnd = me|() { libWnd.editSelectedTags() })
+                describeAction(results, "", family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
             }
 
-            describeAction(results, "", family, texts.act_MoveSelected, .theme().icon(.Folder),
-                           func|libWnd = me|() { libWnd.moveSelected() })
+            describeAction(results, "", family, texts.act_MoveSelected, .theme().icon(.Folder), func|libWnd = me|() { libWnd.moveSelected() })
             .describeCommands(results, "", family, [ActionFile.DeleteCapture])
 
             // The rating is one choice among six, with each value drawn as its familiar star score.
@@ -208,6 +211,7 @@ impl LibraryWnd
                             .paintWidth = stars * (RatingStarSize + RatingStarGap) - RatingStarGap
                             .paint      = func|libWnd = me, stars|(painter, rect) { libWnd.paintRatingStars(painter, rect, stars) }
                         }
+
                         .detail     = Input.formatKeyShortcut(.None, ratingKey(stars))
                         .monoDetail = true
                     }
@@ -257,6 +261,7 @@ impl LibraryWnd
                     .detail     = state.shortcut
                     .monoDetail = true
                 }
+
                 if state.updatedFields.has(.Checked) and state.checked do
                     .detail = LensCheck
                 if state.updatedFields.has(.Icon) do
@@ -289,25 +294,24 @@ impl LibraryWnd
         let texts   = appStrings()
         let family  = texts.act_Library
         let focused = .view.items[.view.focusItem]
-        describeAction(results, query, family, texts.act_OpenSelected, .theme().icon(.OpenFile),
-                       func|libWnd = me, focused|() { libWnd.view.openItem(focused) },
-                       Input.formatKeyShortcut(.None, .Return))
+        describeAction(results, query, family, texts.act_OpenSelected, .theme().icon(.OpenFile), func|libWnd = me, focused|() { libWnd.view.openItem(focused) }, Input.formatKeyShortcut(.None, .Return))
         if focused.kind == .Image
         {
-            describeAction(results, query, family, texts.act_LocateImage, .theme().icon(.OpenExternal),
+            describeAction(results,
+                           query,
+                           family,
+                           texts.act_LocateImage,
+                           .theme().icon(.OpenExternal),
                            func|focused|() { discard Env.showInFileExplorer(focused.fi.fullName) })
             return
         }
 
-        describeAction(results, query, family, texts.act_ExportSelected, .theme().icon(.Export),
-                       func|libWnd = me|() { libWnd.exportSelected() })
-        describeAction(results, query, family, texts.act_EditTags, .theme().icon(.Edit),
-                       func|libWnd = me|() { libWnd.editSelectedTags() })
-        describeAction(results, query, family, texts.act_FavoriteCapture, .theme().icon(.Star),
-                       func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
+        describeAction(results, query, family, texts.act_ExportSelected, .theme().icon(.Export), func|libWnd = me|() { libWnd.exportSelected() })
+        describeAction(results, query, family, texts.act_EditTags, .theme().icon(.Edit), func|libWnd = me|() { libWnd.editSelectedTags() })
+        describeAction(results, query, family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
         for rating in 6
         {
-            let value = cast(u8, rating)
+            let value      = cast(u8, rating)
             with let entry = sectionOf(results, family).addEntry(ratingLabel(value))
             {
                 if value != 0
@@ -315,6 +319,7 @@ impl LibraryWnd
                     .paintWidth = value * (RatingStarSize + RatingStarGap) - RatingStarGap
                     .paint      = func|libWnd = me, value|(painter, rect) { libWnd.paintRatingStars(painter, rect, value) }
                 }
+
                 .detail     = Input.formatKeyShortcut(.None, ratingKey(value))
                 .monoDetail = true
                 .run        = func|libWnd = me, value|() { libWnd.rateSelected(value) }
@@ -534,11 +539,11 @@ func ratingKey(rating: u8)->Input.Key
 {
     switch rating
     {
-    case 0: return .D0
-    case 1: return .D1
-    case 2: return .D2
-    case 3: return .D3
-    case 4: return .D4
+    case 0:  return .D0
+    case 1:  return .D1
+    case 2:  return .D2
+    case 3:  return .D3
+    case 4:  return .D4
     default: return .D5
     }
 }

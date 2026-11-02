@@ -32,7 +32,7 @@ private const CommandWidth = 64.0
 struct ViewerSettings
 {
     #[Properties.Name("Pitch Labels")]
-    pitchLabelMode:    PitchLabelMode = .Scientific
+    pitchLabelMode: PitchLabelMode = .Scientific
     #[Properties.Name("Keyboard Width"), Properties.MinMax(0, 2)]
     keyboardWidthMode: u32 = 1
 }

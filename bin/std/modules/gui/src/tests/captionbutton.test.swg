@@ -94,7 +94,7 @@ using Swag, Core
     let button = CaptionButton.createLeading(&host.surface, ThemeIcons.ChevronLeft)
     host.surfaceWnd.sendResizeEvent()
     let metrics = host.theme.metrics
-    let client = host.surfaceWnd.clientRect()
+    let client  = host.surfaceWnd.clientRect()
     Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
     Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
     Swag.assert(host.surfaceWnd.hitTestCaptionButton(button.surfaceRect().center()))

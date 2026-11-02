@@ -4127,7 +4127,7 @@ namespace PostRaPeephole
                     else if (!fallsThrough)
                         state = ~UpperHalfState{0};
                     upperHalfZeroIn[it.current.get()] = state;
-                    state = upperHalfAfter(*this, inst, state);
+                    state                             = upperHalfAfter(*this, inst, state);
 
                     first        = false;
                     fallsThrough = !MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::TerminatorInstruction);

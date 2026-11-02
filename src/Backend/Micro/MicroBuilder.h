@@ -80,12 +80,12 @@ public:
         relocations_.clear();
         hasRelocationsToPrune_ = false;
     }
-    void                                                       addRelocation(const MicroRelocation& relocation);
-    bool                                                       invalidateRelocationForInstruction(MicroInstrRef instructionRef);
-    bool                                                       hasRelocationsToPrune() const { return hasRelocationsToPrune_; }
-    bool                                                       pruneDeadRelocations();
-    std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
-    const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
+    void                                addRelocation(const MicroRelocation& relocation);
+    bool                                invalidateRelocationForInstruction(MicroInstrRef instructionRef);
+    bool                                hasRelocationsToPrune() const { return hasRelocationsToPrune_; }
+    bool                                pruneDeadRelocations();
+    std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
+    const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
     // A nonempty table may contain unused labels; an empty table proves there are no label instructions.
     bool                                                       hasLabelReferences() const { return !labels_.empty(); }
     const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const;

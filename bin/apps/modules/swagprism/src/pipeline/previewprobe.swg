@@ -51,7 +51,8 @@ impl PreviewProbe
                 probe.failed      = true
                 probe.diagnostics = appStrings().msg_PreviewNotRun
             }
-        }, executor: &.executor)
+        },
+                     executor: &.executor)
     }
 
     // Waits for the build, then runs it in a child process rendering into the frame channel, and

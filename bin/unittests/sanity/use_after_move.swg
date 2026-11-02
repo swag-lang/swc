@@ -125,7 +125,7 @@ func lifecycleSafetyEnabled()->bool
     var b = #move a
     a.x = 27
     let wide = cast(*u64, &a.x)
-    Swag.assert(wide[] == 0)   // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.assert(wide[] == 0)     // swc-expected-error {{sanity_err_use_after_move}}
     discard b
 }
 
@@ -137,7 +137,7 @@ func lifecycleSafetyEnabled()->bool
     let p = &a.y
     var b = #move a
     a.x = 25
-    p[] = 26                   // swc-expected-error {{sanity_err_write_after_move}}
+    p[] = 26     // swc-expected-error {{sanity_err_write_after_move}}
     discard b
 }
 

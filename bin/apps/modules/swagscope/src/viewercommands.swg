@@ -74,7 +74,7 @@ namespace ViewerCommands
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
                     "scope.explore.board.3", "scope.explore.board.4"]
-    const Artwork = [ArtworkOnline, ArtworkLocal]
+    const Artwork     = [ArtworkOnline, ArtworkLocal]
     const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
                          FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
 }
@@ -1012,8 +1012,9 @@ impl ViewerWindow
         case ViewerCommands.EditLocation:
             explorer.address.beginEdit()
 
-        case ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
-             ViewerCommands.FilterAudio, ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
+        case ViewerCommands.FilterAll, ViewerCommands.FilterVideos,
+             ViewerCommands.FilterImages, ViewerCommands.FilterAudio,
+             ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
              ViewerCommands.FilterArchives, ViewerCommands.FilterFolders:
             for command, index in ViewerCommands.KindFilters where id == command
             {

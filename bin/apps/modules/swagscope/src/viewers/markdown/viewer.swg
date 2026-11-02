@@ -7,9 +7,9 @@ using Core, Gui
 struct ViewerSettings
 {
     #[Properties.Name("Document Theme")]
-    themeIndex:  u32           // Document appearance, in the order of the appearance selector.
+    themeIndex: u32     // Document appearance, in the order of the appearance selector.
     #[Properties.Name("Reading Width")]
-    widthIndex:  u32 = 1       // Reading measure, in the order of the width selector.
+    widthIndex: u32 = 1     // Reading measure, in the order of the width selector.
     #[Properties.Name("Zoom"), Properties.MinMax(25, 400), Properties.Unit("%")]
     zoomPercent: u32 = 100     // Document zoom.
 }

@@ -31,8 +31,8 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     var host: Testing.HeadlessHost
     host.setup(960, 640)
 
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let data     = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let data   = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas")
     window.openExplorer(data)
     let explorer = unwrap window.explorer
     for 16
@@ -42,11 +42,12 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         explorer.load.task.wait()
         host.pump()
     }
+
     Swag.assert(not explorer.load.started)
     window.applyLayout()
 
-    let pageWidth = explorer.grid.position.width
-    let scrollWidth = explorer.scroll.position.width
+    let pageWidth     = explorer.grid.position.width
+    let scrollWidth   = explorer.scroll.position.width
     let explorerWidth = explorer.position.width
     explorer.showInformation()
     Swag.assert(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
@@ -62,8 +63,13 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.assert(not window.infoSheet.isLocallyVisible())
     Swag.assert(explorer.padding.z == 0)
     Swag.assert(Math.abs(explorer.grid.position.width - pageWidth) < 0.5,
-                Format.toString("grid % / %, scroll % / %, explorer % / %", pageWidth, explorer.grid.position.width,
-                                scrollWidth, explorer.scroll.position.width, explorerWidth, explorer.position.width).toString())
+                Format.toString("grid % / %, scroll % / %, explorer % / %",
+                                pageWidth,
+                                explorer.grid.position.width,
+                                scrollWidth,
+                                explorer.scroll.position.width,
+                                explorerWidth,
+                                explorer.position.width).toString())
 }
 
 // Filtering ignores case, narrows the shown indices, and restores the full listing when cleared.
@@ -99,7 +105,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let testDirectory = unwrap Path.directoryName(#curlocation.fileName)
     let dataDirectory = Path.combine(testDirectory, "datas")
     var listing: ExplorerListing
-    var load: ExplorerListingLoad
+    var load:    ExplorerListingLoad
     load.start(dataDirectory, "", 0, false, &host.surfaceWnd)
     Swag.assert(load.finish(&listing).isEmpty())
 
@@ -127,7 +133,6 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         if not previous.directory and not current.directory do
             Swag.assert(previous.size >= current.size)
     }
-
 }
 
 // Every sort field has a deterministic order in both directions, including ties and folders.
@@ -158,13 +163,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
                 var order: s32
                 switch column
                 {
-                case 1:
-                    order = Latin1.compareNatural(Path.extension(previous.name) orelse "",
-                                                  Path.extension(current.name) orelse "")
-                case 2:
-                    order = previous.size == current.size ? 0 : (previous.size < current.size ? -1 : 1)
-                case 3:
-                    order = Latin1.compareNatural(previous.modified, current.modified)
+                case 1: order = Latin1.compareNatural(Path.extension(previous.name) orelse "",
+                                                      Path.extension(current.name) orelse "")
+
+                case 2:  order = previous.size == current.size ? 0 : (previous.size < current.size ? -1 : 1)
+                case 3:  order = Latin1.compareNatural(previous.modified, current.modified)
                 default: order = Latin1.compareNatural(previous.name, current.name)
                 }
 
@@ -182,7 +185,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
 {
     var host: Testing.HeadlessHost
     host.setup(960, 640)
-    let root = Gui.Testing.tempFilePath("scope-explorer-flow-", "")
+    let root   = Gui.Testing.tempFilePath("scope-explorer-flow-", "")
     let nested = Path.combine(root, "Nested")
     expect Directory.create(root)
     expect Directory.create(nested)

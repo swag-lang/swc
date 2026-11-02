@@ -13,32 +13,32 @@ struct AppStrings
     search_Browse:     string = "browse library;browse folder;media library"
     search_FullScreen: string = "cinema;fullscreen"
 
-    explore_Folders:           string = "Subfolders"            // Sidebar navigation through the current location.
-    explore_Back:              string = "Back"                  // Exploration control or status.
-    explore_Forward:           string = "Forward"               // Exploration control or status.
-    explore_Up:                string = "Parent Folder"         // Exploration control or status.
-    explore_Refresh:           string = "Refresh"               // Exploration control or status.
-    explore_Names:             string = "Names"                 // Exploration control or status.
-    explore_Details:           string = "Details"               // Exploration control or status.
-    explore_Small:             string = "Small thumbnails"      // Exploration control or status.
-    explore_Medium:            string = "Medium thumbnails"     // Exploration control or status.
-    explore_Large:             string = "Large thumbnails"      // Exploration control or status.
-    explore_Name:              string = "Name"                  // Exploration control or status.
-    explore_Type:              string = "Type"                  // Exploration control or status.
-    explore_Size:              string = "Size"                  // Exploration control or status.
-    explore_Modified:          string = "Modified"              // Exploration control or status.
-    explore_FilterByType:      string = "Filter by type"        // Tooltip of the file-kind menu in the explorer.
-    explore_View:              string = "Choose view"           // Tooltip of the view choice in the window title bar.
-    explore_Organization:      string = "Arrange thumbnails"    // Tooltip of the thumbnail arrangement choice.
-    explore_Artwork:           string = "Choose artwork source" // Tooltip of the media illustration source choice.
-    explore_FilterAll:         string = "All items"              // Explorer file-kind filter.
-    explore_FilterVideos:      string = "Videos"                 // Explorer file-kind filter.
-    explore_FilterImages:      string = "Images"                 // Explorer file-kind filter.
-    explore_FilterAudio:       string = "Audio"                  // Explorer file-kind filter.
-    explore_FilterDocuments:   string = "Documents"              // Explorer file-kind filter.
-    explore_FilterSubtitles:   string = "Subtitles"              // Explorer file-kind filter.
-    explore_FilterArchives:    string = "Archives"               // Explorer file-kind filter.
-    explore_FilterFolders:     string = "Folders"                // Explorer file-kind filter.
+    explore_Folders:           string = "Subfolders"                // Sidebar navigation through the current location.
+    explore_Back:              string = "Back"                      // Exploration control or status.
+    explore_Forward:           string = "Forward"                   // Exploration control or status.
+    explore_Up:                string = "Parent Folder"             // Exploration control or status.
+    explore_Refresh:           string = "Refresh"                   // Exploration control or status.
+    explore_Names:             string = "Names"                     // Exploration control or status.
+    explore_Details:           string = "Details"                   // Exploration control or status.
+    explore_Small:             string = "Small thumbnails"          // Exploration control or status.
+    explore_Medium:            string = "Medium thumbnails"         // Exploration control or status.
+    explore_Large:             string = "Large thumbnails"          // Exploration control or status.
+    explore_Name:              string = "Name"                      // Exploration control or status.
+    explore_Type:              string = "Type"                      // Exploration control or status.
+    explore_Size:              string = "Size"                      // Exploration control or status.
+    explore_Modified:          string = "Modified"                  // Exploration control or status.
+    explore_FilterByType:      string = "Filter by type"            // Tooltip of the file-kind menu in the explorer.
+    explore_View:              string = "Choose view"               // Tooltip of the view choice in the window title bar.
+    explore_Organization:      string = "Arrange thumbnails"        // Tooltip of the thumbnail arrangement choice.
+    explore_Artwork:           string = "Choose artwork source"     // Tooltip of the media illustration source choice.
+    explore_FilterAll:         string = "All items"                 // Explorer file-kind filter.
+    explore_FilterVideos:      string = "Videos"                    // Explorer file-kind filter.
+    explore_FilterImages:      string = "Images"                    // Explorer file-kind filter.
+    explore_FilterAudio:       string = "Audio"                     // Explorer file-kind filter.
+    explore_FilterDocuments:   string = "Documents"                 // Explorer file-kind filter.
+    explore_FilterSubtitles:   string = "Subtitles"                 // Explorer file-kind filter.
+    explore_FilterArchives:    string = "Archives"                  // Explorer file-kind filter.
+    explore_FilterFolders:     string = "Folders"                   // Explorer file-kind filter.
     explore_SelectFile:        string = "Select a file to see its information."
     explore_FileProperties:    string = "File"     // Heading for local file properties.
     explore_MediaDetails:      string = "Media details"     // Heading for online media information.
@@ -71,7 +71,7 @@ struct AppStrings
     explore_FileTags:          string = "File tags"
     explore_Loading:           string = "Reading folder…"                         // Exploration control or status.
     explore_Empty:             string = "No files to show"                        // Exploration control or status.
-    explore_NoMatches:         string = "No files match this filter."              // Empty filtered folder.
+    explore_NoMatches:         string = "No files match this filter."             // Empty filtered folder.
     explore_OneItem:           string = "1 item"                                  // Exploration control or status.
     explore_Count:             string = "% items"                                 // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
@@ -170,7 +170,7 @@ struct AppStrings
     home_InviteFolder:                 string = "Open a folder"                               // Folder invitation on the home page; the key follows it.
     home_Clear:                        string = "Clear"                                       // Quiet menu button under the last files.
     home_ClearMissing:                 string = "Remove Missing Files"                        // Clear of the history entries whose file is gone.
-    home_MissingTitle:                 string = "File not found."                              // Title of the question after a recent file is missing.
+    home_MissingTitle:                 string = "File not found."                             // Title of the question after a recent file is missing.
     home_AskForgetMissing:             string = "Remove it from the file history?"            // Question offering to drop the missing file from the history.
     home_ClearOlder:                   string = "Older Than a Month"                          // Clear of the history entries last opened more than a month ago.
     home_ClearAll:                     string = "Clear All…"                                  // Clear of the whole history, after a question.
@@ -191,65 +191,65 @@ struct AppStrings
     hint_Filter:                       string = "filter"                                      // What the slash key does on the hint line of an explored folder.
     ui_HintLens:                       string = "everything else"                             // What Ctrl Space opens, on the hint line of a window new to the reader.
 
-    lens_File:          string = "File"                      // Lens section of the commands acting on the open file.
-    lens_Find:          string = "Find"                      // Lens section of the search commands.
-    lens_View:          string = "View"                      // Lens section of the presentation commands.
-    lens_Artwork:       string = "Media Artwork"             // Lens section of the media illustration source commands.
-    lens_ViewAs:        string = "View As"                   // Lens section listing the viewers that can show the open file.
-    lens_Playback:      string = "Playback"                  // Lens section of the play modes.
-    lens_Folder:        string = "Folder"                    // Lens section of the commands of the explored folder.
-    lens_InFolder:      string = "In This Folder"            // Lens section listing the files beside the open one.
-    lens_InFile:        string = "In This File"              // Lens section listing the lines of the open file that hold the query.
-    lens_GoToLine:      string = "Go to Line %"              // Lens row going to the line typed after a colon.
-    cmd_Open:           string = "Open…"                     // Command choosing a file to open.
-    cmd_OpenChosen:     string = "Open"                      // Command opening the item chosen in the explored folder.
-    cmd_ExtractAll:     string = "Extract All…"              // Command extracting the whole explored archive to a folder.
-    cmd_Extract:        string = "Extract…"                  // Command extracting the chosen member or folder of the archive to a folder.
-    cmd_Explore:        string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
-    cmd_ReturnToExplorer: string = "Return to Explorer"       // Command returning to the folder after opening one of its files.
-    cmd_Reload:         string = "Reload"                    // Command reading the open file again.
-    cmd_PreviousFile:   string = "Previous File"             // Command opening the file before this one in its folder.
-    cmd_NextFile:       string = "Next File"                 // Command opening the file after this one in its folder.
-    cmd_ClearHistory:   string = "Clear History…"            // Command emptying the list of recent files, after a confirmation.
-    cmd_Find:           string = "Find in Document"          // Command showing the find bar.
-    cmd_FilterFiles:    string = "Filter Files"              // Command showing the folder filter.
-    cmd_FindNext:       string = "Next Match"                // Command moving to the next occurrence.
-    cmd_FindPrevious:   string = "Previous Match"            // Command moving to the previous occurrence.
-    cmd_Information:    string = "Information"               // Command showing the sheet of readings about the open file.
-    cmd_FullScreen:     string = "Full Screen"               // Command filling the monitor with the document.
-    cmd_EditLocation:   string = "Type a Location"           // Command turning the explored path into a field.
-    cmd_SortName:       string = "Sort by Name"              // Command ordering the explored folder by name.
-    cmd_SortType:       string = "Sort by Type"              // Command ordering the explored folder by type.
-    cmd_SortSize:       string = "Sort by Size"              // Command ordering the explored folder by size.
-    cmd_SortModified:   string = "Sort by Date Modified"     // Command ordering the explored folder by modification date.
-    cmd_SortDescending: string = "Descending Order"          // Command reversing the order of the explored folder.
-    cmd_Options:        string = "Options…"                  // Command opening the options sheet of the viewer.
-    cmd_Play:           string = "Play"                      // Command starting playback.
-    cmd_Pause:          string = "Pause"                     // Command pausing playback.
-    cmd_Stop:           string = "Stop"                      // Command stopping playback and going back to the start.
-    cmd_SeekBackward:   string = "Back 10 Seconds"           // Command moving playback back by ten seconds.
-    cmd_SeekForward:    string = "Forward 10 Seconds"        // Command moving playback forward by ten seconds.
-    cmd_PreviousFrame:  string = "Previous Frame"            // Command stepping a film back by one picture.
-    cmd_NextFrame:      string = "Next Frame"                // Command stepping a film forward by one picture.
-    cmd_Mute:           string = "Mute"                      // Command silencing playback; checked while it is silent.
-    cmd_PlayMode:       string = "Play Mode…"                // Command opening the play mode sheet.
-    cmd_ZoomIn:         string = "Zoom In"                   // Command enlarging the document by one notch.
-    cmd_ZoomOut:        string = "Zoom Out"                  // Command reducing the document by one notch.
-    cmd_ZoomReset:      string = "Actual Size"               // Command showing the document at its own size.
-    cmd_ZoomMenu:       string = "Zoom…"                     // Command opening the zoom levels of the viewer.
-    board_Automatic:    string = "Automatic"                 // Organization choice reading the tile shape from the folder.
-    board_Grid:         string = "Grid"                      // Organization choice arranging tiles in an even grid.
-    board_Covers:       string = "Covers"                    // Organization choice arranging tiles as square covers.
-    board_Posters:      string = "Posters"                   // Organization choice arranging tiles as upright posters.
-    board_Mosaic:       string = "Mosaic"                    // Organization choice arranging pictures as a mosaic.
-    artwork_Online:     string = "Online Artwork"            // Media illustration source using online artwork when available.
-    artwork_Local:      string = "Local Previews"            // Media illustration source using local frames and artwork without network lookups.
-    artwork_OnlineShort: string = "Online"                   // Compact current value of the media illustration source.
-    artwork_LocalShort:  string = "Local"                    // Compact current value of the media illustration source.
-    sort_Name:          string = "By name"                   // Quiet sort menu of the explored folder, ordered by name.
-    sort_Type:          string = "By type"                   // Quiet sort menu of the explored folder, ordered by type.
-    sort_Size:          string = "By size"                   // Quiet sort menu of the explored folder, ordered by size.
-    sort_Modified:      string = "By date"                   // Quiet sort menu of the explored folder, ordered by date.
+    lens_File:            string = "File"                      // Lens section of the commands acting on the open file.
+    lens_Find:            string = "Find"                      // Lens section of the search commands.
+    lens_View:            string = "View"                      // Lens section of the presentation commands.
+    lens_Artwork:         string = "Media Artwork"             // Lens section of the media illustration source commands.
+    lens_ViewAs:          string = "View As"                   // Lens section listing the viewers that can show the open file.
+    lens_Playback:        string = "Playback"                  // Lens section of the play modes.
+    lens_Folder:          string = "Folder"                    // Lens section of the commands of the explored folder.
+    lens_InFolder:        string = "In This Folder"            // Lens section listing the files beside the open one.
+    lens_InFile:          string = "In This File"              // Lens section listing the lines of the open file that hold the query.
+    lens_GoToLine:        string = "Go to Line %"              // Lens row going to the line typed after a colon.
+    cmd_Open:             string = "Open…"                     // Command choosing a file to open.
+    cmd_OpenChosen:       string = "Open"                      // Command opening the item chosen in the explored folder.
+    cmd_ExtractAll:       string = "Extract All…"              // Command extracting the whole explored archive to a folder.
+    cmd_Extract:          string = "Extract…"                  // Command extracting the chosen member or folder of the archive to a folder.
+    cmd_Explore:          string = "Explore Folder"            // Command showing the folder of the open file as a contact sheet.
+    cmd_ReturnToExplorer: string = "Return to Explorer"        // Command returning to the folder after opening one of its files.
+    cmd_Reload:           string = "Reload"                    // Command reading the open file again.
+    cmd_PreviousFile:     string = "Previous File"             // Command opening the file before this one in its folder.
+    cmd_NextFile:         string = "Next File"                 // Command opening the file after this one in its folder.
+    cmd_ClearHistory:     string = "Clear History…"            // Command emptying the list of recent files, after a confirmation.
+    cmd_Find:             string = "Find in Document"          // Command showing the find bar.
+    cmd_FilterFiles:      string = "Filter Files"              // Command showing the folder filter.
+    cmd_FindNext:         string = "Next Match"                // Command moving to the next occurrence.
+    cmd_FindPrevious:     string = "Previous Match"            // Command moving to the previous occurrence.
+    cmd_Information:      string = "Information"               // Command showing the sheet of readings about the open file.
+    cmd_FullScreen:       string = "Full Screen"               // Command filling the monitor with the document.
+    cmd_EditLocation:     string = "Type a Location"           // Command turning the explored path into a field.
+    cmd_SortName:         string = "Sort by Name"              // Command ordering the explored folder by name.
+    cmd_SortType:         string = "Sort by Type"              // Command ordering the explored folder by type.
+    cmd_SortSize:         string = "Sort by Size"              // Command ordering the explored folder by size.
+    cmd_SortModified:     string = "Sort by Date Modified"     // Command ordering the explored folder by modification date.
+    cmd_SortDescending:   string = "Descending Order"          // Command reversing the order of the explored folder.
+    cmd_Options:          string = "Options…"                  // Command opening the options sheet of the viewer.
+    cmd_Play:             string = "Play"                      // Command starting playback.
+    cmd_Pause:            string = "Pause"                     // Command pausing playback.
+    cmd_Stop:             string = "Stop"                      // Command stopping playback and going back to the start.
+    cmd_SeekBackward:     string = "Back 10 Seconds"           // Command moving playback back by ten seconds.
+    cmd_SeekForward:      string = "Forward 10 Seconds"        // Command moving playback forward by ten seconds.
+    cmd_PreviousFrame:    string = "Previous Frame"            // Command stepping a film back by one picture.
+    cmd_NextFrame:        string = "Next Frame"                // Command stepping a film forward by one picture.
+    cmd_Mute:             string = "Mute"                      // Command silencing playback; checked while it is silent.
+    cmd_PlayMode:         string = "Play Mode…"                // Command opening the play mode sheet.
+    cmd_ZoomIn:           string = "Zoom In"                   // Command enlarging the document by one notch.
+    cmd_ZoomOut:          string = "Zoom Out"                  // Command reducing the document by one notch.
+    cmd_ZoomReset:        string = "Actual Size"               // Command showing the document at its own size.
+    cmd_ZoomMenu:         string = "Zoom…"                     // Command opening the zoom levels of the viewer.
+    board_Automatic:      string = "Automatic"                 // Organization choice reading the tile shape from the folder.
+    board_Grid:           string = "Grid"                      // Organization choice arranging tiles in an even grid.
+    board_Covers:         string = "Covers"                    // Organization choice arranging tiles as square covers.
+    board_Posters:        string = "Posters"                   // Organization choice arranging tiles as upright posters.
+    board_Mosaic:         string = "Mosaic"                    // Organization choice arranging pictures as a mosaic.
+    artwork_Online:       string = "Online Artwork"            // Media illustration source using online artwork when available.
+    artwork_Local:        string = "Local Previews"            // Media illustration source using local frames and artwork without network lookups.
+    artwork_OnlineShort:  string = "Online"                    // Compact current value of the media illustration source.
+    artwork_LocalShort:   string = "Local"                     // Compact current value of the media illustration source.
+    sort_Name:            string = "By name"                   // Quiet sort menu of the explored folder, ordered by name.
+    sort_Type:            string = "By type"                   // Quiet sort menu of the explored folder, ordered by type.
+    sort_Size:            string = "By size"                   // Quiet sort menu of the explored folder, ordered by size.
+    sort_Modified:        string = "By date"                   // Quiet sort menu of the explored folder, ordered by date.
 
     dlg_TitleOpen:  string = "Open a File"     // Title of the open dialog.
     dlg_ButtonOpen: string = "Open"            // Confirmation button of the open dialog.
@@ -270,29 +270,29 @@ private func resolveScopePropertyText(key: string)->string?
     let texts = appStrings()
     switch key
     {
-    case "Online Movie Posters and Details": return texts.explore_OnlineMovies
-    case "Online Music Covers and Details": return texts.explore_OnlineMusic
-    case "TMDB first, then Apple and Wikipedia.": return texts.options_OnlineMovieHelp
-    case "MusicBrainz and Cover Art Archive need no API key.": return texts.ui_OnlineMusicHelp
-    case "Configured TMDB Credentials": return texts.ui_TMDBCredentials
-    case "Replace TMDB Read Access Token": return texts.ui_ReplaceTMDBToken
-    case "Replace TMDB API Key": return texts.ui_ReplaceTMDBKey
+    case "Online Movie Posters and Details":                      return texts.explore_OnlineMovies
+    case "Online Music Covers and Details":                       return texts.explore_OnlineMusic
+    case "TMDB first, then Apple and Wikipedia.":                 return texts.options_OnlineMovieHelp
+    case "MusicBrainz and Cover Art Archive need no API key.":    return texts.ui_OnlineMusicHelp
+    case "Configured TMDB Credentials":                           return texts.ui_TMDBCredentials
+    case "Replace TMDB Read Access Token":                        return texts.ui_ReplaceTMDBToken
+    case "Replace TMDB API Key":                                  return texts.ui_ReplaceTMDBKey
     case "Credential values are never shown. Enter a replacement below, or leave the fields empty to keep the current credentials.": return texts.ui_TMDBCredentialsHelp
     case "Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value.": return texts.ui_TMDBCredentialHelp
-    case "Remove Saved TMDB Credentials": return texts.ui_TMDBClear
+    case "Remove Saved TMDB Credentials":                         return texts.ui_TMDBClear
     case "Remove the local token and key when this page closes.": return texts.ui_TMDBClearHelp
-    case "Document Theme": return texts.options_DocumentTheme
-    case "Reading Width": return texts.options_ReadingWidth
-    case "Zoom": return texts.options_Zoom
-    case "Pitch Labels": return texts.options_PitchLabels
-    case "Keyboard Width": return texts.options_KeyboardWidth
-    case "Subtitle Font": return texts.options_SubtitleFont
-    case "Subtitle Size": return texts.options_SubtitleSize
-    case "Subtitle Effect": return texts.options_SubtitleEffect
-    case "Subtitle Position": return texts.options_SubtitlePosition
-    case "Subtitle Color": return texts.options_SubtitleColor
-    case "Subtitle Delay": return texts.options_SubtitleDelay
-    default: return null
+    case "Document Theme":                                        return texts.options_DocumentTheme
+    case "Reading Width":                                         return texts.options_ReadingWidth
+    case "Zoom":                                                  return texts.options_Zoom
+    case "Pitch Labels":                                          return texts.options_PitchLabels
+    case "Keyboard Width":                                        return texts.options_KeyboardWidth
+    case "Subtitle Font":                                         return texts.options_SubtitleFont
+    case "Subtitle Size":                                         return texts.options_SubtitleSize
+    case "Subtitle Effect":                                       return texts.options_SubtitleEffect
+    case "Subtitle Position":                                     return texts.options_SubtitlePosition
+    case "Subtitle Color":                                        return texts.options_SubtitleColor
+    case "Subtitle Delay":                                        return texts.options_SubtitleDelay
+    default:                                                      return null
     }
 }
 

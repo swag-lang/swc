@@ -45,12 +45,13 @@ struct InfoSheet
             picture:   Texture          // Picture heading the sheet, borrowed from its owner; invalid for none.
             beside:    bool             // Whether the picture stands at the left of the title, as a poster or a cover does.
         }
+
         sigCloseRequested: SigArray'func||(*InfoSheet)     // Emitted when the reader presses the sheet's close button.
     }
 
-    blocks:    Array'InfoSheetBlock
-    hotLink:   u64 = Swag.U64.Max
-    actionTop: f32     // Top of the action when it follows the head, from the latest layout.
+    blocks:           Array'InfoSheetBlock
+    hotLink:          u64 = Swag.U64.Max
+    actionTop:        f32     // Top of the action when it follows the head, from the latest layout.
     late closeButton: *IconButton
 }
 
@@ -83,13 +84,13 @@ impl IWnd for InfoSheet
         if not parent do
             return
 
-        let metrics = .themeMetrics()
-        let bounds  = parent.clientRect()
-        let inset   = metrics.floating_Inset
-        let width   = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
-        let top     = bounds.y + Math.max(inset, parent.stripInset())
-        let height  = Math.min(.measureBody(width), bounds.bottom() - inset - top)
-        let left    = bounds.right() - inset - width
+        let metrics   = .themeMetrics()
+        let bounds    = parent.clientRect()
+        let inset     = metrics.floating_Inset
+        let width     = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
+        let top       = bounds.y + Math.max(inset, parent.stripInset())
+        let height    = Math.min(.measureBody(width), bounds.bottom() - inset - top)
+        let left      = bounds.right() - inset - width
         let closeSize = metrics.embInfo_CloseSize
         liftFloating(me)
         .setPosition(Math.Rectangle{left, top, width, height})
@@ -159,10 +160,10 @@ impl IWnd for InfoSheet
         }
 
         // Nothing runs past the padding: a line longer than the sheet ends with an ellipsis.
-        let right     = x + width
+        let right      = x + width
         let titleRight = right - metrics.embInfo_CloseSize - 2 * metrics.embInfo_CloseMargin
-        let scale     = .deviceScale()
-        let titleFont = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
+        let scale      = .deviceScale()
+        let titleFont  = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
         if not .title.isEmpty()
         {
             painter.drawString(headX, y, Painter.elideString(.title, titleFont, titleRight - headX, scale), titleFont, colors.text)
@@ -259,8 +260,8 @@ impl InfoSheet
 
         let theme = result.theme()
         with result.closeButton = IconButton.create(result,
-                                                   theme.icon(.WndClose, theme.metrics.embInfo_CloseGlyph),
-                                                   Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
+                                                    theme.icon(.WndClose, theme.metrics.embInfo_CloseGlyph),
+                                                    Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
         {
             .toolTip    = Gui.strings().dlg_Close
             .sigPressed += func|sheet = result|(_)

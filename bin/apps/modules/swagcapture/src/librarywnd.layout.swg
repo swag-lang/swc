@@ -104,7 +104,7 @@ impl LibraryWnd
             .scrollWnd   = me.captureHost
             .mainWnd     = me.main
             .focusPolicy = .Tab
-            .wndFlags   |= .NoFocusRing
+            .wndFlags    |= .NoFocusRing
         }
 
         .captureHost.setView(.view)

@@ -23,8 +23,8 @@ impl IActionUI for ActionGlobal
         {
         case .ShowEditor:
             evt.updatedFields |= .Name | .Icon
-            evt.name          = appStrings().act_ShowEditor
-            evt.icon          = main.theme().icon(.Edit)
+            evt.name = appStrings().act_ShowEditor
+            evt.icon = main.theme().icon(.Edit)
 
         case .ShowLibrary:
             evt.updatedFields |= .Name | .Checked | .Icon
@@ -102,8 +102,10 @@ impl MainWnd
                 .libWnd.view.imgSpin.show()
             .libWnd.fill()
         }
-        else do
+        else
+        {
             .libWnd.view.imgSpin.hide()
+        }
 
         let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
         let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea

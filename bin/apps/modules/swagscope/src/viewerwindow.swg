@@ -37,18 +37,18 @@ struct ViewerWindow
 
     late
     {
-        kindButton:           *IconButton
-        closeFilesButton:     *IconButton
-        closeFoldersButton:   *IconButton
-        searchBar:            *FloatingPanel
-        searchGroup:          *StackLayoutCtrl
-        searchNavigation:     *StackLayoutCtrl
-        searchBox:            *EditBox
-        searchCountLabel:     *Label
-        searchPrevious:       *IconButton
-        searchNext:           *IconButton
-        searchOptionsButton:  *IconButton
-        appearanceButton:     *AppearanceButton
+        kindButton:                  *IconButton
+        closeFilesButton:            *IconButton
+        closeFoldersButton:          *IconButton
+        searchBar:                   *FloatingPanel
+        searchGroup:                 *StackLayoutCtrl
+        searchNavigation:            *StackLayoutCtrl
+        searchBox:                   *EditBox
+        searchCountLabel:            *Label
+        searchPrevious:              *IconButton
+        searchNext:                  *IconButton
+        searchOptionsButton:         *IconButton
+        appearanceButton:            *AppearanceButton
         outlineCaptionButton:        *CaptionButton
         returnExplorerCaptionButton: *CaptionButton
         backCaptionButton:           *CaptionButton
@@ -57,36 +57,36 @@ struct ViewerWindow
         refreshCaptionButton:        *CaptionButton
         findCaptionButton:           *CaptionButton
         informationCaptionButton:    *CaptionButton
-        lens:                 *Lens.View
-        infoSheet:            *InfoSheet
-        hintLine:             *HintLine
-        readingLine:          *ViewerReadingLine
-        documentHost:         *Wnd
-        documentPanel:        *Wnd
-        mainSplitter:         *SplitterCtrl
-        sidePanelPlaceholder: *Wnd
-        loadingOverlay:       *ViewerLoadingOverlay
-        searchOverlay:        *ViewerSearchOverlay
-        dropHighlight:        *ViewerDropHighlight
-        viewerBar:            *FloatingPanel
-        home:                 *ViewerHome
-        filePanelHost:        *Wnd
-        filePanel:            *SplitterCtrl
-        recentPane:           *Wnd
-        recentLabel:          *SectionLabel
-        recentClearButton:    *IconButton
-        recentList:           *ListCtrl
-        folderPane:           *Wnd
-        folderHistoryButton:  *IconButton
-        folderLabel:          *SectionLabel
-        folderFilterBox:      *EditBox
-        folderList:           *ListCtrl
+        lens:                        *Lens.View
+        infoSheet:                   *InfoSheet
+        hintLine:                    *HintLine
+        readingLine:                 *ViewerReadingLine
+        documentHost:                *Wnd
+        documentPanel:               *Wnd
+        mainSplitter:                *SplitterCtrl
+        sidePanelPlaceholder:        *Wnd
+        loadingOverlay:              *ViewerLoadingOverlay
+        searchOverlay:               *ViewerSearchOverlay
+        dropHighlight:               *ViewerDropHighlight
+        viewerBar:                   *FloatingPanel
+        home:                        *ViewerHome
+        filePanelHost:               *Wnd
+        filePanel:                   *SplitterCtrl
+        recentPane:                  *Wnd
+        recentLabel:                 *SectionLabel
+        recentClearButton:           *IconButton
+        recentList:                  *ListCtrl
+        folderPane:                  *Wnd
+        folderHistoryButton:         *IconButton
+        folderLabel:                 *SectionLabel
+        folderFilterBox:             *EditBox
+        folderList:                  *ListCtrl
     }
 
-    thumbnailMode:  bool
-    explorerActive: bool
-    explorerTransition: bool    // Keep the folder visible until the file viewer can replace it.
-    explorer:       *Explorer?
+    thumbnailMode:      bool
+    explorerActive:     bool
+    explorerTransition: bool     // Keep the folder visible until the file viewer can replace it.
+    explorer:           *Explorer?
 
     index:                   ViewerPluginRegistry
     pluginIcons:             Array'ViewerPluginIcons
@@ -724,8 +724,7 @@ impl ViewerWindow
 
     mtd refreshOutlineCaption()
     {
-        .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(),
-                                                       Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
+        .outlineCaptionButton.toolTip = Format.toString("% (%)", outlineTitle(), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
     }
 
     mtd refreshExplorerCaption()
@@ -741,18 +740,17 @@ impl ViewerWindow
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.show(exploring)
         .informationCaptionButton.show(exploring)
-        .backCaptionButton.toolTip = text.explore_Back
-        .forwardCaptionButton.toolTip = text.explore_Forward
-        .upCaptionButton.toolTip = text.explore_Up
-        .refreshCaptionButton.toolTip = text.explore_Refresh
-        .findCaptionButton.toolTip = text.ui_FilterFiles
+        .backCaptionButton.toolTip        = text.explore_Back
+        .forwardCaptionButton.toolTip     = text.explore_Forward
+        .upCaptionButton.toolTip          = text.explore_Up
+        .refreshCaptionButton.toolTip     = text.explore_Refresh
+        .findCaptionButton.toolTip        = text.ui_FilterFiles
         .informationCaptionButton.toolTip = text.cmd_Information
         if not .explorer do
             return
 
         .backCaptionButton.enable(.explorer.history.canGoBack())
         .forwardCaptionButton.enable(.explorer.history.canGoForward())
-
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -780,8 +778,10 @@ impl ViewerWindow
     }
 
     // The explorer remains the place to return to while a file opened from it is being read.
-    mtd canReturnToExplorer()->bool => .explorerActive and .explorer != null and
-                                       not .currentFile.isEmpty() and not .explorer.isLocallyVisible()
+    mtd canReturnToExplorer()->bool => .explorerActive and
+                                       .explorer != null and
+                                       not .currentFile.isEmpty() and
+                                       not .explorer.isLocallyVisible()
 
     // Shows the viewer's commands for as long as the pointer keeps moving.
     mtd revealViewerBar()
@@ -826,7 +826,7 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible = commands != null and .viewerBarShown
+        let visible  = commands != null and .viewerBarShown
         .viewerBar.show(visible)
         if not commands do
             return
@@ -932,7 +932,9 @@ impl ViewerWindow
                 surface.showNormalAt(.fullScreenRestorePosition)
         }
 
-        .outlineCaptionButton.show(not .fullScreen and .currentSidePanelButton and .currentSidePanelButton.id == OutlineToggleId)
+        .outlineCaptionButton.show(not .fullScreen and
+                                   .currentSidePanelButton and
+                                   .currentSidePanelButton.id == OutlineToggleId)
         .refreshExplorerCaption()
         surface.invalidate()
         .refreshReadingAppearance()
@@ -958,42 +960,49 @@ impl ViewerWindow
             .sigPressed += func|window = result|(_) { window.closeFile() }
             .hide()
         }
+
         with result.backCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.Back)
         {
-            .toolTip = appStrings().explore_Back
+            .toolTip    = appStrings().explore_Back
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Back) }
             .hide()
         }
+
         with result.forwardCaptionButton = CaptionButton.createLeading(result.surface, .ChevronRight, ViewerCommands.Forward)
         {
-            .toolTip = appStrings().explore_Forward
+            .toolTip    = appStrings().explore_Forward
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Forward) }
             .hide()
         }
+
         with result.upCaptionButton = CaptionButton.createLeading(result.surface, .ParentFolder, ViewerCommands.Up)
         {
-            .toolTip = appStrings().explore_Up
+            .toolTip    = appStrings().explore_Up
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Up) }
             .hide()
         }
+
         with result.refreshCaptionButton = CaptionButton.createLeading(result.surface, .Update, ViewerCommands.Refresh)
         {
-            .toolTip = appStrings().explore_Refresh
+            .toolTip    = appStrings().explore_Refresh
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Refresh) }
             .hide()
         }
+
         with result.findCaptionButton = CaptionButton.createLeading(result.surface, .Search, ViewerCommands.Find)
         {
-            .toolTip = appStrings().ui_FilterFiles
+            .toolTip    = appStrings().ui_FilterFiles
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Find) }
             .hide()
         }
+
         with result.informationCaptionButton = CaptionButton.createLeading(result.surface, .Information, ViewerCommands.Information)
         {
-            .toolTip = appStrings().cmd_Information
+            .toolTip    = appStrings().cmd_Information
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
             .hide()
         }
+
         result.createAppearanceChrome()
         with result.mainSplitter = SplitterCtrl.create(result)
         {
@@ -1016,6 +1025,7 @@ impl ViewerWindow
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()
         }
+
         result.hookChildEvents()
 
         result.applyLanguage()
@@ -1187,8 +1197,8 @@ impl ViewerWindow
         .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
         .recentClearButton.toolTip = texts.ui_ClearHistory
         .teachHints(.isExploring())
-        .searchPrevious.toolTip      = texts.ui_SearchPrevious
-        .searchNext.toolTip          = texts.ui_SearchNext
+        .searchPrevious.toolTip = texts.ui_SearchPrevious
+        .searchNext.toolTip     = texts.ui_SearchNext
         .refreshExplorerCaption()
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
         .refreshOutlineCaption()

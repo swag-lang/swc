@@ -102,7 +102,8 @@ impl CompilationCache
         entry.task.submit(func|entry|()
         {
             catch entry.run() { entry.result = {text: appStrings().msg_BuildFailed, failed: true} }
-        }, executor: &.executor)
+        },
+                          executor: &.executor)
         return {cache: me, artifact: entry}
     }
 

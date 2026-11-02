@@ -50,13 +50,14 @@ struct Entry
 {
     public
     {
-        title:      String          // Words of the row; the characters the query matched are highlighted.
-        detail:     String          // Faint reading at the end of the row: a line, a path, a shortcut.
-        lead:       String          // Mono reading leading the row, such as a line number; shown instead of the glyph.
-        glyph:      Icon            // Glyph leading the row when it has no lead reading.
+        title:  String     // Words of the row; the characters the query matched are highlighted.
+        detail: String     // Faint reading at the end of the row: a line, a path, a shortcut.
+        lead:   String     // Mono reading leading the row, such as a line number; shown instead of the glyph.
+        glyph:  Icon       // Glyph leading the row when it has no lead reading.
         // Paints alternate title content in place of the words and match marks. The title stays
         // searchable, and the callback receives a borrowed painter and content rectangle.
-        paint:      (func||(*Painter, Math.Rectangle))?
+        paint: (func||(*Painter, Math.Rectangle))?
+
         // Width of the alternate painted content in logical units; zero measures `title`.
         paintWidth: f32
         monoTitle:  bool            // Whether the title is code or a measure, set in the fixed-width face.

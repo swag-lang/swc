@@ -566,9 +566,9 @@ impl ThemeColors
     // disabled ink travels from the ground toward the body ink. The charter states the disabled
     // state as an opacity of 40 to 45 percent; written as a mix it stays opaque, so a disabled
     // label drawn twice never reads darker than one drawn once.
-    private const StrongLineMix = 0.4'f32
+    private const StrongLineMix  = 0.4'f32
     private const FieldBorderMix = 0.25'f32
-    private const DisabledMix   = 0.42'f32
+    private const DisabledMix    = 0.42'f32
 
     // The ring of an unavailable control is the hairline at the opacity of disabled ink, so it
     // stays weaker than the ring of the same control at rest.
@@ -665,11 +665,12 @@ impl ThemeColors
 
         let pressed    = shiftState(p.raised, PressedShift)
         let strongLine = Color.lerpRgb(p.line, p.faintText, StrongLineMix)
+
         // Resting fields and popup surfaces need a clearer edge on the dark palette. Keep the
         // general hairline and separators quiet, and lift just these two outlines toward the ink.
         let fieldBorder = p.ground.relativeLuminance() <= 0.5 ? Color.lerpRgb(p.line, p.faintText, FieldBorderMix) : p.line
-        let disabled   = Color.lerpRgb(p.ground, p.text, DisabledMix)
-        let faintLine  = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
+        let disabled    = Color.lerpRgb(p.ground, p.text, DisabledMix)
+        let faintLine   = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
         // A chosen segment is lifted when it is an opaque chip lighter than the raised frame it
         // stands in, as Papier's white one is; a wash, as on Encre, lies flat in its frame.

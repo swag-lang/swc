@@ -22,10 +22,10 @@ impl ThumbnailSettings
     func capture(window: *ViewerWindow, entry: const *ExplorerEntry? = null, localArtworkOnly = false)->String
     {
         var settings: ThumbnailSettings
-        settings.preferences  = window.preferences
-        settings.onlineMovies = window.onlineMovies
+        settings.preferences      = window.preferences
+        settings.onlineMovies     = window.onlineMovies
         settings.localArtworkOnly = localArtworkOnly
-        settings.onlineMusic  = window.onlineMusic
+        settings.onlineMusic      = window.onlineMusic
         if window.onlineMovies
         {
             settings.movieLanguage = window.app().language()
@@ -37,6 +37,7 @@ impl ThumbnailSettings
                 key = Env.variable("SWAG_SCOPE_TMDB_KEY")
             settings.movieProviderStamp = Hash.hash64(Format.toString("%:%", token, key))
         }
+
         if entry
         {
             settings.musicId = musicChoiceId(window.musicChoices.toSlice(), entry)

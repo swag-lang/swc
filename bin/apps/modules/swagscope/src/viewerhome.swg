@@ -24,12 +24,12 @@ struct ViewerHome
     late window:      *ViewerWindow
     late clearButton: *IconButton
 
-    message:     String     // Sentence standing in for the invitation, such as why a file did not open.
-    rows:        Array'ViewerHomeRow
-    hovered:     u64 = Swag.U64.Max
-    chosen:      u64 = Swag.U64.Max
-    pointerIn:   bool
-    now:         u64     // Local ticks the times are written against; zero for the clock.
+    message:   String     // Sentence standing in for the invitation, such as why a file did not open.
+    rows:      Array'ViewerHomeRow
+    hovered:   u64 = Swag.U64.Max
+    chosen:    u64 = Swag.U64.Max
+    pointerIn: bool
+    now:       u64     // Local ticks the times are written against; zero for the clock.
 }
 
 impl ViewerHome

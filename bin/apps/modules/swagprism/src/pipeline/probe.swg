@@ -227,7 +227,7 @@ func writeIfChanged(path: string, content: string) fail
 
 // Starts `fileName` without a console window, with both outputs piped back to Prism. Pair it
 // with [[retireProcess]].
-func startPiped(fileName: string, arguments: string, workingDirectory: string? = null)->Env.Process fail
+func startPiped(fileName: string, arguments: const [..] string, workingDirectory: string? = null)->Env.Process fail
 {
     return try Env.startProcess(Env.StartInfo{
         fileName: fileName,

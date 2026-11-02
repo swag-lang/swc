@@ -83,7 +83,7 @@ func variable(name: string)->String
     return Utf8.fromUtf16(buffer.toSlice()[until written])
 }
 
-// Returns `value` spelled so the system parses it back as exactly one argument.
+// Serializes one argument using the Windows C-runtime command-line grammar.
 //
 // A value holding a space, a tab or a quote is wrapped, and the backslashes in front of a
 // wrapping quote are doubled, which is what the command-line grammar needs to give the child the
@@ -96,10 +96,10 @@ func quoteArgument(value: string)->String
     return result
 }
 
-// Returns `arguments` joined into the one command line the system parses back into them.
+// Serializes an argument vector using the Windows C-runtime command-line grammar.
 //
-// This is what [[Core.Env.StartInfo.arguments]] expects when the values are not already a
-// command line, so a caller never has to know the quoting rules of the platform.
+// Normal process calls pass the vector directly in [[Core.Env.StartInfo.arguments]]. This helper
+// is for native interoperability with that grammar; it does not escape cmd.exe shell syntax.
 func joinArguments(arguments: const [..] string)->String
 {
     var result: #returntype
@@ -256,11 +256,7 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
     return ownedChildEnd[]
 }
 
-// Starts the process `info` describes, returning as soon as it is running.
-//
-// The executable is resolved from the command line, so a bare name is searched along the
-// executable search path and a path containing spaces needs no quoting from the caller.
-func startProcess(info: StartInfo)->Process fail
+internal func startProcessNative(info: StartInfo)->Process fail
 {
     // Builds the zero-terminated block of 'name=value' entries expected by CreateProcessW.
     // Windows reads the entries without regard to case, so sort them that way.
@@ -324,10 +320,18 @@ func startProcess(info: StartInfo)->Process fail
     commandLine.append("\"")
     commandLine.append(executable.toString())
     commandLine.append("\"")
-    if info.arguments
+    if info.nativeArguments
     {
         commandLine.append(" ")
-        commandLine.append(info.arguments)
+        commandLine.append(info.nativeArguments)
+    }
+    elif info.arguments
+    {
+        for argument in info.arguments
+        {
+            commandLine.append(" ")
+            appendQuoted(&commandLine, argument)
+        }
     }
 
     var directory16:  Array'u16

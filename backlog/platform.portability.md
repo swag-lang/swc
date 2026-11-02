@@ -416,15 +416,25 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: shared Unix modules observe the original argument order and bytes through
   initialization, calls and cleanup without reading storage owned by an unloaded module.
 
-### platform.portability.008 — Make process launch argv-first
+### platform.portability.008 — Validate the argv-first process API
 
-- Evidence: `StartInfo.arguments` (`core/src/system/process.swg`) is one already-quoted
-  string, which makes Windows command-line quoting the public contract. The helpers that
-  build it from a slice, `Env.quoteArgument` and `Env.joinArguments`, exist only in
-  `process.win32.swg`.
-- Next: make an argument slice the normal `StartInfo` API. Windows alone serializes it with
-  the backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw
-  native command-line escape hatch only if an actual caller needs it.
+- Progress: StartInfo.arguments is now a borrowed nullable slice of strings; null/empty means
+  no arguments after argv[0]. startProcess/runProcess accept separate argument values, and
+  Windows serializes them with the existing C-runtime quoting algorithm. Programs with their own
+  grammar, including cmd.exe tests, explicitly use the Windows-only nativeArguments escape hatch.
+  The common entry validates zero bytes, empty required names, environment names and conflicting
+  argument forms before calling the host leaf. Linux must reject nativeArguments explicitly.
+- Migration: Prism build/format/preview workers, Scope thumbnails, Pixel child tests, Vault's
+  visibility probe and debugger launch now pass vectors without manual quoting. This is a source
+  API change: callers passing a command-line string must pass a vector or explicitly choose
+  StartInfo.nativeArguments for Windows. No shell is inserted implicitly.
+- Validation: raw Linux spawn probes preserve exact argv in JIT/native and an imported consumer.
+  Whole-Core test/doc compilation remains blocked by 17 Linux service diagnostics. Windows
+  semantic/test compilation on this Linux host stops at the known foreign log/logf imports.
+  The public argument-validation tests, native Windows quoting path and application consumers
+  still need execution with a complete Core backend; formatting is not their runtime validation.
+- Next: connect the Linux owner to the vector, then run public child roundtrips and focused
+  Prism/Scope/Pixel/Vault consumers on supported hosts.
 - Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix
   direct argv preserve empty, spaced, quoted, and backslash-containing arguments in
   child-process tests, with any raw command-line form explicitly named.
@@ -497,6 +507,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.009 — Process orchestration remains in the Windows backend
 
+- Progress: startProcess(StartInfo) and input validation now live in the common layer; the
+  Windows creation mechanism is an internal startProcessNative leaf. Waiting, draining,
+  closing and termination still need common orchestration and Linux resource owners.
 - Evidence: the process value, environment map, recorded-status accessors, and convenience
   `startProcess`/`runProcess` overloads already live in common `process.swg`.
 - Next: move the remaining portable orchestration out of `process.win32.swg`: redirection setup

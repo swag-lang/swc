@@ -256,8 +256,9 @@ func waitFailureChild()->bool
 func verifyWaitFailureProcess(tag: string)
 {
     let executable = expect Env.Process.currentExecutablePath()
-    let arguments  = Format.toString("swag.test swag.test-tag=% render-failure-child", tag)
-    var child      = expect Env.startProcess(Env.StartInfo{fileName: executable.toString(), arguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
+    let testTag    = Format.toString("swag.test-tag=%", tag)
+    let arguments  = ["swag.test", testTag.toString(), "render-failure-child"]
+    var child      = expect Env.startProcess(Env.StartInfo{fileName: executable.toString(), arguments: arguments, standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false})
     let finished   = expect child.tryWaitForExit(10's)
     if not finished
     {

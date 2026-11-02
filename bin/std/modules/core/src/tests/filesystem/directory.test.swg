@@ -11,7 +11,7 @@ func createDirectoryJunction(link, target: string)->bool
     let windowsDir = Path.directoryName(fontsDir.toString())
     let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
     let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
-    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) { return false }
+    let process    = catch Env.runProcess(Env.StartInfo{fileName: shell.toString(), nativeArguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe}) { return false }
     return process.exitCode() == 0
 }
 

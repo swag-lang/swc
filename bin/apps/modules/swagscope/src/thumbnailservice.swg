@@ -36,7 +36,7 @@ impl ThumbnailService
         {
             .directory = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-thumbnails-%", Guid64.random()))
             try Directory.create(.directory)
-            let arguments = Format.toString("--thumbnail-worker %", Env.quoteArgument(.directory))
+            let arguments = ["--thumbnail-worker", .directory.toString()]
             with var info = Env.StartInfo{fileName: Env.executablePath(), arguments: arguments}
             {
                 .consoleWindow = false

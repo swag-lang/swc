@@ -28,7 +28,7 @@ impl SourceFormatter
         {
             if Swag.isCancelled() do
                 return {}
-            let arguments = Env.joinArguments([command, "--num-cores", workers, "--file", file])
+            let arguments = [command, "--num-cores", workers.toString(), "--file", file.toString()]
             var process   = try startPiped(compiler, arguments)
             defer retireProcess(&process)
 

@@ -42,11 +42,11 @@ impl BuildArtifact
 
         // Builds the module out of process, so a snippet that crashes the compiler cannot take the
         // interface down, and gives up on a build the reader cancelled or that never ends.
-        let outDir    = Path.combine(.folder.session, "out")
-        let arguments = Format.toString("build --num-cores % --module-file \"%/module.swg\" --directory src --out-dir \"%\" --artifact-name prismpreview",
-                                        compilerWorkerCount(),
-                                        .folder.root,
-                                        outDir)
+        let outDir     = Path.combine(.folder.session, "out")
+        let moduleFile = Path.combine(.folder.root, "module.swg")
+        let workers    = Format.toString("%", compilerWorkerCount())
+        let arguments  = ["build", "--num-cores", workers.toString(), "--module-file", moduleFile.toString(),
+                          "--directory", "src", "--out-dir", outDir.toString(), "--artifact-name", "prismpreview"]
         var process = try startPiped(compilerPath(), arguments)
         defer retireProcess(&process)
 

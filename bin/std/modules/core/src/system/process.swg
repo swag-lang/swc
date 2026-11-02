@@ -28,7 +28,7 @@ enum StreamRedirection
 // var environment = Env.currentEnvironment()
 // environment.set("SWAG_PATH", "c:/swag/bin")
 //
-// var info = Env.StartInfo{fileName: "swc.exe", arguments: "test", environment: &environment}
+// var info = Env.StartInfo{fileName: "swc.exe", arguments: ["test"], environment: &environment}
 // let process = try Env.runProcess(info)
 // ```
 struct ProcessEnvironment
@@ -76,15 +76,21 @@ impl ProcessEnvironment
 
 // Describes the process to start and how it is connected to the current one.
 //
-// Only `fileName` is required. The executable is looked up the way the system resolves a command
-// line, so a bare name is searched in the current directory and along the executable search path;
-// pass a full path to remove the ambiguity.
+// Only `fileName` is required. Arguments are separate values, excluding the executable name;
+// empty values, spaces, quotes and backslashes are preserved. All views are borrowed only for
+// the start call. No shell is selected implicitly. Bare executable names follow the host's
+// search rules; pass a full path when the selected executable must be unambiguous.
+//
+// Windows alone serializes the vector with its C-runtime quoting rules. Programs with another
+// grammar, such as cmd.exe, can instead use `nativeArguments`; that Windows escape hatch must
+// not be combined with a nonempty argument vector. Embedded zero bytes are rejected.
 struct StartInfo
 {
     public
     {
         fileName:         string                           // Executable to start, as a full path or a name to look up.
-        arguments:        string?                          // Command-line arguments, already quoted, or null for none.
+        arguments:        const [..] string?               // Argument values after argv[0]; null or an empty slice supplies none.
+        nativeArguments:  string?                          // Windows-only verbatim argument text for a program with its own command-line grammar.
         workingDirectory: string?                          // Directory the child starts in, or null to inherit the current one.
         environment:      const *ProcessEnvironment?       // Environment the child starts with, or null to inherit the current one. Borrowed for the call only.
         standardInput:    StreamRedirection = .Inherit     // How the child reads standard input.
@@ -172,9 +178,23 @@ struct Process
 // The child inherits the standard streams, the working directory and the environment of the
 // current process. Use [[Core.Env.startProcess]] with a [[Core.Env.StartInfo]] to change any
 // of that.
-func startProcess(fileName: string, arguments: string? = null)->Process fail
+func startProcess(fileName: string)->Process fail => try startProcess(StartInfo{fileName: fileName})
+
+// Starts a process with separate argument values, inheriting streams, directory and environment.
+func startProcess(fileName: string, arguments: const [..] string)->Process fail
 {
     return try startProcess(StartInfo{fileName: fileName, arguments: arguments})
+}
+
+// Starts the process `info` describes, returning as soon as it is running.
+//
+// Rejects empty executable/directory names, embedded zero bytes, invalid environment names and
+// conflicting argument forms before creating native resources. A path containing spaces needs
+// no quoting from the caller; executable search and native options follow the host contract.
+func startProcess(info: StartInfo)->Process fail
+{
+    try validateProcessStartInfo(info)
+    return try startProcessNative(info)
 }
 
 // Starts a process, waits for it to exit, and returns it with everything it produced.
@@ -184,12 +204,18 @@ func startProcess(fileName: string, arguments: string? = null)->Process fail
 // [[Core.Env.Process.exitCode]]. Standard input is inherited.
 //
 // ```swag
-// let process = try Env.runProcess("swc.exe", "--help")
+// let process = try Env.runProcess("swc.exe", ["--help"])
 // if process.exitCode() != 0 do
 //     fail Errors.BadParameterError{"the compiler refused to answer"}
 // Swag.print(process.standardOutput())
 // ```
-func runProcess(fileName: string, arguments: string? = null)->Process fail
+func runProcess(fileName: string)->Process fail
+{
+    return try runProcess(StartInfo{fileName: fileName, standardOutput: .Pipe, standardError: .Pipe})
+}
+
+// Runs a process with separate argument values and captures both output streams.
+func runProcess(fileName: string, arguments: const [..] string)->Process fail
 {
     with var info = StartInfo{fileName: fileName, arguments: arguments}
     {
@@ -243,4 +269,47 @@ impl Process
 
     // Returns whether at least one stream of the child is captured through a pipe.
     internal mtd const hasCapturedStream()->bool => .outputPipe != null or .errorPipe != null
+}
+
+// Validate shared string/ownership boundaries before a backend allocates pipes or starts a child.
+internal func validateProcessStartInfo(info: StartInfo) fail
+{
+    func rejectZero(value: string) fail
+    {
+        for byte in value where byte == 0 do
+            fail BadParameterError{"process strings must not contain zero bytes"}
+    }
+
+    if not info.fileName.count do
+        fail BadParameterError{"process filename must not be empty"}
+    try rejectZero(info.fileName)
+    if info.arguments do
+        for argument in info.arguments do
+            try rejectZero(argument)
+    if info.nativeArguments
+    {
+        if info.arguments and info.arguments.count != 0 do
+            fail BadParameterError{"argument values and native argument text cannot be combined"}
+        try rejectZero(info.nativeArguments)
+    }
+
+    if info.workingDirectory
+    {
+        if not info.workingDirectory.count do
+            fail BadParameterError{"process working directory must not be empty"}
+        try rejectZero(info.workingDirectory)
+    }
+
+    if info.environment
+    {
+        for name, value in info.environment.variables
+        {
+            if name.isEmpty() do
+                fail BadParameterError{"process environment names must not be empty"}
+            try rejectZero(name.toString())
+            try rejectZero(value.toString())
+            for byte in name.toString() where byte == '=' do
+                fail BadParameterError{"process environment names must not contain '='"}
+        }
+    }
 }

@@ -77,7 +77,7 @@ impl PreviewProbe
         let channelPath = Path.combine(.folder.session, "frame.bin")
         try .channel.open(channelPath, true)
         let outDir    = Path.combine(lease.artifact.folder.session, "out")
-        let childArgs = Env.joinArguments(["--prism-preview-host", channelPath, lease.artifact.binary, .request.kind == .Gui ? "gui" : "pixel"])
+        let childArgs = ["--prism-preview-host", channelPath.toString(), lease.artifact.binary.toString(), .request.kind == .Gui ? "gui" : "pixel"]
         var child     = try startPiped(Env.executablePath(), childArgs, outDir)
         defer retireProcess(&child)
         Atomic.exchange(&.ready, 1)

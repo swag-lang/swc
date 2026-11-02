@@ -439,6 +439,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
   secure clearing, dynamic loading and clocks in JIT and native ELF. Core's page-release, crypto,
   native-library and stopwatch tests still need the missing host services.
+- Compiler repair exposed by the XCB loader: typed expression results no longer unwrap a
+  returned function signature merely because error handling copied the original call arguments.
+  A function returned through try/expect/catch previously became its own result type (including
+  void), breaking valid callback variables. The permanent two-case fixture fails on the previous
+  compiler and passes JIT/native after the fix; all 1,747 C++ tests pass. The parser's catch-else
+  help now distinguishes expression handler blocks from statement-only do handlers.
 - Further compiler repair: a single forward type now waits for declaration admission before
   lookup publishes it; layout can still remain unfinished for recursive types. The evdev port
   exposed a pre-existing KeyboardStateNative reference whose only declaration was in an inactive
@@ -455,7 +461,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and passes JIT/native with DevMode and Release compilers. Focused recursive/global semantic
   inputs and expected ambiguity diagnostics pass; the full C++ campaign passes 1,746 tests.
 - Next: complete the remaining Core host services and execute the public resource-owner suites.
-  Finish gamepad state/vibration and validate discovery on an input-enabled host. Select headless/no-sound backends only where
+  Validate gamepad state/vibration and discovery on an input-enabled host. Select headless/no-sound backends only where
   their contracts permit them; do not treat absent declarations or success stubs as a backend.
 - Done when: a Linux configuration compiles every neutral runtime and bin source and fails on
   an accidental native Windows import.

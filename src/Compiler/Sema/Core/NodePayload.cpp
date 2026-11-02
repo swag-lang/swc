@@ -465,6 +465,12 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     if (value.isValid())
         value.dbgPtr = &ctx.typeMgr().get(value);
 #endif
+    // Explicit types and constants already describe the expression's result. Error
+    // handlers and initializers copy call arguments for lowering, but those arguments
+    // do not make a returned function value another call to that function.
+    if (kind != NodePayloadKind::SymbolRef && kind != NodePayloadKind::SymbolList)
+        return value;
+
     // Transparent wrappers inherit the callee symbol. A zero-argument call has
     // no argument-map entry, so its syntax must retain the result-type distinction.
     const AstNode* expression = &node;

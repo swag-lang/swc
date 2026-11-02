@@ -80,14 +80,12 @@ func backdropMaterialSheet(light: bool)->Image
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let lens = backdropLens(&host, light)
-        lens.open()
-        let image = host.renderSettled()
-        Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")
-    }
+    let light = false
+    var host: Testing.HeadlessHost
+    let lens = backdropLens(&host, light)
+    lens.open()
+    let image = host.renderSettled()
+    Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")
 }
 
 // A small invalidation reconstructs the same backdrop as a full paint, without cumulative blur.

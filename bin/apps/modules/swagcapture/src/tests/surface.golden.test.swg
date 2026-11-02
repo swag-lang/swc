@@ -113,17 +113,15 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
-    {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark, text: false, caption: true, dpiScale: 1.25)
-        defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
-        expect main.appearanceButton.setAppearanceLanguage(dark ? Gui.ReferenceLanguage : "fr")
-        main.updateState()
-        host.finishAnimations()
-        var image = host.render(&host.surfaceWnd)
-        Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
-    }
+    let dark = false
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark, text: false, caption: true, dpiScale: 1.25)
+    defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    expect main.appearanceButton.setAppearanceLanguage(dark ? Gui.ReferenceLanguage : "fr")
+    main.updateState()
+    host.finishAnimations()
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
 }
 
 // The editor of the charter: the capture on the ground, the dock at the leading edge, the
@@ -170,63 +168,59 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 }
 
-// The selection's overflow button opens the real attached menu in both palettes.
+// The selection's overflow button opens the real attached menu in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = true
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark)
-        defer
-        {
-            main.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        let button = assume cast(*IconButton, unwrap main.miniBar.items.back().wnd)
-        var captured: bool
-        host.app.sigFrame += func|host = &host, main, dark, captured = &captured|(_)
-        {
-            if captured[] do
-                return
-            Swag.assert(host.capturedPopupMenu() != null)
-            var image = host.render(main)
-            Pixel.Testing.assertImageGolden(&image, dark ? "edit.selection-menu" : "edit.selection-menu.paper")
-            Swag.assert(host.dismissPopupMenu())
-            captured[] = true
-        }
-
-        host.clickWnd(button)
-        Swag.assert(captured)
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    let button = assume cast(*IconButton, unwrap main.miniBar.items.back().wnd)
+    var captured: bool
+    host.app.sigFrame += func|host = &host, main, dark, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.assert(host.capturedPopupMenu() != null)
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, dark ? "edit.selection-menu" : "edit.selection-menu.paper")
+        Swag.assert(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    host.clickWnd(button)
+    Swag.assert(captured)
 }
 
-// An arrow: the inspector with its line ends as glyph rows in both palettes.
+// An arrow: the inspector with its line ends as glyph rows in Papier.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = false
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark, text: false)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark, text: false)
-        defer
-        {
-            main.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        with let arrow = testAddArrow(unwrap main.getCapture(), 60, 190, 300, 70)
-        {
-            .borderColor = ColorRed
-            .borderSize  = 6
-            .endCap      = .ArrowAnchor
-        }
-
-        testAssertEditGolden(&host, main, [0], dark ? "edit.arrow" : "edit.arrow.paper")
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    with let arrow = testAddArrow(unwrap main.getCapture(), 60, 190, 300, 70)
+    {
+        .borderColor = ColorRed
+        .borderSize  = 6
+        .endCap      = .ArrowAnchor
+    }
+
+    testAssertEditGolden(&host, main, [0], dark ? "edit.arrow" : "edit.arrow.paper")
 }
 
 // Several objects: their common settings, the alignment, the order and the layers, in Encre.
@@ -356,27 +350,25 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 }
 
 // Editing in place, right after a capture: the desktop dimmed, the zone in full light with its
-// edge and its size, the one bar under it, and the keys at the foot, in Encre and in Papier.
+// edge and its size, the one bar under it, and the keys at the foot, in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = true
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let editor = testSetupInPlace(&host, dark)
-        defer
-        {
-            g_Main?.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        // One bar: the ten tools, the colour, the three destinations, Copy and the cross.
-        Swag.assert(editor.bar.isLocallyVisible())
-        Swag.assert(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
-        var image = host.render(editor)
-        Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    // One bar: the ten tools, the colour, the three destinations, Copy and the cross.
+    Swag.assert(editor.bar.isLocallyVisible())
+    Swag.assert(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
+    var image = host.render(editor)
+    Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
 }
 
 // A callout whose words are typed in place: the field over its body, the hint of the tail, in
@@ -422,42 +414,40 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
 // A turned text of two lines set against the left edge, its words typed in place: the text
 // stands level, each line a field against the left edge, in its face, its size and its ink, in
-// Encre and in Papier.
+// Papier.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = false
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark: dark, text: false)
-        defer
-        {
-            main.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        let capture   = unwrap main.getCapture()
-        with let text = testAddText(capture, 60, 50, 260, 130)
-        {
-            .text      = "Release\nnotes"
-            .fontSize  = 40
-            .backColor = ColorRed
-            .alignHorz = .LeftTop
-            .rotate    = 20
-        }
-
-        capture.selection.add(0)
-        capture.selectionHasChanged()
-        main.applyLayout()
-        main.editWnd.editView.beginTextEdit(text)
-        host.finishAnimations()
-        Swag.assert(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
-
-        var image = host.render(main)
-        Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
-        main.editWnd.editView.endTextEdit(keep: false)
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    let capture   = unwrap main.getCapture()
+    with let text = testAddText(capture, 60, 50, 260, 130)
+    {
+        .text      = "Release\nnotes"
+        .fontSize  = 40
+        .backColor = ColorRed
+        .alignHorz = .LeftTop
+        .rotate    = 20
+    }
+
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    main.editWnd.editView.beginTextEdit(text)
+    host.finishAnimations()
+    Swag.assert(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
+
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
+    main.editWnd.editView.endTextEdit(keep: false)
 }
 
 // The library of the charter: the page title over the folder tabs and the tag chips, the quiet
@@ -627,96 +617,91 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
 // The quick styles of every tool, one row each as the inspector shows the row of the tool in
 // hand: each preset a small picture of the shape it draws, in its own colours, on the raised
-// ground, the preset in force ringed in Arc, then the cell that keeps a new one; in Encre and
-// in Papier.
+// ground, the preset in force ringed in Arc, then the cell that keeps a new one; in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = true
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark: dark, text: false)
-        defer
-        {
-            main.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        // Two columns of tools, as the picture lays them out.
-        const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
-        const Second     = 3
-        const LabelWidth = 96.0
-        const Pad        = 24.0
-        let metrics    = main.themeMetrics()
-        let strip      = 6 * QuickChipWidth
-        with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
-        {
-            .backgroundStyle = .Window
-        }
-
-        var hoverCell: *QuickButton?
-        var x = Pad
-        var y = Pad
-        for mode, index in Modes
-        {
-            if index == Second
-            {
-                x += LabelWidth + strip + 2 * Pad
-                y = Pad
-            }
-
-            main.editMode = mode
-            let quick = QuickWnd.create(panel, main)
-            quick.setDefault()
-            quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
-            quick.updateQuickStyles(forceRebuild: true)
-            Swag.assert(quick.layout.children.count > 1)
-            if mode == .Shape do
-                hoverCell = quick.rowCells()[0]
-            Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
-            y += quick.position.height + metrics.inspector_RowGap
-        }
-
-        host.finishAnimations()
-        var image = host.render(panel)
-        Pixel.Testing.assertImageGolden(&image, dark ? "presets" : "presets.paper")
-
-        let cell = unwrap hoverCell
-        host.moveMouse(cell.surfaceRect().center())
-        host.finishAnimations()
-        image = host.render(panel)
-        Pixel.Testing.assertImageGolden(&image, dark ? "presets.hover" : "presets.hover.paper")
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    // Two columns of tools, as the picture lays them out.
+    const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
+    const Second     = 3
+    const LabelWidth = 96.0
+    const Pad        = 24.0
+    let metrics    = main.themeMetrics()
+    let strip      = 6 * QuickChipWidth
+    with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
+    {
+        .backgroundStyle = .Window
+    }
+
+    var hoverCell: *QuickButton?
+    var x = Pad
+    var y = Pad
+    for mode, index in Modes
+    {
+        if index == Second
+        {
+            x += LabelWidth + strip + 2 * Pad
+            y = Pad
+        }
+
+        main.editMode = mode
+        let quick = QuickWnd.create(panel, main)
+        quick.setDefault()
+        quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
+        quick.updateQuickStyles(forceRebuild: true)
+        Swag.assert(quick.layout.children.count > 1)
+        if mode == .Shape do
+            hoverCell = quick.rowCells()[0]
+        Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
+        y += quick.position.height + metrics.inspector_RowGap
+    }
+
+    host.finishAnimations()
+    var image = host.render(panel)
+    Pixel.Testing.assertImageGolden(&image, dark ? "presets" : "presets.paper")
+
+    let cell = unwrap hoverCell
+    host.moveMouse(cell.surfaceRect().center())
+    host.finishAnimations()
+    image = host.render(panel)
+    Pixel.Testing.assertImageGolden(&image, dark ? "presets.hover" : "presets.hover.paper")
 }
 
 // A selected form whose properties are not saved leads the QuickStyle strip, ahead of saved
-// presets, with a separate plus that keeps that style. Both shipped palettes show the state.
+// presets, with a separate plus that keeps that style. Papier shows the state.
 #[Swag.TestTag("golden")]
 #test
 {
-    for dark in [true, false]
+    let dark = false
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    defer
     {
-        var host: Gui.Testing.HeadlessHost
-        let main = testSetupEditorSurface(&host, dark: dark, text: false)
-        defer
-        {
-            main.libWnd.requestClose()
-            host.shutdown()
-            g_Main = null
-        }
-
-        let capture = unwrap main.getCapture()
-        let shape   = testAddShape(capture, 64, 48, 72, 48)
-        shape.borderColor = Argb.Blue
-        capture.selection.add(capture.forms.count - 1)
-        capture.selectionHasChanged()
-        main.quickWnd.updateQuickStyles(forceRebuild: true)
-        host.finishAnimations()
-
-        var image = host.render(main)
-        Pixel.Testing.assertImageGolden(&image, dark ? "quickstyle.selection.encre" : "quickstyle.selection.paper")
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
+
+    let capture = unwrap main.getCapture()
+    let shape   = testAddShape(capture, 64, 48, 72, 48)
+    shape.borderColor = Argb.Blue
+    capture.selection.add(capture.forms.count - 1)
+    capture.selectionHasChanged()
+    main.quickWnd.updateQuickStyles(forceRebuild: true)
+    host.finishAnimations()
+
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, dark ? "quickstyle.selection.encre" : "quickstyle.selection.paper")
 }
 
 // The lens as a reader meets it in the editor, with its stable capture and output actions.

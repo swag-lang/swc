@@ -180,28 +180,26 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
 #[Swag.TestTag("golden")]
 #test
 {
-    for light in [false, true]
+    let light = false
+    var host: Testing.HeadlessHost
+    host.setup(600, 400, dpiScale: 1.5)
+    if light
     {
-        var host: Testing.HeadlessHost
-        host.setup(600, 400, dpiScale: 1.5)
-        if light
-        {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
-        }
-
-        let suffix = light ? "paper" : "ink"
-        let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found."})
-        dlg.addButton(strings().dlg_Yes, Dialog.BtnYes)
-        let no = dlg.addButton(strings().dlg_No, Dialog.BtnNo, true)
-        host.app.setFocusVisible(true)
-        no.setFocus()
-        dlg.adaptSizeToMessage()
-
-        Swag.assert(no.hasVisibleFocus())
-        let image = renderDialog(&host, &dlg.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.focus.%", suffix).toString())
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
     }
+
+    let suffix = light ? "paper" : "ink"
+    let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found."})
+    dlg.addButton(strings().dlg_Yes, Dialog.BtnYes)
+    let no = dlg.addButton(strings().dlg_No, Dialog.BtnNo, true)
+    host.app.setFocusVisible(true)
+    no.setFocus()
+    dlg.adaptSizeToMessage()
+
+    Swag.assert(no.hasVisibleFocus())
+    let image = renderDialog(&host, &dlg.dialog)
+    Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.focus.%", suffix).toString())
 }
 
 // Returns `count` bytes of text, for a file of a known size.
@@ -228,34 +226,32 @@ func filler(count: u64)->String
     discard expect File.writeAllText(Path.combine(folder.toString(), "README.md").toString(), filler(8100).toString())
     discard expect File.writeAllText(Path.combine(folder.toString(), "build.swgs").toString(), "#run")
 
-    for light in [false, true]
+    let light = true
+    var host: Testing.HeadlessHost
+    host.setup(900, 640)
+    if light
     {
-        var host: Testing.HeadlessHost
-        host.setup(900, 640)
-        if light
-        {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
-        }
-
-        var opt: FileDlgOptions
-        opt.mode          = .SelectFile
-        opt.showDrives    = false
-        opt.initialFolder = folder.toString()
-        let dlg = FileDlg.create(&host.surface, opt)
-
-        // Keep folders and files visible together so their glyphs can be compared.
-
-        // The disk dates the files of today; the picture keeps one moment.
-        for line, idx in dlg.browser.listCtrl.lines do
-            discard line!.setItem(1, Format.toString("10-2% 21:30", 6 - idx).toString())
-        dlg.browser.listCtrl.selectLine(0)
-
-        let image = renderDialog(&host, &dlg.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%", light ? "paper" : "ink").toString())
-        dlg.surface!.destroy()
-        host.pump()
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
     }
+
+    var opt: FileDlgOptions
+    opt.mode          = .SelectFile
+    opt.showDrives    = false
+    opt.initialFolder = folder.toString()
+    let dlg = FileDlg.create(&host.surface, opt)
+
+    // Keep folders and files visible together so their glyphs can be compared.
+
+    // The disk dates the files of today; the picture keeps one moment.
+    for line, idx in dlg.browser.listCtrl.lines do
+        discard line!.setItem(1, Format.toString("10-2% 21:30", 6 - idx).toString())
+    dlg.browser.listCtrl.selectLine(0)
+
+    let image = renderDialog(&host, &dlg.dialog)
+    Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%", light ? "paper" : "ink").toString())
+    dlg.surface!.destroy()
+    host.pump()
 }
 
 // Pins the other modes of the file box: choosing a folder names it, a save keeps its rows as
@@ -274,74 +270,72 @@ func filler(count: u64)->String
     discard expect File.writeAllText(Path.combine(folder.toString(), "capture-2026-10-27.png").toString(), filler(412000).toString())
     discard expect File.writeAllText(Path.combine(folder.toString(), "maquette.png").toString(), filler(2800000).toString())
 
-    for light in [false, true]
+    let light = true
+    var host: Testing.HeadlessHost
+    host.setup(900, 640)
+    if light
     {
-        var host: Testing.HeadlessHost
-        host.setup(900, 640)
-        if light
+        host.theme.setLight()
+        host.notify(.ThemeChanged)
+    }
+
+    let suffix = light ? "paper" : "ink"
+    for mode in [FileDlgMode.SelectFolder, .CreateFile, .SelectFiles]
+    {
+        var opt: FileDlgOptions
+        opt.mode          = mode
+        opt.showDrives    = false
+        opt.initialFolder = folder.toString()
+        opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
+        if mode == .CreateFile
         {
-            host.theme.setLight()
-            host.notify(.ThemeChanged)
+            opt.initialName = "capture-2026-10-28.png"
+            opt.filters.add({name: "PNG Image", extensions: ".png"})
         }
 
-        let suffix = light ? "paper" : "ink"
-        for mode in [FileDlgMode.SelectFolder, .CreateFile, .SelectFiles]
+        let dlg = FileDlg.create(&host.surface, opt)
+        if mode == .SelectFiles do
+            dlg.browser.pathField.setText(".md")
+
+        // The disk dates the files of today; the picture keeps one moment.
+        for line, idx in dlg.browser.listCtrl.lines do
+            discard line!.setItem(1, Format.toString("10-2% 21:30", 7 - idx).toString())
+
+        var name: string
+        switch mode
         {
-            var opt: FileDlgOptions
-            opt.mode          = mode
-            opt.showDrives    = false
-            opt.initialFolder = folder.toString()
-            opt.shortcuts.add({type: Env.SpecialDirectory.Temp, name: "Documents"})
-            if mode == .CreateFile
-            {
-                opt.initialName = "capture-2026-10-28.png"
-                opt.filters.add({name: "PNG Image", extensions: ".png"})
-            }
+        case .SelectFolder:
+            dlg.browser.listCtrl.selectLine(0)
+            name = "folder"
 
-            let dlg = FileDlg.create(&host.surface, opt)
-            if mode == .SelectFiles do
-                dlg.browser.pathField.setText(".md")
+        case .CreateFile:
+            name = "save"
 
-            // The disk dates the files of today; the picture keeps one moment.
-            for line, idx in dlg.browser.listCtrl.lines do
-                discard line!.setItem(1, Format.toString("10-2% 21:30", 7 - idx).toString())
-
-            var name: string
-            switch mode
-            {
-            case .SelectFolder:
-                dlg.browser.listCtrl.selectLine(0)
-                name = "folder"
-
-            case .CreateFile:
-                name = "save"
-
-            default:
-                dlg.browser.listCtrl.selectLine(0)
-                dlg.browser.listCtrl.selectLine(1)
-                name = "files"
-            }
-
-            let image = renderDialog(&host, &dlg.dialog)
-            Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%.%", name, suffix).toString())
-            dlg.surface!.destroy()
-            host.pump()
+        default:
+            dlg.browser.listCtrl.selectLine(0)
+            dlg.browser.listCtrl.selectLine(1)
+            name = "files"
         }
 
-        // The two questions a file box asks on the way: the name of a new folder, and whether a
-        // save replaces a file.
-        let folderBox = FileDlg.createNewFolderBox(&host.surface, "Documents / swag")
-        var image     = renderDialog(&host, &folderBox.dlg.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.newfolder.%", suffix).toString())
-        folderBox.dlg.surface!.destroy()
-        host.pump()
-
-        let replace = FileDlg.createReplaceBox(&host.surface, "rapport.pdf", "2.4 MB · modified 2026-10-27 11:20")
-        image = renderDialog(&host, &replace.dialog)
-        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.replace.%", suffix).toString())
-        replace.surface!.destroy()
+        let image = renderDialog(&host, &dlg.dialog)
+        Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.%.%", name, suffix).toString())
+        dlg.surface!.destroy()
         host.pump()
     }
+
+    // The two questions a file box asks on the way: the name of a new folder, and whether a
+    // save replaces a file.
+    let folderBox = FileDlg.createNewFolderBox(&host.surface, "Documents / swag")
+    var image     = renderDialog(&host, &folderBox.dlg.dialog)
+    Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.newfolder.%", suffix).toString())
+    folderBox.dlg.surface!.destroy()
+    host.pump()
+
+    let replace = FileDlg.createReplaceBox(&host.surface, "rapport.pdf", "2.4 MB · modified 2026-10-27 11:20")
+    image = renderDialog(&host, &replace.dialog)
+    Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.file.replace.%", suffix).toString())
+    replace.surface!.destroy()
+    host.pump()
 }
 
 // A question is as wide as its actions need, and never narrower than the family's floor.

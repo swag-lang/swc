@@ -9,16 +9,13 @@ using Core, Pixel, Gui, Viewers
 #test
 {
     let fileName = scopeTestDataPath("viewer.reading.srt")
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, fileName.toString(), light)
-        let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
-        Swag.assert(view.revealCue(1))
-        window.applyLayout()
-        host.settleAnimations(window, 4)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName.toString(), false)
+    let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.assert(view.revealCue(1))
+    window.applyLayout()
+    host.settleAnimations(window, 4)
 
-        var image = host.render(&host.surfaceWnd)
-        assertScopeImageGolden(&image, light ? "viewer.subtitle.paper" : "viewer.subtitle.ink")
-    }
+    var image = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.subtitle.ink")
 }

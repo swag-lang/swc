@@ -55,7 +55,9 @@ without hiding those contracts behind framework ceremony.
   dock, the hint line, the toast, the section label and the quiet menu are toolkit components. An
   application composes them and never re-implements one.**
 - Protect the composition at both boundaries. Structural tests assert parentage, order,
-  alignment and visibility, and a focused golden in each theme proves the result reads correctly.
+  alignment and visibility. Across each app's golden family, cover both themes while assigning one
+  palette to each screenshot scenario; keep paired captures only when the palette changes the
+  behavior under test.
 
 ## Name The Product Once
 

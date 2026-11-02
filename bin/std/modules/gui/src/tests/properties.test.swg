@@ -2319,8 +2319,6 @@ func assertPropertyViewMenuAnchor(light: bool)
 
 #[Swag.TestTag("golden")]
 #test { assertPropertyViewMenuAnchor(false) }
-#[Swag.TestTag("golden")]
-#test { assertPropertyViewMenuAnchor(true) }
 
 enum PropGoldenChoice
 {
@@ -2396,17 +2394,9 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Grid, "properties.grid", false) }
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Condensed, "properties.condensed", false) }
-#[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.List, "properties.list", false) }
-#[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Panel, "properties.panel", false) }
-#[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.Grid, "properties.grid", true) }
-#[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Condensed, "properties.condensed", true) }
 #[Swag.TestTag("golden")]
-#test { assertPropertyPresentationGolden(.List, "properties.list", true) }
+#test { assertPropertyPresentationGolden(.List, "properties.list", false) }
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Panel, "properties.panel", true) }
 
@@ -2499,7 +2489,7 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
 }
 
 // The section list with its counts, the search and the presentation menu open over the grid,
-// in Encre and in Papier.
+// in Papier.
 func assertPropertiesCtrlGolden(light: bool)
 {
     var host: Testing.HeadlessHost
@@ -2538,8 +2528,6 @@ func assertPropertiesCtrlGolden(light: bool)
     host.pump()
 }
 
-#[Swag.TestTag("golden")]
-#test { assertPropertiesCtrlGolden(false) }
 #[Swag.TestTag("golden")]
 #test { assertPropertiesCtrlGolden(true) }
 

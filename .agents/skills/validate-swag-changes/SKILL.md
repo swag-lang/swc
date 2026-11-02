@@ -266,8 +266,10 @@ consumer that activates the changed behavior.
   left, then repeat the run without the variable before reporting green.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside
   the intended part is a regression or a new finding, not noise.
-- Cover each state whose rendering branch changed: palette, DPI, enabled/disabled state, backend,
-  or viewport. Do not multiply states that share the same unchanged path.
+- Cover each rendering branch that the change reaches. Across one visual test family, rotate Encre
+  and Papier across sibling scenarios and capture each state once. Pair palettes when the changed
+  behavior is specifically theme-dependent, such as contrast, palette selection, or theme switching.
+  Do not multiply states that share the same unchanged path.
 - A focused change with a bounded owner may stop at its exact golden files. Do not replace the
   complete golden-only pass with representative samples when a shared primitive or uncertain
   reach can affect additional snapshots.

@@ -9,15 +9,12 @@ using Core, Pixel, Gui, Viewers
 #test
 {
     let fileName = scopeTestDataPath("viewer.groove.mid")
-    for light in [false, true]
-    {
-        var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, fileName.toString(), light)
-        let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
-        Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
-        Swag.assert(view.details.contains("4 tracks · 4/4"))
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName.toString(), true)
+    let view   = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
+    Swag.assert(view.details.contains("4 tracks · 4/4"))
 
-        var image = host.render(&host.surfaceWnd)
-        assertScopeImageGolden(&image, light ? "viewer.midi.paper" : "viewer.midi.ink")
-    }
+    var image = host.render(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "viewer.midi.paper")
 }

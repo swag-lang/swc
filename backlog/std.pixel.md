@@ -15,6 +15,37 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.034 — Report failed OpenGL resources before publishing descriptors or pixels
+
+- Evidence: `RenderOgl.createRenderTargetImpl` publishes a texture and framebuffer after
+  `glTexImage2D` and `glFramebufferTexture2D` without checking the allocation or framebuffer
+  status. `addImageImpl`, `createPlaneTexture`, and `clipMaskFor` follow the same pattern.
+  `RenderOglReadback.startTransfer` accepts `glReadPixels` without checking its result, and
+  `tryCopyTo` accepts an unchecked `glGetBufferSubData`; a fence can complete after a failed
+  transfer and the GUI can publish stale PBO bytes. The `IRenderer` creation, update, draw, and
+  readback operations have no failure result, so `Surface.createRT`, `ImageView` and Swag Scope's
+  explorer treat the returned descriptors as usable. This is a failure path established by code
+  inspection, not yet the identified cause of the reported DisplayLink corruption.
+- Next: define recoverable resource and transfer failure contracts across both renderers and
+  direct consumers; add deterministic failure injection for texture/FBO allocation and PBO
+  readback, then check OpenGL status at those boundaries and preserve the last valid GUI frame.
+- Done when: failed GPU allocation or transfer cannot produce a valid descriptor or publish
+  unverified pixels, and the focused failure tests cover cleanup and retry.
+- Related: std.gui.057
+
+### std.pixel.035 — Preserve active framebuffer bindings across render-target reads
+
+- Evidence: `RenderOgl.readRenderTargetImpl` binds the requested framebuffer with
+  `GL_FRAMEBUFFER` and then binds zero, while `curRT` and `stackRT` remain unchanged.
+  `createRenderTargetImpl` also binds zero after creation. Calling either operation during an
+  active target leaves the tracked target different from the actual draw binding; later direct
+  draws or a nested target operation can use the wrong buffer.
+- Next: restore the prior read and draw framebuffer bindings after both operations and add an
+  OpenGL integration test that reads or creates another target while one is bound, then draws
+  to the original.
+- Done when: the target stack and OpenGL bindings agree before and after readback, and the
+  subsequent draw appears only in the original target.
+
 ### std.pixel.033 — Rich-text layout drops the spaces of a letter-spaced line
 
 - Evidence: `Painter.drawRichString` with `RichStringFormat.letterSpacing` 1.5 on "IN THIS FILE · 3"

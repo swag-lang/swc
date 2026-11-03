@@ -83,6 +83,14 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
 // caller stops the program instead.
 func __testCheckFailed(message: string?, loc: Swag.SourceCodeLocation)->bool
 {
+    // The callback belongs to the executable running the test. A shared library has its
+    // own runtime globals, so it must not decide test ownership from those local copies.
+    let handler = Swag.getContext().testCheck
+    return handler != null and handler(message, loc)
+}
+
+private func recordTestCheckFailure(message: string?, loc: Swag.SourceCodeLocation)->bool
+{
     if not g_TestRunning do
         return false
 
@@ -200,12 +208,15 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     // covers work submitted from imported modules, and keeps allocation/locking out of recovery.
     discard schedulerInstance()
     let previousPanic  = cxt.panic
+    let previousCheck  = cxt.testCheck
     let previousFilter = __hostTestInstallHardwareFilter()
     cxt.panic = cast(&__testPanicHandler)
 
+    cxt.testCheck = &recordTestCheckFailure
     g_TestRunning = true
     __hostTestCall(fn)
     g_TestRunning = false
+    cxt.testCheck = previousCheck
 
     cxt.panic     = previousPanic
     g_TestContext = null

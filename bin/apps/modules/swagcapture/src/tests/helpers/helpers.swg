@@ -20,8 +20,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 }
 
 // Shared headless application fixtures.
-#global private
-using Swag, Core
 
 struct HeadlessFixture
 {
@@ -392,4 +390,3 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     f.main.quickWnd.setDefault()
     return f.main.propWnd
 }
-

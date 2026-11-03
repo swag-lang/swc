@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global internal
 
 using Core, Pixel
 
@@ -218,23 +219,18 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
     Swag.assert(reader.frameCount() == frameCount)
 }
 
-
-#global internal
-
 // Returns the module's test root for test cases stored under cases/<type>.
-#global internal
 
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
             return unwrap Path.directoryName(directory)
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases")
+    Swag.assert(false, "test source is outside cases or helpers")
     return ""
 }
-

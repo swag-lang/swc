@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global internal
 
 using Swag, Core
 
@@ -13,8 +14,7 @@ struct OutlineCounter
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.directoryName(loc.fileName)
-    var path = Path.combine(dir, "datas", fileName)
+    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
     Swag.assert(File.exists(path))
     return path
 }
@@ -236,10 +236,8 @@ const Woff2Bytes:       [12] u8 = ['w'u8, 'O'u8, 'F'u8, '2'u8, 0x00, 0x01, 0x00,
 // Rejected loads are caught by tests without weakening the successful face type.
 func checkFaceLoad(bytes: const [..] u8) fail { (try Face.load(bytes)).destroy() }
 func checkFaceLoadAt(bytes: const [..] u8, index: u32) fail { (try Face.loadAt(bytes, index)).destroy() }
-#global internal
 
 // Returns the module's test root for test cases stored under cases/<type>.
-#global internal
 
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
@@ -254,4 +252,3 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     Swag.assert(false, "test source is outside cases")
     return ""
 }
-

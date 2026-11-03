@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global internal
 
 using Swag, Core
 
@@ -25,8 +26,7 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.directoryName(loc.fileName)
-    var path = Path.combine(dir, "datas", fileName)
+    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
     Swag.assert(File.exists(path))
     return path
 }
@@ -46,10 +46,8 @@ func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding,
     result.progress = try itf.decode(destinationBuffer, result.destination.count, source.buffer, source.count)
     return result
 }
-#global internal
 
 // Returns the module's test root for test cases stored under cases/<type>.
-#global internal
 
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
@@ -64,4 +62,3 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     Swag.assert(false, "test source is outside cases")
     return ""
 }
-

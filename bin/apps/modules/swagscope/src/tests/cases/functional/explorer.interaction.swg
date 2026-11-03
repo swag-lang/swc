@@ -101,8 +101,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    let testDirectory = unwrap Path.directoryName(#curlocation.fileName)
-    let dataDirectory = Path.combine(testDirectory, "datas")
+    let dataDirectory = Path.combine(testSourceRoot(), "datas")
     var listing: ExplorerListing
     var load:    ExplorerListingLoad
     load.start(dataDirectory, "", 0, false, &host.surfaceWnd)

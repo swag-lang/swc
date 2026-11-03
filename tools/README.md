@@ -119,6 +119,8 @@ fixture and receives its absolute path. The script fixture checks its expected o
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
 folder. It isolates caches with `TMPDIR` and caps compiler/runtime workers at three.
 Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
+When admission requests a wait, the launcher can release its inactive artifact file cache without
+deleting files or weakening the CPU and memory thresholds.
 Each compiler invocation has a fresh load-admission check and a 900-second timeout
 (`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native
 tests that create separate sessions.

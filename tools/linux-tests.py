@@ -121,15 +121,31 @@ def stop_process_tree(pid):
                 os.close(handle)
 
 
+def release_artifact_cache(scratch):
+    """Release inactive files owned by this campaign without deleting reusable artifacts."""
+    for path in scratch.rglob('*'):
+        if path.is_symlink() or not path.is_file():
+            continue
+        with path.open('rb') as stream:
+            os.fsync(stream.fileno())
+            os.posix_fadvise(stream.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+
+
 def run_stage(stage, scratch, environment, timeout, admission):
     log = scratch / 'logs' / (stage.name + '.log')
     print(f'RUN {stage.name} (log: {log})', flush=True)
+    released_cache = False
     while True:
         status = subprocess.run(admission, check=False).returncode
         if status == 0:
             break
         if status != 2:
             raise RuntimeError('cannot measure build and test admission')
+        if not released_cache:
+            # Staging large fixtures and prior stages can fill a memory-limited cgroup with
+            # reclaimable file pages. No stage is running here; release only our own cache.
+            release_artifact_cache(scratch)
+            released_cache = True
         print('Waiting for build and test admission.', flush=True)
         time.sleep(5)
     start = time.monotonic()

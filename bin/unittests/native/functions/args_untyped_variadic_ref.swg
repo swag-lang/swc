@@ -26,5 +26,5 @@ func passVariadicReferencedValue(value: VariadicReferencedValue)->bool
 #test
 {
     let value: VariadicReferencedValue = VariadicReferencedValue{first: 11, second: 22, third: 33}
-    Swag.assert(passVariadicReferencedValue(value))
+    Swag.require(passVariadicReferencedValue(value))
 }

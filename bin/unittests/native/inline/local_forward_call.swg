@@ -26,6 +26,6 @@ func runMacro(count: u32)->u32
 
 #test
 {
-    Swag.assert(runLocal(20) == 41)
-    Swag.assert(runMacro(3) == 0 + 1 + 2 + 3 + 4 + 5)
+    Swag.require(runLocal(20) == 41)
+    Swag.require(runMacro(3) == 0 + 1 + 2 + 3 + 4 + 5)
 }

@@ -80,7 +80,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidSqrt(opaqueF64(-1.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -92,7 +92,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidAsin(opaqueF64(2.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -104,7 +104,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidAcos(opaqueF64(-2.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -116,7 +116,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidLog(opaqueF64(-1.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -128,7 +128,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidLog2(opaqueF64(-1.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -140,7 +140,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidLog10(opaqueF64(-1.0))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -152,7 +152,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidPow(opaqueF64(-1.0), opaqueF64(0.5))
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 #test
@@ -164,7 +164,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run validMath(9.0, 1.0)
-    Swag.assert(value == 11.0)
+    Swag.require(value == 11.0)
 }
 
 #test
@@ -176,7 +176,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidSqrtDisabled(opaqueF64(-1.0))
-    Swag.assert(value != value)
+    Swag.require(value != value)
 }
 
 #test
@@ -188,7 +188,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidLogDisabled(opaqueF64(-1.0))
-    Swag.assert(value != value)
+    Swag.require(value != value)
 }
 
 #test
@@ -200,7 +200,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run invalidPowDisabled(opaqueF64(-1.0), opaqueF64(0.5))
-    Swag.assert(value != value)
+    Swag.require(value != value)
 }
 
 // =============================================
@@ -345,7 +345,7 @@ func invalidConstantPow()->f64
     }
 
     const value = #run validSqrtZero()
-    Swag.assert(value == 0.0)
+    Swag.require(value == 0.0)
 }
 
 // Valid: Swag.pow with integer exponent on negative base must not panic
@@ -358,5 +358,5 @@ func invalidConstantPow()->f64
     }
 
     const value = #run validPowIntExp(-2.0, 3.0)
-    Swag.assert(value == -8.0)
+    Swag.require(value == -8.0)
 }

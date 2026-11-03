@@ -49,8 +49,8 @@ func lifecycleSafetyEnabled()->bool
 
 #test
 {
-    Swag.assert(lifecycleSafetyDisabled() == false)
-    Swag.assert(lifecycleSafetyEnabled() == true)
+    Swag.require(lifecycleSafetyDisabled() == false)
+    Swag.require(lifecycleSafetyEnabled() == true)
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +63,8 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 1}
     var b: UamItem
-    b = #relocate a           // swc-expected-note {{sanity_note_move_origin}}
-    Swag.assert(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
+    b = #relocate a            // swc-expected-note {{sanity_note_move_origin}}
+    Swag.require(a.x == 1)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a non-first field of the abandoned local.
@@ -73,8 +73,8 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamItem{x: 1, y: 2}
     var b: UamItem
-    b = #relocate a           // swc-expected-note {{sanity_note_move_origin}}
-    Swag.assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
+    b = #relocate a            // swc-expected-note {{sanity_note_move_origin}}
+    Swag.require(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading a local given away with '#move' when the type has no 'opDrop': the source is
@@ -85,7 +85,7 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 4}
     var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
     discard b
-    Swag.assert(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.require(a.x == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // Reading the moved-from local THROUGH a pointer taken before the move: the lattice
@@ -97,7 +97,7 @@ func lifecycleSafetyEnabled()->bool
     let p = &a.x        // swc-expected-note {{sema_note_borrow_taken_here}}
     var b = #move a     // swc-expected-note {{sanity_note_move_origin}}
     discard b
-    Swag.assert(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.require(p[] == 4)     // swc-expected-error {{sanity_err_use_after_move}}
 }
 
 // ---------------------------------------------------------------------------
@@ -112,8 +112,8 @@ func lifecycleSafetyEnabled()->bool
     var a = UamItem{x: 1, y: 2}
     var b = #move a
     a.x = 23
-    Swag.assert(a.x == 23)
-    Swag.assert(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.require(a.x == 23)
+    Swag.require(a.y == 2)     // swc-expected-error {{sanity_err_use_after_move}}
     discard b
 }
 
@@ -125,7 +125,7 @@ func lifecycleSafetyEnabled()->bool
     var b = #move a
     a.x = 27
     let wide = cast(*u64, &a.x)
-    Swag.assert(wide[] == 0)     // swc-expected-error {{sanity_err_use_after_move}}
+    Swag.require(wide[] == 0)     // swc-expected-error {{sanity_err_use_after_move}}
     discard b
 }
 
@@ -149,8 +149,8 @@ func lifecycleSafetyEnabled()->bool
     var b: UamItem
     b = #relocate a
     a = UamItem{x: 5}
-    Swag.assert(a.x == 5)
-    Swag.assert(b.x == 1)
+    Swag.require(a.x == 5)
+    Swag.require(b.x == 1)
 }
 
 // '#move' of a type with 'opDrop' resets the source to its defaults: reading it is
@@ -160,8 +160,8 @@ func lifecycleSafetyEnabled()->bool
 {
     var a = UamDropped{x: 3}
     var b = #move a
-    Swag.assert(b.x == 3)
-    Swag.assert(a.x == 9)
+    Swag.require(b.x == 3)
+    Swag.require(a.x == 9)
 }
 
 // A move on only one path is not a proven use-after-move at the join.
@@ -174,7 +174,7 @@ var g_takeBranch = false
     var b: UamItem
     if g_takeBranch do
         b = #relocate a
-    Swag.assert(a.x == 1)
+    Swag.require(a.x == 1)
 }
 
 // ---------------------------------------------------------------------------
@@ -189,8 +189,8 @@ var g_takeBranch = false
     var b: UamItem
     b = #relocate a
     opaque()
-    Swag.assert(a.x == 0xDDDD_DDDD)
-    Swag.assert(b.x == 1)
+    Swag.require(a.x == 0xDDDD_DDDD)
+    Swag.require(b.x == 1)
 }
 
 #[Swag.Safety(.Lifecycle, true)]
@@ -199,8 +199,8 @@ var g_takeBranch = false
     var a = UamItem{x: 6}
     var b = #move a     // no 'opDrop': the abandoned source is poisoned
     opaque()
-    Swag.assert(a.x == 0xDDDD_DDDD)
-    Swag.assert(b.x == 6)
+    Swag.require(a.x == 0xDDDD_DDDD)
+    Swag.require(b.x == 6)
 }
 
 // 'Swag.drop' poisons the dropped storage; the caller re-initializes it before reuse.
@@ -210,9 +210,9 @@ var g_takeBranch = false
     var a = UamDropped{x: 3}
     Swag.drop(&a)
     opaque()
-    Swag.assert(a.x == 0xDDDD_DDDD)
+    Swag.require(a.x == 0xDDDD_DDDD)
     Swag.init(&a)
-    Swag.assert(a.x == 9)
+    Swag.require(a.x == 9)
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +225,6 @@ var g_takeBranch = false
     var a = UamItem{x: 3}
     var b: UamItem
     b = #relocate a
-    Swag.assert(a.x == 3)     // stale bits are still readable when the check is off
-    Swag.assert(b.x == 3)
+    Swag.require(a.x == 3)     // stale bits are still readable when the check is off
+    Swag.require(b.x == 3)
 }

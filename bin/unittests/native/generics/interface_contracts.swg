@@ -73,31 +73,31 @@ struct(T) Holder where (T is IValue)
     #assert((#type *Counter) is IValue)
 
     var value = Counter{42}
-    Swag.assert(readValue(&value) == 42)
-    Swag.assert(readValue'Counter(&value) == 42)
-    Swag.assert(classify(value) == 1)
-    Swag.assert(classify(Missing{}) == 2)
+    Swag.require(readValue(&value) == 42)
+    Swag.require(readValue'Counter(&value) == 42)
+    Swag.require(classify(value) == 1)
+    Swag.require(classify(Missing{}) == 2)
 
     let direct   = cast(IValue, value)
     let pointer  = cast(IValue, &value)
     let explicit = cast(IValue, &value)
-    Swag.assert(direct.value() == explicit.value())
-    Swag.assert(pointer.value() == explicit.value())
+    Swag.require(direct.value() == explicit.value())
+    Swag.require(pointer.value() == explicit.value())
     #assert(#typeof(pointer) == IValue)
 
     var wrapper = Wrapper{prefix: 10, counter: Counter{21}}
     let wrapped = cast(ValueAlias, &wrapper)
-    Swag.assert(wrapped.value() == 21)
-    Swag.assert(readValue(&wrapper) == 21)
-    Swag.assert(readAndReset(&wrapper) == 21)
-    Swag.assert(wrapper.count == 0)
+    Swag.require(wrapped.value() == 21)
+    Swag.require(readValue(&wrapper) == 21)
+    Swag.require(readAndReset(&wrapper) == 21)
+    Swag.require(wrapper.count == 0)
 
     var holder: Holder'Counter = {value: Counter{12}}
-    Swag.assert(readValue(&holder.value) == 12)
+    Swag.require(readValue(&holder.value) == 12)
 
     let same = cast(IValue, pointer)
-    Swag.assert(same.value() == 42)
+    Swag.require(same.value() == 42)
     let concrete = catch cast(*Counter?, pointer)
-    Swag.assert(concrete!.count == 42)
-    Swag.assert((pointer is Counter))
+    Swag.require(concrete!.count == 42)
+    Swag.require((pointer is Counter))
 }

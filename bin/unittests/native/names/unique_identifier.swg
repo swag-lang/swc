@@ -28,5 +28,5 @@ func computeUniq(value: s32)->s32
 // #uniq identifier scoping in mixin expansion
 #test
 {
-    Swag.assert(computeUniq(3) == 148)
+    Swag.require(computeUniq(3) == 148)
 }

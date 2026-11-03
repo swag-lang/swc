@@ -15,9 +15,9 @@ const N = 8
     for i in src.count do
         dst[i] = doubler(src[i])
 
-    Swag.assert(dst[0] == 2)
-    Swag.assert(dst[3] == 8)
-    Swag.assert(dst[7] == 16)
+    Swag.require(dst[0] == 2)
+    Swag.require(dst[3] == 8)
+    Swag.require(dst[7] == 16)
 }
 
 // Filter: keep only even numbers.
@@ -37,11 +37,11 @@ const N = 8
         }
     }
 
-    Swag.assert(count == 4)
-    Swag.assert(dst[0] == 2)
-    Swag.assert(dst[1] == 4)
-    Swag.assert(dst[2] == 6)
-    Swag.assert(dst[3] == 8)
+    Swag.require(count == 4)
+    Swag.require(dst[0] == 2)
+    Swag.require(dst[1] == 4)
+    Swag.require(dst[2] == 6)
+    Swag.require(dst[3] == 8)
 }
 
 // Reduce: sum using a combiner lambda.
@@ -54,7 +54,7 @@ const N = 8
     for i in src.count do
         total = add(total, src[i])
 
-    Swag.assert(total == 36)
+    Swag.require(total == 36)
 }
 
 // Reduce: product.
@@ -66,7 +66,7 @@ const N = 8
     for i in src.count do
         product = mul(product, src[i])
 
-    Swag.assert(product == 120)
+    Swag.require(product == 120)
 }
 
 // Closure with value capture: map with offset.
@@ -80,10 +80,10 @@ const N = 8
     for i in src.count do
         dst[i] = addOffset(src[i])
 
-    Swag.assert(dst[0] == 15)
-    Swag.assert(dst[1] == 25)
-    Swag.assert(dst[2] == 35)
-    Swag.assert(dst[3] == 45)
+    Swag.require(dst[0] == 15)
+    Swag.require(dst[1] == 25)
+    Swag.require(dst[2] == 35)
+    Swag.require(dst[3] == 45)
 }
 
 // Closure with reference capture: count how many pass the filter.
@@ -109,12 +109,12 @@ const N = 8
         }
     }
 
-    Swag.assert(dstCount == 4)
-    Swag.assert(callCount == cast(s32, N))
-    Swag.assert(dst[0] == 7)
-    Swag.assert(dst[1] == 9)
-    Swag.assert(dst[2] == 8)
-    Swag.assert(dst[3] == 6)
+    Swag.require(dstCount == 4)
+    Swag.require(callCount == cast(s32, N))
+    Swag.require(dst[0] == 7)
+    Swag.require(dst[1] == 9)
+    Swag.require(dst[2] == 8)
+    Swag.require(dst[3] == 6)
 }
 
 // Pipeline: square -> filter >10 -> sum.
@@ -146,8 +146,8 @@ const N = 8
         result = add(result, filtered[i])
 
     // squares: 1, 4, 9, 16, 25, 36 -> >10: 16, 25, 36 -> sum: 77
-    Swag.assert(filteredCount == 3)
-    Swag.assert(result == 77)
+    Swag.require(filteredCount == 3)
+    Swag.require(result == 77)
 }
 
 // Multiple capture values.
@@ -160,9 +160,9 @@ const N = 8
         return base + x * multiplier
     }
 
-    Swag.assert(compute(1) == 103)
-    Swag.assert(compute(10) == 130)
-    Swag.assert(compute(0) == 100)
+    Swag.require(compute(1) == 103)
+    Swag.require(compute(10) == 130)
+    Swag.require(compute(0) == 100)
 }
 
 // Struct capture.
@@ -172,8 +172,8 @@ struct Pair { a, b: s32 }
 {
     let pair:  Pair = Pair{a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
-    Swag.assert(apply(3) == 19)
-    Swag.assert(apply(0) == 7)
+    Swag.require(apply(3) == 19)
+    Swag.require(apply(0) == 7)
 }
 
 // Closure returned from factory function.
@@ -190,9 +190,9 @@ func makeCounter(start: s32)->func||()->s32
 #test
 {
     let counter = makeCounter(10)
-    Swag.assert(counter() == 11)
-    Swag.assert(counter() == 12)
-    Swag.assert(counter() == 13)
+    Swag.require(counter() == 11)
+    Swag.require(counter() == 12)
+    Swag.require(counter() == 13)
 }
 
 // Array of lambdas.
@@ -208,5 +208,5 @@ func makeCounter(start: s32)->func||()->s32
         value = ops[i]!(value)
 
     // 3 -> +1=4 -> *2=8 -> ^2=64
-    Swag.assert(value == 64)
+    Swag.require(value == 64)
 }

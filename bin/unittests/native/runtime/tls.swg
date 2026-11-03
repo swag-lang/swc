@@ -89,24 +89,24 @@ tls var g_Point: TlsPoint
         var first: TlsResult
         runWorker(&first)
 
-        Swag.assert(first.seenCounter == 0)
-        Swag.assert(first.seenZero == 0)
-        Swag.assert(first.seenPointX == 11)
-        Swag.assert(first.seenPointY == 22)
-        Swag.assert(first.ownCounter == 0xBBBB)
+        Swag.require(first.seenCounter == 0)
+        Swag.require(first.seenZero == 0)
+        Swag.require(first.seenPointX == 11)
+        Swag.require(first.seenPointY == 22)
+        Swag.require(first.ownCounter == 0xBBBB)
 
         // The worker's writes stayed in the worker's copy.
-        Swag.assert(g_Counter == 0xAAAA)
-        Swag.assert(g_Zero == 3)
-        Swag.assert(g_Point.x == 55)
-        Swag.assert(g_Point.y == 22)
+        Swag.require(g_Counter == 0xAAAA)
+        Swag.require(g_Zero == 3)
+        Swag.require(g_Point.x == 55)
+        Swag.require(g_Point.y == 22)
 
         // A second thread starts from the initializer as well, not from the first worker's values,
         // which is what a per-thread copy released at thread exit must give.
         var second: TlsResult
         runWorker(&second)
-        Swag.assert(second.seenCounter == 0)
-        Swag.assert(second.seenPointX == 11)
+        Swag.require(second.seenCounter == 0)
+        Swag.require(second.seenPointX == 11)
     }
 }
 
@@ -117,10 +117,10 @@ tls var g_Point: TlsPoint
     g_Counter = 0x1234
 
     let pointer = &g_Counter
-    Swag.assert(pointer[] == 0x1234)
+    Swag.require(pointer[] == 0x1234)
 
     pointer[] = 0x5678
-    Swag.assert(g_Counter == 0x5678)
+    Swag.require(g_Counter == 0x5678)
 
     g_Counter = 0
 }

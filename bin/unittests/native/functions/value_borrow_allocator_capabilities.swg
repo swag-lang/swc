@@ -17,7 +17,7 @@ func releaseBorrowedAllocation(value: AllocatorBorrowValue, request: *Swag.Alloc
     let allocator = unwrap Swag.getContext().allocator
     var request   = Swag.AllocatorRequest{size: #sizeof(AllocatorBorrowValue)}
     allocator.alloc(&request)
-    Swag.assert(request.address != null)
+    Swag.require(request.address != null)
     defer
     {
         if request.address do
@@ -31,7 +31,7 @@ func releaseBorrowedAllocation(value: AllocatorBorrowValue, request: *Swag.Alloc
     let caught = Swag.catchPanic(func|value, &request, &observed|() {
         observed = releaseBorrowedAllocation(value[], &request)
     })
-    Swag.assert(caught.raised == #hastag("Swag.AllocatorSafety"))
+    Swag.require(caught.raised == #hastag("Swag.AllocatorSafety"))
     if not caught.raised do
-        Swag.assert(observed == 143)
+        Swag.require(observed == 143)
 }

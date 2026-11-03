@@ -40,8 +40,8 @@ func sumWithTry(count: s32)->s32 fail
         total += index
     }
 
-    Swag.assert(total == 6)
-    Swag.assert(expect sumWithTry(5) == 10)
+    Swag.require(total == 6)
+    Swag.require(expect sumWithTry(5) == 10)
 
     // The block runs for the indices reached before the failure, then 'catch' dismisses it.
     var reached = 0
@@ -50,5 +50,5 @@ func sumWithTry(count: s32)->s32 fail
         reached += 1
     }
 
-    Swag.assert(reached == 3)
+    Swag.require(reached == 3)
 }

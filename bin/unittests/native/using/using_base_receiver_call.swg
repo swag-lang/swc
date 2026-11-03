@@ -43,7 +43,7 @@ struct(T) BoxPtr
     // Receiver only: no argument at all.
     var b: BoxPtr's32
     b.bump()
-    Swag.assert(b.count == 1)
+    Swag.require(b.count == 1)
 }
 
 #test
@@ -52,8 +52,8 @@ struct(T) BoxPtr
     var i = 7's32
     var b: BoxPtr's32
     b.addValue(&i)
-    Swag.assert(b.count == 1)
-    Swag.assert(b.slot == &i)
+    Swag.require(b.count == 1)
+    Swag.require(b.slot == &i)
 }
 
 #test
@@ -62,11 +62,11 @@ struct(T) BoxPtr
     var i = 7's32
     var b: BoxPtr's32
     b.addFwd(&i)
-    Swag.assert(b.count == 1)
-    Swag.assert(b.slot == &i)
+    Swag.require(b.count == 1)
+    Swag.require(b.slot == &i)
     b.addFwd(cast(*s32?, null))
-    Swag.assert(b.count == 2)
-    Swag.assert(b.slot == null)
+    Swag.require(b.count == 2)
+    Swag.require(b.slot == null)
 }
 
 #test
@@ -77,6 +77,6 @@ struct(T) BoxPtr
     b.bump()
     b.addValue(&i)
     b.addFwd(&i)
-    Swag.assert(b.count == 3)
-    Swag.assert(b.slot == &i)
+    Swag.require(b.count == 3)
+    Swag.require(b.slot == &i)
 }

@@ -29,17 +29,17 @@ func within(c, lo, hi: u32)->bool => c >= lo and c <= hi
     for v in 0 until 512
     {
         let c = cast(u32, v)
-        Swag.assert(isLetter(c) == (within(c, 0x61, 0x7A) or within(c, 0x41, 0x5A)))
-        Swag.assert(isHexLetter(c) == (within(c, 0x41, 0x46) or within(c, 0x61, 0x66)))
-        Swag.assert(highPair(c) == (within(c, 0x21, 0x3A) or within(c, 0x61, 0x7A)))
-        Swag.assert(lowPair(c) == within(c, 0x10, 0x1F))
-        Swag.assert(crossingPair(c) == (within(c, 0x1C, 0x23) or within(c, 0x3C, 0x43)))
-        Swag.assert(twoBitPair(c) == (within(c, 0x01, 0x1A) or within(c, 0x61, 0x7A)))
+        Swag.require(isLetter(c) == (within(c, 0x61, 0x7A) or within(c, 0x41, 0x5A)))
+        Swag.require(isHexLetter(c) == (within(c, 0x41, 0x46) or within(c, 0x61, 0x66)))
+        Swag.require(highPair(c) == (within(c, 0x21, 0x3A) or within(c, 0x61, 0x7A)))
+        Swag.require(lowPair(c) == within(c, 0x10, 0x1F))
+        Swag.require(crossingPair(c) == (within(c, 0x1C, 0x23) or within(c, 0x3C, 0x43)))
+        Swag.require(twoBitPair(c) == (within(c, 0x01, 0x1A) or within(c, 0x61, 0x7A)))
     }
 
     for c in [0x10000061'u32, 0xFFFFFF41, 0x80000041, 0x100041, 0xFFFFFFFF]
     {
-        Swag.assert(not isLetter(c))
-        Swag.assert(not highPair(c))
+        Swag.require(not isLetter(c))
+        Swag.require(not highPair(c))
     }
 }

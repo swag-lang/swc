@@ -66,26 +66,26 @@ func wideOrder(a, b: f32)->s32 => cast(f64, a) <=> cast(f64, b)
     {
         for b in values
         {
-            Swag.assert(less(a, b) == wideLess(a, b))
-            Swag.assert(lessEqual(a, b) == wideLessEqual(a, b))
-            Swag.assert(greater(a, b) == wideLess(b, a))
-            Swag.assert(greaterEqual(a, b) == wideLessEqual(b, a))
-            Swag.assert(equal(a, b) == wideEqual(a, b))
-            Swag.assert(notEqual(a, b) == not wideEqual(a, b))
-            Swag.assert(order(a, b) == wideOrder(a, b))
+            Swag.require(less(a, b) == wideLess(a, b))
+            Swag.require(lessEqual(a, b) == wideLessEqual(a, b))
+            Swag.require(greater(a, b) == wideLess(b, a))
+            Swag.require(greaterEqual(a, b) == wideLessEqual(b, a))
+            Swag.require(equal(a, b) == wideEqual(a, b))
+            Swag.require(notEqual(a, b) == not wideEqual(a, b))
+            Swag.require(order(a, b) == wideOrder(a, b))
 
             let bigger = maxOf(a, b)
-            Swag.assert(cast #bit (u32, bigger) == cast #bit (u32, (wideLess(b, a) ? a : b)))
+            Swag.require(cast #bit (u32, bigger) == cast #bit (u32, (wideLess(b, a) ? a : b)))
             let clamped = clampOf(a, -1.0, 1.0)
-            Swag.assert(cast #bit (u32, clamped) == cast #bit (u32, (wideLess(a, -1.0) ? -1.0'f32 : (wideLess(1.0, a) ? 1.0'f32 : a))))
+            Swag.require(cast #bit (u32, clamped) == cast #bit (u32, (wideLess(a, -1.0) ? -1.0'f32 : (wideLess(1.0, a) ? 1.0'f32 : a))))
         }
     }
 
-    Swag.assert(countBelow(&values[0], 12, 0.5) == 7)
+    Swag.require(countBelow(&values[0], 12, 0.5) == 7)
 
-    Swag.assert(unsignedGreater(3_000_000_000, 1.0))
-    Swag.assert(not unsignedGreater(1, 3_000_000_000.0))
-    Swag.assert(signedGreater(16_777_217, 16_777_216.0))
-    Swag.assert(not signedEqual(16_777_217, 16_777_216.0))
-    Swag.assert(signedGreater(-1, -2.0))
+    Swag.require(unsignedGreater(3_000_000_000, 1.0))
+    Swag.require(not unsignedGreater(1, 3_000_000_000.0))
+    Swag.require(signedGreater(16_777_217, 16_777_216.0))
+    Swag.require(not signedEqual(16_777_217, 16_777_216.0))
+    Swag.require(signedGreater(-1, -2.0))
 }

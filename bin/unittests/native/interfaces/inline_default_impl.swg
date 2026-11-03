@@ -6,8 +6,8 @@
     var fallback: InlineRegressionBug16.DefaultOnly
 
     let implemented = cast(InlineRegressionBug16.ITest, concrete)
-    Swag.assert(implemented.isImplemented())
+    Swag.require(implemented.isImplemented())
 
     let defaultOnly = cast(InlineRegressionBug16.ITest, fallback)
-    Swag.assert(not defaultOnly.isImplemented())
+    Swag.require(not defaultOnly.isImplemented())
 }

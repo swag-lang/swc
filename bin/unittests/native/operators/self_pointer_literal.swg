@@ -50,24 +50,24 @@ func makeWrapper()->Wrapper => {prev: makeSelfBuf(1, 2, 2)}
 #test
 {
     let wrapper = Wrapper{prev: makeSelfBuf(1, 2, 2)}
-    Swag.assert(wrapper.prev.valid())
+    Swag.require(wrapper.prev.valid())
     let projected = makeWrapper().prev
-    Swag.assert(projected.valid())
+    Swag.require(projected.valid())
 }
 
 #test
 {
     var direct = makeSelfBuf(1, 2, 2)
-    Swag.assert(direct.valid())
+    Swag.require(direct.valid())
 
     let single = Wrapper{prev: direct}
-    Swag.assert(single.prev.valid())
+    Swag.require(single.prev.valid())
 
     let wrappers = [Wrapper{prev: direct}, Wrapper{prev: direct}]
-    Swag.assert(wrappers[0].prev.valid() and wrappers[1].prev.valid())
+    Swag.require(wrappers[0].prev.valid() and wrappers[1].prev.valid())
 
     for wrapper in wrappers do
-        Swag.assert(wrapper.prev.valid())
+        Swag.require(wrapper.prev.valid())
 }
 
 var g_ConstantMoves: s32
@@ -96,6 +96,6 @@ func makeCounted()->Counted
 {
     g_ConstantMoves = 0
     let counted = makeCounted()
-    Swag.assert(counted.value == 3)
-    Swag.assert(g_ConstantMoves == 0)
+    Swag.require(counted.value == 3)
+    Swag.require(g_ConstantMoves == 0)
 }

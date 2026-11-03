@@ -49,11 +49,11 @@ func convertedReturnFallible()->Converted fail
     scope
     {
         let plain = convertedReturn()
-        Swag.assert(plain.value == 7)
+        Swag.require(plain.value == 7)
         let fallible = expect convertedReturnFallible()
-        Swag.assert(fallible.value == 7)
-        Swag.assert(ConvertedDrops == 0)
+        Swag.require(fallible.value == 7)
+        Swag.require(ConvertedDrops == 0)
     }
 
-    Swag.assert(ConvertedDrops == 2)
+    Swag.require(ConvertedDrops == 2)
 }

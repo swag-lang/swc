@@ -69,8 +69,8 @@ func churnReference(count: u64)->u64
 
 #test
 {
-    Swag.assert(churn(0) == churnReference(0))
-    Swag.assert(churn(1) == churnReference(1))
-    Swag.assert(churn(7) == churnReference(7))
-    Swag.assert(churn(100) == churnReference(100))
+    Swag.require(churn(0) == churnReference(0))
+    Swag.require(churn(1) == churnReference(1))
+    Swag.require(churn(7) == churnReference(7))
+    Swag.require(churn(100) == churnReference(100))
 }

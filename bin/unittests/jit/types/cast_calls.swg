@@ -55,15 +55,15 @@ func checkedPresence(value: *s32?)->s32 fail
 {
     var child: CastCallChild
     let base:  *CastCallBase = &child
-    Swag.assert(base == &child.base)
-    Swag.assert(assumedCastCall(base) == &child)
-    Swag.assert(assumedCastFromCall(base) == &child)
-    Swag.assert(expect checkedCastCall(base) == 42)
-    Swag.assert((expect cast(*CastCallChild, base)).extra == 42)
-    Swag.assert(cast(ICastCall, &child).value() == 42)
+    Swag.require(base == &child.base)
+    Swag.require(assumedCastCall(base) == &child)
+    Swag.require(assumedCastFromCall(base) == &child)
+    Swag.require(expect checkedCastCall(base) == 42)
+    Swag.require((expect cast(*CastCallChild, base)).extra == 42)
+    Swag.require(cast(ICastCall, &child).value() == 42)
     let inferred: s64 = cast(10 + 2)
-    Swag.assert(inferred == 12)
-    Swag.assert(cast(u64, cast(s64, 9) + 1) == 10)
+    Swag.require(inferred == 12)
+    Swag.require(cast(u64, cast(s64, 9) + 1) == 10)
 }
 
 #test
@@ -73,34 +73,34 @@ func checkedPresence(value: *s32?)->s32 fail
     var mismatch: #decltype(expect checkedCastCall(&base))
     catch { mismatch = try checkedCastCall(&base) } as mismatchErrorOutcome
     let mismatchError = mismatchErrorOutcome.value()
-    Swag.assert(mismatch == 0 and mismatchError != null)
+    Swag.require(mismatch == 0 and mismatchError != null)
     var nullErrorOutcome: Swag.Error
     var absent: #decltype(expect checkedCastCall(null))
     catch { absent = try checkedCastCall(null) } as nullErrorOutcome
     let nullError = nullErrorOutcome.value()
-    Swag.assert(absent == 0 and nullError != null)
+    Swag.require(absent == 0 and nullError != null)
     var number: s32 = 27
-    Swag.assert(expect checkedPresence(&number) == 27)
+    Swag.require(expect checkedPresence(&number) == 27)
     var presenceErrorOutcome: Swag.Error
     var absentNumber:         #decltype(expect checkedPresence(null))
     catch { absentNumber = try checkedPresence(null) } as presenceErrorOutcome
     let presenceError = presenceErrorOutcome.value()
-    Swag.assert(absentNumber == 0 and presenceError != null)
+    Swag.require(absentNumber == 0 and presenceError != null)
 }
 
 #test
 {
     var child: CastCallChild
     let view = cast(ICastCall, &child)
-    Swag.assert((expect cast(*CastCallChild, view)) == &child)
+    Swag.require((expect cast(*CastCallChild, view)) == &child)
     var number: s32 = 37
     let boxed:  any = number
-    Swag.assert(expect cast(s32, boxed) == 37)
+    Swag.require(expect cast(s32, boxed) == 37)
     var errorOutcome: Swag.Error
     var wrong:        #decltype(expect cast(*CastCallChild?, boxed))
     catch { wrong = try cast(*CastCallChild?, boxed) } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(wrong == null and error != null)
+    Swag.require(wrong == null and error != null)
 }
 #[Swag.Safety(.Assume, false), Swag.Safety(.DynCast, false), Swag.Safety(.Null, false)]
 func checkedBoxedString(value: any)->u64 fail
@@ -121,11 +121,11 @@ func nullableStaticInterface(value: *CastCallChild?)->ICastCall?
     var length:       #decltype(expect checkedBoxedString(boxed))
     catch { length = try checkedBoxedString(boxed) } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(length == 0 and error != null)
-    Swag.assert(nullableStaticInterface(null) == null)
+    Swag.require(length == 0 and error != null)
+    Swag.require(nullableStaticInterface(null) == null)
     var child: CastCallChild
     let view = nullableStaticInterface(&child)
-    Swag.assert(view != null and view.value() == 42)
+    Swag.require(view != null and view.value() == 42)
 }
 #[Swag.Safety(.Assume, false), Swag.Safety(.DynCast, false), Swag.Safety(.Null, false)]
 func checkedInterfacePresence(value: ICastCall?)->s32 fail
@@ -139,7 +139,7 @@ func checkedInterfacePresence(value: ICastCall?)->s32 fail
     var absent:       #decltype(expect checkedInterfacePresence(null))
     catch { absent = try checkedInterfacePresence(null) } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(absent == 0 and error != null)
+    Swag.require(absent == 0 and error != null)
     var child: CastCallChild
-    Swag.assert(expect checkedInterfacePresence(cast(ICastCall, &child)) == 42)
+    Swag.require(expect checkedInterfacePresence(cast(ICastCall, &child)) == 42)
 }

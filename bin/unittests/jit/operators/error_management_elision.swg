@@ -79,12 +79,12 @@ func returnInlineCatchResult()->ManagedResult
     scope
     {
         let value = catch makeManagedResult(true)
-        Swag.assert(value.value == 11)
+        Swag.require(value.value == 11)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 11)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 11)
 }
 
 // A failed call has no live result ownership, so synthesizing its zero fallback does not
@@ -95,12 +95,12 @@ func returnInlineCatchResult()->ManagedResult
     scope
     {
         let value = catch makeManagedResult(false)
-        Swag.assert(value.value == 0)
+        Swag.require(value.value == 0)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 0)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 0)
 }
 
 #test
@@ -109,12 +109,12 @@ func returnInlineCatchResult()->ManagedResult
     scope
     {
         let value = expect makeManagedResult(true)
-        Swag.assert(value.value == 17)
+        Swag.require(value.value == 17)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 17)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 17)
 }
 
 // Error-management wrappers forward the caller's return storage through a non-inlined function.
@@ -124,34 +124,34 @@ func returnInlineCatchResult()->ManagedResult
     scope
     {
         let value = returnCatchResult()
-        Swag.assert(value.value == 19)
+        Swag.require(value.value == 19)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 19)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 19)
 
     resetHooks(23)
     scope
     {
         let value = returnExpectResult()
-        Swag.assert(value.value == 23)
+        Swag.require(value.value == 23)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 23)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 23)
 
     resetHooks(29)
     scope
     {
         let value = catch returnTryResult()
-        Swag.assert(value.value == 29)
+        Swag.require(value.value == 29)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 29)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 29)
 }
 
 // An inline expansion used as an initializer writes into the binding too: its synthetic
@@ -162,10 +162,10 @@ func returnInlineCatchResult()->ManagedResult
     scope
     {
         let value = returnInlineCatchResult()
-        Swag.assert(value.value == 31)
+        Swag.require(value.value == 31)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 31)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 31)
 }

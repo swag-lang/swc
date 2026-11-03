@@ -60,23 +60,23 @@ func interfaceFallback()->bool
 
 #test
 {
-    Swag.assert(zeroLiteralOrelseReturn(9'u8) == 9'u8)
+    Swag.require(zeroLiteralOrelseReturn(9'u8) == 9'u8)
 }
 
 #test
 {
-    Swag.assert(strictHandleFallback())
+    Swag.require(strictHandleFallback())
 }
 
 #test
 {
-    Swag.assert(typeInfoFallback())
+    Swag.require(typeInfoFallback())
 }
 
 #test
 {
-    Swag.assert(cstringFallback())
-    Swag.assert(interfaceFallback())
+    Swag.require(cstringFallback())
+    Swag.require(interfaceFallback())
 }
 
 #test
@@ -93,5 +93,5 @@ func interfaceFallback()->bool
                not assume cast(bool, boolFalse)
     }
 
-    Swag.assert(explicitAnyChecks())
+    Swag.require(explicitAnyChecks())
 }

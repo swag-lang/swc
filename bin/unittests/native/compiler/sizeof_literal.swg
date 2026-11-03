@@ -7,8 +7,8 @@ var STRUCT_FIELD_ALIGN = #alignof({values: [9, 4, 1], bias: 1}.values)
 
 #test
 {
-    Swag.assert(WIDE_ARRAY_SIZE == 16)
-    Swag.assert(WIDE_ARRAY_ALIGN == 8)
-    Swag.assert(STRUCT_FIELD_SIZE == 12)
-    Swag.assert(STRUCT_FIELD_ALIGN == 4)
+    Swag.require(WIDE_ARRAY_SIZE == 16)
+    Swag.require(WIDE_ARRAY_ALIGN == 8)
+    Swag.require(STRUCT_FIELD_SIZE == 12)
+    Swag.require(STRUCT_FIELD_ALIGN == 4)
 }

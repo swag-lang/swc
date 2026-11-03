@@ -58,7 +58,7 @@ func collectInterlacedSamples(width, height: s32, samples: const [..] u16)->Inte
     }
 
     let raw = collectInterlacedSamples(Width, Height, samples)
-    Swag.assert(raw.count == 36)
-    Swag.assert(raw.bytes[1] == 10)
-    Swag.assert(raw.bytes[raw.count - 1] == 29)
+    Swag.require(raw.count == 36)
+    Swag.require(raw.bytes[1] == 10)
+    Swag.require(raw.bytes[raw.count - 1] == 29)
 }

@@ -52,10 +52,10 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
 
     high[3] = 0xFF
     low[3]  = 0x01
-    Swag.assert(compareStatic64(&high[0], &low[0]) > 0)
-    Swag.assert(compareStatic64(&low[0], &high[0]) < 0)
-    Swag.assert(compareStatic64(&high[0], &low[0]) == compareDynamic(&high[0], &low[0], 64))
-    Swag.assert(compareStatic64(&low[0], &high[0]) == compareDynamic(&low[0], &high[0], 64))
+    Swag.require(compareStatic64(&high[0], &low[0]) > 0)
+    Swag.require(compareStatic64(&low[0], &high[0]) < 0)
+    Swag.require(compareStatic64(&high[0], &low[0]) == compareDynamic(&high[0], &low[0], 64))
+    Swag.require(compareStatic64(&low[0], &high[0]) == compareDynamic(&low[0], &high[0], 64))
 }
 
 // The materialized answer matches the runtime one for a difference at every position, whatever
@@ -75,24 +75,24 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
         let saved = right[position]
         right[position] = saved ^ 0x80'u8
 
-        Swag.assert(compareStatic64(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 64))
+        Swag.require(compareStatic64(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 64))
         if position < 17 do
-            Swag.assert(compareStatic17(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 17))
+            Swag.require(compareStatic17(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 17))
         if position < 16 do
-            Swag.assert(compareStatic16(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 16))
+            Swag.require(compareStatic16(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 16))
         if position < 7 do
-            Swag.assert(compareStatic7(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 7))
+            Swag.require(compareStatic7(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 7))
         if position < 1 do
-            Swag.assert(compareStatic1(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 1))
+            Swag.require(compareStatic1(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 1))
 
         right[position] = saved
     }
 
-    Swag.assert(compareStatic64(&left[0], &right[0]) == 0)
-    Swag.assert(compareStatic17(&left[0], &right[0]) == 0)
-    Swag.assert(compareStatic16(&left[0], &right[0]) == 0)
-    Swag.assert(compareStatic7(&left[0], &right[0]) == 0)
-    Swag.assert(compareStatic1(&left[0], &right[0]) == 0)
+    Swag.require(compareStatic64(&left[0], &right[0]) == 0)
+    Swag.require(compareStatic17(&left[0], &right[0]) == 0)
+    Swag.require(compareStatic16(&left[0], &right[0]) == 0)
+    Swag.require(compareStatic7(&left[0], &right[0]) == 0)
+    Swag.require(compareStatic1(&left[0], &right[0]) == 0)
 }
 
 // A non-zero fill writes the same bytes whether the compiler materializes it or the runtime does,
@@ -104,13 +104,13 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
 
     fillStatic8(&materialized[0], 0xA5)
     fillDynamic(&called[0], 0xA5, 8)
-    Swag.assert(materialized == called)
+    Swag.require(materialized == called)
 
     fillStatic64(&materialized[0], 0x5A)
     fillDynamic(&called[0], 0x5A, 64)
-    Swag.assert(materialized == called)
+    Swag.require(materialized == called)
 
     fillStatic67(&materialized[0], 0xC3)
     fillDynamic(&called[0], 0xC3, 67)
-    Swag.assert(materialized == called)
+    Swag.require(materialized == called)
 }

@@ -32,49 +32,49 @@ func(T) boxValue(box: Box'T)->T => box.value
     let boolBox:   Box'bool   = {value: true}
     let floatBox:  Box'f64    = {value: 3.14}
 
-    Swag.assert(stringBox.value == "swag")
-    Swag.assert(intBox.value == 42)
-    Swag.assert(boolBox.value == true)
-    Swag.assert(floatBox.value == 3.14)
+    Swag.require(stringBox.value == "swag")
+    Swag.require(intBox.value == 42)
+    Swag.require(boolBox.value == true)
+    Swag.require(floatBox.value == 3.14)
 }
 
 #test
 {
     let buffer: Buffer'(s32, 4) = {values: [1, 2, 3, 4]}
-    Swag.assert(buffer.values[0] == 1)
-    Swag.assert(buffer.values[3] == 4)
-    Swag.assert(bufferCount'(s32, 4)(buffer) == 4)
-    Swag.assert(sumFour(buffer) == 10)
+    Swag.require(buffer.values[0] == 1)
+    Swag.require(buffer.values[3] == 4)
+    Swag.require(bufferCount'(s32, 4)(buffer) == 4)
+    Swag.require(sumFour(buffer) == 10)
 
     let small: Buffer'(u8, 2) = {values: [10'u8, 20]}
-    Swag.assert(small.values[0] == 10'u8)
-    Swag.assert(small.values[1] == 20'u8)
+    Swag.require(small.values[0] == 10'u8)
+    Swag.require(small.values[1] == 20'u8)
 }
 
 #test
 {
     let b = makeBox(42)
-    Swag.assert(b.value == 42)
+    Swag.require(b.value == 42)
 
     let b2 = makeBox("hello")
-    Swag.assert(b2.value == "hello")
+    Swag.require(b2.value == "hello")
 
     let b3 = makeBox(true)
-    Swag.assert(b3.value == true)
+    Swag.require(b3.value == true)
 
     let nested = makeBox(makeBox(7))
-    Swag.assert(nested.value.value == 7)
+    Swag.require(nested.value.value == 7)
 }
 
 #test
 {
     let b: Box's32 = {value: 99}
-    Swag.assert(unbox(b) == 99)
-    Swag.assert(boxValue(b) == 99)
+    Swag.require(unbox(b) == 99)
+    Swag.require(boxValue(b) == 99)
 
     let s: Box'string = {value: "works"}
-    Swag.assert(unbox(s) == "works")
-    Swag.assert(boxValue(s) == "works")
+    Swag.require(unbox(s) == "works")
+    Swag.require(boxValue(s) == "works")
 }
 
 #test
@@ -89,8 +89,8 @@ func(T) boxValue(box: Box'T)->T => box.value
         let intBox:  LocalBox's32  = {value: 11}
         let boolBox: LocalBox'bool = {value: false}
 
-        Swag.assert(intBox.value == 11)
-        Swag.assert(boolBox.value == false)
+        Swag.require(intBox.value == 11)
+        Swag.require(boolBox.value == false)
     }
     scope
     {
@@ -100,7 +100,7 @@ func(T) boxValue(box: Box'T)->T => box.value
         }
 
         let buffer: LocalBuffer'(u16, 2) = {values: [5'u16, 9]}
-        Swag.assert(buffer.values[0] == 5'u16)
-        Swag.assert(buffer.values[1] == 9'u16)
+        Swag.require(buffer.values[0] == 5'u16)
+        Swag.require(buffer.values[1] == 9'u16)
     }
 }

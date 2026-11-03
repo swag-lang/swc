@@ -69,17 +69,17 @@ func buildDigest(payload: string, expectedCrc32: u32, expectedCrc64: u64)->Artif
     const manifest = "name,size,mtime\ntexture.png,24576,1712661000\nshader.bin,4096,1712662000"
     let manifestBytes = cast(const [..] u8, manifest)
 
-    Swag.assert(manifestBytes.count == 71)
-    Swag.assert(computeCrc32("") == 0x0000_0000'u32)
-    Swag.assert(computeCrc64("") == 0x0000_0000_0000_0000'u64)
-    Swag.assert(computeCrc32("123456789") == 0xCBF4_3926'u32)
-    Swag.assert(computeCrc64("123456789") == 0x6C40_DF5F_0B49_7347'u64)
+    Swag.require(manifestBytes.count == 71)
+    Swag.require(computeCrc32("") == 0x0000_0000'u32)
+    Swag.require(computeCrc64("") == 0x0000_0000_0000_0000'u64)
+    Swag.require(computeCrc32("123456789") == 0xCBF4_3926'u32)
+    Swag.require(computeCrc64("123456789") == 0x6C40_DF5F_0B49_7347'u64)
 
     let digest = buildDigest(manifest, 0x4BDB_F65B'u32, 0x5533_3ADA_1E22_8DD4'u64)
 
-    Swag.assert(digest.byteCount == 71)
-    Swag.assert(digest.crc32 == 0x4BDB_F65B'u32)
-    Swag.assert(digest.crc64 == 0x5533_3ADA_1E22_8DD4'u64)
-    Swag.assert(digest.matchesCrc32)
-    Swag.assert(digest.matchesCrc64)
+    Swag.require(digest.byteCount == 71)
+    Swag.require(digest.crc32 == 0x4BDB_F65B'u32)
+    Swag.require(digest.crc64 == 0x5533_3ADA_1E22_8DD4'u64)
+    Swag.require(digest.matchesCrc32)
+    Swag.require(digest.matchesCrc64)
 }

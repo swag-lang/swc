@@ -67,18 +67,18 @@ func deferredSelections(value: *s32?, box: *SelectionValue?, left: bool, raise: 
     g_RightCalls    = 0
 
     expect deferredSelections(&value, &box, true, false)
-    Swag.assert(g_Selected == 31)
-    Swag.assert(g_FallbackCalls == 0 and g_LeftCalls == 1 and g_RightCalls == 0)
+    Swag.require(g_Selected == 31)
+    Swag.require(g_FallbackCalls == 0 and g_LeftCalls == 1 and g_RightCalls == 0)
 
     discard catch deferredSelections(null, null, false, true)
-    Swag.assert(g_Selected == 96)
-    Swag.assert(g_FallbackCalls == 1 and g_LeftCalls == 1 and g_RightCalls == 1)
+    Swag.require(g_Selected == 96)
+    Swag.require(g_FallbackCalls == 1 and g_LeftCalls == 1 and g_RightCalls == 1)
 
     expect deferredSelections(null, null, false, false)
-    Swag.assert(g_Selected == 161)
-    Swag.assert(g_FallbackCalls == 2 and g_LeftCalls == 1 and g_RightCalls == 2)
+    Swag.require(g_Selected == 161)
+    Swag.require(g_FallbackCalls == 2 and g_LeftCalls == 1 and g_RightCalls == 2)
 
     discard catch deferredSelections(&value, &box, true, true)
-    Swag.assert(g_Selected == 192)
-    Swag.assert(g_FallbackCalls == 2 and g_LeftCalls == 2 and g_RightCalls == 2)
+    Swag.require(g_Selected == 192)
+    Swag.require(g_FallbackCalls == 2 and g_LeftCalls == 2 and g_RightCalls == 2)
 }

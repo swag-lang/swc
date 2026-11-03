@@ -28,6 +28,6 @@ struct PlainPod
     let dropPtr  = cast(const *Swag.TypeInfoStruct, #typeof(WithDrop)).opDrop
     let plainPtr = cast(const *Swag.TypeInfoStruct, #typeof(PlainPod)).opDrop
 
-    Swag.assert(dropPtr != null)
-    Swag.assert(plainPtr == null)
+    Swag.require(dropPtr != null)
+    Swag.require(plainPtr == null)
 }

@@ -180,77 +180,77 @@ func aliasedReceiver()->Vec4
 #test
 {
     let v = makeVec3(1)
-    Swag.assert(v.x == 1)
-    Swag.assert(v.y == 2)
-    Swag.assert(v.z == 3)
+    Swag.require(v.x == 1)
+    Swag.require(v.y == 2)
+    Swag.require(v.z == 3)
 }
 
 #test
 {
     let v = makeVec4(5)
-    Swag.assert(v.x == 5)
-    Swag.assert(v.y == 6)
-    Swag.assert(v.z == 7)
-    Swag.assert(v.w == 8)
+    Swag.require(v.x == 5)
+    Swag.require(v.y == 6)
+    Swag.require(v.z == 7)
+    Swag.require(v.w == 8)
 }
 
 #test
 {
     let b = makeBig(20)
-    Swag.assert(b.a == 21)
-    Swag.assert(b.b == 22)
-    Swag.assert(b.c == 23)
-    Swag.assert(b.d == 24)
-    Swag.assert(b.e == 25)
+    Swag.require(b.a == 21)
+    Swag.require(b.b == 22)
+    Swag.require(b.c == 23)
+    Swag.require(b.d == 24)
+    Swag.require(b.e == 25)
 }
 
 #test
 {
     let n = makeNested(1)
-    Swag.assert(n.head.x == 1)
-    Swag.assert(n.head.w == 4)
-    Swag.assert(n.tail.x == 11)
-    Swag.assert(n.tail.z == 13)
-    Swag.assert(n.tag == 77)
+    Swag.require(n.head.x == 1)
+    Swag.require(n.head.w == 4)
+    Swag.require(n.tail.x == 11)
+    Swag.require(n.tail.z == 13)
+    Swag.require(n.tag == 77)
 }
 
 #test
 {
-    Swag.assert(pickVec4(0).x == 1)
-    Swag.assert(pickVec4(0).w == 4)
-    Swag.assert(pickVec4(1).x == 10)
-    Swag.assert(pickVec4(1).w == 40)
-    Swag.assert(pickVec4(2).x == 100)
-    Swag.assert(pickVec4(2).w == 400)
+    Swag.require(pickVec4(0).x == 1)
+    Swag.require(pickVec4(0).w == 4)
+    Swag.require(pickVec4(1).x == 10)
+    Swag.require(pickVec4(1).w == 40)
+    Swag.require(pickVec4(2).x == 100)
+    Swag.require(pickVec4(2).w == 400)
 }
 
 #test
 {
     let b = makeBigWithDefer(3)
-    Swag.assert(b.a == 3)
-    Swag.assert(b.b == 6)
-    Swag.assert(b.c == 9)
-    Swag.assert(b.d == 12)
-    Swag.assert(b.e == 15)
-    Swag.assert(DeferWitness == -1)
+    Swag.require(b.a == 3)
+    Swag.require(b.b == 6)
+    Swag.require(b.c == 9)
+    Swag.require(b.d == 12)
+    Swag.require(b.e == 15)
+    Swag.require(DeferWitness == -1)
 }
 
 #test
 {
     let v = firstAbove(6.5)
-    Swag.assert(v.x == 7)
-    Swag.assert(v.y == 14)
-    Swag.assert(v.z == 21)
-    Swag.assert(v.w == 28)
+    Swag.require(v.x == 7)
+    Swag.require(v.y == 14)
+    Swag.require(v.z == 21)
+    Swag.require(v.w == 28)
 }
 
 #test
 {
     let a = makeArray(4)
-    Swag.assert(a[0] == 4)
-    Swag.assert(a[1] == 5)
-    Swag.assert(a[2] == 6)
-    Swag.assert(a[3] == 7)
+    Swag.require(a[0] == 4)
+    Swag.require(a[1] == 5)
+    Swag.require(a[2] == 6)
+    Swag.require(a[3] == 7)
 }
 
 // The returned literal reads through 'me' and through a borrowed reference argument.
@@ -258,85 +258,85 @@ func aliasedReceiver()->Vec4
 {
     let a = makeVec4(1)
     let b = a.scaled(3)
-    Swag.assert(b.x == 3)
-    Swag.assert(b.y == 6)
-    Swag.assert(b.z == 9)
-    Swag.assert(b.w == 12)
+    Swag.require(b.x == 3)
+    Swag.require(b.y == 6)
+    Swag.require(b.z == 9)
+    Swag.require(b.w == 12)
 
     let c = a + b
-    Swag.assert(c.x == 4)
-    Swag.assert(c.y == 8)
-    Swag.assert(c.z == 12)
-    Swag.assert(c.w == 16)
+    Swag.require(c.x == 4)
+    Swag.require(c.y == 8)
+    Swag.require(c.z == 12)
+    Swag.require(c.w == 16)
 
     // Both operands are the same object, so the receiver and the borrowed argument alias.
     let d = a + a
-    Swag.assert(d.x == 2)
-    Swag.assert(d.y == 4)
-    Swag.assert(d.z == 6)
-    Swag.assert(d.w == 8)
+    Swag.require(d.x == 2)
+    Swag.require(d.y == 4)
+    Swag.require(d.z == 6)
+    Swag.require(d.w == 8)
 }
 
 #test
 {
     let r = makeVec4(1).reversed()
-    Swag.assert(r.x == 4)
-    Swag.assert(r.y == 3)
-    Swag.assert(r.z == 2)
-    Swag.assert(r.w == 1)
+    Swag.require(r.x == 4)
+    Swag.require(r.y == 3)
+    Swag.require(r.z == 2)
+    Swag.require(r.w == 1)
 }
 
 #test
 {
     let r = aliasedReceiver()
-    Swag.assert(r.x == 4)
-    Swag.assert(r.y == 3)
-    Swag.assert(r.z == 2)
-    Swag.assert(r.w == 1)
+    Swag.require(r.x == 4)
+    Swag.require(r.y == 3)
+    Swag.require(r.z == 2)
+    Swag.require(r.w == 1)
 }
 
 // The literal must reach a by-value parameter unchanged when it is consumed directly.
 #test
 {
-    Swag.assert(sumVec4(makeVec4(1)) == 10)
-    Swag.assert(sumVec4(Vec4{1, 2, 3, 4}) == 10)
+    Swag.require(sumVec4(makeVec4(1)) == 10)
+    Swag.require(sumVec4(Vec4{1, 2, 3, 4}) == 10)
 }
 
 #test
 {
     let a = makeVec4(1)
     let b = a.inlinedScaled(2)
-    Swag.assert(b.x == 2)
-    Swag.assert(b.y == 4)
-    Swag.assert(b.z == 6)
-    Swag.assert(b.w == 8)
+    Swag.require(b.x == 2)
+    Swag.require(b.y == 4)
+    Swag.require(b.z == 6)
+    Swag.require(b.w == 8)
 
     let r = a.inlinedReversed()
-    Swag.assert(r.x == 4)
-    Swag.assert(r.y == 3)
-    Swag.assert(r.z == 2)
-    Swag.assert(r.w == 1)
+    Swag.require(r.x == 4)
+    Swag.require(r.y == 3)
+    Swag.require(r.z == 2)
+    Swag.require(r.w == 1)
 
     // The result overwrites the receiver it was computed from.
     var c = makeVec4(1)
     c = c.inlinedReversed()
-    Swag.assert(c.x == 4)
-    Swag.assert(c.y == 3)
-    Swag.assert(c.z == 2)
-    Swag.assert(c.w == 1)
+    Swag.require(c.x == 4)
+    Swag.require(c.y == 3)
+    Swag.require(c.z == 2)
+    Swag.require(c.w == 1)
 }
 
 #test
 {
     let b = inlinedMakeBig(50)
-    Swag.assert(b.a == 51)
-    Swag.assert(b.c == 53)
-    Swag.assert(b.e == 55)
+    Swag.require(b.a == 51)
+    Swag.require(b.c == 53)
+    Swag.require(b.e == 55)
 
-    Swag.assert(inlinedPick(0).x == 1)
-    Swag.assert(inlinedPick(0).w == 4)
-    Swag.assert(inlinedPick(1).x == 5)
-    Swag.assert(inlinedPick(1).w == 8)
+    Swag.require(inlinedPick(0).x == 1)
+    Swag.require(inlinedPick(0).w == 4)
+    Swag.require(inlinedPick(1).x == 5)
+    Swag.require(inlinedPick(1).w == 8)
 }
 
 // Repeated expansions in one scope must each target their own result local.
@@ -349,28 +349,28 @@ func aliasedReceiver()->Vec4
         total += v.x + v.y + v.z + v.w
     }
 
-    Swag.assert(total == 96)
+    Swag.require(total == 96)
 }
 
 // An inlined result feeding another inlined expansion.
 #test
 {
     let v = makeVec4(1).inlinedScaled(3).inlinedReversed()
-    Swag.assert(v.x == 12)
-    Swag.assert(v.y == 9)
-    Swag.assert(v.z == 6)
-    Swag.assert(v.w == 3)
+    Swag.require(v.x == 12)
+    Swag.require(v.y == 9)
+    Swag.require(v.z == 6)
+    Swag.require(v.w == 3)
 }
 
 #test
 {
     let v = #run makeVec4(2)
-    Swag.assert(v.x == 2)
-    Swag.assert(v.y == 3)
-    Swag.assert(v.z == 4)
-    Swag.assert(v.w == 5)
+    Swag.require(v.x == 2)
+    Swag.require(v.y == 3)
+    Swag.require(v.z == 4)
+    Swag.require(v.w == 5)
 
     let b = #run makeBig(100)
-    Swag.assert(b.a == 101)
-    Swag.assert(b.e == 105)
+    Swag.require(b.a == 101)
+    Swag.require(b.e == 105)
 }

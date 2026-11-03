@@ -16,7 +16,7 @@ internal var MessageBeforeOutputValue = 0
 #test
 {
     if Swag.getContext().runtimeFlags == .FromCompiler do
-        Swag.assert(MessageBeforeOutputValue == 0)
+        Swag.require(MessageBeforeOutputValue == 0)
     else do
-        Swag.assert(MessageBeforeOutputValue == 1)
+        Swag.require(MessageBeforeOutputValue == 1)
 }

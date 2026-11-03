@@ -21,17 +21,17 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
 #test
 {
     var owner: Error
-    Swag.assert(owner.isEmpty())
+    Swag.require(owner.isEmpty())
     var copied = owner
     owner.reset()
     owner.capture(null)
     var errorOutcome: Swag.Error
     catch copied.raise() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error == null)
+    Swag.require(error == null)
     copied.reset()
     copied.reset()
-    Swag.assert(copied.isEmpty())
+    Swag.require(copied.isEmpty())
 }
 
 // Capturing snapshots a dynamic value. Owner copies, moves and replacements retain their own
@@ -83,6 +83,6 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
         valid = valid and allocator.stats().countAlloc == baseline
     }
     let finalCount = allocator.stats().countAlloc
-    Swag.assert(valid)
-    Swag.assert(finalCount == baseline)
+    Swag.require(valid)
+    Swag.require(finalCount == baseline)
 }

@@ -14,12 +14,12 @@
     if not e {}
     var f: typeinfo?
     if not f {}
-    Swag.assert(not a)
-    Swag.assert(not b)
-    Swag.assert(not c)
-    Swag.assert(not d)
-    Swag.assert(not e)
-    Swag.assert(not f)
+    Swag.require(not a)
+    Swag.require(not b)
+    Swag.require(not c)
+    Swag.require(not d)
+    Swag.require(not e)
+    Swag.require(not f)
 }
 
 #test
@@ -27,14 +27,14 @@
     var a: *s32?
     var b: *s32?
     if not a or not b {}
-    Swag.assert(not a or not b)
+    Swag.require(not a or not b)
 }
 
 #test
 {
     var a: s32
     if a and a {}
-    Swag.assert((a and a) == false)
+    Swag.require((a and a) == false)
 }
 
 #test
@@ -42,53 +42,53 @@
     var a: *s32?
     var b: *s32?
 
-    Swag.assert(not a or not b)
+    Swag.require(not a or not b)
 
     var ax: s32
     a = &ax
-    Swag.assert(not a or not b)
+    Swag.require(not a or not b)
 
     var bx: s32
     b = &bx
-    Swag.assert((not a or not b) == false)
+    Swag.require((not a or not b) == false)
 }
 
 #test
 {
     var a: s32
 
-    Swag.assert((a and a) == false)
-    Swag.assert(a or not a)
-    Swag.assert((a or a) == false)
+    Swag.require((a and a) == false)
+    Swag.require(a or not a)
+    Swag.require((a or a) == false)
 
     a = 1
-    Swag.assert(a and a)
-    Swag.assert(a or not a)
-    Swag.assert(a or a)
+    Swag.require(a and a)
+    Swag.require(a or not a)
+    Swag.require(a or a)
 }
 
 #test
 {
     var a: *s32?
 
-    Swag.assert((a and a) == false)
-    Swag.assert(a or not a)
-    Swag.assert((a or a) == false)
+    Swag.require((a and a) == false)
+    Swag.require(a or not a)
+    Swag.require((a or a) == false)
 
     var ax: s32
     a = &ax
-    Swag.assert(a and a)
-    Swag.assert(a or not a)
-    Swag.assert(a or a)
+    Swag.require(a and a)
+    Swag.require(a or not a)
+    Swag.require(a or a)
 }
 
 #test
 {
     var s: string?
-    Swag.assert(not s)
+    Swag.require(not s)
 
     s = "abc"
-    Swag.assert(not s == false)
+    Swag.require(not s == false)
 }
 
 // A slice answers a condition with its data pointer, so only a '?' slice asks a question.
@@ -96,8 +96,8 @@
 {
     var a: [2] s32
     var s: [..] s32? = a
-    Swag.assert(not s == false)
+    Swag.require(not s == false)
 
     s = null
-    Swag.assert(not s)
+    Swag.require(not s)
 }

@@ -33,17 +33,17 @@ func checkedSubtractNegative(a, b: s64)->s64 => a - -b
     {
         for b in values
         {
-            Swag.assert(addNegative(a, b) == a - b)
-            Swag.assert(subtractNegative(a, b) == a + b)
-            Swag.assert(sharedNegative(a, b) == ((a - b) ^ (0'u64 - b)))
+            Swag.require(addNegative(a, b) == a - b)
+            Swag.require(subtractNegative(a, b) == a + b)
+            Swag.require(sharedNegative(a, b) == ((a - b) ^ (0'u64 - b)))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(addNegative32(a32, b32) == a32 - b32)
-            Swag.assert(subtractNegative32(a32, b32) == a32 + b32)
+            Swag.require(addNegative32(a32, b32) == a32 - b32)
+            Swag.require(subtractNegative32(a32, b32) == a32 + b32)
         }
     }
-    Swag.assert(checkedAddNegative(100, 27) == 73)
-    Swag.assert(checkedSubtractNegative(100, 27) == 127)
-    Swag.assert(checkedAddNegative(-100, -27) == -73)
-    Swag.assert(checkedSubtractNegative(-100, -27) == -127)
+    Swag.require(checkedAddNegative(100, 27) == 73)
+    Swag.require(checkedSubtractNegative(100, 27) == 127)
+    Swag.require(checkedAddNegative(-100, -27) == -73)
+    Swag.require(checkedSubtractNegative(-100, -27) == -127)
 }

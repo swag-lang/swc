@@ -5,7 +5,7 @@
     var buf: [100] u8
     let str = Swag.makeString(&buf[0], 10)
     #assert(#typeof(str) == string)
-    Swag.assert(str.count == 10)
+    Swag.require(str.count == 10)
 }
 
 #test
@@ -18,11 +18,11 @@
     #assert(#typeof(head) == string)
     #assert(#typeof(tail) == string)
     #assert(#typeof(empty) == string)
-    Swag.assert(head == "swag")
-    Swag.assert(tail == "-42!")
-    Swag.assert(head[1] == 'w'u8)
-    Swag.assert(tail[3] == '!'u8)
-    Swag.assert(empty.count == 0)
+    Swag.require(head == "swag")
+    Swag.require(tail == "-42!")
+    Swag.require(head[1] == 'w'u8)
+    Swag.require(tail[3] == '!'u8)
+    Swag.require(empty.count == 0)
 }
 
 #test
@@ -31,10 +31,10 @@
     let str         = Swag.makeString(&buf[1], 3)
 
     #assert(#typeof(str) == string)
-    Swag.assert(str == "ell")
-    Swag.assert(str.count == 3)
-    Swag.assert(str[0] == 'e'u8)
-    Swag.assert(str[2] == 'l'u8)
+    Swag.require(str == "ell")
+    Swag.require(str.count == 3)
+    Swag.require(str[0] == 'e'u8)
+    Swag.require(str[2] == 'l'u8)
 }
 
 #test
@@ -43,7 +43,7 @@
     let str         = Swag.makeString(&buf[2], 0)
 
     #assert(#typeof(str) == string)
-    Swag.assert(str.count == 0)
+    Swag.require(str.count == 0)
 }
 
 #test
@@ -53,10 +53,10 @@
     let bytes       = cast(const [..] u8, str)
 
     #assert(#typeof(bytes) == const [..] u8)
-    Swag.assert(bytes.count == 6)
-    Swag.assert(bytes[0] == 's'u8)
-    Swag.assert(bytes[5] == '2'u8)
-    Swag.assert(str == "swag42")
+    Swag.require(bytes.count == 6)
+    Swag.require(bytes[0] == 's'u8)
+    Swag.require(bytes[5] == '2'u8)
+    Swag.require(str == "swag42")
 }
 
 #test
@@ -66,6 +66,6 @@
     let str            = Swag.makeString(ptr, 4)
 
     #assert(#typeof(str) == string)
-    Swag.assert(str.count == 4)
-    Swag.assert(str == "test")
+    Swag.require(str.count == 4)
+    Swag.require(str == "test")
 }

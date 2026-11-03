@@ -27,15 +27,15 @@ func plainDouble(value: u64)->u64 => value * 2
     expect runFallible(counter)
     let doubled: func(u64)->u64 fail = &plainDouble
     let twice = expect doubled(21)
-    Swag.assert(hits == 2 and twice == 42)
+    Swag.require(hits == 2 and twice == 42)
 
     // The widened value is still a fallible callable: a body that does fail keeps failing.
     let seven = expect produce(func()->u64 => 7)
-    Swag.assert(seven == 7)
+    Swag.require(seven == 7)
     var errorOutcome: Swag.Error
     discard catch produce(func()->u64 fail { fail WideningFailure{3} }) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is WideningFailure)
+    Swag.require(error is WideningFailure)
 }
 
 // A widened call made while the caller unwinds its own failure sees no error of its own.
@@ -51,5 +51,5 @@ func failAfterWidenedCall(counter: func||()) fail
     var errorOutcome: Swag.Error
     catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is WideningFailure and hits == 1)
+    Swag.require(error is WideningFailure and hits == 1)
 }

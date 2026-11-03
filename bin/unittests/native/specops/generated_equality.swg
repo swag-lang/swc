@@ -161,14 +161,14 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     let leftText  = viewText(cast(const [*] u8, &left[0]))
     let rightText = viewText(cast(const [*] u8, &right[0]))
-    Swag.assert(leftText == rightText)
+    Swag.require(leftText == rightText)
 
     let a = StringHolder{text: leftText, tag: 7}
     let b = StringHolder{text: rightText, tag: 7}
     let c = StringHolder{text: rightText, tag: 8}
-    Swag.assert(a == b)
-    Swag.assert(not (a != b))
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(not (a != b))
+    Swag.require(a != c)
 }
 
 #test
@@ -179,8 +179,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 7}, extra: 3}
     let b = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 3}
     let c = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 4}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -191,8 +191,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = SliceHolder{data: viewBytes(cast(const [*] u8, &left[0])), tag: 1}
     let b = SliceHolder{data: viewBytes(cast(const [*] u8, &right[0])), tag: 1}
     let c = SliceHolder{data: viewBytes(cast(const [*] u8, &right[0])), tag: 2}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -201,8 +201,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = OverloadHolder{inner: AlwaysEqual{value: 1}, tag: 7}
     let b = OverloadHolder{inner: AlwaysEqual{value: 2}, tag: 7}
     let c = OverloadHolder{inner: AlwaysEqual{value: 2}, tag: 8}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -221,8 +221,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = LocalHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 1}
     let b = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 1}
     let c = LocalHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 2}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 
     struct LocalPlainHolder
     {
@@ -232,7 +232,7 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     let d = LocalPlainHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 1}
     let e = LocalPlainHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 1}
-    Swag.assert(d == e)
+    Swag.require(d == e)
 }
 
 #test
@@ -244,14 +244,14 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = GenericHolder'string{value: viewText(cast(const [*] u8, &left[0])), tag: 4}
     let b = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 4}
     let c = GenericHolder'string{value: viewText(cast(const [*] u8, &right[0])), tag: 5}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 
     let d = GenericHolder's32{value: 5, tag: 4}
     let e = GenericHolder's32{value: 5, tag: 4}
     let f = GenericHolder's32{value: 6, tag: 4}
-    Swag.assert(d == e)
-    Swag.assert(d != f)
+    Swag.require(d == e)
+    Swag.require(d != f)
 }
 
 #test
@@ -260,8 +260,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = IgnoredStringHolder{text: "one", tag: 2}
     let b = IgnoredStringHolder{text: "two", tag: 2}
     let c = IgnoredStringHolder{text: "one", tag: 3}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -272,7 +272,7 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     // An explicit '#[Swag.Operators]' still owns the comparison.
     let a = ExplicitStringHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 9}
     let b = ExplicitStringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 9}
-    Swag.assert(a == b)
+    Swag.require(a == b)
 }
 
 #test
@@ -282,8 +282,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = Embedder{base: EmbeddedBase{tag: 1}, extra: 5}
     let b = Embedder{base: EmbeddedBase{tag: 2}, extra: 5}
     let c = Embedder{base: EmbeddedBase{tag: 1}, extra: 6}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -293,8 +293,8 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = PlainEmbedder{base: EmbeddedBase{tag: 1}, extra: 5}
     let b = PlainEmbedder{base: EmbeddedBase{tag: 2}, extra: 5}
     let c = PlainEmbedder{base: EmbeddedBase{tag: 1}, extra: 6}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 }
 
 #test
@@ -307,15 +307,15 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     let a = CountedHolder{counted: Counted{length: 3}, text: viewText(cast(const [*] u8, &left[0]))}
     let b = CountedHolder{counted: Counted{length: 3}, text: viewText(cast(const [*] u8, &right[0]))}
     let c = CountedHolder{counted: Counted{length: 4}, text: viewText(cast(const [*] u8, &right[0]))}
-    Swag.assert(a == b)
-    Swag.assert(a != c)
+    Swag.require(a == b)
+    Swag.require(a != c)
 
-    Swag.assert(a.counted == b.counted)
-    Swag.assert(a.counted != c.counted)
+    Swag.require(a.counted == b.counted)
+    Swag.require(a.counted != c.counted)
 
     // The foreign overload keeps answering what it was written for.
-    Swag.assert(a.counted == "abc")
-    Swag.assert(a.counted != "ab")
+    Swag.require(a.counted == "abc")
+    Swag.require(a.counted != "ab")
 }
 
 #test
@@ -324,10 +324,10 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     // a union keeps is well defined.
     var a: OverlappedHolder = {text: "same"}
     var b: OverlappedHolder = {text: "same"}
-    Swag.assert(a == b)
+    Swag.require(a == b)
 
     b.text = "other"
-    Swag.assert(a != b)
+    Swag.require(a != b)
 }
 
 #[Swag.Optimize(false)]
@@ -351,10 +351,10 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     a.wide  = 2
     b.small = 1
     b.wide  = 2
-    Swag.assert(eqPadded(a, b))
+    Swag.require(eqPadded(a, b))
 
     b.wide = 3
-    Swag.assert(not eqPadded(a, b))
+    Swag.require(not eqPadded(a, b))
 }
 
 #test
@@ -372,10 +372,10 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     b.first.wide   = 2
     b.second.small = 3
     b.second.wide  = 4
-    Swag.assert(eqPaddedHolder(a, b))
+    Swag.require(eqPaddedHolder(a, b))
 
     b.second.wide = 5
-    Swag.assert(not eqPaddedHolder(a, b))
+    Swag.require(not eqPaddedHolder(a, b))
 
     var c: [3] Padded
     var d: [3] Padded
@@ -389,10 +389,10 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
         d[i].wide  = 2
     }
 
-    Swag.assert(eqPaddedArray(c, d))
+    Swag.require(eqPaddedArray(c, d))
 
     d[2].wide = 3
-    Swag.assert(not eqPaddedArray(c, d))
+    Swag.require(not eqPaddedArray(c, d))
 }
 
 #test
@@ -404,8 +404,8 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     #assert(A == B)
 
     let c = PlainPair{x: 1, y: 3}
-    Swag.assert(A == B)
-    Swag.assert(A != c)
+    Swag.require(A == B)
+    Swag.require(A != c)
 }
 
 // Array expressions keep the same element equality as explicitly typed arrays.
@@ -414,12 +414,12 @@ func eqPaddedArray(a, b: [3] Padded)->bool => a == b
     let first     = OverloadHolder{inner: AlwaysEqual{1}, tag: 7}
     let equal     = OverloadHolder{inner: AlwaysEqual{2}, tag: 7}
     let different = OverloadHolder{inner: AlwaysEqual{1}, tag: 8}
-    Swag.assert([first] == [equal])
-    Swag.assert(not ([first] != [equal]))
-    Swag.assert([first] != [different])
-    Swag.assert([[first, first]] == [[equal, equal]])
+    Swag.require([first] == [equal])
+    Swag.require(not ([first] != [equal]))
+    Swag.require([first] != [different])
+    Swag.require([[first, first]] == [[equal, equal]])
 
     let typed: [2] OverloadHolder = [first, first]
-    Swag.assert(typed == [equal, equal])
-    Swag.assert([equal, equal] == typed)
+    Swag.require(typed == [equal, equal])
+    Swag.require([equal, equal] == typed)
 }

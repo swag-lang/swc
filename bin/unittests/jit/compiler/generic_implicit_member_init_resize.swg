@@ -41,5 +41,5 @@ impl GenericResizeBuffer
 {
     var buffer: GenericResizeBuffer'GenericResizeTracked
     buffer.resize(0)
-    Swag.assert(buffer.count == 0)
+    Swag.require(buffer.count == 0)
 }

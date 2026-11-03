@@ -13,15 +13,15 @@ are expressed in bytes. All block pointers must be non-null, including when the 
     var destination = [0'u8, 0, 0, 0]
 
     Swag.memcpy(&destination[0], &source[0], source.count)
-    Swag.assert(Swag.memcmp(&destination[0], &source[0], source.count) == 0)
+    Swag.require(Swag.memcmp(&destination[0], &source[0], source.count) == 0)
 
     Swag.memmove(&destination[1], &destination[0], 3)
-    Swag.assert(destination[0] == 1 and destination[1] == 1)
-    Swag.assert(destination[2] == 2 and destination[3] == 3)
+    Swag.require(destination[0] == 1 and destination[1] == 1)
+    Swag.require(destination[2] == 2 and destination[3] == 3)
 
     Swag.memset(&destination[0], 0'u8, destination.count)
-    Swag.assert(destination[0] == 0 and destination[1] == 0)
-    Swag.assert(destination[2] == 0 and destination[3] == 0)
+    Swag.require(destination[0] == 0 and destination[1] == 0)
+    Swag.require(destination[2] == 0 and destination[3] == 0)
 }
 
 /**
@@ -36,13 +36,13 @@ exchange.
     var counter = 10's32
 
     let beforeAdd = Swag.atomicAdd(&counter, 5)
-    Swag.assert(beforeAdd == 10 and counter == 15)
+    Swag.require(beforeAdd == 10 and counter == 15)
 
     let beforeExchange = Swag.atomicExchange(&counter, 20)
-    Swag.assert(beforeExchange == 15 and counter == 20)
+    Swag.require(beforeExchange == 15 and counter == 20)
 
     let beforeCompareExchange = Swag.atomicCompareExchange(&counter, 20, 30)
-    Swag.assert(beforeCompareExchange == 20 and counter == 30)
+    Swag.require(beforeCompareExchange == 20 and counter == 30)
 }
 
 /**
@@ -55,10 +55,10 @@ it: a loop polling a value that another thread publishes reads memory on every i
 #test
 {
     var flag = 0'u32
-    Swag.assert(Swag.atomicLoad(&flag) == 0)
+    Swag.require(Swag.atomicLoad(&flag) == 0)
 
     discard Swag.atomicExchange(&flag, 1)
-    Swag.assert(Swag.atomicLoad(&flag) == 1)
+    Swag.require(Swag.atomicLoad(&flag) == 1)
 }
 
 /**
@@ -74,7 +74,7 @@ states what that write does not order.
 {
     var flag = 0'u32
     Swag.atomicStore(&flag, 1)
-    Swag.assert(Swag.atomicLoad(&flag) == 1)
+    Swag.require(Swag.atomicLoad(&flag) == 1)
 }
 
 /**
@@ -104,7 +104,7 @@ interpolate for the next block.
             sum += pixels[row * Width + col]
     }
 
-    Swag.assert(sum == 0)
+    Swag.require(sum == 0)
     Swag.prefetch(null)
 }
 

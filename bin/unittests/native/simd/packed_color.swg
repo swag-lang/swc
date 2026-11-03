@@ -24,6 +24,6 @@ func packedColor(color: Color)->u32
     {
         var color: Color
         color.argb = argb
-        Swag.assert(packedColor(color) == argb)
+        Swag.require(packedColor(color) == argb)
     }
 }

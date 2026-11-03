@@ -18,7 +18,7 @@ func SumPair32(value: Pair32)->u32
 
 #test
 {
-    Swag.assert(SumPair32(MakePair32()) == 42)
+    Swag.require(SumPair32(MakePair32()) == 42)
 }
 
 #[Swag.Pack(1)]
@@ -153,13 +153,13 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     header.width         = 2
     header.height        = 2
     header.bpp           = 24
-    Swag.assert(PackedPointerAfterHeader(&target, header, 1) == 42)
+    Swag.require(PackedPointerAfterHeader(&target, header, 1) == 42)
 
     var palette: PackedPaletteLike = PackedPaletteLike{data: target.buffer, count: 1}
-    Swag.assert(PackedForwardingCaller(&target, header, palette, 1, target.buffer) == 42)
+    Swag.require(PackedForwardingCaller(&target, header, palette, 1, target.buffer) == 42)
 
     let ret = PackedReturnValueCaller(header)
-    Swag.assert(ret.buffer[0] == 42)
+    Swag.require(ret.buffer[0] == 42)
 
-    Swag.assert(PackedImageDecodeLike(header) == 42)
+    Swag.require(PackedImageDecodeLike(header) == 42)
 }

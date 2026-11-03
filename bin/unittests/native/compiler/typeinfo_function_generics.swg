@@ -23,9 +23,9 @@ const COUNT_VALUE = cast(const *s32?, FUNC_INFO.generics[1].value)
 
 #test
 {
-    Swag.assert(FUNC_INFO.generics.count == 2)
-    Swag.assert(FUNC_INFO.generics[0].pointedType == u16)
-    Swag.assert(FUNC_INFO.generics[1].pointedType == s32)
-    Swag.assert(COUNT_VALUE[] == 3)
-    Swag.assert(FUNC_INFO.returnType == #type [3] u16)
+    Swag.require(FUNC_INFO.generics.count == 2)
+    Swag.require(FUNC_INFO.generics[0].pointedType == u16)
+    Swag.require(FUNC_INFO.generics[1].pointedType == s32)
+    Swag.require(COUNT_VALUE[] == 3)
+    Swag.require(FUNC_INFO.returnType == #type [3] u16)
 }

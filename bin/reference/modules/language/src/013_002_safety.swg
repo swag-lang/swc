@@ -42,6 +42,8 @@ Arguments still type-check. The invariant remains a precondition for subsequent
 flow-narrowed code. Keep required side effects outside the assertion.
 '#assert' is a separate compile-time check and is unaffected by this flag.
 */
+// This test shows the assertion itself, so its body writes 'Swag.assert' on purpose.
+#[Swag.Warning("sema_warn_assert_in_test", .Disable)]
 #test
 {
     #[Swag.Safety(.Assert, true)]
@@ -109,7 +111,7 @@ through that pointer; it does not promise that other aliases leave the pointee u
 
     var value: Value = {first: 17}
     let observed     = readSnapshot(#copy value, &value)
-    Swag.assert(observed == 17 and value.first == 0)
+    Swag.require(observed == 17 and value.first == 0)
 }
 
 /**
@@ -146,7 +148,7 @@ It is unnecessary for shifts, whose discarded bits already truncate normally.
 {
     var x = 255'u8
     x += #wrap 1
-    Swag.assert(x == 0)
+    Swag.require(x == 0)
 }
 
 /**
@@ -159,7 +161,7 @@ Disable overflow safety checks in a scope with '#[Swag.Safety(.Overflow, false)]
 {
     var x = 255'u8
     x += 1
-    Swag.assert(x == 0)
+    Swag.require(x == 0)
 }
 
 /**
@@ -170,8 +172,8 @@ For 8/16-bit operations, use '#prom' to promote to 32-bit and avoid overflow.
 #test
 {
     let x = 255'u8 + #prom 1
-    Swag.assert(x == 256)
-    Swag.assert(#typeof(x) == u32)
+    Swag.require(x == 256)
+    Swag.require(#typeof(x) == u32)
 }
 
 /**
@@ -186,13 +188,13 @@ Swag checks casts for potential information loss between integer types.
     // var y0 = cast(s8, x1)  // Would panic: 255 not representable as s8
 
     let y1 = cast #wrap (s8, x1)
-    Swag.assert(y1 == -1)
+    Swag.require(y1 == -1)
 
     let x2 = -1's8
 
     // var y2 = cast(u8, x2)  // Would panic: negative to unsigned
     let y2 = cast #wrap (u8, x2)
-    Swag.assert(y2 == 255)
+    Swag.require(y2 == 255)
 }
 
 /**
@@ -207,7 +209,7 @@ Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
     x += 255     // -> 254 (wrap)
     x += 1       // -> 255
     x >>= 1      // -> 127
-    Swag.assert(x == 127)
+    Swag.require(x == 127)
 }
 
 /**
@@ -227,7 +229,7 @@ result. Disabling '.DynCast' or '.Null' does not disable an explicit assumption.
 {
     let x: any = "1"
     let y      = assume cast(string, x)
-    Swag.assert(y == "1")
+    Swag.require(y == "1")
 
     // var z = assume cast(s32, x)  // Would panic: underlying type mismatch
     // Swag.assert(z == 0)
@@ -267,7 +269,7 @@ Indexing a slice is checked for bounds.
 {
     let x: const [..] s32 = [0, 1, 2]
     var idx = 1
-    Swag.assert(x[idx] == 1)
+    Swag.require(x[idx] == 1)
     idx += 9
 
     // Swag.assert(x[idx] == 1)  // Would panic: out-of-bounds
@@ -318,9 +320,9 @@ of the sliced value panics under '.BoundCheck'.
         return sum
     }
 
-    Swag.assert(sumRange(0, 0) == 0)
-    Swag.assert(sumRange(2, 2) == 0)
-    Swag.assert(sumRange(0, 4) == 0 + 1 + 2 + 3)
+    Swag.require(sumRange(0, 0) == 0)
+    Swag.require(sumRange(2, 2) == 0)
+    Swag.require(sumRange(0, 4) == 0 + 1 + 2 + 3)
 
     // Swag.assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
 }
@@ -349,7 +351,7 @@ no longer provably zero, so whichever layer is enabled is the one that speaks.
 {
     var value   = 10's32
     var divisor = 2's32
-    Swag.assert(value / divisor == 5)
+    Swag.require(value / divisor == 5)
 
     // divisor = 0
     // Swag.print(value / divisor)  // Would panic: division by zero
@@ -408,7 +410,7 @@ execution continues after the switch, in every build configuration.
         return -1
     }
 
-    Swag.assert(colorRank(Color.Blue) == -1)
+    Swag.require(colorRank(Color.Blue) == -1)
 }
 
 /**

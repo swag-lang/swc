@@ -103,33 +103,33 @@ func deferredFailingCatchOwner() fail
         var firstOutcome: Swag.Error
         catch failCatchOwner(0) as firstOutcome
         let first = firstOutcome.value()
-        Swag.assert(first != null and (first is CatchOwnerError))
+        Swag.require(first != null and (first is CatchOwnerError))
         firstGeneration = assume cast(const *CatchOwnerError, first).generation
-        Swag.assert(firstGeneration < 16)
-        Swag.assert(catchOwnerDrops[firstGeneration].load() == 0)
+        Swag.require(firstGeneration < 16)
+        Swag.require(catchOwnerDrops[firstGeneration].load() == 0)
 
         var secondOutcome: Swag.Error
         catch failCatchOwner(16) as secondOutcome
         let second = secondOutcome.value()
-        Swag.assert(second != null and (second is CatchOwnerError))
+        Swag.require(second != null and (second is CatchOwnerError))
         secondGeneration = assume cast(const *CatchOwnerError, second).generation
-        Swag.assert(secondGeneration == 16 + firstGeneration)
-        Swag.assert(catchOwnerDrops[firstGeneration].load() == 0)
-        Swag.assert(catchOwnerDrops[secondGeneration].load() == 0)
+        Swag.require(secondGeneration == 16 + firstGeneration)
+        Swag.require(catchOwnerDrops[firstGeneration].load() == 0)
+        Swag.require(catchOwnerDrops[secondGeneration].load() == 0)
     }
-    Swag.assert(catchOwnerDrops[firstGeneration].load() == 1)
-    Swag.assert(catchOwnerDrops[secondGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[firstGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[secondGeneration].load() == 1)
 
     // An uncaptured final error is released without waiting for another failure.
     catch failCatchOwner(32)
-    Swag.assert(catchOwnerDrops[32 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[32 + firstGeneration].load() == 1)
 
     // A handler return runs its cleanup before the enclosing function's conditional defers.
     let returned = catchOwnerEarlyReturn()
-    Swag.assert(returned == 1)
-    Swag.assert(catchOwnerDrops[48 + firstGeneration].load() == 1)
-    Swag.assert(catchOwnerFailDefers == 0 and catchOwnerNoFailDefers == 1)
-    Swag.assert(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
+    Swag.require(returned == 1)
+    Swag.require(catchOwnerDrops[48 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerFailDefers == 0 and catchOwnerNoFailDefers == 1)
+    Swag.require(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
 
     // Each iteration owns one capture, even though the stack slot is reused.
     for 3
@@ -137,9 +137,9 @@ func deferredFailingCatchOwner() fail
         var errorOutcome: Swag.Error
         catch failCatchOwner(64) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error != null)
+        Swag.require(error != null)
     }
-    Swag.assert(catchOwnerDrops[64 + firstGeneration].load() == 3)
+    Swag.require(catchOwnerDrops[64 + firstGeneration].load() == 3)
 
     var rethrownGeneration = 0'u32
     scope
@@ -147,30 +147,30 @@ func deferredFailingCatchOwner() fail
         var errorOutcome: Swag.Error
         catch rethrowCatchOwner() as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error != null and (error is CatchOwnerError))
+        Swag.require(error != null and (error is CatchOwnerError))
         rethrownGeneration = assume cast(const *CatchOwnerError, error).generation
-        Swag.assert(rethrownGeneration >= 80 and rethrownGeneration < 96)
-        Swag.assert(catchOwnerDrops[rethrownGeneration].load() == 0)
+        Swag.require(rethrownGeneration >= 80 and rethrownGeneration < 96)
+        Swag.require(catchOwnerDrops[rethrownGeneration].load() == 0)
     }
-    Swag.assert(catchOwnerDrops[rethrownGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[rethrownGeneration].load() == 1)
 
     for 3
     {
         catch failCatchOwner(96) do
             break
     }
-    Swag.assert(catchOwnerDrops[96 + firstGeneration].load() == 1)
-    Swag.assert(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
+    Swag.require(catchOwnerDrops[96 + firstGeneration].load() == 1)
+    Swag.require(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
 
     let inlineGeneration = inlineCatchOwner()
-    Swag.assert(inlineGeneration >= 112 and inlineGeneration < 128)
-    Swag.assert(catchOwnerDrops[inlineGeneration].load() == 1)
+    Swag.require(inlineGeneration >= 112 and inlineGeneration < 128)
+    Swag.require(catchOwnerDrops[inlineGeneration].load() == 1)
 
     // The enclosing cleanup is safe even when short-circuiting skips the catch entirely.
     conditionalCatchOwner(false)
     conditionalCatchOwner(true)
     conditionalCatchOwner(false)
-    Swag.assert(catchOwnerDrops[128 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[128 + firstGeneration].load() == 1)
 
     // A successful nested catch leaves its capture null while the outer handler owns an error.
     catch failCatchOwner(144)
@@ -178,11 +178,11 @@ func deferredFailingCatchOwner() fail
         var successOutcome: Swag.Error
         catch catchOwnerSucceeds() as successOutcome
         let success = successOutcome.value()
-        Swag.assert(success == null)
-        Swag.assert(catchOwnerDrops[144 + firstGeneration].load() == 0)
+        Swag.require(success == null)
+        Swag.require(catchOwnerDrops[144 + firstGeneration].load() == 0)
     }
-    Swag.assert(catchOwnerDrops[144 + firstGeneration].load() == 1)
-    Swag.assert(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
+    Swag.require(catchOwnerDrops[144 + firstGeneration].load() == 1)
+    Swag.require(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
 
     scope
     {
@@ -191,30 +191,30 @@ func deferredFailingCatchOwner() fail
             var cleanupErrorOutcome: Swag.Error
             catch failCatchOwner(160) as cleanupErrorOutcome
             let cleanupError = cleanupErrorOutcome.value()
-            Swag.assert(cleanupError != null)
-            Swag.assert(catchOwnerDrops[160 + firstGeneration].load() == 0)
+            Swag.require(cleanupError != null)
+            Swag.require(catchOwnerDrops[160 + firstGeneration].load() == 0)
         }
     }
-    Swag.assert(catchOwnerDrops[160 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[160 + firstGeneration].load() == 1)
 
     // Explicit returns unwind through a live deferred-action cursor. Captures created inside
     // that action still leave first, including when its handler runs or raises a new error. A
     // handler cannot return from the deferred body: control flow cannot leave a 'defer'.
     let previousOwners = Swag.getContext().errorCaptures
     deferredDirectCatchOwner()
-    Swag.assert(Swag.getContext().errorCaptures == previousOwners)
-    Swag.assert(catchOwnerDrops[176 + firstGeneration].load() == 1)
+    Swag.require(Swag.getContext().errorCaptures == previousOwners)
+    Swag.require(catchOwnerDrops[176 + firstGeneration].load() == 1)
 
     let previousNoFail  = catchOwnerNoFailDefers
     let previousHandler = catchOwnerHandlerRuns
     deferredHandledCatchOwner()
-    Swag.assert(Swag.getContext().errorCaptures == previousOwners)
-    Swag.assert(catchOwnerDrops[192 + firstGeneration].load() == 1)
-    Swag.assert(catchOwnerNoFailDefers == previousNoFail + 1)
-    Swag.assert(catchOwnerHandlerRuns == previousHandler + 1)
+    Swag.require(Swag.getContext().errorCaptures == previousOwners)
+    Swag.require(catchOwnerDrops[192 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerNoFailDefers == previousNoFail + 1)
+    Swag.require(catchOwnerHandlerRuns == previousHandler + 1)
 
     catch deferredFailingCatchOwner()
-    Swag.assert(Swag.getContext().errorCaptures == previousOwners)
-    Swag.assert(catchOwnerDrops[208 + firstGeneration].load() == 1)
-    Swag.assert(catchOwnerDrops[224 + firstGeneration].load() == 1)
+    Swag.require(Swag.getContext().errorCaptures == previousOwners)
+    Swag.require(catchOwnerDrops[208 + firstGeneration].load() == 1)
+    Swag.require(catchOwnerDrops[224 + firstGeneration].load() == 1)
 }

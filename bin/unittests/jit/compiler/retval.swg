@@ -138,110 +138,110 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
 #test
 {
     let small = #run makeSmall(2, 2)
-    Swag.assert(small.x == 4)
-    Swag.assert(small.y == 8)
+    Swag.require(small.x == 4)
+    Swag.require(small.y == 8)
 }
 
 #test
 {
     let big = #run cloneBig(10)
-    Swag.assert(big.a == 11)
-    Swag.assert(big.b == 12)
-    Swag.assert(big.c == 13)
-    Swag.assert(big.d == 14)
-    Swag.assert(big.e == 15)
+    Swag.require(big.a == 11)
+    Swag.require(big.b == 12)
+    Swag.require(big.c == 13)
+    Swag.require(big.d == 14)
+    Swag.require(big.e == 15)
 }
 
 #test
 {
     let {a, b, c, d, e} = makeBig(20)
-    Swag.assert(a == 21)
-    Swag.assert(b == 22)
-    Swag.assert(c == 23)
-    Swag.assert(d == 24)
-    Swag.assert(e == 25)
+    Swag.require(a == 21)
+    Swag.require(b == 22)
+    Swag.require(c == 23)
+    Swag.require(d == 24)
+    Swag.require(e == 25)
 }
 
 #test
 {
     let first = makeBig(30)
-    Swag.assert(first.a == 31)
-    Swag.assert(first.b == 32)
-    Swag.assert(first.c == 33)
-    Swag.assert(first.d == 34)
-    Swag.assert(first.e == 35)
+    Swag.require(first.a == 31)
+    Swag.require(first.b == 32)
+    Swag.require(first.c == 33)
+    Swag.require(first.d == 34)
+    Swag.require(first.e == 35)
 
     let {a, b: _, c, d: _, e} = makeBig(40)
-    Swag.assert(a == 41)
-    Swag.assert(c == 43)
-    Swag.assert(e == 45)
+    Swag.require(a == 41)
+    Swag.require(c == 43)
+    Swag.require(e == 45)
 }
 
 #test
 {
     let {r: r0, g: g0, b: b0} = makeFloat(0.5)
-    Swag.assert(r0 == 0.5)
-    Swag.assert(g0 == 0.75)
-    Swag.assert(b0 == 1.0)
+    Swag.require(r0 == 0.5)
+    Swag.require(g0 == 0.75)
+    Swag.require(b0 == 1.0)
 
     let {r: r1, g: _, b: b1} = makeFloat(1.5)
-    Swag.assert(r1 == 1.5)
-    Swag.assert(b1 == 2.0)
+    Swag.require(r1 == 1.5)
+    Swag.require(b1 == 2.0)
 }
 
 #test
 {
     let direct = makeFloat(2.5)
-    Swag.assert(direct.r == 2.5)
-    Swag.assert(direct.g == 2.75)
-    Swag.assert(direct.b == 3.0)
+    Swag.require(direct.r == 2.5)
+    Swag.require(direct.g == 2.75)
+    Swag.require(direct.b == 3.0)
 
     let {r, g, b} = cloneFloat(3.5)
-    Swag.assert(r == 3.5)
-    Swag.assert(g == 3.75)
-    Swag.assert(b == 4.0)
+    Swag.require(r == 3.5)
+    Swag.require(g == 3.75)
+    Swag.require(b == 4.0)
 }
 
 #test
 {
-    Swag.assert(makeScalarDefaultRet() == 0)
+    Swag.require(makeScalarDefaultRet() == 0)
 }
 
 #test
 {
     let small = makeDefaultSmallRet()
-    Swag.assert(small.x == 11)
-    Swag.assert(small.y == 29)
+    Swag.require(small.x == 11)
+    Swag.require(small.y == 29)
 }
 
 #test
 {
     let nested = makeDefaultNestedRet()
-    Swag.assert(nested.small.x == 11)
-    Swag.assert(nested.small.y == 31)
-    Swag.assert(nested.scale == 70)
-    Swag.assert(nested.enabled)
+    Swag.require(nested.small.x == 11)
+    Swag.require(nested.small.y == 31)
+    Swag.require(nested.scale == 70)
+    Swag.require(nested.enabled)
 }
 
 #test
 {
     let big = makeDefaultBigRet()
-    Swag.assert(big.a == 3'u64)
-    Swag.assert(big.b == 5'u64)
-    Swag.assert(big.c == 70'u64)
-    Swag.assert(big.d == 11'u64)
-    Swag.assert(big.e == 13'u64)
+    Swag.require(big.a == 3'u64)
+    Swag.require(big.b == 5'u64)
+    Swag.require(big.c == 70'u64)
+    Swag.require(big.d == 11'u64)
+    Swag.require(big.e == 13'u64)
 }
 
 #test
 {
     let dirty = dirtyDefaultRequiredRet()
-    Swag.assert(dirty.a == 101)
-    Swag.assert(dirty.b == 202)
-    Swag.assert(dirty.c == 303)
+    Swag.require(dirty.a == 101)
+    Swag.require(dirty.b == 202)
+    Swag.require(dirty.c == 303)
 
     let clean = makeDefaultRequiredRet()
-    Swag.assert(clean.a == 0)
-    Swag.assert(clean.b == 22)
-    Swag.assert(clean.c == 0)
+    Swag.require(clean.a == 0)
+    Swag.require(clean.b == 22)
+    Swag.require(clean.c == 0)
 }

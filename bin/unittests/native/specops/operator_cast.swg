@@ -62,16 +62,16 @@ func consumeNullableStrictPtr(value: OpCastStrictPtr?)->s32
     let implicitInt      = consumeInt(value)
     let initialized: s32 = value
 
-    Swag.assert(explicitInt == 42)
-    Swag.assert(explicitBool)
-    Swag.assert(implicitInt == 42)
-    Swag.assert(initialized == 42)
-    Swag.assert(value.intCalls == 3)
-    Swag.assert(value.boolCalls == 1)
+    Swag.require(explicitInt == 42)
+    Swag.require(explicitBool)
+    Swag.require(implicitInt == 42)
+    Swag.require(initialized == 42)
+    Swag.require(value.intCalls == 3)
+    Swag.require(value.boolCalls == 1)
 }
 
 #test
 {
     var box = RuntimePointerCastBox{value: 99}
-    Swag.assert(consumeNullableStrictPtr(box) == 99)
+    Swag.require(consumeNullableStrictPtr(box) == 99)
 }

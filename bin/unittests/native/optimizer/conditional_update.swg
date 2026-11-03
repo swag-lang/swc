@@ -55,19 +55,19 @@ func clampUpdate(value, limit: u32)->u32
 #test
 {
     let values = [3's32, -7, 12, 12, 0, 25, -1]
-    Swag.assert(countAbove(&values[0], 7, 2) == 4)
-    Swag.assert(countAbove(&values[0], 7, 12) == 1)
-    Swag.assert(countAbove(&values[0], 7, 100) == 0)
-    Swag.assert(countAbove(&values[0], 0, 0) == 0)
+    Swag.require(countAbove(&values[0], 7, 2) == 4)
+    Swag.require(countAbove(&values[0], 7, 12) == 1)
+    Swag.require(countAbove(&values[0], 7, 100) == 0)
+    Swag.require(countAbove(&values[0], 0, 0) == 0)
 
-    Swag.assert(sumScaledAbove(&values[0], 7, 2) == 10 + 37 + 37 + 76)
-    Swag.assert(sumScaledAbove(&values[0], 7, -8) == 10 - 20 + 37 + 37 + 1 + 76 - 2)
+    Swag.require(sumScaledAbove(&values[0], 7, 2) == 10 + 37 + 37 + 76)
+    Swag.require(sumScaledAbove(&values[0], 7, -8) == 10 - 20 + 37 + 37 + 1 + 76 - 2)
 
-    Swag.assert(shiftWhenOdd(5, 3) == 23)
-    Swag.assert(shiftWhenOdd(5, 2) == 5)
-    Swag.assert(shiftWhenOdd(0xC000000000000001, 1) == 5)
+    Swag.require(shiftWhenOdd(5, 3) == 23)
+    Swag.require(shiftWhenOdd(5, 2) == 5)
+    Swag.require(shiftWhenOdd(0xC000000000000001, 1) == 5)
 
-    Swag.assert(clampUpdate(10, 3) == 7)
-    Swag.assert(clampUpdate(3, 3) == 3)
-    Swag.assert(clampUpdate(0xFFFFFFFF, 1) == 0xFFFFFFFE)
+    Swag.require(clampUpdate(10, 3) == 7)
+    Swag.require(clampUpdate(3, 3) == 3)
+    Swag.require(clampUpdate(0xFFFFFFFF, 1) == 0xFFFFFFFE)
 }

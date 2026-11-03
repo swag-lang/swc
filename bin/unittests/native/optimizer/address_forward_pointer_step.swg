@@ -67,5 +67,5 @@ func referenceUpsample(dst: [*] u8, luma: const [*] u8, units: u64)
     upsample(&Out[0], luma, 2)
     referenceUpsample(&expected[0], luma, 2)
     for i in 12 do
-        Swag.assert(Out[i] == expected[i])
+        Swag.require(Out[i] == expected[i])
 }

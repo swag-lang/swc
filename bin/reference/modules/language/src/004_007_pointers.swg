@@ -12,7 +12,7 @@ Pointers can address any type of data and are fundamental for efficient memory a
 {
     var ptr1: *u8?         // Pointer to a single 'u8' value
     var ptr2: *(*u8?)?     // Pointer to another pointer to 'u8'
-    Swag.assert(ptr1 == null and ptr2 == null)
+    Swag.require(ptr1 == null and ptr2 == null)
 }
 
 /**
@@ -25,7 +25,7 @@ nullable pointer can be dereferenced, as described below.
 #test
 {
     var ptr1: *u8?
-    Swag.assert(ptr1 == null)     // Uninitialized pointers are null by default
+    Swag.require(ptr1 == null)     // Uninitialized pointers are null by default
 }
 
 /**
@@ -166,7 +166,7 @@ func readProvenCount(p: *AssertProofDoc?)->s64
 {
     var proven: AssertProofDoc
     proven.count = 2
-    Swag.assert(readProvenCount(&proven) == 2)
+    Swag.require(readProvenCount(&proven) == 2)
 
     struct OptChainRefDoc
     {
@@ -184,37 +184,37 @@ func readProvenCount(p: *AssertProofDoc?)->s64
 
     // Narrowing: the null test dominates the dereference.
     if p != null do
-        Swag.assert(p.count == 2)
+        Swag.require(p.count == 2)
 
     // 'unwrap' asserts the proof explicitly (panics at runtime if wrong), and that
     // assertion covers the rest of the block: 'p' needs no second '!' below.
     let q = unwrap p
     #assert(#typeof(q) == *OptChainRefDoc)
-    Swag.assert(q.count == 2)
-    Swag.assert(p.count == 2)
+    Swag.require(q.count == 2)
+    Swag.require(p.count == 2)
 
     // 'p' is already proven; '!' asserts the nullable next member instead of skipping it.
-    Swag.assert(p.next!.count == 7)
+    Swag.require(p.next!.count == 7)
 
     // '?.' skips the access when null; 'orelse' provides the scalar fallback.
     // 'orelse' binds loosely, so the comparison needs the parentheses.
-    Swag.assert((p?.count orelse -1) == 2)
-    Swag.assert((p?.next?.count orelse -1) == 7)
+    Swag.require((p?.count orelse -1) == 2)
+    Swag.require((p?.next?.count orelse -1) == 7)
 
     // A nullable-capable chain result carries the null outcome itself.
     let tail = p?.next
-    Swag.assert(tail != null)
+    Swag.require(tail != null)
 
     p = null
-    Swag.assert((p?.count orelse -1) == -1)
-    Swag.assert(p?.next == null)
+    Swag.require((p?.count orelse -1) == -1)
+    Swag.require(p?.next == null)
 
     // Every path assigns a present value, so the value is proven after the 'if'.
     if second.count > 0 do
         p = &first
     else do
         p = &second
-    Swag.assert(p.count == 2)
+    Swag.require(p.count == 2)
 }
 
 /**
@@ -246,19 +246,19 @@ impl ReachDoc
     let ptr   = &value
 
     // Members are reached directly through the pointer.
-    Swag.assert(ptr.x == 1)
+    Swag.require(ptr.x == 1)
     ptr.y = 20
-    Swag.assert(value.y == 20)
+    Swag.require(value.y == 20)
 
     // A method call binds the pointed-to object as its receiver.
     ptr.shift(10)
-    Swag.assert(value.x == 11)
+    Swag.require(value.x == 11)
 
     // '[]' reads or replaces the whole pointed value.
     let copy = ptr[]
-    Swag.assert(copy.y == 20)
+    Swag.require(copy.y == 20)
     ptr[] = ReachDoc{7, 8}
-    Swag.assert(value.x == 7)
+    Swag.require(value.x == 7)
 }
 
 /**
@@ -291,18 +291,18 @@ impl ElemBoxDoc
     // Without a dedicated write operator, assignments go through the element address.
     box[0] = 41
     box[0] += 1
-    Swag.assert(box.values[0] == 42)
+    Swag.require(box.values[0] == 42)
 
     // The element address escapes as a plain pointer and stays writable.
     let p = &box[1]
     #assert(#typeof(p) == *s32)
     p[] = 7
-    Swag.assert(box.values[1] == 7)
+    Swag.require(box.values[1] == 7)
 
     // Indexing through a pointer to the container reaches the same hooks.
     let boxPtr = &box
     boxPtr[2] = 5
-    Swag.assert(box.values[2] == 5)
+    Swag.require(box.values[2] == 5)
 }
 
 /**
@@ -343,11 +343,11 @@ impl SlotBoxDoc
 
     // The slot's value is still nullable: prove it, or assert it with '!'.
     let slot = bound[]
-    Swag.assert(slot!.count == 3)
+    Swag.require(slot!.count == 3)
 
     // Writing through the address updates the slot itself.
     bound[] = null
-    Swag.assert(box.slot == null)
+    Swag.require(box.slot == null)
 }
 
 /**
@@ -389,7 +389,7 @@ func setupLateDocResource()
     setupLateDocResource()
 
     // Guarded read yields the value directly.
-    Swag.assert(g_lateDocResource.weight == 5)
+    Swag.require(g_lateDocResource.weight == 5)
 }
 
 /**
@@ -402,7 +402,7 @@ This allows you to access or modify a variable indirectly via its memory address
 {
     var value = 1
     let ptr   = &value
-    Swag.assert(#nameof(#typeof(ptr)) == "*s32")     // The pointer type matches the variable's type
+    Swag.require(#nameof(#typeof(ptr)) == "*s32")     // The pointer type matches the variable's type
 }
 
 /**
@@ -417,15 +417,15 @@ readable without parentheses.
 {
     var value = 42
     let ptr   = &value
-    Swag.assert(ptr[] == 42)     // Reads the value stored at the pointer
+    Swag.require(ptr[] == 42)     // Reads the value stored at the pointer
     ptr[] = 7     // Replaces the whole pointed value
-    Swag.assert(value == 7)
+    Swag.require(value == 7)
 
     // Being postfix, it chains without parentheses.
     var grid: [2, 3] s32
     let gp = &grid
     gp[][1, 2] = 5
-    Swag.assert(grid[1, 2] == 5)
+    Swag.require(grid[1, 2] == 5)
 }
 
 /**
@@ -440,12 +440,12 @@ The caller is responsible for providing storage large enough for the requested t
 {
     var f = 1.0'f32
     let p = &f
-    Swag.assert(cast(const *u32, p)[] == 0x3F80_0000)     // The float's bit pattern, not a conversion
+    Swag.require(cast(const *u32, p)[] == 0x3F80_0000)     // The float's bit pattern, not a conversion
 
     var value = 0's32
     let vp    = &value
     cast(*u32, vp)[] = 0xFFFF_FFFF     // Writes through the reinterpreted place
-    Swag.assert(value == -1)
+    Swag.require(value == -1)
 }
 
 /**
@@ -461,12 +461,12 @@ an array provides a fixed shape: `(cast(*[4] u32, p))[][1]` names its second wor
 
     // Walk the same storage as four words.
     let words = cast([*] u32, bytes.buffer)
-    Swag.assert(words[0] == 0x0302_0100)
-    Swag.assert(words[1] == 0x0706_0504)
+    Swag.require(words[0] == 0x0302_0100)
+    Swag.require(words[1] == 0x0706_0504)
 
     // Or name a fixed array shape.
     let p = bytes.buffer
-    Swag.assert(cast(const *[4] u32, p)[][1] == 0x0706_0504)
+    Swag.require(cast(const *[4] u32, p)[][1] == 0x0706_0504)
 }
 
 /**
@@ -481,7 +481,7 @@ to point somewhere else; `let` is what makes a pointer itself immutable.
 {
     let str = "string"
     let ptr: const *u8 = str.buffer
-    Swag.assert(ptr[] == 's')     // Reading through the pointer is fine,
+    Swag.require(ptr[] == 's')     // Reading through the pointer is fine,
     // but assigning to 'ptr[]' would be rejected
 }
 
@@ -497,7 +497,7 @@ that follows it, exactly one level down.
     var ptr:  *(const *u8?)?           // The 'u8' is read-only, the inner pointer is writable
     var ptr1: const *(const *u8?)?     // Both the inner pointer and the 'u8' are read-only
     var ptr2: const *(*u8?)?           // The inner pointer is read-only, the 'u8' is writable
-    Swag.assert(ptr == null and ptr1 == null and ptr2 == null)
+    Swag.require(ptr == null and ptr1 == null and ptr2 == null)
 }
 
 /**
@@ -545,14 +545,14 @@ This is particularly useful when traversing arrays or buffers via pointers.
 {
     var arr = [1, 2, 3, 4]
     let ptr = cast([*] s32, &arr[0])
-    Swag.assert(#typeof(ptr) == [*] s32)
+    Swag.require(#typeof(ptr) == [*] s32)
     let value1 = ptr[0]
-    Swag.assert(value1 == 1)
+    Swag.require(value1 == 1)
     #assert(#typeof(value1) == s32)
     let value2 = ptr[1]
-    Swag.assert(value2 == 2)
+    Swag.require(value2 == 2)
     #assert(#typeof(value2) == s32)
     let value = ptr[]
-    Swag.assert(value == 1)
+    Swag.require(value == 1)
     #assert(#typeof(value) == s32)
 }

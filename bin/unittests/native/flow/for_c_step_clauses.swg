@@ -12,7 +12,7 @@
         acc = acc * 10 + i
     }
 
-    Swag.assert(acc == 1345)
+    Swag.require(acc == 1345)
 }
 
 #test
@@ -23,5 +23,5 @@
         acc += i
     }
 
-    Swag.assert(acc == 6)
+    Swag.require(acc == 6)
 }

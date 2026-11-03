@@ -174,13 +174,13 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let sampleReport = simulateWarehouse(sampleLayout, "<^^>>>vv<v>>v<<")
 
-    Swag.assert(sampleReport.successfulPushes == 6'u32)
-    Swag.assert(sampleReport.gpsSum == 2028'u64)
+    Swag.require(sampleReport.successfulPushes == 6'u32)
+    Swag.require(sampleReport.gpsSum == 2028'u64)
 
     let secondReport = simulateWarehouse(sampleLayout, ">v>v<<^>>vv<^")
 
-    Swag.assert(secondReport.successfulPushes == 4'u32)
-    Swag.assert(secondReport.gpsSum == 1825'u64)
+    Swag.require(secondReport.successfulPushes == 4'u32)
+    Swag.require(secondReport.gpsSum == 1825'u64)
 
     const compactLayout: [6] string =
         [
@@ -194,6 +194,6 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let compactReport = simulateWarehouse(compactLayout, ">>>v<<")
 
-    Swag.assert(compactReport.successfulPushes == 2'u32)
-    Swag.assert(compactReport.gpsSum == 512'u64)
+    Swag.require(compactReport.successfulPushes == 2'u32)
+    Swag.require(compactReport.gpsSum == 512'u64)
 }

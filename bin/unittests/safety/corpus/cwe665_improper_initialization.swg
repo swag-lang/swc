@@ -95,10 +95,10 @@ func lateSlotIsQueryable()->bool
 #test
 {
     resourceStorage.weight = 5
-    Swag.assert(assignedOnEveryPath(opaqueBool(true)) == 5)
-    Swag.assert(assignedAfterEarlyReturn(opaqueBool(false)) == -1)
-    Swag.assert(not lateSlotIsQueryable())
+    Swag.require(assignedOnEveryPath(opaqueBool(true)) == 5)
+    Swag.require(assignedAfterEarlyReturn(opaqueBool(false)) == -1)
+    Swag.require(not lateSlotIsQueryable())
     lateResource = &resourceStorage
-    Swag.assert(lateSlotIsQueryable())
-    Swag.assert(lateResource.weight == 5)
+    Swag.require(lateSlotIsQueryable())
+    Swag.require(lateResource.weight == 5)
 }

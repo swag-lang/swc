@@ -241,38 +241,38 @@ func calibrate(text: string)->CalibrationReport
 
 #test
 {
-    Swag.assert(concatNumbers(15, 6) == 156)
-    Swag.assert(concatNumbers(1, 0) == 10)
-    Swag.assert(concatNumbers(0, 5) == 5)
-    Swag.assert(concatNumbers(12, 345) == 12345)
-    Swag.assert(concatNumbers(99, 99) == 9999)
+    Swag.require(concatNumbers(15, 6) == 156)
+    Swag.require(concatNumbers(1, 0) == 10)
+    Swag.require(concatNumbers(0, 5) == 5)
+    Swag.require(concatNumbers(12, 345) == 12345)
+    Swag.require(concatNumbers(99, 99) == 9999)
 }
 
 #test
 {
     let sample = calibrate(SampleInput)
 
-    Swag.assert(sample.equationCount == 9'u32)
-    Swag.assert(sample.twoOpTotal == 3749'u64)
-    Swag.assert(sample.threeOpTotal == 11387'u64)
-    Swag.assert(sample.allocGrowCount == 2'u32)
+    Swag.require(sample.equationCount == 9'u32)
+    Swag.require(sample.twoOpTotal == 3749'u64)
+    Swag.require(sample.threeOpTotal == 11387'u64)
+    Swag.require(sample.allocGrowCount == 2'u32)
 }
 
 #test
 {
     let single = calibrate(SingleInput)
 
-    Swag.assert(single.equationCount == 1'u32)
-    Swag.assert(single.twoOpTotal == 6'u64)
-    Swag.assert(single.threeOpTotal == 6'u64)
-    Swag.assert(single.allocGrowCount == 0'u32)
+    Swag.require(single.equationCount == 1'u32)
+    Swag.require(single.twoOpTotal == 6'u64)
+    Swag.require(single.threeOpTotal == 6'u64)
+    Swag.require(single.allocGrowCount == 0'u32)
 }
 
 #test
 {
     let concat = calibrate(ConcatInput)
 
-    Swag.assert(concat.equationCount == 2'u32)
-    Swag.assert(concat.twoOpTotal == 0'u64)
-    Swag.assert(concat.threeOpTotal == 348'u64)
+    Swag.require(concat.equationCount == 2'u32)
+    Swag.require(concat.twoOpTotal == 0'u64)
+    Swag.require(concat.threeOpTotal == 348'u64)
 }

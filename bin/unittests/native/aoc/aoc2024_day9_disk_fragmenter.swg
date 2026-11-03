@@ -325,31 +325,31 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
 {
     let sample = analyzeDisk(SampleInput)
 
-    Swag.assert(sample.blockCount == 42'u32)
-    Swag.assert(sample.fileCount == 10'u16)
-    Swag.assert(sample.checksumBlocks == 1928'u64)
-    Swag.assert(sample.checksumWholeFile == 2858'u64)
+    Swag.require(sample.blockCount == 42'u32)
+    Swag.require(sample.fileCount == 10'u16)
+    Swag.require(sample.checksumBlocks == 1928'u64)
+    Swag.require(sample.checksumWholeFile == 2858'u64)
 }
 
 #test
 {
     let small = analyzeDisk(SmallInput)
 
-    Swag.assert(small.blockCount == 15'u32)
-    Swag.assert(small.fileCount == 3'u16)
-    Swag.assert(small.checksumBlocks == 60'u64)
+    Swag.require(small.blockCount == 15'u32)
+    Swag.require(small.fileCount == 3'u16)
+    Swag.require(small.checksumBlocks == 60'u64)
 
     let info = getSpanInfo(SmallInput)
-    Swag.assert(info.spanCount == 5'u32)
-    Swag.assert(info.firstFree == 1'u32)
+    Swag.require(info.spanCount == 5'u32)
+    Swag.require(info.firstFree == 1'u32)
 }
 
 #test
 {
     let trivial = analyzeDisk(TrivialInput)
 
-    Swag.assert(trivial.blockCount == 9'u32)
-    Swag.assert(trivial.fileCount == 1'u16)
-    Swag.assert(trivial.checksumBlocks == 0'u64)
-    Swag.assert(trivial.checksumWholeFile == 0'u64)
+    Swag.require(trivial.blockCount == 9'u32)
+    Swag.require(trivial.fileCount == 1'u16)
+    Swag.require(trivial.checksumBlocks == 0'u64)
+    Swag.require(trivial.checksumWholeFile == 0'u64)
 }

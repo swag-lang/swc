@@ -16,9 +16,9 @@ func and32(a, b: u8)->u32 => cast(u32, (a)) & cast(u32, (b))
     {
         for b in values
         {
-            Swag.assert(or64(a, b) == cast(u64, (a | b)))
-            Swag.assert(xor64(a, b) == cast(u64, (a ^ b)))
-            Swag.assert(and32(a, b) == cast(u32, (a & b)))
+            Swag.require(or64(a, b) == cast(u64, (a | b)))
+            Swag.require(xor64(a, b) == cast(u64, (a ^ b)))
+            Swag.require(and32(a, b) == cast(u32, (a & b)))
         }
     }
 }

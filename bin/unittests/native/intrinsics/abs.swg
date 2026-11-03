@@ -80,60 +80,60 @@ func absStrictF32(value: AbsStrictF32)->AbsStrictF32 => Swag.abs(value)
 // Runtime — s8
 #test
 {
-    Swag.assert(absS8(-7's8) == 7's8)
-    Swag.assert(absS8(0's8) == 0's8)
-    Swag.assert(absS8(7's8) == 7's8)
-    Swag.assert(absS8(-1's8) == 1's8)
-    Swag.assert(absS8(127's8) == 127's8)
+    Swag.require(absS8(-7's8) == 7's8)
+    Swag.require(absS8(0's8) == 0's8)
+    Swag.require(absS8(7's8) == 7's8)
+    Swag.require(absS8(-1's8) == 1's8)
+    Swag.require(absS8(127's8) == 127's8)
 }
 
 // Runtime — s16
 #test
 {
-    Swag.assert(absS16(-321's16) == 321's16)
-    Swag.assert(absS16(0's16) == 0's16)
-    Swag.assert(absS16(321's16) == 321's16)
-    Swag.assert(absS16(-1's16) == 1's16)
-    Swag.assert(absS16(32767's16) == 32767's16)
+    Swag.require(absS16(-321's16) == 321's16)
+    Swag.require(absS16(0's16) == 0's16)
+    Swag.require(absS16(321's16) == 321's16)
+    Swag.require(absS16(-1's16) == 1's16)
+    Swag.require(absS16(32767's16) == 32767's16)
 }
 
 // Runtime — s32
 #test
 {
-    Swag.assert(absS32(-123456) == 123456)
-    Swag.assert(absS32(0) == 0)
-    Swag.assert(absS32(123456) == 123456)
-    Swag.assert(absS32(-1) == 1)
-    Swag.assert(absS32(4) == 4)
+    Swag.require(absS32(-123456) == 123456)
+    Swag.require(absS32(0) == 0)
+    Swag.require(absS32(123456) == 123456)
+    Swag.require(absS32(-1) == 1)
+    Swag.require(absS32(4) == 4)
 }
 
 // Runtime — s64
 #test
 {
-    Swag.assert(absS64(-5000000000's64) == 5000000000's64)
-    Swag.assert(absS64(0's64) == 0's64)
-    Swag.assert(absS64(5000000000's64) == 5000000000's64)
-    Swag.assert(absS64(-1's64) == 1's64)
+    Swag.require(absS64(-5000000000's64) == 5000000000's64)
+    Swag.require(absS64(0's64) == 0's64)
+    Swag.require(absS64(5000000000's64) == 5000000000's64)
+    Swag.require(absS64(-1's64) == 1's64)
 }
 
 // Runtime — f32
 #test
 {
-    Swag.assert(absF32(-3.5'f32) == 3.5'f32)
-    Swag.assert(absF32(0.0'f32) == 0.0'f32)
-    Swag.assert(absF32(3.5'f32) == 3.5'f32)
-    Swag.assert(absF32(-0.001'f32) == 0.001'f32)
-    Swag.assert(absF32(100.0'f32) == 100.0'f32)
+    Swag.require(absF32(-3.5'f32) == 3.5'f32)
+    Swag.require(absF32(0.0'f32) == 0.0'f32)
+    Swag.require(absF32(3.5'f32) == 3.5'f32)
+    Swag.require(absF32(-0.001'f32) == 0.001'f32)
+    Swag.require(absF32(100.0'f32) == 100.0'f32)
 }
 
 // Runtime — f64
 #test
 {
-    Swag.assert(absF64(-9.25'f64) == 9.25'f64)
-    Swag.assert(absF64(0.0'f64) == 0.0'f64)
-    Swag.assert(absF64(9.25'f64) == 9.25'f64)
-    Swag.assert(absF64(-0.0001'f64) == 0.0001'f64)
-    Swag.assert(absF64(4.25'f64) == 4.25'f64)
+    Swag.require(absF64(-9.25'f64) == 9.25'f64)
+    Swag.require(absF64(0.0'f64) == 0.0'f64)
+    Swag.require(absF64(9.25'f64) == 9.25'f64)
+    Swag.require(absF64(-0.0001'f64) == 0.0001'f64)
+    Swag.require(absF64(4.25'f64) == 4.25'f64)
 }
 
 // Strict aliases
@@ -145,8 +145,8 @@ func absStrictF32(value: AbsStrictF32)->AbsStrictF32 => Swag.abs(value)
     #assert(#typeof(a) == AbsStrictS32)
     #assert(#typeof(b) == AbsStrictF32)
 
-    Swag.assert(a == cast(AbsStrictS32, 42))
-    Swag.assert(b == cast(AbsStrictF32, 1.5'f32))
+    Swag.require(a == cast(AbsStrictS32, 42))
+    Swag.require(b == cast(AbsStrictF32, 1.5'f32))
 }
 
 #test
@@ -157,6 +157,6 @@ func absStrictF32(value: AbsStrictF32)->AbsStrictF32 => Swag.abs(value)
     #assert(#typeof(a) == AbsStrictS32)
     #assert(#typeof(b) == AbsStrictF32)
 
-    Swag.assert(a == cast(AbsStrictS32, 123))
-    Swag.assert(b == cast(AbsStrictF32, 2.25'f32))
+    Swag.require(a == cast(AbsStrictS32, 123))
+    Swag.require(b == cast(AbsStrictF32, 2.25'f32))
 }

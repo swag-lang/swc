@@ -50,16 +50,16 @@ func assignFrom(dst: *Owned, v: #fwd Owned)
     var source = Owned{1}
     var target: Owned
     initFrom(&target, #move source)
-    Swag.assert(target.id == 1)
-    Swag.assert(source.id == 0)
+    Swag.require(target.id == 1)
+    Swag.require(source.id == 0)
 }
 
 #test
 {
     var source = Owned{2}
     var target: Owned
-    Swag.assert(initFromThenRead(&target, #move source) == 0)
-    Swag.assert(target.id == 2 and source.id == 0)
+    Swag.require(initFromThenRead(&target, #move source) == 0)
+    Swag.require(target.id == 2 and source.id == 0)
 }
 
 #test
@@ -67,7 +67,7 @@ func assignFrom(dst: *Owned, v: #fwd Owned)
     var source = Owned{3}
     var target: Owned
     assignFrom(&target, #move source)
-    Swag.assert(target.id == 3 and source.id == 0)
+    Swag.require(target.id == 3 and source.id == 0)
 }
 
 // The copy variant leaves the caller's object alone.
@@ -76,5 +76,5 @@ func assignFrom(dst: *Owned, v: #fwd Owned)
     var source = Owned{4}
     var target: Owned
     initFrom(&target, source)
-    Swag.assert(target.id == 4 and source.id == 4)
+    Swag.require(target.id == 4 and source.id == 4)
 }

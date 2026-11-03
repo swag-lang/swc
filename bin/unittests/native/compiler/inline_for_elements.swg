@@ -112,17 +112,17 @@ func findValueAuto(target: s32)->bool
 {
     let data = [2, 3, 4, 5, 6]
 
-    Swag.assert(findFirstEven(data) == 2)
-    Swag.assert(findFirstEven([1, 3, 5]) == -1)
-    Swag.assert(sumAll(data) == 20)
+    Swag.require(findFirstEven(data) == 2)
+    Swag.require(findFirstEven([1, 3, 5]) == -1)
+    Swag.require(sumAll(data) == 20)
 
-    Swag.assert(findValue(6))
-    Swag.assert(findValue(4))
-    Swag.assert(not findValue(99))
-    Swag.assert(indexOfValue(5) == 1)
-    Swag.assert(indexOfValue(99) == -1)
+    Swag.require(findValue(6))
+    Swag.require(findValue(4))
+    Swag.require(not findValue(99))
+    Swag.require(indexOfValue(5) == 1)
+    Swag.require(indexOfValue(99) == -1)
 
-    Swag.assert(findFirstEvenAuto(data) == 2)
-    Swag.assert(findValueAuto(6))
-    Swag.assert(not findValueAuto(99))
+    Swag.require(findFirstEvenAuto(data) == 2)
+    Swag.require(findValueAuto(6))
+    Swag.require(not findValueAuto(99))
 }

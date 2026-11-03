@@ -12,6 +12,6 @@ func inlineByteLookup(c: u8)->u8 => table[c]
     var x: u8  = 3
     let r: *u8 = &x
 
-    Swag.assert(inlineByteLookup(r[]) == 37)
-    Swag.assert(inlineByteLookup(cast(u8, r[])) == 37)
+    Swag.require(inlineByteLookup(r[]) == 37)
+    Swag.require(inlineByteLookup(cast(u8, r[])) == 37)
 }

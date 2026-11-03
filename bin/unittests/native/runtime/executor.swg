@@ -22,11 +22,11 @@ struct ExecutorFailure
     for &task, index in tasks
     {
         let order = expect task.take()
-        Swag.assert(order == cast(u32, index))
+        Swag.require(order == cast(u32, index))
     }
 
     executor.close()
-    Swag.assert(not executor.isStarted())
+    Swag.require(not executor.isStarted())
 }
 
 // A failing task hands its error over; a cancelled one sees the request; joins never run it.
@@ -41,7 +41,7 @@ struct ExecutorFailure
     var errorOutcome: Swag.Error
     discard catch failing.take() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is ExecutorFailure)
+    Swag.require(error is ExecutorFailure)
 
     let self = &watched
     watched.submit(func|self|()->bool
@@ -49,9 +49,9 @@ struct ExecutorFailure
         self.cancel()
         return Swag.isCancelled()
     }, executor: &executor)
-    Swag.assert(watched.waitUnlessCancelled())
+    Swag.require(watched.waitUnlessCancelled())
     let cancelled = expect watched.take()
-    Swag.assert(cancelled)
+    Swag.require(cancelled)
 
     executor.close()
 }
@@ -69,9 +69,9 @@ struct ExecutorFailure
             task.submit(func|&finished|() { finished.add(1) }, executor: &executor)
     }
 
-    Swag.assert(finished.load() == 4)
+    Swag.require(finished.load() == 4)
     for &task in tasks do
-        Swag.assert(task.isDone())
+        Swag.require(task.isDone())
 }
 
 // Closing from the executor's own thread is rejected instead of joining itself.
@@ -93,6 +93,6 @@ struct ExecutorCloseProbe
             discard probe.caught.raise()
     }, executor: &probe.executor)
     expect probe.task.take()
-    Swag.assert(probe.caught.isRaised() == (not Swag.jit()))
+    Swag.require(probe.caught.isRaised() == (not Swag.jit()))
     probe.executor.close()
 }

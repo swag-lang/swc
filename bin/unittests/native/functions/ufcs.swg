@@ -25,7 +25,7 @@ impl A
     gUfcsTotoSum = 0
     a.toto(1)
     A.toto(a, 2)
-    Swag.assert(gUfcsTotoSum == 3)
+    Swag.require(gUfcsTotoSum == 3)
 }
 
 #test
@@ -37,8 +37,8 @@ impl A
     a.titi(10)
     var b: *A = &a
     b.toto(2)
-    Swag.assert(gUfcsTotoSum == 3)
-    Swag.assert(gUfcsTitiLast == 10)
+    Swag.require(gUfcsTotoSum == 3)
+    Swag.require(gUfcsTitiLast == 10)
 }
 
 #test
@@ -46,7 +46,7 @@ impl A
     let a = A{}
     gUfcsTitiLast = 0
     a.titi(42)
-    Swag.assert(gUfcsTitiLast == 42)
+    Swag.require(gUfcsTitiLast == 42)
 }
 
 #test
@@ -55,7 +55,7 @@ impl A
     gUfcsTataSum = 0
     a.tata(2)
     A.tata(&a, 3)
-    Swag.assert(gUfcsTataSum == 5)
+    Swag.require(gUfcsTataSum == 5)
 }
 
 enum Direction
@@ -90,9 +90,9 @@ impl Direction
 #test
 {
     var dir = Direction.North
-    Swag.assert(dir.opposite() == Direction.South)
-    Swag.assert(dir.isVertical())
-    Swag.assert(not Direction.East.isVertical())
+    Swag.require(dir.opposite() == Direction.South)
+    Swag.require(dir.isVertical())
+    Swag.require(not Direction.East.isVertical())
 }
 
 func invertUfcs(value: bool)->bool => not value
@@ -135,20 +135,20 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
 #test
 {
     let value = false
-    Swag.assert(invertUfcs(value) == value.invertUfcs())
+    Swag.require(invertUfcs(value) == value.invertUfcs())
 }
 
 #test
 {
     var pt: UfcsPoint
     pt.setUfcsPoint(10)
-    Swag.assert(pt.x == 10 and pt.y == 10)
+    Swag.require(pt.x == 10 and pt.y == 10)
 
     addUfcsPoint(&pt, 3, 4)
-    Swag.assert(pt.x == 13 and pt.y == 14)
+    Swag.require(pt.x == 13 and pt.y == 14)
 
     pt.addUfcsPoint(1, 2)
-    Swag.assert(pt.x == 14 and pt.y == 16)
+    Swag.require(pt.x == 14 and pt.y == 16)
 }
 
 #test
@@ -157,8 +157,8 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
     var c2 = UfcsComplex{4.0, 5.0}
 
     c1.multiplyUfcs(2.0)
-    Swag.assert(c1.real == 4.0 and c1.imag == 6.0)
+    Swag.require(c1.real == 4.0 and c1.imag == 6.0)
 
     c1.multiplyUfcs(&c2)
-    Swag.assert(c1.real == -14.0 and c1.imag == 44.0)
+    Swag.require(c1.real == -14.0 and c1.imag == 44.0)
 }

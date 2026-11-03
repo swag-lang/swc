@@ -27,16 +27,16 @@ func reused(a: u64)->u64
     {
         let isZero: u64 = a == 0 ? 1 : 0
         let bit:    u64 = (a >> 3) & 1
-        Swag.assert(zero(a) == isZero)
-        Swag.assert(nonzero(a) == 1 - isZero)
-        Swag.assert(lessTen(a) == (a < 10 ? 1 : 0))
-        Swag.assert(bitThree(a) == bit)
-        Swag.assert(reused(a) == ((a & 8) ^ bit ^ a))
+        Swag.require(zero(a) == isZero)
+        Swag.require(nonzero(a) == 1 - isZero)
+        Swag.require(lessTen(a) == (a < 10 ? 1 : 0))
+        Swag.require(bitThree(a) == bit)
+        Swag.require(reused(a) == ((a & 8) ^ bit ^ a))
         let narrow = cast(u16, (a & 65535))
-        Swag.assert(small(narrow) == (narrow < 10 ? 1 : 0))
+        Swag.require(small(narrow) == (narrow < 10 ? 1 : 0))
     }
-    Swag.assert(negative(-0x7FFFFFFFFFFFFFFF - 1) == 1)
-    Swag.assert(negative(-1) == 1)
-    Swag.assert(negative(0) == 0)
-    Swag.assert(negative(0x7FFFFFFFFFFFFFFF) == 0)
+    Swag.require(negative(-0x7FFFFFFFFFFFFFFF - 1) == 1)
+    Swag.require(negative(-1) == 1)
+    Swag.require(negative(0) == 0)
+    Swag.require(negative(0x7FFFFFFFFFFFFFFF) == 0)
 }

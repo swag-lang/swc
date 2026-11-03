@@ -46,9 +46,9 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
 
             for count in [0'u64, 1, 2, 3, 4, 5, 6, 7]
             {
-                Swag.assert(shiftLeftU8ByU64(unsignedValue, count) == referenceShiftLeftU8(unsignedValue, count))
-                Swag.assert(shiftRightU8ByU64(unsignedValue, count) == referenceShiftRightU8(unsignedValue, count))
-                Swag.assert(shiftRightS8ByU64(signedValue, count) == referenceShiftRightS8(signedValue, count))
+                Swag.require(shiftLeftU8ByU64(unsignedValue, count) == referenceShiftLeftU8(unsignedValue, count))
+                Swag.require(shiftRightU8ByU64(unsignedValue, count) == referenceShiftRightU8(unsignedValue, count))
+                Swag.require(shiftRightS8ByU64(signedValue, count) == referenceShiftRightS8(signedValue, count))
             }
         }
     }
@@ -60,9 +60,9 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
     #[Swag.Safety(.Overflow, true)]
     func truncatingLeft(value: u8, count: u64)->u8 => value << count
 
-    Swag.assert(truncatingLeft(0x80'u8, 1'u64) == 0'u8)
-    Swag.assert(truncatingLeft(0xFF'u8, 4'u64) == 0xF0'u8)
-    Swag.assert(truncatingLeft(0x81'u8, 7'u64) == 0x80'u8)
+    Swag.require(truncatingLeft(0x80'u8, 1'u64) == 0'u8)
+    Swag.require(truncatingLeft(0xFF'u8, 4'u64) == 0xF0'u8)
+    Swag.require(truncatingLeft(0x81'u8, 7'u64) == 0x80'u8)
 }
 
 // The compound forms read the amount at its own width as well.
@@ -75,6 +75,6 @@ func referenceShiftRightS8(value: s8, count: u64)->s8
     left  <<= count
     right >>= count
 
-    Swag.assert(left == 0x80'u8)
-    Swag.assert(right == -1's8)
+    Swag.require(left == 0x80'u8)
+    Swag.require(right == -1's8)
 }

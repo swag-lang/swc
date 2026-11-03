@@ -1544,359 +1544,359 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 #test
 {
     let v = intrinsicSingleInfo()
-    Swag.assert(v.first == 11)
-    Swag.assert(v.second == 22)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 11)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.first == 11)
+    Swag.require(v.second == 22)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 11)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = intrinsicArrayWholeInfo()
-    Swag.assert(v.first == 13)
-    Swag.assert(v.second == 14)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 1314)
-    Swag.assert(v.postCopy == 2)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.first == 13)
+    Swag.require(v.second == 14)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 1314)
+    Swag.require(v.postCopy == 2)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = intrinsicArrayCountInfo()
-    Swag.assert(v.first == 21)
-    Swag.assert(v.second == 22)
-    Swag.assert(v.third == 3)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 2122)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 2)
+    Swag.require(v.first == 21)
+    Swag.require(v.second == 22)
+    Swag.require(v.third == 3)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 2122)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 2)
 }
 
 #test
 {
     let v = intrinsicEmbeddedInfo()
-    Swag.assert(v.first == 11)
-    Swag.assert(v.second == 222)
-    Swag.assert(v.third == 4)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 304)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 2)
+    Swag.require(v.first == 11)
+    Swag.require(v.second == 222)
+    Swag.require(v.third == 4)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 304)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 2)
 }
 
 #test
 {
     let v = intrinsicEmbeddedOuterCopyDropInfo()
-    Swag.assert(v.first == 117)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 9117)
-    Swag.assert(v.postCopy == 2)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.first == 117)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 9117)
+    Swag.require(v.postCopy == 2)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = intrinsicInitInfo()
-    Swag.assert(v.scalarDefault == 0)
-    Swag.assert(v.scalarExplicitScaled == 314)
-    Swag.assert(v.arrayDefaultTrace == 0)
-    Swag.assert(v.arrayExplicitTrace == 555555)
-    Swag.assert(v.structDefaultTrace == 123)
-    Swag.assert(v.structExplicitTrace == 567)
-    Swag.assert(v.structArrayCountTrace == 567)
-    Swag.assert(v.structArrayWholeTrace == 506070)
+    Swag.require(v.scalarDefault == 0)
+    Swag.require(v.scalarExplicitScaled == 314)
+    Swag.require(v.arrayDefaultTrace == 0)
+    Swag.require(v.arrayExplicitTrace == 555555)
+    Swag.require(v.structDefaultTrace == 123)
+    Swag.require(v.structExplicitTrace == 567)
+    Swag.require(v.structArrayCountTrace == 567)
+    Swag.require(v.structArrayWholeTrace == 506070)
 }
 
 #test
 {
     let v = intrinsicDropThenInitArrayInfo()
-    Swag.assert(v == 567)
+    Swag.require(v == 567)
 }
 
 #test
 {
     let v = intrinsicAutoDropPairInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 201)
+    Swag.require(v.first == 1)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 201)
 }
 
 #test
 {
     let v = intrinsicAutoDropNestedInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 6)
-    Swag.assert(v.drops == 6)
-    Swag.assert(v.dropTrace == 60302050401)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 6)
+    Swag.require(v.drops == 6)
+    Swag.require(v.dropTrace == 60302050401)
 }
 
 #test
 {
     let v = intrinsicAutoDropStructArrayInfo()
-    Swag.assert(v.first == 7)
-    Swag.assert(v.second == 10)
-    Swag.assert(v.drops == 4)
-    Swag.assert(v.dropTrace == 8071009)
+    Swag.require(v.first == 7)
+    Swag.require(v.second == 10)
+    Swag.require(v.drops == 4)
+    Swag.require(v.dropTrace == 8071009)
 }
 
 #test
 {
     let v = intrinsicAutoDropReturnInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 8)
-    Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 8)
-    Swag.assert(v.dropTrace == 805040706030201)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 8)
+    Swag.require(v.third == 7)
+    Swag.require(v.drops == 8)
+    Swag.require(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropErrorInfo()
-    Swag.assert(v.first == 77)
-    Swag.assert(v.second == 1)
-    Swag.assert(v.drops == 8)
-    Swag.assert(v.dropTrace == 805040706030201)
+    Swag.require(v.first == 77)
+    Swag.require(v.second == 1)
+    Swag.require(v.drops == 8)
+    Swag.require(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropDeferInfo()
-    Swag.assert(v.first == 8)
-    Swag.assert(v.second == 6)
-    Swag.assert(v.third == 8)
-    Swag.assert(v.drops == 8)
-    Swag.assert(v.dropTrace == 805040706030201)
+    Swag.require(v.first == 8)
+    Swag.require(v.second == 6)
+    Swag.require(v.third == 8)
+    Swag.require(v.drops == 8)
+    Swag.require(v.dropTrace == 805040706030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropContinueInfo()
-    Swag.assert(v.first == 4)
-    Swag.assert(v.second == 5)
-    Swag.assert(v.third == 9)
-    Swag.assert(v.drops == 8)
-    Swag.assert(v.dropTrace == 201070605040309)
+    Swag.require(v.first == 4)
+    Swag.require(v.second == 5)
+    Swag.require(v.third == 9)
+    Swag.require(v.drops == 8)
+    Swag.require(v.dropTrace == 201070605040309)
 }
 
 #test
 {
     let v = intrinsicAutoDropBreakScopeInfo()
-    Swag.assert(v.first == 4)
-    Swag.assert(v.second == 7)
-    Swag.assert(v.third == 2)
-    Swag.assert(v.drops == 7)
-    Swag.assert(v.dropTrace == 7060504030201)
+    Swag.require(v.first == 4)
+    Swag.require(v.second == 7)
+    Swag.require(v.third == 2)
+    Swag.require(v.drops == 7)
+    Swag.require(v.dropTrace == 7060504030201)
 }
 
 #test
 {
     let v = intrinsicAutoDropSwitchReturnInfo()
-    Swag.assert(v.first == 2)
-    Swag.assert(v.second == 6)
-    Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 5)
-    Swag.assert(v.dropTrace == 807060201)
+    Swag.require(v.first == 2)
+    Swag.require(v.second == 6)
+    Swag.require(v.third == 7)
+    Swag.require(v.drops == 5)
+    Swag.require(v.dropTrace == 807060201)
 }
 
 #test
 {
     let v = intrinsicAutoDropCatchResumeInfo()
-    Swag.assert(v.first == 55)
-    Swag.assert(v.second == 9)
-    Swag.assert(v.third == 1)
-    Swag.assert(v.drops == 5)
-    Swag.assert(v.dropTrace == 54398)
+    Swag.require(v.first == 55)
+    Swag.require(v.second == 9)
+    Swag.require(v.third == 1)
+    Swag.require(v.drops == 5)
+    Swag.require(v.dropTrace == 54398)
 }
 
 #test
 {
     let v = intrinsicAutoDropCatchLoopInfo()
-    Swag.assert(v.first == 5)
-    Swag.assert(v.second == 1)
-    Swag.assert(v.third == 17)
-    Swag.assert(v.drops == 9)
-    Swag.assert(v.dropTrace == 321654879)
+    Swag.require(v.first == 5)
+    Swag.require(v.second == 1)
+    Swag.require(v.third == 17)
+    Swag.require(v.drops == 9)
+    Swag.require(v.dropTrace == 321654879)
 }
 
 #test
 {
     let v = intrinsicAutoDropSwitchFallthroughInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 3)
-    Swag.assert(v.third == 7)
-    Swag.assert(v.drops == 7)
-    Swag.assert(v.dropTrace == 2154376)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 3)
+    Swag.require(v.third == 7)
+    Swag.require(v.drops == 7)
+    Swag.require(v.dropTrace == 2154376)
 }
 
 #test
 {
     let v = intrinsicAutoDropIfVarReturnInfo()
-    Swag.assert(v.first == 2)
-    Swag.assert(v.second == 3)
-    Swag.assert(v.third == 6)
-    Swag.assert(v.drops == 6)
-    Swag.assert(v.dropTrace == 654321)
+    Swag.require(v.first == 2)
+    Swag.require(v.second == 3)
+    Swag.require(v.third == 6)
+    Swag.require(v.drops == 6)
+    Swag.require(v.dropTrace == 654321)
 }
 
 #test
 {
     let v = intrinsicAutoDropIfVarElseInfo()
-    Swag.assert(v.first == 6)
-    Swag.assert(v.second == 1)
-    Swag.assert(v.third == 9)
-    Swag.assert(v.drops == 4)
-    Swag.assert(v.dropTrace == 3219)
+    Swag.require(v.first == 6)
+    Swag.require(v.second == 1)
+    Swag.require(v.third == 9)
+    Swag.require(v.drops == 4)
+    Swag.require(v.dropTrace == 3219)
 }
 
 #test
 {
     let v = intrinsicAutoDropWithVarReturnInfo()
-    Swag.assert(v.first == 7)
-    Swag.assert(v.second == 4)
-    Swag.assert(v.third == 8)
-    Swag.assert(v.drops == 5)
-    Swag.assert(v.dropTrace == 65487)
+    Swag.require(v.first == 7)
+    Swag.require(v.second == 4)
+    Swag.require(v.third == 8)
+    Swag.require(v.drops == 5)
+    Swag.require(v.dropTrace == 65487)
 }
 
 #test
 {
     let v = intrinsicAutoDropShadowInfo()
-    Swag.assert(v.first == 9)
-    Swag.assert(v.second == 2)
-    Swag.assert(v.third == 5)
-    Swag.assert(v.drops == 6)
-    Swag.assert(v.dropTrace == 321549)
+    Swag.require(v.first == 9)
+    Swag.require(v.second == 2)
+    Swag.require(v.third == 5)
+    Swag.require(v.drops == 6)
+    Swag.require(v.dropTrace == 321549)
 }
 
 #test
 {
     let scalarTrace = intrinsicInitRuntimeCountScalarInfo()
-    Swag.assert(scalarTrace == 9006)
+    Swag.require(scalarTrace == 9006)
 
     let structTrace = intrinsicInitRuntimeCountStructInfo()
-    Swag.assert(structTrace == 9116)
+    Swag.require(structTrace == 9116)
 }
 
 #test
 {
     let trace = intrinsicFieldPointerResizeRuntimeInitInfo()
-    Swag.assert(trace == 9006)
+    Swag.require(trace == 9006)
 }
 
 #test
 {
     let trace = intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()
-    Swag.assert(trace == 9871)
+    Swag.require(trace == 9871)
 }
 
 #test
 {
     let v = intrinsicRemoveAtDropOnlyInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 3)
-    Swag.assert(v.third == 2)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 2)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 3)
+    Swag.require(v.third == 2)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 2)
 }
 
 #test
 {
     let v = intrinsicHeapRemoveAtDropOnlyInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 3)
-    Swag.assert(v.third == 2)
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 20103)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 3)
+    Swag.require(v.third == 2)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 20103)
 }
 
 #test
 {
     let v = intrinsicOwnedBufferFreeInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicMemoryAllocatorGenericBufferFreeInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()
-    Swag.assert(v.first == 1)
-    Swag.assert(v.second == 5)
-    Swag.assert(v.third == 2)
-    Swag.assert(v.drops == 5)
+    Swag.require(v.first == 1)
+    Swag.require(v.second == 5)
+    Swag.require(v.third == 2)
+    Swag.require(v.drops == 5)
 }
 
 #test
 {
     let v = intrinsicReallocOwnedBufferFreeInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicReallocOwnedBufferAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicGenericOwnedBufferAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicLazyAllocatorGenericBufferAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicHelperAllocatorGenericBufferAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()
-    Swag.assert(v.drops == 3)
-    Swag.assert(v.dropTrace == 10203)
+    Swag.require(v.drops == 3)
+    Swag.require(v.dropTrace == 10203)
 }
 
 #test
 {
     let v = intrinsicReceiverLifecycleInfo()
-    Swag.assert(v.first == 3)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 37)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.first == 3)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 37)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 1)
 }

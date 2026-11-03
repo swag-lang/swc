@@ -29,7 +29,7 @@ the caller unless explicitly elevated.
 
     let a = 0
     myMacro()     // no conflict with outer 'a'
-    Swag.assert(a == 0)
+    Swag.require(a == 0)
 }
 
 /**
@@ -65,7 +65,7 @@ locals.
         a += 1
     }
 
-    Swag.assert(a == 2)
+    Swag.require(a == 2)
 }
 
 /**
@@ -112,7 +112,7 @@ never shadows a caller variable used by the injected block.
         a += 2     // operates on the caller's 'a'
     }
 
-    Swag.assert(a == 3)
+    Swag.require(a == 3)
 }
 
 /**
@@ -133,8 +133,8 @@ wrapping is needed.
     // The declared names are visible at the call site by default.
     call(20)
     {
-        Swag.assert(value == 20)
-        Swag.assert(double == 40)
+        Swag.require(value == 20)
+        Swag.require(double == 40)
     }
 }
 
@@ -159,20 +159,20 @@ argument.
         total = x + y
     }
 
-    Swag.assert(total == 60)
+    Swag.require(total == 60)
 
     // Inline form: the code literal is a normal argument.
     call(10, #code(a, b) {
         total = a + b
     })
-    Swag.assert(total == 30)
+    Swag.require(total == 30)
 
     // Partial binder: only the first parameter is renamed, like 'for'.
     call(5) #code(first) {
         total = first + double
     }
 
-    Swag.assert(total == 15)
+    Swag.require(total == 15)
 }
 
 /**
@@ -195,7 +195,7 @@ also types (and checks) the binding.
         got     = counter
     }
 
-    Swag.assert(got == 15)
+    Swag.require(got == 15)
 }
 
 /**
@@ -222,14 +222,14 @@ They can be used to generate tight loops with caller-visible indices, etc.
         a += index     // sum 0..4
     }
 
-    Swag.assert(a == 0 + 1 + 2 + 3 + 4)
+    Swag.require(a == 0 + 1 + 2 + 3 + 4)
 
     repeat(3)
     {
         a += index     // add 0..2
     }
 
-    Swag.assert(a == 10 + 3)
+    Swag.require(a == 10 + 3)
 }
 
 /**
@@ -264,7 +264,7 @@ Bindings and control-flow replacements live in the same '#inject'.
             break     // remapped to 'break to ScopeTarget'
     }
 
-    Swag.assert(a == 10)
+    Swag.require(a == 10)
 }
 
 /**
@@ -307,6 +307,6 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
             break
     }
 
-    Swag.assert(a == 8)
-    Swag.assert(b == 6)
+    Swag.require(a == 8)
+    Swag.require(b == 6)
 }

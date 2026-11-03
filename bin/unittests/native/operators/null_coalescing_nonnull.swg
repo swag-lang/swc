@@ -38,9 +38,9 @@ func selectedValue(value: IValue?)->u32 => (value orelse fallbackValue())!.value
     FallbackCalls = 0
     let resolved = present orelse fallbackValue()
     #assert(#typeof(resolved) == IValue)
-    Swag.assert(resolved.value() == 42)
-    Swag.assert(selectedValue(present) == 42)
-    Swag.assert(FallbackCalls == 0)
+    Swag.require(resolved.value() == 42)
+    Swag.require(selectedValue(present) == 42)
+    Swag.require(FallbackCalls == 0)
 }
 
 #test
@@ -50,24 +50,24 @@ func selectedValue(value: IValue?)->u32 => (value orelse fallbackValue())!.value
     let fallback: *s32? = null
     let resolved        = present orelse fallback
     #assert(#typeof(resolved) == *s32)
-    Swag.assert(resolved[] == 42)
-    Swag.assert((present orelse null)[] == 42)
+    Swag.require(resolved[] == 42)
+    Swag.require((present orelse null)[] == 42)
 
     let aliasPointer  = cast(RequiredPointer, present)
     let resolvedAlias = aliasPointer orelse fallback
     #assert(#typeof(resolvedAlias) == RequiredPointer)
-    Swag.assert(resolvedAlias[] == 42)
+    Swag.require(resolvedAlias[] == 42)
 
     let text:   string  = "present"
     let noText: string? = null
     let resolvedText    = text orelse noText
     #assert(#typeof(resolvedText) == string)
-    Swag.assert(resolvedText == "present")
+    Swag.require(resolvedText == "present")
 
     let values:  [2] u32         = [17, 42]
     let slice:   const [..] u32  = values
     let noSlice: const [..] u32? = null
     let resolvedSlice            = slice orelse noSlice
     #assert(#typeof(resolvedSlice) == const [..] u32)
-    Swag.assert(resolvedSlice[1] == 42)
+    Swag.require(resolvedSlice[1] == 42)
 }

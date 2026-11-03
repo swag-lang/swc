@@ -17,7 +17,7 @@ func readLocation(value: u64, padding: u64 = 0, loc = #callerlocation)->u64
     injected()
     {
         let observed = readLocation(1, loc: loc)
-        Swag.assert(observed == 1 + loc.lineStart)
+        Swag.require(observed == 1 + loc.lineStart)
     }
 }
 
@@ -38,7 +38,7 @@ func readValue(value: Value, original: const *Value)->u64
         injected()
         {
             let observed = readValue(value: value, original: &value)
-            Swag.assert(observed == 41)
+            Swag.require(observed == 41)
         }
     }
 }
@@ -51,7 +51,7 @@ func readValue(value: Value, original: const *Value)->u64
     {
         var value: Value = Value{first: 47}
         let observed     = readValue(value: value, original: &value)
-        Swag.assert(observed == 47)
+        Swag.require(observed == 47)
     }
-    Swag.assert(value.first == 43)
+    Swag.require(value.first == 43)
 }

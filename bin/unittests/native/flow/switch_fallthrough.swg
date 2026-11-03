@@ -16,7 +16,7 @@
         hit += 100
         break
     }
-    Swag.assert(hit == 11)
+    Swag.require(hit == 11)
 }
 
 #test
@@ -32,7 +32,7 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -51,7 +51,7 @@
         hit += 100
         break
     }
-    Swag.assert(hit == 111)
+    Swag.require(hit == 111)
 }
 
 #test
@@ -67,7 +67,7 @@
         hit += 10
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -86,7 +86,7 @@
         hit += 10
         break
     }
-    Swag.assert(hit == 11)
+    Swag.require(hit == 11)
 }
 
 #test
@@ -105,5 +105,5 @@
         hit += 10
         break
     }
-    Swag.assert(hit == 0)
+    Swag.require(hit == 0)
 }

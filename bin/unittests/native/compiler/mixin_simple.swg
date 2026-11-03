@@ -47,11 +47,11 @@ func computeInjectedMixinTotal()->s32
 // Mixin accesses caller scope variables
 #test
 {
-    Swag.assert(computeWithMixin(41) == 42)
+    Swag.require(computeWithMixin(41) == 42)
 }
 
 // Mixin-injected code can reference mixin parameters
 #test
 {
-    Swag.assert(computeInjectedMixinTotal() == 12)
+    Swag.require(computeInjectedMixinTotal() == 12)
 }

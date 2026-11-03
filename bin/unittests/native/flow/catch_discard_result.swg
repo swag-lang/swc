@@ -36,15 +36,15 @@ func inlineCatchDiscardOwner(succeeds: bool)->CatchDiscardOwner fail
 {
     CatchDiscardDrops = 0
     discard catch catchDiscardOwner(false)
-    Swag.assert(CatchDiscardDrops == 0)
+    Swag.require(CatchDiscardDrops == 0)
     discard catch catchDiscardOwner(true)
-    Swag.assert(CatchDiscardDrops == 1)
+    Swag.require(CatchDiscardDrops == 1)
     discard catch inlineCatchDiscardOwner(false)
-    Swag.assert(CatchDiscardDrops == 1)
+    Swag.require(CatchDiscardDrops == 1)
     discard catch inlineCatchDiscardOwner(true)
-    Swag.assert(CatchDiscardDrops == 2)
+    Swag.require(CatchDiscardDrops == 2)
     discard catch catchDiscardOwner(false) orelse expect catchDiscardOwner(true)
-    Swag.assert(CatchDiscardDrops == 3)
+    Swag.require(CatchDiscardDrops == 3)
 }
 
 // Register-sized owners need an address for their destructor too.
@@ -73,9 +73,9 @@ func catchDiscardSmallOwner(succeeds: bool)->CatchDiscardSmallOwner fail
 {
     let before = CatchDiscardDrops
     discard catch catchDiscardSmallOwner(false)
-    Swag.assert(CatchDiscardDrops == before)
+    Swag.require(CatchDiscardDrops == before)
     discard catch catchDiscardSmallOwner(true)
-    Swag.assert(CatchDiscardDrops == before + 1)
+    Swag.require(CatchDiscardDrops == before + 1)
     discard catch catchDiscardSmallOwner(false) orelse expect catchDiscardSmallOwner(true)
-    Swag.assert(CatchDiscardDrops == before + 2)
+    Swag.require(CatchDiscardDrops == before + 2)
 }

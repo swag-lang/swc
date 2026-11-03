@@ -41,7 +41,7 @@ func countBoth(values: const [*] s32, count: u64, low, high: s32)->u64
             for c in samples
             {
                 for d in samples do
-                    Swag.assert(bothBelow(a, b, c, d) == ((a < b) and (c < d)))
+                    Swag.require(bothBelow(a, b, c, d) == ((a < b) and (c < d)))
             }
         }
     }
@@ -52,16 +52,16 @@ func countBoth(values: const [*] s32, count: u64, low, high: s32)->u64
         for b in words
         {
             for c in words do
-                Swag.assert(eitherAbove(a, b, c) == ((a > c) or (b > c)))
+                Swag.require(eitherAbove(a, b, c) == ((a > c) or (b > c)))
         }
     }
 
     for c in 256
     {
         let b = cast(u8, c)
-        Swag.assert(isDigit(b) == (c >= 48 and c <= 57))
+        Swag.require(isDigit(b) == (c >= 48 and c <= 57))
     }
 
     let values = [1's32, 5, 9, -2, 7]
-    Swag.assert(countBoth(&values[0], 5, 0, 8) == 2 + 2 + 1 + 1 + 2)
+    Swag.require(countBoth(&values[0], 5, 0, 8) == 2 + 2 + 1 + 1 + 2)
 }

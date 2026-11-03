@@ -57,11 +57,11 @@ func stepParticles(particles: [..] Particle, dt: f64, steps: u64)
     stepParticles(particles, 0.25, 4)
     for i in 3
     {
-        Swag.assert(particles[i].x == expected[i].x)
-        Swag.assert(particles[i].y == expected[i].y)
-        Swag.assert(particles[i].z == expected[i].z)
-        Swag.assert(particles[i].vx == expected[i].vx)
-        Swag.assert(particles[i].vy == expected[i].vy)
-        Swag.assert(particles[i].vz == expected[i].vz)
+        Swag.require(particles[i].x == expected[i].x)
+        Swag.require(particles[i].y == expected[i].y)
+        Swag.require(particles[i].z == expected[i].z)
+        Swag.require(particles[i].vx == expected[i].vx)
+        Swag.require(particles[i].vy == expected[i].vy)
+        Swag.require(particles[i].vz == expected[i].vz)
     }
 }

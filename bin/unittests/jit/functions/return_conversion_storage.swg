@@ -58,13 +58,13 @@ func convertedFoldedArgument()->Text => passConverted(fixedText())
 #test
 {
     let a = convertedReturn("delta")
-    Swag.assert(a.view() == "delta")
+    Swag.require(a.view() == "delta")
     let b = convertedEarlyReturn(0, "epsilon")
-    Swag.assert(b.view() == "epsilon")
+    Swag.require(b.view() == "epsilon")
     let c = convertedEarlyReturn(1, "zeta")
-    Swag.assert(c.view() == "fallback")
+    Swag.require(c.view() == "fallback")
     let d = convertedFoldedReturn()
-    Swag.assert(d.view() == "fixed")
+    Swag.require(d.view() == "fixed")
     let e = convertedFoldedArgument()
-    Swag.assert(e.view() == "fixed")
+    Swag.require(e.view() == "fixed")
 }

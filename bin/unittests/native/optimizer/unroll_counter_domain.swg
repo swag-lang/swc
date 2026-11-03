@@ -54,12 +54,12 @@ func highSum()->u64
     var values: [4] u64
     highOffset(&values[0])
     for i in 4 do
-        Swag.assert(values[i] == 1000000000 + i)
+        Swag.require(values[i] == 1000000000 + i)
 
     var words: [4] u32
     unsigned32(&words[0])
     for i in 4 do
-        Swag.assert(words[i] == 0xFFFFFFFB + i)
+        Swag.require(words[i] == 0xFFFFFFFB + i)
 }
 
 #test
@@ -67,12 +67,12 @@ func highSum()->u64
     var wide: [3] u64
     unsigned64(&wide[0])
     for i in 3 do
-        Swag.assert(wide[i] == 0xFFFFFFFFFFFFFFF9 + 2 * cast(u64, i))
+        Swag.require(wide[i] == 0xFFFFFFFFFFFFFFF9 + 2 * cast(u64, i))
 
     var signed: [3] s64
     signed64(&signed[0])
     for i in 3 do
-        Swag.assert(signed[i] == 0x7FFFFFFFFFFFFFF9 + 2 * cast(s64, i))
+        Swag.require(signed[i] == 0x7FFFFFFFFFFFFFF9 + 2 * cast(s64, i))
 }
 
 #test
@@ -80,7 +80,7 @@ func highSum()->u64
     var values: [4] s32
     signed32(&values[0])
     for i in 4 do
-        Swag.assert(values[i] == -4 + 2 * cast(s32, i))
+        Swag.require(values[i] == -4 + 2 * cast(s32, i))
     let sum = highSum()
-    Swag.assert(sum == 0xFFFFFFFFFFFFFFF2)
+    Swag.require(sum == 0xFFFFFFFFFFFFFFF2)
 }

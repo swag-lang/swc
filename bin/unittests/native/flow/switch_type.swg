@@ -10,7 +10,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -23,7 +23,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -39,7 +39,7 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 // A comparison that folds must answer like the same comparison at run time. Type identity is
@@ -51,7 +51,7 @@ const TN: typeinfo = NullString
 #test
 {
     var a: typeinfo = NullString
-    Swag.assert(a == string)
+    Swag.require(a == string)
 }
 
 // A nullable form is the same type as the plain one, so 'case' selects it just like '=='
@@ -61,7 +61,7 @@ const TN: typeinfo = NullString
 {
     var text: string?  = "value"
     var a:    typeinfo = #typeof(text)
-    Swag.assert(a == string)
+    Swag.require(a == string)
 
     var hit = 0
     switch a
@@ -73,14 +73,14 @@ const TN: typeinfo = NullString
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
 {
     var ptr: *s32?
     var a:   typeinfo = #typeof(ptr)
-    Swag.assert(a == *s32)
+    Swag.require(a == *s32)
 
     var hit = 0
     switch a
@@ -92,7 +92,7 @@ const TN: typeinfo = NullString
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -121,10 +121,10 @@ const TN: typeinfo = NullString
     var middle:   typeinfo = u16
     var last:     typeinfo = string
     var fallback: typeinfo = *s32
-    Swag.assert(switchManyTypes(first) == 1)
-    Swag.assert(switchManyTypes(middle) == 6)
-    Swag.assert(switchManyTypes(last) == 12)
-    Swag.assert(switchManyTypes(fallback) == 99)
+    Swag.require(switchManyTypes(first) == 1)
+    Swag.require(switchManyTypes(middle) == 6)
+    Swag.require(switchManyTypes(last) == 12)
+    Swag.require(switchManyTypes(fallback) == 99)
 }
 
 #test
@@ -141,6 +141,6 @@ const TN: typeinfo = NullString
 
     var present: typeinfo? = s32
     var absent:  typeinfo? = null
-    Swag.assert(switchNullableTypeInfoValue(present) == 1)
-    Swag.assert(switchNullableTypeInfoValue(absent) == 2)
+    Swag.require(switchNullableTypeInfoValue(present) == 1)
+    Swag.require(switchNullableTypeInfoValue(absent) == 2)
 }

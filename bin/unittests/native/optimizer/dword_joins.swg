@@ -32,10 +32,10 @@ func isPow2(x: u64)->bool => x != 0 and (x & (x - 1)) == 0
 #test
 {
     var bytes: [5] u8 = [104, 101, 108, 108, 111]
-    Swag.assert(fnv(&bytes[0], 5) == 0x4F9F2CAB)
-    Swag.assert(fnv(&bytes[0], 0) == 2166136261)
-    Swag.assert(pick(0x100000005, false) == 5)
-    Swag.assert(pick(0x100000005, true) == 15)
-    Swag.assert(isPow2(1) and isPow2(0x8000000000000000))
-    Swag.assert(not isPow2(0) and not isPow2(6))
+    Swag.require(fnv(&bytes[0], 5) == 0x4F9F2CAB)
+    Swag.require(fnv(&bytes[0], 0) == 2166136261)
+    Swag.require(pick(0x100000005, false) == 5)
+    Swag.require(pick(0x100000005, true) == 15)
+    Swag.require(isPow2(1) and isPow2(0x8000000000000000))
+    Swag.require(not isPow2(0) and not isPow2(6))
 }

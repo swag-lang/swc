@@ -15,7 +15,7 @@ var plainValue: u32
         value += 10
     }
     body()
-    Swag.assert(value == 11)
+    Swag.require(value == 11)
 }
 
 // An explicit return and nested scopes must preserve cleanup order after callable conversion.
@@ -31,7 +31,7 @@ var plainValue: u32
             return
         }
     })
-    Swag.assert(value == 21)
+    Swag.require(value == 21)
 }
 
 #test
@@ -42,7 +42,7 @@ var plainValue: u32
         defer plainValue += 1
         plainValue += 10
     })
-    Swag.assert(plainValue == 11)
+    Swag.require(plainValue == 11)
 }
 
 #test
@@ -53,5 +53,5 @@ var plainValue: u32
         defer value += 1
         value += 10
     })
-    Swag.assert(value == 11)
+    Swag.require(value == 11)
 }

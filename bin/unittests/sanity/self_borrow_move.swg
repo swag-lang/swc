@@ -57,14 +57,14 @@ func readFirstFieldMovedSelfBorrow()->s32
     source.values[0] = 7
     source.cursor    = &source.values[0]
     var copied = source
-    Swag.assert(copied.cursor![] == 7)
+    Swag.require(copied.cursor![] == 7)
 
     var independent: s32 = 11
     copied.cursor = &independent
     var target = #move source
-    Swag.assert(copied.cursor[] == 11)
+    Swag.require(copied.cursor[] == 11)
     target.cursor = &target.values[0]
-    Swag.assert(target.cursor[] == 7)
+    Swag.require(target.cursor[] == 7)
 }
 
 struct RepairedSelfBorrowMove
@@ -87,7 +87,7 @@ impl RepairedSelfBorrowMove
     var source = RepairedSelfBorrowMove{value: 13}
     source.cursor = &source.value
     var target = #move source
-    Swag.assert(target.cursor![] == 13)
+    Swag.require(target.cursor![] == 13)
     target.cursor[] = 17
-    Swag.assert(target.value == 17)
+    Swag.require(target.value == 17)
 }

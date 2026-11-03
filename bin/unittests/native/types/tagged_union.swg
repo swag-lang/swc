@@ -35,17 +35,17 @@ func width(shape: Shape)->f32 => shape.rect!.w
 #test
 {
     var shape: Shape
-    Swag.assert(Swag.kindOf(shape.geometry) == .Empty)
-    Swag.assert(area(shape) == 0)
+    Swag.require(Swag.kindOf(shape.geometry) == .Empty)
+    Swag.require(area(shape) == 0)
 
     shape.geometry = .Circle{radius: 2}
-    Swag.assert(shape.geometry is .Circle)
-    Swag.assert(area(shape) == 12)
+    Swag.require(shape.geometry is .Circle)
+    Swag.require(area(shape) == 12)
 
     shape.geometry = .Square{w: 3, h: 3}
-    Swag.assert(Swag.kindOf(shape.geometry) == .Square)
-    Swag.assert(area(shape) == 9)
-    Swag.assert(width(shape) == 3)
+    Swag.require(Swag.kindOf(shape.geometry) == .Square)
+    Swag.require(area(shape) == 9)
+    Swag.require(width(shape) == 3)
 }
 
 // An assignment proves the case it writes, and a test proves the case it checks.
@@ -54,17 +54,17 @@ func width(shape: Shape)->f32 => shape.rect!.w
     var shape: Shape
     shape.geometry = .Rect{w: 2, h: 5}
     shape.rect.w   += 1
-    Swag.assert(shape.rect.w * shape.rect.h == 15)
+    Swag.require(shape.rect.w * shape.rect.h == 15)
 
     if shape.geometry is .Rect
     {
         shape.rect.h = 1
-        Swag.assert(area(shape) == 3)
+        Swag.require(area(shape) == 3)
     }
 
     if not (shape.geometry is .Circle) do
         return
-    Swag.assert(false)
+    Swag.require(false)
 }
 
 // Two holders compare equal when they hold the same case and equal payloads.
@@ -73,11 +73,11 @@ func width(shape: Shape)->f32 => shape.rect!.w
     var a, b: Shape
     a.geometry = .Circle{radius: 1}
     b.geometry = .Circle{radius: 1}
-    Swag.assert(a == b)
+    Swag.require(a == b)
     b.geometry = .Circle{radius: 2}
-    Swag.assert(a != b)
+    Swag.require(a != b)
     b.geometry = .Rect{w: 1, h: 0}
-    Swag.assert(a != b)
+    Swag.require(a != b)
 }
 
 // A payload compared by content gets a generated case-wise equality.
@@ -95,11 +95,11 @@ struct Label
     var a, b: Label
     a.text = .Circle{"disc"}
     b.text = .Circle{"disc"}
-    Swag.assert(a == b)
+    Swag.require(a == b)
     b.text = .Rect{4}
-    Swag.assert(a != b)
+    Swag.require(a != b)
     a.text = .Rect{4}
-    Swag.assert(a == b)
+    Swag.require(a == b)
 }
 
 var taggedDropCount = 0's32
@@ -134,13 +134,13 @@ struct Holder
     {
         var holder: Holder
         holder.item = .Circle{id: 5}
-        Swag.assert(holder.counted.id == 5)
+        Swag.require(holder.counted.id == 5)
         holder.item = .Rect{3}
-        Swag.assert(taggedDropCount == 1)
+        Swag.require(taggedDropCount == 1)
         holder.item = .Circle{id: 6}
     }
 
-    Swag.assert(taggedDropCount == 2)
+    Swag.require(taggedDropCount == 2)
 }
 
 // A switch on 'Swag.kindOf' proves the case too, here through a pointer receiver.
@@ -163,9 +163,9 @@ impl Holder
 #test
 {
     var holder: Holder
-    Swag.assert(holder.value() == -1)
+    Swag.require(holder.value() == -1)
     holder.item = .Rect{7}
-    Swag.assert(holder.value() == 7)
+    Swag.require(holder.value() == 7)
 }
 
 // A member default applies when the case is named without braces.
@@ -181,12 +181,12 @@ struct Bounds
 #test
 {
     var bounds: Bounds
-    Swag.assert(bounds.mode is .Rect)
-    Swag.assert(bounds.unsigned.max == 100)
+    Swag.require(bounds.mode is .Rect)
+    Swag.require(bounds.unsigned.max == 100)
 
     bounds.mode = .Circle
-    Swag.assert(bounds.signed.min == -10)
-    Swag.assert(#sizeof(Bounds) == 24)
+    Swag.require(bounds.signed.min == -10)
+    Swag.require(#sizeof(Bounds) == 24)
 }
 
 // A named tagged union is a type of its own: it can be passed, returned and stored.
@@ -228,21 +228,21 @@ func sum(value: Value)->s32
 
 #test
 {
-    Swag.assert(sum(makePoint(2, 3)) == 5)
+    Swag.require(sum(makePoint(2, 3)) == 5)
 
     // Braces holding one value of the payload's own type hold that value as it is.
     let p = ValuePoint{x: 4, y: 6}
     var value: Value = .Point{p}
-    Swag.assert(sum(value) == 10)
+    Swag.require(sum(value) == 10)
 
     value = .Number{7}
-    Swag.assert(sum(value) == 7)
+    Swag.require(sum(value) == 7)
 
     var values: [3] Value = [.Number{1}, .Point{x: 1, y: 1}, .None]
     var total = 0
     for v in values do
         total += sum(v)
-    Swag.assert(total == 3)
+    Swag.require(total == 3)
 }
 
 // A guard in 'where' proves the case in the body, and an inline call keeps the proof of its argument.
@@ -255,10 +255,10 @@ func twice(v: s32)->s32 => v * 2
     var total = 0
     for v in values where v is .Number do
         total += twice(v.number)
-    Swag.assert(total == 6)
+    Swag.require(total == 6)
 
     // A block pointer reaches the union as well as a plain one.
     let first: [*] Value = &values[0]
     if first is .Number do
-        Swag.assert(first.number == 1)
+        Swag.require(first.number == 1)
 }

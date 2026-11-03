@@ -9,7 +9,7 @@
         discard x
         i += 1
     }
-    Swag.assert(i == 3)
+    Swag.require(i == 3)
 }
 
 #test
@@ -22,7 +22,7 @@
         count += 1
     }
 
-    Swag.assert(count == 4)
+    Swag.require(count == 4)
 }
 
 #test
@@ -41,5 +41,5 @@
         outer += 1
     }
 
-    Swag.assert(outer == 2)
+    Swag.require(outer == 2)
 }

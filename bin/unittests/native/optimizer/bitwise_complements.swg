@@ -28,12 +28,12 @@ func complementBranch(a, b: u64)->s32
     {
         for b in values
         {
-            Swag.assert(cancelComplements64(a, b) == (a ^ b))
+            Swag.require(cancelComplements64(a, b) == (a ^ b))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(cancelComplements32(a32, b32) == (a32 ^ b32))
-            Swag.assert(reusedComplement(a, b) == (~a & b))
-            Swag.assert(complementBranch(a, b) == (a == b ? 11 : 27))
+            Swag.require(cancelComplements32(a32, b32) == (a32 ^ b32))
+            Swag.require(reusedComplement(a, b) == (~a & b))
+            Swag.require(complementBranch(a, b) == (a == b ? 11 : 27))
         }
     }
 }

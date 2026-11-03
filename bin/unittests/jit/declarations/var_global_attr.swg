@@ -9,9 +9,9 @@
         return count
     }
 
-    Swag.assert(counter() == 1)
-    Swag.assert(counter() == 2)
-    Swag.assert(counter() == 3)
+    Swag.require(counter() == 1)
+    Swag.require(counter() == 2)
+    Swag.require(counter() == 3)
 }
 
 #test
@@ -23,9 +23,9 @@
         return total
     }
 
-    Swag.assert(accumulate(10) == 10)
-    Swag.assert(accumulate(20) == 30)
-    Swag.assert(accumulate(5) == 35)
+    Swag.require(accumulate(10) == 10)
+    Swag.require(accumulate(20) == 30)
+    Swag.require(accumulate(5) == 35)
 }
 
 #test
@@ -37,9 +37,9 @@
         return state
     }
 
-    Swag.assert(toggle() == true)
-    Swag.assert(toggle() == false)
-    Swag.assert(toggle() == true)
+    Swag.require(toggle() == true)
+    Swag.require(toggle() == false)
+    Swag.require(toggle() == true)
 }
 
 // A function-local `global` owns ONE storage for the whole program, so a body that declares one
@@ -55,7 +55,7 @@
         return value
     }
 
-    Swag.assert(marked() == 101)
-    Swag.assert(marked() == 102)
-    Swag.assert(marked() == 103)
+    Swag.require(marked() == 101)
+    Swag.require(marked() == 102)
+    Swag.require(marked() == 103)
 }

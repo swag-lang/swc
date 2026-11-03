@@ -19,16 +19,16 @@ func checkedEqual(a, b: s64)->u64 => cast(u64, (a - b == 0))
     {
         for b in values
         {
-            Swag.assert(equal64(a, b) == (a == b ? 1 : 0))
+            Swag.require(equal64(a, b) == (a == b ? 1 : 0))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(different32(a32, b32) == (a32 != b32 ? 1 : 0))
+            Swag.require(different32(a32, b32) == (a32 != b32 ? 1 : 0))
         }
     }
-    Swag.assert(signedDifference(-1, 1) == 1)
-    Swag.assert(signedDifference(1, -1) == 0)
-    Swag.assert(signedDifference(-0x7FFFFFFFFFFFFFFF - 1, 1) == 0)
-    Swag.assert(signedDifference(0x7FFFFFFFFFFFFFFF, -1) == 1)
-    Swag.assert(checkedEqual(-42, -42) == 1)
-    Swag.assert(checkedEqual(42, -42) == 0)
+    Swag.require(signedDifference(-1, 1) == 1)
+    Swag.require(signedDifference(1, -1) == 0)
+    Swag.require(signedDifference(-0x7FFFFFFFFFFFFFFF - 1, 1) == 0)
+    Swag.require(signedDifference(0x7FFFFFFFFFFFFFFF, -1) == 1)
+    Swag.require(checkedEqual(-42, -42) == 1)
+    Swag.require(checkedEqual(42, -42) == 0)
 }

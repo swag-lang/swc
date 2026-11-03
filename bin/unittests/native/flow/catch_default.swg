@@ -86,15 +86,15 @@ func catchDefaultReplacement()->s32
 #test
 {
     let item = catch catchDefaultItem(false)
-    Swag.assert(item.width == 640 and item.ratio == 1.5 and item.name == "untitled")
+    Swag.require(item.width == 640 and item.ratio == 1.5 and item.name == "untitled")
     let found = catch catchDefaultItem(true)
-    Swag.assert(found.width == 3 and found.name == "item")
+    Swag.require(found.width == 3 and found.name == "item")
 
-    Swag.assert((catch catchDefaultFloat(false)) == 0.0)
-    Swag.assert((catch catchDefaultFloat(true)) == 2.5)
-    Swag.assert((catch catchDefaultName(false)) == null)
-    Swag.assert((catch catchDefaultMode(false)) == .First)
-    Swag.assert((catch catchDefaultMode(true)) == .Second)
+    Swag.require((catch catchDefaultFloat(false)) == 0.0)
+    Swag.require((catch catchDefaultFloat(true)) == 2.5)
+    Swag.require((catch catchDefaultName(false)) == null)
+    Swag.require((catch catchDefaultMode(false)) == .First)
+    Swag.require((catch catchDefaultMode(true)) == .Second)
 }
 
 // Assigning a caught result writes the default into an existing variable too.
@@ -102,39 +102,39 @@ func catchDefaultReplacement()->s32
 {
     var item = CatchDefaultItem{width: 1, ratio: 0.5, name: "old"}
     item = catch catchDefaultItem(false)
-    Swag.assert(item.width == 640 and item.name == "untitled")
+    Swag.require(item.width == 640 and item.name == "untitled")
 }
 
 // 'orelse V' replaces the failed result, and is evaluated on failure only.
 #test
 {
     CatchDefaultReplacements = 0
-    Swag.assert((catch catchDefaultCount(true) orelse catchDefaultReplacement()) == 7)
-    Swag.assert(CatchDefaultReplacements == 0)
-    Swag.assert((catch catchDefaultCount(false) orelse catchDefaultReplacement()) == 9)
-    Swag.assert(CatchDefaultReplacements == 1)
+    Swag.require((catch catchDefaultCount(true) orelse catchDefaultReplacement()) == 7)
+    Swag.require(CatchDefaultReplacements == 0)
+    Swag.require((catch catchDefaultCount(false) orelse catchDefaultReplacement()) == 9)
+    Swag.require(CatchDefaultReplacements == 1)
 
     // The operand binds tightly: the comparison reads the caught result.
-    Swag.assert(catch catchDefaultCount(false) == 0)
-    Swag.assert(catch catchDefaultCount(true) == 7)
+    Swag.require(catch catchDefaultCount(false) == 0)
+    Swag.require(catch catchDefaultCount(true) == 7)
 }
 
 // 'Swag.err' reads the error in the replacement and in the handler.
 #test
 {
     let message = catch catchDefaultCount(false) orelse cast(s32, Swag.err != null) * 5
-    Swag.assert(message == 5)
+    Swag.require(message == 5)
 }
 
 // With a nullable result, 'orelse' also replaces a successful null.
 #test
 {
     let present: string = catch catchDefaultName(true) orelse "fallback"
-    Swag.assert(present == "name")
+    Swag.require(present == "name")
     let failed: string = catch catchDefaultName(false) orelse "fallback"
-    Swag.assert(failed == "fallback")
+    Swag.require(failed == "fallback")
     let empty: string = catch catchDefaultNoName() orelse "fallback"
-    Swag.assert(empty == "fallback")
+    Swag.require(empty == "fallback")
 }
 
 // 'as owner' keeps the error in a declared 'Swag.Error'.
@@ -142,9 +142,9 @@ func catchDefaultReplacement()->s32
 {
     var saved: Swag.Error
     let value = catch catchDefaultCount(false) as saved orelse 3
-    Swag.assert(value == 3 and not saved.isEmpty())
+    Swag.require(value == 3 and not saved.isEmpty())
     discard catch catchDefaultCount(true) as saved
-    Swag.assert(saved.isEmpty())
+    Swag.require(saved.isEmpty())
 }
 
 func catchDefaultLeave(succeed: bool)->s32
@@ -156,19 +156,19 @@ func catchDefaultLeave(succeed: bool)->s32
 // A handler directly follows the operand; on a value it must leave the flow.
 #test
 {
-    Swag.assert(catchDefaultLeave(true) == 7)
-    Swag.assert(catchDefaultLeave(false) == -1)
+    Swag.require(catchDefaultLeave(true) == 7)
+    Swag.require(catchDefaultLeave(false) == -1)
 
     var handled = 0
     catch catchDefaultCheck(false) { handled += 1 }
     catch catchDefaultCheck(true) do handled += 10
     catch catchDefaultCheck(false)
     {
-        Swag.assert(Swag.err != null)
+        Swag.require(Swag.err != null)
         handled += 100
     }
 
-    Swag.assert(handled == 101)
+    Swag.require(handled == 101)
 }
 
 // In a control-statement header, the '{' after the operand opens the statement body.
@@ -187,5 +187,5 @@ func catchDefaultLeave(succeed: bool)->s32
         break
     }
 
-    Swag.assert(taken == 111)
+    Swag.require(taken == 111)
 }

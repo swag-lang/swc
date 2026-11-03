@@ -50,25 +50,25 @@ func widened(b: bool, x: u64)->u64 => cast(u64, affine(b)) + x
 
 #test
 {
-    Swag.assert(widened(true, 0x100000000) == 0x100000007)
-    Swag.assert(widened(false, 1) == 4)
+    Swag.require(widened(true, 0x100000000) == 0x100000007)
+    Swag.require(widened(false, 1) == 4)
 
-    Swag.assert(absDiff(3, 10) == 7)
-    Swag.assert(absDiff(0xFFFFFFFF, 1) == 0xFFFFFFFE)
-    Swag.assert(absDiff(0, 0xFFFFFFFF) == 0xFFFFFFFF)
+    Swag.require(absDiff(3, 10) == 7)
+    Swag.require(absDiff(0xFFFFFFFF, 1) == 0xFFFFFFFE)
+    Swag.require(absDiff(0, 0xFFFFFFFF) == 0xFFFFFFFF)
 
-    Swag.assert(clamp(5, -3, 3) == 3)
-    Swag.assert(clamp(-9, -3, 3) == -3)
-    Swag.assert(clamp(-2, -3, 3) == -2)
-    Swag.assert(clamp(-0x7FFFFFFF - 1, -0x7FFFFFFF - 1, 0) == -0x7FFFFFFF - 1)
+    Swag.require(clamp(5, -3, 3) == 3)
+    Swag.require(clamp(-9, -3, 3) == -3)
+    Swag.require(clamp(-2, -3, 3) == -2)
+    Swag.require(clamp(-0x7FFFFFFF - 1, -0x7FFFFFFF - 1, 0) == -0x7FFFFFFF - 1)
 
-    Swag.assert(widenLater(0xFFFFFFFF, 5) == 5)
-    Swag.assert(widenLater(7, 0x100000000) == 0x100000008)
+    Swag.require(widenLater(0xFFFFFFFF, 5) == 5)
+    Swag.require(widenLater(7, 0x100000000) == 0x100000008)
 
-    Swag.assert(signLater(-5) == -18)
-    Swag.assert(signLater(-0x7FFFFFFF - 1) == 0x7FFFFFFF * 3)
-    Swag.assert(signLater(0) == -3)
+    Swag.require(signLater(-5) == -18)
+    Swag.require(signLater(-0x7FFFFFFF - 1) == 0x7FFFFFFF * 3)
+    Swag.require(signLater(0) == -3)
 
-    Swag.assert(byteLater(0xFF, 3) == 3)
-    Swag.assert(byteLater(0x10, 0x100) == 0x111)
+    Swag.require(byteLater(0xFF, 3) == 3)
+    Swag.require(byteLater(0x10, 0x100) == 0x111)
 }

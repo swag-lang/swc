@@ -21,6 +21,6 @@ func negateReturnedNullable(flag: bool)->bool
     var falseFlag = false
     var trueFlag  = true
 
-    Swag.assert(negateReturnedNullable(falseFlag))
-    Swag.assert(not negateReturnedNullable(trueFlag))
+    Swag.require(negateReturnedNullable(falseFlag))
+    Swag.require(not negateReturnedNullable(trueFlag))
 }

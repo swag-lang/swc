@@ -31,7 +31,7 @@ func nestedInlineMoveWithPoison(source: *InlineMovedValue)
 {
     var source = InlineMovedValue{value: 19}
     inlineMoveWithPoison(&source)
-    Swag.assert(source.value == -572662307)
+    Swag.require(source.value == -572662307)
 }
 
 #[Swag.Sanity(.Lifecycle, false)]
@@ -39,7 +39,7 @@ func nestedInlineMoveWithPoison(source: *InlineMovedValue)
 {
     var source = InlineMovedValue{value: 23}
     inlineMoveWithoutPoison(&source)
-    Swag.assert(source.value == 23)
+    Swag.require(source.value == 23)
 }
 
 #[Swag.Sanity(.Lifecycle, false)]
@@ -47,5 +47,5 @@ func nestedInlineMoveWithPoison(source: *InlineMovedValue)
 {
     var source = InlineMovedValue{value: 29}
     nestedInlineMoveWithPoison(&source)
-    Swag.assert(source.value == -572662307)
+    Swag.require(source.value == -572662307)
 }

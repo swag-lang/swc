@@ -70,14 +70,14 @@
 #test
 {
     var x = 4.0'f32
-    Swag.assert(Swag.sqrt(x) == 2.0'f32)
+    Swag.require(Swag.sqrt(x) == 2.0'f32)
 }
 
 #[Swag.Sanity(.Math, true)]
 #test
 {
     var x = 1.0'f64
-    Swag.assert(Swag.log(x) == 0.0'f64)
+    Swag.require(Swag.log(x) == 0.0'f64)
 }
 
 #[Swag.Sanity(.Math, true)]
@@ -105,5 +105,5 @@ func rootOf(v: f32)->f32
 
 #test
 {
-    Swag.assert(rootOf(9.0'f32) == 3.0'f32)
+    Swag.require(rootOf(9.0'f32) == 3.0'f32)
 }

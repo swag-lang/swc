@@ -28,7 +28,7 @@ func prefetchRow(row: const [*] u8, count: u64)->u32
     Swag.prefetch(missing)
 
     for i in 0 until data.count do
-        Swag.assert(data[i] == cast(u32, i))
+        Swag.require(data[i] == cast(u32, i))
 }
 
 // A prefetch inside a loop neither disturbs the reads around it nor faults past the end
@@ -41,5 +41,5 @@ func prefetchRow(row: const [*] u8, count: u64)->u32
     var expected = 0'u32
     for i in 0 until bytes.count do
         expected += bytes[i]
-    Swag.assert(prefetchRow(bytes.buffer, bytes.count) == expected)
+    Swag.require(prefetchRow(bytes.buffer, bytes.count) == expected)
 }

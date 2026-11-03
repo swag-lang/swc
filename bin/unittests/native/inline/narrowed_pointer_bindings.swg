@@ -77,18 +77,18 @@ func narrowedMemberReceiver(holder: *NarrowedHolder)->s32
     counters[1].value = 20
     counters[2].value = 30
 
-    Swag.assert(narrowedReceiverAfterReturn(&counters[0]) == 51)
-    Swag.assert(counters[1].value == 26)
-    Swag.assert(narrowedReceiverAfterReturn(&counters[0]) == -1)
+    Swag.require(narrowedReceiverAfterReturn(&counters[0]) == 51)
+    Swag.require(counters[1].value == 26)
+    Swag.require(narrowedReceiverAfterReturn(&counters[0]) == -1)
 
-    Swag.assert(narrowedArgumentInBranch(&counters[0], 30) == 37)
-    Swag.assert(counters[2].value == 37)
-    Swag.assert(narrowedArgumentInBranch(&counters[0], 99) == -1)
+    Swag.require(narrowedArgumentInBranch(&counters[0], 30) == 37)
+    Swag.require(counters[2].value == 37)
+    Swag.require(narrowedArgumentInBranch(&counters[0], 99) == -1)
 
     var holder = NarrowedHolder{counter: &counters[0]}
-    Swag.assert(narrowedMemberReceiver(&holder) == 15)
-    Swag.assert(counters[0].value == 15)
+    Swag.require(narrowedMemberReceiver(&holder) == 15)
+    Swag.require(counters[0].value == 15)
 
     var empty: NarrowedHolder
-    Swag.assert(narrowedMemberReceiver(&empty) == -1)
+    Swag.require(narrowedMemberReceiver(&empty) == -1)
 }

@@ -332,9 +332,9 @@ func auditLan(connections: const [..] string)->LanAudit
 
     let sampleAudit = auditLan(sampleConnections)
 
-    Swag.assert(sampleAudit.leadTripletCount == 7)
-    Swag.assert(sampleAudit.largestCliqueSize == 4)
-    Swag.assert(passwordMatches(sampleAudit, "co,de,ka,ta"))
+    Swag.require(sampleAudit.leadTripletCount == 7)
+    Swag.require(sampleAudit.largestCliqueSize == 4)
+    Swag.require(passwordMatches(sampleAudit, "co,de,ka,ta"))
 
     const compactConnections: [6] string =
         [
@@ -348,7 +348,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
     let compactAudit = auditLan(compactConnections)
 
-    Swag.assert(compactAudit.leadTripletCount == 3)
-    Swag.assert(compactAudit.largestCliqueSize == 4)
-    Swag.assert(passwordMatches(compactAudit, "aa,bb,cc,tt"))
+    Swag.require(compactAudit.leadTripletCount == 3)
+    Swag.require(compactAudit.largestCliqueSize == 4)
+    Swag.require(passwordMatches(compactAudit, "aa,bb,cc,tt"))
 }

@@ -27,15 +27,15 @@ func variable(a, count: u64)->u64 => (a >> count) & 255
     let values = [0'u64, 1, 0x100, 0x1234, 0xABCD, 0x123456789ABCDEF0, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(first(a) == variable(a, 8))
-        Swag.assert(signedByte(cast #bit (s64, a)) == variable(a, 8))
-        Swag.assert(shared(a) == ((a >> 8) & 0xFFFFFFFFFFFFFF00))
+        Swag.require(first(a) == variable(a, 8))
+        Swag.require(signedByte(cast #bit (s64, a)) == variable(a, 8))
+        Swag.require(shared(a) == ((a >> 8) & 0xFFFFFFFFFFFFFF00))
         for b in values
         {
-            Swag.assert(second(a, b) == (variable(b, 8) ^ a))
-            Swag.assert(third(a, b, ~a, ~b) == (variable(~a, 8) ^ a ^ b ^ ~b))
-            Swag.assert(fourth(a, b, ~a, ~b) == (variable(~b, 8) ^ a ^ b ^ ~a))
-            Swag.assert(product(a, b) == variable(a * b, 8))
+            Swag.require(second(a, b) == (variable(b, 8) ^ a))
+            Swag.require(third(a, b, ~a, ~b) == (variable(~a, 8) ^ a ^ b ^ ~b))
+            Swag.require(fourth(a, b, ~a, ~b) == (variable(~b, 8) ^ a ^ b ^ ~a))
+            Swag.require(product(a, b) == variable(a * b, 8))
         }
     }
 }

@@ -140,31 +140,31 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
 #test
 {
     const Value = #run inlineSafetyArrayBoundCheck(opaqueU64(2))
-    Swag.assert(Value == 0)
+    Swag.require(Value == 0)
 }
 
 #test
 {
     const Value = #run inlineSafetyAddOverflow(127's8, 1's8)
-    Swag.assert(Value == 0)
+    Swag.require(Value == 0)
 }
 
 #test
 {
     const Value = #run inlineSafetyMulOverflowS8(127's8, 2's8)
-    Swag.assert(Value == 0)
+    Swag.require(Value == 0)
 }
 
 #test
 {
     const Value = #run inlineSafetyDivOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
-    Swag.assert(Value == 0)
+    Swag.require(Value == 0)
 }
 
 #test
 {
     const Value = #run inlineSafetyModOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
-    Swag.assert(Value == 0)
+    Swag.require(Value == 0)
 }
 
 #test
@@ -184,7 +184,7 @@ func inlineSanityMathDisabled()->f64
 #test
 {
     let Value = inlineSanityMathDisabled()
-    Swag.assert(Value != Value)
+    Swag.require(Value != Value)
 }
 
 #[Swag.Inline, Swag.Safety(.Math, false), Swag.Sanity(.Math, true)]

@@ -25,8 +25,8 @@ func fallbackString()->string
 {
     GNullShortCounter = 0
     let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
-    Swag.assert(value == 12'u32)
-    Swag.assert(GNullShortCounter == 0)
+    Swag.require(value == 12'u32)
+    Swag.require(GNullShortCounter == 0)
 }
 
 #test
@@ -34,9 +34,9 @@ func fallbackString()->string
     GNullShortCounter = 0
     var ptr: *s32? = null
     let value      = ptr orelse fallbackPointer()
-    Swag.assert(value == &GNullShortValue)
-    Swag.assert(value[] == 33)
-    Swag.assert(GNullShortCounter == 1)
+    Swag.require(value == &GNullShortValue)
+    Swag.require(value[] == 33)
+    Swag.require(GNullShortCounter == 1)
 }
 
 #test
@@ -44,8 +44,8 @@ func fallbackString()->string
     GNullShortCounter = 0
     let value: string = "ok"
     let resolved      = value orelse fallbackString()
-    Swag.assert(resolved == "ok")
-    Swag.assert(GNullShortCounter == 0)
+    Swag.require(resolved == "ok")
+    Swag.require(GNullShortCounter == 0)
 }
 
 #test
@@ -53,6 +53,6 @@ func fallbackString()->string
     GNullShortCounter = 0
     var value: string? = null
     let resolved       = value orelse fallbackString()
-    Swag.assert(resolved == "fallback")
-    Swag.assert(GNullShortCounter == 1)
+    Swag.require(resolved == "fallback")
+    Swag.require(GNullShortCounter == 1)
 }

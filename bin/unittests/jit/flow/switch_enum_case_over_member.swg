@@ -47,9 +47,9 @@ impl SwitchSortCommands
 #test
 {
     var commands: SwitchSortCommands
-    Swag.assert(commands.rank(.Recent) == 1)
-    Swag.assert(commands.rank(.Name) == 2)
-    Swag.assert(commands.nested("recent", .Recent) == 1)
-    Swag.assert(commands.nested("recent", .Name) == 0)
-    Swag.assert(commands.nested("other", .Recent) == 2)
+    Swag.require(commands.rank(.Recent) == 1)
+    Swag.require(commands.rank(.Name) == 2)
+    Swag.require(commands.nested("recent", .Recent) == 1)
+    Swag.require(commands.nested("recent", .Name) == 0)
+    Swag.require(commands.nested("other", .Recent) == 2)
 }

@@ -36,11 +36,11 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 to 2]
 
-    Swag.assert(slice.count == 1)
-    Swag.assert(slice[0] == 30)
-    Swag.assert(box.sliceCalls == 1)
-    Swag.assert(box.lastLow == 2)
-    Swag.assert(box.lastUp == 2)
+    Swag.require(slice.count == 1)
+    Swag.require(slice[0] == 30)
+    Swag.require(box.sliceCalls == 1)
+    Swag.require(box.lastLow == 2)
+    Swag.require(box.lastUp == 2)
 }
 
 // Test: first element only [0 to 0]
@@ -49,8 +49,8 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[0 to 0]
 
-    Swag.assert(slice.count == 1)
-    Swag.assert(slice[0] == 10)
+    Swag.require(slice.count == 1)
+    Swag.require(slice[0] == 10)
 }
 
 // Test: last element only [4 to 4]
@@ -59,8 +59,8 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[4 to 4]
 
-    Swag.assert(slice.count == 1)
-    Swag.assert(slice[0] == 50)
+    Swag.require(slice.count == 1)
+    Swag.require(slice[0] == 50)
 }
 
 // Test: single element via 'until' [2 until 3]
@@ -69,8 +69,8 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 until 3]
 
-    Swag.assert(slice.count == 1)
-    Swag.assert(slice[0] == 30)
+    Swag.require(slice.count == 1)
+    Swag.require(slice[0] == 30)
 }
 
 // Test: two-element slice at boundaries [0 to 1]
@@ -79,9 +79,9 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[0 to 1]
 
-    Swag.assert(slice.count == 2)
-    Swag.assert(slice[0] == 10)
-    Swag.assert(slice[1] == 20)
+    Swag.require(slice.count == 2)
+    Swag.require(slice[0] == 10)
+    Swag.require(slice[1] == 20)
 }
 
 // Test: two-element slice at end [3 to 4]
@@ -90,9 +90,9 @@ impl RuntimeSliceEdgeBox
     var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[3 to 4]
 
-    Swag.assert(slice.count == 2)
-    Swag.assert(slice[0] == 40)
-    Swag.assert(slice[1] == 50)
+    Swag.require(slice.count == 2)
+    Swag.require(slice[0] == 40)
+    Swag.require(slice[1] == 50)
 }
 
 // Test: multiple slices on same box
@@ -103,15 +103,15 @@ impl RuntimeSliceEdgeBox
     let mid  = box[2 to 2]
     let tail = box[3 to]
 
-    Swag.assert(head.count == 2)
-    Swag.assert(mid.count == 1)
-    Swag.assert(tail.count == 2)
-    Swag.assert(head[0] == 1)
-    Swag.assert(head[1] == 2)
-    Swag.assert(mid[0] == 3)
-    Swag.assert(tail[0] == 4)
-    Swag.assert(tail[1] == 5)
-    Swag.assert(box.sliceCalls == 3)
+    Swag.require(head.count == 2)
+    Swag.require(mid.count == 1)
+    Swag.require(tail.count == 2)
+    Swag.require(head[0] == 1)
+    Swag.require(head[1] == 2)
+    Swag.require(mid[0] == 3)
+    Swag.require(tail[0] == 4)
+    Swag.require(tail[1] == 5)
+    Swag.require(box.sliceCalls == 3)
 }
 
 // ============================================================================
@@ -144,9 +144,9 @@ impl RuntimeConstSliceBox
     const box = RuntimeConstSliceBox{values: [100, 200, 300, 400]}
     let slice = box[1 to 2]
 
-    Swag.assert(slice.count == 2)
-    Swag.assert(slice[0] == 200)
-    Swag.assert(slice[1] == 300)
+    Swag.require(slice.count == 2)
+    Swag.require(slice[0] == 200)
+    Swag.require(slice[1] == 300)
 }
 
 // Test: const full slice
@@ -155,7 +155,7 @@ impl RuntimeConstSliceBox
     const box = RuntimeConstSliceBox{values: [5, 6, 7, 8]}
     let slice = box[to]
 
-    Swag.assert(slice.count == 4)
-    Swag.assert(slice[0] == 5)
-    Swag.assert(slice[3] == 8)
+    Swag.require(slice.count == 4)
+    Swag.require(slice[0] == 5)
+    Swag.require(slice[3] == 8)
 }

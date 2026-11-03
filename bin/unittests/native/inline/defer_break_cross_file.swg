@@ -9,7 +9,7 @@
         resource = true
         defer
         {
-            Swag.assert(InlineRegressionBug15.isResourceCreated(resource))
+            Swag.require(InlineRegressionBug15.isResourceCreated(resource))
             resource = false
         }
 
@@ -17,5 +17,5 @@
             break
     }
 
-    Swag.assert(not InlineRegressionBug15.isResourceCreated(resource))
+    Swag.require(not InlineRegressionBug15.isResourceCreated(resource))
 }

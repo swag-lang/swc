@@ -29,8 +29,8 @@ impl Fmt
 {
     // Literal-initialized let: the receiver keeps its constant.
     let png = Fmt{"PNG", ".png"}
-    Swag.assert(png.extensionCount() == 4)
-    Swag.assert(png.firstByte() == '.'u8)
+    Swag.require(png.extensionCount() == 4)
+    Swag.require(png.firstByte() == '.'u8)
 }
 
 const G_Png = Fmt{"PNG", ".png"}
@@ -38,6 +38,6 @@ const G_Png = Fmt{"PNG", ".png"}
 #test
 {
     // Global constant receiver.
-    Swag.assert(G_Png.extensionCount() == 4)
-    Swag.assert(G_Png.firstByte() == '.'u8)
+    Swag.require(G_Png.extensionCount() == 4)
+    Swag.require(G_Png.firstByte() == '.'u8)
 }

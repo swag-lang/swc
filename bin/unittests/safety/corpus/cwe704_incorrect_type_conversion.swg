@@ -55,10 +55,10 @@ func rankForgedValue(colour: Colour)->s32
 #test
 {
     let forged = forgeEnumValue(opaqueS32(99))
-    Swag.assert(forged != Colour.Red)
-    Swag.assert(forged != Colour.Green)
-    Swag.assert(forged != Colour.Blue)
-    Swag.assert(rankForgedValue(forged) == -1)
+    Swag.require(forged != Colour.Red)
+    Swag.require(forged != Colour.Green)
+    Swag.require(forged != Colour.Blue)
+    Swag.require(rankForgedValue(forged) == -1)
 }
 
 // The conversion remains unchecked, but an explicitly guarded complete switch rejects
@@ -81,9 +81,9 @@ func rankComplete(colour: Colour)->s32
 
 #test
 {
-    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(0))) == 1)
-    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(1))) == 2)
-    Swag.assert(rankComplete(forgeEnumValue(opaqueS32(2))) == 3)
+    Swag.require(rankComplete(forgeEnumValue(opaqueS32(0))) == 1)
+    Swag.require(rankComplete(forgeEnumValue(opaqueS32(1))) == 2)
+    Swag.require(rankComplete(forgeEnumValue(opaqueS32(2))) == 3)
 }
 
 // --- Sound ---
@@ -105,6 +105,6 @@ func flagsCombine()->bool
 
 #test
 {
-    Swag.assert(roundTripDeclaredMember())
-    Swag.assert(flagsCombine())
+    Swag.require(roundTripDeclaredMember())
+    Swag.require(flagsCombine())
 }

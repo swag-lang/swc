@@ -70,47 +70,47 @@ func makeNested(base: s32)->func||()->s32
 {
     let fromLambda:   func||(s32)->s32 = func(value: s32)->s32 { return value * 3 }
     let fromFunction: func||(s32)->s32 = &addOne
-    Swag.assert(fromLambda(4) == 12)
-    Swag.assert(fromFunction(4) == 5)
+    Swag.require(fromLambda(4) == 12)
+    Swag.require(fromFunction(4) == 5)
 }
 
 #test
 {
     let counter = makeCounter(10)
-    Swag.assert(counter() == 11)
-    Swag.assert(counter() == 12)
-    Swag.assert(counter() == 13)
+    Swag.require(counter() == 11)
+    Swag.require(counter() == 12)
+    Swag.require(counter() == 13)
 }
 
 #test
 {
-    Swag.assert(runParamRefCapture(7) == 101)
+    Swag.require(runParamRefCapture(7) == 101)
 }
 
 #test
 {
-    Swag.assert(runLocalRefCapture() == 92)
+    Swag.require(runLocalRefCapture() == 92)
 }
 
 #test
 {
     let pair:  Pair = Pair{base: 7, step: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.base + pair.step * value }
-    Swag.assert(apply(3) == 19)
+    Swag.require(apply(3) == 19)
 }
 
 #test
 {
     let boundary: Boundary64    = Boundary64{a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
     let sum:      func||()->u64 = func|boundary|()->u64 { return boundary.a + boundary.h }
-    Swag.assert(sum() == 9'u64)
+    Swag.require(sum() == 9'u64)
 }
 
 #test
 {
     let nested = makeNested(6)
-    Swag.assert(nested() == 13)
-    Swag.assert(nested() == 19)
+    Swag.require(nested() == 13)
+    Swag.require(nested() == 19)
 }
 
 #test
@@ -119,7 +119,7 @@ func makeNested(base: s32)->func||()->s32
 
     var fb: func||(s32)->s32
     fb = &toto
-    Swag.assert(fb(5) == 47)
+    Swag.require(fb(5) == 47)
 }
 
 // Local variables inside control flow within closure bodies must be accessible.
@@ -134,7 +134,7 @@ func makeNested(base: s32)->func||()->s32
             sum += v
         return sum + extra
     }
-    Swag.assert(fct(4) == 64)
+    Swag.require(fct(4) == 64)
 }
 
 #test
@@ -147,7 +147,7 @@ func makeNested(base: s32)->func||()->s32
             total += cast(s32, i)
         return total
     }
-    Swag.assert(fct(5) == 0 + 1 + 2 + 3 + 4)
+    Swag.require(fct(5) == 0 + 1 + 2 + 3 + 4)
 }
 
 #test
@@ -164,8 +164,8 @@ func makeNested(base: s32)->func||()->s32
         }
         return result
     }
-    Swag.assert(fct(5) == 110)
-    Swag.assert(fct(0) == 100)
+    Swag.require(fct(5) == 110)
+    Swag.require(fct(0) == 100)
 }
 
 struct LifecycleCounter
@@ -185,9 +185,9 @@ impl LifecycleCounter
 {
     var tracked = LifecycleCounter{value: 5}
     let read: func||()->s32 = func|&tracked|()->s32 { return tracked.value }
-    Swag.assert(read() == 5)
+    Swag.require(read() == 5)
     tracked.value = 9
-    Swag.assert(read() == 9)
+    Swag.require(read() == 9)
 }
 
 // 'var' makes the copy writable and leaves the source alone, whether it was 'let' or 'var'.
@@ -198,11 +198,11 @@ impl LifecycleCounter
     let bumpLet: func||()->s32 = func|var fromLet|()->s32 { fromLet += 1; return fromLet }
     let bumpVar: func||()->s32 = func|var fromVar|()->s32 { fromVar += 1; return fromVar }
 
-    Swag.assert(bumpLet() == 11)
-    Swag.assert(bumpLet() == 12)
-    Swag.assert(bumpVar() == 21)
-    Swag.assert(fromLet == 10)
-    Swag.assert(fromVar == 20)
+    Swag.require(bumpLet() == 11)
+    Swag.require(bumpLet() == 12)
+    Swag.require(bumpVar() == 21)
+    Swag.require(fromLet == 10)
+    Swag.require(fromVar == 20)
 }
 
 // Two 'var' captures of the same source own separate cells.
@@ -212,8 +212,8 @@ impl LifecycleCounter
     let first:  func||()->s32 = func|var seed|()->s32 { seed += 1; return seed }
     let second: func||()->s32 = func|var seed|()->s32 { seed += 10; return seed }
 
-    Swag.assert(first() == 6)
-    Swag.assert(second() == 15)
-    Swag.assert(first() == 7)
-    Swag.assert(seed == 5)
+    Swag.require(first() == 6)
+    Swag.require(second() == 15)
+    Swag.require(first() == 7)
+    Swag.require(seed == 5)
 }

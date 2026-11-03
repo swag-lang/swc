@@ -35,5 +35,5 @@ func failConstExprCallResult()
 
 #test
 {
-    Swag.assert(useConstCallResult() == 93)
+    Swag.require(useConstCallResult() == 93)
 }

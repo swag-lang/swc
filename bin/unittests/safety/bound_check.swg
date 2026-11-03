@@ -51,7 +51,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -67,7 +67,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -80,7 +80,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run stringBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -93,7 +93,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run cstringBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -110,7 +110,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run multiArrayBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 // Dynamic index: index value known only at runtime
@@ -126,7 +126,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayDynamicBoundCheck(2)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -143,7 +143,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceDynamicBoundCheck(5)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -156,7 +156,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run stringDynamicBoundCheck(10)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -173,7 +173,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run multiArrayDynamicBoundCheck(2, 0)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 // Empty slice: any index is out of bounds at runtime
@@ -188,7 +188,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run emptySliceBoundCheck()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 // In-bound accesses (constant and dynamic) must not panic
@@ -205,7 +205,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayInBounds(1)
-    Swag.assert(value == 6)
+    Swag.require(value == 6)
 }
 
 #test
@@ -222,7 +222,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceInBounds(2)
-    Swag.assert(value == 9)
+    Swag.require(value == 9)
 }
 
 // Variadic argument bound check
@@ -292,7 +292,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopNegativeCount(-1)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 // An inverted range selects nothing, so a loop over it runs zero times and the guard stays
@@ -310,7 +310,7 @@ func opaqueIdx(v: u64)->u64
 
     const value = #run loopInvertedSignedRange(5, 4)
     #assert(value == 0)
-    Swag.assert(loopInvertedSignedRange(5, 4) == 0)
+    Swag.require(loopInvertedSignedRange(5, 4) == 0)
 }
 
 #test
@@ -326,7 +326,7 @@ func opaqueIdx(v: u64)->u64
 
     const value = #run loopInvertedUnsignedRange(5, 4)
     #assert(value == 0)
-    Swag.assert(loopInvertedUnsignedRange(5, 4) == 0)
+    Swag.require(loopInvertedUnsignedRange(5, 4) == 0)
 }
 
 // The guard that did move to slicing: bounds out of order, and an upper bound past the source.
@@ -341,7 +341,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceInvertedRange(3, 1)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -355,7 +355,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run sliceUpperOutOfSource(0, 10)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 // An exclusive range with equal bounds is empty, so the guard must stay silent.
@@ -371,10 +371,10 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopEmptyUnsignedRange(4, 4)
-    Swag.assert(value == 0)
-    Swag.assert(loopEmptyUnsignedRange(4, 4) == 0)
-    Swag.assert(loopEmptyUnsignedRange(0, 0) == 0)
-    Swag.assert(loopEmptyUnsignedRange(0, 3) == 1 + 2 + 3)
+    Swag.require(value == 0)
+    Swag.require(loopEmptyUnsignedRange(4, 4) == 0)
+    Swag.require(loopEmptyUnsignedRange(0, 0) == 0)
+    Swag.require(loopEmptyUnsignedRange(0, 3) == 1 + 2 + 3)
 }
 
 #test
@@ -389,9 +389,9 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopEmptySignedRange(-2, -2)
-    Swag.assert(value == 0)
-    Swag.assert(loopEmptySignedRange(-2, -2) == 0)
-    Swag.assert(loopEmptySignedRange(0, 0) == 0)
+    Swag.require(value == 0)
+    Swag.require(loopEmptySignedRange(-2, -2) == 0)
+    Swag.require(loopEmptySignedRange(0, 0) == 0)
 }
 
 // When bound check is disabled, out-of-bounds access must not call the safety panic
@@ -408,7 +408,7 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run arrayBoundCheckDisabled()
-    Swag.assert(value == 2)
+    Swag.require(value == 2)
 }
 
 #test
@@ -423,5 +423,5 @@ func opaqueIdx(v: u64)->u64
     }
 
     const value = #run loopNegativeCountDisabled(-1)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }

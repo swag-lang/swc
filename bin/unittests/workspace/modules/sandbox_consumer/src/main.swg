@@ -4,5 +4,5 @@ using Core
 
 #test
 {
-    Swag.assert(Env.isSandboxed())
+    Swag.require(Env.isSandboxed())
 }

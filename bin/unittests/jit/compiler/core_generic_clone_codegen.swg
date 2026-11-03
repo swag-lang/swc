@@ -31,5 +31,5 @@ func exerciseGenericCloneCodegen()->bool
 
 #test
 {
-    Swag.assert(exerciseGenericCloneCodegen())
+    Swag.require(exerciseGenericCloneCodegen())
 }

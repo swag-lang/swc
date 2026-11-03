@@ -56,8 +56,8 @@ func indirectReleaseClearAndRead(context: *IndirectReleaseContext)->s32
     var context: IndirectReleaseContext
     context.slots[0].record = cast(*IndirectReleaseRecord, unwrap request.address)
     let marker = indirectReleaseClearAndRead(&context)
-    Swag.assert(marker == 37)
-    Swag.assert(context.slots[0].record == null)
+    Swag.require(marker == 37)
+    Swag.require(context.slots[0].record == null)
 }
 
 var indirectReleaseSavedLocation: Swag.SourceCodeLocation
@@ -88,8 +88,8 @@ func indirectReleaseCopyRequest(request: *Swag.AllocatorRequest)
     var request: Swag.AllocatorRequest
     request.callerLoc = #curlocation
     indirectReleaseCopyRequest(&request)
-    Swag.assert(indirectReleaseSavedLocation.fileName == request.callerLoc.fileName)
-    Swag.assert(indirectReleaseSavedLocation.lineStart == request.callerLoc.lineStart)
+    Swag.require(indirectReleaseSavedLocation.fileName == request.callerLoc.fileName)
+    Swag.require(indirectReleaseSavedLocation.lineStart == request.callerLoc.lineStart)
 }
 
 #[Swag.NoInline]

@@ -37,7 +37,7 @@ func lateSafetyReadSet()->s32
 {
     g_lateSafetyStorage.value = 5
     g_lateSafetySet = &g_lateSafetyStorage
-    Swag.assert(lateSafetyReadSet() == 5)
+    Swag.require(lateSafetyReadSet() == 5)
 }
 
 // A read that runs proves the global set for the statements after it, so their guards are
@@ -131,7 +131,7 @@ func lateSafetyReadMany(count: u32)->s32
 
 #test
 {
-    Swag.assert(lateSafetyReadMany(4) == 15)
+    Swag.require(lateSafetyReadMany(4) == 15)
 }
 
 // A qualified read runs the same guard.

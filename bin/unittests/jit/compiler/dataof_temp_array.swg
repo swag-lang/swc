@@ -10,6 +10,6 @@
     }
 
     let p = (cb(false)).buffer
-    Swag.assert(p[0] == 50'u16)
-    Swag.assert(p[3] == 80'u16)
+    Swag.require(p[0] == 50'u16)
+    Swag.require(p[3] == 80'u16)
 }

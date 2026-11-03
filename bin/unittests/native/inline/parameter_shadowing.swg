@@ -45,7 +45,7 @@ func runInlineGroupedParamShadow(left: s32, right: s32)->s32
 
 #test
 {
-    Swag.assert(runInlineCallerParamShadow(7) == 107)
-    Swag.assert(runInlineMultipleCallerParamShadow(3, 4) == 1107)
-    Swag.assert(runInlineGroupedParamShadow(3, 4) == 1107)
+    Swag.require(runInlineCallerParamShadow(7) == 107)
+    Swag.require(runInlineMultipleCallerParamShadow(3, 4) == 1107)
+    Swag.require(runInlineGroupedParamShadow(3, 4) == 1107)
 }

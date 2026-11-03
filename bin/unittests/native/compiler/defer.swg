@@ -143,26 +143,26 @@ func runMacroScopeTrace()->s64
 #test
 {
     let v = runInjectedFunctionScopeTrace()
-    Swag.assert(v.value == 42)
-    Swag.assert(DeferTrace == 1829)
+    Swag.require(v.value == 42)
+    Swag.require(DeferTrace == 1829)
 }
 
 // Defer in injected loop scope repeats per iteration
 #test
 {
-    Swag.assert(runInjectedLoopScope() == 818181)
+    Swag.require(runInjectedLoopScope() == 818181)
 }
 
 // Mixin defer runs at end of enclosing scope
 #test
 {
-    Swag.assert(runMixinScopeLock() == 5)
+    Swag.require(runMixinScopeLock() == 5)
 }
 
 // Mixin with param defers after body
 #test
 {
-    Swag.assert(runMixinParamTrace() == 12)
+    Swag.require(runMixinParamTrace() == 12)
 }
 
 #test
@@ -174,8 +174,8 @@ func runMacroScopeTrace()->s64
         return DeferTrace
     }
 
-    Swag.assert(runMixinConditionalDefer(true) == 1)
-    Swag.assert(runMixinConditionalDefer(false) == 2)
+    Swag.require(runMixinConditionalDefer(true) == 1)
+    Swag.require(runMixinConditionalDefer(false) == 2)
 }
 
 /*

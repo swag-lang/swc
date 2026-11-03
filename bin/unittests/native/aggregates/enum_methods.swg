@@ -41,35 +41,35 @@ impl Direction
 #test
 {
     let d = Direction.North
-    Swag.assert(Direction.opposite(d) == Direction.South)
-    Swag.assert(Direction.isVertical(d))
-    Swag.assert(not Direction.isHorizontal(d))
+    Swag.require(Direction.opposite(d) == Direction.South)
+    Swag.require(Direction.isVertical(d))
+    Swag.require(not Direction.isHorizontal(d))
 }
 
 #test
 {
     let d = Direction.East
-    Swag.assert(Direction.opposite(d) == Direction.West)
-    Swag.assert(not Direction.isVertical(d))
-    Swag.assert(Direction.isHorizontal(d))
+    Swag.require(Direction.opposite(d) == Direction.West)
+    Swag.require(not Direction.isVertical(d))
+    Swag.require(Direction.isHorizontal(d))
 }
 
 // Using directive.
 #test
 {
     using Direction
-    Swag.assert(opposite(South) == North)
-    Swag.assert(opposite(West) == East)
-    Swag.assert(isVertical(North))
-    Swag.assert(not isVertical(East))
+    Swag.require(opposite(South) == North)
+    Swag.require(opposite(West) == East)
+    Swag.require(isVertical(North))
+    Swag.require(not isVertical(East))
 }
 
 // Round-trip.
 #test
 {
     using Direction
-    Swag.assert(opposite(opposite(North)) == North)
-    Swag.assert(opposite(opposite(East)) == East)
+    Swag.require(opposite(opposite(North)) == North)
+    Swag.require(opposite(opposite(East)) == East)
 }
 
 // Enum with explicit values.
@@ -88,12 +88,12 @@ impl Priority
 
 #test
 {
-    Swag.assert(not Priority.isUrgent(Priority.Medium))
-    Swag.assert(Priority.isUrgent(Priority.High))
-    Swag.assert(Priority.isLow(Priority.Low))
-    Swag.assert(not Priority.isLow(Priority.High))
+    Swag.require(not Priority.isUrgent(Priority.Medium))
+    Swag.require(Priority.isUrgent(Priority.High))
+    Swag.require(Priority.isLow(Priority.Low))
+    Swag.require(not Priority.isLow(Priority.High))
     let p = Priority.Low
-    Swag.assert(p.isLow() == true)
+    Swag.require(p.isLow() == true)
 }
 
 // Enum flags with bitwise operations.
@@ -108,19 +108,19 @@ enum Permissions: u32
 #test
 {
     let rw = Permissions.Read | Permissions.Write
-    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Read)) != 0)
-    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Write)) != 0)
-    Swag.assert((cast(u32, rw) & cast(u32, Permissions.Execute)) == 0)
+    Swag.require((cast(u32, rw) & cast(u32, Permissions.Read)) != 0)
+    Swag.require((cast(u32, rw) & cast(u32, Permissions.Write)) != 0)
+    Swag.require((cast(u32, rw) & cast(u32, Permissions.Execute)) == 0)
 }
 
 #test
 {
     let all = Permissions.Read | Permissions.Write | Permissions.Execute
-    Swag.assert(cast(u32, all) == 7)
+    Swag.require(cast(u32, all) == 7)
     let toggled = all ^ Permissions.Write
-    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Read)) != 0)
-    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Write)) == 0)
-    Swag.assert((cast(u32, toggled) & cast(u32, Permissions.Execute)) != 0)
+    Swag.require((cast(u32, toggled) & cast(u32, Permissions.Read)) != 0)
+    Swag.require((cast(u32, toggled) & cast(u32, Permissions.Write)) == 0)
+    Swag.require((cast(u32, toggled) & cast(u32, Permissions.Execute)) != 0)
 }
 
 // Enum used as array index.
@@ -129,9 +129,9 @@ enum Slot: u8 { A, B, C }
 #test
 {
     var values: [3] s32 = [10, 20, 30]
-    Swag.assert(values[cast(u8, Slot.A)] == 10)
-    Swag.assert(values[cast(u8, Slot.B)] == 20)
-    Swag.assert(values[cast(u8, Slot.C)] == 30)
+    Swag.require(values[cast(u8, Slot.A)] == 10)
+    Swag.require(values[cast(u8, Slot.B)] == 20)
+    Swag.require(values[cast(u8, Slot.C)] == 30)
 }
 
 enum ImportedAliasErrors { FailedToLoad, FailedToSave }
@@ -147,6 +147,6 @@ alias StrictImportedAliasErrorsAlias = ImportedAliasErrors
     let saved  = StrictImportedAliasErrorsAlias.FailedToSave
     #assert(#typeof(loaded) == ImportedAliasErrors)
     #assert(#typeof(saved) == ImportedAliasErrors)
-    Swag.assert(loaded == ImportedAliasErrors.FailedToLoad)
-    Swag.assert(saved == ImportedAliasErrors.FailedToSave)
+    Swag.require(loaded == ImportedAliasErrors.FailedToLoad)
+    Swag.require(saved == ImportedAliasErrors.FailedToSave)
 }

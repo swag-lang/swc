@@ -45,7 +45,7 @@ func handleWithoutDefault(signal: Signal)->s32
 
 #test
 {
-    Swag.assert(handleWithoutDefault(Signal.Pause) == 0)
+    Swag.require(handleWithoutDefault(Signal.Pause) == 0)
 }
 
 // --- Sound ---
@@ -89,7 +89,7 @@ func switchThatOnlyAssigns(signal: Signal)->s32
 
 #test
 {
-    Swag.assert(handleCompletely(Signal.Pause) == 3)
-    Swag.assert(handleWithDefault(Signal.Stop) == 0)
-    Swag.assert(switchThatOnlyAssigns(Signal.Pause) == 3)
+    Swag.require(handleCompletely(Signal.Pause) == 3)
+    Swag.require(handleWithDefault(Signal.Stop) == 0)
+    Swag.require(switchThatOnlyAssigns(Signal.Pause) == 3)
 }

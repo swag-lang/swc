@@ -38,14 +38,14 @@ func fillRows(dst: [*] u32, stride: u64, rows: u64, odd: u32, even: u32)
         plane[i] = cast(u8, (i & 0x3F))
 
     storeRows(&out[0], 16, &plane[0], 64, 4, 8)
-    Swag.assert(out[0] == 0 and out[7] == 14 and out[8] == 0)
-    Swag.assert(out[16] == 0 and out[17] == 2 and out[48] == 0 and out[55] == 14)
+    Swag.require(out[0] == 0 and out[7] == 14 and out[8] == 0)
+    Swag.require(out[16] == 0 and out[17] == 2 and out[48] == 0 and out[55] == 14)
 
     storeRows(&out[0], 16, &plane[0], 64, 4, 4)
-    Swag.assert(out[3] == 6 and out[7] == 14 and out[51] == 6)
+    Swag.require(out[3] == 6 and out[7] == 14 and out[51] == 6)
 
     var words: [4 * 8] u32
     fillRows(&words[0], 8, 4, 7, 9)
-    Swag.assert(words[0] == 0 and words[1] == 9 and words[8] == 7 and words[9] == 0)
-    Swag.assert(words[16] == 0 and words[17] == 9 and words[24] == 7)
+    Swag.require(words[0] == 0 and words[1] == 9 and words[8] == 7 and words[9] == 0)
+    Swag.require(words[16] == 0 and words[17] == 9 and words[24] == 7)
 }

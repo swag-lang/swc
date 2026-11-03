@@ -29,7 +29,7 @@
     {
         state += 100000
     }
-    Swag.assert(state == 10101)
+    Swag.require(state == 10101)
 }
 
 #test
@@ -41,7 +41,7 @@
         discard x
         count += 1
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }
 
 #test
@@ -55,7 +55,7 @@
     {
         value = 1
     }
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -70,5 +70,5 @@
             count += 1
         }
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }

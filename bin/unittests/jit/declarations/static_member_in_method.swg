@@ -31,15 +31,15 @@ impl Bag
 #test
 {
     Bag.counter = 7
-    Swag.assert(Bag.counter == 7)
+    Swag.require(Bag.counter == 7)
 }
 
 // Control: free-function access reaches the static.
 #test
 {
     Bag.fSet(11)
-    Swag.assert(Bag.fGet() == 11)
-    Swag.assert(Bag.counter == 11)
+    Swag.require(Bag.fGet() == 11)
+    Swag.require(Bag.counter == 11)
 }
 
 // A write performed inside a method must hit the static, not me-relative memory.
@@ -50,7 +50,7 @@ impl Bag
     b.mInc()
     b.mInc()
     b.mInc()
-    Swag.assert(Bag.counter == 3)
+    Swag.require(Bag.counter == 3)
 }
 
 // A read performed inside a method must see the static.
@@ -58,7 +58,7 @@ impl Bag
 {
     Bag.fSet(42)
     var b: Bag
-    Swag.assert(b.mGet() == 42)
+    Swag.require(b.mGet() == 42)
 }
 
 // Explicit `me.<static>` inside a method resolves to the static.
@@ -66,7 +66,7 @@ impl Bag
 {
     Bag.fSet(99)
     var b: Bag
-    Swag.assert(b.mGetViaMe() == 99)
+    Swag.require(b.mGetViaMe() == 99)
 }
 
 // Method write then method read round-trips through the static.
@@ -74,8 +74,8 @@ impl Bag
 {
     var b: Bag
     b.mSet(123)
-    Swag.assert(b.mGet() == 123)
-    Swag.assert(Bag.fGet() == 123)
+    Swag.require(b.mGet() == 123)
+    Swag.require(Bag.fGet() == 123)
 }
 
 // Static array member accessed from methods.
@@ -84,6 +84,6 @@ impl Bag
     Bag.values[2] = 0
     var b: Bag
     b.mSetAt(2, 55)
-    Swag.assert(b.mGetAt(2) == 55)
-    Swag.assert(Bag.values[2] == 55)
+    Swag.require(b.mGetAt(2) == 55)
+    Swag.require(Bag.values[2] == 55)
 }

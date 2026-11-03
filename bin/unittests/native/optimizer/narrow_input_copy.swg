@@ -46,8 +46,8 @@ func minimumAdd(a, b, c: u32)->u32 => Swag.min(a, b) + c
     let signedValues = [-2147483648's32, -2147483647, -65537, -9, -8, -7, -1, 0, 1, 7, 8, 9, 65537, 2147483647]
     for a in signedValues
     {
-        Swag.assert(remainder(a) == dynamicRemainder(a, 8))
-        Swag.assert(divide(a) == dynamicDivide(a, 7))
+        Swag.require(remainder(a) == dynamicRemainder(a, 8))
+        Swag.require(divide(a) == dynamicDivide(a, 7))
     }
     let wideValues = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x1234567887654321, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in wideValues
@@ -57,16 +57,16 @@ func minimumAdd(a, b, c: u32)->u32 => Swag.min(a, b) + c
         {
             let sum        = (low + cast(u64, b)) & 0xFFFFFFFF
             let difference = (low - cast(u64, b)) & 0xFFFFFFFF
-            Swag.assert(retainSource(a, b) == (a ^ ((sum * difference) & 0xFFFFFFFF)))
-            Swag.assert(branch(a, b) == (b == 0 ? a : sum))
+            Swag.require(retainSource(a, b) == (a ^ ((sum * difference) & 0xFFFFFFFF)))
+            Swag.require(branch(a, b) == (b == 0 ? a : sum))
         }
         for count in [0'u32, 1, 7, 16, 31] do
-            Swag.assert(shift(a, count) == (a ^ (low >> count)))
+            Swag.require(shift(a, count) == (a ^ (low >> count)))
     }
     let narrowValues = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
     for a in narrowValues do for b in narrowValues do for c in narrowValues
             {
-                Swag.assert(maximumXor(a, b, c) == (a > b ? a : b) ^ c)
-                Swag.assert(minimumAdd(a, b, c) == (a < b ? a : b) + c)
+                Swag.require(maximumXor(a, b, c) == (a > b ? a : b) ^ c)
+                Swag.require(minimumAdd(a, b, c) == (a < b ? a : b) + c)
             }
 }

@@ -26,12 +26,12 @@ func variable(a, count, mask: u64)->u64 => (a >> count) & mask
     let values = [0'u64, 1, 0xFF00, 0xFF000000, 0x100000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(byte8(a) == variable(a, 8, 0xFF))
-        Swag.assert(word8(a) == variable(a, 8, 0xFFFF))
-        Swag.assert(byte24(a) == variable(a, 24, 0xFF))
-        Swag.assert(word16(a) == variable(a, 16, 0xFFFF))
-        Swag.assert(byte25(a) == variable(a, 25, 0xFF))
-        Swag.assert(word17(a) == variable(a, 17, 0xFFFF))
-        Swag.assert(preserved(a) == variable(a, 8, 0xFFFFFFFFFFFF0000))
+        Swag.require(byte8(a) == variable(a, 8, 0xFF))
+        Swag.require(word8(a) == variable(a, 8, 0xFFFF))
+        Swag.require(byte24(a) == variable(a, 24, 0xFF))
+        Swag.require(word16(a) == variable(a, 16, 0xFFFF))
+        Swag.require(byte25(a) == variable(a, 25, 0xFF))
+        Swag.require(word17(a) == variable(a, 17, 0xFFFF))
+        Swag.require(preserved(a) == variable(a, 8, 0xFFFFFFFFFFFF0000))
     }
 }

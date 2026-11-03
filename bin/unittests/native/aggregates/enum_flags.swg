@@ -106,12 +106,12 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     var missing = value & TestFlags.C
     var toggled = value ^ TestFlags.B
 
-    Swag.assert(cast(u32, value) == 3)
-    Swag.assert(masked == TestFlags.B)
-    Swag.assert(cast(u32, missing) == 0)
-    Swag.assert(toggled == TestFlags.A)
-    Swag.assert(TestFlags.AB == (TestFlags.A | TestFlags.B))
-    Swag.assert((TestFlags.AB & TestFlags.B) == TestFlags.B)
+    Swag.require(cast(u32, value) == 3)
+    Swag.require(masked == TestFlags.B)
+    Swag.require(cast(u32, missing) == 0)
+    Swag.require(toggled == TestFlags.A)
+    Swag.require(TestFlags.AB == (TestFlags.A | TestFlags.B))
+    Swag.require((TestFlags.AB & TestFlags.B) == TestFlags.B)
 }
 
 #test
@@ -124,36 +124,36 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
     #assert(#typeof(value) == StrictTestFlags)
     #assert(#typeof(inverted) == StrictTestFlags)
-    Swag.assert(cast(u32, value) == 3)
-    Swag.assert(masked == cast(StrictTestFlags, TestFlags.B))
-    Swag.assert(cast(u32, missing) == 0)
-    Swag.assert(toggled == cast(StrictTestFlags, TestFlags.A))
-    Swag.assert((cast(u32, inverted) & cast(u32, TestFlags.A)) != 0)
-    Swag.assert(cast(bool, value))
-    Swag.assert(not cast(bool, missing))
+    Swag.require(cast(u32, value) == 3)
+    Swag.require(masked == cast(StrictTestFlags, TestFlags.B))
+    Swag.require(cast(u32, missing) == 0)
+    Swag.require(toggled == cast(StrictTestFlags, TestFlags.A))
+    Swag.require((cast(u32, inverted) & cast(u32, TestFlags.A)) != 0)
+    Swag.require(cast(bool, value))
+    Swag.require(not cast(bool, missing))
 
     var assigned = cast(StrictTestFlags, TestFlags.A)
     assigned |= cast(StrictTestFlags, TestFlags.B)
-    Swag.assert(cast(u32, assigned) == 3)
+    Swag.require(cast(u32, assigned) == 3)
     assigned &= cast(StrictTestFlags, TestFlags.A)
-    Swag.assert(assigned == cast(StrictTestFlags, TestFlags.A))
+    Swag.require(assigned == cast(StrictTestFlags, TestFlags.A))
     assigned ^= cast(StrictTestFlags, TestFlags.C)
-    Swag.assert(cast(u32, assigned) == 5)
+    Swag.require(cast(u32, assigned) == 5)
 
     const boxed: any = cast(StrictTestFlags, TestFlags.B)
-    Swag.assert(Swag.kindOf(boxed) == StrictTestFlags)
-    Swag.assert(assume cast(StrictTestFlags, boxed) == cast(StrictTestFlags, TestFlags.B))
-    Swag.assert(boxStrictTestFlags(cast(StrictTestFlags, TestFlags.C)))
-    Swag.assert(runtimeStrictTestFlagArrayFirstRaw() == 1)
-    Swag.assert(runtimeStrictTestFlagArraySecondRaw() == 4)
-    Swag.assert(runtimeStrictTestFlagArray())
-    Swag.assert(RunStrictTestFlag == cast(StrictTestFlags, TestFlags.B))
-    Swag.assert(RunStrictTestFlags[0] == cast(StrictTestFlags, TestFlags.A))
-    Swag.assert(RunStrictTestFlags[1] == cast(StrictTestFlags, TestFlags.C))
+    Swag.require(Swag.kindOf(boxed) == StrictTestFlags)
+    Swag.require(assume cast(StrictTestFlags, boxed) == cast(StrictTestFlags, TestFlags.B))
+    Swag.require(boxStrictTestFlags(cast(StrictTestFlags, TestFlags.C)))
+    Swag.require(runtimeStrictTestFlagArrayFirstRaw() == 1)
+    Swag.require(runtimeStrictTestFlagArraySecondRaw() == 4)
+    Swag.require(runtimeStrictTestFlagArray())
+    Swag.require(RunStrictTestFlag == cast(StrictTestFlags, TestFlags.B))
+    Swag.require(RunStrictTestFlags[0] == cast(StrictTestFlags, TestFlags.A))
+    Swag.require(RunStrictTestFlags[1] == cast(StrictTestFlags, TestFlags.C))
 
     let runtimeInverted = invertStrictTestFlags(cast(StrictTestFlags, TestFlags.C))
     #assert(#typeof(runtimeInverted) == StrictTestFlags)
-    Swag.assert((cast(u32, runtimeInverted) & cast(u32, TestFlags.A)) != 0)
+    Swag.require((cast(u32, runtimeInverted) & cast(u32, TestFlags.A)) != 0)
 }
 
 #test
@@ -162,7 +162,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     let value = flags.pickGenericFlags(.B | .C)
 
     #assert(#typeof(value) == TestFlags)
-    Swag.assert(value == (TestFlags.A | TestFlags.B | TestFlags.C))
+    Swag.require(value == (TestFlags.A | TestFlags.B | TestFlags.C))
 }
 
 #test
@@ -174,11 +174,11 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     values.values[1] = RefTestFlags.B | RefTestFlags.C
 
     values.refAt(0)[] &= ~RefTestFlags.A
-    Swag.assert(values.values[0] == RefTestFlags.B)
+    Swag.require(values.values[0] == RefTestFlags.B)
 
     let valueRef: *RefTestFlags = values.refAt(1)
     valueRef[] |= RefTestFlags.D
-    Swag.assert(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
+    Swag.require(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
 }
 
 #test
@@ -190,7 +190,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
     let firstRef: *RefTestFlags = refAt(0)
     firstRef[] = RefTestFlags.A | RefTestFlags.B
-    Swag.assert(values[0] == (RefTestFlags.A | RefTestFlags.B))
+    Swag.require(values[0] == (RefTestFlags.A | RefTestFlags.B))
 }
 
 #test
@@ -217,8 +217,8 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
     values.refAt(0)[] &= ~.West
 
-    Swag.assert(tookEast)
-    Swag.assert(tookSouth)
-    Swag.assert(missingWest)
-    Swag.assert(values.values[0] == .East)
+    Swag.require(tookEast)
+    Swag.require(tookSouth)
+    Swag.require(missingWest)
+    Swag.require(values.values[0] == .East)
 }

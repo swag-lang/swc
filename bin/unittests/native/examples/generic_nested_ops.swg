@@ -214,10 +214,10 @@ struct(A, B) Pair
     let pos         = +v
     let neg         = -v
 
-    Swag.assert(pos.x == 3)
-    Swag.assert(pos.y == -7)
-    Swag.assert(neg.x == -3)
-    Swag.assert(neg.y == 7)
+    Swag.require(pos.x == 3)
+    Swag.require(pos.y == -7)
+    Swag.require(neg.x == -3)
+    Swag.require(neg.y == 7)
 }
 
 // Test: Vec2 + Vec2
@@ -228,8 +228,8 @@ struct(A, B) Pair
     let sum         = a + b
 
     #assert(#typeof(sum) == Vec2's32)
-    Swag.assert(sum.x == 11)
-    Swag.assert(sum.y == 22)
+    Swag.require(sum.x == 11)
+    Swag.require(sum.y == 22)
 }
 
 // Test: Vec2 * scalar
@@ -238,8 +238,8 @@ struct(A, B) Pair
     var v: Vec2's32 = {x: 5, y: -3}
     let scaled      = v * 4's32
 
-    Swag.assert(scaled.x == 20)
-    Swag.assert(scaled.y == -12)
+    Swag.require(scaled.x == 20)
+    Swag.require(scaled.y == -12)
 }
 
 // Test: Vec2 dot product
@@ -250,7 +250,7 @@ struct(A, B) Pair
     let d = Vec2's32.dot(&a, &b)
 
     // 12 + (-12) = 0  (perpendicular)
-    Swag.assert(d == 0)
+    Swag.require(d == 0)
 }
 
 // ===========================================================================
@@ -262,9 +262,9 @@ struct(A, B) Pair
 {
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 5}}
 
-    Swag.assert(r.width() == 10)
-    Swag.assert(r.height() == 5)
-    Swag.assert(r.area() == 50)
+    Swag.require(r.width() == 10)
+    Swag.require(r.height() == 5)
+    Swag.require(r.area() == 50)
 }
 
 // Test: Rect center
@@ -273,8 +273,8 @@ struct(A, B) Pair
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
     let c = r.center()
 
-    Swag.assert(c.x == 10)
-    Swag.assert(c.y == 5)
+    Swag.require(c.x == 10)
+    Swag.require(c.y == 5)
 }
 
 // Test: Rect + Vec2 (translate)
@@ -284,13 +284,13 @@ struct(A, B) Pair
     var offset: Vec2's32 = {x: 5, y: -3}
     let moved = r + offset
 
-    Swag.assert(moved.min.x == 5)
-    Swag.assert(moved.min.y == -3)
-    Swag.assert(moved.max.x == 15)
-    Swag.assert(moved.max.y == 7)
+    Swag.require(moved.min.x == 5)
+    Swag.require(moved.min.y == -3)
+    Swag.require(moved.max.x == 15)
+    Swag.require(moved.max.y == 7)
     // Dimensions preserved
-    Swag.assert(moved.width() == 10)
-    Swag.assert(moved.height() == 10)
+    Swag.require(moved.width() == 10)
+    Swag.require(moved.height() == 10)
 }
 
 // Test: Rect - Vec2 (translate back)
@@ -300,10 +300,10 @@ struct(A, B) Pair
     var offset: Vec2's32 = {x: 5, y: 5}
     let moved = r - offset
 
-    Swag.assert(moved.min.x == 0)
-    Swag.assert(moved.min.y == 0)
-    Swag.assert(moved.max.x == 10)
-    Swag.assert(moved.max.y == 10)
+    Swag.require(moved.min.x == 0)
+    Swag.require(moved.min.y == 0)
+    Swag.require(moved.max.x == 10)
+    Swag.require(moved.max.y == 10)
 }
 
 // Test: Rect * scalar (scale from origin)
@@ -312,11 +312,11 @@ struct(A, B) Pair
     let r: Rect's32 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
     let scaled      = r * 10's32
 
-    Swag.assert(scaled.min.x == 10)
-    Swag.assert(scaled.min.y == 20)
-    Swag.assert(scaled.max.x == 30)
-    Swag.assert(scaled.max.y == 40)
-    Swag.assert(scaled.area() == r.area() * 100)
+    Swag.require(scaled.min.x == 10)
+    Swag.require(scaled.min.y == 20)
+    Swag.require(scaled.max.x == 30)
+    Swag.require(scaled.max.y == 40)
+    Swag.require(scaled.area() == r.area() * 100)
 }
 
 // Test: Rect / scalar
@@ -325,10 +325,10 @@ struct(A, B) Pair
     let r: Rect's32 = {min: {x: 10, y: 20}, max: {x: 30, y: 40}}
     let shrunk      = r / 10's32
 
-    Swag.assert(shrunk.min.x == 1)
-    Swag.assert(shrunk.min.y == 2)
-    Swag.assert(shrunk.max.x == 3)
-    Swag.assert(shrunk.max.y == 4)
+    Swag.require(shrunk.min.x == 1)
+    Swag.require(shrunk.min.y == 2)
+    Swag.require(shrunk.max.x == 3)
+    Swag.require(shrunk.max.y == 4)
 }
 
 // Test: unary - on Rect (reflect through origin)
@@ -338,13 +338,13 @@ struct(A, B) Pair
     let reflected   = -r
 
     // -max becomes new min, -min becomes new max
-    Swag.assert(reflected.min.x == -8)
-    Swag.assert(reflected.min.y == -7)
-    Swag.assert(reflected.max.x == -2)
-    Swag.assert(reflected.max.y == -3)
+    Swag.require(reflected.min.x == -8)
+    Swag.require(reflected.min.y == -7)
+    Swag.require(reflected.max.x == -2)
+    Swag.require(reflected.max.y == -3)
     // Dimensions preserved
-    Swag.assert(reflected.width() == r.width())
-    Swag.assert(reflected.height() == r.height())
+    Swag.require(reflected.width() == r.width())
+    Swag.require(reflected.height() == r.height())
 }
 
 // Test: translate then scale (chaining)
@@ -356,10 +356,10 @@ struct(A, B) Pair
 
     // After translate: min={1,1}, max={5,3}
     // After scale:     min={3,3}, max={15,9}
-    Swag.assert(result.min.x == 3)
-    Swag.assert(result.min.y == 3)
-    Swag.assert(result.max.x == 15)
-    Swag.assert(result.max.y == 9)
+    Swag.require(result.min.x == 3)
+    Swag.require(result.min.y == 3)
+    Swag.require(result.max.x == 15)
+    Swag.require(result.max.y == 9)
 }
 
 // ===========================================================================
@@ -373,8 +373,8 @@ struct(A, B) Pair
     var p:        Vec2's32        = {x: 7, y: 13}
     let result = identity.apply(&p)
 
-    Swag.assert(result.x == 7)
-    Swag.assert(result.y == 13)
+    Swag.require(result.x == 7)
+    Swag.require(result.y == 13)
 }
 
 // Test: apply translation-only transform
@@ -384,8 +384,8 @@ struct(A, B) Pair
     var p: Vec2's32        = {x: 3, y: 4}
     let result             = t.apply(&p)
 
-    Swag.assert(result.x == 13)
-    Swag.assert(result.y == -1)
+    Swag.require(result.x == 13)
+    Swag.require(result.y == -1)
 }
 
 // Test: apply scale-only transform
@@ -395,8 +395,8 @@ struct(A, B) Pair
     var p: Vec2's32        = {x: 5, y: 10}
     let result             = t.apply(&p)
 
-    Swag.assert(result.x == 10)
-    Swag.assert(result.y == 30)
+    Swag.require(result.x == 10)
+    Swag.require(result.y == 30)
 }
 
 // Test: apply full transform (scale then translate)
@@ -407,8 +407,8 @@ struct(A, B) Pair
     let result             = t.apply(&p)
 
     // 1*3 + 100 = 103, 1*4 + 200 = 204
-    Swag.assert(result.x == 103)
-    Swag.assert(result.y == 204)
+    Swag.require(result.x == 103)
+    Swag.require(result.y == 204)
 }
 
 // Test: apply transform to a Rect
@@ -420,10 +420,10 @@ struct(A, B) Pair
 
     // min: 0*2+10=10, 0*2+10=10
     // max: 5*2+10=20, 3*2+10=16
-    Swag.assert(result.min.x == 10)
-    Swag.assert(result.min.y == 10)
-    Swag.assert(result.max.x == 20)
-    Swag.assert(result.max.y == 16)
+    Swag.require(result.min.x == 10)
+    Swag.require(result.min.y == 10)
+    Swag.require(result.max.x == 20)
+    Swag.require(result.max.y == 16)
 }
 
 // Test: combine two transforms with +
@@ -435,10 +435,10 @@ struct(A, B) Pair
 
     // pos: 10+5=15, 20+(-5)=15
     // scale: 2*4=8, 3*2=6
-    Swag.assert(combined.pos.x == 15)
-    Swag.assert(combined.pos.y == 15)
-    Swag.assert(combined.scale.x == 8)
-    Swag.assert(combined.scale.y == 6)
+    Swag.require(combined.pos.x == 15)
+    Swag.require(combined.pos.y == 15)
+    Swag.require(combined.scale.x == 8)
+    Swag.require(combined.scale.y == 6)
 }
 
 // Test: negate transform then combine
@@ -447,11 +447,11 @@ struct(A, B) Pair
     let t: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
     let inv = -t
 
-    Swag.assert(inv.pos.x == -10)
-    Swag.assert(inv.pos.y == -20)
+    Swag.require(inv.pos.x == -10)
+    Swag.require(inv.pos.y == -20)
     // Scale preserved under negation
-    Swag.assert(inv.scale.x == 2)
-    Swag.assert(inv.scale.y == 3)
+    Swag.require(inv.scale.x == 2)
+    Swag.require(inv.scale.y == 3)
 }
 
 // Test: transform * scalar
@@ -460,10 +460,10 @@ struct(A, B) Pair
     let t: Transform2D's32 = {pos: {x: 3, y: 4}, scale: {x: 1, y: 2}}
     let result = t * 5's32
 
-    Swag.assert(result.pos.x == 15)
-    Swag.assert(result.pos.y == 20)
-    Swag.assert(result.scale.x == 5)
-    Swag.assert(result.scale.y == 10)
+    Swag.require(result.pos.x == 15)
+    Swag.require(result.pos.y == 20)
+    Swag.require(result.scale.x == 5)
+    Swag.require(result.scale.y == 10)
 }
 
 // ===========================================================================
@@ -477,10 +477,10 @@ struct(A, B) Pair
     let right: Rect's32 = {min: {x: 20, y: 20}, max: {x: 30, y: 30}}
     let p:     Pair'(Rect's32, Rect's32) = {first: left, second: right}
 
-    Swag.assert(p.first.area() == 100)
-    Swag.assert(p.second.area() == 100)
-    Swag.assert(p.first.center().x == 5)
-    Swag.assert(p.second.center().x == 25)
+    Swag.require(p.first.area() == 100)
+    Swag.require(p.second.area() == 100)
+    Swag.require(p.first.center().x == 5)
+    Swag.require(p.second.center().x == 25)
 }
 
 // Test: Pair of Transform2D and Rect -- apply first to second
@@ -491,10 +491,10 @@ struct(A, B) Pair
     let scene: Pair'(Transform2D's32, Rect's32) = {first: t, second: r}
     let world = scene.first.applyRect(&scene.second)
 
-    Swag.assert(world.min.x == 100)
-    Swag.assert(world.min.y == 100)
-    Swag.assert(world.max.x == 110)
-    Swag.assert(world.max.y == 110)
+    Swag.require(world.min.x == 100)
+    Swag.require(world.min.y == 100)
+    Swag.require(world.max.x == 110)
+    Swag.require(world.max.y == 110)
 }
 
 // Test: translated Rect applied through combined transform
@@ -510,11 +510,11 @@ struct(A, B) Pair
     // combined: pos={10,10}, scale={2,2}
     // min: 1*2+10=12, 1*2+10=12
     // max: 3*2+10=16, 3*2+10=16
-    Swag.assert(result.min.x == 12)
-    Swag.assert(result.min.y == 12)
-    Swag.assert(result.max.x == 16)
-    Swag.assert(result.max.y == 16)
-    Swag.assert(result.area() == 16)
+    Swag.require(result.min.x == 12)
+    Swag.require(result.min.y == 12)
+    Swag.require(result.max.x == 16)
+    Swag.require(result.max.y == 16)
+    Swag.require(result.area() == 16)
 }
 
 // Test: reflect Rect, translate, check center
@@ -526,12 +526,12 @@ struct(A, B) Pair
 
     // Reflected: min={-6,-8}, max={-2,-4}
     // Translated: min={4,2}, max={8,6}
-    Swag.assert(result.min.x == 4)
-    Swag.assert(result.min.y == 2)
-    Swag.assert(result.max.x == 8)
-    Swag.assert(result.max.y == 6)
-    Swag.assert(result.center().x == 6)
-    Swag.assert(result.center().y == 4)
+    Swag.require(result.min.x == 4)
+    Swag.require(result.min.y == 2)
+    Swag.require(result.max.x == 8)
+    Swag.require(result.max.y == 6)
+    Swag.require(result.center().x == 6)
+    Swag.require(result.center().y == 4)
 }
 
 // ===========================================================================
@@ -546,8 +546,8 @@ struct(A, B) Pair
     let sum         = a + b
 
     #assert(#typeof(sum) == Vec2's64)
-    Swag.assert(sum.x == 400000)
-    Swag.assert(sum.y == 200000)
+    Swag.require(sum.x == 400000)
+    Swag.require(sum.y == 200000)
 }
 
 // Test: Rect with s64
@@ -556,7 +556,7 @@ struct(A, B) Pair
     let r: Rect's64 = {min: {x: 0, y: 0}, max: {x: 1000000, y: 500000}}
 
     #assert(#typeof(r.min) == Vec2's64)
-    Swag.assert(r.area() == 500000000000's64)
+    Swag.require(r.area() == 500000000000's64)
 }
 
 // Test: Transform2D with s16 applied to Vec2
@@ -567,6 +567,6 @@ struct(A, B) Pair
     let result             = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's16)
-    Swag.assert(result.x == 20)
-    Swag.assert(result.y == 32)
+    Swag.require(result.x == 20)
+    Swag.require(result.y == 32)
 }

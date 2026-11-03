@@ -40,12 +40,12 @@ func buildQuote(seats: s32)->Quote
 #test
 {
     let small = buildQuote(3)
-    Swag.assert(small.billableSeats == 3)
-    Swag.assert(small.seatSubtotalCents == 7200)
-    Swag.assert(small.discountCents == 0)
+    Swag.require(small.billableSeats == 3)
+    Swag.require(small.seatSubtotalCents == 7200)
+    Swag.require(small.discountCents == 0)
 
     let large = buildQuote(12)
-    Swag.assert(large.billableSeats == 12)
-    Swag.assert(large.seatSubtotalCents == 28800)
-    Swag.assert(large.discountCents == 1200)
+    Swag.require(large.billableSeats == 12)
+    Swag.require(large.seatSubtotalCents == 28800)
+    Swag.require(large.discountCents == 1200)
 }

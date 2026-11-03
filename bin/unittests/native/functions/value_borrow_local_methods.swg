@@ -28,6 +28,6 @@ const LOCAL_METHOD_KEEPS_STORAGE_PRIVATE = #run localMethodKeepsStoragePrivate()
 
 #test
 {
-    Swag.assert(LOCAL_METHOD_KEEPS_STORAGE_PRIVATE)
-    Swag.assert(localMethodKeepsStoragePrivate())
+    Swag.require(LOCAL_METHOD_KEEPS_STORAGE_PRIVATE)
+    Swag.require(localMethodKeepsStoragePrivate())
 }

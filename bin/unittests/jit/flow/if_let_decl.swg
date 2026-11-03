@@ -58,29 +58,29 @@ func jitIfLetNullableWhereSkip()->s32
 #test
 {
     const V = #run jitIfLetSimple()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }
 
 #test
 {
     const V = #run jitIfLetWhereFalseElse()
-    Swag.assert(V == 3)
+    Swag.require(V == 3)
 }
 
 #test
 {
     const V = #run jitIfLetDo()
-    Swag.assert(V == 5)
+    Swag.require(V == 5)
 }
 
 #test
 {
     const V = #run jitIfLetNullableNullElse()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }
 
 #test
 {
     const V = #run jitIfLetNullableWhereSkip()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }

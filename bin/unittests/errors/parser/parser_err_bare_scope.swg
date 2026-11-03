@@ -14,7 +14,7 @@
         total += 1
     }
 
-    Swag.assert(total == 2)
+    Swag.require(total == 2)
 }
 
 #test

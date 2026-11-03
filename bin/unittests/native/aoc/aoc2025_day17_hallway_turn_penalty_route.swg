@@ -195,8 +195,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     let sampleRoute = analyzeRoute(sampleHall)
 
-    Swag.assert(sampleRoute.bestScore == 1006'u64)
-    Swag.assert(sampleRoute.stepCount == 6'u32)
+    Swag.require(sampleRoute.bestScore == 1006'u64)
+    Swag.require(sampleRoute.stepCount == 6'u32)
 
     const serviceHall: [5] string =
         [
@@ -209,6 +209,6 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     let serviceRoute = analyzeRoute(serviceHall)
 
-    Swag.assert(serviceRoute.bestScore == 4010'u64)
-    Swag.assert(serviceRoute.stepCount == 10'u32)
+    Swag.require(serviceRoute.bestScore == 4010'u64)
+    Swag.require(serviceRoute.stepCount == 10'u32)
 }

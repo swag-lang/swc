@@ -42,7 +42,7 @@ Outer structures continue to run.
         cpt += 1
     }
 
-    Swag.assert(cpt == 10)
+    Swag.require(cpt == 10)
 }
 
 /**
@@ -62,10 +62,10 @@ from anywhere inside it, however deeply nested.
             break to BigScope     // Leave the whole 'BigScope'
         }
 
-        Swag.assert(false)     // Unreachable
+        Swag.require(false)     // Unreachable
     }
 
-    Swag.assert(cpt == 1)
+    Swag.require(cpt == 1)
 }
 
 /**
@@ -87,7 +87,7 @@ piece of a loop body in a scope does not change where its 'break' statements go.
         }
     }
 
-    Swag.assert(runs == 1)
+    Swag.require(runs == 1)
 }
 
 /**
@@ -108,7 +108,7 @@ loop, and a 'scope' that encloses no loop rejects both bare statements.
         }
     }
 
-    Swag.assert(visited == 3)
+    Swag.require(visited == 3)
 }
 
 /**
@@ -131,7 +131,7 @@ anywhere else, a statement-level '{' is rejected.
         total += step
     }
 
-    Swag.assert(total == 4)
+    Swag.require(total == 4)
 }
 
 /**
@@ -150,6 +150,6 @@ after that labeled statement.
                 break to Up     // Exit to after the labeled 'for'
         }
 
-        Swag.assert(false)     // Unreachable
+        Swag.require(false)     // Unreachable
     }
 }

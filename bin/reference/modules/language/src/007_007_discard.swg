@@ -54,15 +54,15 @@ callback, an interface implementation or an operator states that it ignores an a
 #test
 {
     func second(_: s32, b: s32)->s32 => b
-    Swag.assert(second(1, 2) == 2)
+    Swag.require(second(1, 2) == 2)
 
     // Several parameters can be unnamed at once: '_' is not a name, so it never clashes.
     func neither(_: s32, _: s32)->s32 => 0
-    Swag.assert(neither(1, 2) == 0)
+    Swag.require(neither(1, 2) == 0)
 
     // A lambda leaves an inferred parameter unnamed the same way.
     func apply(cb: func(s32, s32)->s32)->s32 => cb(10, 20)
-    Swag.assert(apply(func(_, b) => b) == 20)
+    Swag.require(apply(func(_, b) => b) == 20)
 
     #assert(#typeof(second).name == "func(s32, b: s32)->s32")
 }
@@ -77,15 +77,15 @@ declaration, and reading it is an error.
     var total = 0'u64
     for _, index in [10, 20, 30] do
         total += index
-    Swag.assert(total == 3)
+    Swag.require(total == 3)
 
     let (_, second) = (1, 2)
-    Swag.assert(second == 2)
+    Swag.require(second == 2)
 
     // A counting loop that does not read its index simply has no name.
     for 3 do
         total += 1
-    Swag.assert(total == 6)
+    Swag.require(total == 6)
 }
 
 /**

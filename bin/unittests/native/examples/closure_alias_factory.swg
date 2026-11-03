@@ -85,27 +85,27 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
     let startupOrder = TeamOrder{requestedSeats: 8, analyticsAddOnCents: 1200, needsPrioritySupport: false}
     let startupQuote = buildQuote(growthPlan, startupOrder, supportFeeRule)
 
-    Swag.assert(startupQuote.billableSeats == 5)
-    Swag.assert(startupQuote.seatSubtotalCents == 12000)
-    Swag.assert(startupQuote.discountCents == 0)
-    Swag.assert(startupQuote.supportCents == 0)
-    Swag.assert(startupQuote.totalCents == 13200)
+    Swag.require(startupQuote.billableSeats == 5)
+    Swag.require(startupQuote.seatSubtotalCents == 12000)
+    Swag.require(startupQuote.discountCents == 0)
+    Swag.require(startupQuote.supportCents == 0)
+    Swag.require(startupQuote.totalCents == 13200)
 
     let scaleUpOrder = TeamOrder{requestedSeats: 12, analyticsAddOnCents: 5000, needsPrioritySupport: true}
     let scaleUpQuote = buildQuote(growthPlan, scaleUpOrder, supportFeeRule)
 
-    Swag.assert(scaleUpQuote.billableSeats == 9)
-    Swag.assert(scaleUpQuote.seatSubtotalCents == 21600)
-    Swag.assert(scaleUpQuote.discountCents == 1200)
-    Swag.assert(scaleUpQuote.supportCents == 2500)
-    Swag.assert(scaleUpQuote.totalCents == 27900)
+    Swag.require(scaleUpQuote.billableSeats == 9)
+    Swag.require(scaleUpQuote.seatSubtotalCents == 21600)
+    Swag.require(scaleUpQuote.discountCents == 1200)
+    Swag.require(scaleUpQuote.supportCents == 2500)
+    Swag.require(scaleUpQuote.totalCents == 27900)
 
     let enterpriseOrder = TeamOrder{requestedSeats: 22, analyticsAddOnCents: 9000, needsPrioritySupport: true}
     let enterpriseQuote = buildQuote(growthPlan, enterpriseOrder, supportFeeRule)
 
-    Swag.assert(enterpriseQuote.billableSeats == 19)
-    Swag.assert(enterpriseQuote.seatSubtotalCents == 45600)
-    Swag.assert(enterpriseQuote.discountCents == 6300)
-    Swag.assert(enterpriseQuote.supportCents == 2500)
-    Swag.assert(enterpriseQuote.totalCents == 50800)
+    Swag.require(enterpriseQuote.billableSeats == 19)
+    Swag.require(enterpriseQuote.seatSubtotalCents == 45600)
+    Swag.require(enterpriseQuote.discountCents == 6300)
+    Swag.require(enterpriseQuote.supportCents == 2500)
+    Swag.require(enterpriseQuote.totalCents == 50800)
 }

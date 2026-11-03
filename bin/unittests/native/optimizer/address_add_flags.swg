@@ -25,20 +25,20 @@ func chain(a, b, c: u64)->u64
             for c in values
             {
                 let result = unsignedChoice(a, b, c)
-                if a < b do Swag.assert(result == c + c)
-                else do Swag.assert(result == c + 1)
+                if a < b do Swag.require(result == c + c)
+                else do Swag.require(result == c + 1)
                 let a32      = cast(u32, (a & 0xFFFFFFFF))
                 let b32      = cast(u32, (b & 0xFFFFFFFF))
                 let c32      = cast(u32, (c & 0xFFFFFFFF))
                 let result32 = narrowChoice(a32, b32, c32)
-                if a32 < b32 do Swag.assert(result32 == c32 + c32)
-                else do Swag.assert(result32 == c32 + 1)
+                if a32 < b32 do Swag.require(result32 == c32 + c32)
+                else do Swag.require(result32 == c32 + 1)
                 var expected = a + b
                 for i in 7 do expected = (expected + c) ^ i
-                Swag.assert(chain(a, b, c) == expected)
+                Swag.require(chain(a, b, c) == expected)
             }
         }
     }
-    Swag.assert(signedChoice(-1, 0, -5) == -10)
-    Swag.assert(signedChoice(0, -1, -5) == -4)
+    Swag.require(signedChoice(-1, 0, -5) == -10)
+    Swag.require(signedChoice(0, -1, -5) == -4)
 }

@@ -54,12 +54,12 @@ func rewritten(p: Pair32)->s32
 
 #test
 {
-    Swag.assert(distance(Pair32{1, 2}, Pair32{3, -2}) == 6)
-    Swag.assert(distance(Pair32{-7, 9}, Pair32{-7, 9}) == 0)
-    Swag.assert(mixedSum(Mixed{1, 2, 3, -4}) == 1 + 512 + 196608 - 4)
-    Swag.assert(mixedSum(Mixed{0xFF, 0xFF, 0xFFFF, 0x7FFFFFFF}) == 0xFF + 0xFF00 + 0xFFFF0000 + 0x7FFFFFFF)
-    Swag.assert(highIsBigger(Pair32{1, 2}))
-    Swag.assert(not highIsBigger(Pair32{-1, -5}))
-    Swag.assert(escaped(Pair32{3, 4}) == 38)
-    Swag.assert(rewritten(Pair32{10, 1}) == 4)
+    Swag.require(distance(Pair32{1, 2}, Pair32{3, -2}) == 6)
+    Swag.require(distance(Pair32{-7, 9}, Pair32{-7, 9}) == 0)
+    Swag.require(mixedSum(Mixed{1, 2, 3, -4}) == 1 + 512 + 196608 - 4)
+    Swag.require(mixedSum(Mixed{0xFF, 0xFF, 0xFFFF, 0x7FFFFFFF}) == 0xFF + 0xFF00 + 0xFFFF0000 + 0x7FFFFFFF)
+    Swag.require(highIsBigger(Pair32{1, 2}))
+    Swag.require(not highIsBigger(Pair32{-1, -5}))
+    Swag.require(escaped(Pair32{3, 4}) == 38)
+    Swag.require(rewritten(Pair32{10, 1}) == 4)
 }

@@ -332,7 +332,7 @@ func semaWithNestedPrecedence()->s32
 
 #test
 {
-    Swag.assert(semaWithNestedPrecedence() == 7)
+    Swag.require(semaWithNestedPrecedence() == 7)
 }
 
 interface ISemaWithQualified

@@ -30,12 +30,12 @@ func wide(x, d: s64)->s64 => x / d
     for v in values
     {
         let x = cast(s64, v)
-        Swag.assert(cast(s64, div3(v)) == wide(x, 3))
-        Swag.assert(cast(s64, div7(v)) == wide(x, 7))
-        Swag.assert(cast(s64, div10(v)) == wide(x, 10))
-        Swag.assert(cast(s64, mod10(v)) == x - wide(x, 10) * 10)
-        Swag.assert(cast(s64, div1000(v)) == wide(x, 1000))
-        Swag.assert(cast(s64, mod641(v)) == x - wide(x, 641) * 641)
-        Swag.assert(cast(s64, divLarge(v)) == wide(x, 0x40000001))
+        Swag.require(cast(s64, div3(v)) == wide(x, 3))
+        Swag.require(cast(s64, div7(v)) == wide(x, 7))
+        Swag.require(cast(s64, div10(v)) == wide(x, 10))
+        Swag.require(cast(s64, mod10(v)) == x - wide(x, 10) * 10)
+        Swag.require(cast(s64, div1000(v)) == wide(x, 1000))
+        Swag.require(cast(s64, mod641(v)) == x - wide(x, 641) * 641)
+        Swag.require(cast(s64, divLarge(v)) == wide(x, 0x40000001))
     }
 }

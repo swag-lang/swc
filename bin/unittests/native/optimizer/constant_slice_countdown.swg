@@ -61,10 +61,10 @@ func firstNegative(seed: s64)->s64
             expected += a * 7 + a * 3
         }
 
-        Swag.assert(bumpCells(seed) == expected)
+        Swag.require(bumpCells(seed) == expected)
     }
 
-    Swag.assert(firstNegative(5) == 2)
-    Swag.assert(firstNegative(-1) == 0)
-    Swag.assert(firstNegative(100) == -1)
+    Swag.require(firstNegative(5) == 2)
+    Swag.require(firstNegative(-1) == 0)
+    Swag.require(firstNegative(100) == -1)
 }

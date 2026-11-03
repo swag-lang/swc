@@ -17,6 +17,6 @@ using Swag
                 used[j] = true
         }
         for present in used do
-            Swag.assert(present)
+            Swag.require(present)
     }
 }

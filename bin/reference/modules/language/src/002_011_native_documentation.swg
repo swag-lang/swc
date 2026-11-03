@@ -37,7 +37,7 @@ func largerByteCount(left, right: u64)->u64 => Swag.max(left, right)
 #test
 {
     #assert(largerByteCount(12, 8) == 12)
-    Swag.assert(largerByteCount(8, 8) == 8)
+    Swag.require(largerByteCount(8, 8) == 8)
 }
 
 /**
@@ -79,8 +79,8 @@ enum DestinationPolicy
 #test
 {
     let region = ByteRegion{offset: 16, count: 0}
-    Swag.assert(region.isEmpty())
-    Swag.assert(region.offset == 16)
+    Swag.require(region.isEmpty())
+    Swag.require(region.offset == 16)
 }
 
 /**

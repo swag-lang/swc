@@ -26,13 +26,13 @@ func finalBlockCount(progress: *u32, row, rows, width: u32)->u32
 #test
 {
     var progress: u32 = 13
-    Swag.assert(exchangeThenReuse(&progress, 6) == 7)
-    Swag.assert(progress == 7)
+    Swag.require(exchangeThenReuse(&progress, 6) == 7)
+    Swag.require(progress == 7)
 }
 
 #test
 {
     var progress: u32
-    Swag.assert(finalBlockCount(&progress, 3, 4, 7) == 1)
-    Swag.assert(progress == 7)
+    Swag.require(finalBlockCount(&progress, 3, 4, 7) == 1)
+    Swag.require(progress == 7)
 }

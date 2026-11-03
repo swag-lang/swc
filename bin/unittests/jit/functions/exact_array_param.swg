@@ -42,10 +42,10 @@ impl ExactArrayParamJitWriter
 {
     var values: [4] s32 = [11, 22, 33, 44]
     rotateExactArray(values)
-    Swag.assert(values[0] == 22)
-    Swag.assert(values[1] == 33)
-    Swag.assert(values[2] == 44)
-    Swag.assert(values[3] == 11)
+    Swag.require(values[0] == 22)
+    Swag.require(values[1] == 33)
+    Swag.require(values[2] == 44)
+    Swag.require(values[3] == 11)
 }
 
 #test
@@ -57,9 +57,9 @@ impl ExactArrayParamJitWriter
     for value in digest do
         checksum += cast(s32, value)
 
-    Swag.assert(digest[0] == 9'u8)
-    Swag.assert(digest[15] == 24'u8)
-    Swag.assert(checksum == 264)
+    Swag.require(digest[0] == 9'u8)
+    Swag.require(digest[15] == 24'u8)
+    Swag.require(checksum == 264)
 }
 
 #test
@@ -67,10 +67,10 @@ impl ExactArrayParamJitWriter
     var values: [4] s32 = [1, 10, 100, 1000]
     var writer = ExactArrayParamJitWriter{delta: 5}
     writer.write(values)
-    Swag.assert(values[0] == 6)
-    Swag.assert(values[1] == 16)
-    Swag.assert(values[2] == 107)
-    Swag.assert(values[3] == 1008)
+    Swag.require(values[0] == 6)
+    Swag.require(values[1] == 16)
+    Swag.require(values[2] == 107)
+    Swag.require(values[3] == 1008)
 }
 
 #test
@@ -83,16 +83,16 @@ impl ExactArrayParamJitWriter
 
     var values: [4] s32 = [3, 6, 9, 12]
     patch(values)
-    Swag.assert(values[0] == 103)
-    Swag.assert(values[1] == 6)
-    Swag.assert(values[2] == 9)
-    Swag.assert(values[3] == 5)
+    Swag.require(values[0] == 103)
+    Swag.require(values[1] == 6)
+    Swag.require(values[2] == 9)
+    Swag.require(values[3] == 5)
 }
 
 #test
 {
     var pair: [2] u16 = [7'u16, 42'u16]
     reverseExactPair(pair)
-    Swag.assert(pair[0] == 42'u16)
-    Swag.assert(pair[1] == 7'u16)
+    Swag.require(pair[0] == 42'u16)
+    Swag.require(pair[1] == 7'u16)
 }

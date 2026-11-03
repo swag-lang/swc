@@ -54,20 +54,20 @@ func acrossJoin(first, second: *Table, index: u32, redirect: bool)->u64
     {
         let value = cast(u64, i) * 13
         table.wide[i] = 100 + i
-        Swag.assert(update(&table, i, value) == 100 + i + value * 2 + cast #bit (u8, value))
-        Swag.assert(table.bytes[i] == cast #bit (u8, value))
-        Swag.assert(table.words[i] == cast(s32, value))
-        Swag.assert(table.wide[i] == 100 + i + value)
-        Swag.assert(localArray(i) == cast(u64, (i + ((i + 1) & 31))) * 7)
+        Swag.require(update(&table, i, value) == 100 + i + value * 2 + cast #bit (u8, value))
+        Swag.require(table.bytes[i] == cast #bit (u8, value))
+        Swag.require(table.words[i] == cast(s32, value))
+        Swag.require(table.wide[i] == 100 + i + value)
+        Swag.require(localArray(i) == cast(u64, (i + ((i + 1) & 31))) * 7)
     }
     var other: Table
     for i in 32
     {
         other.wide[i] = i * 2
-        Swag.assert(redirected(&table, &other, i) == table.wide[i] + i * 2)
+        Swag.require(redirected(&table, &other, i) == table.wide[i] + i * 2)
         let before    = table.wide[0]
         let increment = table.wide[i]
-        Swag.assert(acrossJoin(&table, &other, i, false) == before + increment)
-        Swag.assert(acrossJoin(&table, &other, i, true) == before + increment + other.wide[i])
+        Swag.require(acrossJoin(&table, &other, i, false) == before + increment)
+        Swag.require(acrossJoin(&table, &other, i, true) == before + increment + other.wide[i])
     }
 }

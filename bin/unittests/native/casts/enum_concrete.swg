@@ -45,22 +45,22 @@ const FLAGS_ALL = Flags16.Read | Flags16.Write | Flags16.Exec
 #test
 {
     let value = SignedCode.Neg
-    Swag.assert(cast(s32, value) == -5)
-    Swag.assert(cast(f64, value) == -5)
+    Swag.require(cast(s32, value) == -5)
+    Swag.require(cast(f64, value) == -5)
 }
 
 #test
 {
     let value = UnsignedCode.B
-    Swag.assert(cast(u16, value) == 255)
-    Swag.assert(cast(f32, value) == 255)
+    Swag.require(cast(u16, value) == 255)
+    Swag.require(cast(f32, value) == 255)
 }
 
 #test
 {
     let v = Flags16.Read | Flags16.Write
-    Swag.assert(cast(u16, v) == 3)
-    Swag.assert(cast(bool, v))
+    Swag.require(cast(u16, v) == 3)
+    Swag.require(cast(bool, v))
 }
 
 struct TinyCodeBytes
@@ -75,7 +75,7 @@ struct TinyCodeBytes
 {
     var bytes: TinyCodeBytes = TinyCodeBytes{value: TinyCode.Three, x: 0x44'u8, y: 0x55'u8, z: 0x66'u8}
 
-    Swag.assert(cast(u32, bytes.value) == 3'u32)
+    Swag.require(cast(u32, bytes.value) == 3'u32)
     bytes.value = TinyCode.Zero
-    Swag.assert(cast(u32, bytes.value) == 0'u32)
+    Swag.require(cast(u32, bytes.value) == 0'u32)
 }

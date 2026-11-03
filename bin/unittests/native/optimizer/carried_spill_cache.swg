@@ -113,7 +113,7 @@ func reference(values: [*] u64, rounds, stop: u32)->u64
         for rounds in 12'u32
         {
             for stop in 14'u32 do
-                Swag.assert(transform(&values[0], rounds, stop) == reference(&values[0], rounds, stop))
+                Swag.require(transform(&values[0], rounds, stop) == reference(&values[0], rounds, stop))
         }
     }
 }

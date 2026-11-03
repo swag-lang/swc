@@ -339,7 +339,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
 
-    Swag.assert(sampleAudit.outputValue == 2024'u64)
+    Swag.require(sampleAudit.outputValue == 2024'u64)
 
     const swappedInputs: [6] WireValue =
         [
@@ -370,6 +370,6 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)
     const expectedSuspects: [2] string = ["a01", "z01"]
 
-    Swag.assert(swappedAudit.outputValue == 8'u64)
-    Swag.assert(suspectsMatch(swappedAudit, expectedSuspects))
+    Swag.require(swappedAudit.outputValue == 8'u64)
+    Swag.require(suspectsMatch(swappedAudit, expectedSuspects))
 }

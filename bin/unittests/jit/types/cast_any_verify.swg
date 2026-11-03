@@ -13,5 +13,5 @@ func failAnyCastAssert()->s64
 #test
 {
     const V = #run failAnyCastAssert()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }

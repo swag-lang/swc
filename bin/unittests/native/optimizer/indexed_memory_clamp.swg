@@ -14,21 +14,21 @@ func clampWideUnsigned64(values: const [*]u64, index: u64)->u64 => values[index]
 #test
 {
     let unsigned = [0'u32, 99, 100, 101, 0xFFFFFFFF]
-    Swag.assert(clampUnsigned32(&unsigned[0], 0) == 0)
-    Swag.assert(clampUnsigned32(&unsigned[0], 1) == 99)
-    Swag.assert(clampUnsigned32(&unsigned[0], 2) == 100)
-    Swag.assert(clampUnsigned32(&unsigned[0], 3) == 100)
-    Swag.assert(clampUnsigned32(&unsigned[0], 4) == 100)
+    Swag.require(clampUnsigned32(&unsigned[0], 0) == 0)
+    Swag.require(clampUnsigned32(&unsigned[0], 1) == 99)
+    Swag.require(clampUnsigned32(&unsigned[0], 2) == 100)
+    Swag.require(clampUnsigned32(&unsigned[0], 3) == 100)
+    Swag.require(clampUnsigned32(&unsigned[0], 4) == 100)
 
     let signed = [-101's64, -100, -99, 0, 9223372036854775807]
-    Swag.assert(clampSigned64(&signed[0], 0) == -100)
-    Swag.assert(clampSigned64(&signed[0], 1) == -100)
-    Swag.assert(clampSigned64(&signed[0], 2) == -99)
-    Swag.assert(clampSigned64(&signed[0], 4) == 9223372036854775807)
+    Swag.require(clampSigned64(&signed[0], 0) == -100)
+    Swag.require(clampSigned64(&signed[0], 1) == -100)
+    Swag.require(clampSigned64(&signed[0], 2) == -99)
+    Swag.require(clampSigned64(&signed[0], 4) == 9223372036854775807)
 
     let wide = [0'u64, 0x8000000000000000, 0x8000000000000001, 0xFFFFFFFFFFFFFFFF]
-    Swag.assert(clampWideUnsigned64(&wide[0], 0) == 0)
-    Swag.assert(clampWideUnsigned64(&wide[0], 1) == 0x8000000000000000)
-    Swag.assert(clampWideUnsigned64(&wide[0], 2) == 0x8000000000000000)
-    Swag.assert(clampWideUnsigned64(&wide[0], 3) == 0x8000000000000000)
+    Swag.require(clampWideUnsigned64(&wide[0], 0) == 0)
+    Swag.require(clampWideUnsigned64(&wide[0], 1) == 0x8000000000000000)
+    Swag.require(clampWideUnsigned64(&wide[0], 2) == 0x8000000000000000)
+    Swag.require(clampWideUnsigned64(&wide[0], 3) == 0x8000000000000000)
 }

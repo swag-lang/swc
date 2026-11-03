@@ -34,10 +34,10 @@ impl RGB
 #test
 {
     // Verify if `RGB.R` is recognized as red
-    Swag.assert(RGB.isRed(RGB.R))
+    Swag.require(RGB.isRed(RGB.R))
 
     // Verify if `RGB.B` is recognized as either red or blue
-    Swag.assert(RGB.isRedOrBlue(RGB.B))
+    Swag.require(RGB.isRedOrBlue(RGB.B))
 }
 
 /**
@@ -50,8 +50,8 @@ This makes the code cleaner when the enum type is already in scope.
 {
     using RGB
 
-    Swag.assert(isRedOrBlue(R))
-    Swag.assert(isRedOrBlue(B))
+    Swag.require(isRedOrBlue(R))
+    Swag.require(isRedOrBlue(B))
 }
 
 /**
@@ -65,8 +65,8 @@ This provides a natural, object-oriented style of method invocation.
     using RGB
 
     // Call `isRedOrBlue` directly on the enum value
-    Swag.assert(R.isRedOrBlue())
+    Swag.require(R.isRedOrBlue())
 
     // Verify that `G` is not recognized as red or blue
-    Swag.assert(not G.isRedOrBlue())
+    Swag.require(not G.isRedOrBlue())
 }

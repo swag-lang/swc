@@ -13,7 +13,7 @@ namespace compiler1387
         {
             count += 1
         }
-        Swag.assert(count == 0)
+        Swag.require(count == 0)
     }
 }
 
@@ -42,7 +42,7 @@ namespace compiler213
         {
             state += 1000
         }
-        Swag.assert(state == 1011)
+        Swag.require(state == 1011)
     }
 }
 
@@ -67,7 +67,7 @@ namespace compiler216
 
     #test
     {
-        Swag.assert(main())
+        Swag.require(main())
     }
 }
 
@@ -91,7 +91,7 @@ namespace compiler230
 
     #test
     {
-        Swag.assert(main() == 10)
+        Swag.require(main() == 10)
     }
 }
 
@@ -114,7 +114,7 @@ namespace compiler241
 
     #test
     {
-        Swag.assert(main() == 5)
+        Swag.require(main() == 5)
     }
 }
 
@@ -145,7 +145,7 @@ namespace compiler242
 
     #test
     {
-        Swag.assert(main() == 1)
+        Swag.require(main() == 1)
     }
 }
 
@@ -171,7 +171,7 @@ namespace compiler243
 
     #test
     {
-        Swag.assert(toto() == 10)
+        Swag.require(toto() == 10)
     }
 }
 
@@ -187,7 +187,7 @@ namespace compiler256
             i -= 1;
         }
 
-        Swag.assert(i == 0)
+        Swag.require(i == 0)
     }
 }
 
@@ -205,11 +205,11 @@ namespace compiler260
 
     #test
     {
-        Swag.assert(fact(5) == 120)
-        Swag.assert(fact(4) == 24)
-        Swag.assert(fact(3) == 6)
-        Swag.assert(fact(2) == 2)
-        Swag.assert(fact(1) == 1)
+        Swag.require(fact(5) == 120)
+        Swag.require(fact(4) == 24)
+        Swag.require(fact(3) == 6)
+        Swag.require(fact(2) == 2)
+        Swag.require(fact(1) == 1)
     }
 }
 
@@ -227,11 +227,11 @@ namespace compiler262
 
     #test
     {
-        Swag.assert(fact(5) == 120)
-        Swag.assert(fact(4) == 24)
-        Swag.assert(fact(3) == 6)
-        Swag.assert(fact(2) == 2)
-        Swag.assert(fact(1) == 1)
+        Swag.require(fact(5) == 120)
+        Swag.require(fact(4) == 24)
+        Swag.require(fact(3) == 6)
+        Swag.require(fact(2) == 2)
+        Swag.require(fact(1) == 1)
     }
 }
 
@@ -255,8 +255,8 @@ namespace compiler265
 
     #test
     {
-        Swag.assert(test2(5) == 120)
-        Swag.assert(test2(4) == 24)
+        Swag.require(test2(5) == 120)
+        Swag.require(test2(4) == 24)
     }
 }
 
@@ -295,7 +295,7 @@ namespace compiler303
     #test
     {
         compare("toto")
-        Swag.assert(("toto").count == 4)
+        Swag.require(("toto").count == 4)
     }
 }
 
@@ -331,9 +331,9 @@ namespace compiler304
 
     #test
     {
-        Swag.assert(g == true)
-        Swag.assert(g1 == 666)
-        Swag.assert(g2 == 0xF000_000F)
+        Swag.require(g == true)
+        Swag.require(g1 == 666)
+        Swag.require(g2 == 0xF000_000F)
     }
 }
 
@@ -357,7 +357,7 @@ namespace compiler314
 
     #test
     {
-        Swag.assert(len("toto") == 4)
-        Swag.assert(len("tonton") == 6)
+        Swag.require(len("toto") == 4)
+        Swag.require(len("tonton") == 6)
     }
 }

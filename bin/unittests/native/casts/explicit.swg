@@ -4,14 +4,14 @@
 {
     var u: u8 = 45
     var f     = cast(f32, u)
-    Swag.assert(f == 45.0)
+    Swag.require(f == 45.0)
 }
 
 #test
 {
     var value: f64 = 3.9
     var trunc      = cast(s32, value)
-    Swag.assert(trunc == 3)
+    Swag.require(trunc == 3)
 }
 
 #test
@@ -20,15 +20,15 @@
     var ch       = cast(rune, raw)
     var code     = cast(u32, ch)
 
-    Swag.assert(ch == 'A')
-    Swag.assert(code == raw)
+    Swag.require(ch == 'A')
+    Swag.require(code == raw)
 }
 
 #test
 {
     var flag: bool = true
     var asByte     = cast(u8, flag)
-    Swag.assert(asByte == 1)
+    Swag.require(asByte == 1)
 }
 
 func takeStringValue(value: string)->u64
@@ -42,8 +42,8 @@ func takeStringValue(value: string)->u64
     var textRef: *string = &text
     let textValue        = cast(string, textRef[])
 
-    Swag.assert(textValue == "seed")
-    Swag.assert(takeStringValue(textRef[]) == 4'u64)
+    Swag.require(textValue == "seed")
+    Swag.require(takeStringValue(textRef[]) == 4'u64)
 }
 
 #test
@@ -53,5 +53,5 @@ func takeStringValue(value: string)->u64
     let snapshot         = cast(string, textRef[])
     text = "changed"
 
-    Swag.assert(snapshot == "seed")
+    Swag.require(snapshot == "seed")
 }

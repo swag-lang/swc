@@ -60,7 +60,7 @@ func uafForwardFreeAndReturn(ptr: *void, size: u64)->UafIndirectResult
 {
     let p      = myAlloc(4)
     let result = uafForwardFreeAndReturn(p, 4)
-    Swag.assert(result.values[0] == 0)
+    Swag.require(result.values[0] == 0)
 }
 
 // Read after free.
@@ -131,7 +131,7 @@ var gUafOwned: *s32?
 {
     gUafOwned    = cast(*s32, myAlloc(4))
     gUafOwned![] = 9
-    Swag.assert(gUafOwned![] == 9)
+    Swag.require(gUafOwned![] == 9)
     myFree(unwrap gUafOwned, 4)
     gUafOwned = null
 }
@@ -144,7 +144,7 @@ var gUafOwned: *s32?
     myFree(p, 4)
     p   = cast(*s32, myAlloc(4))
     p[] = 3
-    Swag.assert(p[] == 3)
+    Swag.require(p[] == 3)
     myFree(p, 4)
 }
 
@@ -216,7 +216,7 @@ func reallocateThrough(slot: **s32)
     myFree(p, 4)
     reallocateThrough(&p)
     p[] = 8
-    Swag.assert(p[] == 8)
+    Swag.require(p[] == 8)
     myFree(p, 4)
 }
 
@@ -299,12 +299,12 @@ impl UafNode
     var released: UafNode
     released.data = cast(*s32, myAlloc(4))
     released.release()
-    Swag.assert(released.data == null)
+    Swag.require(released.data == null)
 
     var recycled: UafNode
     recycled.data = cast(*s32, myAlloc(4))
     recycled.reset()
-    Swag.assert(recycled.data[] == 1)
+    Swag.require(recycled.data[] == 1)
     myFree(recycled.data, 4)
 }
 
@@ -325,16 +325,16 @@ func refillNode(n: *UafNode)
     node.count = 4
 
     myFree(node.data, 4)
-    Swag.assert(node.count == 4)
+    Swag.require(node.count == 4)
 
     node.data   = cast(*s32, myAlloc(4))
     node.data[] = 7
-    Swag.assert(node.data[] == 7)
+    Swag.require(node.data[] == 7)
 
     myFree(node.data, 4)
     refillNode(node)
     node.data[] = 9
-    Swag.assert(node.data[] == 9)
+    Swag.require(node.data[] == 9)
 
     myFree(node.data, 4)
     myFree(node, 16)
@@ -389,10 +389,10 @@ func returnFreshAllocation()->*s32
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    Swag.assert(returnValueBeforeRelease() == 3)
+    Swag.require(returnValueBeforeRelease() == 3)
     let fresh = returnFreshAllocation()
     fresh[] = 4
-    Swag.assert(fresh[] == 4)
+    Swag.require(fresh[] == 4)
     myFree(fresh, 4)
 }
 
@@ -435,7 +435,7 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
     let one = cast(*s32, myAlloc(4))
     let two = cast(*s32, myAlloc(4))
     two[] = 11
-    Swag.assert(releaseOneOfTwoParameters(one, two) == 11)
+    Swag.require(releaseOneOfTwoParameters(one, two) == 11)
 }
 
 // A pointer kept in a local table. An element is a slot like any other once the index
@@ -468,7 +468,7 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
     table[1]    = cast(*s32, myAlloc(4))
     table[1]![] = 4
     myFree(unwrap table[0], 4)
-    Swag.assert(table[1]![] == 4)
+    Swag.require(table[1]![] == 4)
     myFree(unwrap table[1], 4)
 }
 
@@ -504,7 +504,7 @@ func releaseAndReplace(ptr: *void, slot: **s32)
     var p = cast(*s32, myAlloc(4))
     releaseAndReplace(p, &p)
     p[] = 5
-    Swag.assert(p[] == 5)
+    Swag.require(p[] == 5)
     myFree(p, 4)
 }
 
@@ -530,7 +530,7 @@ func useAfterConditionalFree(cond: bool)->s32
     let q = cast(*s32, myAlloc(4))
     q[] = 5
     myFree(p, 4)
-    Swag.assert(q[] == 5)
+    Swag.require(q[] == 5)
     myFree(q, 4)
 }
 
@@ -577,5 +577,5 @@ func uafCarrierThroughFrame(host: *UafHost)
 {
     var host: UafHost
     uafCarrierThroughFrame(&host)
-    Swag.assert(host.value == 1)
+    Swag.require(host.value == 1)
 }

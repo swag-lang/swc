@@ -18,22 +18,22 @@ func signed64ToF32(value: s64)->f32 { return cast(f32, value) }
 // value below 2^64. The inputs are exact in their respective floating-point types.
 #test
 {
-    Swag.assert(float32ToU64(0.0) == 0)
-    Swag.assert(float32ToU64(123.75) == 123)
-    Swag.assert(float32ToU64(9_223_371_487_098_961_920.0) == 0x7FFF_FF80_0000_0000)
-    Swag.assert(float32ToU64(9_223_372_036_854_775_808.0) == 0x8000_0000_0000_0000)
-    Swag.assert(float32ToU64(9_223_373_136_366_403_584.0) == 0x8000_0100_0000_0000)
-    Swag.assert(float32ToU64(18_446_742_974_197_923_840.0) == 0xFFFF_FF00_0000_0000)
+    Swag.require(float32ToU64(0.0) == 0)
+    Swag.require(float32ToU64(123.75) == 123)
+    Swag.require(float32ToU64(9_223_371_487_098_961_920.0) == 0x7FFF_FF80_0000_0000)
+    Swag.require(float32ToU64(9_223_372_036_854_775_808.0) == 0x8000_0000_0000_0000)
+    Swag.require(float32ToU64(9_223_373_136_366_403_584.0) == 0x8000_0100_0000_0000)
+    Swag.require(float32ToU64(18_446_742_974_197_923_840.0) == 0xFFFF_FF00_0000_0000)
 }
 
 #test
 {
-    Swag.assert(float64ToU64(0.0) == 0)
-    Swag.assert(float64ToU64(123.75) == 123)
-    Swag.assert(float64ToU64(9_223_372_036_854_774_784.0) == 0x7FFF_FFFF_FFFF_FC00)
-    Swag.assert(float64ToU64(9_223_372_036_854_775_808.0) == 0x8000_0000_0000_0000)
-    Swag.assert(float64ToU64(9_223_372_036_854_777_856.0) == 0x8000_0000_0000_0800)
-    Swag.assert(float64ToU64(18_446_744_073_709_549_568.0) == 0xFFFF_FFFF_FFFF_F800)
+    Swag.require(float64ToU64(0.0) == 0)
+    Swag.require(float64ToU64(123.75) == 123)
+    Swag.require(float64ToU64(9_223_372_036_854_774_784.0) == 0x7FFF_FFFF_FFFF_FC00)
+    Swag.require(float64ToU64(9_223_372_036_854_775_808.0) == 0x8000_0000_0000_0000)
+    Swag.require(float64ToU64(9_223_372_036_854_777_856.0) == 0x8000_0000_0000_0800)
+    Swag.require(float64ToU64(18_446_744_073_709_549_568.0) == 0xFFFF_FFFF_FFFF_F800)
 }
 
 #test
@@ -41,23 +41,23 @@ func signed64ToF32(value: s64)->f32 { return cast(f32, value) }
     var a: s32 = -10
     takes_f32(a)
     takes_f64(a)
-    Swag.assert(gFloatF32 == -10.0)
-    Swag.assert(gFloatF64 == -10.0)
+    Swag.require(gFloatF32 == -10.0)
+    Swag.require(gFloatF64 == -10.0)
 }
 
 #test
 {
     var a: s64 = -10
     takes_f64(a)
-    Swag.assert(gFloatF64 == -10.0)
+    Swag.require(gFloatF64 == -10.0)
 }
 
 #test
 {
     var a: s64    = 5_000_000_000
     let converted = signed64ToF32(a)
-    Swag.assert(converted > 4_990_000_000.0)
-    Swag.assert(converted < 5_010_000_000.0)
+    Swag.require(converted > 4_990_000_000.0)
+    Swag.require(converted < 5_010_000_000.0)
 }
 
 #test
@@ -65,8 +65,8 @@ func signed64ToF32(value: s64)->f32 { return cast(f32, value) }
     var a: u32 = 10
     takes_f32(a)
     takes_f64(a)
-    Swag.assert(gFloatF32 == 10.0)
-    Swag.assert(gFloatF64 == 10.0)
+    Swag.require(gFloatF32 == 10.0)
+    Swag.require(gFloatF64 == 10.0)
 }
 
 // The x64 float-to-integer conversion carries ONE width for both of its sides, so a
@@ -79,29 +79,29 @@ func signed64ToF32(value: s64)->f32 { return cast(f32, value) }
 {
     gFloatF32 = -64.0
     gFloatF64 = -64.0
-    Swag.assert(cast(s8, gFloatF32) == -64)
-    Swag.assert(cast(s16, gFloatF32) == -64)
-    Swag.assert(cast(s32, gFloatF32) == -64)
-    Swag.assert(cast(s64, gFloatF32) == -64)
-    Swag.assert(cast(s64, gFloatF64) == -64)
+    Swag.require(cast(s8, gFloatF32) == -64)
+    Swag.require(cast(s16, gFloatF32) == -64)
+    Swag.require(cast(s32, gFloatF32) == -64)
+    Swag.require(cast(s64, gFloatF32) == -64)
+    Swag.require(cast(s64, gFloatF64) == -64)
 }
 
 #test
 {
     gFloatF32 = 3.0e9
     gFloatF64 = 3.0e9
-    Swag.assert(cast(u32, gFloatF32) == 3_000_000_000)
-    Swag.assert(cast(u64, gFloatF32) == 3_000_000_000)
-    Swag.assert(cast(u32, gFloatF64) == 3_000_000_000)
-    Swag.assert(cast(u64, gFloatF64) == 3_000_000_000)
+    Swag.require(cast(u32, gFloatF32) == 3_000_000_000)
+    Swag.require(cast(u64, gFloatF32) == 3_000_000_000)
+    Swag.require(cast(u32, gFloatF64) == 3_000_000_000)
+    Swag.require(cast(u64, gFloatF64) == 3_000_000_000)
 }
 
 #test
 {
     gFloatF32 = -12_884_901_888.0
     gFloatF64 = -12_884_901_888.0
-    Swag.assert(cast(s64, gFloatF32) == -12_884_901_888)
-    Swag.assert(cast(s64, gFloatF64) == -12_884_901_888)
+    Swag.require(cast(s64, gFloatF32) == -12_884_901_888)
+    Swag.require(cast(s64, gFloatF64) == -12_884_901_888)
 }
 
 // The conversion instruction reads a dword source as signed, so a value that only
@@ -126,13 +126,13 @@ func u8ToF32(value: u8)->f32 { return cast(f32, value) }
 
 #test
 {
-    Swag.assert(s32ToF64(-2_147_483_648) == -2_147_483_648.0)
-    Swag.assert(s32ToF64(2_147_483_647) == 2_147_483_647.0)
-    Swag.assert(s32ToF64(-1) == -1.0)
-    Swag.assert(u32ToF64(4_294_967_295) == 4_294_967_295.0)
-    Swag.assert(u32ToF64(2_147_483_648) == 2_147_483_648.0)
-    Swag.assert(s16ToF64(-32_768) == -32_768.0)
-    Swag.assert(u16ToF64(65_535) == 65_535.0)
-    Swag.assert(s8ToF32(-128) == -128.0)
-    Swag.assert(u8ToF32(255) == 255.0)
+    Swag.require(s32ToF64(-2_147_483_648) == -2_147_483_648.0)
+    Swag.require(s32ToF64(2_147_483_647) == 2_147_483_647.0)
+    Swag.require(s32ToF64(-1) == -1.0)
+    Swag.require(u32ToF64(4_294_967_295) == 4_294_967_295.0)
+    Swag.require(u32ToF64(2_147_483_648) == 2_147_483_648.0)
+    Swag.require(s16ToF64(-32_768) == -32_768.0)
+    Swag.require(u16ToF64(65_535) == 65_535.0)
+    Swag.require(s8ToF32(-128) == -128.0)
+    Swag.require(u8ToF32(255) == 255.0)
 }

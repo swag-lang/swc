@@ -41,15 +41,15 @@ func bestMatch(data: const [*] u8, cands: const [*] s64, count: s64, at, limit: 
     for i in text.count do
         bytes[i] = text[i]
     let data = cast(const [*] u8, &bytes[0])
-    Swag.assert(matchLength(data, 0, 3, 6) == 5)
-    Swag.assert(matchLength(data, 0, 9, 10) == 8)
-    Swag.assert(matchLength(data, 9, 21, 12) == 9)
-    Swag.assert(matchLength(data, 3, 12, 4) == 4)
-    Swag.assert(matchLength(data, 0, 1, 5) == 0)
-    Swag.assert(matchLength(data, 21, 24, 9) == 9)
+    Swag.require(matchLength(data, 0, 3, 6) == 5)
+    Swag.require(matchLength(data, 0, 9, 10) == 8)
+    Swag.require(matchLength(data, 9, 21, 12) == 9)
+    Swag.require(matchLength(data, 3, 12, 4) == 4)
+    Swag.require(matchLength(data, 0, 1, 5) == 0)
+    Swag.require(matchLength(data, 21, 24, 9) == 9)
 
     let cands: [5] s64 = [0, 3, 9, 12, 18]
-    Swag.assert(bestMatch(data, &cands[0], 5, 24, 9) == 9)
-    Swag.assert(bestMatch(data, &cands[0], 2, 27, 6) == 6)
-    Swag.assert(bestMatch(data, &cands[0], 0, 27, 6) == 0)
+    Swag.require(bestMatch(data, &cands[0], 5, 24, 9) == 9)
+    Swag.require(bestMatch(data, &cands[0], 2, 27, 6) == 6)
+    Swag.require(bestMatch(data, &cands[0], 0, 27, 6) == 0)
 }

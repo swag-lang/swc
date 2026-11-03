@@ -39,12 +39,12 @@ impl IValue for Counter
     var n = cast(IName, c)
     var v = cast(IValue, c)
 
-    Swag.assert(n.getName() == "hits")
-    Swag.assert(v.getValue() == 0)
+    Swag.require(n.getName() == "hits")
+    Swag.require(v.getValue() == 0)
 
     v.setValue(5)
-    Swag.assert(c.count == 5)
-    Swag.assert(v.getValue() == 5)
+    Swag.require(c.count == 5)
+    Swag.require(v.getValue() == 5)
 }
 
 // Interface stored as struct field and dispatched through it.
@@ -67,9 +67,9 @@ func increment(h: *Holder)
     h.itf = cast(IValue, c)
     increment(&h)
     increment(&h)
-    Swag.assert(c.count == 12)
+    Swag.require(c.count == 12)
     // Both calls alias the holder, so the assignment above no longer proves the field.
-    Swag.assert(h.itf!.getValue() == 12)
+    Swag.require(h.itf!.getValue() == 12)
 }
 
 // Iterate over an array of interfaces with different concrete types.
@@ -98,7 +98,7 @@ impl IValue for Tripler
     for i in 2 do
         sum += items[i].getValue()
 
-    Swag.assert(sum == 25)
+    Swag.require(sum == 25)
 }
 
 // Mutation through interface array elements.
@@ -113,9 +113,9 @@ impl IValue for Tripler
     for i in 3 do
         arr[i].setValue(arr[i].getValue() * 10)
 
-    Swag.assert(a.count == 10)
-    Swag.assert(b.count == 20)
-    Swag.assert(c.count == 30)
+    Swag.require(a.count == 10)
+    Swag.require(b.count == 20)
+    Swag.require(c.count == 30)
 }
 
 // Interface reassignment between different concrete types via Swag.kindOf.
@@ -125,12 +125,12 @@ impl IValue for Tripler
     var t: Tripler = Tripler{val: 7}
 
     var itf: IValue = cast(IValue, d)
-    Swag.assert(itf.getValue() == 14)
-    Swag.assert(Swag.kindOf(itf) == Doubler)
+    Swag.require(itf.getValue() == 14)
+    Swag.require(Swag.kindOf(itf) == Doubler)
 
     itf = cast(IValue, t)
-    Swag.assert(itf.getValue() == 21)
-    Swag.assert(Swag.kindOf(itf) == Tripler)
+    Swag.require(itf.getValue() == 21)
+    Swag.require(Swag.kindOf(itf) == Tripler)
 }
 
 // Interface passed to a generic-like helper function.
@@ -150,6 +150,6 @@ func sumValues(items: [*] IValue, count: u32)->s32
 
     var arr: [3] IValue = [cast(IValue, d1), cast(IValue, d2), cast(IValue, t1)]
 
-    Swag.assert(sumValues(&arr[0], 3) == 6 + 14 + 6)
-    Swag.assert(sumValues(&arr[0], 3) == 26)
+    Swag.require(sumValues(&arr[0], 3) == 6 + 14 + 6)
+    Swag.require(sumValues(&arr[0], 3) == 26)
 }

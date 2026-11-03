@@ -107,34 +107,34 @@ func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
 
 #test
 {
-    Swag.assert(variadicTypedCount() == 0)
-    Swag.assert(variadicTypedCount(1, 2, 3, 4) == 4)
-    Swag.assert(variadicTypedSum(1, 2, 3, 4) == 10)
-    Swag.assert(variadicTypedHead(100, 7, 8) == 115)
+    Swag.require(variadicTypedCount() == 0)
+    Swag.require(variadicTypedCount(1, 2, 3, 4) == 4)
+    Swag.require(variadicTypedSum(1, 2, 3, 4) == 10)
+    Swag.require(variadicTypedHead(100, 7, 8) == 115)
 }
 
 #test
 {
-    Swag.assert(variadicTypedF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64) == 10.0'f64)
-    Swag.assert(variadicTypedStrictF32(cast(TypedVariadicStrictF32, 1.5), cast(TypedVariadicStrictF32, 2.5)) == 4.0'f32)
-    Swag.assert(variadicTypedBool(true, false, true, true) == 3)
-    Swag.assert(variadicTypedRune('a', 'b', 'c') == 294)
-    Swag.assert(variadicTypedString("Az", "By", "Cx") == 198'u8)
-}
-
-#test
-{
-    const p0: TypedVariadicPair = TypedVariadicPair{a: 2, b: 3}
-    const p1: TypedVariadicPair = TypedVariadicPair{a: 5, b: 7}
-    Swag.assert(variadicTypedPair(1, p0, p1) == 18)
+    Swag.require(variadicTypedF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64) == 10.0'f64)
+    Swag.require(variadicTypedStrictF32(cast(TypedVariadicStrictF32, 1.5), cast(TypedVariadicStrictF32, 2.5)) == 4.0'f32)
+    Swag.require(variadicTypedBool(true, false, true, true) == 3)
+    Swag.require(variadicTypedRune('a', 'b', 'c') == 294)
+    Swag.require(variadicTypedString("Az", "By", "Cx") == 198'u8)
 }
 
 #test
 {
     const p0: TypedVariadicPair = TypedVariadicPair{a: 2, b: 3}
     const p1: TypedVariadicPair = TypedVariadicPair{a: 5, b: 7}
-    Swag.assert(variadicTypedForward(10, 20, 30) == 60)
-    Swag.assert(variadicTypedAliasForward(10, 20, 30) == 60)
-    Swag.assert(variadicTypedBaseForwardToAlias(10, 20, 30) == 60)
-    Swag.assert(variadicTypedPairForward(p0, p1) == 17)
+    Swag.require(variadicTypedPair(1, p0, p1) == 18)
+}
+
+#test
+{
+    const p0: TypedVariadicPair = TypedVariadicPair{a: 2, b: 3}
+    const p1: TypedVariadicPair = TypedVariadicPair{a: 5, b: 7}
+    Swag.require(variadicTypedForward(10, 20, 30) == 60)
+    Swag.require(variadicTypedAliasForward(10, 20, 30) == 60)
+    Swag.require(variadicTypedBaseForwardToAlias(10, 20, 30) == 60)
+    Swag.require(variadicTypedPairForward(p0, p1) == 17)
 }

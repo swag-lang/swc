@@ -266,7 +266,7 @@ func solve(text: string)->SolveResult
     key.col[0] = 3; key.col[1] = 0; key.col[2] = 2; key.col[3] = 0; key.col[4] = 1
 
     // 0+3=3, 5+0=5, 3+2=5, 4+0=4, 3+1=4 → all ≤ 5 → fits
-    Swag.assert(lock.fits(key))
+    Swag.require(lock.fits(key))
 }
 
 // Heights.fits overlap
@@ -279,7 +279,7 @@ func solve(text: string)->SolveResult
     key.col[0] = 5; key.col[1] = 0; key.col[2] = 2; key.col[3] = 1; key.col[4] = 3
 
     // col 4: 3+3=6 > 5 → overlap
-    Swag.assert(not lock.fits(key))
+    Swag.require(not lock.fits(key))
 }
 
 // Heights.eq inline method
@@ -291,9 +291,9 @@ func solve(text: string)->SolveResult
     var b: Heights
     b.col[0] = 1; b.col[1] = 2; b.col[2] = 3; b.col[3] = 4; b.col[4] = 5
 
-    Swag.assert(a.eq(b))
+    Swag.require(a.eq(b))
     b.col[3] = 0
-    Swag.assert(not a.eq(b))
+    Swag.require(not a.eq(b))
 }
 
 // Parse lock from sample
@@ -302,24 +302,24 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    Swag.assert(pr.lockCount == 2'u32)
-    Swag.assert(pr.keyCount == 3'u32)
+    Swag.require(pr.lockCount == 2'u32)
+    Swag.require(pr.keyCount == 3'u32)
 
     let locks = unwrap pr.locks
 
     // Lock 1: 0,5,3,4,3
-    Swag.assert(locks[0].col[0] == 0)
-    Swag.assert(locks[0].col[1] == 5)
-    Swag.assert(locks[0].col[2] == 3)
-    Swag.assert(locks[0].col[3] == 4)
-    Swag.assert(locks[0].col[4] == 3)
+    Swag.require(locks[0].col[0] == 0)
+    Swag.require(locks[0].col[1] == 5)
+    Swag.require(locks[0].col[2] == 3)
+    Swag.require(locks[0].col[3] == 4)
+    Swag.require(locks[0].col[4] == 3)
 
     // Lock 2: 1,2,0,5,3
-    Swag.assert(locks[1].col[0] == 1)
-    Swag.assert(locks[1].col[1] == 2)
-    Swag.assert(locks[1].col[2] == 0)
-    Swag.assert(locks[1].col[3] == 5)
-    Swag.assert(locks[1].col[4] == 3)
+    Swag.require(locks[1].col[0] == 1)
+    Swag.require(locks[1].col[1] == 2)
+    Swag.require(locks[1].col[2] == 0)
+    Swag.require(locks[1].col[3] == 5)
+    Swag.require(locks[1].col[4] == 3)
 }
 
 // Parse keys from sample
@@ -331,25 +331,25 @@ func solve(text: string)->SolveResult
     let keys = unwrap pr.keys
 
     // Key 1: 5,0,2,1,3
-    Swag.assert(keys[0].col[0] == 5)
-    Swag.assert(keys[0].col[1] == 0)
-    Swag.assert(keys[0].col[2] == 2)
-    Swag.assert(keys[0].col[3] == 1)
-    Swag.assert(keys[0].col[4] == 3)
+    Swag.require(keys[0].col[0] == 5)
+    Swag.require(keys[0].col[1] == 0)
+    Swag.require(keys[0].col[2] == 2)
+    Swag.require(keys[0].col[3] == 1)
+    Swag.require(keys[0].col[4] == 3)
 
     // Key 2: 4,3,4,0,2
-    Swag.assert(keys[1].col[0] == 4)
-    Swag.assert(keys[1].col[1] == 3)
-    Swag.assert(keys[1].col[2] == 4)
-    Swag.assert(keys[1].col[3] == 0)
-    Swag.assert(keys[1].col[4] == 2)
+    Swag.require(keys[1].col[0] == 4)
+    Swag.require(keys[1].col[1] == 3)
+    Swag.require(keys[1].col[2] == 4)
+    Swag.require(keys[1].col[3] == 0)
+    Swag.require(keys[1].col[4] == 2)
 
     // Key 3: 3,0,2,0,1
-    Swag.assert(keys[2].col[0] == 3)
-    Swag.assert(keys[2].col[1] == 0)
-    Swag.assert(keys[2].col[2] == 2)
-    Swag.assert(keys[2].col[3] == 0)
-    Swag.assert(keys[2].col[4] == 1)
+    Swag.require(keys[2].col[0] == 3)
+    Swag.require(keys[2].col[1] == 0)
+    Swag.require(keys[2].col[2] == 2)
+    Swag.require(keys[2].col[3] == 0)
+    Swag.require(keys[2].col[4] == 1)
 }
 
 // countFittingPairs on parsed data
@@ -358,14 +358,14 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
     let count = countFittingPairs(&pr)
-    Swag.assert(count == 3'u64)
+    Swag.require(count == 3'u64)
 }
 
 // Part 1: sample answer = 3
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part1 == 3'u64)
+    Swag.require(result.part1 == 3'u64)
 }
 
 // with &ptr (exercises with-pointer codegen)
@@ -376,7 +376,7 @@ func solve(text: string)->SolveResult
     {
         .part1 = 42
     }
-    Swag.assert(sr.part1 == 42'u64)
+    Swag.require(sr.part1 == 42'u64)
 }
 
 // Inline #returntype struct return
@@ -405,9 +405,9 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     key.col[0] = 5; key.col[1] = 5; key.col[2] = 5; key.col[3] = 5; key.col[4] = 5
 
     let pair = makeHeightPair(lock, key)
-    Swag.assert(pair.fit)
-    Swag.assert(pair.lock.eq(lock))
-    Swag.assert(pair.key.eq(key))
+    Swag.require(pair.fit)
+    Swag.require(pair.lock.eq(lock))
+    Swag.require(pair.key.eq(key))
 }
 
 // Nested inline: makeHeightPair calls fits which is inline, which loops
@@ -419,15 +419,15 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     key.col[0] = 1; key.col[1] = 0; key.col[2] = 0; key.col[3] = 0; key.col[4] = 0
 
     let pair = makeHeightPair(lock, key)
-    Swag.assert(not pair.fit)
+    Swag.require(not pair.fit)
 }
 
 // parseInit/parseFree (exercises dynamic memory)
 #test
 {
     var pr = parseInit()
-    Swag.assert(pr.lockCount == 0'u32)
-    Swag.assert(pr.keyCount == 0'u32)
+    Swag.require(pr.lockCount == 0'u32)
+    Swag.require(pr.keyCount == 0'u32)
     parseFree(&pr)
 }
 
@@ -444,14 +444,14 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 ....."""
     var pr = parse(single)
     defer parseFree(&pr)
-    Swag.assert(pr.lockCount == 1'u32)
-    Swag.assert(pr.keyCount == 0'u32)
+    Swag.require(pr.lockCount == 1'u32)
+    Swag.require(pr.keyCount == 0'u32)
     let locks = unwrap pr.locks
-    Swag.assert(locks[0].col[0] == 0)
-    Swag.assert(locks[0].col[1] == 5)
-    Swag.assert(locks[0].col[2] == 3)
-    Swag.assert(locks[0].col[3] == 4)
-    Swag.assert(locks[0].col[4] == 3)
+    Swag.require(locks[0].col[0] == 0)
+    Swag.require(locks[0].col[1] == 5)
+    Swag.require(locks[0].col[2] == 3)
+    Swag.require(locks[0].col[3] == 4)
+    Swag.require(locks[0].col[4] == 3)
 }
 
 // Single key schematic
@@ -467,14 +467,14 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #####"""
     var pr = parse(single)
     defer parseFree(&pr)
-    Swag.assert(pr.lockCount == 0'u32)
-    Swag.assert(pr.keyCount == 1'u32)
+    Swag.require(pr.lockCount == 0'u32)
+    Swag.require(pr.keyCount == 1'u32)
     let keys = unwrap pr.keys
-    Swag.assert(keys[0].col[0] == 5)
-    Swag.assert(keys[0].col[1] == 0)
-    Swag.assert(keys[0].col[2] == 2)
-    Swag.assert(keys[0].col[3] == 1)
-    Swag.assert(keys[0].col[4] == 3)
+    Swag.require(keys[0].col[0] == 5)
+    Swag.require(keys[0].col[1] == 0)
+    Swag.require(keys[0].col[2] == 2)
+    Swag.require(keys[0].col[3] == 1)
+    Swag.require(keys[0].col[4] == 3)
 }
 
 // All zeros lock vs all zeros key: should fit
@@ -482,7 +482,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 {
     var lock: Heights
     var key:  Heights
-    Swag.assert(lock.fits(key))
+    Swag.require(lock.fits(key))
 }
 
 // Max height lock vs any key: overlap
@@ -492,7 +492,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     lock.col[0] = 5; lock.col[1] = 5; lock.col[2] = 5; lock.col[3] = 5; lock.col[4] = 5
     var key: Heights
     key.col[0] = 1; key.col[1] = 0; key.col[2] = 0; key.col[3] = 0; key.col[4] = 0
-    Swag.assert(not lock.fits(key))
+    Swag.require(not lock.fits(key))
 }
 
 // Boundary: exactly MaxHeight in each column → fits
@@ -503,7 +503,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var key: Heights
     key.col[0] = 2; key.col[1] = 3; key.col[2] = 4; key.col[3] = 5; key.col[4] = 0
     // 3+2=5, 2+3=5, 1+4=5, 0+5=5, 5+0=5 → all exactly 5 → fits
-    Swag.assert(lock.fits(key))
+    Swag.require(lock.fits(key))
 }
 
 // Boundary: one column at MaxHeight+1 → no fit
@@ -514,14 +514,14 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var key: Heights
     key.col[0] = 2; key.col[1] = 3; key.col[2] = 4; key.col[3] = 5; key.col[4] = 0
     // col 3: 1+5=6 > 5 → overlap
-    Swag.assert(not lock.fits(key))
+    Swag.require(not lock.fits(key))
 }
 
 // Full solve
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part1 == 3'u64)
+    Swag.require(result.part1 == 3'u64)
 }
 
 // Pair-by-pair verification from puzzle description
@@ -534,17 +534,17 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     let keys  = unwrap pr.keys
 
     // Lock 0 (0,5,3,4,3) vs Key 0 (5,0,2,1,3): overlap col4: 3+3=6
-    Swag.assert(not locks[0].fits(keys[0]))
+    Swag.require(not locks[0].fits(keys[0]))
     // Lock 0 vs Key 1 (4,3,4,0,2): overlap col1: 5+3=8
-    Swag.assert(not locks[0].fits(keys[1]))
+    Swag.require(not locks[0].fits(keys[1]))
     // Lock 0 vs Key 2 (3,0,2,0,1): fit
-    Swag.assert(locks[0].fits(keys[2]))
+    Swag.require(locks[0].fits(keys[2]))
     // Lock 1 (1,2,0,5,3) vs Key 0: overlap col0: 1+5=6
-    Swag.assert(not locks[1].fits(keys[0]))
+    Swag.require(not locks[1].fits(keys[0]))
     // Lock 1 vs Key 1: fit
-    Swag.assert(locks[1].fits(keys[1]))
+    Swag.require(locks[1].fits(keys[1]))
     // Lock 1 vs Key 2: fit
-    Swag.assert(locks[1].fits(keys[2]))
+    Swag.require(locks[1].fits(keys[2]))
 }
 
 // reverse-view iteration in key parsing (exercises reverse loop)
@@ -561,14 +561,14 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #####"""
     var pr = parse(keyStr)
     defer parseFree(&pr)
-    Swag.assert(pr.keyCount == 1'u32)
+    Swag.require(pr.keyCount == 1'u32)
     let keys = unwrap pr.keys
     // Only bottom 2 rows have '#' → heights should be 1 for cols 0,2,4
-    Swag.assert(keys[0].col[0] == 1)
-    Swag.assert(keys[0].col[1] == 0)
-    Swag.assert(keys[0].col[2] == 1)
-    Swag.assert(keys[0].col[3] == 0)
-    Swag.assert(keys[0].col[4] == 1)
+    Swag.require(keys[0].col[0] == 1)
+    Swag.require(keys[0].col[1] == 0)
+    Swag.require(keys[0].col[2] == 1)
+    Swag.require(keys[0].col[3] == 0)
+    Swag.require(keys[0].col[4] == 1)
 }
 
 // Cast chain: u8 → u32 comparison in fits (exercises cast codegen)
@@ -579,8 +579,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var key: Heights
     key.col[0] = 2
     // cast(u32, 4) + cast(u32, 2) = 6 > 5 → overlap
-    Swag.assert(not lock.fits(key))
+    Swag.require(not lock.fits(key))
     key.col[0] = 1
     // cast(u32, 4) + cast(u32, 1) = 5 ≤ 5 → fits
-    Swag.assert(lock.fits(key))
+    Swag.require(lock.fits(key))
 }

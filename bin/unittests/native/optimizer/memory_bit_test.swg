@@ -26,12 +26,12 @@ func high(p: *u64, a, b: u64)->u64 => (p[] & 0x8000000000000000) != 0 ? a : b
         var cell  = value
         var small = cast(u32, (value & 0xFFFFFFFF))
         displaced[31] = value
-        Swag.assert(low(&cell, 17, 29) == ((value & 1) != 0 ? 17 : 29))
-        Swag.assert(mask(&cell, 17, 29) == ((value & 0x65) == 0 ? 17 : 29))
-        Swag.assert(word(&small, 17, 29) == ((value & 3) != 0 ? 17 : 29))
-        Swag.assert(offset(&displaced[0], 17, 29) == ((value & 3) != 0 ? 17 : 29))
-        Swag.assert(shared(&cell, 17, 29) == (((value & 1) != 0 ? 17'u64 : 29) ^ value))
-        Swag.assert(high(&cell, 17, 29) == ((value & 0x8000000000000000) != 0 ? 17 : 29))
-        Swag.assert(cell == value and displaced[31] == value)
+        Swag.require(low(&cell, 17, 29) == ((value & 1) != 0 ? 17 : 29))
+        Swag.require(mask(&cell, 17, 29) == ((value & 0x65) == 0 ? 17 : 29))
+        Swag.require(word(&small, 17, 29) == ((value & 3) != 0 ? 17 : 29))
+        Swag.require(offset(&displaced[0], 17, 29) == ((value & 3) != 0 ? 17 : 29))
+        Swag.require(shared(&cell, 17, 29) == (((value & 1) != 0 ? 17'u64 : 29) ^ value))
+        Swag.require(high(&cell, 17, 29) == ((value & 0x8000000000000000) != 0 ? 17 : 29))
+        Swag.require(cell == value and displaced[31] == value)
     }
 }

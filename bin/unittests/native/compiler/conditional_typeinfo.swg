@@ -12,7 +12,7 @@ func selectTypeInfo(flag: bool)->typeinfo
     let funcInfo  = selectTypeInfo(false)
     #assert(#typeof(arrayInfo) == typeinfo)
     #assert(#typeof(funcInfo) == typeinfo)
-    Swag.assert(arrayInfo == #type const [2] f32)
-    Swag.assert(funcInfo == #type func()->s32)
-    Swag.assert(assume cast(const *TypeInfoFunc, funcInfo).returnType == s32)
+    Swag.require(arrayInfo == #type const [2] f32)
+    Swag.require(funcInfo == #type func()->s32)
+    Swag.require(assume cast(const *TypeInfoFunc, funcInfo).returnType == s32)
 }

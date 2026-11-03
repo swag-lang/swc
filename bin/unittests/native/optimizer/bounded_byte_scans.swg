@@ -40,13 +40,13 @@ func skipSentinel(bytes: const [..] u8, first, last: u64)->u64
                     bytes[i] = 127
                 if match < length do
                     bytes[match] = 128
-                Swag.assert(findSentinel(bytes, first, length) == expected)
+                Swag.require(findSentinel(bytes, first, length) == expected)
 
                 for i in bytes.count do
                     bytes[i] = 128
                 if match < length do
                     bytes[match] = 127
-                Swag.assert(skipSentinel(bytes, first, length) == expected)
+                Swag.require(skipSentinel(bytes, first, length) == expected)
             }
         }
     }

@@ -19,5 +19,5 @@ func guardedLastIndex(values: const[..] u64)->u64
 #test
 {
     let values = [Swag.U64.Max, 7'u64, 12'u64, 4'u64]
-    Swag.assert(guardedLastIndex(values) == 2)
+    Swag.require(guardedLastIndex(values) == 2)
 }

@@ -42,8 +42,8 @@ func choosePointer(primary: RequiredPointer?, fallback: RequiredPointer)->Requir
     var second   = AliasValue{number: 29}
     let primary  = cast(RequiredInterface, cast(IAliasValue, &first))
     let fallback = cast(RequiredInterface, cast(IAliasValue, &second))
-    Swag.assert(cast(IAliasValue, chooseInterface(primary, fallback)).value() == 17)
-    Swag.assert(cast(IAliasValue, chooseInterface(null, fallback)).value() == 29)
+    Swag.require(cast(IAliasValue, chooseInterface(primary, fallback)).value() == 17)
+    Swag.require(cast(IAliasValue, chooseInterface(null, fallback)).value() == 29)
 }
 
 #test
@@ -52,8 +52,8 @@ func choosePointer(primary: RequiredPointer?, fallback: RequiredPointer)->Requir
     var second: u32 = 29
     let primary     = cast(RequiredPointer, &first)
     let fallback    = cast(RequiredPointer, &second)
-    Swag.assert(choosePointer(primary, fallback) == primary)
-    Swag.assert(choosePointer(null, fallback) == fallback)
+    Swag.require(choosePointer(primary, fallback) == primary)
+    Swag.require(choosePointer(null, fallback) == fallback)
 }
 
 const PointerFallback = cast(RequiredPointer, 0x1234'u64)

@@ -11,5 +11,5 @@ private func markerOf(value: ErrorValue)->u32 => value.marker
 
 #test
 {
-    Swag.assert(markerOf(ErrorValue{marker: 7}) == 7)
+    Swag.require(markerOf(ErrorValue{marker: 7}) == 7)
 }

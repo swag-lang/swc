@@ -53,7 +53,7 @@ func updateCopiedWideLanes(seed: u64, count, rounds: u64)->u64
             expected     += cast(u64, a) + b
             expectedWide += wide
         }
-        Swag.assert(updateCopiedLanes(42, count, 10) == expected)
-        Swag.assert(updateCopiedWideLanes(42, count, 10) == expectedWide)
+        Swag.require(updateCopiedLanes(42, count, 10) == expected)
+        Swag.require(updateCopiedWideLanes(42, count, 10) == expectedWide)
     }
 }

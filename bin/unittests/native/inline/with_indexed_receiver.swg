@@ -34,7 +34,7 @@ func setup(owner: *Owner)
     var owner    = Owner{cells: {buffer: pointers.buffer}}
     setup(&owner)
     for slot in 3 do
-        Swag.assert(cells[slot].value == slot and
-                    cells[slot].child.value == slot + 5 and
-                    cells[slot].hook!() == 42)
+        Swag.require(cells[slot].value == slot and
+                     cells[slot].child.value == slot + 5 and
+                     cells[slot].hook!() == 42)
 }

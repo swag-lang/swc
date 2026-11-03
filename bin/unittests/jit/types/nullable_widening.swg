@@ -44,5 +44,5 @@ func nullableWidening()->bool
 
 #test
 {
-    Swag.assert(nullableWidening())
+    Swag.require(nullableWidening())
 }

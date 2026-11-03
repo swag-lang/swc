@@ -19,12 +19,12 @@ func dynamicInlineNull(value: *s32?)->bool => value == null
 {
     var owner: DynamicInlineOwner
     let view:  IDynamicInlineOwner = &owner
-    Swag.assert(not assume cast (*DynamicInlineOwner, view).image.isValid())
+    Swag.require(not assume cast (*DynamicInlineOwner, view).image.isValid())
 }
 
 #test
 {
     let absent: *s32? = null
     let boxed:  any?  = absent
-    Swag.assert(dynamicInlineNull(assume cast (*s32?, boxed)))
+    Swag.require(dynamicInlineNull(assume cast (*s32?, boxed)))
 }

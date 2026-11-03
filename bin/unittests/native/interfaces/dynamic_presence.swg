@@ -30,52 +30,52 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
 {
     let value = metadata(#typeof(Metadata))
     let raw   = cast(const *Swag.Interface, &value)
-    Swag.assert(raw.obj == null)
-    Swag.assert(raw.itable != null)
+    Swag.require(raw.obj == null)
+    Swag.require(raw.itable != null)
     let present = unwrap value
-    Swag.assert(present.answer() == 42)
+    Swag.require(present.answer() == 42)
 }
 
 #test
 {
     let value = metadata(#typeof(Metadata))
-    Swag.assert(cast(bool, value))
-    Swag.assert(value != null)
-    Swag.assert(not (value == null))
-    Swag.assert(not (not value))
-    Swag.assert(value and true)
-    Swag.assert(false or value)
-    Swag.assert((value ? 7 : 9) == 7)
+    Swag.require(cast(bool, value))
+    Swag.require(value != null)
+    Swag.require(not (value == null))
+    Swag.require(not (not value))
+    Swag.require(value and true)
+    Swag.require(false or value)
+    Swag.require((value ? 7 : 9) == 7)
     var seen = false
     if value do seen = true
-    Swag.assert(seen)
-    Swag.assert(value.answer() == 42)
-    Swag.assert((value?.answer() orelse 0) == 42)
+    Swag.require(seen)
+    Swag.require(value.answer() == 42)
+    Swag.require((value?.answer() orelse 0) == 42)
     let fallback = Swag.makeInterface(null, Fallback, IMetadata)
     let selected = value orelse fallback
-    Swag.assert(selected.answer() == 42)
-    Swag.assert(value != metadata(#typeof(Other)))
-    Swag.assert(value != metadata(#typeof(Fallback)))
-    Swag.assert(value == metadata(#typeof(Metadata)))
+    Swag.require(selected.answer() == 42)
+    Swag.require(value != metadata(#typeof(Other)))
+    Swag.require(value != metadata(#typeof(Fallback)))
+    Swag.require(value == metadata(#typeof(Metadata)))
 }
 
 #test
 {
     let value = metadata(#typeof(Other))
-    Swag.assert(not cast(bool, value))
-    Swag.assert(value == null)
-    Swag.assert(not (value != null))
-    Swag.assert(not value)
-    Swag.assert(not (value and true))
-    Swag.assert(not (false or value))
-    Swag.assert((value ? 7 : 9) == 9)
+    Swag.require(not cast(bool, value))
+    Swag.require(value == null)
+    Swag.require(not (value != null))
+    Swag.require(not value)
+    Swag.require(not (value and true))
+    Swag.require(not (false or value))
+    Swag.require((value ? 7 : 9) == 9)
     var seen = false
     if value do seen = true
-    Swag.assert(not seen)
-    Swag.assert((value?.answer() orelse 0) == 0)
+    Swag.require(not seen)
+    Swag.require((value?.answer() orelse 0) == 0)
     let fallback = Swag.makeInterface(null, Fallback, IMetadata)
     let selected = value orelse fallback
-    Swag.assert(selected.answer() == 7)
+    Swag.require(selected.answer() == 7)
 }
 
 #test
@@ -92,18 +92,18 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     const fallback = #run metadata(#typeof(Fallback))
     const selected = missing orelse fallback
     #assert(cast(bool, selected))
-    Swag.assert(selected!.answer() == 7)
+    Swag.require(selected!.answer() == 7)
 }
 
 #test
 {
     var value = cast(MetadataAlias?, metadata(#typeof(Metadata)))
-    Swag.assert(cast(bool, value))
-    Swag.assert(value != null)
-    Swag.assert((value ? 1 : 2) == 1)
+    Swag.require(cast(bool, value))
+    Swag.require(value != null)
+    Swag.require((value ? 1 : 2) == 1)
     let boxed     = Swag.makeAny(&value, #typeof(value))
     let extracted = assume cast (MetadataAlias, boxed)
-    Swag.assert(cast(IMetadata, extracted).answer() == 42)
-    Swag.assert(metadata(#typeof(Metadata))!.answer() == 42)
-    Swag.assert((metadata(#typeof(Metadata))?.answer() orelse 0) == 42)
+    Swag.require(cast(IMetadata, extracted).answer() == 42)
+    Swag.require(metadata(#typeof(Metadata))!.answer() == 42)
+    Swag.require((metadata(#typeof(Metadata))?.answer() orelse 0) == 42)
 }

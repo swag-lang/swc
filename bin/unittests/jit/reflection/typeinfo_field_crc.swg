@@ -22,19 +22,19 @@ enum CrcEnum
 #test
 {
     let ts = cast(const *Swag.TypeInfoStruct, #typeof(CrcProbe))
-    Swag.assert(ts.fields.count == 3)
+    Swag.require(ts.fields.count == 3)
 
-    Swag.assert(ts.fields[0].name == "bar" and ts.fields[0].crc == 1996459178)
-    Swag.assert(ts.fields[1].name == "baz" and ts.fields[1].crc == 2015626392)
-    Swag.assert(ts.fields[2].name == "label" and ts.fields[2].crc == 245846248)
+    Swag.require(ts.fields[0].name == "bar" and ts.fields[0].crc == 1996459178)
+    Swag.require(ts.fields[1].name == "baz" and ts.fields[1].crc == 2015626392)
+    Swag.require(ts.fields[2].name == "label" and ts.fields[2].crc == 245846248)
 
     // Distinct names hash to distinct, non-zero CRCs.
-    Swag.assert(ts.fields[0].crc != 0 and ts.fields[1].crc != 0 and ts.fields[2].crc != 0)
-    Swag.assert(ts.fields[0].crc != ts.fields[1].crc)
+    Swag.require(ts.fields[0].crc != 0 and ts.fields[1].crc != 0 and ts.fields[2].crc != 0)
+    Swag.require(ts.fields[0].crc != ts.fields[1].crc)
 
     // Enum value names get their CRC too.
     let te = cast(const *Swag.TypeInfoEnum, #typeof(CrcEnum))
-    Swag.assert(te.values.count == 2)
-    Swag.assert(te.values[0].name == "Alpha" and te.values[0].crc == 287381102)
-    Swag.assert(te.values[1].name == "Beta" and te.values[1].crc == 799255389)
+    Swag.require(te.values.count == 2)
+    Swag.require(te.values[0].name == "Alpha" and te.values[0].crc == 287381102)
+    Swag.require(te.values[1].name == "Beta" and te.values[1].crc == 799255389)
 }

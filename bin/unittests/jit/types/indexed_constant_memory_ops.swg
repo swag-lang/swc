@@ -22,5 +22,5 @@ func jitIndexedConstantUpdates()->bool
 
 #test
 {
-    Swag.assert(jitIndexedConstantUpdates())
+    Swag.require(jitIndexedConstantUpdates())
 }

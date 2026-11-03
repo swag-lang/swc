@@ -35,11 +35,11 @@ impl AutoScopeFileInfo
 #test
 {
     let counter = Counter{count: 4}
-    Swag.assert(counter.whereFunction(4))
-    Swag.assert(not counter.whereFunction(3))
+    Swag.require(counter.whereFunction(4))
+    Swag.require(not counter.whereFunction(3))
 
     let info = AutoScopeFileInfo{attributes: AutoScopeAttributes.Directory}
-    Swag.assert(info.isDirectory())
+    Swag.require(info.isDirectory())
 }
 
 struct(T) AutoScopeUnaryBox
@@ -60,5 +60,5 @@ impl AutoScopeUnaryBox
 {
     var value: AutoScopeUnaryBox's32 = {value: 42}
     let inverted = ~value
-    Swag.assert(inverted.value == -43)
+    Swag.require(inverted.value == -43)
 }

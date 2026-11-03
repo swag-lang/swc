@@ -57,25 +57,25 @@ func nativeIfLetNullableWhereSkip()->s32
 
 #test
 {
-    Swag.assert(nativeIfLetSimple() == 1)
+    Swag.require(nativeIfLetSimple() == 1)
 }
 
 #test
 {
-    Swag.assert(nativeIfLetWhereFalseElse() == 3)
+    Swag.require(nativeIfLetWhereFalseElse() == 3)
 }
 
 #test
 {
-    Swag.assert(nativeIfLetDo() == 5)
+    Swag.require(nativeIfLetDo() == 5)
 }
 
 #test
 {
-    Swag.assert(nativeIfLetNullableNullElse() == 1)
+    Swag.require(nativeIfLetNullableNullElse() == 1)
 }
 
 #test
 {
-    Swag.assert(nativeIfLetNullableWhereSkip() == 1)
+    Swag.require(nativeIfLetNullableWhereSkip() == 1)
 }

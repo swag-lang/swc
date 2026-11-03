@@ -256,61 +256,61 @@ func nativeWithMeDisambiguation()->s32
 
 #test
 {
-    Swag.assert(nativeWithValueAndPointer() == 24)
+    Swag.require(nativeWithValueAndPointer() == 24)
 }
 
 #test
 {
-    Swag.assert(nativeWithAssignmentsAndScopes() == 45)
+    Swag.require(nativeWithAssignmentsAndScopes() == 45)
 }
 
 #test
 {
-    Swag.assert(nativeWithAssignedValueTarget() == 1122)
+    Swag.require(nativeWithAssignedValueTarget() == 1122)
 }
 
 #test
 {
-    Swag.assert(nativeWithAnonymous() == 813)
+    Swag.require(nativeWithAnonymous() == 813)
 }
 
 #test
 {
-    Swag.assert(nativeWithLocalInit() == 2236)
+    Swag.require(nativeWithLocalInit() == 2236)
 }
 
 #test
 {
-    Swag.assert(nativeWithLetPointer() == 1324)
+    Swag.require(nativeWithLetPointer() == 1324)
 }
 
 #test
 {
-    Swag.assert(nativeWithNestedMemberTarget() == 2215)
+    Swag.require(nativeWithNestedMemberTarget() == 2215)
 }
 
 #test
 {
-    Swag.assert(nativeWithMeDisambiguation() == 409)
+    Swag.require(nativeWithMeDisambiguation() == 409)
 }
 
 #test
 {
     let pair = nativeWithRetval()
-    Swag.assert(pair.a == 21)
-    Swag.assert(pair.b == 34)
+    Swag.require(pair.a == 21)
+    Swag.require(pair.b == 34)
 }
 
 #test
 {
     let pair = nativeWithRetvalUndefined()
-    Swag.assert(pair.a == 55)
-    Swag.assert(pair.b == 89)
+    Swag.require(pair.a == 55)
+    Swag.require(pair.b == 89)
 }
 
 #test
 {
     var owner: NativeWithMemberOwner
     owner.point = nativeWithMakePoint(10, 20)
-    Swag.assert(owner.applyMemberScope() == 1527)
+    Swag.require(owner.applyMemberScope() == 1527)
 }

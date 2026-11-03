@@ -38,14 +38,14 @@ func pushNullAllocatorMacroContext()->bool
 
 #test
 {
-    Swag.assert(Swag.getContext().allocator != null)
-    Swag.assert(pushNullAllocatorContext())
-    Swag.assert(Swag.getContext().allocator != null)
+    Swag.require(Swag.getContext().allocator != null)
+    Swag.require(pushNullAllocatorContext())
+    Swag.require(Swag.getContext().allocator != null)
 }
 
 #test
 {
-    Swag.assert(Swag.getContext().allocator != null)
-    Swag.assert(pushNullAllocatorMacroContext())
-    Swag.assert(Swag.getContext().allocator != null)
+    Swag.require(Swag.getContext().allocator != null)
+    Swag.require(pushNullAllocatorMacroContext())
+    Swag.require(Swag.getContext().allocator != null)
 }

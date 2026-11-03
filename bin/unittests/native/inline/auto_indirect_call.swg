@@ -25,5 +25,5 @@ func invokeDeferred(value: *u32)
 {
     var value = 0'u32
     invokeDeferred(&value)
-    Swag.assert(value == 10)
+    Swag.require(value == 10)
 }

@@ -48,6 +48,6 @@ func countCommon(a: Visits, b: Visits)->s32
 {
     let a = Visits{values: [10, 20, 30, 40]}
     let b = Visits{values: [20, 40, 50, 60]}
-    Swag.assert(countCommon(a, b) == 2)
-    Swag.assert(countCommon(a, a) == 4)
+    Swag.require(countCommon(a, b) == 2)
+    Swag.require(countCommon(a, a) == 4)
 }

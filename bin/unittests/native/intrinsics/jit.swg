@@ -42,10 +42,10 @@ func compilerJitCallMatchesContext()->bool
 
 #test
 {
-    Swag.assert(jitCallMatchesContext())
-    Swag.assert(jitCallCanBeStored())
-    Swag.assert(jitCallCanDriveBranch())
-    Swag.assert(jitCallInCompoundExpression())
+    Swag.require(jitCallMatchesContext())
+    Swag.require(jitCallCanBeStored())
+    Swag.require(jitCallCanDriveBranch())
+    Swag.require(jitCallInCompoundExpression())
 }
 
 #test

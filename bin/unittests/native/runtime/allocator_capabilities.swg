@@ -4,15 +4,15 @@
 {
     var allocator: Swag.Allocator
     allocator.setup()
-    Swag.assert(allocator.detectLeaks == #hastag("Swag.AllocatorDiagnostics"))
+    Swag.require(allocator.detectLeaks == #hastag("Swag.AllocatorDiagnostics"))
     allocator.configure(false, false, false, false, false)
 
     let itf     = Swag.makeInterface(&allocator, #typeof(allocator), Swag.IAllocator)
     var request = Swag.AllocatorRequest{size: 128}
     itf.alloc(&request)
-    Swag.assert(request.address != null)
+    Swag.require(request.address != null)
     itf.free(&request)
-    Swag.assert(allocator.stats().countAlloc == 0)
+    Swag.require(allocator.stats().countAlloc == 0)
 }
 
 #static if not #hastag("Swag.AllocatorDiagnostics")
@@ -26,8 +26,8 @@
                 allocator.setup()
                 allocator.configure(mode == 0, mode == 1, mode == 2, mode == 3, mode == 4)
             })
-            Swag.assert(caught.raised)
-            Swag.assert(caught.message() == "allocator diagnostics need compiler tag 'Swag.AllocatorDiagnostics'; add '--tag Swag.AllocatorDiagnostics' before compiling")
+            Swag.require(caught.raised)
+            Swag.require(caught.message() == "allocator diagnostics need compiler tag 'Swag.AllocatorDiagnostics'; add '--tag Swag.AllocatorDiagnostics' before compiling")
         }
     }
 }

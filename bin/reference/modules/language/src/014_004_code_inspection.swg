@@ -26,7 +26,7 @@ internal var CodeInspectionHookRan = false
 
 #test
 {
-    Swag.assert(CodeInspectionHookRan)
+    Swag.require(CodeInspectionHookRan)
 }
 
 /**

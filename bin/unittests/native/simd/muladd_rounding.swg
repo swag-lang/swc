@@ -11,7 +11,7 @@ func multiplyAddPacked64(a, b, c: #simd [2] f64)->#simd [2] f64 => Swag.mulAdd(a
     let b      = Swag.vecSplat(0.9998779296875'f32)
     let c      = Swag.vecSplat(-1.0'f32)
     let result = cast([4] f32, multiplyAddPacked32(a, b, c))
-    for lane in result do Swag.assert(lane == 0)
+    for lane in result do Swag.require(lane == 0)
 }
 
 #test
@@ -20,5 +20,5 @@ func multiplyAddPacked64(a, b, c: #simd [2] f64)->#simd [2] f64 => Swag.mulAdd(a
     let b      = Swag.vecSplat(0.999999992549419403076171875'f64)
     let c      = Swag.vecSplat(-1.0'f64)
     let result = cast([2] f64, multiplyAddPacked64(a, b, c))
-    for lane in result do Swag.assert(lane == 0)
+    for lane in result do Swag.require(lane == 0)
 }

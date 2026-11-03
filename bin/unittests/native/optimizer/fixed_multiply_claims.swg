@@ -22,12 +22,12 @@ func signedReference(value, divisor: s64)->s64 => value / divisor
                   0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     {
         let narrow = cast #wrap (u32, value)
-        Swag.assert(quotient32(narrow) == unsignedReference(narrow, 7))
-        Swag.assert(quotient64(value) == unsignedReference(value, 7))
+        Swag.require(quotient32(narrow) == unsignedReference(narrow, 7))
+        Swag.require(quotient64(value) == unsignedReference(value, 7))
         let second   = value ^ 0x123456789ABCDEF0
         let expected = unsignedReference(value, 7) ^ unsignedReference(second, 11) ^ value ^ second
-        Swag.assert(carriedInputs(value, second) == expected)
+        Swag.require(carriedInputs(value, second) == expected)
     }
     for value in [-9223372036854775807's64, -2147483648, -12, -11, -10, -1, 0, 1, 10, 11, 12, 2147483647, 9223372036854775807] do
-        Swag.assert(signedQuotient(value) == signedReference(value, 11))
+        Swag.require(signedQuotient(value) == signedReference(value, 11))
 }

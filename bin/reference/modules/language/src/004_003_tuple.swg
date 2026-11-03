@@ -13,10 +13,10 @@ by position: 'let p: Point = {1, 2}'. Without such a destination, braces need fi
 #test
 {
     let pair = (10, 20)
-    Swag.assert(pair.item0 == 10 and pair.item1 == 20)
+    Swag.require(pair.item0 == 10 and pair.item1 == 20)
 
     let point = {x: 10, y: 20}
-    Swag.assert(point.x == 10 and point.y == 20)
+    Swag.require(point.x == 10 and point.y == 20)
 }
 
 /**
@@ -30,11 +30,11 @@ position order. An initializer, argument or return value matches those positions
     func makePair()->(string, s32) => ("name", 42)
 
     let (name, count) = makePair()
-    Swag.assert(name == "name" and count == 42)
+    Swag.require(name == "name" and count == 42)
 
     var pair: (s32, s32) = (10, 20)
     (pair.item1, pair.item0) = pair
-    Swag.assert(pair.item0 == 20 and pair.item1 == 10)
+    Swag.require(pair.item0 == 20 and pair.item1 == 10)
 }
 
 /**
@@ -48,9 +48,9 @@ remains ordinary grouping. An empty '()' is not a tuple value.
 {
     var single: (s32,) = (42,)
     let (value,)       = single
-    Swag.assert(value == 42 and (value) == 42)
+    Swag.require(value == 42 and (value) == 42)
     single.item0 = 43
-    Swag.assert(single.item0 == 43)
+    Swag.require(single.item0 == 43)
 }
 
 /**
@@ -65,11 +65,11 @@ instead. Anonymous record types list the names and their types in braces.
     let x     = 10
     let y     = 20
     let point = {x, y}
-    Swag.assert(point.x == 10 and point.y == 20)
+    Swag.require(point.x == 10 and point.y == 20)
 
     var destination: {x: s32, y: s32}
     destination = {y: 40, x: 30}
-    Swag.assert(destination.x == 30 and destination.y == 40)
+    Swag.require(destination.x == 30 and destination.y == 40)
 }
 
 /**
@@ -87,10 +87,10 @@ name. Field declaration order remains meaningful for storage and reflection.
 {
     let point     = {x: 10, y: 20}
     let reordered = {y: 20, x: 10}
-    Swag.assert(point == reordered)
+    Swag.require(point == reordered)
 
     let dimensions = {width: point.x, height: point.y}
-    Swag.assert(dimensions.width == 10 and dimensions.height == 20)
+    Swag.require(dimensions.width == 10 and dimensions.height == 20)
 }
 
 /**
@@ -103,10 +103,10 @@ not select elements. Tuple patterns cannot destructure a record or a named struc
 {
     let pair   = (10, 20)
     let (y, x) = pair
-    Swag.assert(y == 10 and x == 20)
+    Swag.require(y == 10 and x == 20)
 
     let (_, second) = pair
-    Swag.assert(second == 20)
+    Swag.require(second == 20)
 }
 
 /**
@@ -120,13 +120,13 @@ a subset in any order. A missing field or a field selected twice is an error.
 {
     let point  = {x: 10, y: 20}
     let {y, x} = point
-    Swag.assert(y == 20 and x == 10)
+    Swag.require(y == 20 and x == 10)
 
     let {x: horizontal, z} = {x: 30, z: 40}
-    Swag.assert(horizontal == 30 and z == 40)
+    Swag.require(horizontal == 30 and z == 40)
 
     let {y: vertical} = point
-    Swag.assert(vertical == 20)
+    Swag.require(vertical == 20)
 }
 
 #test
@@ -138,7 +138,7 @@ a subset in any order. A missing field or a field selected twice is an error.
 
     let color = RGB{0.5, 0.25, 1.0}
     let {blue: b, red: r} = color
-    Swag.assert(b == 1.0 and r == 0.5)
+    Swag.require(b == 1.0 and r == 0.5)
 }
 
 /**
@@ -151,11 +151,11 @@ are preserved before the targets are overwritten. This also permits exchanging f
 {
     var first, second: s32
     (first, second) = (10, 20)
-    Swag.assert(first == 10 and second == 20)
+    Swag.require(first == 10 and second == 20)
 
     var point = {x: 30, y: 40}
     {y: point.x, x: point.y} = point
-    Swag.assert(point.x == 40 and point.y == 30)
+    Swag.require(point.x == 40 and point.y == 30)
 }
 
 /**
@@ -167,7 +167,7 @@ Ignoring a value preserves the ordinary ownership and cleanup rules.
 #test
 {
     let {x: value, y: _} = {x: 10, y: 20}
-    Swag.assert(value == 10)
+    Swag.require(value == 10)
 }
 
 /**
@@ -180,5 +180,5 @@ its own delimiter's rules. Patterns have no rest form.
 {
     let source = (2, {point: (10, 20), label: "position"})
     let (count, {point: (x, y)}) = source
-    Swag.assert(count == 2 and x == 10 and y == 20)
+    Swag.require(count == 2 and x == 10 and y == 20)
 }

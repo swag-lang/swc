@@ -35,8 +35,8 @@ func(T) takeValue(boxed: ValueOrPtr'T)->T
 #test
 {
     var boxed = ValueOrPtr's32{value: 10}
-    Swag.assert(boxed.sameType(12))
-    Swag.assert(boxed.pair'bool(true))
+    Swag.require(boxed.sameType(12))
+    Swag.require(boxed.pair'bool(true))
 }
 
 #test
@@ -46,13 +46,13 @@ func(T) takeValue(boxed: ValueOrPtr'T)->T
 
     #assert(#typeof(boxed1.value) == s32)
     #assert(#typeof(boxed2.value) == s32)
-    Swag.assert(boxed1.value == 42)
-    Swag.assert(boxed2.value == 24)
+    Swag.require(boxed1.value == 42)
+    Swag.require(boxed2.value == 24)
 }
 
 #test
 {
     let value = takeValue({value: 10's32})
     #assert(#typeof(value) == s32)
-    Swag.assert(value == 10)
+    Swag.require(value == 10)
 }

@@ -16,8 +16,8 @@ func inlineClosureAccumulator(start: s32)->func||(s32)->s32
     let a = inlineClosureAccumulator(10)
     let b = inlineClosureAccumulator(100)
 
-    Swag.assert(a(1) == 11)
-    Swag.assert(b(1) == 101)
-    Swag.assert(a(1) == 12)
-    Swag.assert(b(1) == 102)
+    Swag.require(a(1) == 11)
+    Swag.require(b(1) == 101)
+    Swag.require(a(1) == 12)
+    Swag.require(b(1) == 102)
 }

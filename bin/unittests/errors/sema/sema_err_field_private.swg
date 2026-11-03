@@ -5,13 +5,13 @@
 #test
 {
     var s: AccessSafe
-    Swag.assert(s.read() == 5)
+    Swag.require(s.read() == 5)
 }
 
 #test
 {
     var s: AccessSafe
-    Swag.assert(s.key == 5)     // swc-expected-error {{sema_err_field_private}}
+    Swag.require(s.key == 5)     // swc-expected-error {{sema_err_field_private}}
 }
 
 #test

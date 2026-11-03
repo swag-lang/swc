@@ -18,10 +18,10 @@ used interchangeably with the original type throughout your code.
 #test
 {
     enum RGB { R, G, B }
-    Swag.assert(RGB.R == 0)
+    Swag.require(RGB.R == 0)
 
     alias Color = RGB
-    Swag.assert(Color.G == 1)
+    Swag.require(Color.G == 1)
 }
 
 /**
@@ -37,7 +37,7 @@ domain-specific, improving clarity when a type has a specific contextual meaning
 
     var x: Float32 = 1.0
     var y: Float64 = 1.0
-    Swag.assert(x == 1.0 and y == 1.0)
+    Swag.require(x == 1.0 and y == 1.0)
 
     #assert(#typeof(Float32) == f32)
     #assert(#typeof(Float64) == f64)
@@ -59,7 +59,7 @@ the alias and its base type. Explicit casting is still permitted.
 
     let x: MyType = cast(MyType, 0)
     let y: s32    = cast(s32, x)
-    Swag.assert(y == 0)
+    Swag.require(y == 0)
 }
 
 /**
@@ -80,7 +80,7 @@ especially useful for lengthy or descriptive function names.
 {
     func thisIsABigFunctionName(x: s32) => x * x
     alias myFunc = thisIsABigFunctionName
-    Swag.assert(myFunc(4) == 16)
+    Swag.require(myFunc(4) == 16)
 }
 
 /**
@@ -95,5 +95,5 @@ especially in large codebases with long identifiers.
     var myLongVariableName: s32 = 0
     alias short = myLongVariableName
     short += 2
-    Swag.assert(myLongVariableName == 2)
+    Swag.require(myLongVariableName == 2)
 }

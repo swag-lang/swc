@@ -33,9 +33,9 @@ func pickThroughInline(operand: u8)->u64
 {
     var regs: Registers
     regs.values[2] = 300
-    Swag.assert(regs.pick(6) == 300)
-    Swag.assert(regs.pick(2) == 2)
-    Swag.assert(pickThroughInline(4) == 100)
-    Swag.assert(pickThroughInline(5) == 200)
-    Swag.assert(pickThroughInline(1) == 1)
+    Swag.require(regs.pick(6) == 300)
+    Swag.require(regs.pick(2) == 2)
+    Swag.require(pickThroughInline(4) == 100)
+    Swag.require(pickThroughInline(5) == 200)
+    Swag.require(pickThroughInline(1) == 1)
 }

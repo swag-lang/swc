@@ -53,7 +53,7 @@
 {
     var d = 5
     var a = 10
-    Swag.assert(a / d == 2)
+    Swag.require(a / d == 2)
 }
 
 // The guard proves the divisor is non-zero on the dividing branch.
@@ -68,6 +68,6 @@ func safeDivide(a, d: s32)->s32
 
 #test
 {
-    Swag.assert(safeDivide(10, 5) == 2)
-    Swag.assert(safeDivide(10, 0) == 0)
+    Swag.require(safeDivide(10, 5) == 2)
+    Swag.require(safeDivide(10, 0) == 0)
 }

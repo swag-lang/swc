@@ -29,10 +29,10 @@ func same(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value = Value{first: 1, second: 2, third: 3}
-    Swag.assert(invoke(value, &same))
-    Swag.assert(forward(value, &same))
+    Swag.require(invoke(value, &same))
+    Swag.require(forward(value, &same))
     let expected = 1'u64
-    Swag.assert(invoke(value, func|expected|(arg, address) => arg.first == expected and &arg == address))
+    Swag.require(invoke(value, func|expected|(arg, address) => arg.first == expected and &arg == address))
 }
 
 #[Swag.NoInline]
@@ -51,7 +51,7 @@ func sameAfterLocalWrite(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value = Value{first: 1}
-    Swag.assert(invoke(value, &sameAfterLocalWrite))
+    Swag.require(invoke(value, &sameAfterLocalWrite))
 }
 
 func sameWithMath(value: Value, address: const *Value)->bool
@@ -62,7 +62,7 @@ func sameWithMath(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value = Value{first: 1}
-    Swag.assert(invoke(value, &sameWithMath))
+    Swag.require(invoke(value, &sameWithMath))
 }
 
 #[Swag.NoInline]
@@ -74,7 +74,7 @@ func invokeFunction(value: Value, callback: func(Value, const *Value)->bool)->bo
 #test
 {
     var value: Value = Value{first: 1, second: 2}
-    Swag.assert(invokeFunction(value, &same))
+    Swag.require(invokeFunction(value, &same))
 }
 
 func sameWithStatic(value: Value, address: const *Value)->bool
@@ -94,7 +94,7 @@ func sameWithStatic(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value
-    Swag.assert(invoke(value, &sameWithStatic))
+    Swag.require(invoke(value, &sameWithStatic))
 }
 
 struct StoredCallback
@@ -111,9 +111,9 @@ struct NestedCallback
 {
     var value:  Value = Value{first: 1, second: 2}
     var holder: StoredCallback = StoredCallback{callback: &same}
-    Swag.assert(invoke(value, holder.callback))
+    Swag.require(invoke(value, holder.callback))
     var nested: NestedCallback = NestedCallback{stored: StoredCallback{callback: &same}}
-    Swag.assert(invoke(value, nested.stored.callback))
+    Swag.require(invoke(value, nested.stored.callback))
 }
 
 #test
@@ -121,7 +121,7 @@ struct NestedCallback
     var value:    Value = Value{first: 1, second: 2}
     var callback: func||(Value, const *Value)->bool = &same
     let selected        = callback
-    Swag.assert(invoke(value, selected))
+    Swag.require(invoke(value, selected))
 }
 
 struct AddressHolder
@@ -145,7 +145,7 @@ func sameWithConstructedHeader(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value
-    Swag.assert(invoke(value, &sameWithConstructedHeader))
+    Swag.require(invoke(value, &sameWithConstructedHeader))
 }
 
 #[Swag.NoInline]
@@ -164,5 +164,5 @@ func sameWithReturnedHeader(value: Value, address: const *Value)->bool
 #test
 {
     var value: Value
-    Swag.assert(invoke(value, &sameWithReturnedHeader))
+    Swag.require(invoke(value, &sameWithReturnedHeader))
 }

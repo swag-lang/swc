@@ -29,11 +29,11 @@ var GSeeded: s32 = 1
 
 #test
 {
-    Swag.assert(GScalar == 7)
-    Swag.assert(GArray[0] == 10)
-    Swag.assert(GArray[1] == 20)
-    Swag.assert(GArray[2] == 30)
-    Swag.assert(GPair.x == -5)
-    Swag.assert(GPair.y == 33)
-    Swag.assert(GSeeded == 9)
+    Swag.require(GScalar == 7)
+    Swag.require(GArray[0] == 10)
+    Swag.require(GArray[1] == 20)
+    Swag.require(GArray[2] == 30)
+    Swag.require(GPair.x == -5)
+    Swag.require(GPair.y == 33)
+    Swag.require(GSeeded == 9)
 }

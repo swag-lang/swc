@@ -68,9 +68,9 @@ This is particularly useful for lightweight, temporary groupings of data.
 
     tuple.x = 1.0
     tuple.y = 2.0
-    Swag.assert(tuple.x == 1.0)
-    Swag.assert(tuple.y == 2.0)
-    Swag.assert(tuple1.x == 0 and tuple1.y == 0)
+    Swag.require(tuple.x == 1.0)
+    Swag.require(tuple.y == 2.0)
+    Swag.require(tuple1.x == 0 and tuple1.y == 0)
 }
 
 #test
@@ -104,8 +104,8 @@ providing a convenient way to ensure fields are set to a known state.
     }
 
     let v = MyStruct{}     // Initializing struct with default values
-    Swag.assert(v.x == 666)
-    Swag.assert(v.y == "454")
+    Swag.require(v.x == 666)
+    Swag.require(v.y == "454")
 }
 
 /**
@@ -130,37 +130,37 @@ any other bare identifier is an ordinary positional value.
 
     // Default initialization
     let v0: MyStruct
-    Swag.assert(v0.x == 1)
-    Swag.assert(v0.y == 1)
+    Swag.require(v0.x == 1)
+    Swag.require(v0.y == 1)
 
     // Positional initialization
     let v1 = MyStruct{10, 20}
-    Swag.assert(v1.x == 10)
-    Swag.assert(v1.y == 20)
+    Swag.require(v1.x == 10)
+    Swag.require(v1.y == 20)
 
     // Named initialization
     let v2 = MyStruct{y: 20}
-    Swag.assert(v2.x == 1)
-    Swag.assert(v2.y == 20)
+    Swag.require(v2.x == 1)
+    Swag.require(v2.y == 20)
 
     // The declared type supplies the fields
     let v3: MyStruct = {10, 20}
-    Swag.assert(v3.x == 10)
-    Swag.assert(v3.y == 20)
+    Swag.require(v3.x == 10)
+    Swag.require(v3.y == 20)
 
     // Identifiers named like fields initialize those fields
     let y = 30
     let x = 40
     let v4: MyStruct = {y, x}
-    Swag.assert(v4.x == 40)
-    Swag.assert(v4.y == 30)
+    Swag.require(v4.x == 40)
+    Swag.require(v4.y == 30)
 
     // Other identifiers are positional values
     let width        = 50
     let height       = 60
     let v5: MyStruct = {width, height}
-    Swag.assert(v5.x == 50)
-    Swag.assert(v5.y == 60)
+    Swag.require(v5.x == 50)
+    Swag.require(v5.y == 60)
 }
 
 /**

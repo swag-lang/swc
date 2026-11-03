@@ -19,7 +19,7 @@ func initialize()
 #test
 {
     initialize()
-    Swag.assert(values[Preset.First] == 42)
-    Swag.assert(values[Preset.Second] == 42)
-    Swag.assert(values[Preset.Third] == 42)
+    Swag.require(values[Preset.First] == 42)
+    Swag.require(values[Preset.Second] == 42)
+    Swag.require(values[Preset.Third] == 42)
 }

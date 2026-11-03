@@ -71,7 +71,7 @@ func prefixSums(lanes: *WordLanes)
 
     xorWords(&lanes)
     for i in 8 do
-        Swag.assert(lanes.result[i] == ((cast(u32, i) * 0x0101_0101) ^ (0xFFFF_0000 + cast(u32, i))))
+        Swag.require(lanes.result[i] == ((cast(u32, i) * 0x0101_0101) ^ (0xFFFF_0000 + cast(u32, i))))
 }
 
 #test
@@ -85,14 +85,14 @@ func prefixSums(lanes: *WordLanes)
 
     scaleAndBias(&lanes)
     for i in 8 do
-        Swag.assert(lanes.result[i] == (cast(f32, i) - 3.0'f32) * 2.0'f32 + 1.5'f32)
+        Swag.require(lanes.result[i] == (cast(f32, i) - 3.0'f32) * 2.0'f32 + 1.5'f32)
 
     magnitudes(&lanes)
-    Swag.assert(lanes.result[0] == 3.0'f32 and
-                lanes.result[1] == 2.0'f32 and
-                lanes.result[2] == 1.0'f32 and
-                lanes.result[3] == 0.0'f32)
-    Swag.assert(lanes.result[4] == 1.0'f32 and lanes.result[7] == 4.0'f32)
+    Swag.require(lanes.result[0] == 3.0'f32 and
+                 lanes.result[1] == 2.0'f32 and
+                 lanes.result[2] == 1.0'f32 and
+                 lanes.result[3] == 0.0'f32)
+    Swag.require(lanes.result[4] == 1.0'f32 and lanes.result[7] == 4.0'f32)
 }
 
 #test
@@ -107,8 +107,8 @@ func prefixSums(lanes: *WordLanes)
 
     addSixWords(&lanes)
     for i in 6 do
-        Swag.assert(lanes.result[i] == cast(u32, i) * 4 + 0x8000_0001)
-    Swag.assert(lanes.result[6] == 99 and lanes.result[7] == 99)
+        Swag.require(lanes.result[i] == cast(u32, i) * 4 + 0x8000_0001)
+    Swag.require(lanes.result[6] == 99 and lanes.result[7] == 99)
 }
 
 #test
@@ -122,6 +122,6 @@ func prefixSums(lanes: *WordLanes)
     for i in 8
     {
         expected += cast(u32, i) + 1
-        Swag.assert(lanes.result[i] == expected)
+        Swag.require(lanes.result[i] == expected)
     }
 }

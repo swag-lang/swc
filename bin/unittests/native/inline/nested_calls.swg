@@ -15,6 +15,6 @@ func double(value: s32)->s32
 #test
 {
     var s = 10
-    Swag.assert(double(addOne(5)) == 12)
-    Swag.assert(double(addOne(s)) == 22)
+    Swag.require(double(addOne(5)) == 12)
+    Swag.require(double(addOne(s)) == 22)
 }

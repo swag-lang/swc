@@ -23,15 +23,15 @@ func reflectedNotify(value: bool)
     let type       = assume cast(const *Swag.TypeInfoFunc, #typeof(reflectedAdd))
     let parameters = unwrap type.parameters
 
-    Swag.assert(parameters.count == 2)
-    Swag.assert(parameters[0].name == "left")
-    Swag.assert(parameters[0].pointedType == s32)
-    Swag.assert(parameters[1].name == "right")
-    Swag.assert(parameters[1].pointedType == s32)
-    Swag.assert(type.returnType == s32)
+    Swag.require(parameters.count == 2)
+    Swag.require(parameters[0].name == "left")
+    Swag.require(parameters[0].pointedType == s32)
+    Swag.require(parameters[1].name == "right")
+    Swag.require(parameters[1].pointedType == s32)
+    Swag.require(type.returnType == s32)
 
     let noResult = assume cast(const *Swag.TypeInfoFunc, #typeof(reflectedNotify))
-    Swag.assert(noResult.returnType == null)
+    Swag.require(noResult.returnType == null)
 }
 
 /**
@@ -44,17 +44,17 @@ their dimensions; pointer and slice descriptors expose the pointed-to type.
 #test
 {
     let pointer = assume cast(const *Swag.TypeInfoPointer, #type *s32)
-    Swag.assert(pointer.kind == .Pointer)
-    Swag.assert(pointer.pointedType == s32)
+    Swag.require(pointer.kind == .Pointer)
+    Swag.require(pointer.pointedType == s32)
 
     let array = assume cast(const *Swag.TypeInfoArray, #type [2, 3] u16)
-    Swag.assert(array.kind == .Array)
-    Swag.assert(array.pointedType == #type [3] u16)
-    Swag.assert(array.finalType == u16)
-    Swag.assert(array.count == 2)
-    Swag.assert(array.totalCount == 6)
+    Swag.require(array.kind == .Array)
+    Swag.require(array.pointedType == #type [3] u16)
+    Swag.require(array.finalType == u16)
+    Swag.require(array.count == 2)
+    Swag.require(array.totalCount == 6)
 
     let slice = assume cast(const *Swag.TypeInfoSlice, #type [..] f32)
-    Swag.assert(slice.kind == .Slice)
-    Swag.assert(slice.pointedType == f32)
+    Swag.require(slice.kind == .Slice)
+    Swag.require(slice.pointedType == f32)
 }

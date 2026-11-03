@@ -449,14 +449,14 @@ func deferReturnDropInfo()->DeferDropInfo
     let v1 = deferParameterDropInfo()
     let v2 = deferReturnDropInfo()
     let v3 = deferEmbeddedParameterDropInfo()
-    Swag.assert(v0.count == 2)
-    Swag.assert(v0.drops == 2)
-    Swag.assert(v1.count == 0)
-    Swag.assert(v1.drops == 1)
-    Swag.assert(v2.count == 42)
-    Swag.assert(v2.drops == 1)
-    Swag.assert(v3.count == 0)
-    Swag.assert(v3.drops == 1)
+    Swag.require(v0.count == 2)
+    Swag.require(v0.drops == 2)
+    Swag.require(v1.count == 0)
+    Swag.require(v1.drops == 1)
+    Swag.require(v2.count == 42)
+    Swag.require(v2.drops == 1)
+    Swag.require(v3.count == 0)
+    Swag.require(v3.drops == 1)
 }
 
 #test

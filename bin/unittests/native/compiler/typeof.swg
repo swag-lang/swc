@@ -46,8 +46,8 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc, #typeof(#type func(s32)->bool
     #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == *u8?)
 
-    Swag.assert(local == 2'u16)
-    Swag.assert(ptr == null)
+    Swag.require(local == 2'u16)
+    Swag.require(ptr == null)
 }
 
 // #typeof on compound types inspected at runtime
@@ -58,9 +58,9 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc, #typeof(#type func(s32)->bool
     let arrayInfo = assume cast(const *Swag.TypeInfoArray, types[0])
     let sliceInfo = assume cast(const *Swag.TypeInfoSlice, types[1])
 
-    Swag.assert(types[0] == #type [2, 3] TypeOfPair)
-    Swag.assert(types[1] == #type [..] TypeOfPair)
-    Swag.assert(arrayInfo.totalCount == 6)
-    Swag.assert(arrayInfo.finalType == TypeOfPair)
-    Swag.assert(sliceInfo.pointedType == TypeOfPair)
+    Swag.require(types[0] == #type [2, 3] TypeOfPair)
+    Swag.require(types[1] == #type [..] TypeOfPair)
+    Swag.require(arrayInfo.totalCount == 6)
+    Swag.require(arrayInfo.finalType == TypeOfPair)
+    Swag.require(sliceInfo.pointedType == TypeOfPair)
 }

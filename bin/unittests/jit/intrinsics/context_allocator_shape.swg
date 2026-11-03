@@ -103,11 +103,11 @@ func coalescedContextAllocatorRoundtrip()->bool
 
 #test
 {
-    Swag.assert(contextPointerIsPresent())
-    Swag.assert(contextAllocatorFieldHasRuntimeShape())
-    Swag.assert(copiedContextAllocatorHasRuntimeShape())
-    Swag.assert(returnedContextTempAllocatorPreservesObject())
-    Swag.assert(directContextAllocatorRoundtrip())
-    Swag.assert(copiedContextAllocatorRoundtrip())
-    Swag.assert(coalescedContextAllocatorRoundtrip())
+    Swag.require(contextPointerIsPresent())
+    Swag.require(contextAllocatorFieldHasRuntimeShape())
+    Swag.require(copiedContextAllocatorHasRuntimeShape())
+    Swag.require(returnedContextTempAllocatorPreservesObject())
+    Swag.require(directContextAllocatorRoundtrip())
+    Swag.require(copiedContextAllocatorRoundtrip())
+    Swag.require(coalescedContextAllocatorRoundtrip())
 }

@@ -31,12 +31,12 @@ func cancelled(a, b: u64)->u64 => a * (b + 1) - a * b
     let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(forward(a) == 7)
-        Swag.assert(backward(a) == 0xFFFFFFFFFFFFFFF9)
-        Swag.assert(negative(a) == 0xFFFFFFFFFFFFFFF9)
-        Swag.assert(narrow(cast(u32, (a & 0xFFFFFFFF))) == 7)
-        Swag.assert(shared(a) == (7'u64 ^ (a + 7)))
-        Swag.assert(changed(a) == 4)
-        for b in values do Swag.assert(cancelled(a, b) == a)
+        Swag.require(forward(a) == 7)
+        Swag.require(backward(a) == 0xFFFFFFFFFFFFFFF9)
+        Swag.require(negative(a) == 0xFFFFFFFFFFFFFFF9)
+        Swag.require(narrow(cast(u32, (a & 0xFFFFFFFF))) == 7)
+        Swag.require(shared(a) == (7'u64 ^ (a + 7)))
+        Swag.require(changed(a) == 4)
+        for b in values do Swag.require(cancelled(a, b) == a)
     }
 }

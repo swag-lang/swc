@@ -82,37 +82,37 @@ impl Matrix
 #test
 {
     var ext: Extended's32 = {base: {value: 42}, extra: 10}
-    Swag.assert(ext.value == 42)
-    Swag.assert(ext.extra == 10)
+    Swag.require(ext.value == 42)
+    Swag.require(ext.extra == 10)
 
     var extF: Extended'f64 = {base: {value: 3.14}, extra: 7}
-    Swag.assert(extF.value == 3.14)
-    Swag.assert(extF.extra == 7)
+    Swag.require(extF.value == 3.14)
+    Swag.require(extF.extra == 7)
 }
 
 // Deep 3-level nesting
 #test
 {
     let outer: OuterBox's32 = {middle: {inner: {value: 99}}}
-    Swag.assert(outer.middle.inner.value == 99)
+    Swag.require(outer.middle.inner.value == 99)
 
     let outerStr: OuterBox'string = {middle: {inner: {value: "deep"}}}
-    Swag.assert(outerStr.middle.inner.value == "deep")
+    Swag.require(outerStr.middle.inner.value == "deep")
 
     let outerBool: OuterBox'bool = {middle: {inner: {value: true}}}
-    Swag.assert(outerBool.middle.inner.value == true)
+    Swag.require(outerBool.middle.inner.value == true)
 }
 
 // Heterogeneous holder
 #test
 {
     let h: HeteroHolder'(s32, string) = {left: {value: 42}, right: {value: "hello"}}
-    Swag.assert(h.left.value == 42)
-    Swag.assert(h.right.value == "hello")
+    Swag.require(h.left.value == 42)
+    Swag.require(h.right.value == "hello")
 
     let h2: HeteroHolder'(bool, f64) = {left: {value: false}, right: {value: 2.718}}
-    Swag.assert(h2.left.value == false)
-    Swag.assert(h2.right.value == 2.718)
+    Swag.require(h2.left.value == false)
+    Swag.require(h2.right.value == 2.718)
 }
 
 // Generic pointer to generic struct
@@ -120,8 +120,8 @@ impl Matrix
 {
     var box:  Box's32    = {value: 77}
     let refb: RefBox's32 = {ptr: &box}
-    Swag.assert(refb.ptr[] == box)
-    Swag.assert(refb.ptr[].value == 77)
+    Swag.require(refb.ptr[] == box)
+    Swag.require(refb.ptr[].value == 77)
 }
 
 // Non-generic struct with many generic instantiations
@@ -132,55 +132,55 @@ impl Matrix
         floatBox: {value: 2.5},
         boolBox: {value: true},
         stringBox: {value: "multi"}}
-    Swag.assert(mb.intBox.value == 1)
-    Swag.assert(mb.floatBox.value == 2.5)
-    Swag.assert(mb.boolBox.value == true)
-    Swag.assert(mb.stringBox.value == "multi")
+    Swag.require(mb.intBox.value == 1)
+    Swag.require(mb.floatBox.value == 2.5)
+    Swag.require(mb.boolBox.value == true)
+    Swag.require(mb.stringBox.value == "multi")
 }
 
 // Box of Box (nested generic type parameter)
 #test
 {
     let bb: BoxOfBox's32 = {inner: {value: {value: 123}}}
-    Swag.assert(bb.inner.value.value == 123)
+    Swag.require(bb.inner.value.value == 123)
 
     let bbs: BoxOfBox'string = {inner: {value: {value: "nested"}}}
-    Swag.assert(bbs.inner.value.value == "nested")
+    Swag.require(bbs.inner.value.value == "nested")
 }
 
 // Array of generic structs
 #test
 {
     let list: BoxList'(s32, 3) = {items: [{value: 10}, {value: 20}, {value: 30}]}
-    Swag.assert(list.items[0].value == 10)
-    Swag.assert(list.items[1].value == 20)
-    Swag.assert(list.items[2].value == 30)
+    Swag.require(list.items[0].value == 10)
+    Swag.require(list.items[1].value == 20)
+    Swag.require(list.items[2].value == 30)
 
     let blist: BoxList'(bool, 2) = {items: [{value: true}, {value: false}]}
-    Swag.assert(blist.items[0].value == true)
-    Swag.assert(blist.items[1].value == false)
+    Swag.require(blist.items[0].value == true)
+    Swag.require(blist.items[1].value == false)
 }
 
 // Matrix with two const params
 #test
 {
     var m: Matrix'(s32, 2, 3) = {data: [1, 2, 3, 4, 5, 6]}
-    Swag.assert(m.rows() == 2)
-    Swag.assert(m.cols() == 3)
-    Swag.assert(m.totalSize() == 6)
-    Swag.assert(m.at(0, 0) == 1)
-    Swag.assert(m.at(0, 2) == 3)
-    Swag.assert(m.at(1, 0) == 4)
-    Swag.assert(m.at(1, 2) == 6)
+    Swag.require(m.rows() == 2)
+    Swag.require(m.cols() == 3)
+    Swag.require(m.totalSize() == 6)
+    Swag.require(m.at(0, 0) == 1)
+    Swag.require(m.at(0, 2) == 3)
+    Swag.require(m.at(1, 0) == 4)
+    Swag.require(m.at(1, 2) == 6)
 }
 
 #test
 {
     var m: Matrix'(f64, 3, 2) = {data: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
-    Swag.assert(m.rows() == 3)
-    Swag.assert(m.cols() == 2)
-    Swag.assert(m.at(0, 0) == 1.0)
-    Swag.assert(m.at(2, 1) == 6.0)
+    Swag.require(m.rows() == 3)
+    Swag.require(m.cols() == 2)
+    Swag.require(m.at(0, 0) == 1.0)
+    Swag.require(m.at(2, 1) == 6.0)
 }
 
 // Type assertions on nested generics
@@ -220,10 +220,10 @@ struct(T) GenericAnonymousUnionHolder
     var st: GenericAnonymousStructHolder's32
     st.value = 42
     st.count = 1
-    Swag.assert(st.data.value == 42)
-    Swag.assert(st.count == 1)
+    Swag.require(st.data.value == 42)
+    Swag.require(st.count == 1)
 
     var un: GenericAnonymousUnionHolder'u32
     un.value = 42
-    Swag.assert(un.data.value == 42)
+    Swag.require(un.data.value == 42)
 }

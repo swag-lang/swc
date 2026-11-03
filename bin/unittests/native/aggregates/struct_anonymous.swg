@@ -9,8 +9,8 @@ func toto()->{x: s32, y: bool}
 {
     let s = toto()
     #assert(#typeof(s).kind == .Struct)
-    Swag.assert(s.x == 42)
-    Swag.assert(s.y)
+    Swag.require(s.x == 42)
+    Swag.require(s.y)
 }
 
 #test
@@ -21,15 +21,15 @@ func toto()->{x: s32, y: bool}
     let b = st1.y == 2
     discard b
     #assert(#sizeof(st1) == 8)
-    Swag.assert(st1.x == 0)
-    Swag.assert(st1.y == 0)
+    Swag.require(st1.x == 0)
+    Swag.require(st1.y == 0)
 }
 
 #test
 {
     let s = toto()
-    Swag.assert(s.x == 42)
-    Swag.assert(s.y)
+    Swag.require(s.x == 42)
+    Swag.require(s.y)
 }
 
 #test
@@ -39,6 +39,6 @@ func toto()->{x: s32, y: bool}
     var t: struct { x: s32; y: bool }
     t.x = 1
     t.y = false
-    Swag.assert(t.x == 1)
-    Swag.assert(not t.y)
+    Swag.require(t.x == 1)
+    Swag.require(not t.y)
 }

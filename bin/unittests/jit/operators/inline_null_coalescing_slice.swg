@@ -42,10 +42,10 @@ func inlineJitNonNullCoalescingSliceWins()->bool
 #test
 {
     var empty = ""
-    Swag.assert((empty orelse "fallback") == "")
+    Swag.require((empty orelse "fallback") == "")
 
     var missing: string? = null
-    Swag.assert((missing orelse "fallback") == "fallback")
+    Swag.require((missing orelse "fallback") == "fallback")
 
     // The result drops '?': it is guaranteed present.
     #assert(#typeof(missing orelse "fallback") == string)

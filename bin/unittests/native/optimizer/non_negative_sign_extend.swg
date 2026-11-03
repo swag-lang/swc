@@ -24,11 +24,11 @@ func pick(flag: bool, a, b: u8)->s32 => flag ? cast(s32, a) : cast(s32, b) * 3
 
 #test
 {
-    Swag.assert(countTrue(true, true, true) == 3 and countTrue(false, true, false) == 1)
-    Swag.assert(byteSum(255, 255) == 510 and byteSum(0, 1) == 1)
-    Swag.assert(topBits(0xFFFFFFFF) == 4095 and topBits(0x00100000) == 1)
-    Swag.assert(lowPart(-1) == 0x7FFF and lowPart(0x12345) == 0x2345)
-    Swag.assert(wideSum(0x7FFFFFFF, 1) == -0x80000000's64)
-    Swag.assert(wideSum(-5, 2) == -3)
-    Swag.assert(pick(true, 200, 100) == 200 and pick(false, 200, 255) == 765)
+    Swag.require(countTrue(true, true, true) == 3 and countTrue(false, true, false) == 1)
+    Swag.require(byteSum(255, 255) == 510 and byteSum(0, 1) == 1)
+    Swag.require(topBits(0xFFFFFFFF) == 4095 and topBits(0x00100000) == 1)
+    Swag.require(lowPart(-1) == 0x7FFF and lowPart(0x12345) == 0x2345)
+    Swag.require(wideSum(0x7FFFFFFF, 1) == -0x80000000's64)
+    Swag.require(wideSum(-5, 2) == -3)
+    Swag.require(pick(true, 200, 100) == 200 and pick(false, 200, 255) == 765)
 }

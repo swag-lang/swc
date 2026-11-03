@@ -106,9 +106,9 @@ func(T) selectedFromType()->s32
 #test
 {
     let value = StaticFields{2}
-    Swag.assert(value.value == 2)
-    Swag.assert(StaticValues.Value0 != StaticValues.Value1)
-    Swag.assert(selectedInFunction() == 42)
-    Swag.assert(selectedFromMultipleCases() == 42)
-    Swag.assert(selectedFromType's32() == 42)
+    Swag.require(value.value == 2)
+    Swag.require(StaticValues.Value0 != StaticValues.Value1)
+    Swag.require(selectedInFunction() == 42)
+    Swag.require(selectedFromMultipleCases() == 42)
+    Swag.require(selectedFromType's32() == 42)
 }

@@ -654,8 +654,8 @@ func notNullSliceSuccess()->s32
     var value:      #decltype(expect propagateExplicitSuccess())
     catch { value = try propagateExplicitSuccess() } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(value == 42)
-    Swag.assert(err == null)
+    Swag.require(value == 42)
+    Swag.require(err == null)
 }
 
 #test
@@ -664,8 +664,8 @@ func notNullSliceSuccess()->s32
     var value:      #decltype(expect propagateTrySuccess())
     catch { value = try propagateTrySuccess() } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(value == 51)
-    Swag.assert(err == null)
+    Swag.require(value == 51)
+    Swag.require(err == null)
 }
 
 #test
@@ -674,8 +674,8 @@ func notNullSliceSuccess()->s32
     var value:      #decltype(expect inlineMayFailValue(63))
     catch { value = try inlineMayFailValue(63) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(value == 63)
-    Swag.assert(err == null)
+    Swag.require(value == 63)
+    Swag.require(err == null)
 }
 
 #test
@@ -683,81 +683,81 @@ func notNullSliceSuccess()->s32
     var err9Outcome: Swag.Error
     catch propagateTryVoidSuccess() as err9Outcome
     let err9 = err9Outcome.value()
-    Swag.assert(err9 == null)
+    Swag.require(err9 == null)
 }
 
 #test
 {
     let info = catchFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 17)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 17)
 }
 
 #test
 {
     let info = inlineCatchFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 41)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 41)
 }
 
 #test
 {
     let info = catchTryFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 18)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 18)
 }
 
 #test
 {
-    Swag.assert(catchStrictEnumFailureInfo())
+    Swag.require(catchStrictEnumFailureInfo())
 }
 
 #test
 {
     let info = errIsAsFailureInfo()
-    Swag.assert(info.exactType)
-    Swag.assert(info.baseType)
-    Swag.assert(not info.wrongType)
-    Swag.assert(info.exactCastOk)
-    Swag.assert(info.baseCastOk)
-    Swag.assert(info.wrongCastNull)
-    Swag.assert(info.code == 86)
-    Swag.assert(info.messageOk)
+    Swag.require(info.exactType)
+    Swag.require(info.baseType)
+    Swag.require(not info.wrongType)
+    Swag.require(info.exactCastOk)
+    Swag.require(info.baseCastOk)
+    Swag.require(info.wrongCastNull)
+    Swag.require(info.code == 86)
+    Swag.require(info.messageOk)
 }
 
 #test
 {
     let info = errIsAsNullInfo()
-    Swag.assert(not info.exactType)
-    Swag.assert(not info.baseType)
-    Swag.assert(info.exactCastNull)
-    Swag.assert(info.baseCastNull)
+    Swag.require(not info.exactType)
+    Swag.require(not info.baseType)
+    Swag.require(info.exactCastNull)
+    Swag.require(info.baseCastNull)
 }
 
 #test
 {
     let value = catchAggregateSuccess()
-    Swag.assert(value.first == 70)
-    Swag.assert(value.second == 71)
-    Swag.assert(value.payload[0] == 72)
-    Swag.assert(value.payload[1] == 73)
-    Swag.assert(value.payload[2] == 74)
+    Swag.require(value.first == 70)
+    Swag.require(value.second == 71)
+    Swag.require(value.payload[0] == 72)
+    Swag.require(value.payload[1] == 73)
+    Swag.require(value.payload[2] == 74)
 }
 
 #test
 {
     let info = catchAggregateFailureInfo()
-    Swag.assert(info.value.first == 0)
-    Swag.assert(info.value.second == 0)
-    Swag.assert(info.value.payload[0] == 0)
-    Swag.assert(info.value.payload[1] == 0)
-    Swag.assert(info.value.payload[2] == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 71)
-    Swag.assert(info.messageOk)
+    Swag.require(info.value.first == 0)
+    Swag.require(info.value.second == 0)
+    Swag.require(info.value.payload[0] == 0)
+    Swag.require(info.value.payload[1] == 0)
+    Swag.require(info.value.payload[2] == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 71)
+    Swag.require(info.messageOk)
 }
 
 #test
@@ -765,9 +765,9 @@ func notNullSliceSuccess()->s32
     var err10Outcome: Swag.Error
     catch propagateExplicitVoidFailure() as err10Outcome
     let err10 = err10Outcome.value()
-    Swag.assert(err10 != null)
+    Swag.require(err10 != null)
     let err = assume cast (ErrValue, err10)
-    Swag.assert(err.code == 19)
+    Swag.require(err.code == 19)
 }
 
 #test
@@ -775,9 +775,9 @@ func notNullSliceSuccess()->s32
     var err11Outcome: Swag.Error
     catch propagateTryBlockVoidFailure() as err11Outcome
     let err11 = err11Outcome.value()
-    Swag.assert(err11 != null)
+    Swag.require(err11 != null)
     let err = assume cast (ErrValue, err11)
-    Swag.assert(err.code == 21)
+    Swag.require(err.code == 21)
 }
 
 #test
@@ -786,8 +786,8 @@ func notNullSliceSuccess()->s32
     var value:      #decltype(expect propagateTrySuccess())
     catch { value = try propagateTrySuccess() } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(value == 51)
-    Swag.assert(err == null)
+    Swag.require(value == 51)
+    Swag.require(err == null)
 }
 
 #test
@@ -796,182 +796,182 @@ func notNullSliceSuccess()->s32
     var value:      #decltype(expect inlineMayFailValue(64))
     catch { value = try inlineMayFailValue(64) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(value == 64)
-    Swag.assert(err == null)
+    Swag.require(value == 64)
+    Swag.require(err == null)
 }
 
 #test
 {
     let value = catch aggregateSuccess(80)
-    Swag.assert(value.first == 80)
-    Swag.assert(value.second == 81)
-    Swag.assert(value.payload[0] == 82)
-    Swag.assert(value.payload[1] == 83)
-    Swag.assert(value.payload[2] == 84)
+    Swag.require(value.first == 80)
+    Swag.require(value.second == 81)
+    Swag.require(value.payload[0] == 82)
+    Swag.require(value.payload[1] == 83)
+    Swag.require(value.payload[2] == 84)
 }
 
 #test
 {
     let info = dismissFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
+    Swag.require(info.value == 0)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
 }
 
 #test
 {
     let info = inlineDismissFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
+    Swag.require(info.value == 0)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
 }
 
 #test
 {
     let info = dismissAggregateFailureInfo()
-    Swag.assert(info.value.first == 0)
-    Swag.assert(info.value.second == 0)
-    Swag.assert(info.value.payload[0] == 0)
-    Swag.assert(info.value.payload[1] == 0)
-    Swag.assert(info.value.payload[2] == 0)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
-    Swag.assert(not info.messageOk)
+    Swag.require(info.value.first == 0)
+    Swag.require(info.value.second == 0)
+    Swag.require(info.value.payload[0] == 0)
+    Swag.require(info.value.payload[1] == 0)
+    Swag.require(info.value.payload[2] == 0)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
+    Swag.require(not info.messageOk)
 }
 
 #test
 {
     let value = expect mayFailValue(77)
-    Swag.assert(value == 77)
+    Swag.require(value == 77)
 }
 
 #test
 {
-    Swag.assert(notNullPointerSuccess() == 91)
+    Swag.require(notNullPointerSuccess() == 91)
 }
 
 #test
 {
-    Swag.assert(notNullSliceSuccess() == 8)
+    Swag.require(notNullSliceSuccess() == 8)
 }
 
 #test
 {
-    Swag.assert(nestedTryHandled() == 23)
+    Swag.require(nestedTryHandled() == 23)
 }
 
 #test
 {
-    Swag.assert(traceFailCatch() == 124)
+    Swag.require(traceFailCatch() == 124)
 }
 
 #test
 {
     let info = catchNullablePointerFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 73)
+    Swag.require(info.isNull)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 73)
 }
 
 #test
 {
     let info = catchNullableStringFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 74)
+    Swag.require(info.isNull)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 74)
 }
 
 #test
 {
     let info = catchNullableSliceFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 75)
+    Swag.require(info.isNull)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 75)
 }
 
 #test
 {
     let info = dismissNullablePointerFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
+    Swag.require(info.isNull)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
 }
 
 #test
 {
     let info = dismissNullableStringFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
+    Swag.require(info.isNull)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
 }
 
 #test
 {
     let info = dismissNullableSliceFailureInfo()
-    Swag.assert(info.isNull)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
+    Swag.require(info.isNull)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
 }
 
 #test
 {
     let info = chainedTryFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 81)
-    Swag.assert(info.trace == 124)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 81)
+    Swag.require(info.trace == 124)
 }
 
 #test
 {
     let info = deferFailAfterReturnInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 82)
-    Swag.assert(info.trace == 123)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 82)
+    Swag.require(info.trace == 123)
 }
 
 #test
 {
     let info = errDeferOverrideFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 84)
-    Swag.assert(info.trace == 123)
+    Swag.require(info.value == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 84)
+    Swag.require(info.trace == 123)
 }
 
 #test
 {
     let info = dismissErrDeferOverrideFailureInfo()
-    Swag.assert(info.value == 0)
-    Swag.assert(not info.hasErr)
-    Swag.assert(info.code == 0)
-    Swag.assert(info.trace == 123)
+    Swag.require(info.value == 0)
+    Swag.require(not info.hasErr)
+    Swag.require(info.code == 0)
+    Swag.require(info.trace == 123)
 }
 
 #test
 {
     let info = aggregateDeferFailInfo()
-    Swag.assert(info.value.first == 0)
-    Swag.assert(info.value.second == 0)
-    Swag.assert(info.value.payload[0] == 0)
-    Swag.assert(info.value.payload[1] == 0)
-    Swag.assert(info.value.payload[2] == 0)
-    Swag.assert(info.hasErr)
-    Swag.assert(info.code == 85)
-    Swag.assert(info.trace == 12)
+    Swag.require(info.value.first == 0)
+    Swag.require(info.value.second == 0)
+    Swag.require(info.value.payload[0] == 0)
+    Swag.require(info.value.payload[1] == 0)
+    Swag.require(info.value.payload[2] == 0)
+    Swag.require(info.hasErr)
+    Swag.require(info.code == 85)
+    Swag.require(info.trace == 12)
 }
 
 #test
 {
-    Swag.assert(repeatedCatchFailureSum() == 820)
+    Swag.require(repeatedCatchFailureSum() == 820)
 }
 
 #test
 {
     expect tryIfElse(false)
-    Swag.assert(ErrorTrace == 1)
+    Swag.require(ErrorTrace == 1)
 
     expect tryIfElse(true)
-    Swag.assert(ErrorTrace == 0)
+    Swag.require(ErrorTrace == 0)
 }

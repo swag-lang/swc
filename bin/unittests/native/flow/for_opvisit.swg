@@ -284,8 +284,8 @@ impl GenericScopedVisits
         sumIndexes += index
     }
 
-    Swag.assert(sumValues == 60)
-    Swag.assert(sumIndexes == 3)
+    Swag.require(sumValues == 60)
+    Swag.require(sumIndexes == 3)
 }
 
 #test
@@ -302,7 +302,7 @@ impl GenericScopedVisits
         break
     }
 
-    Swag.assert(acc == 11)
+    Swag.require(acc == 11)
 }
 
 #test
@@ -312,9 +312,9 @@ impl GenericScopedVisits
     for &value, ordinal in values do
         value[] += cast(s32, (ordinal + 1))
 
-    Swag.assert(values.values[0] == 4)
-    Swag.assert(values.values[1] == 8)
-    Swag.assert(values.values[2] == 12)
+    Swag.require(values.values[0] == 4)
+    Swag.require(values.values[1] == 8)
+    Swag.require(values.values[2] == 12)
 }
 
 #test
@@ -329,8 +329,8 @@ impl GenericScopedVisits
         order += index
     }
 
-    Swag.assert(code == 321)
-    Swag.assert(order == 3)
+    Swag.require(code == 321)
+    Swag.require(order == 3)
 }
 
 #test
@@ -345,7 +345,7 @@ impl GenericScopedVisits
         code = code * 10 + value + cast(s32, index) - cast(s32, index)
     }
 
-    Swag.assert(code == 321)
+    Swag.require(code == 321)
 }
 
 #test
@@ -360,8 +360,8 @@ impl GenericScopedVisits
         sum   += cast(s32, index)
     }
 
-    Swag.assert(count == 3)
-    Swag.assert(sum == 3)
+    Swag.require(count == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -377,8 +377,8 @@ impl GenericScopedVisits
         order += index
     }
 
-    Swag.assert(code == 456)
-    Swag.assert(order == 3)
+    Swag.require(code == 456)
+    Swag.require(order == 3)
 }
 
 #test
@@ -393,7 +393,7 @@ impl GenericScopedVisits
         sum += value + scaled + cast(s32, ordinal)
     }
 
-    Swag.assert(sum == 168)
+    Swag.require(sum == 168)
 }
 
 #test
@@ -404,7 +404,7 @@ impl GenericScopedVisits
     for value, scaled, index in values do
         sum += value + scaled + cast(s32, index)
 
-    Swag.assert(sum == 168)
+    Swag.require(sum == 168)
 }
 
 #test
@@ -419,10 +419,10 @@ impl GenericScopedVisits
         mutatedSum += value[]
     }
 
-    Swag.assert(values.first == 2)
-    Swag.assert(values.second == 4)
-    Swag.assert(values.third == 6)
-    Swag.assert(mutatedSum == 12)
+    Swag.require(values.first == 2)
+    Swag.require(values.second == 4)
+    Swag.require(values.third == 6)
+    Swag.require(mutatedSum == 12)
 }
 
 #test
@@ -440,8 +440,8 @@ impl GenericScopedVisits
         order     += index
     }
 
-    Swag.assert(signature == 244668)
-    Swag.assert(order == 3)
+    Swag.require(signature == 244668)
+    Swag.require(order == 3)
 }
 
 #test
@@ -455,12 +455,12 @@ impl GenericScopedVisits
         sum += value[] + cast(s32, ordinal)
     }
 
-    Swag.assert(sum == 27)
+    Swag.require(sum == 27)
 }
 
 #test
 {
-    Swag.assert(nativeForeachVisitReturn())
+    Swag.require(nativeForeachVisitReturn())
 }
 
 #test
@@ -474,8 +474,8 @@ impl GenericScopedVisits
         sum += value[] + cast(s32, ordinal)
     }
 
-    Swag.assert(sum == 27)
-    Swag.assert(g_CallSourceCalls == 1)
+    Swag.require(sum == 27)
+    Swag.require(g_CallSourceCalls == 1)
 }
 
 #test
@@ -486,8 +486,8 @@ impl GenericScopedVisits
     for value in callSource() do
         sum += value
 
-    Swag.assert(sum == 24)
-    Swag.assert(g_CallSourceCalls == 1)
+    Swag.require(sum == 24)
+    Swag.require(g_CallSourceCalls == 1)
 }
 
 #test
@@ -504,6 +504,6 @@ impl GenericScopedVisits
         indexes += ordinal
     }
 
-    Swag.assert(sum == 50)
-    Swag.assert(indexes == 3)
+    Swag.require(sum == 50)
+    Swag.require(indexes == 3)
 }

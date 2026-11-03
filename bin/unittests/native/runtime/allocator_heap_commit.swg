@@ -11,10 +11,10 @@ using Swag
     for 32
     {
         let heap = allocator.allocateThreadHeap()
-        Swag.assert(heap != null)
-        Swag.assert(allocator.stats().sizeCommitted > before)
+        Swag.require(heap != null)
+        Swag.require(allocator.stats().sizeCommitted > before)
         allocator.retireThreadHeap(heap)
-        Swag.assert(allocator.stats().sizeCommitted == before)
+        Swag.require(allocator.stats().sizeCommitted == before)
     }
 }
 
@@ -27,9 +27,9 @@ using Swag
     for 8
     {
         let heap = allocator.allocateThreadHeap()
-        Swag.assert(heap != null)
+        Swag.require(heap != null)
     }
 
     allocator.releaseAll()
-    Swag.assert(allocator.stats().sizeCommitted == before)
+    Swag.require(allocator.stats().sizeCommitted == before)
 }

@@ -25,17 +25,17 @@ namespace Outer
 // Qualified access at each level.
 #test
 {
-    Swag.assert(Outer.VALUE == 10)
-    Swag.assert(Outer.Inner.VALUE == 20)
-    Swag.assert(Outer.Inner.Deep.VALUE == 30)
+    Swag.require(Outer.VALUE == 10)
+    Swag.require(Outer.Inner.VALUE == 20)
+    Swag.require(Outer.Inner.Deep.VALUE == 30)
 }
 
 // Functions resolve to their own namespace constants.
 #test
 {
-    Swag.assert(Outer.get() == 10)
-    Swag.assert(Outer.Inner.get() == 20)
-    Swag.assert(Outer.Inner.Deep.get() == 30)
+    Swag.require(Outer.get() == 10)
+    Swag.require(Outer.Inner.get() == 20)
+    Swag.require(Outer.Inner.Deep.get() == 30)
 }
 
 // Using a nested namespace.
@@ -45,8 +45,8 @@ namespace UseInner
 
     #test
     {
-        Swag.assert(get() == 20)
-        Swag.assert(Deep.get() == 30)
+        Swag.require(get() == 20)
+        Swag.require(Deep.get() == 30)
     }
 }
 
@@ -69,10 +69,10 @@ namespace Geometry
 #test
 {
     let o = Geometry.origin()
-    Swag.assert(o.x == 0 and o.y == 0)
+    Swag.require(o.x == 0 and o.y == 0)
 
     let moved = Geometry.Transform.translate(o, 3, 4)
-    Swag.assert(moved.x == 3 and moved.y == 4)
+    Swag.require(moved.x == 3 and moved.y == 4)
 }
 
 // Dotted namespace declaration.
@@ -84,8 +84,8 @@ namespace A.B.C
 
 #test
 {
-    Swag.assert(A.B.C.X == 42)
-    Swag.assert(A.B.C.getX() == 42)
+    Swag.require(A.B.C.X == 42)
+    Swag.require(A.B.C.getX() == 42)
 }
 
 // A dotted namespace opens every segment, like the nested blocks it abbreviates: its body sees
@@ -114,7 +114,7 @@ namespace Dotted.Leaf.Tip
 
 #test
 {
-    Swag.assert(Dotted.Leaf.scaled() == 21)
-    Swag.assert(Dotted.Leaf.scale() == 3)
-    Swag.assert(Dotted.Leaf.Tip.scale() == 5)
+    Swag.require(Dotted.Leaf.scaled() == 21)
+    Swag.require(Dotted.Leaf.scale() == 3)
+    Swag.require(Dotted.Leaf.Tip.scale() == 5)
 }

@@ -29,21 +29,21 @@ func sharedInput(a, b: u64)->u64
     {
         var expected = 0'u64
         if a < 128 do expected = a
-        Swag.assert(below128(a) == expected)
-        Swag.assert(atLeast128(a) == (a ^ expected))
+        Swag.require(below128(a) == expected)
+        Swag.require(atLeast128(a) == (a ^ expected))
         let narrow = cast(u32, (a & 0xFFFFFFFF))
-        Swag.assert(below32(narrow) == (narrow < 128 ? narrow : 0))
+        Swag.require(below32(narrow) == (narrow < 128 ? narrow : 0))
         for b in values
         {
             let narrowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(atLeast32(narrow, narrowB) == (narrow < narrowB ? 0 : narrow))
+            Swag.require(atLeast32(narrow, narrowB) == (narrow < narrowB ? 0 : narrow))
             var selected = 0'u64
             if a < b do selected = a
-            Swag.assert(sharedInput(a, b) == (selected ^ a ^ b))
+            Swag.require(sharedInput(a, b) == (selected ^ a ^ b))
         }
     }
-    Swag.assert(positive(-0x7FFFFFFFFFFFFFFF - 1) == 0)
-    Swag.assert(positive(-1) == 0)
-    Swag.assert(positive(0) == 0)
-    Swag.assert(positive(0x7FFFFFFFFFFFFFFF) == 0x7FFFFFFFFFFFFFFF)
+    Swag.require(positive(-0x7FFFFFFFFFFFFFFF - 1) == 0)
+    Swag.require(positive(-1) == 0)
+    Swag.require(positive(0) == 0)
+    Swag.require(positive(0x7FFFFFFFFFFFFFFF) == 0x7FFFFFFFFFFFFFFF)
 }

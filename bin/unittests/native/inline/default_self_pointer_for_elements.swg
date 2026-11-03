@@ -45,5 +45,5 @@ func inlineDefaultSelfPtr(x, y: s32, self: *InlineDefaultSelfCell? = null)->bool
 
 #test
 {
-    Swag.assert(inlineDefaultSelfPtr(0, 0))
+    Swag.require(inlineDefaultSelfPtr(0, 0))
 }

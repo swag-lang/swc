@@ -33,7 +33,7 @@ const ConstexprSquares = [
 #test
 {
     var runtimeValue = 5
-    Swag.assert(constexprSquare(runtimeValue) == 25)
+    Swag.require(constexprSquare(runtimeValue) == 25)
 }
 
 /**

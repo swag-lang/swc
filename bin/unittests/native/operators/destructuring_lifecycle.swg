@@ -80,13 +80,13 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 #test
 {
     let {first, count} = makeDestructuringPair'DestructuringSelfRef()
-    Swag.assert(first.isValid() and count == 9)
+    Swag.require(first.isValid() and count == 9)
 
     let {first: caught} = catch makeDestructuringPairFail'DestructuringSelfRef()
-    Swag.assert(caught.isValid())
+    Swag.require(caught.isValid())
 
     let {first: expected} = expect makeDestructuringPairFail'DestructuringSelfRef()
-    Swag.assert(expected.isValid())
+    Swag.require(expected.isValid())
 }
 
 #test
@@ -95,12 +95,12 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     scope
     {
         let {first: owned} = makeDestructuringPair'DestructuringOwner()
-        Swag.assert(owned.isValid())
+        Swag.require(owned.isValid())
         let {first: caught} = catch makeDestructuringPairFail'DestructuringOwner()
-        Swag.assert(caught.isValid())
+        Swag.require(caught.isValid())
     }
 
-    Swag.assert(DestructuringDrops == 2)
+    Swag.require(DestructuringDrops == 2)
 }
 
 #test
@@ -110,12 +110,12 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     {
         let pair = makeDestructuringPair'DestructuringOwner()
         let {first, count} = pair
-        Swag.assert(first.isValid() and pair.first.isValid())
-        Swag.assert(count == 9)
+        Swag.require(first.isValid() and pair.first.isValid())
+        Swag.require(count == 9)
     }
 
     // The named source keeps its field, so both copies are dropped.
-    Swag.assert(DestructuringDrops == 2)
+    Swag.require(DestructuringDrops == 2)
 }
 
 func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: DestructuringOwner}
@@ -132,17 +132,17 @@ func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: Destructurin
     scope
     {
         let {kept: value} = makeDestructuringOwners()
-        Swag.assert(value.isValid())
-        Swag.assert(DestructuringDrops == 1)
+        Swag.require(value.isValid())
+        Swag.require(DestructuringDrops == 1)
     }
-    Swag.assert(DestructuringDrops == 2)
+    Swag.require(DestructuringDrops == 2)
 }
 
 #test
 {
     DestructuringDrops = 0
     let {kept: _, skipped: _} = makeDestructuringOwners()
-    Swag.assert(DestructuringDrops == 2)
+    Swag.require(DestructuringDrops == 2)
 }
 
 func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: DestructuringOwner}
@@ -159,9 +159,9 @@ func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: Des
     scope
     {
         let value: {kept: DestructuringOwner, skipped: DestructuringOwner} = makeReorderedDestructuringOwners()
-        Swag.assert(value.kept.isValid() and value.skipped.isValid())
+        Swag.require(value.kept.isValid() and value.skipped.isValid())
     }
-    Swag.assert(DestructuringDrops == 2)
+    Swag.require(DestructuringDrops == 2)
 }
 
 #test
@@ -172,10 +172,10 @@ func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: Des
     {
         var value = {kept: makeDestructuringValue'DestructuringOwner(1), skipped: makeDestructuringValue'DestructuringOwner(2)}
         value = makeReorderedDestructuringOwners()
-        Swag.assert(value.kept.isValid() and value.skipped.isValid())
-        Swag.assert(DestructuringDropSum == 3)
+        Swag.require(value.kept.isValid() and value.skipped.isValid())
+        Swag.require(DestructuringDropSum == 3)
     }
-    Swag.assert(DestructuringDrops == 4 and DestructuringDropSum == 153)
+    Swag.require(DestructuringDrops == 4 and DestructuringDropSum == 153)
 }
 
 #test
@@ -186,11 +186,11 @@ func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: Des
     {
         let source = makeReorderedDestructuringOwners()
         let value: {kept: DestructuringOwner, skipped: DestructuringOwner} = source
-        Swag.assert(value.kept.isValid() and value.skipped.isValid())
-        Swag.assert(source.kept.isValid() and source.skipped.isValid())
-        Swag.assert(DestructuringCopies == 2)
+        Swag.require(value.kept.isValid() and value.skipped.isValid())
+        Swag.require(source.kept.isValid() and source.skipped.isValid())
+        Swag.require(DestructuringCopies == 2)
     }
-    Swag.assert(DestructuringDrops == 4)
+    Swag.require(DestructuringDrops == 4)
 }
 
 impl DestructuringOwner
@@ -206,10 +206,10 @@ impl DestructuringOwner
     {
         let left  = {first: makeDestructuringValue'DestructuringOwner(1), second: makeDestructuringValue'DestructuringOwner(2)}
         let right = {second: makeDestructuringValue'DestructuringOwner(2), first: makeDestructuringValue'DestructuringOwner(1)}
-        Swag.assert(left == right)
-        Swag.assert(DestructuringCopies == 0 and DestructuringDrops == 0)
+        Swag.require(left == right)
+        Swag.require(DestructuringCopies == 0 and DestructuringDrops == 0)
     }
-    Swag.assert(DestructuringDrops == 4)
+    Swag.require(DestructuringDrops == 4)
 }
 
 #[Swag.NoCopy]
@@ -225,14 +225,14 @@ impl TupleRecordHandle
 {
     let left  = {handle: TupleRecordHandle{7}, count: 2}
     let right = {count: 2, handle: TupleRecordHandle{7}}
-    Swag.assert(left == right)
+    Swag.require(left == right)
 }
 
 #test
 {
     let source  = {handle: TupleRecordHandle{7}, count: 2}
     let {count} = source
-    Swag.assert(count == 2 and source.handle.value == 7)
+    Swag.require(count == 2 and source.handle.value == 7)
 }
 
 #test
@@ -244,11 +244,11 @@ impl TupleRecordHandle
     {
         var source = makeReorderedDestructuringOwners()
         let {kept} = #move source
-        Swag.assert(kept.isValid() and kept.storage == 80)
-        Swag.assert(DestructuringCopies == 0)
-        Swag.assert(source.kept.storage == 0 and source.skipped.storage == 0)
+        Swag.require(kept.isValid() and kept.storage == 80)
+        Swag.require(DestructuringCopies == 0)
+        Swag.require(source.kept.storage == 0 and source.skipped.storage == 0)
     }
-    Swag.assert(DestructuringDrops == 2 and DestructuringDropSum == 150)
+    Swag.require(DestructuringDrops == 2 and DestructuringDropSum == 150)
 }
 
 #test
@@ -260,9 +260,9 @@ impl TupleRecordHandle
     {
         var owners = makeReorderedDestructuringOwners()
         {kept: owners.skipped, skipped: owners.kept} = owners
-        Swag.assert(owners.kept.storage == 70 and owners.skipped.storage == 80)
-        Swag.assert(owners.kept.isValid() and owners.skipped.isValid())
-        Swag.assert(DestructuringCopies == 2 and DestructuringDrops == 2)
+        Swag.require(owners.kept.storage == 70 and owners.skipped.storage == 80)
+        Swag.require(owners.kept.isValid() and owners.skipped.isValid())
+        Swag.require(DestructuringCopies == 2 and DestructuringDrops == 2)
     }
-    Swag.assert(DestructuringDrops == 4 and DestructuringDropSum == 300)
+    Swag.require(DestructuringDrops == 4 and DestructuringDropSum == 300)
 }

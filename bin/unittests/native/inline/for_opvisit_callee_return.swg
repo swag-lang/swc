@@ -63,7 +63,7 @@ func bug10ReverseIndexOfVisitAtLeast(values: InlineBug10VisitBytes, minValue: u8
 {
     var values      = [1'u8, 4, 2, 9, 3]
     let visitValues = InlineBug10VisitBytes{values, values.count}
-    Swag.assert(bug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
-    Swag.assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
-    Swag.assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 10) == Swag.U64.Max)
+    Swag.require(bug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
+    Swag.require(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
+    Swag.require(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 10) == Swag.U64.Max)
 }

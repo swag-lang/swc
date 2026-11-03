@@ -22,11 +22,11 @@ const REFLECTED_STORED_DEFAULT_INFO = cast(const *TypeInfoStruct, #typeof(Reflec
 
 #test
 {
-    Swag.assert(REFLECTED_STORED_DEFAULT_INFO.attributes.count == 1)
+    Swag.require(REFLECTED_STORED_DEFAULT_INFO.attributes.count == 1)
 
     let attribute = REFLECTED_STORED_DEFAULT_INFO.attributes[0]
     let value     = assume cast(typeinfo?, attribute.params[0].value)
 
-    Swag.assert(attribute.params[0].name == "t")
-    Swag.assert(value == StoredDefaultPair)
+    Swag.require(attribute.params[0].name == "t")
+    Swag.require(value == StoredDefaultPair)
 }

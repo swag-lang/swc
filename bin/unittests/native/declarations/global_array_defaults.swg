@@ -12,7 +12,7 @@ var elements: [2] Element
 {
     for element in elements
     {
-        Swag.assert(element.value == 42)
-        Swag.assert(element.label == "default")
+        Swag.require(element.value == 42)
+        Swag.require(element.label == "default")
     }
 }

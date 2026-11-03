@@ -325,56 +325,56 @@ func solve(text: string)->BlinkResult
 // Test compile-time power table
 #test
 {
-    Swag.assert(Pow10[0] == 1'u64)
-    Swag.assert(Pow10[1] == 10'u64)
-    Swag.assert(Pow10[9] == 1000000000'u64)
+    Swag.require(Pow10[0] == 1'u64)
+    Swag.require(Pow10[1] == 10'u64)
+    Swag.require(Pow10[9] == 1000000000'u64)
 }
 
 // Test digit counting
 #test
 {
-    Swag.assert(digitCount(0) == 1'u32)
-    Swag.assert(digitCount(1) == 1'u32)
-    Swag.assert(digitCount(9) == 1'u32)
-    Swag.assert(digitCount(10) == 2'u32)
-    Swag.assert(digitCount(99) == 2'u32)
-    Swag.assert(digitCount(100) == 3'u32)
-    Swag.assert(digitCount(1000) == 4'u32)
-    Swag.assert(digitCount(123456) == 6'u32)
+    Swag.require(digitCount(0) == 1'u32)
+    Swag.require(digitCount(1) == 1'u32)
+    Swag.require(digitCount(9) == 1'u32)
+    Swag.require(digitCount(10) == 2'u32)
+    Swag.require(digitCount(99) == 2'u32)
+    Swag.require(digitCount(100) == 3'u32)
+    Swag.require(digitCount(1000) == 4'u32)
+    Swag.require(digitCount(123456) == 6'u32)
 }
 
 // Test split
 #test
 {
     let s = splitHalf(1234, 4)
-    Swag.assert(s.left == 12'u64)
-    Swag.assert(s.right == 34'u64)
+    Swag.require(s.left == 12'u64)
+    Swag.require(s.right == 34'u64)
     let s2 = splitHalf(1000, 4)
-    Swag.assert(s2.left == 10'u64)
-    Swag.assert(s2.right == 0'u64)
+    Swag.require(s2.left == 10'u64)
+    Swag.require(s2.right == 0'u64)
 }
 
 // Test StoneMap basics and orelse
 #test
 {
     var m = mapInit()
-    Swag.assert(mapIsEmpty(&m))
+    Swag.require(mapIsEmpty(&m))
 
     mapAdd(&m, 42, 5)
-    Swag.assert(not mapIsEmpty(&m))
+    Swag.require(not mapIsEmpty(&m))
 
     var zero: u64 = 0
     let p         = mapLookup(&m, 42) orelse &zero
-    Swag.assert(p[] == 5'u64)
+    Swag.require(p[] == 5'u64)
 
     let q = mapLookup(&m, 999) orelse &zero
-    Swag.assert(q[] == 0'u64)
+    Swag.require(q[] == 0'u64)
 
     mapAdd(&m, 42, 3)
     let r = mapLookup(&m, 42) orelse &zero
-    Swag.assert(r[] == 8'u64)
+    Swag.require(r[] == 8'u64)
 
-    Swag.assert(mapTotal(&m) == 8'u64)
+    Swag.require(mapTotal(&m) == 8'u64)
     mapFree(&m)
 }
 
@@ -382,10 +382,10 @@ func solve(text: string)->BlinkResult
 #test
 {
     var m = mapFromValues(0'u64, 1, 10, 99, 999)
-    Swag.assert(mapTotal(&m) == 5'u64)
+    Swag.require(mapTotal(&m) == 5'u64)
     var zero: u64 = 0
-    Swag.assert((mapLookup(&m, 0) orelse &zero)[] == 1'u64)
-    Swag.assert((mapLookup(&m, 10) orelse &zero)[] == 1'u64)
+    Swag.require((mapLookup(&m, 0) orelse &zero)[] == 1'u64)
+    Swag.require((mapLookup(&m, 10) orelse &zero)[] == 1'u64)
     mapFree(&m)
 }
 
@@ -403,7 +403,7 @@ func solve(text: string)->BlinkResult
         pSum[] += key * count
     }
     forEachStone(&m, cb)
-    Swag.assert(sum == 80'u64)
+    Swag.require(sum == 80'u64)
     mapFree(&m)
 }
 
@@ -415,8 +415,8 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    Swag.assert((mapLookup(&b, 1) orelse &zero)[] == 1'u64)
-    Swag.assert(mapTotal(&b) == 1'u64)
+    Swag.require((mapLookup(&b, 1) orelse &zero)[] == 1'u64)
+    Swag.require(mapTotal(&b) == 1'u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -426,19 +426,19 @@ func solve(text: string)->BlinkResult
 {
     var a = mapInit()
     mapAdd(&a, 1234, 1)
-    Swag.assert(mapTotal(&a) == 1'u64)
+    Swag.require(mapTotal(&a) == 1'u64)
 
     var b = mapInit()
     blinkOnce(&a, &b)
-    Swag.assert(mapTotal(&b) == 2'u64)
+    Swag.require(mapTotal(&b) == 2'u64)
 
     var zero: u64 = 0
     let p12       = mapLookup(&b, 12)
     let p34       = mapLookup(&b, 34)
-    Swag.assert(p12 != null)
-    Swag.assert(p34 != null)
-    Swag.assert((p12 orelse &zero)[] == 1'u64)
-    Swag.assert((p34 orelse &zero)[] == 1'u64)
+    Swag.require(p12 != null)
+    Swag.require(p34 != null)
+    Swag.require((p12 orelse &zero)[] == 1'u64)
+    Swag.require((p34 orelse &zero)[] == 1'u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -451,7 +451,7 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    Swag.assert((mapLookup(&b, 253000) orelse &zero)[] == 1'u64)
+    Swag.require((mapLookup(&b, 253000) orelse &zero)[] == 1'u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -460,15 +460,15 @@ func solve(text: string)->BlinkResult
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.after6 == 22'u64)
-    Swag.assert(result.after25 == 55312'u64)
+    Swag.require(result.after6 == 22'u64)
+    Swag.require(result.after25 == 55312'u64)
 }
 
 // Test single zero stone
 #test
 {
     let result = solve(SingleInput)
-    Swag.assert(result.after6 > 0'u64)
+    Swag.require(result.after6 > 0'u64)
 }
 
 // Test map clear
@@ -477,9 +477,9 @@ func solve(text: string)->BlinkResult
     var m = mapInit()
     mapAdd(&m, 1, 10)
     mapAdd(&m, 2, 20)
-    Swag.assert(mapTotal(&m) == 30'u64)
+    Swag.require(mapTotal(&m) == 30'u64)
     mapClear(&m)
-    Swag.assert(mapIsEmpty(&m))
-    Swag.assert(mapTotal(&m) == 0'u64)
+    Swag.require(mapIsEmpty(&m))
+    Swag.require(mapTotal(&m) == 0'u64)
     mapFree(&m)
 }

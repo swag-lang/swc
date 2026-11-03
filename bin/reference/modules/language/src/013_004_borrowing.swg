@@ -43,7 +43,7 @@ var borrowGlobalValue:  s32
         return cast(const [..] u8, borrowGlobalBuffer)     // A global's storage is fine
     }
 
-    Swag.assert(makeView().count == 4)
+    Swag.require(makeView().count == 4)
 }
 
 /**
@@ -89,7 +89,7 @@ function does not hide the borrow.
         return wrapper(&borrowGlobalValue)     // Caller-owned data flows through
     }
 
-    Swag.assert(caller() == &borrowGlobalValue)
+    Swag.require(caller() == &borrowGlobalValue)
 }
 
 /**
@@ -110,7 +110,7 @@ independently; a dynamic index conservatively overlaps every element.
     var views: Views
     views.local     = &local
     views.globalPtr = &borrowGlobalValue
-    Swag.assert(views.globalPtr == &borrowGlobalValue)
+    Swag.require(views.globalPtr == &borrowGlobalValue)
 }
 
 /**
@@ -157,7 +157,7 @@ func borrowStash(p: *s32)
     }
 
     caller()
-    Swag.assert(borrowGlobalStash == &borrowGlobalValue)
+    Swag.require(borrowGlobalStash == &borrowGlobalValue)
 }
 
 /**
@@ -220,7 +220,7 @@ shape — is fine too: the snapshot is never read again.
     var total:  s32
     for v in values do
         total += v
-    Swag.assert(total == 0)
+    Swag.require(total == 0)
 }
 
 /**

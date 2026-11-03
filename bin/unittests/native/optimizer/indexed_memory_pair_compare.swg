@@ -13,15 +13,15 @@ func pairBelow32(values: [*] u32, index: u64)->u32 => cast(u32, (values[index] <
 {
     var first:  [4] u64 = [0, 0, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     var second: [4] u64 = [0, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFE]
-    Swag.assert(pairEqual64(&first[0], 0) == 1)
-    Swag.assert(pairEqual64(&first[0], 1) == 0)
-    Swag.assert(pairEqual64(&first[0], 2) == 0)
-    Swag.assert(arraysEqual64(&first[0], &second[0], 0) == 1)
-    Swag.assert(arraysEqual64(&first[0], &second[0], 1) == 0)
-    Swag.assert(arraysEqual64(&first[0], &second[0], 2) == 1)
+    Swag.require(pairEqual64(&first[0], 0) == 1)
+    Swag.require(pairEqual64(&first[0], 1) == 0)
+    Swag.require(pairEqual64(&first[0], 2) == 0)
+    Swag.require(arraysEqual64(&first[0], &second[0], 0) == 1)
+    Swag.require(arraysEqual64(&first[0], &second[0], 1) == 0)
+    Swag.require(arraysEqual64(&first[0], &second[0], 2) == 1)
 
     var narrow: [4] u32 = [0, 1, 0xFFFFFFFF, 0]
-    Swag.assert(pairBelow32(&narrow[0], 0) == 1)
-    Swag.assert(pairBelow32(&narrow[0], 1) == 1)
-    Swag.assert(pairBelow32(&narrow[0], 2) == 0)
+    Swag.require(pairBelow32(&narrow[0], 0) == 1)
+    Swag.require(pairBelow32(&narrow[0], 1) == 1)
+    Swag.require(pairBelow32(&narrow[0], 2) == 0)
 }

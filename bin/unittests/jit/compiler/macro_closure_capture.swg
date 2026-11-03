@@ -52,14 +52,14 @@ func macroClosureCaptureValue(value: s32)->s32
 
 #test
 {
-    Swag.assert(macroClosureCaptureValue(20 + 21) == 42)
+    Swag.require(macroClosureCaptureValue(20 + 21) == 42)
 }
 
 #test
 {
     var payload = JitMacroClosurePayload{40}
     jitMacroInjectClosureCapture(#code {
-        Swag.assert(jitMacroClosureCaptureRunTwice(func|&payload|()->s32
+        Swag.require(jitMacroClosureCaptureRunTwice(func|&payload|()->s32
         {
             payload.total += 2
             return payload.total
@@ -81,8 +81,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(41)
-        Swag.assert(cb() == 42)
-        Swag.assert(cb() == 43)
+        Swag.require(cb() == 42)
+        Swag.require(cb() == 43)
     })
 }
 
@@ -101,8 +101,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(41)
-        Swag.assert(cb() == 42)
-        Swag.assert(cb() == 43)
+        Swag.require(cb() == 42)
+        Swag.require(cb() == 43)
     }
 }
 
@@ -121,8 +121,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        Swag.assert(cb() == 42)
-        Swag.assert(cb() == 43)
+        Swag.require(cb() == 42)
+        Swag.require(cb() == 43)
     }
 }
 
@@ -142,8 +142,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        Swag.assert(cb() == 43)
-        Swag.assert(cb() == 45)
+        Swag.require(cb() == 43)
+        Swag.require(cb() == 45)
     }
 }
 
@@ -163,8 +163,8 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        Swag.assert(cb() == 44)
-        Swag.assert(cb() == 46)
+        Swag.require(cb() == 44)
+        Swag.require(cb() == 46)
     }
 }
 
@@ -183,7 +183,7 @@ func macroClosureCaptureValue(value: s32)->s32
         }
 
         let cb = makeCounter(start)
-        Swag.assert(cb() == 43)
-        Swag.assert(cb() == 45)
+        Swag.require(cb() == 43)
+        Swag.require(cb() == 45)
     }
 }

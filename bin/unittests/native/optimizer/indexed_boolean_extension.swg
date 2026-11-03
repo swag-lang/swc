@@ -12,7 +12,7 @@ func isNonzero32(values: [*] u32, index: u64)->u32 => cast(u32, (values[index] !
     var values32 = [0'u32, 1, 0x80000000, 0xFFFFFFFF]
     for i in values64.count
     {
-        Swag.assert(isZero64(&values64[0], i) == cast(u64, (values64[i] == 0)))
-        Swag.assert(isNonzero32(&values32[0], i) == cast(u32, (values32[i] != 0)))
+        Swag.require(isZero64(&values64[0], i) == cast(u64, (values64[i] == 0)))
+        Swag.require(isNonzero32(&values32[0], i) == cast(u32, (values32[i] != 0)))
     }
 }

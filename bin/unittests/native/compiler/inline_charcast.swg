@@ -29,10 +29,10 @@ func storeAtAuto(vkey: u8)->u8
 
 #test
 {
-    Swag.assert(storeAt('A') == 66)
-    Swag.assert(arr[65] == 66)
-    Swag.assert(toByte(true) == 11)
-    Swag.assert(toByte(false) == 10)
-    Swag.assert(storeAtAuto('B') == 67)
-    Swag.assert(arr[66] == 67)
+    Swag.require(storeAt('A') == 66)
+    Swag.require(arr[65] == 66)
+    Swag.require(toByte(true) == 11)
+    Swag.require(toByte(false) == 10)
+    Swag.require(storeAtAuto('B') == 67)
+    Swag.require(arr[66] == 67)
 }

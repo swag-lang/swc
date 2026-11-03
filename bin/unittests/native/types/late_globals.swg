@@ -64,7 +64,7 @@ func lateGlobalThroughAccessor()->bool
 
 #test
 {
-    Swag.assert(lateGlobalLifecycle())
-    Swag.assert(lateGlobalAddressOf())
-    Swag.assert(lateGlobalThroughAccessor())
+    Swag.require(lateGlobalLifecycle())
+    Swag.require(lateGlobalAddressOf())
+    Swag.require(lateGlobalThroughAccessor())
 }

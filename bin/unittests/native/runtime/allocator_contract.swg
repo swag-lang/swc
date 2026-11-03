@@ -20,27 +20,27 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         block.size      = 8
         block.alignment = 8
         itf.alloc(block)
-        Swag.assert(block.address != null)
+        Swag.require(block.address != null)
     }
     defer for &block in blocks do itf.free(block)
 
     let index   = (cast(u64, blocks[0].address) & 15) != 0 ? 0 : 1
     let request = &blocks[index]
-    Swag.assert((cast(u64, request.address) & 15) == 8)
+    Swag.require((cast(u64, request.address) & 15) == 8)
     let bytes = cast([*] u8, unwrap request.address)
     for i in 8 do bytes[i] = cast(u8, (i + 17))
     request.oldSize   = 8
     request.alignment = 16
     itf.realloc(request)
-    Swag.assert(request.address != null)
-    Swag.assert((cast(u64, request.address) & 15) == 0)
-    for i in 8 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, (i + 17)))
+    Swag.require(request.address != null)
+    Swag.require((cast(u64, request.address) & 15) == 0)
+    for i in 8 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, (i + 17)))
     let aligned = request.address
     for alignment in [16'u32, 8'u32, 0'u32]
     {
         request.alignment = alignment
         itf.realloc(request)
-        Swag.assert(request.address == aligned)
+        Swag.require(request.address == aligned)
     }
 }
 
@@ -57,20 +57,20 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
             request.size      = 129
             request.alignment = alignment
             itf.alloc(&request)
-            Swag.assert(request.address != null)
+            Swag.require(request.address != null)
             defer itf.free(&request)
             for i in 129 do cast([*] u8, request.address)[i] = cast(u8, i)
             request.oldSize = 129
             request.size    = 200
             itf.realloc(&request)
-            Swag.assert(request.address != null)
-            for i in 129 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
+            Swag.require(request.address != null)
+            for i in 129 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
             request.oldSize = 200
             request.size    = 17
             itf.realloc(&request)
-            Swag.assert(request.address != null)
-            Swag.assert((cast(u64, request.address) & (alignment - 1)) == 0)
-            for i in 17 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
+            Swag.require(request.address != null)
+            Swag.require((cast(u64, request.address) & (alignment - 1)) == 0)
+            for i in 17 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
         }
     }
 }
@@ -93,10 +93,10 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
                 request.alignment = alignment
                 itf.alloc(&request)
                 defer itf.free(&request)
-                Swag.assert(request.address == null)
+                Swag.require(request.address == null)
             }
         }
-        Swag.assert(allocator.stats().countAlloc == 0)
+        Swag.require(allocator.stats().countAlloc == 0)
     }
 }
 
@@ -116,34 +116,34 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
             var request: AllocatorRequest
             request.size = size
             itf.alloc(&request)
-            Swag.assert(request.address != null)
+            Swag.require(request.address != null)
             request.alignment = 64
             itf.alloc(&request)
-            Swag.assert(request.address != null)
+            Swag.require(request.address != null)
         }
-        Swag.assert(allocator.stats().sizeCommitted > before)
+        Swag.require(allocator.stats().sizeCommitted > before)
         var request: AllocatorRequest
         itf.freeAll(&request)
-        Swag.assert(allocator.stats().countAlloc == 0)
-        Swag.assert(allocator.stats().sizeCommitted == before)
+        Swag.require(allocator.stats().countAlloc == 0)
+        Swag.require(allocator.stats().sizeCommitted == before)
         itf.freeAll(&request)
-        Swag.assert(allocator.stats().sizeCommitted == before)
+        Swag.require(allocator.stats().sizeCommitted == before)
         // Beyond a cache line, a small request still takes the header path.
         request.size      = 8
         request.alignment = 128
         itf.alloc(&request)
-        Swag.assert(request.address != null)
+        Swag.require(request.address != null)
         itf.freeAll(&request)
-        Swag.assert(allocator.stats().sizeCommitted == before)
+        Swag.require(allocator.stats().sizeCommitted == before)
 
         // Switching the active thread heap may retire another allocator's pages. Check page
         // ownership separately from the process-wide commitment delta of the headers above.
         request.alignment = 0
         itf.alloc(&request)
-        Swag.assert(request.address != null)
+        Swag.require(request.address != null)
         itf.freeAll(&request)
-        Swag.assert(allocator.stats().countPage == 0)
-        Swag.assert(allocator.stats().countAlloc == 0)
+        Swag.require(allocator.stats().countPage == 0)
+        Swag.require(allocator.stats().countAlloc == 0)
     }
 }
 
@@ -156,7 +156,7 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     request.size = 129
     itf.alloc(&request)
     let original = request
-    Swag.assert(original.address != null)
+    Swag.require(original.address != null)
     cast([*] u8, original.address)[0] = 73
     let before = allocator.stats().sizeCommitted
     for size in [Swag.U64.Max, 200'u64]
@@ -166,10 +166,10 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         request.size      = size
         request.alignment = size == 200 ? 3'u32 : 16'u32
         itf.realloc(&request)
-        Swag.assert(request.address == null)
-        Swag.assert(allocator.stats().countAlloc == 1)
-        Swag.assert(allocator.stats().sizeCommitted == before)
-        Swag.assert(cast([*] u8, original.address)[0] == 73)
+        Swag.require(request.address == null)
+        Swag.require(allocator.stats().countAlloc == 1)
+        Swag.require(allocator.stats().sizeCommitted == before)
+        Swag.require(cast([*] u8, original.address)[0] == 73)
     }
     request = original
     itf.free(&request)

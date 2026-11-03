@@ -20,9 +20,9 @@ func addWrapping(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) 
 
 #test
 {
-    Swag.assert(addWrapping(opaqueU32(0xFFFFFFFF), opaqueU32(0xFFFFFFFF)) == 0xFFFFFFFE)
-    Swag.assert(addWrapping(opaqueU32(0xFFFFFFFF), opaqueU32(1)) == 0)
-    Swag.assert(addWrapping(opaqueU32(7), opaqueU32(9)) == 16)
+    Swag.require(addWrapping(opaqueU32(0xFFFFFFFF), opaqueU32(0xFFFFFFFF)) == 0xFFFFFFFE)
+    Swag.require(addWrapping(opaqueU32(0xFFFFFFFF), opaqueU32(1)) == 0)
+    Swag.require(addWrapping(opaqueU32(7), opaqueU32(9)) == 16)
 }
 
 // Without the mask the same sum reaches 33 bits: the conversion still has to be checked.
@@ -34,7 +34,7 @@ func addWrapping(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) 
         return cast(u32, (cast(u64, left) + right))     // swc-expected-error {{safety_err_runtime}}
     }
 
-    Swag.assert(addNarrowing(opaqueU32(7), opaqueU32(9)) == 16)
+    Swag.require(addNarrowing(opaqueU32(7), opaqueU32(9)) == 16)
     discard addNarrowing(opaqueU32(0xFFFFFFFF), opaqueU32(1))
 }
 
@@ -50,7 +50,7 @@ var g_Wide = Swag.U64.Max
         return cast(u64, left) + right     // swc-expected-error {{safety_err_runtime}}
     }
 
-    Swag.assert(addWide(opaqueU32(1), opaqueU64(2)) == 3)
+    Swag.require(addWide(opaqueU32(1), opaqueU64(2)) == 3)
     discard addWide(opaqueU32(1), g_Wide)
 }
 
@@ -66,7 +66,7 @@ var g_Wide = Swag.U64.Max
         return total
     }
 
-    Swag.assert(accumulate(opaqueU64(10), [1, 2, 3, 4]) == 20)
+    Swag.require(accumulate(opaqueU64(10), [1, 2, 3, 4]) == 20)
     discard accumulate(opaqueU64(Swag.U64.Max - 5), [1, 2, 3, 4])
 }
 
@@ -82,7 +82,7 @@ var g_Wide = Swag.U64.Max
 
     var values: [4] u32 = [1, 2, 3, 4]
     mix(&values, opaqueU64(0), opaqueU64(3))
-    Swag.assert(values[0] == 5 and values[3] == 1)
+    Swag.require(values[0] == 5 and values[3] == 1)
 }
 
 // An index that changed between two accesses is a new test, not a repeated one.
@@ -98,7 +98,7 @@ var g_Wide = Swag.U64.Max
     }
 
     var values: [4] u32 = [1, 2, 3, 4]
-    Swag.assert(readTwice(&values, opaqueU64(0), opaqueU64(3)) == 5)
+    Swag.require(readTwice(&values, opaqueU64(0), opaqueU64(3)) == 5)
     discard readTwice(&values, opaqueU64(0), opaqueU64(4))
 }
 
@@ -115,7 +115,7 @@ var g_Wide = Swag.U64.Max
     }
 
     var values: [4] u32 = [1, 2, 3, 4]
-    Swag.assert(readAfterTest(&values, opaqueU64(2)) == 4)
+    Swag.require(readAfterTest(&values, opaqueU64(2)) == 4)
     discard readAfterTest(&values, opaqueU64(4))
 }
 
@@ -142,9 +142,9 @@ func opaqueS64(v: s64)->s64 => v
         return steps
     }
 
-    Swag.assert(meet(opaqueS64(0), opaqueS64(9)) == 5)
-    Swag.assert(meet(opaqueS64(Swag.S64.Max - 3), opaqueS64(Swag.S64.Max)) == 2)
-    Swag.assert(meet(opaqueS64(Swag.S64.Min), opaqueS64(Swag.S64.Min + 3)) == 2)
+    Swag.require(meet(opaqueS64(0), opaqueS64(9)) == 5)
+    Swag.require(meet(opaqueS64(Swag.S64.Max - 3), opaqueS64(Swag.S64.Max)) == 2)
+    Swag.require(meet(opaqueS64(Swag.S64.Min), opaqueS64(Swag.S64.Min + 3)) == 2)
 }
 
 // A tested non-zero value can lose one without borrowing.
@@ -158,8 +158,8 @@ func opaqueS64(v: s64)->s64 => v
         return 0
     }
 
-    Swag.assert(previous(opaqueU64(1)) == 0)
-    Swag.assert(previous(opaqueU64(0)) == 0)
+    Swag.require(previous(opaqueU64(1)) == 0)
+    Swag.require(previous(opaqueU64(0)) == 0)
 }
 
 // A value only known to differ from another constant can still borrow.
@@ -173,7 +173,7 @@ func opaqueS64(v: s64)->s64 => v
         return 0
     }
 
-    Swag.assert(previousUnlessFive(opaqueU64(9)) == 8)
+    Swag.require(previousUnlessFive(opaqueU64(9)) == 8)
     discard previousUnlessFive(opaqueU64(0))
 }
 
@@ -188,8 +188,8 @@ func opaqueS64(v: s64)->s64 => v
         return 0
     }
 
-    Swag.assert(bump(cast(u8, opaqueU32(199))) == 254)
-    Swag.assert(bump(cast(u8, opaqueU32(250))) == 0)
+    Swag.require(bump(cast(u8, opaqueU32(199))) == 254)
+    Swag.require(bump(cast(u8, opaqueU32(250))) == 0)
 }
 
 #test
@@ -202,7 +202,7 @@ func opaqueS64(v: s64)->s64 => v
         return 0
     }
 
-    Swag.assert(bumpTooFar(cast(u8, opaqueU32(10))) == 67)
+    Swag.require(bumpTooFar(cast(u8, opaqueU32(10))) == 67)
     discard bumpTooFar(cast(u8, opaqueU32(199)))
 }
 
@@ -218,7 +218,7 @@ func opaqueS64(v: s64)->s64 => v
         return i
     }
 
-    Swag.assert(climb(opaqueS64(0), opaqueS64(9)) == 10)
+    Swag.require(climb(opaqueS64(0), opaqueS64(9)) == 10)
     discard climb(opaqueS64(Swag.S64.Max - 1), opaqueS64(Swag.S64.Max))
 }
 
@@ -234,6 +234,6 @@ func opaqueS64(v: s64)->s64 => v
     }
 
     var values: [4] u64 = [1, 2, 3, 4]
-    Swag.assert(pairNext(&values, opaqueU64(1)) == 4)
+    Swag.require(pairNext(&values, opaqueU64(1)) == 4)
     discard pairNext(&values, opaqueU64(3))
 }

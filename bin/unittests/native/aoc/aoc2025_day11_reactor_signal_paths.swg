@@ -206,13 +206,13 @@ func buildCompactReactor()->ReactorGraph
 {
     let sampleReport = auditReactor(buildSampleReactor())
 
-    Swag.assert(sampleReport.pathCount == 10'u32)
-    Swag.assert(sampleReport.busiestBranchPaths == 4'u32)
-    Swag.assert(sampleReport.longestChain == 5'u32)
+    Swag.require(sampleReport.pathCount == 10'u32)
+    Swag.require(sampleReport.busiestBranchPaths == 4'u32)
+    Swag.require(sampleReport.longestChain == 5'u32)
 
     let compactReport = auditReactor(buildCompactReactor())
 
-    Swag.assert(compactReport.pathCount == 4'u32)
-    Swag.assert(compactReport.busiestBranchPaths == 2'u32)
-    Swag.assert(compactReport.longestChain == 3'u32)
+    Swag.require(compactReport.pathCount == 4'u32)
+    Swag.require(compactReport.busiestBranchPaths == 2'u32)
+    Swag.require(compactReport.longestChain == 3'u32)
 }

@@ -38,9 +38,9 @@ var g_pairs: [2] [3] Pair
     let left  = g_left[0 to 7]
     let right = g_right[0 to 7]
 
-    Swag.assert(left.buffer != right.buffer)
-    Swag.assert(eqBytes(left, right))
-    Swag.assert(not neBytes(left, right))
+    Swag.require(left.buffer != right.buffer)
+    Swag.require(eqBytes(left, right))
+    Swag.require(not neBytes(left, right))
 }
 
 // A shorter view over the same storage differs by its count alone.
@@ -51,9 +51,9 @@ var g_pairs: [2] [3] Pair
     let whole = g_left[0 to 7]
     let head  = g_left[0 to 3]
 
-    Swag.assert(whole.buffer == head.buffer)
-    Swag.assert(neBytes(whole, head))
-    Swag.assert(not eqBytes(whole, head))
+    Swag.require(whole.buffer == head.buffer)
+    Swag.require(neBytes(whole, head))
+    Swag.require(not eqBytes(whole, head))
 }
 
 // A difference in the last element only must still be seen.
@@ -62,14 +62,14 @@ var g_pairs: [2] [3] Pair
     g_left  = [1, 2, 3, 4, 5, 6, 7, 8]
     g_right = [1, 2, 3, 4, 5, 6, 7, 9]
 
-    Swag.assert(neBytes(g_left[0 to 7], g_right[0 to 7]))
-    Swag.assert(eqBytes(g_left[0 to 6], g_right[0 to 6]))
+    Swag.require(neBytes(g_left[0 to 7], g_right[0 to 7]))
+    Swag.require(eqBytes(g_left[0 to 6], g_right[0 to 6]))
 }
 
 // Empty views are equal whatever storage they came from.
 #test
 {
-    Swag.assert(eqBytes(g_left[0 until 0], g_right[0 until 0]))
+    Swag.require(eqBytes(g_left[0 until 0], g_right[0 until 0]))
 }
 
 // An element wider than a byte scales the compared range.
@@ -78,8 +78,8 @@ var g_pairs: [2] [3] Pair
     g_words[0] = [10, 20, 30, 40]
     g_words[1] = [10, 20, 30, 41]
 
-    Swag.assert(eqWords(g_words[0][0 to 2], g_words[1][0 to 2]))
-    Swag.assert(not eqWords(g_words[0][0 to 3], g_words[1][0 to 3]))
+    Swag.require(eqWords(g_words[0][0 to 2], g_words[1][0 to 2]))
+    Swag.require(not eqWords(g_words[0][0 to 3], g_words[1][0 to 3]))
 }
 
 // A slice of structs compares whole elements, trailing field included.
@@ -88,8 +88,8 @@ var g_pairs: [2] [3] Pair
     g_pairs[0] = [Pair{1, 2}, Pair{3, 4}, Pair{5, 6}]
     g_pairs[1] = [Pair{1, 2}, Pair{3, 4}, Pair{5, 7}]
 
-    Swag.assert(eqPairs(g_pairs[0][0 to 1], g_pairs[1][0 to 1]))
-    Swag.assert(not eqPairs(g_pairs[0][0 to 2], g_pairs[1][0 to 2]))
+    Swag.require(eqPairs(g_pairs[0][0 to 1], g_pairs[1][0 to 1]))
+    Swag.require(not eqPairs(g_pairs[0][0 to 2], g_pairs[1][0 to 2]))
 }
 
 // A comparison against 'null' stays a null test rather than a content test.
@@ -97,8 +97,8 @@ var g_pairs: [2] [3] Pair
 {
     g_left = [1, 2, 3, 4, 5, 6, 7, 8]
 
-    Swag.assert(isNullSlice(MISSING_BYTES))
-    Swag.assert(not isNullSlice(g_left[0 to 7]))
+    Swag.require(isNullSlice(MISSING_BYTES))
+    Swag.require(not isNullSlice(g_left[0 to 7]))
 }
 
 // Constant slices fold to the answer the runtime comparison gives.

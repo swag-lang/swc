@@ -41,16 +41,16 @@ func maskedBranch(a: u64)->s32
     let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA, 0x0123456789ABCDEF]
     for a in values
     {
-        Swag.assert(unionMasks(a) == (a & 0xFFFF))
-        Swag.assert(intersectMasks(a) == (a & 0xF0))
-        Swag.assert(xorMasks(a) == (a & 0xF00F))
-        Swag.assert(highMasks(a) == (a & 0xFFFF00000000FFFF))
+        Swag.require(unionMasks(a) == (a & 0xFFFF))
+        Swag.require(intersectMasks(a) == (a & 0xF0))
+        Swag.require(xorMasks(a) == (a & 0xF00F))
+        Swag.require(highMasks(a) == (a & 0xFFFF00000000FFFF))
         let a32 = cast(u32, (a & 0xFFFFFFFF))
-        Swag.assert(unionMasks32(a32) == (a32 & 0xFFFF))
-        Swag.assert(disjointMasks(a32) == 0)
-        Swag.assert(reusedMask(a) == (((a & 0xFFFF) << 8) | (a & 0xFF)))
-        Swag.assert(maskedBranch(a) == ((a & 0xF00F) == 0 ? 11 : 27))
+        Swag.require(unionMasks32(a32) == (a32 & 0xFFFF))
+        Swag.require(disjointMasks(a32) == 0)
+        Swag.require(reusedMask(a) == (((a & 0xFFFF) << 8) | (a & 0xFF)))
+        Swag.require(maskedBranch(a) == ((a & 0xF00F) == 0 ? 11 : 27))
         for b in values do
-            Swag.assert(differentInputs(a, b) == ((a & 0xFF) + (b & 0xFF00)))
+            Swag.require(differentInputs(a, b) == ((a & 0xFF) + (b & 0xFF00)))
     }
 }

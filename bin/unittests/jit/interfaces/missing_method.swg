@@ -20,5 +20,5 @@ impl IMissingShape for MissingSquare {}     // swc-expected-error {{sema_err_int
 {
     var square: MissingSquare
     let shape = cast(IMissingShape, square)
-    Swag.assert(shape.area() == 0)
+    Swag.require(shape.area() == 0)
 }

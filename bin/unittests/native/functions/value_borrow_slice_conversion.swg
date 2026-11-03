@@ -20,26 +20,26 @@ func matches(values: *[3] s32, expected: const [..] s32)->bool
 #test
 {
     let observed = first([1, 2, 3])
-    Swag.assert(observed == 1)
+    Swag.require(observed == 1)
 }
 
 #test
 {
     var values   = [1, 2, 3]
     let observed = matches(&values, [1, 2, 3])
-    Swag.assert(observed)
+    Swag.require(observed)
 }
 
 // Element conversion must also survive the detached inline initializer.
 #test
 {
     let observed = first([1'u8, 2'u8, 3'u8])
-    Swag.assert(observed == 1)
+    Swag.require(observed == 1)
 }
 
 #test
 {
     var head     = 7
     let observed = first([head, 2, 3])
-    Swag.assert(observed == 7)
+    Swag.require(observed == 7)
 }

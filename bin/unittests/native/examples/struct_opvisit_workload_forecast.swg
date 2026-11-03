@@ -130,9 +130,9 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         friday: 35
         }
 
-    Swag.assert(totalStops(forecast) == 148)
-    Swag.assert(adjacentSignature(forecast) == 54544756)
-    Swag.assert(maxAdjacentRise(forecast) == 6)
+    Swag.require(totalStops(forecast) == 148)
+    Swag.require(adjacentSignature(forecast) == 54544756)
+    Swag.require(maxAdjacentRise(forecast) == 6)
 
     for &stops, day in forecast
     {
@@ -150,12 +150,12 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
         }
     }
 
-    Swag.assert(forecast.monday == 26)
-    Swag.assert(forecast.tuesday == 30)
-    Swag.assert(forecast.wednesday == 29)
-    Swag.assert(forecast.thursday == 29)
-    Swag.assert(forecast.friday == 30)
-    Swag.assert(totalStops(forecast) == 144)
-    Swag.assert(adjacentSignature(forecast) == 54495051)
-    Swag.assert(maxAdjacentRise(forecast) == 4)
+    Swag.require(forecast.monday == 26)
+    Swag.require(forecast.tuesday == 30)
+    Swag.require(forecast.wednesday == 29)
+    Swag.require(forecast.thursday == 29)
+    Swag.require(forecast.friday == 30)
+    Swag.require(totalStops(forecast) == 144)
+    Swag.require(adjacentSignature(forecast) == 54495051)
+    Swag.require(maxAdjacentRise(forecast) == 4)
 }

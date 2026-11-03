@@ -37,25 +37,25 @@ func countLetters(text: const [*] u8, count: u64)->u64
     for c in 256
     {
         let b = cast(u8, c)
-        Swag.assert(isDigit(b) == (c >= 48 and c <= 57))
+        Swag.require(isDigit(b) == (c >= 48 and c <= 57))
         let lowered = (c >= 65 and c <= 90) ? b + 32 : b
-        Swag.assert(toLower(b) == lowered)
+        Swag.require(toLower(b) == lowered)
     }
 
     for x in -40 to 40
     {
         let v = cast(s32, x)
-        Swag.assert(inSignedRange(v) == (x >= -5 and x <= 20))
+        Swag.require(inSignedRange(v) == (x >= -5 and x <= 20))
     }
-    Swag.assert(not inSignedRange(-0x7FFFFFFF - 1))
-    Swag.assert(not inSignedRange(0x7FFFFFFF))
+    Swag.require(not inSignedRange(-0x7FFFFFFF - 1))
+    Swag.require(not inSignedRange(0x7FFFFFFF))
 
-    Swag.assert(not highFirst(899))
-    Swag.assert(highFirst(900))
-    Swag.assert(highFirst(1000))
-    Swag.assert(not highFirst(1001))
-    Swag.assert(not highFirst(0xFFFFFFFFFFFFFFFF))
+    Swag.require(not highFirst(899))
+    Swag.require(highFirst(900))
+    Swag.require(highFirst(1000))
+    Swag.require(not highFirst(1001))
+    Swag.require(not highFirst(0xFFFFFFFFFFFFFFFF))
 
     let text = "Hello, World! zz`{"
-    Swag.assert(countLetters(text.buffer, text.count) == 10)
+    Swag.require(countLetters(text.buffer, text.count) == 10)
 }

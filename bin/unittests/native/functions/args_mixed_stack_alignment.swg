@@ -37,21 +37,21 @@ func sumPlatformStack(i0, i1, i2, i3, i4, i5: u64, f0, f1, f2, f3, f4, f5: f64, 
 {
     let words = cast(StackWords, [31'u32, 32, 33, 34])
     let value = sumMixedStack(1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 21, words, 22, 23)
-    Swag.assert(value == 1410)
+    Swag.require(value == 1410)
 }
 
 #test
 {
     let words = cast(StackWords, [31'u32, 32, 33, 34])
     let value = returnMixedStack(1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 21, words, 22, 23)
-    Swag.assert(value.checksum == 1410)
-    Swag.assert(value.first == 21)
-    Swag.assert(value.last == 22)
+    Swag.require(value.checksum == 1410)
+    Swag.require(value.first == 21)
+    Swag.require(value.last == 22)
 }
 
 #test
 {
     let words = cast(StackWords, [31'u32, 32, 33, 34])
     let value = sumPlatformStack(1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16, 21, words, 22, 23)
-    Swag.assert(value == 1410)
+    Swag.require(value == 1410)
 }

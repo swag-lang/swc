@@ -37,19 +37,19 @@ impl ExactArrayParamNativeMixer
 {
     var histogram: ExactArrayParamNativeHistogram = [0, 0, 0, 0, 0, 0, 0, 0]
     accumulateExactHistogram(histogram, [1'u8, 3'u8, 3'u8, 7'u8])
-    Swag.assert(histogram[1] == 1'u16)
-    Swag.assert(histogram[3] == 2'u16)
-    Swag.assert(histogram[7] == 1'u16)
+    Swag.require(histogram[1] == 1'u16)
+    Swag.require(histogram[3] == 2'u16)
+    Swag.require(histogram[7] == 1'u16)
 }
 
 #test
 {
     var grid: [2, 3] s16 = [[1, 2, 3], [4, 5, 6]]
     patchExactMatrix(grid, 20's16)
-    Swag.assert(grid[0, 0] == 1's16)
-    Swag.assert(grid[0, 1] == 20's16)
-    Swag.assert(grid[1, 0] == 21's16)
-    Swag.assert(grid[1, 2] == 22's16)
+    Swag.require(grid[0, 0] == 1's16)
+    Swag.require(grid[0, 1] == 20's16)
+    Swag.require(grid[1, 0] == 21's16)
+    Swag.require(grid[1, 2] == 22's16)
 }
 
 #test
@@ -57,10 +57,10 @@ impl ExactArrayParamNativeMixer
     var values: [4] s32 = [2, 4, 6, 8]
     var mixer = ExactArrayParamNativeMixer{}
     mixer.mix(values, 3)
-    Swag.assert(values[0] == 5)
-    Swag.assert(values[1] == 10)
-    Swag.assert(values[2] == 15)
-    Swag.assert(values[3] == 20)
+    Swag.require(values[0] == 5)
+    Swag.require(values[1] == 10)
+    Swag.require(values[2] == 15)
+    Swag.require(values[3] == 20)
 }
 
 #test
@@ -73,16 +73,16 @@ impl ExactArrayParamNativeMixer
 
     var values: [4] s32 = [1, 2, 3, 4]
     patch(values)
-    Swag.assert(values[0] == 1)
-    Swag.assert(values[1] == 6)
-    Swag.assert(values[2] == 12)
-    Swag.assert(values[3] == 4)
+    Swag.require(values[0] == 1)
+    Swag.require(values[1] == 6)
+    Swag.require(values[2] == 12)
+    Swag.require(values[3] == 4)
 }
 
 #test
 {
     var values: [4] u16 = [1'u16, 2'u16, 3'u16, 4'u16]
     overwriteExactTail(values, 99'u16)
-    Swag.assert(values[0] == 1'u16)
-    Swag.assert(values[3] == 99'u16)
+    Swag.require(values[0] == 1'u16)
+    Swag.require(values[3] == 99'u16)
 }

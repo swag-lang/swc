@@ -1306,7 +1306,7 @@ func incrementForDebugInfo(value: *s32)
 {
     var acc: s32 = 0
     incrementForDebugInfo(&acc)
-    Swag.assert(acc == 1)
+    Swag.require(acc == 1)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerTestFunctionsPreserveStackDebugMetadata");
@@ -1390,8 +1390,8 @@ func debugInfoRuntimeStorageLeft(value: *DebugInfoRuntimeStoragePair)->s32
 #test
 {
     var visible: DebugInfoRuntimeStoragePair = {left: 1, right: 2}
-    Swag.assert(debugInfoRuntimeStorageRead({left: 3, right: 4}) == 7)
-    Swag.assert(debugInfoRuntimeStorageLeft(&visible) == 1)
+    Swag.require(debugInfoRuntimeStorageRead({left: 3, right: 4}) == 7)
+    Swag.require(debugInfoRuntimeStorageLeft(&visible) == 1)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "RuntimeStorageLocalsStayOutOfCodeView");
@@ -1505,7 +1505,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerPrivateGlobalsReachCodeViewDataSymbols)
 var GValue: s32 = 7
 #test
 {
-    Swag.assert(GValue == 7)
+    Swag.require(GValue == 7)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("DebugInfo", "CompilerPrivateGlobalsReachCodeViewDataSymbols");

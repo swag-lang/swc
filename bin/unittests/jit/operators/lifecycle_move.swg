@@ -366,199 +366,199 @@ func returnMoveInfo()->LifecycleInfo
 #test
 {
     let v = copyAssignInfo()
-    Swag.assert(v.dst == 12)
-    Swag.assert(v.src == 2)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 1)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 12)
+    Swag.require(v.src == 2)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 1)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = moveAssignInfo()
-    Swag.assert(v.dst == 23)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 7)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 23)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 7)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = noDropCopyInfo()
-    Swag.assert(v.dst == 14)
-    Swag.assert(v.src == 4)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 14)
+    Swag.require(v.src == 4)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = noDropMoveInfo()
-    Swag.assert(v.dst == 26)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 26)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = dropRelocateInfo()
-    Swag.assert(v.dst == 23)
-    Swag.assert(v.src == 3)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 8)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 23)
+    Swag.require(v.src == 3)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 8)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = relocateInfo()
-    Swag.assert(v.dst == 23)
-    Swag.assert(v.src == 3)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 23)
+    Swag.require(v.src == 3)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = selfCopyInfo()
-    Swag.assert(v.dst == 6)
-    Swag.assert(v.src == 6)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 6)
+    Swag.require(v.src == 6)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = selfMoveInfo()
-    Swag.assert(v.dst == 6)
-    Swag.assert(v.src == 6)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 6)
+    Swag.require(v.src == 6)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = moveRefAssignInfo()
-    Swag.assert(v.dst == 24)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 6)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 24)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 6)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = overloadCopyInfo()
-    Swag.assert(v.dst == 19)
-    Swag.assert(v.src == 9)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 5)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 19)
+    Swag.require(v.src == 9)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 5)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = overloadMoveInfo()
-    Swag.assert(v.dst == 29)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 5)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 29)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 5)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = borrowedParamInfo()
-    Swag.assert(v.dst == 7)
-    Swag.assert(v.src == 7)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 7)
+    Swag.require(v.src == 7)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = borrowedAddressableParamInfo()
-    Swag.assert(v.dst == 7)
-    Swag.assert(v.src == 7)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 7)
+    Swag.require(v.src == 7)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = embeddedCopyAssignInfo()
-    Swag.assert(v.dst == 12)
-    Swag.assert(v.src == 2)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 1)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 12)
+    Swag.require(v.src == 2)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 1)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = embeddedMoveAssignInfo()
-    Swag.assert(v.dst == 23)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 7)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 23)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 7)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = embeddedOuterCopyAssignInfo()
-    Swag.assert(v.dst == 115)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 9004)
-    Swag.assert(v.postCopy == 2)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 115)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 9004)
+    Swag.require(v.postCopy == 2)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = embeddedOuterMoveAssignInfo()
-    Swag.assert(v.dst == 223)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 2)
-    Swag.assert(v.dropTrace == 9008)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 2)
+    Swag.require(v.dst == 223)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 2)
+    Swag.require(v.dropTrace == 9008)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 2)
 }
 
 #test
 {
     let v = embeddedOuterNoDropCopyAssignInfo()
-    Swag.assert(v.dst == 112)
-    Swag.assert(v.src == 2)
-    Swag.assert(v.drops == 0)
-    Swag.assert(v.dropTrace == 0)
-    Swag.assert(v.postCopy == 2)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 112)
+    Swag.require(v.src == 2)
+    Swag.require(v.drops == 0)
+    Swag.require(v.dropTrace == 0)
+    Swag.require(v.postCopy == 2)
+    Swag.require(v.postMove == 0)
 }
 
 #test
@@ -568,41 +568,41 @@ func returnMoveInfo()->LifecycleInfo
     // asserted here: the argument-less call is constant-folded, so they land in the
     // compile-time image. See 'return_move_out.swg' for the counts.
     let v = returnMoveInfo()
-    Swag.assert(v.dst == 4)
-    Swag.assert(v.src == 0)
+    Swag.require(v.dst == 4)
+    Swag.require(v.src == 0)
 }
 
 #test
 {
     let v = sliceMoveRefAssignInfo()
-    Swag.assert(v.dst == 21)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 5)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 21)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 5)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 #test
 {
     let v = foreachOverloadCopyInfo()
-    Swag.assert(v.dst == 19)
-    Swag.assert(v.src == 9)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 5)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.dst == 19)
+    Swag.require(v.src == 9)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 5)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     let v = foreachOverloadMoveInfo()
-    Swag.assert(v.dst == 29)
-    Swag.assert(v.src == 5)
-    Swag.assert(v.drops == 1)
-    Swag.assert(v.dropTrace == 5)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.dst == 29)
+    Swag.require(v.src == 5)
+    Swag.require(v.drops == 1)
+    Swag.require(v.dropTrace == 5)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }
 
 // A struct exposing a user `opSet` reachable from its own type through an implicit `opCast`, just like
@@ -688,27 +688,27 @@ func settableRelocate()->SettableInfo
 {
     // Plain assignment resolves the user `opSet`.
     let v = settablePlainCopy()
-    Swag.assert(v.sets == 1)
-    Swag.assert(v.dst == 2)
-    Swag.assert(v.postCopy == 0)
+    Swag.require(v.sets == 1)
+    Swag.require(v.dst == 2)
+    Swag.require(v.postCopy == 0)
 }
 
 #test
 {
     // `#nodrop` copy bypasses `opSet`: bitwise copy + opPostCopy into the uninitialized target.
     let v = settableNoDropCopy()
-    Swag.assert(v.sets == 0)
-    Swag.assert(v.dst == 14)
-    Swag.assert(v.postCopy == 1)
-    Swag.assert(v.postMove == 0)
+    Swag.require(v.sets == 0)
+    Swag.require(v.dst == 14)
+    Swag.require(v.postCopy == 1)
+    Swag.require(v.postMove == 0)
 }
 
 #test
 {
     // `#relocate` bypasses `opSet`: raw bitwise move + opPostMove, no read of the target.
     let v = settableRelocate()
-    Swag.assert(v.sets == 0)
-    Swag.assert(v.dst == 23)
-    Swag.assert(v.postCopy == 0)
-    Swag.assert(v.postMove == 1)
+    Swag.require(v.sets == 0)
+    Swag.require(v.dst == 23)
+    Swag.require(v.postCopy == 0)
+    Swag.require(v.postMove == 1)
 }

@@ -122,5 +122,5 @@ func runNearStackGuard()->u64
 #test
 {
     initImdctStackProbe()
-    Swag.assert(runNearStackGuard() == 32767)
+    Swag.require(runNearStackGuard() == 32767)
 }

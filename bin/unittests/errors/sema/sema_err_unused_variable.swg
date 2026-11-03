@@ -55,5 +55,5 @@ func guardLocal(count: *s32)
     discardedLocal()
     var drops = 0
     guardLocal(&drops)
-    Swag.assert(drops == 1)
+    Swag.require(drops == 1)
 }

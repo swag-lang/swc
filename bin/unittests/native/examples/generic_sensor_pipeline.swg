@@ -113,16 +113,16 @@ impl TelemetrySeries
         filled: 0
         }
 
-    Swag.assert(temperature.ingest(18.0'f32) == 18.0'f32)
-    Swag.assert(temperature.ingest(21.0'f32) == 21.0'f32)
-    Swag.assert(temperature.ingest(24.0'f32) == 24.0'f32)
+    Swag.require(temperature.ingest(18.0'f32) == 18.0'f32)
+    Swag.require(temperature.ingest(21.0'f32) == 21.0'f32)
+    Swag.require(temperature.ingest(24.0'f32) == 24.0'f32)
 
-    Swag.assert(temperature.sample'0() == 18.0'f32)
-    Swag.assert(temperature.average() == 21.0'f32)
-    Swag.assert(temperature.movingMidpoint() == 21.0'f32)
-    Swag.assert(temperature.sameUnit(Celsius{}))
-    Swag.assert(temperature.drift(20.0'f32) == 1.0'f32)
-    Swag.assert(temperature.midpoint(12.0'f32, 16.0'f32) == 14.0'f32)
+    Swag.require(temperature.sample'0() == 18.0'f32)
+    Swag.require(temperature.average() == 21.0'f32)
+    Swag.require(temperature.movingMidpoint() == 21.0'f32)
+    Swag.require(temperature.sameUnit(Celsius{}))
+    Swag.require(temperature.drift(20.0'f32) == 1.0'f32)
+    Swag.require(temperature.midpoint(12.0'f32, 16.0'f32) == 14.0'f32)
 }
 
 #test
@@ -138,10 +138,10 @@ impl TelemetrySeries
         filled: 3
         }
 
-    Swag.assert(temperature.ingest(30.0'f32) == 30.0'f32)
-    Swag.assert(temperature.sample'0() == 30.0'f32)
-    Swag.assert(temperature.average() == 25.0'f32)
-    Swag.assert(temperature.movingMidpoint() == 25.5'f32)
+    Swag.require(temperature.ingest(30.0'f32) == 30.0'f32)
+    Swag.require(temperature.sample'0() == 30.0'f32)
+    Swag.require(temperature.average() == 25.0'f32)
+    Swag.require(temperature.movingMidpoint() == 25.5'f32)
 }
 
 #test
@@ -157,13 +157,13 @@ impl TelemetrySeries
         filled: 0
         }
 
-    Swag.assert(humidity.ingest(40.0'f64) == 40.0'f64)
-    Swag.assert(humidity.ingest(55.0'f64) == 55.0'f64)
-    Swag.assert(humidity.ingest(72.0'f64) == 72.0'f64)
-    Swag.assert(humidity.ingest(88.0'f64) == 88.0'f64)
+    Swag.require(humidity.ingest(40.0'f64) == 40.0'f64)
+    Swag.require(humidity.ingest(55.0'f64) == 55.0'f64)
+    Swag.require(humidity.ingest(72.0'f64) == 72.0'f64)
+    Swag.require(humidity.ingest(88.0'f64) == 88.0'f64)
 
-    Swag.assert(humidity.average() == 63.75'f64)
-    Swag.assert(humidity.midpoint(50.0'f64, 90.0'f64) == 70.0'f64)
+    Swag.require(humidity.average() == 63.75'f64)
+    Swag.require(humidity.midpoint(50.0'f64, 90.0'f64) == 70.0'f64)
 }
 
 #test
@@ -179,9 +179,9 @@ impl TelemetrySeries
         filled: 0
         }
 
-    Swag.assert(pressure.ingest(40.0'f64) == 94.0'f64)
-    Swag.assert(pressure.ingest(100.0'f64) == 100.0'f64)
-    Swag.assert(pressure.ingest(160.0'f64) == 106.0'f64)
-    Swag.assert(pressure.average() == 100.0'f64)
-    Swag.assert(pressure.movingMidpoint() == 100.0'f64)
+    Swag.require(pressure.ingest(40.0'f64) == 94.0'f64)
+    Swag.require(pressure.ingest(100.0'f64) == 100.0'f64)
+    Swag.require(pressure.ingest(160.0'f64) == 106.0'f64)
+    Swag.require(pressure.average() == 100.0'f64)
+    Swag.require(pressure.movingMidpoint() == 100.0'f64)
 }

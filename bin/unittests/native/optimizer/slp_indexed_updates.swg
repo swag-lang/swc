@@ -65,20 +65,20 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
             var expected = actual
             indexedXor4(&actual[0], offset, mask)
             for i in 4 do expected[offset + i] ^= mask
-            for i in 12 do Swag.assert(actual[i] == expected[i])
+            for i in 12 do Swag.require(actual[i] == expected[i])
 
             indexedChain4(&actual[0], offset)
             expected[offset]     += #wrap expected[offset + 1]
             expected[offset + 1] ^= expected[offset + 2]
             expected[offset + 2] += #wrap expected[offset + 3]
             expected[offset + 3] ^= expected[offset]
-            for i in 12 do Swag.assert(actual[i] == expected[i])
+            for i in 12 do Swag.require(actual[i] == expected[i])
 
             indexedMixedWidth4(&actual[0], offset, mask)
             expected[offset]     ^= mask
             expected[offset + 1] = (expected[offset + 1] & 0xFFFF_FF00) | 0xA7
             for i in 3 do expected[offset + i + 1] ^= mask
-            for i in 12 do Swag.assert(actual[i] == expected[i])
+            for i in 12 do Swag.require(actual[i] == expected[i])
         }
     }
 
@@ -89,7 +89,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
         var expected = actual
         indexedAlias4(&actual[0], &actual[displacement], 2)
         for i in 4 do expected[2 + i] ^= expected[displacement + i]
-        for i in 12 do Swag.assert(actual[i] == expected[i])
+        for i in 12 do Swag.require(actual[i] == expected[i])
     }
 }
 
@@ -106,7 +106,7 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
             for i in 16 do expected[offset + i] ^= mask
             indexedAddImmediate4(&actual[0], offset)
             for i in 4 do expected[offset + i] += #wrap 3
-            for i in 24 do Swag.assert(actual[i] == expected[i])
+            for i in 24 do Swag.require(actual[i] == expected[i])
         }
     }
 }
@@ -163,10 +163,10 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
         var expected = actual
         indexedXorBlocks(&actual[1], count, 0xAABB_CCDD)
         for i in count do expected[i + 1] ^= 0xAABB_CCDD
-        for i in 64 do Swag.assert(actual[i] == expected[i])
+        for i in 64 do Swag.require(actual[i] == expected[i])
         indexedCapturedBlocks(&actual[1], count, 0x1122_3344)
         for i in count do expected[i + 1] ^= 0x1122_3344
-        for i in 64 do Swag.assert(actual[i] == expected[i])
+        for i in 64 do Swag.require(actual[i] == expected[i])
     }
     for seed in [0'u32, 17, 0x8000_0000]
     {
@@ -177,8 +177,8 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
         for i in 4 do expectedSource[i] ^= expected[i]
         for i in 4 do expected[i + 1] ^= expected[i]
         let actual = indexedEscapedFrame(&source[0], seed)
-        for i in 8 do Swag.assert(actual[i] == expected[i])
-        for i in 4 do Swag.assert(source[i] == expectedSource[i])
+        for i in 8 do Swag.require(actual[i] == expected[i])
+        for i in 4 do Swag.require(source[i] == expectedSource[i])
     }
 }
 
@@ -217,7 +217,7 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
     var actual: [64] u32
     for i in 64 do actual[i] = cast(u32, (i * 0x10001 + 17))
     var expected = actual
-    Swag.assert(indexedCopiedState(&actual[0], 64, 37) == 101)
+    Swag.require(indexedCopiedState(&actual[0], 64, 37) == 101)
     for block in 4
     {
         for lane in 16
@@ -228,5 +228,5 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
             expected[block * 16 + lane] ^= state + initial
         }
     }
-    for i in 64 do Swag.assert(actual[i] == expected[i])
+    for i in 64 do Swag.require(actual[i] == expected[i])
 }

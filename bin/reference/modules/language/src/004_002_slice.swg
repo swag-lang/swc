@@ -26,14 +26,14 @@ the array’s elements.
 #test
 {
     var a: const [..] u32 = [10, 20, 30, 40, 50]
-    Swag.assert(a.count == 5)
-    Swag.assert(a[0] == 10)
-    Swag.assert(a[4] == 50)
+    Swag.require(a.count == 5)
+    Swag.require(a[0] == 10)
+    Swag.require(a[4] == 50)
 
     a = [1, 2]
-    Swag.assert(a.count == 2)
-    Swag.assert(a[0] == 1)
-    Swag.assert(a[1] == 2)
+    Swag.require(a.count == 2)
+    Swag.require(a[0] == 1)
+    Swag.require(a[1] == 2)
 }
 
 /**
@@ -48,12 +48,12 @@ the number of elements.
     let count = a.count
     let addr  = a.buffer
 
-    Swag.assert(count == 5)
-    Swag.assert(addr[0] == 10)
-    Swag.assert(addr[4] == 50)
+    Swag.require(count == 5)
+    Swag.require(addr[0] == 10)
+    Swag.require(addr[4] == 50)
 
     a = [1, 2]
-    Swag.assert(a.count == 2)
+    Swag.require(a.count == 2)
 }
 
 /**
@@ -66,12 +66,12 @@ The 'Swag.makeSlice' intrinsic creates a slice from a pointer and an element cou
     var array: [4] u32 = [10, 20, 30, 40]
 
     let slice: [..] u32 = Swag.makeSlice(cast([*] u32, &array[0]) + 2, 2)
-    Swag.assert(slice.count == 2)
-    Swag.assert(slice[0] == 30)
-    Swag.assert(slice[1] == 40)
+    Swag.require(slice.count == 2)
+    Swag.require(slice[0] == 30)
+    Swag.require(slice[1] == 40)
 
     slice[0] = 314
-    Swag.assert(array[2] == 314)
+    Swag.require(array[2] == 314)
 }
 
 /**
@@ -86,8 +86,8 @@ a string view.
 {
     let str = "string"
     let strSlice: const [..] u8 = Swag.makeSlice(str.buffer, 2)
-    Swag.assert(strSlice[0] == 's')
-    Swag.assert(strSlice[1] == 't')
+    Swag.require(strSlice[0] == 's')
+    Swag.require(strSlice[1] == 't')
 }
 
 /**
@@ -100,7 +100,7 @@ keywords as a 'for' loop; '[..]' is the slice **type**, not the range operator.
 {
     let str   = "string"
     let slice = str[1 to 3]
-    Swag.assert(slice == "tri")
+    Swag.require(slice == "tri")
 }
 
 /**
@@ -112,7 +112,7 @@ By default, the upper bound in a slice is inclusive. To exclude it, use 'until' 
 {
     let str   = "string"
     let slice = str[1 until 3]
-    Swag.assert(slice == "tr")
+    Swag.require(slice == "tr")
 }
 
 /**
@@ -131,12 +131,12 @@ never describes more memory than its source holds.
 {
     let str   = "string"
     let empty = str[3 until 3]
-    Swag.assert(empty.count == 0)
-    Swag.assert(empty == "")
+    Swag.require(empty.count == 0)
+    Swag.require(empty == "")
 
     let values = [10, 20, 30]
-    Swag.assert(values[0 until 0].count == 0)
-    Swag.assert(values[3 until 3].count == 0)
+    Swag.require(values[0 until 0].count == 0)
+    Swag.require(values[3 until 3].count == 0)
 }
 
 /**
@@ -148,7 +148,7 @@ Omitting the upper bound creates a slice extending to the end of the sequence.
 {
     let str   = "string"
     let slice = str[2 to]
-    Swag.assert(slice == "ring")
+    Swag.require(slice == "ring")
 }
 
 /**
@@ -161,10 +161,10 @@ Omitting the lower bound starts the slice from index 0.
     let str = "string"
 
     let slice = str[to 2]
-    Swag.assert(slice == "str")
+    Swag.require(slice == "str")
 
     let slice1 = str[until 2]
-    Swag.assert(slice1 == "st")
+    Swag.require(slice1 == "st")
 }
 
 /**
@@ -177,11 +177,11 @@ Arrays can be sliced the same way as strings.
 {
     let arr   = [10, 20, 30, 40]
     let slice = arr[2 to 3]
-    Swag.assert(slice[0] == 30)
-    Swag.assert(slice[1] == 40)
-    Swag.assert(slice.count == 2)
+    Swag.require(slice[0] == 30)
+    Swag.require(slice[1] == 40)
+    Swag.require(slice.count == 2)
     let slice1 = arr[to]
-    Swag.assert(slice1.count == arr.count)
+    Swag.require(slice1.count == arr.count)
 }
 
 /**
@@ -194,12 +194,12 @@ A slice can be further sliced to produce another slice.
 {
     let arr    = [10, 20, 30, 40]
     let slice1 = arr[1 to 3]
-    Swag.assert(slice1[0] == 20)
-    Swag.assert(slice1[1] == 30)
-    Swag.assert(slice1[2] == 40)
+    Swag.require(slice1[0] == 20)
+    Swag.require(slice1[1] == 30)
+    Swag.require(slice1[2] == 40)
     let slice2 = slice1[1 to 2]
-    Swag.assert(slice2[0] == 30)
-    Swag.assert(slice2[1] == 40)
+    Swag.require(slice2[0] == 30)
+    Swag.require(slice2[1] == 40)
 }
 
 /**
@@ -213,9 +213,9 @@ A pointer can be transformed into a slice by specifying a range.
     var arr   = [10, 20, 30, 40]
     let ptr   = &arr[2]
     let slice = ptr[0 to 1]
-    Swag.assert(slice[0] == 30)
-    Swag.assert(slice[1] == 40)
-    Swag.assert(slice.count == 2)
+    Swag.require(slice[0] == 30)
+    Swag.require(slice[1] == 40)
+    Swag.require(slice.count == 2)
 }
 
 /**
@@ -236,13 +236,13 @@ all, which is what a '?' slice records.
 
     let whole = source[to]
     let other = copy[to]
-    Swag.assert(whole.buffer != other.buffer)
-    Swag.assert(whole == other)
+    Swag.require(whole.buffer != other.buffer)
+    Swag.require(whole == other)
 
     let head = source[to 2]
-    Swag.assert(whole.buffer == head.buffer)
-    Swag.assert(whole != head)
+    Swag.require(whole.buffer == head.buffer)
+    Swag.require(whole != head)
 
     let missing: const [..] u8? = null
-    Swag.assert(missing == null)
+    Swag.require(missing == null)
 }

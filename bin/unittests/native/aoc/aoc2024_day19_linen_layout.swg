@@ -243,21 +243,21 @@ func solve(text: string)->SolveResult
 #test
 {
     let input = parseInput(SampleInput)
-    Swag.assert(input.patterns.count == 8'u32)
-    Swag.assert(input.patterns.items[0].len == 1'u32)
-    Swag.assert(input.patterns.items[0].bytes[0] == 'r')
-    Swag.assert(input.patterns.items[1].len == 2'u32)
-    Swag.assert(input.patterns.items[1].bytes[0] == 'w')
-    Swag.assert(input.patterns.items[1].bytes[1] == 'r')
+    Swag.require(input.patterns.count == 8'u32)
+    Swag.require(input.patterns.items[0].len == 1'u32)
+    Swag.require(input.patterns.items[0].bytes[0] == 'r')
+    Swag.require(input.patterns.items[1].len == 2'u32)
+    Swag.require(input.patterns.items[1].bytes[0] == 'w')
+    Swag.require(input.patterns.items[1].bytes[1] == 'r')
 }
 
 // Parse designs
 #test
 {
     let input = parseInput(SampleInput)
-    Swag.assert(input.designs.count == 8'u32)
-    Swag.assert(input.designs.items[0].len == 5'u32)
-    Swag.assert(input.designs.items[0].bytes[0] == 'b')
+    Swag.require(input.designs.count == 8'u32)
+    Swag.require(input.designs.items[0].len == 5'u32)
+    Swag.require(input.designs.items[0].bytes[0] == 'b')
 }
 
 // Pattern inline method: byteAt
@@ -267,8 +267,8 @@ func solve(text: string)->SolveResult
     pat.bytes[0] = 'a'
     pat.bytes[1] = 'b'
     pat.len      = 2
-    Swag.assert(pat.byteAt(0) == 'a')
-    Swag.assert(pat.byteAt(1) == 'b')
+    Swag.require(pat.byteAt(0) == 'a')
+    Swag.require(pat.byteAt(1) == 'b')
 }
 
 // Pattern nested inline: matchAt
@@ -283,9 +283,9 @@ func solve(text: string)->SolveResult
     buf[0] = 'b'; buf[1] = 'r'; buf[2] = 'w'; buf[3] = 'r'; buf[4] = 'r'
     let sl = Swag.makeSlice(&buf[0], 5'u64)
 
-    Swag.assert(pat.matchAt(sl, 0))
-    Swag.assert(not pat.matchAt(sl, 1))
-    Swag.assert(not pat.matchAt(sl, 4))
+    Swag.require(pat.matchAt(sl, 0))
+    Swag.require(not pat.matchAt(sl, 1))
+    Swag.require(not pat.matchAt(sl, 4))
 }
 
 // Pointer-backed receiver: hidden 'me' reference and narrow return value
@@ -302,9 +302,9 @@ func solve(text: string)->SolveResult
     buf[0] = 'a'
     let sl = Swag.makeSlice(&buf[0], 1'u64)
 
-    Swag.assert(pat.len == 1'u32)
-    Swag.assert(pat.byteAt(0) == 'a')
-    Swag.assert(pat.matchAt(sl, 0))
+    Swag.require(pat.len == 1'u32)
+    Swag.require(pat.byteAt(0) == 'a')
+    Swag.require(pat.matchAt(sl, 0))
 }
 
 // Design asSlice inline method — exercises inline returning a slice
@@ -315,9 +315,9 @@ func solve(text: string)->SolveResult
     des.bytes[1] = 'y'
     des.len      = 2
     let sl = des.asSlice()
-    Swag.assert(sl.count == 2)
-    Swag.assert(sl[0] == 'x')
-    Swag.assert(sl[1] == 'y')
+    Swag.require(sl.count == 2)
+    Swag.require(sl[0] == 'x')
+    Swag.require(sl[1] == 'y')
 }
 
 // DP: simple single-pattern match
@@ -331,7 +331,7 @@ func solve(text: string)->SolveResult
     var buf: [3] u8
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
     let sl = Swag.makeSlice(&buf[0], 3'u64)
-    Swag.assert(countWays(sl, 3, &pats) == 1'u64)
+    Swag.require(countWays(sl, 3, &pats) == 1'u64)
 }
 
 // DP: two patterns, multiple ways
@@ -349,7 +349,7 @@ func solve(text: string)->SolveResult
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
     let sl = Swag.makeSlice(&buf[0], 3'u64)
     // "aaa" = a+a+a, a+aa, aa+a → 3 ways
-    Swag.assert(countWays(sl, 3, &pats) == 3'u64)
+    Swag.require(countWays(sl, 3, &pats) == 3'u64)
 }
 
 // DP: impossible design
@@ -363,37 +363,37 @@ func solve(text: string)->SolveResult
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
     let sl = Swag.makeSlice(&buf[0], 2'u64)
-    Swag.assert(countWays(sl, 2, &pats) == 0'u64)
+    Swag.require(countWays(sl, 2, &pats) == 0'u64)
 }
 
 // Full sample: Part 1 = 6 possible designs
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.possible == 6'u32)
+    Swag.require(result.possible == 6'u32)
 }
 
 // Full sample: Part 2 = 16 total ways
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.totalWays == 16'u64)
+    Swag.require(result.totalWays == 16'u64)
 }
 
 // CRLF input should parse the last pattern correctly.
 #test
 {
     let result = solve("r, wr, b, g, bwu, rb, gb, br\r\n\r\nbrwrr\r\n")
-    Swag.assert(result.possible == 1'u32)
-    Swag.assert(result.totalWays == 2'u64)
+    Swag.require(result.possible == 1'u32)
+    Swag.require(result.totalWays == 2'u64)
 }
 
 // Edge: empty design list
 #test
 {
     let result = solve("r, b\n\n")
-    Swag.assert(result.possible == 0'u32)
-    Swag.assert(result.totalWays == 0'u64)
+    Swag.require(result.possible == 0'u32)
+    Swag.require(result.totalWays == 0'u64)
 }
 
 // matchAt boundary: pattern longer than remaining design
@@ -408,5 +408,5 @@ func solve(text: string)->SolveResult
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
     let sl = Swag.makeSlice(&buf[0], 2'u64)
-    Swag.assert(not pat.matchAt(sl, 0))
+    Swag.require(not pat.matchAt(sl, 0))
 }

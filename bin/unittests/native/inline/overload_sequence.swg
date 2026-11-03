@@ -15,5 +15,5 @@ func checkOverloadSequence()
 #test
 {
     checkOverloadSequence()
-    Swag.assert(chooseOverload(5, 7) == 7)
+    Swag.require(chooseOverload(5, 7) == 7)
 }

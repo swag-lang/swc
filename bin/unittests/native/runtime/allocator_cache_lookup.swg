@@ -20,7 +20,7 @@ using Swag
         {
             requests[i].size = Sizes[i]
             itf.alloc(&requests[i])
-            Swag.assert(requests[i].address != null)
+            Swag.require(requests[i].address != null)
             addresses[i] = cast(u64, requests[i].address)
         }
         for &request in requests do
@@ -31,14 +31,14 @@ using Swag
         {
             var reserved, committed: u64
             let block = allocator.popCachedBlock(size, &reserved, &committed)
-            Swag.assert(block == null)
+            Swag.require(block == null)
         }
 
         for i in [1'u64, 3, 0, 2]
         {
             requests[i].size = i == 3 ? 600_000 : Sizes[i]
             itf.alloc(&requests[i])
-            Swag.assert(cast(u64, requests[i].address) == addresses[i])
+            Swag.require(cast(u64, requests[i].address) == addresses[i])
             cast([*] u8, unwrap requests[i].address)[requests[i].size - 1] = 29
         }
         for &request in requests do
@@ -49,27 +49,27 @@ using Swag
     var request: AllocatorRequest
     request.size = 2_000_000
     itf.alloc(&request)
-    Swag.assert(request.address != null)
+    Swag.require(request.address != null)
     let largeAddress = cast(u64, request.address)
     itf.free(&request)
 
     request.size = 100_000
     itf.alloc(&request)
-    Swag.assert(request.address != null and cast(u64, request.address) != largeAddress)
+    Swag.require(request.address != null and cast(u64, request.address) != largeAddress)
     itf.free(&request)
 
     // Reservations are 256 KiB and 128 KiB: a block exactly at the reuse limit fits.
     allocator.trim()
     request.size = 200_000
     itf.alloc(&request)
-    Swag.assert(request.address != null)
+    Swag.require(request.address != null)
     let limitAddress = cast(u64, request.address)
     itf.free(&request)
 
     request.size = 100_000
     itf.alloc(&request)
-    Swag.assert(request.address != null and cast(u64, request.address) == limitAddress)
+    Swag.require(request.address != null and cast(u64, request.address) == limitAddress)
     itf.free(&request)
-    Swag.assert(allocator.stats().countAlloc == 0)
-    Swag.assert(allocator.stats().sizeAlloc == 0)
+    Swag.require(allocator.stats().countAlloc == 0)
+    Swag.require(allocator.stats().sizeAlloc == 0)
 }

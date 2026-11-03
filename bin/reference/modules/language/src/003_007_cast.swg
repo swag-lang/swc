@@ -14,7 +14,7 @@ specified 'type'.
 
     let y = cast(s32, x)     // Explicit cast to 's32'
     #assert(#typeof(y) == s32)
-    Swag.assert(y == 1)
+    Swag.require(y == 1)
 }
 
 /**
@@ -41,7 +41,7 @@ impl ICount for Counter
 {
     var counter = Counter{42}
     let view    = cast(ICount, &counter)
-    Swag.assert(view.count() == 42)
+    Swag.require(view.count() == 42)
     #assert(#typeof(view) == ICount)
 }
 
@@ -100,10 +100,10 @@ struct CastButton
     let node:   *CastNode = &button
     let found = catch cast(*CastButton?, node)
     if found != null do
-        Swag.assert(found.label == "Apply")
-    Swag.assert(found != null)
-    Swag.assert(assume cast(*CastButton, node) == &button)
-    Swag.assert(expect cast(*CastButton, node) == &button)
+        Swag.require(found.label == "Apply")
+    Swag.require(found != null)
+    Swag.require(assume cast(*CastButton, node) == &button)
+    Swag.require(expect cast(*CastButton, node) == &button)
 }
 
 /**
@@ -124,12 +124,12 @@ the caller already guarantees compatibility.
     var counter = Counter{42}
     let view    = cast(ICount, &counter)
     if view is Counter as found do
-        Swag.assert(found.value == 42)
+        Swag.require(found.value == 42)
 
     switch view
     {
-    case Counter as found where found.value > 0: Swag.assert(found == &counter)
-    default: Swag.assert(false)
+    case Counter as found where found.value > 0: Swag.require(found == &counter)
+    default: Swag.require(false)
     }
 }
 
@@ -151,7 +151,7 @@ func countOf(view: ICount)->s32
 #test
 {
     var counter = Counter{42}
-    Swag.assert(countOf(cast(ICount, &counter)) == 42)
+    Swag.require(countOf(cast(ICount, &counter)) == 42)
 }
 
 /**
@@ -169,9 +169,9 @@ Neither mode extends the lifetime of the boxed value or its pointee.
 {
     var boxed: any = 42's32
     if boxed is s32 as value do
-        Swag.assert(value[] == 42)
-    Swag.assert(not (boxed is s64))
-    Swag.assert(assume cast (s32, boxed) == 42)
+        Swag.require(value[] == 42)
+    Swag.require(not (boxed is s64))
+    Swag.require(assume cast (s32, boxed) == 42)
 }
 
 /**
@@ -218,17 +218,17 @@ func supportsRuntimeType(target, source: typeinfo)->bool
 
 #test
 {
-    Swag.assert(supportsRuntimeType(ICount, Counter))
-    Swag.assert(not supportsRuntimeType(ICount, s32))
-    Swag.assert(supportsCounterType(Counter))
-    Swag.assert(not supportsCounterType(s32))
+    Swag.require(supportsRuntimeType(ICount, Counter))
+    Swag.require(not supportsRuntimeType(ICount, s32))
+    Swag.require(supportsCounterType(Counter))
+    Swag.require(not supportsCounterType(s32))
 
     var value = 42's32
     let target: typeinfo = s32
     let view  = expect cast(target, &value)
     if view is s32 as number do
-        Swag.assert(number[] == 42)
-    Swag.assert(view != null)
+        Swag.require(number[] == 42)
+    Swag.require(view != null)
 }
 
 /**
@@ -242,7 +242,7 @@ to infer the target type based on the left-hand side of the assignment.
     let x: f32 = 1.0
     let y: s32 = cast(x)
     #assert(#typeof(y) == s32)
-    Swag.assert(y == 1)
+    Swag.require(y == 1)
 }
 
 /**
@@ -270,8 +270,8 @@ struct CastCount { value: u16 }
     var count:  u64     = 42
     let field           = CastCount{value: cast(count)}
     let values: [2] u16 = [cast(count), cast(count)]
-    Swag.assert(field.value == 42)
-    Swag.assert(values == [42'u16, 42'u16])
+    Swag.require(field.value == 42)
+    Swag.require(values == [42'u16, 42'u16])
 }
 
 /**
@@ -285,7 +285,7 @@ must have the same size.
 {
     let x: f32 = 1.0
     let y: u32 = cast #bit (u32, x)
-    Swag.assert(y == 0x3F800000)     // 1.0 in IEEE 754 format
+    Swag.require(y == 0x3F800000)     // 1.0 in IEEE 754 format
 
     #assert(cast #bit (u32, 1.0) == 0x3F800000)
     #assert(cast #bit (f32, 0x3F800000) == 1.0)
@@ -299,10 +299,10 @@ value, or vice versa.
 {
     let rawBits: u32 = 0x40490FDB
     let pi:      f32 = cast #bit (f32, rawBits)
-    Swag.assert(pi == 3.1415927)
+    Swag.require(pi == 3.1415927)
 
     let backToBits: u32 = cast #bit (u32, pi)
-    Swag.assert(backToBits == 0x40490FDB)
+    Swag.require(backToBits == 0x40490FDB)
 }
 
 /**
@@ -328,15 +328,15 @@ without requiring an explicit 'cast' statement.
     let x: s16 = 1's8
     let y: s32 = 1's16
     let z: s64 = 1's32
-    Swag.assert(x == 1 and y == 1 and z == 1)
+    Swag.require(x == 1 and y == 1 and z == 1)
 
     let a: u16 = 255'u8
     let b: u32 = 65535'u16
     let c: u64 = 4294967295'u32
-    Swag.assert(a == 255 and b == 65535 and c == 4294967295)
+    Swag.require(a == 255 and b == 65535 and c == 4294967295)
 
     let d: f64 = 1.23'f32
-    Swag.assert(d > 1.22 and d < 1.24)
+    Swag.require(d > 1.22 and d < 1.24)
 }
 
 /**
@@ -351,17 +351,17 @@ acknowledge potential data loss.
     // Explicit cast from 's16' to 's8' required
     let z0: s16 = 256
     let z1: s8  = cast #wrap (s8, z0)
-    Swag.assert(z1 == 0)
+    Swag.require(z1 == 0)
 
     // Explicit cast from 'u16' to 's16' required
     let u_val: u16 = 65535
     let s_val: s16 = cast #wrap (s16, u_val)
-    Swag.assert(s_val == -1)
+    Swag.require(s_val == -1)
 
     // Explicit cast from 'f64' to 'f32' required
     let large_float:   f64 = 1.23456789012345611111
     let smaller_float: f32 = cast(f32, large_float)
-    Swag.assert(smaller_float > 1.23 and smaller_float < 1.24)
+    Swag.require(smaller_float > 1.23 and smaller_float < 1.24)
 }
 
 /**
@@ -389,19 +389,19 @@ enum CastPointerTag: u64
     let base = storage.buffer
 
     let address = cast(u64, base)
-    Swag.assert(cast([*] u8, address) == base)
-    Swag.assert(cast(s64, base) == cast(s64, address))
+    Swag.require(cast([*] u8, address) == base)
+    Swag.require(cast(s64, base) == cast(s64, address))
 
     // A narrower integer needs no second step towards a pointer.
-    Swag.assert(cast(*void, 0xBEEF'u16) == cast(*void, 0xBEEF'u64))
-    Swag.assert(cast(*void, CastPointerTag.First) == cast(*void, 7'u64))
-    Swag.assert(cast(CastPointerTag, cast(*void, 9'u64)) == CastPointerTag.Second)
+    Swag.require(cast(*void, 0xBEEF'u16) == cast(*void, 0xBEEF'u64))
+    Swag.require(cast(*void, CastPointerTag.First) == cast(*void, 7'u64))
+    Swag.require(cast(CastPointerTag, cast(*void, 9'u64)) == CastPointerTag.Second)
 
     // 'cast(u32, base)' is refused. Widen the address first, then narrow that value with
     // '#wrap' to say that dropping its high half is intended.
-    Swag.assert(cast #wrap (u32, address) == cast #wrap (u32, cast(u64, base)))
+    Swag.require(cast #wrap (u32, address) == cast #wrap (u32, cast(u64, base)))
 
     // A deduced destination reaches a pointer from 'u64' only.
     let deduced: [*] u8 = cast(address)
-    Swag.assert(deduced == base)
+    Swag.require(deduced == base)
 }

@@ -178,10 +178,10 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeResource()
-        Swag.assert(x.id == 7)
+        Swag.require(x.id == 7)
     }
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 7)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 7)
 }
 
 // A full-lifecycle local that is returned is built in the caller's storage: nothing
@@ -192,11 +192,11 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeTracked()
-        Swag.assert(x.value == 9)
+        Swag.require(x.value == 9)
     }
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(DropCount == 1)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(DropCount == 1)
 }
 
 // Forwarding an owned call result moves it again instead of deep-copying it.
@@ -206,10 +206,10 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = forwardTracked()
-        Swag.assert(x.value == 11)
+        Swag.require(x.value == 11)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(DropCount == 1)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(DropCount == 1)
 }
 
 // Each return site moves independently, branch or not.
@@ -220,21 +220,21 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeTrackedBranch()
-        Swag.assert(x.value == 13)
+        Swag.require(x.value == 13)
     }
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(DropCount == 1)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(DropCount == 1)
 
     resetHooks(17)
     g_cond = false
     scope
     {
         var x = makeTrackedBranch()
-        Swag.assert(x.value == 17)
+        Swag.require(x.value == 17)
     }
-    Swag.assert(g_sink == 17)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(DropCount == 1)
+    Swag.require(g_sink == 17)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(DropCount == 1)
 }
 
 // A 'defer' still observes the local after the return: the value is copied out and the
@@ -246,11 +246,11 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeTrackedDeferred()
-        Swag.assert(x.value == 19)
+        Swag.require(x.value == 19)
     }
-    Swag.assert(g_sink == 19)
-    Swag.assert(PostCopyCount == 1)
-    Swag.assert(DropCount == 2)
+    Swag.require(g_sink == 19)
+    Swag.require(PostCopyCount == 1)
+    Swag.require(DropCount == 2)
 }
 
 // A register-returned struct transfers its bits without any hook; the local's drop is
@@ -261,10 +261,10 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeSmallTracked()
-        Swag.assert(x.value == 21)
+        Swag.require(x.value == 21)
     }
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 21)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 21)
 }
 
 // A '#returntype' local is built straight in the caller's slot: returning it runs no
@@ -277,12 +277,12 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeTrackedRetval()
-        Swag.assert(x.value == 27)
+        Swag.require(x.value == 27)
     }
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 27)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 27)
 }
 
 // An inlined return of a local builds it in the result slot, the declared variable: nothing
@@ -295,11 +295,11 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = makeTrackedInline()
-        Swag.assert(x.value == 23)
+        Swag.require(x.value == 23)
     }
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(PostCopyCount <= 1)
-    Swag.assert(DropCount == 1)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(PostCopyCount <= 1)
+    Swag.require(DropCount == 1)
 }
 
 // An inlined return of a live lvalue deep-copies it: the source stays untouched, no
@@ -311,14 +311,14 @@ func readTemplateInline()->Tracked
     scope
     {
         var x = readTemplateInline()
-        Swag.assert(x.value == 41)
+        Swag.require(x.value == 41)
         x.value = 1
     }
-    Swag.assert(g_Template.value == 41)
-    Swag.assert(PostCopyCount >= 1)
-    Swag.assert(PostMoveCount == 0)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 1)
+    Swag.require(g_Template.value == 41)
+    Swag.require(PostCopyCount >= 1)
+    Swag.require(PostMoveCount == 0)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 1)
 }
 
 // Ownership stays one-to-one across repeated calls.
@@ -330,7 +330,7 @@ func readTemplateInline()->Tracked
         var x = makeResource()
         g_sink += x.id
     }
-    Swag.assert(DropCount == 8)
+    Swag.require(DropCount == 8)
 }
 
 // A known address escape must not hide a later deferred observer of the local.
@@ -341,9 +341,9 @@ func readTemplateInline()->Tracked
     scope
     {
         var value = makeTrackedEscapedThenDeferred()
-        Swag.assert(value.value == 29)
+        Swag.require(value.value == 29)
     }
-    Swag.assert(g_sink == 29)
-    Swag.assert(PostCopyCount == 1)
-    Swag.assert(DropCount == 2)
+    Swag.require(g_sink == 29)
+    Swag.require(PostCopyCount == 1)
+    Swag.require(DropCount == 2)
 }

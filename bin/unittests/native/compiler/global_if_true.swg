@@ -10,5 +10,5 @@ func makeValue()->s32
 // #global if true preserves declarations
 #test
 {
-    Swag.assert(GIf.makeValue() == 42)
+    Swag.require(GIf.makeValue() == 42)
 }

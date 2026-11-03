@@ -92,6 +92,6 @@ func freeWhatAGlobalHolds()->s32
 #test
 {
     freeOwnAllocation()
-    Swag.assert(borrowGlobalWithoutFreeing() == &globalValue)
-    Swag.assert(freeWhatAGlobalHolds() == 6)
+    Swag.require(borrowGlobalWithoutFreeing() == &globalValue)
+    Swag.require(freeWhatAGlobalHolds() == 6)
 }

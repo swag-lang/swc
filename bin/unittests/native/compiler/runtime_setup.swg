@@ -16,5 +16,5 @@ func runtimeSetupWorks()->bool
 
 #test
 {
-    Swag.assert(runtimeSetupWorks())
+    Swag.require(runtimeSetupWorks())
 }

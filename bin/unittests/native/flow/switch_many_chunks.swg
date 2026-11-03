@@ -72,11 +72,11 @@ func manyChunks(value: string)->s32
         "group-16suffix-a", "group-16suffix-b", "group-17suffix-a", "group-17suffix-b",
         "group-18suffix-a", "group-18suffix-b", "group-19suffix-a", "group-19suffix-b"]
     for text, index in names do
-        Swag.assert(manyChunks(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+        Swag.require(manyChunks(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
 
     let others: [5] string = [
         "group-00suffix-c", "group-19suffix-c", "group-20suffix-a",
         "group-00suffix-", "group-00suffix-aa"]
     for text in others do
-        Swag.assert(not manyChunks(runtimeString(&buffer[0], text)))
+        Swag.require(not manyChunks(runtimeString(&buffer[0], text)))
 }

@@ -11,11 +11,11 @@
         closures[i] = func|idx|()->s32 { return idx }
     }
 
-    Swag.assert(closures[0]!() == 0)
-    Swag.assert(closures[1]!() == 1)
-    Swag.assert(closures[2]!() == 2)
-    Swag.assert(closures[3]!() == 3)
-    Swag.assert(closures[4]!() == 4)
+    Swag.require(closures[0]!() == 0)
+    Swag.require(closures[1]!() == 1)
+    Swag.require(closures[2]!() == 2)
+    Swag.require(closures[3]!() == 3)
+    Swag.require(closures[4]!() == 4)
 }
 
 // Closure captures computed value in loop
@@ -29,10 +29,10 @@
         closures[i] = func|squared|()->s32 { return squared }
     }
 
-    Swag.assert(closures[0]!() == 0)
-    Swag.assert(closures[1]!() == 1)
-    Swag.assert(closures[2]!() == 4)
-    Swag.assert(closures[3]!() == 9)
+    Swag.require(closures[0]!() == 0)
+    Swag.require(closures[1]!() == 1)
+    Swag.require(closures[2]!() == 4)
+    Swag.require(closures[3]!() == 9)
 }
 
 // Multiple closures from same iteration capture different values
@@ -48,12 +48,12 @@
         doublers[i] = func|val|()->s32 { return val * 2 }
     }
 
-    Swag.assert(adders[0]!() == 10)
-    Swag.assert(adders[1]!() == 11)
-    Swag.assert(adders[2]!() == 12)
-    Swag.assert(doublers[0]!() == 0)
-    Swag.assert(doublers[1]!() == 2)
-    Swag.assert(doublers[2]!() == 4)
+    Swag.require(adders[0]!() == 10)
+    Swag.require(adders[1]!() == 11)
+    Swag.require(adders[2]!() == 12)
+    Swag.require(doublers[0]!() == 0)
+    Swag.require(doublers[1]!() == 2)
+    Swag.require(doublers[2]!() == 4)
 }
 
 // Closure in while loop
@@ -68,9 +68,9 @@
         i += 1
     }
 
-    Swag.assert(closures[0]!() == 0)
-    Swag.assert(closures[1]!() == 1)
-    Swag.assert(closures[2]!() == 2)
+    Swag.require(closures[0]!() == 0)
+    Swag.require(closures[1]!() == 1)
+    Swag.require(closures[2]!() == 2)
 }
 
 // Closure capturing accumulator pattern
@@ -87,9 +87,9 @@ func makeAccumulator(start: s32)->func||(s32)->s32
 #test
 {
     let acc = makeAccumulator(0)
-    Swag.assert(acc(5) == 5)
-    Swag.assert(acc(3) == 8)
-    Swag.assert(acc(2) == 10)
+    Swag.require(acc(5) == 5)
+    Swag.require(acc(3) == 8)
+    Swag.require(acc(2) == 10)
 }
 
 // Two independent closures from same function (separate captures)
@@ -97,8 +97,8 @@ func makeAccumulator(start: s32)->func||(s32)->s32
 {
     let a = makeAccumulator(10)
     let b = makeAccumulator(100)
-    Swag.assert(a(1) == 11)
-    Swag.assert(b(1) == 101)
-    Swag.assert(a(1) == 12)
-    Swag.assert(b(1) == 102)
+    Swag.require(a(1) == 11)
+    Swag.require(b(1) == 101)
+    Swag.require(a(1) == 12)
+    Swag.require(b(1) == 102)
 }

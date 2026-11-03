@@ -30,11 +30,11 @@ alias BinaryStrictS32Ptr = [*] s32
     #assert(#typeof(d) == s32)
     #assert(#typeof(e) == s32)
 
-    Swag.assert(a == 42)
-    Swag.assert(b == 42)
-    Swag.assert(c == 42)
-    Swag.assert(d == 42)
-    Swag.assert(e == 42)
+    Swag.require(a == 42)
+    Swag.require(b == 42)
+    Swag.require(c == 42)
+    Swag.require(d == 42)
+    Swag.require(e == 42)
 }
 
 // Float arithmetic and type promotion
@@ -48,9 +48,9 @@ alias BinaryStrictS32Ptr = [*] s32
     #assert(#typeof(b) == f32)
     #assert(#typeof(c) == f64)
 
-    Swag.assert(a == 42.5'f64)
-    Swag.assert(b == 42.0'f32)
-    Swag.assert(c == 8.5'f64)
+    Swag.require(a == 42.5'f64)
+    Swag.require(b == 42.0'f32)
+    Swag.require(c == 8.5'f64)
 }
 
 #[Swag.Optimize(false)]
@@ -82,7 +82,7 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     let value = binaryPromotedFloatAdd(42.5'f32)
 
     #assert(#typeof(value) == f64)
-    Swag.assert(value == 43.75'f64)
+    Swag.require(value == 43.75'f64)
 }
 
 #test
@@ -90,7 +90,7 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     let value = binaryNarrowedFloatLiteralMul(2.0'f32)
 
     #assert(#typeof(value) == f32)
-    Swag.assert(value == 2.0'f32 * 1.4247691104677813'f32)
+    Swag.require(value == 2.0'f32 * 1.4247691104677813'f32)
 }
 
 #test
@@ -98,7 +98,7 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     let value = binaryPromotedFloatCallMul(2.5'f32)
 
     #assert(#typeof(value) == f64)
-    Swag.assert(value == 1.25'f64 * 1.4247691104677813'f64)
+    Swag.require(value == 1.25'f64 * 1.4247691104677813'f64)
 }
 
 // Bitwise AND, OR, XOR on u32
@@ -112,9 +112,9 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     #assert(#typeof(b) == u32)
     #assert(#typeof(c) == u32)
 
-    Swag.assert(a == 42'u32)
-    Swag.assert(b == 42'u32)
-    Swag.assert(c == 42'u32)
+    Swag.require(a == 42'u32)
+    Swag.require(b == 42'u32)
+    Swag.require(c == 42'u32)
 }
 
 // Shift left and right on u32 and u64
@@ -130,10 +130,10 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     #assert(#typeof(c) == u64)
     #assert(#typeof(d) == u64)
 
-    Swag.assert(a == 42'u32)
-    Swag.assert(b == 42'u32)
-    Swag.assert(c == 0x0000_0100_0000_0000'u64)
-    Swag.assert(d == 0x0000_0000_0010_0000'u64)
+    Swag.require(a == 42'u32)
+    Swag.require(b == 42'u32)
+    Swag.require(c == 0x0000_0100_0000_0000'u64)
+    Swag.require(d == 0x0000_0000_0010_0000'u64)
 }
 
 // The largest valid amount is one below the width, whatever the width of the amount itself.
@@ -157,11 +157,11 @@ func shiftRightS32(value: s32, count: s8)->s32
 
 #test
 {
-    Swag.assert(wrappedShiftLeftU32(1'u32, 31'u32) == 0x8000_0000'u32)
-    Swag.assert(wrappedShiftLeftU32(3'u32, 31'u32) == 0x8000_0000'u32)
-    Swag.assert(shiftRightU32(0x8000_0000'u32, 31'u64) == 1'u32)
-    Swag.assert(shiftRightS32(-16, 31's8) == -1)
-    Swag.assert(shiftRightS32(16, 4's8) == 1)
+    Swag.require(wrappedShiftLeftU32(1'u32, 31'u32) == 0x8000_0000'u32)
+    Swag.require(wrappedShiftLeftU32(3'u32, 31'u32) == 0x8000_0000'u32)
+    Swag.require(shiftRightU32(0x8000_0000'u32, 31'u64) == 1'u32)
+    Swag.require(shiftRightS32(-16, 31's8) == -1)
+    Swag.require(shiftRightS32(16, 4's8) == 1)
 }
 
 // Operator precedence and parentheses
@@ -170,8 +170,8 @@ func shiftRightS32(value: s32, count: s8)->s32
     let a = 6 + 8 * 5 - 4
     let b = (6 + 8) * (5 - 2)
 
-    Swag.assert(a == 42)
-    Swag.assert(b == 42)
+    Swag.require(a == 42)
+    Swag.require(b == 42)
 }
 
 // 64-bit integer arithmetic
@@ -183,8 +183,8 @@ func shiftRightS32(value: s32, count: s8)->s32
     #assert(#typeof(a) == s64)
     #assert(#typeof(b) == u64)
 
-    Swag.assert(a == 10000000042's64)
-    Swag.assert(b == 42'u64)
+    Swag.require(a == 10000000042's64)
+    Swag.require(b == 42'u64)
 }
 
 // Rune bitwise and shift operators behave like int-like unsigned values
@@ -201,10 +201,10 @@ func shiftRightS32(value: s32, count: s8)->s32
     #assert(#typeof(c) == rune)
     #assert(#typeof(d) == rune)
 
-    Swag.assert(a == 'A'rune)
-    Swag.assert(b == 'a'rune)
-    Swag.assert(c == cast(rune, 130'u32))
-    Swag.assert(d == 'A'rune)
+    Swag.require(a == 'A'rune)
+    Swag.require(b == 'a'rune)
+    Swag.require(c == cast(rune, 130'u32))
+    Swag.require(d == 'A'rune)
 }
 
 #test
@@ -214,8 +214,8 @@ func shiftRightS32(value: s32, count: s8)->s32
     r += #wrap 1
 
     #assert(#typeof(next) == rune)
-    Swag.assert(next == 'B'rune)
-    Swag.assert(r == 'B'rune)
+    Swag.require(next == 'B'rune)
+    Swag.require(r == 'B'rune)
 }
 
 func binaryStrictAdd(a, b: BinaryStrictS32)->BinaryStrictS32
@@ -319,17 +319,17 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     #assert(#typeof(shl) == BinaryStrictU32)
     #assert(#typeof(shr) == BinaryStrictU32)
 
-    Swag.assert(add == cast(BinaryStrictS32, 42))
-    Swag.assert(sub == cast(BinaryStrictS32, 42))
-    Swag.assert(mul == cast(BinaryStrictS32, 42))
-    Swag.assert(div == cast(BinaryStrictS32, 42))
-    Swag.assert(mod == cast(BinaryStrictS32, 42))
-    Swag.assert(fadd == cast(BinaryStrictF32, 4.0))
-    Swag.assert(band == cast(BinaryStrictU32, 42'u32))
-    Swag.assert(bor == cast(BinaryStrictU32, 42'u32))
-    Swag.assert(bxor == cast(BinaryStrictU32, 42'u32))
-    Swag.assert(shl == cast(BinaryStrictU32, 42'u32))
-    Swag.assert(shr == cast(BinaryStrictU32, 42'u32))
+    Swag.require(add == cast(BinaryStrictS32, 42))
+    Swag.require(sub == cast(BinaryStrictS32, 42))
+    Swag.require(mul == cast(BinaryStrictS32, 42))
+    Swag.require(div == cast(BinaryStrictS32, 42))
+    Swag.require(mod == cast(BinaryStrictS32, 42))
+    Swag.require(fadd == cast(BinaryStrictF32, 4.0))
+    Swag.require(band == cast(BinaryStrictU32, 42'u32))
+    Swag.require(bor == cast(BinaryStrictU32, 42'u32))
+    Swag.require(bxor == cast(BinaryStrictU32, 42'u32))
+    Swag.require(shl == cast(BinaryStrictU32, 42'u32))
+    Swag.require(shr == cast(BinaryStrictU32, 42'u32))
 }
 
 #test
@@ -344,10 +344,10 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     #assert(#typeof(band) == BinaryStrictU32)
     #assert(#typeof(shl) == BinaryStrictU32)
 
-    Swag.assert(add == cast(BinaryStrictS32, 42))
-    Swag.assert(fadd == cast(BinaryStrictF32, 4.0))
-    Swag.assert(band == cast(BinaryStrictU32, 42'u32))
-    Swag.assert(shl == cast(BinaryStrictU32, 42'u32))
+    Swag.require(add == cast(BinaryStrictS32, 42))
+    Swag.require(fadd == cast(BinaryStrictF32, 4.0))
+    Swag.require(band == cast(BinaryStrictU32, 42'u32))
+    Swag.require(shl == cast(BinaryStrictU32, 42'u32))
 }
 
 #test
@@ -358,8 +358,8 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 
     #assert(#typeof(wrapped) == BinaryStrictS32)
     #assert(#typeof(next) == BinaryStrictRune)
-    Swag.assert(wrapped == cast(BinaryStrictS32, -2147483648))
-    Swag.assert(next == cast(BinaryStrictRune, 'B'rune))
+    Swag.require(wrapped == cast(BinaryStrictS32, -2147483648))
+    Swag.require(next == cast(BinaryStrictRune, 'B'rune))
 }
 
 #test
@@ -370,6 +370,6 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     let next = binaryStrictPointerOffset(base, one)
 
     #assert(#typeof(next) == BinaryStrictS32Ptr)
-    Swag.assert(next[] == 20)
-    Swag.assert(binaryStrictPointerDiff(next, base) == 1)
+    Swag.require(next[] == 20)
+    Swag.require(binaryStrictPointerDiff(next, base) == 1)
 }

@@ -34,7 +34,7 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 16
     {
         let expected = (cast(u16, left[i]) * cast(u16, right[i])) >> 8
-        Swag.assert(r[i] == cast(u8, expected))
+        Swag.require(r[i] == cast(u8, expected))
     }
 }
 
@@ -55,14 +55,14 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 16
     {
         let expected = (cast(s16, left[i]) * cast(s16, right[i])) >> 8
-        Swag.assert(r[i] == cast(s8, expected))
+        Swag.require(r[i] == cast(s8, expected))
     }
 
     r = cast([16] s8, liveMulHighS8(x, y))
     for i in 16
     {
         let expected = (cast(s16, left[i]) * cast(s16, right[i])) >> 8
-        Swag.assert(r[i] == cast(s8, expected))
+        Swag.require(r[i] == cast(s8, expected))
     }
 }
 
@@ -83,12 +83,12 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 8
     {
         let expected = (cast(u32, left[i]) * cast(u32, right[i])) >> 16
-        Swag.assert(r[i] == cast(u16, expected))
+        Swag.require(r[i] == cast(u16, expected))
     }
 
     r = cast([8] u16, liveMulHighU16(x, y))
     for i in 8 do
-        Swag.assert(r[i] == cast(u16, ((cast(u32, left[i]) * cast(u32, right[i])) >> 16)))
+        Swag.require(r[i] == cast(u16, ((cast(u32, left[i]) * cast(u32, right[i])) >> 16)))
 }
 
 #test
@@ -105,7 +105,7 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 8
     {
         let expected = (cast(s32, left[i]) * cast(s32, right[i])) >> 16
-        Swag.assert(r[i] == cast(s16, expected))
+        Swag.require(r[i] == cast(s16, expected))
     }
 }
 
@@ -123,7 +123,7 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 4
     {
         let expected = (cast(u64, left[i]) * cast(u64, right[i])) >> 32
-        Swag.assert(r[i] == cast(u32, expected))
+        Swag.require(r[i] == cast(u32, expected))
     }
 }
 
@@ -144,12 +144,12 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     for i in 4
     {
         let expected = (cast(s64, left[i]) * cast(s64, right[i])) >> 32
-        Swag.assert(r[i] == cast(s32, expected))
+        Swag.require(r[i] == cast(s32, expected))
     }
 
     r = cast([4] s32, liveMulHighS32(x, y))
     for i in 4 do
-        Swag.assert(r[i] == cast(s32, ((cast(s64, left[i]) * cast(s64, right[i])) >> 32)))
+        Swag.require(r[i] == cast(s32, ((cast(s64, left[i]) * cast(s64, right[i])) >> 32)))
 }
 
 #test
@@ -158,22 +158,22 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     // fits in 64 bits has nothing there at all.
     let ones = cast(#simd [2] u64, [0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF])
     var r    = cast([2] u64, Swag.vecMulHigh(ones, ones))
-    Swag.assert(r[0] == 0xFFFF_FFFF_FFFF_FFFE and r[1] == r[0])
+    Swag.require(r[0] == 0xFFFF_FFFF_FFFF_FFFE and r[1] == r[0])
 
     let small = cast(#simd [2] u64, [0xFFFF_FFFF, 3])
     r = cast([2] u64, Swag.vecMulHigh(small, small))
-    Swag.assert(r[0] == 0 and r[1] == 0)
+    Swag.require(r[0] == 0 and r[1] == 0)
 
     // Each half of the operands contributes, so a value straddling bit 32
     // exercises the middle column and its carry.
     let straddle = cast(#simd [2] u64, [0x1_0000_0001, 0xFFFF_FFFF_0000_0001])
     let other    = cast(#simd [2] u64, [0xFFFF_FFFF_FFFF_FFFF, 0x8000_0000_0000_0003])
     r = cast([2] u64, Swag.vecMulHigh(straddle, other))
-    Swag.assert(r[0] == 0x1_0000_0000)
-    Swag.assert(r[1] == 0x7FFF_FFFF_8000_0003)
+    Swag.require(r[0] == 0x1_0000_0000)
+    Swag.require(r[1] == 0x7FFF_FFFF_8000_0003)
 
     r = cast([2] u64, liveMulHighU64(straddle, other))
-    Swag.assert(r[0] == 0x1_0000_0000 and r[1] == 0x7FFF_FFFF_8000_0003)
+    Swag.require(r[0] == 0x1_0000_0000 and r[1] == 0x7FFF_FFFF_8000_0003)
 }
 
 #test
@@ -182,18 +182,18 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     // overstates by the other operand.
     let minusOne = cast(#simd [2] s64, [-1, -1])
     var r        = cast([2] s64, Swag.vecMulHigh(minusOne, minusOne))
-    Swag.assert(r[0] == 0 and r[1] == 0)
+    Swag.require(r[0] == 0 and r[1] == 0)
 
     let big  = cast(#simd [2] s64, [0x4000_0000_0000_0000, -0x4000_0000_0000_0000])
     let four = cast(#simd [2] s64, [4, 4])
     r = cast([2] s64, Swag.vecMulHigh(big, four))
-    Swag.assert(r[0] == 1 and r[1] == -1)
+    Swag.require(r[0] == 1 and r[1] == -1)
 
     let mixed = cast(#simd [2] s64, [-0x1_0000_0001, 0x1_0000_0001])
     let scale = cast(#simd [2] s64, [0x1_0000_0000, -0x1_0000_0000])
     r = cast([2] s64, Swag.vecMulHigh(mixed, scale))
-    Swag.assert(r[0] == -2 and r[1] == -2)
+    Swag.require(r[0] == -2 and r[1] == -2)
 
     r = cast([2] s64, liveMulHighS64(mixed, scale))
-    Swag.assert(r[0] == -2 and r[1] == -2)
+    Swag.require(r[0] == -2 and r[1] == -2)
 }

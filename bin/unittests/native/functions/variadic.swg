@@ -19,8 +19,8 @@ func tata(a: s32...) { gVariadicTypedTotal += a.count }
     titi()
     tata(1, 2, 3)
     tata()
-    Swag.assert(gVariadicAnyTotal == 2)
-    Swag.assert(gVariadicTypedTotal == 3)
+    Swag.require(gVariadicAnyTotal == 2)
+    Swag.require(gVariadicTypedTotal == 3)
 }
 
 func toto(a: s32, b: ...)
@@ -36,9 +36,9 @@ func toto(a: s32, b: ...)
     gVariadicTotoHead  = 0
     toto(1, "a", "b")
     toto(1)
-    Swag.assert(gVariadicTotoCalls == 2)
-    Swag.assert(gVariadicTotoTotal == 2)
-    Swag.assert(gVariadicTotoHead == 1)
+    Swag.require(gVariadicTotoCalls == 2)
+    Swag.require(gVariadicTotoTotal == 2)
+    Swag.require(gVariadicTotoHead == 1)
 }
 
 func tutu(a: s32, b: s32...)
@@ -55,7 +55,7 @@ func tutu(a: s32, b: s32...)
     tutu(1)
     tutu(1, 2)
     tutu(1, 2, 3)
-    Swag.assert(gVariadicTutuCalls == 3)
-    Swag.assert(gVariadicTutuTotal == 3)
-    Swag.assert(gVariadicTutuHead == 1)
+    Swag.require(gVariadicTutuCalls == 3)
+    Swag.require(gVariadicTutuTotal == 3)
+    Swag.require(gVariadicTutuHead == 1)
 }

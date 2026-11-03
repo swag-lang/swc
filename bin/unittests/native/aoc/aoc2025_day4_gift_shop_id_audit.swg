@@ -105,16 +105,16 @@ func auditProductRanges(sheet: string)->GiftShopAudit
     const exampleSheet = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124"
     let exampleAudit = auditProductRanges(exampleSheet)
 
-    Swag.assert(exampleAudit.rangeCount == 11'u32)
-    Swag.assert(exampleAudit.invalidCount == 8'u32)
-    Swag.assert(exampleAudit.invalidSum == 1227775554'u64)
-    Swag.assert(exampleAudit.highestInvalid == 1188511885'u64)
+    Swag.require(exampleAudit.rangeCount == 11'u32)
+    Swag.require(exampleAudit.invalidCount == 8'u32)
+    Swag.require(exampleAudit.invalidSum == 1227775554'u64)
+    Swag.require(exampleAudit.highestInvalid == 1188511885'u64)
 
     const boutiqueSheet = "10-12,1200-1235,9898-9902,777776-777778"
     let boutiqueAudit = auditProductRanges(boutiqueSheet)
 
-    Swag.assert(boutiqueAudit.rangeCount == 4'u32)
-    Swag.assert(boutiqueAudit.invalidCount == 4'u32)
-    Swag.assert(boutiqueAudit.invalidSum == 788898'u64)
-    Swag.assert(boutiqueAudit.highestInvalid == 777777'u64)
+    Swag.require(boutiqueAudit.rangeCount == 4'u32)
+    Swag.require(boutiqueAudit.invalidCount == 4'u32)
+    Swag.require(boutiqueAudit.invalidSum == 788898'u64)
+    Swag.require(boutiqueAudit.highestInvalid == 777777'u64)
 }

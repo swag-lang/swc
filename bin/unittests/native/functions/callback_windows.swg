@@ -40,12 +40,12 @@ func threadCallback(param: *void?)->DWORD
 
     var id     = 0'u32
     let thread = CreateThread(null, 0, callback, &data, 0, &id)
-    Swag.assert(thread != null)
+    Swag.require(thread != null)
 
     let waitRes  = WaitForSingleObject(thread, INFINITE)
     let closeRes = CloseHandle(thread)
 
-    Swag.assert(waitRes == WAIT_OBJECT_0)
-    Swag.assert(closeRes != 0)
-    Swag.assert(data.observed == data.value)
+    Swag.require(waitRes == WAIT_OBJECT_0)
+    Swag.require(closeRes != 0)
+    Swag.require(data.observed == data.value)
 }

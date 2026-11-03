@@ -15,7 +15,7 @@ A '#ast' block can return a simple string expression representing Swag code.
 #test
 {
     #ast "var x = 666"
-    Swag.assert(x == 666)
+    Swag.require(x == 666)
 }
 
 /**
@@ -26,7 +26,7 @@ the other, each shown the way a constant prints.
 {
     const Value = 666
     #ast("var y = ", Value)
-    Swag.assert(y == 666)
+    Swag.require(y == 666)
 }
 
 /**
@@ -42,7 +42,7 @@ A '#ast' block can include logic and must return a string to compile.
         return #stringof("cpt += ", INC)
     }
 
-    Swag.assert(cpt == 7)
+    Swag.require(cpt == 7)
 }
 
 /**
@@ -60,8 +60,8 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
     }
 
     let v: MyStruct
-    Swag.assert(v.x == 666)
-    Swag.assert(v.y == 666)
+    Swag.require(v.x == 666)
+    Swag.require(v.y == 666)
 }
 
 /**
@@ -118,9 +118,9 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
     }
 
     let v: Vector3
-    Swag.assert(v.x == 1)
-    Swag.assert(v.y == 2)
-    Swag.assert(v.z == 3)
+    Swag.require(v.x == 1)
+    Swag.require(v.y == 2)
+    Swag.require(v.z == 3)
 }
 
 /**

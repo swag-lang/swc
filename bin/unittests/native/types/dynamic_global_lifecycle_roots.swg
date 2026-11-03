@@ -10,5 +10,5 @@ var globalLifecycleRoot: GlobalLifecycleRoot
 
 #test
 {
-    Swag.assert(globalLifecycleRoot.value == 73)
+    Swag.require(globalLifecycleRoot.value == 73)
 }

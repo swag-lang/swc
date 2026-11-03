@@ -27,9 +27,9 @@ func readDynamicCase(value: any)->s32
 #test
 {
     var value: SwitchDynamicValue
-    Swag.assert(readDynamicCase(&value) == 17)
-    Swag.assert(readDynamicCase(42's32) == 42)
-    Swag.assert(readDynamicCase(false) == 0)
+    Swag.require(readDynamicCase(&value) == 17)
+    Swag.require(readDynamicCase(42's32) == 42)
+    Swag.require(readDynamicCase(false) == 0)
 }
 
 func inspectCaseCalls(value: any, calls: *s32)->*s32?
@@ -51,8 +51,8 @@ func readCompleteDynamicCase(value: any)->s32
 
 #test
 {
-    Swag.assert(readCompleteDynamicCase(17's32) == 17)
-    Swag.assert(readCompleteDynamicCase(42's64) == 42)
+    Swag.require(readCompleteDynamicCase(17's32) == 17)
+    Swag.require(readCompleteDynamicCase(42's64) == 42)
 }
 
 #test
@@ -70,8 +70,8 @@ func readCompleteDynamicCase(value: any)->s32
         discard number
         result = -2
     }
-    Swag.assert(calls == 2)
-    Swag.assert(result == 42)
+    Swag.require(calls == 2)
+    Swag.require(result == 42)
 }
 
 #test
@@ -88,5 +88,5 @@ func readCompleteDynamicCase(value: any)->s32
     case s32 as number:
         result += number[]
     }
-    Swag.assert(result == 43)
+    Swag.require(result == 43)
 }

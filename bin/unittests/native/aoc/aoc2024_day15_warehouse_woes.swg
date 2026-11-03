@@ -362,8 +362,8 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 #test
 {
     #assert(#typeof(Tile.Empty) == Tile)
-    Swag.assert(TileWallVal == "1")
-    Swag.assert(GridMaxStr == "4096")
+    Swag.require(TileWallVal == "1")
+    Swag.require(GridMaxStr == "4096")
 }
 
 // Parse small input
@@ -372,20 +372,20 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    Swag.assert(p.wh.w == 8'u32)
-    Swag.assert(p.wh.h == 8'u32)
-    Swag.assert(p.wh.robotR == 2'u32)
-    Swag.assert(p.wh.robotC == 2'u32)
+    Swag.require(p.wh.w == 8'u32)
+    Swag.require(p.wh.h == 8'u32)
+    Swag.require(p.wh.robotR == 2'u32)
+    Swag.require(p.wh.robotC == 2'u32)
 
     // Top-left is wall
-    Swag.assert(warehouseAt(&p.wh, 0, 0) == Tile.Wall)
+    Swag.require(warehouseAt(&p.wh, 0, 0) == Tile.Wall)
     // Box at (1,3)
-    Swag.assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
+    Swag.require(warehouseAt(&p.wh, 1, 3) == Tile.Box)
     // Robot at (2,2)
-    Swag.assert(warehouseAt(&p.wh, 2, 2) == Tile.Robot)
+    Swag.require(warehouseAt(&p.wh, 2, 2) == Tile.Robot)
 
     // Move count: "<^^>>>vv<v>>v<<" = 15 moves
-    Swag.assert(p.nMoves == 15'u32)
+    Swag.require(p.nMoves == 15'u32)
 }
 
 // Swag.makeSlice and .buffer in parsed moves
@@ -396,11 +396,11 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 
     let moves     = unwrap p.moves
     let moveSlice = Swag.makeSlice(moves, cast(u64, p.nMoves))
-    Swag.assert(moveSlice.count == cast(u64, p.nMoves))
-    Swag.assert(moveSlice.buffer == p.moves)
+    Swag.require(moveSlice.count == cast(u64, p.nMoves))
+    Swag.require(moveSlice.buffer == p.moves)
 
     // First move is '<'
-    Swag.assert(moves[0] == '<')
+    Swag.require(moves[0] == '<')
 }
 
 // Small sample: GPS = 2028
@@ -411,17 +411,17 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 
     // Verify first move
     let moves = unwrap p.moves
-    Swag.assert(moves[0] == '<')
+    Swag.require(moves[0] == '<')
 
     simulate(&p)
     let score = gpsScore(&p.wh)
-    Swag.assert(score == 2739'u64)
+    Swag.require(score == 2739'u64)
 }
 
 // Large sample
 #test
 {
-    Swag.assert(solve(LargeInput) == 10195'u64)
+    Swag.require(solve(LargeInput) == 10195'u64)
 }
 
 // Single box push right
@@ -436,11 +436,11 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
 
     var p = parseInput(input)
     defer parsedFree(&p)
-    Swag.assert(p.nMoves == 1'u32)
+    Swag.require(p.nMoves == 1'u32)
     simulate(&p)
     // Robot pushed box right: box at (1,3), robot at (1,2)
-    Swag.assert(warehouseAt(&p.wh, 1, 3) == Tile.Box)
-    Swag.assert(warehouseAt(&p.wh, 1, 2) == Tile.Robot)
+    Swag.require(warehouseAt(&p.wh, 1, 3) == Tile.Box)
+    Swag.require(warehouseAt(&p.wh, 1, 2) == Tile.Robot)
 }
 
 // Math intrinsics: RMS before simulation is positive
@@ -450,15 +450,15 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     defer parsedFree(&p)
 
     let rms = boxRmsFromCentre(&p.wh)
-    Swag.assert(rms > 0.0)
+    Swag.require(rms > 0.0)
     let bucket = boxRmsBucket(&p.wh)
-    Swag.assert(bucket >= 0)
+    Swag.require(bucket >= 0)
 
     // Swag.floor always <= Swag.sqrt value
     let v = Swag.sqrt(16.0'f64)
-    Swag.assert(v == 4.0'f64)
-    Swag.assert(Swag.floor(3.9'f64) == 3.0'f64)
-    Swag.assert(Swag.floor(4.0'f64) == 4.0'f64)
+    Swag.require(v == 4.0'f64)
+    Swag.require(Swag.floor(3.9'f64) == 3.0'f64)
+    Swag.require(Swag.floor(4.0'f64) == 4.0'f64)
 }
 
 // Edge case: no boxes
@@ -474,16 +474,16 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     var p = parseInput(input)
     defer parsedFree(&p)
     simulate(&p)
-    Swag.assert(gpsScore(&p.wh) == 0'u64)
+    Swag.require(gpsScore(&p.wh) == 0'u64)
 }
 
 // Compound assignment review: .count on fixed array
 #test
 {
     var tiles: [4] Tile
-    Swag.assert(tiles.count == 4)
+    Swag.require(tiles.count == 4)
     tiles[0] = Tile.Wall
     tiles[1] = Tile.Box
-    Swag.assert(tiles[0] == Tile.Wall)
-    Swag.assert(tiles[1] == Tile.Box)
+    Swag.require(tiles[0] == Tile.Wall)
+    Swag.require(tiles[1] == Tile.Box)
 }

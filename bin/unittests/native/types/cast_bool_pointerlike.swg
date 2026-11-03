@@ -21,6 +21,6 @@ func sliceToBool()->bool
 
 #test
 {
-    Swag.assert(stringToBool())
-    Swag.assert(sliceToBool())
+    Swag.require(stringToBool())
+    Swag.require(sliceToBool())
 }

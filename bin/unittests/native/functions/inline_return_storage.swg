@@ -19,7 +19,7 @@ func returnText()->string
     return "kept"
 }
 
-#test { Swag.assert(returnText() == "kept") }
+#test { Swag.require(returnText() == "kept") }
 
 #[Swag.NoInline]
 func returnScalar()->u64
@@ -28,7 +28,7 @@ func returnScalar()->u64
     return value.first + value.second + value.third
 }
 
-#test { Swag.assert(returnScalar() == 41) }
+#test { Swag.require(returnScalar() == 41) }
 
 #[Swag.Inline]
 func nestedLarge()->Large
@@ -53,7 +53,7 @@ func enclosingLarge()->Large
 #test
 {
     let value = enclosingLarge()
-    Swag.assert(value.first == 23 and value.second == 29 and value.third == 31)
+    Swag.require(value.first == 23 and value.second == 29 and value.third == 31)
 }
 
 // Two locals of the return type are two variables: only the returned one is the result.
@@ -70,5 +70,5 @@ func twoNames()->Large
 #test
 {
     let value = twoNames()
-    Swag.assert(value.first == 37 and value.second == 0)
+    Swag.require(value.first == 37 and value.second == 0)
 }

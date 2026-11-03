@@ -38,19 +38,19 @@ func copiedMultiply(a: u64)->u64 => (a * 7) * 11
     let values = [0'u64, 1, 7, 8, 9, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(copiedAdd(a) == a + 8)
-        Swag.assert(copiedMultiply(a) == a * 77)
+        Swag.require(copiedAdd(a) == a + 8)
+        Swag.require(copiedMultiply(a) == a * 77)
         let signed = cast #bit (s64, a)
-        Swag.assert(rounded(a) == (a & 0xFFFFFFFFFFFFFFF8))
-        Swag.assert(cast #bit (u64, roundedSigned(signed)) == (a & 0xFFFFFFFFFFFFFFF8))
-        Swag.assert(roundedOne(a) == (a & 0xFFFFFFFFFFFFFFFE))
-        Swag.assert(cast #bit (u64, rounded31(signed)) == (a & 0xFFFFFFFF80000000))
-        Swag.assert(shared(a) == ((a & 0xFFFFFFFFFFFFFFF8) ^ (a >> 3)))
+        Swag.require(rounded(a) == (a & 0xFFFFFFFFFFFFFFF8))
+        Swag.require(cast #bit (u64, roundedSigned(signed)) == (a & 0xFFFFFFFFFFFFFFF8))
+        Swag.require(roundedOne(a) == (a & 0xFFFFFFFFFFFFFFFE))
+        Swag.require(cast #bit (u64, rounded31(signed)) == (a & 0xFFFFFFFF80000000))
+        Swag.require(shared(a) == ((a & 0xFFFFFFFFFFFFFFF8) ^ (a >> 3)))
         let narrow = cast(u32, (a & 0xFFFFFFFF))
-        Swag.assert(rounded32(narrow) == (narrow & 0xFFFFFFF8))
-        Swag.assert(cast #bit (u32, roundedSigned32(cast #bit (s32, narrow))) == (narrow & 0xFFFFFFF8))
-        Swag.assert(remainderTwo(signed) == dynamicRemainder(signed, 2))
-        Swag.assert(remainderEight(signed) == dynamicRemainder(signed, 8))
-        Swag.assert(remainderNegativeEight(signed) == dynamicRemainder(signed, -8))
+        Swag.require(rounded32(narrow) == (narrow & 0xFFFFFFF8))
+        Swag.require(cast #bit (u32, roundedSigned32(cast #bit (s32, narrow))) == (narrow & 0xFFFFFFF8))
+        Swag.require(remainderTwo(signed) == dynamicRemainder(signed, 2))
+        Swag.require(remainderEight(signed) == dynamicRemainder(signed, 8))
+        Swag.require(remainderNegativeEight(signed) == dynamicRemainder(signed, -8))
     }
 }

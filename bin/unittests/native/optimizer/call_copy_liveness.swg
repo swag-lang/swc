@@ -42,9 +42,9 @@ func advance(trace: *Trace, seed, steps: s64)->s64
             }
             var actual = Trace{}
             let result = advance(&actual, seed, steps)
-            Swag.assert(result == seed + steps * (steps - 1) / 2 + 3 * steps)
-            Swag.assert(actual.checksum == expected.checksum)
-            Swag.assert(actual.calls == cast(u64, steps))
+            Swag.require(result == seed + steps * (steps - 1) / 2 + 3 * steps)
+            Swag.require(actual.checksum == expected.checksum)
+            Swag.require(actual.calls == cast(u64, steps))
         }
     }
 }

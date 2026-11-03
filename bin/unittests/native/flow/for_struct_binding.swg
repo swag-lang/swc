@@ -41,7 +41,7 @@ struct Pair
         sum += value
     }
 
-    Swag.assert(sum == 60)
+    Swag.require(sum == 60)
 }
 
 // No copy, no lifecycle per iteration for the by-value struct binding.
@@ -58,9 +58,9 @@ struct Pair
     for v in arr do
         sum += v.x
 
-    Swag.assert(sum == 6)
-    Swag.assert(g_PostCopy == 0)
-    Swag.assert(g_Drop == 0)
+    Swag.require(sum == 6)
+    Swag.require(g_PostCopy == 0)
+    Swag.require(g_Drop == 0)
 }
 
 // The binding is typed as a const pointer.
@@ -81,7 +81,7 @@ struct Pair
     for v, i in arr
     {
         arr[i].x += 100
-        Swag.assert(v.x == arr[i].x)
+        Swag.require(v.x == arr[i].x)
     }
 }
 
@@ -94,7 +94,7 @@ struct Pair
     var sum = 0
     for p in pins do
         sum += p.x
-    Swag.assert(sum == 15)
+    Swag.require(sum == 15)
 }
 
 // '&' binds a mutable pointer; whole-element assignment writes through.
@@ -103,8 +103,8 @@ struct Pair
     var arr: [2] Pair = [Pair{1, 2}, Pair{3, 4}]
     for &v, i in arr do
         v[] = Pair{cast(s32, i) + 10, cast(s32, i) + 20}
-    Swag.assert(arr[0].a == 10 and arr[0].b == 20)
-    Swag.assert(arr[1].a == 11 and arr[1].b == 21)
+    Swag.require(arr[0].a == 10 and arr[0].b == 20)
+    Swag.require(arr[1].a == 11 and arr[1].b == 21)
 }
 
 // Explicit dereference enables equality with a literal or value.
@@ -120,7 +120,7 @@ struct Pair
         if v[] == wanted do
             hits += 1
     }
-    Swag.assert(hits == 2)
+    Swag.require(hits == 2)
 }
 
 // Explicit dereference enables scalar casts through the '&' byte form.
@@ -130,5 +130,5 @@ struct Pair
     var sum = 0
     for &b in text do
         sum += cast(s32, b[])
-    Swag.assert(sum == 65 + 66)
+    Swag.require(sum == 65 + 66)
 }

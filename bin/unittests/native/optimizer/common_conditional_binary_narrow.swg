@@ -20,11 +20,11 @@ func mul16(a, b, c, flag: u16)->u16 => flag != 0 ? a * b : a * c
     for a in values do for b in values do for c in values do for flag in values
                 {
                     let selected = flag != 0 ? b : c
-                    Swag.assert(add16(a, b, c, flag) == a + selected)
-                    Swag.assert(sub16(a, b, c, flag) == a - selected)
-                    Swag.assert(xor16(a, b, c, flag) == (a ^ selected))
-                    Swag.assert(and16(a, b, c, flag) == (a & selected))
-                    Swag.assert(or16(a, b, c, flag) == (a | selected))
-                    Swag.assert(mul16(a, b, c, flag) == a * selected)
+                    Swag.require(add16(a, b, c, flag) == a + selected)
+                    Swag.require(sub16(a, b, c, flag) == a - selected)
+                    Swag.require(xor16(a, b, c, flag) == (a ^ selected))
+                    Swag.require(and16(a, b, c, flag) == (a & selected))
+                    Swag.require(or16(a, b, c, flag) == (a | selected))
+                    Swag.require(mul16(a, b, c, flag) == a * selected)
                 }
 }

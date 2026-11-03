@@ -38,9 +38,9 @@ else
 // BuildCfg fields are valid at runtime
 #test
 {
-    Swag.assert(Cfg.registeredConfigs == "devmode|release")
-    Swag.assert(Cfg.backendKind != Swag.Build.BackendKind.None)
-    Swag.assert(Cfg.moduleVersion >= 0'u32)
-    Swag.assert(Cfg.moduleRevision >= 0'u32)
-    Swag.assert(Cfg.moduleBuildNum >= 0'u32)
+    Swag.require(Cfg.registeredConfigs == "devmode|release")
+    Swag.require(Cfg.backendKind != Swag.Build.BackendKind.None)
+    Swag.require(Cfg.moduleVersion >= 0'u32)
+    Swag.require(Cfg.moduleRevision >= 0'u32)
+    Swag.require(Cfg.moduleBuildNum >= 0'u32)
 }

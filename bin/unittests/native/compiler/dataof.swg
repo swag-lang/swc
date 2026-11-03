@@ -56,11 +56,11 @@ impl ConstDataOfSpecBuffer
     var i: any = 0's32
     var j      = i.buffer
     #assert(#typeof(j) == [*] void)
-    Swag.assert(#typeof(b) == [*] s32)
-    Swag.assert(#typeof(d) == const [*] u8)
-    Swag.assert(#typeof(f) == const [*] u8)
-    Swag.assert(#typeof(h) == [*] s32)
-    Swag.assert(#typeof(j) == [*] void)
+    Swag.require(#typeof(b) == [*] s32)
+    Swag.require(#typeof(d) == const [*] u8)
+    Swag.require(#typeof(f) == const [*] u8)
+    Swag.require(#typeof(h) == [*] s32)
+    Swag.require(#typeof(j) == [*] void)
 }
 
 // .buffer on string accesses character bytes
@@ -68,9 +68,9 @@ impl ConstDataOfSpecBuffer
 {
     var s: string = "abc"
     var p         = s.buffer
-    Swag.assert(p[0] == 'a')
-    Swag.assert(p[1] == 'b')
-    Swag.assert(p[2] == 'c')
+    Swag.require(p[0] == 'a')
+    Swag.require(p[1] == 'b')
+    Swag.require(p[2] == 'c')
 }
 
 // .buffer on fixed array accesses elements
@@ -78,9 +78,9 @@ impl ConstDataOfSpecBuffer
 {
     var arr: [3] u8 = [1, 2, 3]
     var p = arr.buffer
-    Swag.assert(p[0] == 1'u8)
-    Swag.assert(p[1] == 2'u8)
-    Swag.assert(p[2] == 3'u8)
+    Swag.require(p[0] == 1'u8)
+    Swag.require(p[1] == 2'u8)
+    Swag.require(p[2] == 3'u8)
 }
 
 // .buffer on null string returns null
@@ -89,7 +89,7 @@ impl ConstDataOfSpecBuffer
     var s: string? = null
     var p = s.buffer
     #assert(#typeof(p) == const [*] u8)
-    Swag.assert(p == null)
+    Swag.require(p == null)
 }
 
 // .buffer allows mutation of array elements
@@ -98,7 +98,7 @@ impl ConstDataOfSpecBuffer
     var arr: [2] s32 = [1, 2]
     var p = arr.buffer
     p[0] = 7
-    Swag.assert(arr[0] == 7)
+    Swag.require(arr[0] == 7)
 }
 
 // .buffer on const string at compile time
@@ -108,8 +108,8 @@ impl ConstDataOfSpecBuffer
     const p         = s.buffer
     #assert(p != null)
     #assert(p[] == 'a'u8)
-    Swag.assert(p != null)
-    Swag.assert(p[] == 'a'u8)
+    Swag.require(p != null)
+    Swag.require(p[] == 'a'u8)
 }
 
 // .buffer on const slice at compile time
@@ -119,8 +119,8 @@ impl ConstDataOfSpecBuffer
     const p = s.buffer
     #assert(p != null)
     #assert(p[] == 'a'u8)
-    Swag.assert(p != null)
-    Swag.assert(p[] == 'a'u8)
+    Swag.require(p != null)
+    Swag.require(p[] == 'a'u8)
 }
 
 // .buffer on const fixed array at compile time
@@ -130,8 +130,8 @@ impl ConstDataOfSpecBuffer
     const p = arr.buffer
     #assert(p != null)
     #assert(p[] == 7)
-    Swag.assert(p != null)
-    Swag.assert(p[] == 7)
+    Swag.require(p != null)
+    Swag.require(p[] == 7)
 }
 
 #test
@@ -140,9 +140,9 @@ impl ConstDataOfSpecBuffer
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
-    Swag.assert(value.data[0] == 4)
-    Swag.assert(value.data[1] == 42)
-    Swag.assert(value.data[2] == 6)
+    Swag.require(value.data[0] == 4)
+    Swag.require(value.data[1] == 42)
+    Swag.require(value.data[2] == 6)
 }
 
 #test
@@ -150,8 +150,8 @@ impl ConstDataOfSpecBuffer
     const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7'u8, 9'u8]}
     let p = value.buffer
     #assert(#typeof(p) == const [*] u8)
-    Swag.assert(p[] == 7'u8)
-    Swag.assert(p[1] == 9'u8)
+    Swag.require(p[] == 7'u8)
+    Swag.require(p[1] == 9'u8)
 }
 
 #test
@@ -160,9 +160,9 @@ impl ConstDataOfSpecBuffer
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[1] = 44
-    Swag.assert(value[0] == 10)
-    Swag.assert(value[1] == 44)
-    Swag.assert(value[2] == 30)
+    Swag.require(value[0] == 10)
+    Swag.require(value[1] == 44)
+    Swag.require(value[2] == 30)
 }
 
 #test
@@ -171,7 +171,7 @@ impl ConstDataOfSpecBuffer
     const p = value.buffer
     #assert(#typeof(p) == const [*] s32)
     #assert(p[] == 7)
-    Swag.assert(p[1] == 8)
+    Swag.require(p[1] == 8)
 }
 
 #test
@@ -181,7 +181,7 @@ impl ConstDataOfSpecBuffer
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[2] = 55
-    Swag.assert(storage[0] == 3)
-    Swag.assert(storage[2] == 55)
-    Swag.assert(value[3] == 12)
+    Swag.require(storage[0] == 3)
+    Swag.require(storage[2] == 55)
+    Swag.require(value[3] == 12)
 }

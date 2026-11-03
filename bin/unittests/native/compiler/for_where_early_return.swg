@@ -33,6 +33,6 @@ func differsLoop()->bool
 
 #test
 {
-    Swag.assert(matchesLoop())
-    Swag.assert(differsLoop())
+    Swag.require(matchesLoop())
+    Swag.require(differsLoop())
 }

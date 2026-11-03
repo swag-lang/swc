@@ -67,9 +67,9 @@ namespace LifecycleOwningCopy.Reflection
     let owning:     typeinfo = #typeof(Owning)
     let duplicable: typeinfo = #typeof(Duplicable)
     let owner:      typeinfo = #typeof(OwningMember)
-    Swag.assert((owning.flags & Swag.TypeInfoFlags.CanCopy) == .Zero)
-    Swag.assert((owner.flags & Swag.TypeInfoFlags.CanCopy) == .Zero)
-    Swag.assert((duplicable.flags & Swag.TypeInfoFlags.CanCopy) != .Zero)
+    Swag.require((owning.flags & Swag.TypeInfoFlags.CanCopy) == .Zero)
+    Swag.require((owner.flags & Swag.TypeInfoFlags.CanCopy) == .Zero)
+    Swag.require((duplicable.flags & Swag.TypeInfoFlags.CanCopy) != .Zero)
 }
 
 // '#move' hands an owning value over, and the resource is released exactly once.
@@ -80,10 +80,10 @@ namespace LifecycleOwningCopy.Reflection
     {
         var a = Owning{7}
         var b = #move a
-        Swag.assert(b.value == 7)
+        Swag.require(b.value == 7)
     }
 
-    Swag.assert(DropCount == 1)
+    Swag.require(DropCount == 1)
 }
 
 // 'opPostCopy' states what a duplicate owns, and opts the copy back in.
@@ -91,10 +91,10 @@ namespace LifecycleOwningCopy.Reflection
 {
     var a = Duplicable{4}
     let b = a
-    Swag.assert(b.value == 5)
-    Swag.assert(a.value == 4)
+    Swag.require(b.value == 5)
+    Swag.require(a.value == 4)
 
     var c: DuplicableMember = DuplicableMember{Duplicable{10}}
     let d = c
-    Swag.assert(d.inner.value == 11)
+    Swag.require(d.inner.value == 11)
 }

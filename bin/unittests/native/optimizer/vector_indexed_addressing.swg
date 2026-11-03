@@ -46,7 +46,7 @@ func spreadRows(dst: [*] u8, stride: u64, value: #simd [16] u8, rows: u64)
         var expected: u32
         for k in 6 do
             expected += cast(u32, Plane[64 + k * 64 + lane])
-        Swag.assert(sums[lane] == cast(u8, (expected & 0xFF)))
+        Swag.require(sums[lane] == cast(u8, (expected & 0xFF)))
     }
 
     let seed = cast(#simd [16] u8, [1'u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
@@ -54,6 +54,6 @@ func spreadRows(dst: [*] u8, stride: u64, value: #simd [16] u8, rows: u64)
     for row in 4'u64
     {
         for lane in 16'u64 do
-            Swag.assert(Out[row * 64 + lane] == cast(u8, (lane + 1 + row)))
+            Swag.require(Out[row * 64 + lane] == cast(u8, (lane + 1 + row)))
     }
 }

@@ -103,8 +103,8 @@ func assertBalanced(sets: u32)
     scope
     {
         let holder: Holder = Holder{owned: "abc"}
-        Swag.assert(holder.owned.value == "abc")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "abc")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)
 }
@@ -115,8 +115,8 @@ func assertBalanced(sets: u32)
     scope
     {
         let holder = makeOwnedHolder("returned")
-        Swag.assert(holder.owned.value == "returned")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "returned")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)
 }
@@ -127,8 +127,8 @@ func assertBalanced(sets: u32)
     scope
     {
         let holder = Holder{owned: Holder.Default}
-        Swag.assert(holder.owned.value == "default")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "default")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)
 }
@@ -139,10 +139,10 @@ func assertBalanced(sets: u32)
     scope
     {
         let request: Request = Request{stage: "pre-emit", holder: Holder{owned: Holder.Default}}
-        Swag.assert(request.stage.value == "pre-emit")
-        Swag.assert(request.stage.addr == &request.stage)
-        Swag.assert(request.holder.owned.value == "default")
-        Swag.assert(request.holder.owned.addr == &request.holder.owned)
+        Swag.require(request.stage.value == "pre-emit")
+        Swag.require(request.stage.addr == &request.stage)
+        Swag.require(request.holder.owned.value == "default")
+        Swag.require(request.holder.owned.addr == &request.holder.owned)
     }
     assertBalanced(2)
 }
@@ -153,8 +153,8 @@ func assertBalanced(sets: u32)
     scope
     {
         let holder: Holder = Holder{owned: name()}
-        Swag.assert(holder.owned.value == "dyn")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "dyn")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)
 }
@@ -165,8 +165,8 @@ func assertBalanced(sets: u32)
     scope
     {
         let holder: Holder = Holder{owned: FromBytes}
-        Swag.assert(holder.owned.value == "ABC")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "ABC")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)
 }
@@ -178,15 +178,15 @@ func assertBalanced(sets: u32)
     {
         var holder: Holder
         holder = {owned: name()}
-        Swag.assert(holder.owned.value == "dyn")
-        Swag.assert(holder.owned.addr == &holder.owned)
+        Swag.require(holder.owned.value == "dyn")
+        Swag.require(holder.owned.addr == &holder.owned)
     }
 
     // The default value the assignment replaces is dropped too.
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 2)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 2)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }
 
 #test
@@ -195,9 +195,9 @@ func assertBalanced(sets: u32)
     scope
     {
         let owned: [2] Owned = ["a", name()]
-        Swag.assert(owned[0].addr == &owned[0])
-        Swag.assert(owned[1].value == "dyn")
-        Swag.assert(owned[1].addr == &owned[1])
+        Swag.require(owned[0].addr == &owned[0])
+        Swag.require(owned[1].value == "dyn")
+        Swag.require(owned[1].addr == &owned[1])
     }
     assertBalanced(2)
 }
@@ -208,13 +208,13 @@ func assertBalanced(sets: u32)
     scope
     {
         let tuple = {owned: cast(Owned, name())}
-        Swag.assert(tuple.owned.addr == &tuple.owned)
+        Swag.require(tuple.owned.addr == &tuple.owned)
     }
 
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 1)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 1)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }
 
 #test
@@ -223,33 +223,33 @@ func assertBalanced(sets: u32)
     scope
     {
         let tuple = {owned: makeOwned()}
-        Swag.assert(tuple.owned.addr == &tuple.owned)
+        Swag.require(tuple.owned.addr == &tuple.owned)
     }
 
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 1)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 1)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }
 
 #test
 {
     resetCounts()
     assignConditional(true)
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 2)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 2)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }
 
 #test
 {
     resetCounts()
     assignConditional(false)
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 2)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 2)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }
 
 #test
@@ -258,15 +258,15 @@ func assertBalanced(sets: u32)
     resetCounts()
     var flag     = false
     let selected = flag ? ownsItself("abc") : false
-    Swag.assert(not selected)
-    Swag.assert(SetCount == 0)
-    Swag.assert(DropCount == 0)
+    Swag.require(not selected)
+    Swag.require(SetCount == 0)
+    Swag.require(DropCount == 0)
 }
 
 #test
 {
     resetCounts()
-    Swag.assert(ownsItself("abc"))
+    Swag.require(ownsItself("abc"))
     assertBalanced(1)
 }
 
@@ -276,7 +276,7 @@ func assertBalanced(sets: u32)
     scope
     {
         let owned = cast(Owned, name())
-        Swag.assert(owned.addr == &owned)
+        Swag.require(owned.addr == &owned)
     }
     assertBalanced(1)
 }
@@ -288,12 +288,12 @@ func assertBalanced(sets: u32)
     {
         var owned: Owned
         owned = cast(Owned, name())
-        Swag.assert(owned.addr == &owned)
+        Swag.require(owned.addr == &owned)
     }
 
     // The default value the assignment replaces is dropped too.
-    Swag.assert(SetCount == 1)
-    Swag.assert(DropCount == 2)
-    Swag.assert(PostCopyCount == 0)
-    Swag.assert(StaleDropCount == 0)
+    Swag.require(SetCount == 1)
+    Swag.require(DropCount == 2)
+    Swag.require(PostCopyCount == 0)
+    Swag.require(StaleDropCount == 0)
 }

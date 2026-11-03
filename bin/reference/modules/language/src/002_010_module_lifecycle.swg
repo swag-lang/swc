@@ -31,7 +31,7 @@ var ModuleLifecycleInitialized = false
 
 #test
 {
-    Swag.assert(ModuleLifecycleInitialized)
+    Swag.require(ModuleLifecycleInitialized)
 }
 
 /**

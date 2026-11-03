@@ -45,13 +45,13 @@ struct MixedHolder
     var source: Holder'u32 = Holder'u32{Gated'u32{3}}
     #assert(not #defined(source.field.opPostCopy))
     let copied = source
-    Swag.assert(copied.field.value == 3)
+    Swag.require(copied.field.value == 3)
     Swag.postCopy(&source)
-    Swag.assert(source.field.value == 3)
+    Swag.require(source.field.value == 3)
     Swag.postMove(&source)
-    Swag.assert(source.field.value == 3)
+    Swag.require(source.field.value == 3)
     Swag.drop(&source)
-    Swag.assert(DropCount == 0)
+    Swag.require(DropCount == 0)
 }
 
 #test
@@ -60,13 +60,13 @@ struct MixedHolder
     var source: Holder's32 = Holder's32{Gated's32{3}}
     #assert(#defined(source.field.opPostCopy))
     let copied = source
-    Swag.assert(copied.field.value == 13)
+    Swag.require(copied.field.value == 13)
     Swag.postCopy(&source)
-    Swag.assert(source.field.value == 13)
+    Swag.require(source.field.value == 13)
     Swag.postMove(&source)
-    Swag.assert(source.field.value == 113)
+    Swag.require(source.field.value == 113)
     Swag.drop(&source)
-    Swag.assert(DropCount == 1)
+    Swag.require(DropCount == 1)
 }
 
 #test
@@ -74,15 +74,15 @@ struct MixedHolder
     let absent:  typeinfo = #typeof(Gated'u32)
     let present: typeinfo = #typeof(Gated's32)
     let flags = Swag.TypeInfoFlags.HasDrop | Swag.TypeInfoFlags.HasPostCopy | Swag.TypeInfoFlags.HasPostMove
-    Swag.assert((absent.flags & flags) == .Zero)
-    Swag.assert((present.flags & flags) == flags)
+    Swag.require((absent.flags & flags) == .Zero)
+    Swag.require((present.flags & flags) == flags)
 }
 
 #test
 {
     var source: MixedHolder = MixedHolder{[Gated'u32{1}, Gated'u32{2}], Gated's32{3}}
     let copied = source
-    Swag.assert(copied.absent[0].value == 1)
-    Swag.assert(copied.absent[1].value == 2)
-    Swag.assert(copied.present.value == 13)
+    Swag.require(copied.absent[0].value == 1)
+    Swag.require(copied.absent[1].value == 2)
+    Swag.require(copied.present.value == 13)
 }

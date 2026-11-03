@@ -150,29 +150,29 @@ func(T) reverse(arr: *DynArray'T)
     var arr = create'u32()
     defer destroy'u32(&arr)
 
-    Swag.assert(arr.count == 0)
-    Swag.assert(arr.capacity == DefaultCapacity)
+    Swag.require(arr.count == 0)
+    Swag.require(arr.capacity == DefaultCapacity)
 
     push'u32(&arr, 10)
     push'u32(&arr, 20)
     push'u32(&arr, 30)
-    Swag.assert(arr.count == 3)
-    Swag.assert(get'u32(&arr, 0) == 10)
-    Swag.assert(get'u32(&arr, 1) == 20)
-    Swag.assert(get'u32(&arr, 2) == 30)
-    Swag.assert(last'u32(&arr) == 30)
+    Swag.require(arr.count == 3)
+    Swag.require(get'u32(&arr, 0) == 10)
+    Swag.require(get'u32(&arr, 1) == 20)
+    Swag.require(get'u32(&arr, 2) == 30)
+    Swag.require(last'u32(&arr) == 30)
 
     let popped = pop'u32(&arr)
-    Swag.assert(popped == 30)
-    Swag.assert(arr.count == 2)
+    Swag.require(popped == 30)
+    Swag.require(arr.count == 2)
 
     // Force a grow beyond initial capacity
     push'u32(&arr, 40)
     push'u32(&arr, 50)
     push'u32(&arr, 60)
-    Swag.assert(arr.count == 5)
-    Swag.assert(arr.capacity >= 5)
-    Swag.assert(get'u32(&arr, 4) == 60)
+    Swag.require(arr.count == 5)
+    Swag.require(arr.capacity >= 5)
+    Swag.require(get'u32(&arr, 4) == 60)
 }
 
 // ---------------------------------------------------------------------------
@@ -189,21 +189,21 @@ func(T) reverse(arr: *DynArray'T)
     push's32(&arr, 7)
     push's32(&arr, -3)
 
-    Swag.assert(arr.count == 4)
-    Swag.assert(contains's32(&arr, -5))
-    Swag.assert(contains's32(&arr, 0))
-    Swag.assert(contains's32(&arr, 7))
-    Swag.assert(not contains's32(&arr, 99))
+    Swag.require(arr.count == 4)
+    Swag.require(contains's32(&arr, -5))
+    Swag.require(contains's32(&arr, 0))
+    Swag.require(contains's32(&arr, 7))
+    Swag.require(not contains's32(&arr, 99))
 
     set's32(&arr, 1, 42)
-    Swag.assert(get's32(&arr, 1) == 42)
-    Swag.assert(not contains's32(&arr, 0))
+    Swag.require(get's32(&arr, 1) == 42)
+    Swag.require(not contains's32(&arr, 0))
 
     removeAt's32(&arr, 0)
-    Swag.assert(arr.count == 3)
-    Swag.assert(get's32(&arr, 0) == 42)
-    Swag.assert(get's32(&arr, 1) == 7)
-    Swag.assert(get's32(&arr, 2) == -3)
+    Swag.require(arr.count == 3)
+    Swag.require(get's32(&arr, 0) == 42)
+    Swag.require(get's32(&arr, 1) == 7)
+    Swag.require(get's32(&arr, 2) == -3)
 }
 
 // ---------------------------------------------------------------------------
@@ -219,13 +219,13 @@ func(T) reverse(arr: *DynArray'T)
     push'f64(&arr, 2.75)
     push'f64(&arr, 3.125)
 
-    Swag.assert(arr.count == 3)
-    Swag.assert(get'f64(&arr, 0) == 1.5)
-    Swag.assert(get'f64(&arr, 1) == 2.75)
-    Swag.assert(get'f64(&arr, 2) == 3.125)
+    Swag.require(arr.count == 3)
+    Swag.require(get'f64(&arr, 0) == 1.5)
+    Swag.require(get'f64(&arr, 1) == 2.75)
+    Swag.require(get'f64(&arr, 2) == 3.125)
 
     let sum = get'f64(&arr, 0) + get'f64(&arr, 1) + get'f64(&arr, 2)
-    Swag.assert(sum == 7.375)
+    Swag.require(sum == 7.375)
 }
 
 // ---------------------------------------------------------------------------
@@ -242,17 +242,17 @@ func(T) reverse(arr: *DynArray'T)
     push'u8(&arr, 'D')
 
     insertAt'u8(&arr, 2, 'C')
-    Swag.assert(arr.count == 4)
-    Swag.assert(get'u8(&arr, 0) == 'A')
-    Swag.assert(get'u8(&arr, 1) == 'B')
-    Swag.assert(get'u8(&arr, 2) == 'C')
-    Swag.assert(get'u8(&arr, 3) == 'D')
+    Swag.require(arr.count == 4)
+    Swag.require(get'u8(&arr, 0) == 'A')
+    Swag.require(get'u8(&arr, 1) == 'B')
+    Swag.require(get'u8(&arr, 2) == 'C')
+    Swag.require(get'u8(&arr, 3) == 'D')
 
     reverse'u8(&arr)
-    Swag.assert(get'u8(&arr, 0) == 'D')
-    Swag.assert(get'u8(&arr, 1) == 'C')
-    Swag.assert(get'u8(&arr, 2) == 'B')
-    Swag.assert(get'u8(&arr, 3) == 'A')
+    Swag.require(get'u8(&arr, 0) == 'D')
+    Swag.require(get'u8(&arr, 1) == 'C')
+    Swag.require(get'u8(&arr, 2) == 'B')
+    Swag.require(get'u8(&arr, 3) == 'A')
 }
 
 // ---------------------------------------------------------------------------
@@ -267,16 +267,16 @@ func(T) reverse(arr: *DynArray'T)
     push'bool(&arr, true)
     push'bool(&arr, false)
     push'bool(&arr, true)
-    Swag.assert(arr.count == 3)
-    Swag.assert(get'bool(&arr, 0) == true)
-    Swag.assert(get'bool(&arr, 1) == false)
+    Swag.require(arr.count == 3)
+    Swag.require(get'bool(&arr, 0) == true)
+    Swag.require(get'bool(&arr, 1) == false)
 
     clear'bool(&arr)
-    Swag.assert(arr.count == 0)
+    Swag.require(arr.count == 0)
 
     push'bool(&arr, false)
-    Swag.assert(arr.count == 1)
-    Swag.assert(get'bool(&arr, 0) == false)
+    Swag.require(arr.count == 1)
+    Swag.require(get'bool(&arr, 0) == false)
 }
 
 // ---------------------------------------------------------------------------
@@ -291,18 +291,18 @@ func(T) reverse(arr: *DynArray'T)
     for i in 100'u64 do
         push'u64(&arr, i * i)
 
-    Swag.assert(arr.count == 100)
-    Swag.assert(arr.capacity >= 100)
-    Swag.assert(get'u64(&arr, 0) == 0)
-    Swag.assert(get'u64(&arr, 1) == 1)
-    Swag.assert(get'u64(&arr, 10) == 100)
-    Swag.assert(get'u64(&arr, 99) == 9801)
+    Swag.require(arr.count == 100)
+    Swag.require(arr.capacity >= 100)
+    Swag.require(get'u64(&arr, 0) == 0)
+    Swag.require(get'u64(&arr, 1) == 1)
+    Swag.require(get'u64(&arr, 10) == 100)
+    Swag.require(get'u64(&arr, 99) == 9801)
 
     // Pop half
     for 50 do
         pop'u64(&arr)
-    Swag.assert(arr.count == 50)
-    Swag.assert(last'u64(&arr) == 49 * 49)
+    Swag.require(arr.count == 50)
+    Swag.require(last'u64(&arr) == 49 * 49)
 }
 
 // ---------------------------------------------------------------------------
@@ -316,20 +316,20 @@ func(T) reverse(arr: *DynArray'T)
 
     // Insert at index 0 on empty array
     insertAt's64(&arr, 0, 100)
-    Swag.assert(arr.count == 1)
-    Swag.assert(get's64(&arr, 0) == 100)
+    Swag.require(arr.count == 1)
+    Swag.require(get's64(&arr, 0) == 100)
 
     // Insert at end
     insertAt's64(&arr, 1, 300)
-    Swag.assert(arr.count == 2)
-    Swag.assert(get's64(&arr, 1) == 300)
+    Swag.require(arr.count == 2)
+    Swag.require(get's64(&arr, 1) == 300)
 
     // Insert in the middle
     insertAt's64(&arr, 1, 200)
-    Swag.assert(arr.count == 3)
-    Swag.assert(get's64(&arr, 0) == 100)
-    Swag.assert(get's64(&arr, 1) == 200)
-    Swag.assert(get's64(&arr, 2) == 300)
+    Swag.require(arr.count == 3)
+    Swag.require(get's64(&arr, 0) == 100)
+    Swag.require(get's64(&arr, 1) == 200)
+    Swag.require(get's64(&arr, 2) == 300)
 }
 
 // ---------------------------------------------------------------------------
@@ -346,9 +346,9 @@ func(T) reverse(arr: *DynArray'T)
     push'f32(&arr, 2.0)
     push'f32(&arr, 3.0)
     reverse'f32(&arr)
-    Swag.assert(get'f32(&arr, 0) == 3.0)
-    Swag.assert(get'f32(&arr, 1) == 2.0)
-    Swag.assert(get'f32(&arr, 2) == 1.0)
+    Swag.require(get'f32(&arr, 0) == 3.0)
+    Swag.require(get'f32(&arr, 1) == 2.0)
+    Swag.require(get'f32(&arr, 2) == 1.0)
 
     clear'f32(&arr)
 
@@ -358,10 +358,10 @@ func(T) reverse(arr: *DynArray'T)
     push'f32(&arr, 30.0)
     push'f32(&arr, 40.0)
     reverse'f32(&arr)
-    Swag.assert(get'f32(&arr, 0) == 40.0)
-    Swag.assert(get'f32(&arr, 1) == 30.0)
-    Swag.assert(get'f32(&arr, 2) == 20.0)
-    Swag.assert(get'f32(&arr, 3) == 10.0)
+    Swag.require(get'f32(&arr, 0) == 40.0)
+    Swag.require(get'f32(&arr, 1) == 30.0)
+    Swag.require(get'f32(&arr, 2) == 20.0)
+    Swag.require(get'f32(&arr, 3) == 10.0)
 }
 
 // ---------------------------------------------------------------------------
@@ -381,19 +381,19 @@ func(T) reverse(arr: *DynArray'T)
 
     // Remove last element
     removeAt'u16(&arr, 4)
-    Swag.assert(arr.count == 4)
-    Swag.assert(last'u16(&arr) == 400)
+    Swag.require(arr.count == 4)
+    Swag.require(last'u16(&arr) == 400)
 
     // Remove first element
     removeAt'u16(&arr, 0)
-    Swag.assert(arr.count == 3)
-    Swag.assert(get'u16(&arr, 0) == 200)
+    Swag.require(arr.count == 3)
+    Swag.require(get'u16(&arr, 0) == 200)
 
     // Remove middle element
     removeAt'u16(&arr, 1)
-    Swag.assert(arr.count == 2)
-    Swag.assert(get'u16(&arr, 0) == 200)
-    Swag.assert(get'u16(&arr, 1) == 400)
+    Swag.require(arr.count == 2)
+    Swag.require(get'u16(&arr, 0) == 200)
+    Swag.require(get'u16(&arr, 1) == 400)
 }
 
 // ---------------------------------------------------------------------------
@@ -415,17 +415,17 @@ struct Point
     push'Point(&arr, {x: 3, y: 4})
     push'Point(&arr, {x: 5, y: 6})
 
-    Swag.assert(arr.count == 3)
-    Swag.assert(get'Point(&arr, 0).x == 1)
-    Swag.assert(get'Point(&arr, 0).y == 2)
-    Swag.assert(get'Point(&arr, 1).x == 3)
-    Swag.assert(get'Point(&arr, 2).y == 6)
+    Swag.require(arr.count == 3)
+    Swag.require(get'Point(&arr, 0).x == 1)
+    Swag.require(get'Point(&arr, 0).y == 2)
+    Swag.require(get'Point(&arr, 1).x == 3)
+    Swag.require(get'Point(&arr, 2).y == 6)
 
     set'Point(&arr, 1, {x: 10, y: 20})
-    Swag.assert(get'Point(&arr, 1).x == 10)
-    Swag.assert(get'Point(&arr, 1).y == 20)
+    Swag.require(get'Point(&arr, 1).x == 10)
+    Swag.require(get'Point(&arr, 1).y == 20)
 
     reverse'Point(&arr)
-    Swag.assert(get'Point(&arr, 0).x == 5)
-    Swag.assert(get'Point(&arr, 2).x == 1)
+    Swag.require(get'Point(&arr, 0).x == 5)
+    Swag.require(get'Point(&arr, 2).x == 1)
 }

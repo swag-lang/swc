@@ -207,42 +207,42 @@ func threeLanes(values: *[8] u32)
         0x2A598CB0, 0xBCDF0F50, 0xA0FF67B6, 0x1E1813E1,
         0x6E6F2414, 0x3611BE53, 0x90B57CBF, 0x885F04F2]
     for i in 16 do
-        Swag.assert(state[i] == Expected[i])
+        Swag.require(state[i] == Expected[i])
 }
 
 #test
 {
-    Swag.assert(chachaRoundsLocal() == 0x9679D982)
+    Swag.require(chachaRoundsLocal() == 0x9679D982)
 }
 
 #test
 {
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 0]
-    Swag.assert(lanesThenReadBack(&values) == 21)
-    Swag.assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 41)
+    Swag.require(lanesThenReadBack(&values) == 21)
+    Swag.require(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 41)
 }
 
 #test
 {
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 0]
     lanesAddConstant(&values)
-    Swag.assert(values[4] == 15 and values[5] == 25 and values[6] == 35 and values[7] == 45)
+    Swag.require(values[4] == 15 and values[5] == 25 and values[6] == 35 and values[7] == 45)
 }
 
 #test
 {
     var values: [8] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0]
     lanesRotate8(&values)
-    Swag.assert(values[4] == 0x23456701 and values[5] == 0xABCDEF89)
-    Swag.assert(values[6] == 0x20304010 and values[7] == 0xEEDDCCFF)
+    Swag.require(values[4] == 0x23456701 and values[5] == 0xABCDEF89)
+    Swag.require(values[6] == 0x20304010 and values[7] == 0xEEDDCCFF)
 }
 
 #test
 {
     var values: [8] u32 = [0x01234567, 0x89ABCDEF, 0x10203040, 0xFFEEDDCC, 0, 0, 0, 0]
     lanesRotate24(&values)
-    Swag.assert(values[4] == 0x67012345 and values[5] == 0xEF89ABCD)
-    Swag.assert(values[6] == 0x40102030 and values[7] == 0xCCFFEEDD)
+    Swag.require(values[4] == 0x67012345 and values[5] == 0xEF89ABCD)
+    Swag.require(values[6] == 0x40102030 and values[7] == 0xCCFFEEDD)
 }
 
 #test
@@ -253,8 +253,8 @@ func threeLanes(values: *[8] u32)
     lanesRotate16WithRejectedGroup(&values)
     for i in 4
     {
-        Swag.assert(values[4 + i] == Swag.rol(values[i], 16))
-        Swag.assert(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.countOnes(values[12 + i]))
+        Swag.require(values[4 + i] == Swag.rol(values[i], 16))
+        Swag.require(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.countOnes(values[12 + i]))
     }
 }
 
@@ -262,11 +262,11 @@ func threeLanes(values: *[8] u32)
 {
     var output: [4] u32 = [100, 200, 300, 400]
     lanesXorOutputFromFrame(&output, 10)
-    Swag.assert(output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47])
+    Swag.require(output == [100 ^ 18, 200 ^ 27, 300 ^ 37, 400 ^ 47])
 
     var overlapping: [5] u32 = [1, 2, 3, 4, 5]
     lanesXorOverlappingOutput(cast([*] u32, &overlapping[1]), cast([*] u32, &overlapping[0]))
-    Swag.assert(overlapping == [1, 10, 18, 29, 33])
+    Swag.require(overlapping == [1, 10, 18, 29, 33])
 }
 
 #[Swag.Optimize(true)]
@@ -370,88 +370,88 @@ func lanesFloorFloat(values: *[8] f32)
     var values: [16] u32 = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
     lanesAddConstantTwice(&values)
     for i in 8 do
-        Swag.assert(values[i + 8] == i + 5)
+        Swag.require(values[i + 8] == i + 5)
 }
 
 #test
 {
     var values: [8] u32 = [0, 1, 0xFF00FF, 0xFFFF_FFFF, 0, 0, 0, 0]
     lanesXorMask(&values)
-    Swag.assert(values[4] == 0xFF00FF and values[5] == 0xFF00FE and values[6] == 0 and values[7] == 0xFF00FF00)
+    Swag.require(values[4] == 0xFF00FF and values[5] == 0xFF00FE and values[6] == 0 and values[7] == 0xFF00FF00)
 }
 
 #test
 {
     var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesAddFloatPairs(&values)
-    Swag.assert(values[8] == 11.0'f32 and
-                values[9] == 22.0'f32 and
-                values[10] == 33.0'f32 and
-                values[11] == 44.0'f32)
+    Swag.require(values[8] == 11.0'f32 and
+                 values[9] == 22.0'f32 and
+                 values[10] == 33.0'f32 and
+                 values[11] == 44.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMulFloatPairs(&values)
-    Swag.assert(values[8] == 10.0'f32 and
-                values[9] == 40.0'f32 and
-                values[10] == 90.0'f32 and
-                values[11] == 160.0'f32)
+    Swag.require(values[8] == 10.0'f32 and
+                 values[9] == 40.0'f32 and
+                 values[10] == 90.0'f32 and
+                 values[11] == 160.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 2.0'f32, 4.0'f32, 5.0'f32, 8.0'f32, 0, 0, 0, 0]
     lanesDivFloatPairs(&values)
-    Swag.assert(values[8] == 5.0'f32 and
-                values[9] == 5.0'f32 and
-                values[10] == 6.0'f32 and
-                values[11] == 5.0'f32)
+    Swag.require(values[8] == 5.0'f32 and
+                 values[9] == 5.0'f32 and
+                 values[10] == 6.0'f32 and
+                 values[11] == 5.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMinFloatPairs(&values)
-    Swag.assert(values[8] == 1.0'f32 and
-                values[9] == 2.0'f32 and
-                values[10] == 3.0'f32 and
-                values[11] == 4.0'f32)
+    Swag.require(values[8] == 1.0'f32 and
+                 values[9] == 2.0'f32 and
+                 values[10] == 3.0'f32 and
+                 values[11] == 4.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMaxFloatPairs(&values)
-    Swag.assert(values[8] == 10.0'f32 and
-                values[9] == 20.0'f32 and
-                values[10] == 30.0'f32 and
-                values[11] == 40.0'f32)
+    Swag.require(values[8] == 10.0'f32 and
+                 values[9] == 20.0'f32 and
+                 values[10] == 30.0'f32 and
+                 values[11] == 40.0'f32)
 }
 
 #test
 {
     var values: [8] f32 = [1.0'f32, 4.0'f32, 9.0'f32, 16.0'f32, 0, 0, 0, 0]
     lanesSqrtFloat(&values)
-    Swag.assert(values[4] == 1.0'f32 and values[5] == 2.0'f32 and values[6] == 3.0'f32 and values[7] == 4.0'f32)
+    Swag.require(values[4] == 1.0'f32 and values[5] == 2.0'f32 and values[6] == 3.0'f32 and values[7] == 4.0'f32)
 }
 
 #test
 {
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
     lanesAbsFloat(&values)
-    Swag.assert(values[4] == 1.5'f32 and values[5] == 0.0'f32 and values[6] == 2.25'f32 and values[7] == 4.0'f32)
+    Swag.require(values[4] == 1.5'f32 and values[5] == 0.0'f32 and values[6] == 2.25'f32 and values[7] == 4.0'f32)
 }
 
 #test
 {
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
     lanesAddFloatConstant(&values)
-    Swag.assert(values[4] == 0.0'f32 and
-                values[5] == 1.5'f32 and
-                values[6] == 3.75'f32 and
-                values[7] == -2.5'f32)
+    Swag.require(values[4] == 0.0'f32 and
+                 values[5] == 1.5'f32 and
+                 values[6] == 3.75'f32 and
+                 values[7] == -2.5'f32)
 }
 
 #test
@@ -459,22 +459,22 @@ func lanesFloorFloat(values: *[8] f32)
     var values: FloatToIntLanes
     values.input = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32]
     lanesTruncFloatToS32(&values)
-    Swag.assert(values.output == [-1, 0, 2, -4])
+    Swag.require(values.output == [-1, 0, 2, -4])
 }
 
 #test
 {
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.75'f32, -4.0'f32, 0, 0, 0, 0]
     lanesFloorFloat(&values)
-    Swag.assert(values[4] == -2.0'f32 and
-                values[5] == 0.0'f32 and
-                values[6] == 2.0'f32 and
-                values[7] == -4.0'f32)
+    Swag.require(values[4] == -2.0'f32 and
+                 values[5] == 0.0'f32 and
+                 values[6] == 2.0'f32 and
+                 values[7] == -4.0'f32)
 }
 
 #test
 {
     var values: [8] u32 = [10, 20, 30, 40, 0, 0, 0, 99]
     threeLanes(&values)
-    Swag.assert(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 99)
+    Swag.require(values[4] == 11 and values[5] == 21 and values[6] == 31 and values[7] == 99)
 }

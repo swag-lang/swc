@@ -14,6 +14,6 @@ func narrow(value: u32)->u16
 
 #test
 {
-    Swag.assert(narrow(42) == 42)
-    Swag.assert(narrow(0x1F642) == 7)
+    Swag.require(narrow(42) == 42)
+    Swag.require(narrow(0x1F642) == 7)
 }

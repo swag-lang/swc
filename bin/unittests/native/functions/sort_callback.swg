@@ -21,23 +21,23 @@ func(T) pickCompare(values: [..] T, cb: func||(T, T)->s32)->s32
 #test
 {
     var values: [2] SortNamedItem = [SortNamedItem{rank: 1, total: 20}, SortNamedItem{rank: 0, total: 10}]
-    Swag.assert(pickCompare(values[to], func(x, y) => x.total <=> y.total) > 0)
+    Swag.require(pickCompare(values[to], func(x, y) => x.total <=> y.total) > 0)
 }
 
 #test
 {
     var values: [2] SortNamedItem = [SortNamedItem{rank: 1, total: 20}, SortNamedItem{rank: 0, total: 10}]
-    Swag.assert(values[to].pickCompare(func(x, y) => x.total <=> y.total) > 0)
+    Swag.require(values[to].pickCompare(func(x, y) => x.total <=> y.total) > 0)
 }
 
 #test
 {
     var values = [{rank: 1'u64, total: 20's64}, {rank: 0'u64, total: 10's64}]
-    Swag.assert(pickCompare(values[to], func(x, y) => x.total <=> y.total) > 0)
+    Swag.require(pickCompare(values[to], func(x, y) => x.total <=> y.total) > 0)
 }
 
 #test
 {
     var values = [{rank: 1'u64, total: 20's64}, {rank: 0'u64, total: 10's64}]
-    Swag.assert(values[to].pickCompare(func(x, y) => x.total <=> y.total) > 0)
+    Swag.require(values[to].pickCompare(func(x, y) => x.total <=> y.total) > 0)
 }

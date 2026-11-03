@@ -20,14 +20,14 @@ func readAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)->u64
     var value  = BorrowedValue{11, 13}
     var other  = BorrowedValue{17, 19}
     let result = readAlongsideWrite(value, &other)
-    Swag.assert(result == 11 and other.first == 29)
+    Swag.require(result == 11 and other.first == 29)
 }
 
 #test
 {
     var value  = BorrowedValue{31, 37}
     let result = readAlongsideWrite(#copy value, &value)
-    Swag.assert(result == 31 and value.first == 29)
+    Swag.require(result == 31 and value.first == 29)
 }
 
 #test
@@ -59,9 +59,9 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
 {
     var value = BorrowedValue{59, 61}
     var other = BorrowedValue{67, 71}
-    Swag.assert(inlineReadAlongsideWrite(value, &other) == 59)
-    Swag.assert(inlineReadAlongsideWrite(#copy value, &value) == 59)
-    Swag.assert(value.first == 53 and other.first == 53)
+    Swag.require(inlineReadAlongsideWrite(value, &other) == 59)
+    Swag.require(inlineReadAlongsideWrite(#copy value, &value) == 59)
+    Swag.require(value.first == 53 and other.first == 53)
 }
 
 #test
@@ -197,7 +197,7 @@ func fillAlongside(value: BorrowedValue, destination: [*] u64, count: u64)->u64
     var value  = BorrowedValue{67, 71}
     var other: [4] u64
     let result = fillAlongside(value, &other[0], 4)
-    Swag.assert(result == 71 and other[3] == 4)
+    Swag.require(result == 71 and other[3] == 4)
 }
 
 #test

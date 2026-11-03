@@ -15,6 +15,6 @@ func makeFuncInfo()           => #typeof(shortTypeInfoFunc)
     let funcInfo   = makeFuncInfo()
     #assert(#typeof(structInfo) == const *TypeInfoStruct)
     #assert(#typeof(funcInfo) == const *TypeInfoFunc)
-    Swag.assert(structInfo.fields![0].name == "x")
-    Swag.assert(funcInfo.returnType == s32)
+    Swag.require(structInfo.fields![0].name == "x")
+    Swag.require(funcInfo.returnType == s32)
 }

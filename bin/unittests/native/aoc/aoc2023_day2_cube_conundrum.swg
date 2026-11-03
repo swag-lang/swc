@@ -63,5 +63,5 @@ func s()->[2] u32
 #test
 {
     let r = s()
-    Swag.assert(r[0] == 8 and r[1] == 2286)
+    Swag.require(r[0] == 8 and r[1] == 2286)
 }

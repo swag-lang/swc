@@ -88,12 +88,12 @@ const EmptyConst = ""
     #assert(d == 3's8)
     #assert(e == 4's32)
     #assert(f == 5's64)
-    Swag.assert(a == 3)
-    Swag.assert(b == 0)
-    Swag.assert(c == 100)
-    Swag.assert(d == 3's8)
-    Swag.assert(e == 4's32)
-    Swag.assert(f == 5's64)
+    Swag.require(a == 3)
+    Swag.require(b == 0)
+    Swag.require(c == 100)
+    Swag.require(d == 3's8)
+    Swag.require(e == 4's32)
+    Swag.require(f == 5's64)
 }
 
 #test
@@ -104,8 +104,8 @@ const EmptyConst = ""
 
     #assert(#typeof(constant) == CountOfStrictU32)
     #assert(#typeof(value) == CountOfStrictU32)
-    Swag.assert(constant == cast(CountOfStrictU32, 5'u32))
-    Swag.assert(value == cast(CountOfStrictU32, 7'u32))
+    Swag.require(constant == cast(CountOfStrictU32, 5'u32))
+    Swag.require(value == cast(CountOfStrictU32, 7'u32))
 }
 
 // ============================================================
@@ -124,30 +124,30 @@ namespace NS {}
     var csc = cs.count
     #assert(#typeof(csc) == u64)
 
-    Swag.assert(b == 0)
-    Swag.assert(csc == 0)
+    Swag.require(b == 0)
+    Swag.require(csc == 0)
 }
 
 #test
 {
     var a: string = "hello"
-    Swag.assert(a.count == 5)
+    Swag.require(a.count == 5)
 
     var b: string = ""
-    Swag.assert(b.count == 0)
+    Swag.require(b.count == 0)
 
     var c: string = "X"
-    Swag.assert(c.count == 1)
+    Swag.require(c.count == 1)
 }
 
 #test
 {
     var text = cast(CountOfStrictString, "hello")
-    Swag.assert(text.count == 5)
+    Swag.require(text.count == 5)
 
     var data: [3] u8 = [1, 2, 3]
     var slice        = cast(CountOfStrictSlice, data)
-    Swag.assert(slice.count == 3)
+    Swag.require(slice.count == 3)
 }
 
 // ============================================================
@@ -159,7 +159,7 @@ namespace NS {}
     var c: [4, 10] s32
     const d = c.count
     #assert(d == 40)
-    Swag.assert(d == 40)
+    Swag.require(d == 40)
 }
 
 #test
@@ -167,7 +167,7 @@ namespace NS {}
     var a: [2, 3, 4] u8
     const b = a.count
     #assert(b == 24)
-    Swag.assert(b == 24)
+    Swag.require(b == 24)
 }
 
 #test
@@ -175,7 +175,7 @@ namespace NS {}
     var a: [7] bool
     const b = a.count
     #assert(b == 7)
-    Swag.assert(b == 7)
+    Swag.require(b == 7)
 }
 
 #test
@@ -183,7 +183,7 @@ namespace NS {}
     var a: [1] u64
     const b = a.count
     #assert(b == 1)
-    Swag.assert(b == 1)
+    Swag.require(b == 1)
 }
 
 #test
@@ -194,8 +194,8 @@ namespace NS {}
     const c1 = value1.count
     #assert(c0 == 7)
     #assert(c1 == 0)
-    Swag.assert(c0 == 7)
-    Swag.assert(c1 == 0)
+    Swag.require(c0 == 7)
+    Swag.require(c1 == 0)
 }
 
 #test
@@ -204,7 +204,7 @@ namespace NS {}
     let slice = cast([..] ZeroSized, values)
     let count = slice.count
     #assert(#typeof(count) == u64)
-    Swag.assert(count == 3)
+    Swag.require(count == 3)
 }
 
 // ============================================================
@@ -215,13 +215,13 @@ namespace NS {}
 {
     var buf: [5] s32 = [10, 20, 30, 40, 50]
     let sl = Swag.makeSlice(&buf[0], 3)
-    Swag.assert(sl.count == 3)
+    Swag.require(sl.count == 3)
 
     let sl2 = Swag.makeSlice(&buf[0], 5)
-    Swag.assert(sl2.count == 5)
+    Swag.require(sl2.count == 5)
 
     let sl3 = Swag.makeSlice(&buf[0], 0)
-    Swag.assert(sl3.count == 0)
+    Swag.require(sl3.count == 0)
 }
 
 func countStringRef(value: *string)->u64
@@ -303,9 +303,9 @@ func loopSignedRef(value: *s32)->s32
 {
     var text = "hello"
     var textRef: *string = &text
-    Swag.assert((textRef[]).count == 5)
-    Swag.assert(countStringRef(textRef) == 5)
-    Swag.assert(loopStringRef(textRef[]) == 5)
+    Swag.require((textRef[]).count == 5)
+    Swag.require(countStringRef(textRef) == 5)
+    Swag.require(loopStringRef(textRef[]) == 5)
 }
 
 #test
@@ -313,56 +313,56 @@ func loopSignedRef(value: *s32)->s32
     var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
     var cstr:    cstring  = cast(cstring, &data[0])
     var cstrRef: *cstring = &cstr
-    Swag.assert((cstrRef[]).count == 4)
-    Swag.assert(countCStringRef(cstrRef) == 4)
-    Swag.assert(loopCStringRef(cstrRef) == 4)
+    Swag.require((cstrRef[]).count == 4)
+    Swag.require(countCStringRef(cstrRef) == 4)
+    Swag.require(loopCStringRef(cstrRef) == 4)
 }
 
 #test
 {
     var array:    [2, 3] u8
     var arrayRef: *[2, 3] u8 = &array
-    Swag.assert((arrayRef[]).count == 6)
+    Swag.require((arrayRef[]).count == 6)
 
     var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
     let slice = cast([..] u8, flat)
     var sliceRef: const *[..] u8 = &slice
-    Swag.assert((sliceRef[]).count == 6)
-    Swag.assert(countSliceRef(sliceRef[]) == 6)
-    Swag.assert(loopSliceRef(sliceRef[]) == 6)
+    Swag.require((sliceRef[]).count == 6)
+    Swag.require(countSliceRef(sliceRef[]) == 6)
+    Swag.require(loopSliceRef(sliceRef[]) == 6)
 }
 
 #test
 {
     var number:    u32  = 7
     var numberRef: *u32 = &number
-    Swag.assert(#typeof((numberRef[]).count) == u32)
-    Swag.assert((numberRef[]).count == 7)
-    Swag.assert(countUnsignedRef(numberRef) == 7)
-    Swag.assert(loopUnsignedRef(numberRef) == 7)
+    Swag.require(#typeof((numberRef[]).count) == u32)
+    Swag.require((numberRef[]).count == 7)
+    Swag.require(countUnsignedRef(numberRef) == 7)
+    Swag.require(loopUnsignedRef(numberRef) == 7)
 }
 
 #test
 {
     var number:    s32  = 7
     var numberRef: *s32 = &number
-    Swag.assert(#typeof((numberRef[]).count) == s32)
-    Swag.assert((numberRef[]).count == 7)
-    Swag.assert(countSignedRef(numberRef) == 7)
-    Swag.assert(loopSignedRef(numberRef) == 7)
+    Swag.require(#typeof((numberRef[]).count) == s32)
+    Swag.require((numberRef[]).count == 7)
+    Swag.require(countSignedRef(numberRef) == 7)
+    Swag.require(loopSignedRef(numberRef) == 7)
 }
 
 #test
 {
     var kind = RefCountKind.C
     var kindRef: *RefCountKind = &kind
-    Swag.assert((kindRef[]).count == 4)
-    Swag.assert(countEnumRef(kindRef) == 4)
+    Swag.require((kindRef[]).count == 4)
+    Swag.require(countEnumRef(kindRef) == 4)
 
     let counted = RefCountedRuntime{count: 11}
     let countedRef: const *RefCountedRuntime = &counted
-    Swag.assert((countedRef[]).count == 11)
-    Swag.assert(countSpecOpRef(countedRef) == 11)
+    Swag.require((countedRef[]).count == 11)
+    Swag.require(countSpecOpRef(countedRef) == 11)
 }
 
 // A '.count' that resolves 'opCount' lowers to a call, and a truthiness context wraps
@@ -384,6 +384,6 @@ func countedRuntimeIsNotEmpty(value: CountedRuntime)->s32
     var empty: CountedRuntime
     empty.count = 0
 
-    Swag.assert(countedRuntimeIsNotEmpty(filled) == 1)
-    Swag.assert(countedRuntimeIsNotEmpty(empty) == 0)
+    Swag.require(countedRuntimeIsNotEmpty(filled) == 1)
+    Swag.require(countedRuntimeIsNotEmpty(empty) == 0)
 }

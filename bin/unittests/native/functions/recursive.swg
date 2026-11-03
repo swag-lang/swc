@@ -40,28 +40,28 @@ func indirectShortNamedB(value: s32)->s32 => value <= 1 ? 1 : value * indirectSh
 
 #test
 {
-    Swag.assert(directRegular(6) == 720)
+    Swag.require(directRegular(6) == 720)
 }
 
 #test
 {
-    Swag.assert(directShort(6) == 720)
+    Swag.require(directShort(6) == 720)
 }
 
 #test
 {
-    Swag.assert(indirectRegularA(6) == 720)
-    Swag.assert(indirectRegularB(6) == 720)
+    Swag.require(indirectRegularA(6) == 720)
+    Swag.require(indirectRegularB(6) == 720)
 }
 
 #test
 {
-    Swag.assert(indirectShortA(6) == 720)
-    Swag.assert(indirectShortB(6) == 720)
+    Swag.require(indirectShortA(6) == 720)
+    Swag.require(indirectShortB(6) == 720)
 }
 
 #test
 {
-    Swag.assert(indirectShortNamedA(6) == 720)
-    Swag.assert(indirectShortNamedB(6) == 720)
+    Swag.require(indirectShortNamedA(6) == 720)
+    Swag.require(indirectShortNamedB(6) == 720)
 }

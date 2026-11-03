@@ -113,106 +113,106 @@ var globalReplaced:      PartialDefault           = {whole: 79}
 {
     var text:    TextDefault
     var pointer: PointerDefault
-    Swag.assert(text.text == "union-default-text")
-    Swag.assert(pointer.pointer == UNION_TARGET.buffer)
-    Swag.assert(TEXT_CONSTANT.text == "union-default-text")
-    Swag.assert(POINTER_CONSTANT.pointer == UNION_TARGET.buffer)
-    Swag.assert(globalText.text == "union-default-text")
-    Swag.assert(globalPointer.pointer == UNION_TARGET.buffer)
-    Swag.assert(globalNested.text.text == "union-default-text")
-    Swag.assert(globalNested.pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(text.text == "union-default-text")
+    Swag.require(pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(TEXT_CONSTANT.text == "union-default-text")
+    Swag.require(POINTER_CONSTANT.pointer == UNION_TARGET.buffer)
+    Swag.require(globalText.text == "union-default-text")
+    Swag.require(globalPointer.pointer == UNION_TARGET.buffer)
+    Swag.require(globalNested.text.text == "union-default-text")
+    Swag.require(globalNested.pointer.pointer == UNION_TARGET.buffer)
 }
 
 #test
 {
     var text    = TextDefault{text: "changed"}
     var pointer = PointerDefault{number: 43}
-    Swag.assert(text.text == "changed")
-    Swag.assert(pointer.number == 43)
+    Swag.require(text.text == "changed")
+    Swag.require(pointer.number == 43)
     text    = {}
     pointer = {}
-    Swag.assert(text.text == "union-default-text")
-    Swag.assert(pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(text.text == "union-default-text")
+    Swag.require(pointer.pointer == UNION_TARGET.buffer)
     text.text      = "changed-again"
     pointer.number = 47
     Swag.init(&text)
     Swag.init(&pointer)
-    Swag.assert(text.text == "union-default-text")
-    Swag.assert(pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(text.text == "union-default-text")
+    Swag.require(pointer.pointer == UNION_TARGET.buffer)
 }
 
 // Integer alternatives must neither inspect inactive strings nor inherit their relocations.
 #test
 {
     let value = IntegerAlternative{words: [53, 59]}
-    Swag.assert(value.words[0] == 53)
-    Swag.assert(value.words[1] == 59)
-    Swag.assert(INTEGER_CONSTANT.words[0] == 17)
-    Swag.assert(INTEGER_CONSTANT.words[1] == 23)
-    Swag.assert(globalInteger.words[0] == 29)
-    Swag.assert(globalInteger.words[1] == 31)
-    Swag.assert(globalIntegerArray[0].words[0] == 97)
-    Swag.assert(globalIntegerArray[0].words[1] == 101)
-    Swag.assert(globalIntegerArray[1].words[0] == 103)
-    Swag.assert(globalIntegerArray[1].words[1] == 107)
-    Swag.assert(globalNestedInteger.value.words[0] == 109)
-    Swag.assert(globalNestedInteger.value.words[1] == 113)
-    Swag.assert(NUMBER_CONSTANT.number == 37)
+    Swag.require(value.words[0] == 53)
+    Swag.require(value.words[1] == 59)
+    Swag.require(INTEGER_CONSTANT.words[0] == 17)
+    Swag.require(INTEGER_CONSTANT.words[1] == 23)
+    Swag.require(globalInteger.words[0] == 29)
+    Swag.require(globalInteger.words[1] == 31)
+    Swag.require(globalIntegerArray[0].words[0] == 97)
+    Swag.require(globalIntegerArray[0].words[1] == 101)
+    Swag.require(globalIntegerArray[1].words[0] == 103)
+    Swag.require(globalIntegerArray[1].words[1] == 107)
+    Swag.require(globalNestedInteger.value.words[0] == 109)
+    Swag.require(globalNestedInteger.value.words[1] == 113)
+    Swag.require(NUMBER_CONSTANT.number == 37)
     let partial = PartialOverwrite{low: 61}
-    Swag.assert(partial.low == 61)
-    Swag.assert(partial.whole == ((unionRuntimeAddress() & 0xFFFFFFFF00000000) | 61))
+    Swag.require(partial.low == 61)
+    Swag.require(partial.whole == ((unionRuntimeAddress() & 0xFFFFFFFF00000000) | 61))
 }
 
 #test
 {
-    Swag.assert(TEXT_ARRAY[0].text == "first")
-    Swag.assert(TEXT_ARRAY[1].text == "union-default-text")
-    Swag.assert(POINTER_MATRIX[0, 0].number == 41)
-    Swag.assert(POINTER_MATRIX[0, 1].pointer == UNION_TARGET.buffer)
-    Swag.assert(POINTER_MATRIX[1, 0].pointer == UNION_TARGET.buffer)
-    Swag.assert(POINTER_MATRIX[1, 1].pointer == UNION_TARGET.buffer)
+    Swag.require(TEXT_ARRAY[0].text == "first")
+    Swag.require(TEXT_ARRAY[1].text == "union-default-text")
+    Swag.require(POINTER_MATRIX[0, 0].number == 41)
+    Swag.require(POINTER_MATRIX[0, 1].pointer == UNION_TARGET.buffer)
+    Swag.require(POINTER_MATRIX[1, 0].pointer == UNION_TARGET.buffer)
+    Swag.require(POINTER_MATRIX[1, 1].pointer == UNION_TARGET.buffer)
     var values: [2] NestedDefaults
     values[1].text.text = "changed"
     Swag.init(&values)
-    Swag.assert(values[0].text.text == "union-default-text")
-    Swag.assert(values[1].text.text == "union-default-text")
-    Swag.assert(values[0].pointer.pointer == UNION_TARGET.buffer)
-    Swag.assert(values[1].pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(values[0].text.text == "union-default-text")
+    Swag.require(values[1].text.text == "union-default-text")
+    Swag.require(values[0].pointer.pointer == UNION_TARGET.buffer)
+    Swag.require(values[1].pointer.pointer == UNION_TARGET.buffer)
 }
 
 // A partial pointer overwrite is evaluated against the eventual runtime address.
 #test
 {
     var value: PartialDefault
-    Swag.assert(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
+    Swag.require(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
     value.byte = 0
     value      = {}
-    Swag.assert(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
+    Swag.require(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
     value.byte = 0
     Swag.init(&value)
-    Swag.assert(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
+    Swag.require(value.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
     var values: [2] ArrayPartialDefault
-    Swag.assert(values[0].whole == value.whole)
-    Swag.assert(values[1].whole == value.whole)
+    Swag.require(values[0].whole == value.whole)
+    Swag.require(values[1].whole == value.whole)
     values[0].byte = 0
     Swag.init(&values)
-    Swag.assert(values[0].whole == value.whole)
-    Swag.assert(values[1].whole == value.whole)
+    Swag.require(values[0].whole == value.whole)
+    Swag.require(values[1].whole == value.whole)
 }
 
 // Full overwrites remove every runtime-dependent byte, even after default resolution.
 #test
 {
     let resolved: PartialDefault
-    Swag.assert(resolved.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
+    Swag.require(resolved.whole == ((unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55))
     const replaced: PartialDefault = {whole: 83}
-    Swag.assert(replaced.whole == 83)
-    Swag.assert(REPLACED_CONSTANT.whole == 0)
-    Swag.assert(RESTORED_POINTER.pointer == UNION_TARGET.buffer)
-    Swag.assert(REPLACED_ARRAY[0].whole == 71)
-    Swag.assert(REPLACED_ARRAY[1].whole == 73)
-    Swag.assert(REPLACED_DEFAULT.whole == 67)
-    Swag.assert(globalReplaced.whole == 79)
+    Swag.require(replaced.whole == 83)
+    Swag.require(REPLACED_CONSTANT.whole == 0)
+    Swag.require(RESTORED_POINTER.pointer == UNION_TARGET.buffer)
+    Swag.require(REPLACED_ARRAY[0].whole == 71)
+    Swag.require(REPLACED_ARRAY[1].whole == 73)
+    Swag.require(REPLACED_DEFAULT.whole == 67)
+    Swag.require(globalReplaced.whole == 79)
 }
 
 // Constant-set folding must not substitute zero storage for a runtime receiver default.
@@ -220,12 +220,12 @@ var globalReplaced:      PartialDefault           = {whole: 79}
 {
     let value    = cast(RuntimeDefaultSet, 7'u64)
     let expected = (unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55
-    Swag.assert(value.value.whole == expected)
-    Swag.assert(value.observed == (expected ^ 7))
+    Swag.require(value.value.whole == expected)
+    Swag.require(value.observed == (expected ^ 7))
 
     let resolved: FullRuntimeDefaultSet
-    Swag.assert(resolved.value.whole == expected)
+    Swag.require(resolved.value.whole == expected)
     const initialized = cast(FullRuntimeDefaultSet, 89'u64)
-    Swag.assert(initialized.value.whole == 0)
-    Swag.assert(initialized.observed == 89)
+    Swag.require(initialized.value.whole == 0)
+    Swag.require(initialized.observed == 89)
 }

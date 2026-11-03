@@ -91,40 +91,40 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
     for i in 4 * 64 do
         plane[i] = cast(u8, (i & 0xFF))
     sumRows(&out[0], &plane[0], 64, 4)
-    Swag.assert(out[0] == 0 + 8 and out[7] == 7 + 15)
-    Swag.assert(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
+    Swag.require(out[0] == 0 + 8 and out[7] == 7 + 15)
+    Swag.require(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
 
     var words:  [8] u16 = [1, 2, 3, 4, 5, 6, 7, 0xFFFF]
     var dwords: [8] u32
     widenWords(&dwords[0], &words[0])
-    Swag.assert(dwords[0] == 1 and dwords[3] == 4 and dwords[4] == 5 and dwords[7] == 0xFFFF)
+    Swag.require(dwords[0] == 1 and dwords[3] == 4 and dwords[4] == 5 and dwords[7] == 0xFFFF)
 
     var signed: [16] s8 = [-1, -2, 3, 4, 5, 6, 7, -128, 9, 10, 11, 12, 13, 14, 15, 16]
     var wide:   [8] s16
     widenSigned(&wide[0], &signed[0])
-    Swag.assert(wide[0] == -1 and wide[1] == -2 and wide[7] == -128)
+    Swag.require(wide[0] == -1 and wide[1] == -2 and wide[7] == -128)
 
     var offsets:  [3] u64 = [0, 64, 192]
     var gathered: [3 * 8] u16
     gatherRows(&gathered[0], &plane[0], &offsets[0], 3)
-    Swag.assert(gathered[0] == 0 + 8 and
-                gathered[8] == 64 + 72 and
-                gathered[16] == 192 + 200 and
-                gathered[23] == 199 + 207)
+    Swag.require(gathered[0] == 0 + 8 and
+                 gathered[8] == 64 + 72 and
+                 gathered[16] == 192 + 200 and
+                 gathered[23] == 199 + 207)
 
     var buffer: [16] u8
     for i in 16 do
         buffer[i] = cast(u8, i)
     var seen: [8] u16
     widenAfterStore(&seen[0], &buffer[0])
-    Swag.assert(seen[0] == 0 and seen[1] == 1 and buffer[0] == 200)
+    Swag.require(seen[0] == 0 and seen[1] == 1 and buffer[0] == 200)
 
     var masked: [16] u16
     maskRows(&masked[0], &plane[64], 64, 0xFFFF, 0)
-    Swag.assert(masked[0] == 0 + 64 and masked[3] == 3 + 67 and masked[4] == 0 and masked[7] == 0)
-    Swag.assert(masked[8] == 8 + 72 and masked[11] == 11 + 75 and masked[12] == 0 and masked[15] == 0)
+    Swag.require(masked[0] == 0 + 64 and masked[3] == 3 + 67 and masked[4] == 0 and masked[7] == 0)
+    Swag.require(masked[8] == 8 + 72 and masked[11] == 11 + 75 and masked[12] == 0 and masked[15] == 0)
 
     var local: [8] u16
     widenLocalPastStore(&local[0], 200)
-    Swag.assert(local[0] == 0 + 8 + 200 and local[7] == 7 + 15 + 200)
+    Swag.require(local[0] == 0 + 8 + 200 and local[7] == 7 + 15 + 200)
 }

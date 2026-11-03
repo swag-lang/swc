@@ -65,8 +65,8 @@ b"""
 {
     // '#raw' is a compile-time reading rule, so the value is an ordinary string afterwards.
     let pattern = #raw "(\d+)x(\d+)"
-    Swag.assert(pattern == "(\\d+)x(\\d+)")
-    Swag.assert(pattern.count == 11)
+    Swag.require(pattern == "(\\d+)x(\\d+)")
+    Swag.require(pattern.count == 11)
 
     var acc = 0
     for c in pattern
@@ -75,5 +75,5 @@ b"""
             acc += 1
     }
 
-    Swag.assert(acc == 2)
+    Swag.require(acc == 2)
 }

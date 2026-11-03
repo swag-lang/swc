@@ -76,7 +76,7 @@ func readLastElement()->s32
 
 #test
 {
-    Swag.assert(readLastElement() == 30)
+    Swag.require(readLastElement() == 30)
     let text = "abc"
-    Swag.assert(text[2] == 'c')
+    Swag.require(text[2] == 'c')
 }

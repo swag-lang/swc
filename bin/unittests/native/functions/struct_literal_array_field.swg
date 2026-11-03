@@ -14,7 +14,7 @@ func freeStructLiteralMiddle()->s32
 
 #test
 {
-    Swag.assert(freeStructLiteralLookup(1) == 5)
-    Swag.assert(freeStructLiteralLookup(2) == 2)
-    Swag.assert(freeStructLiteralMiddle() == 31)
+    Swag.require(freeStructLiteralLookup(1) == 5)
+    Swag.require(freeStructLiteralLookup(2) == 2)
+    Swag.require(freeStructLiteralMiddle() == 31)
 }

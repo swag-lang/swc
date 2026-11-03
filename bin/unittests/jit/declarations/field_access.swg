@@ -28,7 +28,7 @@ impl Account
 {
     var a: Account
     a.deposit(50)
-    Swag.assert(a.total() == 1 + 150 + 8 + 43)
+    Swag.require(a.total() == 1 + 150 + 8 + 43)
 }
 
 #test
@@ -36,10 +36,10 @@ impl Account
     // 'public' and 'public readonly' read from anywhere; 'internal' and the default read inside
     // the module.
     var a: Account
-    Swag.assert(a.id == 1)
-    Swag.assert(a.balance == 100)
-    Swag.assert(a.ledger == 7)
-    Swag.assert(a.opened)
+    Swag.require(a.id == 1)
+    Swag.require(a.balance == 100)
+    Swag.require(a.ledger == 7)
+    Swag.require(a.opened)
 }
 
 #test
@@ -49,18 +49,18 @@ impl Account
     a.id     = 3
     a.ledger = 9
     a.opened = false
-    Swag.assert(a.id == 3)
-    Swag.assert(a.ledger == 9)
-    Swag.assert(not a.opened)
+    Swag.require(a.id == 3)
+    Swag.require(a.ledger == 9)
+    Swag.require(not a.opened)
 }
 
 #test
 {
     // A literal may name every field a caller can write.
     let a = Account{id: 5, ledger: 6}
-    Swag.assert(a.id == 5)
-    Swag.assert(a.ledger == 6)
-    Swag.assert(a.balance == 100)
+    Swag.require(a.id == 5)
+    Swag.require(a.ledger == 6)
+    Swag.require(a.balance == 100)
 }
 
 // An access modifier applies to a block and to a multi-name declaration. A single field keeps
@@ -86,9 +86,9 @@ impl Grouped
 #test
 {
     var g: Grouped
-    Swag.assert(g.sum() == 21)
-    Swag.assert(g.d == 5)
-    Swag.assert(g.e == 6)
+    Swag.require(g.sum() == 21)
+    Swag.require(g.d == 5)
+    Swag.require(g.e == 6)
 }
 
 // A nested NAMED aggregate declares its own members: it starts from the default instead of
@@ -133,8 +133,8 @@ public
 {
     let outer: PublicContainer
     let inner: PublicContainer.PublicInner
-    Swag.assert(outer.value == 8)
-    Swag.assert(inner.value == 9)
+    Swag.require(outer.value == 8)
+    Swag.require(inner.value == 9)
 }
 
 impl Nested
@@ -152,12 +152,12 @@ impl Nested
 {
     var n: Nested
     n.fill()
-    Swag.assert(n.sum() == 6)
+    Swag.require(n.sum() == 6)
 
     // The nested type declares its own members: only 'inner' is private, not 'slot'.
     var p: Nested.Inner
     p.slot = 7
-    Swag.assert(p.slot == 7)
+    Swag.require(p.slot == 7)
 }
 
 // A returned tuple is an anonymous aggregate too, so a caller reads what it names.
@@ -166,8 +166,8 @@ func split(value: s32)->{ half: s32, rest: s32 } => {half: value / 2, rest: valu
 #test
 {
     let r = split(7)
-    Swag.assert(r.half == 3)
-    Swag.assert(r.rest == 1)
+    Swag.require(r.half == 3)
+    Swag.require(r.rest == 1)
 }
 
 // Reflection reports the level and the write restriction separately, so generic walkers can skip
@@ -182,28 +182,28 @@ func split(value: s32)->{ half: s32, rest: s32 } => {half: value / 2, rest: valu
         switch f.name
         {
         case "id":
-            Swag.assert(not (flags & Swag.TypeValueFlags.ReadOnly))
-            Swag.assert(not (flags & Swag.TypeValueFlags.Internal))
-            Swag.assert(not (flags & Swag.TypeValueFlags.Private))
+            Swag.require(not (flags & Swag.TypeValueFlags.ReadOnly))
+            Swag.require(not (flags & Swag.TypeValueFlags.Internal))
+            Swag.require(not (flags & Swag.TypeValueFlags.Private))
             seen += 1
         case "balance":
-            Swag.assert(flags & Swag.TypeValueFlags.ReadOnly)
-            Swag.assert(not (flags & Swag.TypeValueFlags.Internal))
+            Swag.require(flags & Swag.TypeValueFlags.ReadOnly)
+            Swag.require(not (flags & Swag.TypeValueFlags.Internal))
             seen += 1
         case "ledger":
-            Swag.assert(flags & Swag.TypeValueFlags.Internal)
+            Swag.require(flags & Swag.TypeValueFlags.Internal)
             seen += 1
         case "secret":
-            Swag.assert(flags & Swag.TypeValueFlags.Private)
+            Swag.require(flags & Swag.TypeValueFlags.Private)
             seen += 1
         case "opened":
-            Swag.assert(flags & Swag.TypeValueFlags.Internal)
-            Swag.assert(not (flags & Swag.TypeValueFlags.ReadOnly))
+            Swag.require(flags & Swag.TypeValueFlags.Internal)
+            Swag.require(not (flags & Swag.TypeValueFlags.ReadOnly))
             seen += 1
         }
     }
 
-    Swag.assert(seen == 5)
+    Swag.require(seen == 5)
 }
 
 #test
@@ -216,15 +216,15 @@ func split(value: s32)->{ half: s32, rest: s32 } => {half: value / 2, rest: valu
         switch f.name
         {
         case "d":
-            Swag.assert(f.flags & Swag.TypeValueFlags.ReadOnly)
-            Swag.assert(f.flags & Swag.TypeValueFlags.Internal)
+            Swag.require(f.flags & Swag.TypeValueFlags.ReadOnly)
+            Swag.require(f.flags & Swag.TypeValueFlags.Internal)
             seen += 1
         case "e":
-            Swag.assert(f.flags & Swag.TypeValueFlags.ReadOnly)
-            Swag.assert(not (f.flags & Swag.TypeValueFlags.Internal))
+            Swag.require(f.flags & Swag.TypeValueFlags.ReadOnly)
+            Swag.require(not (f.flags & Swag.TypeValueFlags.Internal))
             seen += 1
         }
     }
 
-    Swag.assert(seen == 2)
+    Swag.require(seen == 2)
 }

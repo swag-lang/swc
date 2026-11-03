@@ -155,10 +155,10 @@ func mutableReference(source: [*] u64, rounds, mask, stop: u64)->u64
                 for i in 12 do
                     actual[i] = seed + i * 0x17ABCDEF
                 var expected = actual
-                Swag.assert(scan(&actual[0], rounds, mask) == reference(&expected[0], rounds, mask))
-                Swag.assert(scanMutable(&actual[0], rounds, mask, rounds / 2) == mutableReference(&expected[0], rounds, mask, rounds / 2))
+                Swag.require(scan(&actual[0], rounds, mask) == reference(&expected[0], rounds, mask))
+                Swag.require(scanMutable(&actual[0], rounds, mask, rounds / 2) == mutableReference(&expected[0], rounds, mask, rounds / 2))
                 for i in 12 do
-                    Swag.assert(actual[i] == expected[i])
+                    Swag.require(actual[i] == expected[i])
             }
         }
     }

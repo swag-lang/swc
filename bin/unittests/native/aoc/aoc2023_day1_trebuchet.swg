@@ -309,12 +309,12 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
     let cleanA = solveClean(cast(const [..] u8, SampleInputA))
     let featA  = solveWithLanguageFeatures(cast(const [..] u8, SampleInputA))
 
-    Swag.assert(cleanA.digitOnly == 142'u64)
-    Swag.assert(cleanA.withWords == 142'u64)
-    Swag.assert(SampleAResult.digitOnly == 142'u64)
-    Swag.assert(SampleAResult.withWords == 142'u64)
-    Swag.assert(featA.digitOnly == cleanA.digitOnly)
-    Swag.assert(featA.withWords == cleanA.withWords)
+    Swag.require(cleanA.digitOnly == 142'u64)
+    Swag.require(cleanA.withWords == 142'u64)
+    Swag.require(SampleAResult.digitOnly == 142'u64)
+    Swag.require(SampleAResult.withWords == 142'u64)
+    Swag.require(featA.digitOnly == cleanA.digitOnly)
+    Swag.require(featA.withWords == cleanA.withWords)
 }
 
 #test
@@ -322,33 +322,33 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
     let cleanB = solveClean(cast(const [..] u8, SampleInputB))
     let featB  = solveWithLanguageFeatures(cast(const [..] u8, SampleInputB))
 
-    Swag.assert(cleanB.withWords == 281'u64)
-    Swag.assert(SampleBResult.withWords == 281'u64)
-    Swag.assert(featB.digitOnly == cleanB.digitOnly)
-    Swag.assert(featB.withWords == cleanB.withWords)
+    Swag.require(cleanB.withWords == 281'u64)
+    Swag.require(SampleBResult.withWords == 281'u64)
+    Swag.require(featB.digitOnly == cleanB.digitOnly)
+    Swag.require(featB.withWords == cleanB.withWords)
 }
 
 #test
 {
     // Overlapping spelled digits: "eightwo" -> first=8, last=2 -> 82
     let overlapLine = cast(const [..] u8, EdgeOverlap)
-    Swag.assert(calibrationValueWithWords(overlapLine) == 82'u32)
-    Swag.assert(calibrationValueDigitOnly(overlapLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(overlapLine) == 82'u32)
+    Swag.require(calibrationValueDigitOnly(overlapLine) == 0'u32)
 
     // All spelled: "onetwothreefourfivesixseveneightnine" -> first=1, last=9 -> 19
     let allWordsLine = cast(const [..] u8, EdgeAllWords)
-    Swag.assert(calibrationValueWithWords(allWordsLine) == 19'u32)
-    Swag.assert(calibrationValueDigitOnly(allWordsLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(allWordsLine) == 19'u32)
+    Swag.require(calibrationValueDigitOnly(allWordsLine) == 0'u32)
 
     // No digits at all
     let emptyLine = cast(const [..] u8, EdgeEmpty)
-    Swag.assert(calibrationValueWithWords(emptyLine) == 0'u32)
-    Swag.assert(calibrationValueDigitOnly(emptyLine) == 0'u32)
+    Swag.require(calibrationValueWithWords(emptyLine) == 0'u32)
+    Swag.require(calibrationValueDigitOnly(emptyLine) == 0'u32)
 
     // Single digit
     let singleLine = cast(const [..] u8, EdgeSingle)
-    Swag.assert(calibrationValueWithWords(singleLine) == 77'u32)
-    Swag.assert(calibrationValueDigitOnly(singleLine) == 77'u32)
+    Swag.require(calibrationValueWithWords(singleLine) == 77'u32)
+    Swag.require(calibrationValueDigitOnly(singleLine) == 77'u32)
 }
 
 #test
@@ -356,8 +356,8 @@ const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(co
     let cleanC = solveClean(cast(const [..] u8, CoverageInput))
     let featC  = solveWithLanguageFeatures(cast(const [..] u8, CoverageInput))
 
-    Swag.assert(CoverageResult.digitOnly == cleanC.digitOnly)
-    Swag.assert(CoverageResult.withWords == cleanC.withWords)
-    Swag.assert(featC.digitOnly == cleanC.digitOnly)
-    Swag.assert(featC.withWords == cleanC.withWords)
+    Swag.require(CoverageResult.digitOnly == cleanC.digitOnly)
+    Swag.require(CoverageResult.withWords == cleanC.withWords)
+    Swag.require(featC.digitOnly == cleanC.digitOnly)
+    Swag.require(featC.withWords == cleanC.withWords)
 }

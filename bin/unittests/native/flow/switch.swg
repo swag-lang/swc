@@ -44,7 +44,7 @@ alias StrictSwitchF32       = f32
         hit = 3
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -64,10 +64,10 @@ alias StrictSwitchF32       = f32
         }
     }
 
-    Swag.assert(switchPointer(&SwitchPointerValues[0]) == 11)
-    Swag.assert(switchPointer(&SwitchPointerValues[1]) == 23)
-    Swag.assert(switchPointer(&SwitchPointerValues[2]) == 23)
-    Swag.assert(switchPointer(null) == 0)
+    Swag.require(switchPointer(&SwitchPointerValues[0]) == 11)
+    Swag.require(switchPointer(&SwitchPointerValues[1]) == 23)
+    Swag.require(switchPointer(&SwitchPointerValues[2]) == 23)
+    Swag.require(switchPointer(null) == 0)
 }
 
 #test
@@ -92,7 +92,7 @@ alias StrictSwitchF32       = f32
         hit += 1000
         break
     }
-    Swag.assert(hit == 101)
+    Swag.require(hit == 101)
 }
 
 #test
@@ -142,11 +142,11 @@ alias StrictSwitchF32       = f32
     var middle: s8 = 0
     var upper:  s8 = 15
     var above:  s8 = 16
-    Swag.assert(switchDense(below) == 99)
-    Swag.assert(switchDense(lower) == -16)
-    Swag.assert(switchDense(middle) == 0)
-    Swag.assert(switchDense(upper) == 15)
-    Swag.assert(switchDense(above) == 99)
+    Swag.require(switchDense(below) == 99)
+    Swag.require(switchDense(lower) == -16)
+    Swag.require(switchDense(middle) == 0)
+    Swag.require(switchDense(upper) == 15)
+    Swag.require(switchDense(above) == 99)
 }
 
 #test
@@ -171,7 +171,7 @@ alias StrictSwitchF32       = f32
         hit = 3
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -192,7 +192,7 @@ alias StrictSwitchF32       = f32
     case .B:
         break
     }
-    Swag.assert(hit)
+    Swag.require(hit)
 }
 
 #test
@@ -211,7 +211,7 @@ alias StrictSwitchF32       = f32
         hit = 3
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -224,7 +224,7 @@ alias StrictSwitchF32       = f32
     }
 
     var v: E = .A
-    Swag.assert(v == .A)
+    Swag.require(v == .A)
 }
 
 #test
@@ -246,7 +246,7 @@ alias StrictSwitchF32       = f32
         hit = 2
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -266,7 +266,7 @@ alias StrictSwitchF32       = f32
         hit = 9
         break
     }
-    Swag.assert(hit == 3)
+    Swag.require(hit == 3)
 }
 
 #test
@@ -285,7 +285,7 @@ alias StrictSwitchF32       = f32
         hit = 9
         break
     }
-    Swag.assert(hit == 3)
+    Swag.require(hit == 3)
 }
 
 #test
@@ -301,7 +301,7 @@ alias StrictSwitchF32       = f32
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -317,7 +317,7 @@ alias StrictSwitchF32       = f32
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -331,7 +331,7 @@ alias StrictSwitchF32       = f32
         break
     }
 
-    Swag.assert(hit == 3)
+    Swag.require(hit == 3)
 }
 
 #test
@@ -357,9 +357,9 @@ alias StrictSwitchF32       = f32
         break
     }
 
-    Swag.assert(group == 1)
-    Swag.assert(score == 1)
-    Swag.assert(count == 0)
+    Swag.require(group == 1)
+    Swag.require(score == 1)
+    Swag.require(count == 0)
 }
 
 #test
@@ -375,7 +375,7 @@ alias StrictSwitchF32       = f32
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -391,7 +391,7 @@ alias StrictSwitchF32       = f32
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 // A switch over strings compares them where it stands rather than calling out per case, so the
@@ -457,7 +457,7 @@ func switchStringAtRuntime(buffer: [*] u8, text: string)->string
     for text, index in expected
     {
         let value = switchStringAtRuntime(&buffer[0], text)
-        Swag.assert(switchStringName(value) == cast(s32, index) + 1)
+        Swag.require(switchStringName(value) == cast(s32, index) + 1)
     }
 
     // Nothing else matches, including the prefixes and suffixes of what does.
@@ -465,7 +465,7 @@ func switchStringAtRuntime(buffer: [*] u8, text: string)->string
     for text in others
     {
         let value = switchStringAtRuntime(&buffer[0], text)
-        Swag.assert(not switchStringName(value))
+        Swag.require(not switchStringName(value))
     }
 }
 
@@ -486,12 +486,12 @@ func switchStringWhere(value: string, allow: bool)->s32
 {
     var buffer: [16] u8
     let kept = switchStringAtRuntime(&buffer[0], "keep")
-    Swag.assert(switchStringWhere(kept, true) == 1)
-    Swag.assert(switchStringWhere(kept, false) == 2)
+    Swag.require(switchStringWhere(kept, true) == 1)
+    Swag.require(switchStringWhere(kept, false) == 2)
 
     var other: [16] u8
     let dropped = switchStringAtRuntime(&other[0], "drop")
-    Swag.assert(switchStringWhere(dropped, true) == 3)
+    Swag.require(switchStringWhere(dropped, true) == 3)
 }
 
 enum SwitchEnumRangeMode
@@ -517,7 +517,7 @@ enum SwitchEnumRangeMode
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 
     mode = .Other
     switch mode
@@ -529,7 +529,7 @@ enum SwitchEnumRangeMode
         hit = 4
         break
     }
-    Swag.assert(hit == 4)
+    Swag.require(hit == 4)
 }
 
 #test
@@ -545,7 +545,7 @@ enum SwitchEnumRangeMode
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -558,7 +558,7 @@ enum SwitchEnumRangeMode
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 func toto()->s32 => 1
@@ -571,7 +571,7 @@ func toto()->s32 => 1
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -591,7 +591,7 @@ func toto()->s32 => 1
         hit = 3
         break
     }
-    Swag.assert(hit == 0)
+    Swag.require(hit == 0)
 }
 
 #test
@@ -610,7 +610,7 @@ func toto()->s32 => 1
     }
 
     var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
-    Swag.assert(switchAnyUsingBase(a) == 1)
+    Swag.require(switchAnyUsingBase(a) == 1)
 }
 
 #test
@@ -627,7 +627,7 @@ func toto()->s32 => 1
     }
 
     var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
-    Swag.assert(switchAnyUsingBaseBinding(a) == 7)
+    Swag.require(switchAnyUsingBaseBinding(a) == 7)
 }
 
 #test
@@ -644,5 +644,5 @@ func toto()->s32 => 1
     }
 
     var a: any = "value"
-    Swag.assert(switchAnyStringBinding(a))
+    Swag.require(switchAnyStringBinding(a))
 }

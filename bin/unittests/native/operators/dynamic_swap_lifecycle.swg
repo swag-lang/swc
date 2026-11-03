@@ -36,8 +36,8 @@ func(T) dynamicSwapStorage(left, right: *T)
     left.buffer  = &left.value
     right.buffer = &right.value
     dynamicSwapStorage(&left, &right)
-    Swag.assert(left.value == 42)
-    Swag.assert(right.value == 17)
-    Swag.assert(left.buffer == &left.value)
-    Swag.assert(right.buffer == &right.value)
+    Swag.require(left.value == 42)
+    Swag.require(right.value == 17)
+    Swag.require(left.buffer == &left.value)
+    Swag.require(right.buffer == &right.value)
 }

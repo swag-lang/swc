@@ -39,11 +39,11 @@ func score(t: Tagged)->f32 => t.weight * cast(f32, t.id)
 
 #test
 {
-    Swag.assert(dot(Vec2{1, 2}, Vec2{3, 4}) == 11)
-    Swag.assert(dot(Vec2{-1.5, 0.5}, Vec2{2, -4}) == -5)
-    Swag.assert(cross(Vec2{1, 2}, Vec2{3, 4}) == -2)
-    Swag.assert(longer(Vec2{1, 2}))
-    Swag.assert(not longer(Vec2{-1, -2}))
-    Swag.assert(unwrapValue(Wrapper{-2.25}) == -4.5)
-    Swag.assert(score(Tagged{0.5, 6}) == 3)
+    Swag.require(dot(Vec2{1, 2}, Vec2{3, 4}) == 11)
+    Swag.require(dot(Vec2{-1.5, 0.5}, Vec2{2, -4}) == -5)
+    Swag.require(cross(Vec2{1, 2}, Vec2{3, 4}) == -2)
+    Swag.require(longer(Vec2{1, 2}))
+    Swag.require(not longer(Vec2{-1, -2}))
+    Swag.require(unwrapValue(Wrapper{-2.25}) == -4.5)
+    Swag.require(score(Tagged{0.5, 6}) == 3)
 }

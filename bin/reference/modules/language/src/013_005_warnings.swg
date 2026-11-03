@@ -86,8 +86,8 @@ unreachable for the same reason.
 */
 #test
 {
-    Swag.assert(firstDraft() == 1)
-    Swag.assert(everythingOffExceptOne() == 1)
+    Swag.require(firstDraft() == 1)
+    Swag.require(everythingOffExceptOne() == 1)
 }
 
 /**

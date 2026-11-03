@@ -11,5 +11,5 @@ func touch(_: ...)->u32
     for i in 1 to 5 do
         count += cast(s32, touch(i, " "))
 
-    Swag.assert(count == 5)
+    Swag.require(count == 5)
 }

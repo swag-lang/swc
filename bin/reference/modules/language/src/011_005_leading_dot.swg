@@ -53,14 +53,14 @@ A position that already fixes a type lends it to the dot. This is the reading a
 #test
 {
     // A 'case' label is judged against the switch expression's type.
-    Swag.assert(channelScore(Channel.Green) == 2)
+    Swag.require(channelScore(Channel.Green) == 2)
 
     // A parameter declares the type, so '.Blue' names 'Channel.Blue'.
-    Swag.assert(channelScore(.Blue) == 3)
+    Swag.require(channelScore(.Blue) == 3)
 
     // So does a typed place.
     var picked: Channel = .Green
-    Swag.assert(picked == .Green)
+    Swag.require(picked == .Green)
 }
 
 struct Slot
@@ -89,7 +89,7 @@ Inside a method the subject is the receiver. Inside a 'with' block it is the
 {
     var slot: Slot
     slot.bump(4)
-    Swag.assert(slot.doubled() == 8)
+    Swag.require(slot.doubled() == 8)
 
     var other: Slot
     with other
@@ -97,7 +97,7 @@ Inside a method the subject is the receiver. Inside a 'with' block it is the
         .value = 21
     }
 
-    Swag.assert(other.value == 21)
+    Swag.require(other.value == 21)
 }
 
 struct Palette
@@ -129,8 +129,8 @@ position again, so the same dot there reads the receiver.
 #test
 {
     var palette: Palette
-    Swag.assert(palette.intensity(.Red) == 255)
-    Swag.assert(palette.intensity(.Blue) == 0)
+    Swag.require(palette.intensity(.Red) == 255)
+    Swag.require(palette.intensity(.Blue) == 0)
 }
 
 struct Reading
@@ -185,8 +185,8 @@ the whole rule: nesting decides, and nothing else is consulted.
     var recorder: Recorder
     recorder.record(&reading)
 
-    Swag.assert(reading.tag == 1)
-    Swag.assert(recorder.total == 2)
+    Swag.require(reading.tag == 1)
+    Swag.require(recorder.total == 2)
 }
 
 /**
@@ -205,8 +205,8 @@ tendency: 'using' publishes names, 'with' selects a value.
 
     // 'using' publishes the enum's values under their bare names.
     let direct = Blue
-    Swag.assert(direct == Channel.Blue)
-    Swag.assert(channelScore(direct) == 3)
+    Swag.require(direct == Channel.Blue)
+    Swag.require(channelScore(direct) == 3)
 }
 
 /**
@@ -227,5 +227,5 @@ The language has already answered this once: a literal names its fields with
 #test
 {
     let slot = Slot{value: 7}
-    Swag.assert(slot.value == 7)
+    Swag.require(slot.value == 7)
 }

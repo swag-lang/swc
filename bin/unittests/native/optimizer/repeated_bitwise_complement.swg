@@ -31,17 +31,17 @@ func nested(a, b, c: u64)->u64 => (a ^ (a | b)) & (c ^ (c | b))
     {
         for b in values
         {
-            Swag.assert(xorOr(a, b) == (~a & b))
-            Swag.assert(orXor(a, b) == (~a & b))
-            Swag.assert(andXor(a, b) == (a & ~b))
-            Swag.assert(xorAnd(a, b) == (a & ~b))
+            Swag.require(xorOr(a, b) == (~a & b))
+            Swag.require(orXor(a, b) == (~a & b))
+            Swag.require(andXor(a, b) == (a & ~b))
+            Swag.require(xorAnd(a, b) == (a & ~b))
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(xorOr32(lowA, lowB) == (~lowA & lowB))
-            Swag.assert(andXor32(lowA, lowB) == (lowA & ~lowB))
-            Swag.assert(shared(a, b) == ((~a & b) + (a | b)))
-            Swag.assert(compared(a, b) == ((~a & b) == 0))
-            Swag.assert(nested(a, b, ~a) == 0)
+            Swag.require(xorOr32(lowA, lowB) == (~lowA & lowB))
+            Swag.require(andXor32(lowA, lowB) == (lowA & ~lowB))
+            Swag.require(shared(a, b) == ((~a & b) + (a | b)))
+            Swag.require(compared(a, b) == ((~a & b) == 0))
+            Swag.require(nested(a, b, ~a) == 0)
         }
     }
 }

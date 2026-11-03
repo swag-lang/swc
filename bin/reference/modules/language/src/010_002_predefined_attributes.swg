@@ -186,7 +186,7 @@ struct AttrCounterWidget
     var counter: AttrCounterWidget
     counter.sigPressed += func(widget) { widget.presses += 1 }
     counter.press()
-    Swag.assert(counter.presses == 1)
+    Swag.require(counter.presses == 1)
 }
 
 /**

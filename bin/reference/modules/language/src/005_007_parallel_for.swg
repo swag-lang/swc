@@ -34,8 +34,8 @@ visible at the loop instead of hidden inside it.
     parallel for |&squares| index in 16 do
         squares[index] = index * index
 
-    Swag.assert(squares[0] == 0)
-    Swag.assert(squares[15] == 225)
+    Swag.require(squares[0] == 0)
+    Swag.require(squares[15] == 225)
 }
 
 /**
@@ -54,7 +54,7 @@ synchronization, because no two iterations touch the same storage.
     parallel for |&values, factor| index in 8 do
         values[index] = index * factor
 
-    Swag.assert(values[7] == 21)
+    Swag.require(values[7] == 21)
 }
 
 /**
@@ -71,7 +71,7 @@ one they are.
     parallel for |&started| 8 do
         discard Swag.atomicAdd(&started, 1)
 
-    Swag.assert(started == 8)
+    Swag.require(started == 8)
 }
 
 /**
@@ -91,8 +91,8 @@ runs no iteration at all.
     parallel for |&visited| index in 7 to 8 do
         visited[index] = true
 
-    Swag.assert(not visited[1] and visited[2] and visited[4] and not visited[5])
-    Swag.assert(visited[7] and visited[8] and not visited[9])
+    Swag.require(not visited[1] and visited[2] and visited[4] and not visited[5])
+    Swag.require(visited[7] and visited[8] and not visited[9])
 }
 
 /**
@@ -120,7 +120,7 @@ Compute the answer into captured storage and act on it after the loop.
     var count = 0
     for index in 32 where found[index] do
         count += 1
-    Swag.assert(count == 16)
+    Swag.require(count == 16)
 }
 
 /**
@@ -161,12 +161,12 @@ struct ParallelInputError
     } as errorOutcome
 
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is ParallelInputError))
-    Swag.assert(values[3] == 0)
+    Swag.require(error != null and (error is ParallelInputError))
+    Swag.require(values[3] == 0)
 
     expect parallel for |&values| index in 8 do
         values[index] = index + 1
-    Swag.assert(values[7] == 8)
+    Swag.require(values[7] == 8)
 }
 
 /**
@@ -196,7 +196,7 @@ loop still runs every index and joins every partition.
     })
 
     let skipped = expect task.take()
-    Swag.assert(skipped == 8)
+    Swag.require(skipped == 8)
 }
 
 /**
@@ -212,7 +212,7 @@ An accumulator every index writes is shared storage, so it goes through
     parallel for |&total| index in 100 do
         total.add(index)
 
-    Swag.assert(total.load() == 4950)
+    Swag.require(total.load() == 4950)
 }
 
 /**

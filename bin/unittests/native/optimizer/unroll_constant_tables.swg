@@ -32,6 +32,6 @@ func weightedScore(seed: u64)->u64
 
 #test
 {
-    Swag.assert(weightedScore(0) == 488)
-    Swag.assert(weightedScore(3) == 707)
+    Swag.require(weightedScore(0) == 488)
+    Swag.require(weightedScore(3) == 707)
 }

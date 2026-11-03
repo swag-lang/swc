@@ -85,11 +85,11 @@ func takePointee(source: *WidePlace)->WidePlace
     {
         var holder = PlaceHolder{wide: WidePlace{value: 5}}
         let taken  = holder.takeWide()
-        Swag.assert(taken.value == 5 and holder.wide.value == 0)
-        Swag.assert(PlaceCopies == 0 and PlaceMoves == 1)
+        Swag.require(taken.value == 5 and holder.wide.value == 0)
+        Swag.require(PlaceCopies == 0 and PlaceMoves == 1)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 #test
@@ -99,11 +99,11 @@ func takePointee(source: *WidePlace)->WidePlace
     {
         var holder = PlaceHolder{wide: WidePlace{value: 6}}
         let taken  = holder.takeWideExpression()
-        Swag.assert(taken.value == 6 and holder.wide.value == 0)
-        Swag.assert(PlaceCopies == 0)
+        Swag.require(taken.value == 6 and holder.wide.value == 0)
+        Swag.require(PlaceCopies == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 #test
@@ -113,10 +113,10 @@ func takePointee(source: *WidePlace)->WidePlace
     {
         var holder = PlaceHolder{narrow: NarrowPlace{value: 7}}
         let taken  = holder.takeNarrow()
-        Swag.assert(taken.value == 7 and holder.narrow.value == 0)
+        Swag.require(taken.value == 7 and holder.narrow.value == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 #test
@@ -126,11 +126,11 @@ func takePointee(source: *WidePlace)->WidePlace
     {
         var holder = PlaceHolder{wide: WidePlace{value: 8}}
         let taken  = holder.takeWideInline()
-        Swag.assert(taken.value == 8 and holder.wide.value == 0)
-        Swag.assert(PlaceCopies == 0)
+        Swag.require(taken.value == 8 and holder.wide.value == 0)
+        Swag.require(PlaceCopies == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 #test
@@ -140,11 +140,11 @@ func takePointee(source: *WidePlace)->WidePlace
     {
         var source = WidePlace{value: 9}
         let taken  = takePointee(&source)
-        Swag.assert(taken.value == 9 and source.value == 0)
-        Swag.assert(PlaceCopies == 0)
+        Swag.require(taken.value == 9 and source.value == 0)
+        Swag.require(PlaceCopies == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 // A returned '#returntype' local already is the return storage: moving it hands the value over untouched.
@@ -161,10 +161,10 @@ func buildInPlace(value: s32)->WidePlace
     scope
     {
         let built = buildInPlace(10)
-        Swag.assert(built.value == 10 and PlaceCopies == 0)
+        Swag.require(built.value == 10 and PlaceCopies == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }
 
 #[Swag.Inline]
@@ -181,8 +181,8 @@ func buildInPlaceInline(value: s32)->WidePlace
     scope
     {
         let built = buildInPlaceInline(11)
-        Swag.assert(built.value == 11 and PlaceCopies == 0)
+        Swag.require(built.value == 11 and PlaceCopies == 0)
     }
 
-    Swag.assert(PlaceDrops == 1)
+    Swag.require(PlaceDrops == 1)
 }

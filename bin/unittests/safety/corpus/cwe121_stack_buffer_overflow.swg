@@ -69,5 +69,5 @@ func stackWriteInRange()->u8
 
 #test
 {
-    Swag.assert(stackWriteInRange() == 7)
+    Swag.require(stackWriteInRange() == 7)
 }

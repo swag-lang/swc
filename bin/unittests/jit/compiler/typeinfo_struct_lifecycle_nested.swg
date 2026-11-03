@@ -330,11 +330,11 @@ func deepInitRestoresNestedArrays()->bool
 
 #test
 {
-    Swag.assert(nestedDropOrderWorks())
-    Swag.assert(nestedInitRestoresDefaults())
-    Swag.assert(nestedCopyOrderWorks())
-    Swag.assert(nestedMoveOrderWorks())
-    Swag.assert(arrayInitTouchesEveryElement())
-    Swag.assert(arrayLifecycleTouchesEveryElement())
-    Swag.assert(deepInitRestoresNestedArrays())
+    Swag.require(nestedDropOrderWorks())
+    Swag.require(nestedInitRestoresDefaults())
+    Swag.require(nestedCopyOrderWorks())
+    Swag.require(nestedMoveOrderWorks())
+    Swag.require(arrayInitTouchesEveryElement())
+    Swag.require(arrayLifecycleTouchesEveryElement())
+    Swag.require(deepInitRestoresNestedArrays())
 }

@@ -26,25 +26,25 @@ func below(a, b: u64)->bool => a < b
         {
             if below(a, b)
             {
-                Swag.assert(seven(a, b) == 7)
-                Swag.assert(thirteen(a, b) == 13)
-                Swag.assert(negative(a, b) == -7)
-                Swag.assert(reverse(a, b) == 0)
+                Swag.require(seven(a, b) == 7)
+                Swag.require(thirteen(a, b) == 13)
+                Swag.require(negative(a, b) == -7)
+                Swag.require(reverse(a, b) == 0)
             }
             else
             {
-                Swag.assert(seven(a, b) == 0)
-                Swag.assert(thirteen(a, b) == 0)
-                Swag.assert(negative(a, b) == 0)
-                Swag.assert(reverse(a, b) == 127)
+                Swag.require(seven(a, b) == 0)
+                Swag.require(thirteen(a, b) == 0)
+                Swag.require(negative(a, b) == 0)
+                Swag.require(reverse(a, b) == 127)
             }
-            Swag.assert(equal(a, b) == (a == b ? 11'u64 : 0))
+            Swag.require(equal(a, b) == (a == b ? 11'u64 : 0))
             let sa = cast #bit (s64, a)
             let sb = cast #bit (s64, b)
-            Swag.assert(signed(sa, sb) == (sa < sb ? 15's64 : 0))
+            Swag.require(signed(sa, sb) == (sa < sb ? 15's64 : 0))
             let na = cast(u32, (a & 0xFFFFFFFF))
             let nb = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(narrow(na, nb) == (below(na, nb) ? 7'u32 : 0))
+            Swag.require(narrow(na, nb) == (below(na, nb) ? 7'u32 : 0))
         }
     }
 }

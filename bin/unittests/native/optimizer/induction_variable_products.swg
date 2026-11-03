@@ -154,9 +154,9 @@ func reference(rows, stride: u64, cols: u64)->u64
     fillPlane()
     let base = cast(const [*] u8, &Plane[0])
 
-    Swag.assert(sumRows(base, 64, 16, 40) == reference(16, 64, 40))
-    Swag.assert(sumRows(base, 48, 10, 48) == reference(10, 48, 48))
-    Swag.assert(sumRows(base, 64, 0, 40) == 0)
+    Swag.require(sumRows(base, 64, 16, 40) == reference(16, 64, 40))
+    Swag.require(sumRows(base, 48, 10, 48) == reference(10, 48, 48))
+    Swag.require(sumRows(base, 64, 0, 40) == 0)
 
     var expected: u64
     for row in 12'u64
@@ -166,7 +166,7 @@ func reference(rows, stride: u64, cols: u64)->u64
         expected += cast(u64, Plane[row * 17 + 2])
         expected += cast(u64, Plane[row * 64 + 3])
     }
-    Swag.assert(sumThreeStrides(base, 64, 33, 17, 12) == expected)
+    Swag.require(sumThreeStrides(base, 64, 33, 17, 12) == expected)
 
     expected = 0
     for row in 20'u64
@@ -174,7 +174,7 @@ func reference(rows, stride: u64, cols: u64)->u64
         expected += cast(u64, Plane[row * 24])
         expected += cast(u64, Plane[row * 16 + 5])
     }
-    Swag.assert(sumImmediateStrides(base, 20) == expected)
+    Swag.require(sumImmediateStrides(base, 20) == expected)
 
     expected = 0
     var evenRow: u64
@@ -183,25 +183,25 @@ func reference(rows, stride: u64, cols: u64)->u64
         expected += cast(u64, Plane[evenRow * 64])
         evenRow  += 2
     }
-    Swag.assert(sumStepTwo(base, 64, 15) == expected)
+    Swag.require(sumStepTwo(base, 64, 15) == expected)
 
     expected = 0
     for row in 16'u64 do
         expected += cast(u64, Plane[row * 64])
-    Swag.assert(sumDownwards(base, 64, 16) == expected)
+    Swag.require(sumDownwards(base, 64, 16) == expected)
 
     var wrapped: u32
     for i in 1000'u32 do
         wrapped = wrapped + #wrap i * #wrap 0x1000_0001
-    Swag.assert(wrappingProducts(1000, 0x1000_0001) == wrapped)
+    Swag.require(wrappingProducts(1000, 0x1000_0001) == wrapped)
 
     let nested = nestedProducts(base, 64, 16, 40)
-    Swag.assert(nested.sum == reference(16, 64, 40) and nested.last == 16)
+    Swag.require(nested.sum == reference(16, 64, 40) and nested.last == 16)
 
     expected = 0
     for row in 30'u64 do
         expected += cast(u64, Plane[row * (row + 1)])
-    Swag.assert(movingStride(base, 30) == expected)
+    Swag.require(movingStride(base, 30) == expected)
 
     expected = 0
     for row in 16'u64
@@ -209,5 +209,5 @@ func reference(rows, stride: u64, cols: u64)->u64
         if (row & 1) == 1 do
             expected += cast(u64, Plane[row * 64])
     }
-    Swag.assert(sumOddRows(base, 64, 16) == expected)
+    Swag.require(sumOddRows(base, 64, 16) == expected)
 }

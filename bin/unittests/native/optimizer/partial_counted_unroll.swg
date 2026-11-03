@@ -93,14 +93,14 @@ func stridedReference(seed: u32)->u32
         for i in 65 do
             actual[i] = i * 0x1234567 + seed
         var expected = actual
-        Swag.assert(mix(&actual[0], seed) == reference(&expected[0], seed))
+        Swag.require(mix(&actual[0], seed) == reference(&expected[0], seed))
         for i in 65 do
-            Swag.assert(actual[i] == expected[i])
+            Swag.require(actual[i] == expected[i])
     }
 }
 
 #test
 {
     for seed in [0'u32, 1, 0x12345678, 0xFFFFFFFF] do
-        Swag.assert(strided(seed) == stridedReference(seed))
+        Swag.require(strided(seed) == stridedReference(seed))
 }

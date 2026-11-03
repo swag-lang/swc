@@ -14,11 +14,11 @@ struct OutcomeFailure
     var task: Swag.Task'u64
     task.submit(func()->u64 => 6 * 7)
     let first = expect task.take()
-    Swag.assert(first == 42 and not task.isDone())
+    Swag.require(first == 42 and not task.isDone())
 
     task.submit(func()->u64 => 9)
     let second = expect task.take()
-    Swag.assert(second == 9)
+    Swag.require(second == 9)
 }
 
 // A failing body hands its error over with its dynamic type, on every result type.
@@ -29,18 +29,18 @@ struct OutcomeFailure
     var errorOutcome: Swag.Error
     discard catch valued.take() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is OutcomeFailure)
+    Swag.require(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
-        Swag.assert(failure.code == 3)
+        Swag.require(failure.code == 3)
 
     var plain: Swag.Task
     plain.submit(func() fail { fail OutcomeFailure{4} })
     var plainErrorOutcome: Swag.Error
     catch plain.take() as plainErrorOutcome
     let plainError = plainErrorOutcome.value()
-    Swag.assert(plainError is OutcomeFailure)
+    Swag.require(plainError is OutcomeFailure)
     if plainError is OutcomeFailure as plainFailure do
-        Swag.assert(plainFailure.code == 4)
+        Swag.require(plainFailure.code == 4)
 
     // The next run starts from a clean outcome.
     plain.submit(func() {})
@@ -75,10 +75,10 @@ impl OwnedOutcome
         task.wait()
         task.submit(func()->OwnedOutcome => OwnedOutcome{2})
         let taken = expect task.take()
-        Swag.assert(taken.label == 2 and releasedOutcomes == 1)
+        Swag.require(taken.label == 2 and releasedOutcomes == 1)
     }
 
-    Swag.assert(releasedOutcomes == 2)
+    Swag.require(releasedOutcomes == 2)
 }
 
 // The notification runs once, before the task reads as done.
@@ -97,13 +97,13 @@ impl OwnedOutcome
     })
 
     let value = expect task.take()
-    Swag.assert(value == 5 and notified.load() == 1 and doneSeen.load() == 0)
+    Swag.require(value == 5 and notified.load() == 1 and doneSeen.load() == 0)
 }
 
 // Outside any task, nothing was asked to stop.
 #test
 {
-    Swag.assert(not Swag.isCancelled())
+    Swag.require(not Swag.isCancelled())
 }
 
 // A request made on a task reaches the body, every partition of a loop it runs, and every child
@@ -136,8 +136,8 @@ impl OwnedOutcome
     })
 
     let seen = expect task.take()
-    Swag.assert(seen == 68)
-    Swag.assert(not Swag.isCancelled())
+    Swag.require(seen == 68)
+    Swag.require(not Swag.isCancelled())
 }
 
 // A request belongs to one submission: the next run starts without it.
@@ -154,7 +154,7 @@ impl OwnedOutcome
 
     task.submit(func()->bool => Swag.isCancelled())
     let fresh = expect task.take()
-    Swag.assert(cancelled and not fresh)
+    Swag.require(cancelled and not fresh)
 }
 
 // A task's own request does not leak into a task its body submits: that task can outlive the body.
@@ -171,7 +171,7 @@ impl OwnedOutcome
     })
 
     let innerSaw = expect outer.take()
-    Swag.assert(not innerSaw)
+    Swag.require(not innerSaw)
 }
 
 // Destroying a running task asks it to stop before waiting for it.
@@ -196,7 +196,7 @@ impl OwnedOutcome
         })
     }
 
-    Swag.assert(Swag.jit() or stopped.isRaised())
+    Swag.require(Swag.jit() or stopped.isRaised())
 }
 
 // A group's own request reaches its children, and so does the request of the work spawning it.
@@ -211,7 +211,7 @@ impl OwnedOutcome
             group.spawn(func|&seen|() { if Swag.isCancelled() do seen.add(1) })
     }
 
-    Swag.assert(seen.load() == 3)
+    Swag.require(seen.load() == 3)
 }
 
 // A background task runs at a lower priority and hands its value over like any other task.
@@ -220,7 +220,7 @@ impl OwnedOutcome
     var task: Swag.Task'u32
     task.submit(func()->u32 => 11, priority: .Background)
     let value = expect task.take()
-    Swag.assert(value == 11)
+    Swag.require(value == 11)
 }
 
 // A task answers whether its current submission was asked to stop; the next one starts clear.
@@ -230,11 +230,11 @@ impl OwnedOutcome
     let self = &task
     task.submit(func|self|() { self.cancel() })
     task.wait()
-    Swag.assert(task.isCancelled())
+    Swag.require(task.isCancelled())
 
     task.submit(func() {})
     task.wait()
-    Swag.assert(not task.isCancelled())
+    Swag.require(not task.isCancelled())
 }
 
 // A cancellable join returns, with false, once the waiting work is asked to stop, while the
@@ -257,8 +257,8 @@ impl OwnedOutcome
 
     discard release.raise()
     awaited.wait()
-    Swag.assert(Swag.jit() or not finished)
-    Swag.assert(awaited.isDone())
+    Swag.require(Swag.jit() or not finished)
+    Swag.require(awaited.isDone())
 }
 
 // Outside a cancelled task, a cancellable join waits for the end like a plain one.
@@ -266,9 +266,9 @@ impl OwnedOutcome
 {
     var task: Swag.Task'u32
     task.submit(func()->u32 => 3)
-    Swag.assert(task.waitUnlessCancelled())
+    Swag.require(task.waitUnlessCancelled())
     let value = expect task.take()
-    Swag.assert(value == 3)
+    Swag.require(value == 3)
 }
 
 // The first error a group child raises asks the other children to stop, and joining raises it.
@@ -299,11 +299,11 @@ impl OwnedOutcome
     var errorOutcome: Swag.Error
     catch group.join() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is OutcomeFailure and stopped.load() == 3)
+    Swag.require(error is OutcomeFailure and stopped.load() == 3)
 
     group.spawn(func|&fresh|() { if not Swag.isCancelled() do fresh.add(1) })
     expect group.join()
-    Swag.assert(fresh.load() == 1)
+    Swag.require(fresh.load() == 1)
 }
 
 // 'whenAll' waits for every task and leaves each value to take.
@@ -320,7 +320,7 @@ impl OwnedOutcome
     var total = 0'u32
     for &task in tasks do
         total += expect task.take()
-    Swag.assert(total == 30)
+    Swag.require(total == 30)
 }
 
 // 'whenAll' raises the first failure and asks the other tasks to stop.
@@ -350,8 +350,8 @@ impl OwnedOutcome
     var errorOutcome: Swag.Error
     catch Swag.whenAll(tasks) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is OutcomeFailure)
-    Swag.assert(Swag.jit() or stopped.load() == 2)
+    Swag.require(error is OutcomeFailure)
+    Swag.require(Swag.jit() or stopped.load() == 2)
 }
 
 // 'whenAny' returns the first task that succeeded, and raises the first error when all fail.
@@ -361,9 +361,9 @@ impl OwnedOutcome
     tasks[0].submit(func()->u32 fail { fail OutcomeFailure{2} })
     tasks[1].submit(func()->u32 => 5)
     let winner = expect Swag.whenAny(tasks)
-    Swag.assert(winner == 1)
+    Swag.require(winner == 1)
     let value = expect tasks[1].take()
-    Swag.assert(value == 5)
+    Swag.require(value == 5)
 
     var failing: [2] Swag.Task'u32
     failing[0].submit(func()->u32 fail { fail OutcomeFailure{3} })
@@ -371,9 +371,9 @@ impl OwnedOutcome
     var errorOutcome: Swag.Error
     discard catch Swag.whenAny(failing) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is OutcomeFailure)
+    Swag.require(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
-        Swag.assert(failure.code == 3)
+        Swag.require(failure.code == 3)
 }
 
 // The task's capture ends before take() reads its copied message.
@@ -402,7 +402,7 @@ func failWithTaskMessage()->s32 fail
     {
         handled = true
         let failure = assume cast(Swag.BaseError, Swag.err)
-        Swag.assert(failure.message == "a task retains the copied text of its failure")
+        Swag.require(failure.message == "a task retains the copied text of its failure")
     }
-    Swag.assert(handled)
+    Swag.require(handled)
 }

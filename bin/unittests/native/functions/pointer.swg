@@ -53,12 +53,12 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
     var holder:    TransformHolder = TransformHolder{cb: &addTransform}
     let callbacks: [2] Transform   = [&addTransform, alternate]
 
-    Swag.assert(direct({base: 10, delta: 2}, 3) == 15)
-    Swag.assert(alternate({base: 10, delta: 2}, 3) == 32)
-    Swag.assert(holder.cb({base: 1, delta: 4}, 8) == 13)
-    Swag.assert(callbacks[0]({base: 5, delta: -1}, 2) == 6)
-    Swag.assert(callbacks[1]({base: 5, delta: -1}, 2) == 9)
-    Swag.assert(applyTransform(direct, {base: 7, delta: 1}, 4) == 12)
+    Swag.require(direct({base: 10, delta: 2}, 3) == 15)
+    Swag.require(alternate({base: 10, delta: 2}, 3) == 32)
+    Swag.require(holder.cb({base: 1, delta: 4}, 8) == 13)
+    Swag.require(callbacks[0]({base: 5, delta: -1}, 2) == 6)
+    Swag.require(callbacks[1]({base: 5, delta: -1}, 2) == 9)
+    Swag.require(applyTransform(direct, {base: 7, delta: 1}, 4) == 12)
 }
 
 #test
@@ -66,7 +66,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
     let reduce:   Reducer     = &sumReducer
     let reducers: [2] Reducer = [reduce, &weightedReducer]
 
-    Swag.assert(reduce(1, 2, 3, 4) == 10)
-    Swag.assert(reducers[0](5, 6, 7) == 18)
-    Swag.assert(reducers[1](2, 3, 4) == 20)
+    Swag.require(reduce(1, 2, 3, 4) == 10)
+    Swag.require(reducers[0](5, 6, 7) == 18)
+    Swag.require(reducers[1](2, 3, 4) == 20)
 }

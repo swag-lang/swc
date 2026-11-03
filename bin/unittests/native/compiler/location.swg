@@ -19,9 +19,9 @@ const FunctionLocation = #location(markerFunction)
 #test
 {
     const localMarker = #location(MarkerValue)
-    Swag.assert(localMarker.fileName == MarkerLocation.fileName)
-    Swag.assert(localMarker.lineStart == MarkerLocation.lineStart)
-    Swag.assert(localMarker.lineEnd == MarkerLocation.lineEnd)
-    Swag.assert(FunctionLocation.lineStart > MarkerLocation.lineStart)
-    Swag.assert(markerFunction() == 42)
+    Swag.require(localMarker.fileName == MarkerLocation.fileName)
+    Swag.require(localMarker.lineStart == MarkerLocation.lineStart)
+    Swag.require(localMarker.lineEnd == MarkerLocation.lineEnd)
+    Swag.require(FunctionLocation.lineStart > MarkerLocation.lineStart)
+    Swag.require(markerFunction() == 42)
 }

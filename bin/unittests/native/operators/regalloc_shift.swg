@@ -173,50 +173,50 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
 
 #test
 {
-    Swag.assert(shiftCountFromArith(1'u32, 4'u32, 5'u32, 2'u32, 3'u32) == 45'u32)
+    Swag.require(shiftCountFromArith(1'u32, 4'u32, 5'u32, 2'u32, 3'u32) == 45'u32)
 }
 
 #test
 {
-    Swag.assert(multiShiftChain(1'u32, 3'u32, 2'u32, 4'u32) == 42'u32)
+    Swag.require(multiShiftChain(1'u32, 3'u32, 2'u32, 4'u32) == 42'u32)
 }
 
 #test
 {
-    Swag.assert(shiftMixWidths(2'u32) == 672'u64)
+    Swag.require(shiftMixWidths(2'u32) == 672'u64)
 }
 
 #test
 {
-    Swag.assert(shiftLiveAcrossCall(1'u32, 3'u32, 10'u32) == 57'u32)
+    Swag.require(shiftLiveAcrossCall(1'u32, 3'u32, 10'u32) == 57'u32)
 }
 
 #test
 {
-    Swag.assert(nestedShiftCount(3'u32, 2'u32) == 36'u32)
+    Swag.require(nestedShiftCount(3'u32, 2'u32) == 36'u32)
 }
 
 #test
 {
-    Swag.assert(shiftInsideDivExpr(12'u32, 4'u32, 5'u32) == 40'u32)
+    Swag.require(shiftInsideDivExpr(12'u32, 4'u32, 5'u32) == 40'u32)
 }
 
 #test
 {
-    Swag.assert(manyLiveShift(1'u32, 2'u32, 3'u32, 4'u32, 5'u32, 6'u32, 3'u32, 4'u32) == 29'u32)
+    Swag.require(manyLiveShift(1'u32, 2'u32, 3'u32, 4'u32, 5'u32, 6'u32, 3'u32, 4'u32) == 29'u32)
 }
 
 #test
 {
-    Swag.assert(shiftSignedWidths(-256, 2) == -1344)
+    Swag.require(shiftSignedWidths(-256, 2) == -1344)
 }
 
 #test
 {
-    Swag.assert(shiftInLoop(32'u32, 2'u32, 3'u32) == 62'u32)
+    Swag.require(shiftInLoop(32'u32, 2'u32, 3'u32) == 62'u32)
 }
 
 #test
 {
-    Swag.assert(twoCountsInLoop(1'u32, 3'u32, 1'u32, 2'u32) == 69'u32)
+    Swag.require(twoCountsInLoop(1'u32, 3'u32, 1'u32, 2'u32) == 69'u32)
 }

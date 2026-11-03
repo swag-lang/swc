@@ -27,7 +27,7 @@ const Negative = -10
     const folded = #stringof(Folded)
     var localValue: s32 = 42
 
-    Swag.assert(folded == "5")
-    Swag.assert(#stringof(GlobalZero + 6) == "6")
-    Swag.assert(#stringof(localValue) == "localValue")
+    Swag.require(folded == "5")
+    Swag.require(#stringof(GlobalZero + 6) == "6")
+    Swag.require(#stringof(localValue) == "localValue")
 }

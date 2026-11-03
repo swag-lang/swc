@@ -55,7 +55,7 @@ func classify(evt: IEvt)->s32
     var c = CreateEvt{}
     var r = ResizeEvt{}
 
-    Swag.assert(classify(&d) == 1)
-    Swag.assert(classify(&c) == 2)
-    Swag.assert(classify(&r) == 3)
+    Swag.require(classify(&d) == 1)
+    Swag.require(classify(&c) == 2)
+    Swag.require(classify(&r) == 3)
 }

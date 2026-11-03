@@ -16,7 +16,7 @@ struct CompilerAlignedLocal
 #test
 {
     var value: CompilerAlignedLocal
-    Swag.assert(cast(u64, &value) % 64 == 0)
+    Swag.require(cast(u64, &value) % 64 == 0)
 }
 
 const PersistentAlignedWords: const [..]u64 = #run
@@ -30,7 +30,7 @@ const PersistentAlignedWords: const [..]u64 = #run
 
 #test
 {
-    Swag.assert(PersistentAlignedWords.count == 8)
+    Swag.require(PersistentAlignedWords.count == 8)
     for entry, index in PersistentAlignedWords do
-        Swag.assert(entry == 31 + index)
+        Swag.require(entry == 31 + index)
 }

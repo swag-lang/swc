@@ -115,10 +115,10 @@ impl Depot
     depot.racks.set(pair)
     depot.crates.set(crates)
 
-    Swag.assert(depot.sumRack(0) == 7)
-    Swag.assert(depot.sumRack(1) == 30)
-    Swag.assert(depot.sumCrate(0) == 7)
-    Swag.assert(depot.sumCrate(1) == 30)
+    Swag.require(depot.sumRack(0) == 7)
+    Swag.require(depot.sumRack(1) == 30)
+    Swag.require(depot.sumCrate(0) == 7)
+    Swag.require(depot.sumCrate(1) == 30)
     depot.scaleCrate(0, 10)
-    Swag.assert(depot.sumCrate(0) == 70)
+    Swag.require(depot.sumCrate(0) == 70)
 }

@@ -85,76 +85,76 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 #test
 {
     let b: Box's32 = {value: 42}
-    Swag.assert(unbox(b) == 42)
+    Swag.require(unbox(b) == 42)
 
     let bs: Box'string = {value: "deduced"}
-    Swag.assert(unbox(bs) == "deduced")
+    Swag.require(unbox(bs) == "deduced")
 
     let bf: Box'f64 = {value: 1.5}
-    Swag.assert(unbox(bf) == 1.5)
+    Swag.require(unbox(bf) == 1.5)
 }
 
 // Deduction from Buffer (both T and N)
 #test
 {
     let buf: Buffer'(s32, 3) = {values: [10, 20, 30]}
-    Swag.assert(bufferFirst(buf) == 10)
-    Swag.assert(bufferLast(buf) == 30)
-    Swag.assert(bufferLen(buf) == 3)
+    Swag.require(bufferFirst(buf) == 10)
+    Swag.require(bufferLast(buf) == 30)
+    Swag.require(bufferLen(buf) == 3)
 
     let buf2: Buffer'(u8, 2) = {values: [5'u8, 15]}
-    Swag.assert(bufferFirst(buf2) == 5'u8)
-    Swag.assert(bufferLast(buf2) == 15'u8)
-    Swag.assert(bufferLen(buf2) == 2)
+    Swag.require(bufferFirst(buf2) == 5'u8)
+    Swag.require(bufferLast(buf2) == 15'u8)
+    Swag.require(bufferLen(buf2) == 2)
 }
 
 // Deduction from Pair (two different types)
 #test
 {
     let p: Pair'(s32, f64) = {first: 1, second: 2.5}
-    Swag.assert(pairFirst(p) == 1)
-    Swag.assert(pairSecond(p) == 2.5)
+    Swag.require(pairFirst(p) == 1)
+    Swag.require(pairSecond(p) == 2.5)
 
     let p2: Pair'(string, bool) = {first: "ok", second: true}
-    Swag.assert(pairFirst(p2) == "ok")
-    Swag.assert(pairSecond(p2) == true)
+    Swag.require(pairFirst(p2) == "ok")
+    Swag.require(pairSecond(p2) == true)
 }
 
 // Deduction from pointer type
 #test
 {
     var x: s32 = 99
-    Swag.assert(readPtr(&x) == 99)
+    Swag.require(readPtr(&x) == 99)
     writePtr(&x, 77)
-    Swag.assert(x == 77)
+    Swag.require(x == 77)
 
     var y: f64 = 3.14
-    Swag.assert(readPtr(&y) == 3.14)
+    Swag.require(readPtr(&y) == 3.14)
 }
 
 // Deduction from fixed array
 #test
 {
     let a2: [2] s32 = [10, 20]
-    Swag.assert(firstOf2(a2) == 10)
+    Swag.require(firstOf2(a2) == 10)
 
     let a3: [3] f64 = [1.5, 2.5, 3.5]
-    Swag.assert(firstOf3(a3) == 1.5)
+    Swag.require(firstOf3(a3) == 1.5)
 
     let b2: [2] u16 = [100'u16, 200]
-    Swag.assert(firstOf2(b2) == 100'u16)
+    Swag.require(firstOf2(b2) == 100'u16)
 }
 
 // Partial explicit + deduction
 #test
 {
     let arr = makeBuffer'(s32, 4)(7)
-    Swag.assert(arr[0] == 7)
-    Swag.assert(arr[3] == 7)
+    Swag.require(arr[0] == 7)
+    Swag.require(arr[3] == 7)
 
     let barr = makeBuffer'(bool, 2)(true)
-    Swag.assert(barr[0] == true)
-    Swag.assert(barr[1] == true)
+    Swag.require(barr[0] == true)
+    Swag.require(barr[1] == true)
 }
 
 // Multi-arg deduction from two generic structs
@@ -163,35 +163,35 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
     let a: Box's32    = {value: 10}
     let b: Box'string = {value: "zip"}
     let pair          = zipBoxes(a, b)
-    Swag.assert(pair.first == 10)
-    Swag.assert(pair.second == "zip")
+    Swag.require(pair.first == 10)
+    Swag.require(pair.second == "zip")
 }
 
 // Same-type multi-arg deduction
 #test
 {
-    Swag.assert(larger(3, 7) == 7)
-    Swag.assert(larger(7, 3) == 7)
-    Swag.assert(smaller(3, 7) == 3)
-    Swag.assert(smaller(7, 3) == 3)
+    Swag.require(larger(3, 7) == 7)
+    Swag.require(larger(7, 3) == 7)
+    Swag.require(smaller(3, 7) == 3)
+    Swag.require(smaller(7, 3) == 3)
 
-    Swag.assert(larger(1.5, 2.5) == 2.5)
-    Swag.assert(smaller(1.5, 2.5) == 1.5)
+    Swag.require(larger(1.5, 2.5) == 2.5)
+    Swag.require(smaller(1.5, 2.5) == 1.5)
 }
 
 // Deduction on makeBox (return type is generic struct)
 #test
 {
     let b = makeBox(42)
-    Swag.assert(b.value == 42)
+    Swag.require(b.value == 42)
     #assert(#typeof(b.value) == s32)
 
     let b2 = makeBox("hello")
-    Swag.assert(b2.value == "hello")
+    Swag.require(b2.value == "hello")
     #assert(#typeof(b2.value) == string)
 
     let b3 = makeBox(true)
-    Swag.assert(b3.value == true)
+    Swag.require(b3.value == true)
     #assert(#typeof(b3.value) == bool)
 }
 
@@ -199,13 +199,13 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 #test
 {
     let p = makePair(10, 20)
-    Swag.assert(p.first == 10)
-    Swag.assert(p.second == 20)
+    Swag.require(p.first == 10)
+    Swag.require(p.second == 20)
     #assert(#typeof(p.first) == s32)
 
     let p2 = makePair(1.0'f64, 2.0'f64)
-    Swag.assert(p2.first == 1.0'f64)
-    Swag.assert(p2.second == 2.0'f64)
+    Swag.require(p2.first == 1.0'f64)
+    Swag.require(p2.second == 2.0'f64)
     #assert(#typeof(p2.first) == f64)
 }
 
@@ -214,16 +214,16 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 {
     let deduced  = unbox(Box'string{value: "test"})
     let explicit = unbox'(string)(Box'string{value: "test"})
-    Swag.assert(deduced == explicit)
-    Swag.assert(deduced == "test")
+    Swag.require(deduced == explicit)
+    Swag.require(deduced == "test")
 }
 
 // Chained deduction: makeBox of makeBox
 #test
 {
     let box = makeBox(makeBox(42))
-    Swag.assert(box.value.value == 42)
+    Swag.require(box.value.value == 42)
 
     let box2 = makeBox(makeBox("hello"))
-    Swag.assert(box2.value.value == "hello")
+    Swag.require(box2.value.value == "hello")
 }

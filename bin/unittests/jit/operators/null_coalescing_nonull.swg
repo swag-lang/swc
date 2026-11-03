@@ -76,5 +76,5 @@ func jitOrelseNonNullBranches()->bool
 
 #test
 {
-    Swag.assert(jitOrelseNonNullBranches())
+    Swag.require(jitOrelseNonNullBranches())
 }

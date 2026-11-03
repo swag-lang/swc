@@ -36,7 +36,7 @@ func forRefMacroBump(values: [..] s32)
         return values[0] + values[1] + values[2]
     }
 
-    Swag.assert(run() == 339)
+    Swag.require(run() == 339)
     const V = #run run()
     #assert(V == 339)
 }

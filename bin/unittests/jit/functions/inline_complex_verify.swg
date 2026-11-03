@@ -24,5 +24,5 @@ func failInlinePayloadAssert()->u8
 #test
 {
     const V = #run failInlinePayloadAssert()
-    Swag.assert(V == 2)
+    Swag.require(V == 2)
 }

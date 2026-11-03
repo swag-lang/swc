@@ -46,9 +46,9 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
 {
     let pointer = expect requiredPointer()
     #assert(#typeof(pointer) == *s32)
-    Swag.assert(pointer[] == 42)
-    Swag.assert(uncheckedExpectPointer()[] == 42)
-    Swag.assert((expect absentSuccess()) == null)
+    Swag.require(pointer[] == 42)
+    Swag.require(uncheckedExpectPointer()[] == 42)
+    Swag.require((expect absentSuccess()) == null)
 }
 
 #test
@@ -57,17 +57,17 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
     scope
     {
         let result = expect propagateResult(true)
-        Swag.assert(result.pointer[] == 42)
-        Swag.assert(result.payload[63] == 0)
+        Swag.require(result.pointer[] == 42)
+        Swag.require(result.payload[63] == 0)
     }
-    Swag.assert(drops == 1)
+    Swag.require(drops == 1)
 
     drops = 0
     var errorOutcome: Swag.Error
     catch consumeFailure() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null)
-    Swag.assert(drops == 0, "an error produces no result to destroy")
+    Swag.require(error != null)
+    Swag.require(drops == 0, "an error produces no result to destroy")
 }
 
 func expectBlockResult()
@@ -83,5 +83,5 @@ func expectBlockResult()
 {
     drops = 0
     expectBlockResult()
-    Swag.assert(drops == 1)
+    Swag.require(drops == 1)
 }

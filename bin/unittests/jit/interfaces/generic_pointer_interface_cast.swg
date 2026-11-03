@@ -45,5 +45,5 @@ func runGenericPointerInterfaceCast()->bool
 
 #test
 {
-    Swag.assert(runGenericPointerInterfaceCast())
+    Swag.require(runGenericPointerInterfaceCast())
 }

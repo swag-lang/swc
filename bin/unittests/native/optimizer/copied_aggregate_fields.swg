@@ -73,12 +73,12 @@ func sumBeforeReplace(holder: *Holder, other: const [..] u64, otherName: string)
     let second  = [10'u64, 20]
     var holder  = Holder{counter: &counter, words: first, name: "abc"}
 
-    Swag.assert(callThrough(&holder, 7) == 12)
-    Swag.assert(callThrough(&holder, 1) == 13)
-    Swag.assert(sumWords(&holder) == 6)
-    Swag.assert(nameWeight(&holder) == 3000 + 'a')
+    Swag.require(callThrough(&holder, 7) == 12)
+    Swag.require(callThrough(&holder, 1) == 13)
+    Swag.require(sumWords(&holder) == 6)
+    Swag.require(nameWeight(&holder) == 3000 + 'a')
 
-    Swag.assert(sumBeforeReplace(&holder, second, "hello") == 9)
-    Swag.assert(sumWords(&holder) == 30)
-    Swag.assert(nameWeight(&holder) == 5000 + 'h')
+    Swag.require(sumBeforeReplace(&holder, second, "hello") == 9)
+    Swag.require(sumWords(&holder) == 30)
+    Swag.require(nameWeight(&holder) == 5000 + 'h')
 }

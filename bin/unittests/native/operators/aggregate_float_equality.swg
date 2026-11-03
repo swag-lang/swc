@@ -18,10 +18,10 @@ func loadArray(value: const *[4] f32)->[4] f32 => value[]
     #assert(unordered != unordered)
 
     var values = [positive, negative, unordered]
-    Swag.assert(loadPair(&values[0]) == loadPair(&values[1]))
-    Swag.assert(loadPair(&values[2]) != loadPair(&values[2]))
-    Swag.assert((loadPair(&values[0]), ) == (loadPair(&values[1]),))
-    Swag.assert({point: loadPair(&values[2])} != {point: loadPair(&values[2])})
+    Swag.require(loadPair(&values[0]) == loadPair(&values[1]))
+    Swag.require(loadPair(&values[2]) != loadPair(&values[2]))
+    Swag.require((loadPair(&values[0]), ) == (loadPair(&values[1]),))
+    Swag.require({point: loadPair(&values[2])} != {point: loadPair(&values[2])})
 }
 
 #test
@@ -34,6 +34,6 @@ func loadArray(value: const *[4] f32)->[4] f32 => value[]
     #assert(unordered != unordered)
 
     var values = [positive, negative, unordered]
-    Swag.assert(loadArray(&values[0]) == loadArray(&values[1]))
-    Swag.assert(loadArray(&values[2]) != loadArray(&values[2]))
+    Swag.require(loadArray(&values[0]) == loadArray(&values[1]))
+    Swag.require(loadArray(&values[2]) != loadArray(&values[2]))
 }

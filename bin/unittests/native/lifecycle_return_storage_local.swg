@@ -330,7 +330,7 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageBuilt(StorageSeed)
-        Swag.assert(x.value == 5)
+        Swag.require(x.value == 5)
     }
     expectStorageHooks(0, 0, 1)
 
@@ -339,7 +339,7 @@ func storageTrimmed()->StorageText
     {
         let x = storageBranches(StorageSeed)
         let y = storageBranches(StorageSeed + 200)
-        Swag.assert(x.value == 6 and y.value == 205)
+        Swag.require(x.value == 6 and y.value == 205)
     }
     expectStorageHooks(0, 0, 2)
 
@@ -347,7 +347,7 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageCallsInlined(StorageSeed)
-        Swag.assert(x.value == 10)
+        Swag.require(x.value == 10)
     }
     expectStorageHooks(0, 0, 1)
 
@@ -358,7 +358,7 @@ func storageTrimmed()->StorageText
         let y = storageBodyInlined(StorageSeed)
         let z = storageBodyCall(StorageSeed)
         let w = storageBodyLiteral(StorageSeed)
-        Swag.assert(x.value == 10 and y.value == 10 and z.value == 5 and w.value == 6)
+        Swag.require(x.value == 10 and y.value == 10 and z.value == 5 and w.value == 6)
     }
     // The literal is built in the expansion's own result, then moves once into the slot.
     expectStorageHooks(0, 1, 4)
@@ -368,7 +368,7 @@ func storageTrimmed()->StorageText
     {
         let x = storageDisjoint(StorageSeed > 0)
         let y = storageDisjoint(StorageSeed < 0)
-        Swag.assert(x.value == 1 and y.value == 2)
+        Swag.require(x.value == 1 and y.value == 2)
     }
     expectStorageHooks(0, 0, 2)
 }
@@ -381,7 +381,7 @@ func storageTrimmed()->StorageText
     {
         let x = storageReplaced(StorageSeed > 0)
         let y = storageReplaced(StorageSeed < 0)
-        Swag.assert(x.value == 2 and y.value == 1)
+        Swag.require(x.value == 2 and y.value == 1)
     }
     expectStorageHooks(0, 1, 3)
 
@@ -390,8 +390,8 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageDeferred(StorageSeed)
-        Swag.assert(x.value == 5)
-        Swag.assert(StorageSink == 5)
+        Swag.require(x.value == 5)
+        Swag.require(StorageSink == 5)
     }
     expectStorageHooks(1, 0, 2)
 }
@@ -402,8 +402,8 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = catch storageFailDefer(true)
-        Swag.assert(x.value == 5)
-        Swag.assert(StorageSink == 0)
+        Swag.require(x.value == 5)
+        Swag.require(StorageSink == 0)
     }
     expectStorageHooks(0, 0, 1)
 
@@ -412,17 +412,17 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = catch storageFailDefer(false)
-        Swag.assert(x.value == 0)
-        Swag.assert(StorageSink == 5)
+        Swag.require(x.value == 0)
+        Swag.require(StorageSink == 5)
     }
-    Swag.assert(StorageCopies == 0 and StorageMoves == 0)
+    Swag.require(StorageCopies == 0 and StorageMoves == 0)
 
     resetStorageHooks()
     scope
     {
         let x = storageLoopDefer(StorageSeed)
-        Swag.assert(x.value == 5)
-        Swag.assert(StorageSink == 10)
+        Swag.require(x.value == 5)
+        Swag.require(StorageSink == 10)
     }
     expectStorageHooks(0, 0, 1)
 
@@ -431,7 +431,7 @@ func storageTrimmed()->StorageText
     {
         let x = storageFirstAbove(StorageSeed)
         let y = storageFirstAbove(StorageSeed + 10)
-        Swag.assert(x.value == 6 and y.value == 0)
+        Swag.require(x.value == 6 and y.value == 0)
     }
     expectStorageHooks(0, 0, 2)
 
@@ -439,7 +439,7 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageCaptured(StorageSeed)
-        Swag.assert(x.value == 5)
+        Swag.require(x.value == 5)
     }
     expectStorageHooks(0, 0, 1)
 
@@ -447,7 +447,7 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageLoopLocal(StorageSeed)
-        Swag.assert(x.value == 5)
+        Swag.require(x.value == 5)
     }
     expectStorageHooks(0, 0, 6)
 }
@@ -459,19 +459,19 @@ func storageTrimmed()->StorageText
     scope
     {
         let x = storageObservedOwned()
-        Swag.assert(x.id == 5)
-        Swag.assert(StorageSink == 0)
-        Swag.assert(StorageReleases == 0)
+        Swag.require(x.id == 5)
+        Swag.require(StorageSink == 0)
+        Swag.require(StorageReleases == 0)
     }
-    Swag.assert(StorageReleases == 1)
+    Swag.require(StorageReleases == 1)
 
     resetStorageHooks()
     StorageSink = -1
     scope
     {
         let x = storageObservedMoved(StorageSeed)
-        Swag.assert(x.value == 5)
-        Swag.assert(StorageSink == 0)
+        Swag.require(x.value == 5)
+        Swag.require(StorageSink == 0)
     }
     expectStorageHooks(0, 1, 2)
 }
@@ -479,22 +479,22 @@ func storageTrimmed()->StorageText
 #test
 {
     let trimmed = storageTrimmedReplaced(StorageSeed > 0)
-    Swag.assert(trimmed.len == 5 and trimmed.buf[0] == 83 and trimmed.buf[4] == 101)
+    Swag.require(trimmed.len == 5 and trimmed.buf[0] == 83 and trimmed.buf[4] == 101)
     let kept = storageTrimmedReplaced(StorageSeed < 0)
-    Swag.assert(kept.len == 7 and kept.buf[0] == 32)
+    Swag.require(kept.len == 7 and kept.buf[0] == 32)
 
     resetStorageHooks()
     scope
     {
         let x = storageLiteralReplaced(StorageSeed > 0)
         let y = storageLiteralReplaced(StorageSeed < 0)
-        Swag.assert(x.value == 9 and y.value == 1)
+        Swag.require(x.value == 9 and y.value == 1)
     }
-    Swag.assert(StorageCopies == 0 and StorageDrops == 3)
+    Swag.require(StorageCopies == 0 and StorageDrops == 3)
 }
 
 #test
 {
     let text = storageTrimmed()
-    Swag.assert(text.len == 5 and text.buf[0] == 83 and text.buf[4] == 101)
+    Swag.require(text.len == 5 and text.buf[0] == 83 and text.buf[4] == 101)
 }

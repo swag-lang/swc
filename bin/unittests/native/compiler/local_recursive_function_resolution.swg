@@ -45,8 +45,8 @@ func canReachTarget(target: u64, first: u64, operands: [..] u64)->bool
 #test
 {
     let eq0: [4] u64 = [6, 8, 6, 15]
-    Swag.assert(canReachTarget(7290, eq0[0], eq0[1 to]))
+    Swag.require(canReachTarget(7290, eq0[0], eq0[1 to]))
 
     let eq1: [4] u64 = [9, 7, 18, 13]
-    Swag.assert(not canReachTarget(21037, eq1[0], eq1[1 to]))
+    Swag.require(not canReachTarget(21037, eq1[0], eq1[1 to]))
 }

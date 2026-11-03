@@ -73,15 +73,15 @@ func makeTracked(v: s32)->Tracked
         scope
         {
             let picked = g_pick ? makeTracked(2) : source
-            Swag.assert(picked.value == 11)
-            Swag.assert(source.value == 1)
-            Swag.assert(PostCopyCount == 1)
+            Swag.require(picked.value == 11)
+            Swag.require(source.value == 1)
+            Swag.require(PostCopyCount == 1)
         }
-        Swag.assert(source.value == 1)
-        Swag.assert(DropCount == 1)
+        Swag.require(source.value == 1)
+        Swag.require(DropCount == 1)
     }
-    Swag.assert(DropCount == 2)
-    Swag.assert(DropTrace == 1101)
+    Swag.require(DropCount == 2)
+    Swag.require(DropTrace == 1101)
 }
 
 // Selecting the temporary arm copies it the same way; the untouched lvalue arm keeps
@@ -96,14 +96,14 @@ func makeTracked(v: s32)->Tracked
         scope
         {
             let picked = g_pick ? makeTracked(2) : source
-            Swag.assert(picked.value == 12)
-            Swag.assert(source.value == 1)
-            Swag.assert(PostCopyCount == 1)
+            Swag.require(picked.value == 12)
+            Swag.require(source.value == 1)
+            Swag.require(PostCopyCount == 1)
         }
-        Swag.assert(DropCount == 1)
+        Swag.require(DropCount == 1)
     }
-    Swag.assert(DropCount == 2)
-    Swag.assert(DropTrace == 1201)
+    Swag.require(DropCount == 2)
+    Swag.require(DropTrace == 1201)
 }
 
 // Two lvalue arms: whichever wins is copied, the loser is not touched.
@@ -118,14 +118,14 @@ func makeTracked(v: s32)->Tracked
         scope
         {
             let picked = g_pick ? left : right
-            Swag.assert(picked.value == 14)
-            Swag.assert(PostCopyCount == 1)
+            Swag.require(picked.value == 14)
+            Swag.require(PostCopyCount == 1)
         }
-        Swag.assert(left.value == 3)
-        Swag.assert(right.value == 4)
-        Swag.assert(DropCount == 1)
+        Swag.require(left.value == 3)
+        Swag.require(right.value == 4)
+        Swag.require(DropCount == 1)
     }
-    Swag.assert(DropCount == 3)
+    Swag.require(DropCount == 3)
 }
 
 // 'var' binds the same way as 'let'.
@@ -139,13 +139,13 @@ func makeTracked(v: s32)->Tracked
         scope
         {
             var picked = g_pick ? makeTracked(7) : source
-            Swag.assert(picked.value == 16)
+            Swag.require(picked.value == 16)
             picked.value = 8
         }
-        Swag.assert(source.value == 6)
-        Swag.assert(PostCopyCount == 1)
-        Swag.assert(DropCount == 1)
-        Swag.assert(DropTrace == 8)
+        Swag.require(source.value == 6)
+        Swag.require(PostCopyCount == 1)
+        Swag.require(DropCount == 1)
+        Swag.require(DropTrace == 8)
     }
-    Swag.assert(DropCount == 2)
+    Swag.require(DropCount == 2)
 }

@@ -15,15 +15,15 @@ for efficient integer operations at varying levels of precision.
     let c: s32 = -3     // 32-bit signed integer, range: -2^31 to 2^31-1
     let d: s64 = -4     // 64-bit signed integer, range: -2^63 to 2^63-1
 
-    Swag.assert(a == -1)
-    Swag.assert(b == -2)
-    Swag.assert(c == -3)
-    Swag.assert(d == -4)
+    Swag.require(a == -1)
+    Swag.require(b == -2)
+    Swag.require(c == -3)
+    Swag.require(d == -4)
 
-    Swag.assert(#sizeof(a) == 1)     // 'a' is an 's8' → 1 byte
-    Swag.assert(#sizeof(b) == 2)     // 'b' is an 's16' → 2 bytes
-    Swag.assert(#sizeof(c) == 4)     // 'c' is an 's32' → 4 bytes
-    Swag.assert(#sizeof(d) == 8)     // 'd' is an 's64' → 8 bytes
+    Swag.require(#sizeof(a) == 1)     // 'a' is an 's8' → 1 byte
+    Swag.require(#sizeof(b) == 2)     // 'b' is an 's16' → 2 bytes
+    Swag.require(#sizeof(c) == 4)     // 'c' is an 's32' → 4 bytes
+    Swag.require(#sizeof(d) == 8)     // 'd' is an 's64' → 8 bytes
 }
 
 /**
@@ -40,15 +40,15 @@ counting, indexing, and other operations where negative numbers are not applicab
     let c: u32 = 3     // 32-bit unsigned integer, range: 0 to 2^32-1
     let d: u64 = 4     // 64-bit unsigned integer, range: 0 to 2^64-1
 
-    Swag.assert(a == 1)
-    Swag.assert(b == 2)
-    Swag.assert(c == 3)
-    Swag.assert(d == 4)
+    Swag.require(a == 1)
+    Swag.require(b == 2)
+    Swag.require(c == 3)
+    Swag.require(d == 4)
 
-    Swag.assert(#sizeof(a) == 1)     // 'a' is a 'u8' → 1 byte
-    Swag.assert(#sizeof(b) == 2)     // 'b' is a 'u16' → 2 bytes
-    Swag.assert(#sizeof(c) == 4)     // 'c' is a 'u32' → 4 bytes
-    Swag.assert(#sizeof(d) == 8)     // 'd' is a 'u64' → 8 bytes
+    Swag.require(#sizeof(a) == 1)     // 'a' is a 'u8' → 1 byte
+    Swag.require(#sizeof(b) == 2)     // 'b' is a 'u16' → 2 bytes
+    Swag.require(#sizeof(c) == 4)     // 'c' is a 'u32' → 4 bytes
+    Swag.require(#sizeof(d) == 8)     // 'd' is a 'u64' → 8 bytes
 }
 
 /**
@@ -63,11 +63,11 @@ fractional values or higher precision.
     let a: f32 = 3.14        // 32-bit float (single precision)
     let b: f64 = 3.14159     // 64-bit float (double precision)
 
-    Swag.assert(a == 3.14)
-    Swag.assert(b == 3.14159)
+    Swag.require(a == 3.14)
+    Swag.require(b == 3.14159)
 
-    Swag.assert(#sizeof(a) == 4)     // 'a' is an 'f32' → 4 bytes
-    Swag.assert(#sizeof(b) == 8)     // 'b' is an 'f64' → 8 bytes
+    Swag.require(#sizeof(a) == 4)     // 'a' is an 'f32' → 4 bytes
+    Swag.require(#sizeof(b) == 8)     // 'b' is an 'f64' → 8 bytes
 }
 
 /**
@@ -81,11 +81,11 @@ a boolean occupies 1 byte of memory.
     let a: bool = true
     let b: bool = false
 
-    Swag.assert(a == true)
-    Swag.assert(b == false)
+    Swag.require(a == true)
+    Swag.require(b == false)
 
-    Swag.assert(#sizeof(a) == 1)     // 'bool' → 1 byte
-    Swag.assert(#sizeof(b) == 1)
+    Swag.require(#sizeof(a) == 1)     // 'bool' → 1 byte
+    Swag.require(#sizeof(b) == 1)
 }
 
 /**
@@ -99,8 +99,8 @@ This structure ensures efficient text manipulation and full Unicode compatibilit
 {
     let a: string = "string 是"     // UTF-8 encoded string
 
-    Swag.assert(a == "string 是")
-    Swag.assert(#sizeof(a) == 2 * #sizeof(*void?))     // Pointer + length
+    Swag.require(a == "string 是")
+    Swag.require(#sizeof(a) == 2 * #sizeof(*void?))     // Pointer + length
 }
 
 /**
@@ -113,8 +113,8 @@ Unicode character and is ideal for per-character text operations across language
 {
     let a: rune = '是'     // Single Unicode code point
 
-    Swag.assert(a == '是')
-    Swag.assert(#sizeof(a) == 4)     // 'rune' → 4 bytes (32 bits)
+    Swag.require(a == '是')
+    Swag.require(#sizeof(a) == 4)     // 'rune' → 4 bytes (32 bits)
 }
 
 /**
@@ -140,8 +140,8 @@ as shown in the reflection chapter.
     let a = 0     // Type of 'a' inferred as 's32'
     let b: #decltype(a) = 1     // 'b' declared with same type as 'a'
 
-    Swag.assert(#typeof(a) == #typeof(b))
-    Swag.assert(#typeof(a) == s32)
+    Swag.require(#typeof(a) == #typeof(b))
+    Swag.require(#typeof(a) == s32)
 
     #assert(#typeof(a) == #typeof(b))
     #assert(#typeof(a) == s32)

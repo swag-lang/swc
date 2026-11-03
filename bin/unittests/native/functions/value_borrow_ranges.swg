@@ -25,12 +25,12 @@ func mutateLarge(value: Large, target: *Large, index: u64)->u8
     for index in [0'u64, 63, 64, 95]
     {
         let caught = Swag.catchPanic(func|&value, index|() { discard mutateSmall(value, &value, index) })
-        Swag.assert(caught.raised and value.bytes[index] == 0)
+        Swag.require(caught.raised and value.bytes[index] == 0)
     }
     var other: Small
-    Swag.assert(mutateSmall(value, &other, 95) == 0 and other.bytes[95] == 17)
+    Swag.require(mutateSmall(value, &other, 95) == 0 and other.bytes[95] == 17)
     value.bytes[95] = 19
-    Swag.assert(value.bytes[95] == 19)
+    Swag.require(value.bytes[95] == 19)
 }
 
 // Ranges too wide for the small-range filter must still check every overlapping write.
@@ -40,12 +40,12 @@ func mutateLarge(value: Large, target: *Large, index: u64)->u8
     for index in [0'u64, 511, 512, 2047]
     {
         let caught = Swag.catchPanic(func|&value, index|() { discard mutateLarge(value, &value, index) })
-        Swag.assert(caught.raised and value.bytes[index] == 0)
+        Swag.require(caught.raised and value.bytes[index] == 0)
     }
     var other: Large
-    Swag.assert(mutateLarge(value, &other, 2047) == 0 and other.bytes[2047] == 23)
+    Swag.require(mutateLarge(value, &other, 2047) == 0 and other.bytes[2047] == 23)
     value.bytes[2047] = 29
-    Swag.assert(value.bytes[2047] == 29)
+    Swag.require(value.bytes[2047] == 29)
 }
 
 #[Swag.NoInline]
@@ -64,5 +64,5 @@ func removeInner(value: Small, target: *Small)->u8
 {
     var value: Small
     let caught = Swag.catchPanic(func|&value|() { discard removeInner(value, &value) })
-    Swag.assert(caught.raised and value.bytes[0] == 0)
+    Swag.require(caught.raised and value.bytes[0] == 0)
 }

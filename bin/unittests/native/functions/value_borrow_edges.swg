@@ -44,7 +44,7 @@ func readSelection(value: Value, selected: MovedValue)->u64 => value.first + sel
         mustReject(func|selectFirst, &first, &second|() {
             discard readSelection(globalValue, selectFirst ? #copy first : #copy second)
         })
-        Swag.assert(globalValue.first == 181)
+        Swag.require(globalValue.first == 181)
     }
 }
 
@@ -61,9 +61,9 @@ func write(value: Value, target: *Value)->u64
     let encoded      = cast(u64, cast(*void, &write))
     let callback     = cast(Writer, cast(*void, encoded))
     mustReject(func|callback, &value|() { discard callback(value, &value) })
-    Swag.assert(value.first == 191)
+    Swag.require(value.first == 191)
     let observed = callback(#copy value, &value)
-    Swag.assert(observed == 191 and value.first == 0)
+    Swag.require(observed == 191 and value.first == 0)
 }
 
 var published: u64
@@ -88,7 +88,7 @@ func mutatePublished(value: PublishedValue, target: *PublishedValue)->u64
     mustReject(func|&value|() {
         discard mutatePublished(#copy value, cast(*PublishedValue, published))
     })
-    Swag.assert(value.first == 193)
+    Swag.require(value.first == 193)
     published = 0
 }
 
@@ -108,17 +108,17 @@ func replaceSlice(value: [..] u64, target: *[..] u64, replacement: [..] u64)->u6
 {
     var text = "original"
     mustReject(func|&text|() { discard replaceString(text, &text) })
-    Swag.assert(text == "original")
+    Swag.require(text == "original")
     let length = replaceString(#copy text, &text)
-    Swag.assert(length == 8 and text == "replacement")
+    Swag.require(length == 8 and text == "replacement")
 
     var first          = [1'u64, 2]
     var second         = [3'u64, 4, 5]
     var view: [..] u64 = first
     mustReject(func|&view, &second|() { discard replaceSlice(view, &view, second) })
-    Swag.assert(view.count == 2)
+    Swag.require(view.count == 2)
     let count = replaceSlice(#copy view, &view, second)
-    Swag.assert(count == 2 and view.count == 3)
+    Swag.require(count == 2 and view.count == 3)
 }
 
 struct BorrowError {}
@@ -139,11 +139,11 @@ func readFailingLater(value: Value)->u64 fail => readLater(value, try failLater(
     var value:    Value = Value{first: 197}
     var observed: u64
     catch failWhileBorrowing(value, &observed)
-    Swag.assert(observed == 197)
+    Swag.require(observed == 197)
     value.first = 199
     discard catch readFailingLater(value)
     value.first = 211
-    Swag.assert(value.first == 211)
+    Swag.require(value.first == 211)
 }
 
 #[Swag.NoInline]
@@ -156,9 +156,9 @@ func writeInDefer(value: Value, target: *Value)->u64
 {
     var value: Value = Value{first: 223}
     mustReject(func|&value|() { discard writeInDefer(value, &value) })
-    Swag.assert(value.first == 223)
+    Swag.require(value.first == 223)
     let observed = writeInDefer(#copy value, &value)
-    Swag.assert(observed == 223 and value.first == 0)
+    Swag.require(observed == 223 and value.first == 0)
 }
 
 #[Swag.NoInline]
@@ -177,10 +177,10 @@ func writeByte(value: Value, target: [*] u8, offset: u64, count: u64)->u64
     let empty  = writeByte(values[1], bytes, width, 0)
     let before = writeByte(values[1], bytes, width - 1, 1)
     let after  = writeByte(values[1], bytes, width * 2, 1)
-    Swag.assert(empty == 227 and before == 227 and after == 227)
+    Swag.require(empty == 227 and before == 227 and after == 227)
     mustReject(func|&values, bytes, width|() { discard writeByte(values[1], bytes, width - 1, 2) })
     mustReject(func|&values, bytes, width|() { discard writeByte(values[1], bytes, width * 2 - 1, 2) })
-    Swag.assert(values[1].first == 227)
+    Swag.require(values[1].first == 227)
 }
 
 // The caller must protect an earlier argument before evaluating the next one,
@@ -202,23 +202,23 @@ func inlineEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 {
     var value: Value = Value{first: 229}
     let ordinary     = sumEarlierArgument(value, probeEarlierArgument(&value, true))
-    Swag.assert(ordinary == 230 and value.first == 229)
+    Swag.require(ordinary == 230 and value.first == 229)
     let copied = sumEarlierArgument(#copy value, probeEarlierArgument(&value, false))
-    Swag.assert(copied == 230 and value.first == 0)
+    Swag.require(copied == 230 and value.first == 0)
 }
 #test
 {
     var value: Value = Value{first: 233}
     let inlined      = inlineEarlierArgument(value, probeEarlierArgument(&value, true))
-    Swag.assert(inlined == 234 and value.first == 233)
+    Swag.require(inlined == 234 and value.first == 233)
     let copied = inlineEarlierArgument(#copy value, probeEarlierArgument(&value, false))
-    Swag.assert(copied == 234 and value.first == 0)
+    Swag.require(copied == 234 and value.first == 0)
 }
 
 #test
 {
     const computed = #run sumEarlierArgument(Value{241, 0, 0}, 1)
-    Swag.assert(computed == 242)
+    Swag.require(computed == 242)
 }
 
 #[Swag.NoInline]
@@ -226,9 +226,9 @@ func floatArgument(value: Value)->f64 => cast(f64, value.first) + 0.5
 #test
 {
     const computed = #run floatArgument(Value{251, 0, 0})
-    Swag.assert(computed == 251.5)
+    Swag.require(computed == 251.5)
     const blockComputed = #run { return sumEarlierArgument(Value{257, 0, 0}, 1) }
-    Swag.assert(blockComputed == 258)
+    Swag.require(blockComputed == 258)
 }
 
 #[Swag.Inline]
@@ -242,7 +242,7 @@ func replaceAny(value: any, target: *any)->s32
     var value: any = 283's32
     mustReject(func|&value|() { discard replaceAny(value, &value) })
     let observed = replaceAny(#copy value, &value)
-    Swag.assert(observed == 283 and assume cast(s32, value) == 0)
+    Swag.require(observed == 283 and assume cast(s32, value) == 0)
 }
 
 #[Swag.NoInline]
@@ -257,7 +257,7 @@ func writePublished()->u64
 {
     var value: PublishedValue = PublishedValue{first: 293}
     mustReject(func|&value|() { discard readBesidePublished(#copy value, writePublished()) })
-    Swag.assert(value.first == 293)
+    Swag.require(value.first == 293)
     published = 0
 }
 
@@ -280,9 +280,9 @@ func readAcrossTask(value: Value, target: *Value)->u64
 {
     var value: Value = Value{first: 307}
     let observed     = readAcrossTask(value, &value)
-    Swag.assert(observed == 307 and value.first == 307)
+    Swag.require(observed == 307 and value.first == 307)
     value.first = 311
-    Swag.assert(value.first == 311)
+    Swag.require(value.first == 311)
 }
 
 var defaultValue: Value
@@ -302,11 +302,11 @@ func readInlineDefault(value: Value, extra: u64 = 1)->u64
 {
     defaultValue.first = 313
     mustReject(func() { discard readDefault(defaultValue) })
-    Swag.assert(defaultValue.first == 313)
+    Swag.require(defaultValue.first == 313)
     mustReject(func() { discard readInlineDefault(defaultValue) })
-    Swag.assert(defaultValue.first == 313)
+    Swag.require(defaultValue.first == 313)
     let observed = readDefault(#copy defaultValue)
-    Swag.assert(observed == 314 and defaultValue.first == 0)
+    Swag.require(observed == 314 and defaultValue.first == 0)
 }
 
 #[Swag.NoInline]

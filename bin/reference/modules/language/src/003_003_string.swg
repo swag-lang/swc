@@ -89,10 +89,10 @@ one after the other, each shown the way a constant prints.
 
     const b = 666
     let c = #stringof("the devil's number is not ", b + 1, "!")
-    Swag.assert(c == "the devil's number is not 667!")
+    Swag.require(c == "the devil's number is not 667!")
 
     let d = #stringof("there are ", 4, " apples in ", 2 * 2, " baskets")
-    Swag.assert(d == "there are 4 apples in 4 baskets")
+    Swag.require(d == "there are 4 apples in 4 baskets")
 }
 
 /**
@@ -105,16 +105,16 @@ string with zero bytes; it is different from an absent string.
 #test
 {
     var a: string?
-    Swag.assert(a == null)
+    Swag.require(a == null)
     a = "not null"
-    Swag.assert(a != null)
+    Swag.require(a != null)
     a = null
-    Swag.assert(a == null)
+    Swag.require(a == null)
 
     let empty: string? = ""
-    Swag.assert(empty != null)
-    Swag.assert(empty.count == 0)
-    Swag.assert((empty orelse "fallback") == "")
+    Swag.require(empty != null)
+    Swag.require(empty.count == 0)
+    Swag.require((empty orelse "fallback") == "")
 }
 
 /**
@@ -135,12 +135,12 @@ not just ASCII.
     let char0 = 'a'
     let char1 = '我'
     let value = 5's32     // Type suffix example
-    Swag.assert(char0 != char1)
+    Swag.require(char0 != char1)
 
     // The same literal, with the blank the lexer ignores.
     let spaced = 5 's32
     #assert(#typeof(spaced) == s32)
-    Swag.assert(spaced == value)
+    Swag.require(spaced == value)
 }
 
 /**
@@ -158,7 +158,7 @@ can select any integer type or 'rune' when the value fits the target type.
         let c: u32  = '我'
         let d: u64  = '我'
         let e: rune = '我'
-        Swag.assert(a == 'a' and b == 'a' and c == '我' and d == '我' and e == '我')
+        Swag.require(a == 'a' and b == 'a' and c == '我' and d == '我' and e == '我')
     }
 
     scope
@@ -167,7 +167,7 @@ can select any integer type or 'rune' when the value fits the target type.
         let b: s16 = 'a'
         let c: s32 = '我'
         let d: s64 = '我'
-        Swag.assert(a == 'a' and b == 'a' and c == '我' and d == '我')
+        Swag.require(a == 'a' and b == 'a' and c == '我' and d == '我')
     }
 }
 
@@ -187,29 +187,29 @@ let space  = ' 'u32     // the literal is a space, the suffix still follows the 
 #test
 {
     let a = '0'u8
-    Swag.assert(a == 48)
-    Swag.assert(#typeof(a) == u8)
+    Swag.require(a == 48)
+    Swag.require(#typeof(a) == u8)
 
     let b = '1'u16
-    Swag.assert(b == 49)
-    Swag.assert(#typeof(b) == u16)
+    Swag.require(b == 49)
+    Swag.require(#typeof(b) == u16)
 
     let c = '2'u32
-    Swag.assert(c == 50)
-    Swag.assert(#typeof(c) == u32)
+    Swag.require(c == 50)
+    Swag.require(#typeof(c) == u32)
 
     let d = '3'u64
-    Swag.assert(d == 51)
-    Swag.assert(#typeof(d) == u64)
+    Swag.require(d == 51)
+    Swag.require(#typeof(d) == u64)
 
     let e = '4'rune
-    Swag.assert(e == 52)
-    Swag.assert(#typeof(e) == rune)
+    Swag.require(e == 52)
+    Swag.require(#typeof(e) == rune)
 
     // The literal itself can be a space: the closing quote still ends it.
     let f = ' 'u32
-    Swag.assert(f == 32)
-    Swag.assert(#typeof(f) == u32)
+    Swag.require(f == 32)
+    Swag.require(#typeof(f) == u32)
 }
 
 /**

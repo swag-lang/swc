@@ -326,13 +326,13 @@ func typeinfoOrderedMoveWorks()->bool
 
 #test
 {
-    Swag.assert(typeinfoDirectDropWorks())
-    Swag.assert(typeinfoDirectCopyWorks())
-    Swag.assert(typeinfoDirectMoveWorks())
-    Swag.assert(typeinfoComposedLifecycleWorks())
-    Swag.assert(typeinfoGenericComposedLifecycleWorks())
-    Swag.assert(typeinfoGenericDirectLifecycleWorks())
-    Swag.assert(typeinfoOrderedDropWorks())
-    Swag.assert(typeinfoOrderedCopyWorks())
-    Swag.assert(typeinfoOrderedMoveWorks())
+    Swag.require(typeinfoDirectDropWorks())
+    Swag.require(typeinfoDirectCopyWorks())
+    Swag.require(typeinfoDirectMoveWorks())
+    Swag.require(typeinfoComposedLifecycleWorks())
+    Swag.require(typeinfoGenericComposedLifecycleWorks())
+    Swag.require(typeinfoGenericDirectLifecycleWorks())
+    Swag.require(typeinfoOrderedDropWorks())
+    Swag.require(typeinfoOrderedCopyWorks())
+    Swag.require(typeinfoOrderedMoveWorks())
 }

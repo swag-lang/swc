@@ -25,8 +25,8 @@ func readNullableAliasCapture(value: *s32?)->s32
 #test
 {
     var value: s32 = 42
-    Swag.assert(readNullableCapture(&value) == 42)
-    Swag.assert(readNullableCapture(null) == -1)
-    Swag.assert(readNullableAliasCapture(&value) == 42)
-    Swag.assert(readNullableAliasCapture(null) == -1)
+    Swag.require(readNullableCapture(&value) == 42)
+    Swag.require(readNullableCapture(null) == -1)
+    Swag.require(readNullableAliasCapture(&value) == 42)
+    Swag.require(readNullableAliasCapture(null) == -1)
 }

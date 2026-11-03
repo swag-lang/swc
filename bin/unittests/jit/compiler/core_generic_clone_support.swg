@@ -98,8 +98,8 @@ namespace GenericCloneCodegenSupport
     box.add(22)
 
     let values = box.toSlice()
-    Swag.assert(values[0] == 11)
-    Swag.assert(values[1] == 22)
+    Swag.require(values[0] == 11)
+    Swag.require(values[1] == 22)
 
     box.free()
 }
@@ -112,8 +112,8 @@ namespace GenericCloneCodegenSupport
     box.addNew(9)
 
     let values = box.values.toSlice()
-    Swag.assert(values[0][] == 7)
-    Swag.assert(values[1][] == 9)
+    Swag.require(values[0][] == 7)
+    Swag.require(values[1][] == 9)
 
     box.clear()
     box.values.free()

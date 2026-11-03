@@ -84,8 +84,8 @@ impl VisitKeeper
     var storage: [3] u64 = [1, 2, 4]
     var kp:      VisitKeeper
     kp.header.bag.set(storage)
-    Swag.assert(kp.total() == 7)
-    Swag.assert(kp.firstAbove(1) == 2)
+    Swag.require(kp.total() == 7)
+    Swag.require(kp.firstAbove(1) == 2)
     kp.scale(10)
-    Swag.assert(kp.total() == 70)
+    Swag.require(kp.total() == 70)
 }

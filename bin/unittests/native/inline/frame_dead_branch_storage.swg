@@ -46,8 +46,8 @@ func dynamicAlignment(size: u64, alignment: u32)->u64 => acquire(size, alignment
 
 #test
 {
-    Swag.assert(constantAlignment(64) == 23)
-    Swag.assert(constantAlignment(16) == 8)
-    Swag.assert(dynamicAlignment(64, 8) == 23)
-    Swag.assert(dynamicAlignment(64, 16) == 43)
+    Swag.require(constantAlignment(64) == 23)
+    Swag.require(constantAlignment(16) == 8)
+    Swag.require(dynamicAlignment(64, 8) == 23)
+    Swag.require(dynamicAlignment(64, 16) == 43)
 }

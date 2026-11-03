@@ -19,9 +19,9 @@ const COUNT_VALUE = cast(const *s32?, STRUCT_INFO.generics[1].value)
 
 #test
 {
-    Swag.assert(STRUCT_INFO.fromGeneric != null)
-    Swag.assert(STRUCT_INFO.generics.count == 2)
-    Swag.assert(STRUCT_INFO.generics[0].pointedType == u16)
-    Swag.assert(STRUCT_INFO.generics[1].pointedType == s32)
-    Swag.assert(COUNT_VALUE[] == 7)
+    Swag.require(STRUCT_INFO.fromGeneric != null)
+    Swag.require(STRUCT_INFO.generics.count == 2)
+    Swag.require(STRUCT_INFO.generics[0].pointedType == u16)
+    Swag.require(STRUCT_INFO.generics[1].pointedType == s32)
+    Swag.require(COUNT_VALUE[] == 7)
 }

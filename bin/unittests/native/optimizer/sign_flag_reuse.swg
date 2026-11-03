@@ -46,22 +46,22 @@ func isNonNegativeAfterSub(a, b: s64)->bool
 #test
 {
     let text: [6] u8 = ['a', 'b', 'c', 'a', 'b', 'c']
-    Swag.assert(lastIndex(&text[0], 6, 'a') == 3)
-    Swag.assert(lastIndex(&text[0], 6, 'c') == 5)
-    Swag.assert(lastIndex(&text[0], 6, 'z') == -1)
-    Swag.assert(lastIndex(&text[0], 0, 'a') == -1)
+    Swag.require(lastIndex(&text[0], 6, 'a') == 3)
+    Swag.require(lastIndex(&text[0], 6, 'c') == 5)
+    Swag.require(lastIndex(&text[0], 6, 'z') == -1)
+    Swag.require(lastIndex(&text[0], 0, 'a') == -1)
 
-    Swag.assert(countDown(-1) == 0)
-    Swag.assert(countDown(0) == 1)
-    Swag.assert(countDown(9) == 10)
+    Swag.require(countDown(-1) == 0)
+    Swag.require(countDown(0) == 1)
+    Swag.require(countDown(9) == 10)
 
     let values = [0's32, 1, -1, 0x7FFFFFFF, -0x7FFFFFFF - 1, 1000, -1000]
     for a in values
     {
         for b in values
         {
-            Swag.assert(isNegativeAfterAdd(a, b) == ((cast(s64, a) + cast(s64, b)) & 0x80000000 != 0))
-            Swag.assert(isNonNegativeAfterSub(a, b) == (cast(s64, a) - cast(s64, b) >= 0))
+            Swag.require(isNegativeAfterAdd(a, b) == ((cast(s64, a) + cast(s64, b)) & 0x80000000 != 0))
+            Swag.require(isNonNegativeAfterSub(a, b) == (cast(s64, a) - cast(s64, b) >= 0))
         }
     }
 }

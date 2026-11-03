@@ -32,7 +32,7 @@ struct(T, Count: s32) GuardedVector
 #test
 {
     let values: GuardedVector'(s32, 3) = {values: [1, 2, 3]}
-    Swag.assert(#typeof(values.values) == [3] s32)
-    Swag.assert(values.values[0] == 1)
-    Swag.assert(values.values[2] == 3)
+    Swag.require(#typeof(values.values) == [3] s32)
+    Swag.require(values.values[0] == 1)
+    Swag.require(values.values[2] == 3)
 }

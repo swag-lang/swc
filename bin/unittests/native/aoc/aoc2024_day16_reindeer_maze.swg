@@ -243,10 +243,10 @@ func solve(text: string)->u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    Swag.assert(cellAt(&m, 0, 0) == Wall)
-    Swag.assert(isWall(&m, 0, 0))
-    Swag.assert(not isWall(&m, 1, 1))
-    Swag.assert(isEnd(&m, 1, 3))
+    Swag.require(cellAt(&m, 0, 0) == Wall)
+    Swag.require(isWall(&m, 0, 0))
+    Swag.require(not isWall(&m, 1, 1))
+    Swag.require(isEnd(&m, 1, 3))
 }
 
 // Nested inline: isWall calls cellAt, both inline
@@ -256,8 +256,8 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     // Row 2 has a wall at col 2
-    Swag.assert(isWall(&m, 2, 2))
-    Swag.assert(not isWall(&m, 2, 1))
+    Swag.require(isWall(&m, 2, 2))
+    Swag.require(not isWall(&m, 2, 1))
 }
 
 // Parse tiny maze
@@ -266,12 +266,12 @@ func solve(text: string)->u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    Swag.assert(m.w == 5'u32)
-    Swag.assert(m.h == 5'u32)
-    Swag.assert(m.sr == 3'u32)
-    Swag.assert(m.sc == 1'u32)
-    Swag.assert(m.er == 1'u32)
-    Swag.assert(m.ec == 3'u32)
+    Swag.require(m.w == 5'u32)
+    Swag.require(m.h == 5'u32)
+    Swag.require(m.sr == 3'u32)
+    Swag.require(m.sc == 1'u32)
+    Swag.require(m.er == 1'u32)
+    Swag.require(m.ec == 3'u32)
 }
 
 // Parse sample maze
@@ -280,12 +280,12 @@ func solve(text: string)->u64
     var m = parseMaze(SampleInput)
     defer mazeFree(&m)
 
-    Swag.assert(m.w == 15'u32)
-    Swag.assert(m.h == 15'u32)
-    Swag.assert(m.sr == 14'u32)
-    Swag.assert(m.sc == 1'u32)
-    Swag.assert(m.er == 1'u32)
-    Swag.assert(m.ec == 13'u32)
+    Swag.require(m.w == 15'u32)
+    Swag.require(m.h == 15'u32)
+    Swag.require(m.sr == 14'u32)
+    Swag.require(m.sc == 1'u32)
+    Swag.require(m.er == 1'u32)
+    Swag.require(m.ec == 13'u32)
 }
 
 // Tiny maze: optimal path cost
@@ -294,14 +294,14 @@ func solve(text: string)->u64
     // S at (3,1), E at (1,3). Start facing East.
     // Path: turn North(1000), go 2(2), turn East(1000), go 2(2) = 2004
     let cost = solve(TinyInput)
-    Swag.assert(cost == 1004'u64)
+    Swag.require(cost == 1004'u64)
 }
 
 // Sample maze: expected cost 7036
 #test
 {
     let cost = solve(SampleInput)
-    Swag.assert(cost == 8025'u64)
+    Swag.require(cost == 8025'u64)
 }
 
 // discard keyword exercise

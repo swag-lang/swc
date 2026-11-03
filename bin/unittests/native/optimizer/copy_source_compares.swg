@@ -24,19 +24,19 @@ func reusedInput(a, b: u64)->u64
     let values = [0'u64, 1, 122, 123, 124, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(immediateMask(a) == (a < 123 ? 0xFFFFFFFFFFFFFFFF : 0))
+        Swag.require(immediateMask(a) == (a < 123 ? 0xFFFFFFFFFFFFFFFF : 0))
         for b in values
         {
             let expected = a < b ? 0xFFFFFFFFFFFFFFFF'u64 : 0
-            Swag.assert(unsignedMask(a, b) == expected)
-            Swag.assert(reusedInput(a, b) == (expected ^ a ^ b))
+            Swag.require(unsignedMask(a, b) == expected)
+            Swag.require(reusedInput(a, b) == (expected ^ a ^ b))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(unsignedMask32(a32, b32) == (a32 < b32 ? 0xFFFFFFFF : 0))
+            Swag.require(unsignedMask32(a32, b32) == (a32 < b32 ? 0xFFFFFFFF : 0))
         }
     }
-    Swag.assert(signedMask(-1, 0) == 0)
-    Swag.assert(signedMask(0, -1) == -1)
-    Swag.assert(signedMask(-7, -7) == -1)
-    Swag.assert(signedMask(-0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF) == 0)
+    Swag.require(signedMask(-1, 0) == 0)
+    Swag.require(signedMask(0, -1) == -1)
+    Swag.require(signedMask(-7, -7) == -1)
+    Swag.require(signedMask(-0x7FFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF) == 0)
 }

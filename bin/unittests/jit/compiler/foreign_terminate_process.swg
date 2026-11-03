@@ -65,21 +65,21 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
     // failure here leaves nothing behind that could hold the output of the suite open.
     var commandLine: [32] u16
     let converted = MultiByteToWideChar(CodePageUtf8, 0'u32, ("cmd.exe").buffer, 7, &commandLine[0], 32)
-    Swag.assert(converted == 7)
+    Swag.require(converted == 7)
     commandLine[converted] = 0
 
     var startup: StartupInfoW
     startup.cb = #sizeof(StartupInfoW)
 
     var information: ProcessInformation
-    Swag.assert(CreateProcessW(null, &commandLine[0], null, null, 0, CreateSuspended | DetachedProcess, null, null, &startup, &information) != 0)
+    Swag.require(CreateProcessW(null, &commandLine[0], null, null, 0, CreateSuspended | DetachedProcess, null, null, &startup, &information) != 0)
 
-    Swag.assert(TerminateProcess(information.hProcess, 3'u32) != 0)
-    Swag.assert(WaitForSingleObject(information.hProcess, 5000'u32) == WaitObject0)
+    Swag.require(TerminateProcess(information.hProcess, 3'u32) != 0)
+    Swag.require(WaitForSingleObject(information.hProcess, 5000'u32) == WaitObject0)
 
     var exitCode: u32
-    Swag.assert(GetExitCodeProcess(information.hProcess, &exitCode) != 0)
-    Swag.assert(exitCode == 3'u32)
+    Swag.require(GetExitCodeProcess(information.hProcess, &exitCode) != 0)
+    Swag.require(exitCode == 3'u32)
 
     discard CloseHandle(information.hThread)
     discard CloseHandle(information.hProcess)

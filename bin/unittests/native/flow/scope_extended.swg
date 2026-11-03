@@ -17,7 +17,7 @@
         }
         count = -1     // should not be reached
     }
-    Swag.assert(count == 3)
+    Swag.require(count == 3)
 }
 
 // A scope inside a loop leaves 'continue' pointing at the loop
@@ -35,8 +35,8 @@
 
         tail += 1     // Not reached: 'continue' restarted the 'for'
     }
-    Swag.assert(sum == 10)
-    Swag.assert(tail == 0)
+    Swag.require(sum == 10)
+    Swag.require(tail == 0)
 }
 
 // Break to scope skipping intermediate code
@@ -58,7 +58,7 @@
         }
         trace = 5     // unreachable
     }
-    Swag.assert(trace == 3)
+    Swag.require(trace == 3)
 }
 
 // Multiple independent scopes in sequence
@@ -78,8 +78,8 @@
         break to Second
     }
 
-    Swag.assert(a == 1)
-    Swag.assert(b == 2)
+    Swag.require(a == 1)
+    Swag.require(b == 2)
 }
 
 // Scope with while loop inside
@@ -98,7 +98,7 @@
         }
         count = -1     // unreachable
     }
-    Swag.assert(count == 5)
+    Swag.require(count == 5)
 }
 
 // 'break to' reaches an outer scope from inside a nested scope and a loop
@@ -124,9 +124,9 @@
 
         tail += 1     // Not reached: 'break to Done' left the whole scope
     }
-    Swag.assert(sum == 15)     // 1+2+3+4+5
-    Swag.assert(i == 5)
-    Swag.assert(tail == 0)
+    Swag.require(sum == 15)     // 1+2+3+4+5
+    Swag.require(i == 5)
+    Swag.require(tail == 0)
 }
 
 // Nested scopes with same name - inner takes precedence
@@ -146,8 +146,8 @@
         break to S     // breaks outer S
     }
 
-    Swag.assert(innerExited == true)
-    Swag.assert(outerExited == true)
+    Swag.require(innerExited == true)
+    Swag.require(outerExited == true)
 }
 
 // Scope with for loop break to outer
@@ -166,7 +166,7 @@
             }
         }
     }
-    Swag.assert(total == 15)
+    Swag.require(total == 15)
 }
 
 // Scope break from switch
@@ -187,7 +187,7 @@
         }
         hit = 3     // unreachable if case 2
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 // A bare break leaving through a scope still runs the defers the scope registered
@@ -202,7 +202,7 @@
             break
         }
     }
-    Swag.assert(trace == 1)
+    Swag.require(trace == 1)
 }
 
 // Two nested scopes unwind in order on the way to the loop
@@ -221,7 +221,7 @@
             }
         }
     }
-    Swag.assert(trace == 11)
+    Swag.require(trace == 11)
 }
 
 // 'continue' runs the scope defers on every iteration
@@ -236,7 +236,7 @@
             continue
         }
     }
-    Swag.assert(trace == 3)
+    Swag.require(trace == 3)
 }
 
 // A bare break inside a scope inside a switch case leaves the case
@@ -256,5 +256,5 @@
         trace += 100     // Not reached: 'break' left the case
     }
 
-    Swag.assert(trace == 10)
+    Swag.require(trace == 10)
 }

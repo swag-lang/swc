@@ -22,5 +22,5 @@ const CONSUME = cast(const *Swag.TypeInfoFunc, #typeof(consume))
 {
     let typeFunc = cast(const *Swag.TypeInfoFunc, #typeof(add))
     let ok       = typeFunc.parameters[0].pointedType == s32 and typeFunc.returnType == f32
-    Swag.assert(ok)
+    Swag.require(ok)
 }

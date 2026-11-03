@@ -26,8 +26,8 @@ func sanityUnaffectedBySafety()->bool
 
 #test
 {
-    Swag.assert(lifecycleSanityDisabled() == false)
-    Swag.assert(lifecycleSanityEnabled() == true)
+    Swag.require(lifecycleSanityDisabled() == false)
+    Swag.require(lifecycleSanityEnabled() == true)
 }
 
 #test

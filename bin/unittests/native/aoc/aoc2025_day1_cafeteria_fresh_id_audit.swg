@@ -94,20 +94,20 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
 
     let sampleAudit = auditFreshIds(sampleRanges, sampleAvailable)
 
-    Swag.assert(sampleAudit.rangeCount == 4'u32)
-    Swag.assert(sampleAudit.availableCount == 6'u32)
-    Swag.assert(sampleAudit.freshCount == 3'u32)
-    Swag.assert(sampleAudit.spoiledCount == 3'u32)
-    Swag.assert(sampleAudit.overlappingFresh == 1'u32)
+    Swag.require(sampleAudit.rangeCount == 4'u32)
+    Swag.require(sampleAudit.availableCount == 6'u32)
+    Swag.require(sampleAudit.freshCount == 3'u32)
+    Swag.require(sampleAudit.spoiledCount == 3'u32)
+    Swag.require(sampleAudit.overlappingFresh == 1'u32)
 
     const pantryRanges:    [4] string = ["20-25", "30-32", "32-35", "100-110"]
     const pantryAvailable: [7] u32    = [19, 20, 24, 32, 34, 105, 999]
 
     let pantryAudit = auditFreshIds(pantryRanges, pantryAvailable)
 
-    Swag.assert(pantryAudit.rangeCount == 4'u32)
-    Swag.assert(pantryAudit.availableCount == 7'u32)
-    Swag.assert(pantryAudit.freshCount == 5'u32)
-    Swag.assert(pantryAudit.spoiledCount == 2'u32)
-    Swag.assert(pantryAudit.overlappingFresh == 1'u32)
+    Swag.require(pantryAudit.rangeCount == 4'u32)
+    Swag.require(pantryAudit.availableCount == 7'u32)
+    Swag.require(pantryAudit.freshCount == 5'u32)
+    Swag.require(pantryAudit.spoiledCount == 2'u32)
+    Swag.require(pantryAudit.overlappingFresh == 1'u32)
 }

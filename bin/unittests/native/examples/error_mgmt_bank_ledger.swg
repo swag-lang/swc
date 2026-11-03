@@ -179,9 +179,9 @@ impl Ledger
     var err2Outcome: Swag.Error
     catch ledger.deposit(0, 1000) as err2Outcome
     let err2 = err2Outcome.value()
-    Swag.assert(err2 == null)
-    Swag.assert(ledger.accounts[0].balance == 1000)
-    Swag.assert(ledger.totalOps == 1)
+    Swag.require(err2 == null)
+    Swag.require(ledger.accounts[0].balance == 1000)
+    Swag.require(ledger.totalOps == 1)
 }
 
 #test
@@ -191,11 +191,11 @@ impl Ledger
     var err3Outcome: Swag.Error
     catch ledger.deposit(99, 10) as err3Outcome
     let err3 = err3Outcome.value()
-    Swag.assert(err3 != null)
+    Swag.require(err3 != null)
     let err = assume cast(BankError, err3)
-    Swag.assert(err.kind == .UnknownAccount)
-    Swag.assert(err.account == 99)
-    Swag.assert(err.message == "unknown account")
+    Swag.require(err.kind == .UnknownAccount)
+    Swag.require(err.account == 99)
+    Swag.require(err.message == "unknown account")
 }
 
 #test
@@ -205,9 +205,9 @@ impl Ledger
     var err4Outcome: Swag.Error
     catch ledger.deposit(0, 0) as err4Outcome
     let err4 = err4Outcome.value()
-    Swag.assert(err4 != null)
+    Swag.require(err4 != null)
     let err = assume cast(BankError, err4)
-    Swag.assert(err.kind == .InvalidAmount)
+    Swag.require(err.kind == .InvalidAmount)
 }
 
 #test
@@ -217,10 +217,10 @@ impl Ledger
     var err5Outcome: Swag.Error
     catch ledger.withdraw(0, 50) as err5Outcome
     let err5 = err5Outcome.value()
-    Swag.assert(err5 != null)
+    Swag.require(err5 != null)
     let err = assume cast(BankError, err5)
-    Swag.assert(err.kind == .InsufficientFunds)
-    Swag.assert(err.amount == 50)
+    Swag.require(err.kind == .InsufficientFunds)
+    Swag.require(err.amount == 50)
 }
 
 #test
@@ -231,10 +231,10 @@ impl Ledger
     var err6Outcome: Swag.Error
     catch ledger.deposit(0, 100) as err6Outcome
     let err6 = err6Outcome.value()
-    Swag.assert(err6 != null)
+    Swag.require(err6 != null)
     let err = assume cast(BankError, err6)
-    Swag.assert(err.kind == .FrozenAccount)
-    Swag.assert(err.account == 0)
+    Swag.require(err.kind == .FrozenAccount)
+    Swag.require(err.account == 0)
 }
 
 // Successful transfer: balances move, commit counter increments, no rollback.
@@ -246,11 +246,11 @@ impl Ledger
     var err7Outcome: Swag.Error
     catch ledger.transfer(0, 1, 300) as err7Outcome
     let err7 = err7Outcome.value()
-    Swag.assert(err7 == null)
-    Swag.assert(ledger.accounts[0].balance == 700)
-    Swag.assert(ledger.accounts[1].balance == 300)
-    Swag.assert(ledger.committed == 1)
-    Swag.assert(ledger.rolledBack == 0)
+    Swag.require(err7 == null)
+    Swag.require(ledger.accounts[0].balance == 700)
+    Swag.require(ledger.accounts[1].balance == 300)
+    Swag.require(ledger.committed == 1)
+    Swag.require(ledger.rolledBack == 0)
 }
 
 // Deposit leg fails: defer #fail fires, source balance restored, rolledBack bumps.
@@ -263,14 +263,14 @@ impl Ledger
     var err8Outcome: Swag.Error
     catch ledger.transfer(0, 1, 300) as err8Outcome
     let err8 = err8Outcome.value()
-    Swag.assert(err8 != null)
+    Swag.require(err8 != null)
     let err = assume cast(BankError, err8)
-    Swag.assert(err.kind == .FrozenAccount)
-    Swag.assert(err.account == 1)
-    Swag.assert(ledger.accounts[0].balance == 1000)
-    Swag.assert(ledger.accounts[1].balance == 0)
-    Swag.assert(ledger.committed == 0)
-    Swag.assert(ledger.rolledBack == 1)
+    Swag.require(err.kind == .FrozenAccount)
+    Swag.require(err.account == 1)
+    Swag.require(ledger.accounts[0].balance == 1000)
+    Swag.require(ledger.accounts[1].balance == 0)
+    Swag.require(ledger.committed == 0)
+    Swag.require(ledger.rolledBack == 1)
 }
 
 // Withdraw leg fails before either defer is registered, so no rollback fires.
@@ -282,13 +282,13 @@ impl Ledger
     var err9Outcome: Swag.Error
     catch ledger.transfer(0, 1, 500) as err9Outcome
     let err9 = err9Outcome.value()
-    Swag.assert(err9 != null)
+    Swag.require(err9 != null)
     let err = assume cast(BankError, err9)
-    Swag.assert(err.kind == .InsufficientFunds)
-    Swag.assert(ledger.accounts[0].balance == 100)
-    Swag.assert(ledger.accounts[1].balance == 0)
-    Swag.assert(ledger.committed == 0)
-    Swag.assert(ledger.rolledBack == 0)
+    Swag.require(err.kind == .InsufficientFunds)
+    Swag.require(ledger.accounts[0].balance == 100)
+    Swag.require(ledger.accounts[1].balance == 0)
+    Swag.require(ledger.committed == 0)
+    Swag.require(ledger.rolledBack == 0)
 }
 
 // Two back-to-back successful transfers without the batch helper.
@@ -300,13 +300,13 @@ impl Ledger
     var err10Outcome: Swag.Error
     catch ledger.transfer(0, 1, 100) as err10Outcome
     let err10 = err10Outcome.value()
-    Swag.assert(err10 == null)
-    Swag.assert(ledger.committed == 1)
+    Swag.require(err10 == null)
+    Swag.require(ledger.committed == 1)
     var err11Outcome: Swag.Error
     catch ledger.transfer(0, 1, 200) as err11Outcome
     let err11 = err11Outcome.value()
-    Swag.assert(err11 == null)
-    Swag.assert(ledger.committed == 2)
+    Swag.require(err11 == null)
+    Swag.require(ledger.committed == 2)
 }
 
 // Two back-to-back successful transfers via runBatch.
@@ -321,8 +321,8 @@ impl Ledger
     simple[0] = Transfer{0, 1, 100}
     simple[1] = Transfer{2, 3, 200}
     let n0 = ledger.runBatch(simple)
-    Swag.assert(n0 == 2)
-    Swag.assert(ledger.committed == 2)
+    Swag.require(n0 == 2)
+    Swag.require(ledger.committed == 2)
 }
 
 // Mixed batch: successes commit, failures roll back (when past the withdraw).
@@ -340,13 +340,13 @@ impl Ledger
     ops[3] = Transfer{0, 1, 10000}
 
     let n = ledger.runBatch(ops)
-    Swag.assert(n == 2)
-    Swag.assert(ledger.committed == 2)
-    Swag.assert(ledger.rolledBack == 1)
-    Swag.assert(ledger.accounts[0].balance == 900)
-    Swag.assert(ledger.accounts[1].balance == 100)
-    Swag.assert(ledger.accounts[2].balance == 300)
-    Swag.assert(ledger.accounts[3].balance == 200)
+    Swag.require(n == 2)
+    Swag.require(ledger.committed == 2)
+    Swag.require(ledger.rolledBack == 1)
+    Swag.require(ledger.accounts[0].balance == 900)
+    Swag.require(ledger.accounts[1].balance == 100)
+    Swag.require(ledger.accounts[2].balance == 300)
+    Swag.require(ledger.accounts[3].balance == 200)
 }
 
 // 'catch { ... } as err' captures the error (null on success) and dismisses it.
@@ -358,9 +358,9 @@ impl Ledger
     var err12Outcome: Swag.Error
     catch ledger.transfer(0, 1, 500) as err12Outcome
     let err12 = err12Outcome.value()
-    Swag.assert(err12 != null)
-    Swag.assert(ledger.accounts[0].balance == 100)
-    Swag.assert(ledger.rolledBack == 0)
+    Swag.require(err12 != null)
+    Swag.require(ledger.accounts[0].balance == 100)
+    Swag.require(ledger.rolledBack == 0)
 }
 
 // Block-level catch: multiple failing calls under a single boundary.

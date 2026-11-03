@@ -10,7 +10,7 @@
         seen[index] += 1
 
     for index in 16 do
-        Swag.assert(seen[index] == 1)
+        Swag.require(seen[index] == 1)
 }
 
 #test
@@ -20,7 +20,7 @@
     parallel for |&total| index in 10 until 20 do
         total += index
 
-    Swag.assert(total == 145)
+    Swag.require(total == 145)
 }
 
 // An inclusive range covers its upper bound.
@@ -31,7 +31,7 @@
     parallel for |&total| index in 1 to 4 do
         total += index
 
-    Swag.assert(total == 10)
+    Swag.require(total == 10)
 }
 
 // An empty range runs no iteration.
@@ -42,12 +42,12 @@
     parallel for |&ran| 0 do
         ran = true
 
-    Swag.assert(not ran)
+    Swag.require(not ran)
 
     parallel for |&ran| 5 until 5 do
         ran = true
 
-    Swag.assert(not ran)
+    Swag.require(not ran)
 }
 
 // The bounds take any integer expression, and the index is an index.
@@ -59,7 +59,7 @@
     parallel for |&total, count| index in count do
         total += index * cast(u64, count)
 
-    Swag.assert(total == 90)
+    Swag.require(total == 90)
 }
 
 // 'continue' skips one index of the partition.
@@ -74,7 +74,7 @@
         total += index
     }
 
-    Swag.assert(total == 20)
+    Swag.require(total == 20)
 }
 
 // A loop with no capture list captures nothing.
@@ -86,7 +86,7 @@
     parallel for |counter| 4 do
         counter[] += 1
 
-    Swag.assert(visited == 4)
+    Swag.require(visited == 4)
 }
 
 // Nested statements keep their own index.
@@ -101,5 +101,5 @@
     }
 
     for row in 4 do
-        Swag.assert(grid[row] == 3)
+        Swag.require(grid[row] == 3)
 }

@@ -165,16 +165,16 @@ func codeBlockArgument(flag: bool)->s32
 
 #test
 {
-    Swag.assert(afterReturn() == 1)
-    Swag.assert(twoJumps() == 1)
-    Swag.assert(silenced() == 1)
-    Swag.assert(promoted() == 1)
-    Swag.assert(blanket() == 1)
-    Swag.assert(namedBeatsBlanket() == 1)
-    Swag.assert(afterCompleteSwitch(.Second) == 2)
-    Swag.assert(afterDefaultSwitch(3) == 2)
-    Swag.assert(pastSwitch(.Second) == 2)
-    Swag.assert(nestedJump() == 1)
-    Swag.assert(codeBlockArgument(true) == 7)
-    Swag.assert(codeBlockArgument(false) == 9)
+    Swag.require(afterReturn() == 1)
+    Swag.require(twoJumps() == 1)
+    Swag.require(silenced() == 1)
+    Swag.require(promoted() == 1)
+    Swag.require(blanket() == 1)
+    Swag.require(namedBeatsBlanket() == 1)
+    Swag.require(afterCompleteSwitch(.Second) == 2)
+    Swag.require(afterDefaultSwitch(3) == 2)
+    Swag.require(pastSwitch(.Second) == 2)
+    Swag.require(nestedJump() == 1)
+    Swag.require(codeBlockArgument(true) == 7)
+    Swag.require(codeBlockArgument(false) == 9)
 }

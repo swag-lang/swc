@@ -22,8 +22,8 @@ func readRune(ok: bool)->rune fail
     var value:      #decltype(expect readRune(true))
     catch { value = try readRune(true) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err == null)
-    Swag.assert(value == 'é'rune)
+    Swag.require(err == null)
+    Swag.require(value == 'é'rune)
 }
 
 #test
@@ -32,6 +32,6 @@ func readRune(ok: bool)->rune fail
     var value:      #decltype(expect readRune(false))
     catch { value = try readRune(false) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(cast(u32, value) == 0)
+    Swag.require(err != null)
+    Swag.require(cast(u32, value) == 0)
 }

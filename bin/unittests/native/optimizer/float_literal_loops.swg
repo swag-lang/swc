@@ -39,8 +39,8 @@ func literals64(count: s32)->f64
 
 #test
 {
-    Swag.assert(literals32(0) == 0)
-    Swag.assert(literals32(9) == 72)
-    Swag.assert(literals64(0) == 0)
-    Swag.assert(literals64(9) == 72)
+    Swag.require(literals32(0) == 0)
+    Swag.require(literals32(9) == 72)
+    Swag.require(literals64(0) == 0)
+    Swag.require(literals64(9) == 72)
 }

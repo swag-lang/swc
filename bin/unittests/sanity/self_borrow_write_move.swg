@@ -115,7 +115,7 @@ func readAfterConditionalRefresh(refresh: bool)->s32
     source.values[0] = 3
     var target = #move source
     source.values[0] = 17
-    Swag.assert(source.values[0] == 17 and target.values[0] == 3)
+    Swag.require(source.values[0] == 17 and target.values[0] == 3)
 }
 
 // A fresh address can reinitialize that storage too; it is not a pre-move borrow.
@@ -125,7 +125,7 @@ func readAfterConditionalRefresh(refresh: bool)->s32
     var target = #move source
     let fresh  = &source.value
     fresh[] = 19
-    Swag.assert(source.value == 19 and target.value == 0)
+    Swag.require(source.value == 19 and target.value == 0)
 }
 
 // Replacing an old pointer after the move creates the same fresh address.
@@ -136,7 +136,7 @@ func readAfterConditionalRefresh(refresh: bool)->s32
     var target  = #move source
     pointer   = &source.value
     pointer[] = 23
-    Swag.assert(source.value == 23 and target.value == 0)
+    Swag.require(source.value == 23 and target.value == 0)
 }
 
 // A proof cannot call this a stale write on every path: one path refreshes the pointer.
@@ -152,7 +152,7 @@ func conditionallyRefreshPointer(refresh: bool)->s32
     return source.value
 }
 
-#test { Swag.assert(conditionallyRefreshPointer(true) == 27) }
+#test { Swag.require(conditionallyRefreshPointer(true) == 27) }
 
 #[Swag.Inline]
 func moveAndReset(source: *PackedMovedWriter)->PackedMovedWriter
@@ -167,7 +167,7 @@ func moveAndReset(source: *PackedMovedWriter)->PackedMovedWriter
 {
     var source = PackedMovedWriter{value: 43}
     let target = moveAndReset(&source)
-    Swag.assert(source.value == 47 and target.value == 43)
+    Swag.require(source.value == 47 and target.value == 43)
 }
 
 #test
@@ -177,7 +177,7 @@ func moveAndReset(source: *PackedMovedWriter)->PackedMovedWriter
     var target = #move source
     target.cursor   = &target.values[0]
     target.cursor[] = 29
-    Swag.assert(target.values[0] == 29)
+    Swag.require(target.values[0] == 29)
 }
 
 // A copy still borrows live source storage; an independent pointee survives a move.
@@ -187,13 +187,13 @@ func moveAndReset(source: *PackedMovedWriter)->PackedMovedWriter
     source.cursor = &source.value
     var copied = source
     copied.cursor![] = 31
-    Swag.assert(source.value == 31)
+    Swag.require(source.value == 31)
 
     var independent: s32
     source.cursor = &independent
     var target = #move source
     target.cursor![] = 37
-    Swag.assert(independent == 37)
+    Swag.require(independent == 37)
 }
 
 struct RepairedMovedWriter
@@ -213,7 +213,7 @@ impl RepairedMovedWriter
     source.cursor = &source.value
     var target = #move source
     target.cursor![] = 41
-    Swag.assert(target.value == 41)
+    Swag.require(target.value == 41)
 }
 
 // An actual self-relocation, including one hidden behind pointers, keeps the value.
@@ -226,5 +226,5 @@ func relocatePossiblyAliased(target, source: *PackedMovedWriter) { target[] = #r
     source.cursor = &source.value
     source        = #relocate source
     relocatePossiblyAliased(&source, &source)
-    Swag.assert(source.value == 53 and source.cursor![] == 53)
+    Swag.require(source.value == 53 and source.cursor![] == 53)
 }

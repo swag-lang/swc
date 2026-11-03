@@ -26,9 +26,9 @@ func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.trailingZeros(v
     let trailings = [64'u64, 0, 63, 48, 0]
     for _, index in values
     {
-        Swag.assert(nonzero(&values[0], index) == nonzeros[index])
-        Swag.assert(leading(&values[0], index) == leadings[index])
-        Swag.assert(trailing(&values[0], index) == trailings[index])
+        Swag.require(nonzero(&values[0], index) == nonzeros[index])
+        Swag.require(leading(&values[0], index) == leadings[index])
+        Swag.require(trailing(&values[0], index) == trailings[index])
     }
 
     let narrowValues    = [0'u8, 1, 0x80, 0x10, 0xF3]
@@ -37,8 +37,8 @@ func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.trailingZeros(v
     let narrowTrailings = [8'u8, 0, 7, 4, 0]
     for _, index in narrowValues
     {
-        Swag.assert(narrowNonzero(&narrowValues[0], index) == narrowNonzeros[index])
-        Swag.assert(narrowLeading(&narrowValues[0], index) == narrowLeadings[index])
-        Swag.assert(narrowTrailing(&narrowValues[0], index) == narrowTrailings[index])
+        Swag.require(narrowNonzero(&narrowValues[0], index) == narrowNonzeros[index])
+        Swag.require(narrowLeading(&narrowValues[0], index) == narrowLeadings[index])
+        Swag.require(narrowTrailing(&narrowValues[0], index) == narrowTrailings[index])
     }
 }

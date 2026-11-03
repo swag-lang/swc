@@ -318,5 +318,5 @@ func nativeNonNullConstruction()->bool
 
 #test
 {
-    Swag.assert(nativeNonNullConstruction())
+    Swag.require(nativeNonNullConstruction())
 }

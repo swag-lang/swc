@@ -43,18 +43,18 @@ func conditionalNot64(value, flag: u64)->u64 => flag != 0 ? ~value : value
         for b in values
         {
             let bit = cast(u64, (a < b))
-            Swag.assert(bit8(a, b) == bit << 8)
-            Swag.assert(bit32(a, b) == bit << 32)
-            Swag.assert(bit63(a, b) == bit << 63)
-            Swag.assert(inverseBit(a, b) == (1 - bit) << 8)
-            Swag.assert(mask64(a, b) == (bit == 0 ? 0 : ~0'u64))
-            Swag.assert(mask32(a, b) == (bit == 0 ? 0 : ~0'u32))
-            Swag.assert(multipleUses(a, b) == ((bit << 32) | ((1 - bit) << 63)))
-            Swag.assert(conditionalNot64(a, b) == (b == 0 ? a : ~a))
-            Swag.assert(conditionalNot32(cast #wrap (u32, a), cast #wrap (u32, b)) == (cast #wrap (u32, b) == 0 ? cast #wrap (u32, a) : ~cast #wrap (u32, a)))
+            Swag.require(bit8(a, b) == bit << 8)
+            Swag.require(bit32(a, b) == bit << 32)
+            Swag.require(bit63(a, b) == bit << 63)
+            Swag.require(inverseBit(a, b) == (1 - bit) << 8)
+            Swag.require(mask64(a, b) == (bit == 0 ? 0 : ~0'u64))
+            Swag.require(mask32(a, b) == (bit == 0 ? 0 : ~0'u32))
+            Swag.require(multipleUses(a, b) == ((bit << 32) | ((1 - bit) << 63)))
+            Swag.require(conditionalNot64(a, b) == (b == 0 ? a : ~a))
+            Swag.require(conditionalNot32(cast #wrap (u32, a), cast #wrap (u32, b)) == (cast #wrap (u32, b) == 0 ? cast #wrap (u32, a) : ~cast #wrap (u32, a)))
         }
     }
-    Swag.assert(signedMask(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == -1)
-    Swag.assert(signedMask(0, -1) == 0)
-    Swag.assert(signedMask(0, 0) == 0)
+    Swag.require(signedMask(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == -1)
+    Swag.require(signedMask(0, -1) == 0)
+    Swag.require(signedMask(0, 0) == 0)
 }

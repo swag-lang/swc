@@ -18,5 +18,5 @@ func autoInlineLoopCaller(count: u32)->s32
 
 #test
 {
-    Swag.assert(autoInlineLoopCaller(4) == 24)
+    Swag.require(autoInlineLoopCaller(4) == 24)
 }

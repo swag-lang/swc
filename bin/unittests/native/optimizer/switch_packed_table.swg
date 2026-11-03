@@ -84,8 +84,8 @@ func flagOf(code: u16)->bool
 
 #test
 {
-    Swag.assert(kindWeight(.A) == 1 and kindWeight(.B) == 4 and kindWeight(.C) == 9)
-    Swag.assert(kindWeight(.D) == 16 and kindWeight(.E) == 16)
+    Swag.require(kindWeight(.A) == 1 and kindWeight(.B) == 4 and kindWeight(.C) == 9)
+    Swag.require(kindWeight(.D) == 16 and kindWeight(.E) == 16)
 
     for v in 0 until 256
     {
@@ -99,7 +99,7 @@ func flagOf(code: u16)->bool
             expected = 5
         elif c == '7' do
             expected = 70
-        Swag.assert(digitValue(c) == expected)
+        Swag.require(digitValue(c) == expected)
     }
 
     for code in [0'u64, 99, 100, 101, 102, 103, 104, 105, 163, 164, 0xFFFFFFFF, 0x100000064, 0xFFFFFFFFFFFFFFFF]
@@ -113,12 +113,12 @@ func flagOf(code: u16)->bool
             expected = -1
         elif code == 104 do
             expected = 0
-        Swag.assert(offsetOf(code) == expected)
+        Swag.require(offsetOf(code) == expected)
     }
 
     for v in 0 until 70000
     {
         let code = cast #wrap (u16, v)
-        Swag.assert(flagOf(code) == (code == 7 or code == 9 or code == 12))
+        Swag.require(flagOf(code) == (code == 7 or code == 9 or code == 12))
     }
 }

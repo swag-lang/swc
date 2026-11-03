@@ -66,37 +66,37 @@ func nextIndex()->u32
     Calls = [0, 0, 0, 0]
     var values: [2] s32 = [4, 7]
     let result = mixedUses(nextValue(0), nextValue(1), nextValue(2), values)
-    Swag.assert(result == 89)
-    Swag.assert(Calls[0] == 1)
-    Swag.assert(Calls[1] == 1)
-    Swag.assert(Calls[2] == 1)
+    Swag.require(result == 89)
+    Swag.require(Calls[0] == 1)
+    Swag.require(Calls[1] == 1)
+    Swag.require(Calls[2] == 1)
 
     // A later expansion has independent usage facts and caller expressions.
     var first  = 10
     var second = 20
     var third  = 30
     let again  = mixedUses(first, second, third, values)
-    Swag.assert(again == 89)
-    Swag.assert(first == 10)
-    Swag.assert(second == 20)
-    Swag.assert(third == 30)
+    Swag.require(again == 89)
+    Swag.require(first == 10)
+    Swag.require(second == 20)
+    Swag.require(third == 30)
 
     let genericResult = genericRepeat(nextValue(3))
-    Swag.assert(genericResult == 80)
-    Swag.assert(Calls[3] == 1)
+    Swag.require(genericResult == 80)
+    Swag.require(Calls[3] == 1)
 
     let addressedResult = readAddressed(nextValue(3))
-    Swag.assert(addressedResult == 40)
-    Swag.assert(Calls[3] == 2)
+    Swag.require(addressedResult == 40)
+    Swag.require(Calls[3] == 2)
 }
 
 #test
 {
     var first  = 11
     var second = 22
-    Swag.assert(countOnly(first, second) == 2)
-    Swag.assert(countOnly() == 0)
-    Swag.assert(sumPack(first, second) == 35)
+    Swag.require(countOnly(first, second) == 2)
+    Swag.require(countOnly() == 0)
+    Swag.require(sumPack(first, second) == 35)
 }
 
 #test
@@ -104,12 +104,12 @@ func nextIndex()->u32
     // Address and mutation facts also apply to identifiers nested in an operand.
     var values: [2] s32 = [11, 22]
     let result = mutateElement(values, 1)
-    Swag.assert(result == 32)
-    Swag.assert(values[0] == 11)
-    Swag.assert(values[1] == 32)
+    Swag.require(result == 32)
+    Swag.require(values[0] == 11)
+    Swag.require(values[1] == 32)
 
     Calls[0] = 0
     let repeated = genericRepeat(values[nextIndex()])
-    Swag.assert(repeated == 64)
-    Swag.assert(Calls[0] == 1)
+    Swag.require(repeated == 64)
+    Swag.require(Calls[0] == 1)
 }

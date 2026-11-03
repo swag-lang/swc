@@ -33,17 +33,17 @@ func compared(a: u64)->bool => (a & (a - 1)) == 0
     {
         let previous = a - 1
         let expected = a & previous
-        Swag.assert(clear(a) == expected)
-        Swag.assert(clear32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
-        Swag.assert(unionPrevious(a) == (a | previous))
-        Swag.assert(xorOffset(a) == (a ^ (a + 7)))
-        Swag.assert(sumOffset(a) == a + (a - 7))
-        Swag.assert(productOffset(a) == a * (a + 7))
-        Swag.assert(compared(a) == (expected == 0))
+        Swag.require(clear(a) == expected)
+        Swag.require(clear32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
+        Swag.require(unionPrevious(a) == (a | previous))
+        Swag.require(xorOffset(a) == (a ^ (a + 7)))
+        Swag.require(sumOffset(a) == a + (a - 7))
+        Swag.require(productOffset(a) == a * (a + 7))
+        Swag.require(compared(a) == (expected == 0))
         for b in values
         {
-            Swag.assert(other(a, b) == (a & (b - 1)))
-            Swag.assert(shared(a, b) == (b != 0 ? expected ^ previous : expected ^ a))
+            Swag.require(other(a, b) == (a & (b - 1)))
+            Swag.require(shared(a, b) == (b != 0 ? expected ^ previous : expected ^ a))
         }
     }
 }

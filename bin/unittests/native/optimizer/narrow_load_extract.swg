@@ -40,16 +40,16 @@ func compared(p: *u64)->bool => ((p[] >> 16) & 0xFF) == 0
     for a in values
     {
         var value = a
-        Swag.assert(lowByte(&value) == (a & 0xFF))
-        Swag.assert(lowWord(&value) == (a & 0xFFFF))
-        Swag.assert(middleByte(&value) == ((a >> 16) & 0xFF))
-        Swag.assert(highWord(&value) == ((a >> 48) & 0xFFFF))
-        Swag.assert(highDword(&value) == (a >> 32))
-        Swag.assert(unalignedBits(&value) == ((a >> 17) & 0xFF))
-        Swag.assert(shared(&value) == (((a >> 16) & 0xFF) ^ a))
-        Swag.assert(sharedShift(&value) == (((a >> 16) & 0xFF) ^ (a >> 16)))
-        Swag.assert(compared(&value) == (((a >> 16) & 0xFF) == 0))
-        Swag.assert(stored(&value) == ((a >> 16) & 0xFF))
-        Swag.assert(value == 0)
+        Swag.require(lowByte(&value) == (a & 0xFF))
+        Swag.require(lowWord(&value) == (a & 0xFFFF))
+        Swag.require(middleByte(&value) == ((a >> 16) & 0xFF))
+        Swag.require(highWord(&value) == ((a >> 48) & 0xFFFF))
+        Swag.require(highDword(&value) == (a >> 32))
+        Swag.require(unalignedBits(&value) == ((a >> 17) & 0xFF))
+        Swag.require(shared(&value) == (((a >> 16) & 0xFF) ^ a))
+        Swag.require(sharedShift(&value) == (((a >> 16) & 0xFF) ^ (a >> 16)))
+        Swag.require(compared(&value) == (((a >> 16) & 0xFF) == 0))
+        Swag.require(stored(&value) == ((a >> 16) & 0xFF))
+        Swag.require(value == 0)
     }
 }

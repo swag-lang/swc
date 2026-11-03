@@ -76,8 +76,8 @@ func nativeLateRelease()->bool
 
 #test
 {
-    Swag.assert(nativeLateLifecycle())
-    Swag.assert(nativeLateRelease())
-    Swag.assert(nativeLateAddressOf())
-    Swag.assert(nativeLateLiteral())
+    Swag.require(nativeLateLifecycle())
+    Swag.require(nativeLateRelease())
+    Swag.require(nativeLateAddressOf())
+    Swag.require(nativeLateLiteral())
 }

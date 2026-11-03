@@ -46,9 +46,9 @@ func hasNoRuntimeTableForUnimplementedType()->bool
 
 #test
 {
-    Swag.assert(materializeInterfaceTable())
+    Swag.require(materializeInterfaceTable())
     canLookupImplementedTypeAtRuntime()
-    Swag.assert(hasNoRuntimeTableForUnimplementedType())
-    Swag.assert(runtimeTableOf(s32, ITableProbe) == null)
-    Swag.assert(runtimeTableOf(TableProbe, s32) == null)
+    Swag.require(hasNoRuntimeTableForUnimplementedType())
+    Swag.require(runtimeTableOf(s32, ITableProbe) == null)
+    Swag.require(runtimeTableOf(TableProbe, s32) == null)
 }

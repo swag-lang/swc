@@ -12,7 +12,7 @@ strings, arrays, slices, 'any' values, and interfaces.
     var values = [10, 20, 30]
 
     #assert(values.count == 3)
-    Swag.assert(values.buffer == &values[0])
+    Swag.require(values.buffer == &values[0])
 }
 
 /**
@@ -30,8 +30,8 @@ must not outlive its backing memory.
     let text  = Swag.makeString(&bytes[0], bytes.count)
 
     #assert(#typeof(slice) == [..] u8)
-    Swag.assert(slice.count == 4)
-    Swag.assert(text == "Swag")
+    Swag.require(slice.count == 4)
+    Swag.require(text == "Swag")
 }
 
 /**
@@ -49,9 +49,9 @@ so like 'Swag.makeSlice' above, it must not outlive the storage it points at.
     var value = 42
     let view  = Swag.makeAny(&value, s32)
 
-    Swag.assert(Swag.kindOf(view) == s32)
-    Swag.assert(view.buffer == &value)
-    Swag.assert(assume cast(s32, view) == 42)
+    Swag.require(Swag.kindOf(view) == s32)
+    Swag.require(view.buffer == &value)
+    Swag.require(assume cast(s32, view) == 42)
 }
 
 /**

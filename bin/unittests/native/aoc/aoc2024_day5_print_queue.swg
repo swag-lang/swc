@@ -279,13 +279,13 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     var copied: Update
     copyUpdate(&copied, &update)
 
-    Swag.assert(first == 75)
-    Swag.assert(update[1] == 53)
-    Swag.assert(update.middle() == 53)
-    Swag.assert(sameUpdate(&copied, &update))
+    Swag.require(first == 75)
+    Swag.require(update[1] == 53)
+    Swag.require(update.middle() == 53)
+    Swag.require(sameUpdate(&copied, &update))
 
     let frozen = update
-    Swag.assert(frozen[2] == 61)
+    Swag.require(frozen[2] == 61)
 }
 
 #test
@@ -306,15 +306,15 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     repairUpdate(&repaired2, &sample, &sample.updates[5])
     let expected2: Update = Update{count: 5'u32, pages: [97, 75, 47, 29, 13]}
 
-    Swag.assert(isOrderedUpdate(&sample, &sample.updates[0]))
-    Swag.assert(not isOrderedUpdate(&sample, &sample.updates[3]))
-    Swag.assert(sampleAudit.updateCount == 6'u32)
-    Swag.assert(sampleAudit.validUpdateCount == 3'u32)
-    Swag.assert(sampleAudit.orderedMiddleSum == 143)
-    Swag.assert(sampleAudit.correctedMiddleSum == 123)
-    Swag.assert(sameUpdate(&repaired0, &expected0))
-    Swag.assert(sameUpdate(&repaired1, &expected1))
-    Swag.assert(sameUpdate(&repaired2, &expected2))
+    Swag.require(isOrderedUpdate(&sample, &sample.updates[0]))
+    Swag.require(not isOrderedUpdate(&sample, &sample.updates[3]))
+    Swag.require(sampleAudit.updateCount == 6'u32)
+    Swag.require(sampleAudit.validUpdateCount == 3'u32)
+    Swag.require(sampleAudit.orderedMiddleSum == 143)
+    Swag.require(sampleAudit.correctedMiddleSum == 123)
+    Swag.require(sameUpdate(&repaired0, &expected0))
+    Swag.require(sameUpdate(&repaired1, &expected1))
+    Swag.require(sameUpdate(&repaired2, &expected2))
 }
 
 #test
@@ -331,10 +331,10 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
     repairUpdate(&repairedB, &tieBreak, &tieBreak.updates[2])
     let expectedB: Update = Update{count: 3'u32, pages: [10, 20, 30, 0, 0]}
 
-    Swag.assert(tieBreakAudit.updateCount == 3'u32)
-    Swag.assert(tieBreakAudit.validUpdateCount == 1'u32)
-    Swag.assert(tieBreakAudit.orderedMiddleSum == 20)
-    Swag.assert(tieBreakAudit.correctedMiddleSum == 30)
-    Swag.assert(sameUpdate(&repairedA, &expectedA))
-    Swag.assert(sameUpdate(&repairedB, &expectedB))
+    Swag.require(tieBreakAudit.updateCount == 3'u32)
+    Swag.require(tieBreakAudit.validUpdateCount == 1'u32)
+    Swag.require(tieBreakAudit.orderedMiddleSum == 20)
+    Swag.require(tieBreakAudit.correctedMiddleSum == 30)
+    Swag.require(sameUpdate(&repairedA, &expectedA))
+    Swag.require(sameUpdate(&repairedB, &expectedB))
 }

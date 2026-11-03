@@ -67,6 +67,6 @@ var g_SignalSeen:  s32
     g_SignalQuick.sigPressed.add(func(button) { g_SignalSeen += button.quick })
     g_SignalQuick.sigPressed += &signalCountAny
     g_SignalQuick.press()
-    Swag.assert(g_SignalSeen == 14)
-    Swag.assert(g_SignalQuick.id == 100)
+    Swag.require(g_SignalSeen == 14)
+    Swag.require(g_SignalQuick.id == 100)
 }

@@ -300,11 +300,11 @@ func readNestedFieldAfterFree()->s32
     defer context.allocator = heap.base
 
     let value = readNestedFieldAfterFree()
-    Swag.assert(value == 11)
-    Swag.assert(heap.count == 3)
-    Swag.assert(heap.frees == 1)
-    Swag.assert(heap.liveCount() == 2)
-    Swag.assert(heap.duplicates == 0)
+    Swag.require(value == 11)
+    Swag.require(heap.count == 3)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.liveCount() == 2)
+    Swag.require(heap.duplicates == 0)
 }
 
 // GAP compiler.safety.018 - a release on one path only cannot be proven. Retaining the
@@ -329,12 +329,12 @@ func conditionalFree(release: bool)->s32
 
     let kept     = conditionalFree(opaqueBool(false))
     let released = conditionalFree(opaqueBool(true))
-    Swag.assert(kept == 3)
-    Swag.assert(released == 3)
-    Swag.assert(heap.count == 2)
-    Swag.assert(heap.frees == 1)
-    Swag.assert(heap.liveCount() == 1)
-    Swag.assert(heap.duplicates == 0)
+    Swag.require(kept == 3)
+    Swag.require(released == 3)
+    Swag.require(heap.count == 2)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.liveCount() == 1)
+    Swag.require(heap.duplicates == 0)
 }
 
 // --- Sound ---
@@ -361,11 +361,11 @@ func readNestedFieldBeforeFree()->s32
     defer context.allocator = heap.base
 
     let value = readNestedFieldBeforeFree()
-    Swag.assert(value == 11)
-    Swag.assert(heap.count == 3)
-    Swag.assert(heap.frees == 3)
-    Swag.assert(heap.liveCount() == 0)
-    Swag.assert(heap.duplicates == 0)
+    Swag.require(value == 11)
+    Swag.require(heap.count == 3)
+    Swag.require(heap.frees == 3)
+    Swag.require(heap.liveCount() == 0)
+    Swag.require(heap.duplicates == 0)
 }
 
 // Handing the pointer's own storage to a callee ends the proof: the callee can reassign it,
@@ -432,8 +432,8 @@ func readOtherTableElement()->s32
 
 #test
 {
-    Swag.assert(reassignObjectFieldAfterFree() == 8)
-    Swag.assert(readOtherTableElement() == 5)
-    Swag.assert(readAfterFreeThroughEscapedSlot() == 9)
-    Swag.assert(reassignedAfterFree() == 7)
+    Swag.require(reassignObjectFieldAfterFree() == 8)
+    Swag.require(readOtherTableElement() == 5)
+    Swag.require(readAfterFreeThroughEscapedSlot() == 9)
+    Swag.require(reassignedAfterFree() == 7)
 }

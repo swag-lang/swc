@@ -300,5 +300,5 @@ func complexitySum(codes: const [..] string, depth: u32)->u64
         "379A"
         ]
 
-    Swag.assert(complexitySum(sampleCodes, 2) == 126_384'u64)
+    Swag.require(complexitySum(sampleCodes, 2) == 126_384'u64)
 }

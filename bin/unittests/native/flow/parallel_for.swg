@@ -10,8 +10,8 @@
         total += index + 1
     parallel for |&total| index in 41 until 42 do
         total += index + 1
-    Swag.assert(total == 42)
-    Swag.assert(scheduler.started.load() == started)
+    Swag.require(total == 42)
+    Swag.require(scheduler.started.load() == started)
 }
 
 // Reuse one loop body with different bounds, captures and costs. Scheduling history is only
@@ -44,10 +44,10 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
                 var expected = (begin + index) & 0xFFFF
                 for round in cost do
                     expected = (expected * 33 + round) & 0xFFFF
-                Swag.assert(values[index] == (expected + 1) * 3)
+                Swag.require(values[index] == (expected + 1) * 3)
             }
             for index in count until 2048 do
-                Swag.assert(values[index] == 0)
+                Swag.require(values[index] == 0)
         }
     }
 }
@@ -75,7 +75,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
             var expected = 100'u64 + index
             for round in row % 3 do
                 expected = (expected * 33 + round) & 0xFFFF
-            Swag.assert(grid[row][index] == (expected + 1) * 64)
+            Swag.require(grid[row][index] == (expected + 1) * 64)
         }
     }
 }
@@ -90,7 +90,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
         seen[index].add(1)
 
     for index in 256 do
-        Swag.assert(seen[index].load() == 1)
+        Swag.require(seen[index].load() == 1)
 }
 
 #test
@@ -100,7 +100,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
     parallel for |&total| index in 1000 do
         total.add(index)
 
-    Swag.assert(total.load() == 499_500)
+    Swag.require(total.load() == 499_500)
 }
 
 // Partition bounds are absolute indices of the written range.
@@ -121,8 +121,8 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
             top = highest.load()
     }
 
-    Swag.assert(lowest.load() == 100)
-    Swag.assert(highest.load() == 199)
+    Swag.require(lowest.load() == 100)
+    Swag.require(highest.load() == 199)
 }
 
 // A nested statement runs its own partitioning inside a partition already running.
@@ -137,7 +137,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
     }
 
     for row in 64 do
-        Swag.assert(grid[row].load() == 16)
+        Swag.require(grid[row].load() == 16)
 }
 
 // Repeated statements reuse the pool without losing an index.
@@ -151,5 +151,5 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
             total.add(1)
     }
 
-    Swag.assert(total.load() == 1000)
+    Swag.require(total.load() == 1000)
 }

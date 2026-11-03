@@ -30,15 +30,15 @@ func wide(a, b: u64)->u64 => a ^ b
             let rotation   = (a << 7) | (a >> 25)
             let shift      = a << 3
             let squared    = sum * sum
-            Swag.assert(added(a, b) == sum)
-            Swag.assert(product(a, b) == multiplied)
-            Swag.assert(rotated(a, b) == rotation)
-            Swag.assert(shifted(a, b) == shift)
-            Swag.assert(inverted(a, b) == cast(u64, ~a))
-            Swag.assert(square(a, b) == squared)
-            Swag.assert(preserved(a, b) == (sum ^ a))
+            Swag.require(added(a, b) == sum)
+            Swag.require(product(a, b) == multiplied)
+            Swag.require(rotated(a, b) == rotation)
+            Swag.require(shifted(a, b) == shift)
+            Swag.require(inverted(a, b) == cast(u64, ~a))
+            Swag.require(square(a, b) == squared)
+            Swag.require(preserved(a, b) == (sum ^ a))
             let high = 0x8000000000000000 | cast(u64, a)
-            Swag.assert(wide(high, b) == (high ^ cast(u64, b)))
+            Swag.require(wide(high, b) == (high ^ cast(u64, b)))
         }
     }
 }

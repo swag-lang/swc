@@ -27,10 +27,10 @@ func scaledSum(a, b: u64)->u64
 
 #test
 {
-    Swag.assert(pixelOffset(17) == 0)
-    Swag.assert(pixelOffset(5) == 66)
-    Swag.assert(pixelOffset(0) == 51)
-    Swag.assert(pixelOffset(33) == 48)
-    Swag.assert(scaledSum(3, 4) == 98)
-    Swag.assert(scaledSum(100, 23) == 1722)
+    Swag.require(pixelOffset(17) == 0)
+    Swag.require(pixelOffset(5) == 66)
+    Swag.require(pixelOffset(0) == 51)
+    Swag.require(pixelOffset(33) == 48)
+    Swag.require(scaledSum(3, 4) == 98)
+    Swag.require(scaledSum(100, 23) == 1722)
 }

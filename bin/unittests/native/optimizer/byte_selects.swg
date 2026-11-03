@@ -42,14 +42,14 @@ func byteSum(p: const [*] u8, n: u64)->u32
 
 #test
 {
-    Swag.assert(saturatedAdd(200, 100) == 255)
-    Swag.assert(saturatedAdd(20, 100) == 120)
-    Swag.assert(saturatedAdd(255, 0) == 255)
-    Swag.assert(lower('Q') == 'q' and lower('a') == 'a' and lower('@') == '@' and lower('[') == '[')
-    Swag.assert(pickWord(true, 0xFFFF, 3) == 0x10000)
-    Swag.assert(pickWord(false, 0xFFFF, 3) == 4)
-    Swag.assert(keepUpper(0x1122334455667788, 0x99) == 0x1122334455667799)
+    Swag.require(saturatedAdd(200, 100) == 255)
+    Swag.require(saturatedAdd(20, 100) == 120)
+    Swag.require(saturatedAdd(255, 0) == 255)
+    Swag.require(lower('Q') == 'q' and lower('a') == 'a' and lower('@') == '@' and lower('[') == '[')
+    Swag.require(pickWord(true, 0xFFFF, 3) == 0x10000)
+    Swag.require(pickWord(false, 0xFFFF, 3) == 4)
+    Swag.require(keepUpper(0x1122334455667788, 0x99) == 0x1122334455667799)
 
     var bytes: [4] u8 = [10, 200, 127, 128]
-    Swag.assert(byteSum(&bytes[0], 4) == 10 + 127 + 127 + 127)
+    Swag.require(byteSum(&bytes[0], 4) == 10 + 127 + 127 + 127)
 }

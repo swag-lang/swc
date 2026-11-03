@@ -4,6 +4,6 @@
     let rows = cast([..] [3] s32, grid)
 
     #assert(#typeof(rows[1, 2]) == s32)
-    Swag.assert(rows[1, 2] == rows[1][2])
-    Swag.assert(rows[0, 1] + rows[1, 0] == 33)
+    Swag.require(rows[1, 2] == rows[1][2])
+    Swag.require(rows[0, 1] + rows[1, 0] == 33)
 }

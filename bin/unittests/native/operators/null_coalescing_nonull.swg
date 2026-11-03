@@ -76,5 +76,5 @@ func nativeOrelseNonNullBranches()->bool
 
 #test
 {
-    Swag.assert(nativeOrelseNonNullBranches())
+    Swag.require(nativeOrelseNonNullBranches())
 }

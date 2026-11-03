@@ -46,9 +46,9 @@ To retain it after the handler ends, give it an explicit [[Swag.Error]] owner.
 #test
 {
     let value = catch count(null) orelse assume cast(MyError, Swag.err).code
-    Swag.assert(value == 7)
+    Swag.require(value == 7)
     let other = catch count(null) orelse assume cast(MyError, Swag.err).code + 1
-    Swag.assert(other == 8)
+    Swag.require(other == 8)
 }
 
 /**
@@ -74,14 +74,14 @@ threads needs synchronization.
     var saved: Swag.Error
     discard catch count(null) as saved
     let err = saved.value()
-    Swag.assert(err is MyError)
-    Swag.assert(assume cast(MyError, err).code == 7)
+    Swag.require(err is MyError)
+    Swag.require(assume cast(MyError, err).code == 7)
 
     catch saved.raise()
     {
         saved.reset()
-        Swag.assert(saved.isEmpty())
-        Swag.assert(assume cast(MyError, Swag.err).message == "name cannot be null")
+        Swag.require(saved.isEmpty())
+        Swag.require(assume cast(MyError, Swag.err).message == "name cannot be null")
     }
 }
 
@@ -89,9 +89,9 @@ threads needs synchronization.
 {
     var saved: Swag.Error
     let value = catch count(null) as saved orelse 17
-    Swag.assert(value == 17 and not saved.isEmpty())
+    Swag.require(value == 17 and not saved.isEmpty())
     let other = catch count("ready") as saved
-    Swag.assert(other == 5 and saved.isEmpty())
+    Swag.require(other == 5 and saved.isEmpty())
 }
 
 /**
@@ -117,14 +117,14 @@ func recordTrace(name: string?, out: *s32) fail
 
     catch recordTrace("swag", &seen) do
         seen = -2
-    Swag.assert(seen == 4)     // success: the handler does not run
+    Swag.require(seen == 4)     // success: the handler does not run
 
     catch recordTrace(null, &seen)
     {
         seen = -2
     }
 
-    Swag.assert(seen == -2)     // failure: the handler ran instead
+    Swag.require(seen == -2)     // failure: the handler ran instead
 }
 
 /**
@@ -157,12 +157,12 @@ func countOrCode(name: string?)->u64
 
 #test
 {
-    Swag.assert(safeCount("hello") == 5)
-    Swag.assert(safeCount(null) == 0)
-    Swag.assert(countOrCode(null) == 7)
+    Swag.require(safeCount("hello") == 5)
+    Swag.require(safeCount(null) == 0)
+    Swag.require(countOrCode(null) == 7)
 
     let required = catch loadRequiredValue() orelse &requiredValue
-    Swag.assert(required[] == 42)
+    Swag.require(required[] == 42)
 
     discard catch count(null)
 }
@@ -191,15 +191,15 @@ func findName(id: s32)->string? fail
 {
     // The default of a struct is the one its field initializers give.
     let settings = catch loadSettings(null)
-    Swag.assert(settings.width == 640 and settings.title == "untitled")
+    Swag.require(settings.width == 640 and settings.title == "untitled")
 
     // A nullable result defaults to null.
     let name = catch findName(0)
-    Swag.assert(name == null)
+    Swag.require(name == null)
 
     // 'orelse' replaces a failure, and a successful null alike.
     let named = catch findName(0) orelse "anonymous"
-    Swag.assert(named == "anonymous")
+    Swag.require(named == "anonymous")
 }
 
 /**
@@ -217,8 +217,8 @@ func propagateCount(name: string?)->u64 fail
     var errOutcome: Swag.Error
     let value = catch propagateCount("abc") as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 3)
-    Swag.assert(err == null)
+    Swag.require(value == 3)
+    Swag.require(err == null)
 }
 
 #test
@@ -226,9 +226,9 @@ func propagateCount(name: string?)->u64 fail
     var errOutcome: Swag.Error
     let value = catch propagateCount(null) as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 0)
-    Swag.assert(err != null)
-    Swag.assert(assume cast(MyError, err).code == 7)
+    Swag.require(value == 0)
+    Swag.require(err != null)
+    Swag.require(assume cast(MyError, err).code == 7)
 }
 
 /**
@@ -248,9 +248,9 @@ func explicitTryCount(name: string?)->u64 fail
     var errOutcome: Swag.Error
     let value = catch explicitTryCount(null) as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 0)
-    Swag.assert(err != null)
-    Swag.assert(assume cast(MyError, err).code == 7)
+    Swag.require(value == 0)
+    Swag.require(err != null)
+    Swag.require(assume cast(MyError, err).code == 7)
 }
 
 /**
@@ -302,16 +302,16 @@ func blockCatchDismiss(name: string?)->u64
     var errOutcome: Swag.Error
     let value = catch blockTry("ab", null) as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 0)
-    Swag.assert(err != null)
-    Swag.assert(assume cast(MyError, err).code == 7)
+    Swag.require(value == 0)
+    Swag.require(err != null)
+    Swag.require(assume cast(MyError, err).code == 7)
 }
 
 #test
 {
-    Swag.assert(blockCatchCode() == 7)
-    Swag.assert(blockCatchDismiss("abcd") == 4)
-    Swag.assert(blockCatchDismiss(null) == 99)
+    Swag.require(blockCatchCode() == 7)
+    Swag.require(blockCatchDismiss("abcd") == 4)
+    Swag.require(blockCatchDismiss(null) == 99)
 }
 
 /**
@@ -347,15 +347,15 @@ func implicitTotal(name0: string?, name1: string?)->u64 fail
 #test
 {
     let both = expect implicitTotal("ab", "cde")
-    Swag.assert(both == 7)
+    Swag.require(both == 7)
     let caught = expect implicitTotal("ab", null)
-    Swag.assert(caught == 4)
+    Swag.require(caught == 4)
 
     var errOutcome: Swag.Error
     let value = catch implicitTotal(null, "cde") as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 0)
-    Swag.assert(assume cast(MyError, err).code == 7)
+    Swag.require(value == 0)
+    Swag.require(assume cast(MyError, err).code == 7)
 }
 
 /**
@@ -383,7 +383,7 @@ passes failures to the caller's handler.
 #test
 {
     let value = expect count("swag")
-    Swag.assert(value == 4)
+    Swag.require(value == 4)
 }
 
 var requiredValue: s32 = 42
@@ -394,13 +394,13 @@ func loadRequiredValue()->*s32 fail => &requiredValue
 {
     let value = expect loadRequiredValue()
     #assert(#typeof(value) == *s32)
-    Swag.assert(value[] == 42)
+    Swag.require(value[] == 42)
 }
 
 #test
 {
     let value = expect count("swag")
-    Swag.assert(value == 4)
+    Swag.require(value == 4)
 }
 
 /**
@@ -427,9 +427,9 @@ For conversions, 'assume cast(T, value)' states the same invariant. Its checks u
 #test
 {
     let value = assume count("swag")
-    Swag.assert(value == 4)
+    Swag.require(value == 4)
     let required = assume loadRequiredValue()
-    Swag.assert(required[] == 42)
+    Swag.require(required[] == 42)
 }
 
 /**
@@ -451,7 +451,7 @@ func deferOnFail(name: string?)->u64 fail
     var errOutcome: Swag.Error
     let value = catch deferOnFail(null) as errOutcome
     let err   = errOutcome.value()
-    Swag.assert(value == 0)
-    Swag.assert(err != null)
-    Swag.assert(DeferTrace == 1)
+    Swag.require(value == 0)
+    Swag.require(err != null)
+    Swag.require(DeferTrace == 1)
 }

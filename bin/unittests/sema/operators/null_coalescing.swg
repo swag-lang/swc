@@ -18,7 +18,7 @@ const F         = E orelse "f"
     let missing:  any? = null
     let fallback: any  = true
     let resolved       = missing orelse fallback
-    Swag.assert(Swag.kindOf(resolved) == bool)
+    Swag.require(Swag.kindOf(resolved) == bool)
 }
 
 const S0: const [..] u8? = null

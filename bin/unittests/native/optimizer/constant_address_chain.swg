@@ -58,9 +58,9 @@ func countWrapping64(value: u64)->u64
 #test
 {
     for value in 65536 do
-        Swag.assert(countBits16(cast(u16, value)) == countBitsReference(cast(u16, value)))
-    Swag.assert(countWrapping32(0xFFFFFFFF) == 1)
-    Swag.assert(countWrapping32(0x7FFFFFFF) == 0)
-    Swag.assert(countWrapping64(0xFFFFFFFFFFFFFFFF) == 1)
-    Swag.assert(countWrapping64(0x7FFFFFFFFFFFFFFF) == 0)
+        Swag.require(countBits16(cast(u16, value)) == countBitsReference(cast(u16, value)))
+    Swag.require(countWrapping32(0xFFFFFFFF) == 1)
+    Swag.require(countWrapping32(0x7FFFFFFF) == 0)
+    Swag.require(countWrapping64(0xFFFFFFFFFFFFFFFF) == 1)
+    Swag.require(countWrapping64(0x7FFFFFFFFFFFFFFF) == 0)
 }

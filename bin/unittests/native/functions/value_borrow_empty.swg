@@ -18,15 +18,15 @@ func writeDuringBorrow(value: Value, target: *u64)->u64
 {
     var value: Value
     writeScalar(&value.value, 31)
-    Swag.assert(value.value == 31)
+    Swag.require(value.value == 31)
     for 2
     {
         let caught = Swag.catchPanic(func|&value|() { discard writeDuringBorrow(value, &value.value) })
-        Swag.assert(caught.raised)
-        Swag.assert(caught.message() == "write overlaps storage borrowed by a value argument")
-        Swag.assert(value.value == 31)
+        Swag.require(caught.raised)
+        Swag.require(caught.message() == "write overlaps storage borrowed by a value argument")
+        Swag.require(value.value == 31)
         writeScalar(&value.value, 47)
-        Swag.assert(value.value == 47)
+        Swag.require(value.value == 47)
         writeScalar(&value.value, 31)
     }
 }

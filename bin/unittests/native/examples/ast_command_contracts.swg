@@ -324,17 +324,17 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     let redacted = redactScheduleDeploymentCommand(command)
     let result   = invokeScheduleDeploymentCommand(command)
 
-    Swag.assert(command.replicas == 6)
-    Swag.assert(command.region == "eu-west")
-    Swag.assert(command.region.count == 7)
-    Swag.assert(command.authToken.count >= 16)
-    Swag.assert(validateScheduleDeploymentCommand(command))
-    Swag.assert(countScheduleDeploymentCommandSecrets() == 1)
-    Swag.assert(redacted.replicas == 6)
-    Swag.assert(redacted.region == "eu-west")
-    Swag.assert(not redacted.dryRun)
-    Swag.assert(redacted.authToken == "<redacted>")
-    Swag.assert(result == .Accepted)
+    Swag.require(command.replicas == 6)
+    Swag.require(command.region == "eu-west")
+    Swag.require(command.region.count == 7)
+    Swag.require(command.authToken.count >= 16)
+    Swag.require(validateScheduleDeploymentCommand(command))
+    Swag.require(countScheduleDeploymentCommandSecrets() == 1)
+    Swag.require(redacted.replicas == 6)
+    Swag.require(redacted.region == "eu-west")
+    Swag.require(not redacted.dryRun)
+    Swag.require(redacted.authToken == "<redacted>")
+    Swag.require(result == .Accepted)
 }
 
 #test
@@ -347,8 +347,8 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 
     let redacted = redactScheduleDeploymentCommand(command)
 
-    Swag.assert(not validateScheduleDeploymentCommand(command))
-    Swag.assert(redacted.authToken == "<redacted>")
+    Swag.require(not validateScheduleDeploymentCommand(command))
+    Swag.require(redacted.authToken == "<redacted>")
 }
 
 #test
@@ -361,21 +361,21 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     let receipt  = invokeSubmitWireTransferCommand(command)
     let redacted = redactSubmitWireTransferCommand(command)
 
-    Swag.assert(validateSubmitWireTransferCommand(command))
-    Swag.assert(countSubmitWireTransferCommandSecrets() == 1)
-    Swag.assert(receipt.approved)
-    Swag.assert(receipt.queueSlot == 2500)
-    Swag.assert(receipt.reviewRequired)
-    Swag.assert(redacted.cents == 250_000)
-    Swag.assert(redacted.toAccount == "acct-7781")
-    Swag.assert(redacted.approvalCode == "<redacted>")
+    Swag.require(validateSubmitWireTransferCommand(command))
+    Swag.require(countSubmitWireTransferCommandSecrets() == 1)
+    Swag.require(receipt.approved)
+    Swag.require(receipt.queueSlot == 2500)
+    Swag.require(receipt.reviewRequired)
+    Swag.require(redacted.cents == 250_000)
+    Swag.require(redacted.toAccount == "acct-7781")
+    Swag.require(redacted.approvalCode == "<redacted>")
 }
 
 #test
 {
     let command: ResyncCatalogCommand = {}
 
-    Swag.assert(validateResyncCatalogCommand(command))
-    Swag.assert(countResyncCatalogCommandSecrets() == 0)
-    Swag.assert(invokeResyncCatalogCommand(command))
+    Swag.require(validateResyncCatalogCommand(command))
+    Swag.require(countResyncCatalogCommandSecrets() == 0)
+    Swag.require(invokeResyncCatalogCommand(command))
 }

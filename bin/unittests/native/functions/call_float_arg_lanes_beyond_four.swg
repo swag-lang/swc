@@ -31,10 +31,10 @@ func sum6f(a, b, c, d, e, f: f32)->f32
 
 #test
 {
-    Swag.assert(sum6d(1, 2, 3, 4, 5, 6) == 654321.0)
-    Swag.assert(sum8d(1, 2, 3, 4, 5, 6, 7, 8) == 87654321.0)
-    Swag.assert(mixed(1, 2, 3, 4, 5, 6, 7, 8) == 76531.0 + 842.0)
-    Swag.assert(sum6f(1, 2, 3, 4, 5, 6) == 654321.0)
+    Swag.require(sum6d(1, 2, 3, 4, 5, 6) == 654321.0)
+    Swag.require(sum8d(1, 2, 3, 4, 5, 6, 7, 8) == 87654321.0)
+    Swag.require(mixed(1, 2, 3, 4, 5, 6, 7, 8) == 76531.0 + 842.0)
+    Swag.require(sum6f(1, 2, 3, 4, 5, 6) == 654321.0)
 }
 
 // The same contract through a function value, which the code generator lowers
@@ -44,12 +44,12 @@ alias Sum6 = func(f64, f64, f64, f64, f64, f64)->f64
 #test
 {
     let fn: Sum6 = &sum6d
-    Swag.assert(fn(1, 2, 3, 4, 5, 6) == 654321.0)
+    Swag.require(fn(1, 2, 3, 4, 5, 6) == 654321.0)
 }
 
 // And through a lambda, so the closure path sees the same lanes.
 #test
 {
     let fn = func(a, b, c, d, e, f: f64)->f64 { return sum6d(a, b, c, d, e, f) }
-    Swag.assert(fn(6, 5, 4, 3, 2, 1) == 123456.0)
+    Swag.require(fn(6, 5, 4, 3, 2, 1) == 123456.0)
 }

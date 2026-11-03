@@ -65,11 +65,11 @@ var G: [5] f32
 // Validate precomputed results
 #test
 {
-    Swag.assert(G[0] == 1)
-    Swag.assert(G[1] == 2)
-    Swag.assert(G[2] == 4)
-    Swag.assert(G[3] == 8)
-    Swag.assert(G[4] == 16)
+    Swag.require(G[0] == 1)
+    Swag.require(G[1] == 2)
+    Swag.require(G[2] == 4)
+    Swag.require(G[3] == 8)
+    Swag.require(G[4] == 16)
 }
 
 /**
@@ -152,7 +152,7 @@ Example: initializing a struct in a '#run' block.
         return rgb
     }
 
-    Swag.assert(White.r == 255 and White.g == 255 and White.b == 255)
+    Swag.require(White.r == 255 and White.g == 255 and White.b == 255)
 }
 
 /**

@@ -44,12 +44,12 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
             let ua         = cast #wrap (u32, a)
             let ub         = cast #wrap (u32, b)
             let expected32 = ua > ub ? ua - ub : ub - ua
-            Swag.assert(distance32(ua, ub) == expected32)
-            Swag.assert(distance64(a, b) == slowDistance(a, b))
+            Swag.require(distance32(ua, ub) == expected32)
+            Swag.require(distance64(a, b) == slowDistance(a, b))
             let sa        = cast #wrap (s32, a)
             let sb        = cast #wrap (s32, b)
             let expectedS = sa < sb ? cast #wrap (s32, (cast(s64, sb) - cast(s64, sa))) : cast #wrap (s32, (cast(s64, sa) - cast(s64, sb)))
-            Swag.assert(lowerDistance(sa, sb) == expectedS)
+            Swag.require(lowerDistance(sa, sb) == expectedS)
         }
     }
 
@@ -59,14 +59,14 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
         {
             let x = cast(u8, i)
             let y = cast(u8, j)
-            Swag.assert(cast(s64, distance8(x, y)) == slowDistance(i, j))
+            Swag.require(cast(s64, distance8(x, y)) == slowDistance(i, j))
             let wx = cast #wrap (s16, (i * 131 - 16000))
             let wy = cast #wrap (s16, (j * 127 - 16000))
-            Swag.assert(distance16(wx, wy) == cast #wrap (s16, slowDistance(wx, wy)))
+            Swag.require(distance16(wx, wy) == cast #wrap (s16, slowDistance(wx, wy)))
         }
     }
 
     var left:  [6] u8 = [0, 255, 10, 7, 128, 3]
     var right: [6] u8 = [255, 0, 10, 9, 127, 200]
-    Swag.assert(sumOfDistances(&left[0], &right[0], 6) == 255 + 255 + 0 + 2 + 1 + 197)
+    Swag.require(sumOfDistances(&left[0], &right[0], 6) == 255 + 255 + 0 + 2 + 1 + 197)
 }

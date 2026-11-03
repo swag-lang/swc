@@ -91,32 +91,32 @@ func narrowOverWide(p: *Pair, low: u32)->s64
 {
     var first, second: Pair
     let overwritten = overwrite(&first, 7)
-    Swag.assert(overwritten == 43 and first.a == 22 and first.b == 21)
+    Swag.require(overwritten == 43 and first.a == 22 and first.b == 21)
 
     first.a  = 100
     second.a = 200
     let apart = overwriteAroundRead(&first, &second, 5)
-    Swag.assert(apart == 200 and first.a == 15)
+    Swag.require(apart == 200 and first.a == 15)
     let together = overwriteAroundRead(&first, &first, 5)
-    Swag.assert(together == 5 and first.a == 15)
+    Swag.require(together == 5 and first.a == 15)
 
     let reloadedApart = reloadAroundWrite(&first, &second, 30)
-    Swag.assert(reloadedApart == 30 and second.a == 35)
+    Swag.require(reloadedApart == 30 and second.a == 35)
     let reloadedTogether = reloadAroundWrite(&first, &first, 30)
-    Swag.assert(reloadedTogether == 35 and first.a == 35)
+    Swag.require(reloadedTogether == 35 and first.a == 35)
 
     var reals: Reals = Reals{1.0, 10.0}
     let summed       = accumulate(&reals, 0.5)
-    Swag.assert(summed == 13.0 and reals.x == 4.5 and reals.y == 8.5)
+    Swag.require(summed == 13.0 and reals.x == 4.5 and reals.y == 8.5)
 
     var left:  Reals = Reals{1.0, 0.0}
     var right: Reals = Reals{3.0, 0.0}
     let kept         = accumulateAround(&left, &right, 0.5)
-    Swag.assert(kept == 4.5 and right.x == 12.0)
+    Swag.require(kept == 4.5 and right.x == 12.0)
     left.x = 1.0
     let mixed = accumulateAround(&left, &left, 0.5)
-    Swag.assert(mixed == 10.0 and left.x == 10.0)
+    Swag.require(mixed == 10.0 and left.x == 10.0)
 
     let narrowed = narrowOverWide(&first, 0xAABBCCDD)
-    Swag.assert(narrowed == 0x11223344AABBCCDD)
+    Swag.require(narrowed == 0x11223344AABBCCDD)
 }

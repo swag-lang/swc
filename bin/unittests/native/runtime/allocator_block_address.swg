@@ -17,14 +17,14 @@ using Swag
         for offset in 65536'u64
         {
             let address = page.areaStart + offset
-            Swag.assert(page.isBlockAddress(address) == (address < page.areaEnd and offset % size == 0))
+            Swag.require(page.isBlockAddress(address) == (address < page.areaEnd and offset % size == 0))
         }
 
         let lastBlock = page.areaEnd - size
-        Swag.assert(page.isBlockAddress(lastBlock))
-        Swag.assert(not page.isBlockAddress(lastBlock + 1))
-        Swag.assert(not page.isBlockAddress(page.areaStart - 1))
-        Swag.assert(not page.isBlockAddress(page.areaEnd))
-        Swag.assert(not page.isBlockAddress(page.areaEnd + size))
+        Swag.require(page.isBlockAddress(lastBlock))
+        Swag.require(not page.isBlockAddress(lastBlock + 1))
+        Swag.require(not page.isBlockAddress(page.areaStart - 1))
+        Swag.require(not page.isBlockAddress(page.areaEnd))
+        Swag.require(not page.isBlockAddress(page.areaEnd + size))
     }
 }

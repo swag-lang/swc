@@ -31,13 +31,13 @@ func stepInward(first, last: s64)->Cursors
         {
             let trips   = last >= first ? (last - first) / 5 + 1 : 0
             let cursors = stepInward(first, last)
-            Swag.assert(cursors.lo == first + 3 * trips)
-            Swag.assert(cursors.hi == last - 2 * trips)
+            Swag.require(cursors.lo == first + 3 * trips)
+            Swag.require(cursors.hi == last - 2 * trips)
         }
     }
 
     // The initial taken edge must also retain the complete signed inputs.
     let empty = stepInward(0x7FFF_FFFF_FFFF_FFFF, -0x7FFF_FFFF_FFFF_FFFF)
-    Swag.assert(empty.lo == 0x7FFF_FFFF_FFFF_FFFF)
-    Swag.assert(empty.hi == -0x7FFF_FFFF_FFFF_FFFF)
+    Swag.require(empty.lo == 0x7FFF_FFFF_FFFF_FFFF)
+    Swag.require(empty.hi == -0x7FFF_FFFF_FFFF_FFFF)
 }

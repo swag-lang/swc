@@ -44,5 +44,5 @@ func earlyReturn()->u64
         }
     }
 
-    Swag.assert(total == 8)
+    Swag.require(total == 8)
 }

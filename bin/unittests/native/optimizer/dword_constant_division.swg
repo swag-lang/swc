@@ -32,13 +32,13 @@ func wide(x, d: u64)->u64 => x / d
     for v in values
     {
         let x = cast(u64, v)
-        Swag.assert(cast(u64, div3(v)) == wide(x, 3))
-        Swag.assert(cast(u64, div7(v)) == wide(x, 7))
-        Swag.assert(cast(u64, div10(v)) == wide(x, 10))
-        Swag.assert(cast(u64, mod10(v)) == x - wide(x, 10) * 10)
-        Swag.assert(cast(u64, mod65521(v)) == x - wide(x, 65521) * 65521)
-        Swag.assert(cast(u64, div641(v)) == wide(x, 641))
-        Swag.assert(cast(u64, divBig(v)) == wide(x, 0x80000001))
-        Swag.assert(cast(u64, modPrime(v)) == x - wide(x, 1000000007) * 1000000007)
+        Swag.require(cast(u64, div3(v)) == wide(x, 3))
+        Swag.require(cast(u64, div7(v)) == wide(x, 7))
+        Swag.require(cast(u64, div10(v)) == wide(x, 10))
+        Swag.require(cast(u64, mod10(v)) == x - wide(x, 10) * 10)
+        Swag.require(cast(u64, mod65521(v)) == x - wide(x, 65521) * 65521)
+        Swag.require(cast(u64, div641(v)) == wide(x, 641))
+        Swag.require(cast(u64, divBig(v)) == wide(x, 0x80000001))
+        Swag.require(cast(u64, modPrime(v)) == x - wide(x, 1000000007) * 1000000007)
     }
 }

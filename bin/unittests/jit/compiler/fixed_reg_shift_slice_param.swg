@@ -49,5 +49,5 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 #test
 {
     const masks: [6] u32 = [8, 10, 4, 12, 5, 3]
-    Swag.assert(minimumPresses(masks, 6'u32) == 2'u32)
+    Swag.require(minimumPresses(masks, 6'u32) == 2'u32)
 }

@@ -153,10 +153,10 @@ func clearedCopiedSubobject()->BorrowBox
 #test
 {
     var value = 7
-    Swag.assert(copiedIndependentField(&value)![] == 7)
+    Swag.require(copiedIndependentField(&value)![] == 7)
     let rebound = reboundCopiedField(&value)
-    Swag.assert(rebound.first![] == 7)
-    Swag.assert(clearedCopiedSubobject().pair.first == null)
-    Swag.assert(copiedDynamicIndependentField(0, &value)![] == 7)
-    Swag.assert(copiedDynamicIndependentField(1, &value)![] == 7)
+    Swag.require(rebound.first![] == 7)
+    Swag.require(clearedCopiedSubobject().pair.first == null)
+    Swag.require(copiedDynamicIndependentField(0, &value)![] == 7)
+    Swag.require(copiedDynamicIndependentField(1, &value)![] == 7)
 }

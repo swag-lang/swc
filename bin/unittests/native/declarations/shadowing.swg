@@ -9,9 +9,9 @@
     scope
     {
         var x = 20
-        Swag.assert(x == 20)
+        Swag.require(x == 20)
     }
-    Swag.assert(x == 10)
+    Swag.require(x == 10)
 }
 
 // Shadowing in if block.
@@ -21,9 +21,9 @@
     if true
     {
         var value = 2
-        Swag.assert(value == 2)
+        Swag.require(value == 2)
     }
-    Swag.assert(value == 1)
+    Swag.require(value == 1)
 }
 
 // Shadowing in for loop.
@@ -33,9 +33,9 @@
     for i in 3
     {
         var sum = i * 10
-        Swag.assert(sum == i * 10)
+        Swag.require(sum == i * 10)
     }
-    Swag.assert(sum == 0)
+    Swag.require(sum == 0)
 }
 
 // Multiple levels of shadowing.
@@ -48,11 +48,11 @@
         scope
         {
             var x = 3
-            Swag.assert(x == 3)
+            Swag.require(x == 3)
         }
-        Swag.assert(x == 2)
+        Swag.require(x == 2)
     }
-    Swag.assert(x == 1)
+    Swag.require(x == 1)
 }
 
 // Shadow with different types.
@@ -62,9 +62,9 @@
     scope
     {
         var v: f64 = 3.14
-        Swag.assert(v == 3.14)
+        Swag.require(v == 3.14)
     }
-    Swag.assert(v == 42)
+    Swag.require(v == 42)
 }
 
 // Shadow in while loop.
@@ -75,8 +75,8 @@
     while i < 3
     {
         var count = i
-        Swag.assert(count == i)
+        Swag.require(count == i)
         i += 1
     }
-    Swag.assert(count == 100)
+    Swag.require(count == 100)
 }

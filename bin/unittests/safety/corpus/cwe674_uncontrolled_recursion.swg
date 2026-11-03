@@ -49,6 +49,6 @@ func largeFrame(index: u64)->u8
 
 #test
 {
-    Swag.assert(sumDown(opaqueS32(10)) == 55)
-    Swag.assert(largeFrame(opaqueU64(40000)) == 7)
+    Swag.require(sumDown(opaqueS32(10)) == 55)
+    Swag.require(largeFrame(opaqueU64(40000)) == 7)
 }

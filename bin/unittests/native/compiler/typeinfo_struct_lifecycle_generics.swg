@@ -376,15 +376,15 @@ func genericCascadeInitRestoresArraysAndNestedFields()->bool
 
 #test
 {
-    Swag.assert(genericPodInstancesStayPod())
-    Swag.assert(genericDirectAndFieldShapeWorks())
-    Swag.assert(genericDirectAndFieldInitWorks())
-    Swag.assert(genericDirectAndFieldDropWorks())
-    Swag.assert(genericDirectAndFieldCopyWorks())
-    Swag.assert(genericDirectAndFieldMoveWorks())
-    Swag.assert(nestedGenericCompositionWorks())
-    Swag.assert(nestedGenericInitWorks())
-    Swag.assert(genericConstArrayInitWorks())
-    Swag.assert(genericConstArrayLifecycleWorks())
-    Swag.assert(genericCascadeInitRestoresArraysAndNestedFields())
+    Swag.require(genericPodInstancesStayPod())
+    Swag.require(genericDirectAndFieldShapeWorks())
+    Swag.require(genericDirectAndFieldInitWorks())
+    Swag.require(genericDirectAndFieldDropWorks())
+    Swag.require(genericDirectAndFieldCopyWorks())
+    Swag.require(genericDirectAndFieldMoveWorks())
+    Swag.require(nestedGenericCompositionWorks())
+    Swag.require(nestedGenericInitWorks())
+    Swag.require(genericConstArrayInitWorks())
+    Swag.require(genericConstArrayLifecycleWorks())
+    Swag.require(genericCascadeInitRestoresArraysAndNestedFields())
 }

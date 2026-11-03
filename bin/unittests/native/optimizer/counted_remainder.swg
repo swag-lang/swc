@@ -125,13 +125,13 @@ func referenceBoundary64()->s64
     for i in 64 do
         values[i] = cast(s32, (i * 17) % 43) - 21
 
-    Swag.assert(positive32(&values[0]) == reference(&values[0], 0))
-    Swag.assert(positive64(&values[0]) == reference(&values[0], 0))
-    Swag.assert(negative32(&values[0]) == reference(&values[0], -7))
-    Swag.assert(negative64(&values[0]) == reference(&values[0], -7))
-    Swag.assert(unsigned32Boundary(&values[0]) == referenceUnsigned32Boundary(&values[0]))
-    Swag.assert(boundary32() == referenceBoundary32())
-    Swag.assert(boundary64() == referenceBoundary64())
+    Swag.require(positive32(&values[0]) == reference(&values[0], 0))
+    Swag.require(positive64(&values[0]) == reference(&values[0], 0))
+    Swag.require(negative32(&values[0]) == reference(&values[0], -7))
+    Swag.require(negative64(&values[0]) == reference(&values[0], -7))
+    Swag.require(unsigned32Boundary(&values[0]) == referenceUnsigned32Boundary(&values[0]))
+    Swag.require(boundary32() == referenceBoundary32())
+    Swag.require(boundary64() == referenceBoundary64())
 }
 
 #[Swag.NoInline]
@@ -179,8 +179,8 @@ func referenceBound(values: [*] s32, first, count, divisor: s64)->s64
 
     var actual: [4] s64
     furtherPrecision(&values[0], &actual[0])
-    Swag.assert(actual[0] == referenceBound(&values[0], 0, 57, 1000))
-    Swag.assert(actual[1] == referenceBound(&values[0], 0, 57, 0x100000001))
-    Swag.assert(actual[2] == referenceBound(&values[0], 0x100000001, 64, 7))
-    Swag.assert(actual[3] == referenceBound(&values[0], 0x100000001, 64, 0x100000003))
+    Swag.require(actual[0] == referenceBound(&values[0], 0, 57, 1000))
+    Swag.require(actual[1] == referenceBound(&values[0], 0, 57, 0x100000001))
+    Swag.require(actual[2] == referenceBound(&values[0], 0x100000001, 64, 7))
+    Swag.require(actual[3] == referenceBound(&values[0], 0x100000001, 64, 0x100000003))
 }

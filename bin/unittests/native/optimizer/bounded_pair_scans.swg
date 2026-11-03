@@ -43,13 +43,13 @@ func equalPrefix(left, right: const [*] u8, first, last: u64)->u64
                     right[i] = 128
                 if match < length do
                     right[match] = 127
-                Swag.assert(commonPrefix(cast(const [*] u8, &left), cast(const [*] u8, &right), first, length) == expected)
+                Swag.require(commonPrefix(cast(const [*] u8, &left), cast(const [*] u8, &right), first, length) == expected)
 
                 for i in right.count do
                     right[i] = 127
                 if match < length do
                     right[match] = 128
-                Swag.assert(equalPrefix(cast(const [*] u8, &left), cast(const [*] u8, &right), cast(u64, first), cast(u64, length)) == cast(u64, expected))
+                Swag.require(equalPrefix(cast(const [*] u8, &left), cast(const [*] u8, &right), cast(u64, first), cast(u64, length)) == cast(u64, expected))
             }
         }
     }

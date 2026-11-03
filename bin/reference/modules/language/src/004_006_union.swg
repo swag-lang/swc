@@ -22,8 +22,8 @@ which is particularly useful for optimizing memory when only one field is used a
     let v = MyUnion{x: 666}
 
     // All fields share the same memory location — updating one affects all
-    Swag.assert(v.y == 666)
-    Swag.assert(v.z == 666)
+    Swag.require(v.y == 666)
+    Swag.require(v.z == 666)
 }
 
 /**
@@ -63,15 +63,15 @@ values that no `case` lists carry no member at all.
     }
 
     var shape: Shape
-    Swag.assert(shape.geometry is .None)
+    Swag.require(shape.geometry is .None)
 
     // A case is written with a leading dot, and its member with braces.
     shape.geometry = .Circle{radius: 2}
-    Swag.assert(shape.geometry is .Circle)
-    Swag.assert(shape.circle.radius == 2)
+    Swag.require(shape.geometry is .Circle)
+    Swag.require(shape.circle.radius == 2)
 
     shape.geometry = .Square{w: 3, h: 3}
-    Swag.assert(Swag.kindOf(shape.geometry) == .Square)
+    Swag.require(Swag.kindOf(shape.geometry) == .Square)
 }
 
 /**
@@ -102,10 +102,10 @@ declaration that holds it can give it one, as `= .None` does above.
 
     var bounds: Bounds
     bounds.mode = .Signed
-    Swag.assert(bounds.signed.min == -10)
+    Swag.require(bounds.signed.min == -10)
 
     bounds.mode = .Unsigned{max: 50}
-    Swag.assert(bounds.unsigned.max == 50)
+    Swag.require(bounds.unsigned.max == 50)
 }
 
 /**
@@ -130,13 +130,13 @@ like any other, which a function takes, returns or stores.
 
     let p     = Point{x: 1, y: 2}
     var value = makePoint(3, 4)
-    Swag.assert(value is .Point)
+    Swag.require(value is .Point)
 
     value = .Point{p}
-    Swag.assert(value.point.y == 2)
+    Swag.require(value.point.y == 2)
 
     value = .Number{7}
-    Swag.assert(value.number == 7)
+    Swag.require(value.number == 7)
 }
 
 /**
@@ -176,11 +176,11 @@ assigned again.
 
     var shape: Shape
     shape.geometry = .Rect{w: 2, h: 5}
-    Swag.assert(area(shape) == 10)
+    Swag.require(area(shape) == 10)
 
     if shape.geometry is .Rect do
         shape.rect.w = 4
-    Swag.assert(area(shape) == 20)
+    Swag.require(area(shape) == 20)
 }
 
 /**
@@ -208,7 +208,7 @@ rejected, as it is on a value already proven non-null.
 
     var shape: Shape
     shape.geometry = .Rect{w: 4, h: 1}
-    Swag.assert(width(shape) == 4)
+    Swag.require(width(shape) == 4)
 }
 
 /**
@@ -235,8 +235,8 @@ no part in the comparison.
     var a, b: Label
     a.text = .Name{"disc"}
     b.text = .Name{"disc"}
-    Swag.assert(a == b)
+    Swag.require(a == b)
 
     b.text = .Size{4}
-    Swag.assert(a != b)
+    Swag.require(a != b)
 }

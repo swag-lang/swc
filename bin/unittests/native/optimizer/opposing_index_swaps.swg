@@ -41,7 +41,7 @@ func reverseFromFirst(items: [*] u64)
         for i in items.count
         {
             let source = i < length ? length - 1 - i : i
-            Swag.assert(items[i] == source * 5 + 17)
+            Swag.require(items[i] == source * 5 + 17)
         }
     }
 
@@ -56,7 +56,7 @@ func reverseFromFirst(items: [*] u64)
         {
             let source   = i < length ? length - 1 - i : i
             let expected = source == 0 ? length - 1 : source * 5 + 17
-            Swag.assert(items[i] == expected)
+            Swag.require(items[i] == expected)
         }
     }
 }

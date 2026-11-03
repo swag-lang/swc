@@ -31,24 +31,24 @@ enum ReflectedState: u8
 #test
 {
     let base = #typeof(ReflectedPoint)
-    Swag.assert(base.kind == .Struct)
+    Swag.require(base.kind == .Struct)
 
     let type   = assume cast(const *Swag.TypeInfoStruct, base)
     let fields = unwrap type.fields
 
-    Swag.assert(type.structName == "ReflectedPoint")
-    Swag.assert(type.sizeof == #sizeof(ReflectedPoint))
-    Swag.assert(fields.count == 2)
-    Swag.assert(fields[0].name == "x")
-    Swag.assert(fields[0].pointedType == s32)
-    Swag.assert(fields[0].offset == #offsetof(ReflectedPoint.x))
-    Swag.assert(fields[1].name == "y")
-    Swag.assert(fields[1].offset == #offsetof(ReflectedPoint.y))
+    Swag.require(type.structName == "ReflectedPoint")
+    Swag.require(type.sizeof == #sizeof(ReflectedPoint))
+    Swag.require(fields.count == 2)
+    Swag.require(fields[0].name == "x")
+    Swag.require(fields[0].pointedType == s32)
+    Swag.require(fields[0].offset == #offsetof(ReflectedPoint.x))
+    Swag.require(fields[1].name == "y")
+    Swag.require(fields[1].offset == #offsetof(ReflectedPoint.y))
 
     let methods = unwrap type.methods
-    Swag.assert(methods.count == 1)
-    Swag.assert(methods[0].name == "sum")
-    Swag.assert(methods[0].pointedType!.kind == .Func)
+    Swag.require(methods.count == 1)
+    Swag.require(methods[0].name == "sum")
+    Swag.require(methods[0].pointedType!.kind == .Func)
 }
 
 /**
@@ -60,17 +60,17 @@ typed reflection helper before reading it in general-purpose code.
 #test
 {
     let base = #typeof(ReflectedState)
-    Swag.assert(base.kind == .Enum)
+    Swag.require(base.kind == .Enum)
 
     let type   = assume cast(const *Swag.TypeInfoEnum, base)
     let values = unwrap type.values
 
-    Swag.assert(type.rawType == u8)
-    Swag.assert(values.count == 3)
-    Swag.assert(values[0].name == "Idle")
-    Swag.assert(values[1].name == "Running")
-    Swag.assert(values[2].name == "Done")
-    Swag.assert(values[0].pointedType == ReflectedState)
+    Swag.require(type.rawType == u8)
+    Swag.require(values.count == 3)
+    Swag.require(values[0].name == "Idle")
+    Swag.require(values[1].name == "Running")
+    Swag.require(values[2].name == "Done")
+    Swag.require(values[0].pointedType == ReflectedState)
 }
 
 /**
@@ -89,6 +89,6 @@ func reflectedFieldCount(type: typeinfo)->u64
 
 #test
 {
-    Swag.assert(reflectedFieldCount(ReflectedPoint) == 2)
-    Swag.assert(reflectedFieldCount(s32) == 0)
+    Swag.require(reflectedFieldCount(ReflectedPoint) == 2)
+    Swag.require(reflectedFieldCount(s32) == 0)
 }

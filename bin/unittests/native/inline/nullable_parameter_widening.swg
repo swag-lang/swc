@@ -65,21 +65,21 @@ func optionalSlicePointer(source: const [..] u8)
 {
     var storage = 37'u64
     let pointer = opaquePointer(&storage)
-    Swag.assert(optionalPointer(pointer) == cast(u64, pointer))
-    Swag.assert(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
-    defer Swag.assert(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
-    Swag.assert(optionalPointer(null) == 0)
-    Swag.assert(optionalScalar(&storage) == 37)
-    Swag.assert(optionalScalar(null) == 0)
+    Swag.require(optionalPointer(pointer) == cast(u64, pointer))
+    Swag.require(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
+    defer Swag.require(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
+    Swag.require(optionalPointer(null) == 0)
+    Swag.require(optionalScalar(&storage) == 37)
+    Swag.require(optionalScalar(null) == 0)
 
     var values = [17'u32, 29]
     let slice: [..] u32 = values
-    Swag.assert(optionalSlice(slice) == 17)
-    Swag.assert(optionalSlice(null) == 0)
+    Swag.require(optionalSlice(slice) == 17)
+    Swag.require(optionalSlice(null) == 0)
 
     let text: string = "allocator"
-    Swag.assert(optionalString(text) == 9)
-    Swag.assert(optionalString(null) == 0)
+    Swag.require(optionalString(text) == 9)
+    Swag.require(optionalString(null) == 0)
 
     var bytes = [1'u8, 2]
     let byteSlice: [..] u8 = bytes

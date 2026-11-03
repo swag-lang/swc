@@ -13,9 +13,9 @@ providing a streamlined and efficient way to process each item.
         let a = index
         switch a
         {
-        case 0: Swag.assert(value == 'A')
-        case 1: Swag.assert(value == 'B')
-        case 2: Swag.assert(value == 'C')
+        case 0: Swag.require(value == 'A')
+        case 1: Swag.require(value == 'B')
+        case 2: Swag.require(value == 'C')
         }
     }
 }
@@ -38,7 +38,7 @@ whichever value sits there, and every position after it keeps its place.
         sum += index
     }
 
-    Swag.assert(sum == 3)
+    Swag.require(sum == 3)
 }
 
 /**
@@ -55,9 +55,9 @@ their position determines which value they receive.
         let a = index
         switch a
         {
-        case 0: Swag.assert(value == 'A')
-        case 1: Swag.assert(value == 'B')
-        case 2: Swag.assert(value == 'C')
+        case 0: Swag.require(value == 'A')
+        case 1: Swag.require(value == 'B')
+        case 2: Swag.require(value == 'C')
         }
     }
 }
@@ -83,11 +83,11 @@ enum Channel: u8
     for value, channel in levels
     {
         #assert(#typeof(channel) == Channel)
-        Swag.assert(value == levels[channel])
+        Swag.require(value == levels[channel])
         sum += value
     }
 
-    Swag.assert(sum == 60)
+    Swag.require(sum == 60)
 }
 
 /**
@@ -105,16 +105,16 @@ down; a loop that needs the position within the view keeps its own counter.
         switch cpt
         {
         case 0:
-            Swag.assert(value == 'C')
-            Swag.assert(index == 2)
+            Swag.require(value == 'C')
+            Swag.require(index == 2)
 
         case 1:
-            Swag.assert(value == 'B')
-            Swag.assert(index == 1)
+            Swag.require(value == 'B')
+            Swag.require(index == 1)
 
         case 2:
-            Swag.assert(value == 'A')
-            Swag.assert(index == 0)
+            Swag.require(value == 'A')
+            Swag.require(index == 0)
         }
 
         cpt += 1
@@ -133,7 +133,7 @@ A scalar element is copied into its binding.
     var result = 0
     for it in array do
         result += it
-    Swag.assert(result == 10 + 20 + 30)
+    Swag.require(result == 10 + 20 + 30)
 }
 
 /**
@@ -147,7 +147,7 @@ Element iteration works with multi-dimensional arrays and visits each element in
     var result = 0
     for it in array do
         result += it
-    Swag.assert(result == 10 + 20 + 30 + 40)
+    Swag.require(result == 10 + 20 + 30 + 40)
 }
 
 /**
@@ -174,7 +174,7 @@ Use '&' when the loop must write.
         sum += p.x + p.y
     }
 
-    Swag.assert(sum == 10)
+    Swag.require(sum == 10)
 }
 
 /**
@@ -197,11 +197,11 @@ binding; the whole element is read or written with '[]'.
         it[]   = 555
     }
 
-    Swag.assert(result == 1 + 2 + 3 + 4)
-    Swag.assert(array[0, 0] == 555)
-    Swag.assert(array[0, 1] == 555)
-    Swag.assert(array[1, 0] == 555)
-    Swag.assert(array[1, 1] == 555)
+    Swag.require(result == 1 + 2 + 3 + 4)
+    Swag.require(array[0, 0] == 555)
+    Swag.require(array[0, 1] == 555)
+    Swag.require(array[1, 0] == 555)
+    Swag.require(array[1, 1] == 555)
 }
 
 /**
@@ -220,8 +220,8 @@ The same '&' binding replaces a struct element in one write.
     for &p, index in points do
         p[] = Point{cast(s32, index), cast(s32, index)}
 
-    Swag.assert(points[0].x == 0 and points[0].y == 0)
-    Swag.assert(points[1].x == 1 and points[1].y == 1)
+    Swag.require(points[0].x == 0 and points[0].y == 0)
+    Swag.require(points[1].x == 1 and points[1].y == 1)
 }
 
 /**
@@ -237,14 +237,14 @@ This avoids explicit branching inside the loop.
 
     for value in array where value & 1 == 0 do
         result += value
-    Swag.assert(result == 6)
+    Swag.require(result == 6)
 
     // Equivalent with an 'if' guard:
     result = 0
     for value in array do
         if value & 1 == 0 do
             result += value
-    Swag.assert(result == 6)
+    Swag.require(result == 6)
 
     // Equivalent using 'continue' to skip odd values:
     result = 0
@@ -255,5 +255,5 @@ This avoids explicit branching inside the loop.
         result += value
     }
 
-    Swag.assert(result == 6)
+    Swag.require(result == 6)
 }

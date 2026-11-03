@@ -57,23 +57,23 @@ func fillTable(table: *Table)
 
     // Read back through the raw buffer, so a wrong store is not masked by an equally wrong read.
     for i in 8 do
-        Swag.assert(raw[i] == cast(u8, (i + 100)))
+        Swag.require(raw[i] == cast(u8, (i + 100)))
 
     var ents: [4] InlineCodePayload.Entry
     var table = Table{0, InlineCodePayload.Store'InlineCodePayload.Entry{&ents[0], 4}}
     table.add(1, 0xFFF, 7)
     table.add(2, 0, 9)
-    Swag.assert(ents[0].length == 1 and ents[0].prefix == 0xFFF and ents[0].suffix == 7)
-    Swag.assert(ents[1].length == 2 and ents[1].prefix == 0 and ents[1].suffix == 9)
-    Swag.assert(table.n == 2)
+    Swag.require(ents[0].length == 1 and ents[0].prefix == 0xFFF and ents[0].suffix == 7)
+    Swag.require(ents[1].length == 2 and ents[1].prefix == 0 and ents[1].suffix == 9)
+    Swag.require(table.n == 2)
 
     fillTable(&table)
     for i in 4
     {
-        Swag.assert(ents[i].length == 1)
-        Swag.assert(ents[i].prefix == 0xFFF)
-        Swag.assert(ents[i].suffix == i)
+        Swag.require(ents[i].length == 1)
+        Swag.require(ents[i].prefix == 0xFFF)
+        Swag.require(ents[i].suffix == i)
     }
 
-    Swag.assert(host.cells[3] == 103)
+    Swag.require(host.cells[3] == 103)
 }

@@ -38,9 +38,9 @@ func repeatedCallSetup(values: [*] s32)->s32 => repeatedCallCold(values)
 #test
 {
     var values = [7's32, 11]
-    Swag.assert(repeatedCallRecursive(values.buffer, 4) == 28)
-    Swag.assert(repeatedCallRecursive(values.buffer, 0) == 0)
-    Swag.assert(repeatedCallLoop(values.buffer) == 20)
-    Swag.assert(repeatedCallReturnLoop(values.buffer) == 21)
-    Swag.assert(repeatedCallSetup(values.buffer) == 7)
+    Swag.require(repeatedCallRecursive(values.buffer, 4) == 28)
+    Swag.require(repeatedCallRecursive(values.buffer, 0) == 0)
+    Swag.require(repeatedCallLoop(values.buffer) == 20)
+    Swag.require(repeatedCallReturnLoop(values.buffer) == 21)
+    Swag.require(repeatedCallSetup(values.buffer) == 7)
 }

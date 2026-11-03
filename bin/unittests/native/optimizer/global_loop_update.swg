@@ -59,14 +59,14 @@ func addToWords(rounds: u64, step: u32)
     var values: [4] u32 = [1, 2, 3, 4]
     g_Total = 5
     addInto(&values[0], 4)
-    Swag.assert(g_Total == 15)
+    Swag.require(g_Total == 15)
 
     // The source is the global: each trip doubles what the previous one wrote.
     g_Total = 3
     addInto(&g_Total, 1)
-    Swag.assert(g_Total == 6)
+    Swag.require(g_Total == 6)
     addInto(&g_Total, 1)
-    Swag.assert(g_Total == 12)
+    Swag.require(g_Total == 12)
 }
 
 #test
@@ -74,9 +74,9 @@ func addToWords(rounds: u64, step: u32)
     var values: [3] u64 = [0xFF00, 0x0FF0, 0x00FF]
     g_Wide = 0
     xorInto(&values[0], 3)
-    Swag.assert(g_Wide == 0xF00F)
+    Swag.require(g_Wide == 0xF00F)
     xorInto(&g_Wide, 1)
-    Swag.assert(g_Wide == 0)
+    Swag.require(g_Wide == 0)
 }
 
 #test
@@ -84,23 +84,23 @@ func addToWords(rounds: u64, step: u32)
     var values: [6] u32 = [1, 9, 3, 7, 5, 5]
     g_Hits = 0
     countAbove(&values[0], 6, 4)
-    Swag.assert(g_Hits == 4)
+    Swag.require(g_Hits == 4)
     countAbove(&values[0], 0, 0)
-    Swag.assert(g_Hits == 4)
+    Swag.require(g_Hits == 4)
 }
 
 #test
 {
     var values: [6] u8 = [1, 17, 2, 33, 15, 2]
     tally(&values[0], 6)
-    Swag.assert(g_Histogram[1] == 3 and g_Histogram[2] == 2 and g_Histogram[15] == 1 and g_Histogram[0] == 0)
+    Swag.require(g_Histogram[1] == 3 and g_Histogram[2] == 2 and g_Histogram[15] == 1 and g_Histogram[0] == 0)
 }
 
 #test
 {
     g_Words = [1, 2, 3, 4]
     addToWords(3, 10)
-    Swag.assert(g_Words[0] == 31 and g_Words[1] == 32 and g_Words[2] == 33 and g_Words[3] == 34)
+    Swag.require(g_Words[0] == 31 and g_Words[1] == 32 and g_Words[2] == 33 and g_Words[3] == 34)
     addToWords(0, 10)
-    Swag.assert(g_Words[3] == 34)
+    Swag.require(g_Words[3] == 34)
 }

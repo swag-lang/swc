@@ -21,11 +21,11 @@ func failContextSum()->s32
 #test
 {
     const V = #run failJitFlag()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }
 
 #test
 {
     const V = #run failContextSum()
-    Swag.assert(V == 76)
+    Swag.require(V == 76)
 }

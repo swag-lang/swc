@@ -21,7 +21,7 @@ in resource management, where explicit cleanup is required before resetting the 
     Swag.drop(&rgb, 4)     // If RGB defines opDrop, it will be invoked here for each element
 
     Swag.init(&rgb, 4)(5, 6, 7)     // Reinitialize array elements after dropping
-    Swag.assert(rgb[3].r == 5)
-    Swag.assert(rgb[3].g == 6)
-    Swag.assert(rgb[3].b == 7)
+    Swag.require(rgb[3].r == 5)
+    Swag.require(rgb[3].g == 6)
+    Swag.require(rgb[3].b == 7)
 }

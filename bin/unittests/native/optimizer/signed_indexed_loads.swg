@@ -38,17 +38,17 @@ func sum(p: [*]s8, count: u64)->s64
     var displaced: [70]s16
     for i in 5'u64
     {
-        Swag.assert(byte64(&bytes[0], i) == bytes[i])
-        Swag.assert(byte32(&bytes[0], i) == bytes[i])
-        Swag.assert(word64(&words[0], i) == words[i])
-        Swag.assert(word32(&words[0], i) == words[i])
+        Swag.require(byte64(&bytes[0], i) == bytes[i])
+        Swag.require(byte32(&bytes[0], i) == bytes[i])
+        Swag.require(word64(&words[0], i) == words[i])
+        Swag.require(word32(&words[0], i) == words[i])
         displaced[i + 65] = words[i]
-        Swag.assert(offset(&displaced[0], i) == words[i])
-        Swag.assert(shared(&words[0], i) == cast(s64, words[i]) + (words[i] < 0 ? -1 : 1))
+        Swag.require(offset(&displaced[0], i) == words[i])
+        Swag.require(shared(&words[0], i) == cast(s64, words[i]) + (words[i] < 0 ? -1 : 1))
         let before = words[i]
-        Swag.assert(stored(&words[0], i) == before)
-        Swag.assert(words[i] == 19)
+        Swag.require(stored(&words[0], i) == before)
+        Swag.require(words[i] == 19)
     }
-    Swag.assert(sum(&bytes[0], 0) == 0)
-    Swag.assert(sum(&bytes[0], 5) == -1)
+    Swag.require(sum(&bytes[0], 0) == 0)
+    Swag.require(sum(&bytes[0], 5) == -1)
 }

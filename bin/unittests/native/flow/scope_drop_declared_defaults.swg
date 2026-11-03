@@ -58,7 +58,7 @@ struct ScopeRequiresInit
         var value: ScopeAllZero
         value.handle.live = true
     }
-    Swag.assert(g_scopeDropCount == 1)
+    Swag.require(g_scopeDropCount == 1)
 }
 
 #test
@@ -68,9 +68,9 @@ struct ScopeRequiresInit
     {
         var value: ScopeDeclaredDefault
         value.handle.live = true
-        Swag.assert(value.count == 3)
+        Swag.require(value.count == 3)
     }
-    Swag.assert(g_scopeDropCount == 1)
+    Swag.require(g_scopeDropCount == 1)
 }
 
 #test
@@ -80,9 +80,9 @@ struct ScopeRequiresInit
     {
         var value: ScopeInferredDefault
         value.handle.live = true
-        Swag.assert(value.count == 3)
+        Swag.require(value.count == 3)
     }
-    Swag.assert(g_scopeDropCount == 1)
+    Swag.require(g_scopeDropCount == 1)
 }
 
 #test
@@ -95,5 +95,5 @@ struct ScopeRequiresInit
         value.handle = ScopeDropHandle{live: true}
         value.target = &slot
     }
-    Swag.assert(g_scopeDropCount == 1)
+    Swag.require(g_scopeDropCount == 1)
 }

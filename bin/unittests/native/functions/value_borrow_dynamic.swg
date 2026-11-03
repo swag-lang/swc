@@ -24,9 +24,9 @@ func inner(state: *State, thing: Thing)->u64
 {
     var state: State = State{thing: Thing{value: 10}}
     mustReject(func|&state|() { discard inner(&state, state.thing) })
-    Swag.assert(state.thing.value == 10)
-    Swag.assert(inner(&state, #copy state.thing) == 10)
-    Swag.assert(state.thing.value == 0)
+    Swag.require(state.thing.value == 10)
+    Swag.require(inner(&state, #copy state.thing) == 10)
+    Swag.require(state.thing.value == 0)
 }
 
 var globalThing: Thing
@@ -41,8 +41,8 @@ func changeGlobal(thing: Thing)->u64
 {
     globalThing.value = 19
     mustReject(func() { discard changeGlobal(globalThing) })
-    Swag.assert(globalThing.value == 19)
-    Swag.assert(changeGlobal(#copy globalThing) == 19)
+    Swag.require(globalThing.value == 19)
+    Swag.require(changeGlobal(#copy globalThing) == 19)
 }
 
 #[Swag.NoInline]
@@ -59,7 +59,7 @@ func restoreAfterWrite(thing: Thing, destination: *Thing)->u64
 {
     var thing: Thing = Thing{value: 23}
     mustReject(func|&thing|() { discard restoreAfterWrite(thing, &thing) })
-    Swag.assert(thing.value == 23)
+    Swag.require(thing.value == 23)
 }
 
 struct SelfReferential { value, padding: u64; target: *SelfReferential? }
@@ -75,10 +75,10 @@ func mutateSelf(value: SelfReferential)->u64
     var value: SelfReferential = SelfReferential{value: 29}
     value.target = &value
     mustReject(func|&value|() { discard mutateSelf(value) })
-    Swag.assert(value.value == 29)
+    Swag.require(value.value == 29)
     // A shallow copy points back to the original, which is now outside the borrow.
-    Swag.assert(mutateSelf(#copy value) == 29)
-    Swag.assert(value.value == 0)
+    Swag.require(mutateSelf(#copy value) == 29)
+    Swag.require(value.value == 0)
 }
 
 #[Swag.NoInline]
@@ -94,10 +94,10 @@ func throughCallback(value: Thing, callback: func||())->u64
     mustReject(func|&value|() {
         discard throughCallback(value, func|&value|() { value.value = 0 })
     })
-    Swag.assert(value.value == 31)
+    Swag.require(value.value == 31)
     var other: Thing
-    Swag.assert(throughCallback(value, func|&other|() { other.value = 37 }) == 31)
-    Swag.assert(other.value == 37)
+    Swag.require(throughCallback(value, func|&other|() { other.value = 37 }) == 31)
+    Swag.require(other.value == 37)
 }
 
 #[Swag.Inline]
@@ -111,8 +111,8 @@ func inlineMutation(value: Thing, destination: *Thing)->u64
 {
     var value: Thing = Thing{value: 41}
     mustReject(func|&value|() { discard inlineMutation(value, &value) })
-    Swag.assert(value.value == 41)
-    Swag.assert(inlineMutation(#copy value, &value) == 41)
+    Swag.require(value.value == 41)
+    Swag.require(inlineMutation(#copy value, &value) == 41)
 }
 
 #[Swag.NoInline]
@@ -126,7 +126,7 @@ func erasedMutation(value: Thing, address: u64)->u64
 {
     var value: Thing = Thing{value: 43}
     mustReject(func|&value|() { discard erasedMutation(value, cast(u64, &value.value)) })
-    Swag.assert(value.value == 43)
+    Swag.require(value.value == 43)
 }
 
 #[Swag.NoInline]
@@ -150,9 +150,9 @@ func byteMutation(value: Thing, destination: *void, operation: u32)->u64
     {
         var value: Thing = Thing{value: 47}
         mustReject(func|&value, operation|() { discard byteMutation(value, &value, operation) })
-        Swag.assert(value.value == 47)
+        Swag.require(value.value == 47)
         var other: Thing
-        Swag.assert(byteMutation(value, &other, operation) == 47)
+        Swag.require(byteMutation(value, &other, operation) == 47)
     }
 }
 
@@ -170,17 +170,17 @@ func readBeside(value: Thing, other: u64)->u64 => value.value + other
 {
     var value: Thing = Thing{value: 53}
     mustReject(func|&value|() { discard readBeside(value, laterArgument(&value)) })
-    Swag.assert(value.value == 53)
-    Swag.assert(readBeside(#copy value, laterArgument(&value)) == 54)
+    Swag.require(value.value == 53)
+    Swag.require(readBeside(#copy value, laterArgument(&value)) == 54)
 }
 
 // Disjoint fields of one parent are not overlapping storage.
 #test
 {
     var state: State = State{thing: Thing{value: 59}, other: Thing{value: 61}}
-    Swag.assert(inner(&state, state.other) == 61)
+    Swag.require(inner(&state, state.other) == 61)
     state.other.value = 67
-    Swag.assert(state.thing.value == 0 and state.other.value == 67)
+    Swag.require(state.thing.value == 0 and state.other.value == 67)
 }
 
 #[Swag.NoInline]
@@ -197,9 +197,9 @@ func nestedCatch(value: Thing, destination: *Thing)->u64
 {
     var value: Thing = Thing{value: 71}
     mustReject(func|&value|() { discard nestedCatch(value, &value) })
-    Swag.assert(value.value == 71)
+    Swag.require(value.value == 71)
     value.value = 73
-    Swag.assert(value.value == 73)
+    Swag.require(value.value == 73)
 }
 
 // Repeated nonlocal exits must leave neither stale stack records nor a held registry lock.
@@ -210,7 +210,7 @@ func nestedCatch(value: Thing, destination: *Thing)->u64
         var value: Thing = Thing{value: 79}
         mustReject(func|&value|() { discard restoreAfterWrite(value, &value) })
         value.value = 83
-        Swag.assert(value.value == 83)
+        Swag.require(value.value == 83)
     }
 }
 
@@ -232,7 +232,7 @@ func mutatePublished(value: PublishedCopy)->u64
 {
     var value: PublishedCopy = PublishedCopy{first: 89}
     mustReject(func|&value|() { discard mutatePublished(#copy value) })
-    Swag.assert(value.first == 89)
+    Swag.require(value.first == 89)
     publishedCopy = null
 }
 
@@ -251,7 +251,7 @@ func mutatePublishedField(value: NestedPublished)->u64
 {
     var value: NestedPublished = NestedPublished{field: PublishedCopy{first: 97}}
     mustReject(func|&value|() { discard mutatePublishedField(#copy value) })
-    Swag.assert(value.field.first == 97)
+    Swag.require(value.field.first == 97)
     publishedCopy = null
 }
 
@@ -271,10 +271,10 @@ func readBesideNestedCopy(value: Thing, other: NestedCopy)->u64 => value.value +
     globalThing.value = 101
     var other: SideEffectCopy
     mustReject(func|&other|() { discard readBesideCopy(globalThing, #copy other) })
-    Swag.assert(globalThing.value == 101)
+    Swag.require(globalThing.value == 101)
     var nested: NestedCopy
     mustReject(func|&nested|() { discard readBesideNestedCopy(globalThing, #copy nested) })
-    Swag.assert(globalThing.value == 101)
+    Swag.require(globalThing.value == 101)
 }
 
 struct Carrier { target: *Thing }
@@ -290,7 +290,7 @@ func writeCarrier(value: Thing, carrier: Carrier)->u64
     var value:   Thing   = Thing{value: 103}
     let carrier: Carrier = Carrier{target: &value}
     mustReject(func|&value, carrier|() { discard writeCarrier(value, #copy carrier) })
-    Swag.assert(value.value == 103)
+    Swag.require(value.value == 103)
 }
 
 #[Swag.NoInline]
@@ -304,9 +304,9 @@ func mutateBox(value: Thing, boxed: any)->u64
 {
     var value: Thing = Thing{value: 107}
     mustReject(func|&value|() { discard mutateBox(value, value.value) })
-    Swag.assert(value.value == 107)
+    Swag.require(value.value == 107)
     let observed = mutateBox(value, #copy value.value)
-    Swag.assert(observed == 107 and value.value == 107)
+    Swag.require(observed == 107 and value.value == 107)
 }
 
 #[Swag.NoInline]
@@ -326,7 +326,7 @@ func lifecycleMutation(value: Thing, target: *Thing, operation: u32)->u64
     {
         var value: Thing = Thing{value: 109}
         mustReject(func|&value, operation|() { discard lifecycleMutation(value, &value, operation) })
-        Swag.assert(value.value == 109)
+        Swag.require(value.value == 109)
     }
 }
 
@@ -354,7 +354,7 @@ func growInPlace(value: Thing, request: *Swag.AllocatorRequest)->u64
     // Native allocation rounds this block up, so its growth stays in place.
     request.size = Swag.jit() ? #sizeof(Thing) : 32
     let observed = growInPlace(value[], &request)
-    Swag.assert(observed == 127 and request.address == address)
+    Swag.require(observed == 127 and request.address == address)
 }
 
 // The call-site borrow must survive lowering inside an assertion condition.
@@ -362,7 +362,7 @@ func growInPlace(value: Thing, request: *Swag.AllocatorRequest)->u64
 {
     var value: Thing = Thing{value: 131}
     mustReject(func|&value|() { Swag.assert(readBeside(value, laterArgument(&value)) == 132) })
-    Swag.assert(value.value == 131)
+    Swag.require(value.value == 131)
 }
 
 #[Swag.Inline]
@@ -371,7 +371,7 @@ func inlineReadBeside(value: Thing, other: u64)->u64 => value.value + other
 {
     var value: Thing = Thing{value: 137}
     mustReject(func|&value|() { discard inlineReadBeside(value, laterArgument(&value)) })
-    Swag.assert(value.value == 137)
+    Swag.require(value.value == 137)
 }
 
 #[Swag.Safety(.ValueBorrow, false), Swag.NoInline]
@@ -390,7 +390,7 @@ func useLocallyCheckedWrite(value: Thing, target: *Thing)->u64
 {
     var value: Thing = Thing{value: 139}
     mustReject(func|&value|() { discard useLocallyCheckedWrite(value, &value) })
-    Swag.assert(value.value == 139)
+    Swag.require(value.value == 139)
 }
 
 #[Swag.NoInline]
@@ -403,9 +403,9 @@ func exchangeIfEqual(value: Thing, target: *Thing, expected: u64)->u64
 {
     var value: Thing = Thing{value: 149}
     let observed     = exchangeIfEqual(value, &value, 0)
-    Swag.assert(observed == 149 and value.value == 149)
+    Swag.require(observed == 149 and value.value == 149)
     mustReject(func|&value|() { discard exchangeIfEqual(value, &value, 149) })
-    Swag.assert(value.value == 149)
+    Swag.require(value.value == 149)
 }
 
 #[Swag.NoInline]
@@ -418,7 +418,7 @@ func destructure(value: Thing, target: *Thing)->u64
 {
     var value: Thing = Thing{value: 151}
     mustReject(func|&value|() { discard destructure(value, &value) })
-    Swag.assert(value.value == 151)
+    Swag.require(value.value == 151)
 }
 
 #[Swag.NoInline]
@@ -431,7 +431,7 @@ func moveFrom(value: Thing, target: *Thing)->u64
 {
     var value: Thing = Thing{value: 157}
     mustReject(func|&value|() { discard moveFrom(value, &value) })
-    Swag.assert(value.value == 157)
+    Swag.require(value.value == 157)
 }
 
 #[Swag.NoInline]
@@ -444,9 +444,9 @@ func variadicMutation(target: *Thing, values: ...)->u64
 {
     var value: Thing = Thing{value: 163}
     mustReject(func|&value|() { discard variadicMutation(&value, value) })
-    Swag.assert(value.value == 163)
+    Swag.require(value.value == 163)
     let observed = variadicMutation(&value, #copy value)
-    Swag.assert(observed == 163 and value.value == 0)
+    Swag.require(observed == 163 and value.value == 0)
 }
 
 #[Swag.NoInline]
@@ -460,11 +460,11 @@ func initializeRange(value: Thing, target: [*] Thing, count: u64)->u64
     var values: [3] Thing
     values[1].value = 167
     let unchanged = initializeRange(values[1], &values[0], 0)
-    Swag.assert(unchanged == 167)
+    Swag.require(unchanged == 167)
     mustReject(func|&values|() { discard initializeRange(values[1], &values[0], 3) })
     // Multiplying this count by sizeof(Thing) wraps to zero without a guarded extent.
     mustReject(func|&values|() { discard initializeRange(values[1], &values[0], 1'u64 << 61) })
-    Swag.assert(values[1].value == 167)
+    Swag.require(values[1].value == 167)
 }
 
 struct IndexedReader { bias: u64 }
@@ -487,7 +487,7 @@ func laterThing(destination: *Thing)->Thing
     var value:  Thing         = Thing{value: 173}
     let reader: IndexedReader = IndexedReader{bias: 2}
     mustReject(func|&value, reader|() { discard reader[value, laterThing(&value)] })
-    Swag.assert(value.value == 173)
+    Swag.require(value.value == 173)
     let observed = reader[#copy value, laterThing(&value)]
-    Swag.assert(observed == 176 and value.value == 0)
+    Swag.require(observed == 176 and value.value == 0)
 }

@@ -37,7 +37,7 @@ func clonedParameters(seed: s32)->s32
 {
     for seed in [0, 1, 3, 19]
     {
-        Swag.assert(clonedLocals(seed) == (seed + 7) * 12)
-        Swag.assert(clonedParameters(seed) == seed + 11)
+        Swag.require(clonedLocals(seed) == (seed + 7) * 12)
+        Swag.require(clonedParameters(seed) == seed + 11)
     }
 }

@@ -10,7 +10,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -25,7 +25,7 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -38,7 +38,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -52,7 +52,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -65,7 +65,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -78,7 +78,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 0)
+    Swag.require(hit == 0)
 }
 
 #test
@@ -90,7 +90,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -102,7 +102,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -117,7 +117,7 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -132,7 +132,7 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -144,7 +144,7 @@
         hit = 1
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }
 
 #test
@@ -159,5 +159,5 @@
         hit = 2
         break
     }
-    Swag.assert(hit == 1)
+    Swag.require(hit == 1)
 }

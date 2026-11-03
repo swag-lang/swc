@@ -25,10 +25,10 @@ func refRol64(x: u64, k: u64)->u64 => (x << k) | (x >> (64 - k))
 {
     for x in [0x12345678'u32, 0x80000001, 0xFFFFFFFF, 0, 0xDEADBEEF]
     {
-        Swag.assert(sigma32(x) == (refRor32(x, 6) ^ refRor32(x, 11) ^ refRor32(x, 25) ^ x))
-        Swag.assert(rotateBoth(x) == ((cast(u64, refRor32(x, 23)) << 32) | refRor32(x, 9)))
+        Swag.require(sigma32(x) == (refRor32(x, 6) ^ refRor32(x, 11) ^ refRor32(x, 25) ^ x))
+        Swag.require(rotateBoth(x) == ((cast(u64, refRor32(x, 23)) << 32) | refRor32(x, 9)))
     }
 
     for x in [0x0123456789ABCDEF'u64, 0x8000000000000001, 0xFFFFFFFFFFFFFFFF, 0] do
-        Swag.assert(sigma64(x) == (refRol64(x, 13) ^ refRol64(x, 51) ^ refRol64(x, 57) ^ x))
+        Swag.require(sigma64(x) == (refRol64(x, 13) ^ refRol64(x, 51) ^ refRol64(x, 57) ^ x))
 }

@@ -23,19 +23,19 @@ enum Large
 {
     var visits = 0
     for Sparse do visits += 1
-    Swag.assert(visits == 3)
+    Swag.require(visits == 3)
 }
 
 #test
 {
     var visits = 0
     for Medium do visits += 1
-    Swag.assert(visits == 12)
+    Swag.require(visits == 12)
 }
 
 #test
 {
     var visits = 0
     for Large do visits += 1
-    Swag.assert(visits == 70)
+    Swag.require(visits == 70)
 }

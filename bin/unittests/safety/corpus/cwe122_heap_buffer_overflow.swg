@@ -58,5 +58,5 @@ func heapReadInRange()->u8
 
 #test
 {
-    Swag.assert(heapReadInRange() == 42)
+    Swag.require(heapReadInRange() == 42)
 }

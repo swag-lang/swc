@@ -67,10 +67,10 @@ already truncates discarded bits.
 {
     let count: u64 = 7
 
-    Swag.assert(0x81'u8 << 1 == 0x02'u8)
-    Swag.assert(0x81'u8 << count == 0x80'u8)
-    Swag.assert(0x81'u8 >> count == 0x01'u8)
-    Swag.assert(-128's8 >> count == -1's8)
+    Swag.require(0x81'u8 << 1 == 0x02'u8)
+    Swag.require(0x81'u8 << count == 0x80'u8)
+    Swag.require(0x81'u8 >> count == 0x01'u8)
+    Swag.require(-128's8 >> count == -1's8)
     #assert(#typeof(1'u8 << count) == u8)
 }
 
@@ -114,9 +114,9 @@ postfix asserted access such as 'value!.field', 'buffer![index]', or 'handler!()
     y = ~y        // Bitwise NOT
     z = -z        // Negation
 
-    Swag.assert(z == -1)
-    Swag.assert(x == false)
-    Swag.assert(y == 0b1111_1110)
+    Swag.require(z == -1)
+    Swag.require(x == false)
+    Swag.require(y == 0b1111_1110)
 }
 
 /**
@@ -142,12 +142,12 @@ equality, inequality, and relational comparisons.
     {
         let x = 5
         let y = 10
-        Swag.assert(x == 5)
-        Swag.assert(x != y)
-        Swag.assert(x <= 5)
-        Swag.assert(x < y)
-        Swag.assert(x >= 5)
-        Swag.assert(x > 0)
+        Swag.require(x == 5)
+        Swag.require(x != y)
+        Swag.require(x <= 5)
+        Swag.require(x < y)
+        Swag.require(x >= 5)
+        Swag.require(x > 0)
     }
 }
 
@@ -199,9 +199,9 @@ struct Measure
     let b = Measure{reading: {value: 11}, label: 7}
     let c = Measure{reading: {value: 10}, label: 8}
 
-    Swag.assert(a.reading == b.reading)     // the member decides these readings are equal
-    Swag.assert(a == b)     // so the two measures are equal too
-    Swag.assert(a != c)     // 'label' still compares as the number it is
+    Swag.require(a.reading == b.reading)     // the member decides these readings are equal
+    Swag.require(a == b)     // so the two measures are equal too
+    Swag.require(a != c)     // 'label' still compares as the number it is
 }
 
 /**
@@ -220,8 +220,8 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
     var nearby:   [2] Tolerance = [{value: 11}, {value: 21}]
     var distant:  [2] Tolerance = [{value: 11}, {value: 30}]
 
-    Swag.assert(readings == nearby)     // every element decides it is the same reading
-    Swag.assert(readings != distant)
+    Swag.require(readings == nearby)     // every element decides it is the same reading
+    Swag.require(readings != distant)
 }
 
 /**
@@ -253,10 +253,10 @@ Syntax:
 #test
 {
     let x = true ? 1 : 666
-    Swag.assert(x == 1)
+    Swag.require(x == 1)
 
     let y = (x == 52) ? 1 : 666
-    Swag.assert(y == 666)
+    Swag.require(y == 666)
 }
 
 /**
@@ -278,23 +278,23 @@ A <=> B ==  1 if A > B
     {
         let a = -1.5 <=> 2.31
         #assert(#typeof(a) == s32)
-        Swag.assert(a == -1)
+        Swag.require(a == -1)
 
-        Swag.assert(-10 <=> 10 == -1)
-        Swag.assert(10 <=> -10 == 1)
-        Swag.assert(10 <=> 10 == 0)
+        Swag.require(-10 <=> 10 == -1)
+        Swag.require(10 <=> -10 == 1)
+        Swag.require(10 <=> 10 == 0)
     }
 
     scope
     {
         let x1 = 10 <=> 20
-        Swag.assert(x1 == -1)
+        Swag.require(x1 == -1)
 
         let x2 = 20 <=> 10
-        Swag.assert(x2 == 1)
+        Swag.require(x2 == 1)
 
         let x3 = 20 <=> 20
-        Swag.assert(x3 == 0)
+        Swag.require(x3 == 0)
     }
 }
 
@@ -315,12 +315,12 @@ fallback's strict alias, if it has one.
     let b = "string2"
 
     var c = a orelse b
-    Swag.assert(c == "string1")
+    Swag.require(c == "string1")
     #assert(#typeof(c) == string)     // the result drops '?'
 
     a = null
     c = a orelse b
-    Swag.assert(c == "string2")
+    Swag.require(c == "string2")
 }
 
 /**
@@ -340,7 +340,7 @@ and the ternary already expresses it:
 {
     let count = 0
     let n     = count != 0 ? count : 10
-    Swag.assert(n == 10)
+    Swag.require(n == 10)
 }
 
 /**
@@ -351,10 +351,10 @@ and the ternary already expresses it:
 #test
 {
     var empty = ""
-    Swag.assert((empty orelse "fallback") == "")
+    Swag.require((empty orelse "fallback") == "")
 
     var missing: string? = null
-    Swag.assert((missing orelse "fallback") == "fallback")
+    Swag.require((missing orelse "fallback") == "fallback")
 }
 
 /**
@@ -429,32 +429,32 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
 */
 #test
 {
-    Swag.assert(10 + 2 * 3 == 16)
-    Swag.assert((10 + 2) * 3 == 36)
-    Swag.assert((5 + 3 < 10 - 2) == false)
-    Swag.assert((false and false or true) == true)
-    Swag.assert((10 & 2 << 1) == 0)
-    Swag.assert(((10 & 2) << 1) == 4)
+    Swag.require(10 + 2 * 3 == 16)
+    Swag.require((10 + 2) * 3 == 36)
+    Swag.require((5 + 3 < 10 - 2) == false)
+    Swag.require((false and false or true) == true)
+    Swag.require((10 & 2 << 1) == 0)
+    Swag.require(((10 & 2) << 1) == 4)
 
     // '^' binds tighter than '|': parses as 1 | (2 ^ 3) == 1 | 1 == 1.
-    Swag.assert((1 | 2 ^ 3) == 1)
+    Swag.require((1 | 2 ^ 3) == 1)
 
     // Bitwise binds tighter than comparison: parses as (2 & 3) == 2.
     // Under the C ordering this would be 2 & (3 == 2) and would not even compile.
-    Swag.assert(2 & 3 == 2)
+    Swag.require(2 & 3 == 2)
 
     // Ordering comparisons bind tighter than equality: parses as (1 < 2) == true.
-    Swag.assert(1 < 2 == true)
+    Swag.require(1 < 2 == true)
 
     // The spaceship shares the ordering level, still tighter than equality: (1 <=> 2) == -1.
-    Swag.assert(1 <=> 2 == -1)
+    Swag.require(1 <=> 2 == -1)
 
     // Prefix operators bind tighter than any binary operator.
-    Swag.assert((not false == true) == true)
-    Swag.assert(-2 * 3 == -6)
-    Swag.assert(~0'u8 == 255)
+    Swag.require((not false == true) == true)
+    Swag.require(-2 * 3 == -6)
+    Swag.require(~0'u8 == 255)
 
     // 'orelse' and the ternary sit at the loosest level and group to the right.
     let a: string? = null
-    Swag.assert((a orelse (false ? "x" : "y")) == "y")
+    Swag.require((a orelse (false ? "x" : "y")) == "y")
 }

@@ -102,21 +102,21 @@ func exchangeReference(cells: [*] Cell)
     exchange(&cells[0])
     exchangeReference(&expected[0])
     for i in N do
-        Swag.assert(cells[i].value == expected[i].value and cells[i].weight == expected[i].weight)
-    Swag.assert(cells[0].value == -3740 and cells[2].value == -82771 and cells[4].value == 127551)
+        Swag.require(cells[i].value == expected[i].value and cells[i].weight == expected[i].weight)
+    Swag.require(cells[0].value == -3740 and cells[2].value == -82771 and cells[4].value == 127551)
 
     var plain: [N] Cell = [Cell{1, 1}, Cell{2, 2}, Cell{3, 3}, Cell{4, 4}, Cell{5, 5}]
     exchangeFrom(&plain[0], 3)
-    Swag.assert(plain[0].value == 33 and plain[1].value == 43 and plain[2].value == 53)
-    Swag.assert(plain[3].value == 63 and plain[4].value == 73)
+    Swag.require(plain[0].value == 33 and plain[1].value == 43 and plain[2].value == 53)
+    Swag.require(plain[3].value == 63 and plain[4].value == 73)
 
     var values: [16] s64
     for i in 16 do
         values[i] = i * 7 + 1
     let total = pairSum(&values[0])
-    Swag.assert(total == 25596)
-    Swag.assert(values[0] == 24 and values[14] == 101 and values[15] == 106)
+    Swag.require(total == 25596)
+    Swag.require(values[0] == 24 and values[14] == 101 and values[15] == 106)
 
     let last = lastCell(&plain[0])
-    Swag.assert(last == 365)
+    Swag.require(last == 365)
 }

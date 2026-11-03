@@ -225,9 +225,9 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
     let springLayoutB = buildGardenPlan(0x00C0FFEE'u32)
     let autumnLayout  = buildGardenPlan(0x0BADF00D'u32)
 
-    Swag.assert(sameSummary(springLayoutA, springLayoutB))
-    Swag.assert(sameSummary(springLayoutA, autumnLayout) == false)
-    Swag.assert(springLayoutA.layoutSignature != autumnLayout.layoutSignature)
+    Swag.require(sameSummary(springLayoutA, springLayoutB))
+    Swag.require(sameSummary(springLayoutA, autumnLayout) == false)
+    Swag.require(springLayoutA.layoutSignature != autumnLayout.layoutSignature)
 
     let totalPlotsA = springLayoutA.pondPlots +
                       springLayoutA.wildflowerPlots +
@@ -239,18 +239,18 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
                       autumnLayout.stonePathPlots +
                       autumnLayout.vegetablePlots
 
-    Swag.assert(totalPlotsA == 12)
-    Swag.assert(totalPlotsB == 12)
+    Swag.require(totalPlotsA == 12)
+    Swag.require(totalPlotsB == 12)
 
-    Swag.assert(springLayoutA.raisedBeds >= springLayoutA.vegetablePlots * 2)
-    Swag.assert(springLayoutA.irrigatedPlots <= springLayoutA.vegetablePlots)
-    Swag.assert(springLayoutA.waterReserveLiters >= springLayoutA.pondPlots * 900)
-    Swag.assert(springLayoutA.fertilityScore >= springLayoutA.wildflowerPlots * 6)
-    Swag.assert(springLayoutA.layoutSignature > 0)
+    Swag.require(springLayoutA.raisedBeds >= springLayoutA.vegetablePlots * 2)
+    Swag.require(springLayoutA.irrigatedPlots <= springLayoutA.vegetablePlots)
+    Swag.require(springLayoutA.waterReserveLiters >= springLayoutA.pondPlots * 900)
+    Swag.require(springLayoutA.fertilityScore >= springLayoutA.wildflowerPlots * 6)
+    Swag.require(springLayoutA.layoutSignature > 0)
 
-    Swag.assert(autumnLayout.raisedBeds >= autumnLayout.vegetablePlots * 2)
-    Swag.assert(autumnLayout.irrigatedPlots <= autumnLayout.vegetablePlots)
-    Swag.assert(autumnLayout.waterReserveLiters >= autumnLayout.pondPlots * 900)
-    Swag.assert(autumnLayout.compostBins >= 0)
-    Swag.assert(autumnLayout.layoutSignature > 0)
+    Swag.require(autumnLayout.raisedBeds >= autumnLayout.vegetablePlots * 2)
+    Swag.require(autumnLayout.irrigatedPlots <= autumnLayout.vegetablePlots)
+    Swag.require(autumnLayout.waterReserveLiters >= autumnLayout.pondPlots * 900)
+    Swag.require(autumnLayout.compostBins >= 0)
+    Swag.require(autumnLayout.layoutSignature > 0)
 }

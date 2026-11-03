@@ -23,7 +23,7 @@ By default, enums use the `s32` type for storage.
 {
     enum Values { A, B }
     let type = #typeof(Values)
-    Swag.assert(type.rawType == s32)
+    Swag.require(type.rawType == s32)
     #assert(#typeof(Values) == Values)
 }
 
@@ -124,7 +124,7 @@ Non-integer enums require explicit assignments.
         C = "3"
     }
 
-    Swag.assert(Value.count == 3)
+    Swag.require(Value.count == 3)
 }
 
 /**
@@ -137,9 +137,9 @@ Non-integer enums require explicit assignments.
     enum Value { A, B, C }
     using Value
 
-    Swag.assert(A == 0)
-    Swag.assert(B == 1)
-    Swag.assert(Value.C == 2)
+    Swag.require(A == 0)
+    Swag.require(B == 1)
+    Swag.require(Value.C == 2)
 }
 
 /**
@@ -157,7 +157,7 @@ With `#[Swag.EnumFlags]`, enum values represent bit flags. They should use unsig
     #assert(MyFlags.C == 0b00000100)
 
     let value = MyFlags.B | MyFlags.C
-    Swag.assert(value == 0b00000110)
+    Swag.require(value == 0b00000110)
 }
 
 /**
@@ -183,7 +183,7 @@ Enums can also store slices.
     let b = cast(const [..] s32, Value.B)
     #assert(a.count == 2)
     #assert(b.count == 3)
-    Swag.assert(b[2] == 30)
+    Swag.require(b[2] == 30)
 }
 
 /**
@@ -198,10 +198,10 @@ forming the contiguous range from zero to the last value.
 
     const Array: [MyIndex] s32 = [0, 1, 2]
     const Valu = Array[MyIndex.First]
-    Swag.assert(Valu == 0)
+    Swag.require(Valu == 0)
 
     var index = MyIndex.Third
-    Swag.assert(Array[index] == 2)
+    Swag.require(Array[index] == 2)
 }
 
 /**
@@ -226,7 +226,7 @@ Swag infers enum types automatically in assignments and expressions.
     enum Values { A, B }
     let x: Values = Values.A
     let y: Values = .A
-    Swag.assert(x == y)
+    Swag.require(x == y)
 }
 
 /**
@@ -257,7 +257,7 @@ You can omit the enum name when the type is already known.
 {
     enum Values { A, B }
     let x = Values.A
-    Swag.assert(x == .A)
+    Swag.require(x == .A)
 }
 
 /**
@@ -271,7 +271,7 @@ enum of the first one.
     enum Values { A, B }
     let pickFirst = true
     let x         = pickFirst ? Values.A : .B
-    Swag.assert(x == .A)
+    Swag.require(x == .A)
 }
 
 /**
@@ -285,7 +285,7 @@ This works with flags too.
     enum Values { A, B }
 
     let x = Values.A | Values.B
-    Swag.assert((x & .A) and (x & .B))
+    Swag.require((x & .A) and (x & .B))
 }
 
 /**
@@ -294,7 +294,7 @@ This works with flags too.
 #test
 {
     enum Values { A, B }
-    func toto(v1, v2: Values) => Swag.assert(v1 == .A and v2 == .B)
+    func toto(v1, v2: Values) => Swag.require(v1 == .A and v2 == .B)
     toto(.A, .B)
 }
 
@@ -309,7 +309,7 @@ You can loop over the number of enum values with `for`, or iterate the values th
     var cpt = 0
     for RGB do
         cpt += 1
-    Swag.assert(cpt == 3)
+    Swag.require(cpt == 3)
 }
 
 /**
@@ -325,7 +325,7 @@ Binding a name offers a structured way to iterate and handle specific values.
         case .R: break
         case .G: break
         case .B: break
-        default: Swag.assert(false)
+        default: Swag.require(false)
         }
     }
 }

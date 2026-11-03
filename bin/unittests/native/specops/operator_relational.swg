@@ -45,12 +45,12 @@ impl RuntimeCompareBox
     #assert(#typeof(lhs == rhs) == bool)
     #assert(#typeof(lhs != other) == bool)
 
-    Swag.assert(lhs.opEquals(rhs))
-    Swag.assert(not lhs.opEquals(other))
-    Swag.assert(lhs == rhs)
-    Swag.assert(not (lhs != rhs))
-    Swag.assert(lhs != other)
-    Swag.assert(not (lhs == other))
+    Swag.require(lhs.opEquals(rhs))
+    Swag.require(not lhs.opEquals(other))
+    Swag.require(lhs == rhs)
+    Swag.require(not (lhs != rhs))
+    Swag.require(lhs != other)
+    Swag.require(not (lhs == other))
 }
 
 #test
@@ -60,9 +60,9 @@ impl RuntimeCompareBox
     #assert(#typeof(lhs == 12) == bool)
     #assert(#typeof(lhs <=> 18) == s32)
 
-    Swag.assert(lhs == 12)
-    Swag.assert(lhs != 5)
-    Swag.assert((lhs <=> 18) == -3)
+    Swag.require(lhs == 12)
+    Swag.require(lhs != 5)
+    Swag.require((lhs <=> 18) == -3)
 }
 
 #test
@@ -70,11 +70,11 @@ impl RuntimeCompareBox
     var smaller = RuntimeCompareBox{value: 10}
     var larger  = RuntimeCompareBox{value: 20}
 
-    Swag.assert(smaller < larger)
-    Swag.assert(smaller <= larger)
-    Swag.assert(not (smaller > larger))
-    Swag.assert(not (smaller >= larger))
-    Swag.assert((smaller <=> larger) == -7)
+    Swag.require(smaller < larger)
+    Swag.require(smaller <= larger)
+    Swag.require(not (smaller > larger))
+    Swag.require(not (smaller >= larger))
+    Swag.require((smaller <=> larger) == -7)
 }
 
 #test
@@ -82,11 +82,11 @@ impl RuntimeCompareBox
     var larger  = RuntimeCompareBox{value: 20}
     var smaller = RuntimeCompareBox{value: 10}
 
-    Swag.assert(larger > smaller)
-    Swag.assert(larger >= smaller)
-    Swag.assert(not (larger < smaller))
-    Swag.assert(not (larger <= smaller))
-    Swag.assert((larger <=> smaller) == 9)
+    Swag.require(larger > smaller)
+    Swag.require(larger >= smaller)
+    Swag.require(not (larger < smaller))
+    Swag.require(not (larger <= smaller))
+    Swag.require((larger <=> smaller) == 9)
 }
 
 #test
@@ -94,24 +94,24 @@ impl RuntimeCompareBox
     var lhs = RuntimeCompareBox{value: 15}
     var rhs = RuntimeCompareBox{value: 15}
 
-    Swag.assert(not (lhs < rhs))
-    Swag.assert(lhs <= rhs)
-    Swag.assert(not (lhs > rhs))
-    Swag.assert(lhs >= rhs)
-    Swag.assert((lhs <=> rhs) == 0)
+    Swag.require(not (lhs < rhs))
+    Swag.require(lhs <= rhs)
+    Swag.require(not (lhs > rhs))
+    Swag.require(lhs >= rhs)
+    Swag.require((lhs <=> rhs) == 0)
 }
 
 #test
 {
     var lhs = RuntimeCompareBox{value: 8}
 
-    Swag.assert(lhs < 9)
-    Swag.assert(lhs <= 8)
-    Swag.assert(lhs > 7)
-    Swag.assert(lhs >= 8)
-    Swag.assert(not (lhs < 8))
-    Swag.assert(not (lhs > 8))
-    Swag.assert((lhs <=> 9) == -3)
-    Swag.assert((lhs <=> 7) == 4)
-    Swag.assert((lhs <=> 8) == 0)
+    Swag.require(lhs < 9)
+    Swag.require(lhs <= 8)
+    Swag.require(lhs > 7)
+    Swag.require(lhs >= 8)
+    Swag.require(not (lhs < 8))
+    Swag.require(not (lhs > 8))
+    Swag.require((lhs <=> 9) == -3)
+    Swag.require((lhs <=> 7) == 4)
+    Swag.require((lhs <=> 8) == 0)
 }

@@ -32,7 +32,7 @@ func anyToSlice()->bool
 
 #test
 {
-    Swag.assert(anyToEnum())
-    Swag.assert(anyToPointer())
-    Swag.assert(anyToSlice())
+    Swag.require(anyToEnum())
+    Swag.require(anyToPointer())
+    Swag.require(anyToSlice())
 }

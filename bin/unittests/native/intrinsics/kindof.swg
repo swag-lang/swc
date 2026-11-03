@@ -12,7 +12,7 @@ alias StrictKindOfAny = any
     var a: any = 0's32
     var b      = Swag.kindOf(a)
     #assert(#typeof(b) == typeinfo)
-    Swag.assert(#typeof(b) == typeinfo)
+    Swag.require(#typeof(b) == typeinfo)
 }
 
 // ============================================================
@@ -24,7 +24,7 @@ alias StrictKindOfAny = any
     var x: s32
     var a: any = Swag.makeAny(&x, s32)
     var b      = Swag.kindOf(a)
-    Swag.assert(b == s32)
+    Swag.require(b == s32)
 }
 
 #test
@@ -32,77 +32,77 @@ alias StrictKindOfAny = any
     var x: f32
     var a: any = Swag.makeAny(cast(*void, &x), f32)
     var b      = Swag.kindOf(a)
-    Swag.assert(b == f32)
+    Swag.require(b == f32)
 }
 
 #test
 {
     var x: u8
     var a: any = Swag.makeAny(&x, u8)
-    Swag.assert(Swag.kindOf(a) == u8)
+    Swag.require(Swag.kindOf(a) == u8)
 }
 
 #test
 {
     var x: u16
     var a: any = Swag.makeAny(&x, u16)
-    Swag.assert(Swag.kindOf(a) == u16)
+    Swag.require(Swag.kindOf(a) == u16)
 }
 
 #test
 {
     var x: u32
     var a: any = Swag.makeAny(&x, u32)
-    Swag.assert(Swag.kindOf(a) == u32)
+    Swag.require(Swag.kindOf(a) == u32)
 }
 
 #test
 {
     var x: u64
     var a: any = Swag.makeAny(&x, u64)
-    Swag.assert(Swag.kindOf(a) == u64)
+    Swag.require(Swag.kindOf(a) == u64)
 }
 
 #test
 {
     var x: s8
     var a: any = Swag.makeAny(&x, s8)
-    Swag.assert(Swag.kindOf(a) == s8)
+    Swag.require(Swag.kindOf(a) == s8)
 }
 
 #test
 {
     var x: s16
     var a: any = Swag.makeAny(&x, s16)
-    Swag.assert(Swag.kindOf(a) == s16)
+    Swag.require(Swag.kindOf(a) == s16)
 }
 
 #test
 {
     var x: s64
     var a: any = Swag.makeAny(&x, s64)
-    Swag.assert(Swag.kindOf(a) == s64)
+    Swag.require(Swag.kindOf(a) == s64)
 }
 
 #test
 {
     var x: f64
     var a: any = Swag.makeAny(&x, f64)
-    Swag.assert(Swag.kindOf(a) == f64)
+    Swag.require(Swag.kindOf(a) == f64)
 }
 
 #test
 {
     var x: bool
     var a: any = Swag.makeAny(&x, bool)
-    Swag.assert(Swag.kindOf(a) == bool)
+    Swag.require(Swag.kindOf(a) == bool)
 }
 
 #test
 {
     var x: rune
     var a: any = Swag.makeAny(&x, rune)
-    Swag.assert(Swag.kindOf(a) == rune)
+    Swag.require(Swag.kindOf(a) == rune)
 }
 
 // ============================================================
@@ -115,7 +115,7 @@ struct Point { x: s32, y: s32 }
 {
     var p      = Point{1, 2}
     var a: any = Swag.makeAny(&p, Point)
-    Swag.assert(Swag.kindOf(a) == Point)
+    Swag.require(Swag.kindOf(a) == Point)
 }
 
 // ============================================================
@@ -136,15 +136,15 @@ alias StrictKindAlias = Kind
 {
     var k      = Kind.A
     var a: any = Swag.makeAny(&k, Kind)
-    Swag.assert(Swag.kindOf(a) == Kind)
+    Swag.require(Swag.kindOf(a) == Kind)
 }
 
 #test
 {
     var k      = cast(StrictKindAlias, Kind.B)
     var a: any = Swag.makeAny(&k, StrictKindAlias)
-    Swag.assert(Swag.kindOf(a) == StrictKindAlias)
-    Swag.assert(assume cast(StrictKindAlias, a) == cast(StrictKindAlias, Kind.B))
+    Swag.require(Swag.kindOf(a) == StrictKindAlias)
+    Swag.require(assume cast(StrictKindAlias, a) == cast(StrictKindAlias, Kind.B))
 }
 
 // ============================================================
@@ -156,9 +156,9 @@ alias StrictKindAlias = Kind
     var x: s32 = 1
     var y: f64 = 2.0
     var a: any = Swag.makeAny(&x, s32)
-    Swag.assert(Swag.kindOf(a) == s32)
+    Swag.require(Swag.kindOf(a) == s32)
     a = Swag.makeAny(&y, f64)
-    Swag.assert(Swag.kindOf(a) == f64)
+    Swag.require(Swag.kindOf(a) == f64)
 }
 
 // ============================================================
@@ -169,7 +169,7 @@ alias StrictKindAlias = Kind
 {
     var s: string = "hello"
     var a: any    = Swag.makeAny(&s, string)
-    Swag.assert(Swag.kindOf(a) == string)
+    Swag.require(Swag.kindOf(a) == string)
 }
 
 #test
@@ -179,7 +179,7 @@ alias StrictKindAlias = Kind
     let boxed    = cast(const *StrictKindOfAny, (&raw))[]
     var b        = Swag.kindOf(boxed)
     #assert(#typeof(b) == typeinfo)
-    Swag.assert(b == s32)
+    Swag.require(b == s32)
 }
 
 #test
@@ -187,5 +187,5 @@ alias StrictKindAlias = Kind
     var text: string = "alias-kind"
     var raw:  any    = Swag.makeAny(&text, string)
     let boxed        = cast(const *StrictKindOfAny, (&raw))[]
-    Swag.assert(Swag.kindOf(boxed) == string)
+    Swag.require(Swag.kindOf(boxed) == string)
 }

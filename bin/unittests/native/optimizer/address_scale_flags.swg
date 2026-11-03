@@ -64,7 +64,7 @@ func scaleSelectedWidths(decoder: *ScaleDecoder, kind: s32)->s32
     }
 
     decoder.kind = 2
-    Swag.assert(scaleSelectedWidths(&decoder, 2) == 384)
+    Swag.require(scaleSelectedWidths(&decoder, 2) == 384)
     decoder.kind = 3
-    Swag.assert(scaleSelectedWidths(&decoder, 4) == 38_400)
+    Swag.require(scaleSelectedWidths(&decoder, 4) == 38_400)
 }

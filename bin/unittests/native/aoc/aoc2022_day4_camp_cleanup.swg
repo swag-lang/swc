@@ -44,5 +44,5 @@ const CT = #run solve(Input)
 #test
 {
     let r = solve(Input)
-    Swag.assert(r[0] == 2 and r[1] == 4)
+    Swag.require(r[0] == 2 and r[1] == 4)
 }

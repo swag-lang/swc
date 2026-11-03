@@ -243,39 +243,39 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 // Const arithmetic
 #test
 {
-    Swag.assert(NumQuads == 4'u32)
-    Swag.assert(QuadBR == 3'u32)
+    Swag.require(NumQuads == 4'u32)
+    Swag.require(QuadBR == 3'u32)
 }
 
 // Positive modulo
 #test
 {
-    Swag.assert(posMod(7, 5) == 2)
-    Swag.assert(posMod(-1, 5) == 4)
-    Swag.assert(posMod(-3, 11) == 8)
-    Swag.assert(posMod(0, 7) == 0)
-    Swag.assert(posMod(11, 11) == 0)
+    Swag.require(posMod(7, 5) == 2)
+    Swag.require(posMod(-1, 5) == 4)
+    Swag.require(posMod(-3, 11) == 8)
+    Swag.require(posMod(0, 7) == 0)
+    Swag.require(posMod(11, 11) == 0)
 }
 
 // Parse fleet with 'with' blocks
 #test
 {
     let fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
-    Swag.assert(fleet.count == 12'u32)
-    Swag.assert(fleet.w == 11)
-    Swag.assert(fleet.h == 7)
+    Swag.require(fleet.count == 12'u32)
+    Swag.require(fleet.w == 11)
+    Swag.require(fleet.h == 7)
 
     // First robot: p=0,4 v=3,-3
-    Swag.assert(fleet.bots[0].px == 0)
-    Swag.assert(fleet.bots[0].py == 4)
-    Swag.assert(fleet.bots[0].vx == 3)
-    Swag.assert(fleet.bots[0].vy == -3)
+    Swag.require(fleet.bots[0].px == 0)
+    Swag.require(fleet.bots[0].py == 4)
+    Swag.require(fleet.bots[0].vx == 3)
+    Swag.require(fleet.bots[0].vy == -3)
 
     // Last robot: p=9,5 v=-3,-3
-    Swag.assert(fleet.bots[11].px == 9)
-    Swag.assert(fleet.bots[11].py == 5)
-    Swag.assert(fleet.bots[11].vx == -3)
-    Swag.assert(fleet.bots[11].vy == -3)
+    Swag.require(fleet.bots[11].px == 9)
+    Swag.require(fleet.bots[11].py == 5)
+    Swag.require(fleet.bots[11].vx == -3)
+    Swag.require(fleet.bots[11].vy == -3)
 }
 
 // Single robot advance
@@ -283,19 +283,19 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     let bot: Robot = Robot{px: 2, py: 4, vx: 2, vy: -3}
     let b1         = advanceRobot(bot, 1, SampleWidth, SampleHeight)
-    Swag.assert(b1.px == 4)
-    Swag.assert(b1.py == 1)
+    Swag.require(b1.px == 4)
+    Swag.require(b1.py == 1)
 
     let b5 = advanceRobot(bot, 5, SampleWidth, SampleHeight)
-    Swag.assert(b5.px == 1)
-    Swag.assert(b5.py == 3)
+    Swag.require(b5.px == 1)
+    Swag.require(b5.py == 3)
 }
 
 // .count on fixed array
 #test
 {
     var quads: [NumQuads] u32
-    Swag.assert(quads.count == 4)
+    Swag.require(quads.count == 4)
 }
 
 // Safety factor for sample: expected 12
@@ -303,7 +303,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     let sf    = safetyFactor(&fleet, Steps)
-    Swag.assert(sf == 12'u64)
+    Swag.require(sf == 12'u64)
 }
 
 // cast(value) auto-inference
@@ -311,9 +311,9 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     let v: s32  = 42
     let b: bool = cast((v > 0))
-    Swag.assert(b)
+    Swag.require(b)
     let f: f32 = cast(v)
-    Swag.assert(f > 41.0 and f < 43.0)
+    Swag.require(f > 41.0 and f < 43.0)
 }
 
 // Compound assignment operators (*=, <<=)
@@ -321,12 +321,12 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var a: u64 = 3
     a *= 7
-    Swag.assert(a == 21'u64)
+    Swag.require(a == 21'u64)
     var b: u32 = 1
     b <<= 4
-    Swag.assert(b == 16'u32)
+    Swag.require(b == 16'u32)
     b >>= 2
-    Swag.assert(b == 4'u32)
+    Swag.require(b == 4'u32)
 }
 
 // Mixin: variance computation injects axisVariance
@@ -335,7 +335,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     var axisVariance: u64
     computeVarianceX(&fleet, 0)
-    Swag.assert(axisVariance > 0'u64)
+    Swag.require(axisVariance > 0'u64)
 }
 
 // Clustering: bestStep should be in valid range
@@ -343,7 +343,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     let best  = findClusterStep(&fleet, 20)
-    Swag.assert(best < 20'u32)
+    Swag.require(best < 20'u32)
 }
 
 // Edge case: single robot at origin
@@ -363,13 +363,13 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 
     // After 3 steps: (3,3)
     let bot = advanceRobot(fleet.bots[0], 3, 5, 5)
-    Swag.assert(bot.px == 3)
-    Swag.assert(bot.py == 3)
+    Swag.require(bot.px == 3)
+    Swag.require(bot.py == 3)
 
     // After 7 steps: (7%5, 7%5) = (2,2)
     let bot2 = advanceRobot(fleet.bots[0], 7, 5, 5)
-    Swag.assert(bot2.px == 2)
-    Swag.assert(bot2.py == 2)
+    Swag.require(bot2.px == 2)
+    Swag.require(bot2.py == 2)
 }
 
 // Edge case: robot wrapping negative velocity
@@ -389,6 +389,6 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 
     // After 1 step: (1-3, 1-3) = (-2,-2) → (3,3)
     let bot = advanceRobot(fleet.bots[0], 1, 5, 5)
-    Swag.assert(bot.px == 3)
-    Swag.assert(bot.py == 3)
+    Swag.require(bot.px == 3)
+    Swag.require(bot.py == 3)
 }

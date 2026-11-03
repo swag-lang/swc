@@ -40,8 +40,8 @@ func bumpAndReturn(c: *Counters, hits: s32)->s32
     var c: Counters
     bump(&c, -3, 0x100000000)
     bump(&c, 5, -1)
-    Swag.assert(c.hits == 2 and c.total == 0xFFFFFFFF)
+    Swag.require(c.hits == 2 and c.total == 0xFFFFFFFF)
     tag(&c, 0xAB, 0xFFFF)
-    Swag.assert(c.flags == 0xAB and c.kind == 0xFFFF and c.hits == 2)
-    Swag.assert(bumpAndReturn(&c, 7) == 14 and c.hits == -5)
+    Swag.require(c.flags == 0xAB and c.kind == 0xFFFF and c.hits == 2)
+    Swag.require(bumpAndReturn(&c, 7) == 14 and c.hits == -5)
 }

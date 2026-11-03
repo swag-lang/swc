@@ -32,5 +32,5 @@ func checkRotatedHeader()->bool
 
 #test
 {
-    Swag.assert(checkRotatedHeader())
+    Swag.require(checkRotatedHeader())
 }

@@ -35,21 +35,21 @@ func shared(a, b: u64)->u64
     {
         for b in values
         {
-            Swag.assert(leftOr(a, b) == (a | b) << 3)
-            Swag.assert(leftAnd(a, b) == (a & b) << 3)
-            Swag.assert(leftXor(a, b) == (a ^ b) << 3)
-            Swag.assert(leftSubtract(a, b) == (a - b) << 3)
-            Swag.assert(rightOr(a, b) == (a | b) >> 5)
-            Swag.assert(rightAnd(a, b) == (a & b) >> 5)
-            Swag.assert(rightXor(a, b) == (a ^ b) >> 5)
+            Swag.require(leftOr(a, b) == (a | b) << 3)
+            Swag.require(leftAnd(a, b) == (a & b) << 3)
+            Swag.require(leftXor(a, b) == (a ^ b) << 3)
+            Swag.require(leftSubtract(a, b) == (a - b) << 3)
+            Swag.require(rightOr(a, b) == (a | b) >> 5)
+            Swag.require(rightAnd(a, b) == (a & b) >> 5)
+            Swag.require(rightXor(a, b) == (a ^ b) >> 5)
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(narrow(a32, b32) == (a32 | b32) << 3)
-            Swag.assert(differentCounts(a, b) == ((a << 3) | (b << 4)))
-            Swag.assert(shared(a, b) == ((b & ~a) << 3))
+            Swag.require(narrow(a32, b32) == (a32 | b32) << 3)
+            Swag.require(differentCounts(a, b) == ((a << 3) | (b << 4)))
+            Swag.require(shared(a, b) == ((b & ~a) << 3))
         }
     }
-    Swag.assert(signedRight(-1, 31) == -1)
-    Swag.assert(signedRight(-32, -64) == 1)
-    Swag.assert(signedRight(64, -32) == -3)
+    Swag.require(signedRight(-1, 31) == -1)
+    Swag.require(signedRight(-32, -64) == 1)
+    Swag.require(signedRight(64, -32) == -3)
 }

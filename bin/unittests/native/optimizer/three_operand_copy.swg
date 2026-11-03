@@ -27,16 +27,16 @@ func maskWithLiveSource(a: u64, b, c: u64)->u64 => ((a & 7) == 0 ? b : c) ^ a
     let values = [0'u32, 1, 7, 31, 32, 63, 0x80000000, 0x87654321, 0xFFFFFFFF]
     for a in values
     {
-        Swag.assert(sameInput(a) == a << (a & 31))
+        Swag.require(sameInput(a) == a << (a & 31))
         for b in values
         {
             let shifted = a << (b & 31)
-            Swag.assert(left(a, b) == shifted)
-            Swag.assert(right(a, b) == a >> (b & 31))
-            Swag.assert(signedRight(cast #bit(s32, a), b) == cast #bit(s32, a) >> (b & 31))
-            Swag.assert(shared(a, b) == (shifted ^ a ^ b))
-            Swag.assert(changedSource(a, b) == (shifted ^ (a + b)))
-            Swag.assert(maskWithLiveSource(a, b, 17) == (((a & 7) == 0 ? cast(u64, b) : 17) ^ a))
+            Swag.require(left(a, b) == shifted)
+            Swag.require(right(a, b) == a >> (b & 31))
+            Swag.require(signedRight(cast #bit(s32, a), b) == cast #bit(s32, a) >> (b & 31))
+            Swag.require(shared(a, b) == (shifted ^ a ^ b))
+            Swag.require(changedSource(a, b) == (shifted ^ (a + b)))
+            Swag.require(maskWithLiveSource(a, b, 17) == (((a & 7) == 0 ? cast(u64, b) : 17) ^ a))
         }
     }
 }

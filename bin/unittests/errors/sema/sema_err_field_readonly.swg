@@ -5,14 +5,14 @@
 {
     var c: AccessCounter
     c.bump()
-    Swag.assert(c.count == 1)
+    Swag.require(c.count == 1)
 }
 
 #test
 {
     var c: AccessInternalCounter
     c.bump()
-    Swag.assert(c.count == 1)
+    Swag.require(c.count == 1)
 }
 
 #test

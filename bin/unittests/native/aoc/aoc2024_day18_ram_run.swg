@@ -360,11 +360,11 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 #test
 {
     let bl = parseBytes(SampleInput)
-    Swag.assert(bl.count == 25'u32)
-    Swag.assert(bl.items[0].col == 5'u32)
-    Swag.assert(bl.items[0].row == 4'u32)
-    Swag.assert(bl.items[1].col == 4'u32)
-    Swag.assert(bl.items[1].row == 2'u32)
+    Swag.require(bl.count == 25'u32)
+    Swag.require(bl.items[0].col == 5'u32)
+    Swag.require(bl.items[0].row == 4'u32)
+    Swag.require(bl.items[1].col == 4'u32)
+    Swag.require(bl.items[1].row == 2'u32)
 }
 
 // Multi-dim array: set and read
@@ -373,10 +373,10 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     var g: Grid
     g.w = 7; g.h = 7
     g.set(2, 3, 1)
-    Swag.assert(g.at(2, 3) == 1)
-    Swag.assert(g.at(0, 0) == 0)
-    Swag.assert(not g.passable(2, 3))
-    Swag.assert(g.passable(0, 0))
+    Swag.require(g.at(2, 3) == 1)
+    Swag.require(g.at(0, 0) == 0)
+    Swag.require(not g.passable(2, 3))
+    Swag.require(g.passable(0, 0))
 }
 
 // Grid clear
@@ -386,7 +386,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     g.w = 4; g.h = 4
     g.set(1, 1, 1)
     g.clear()
-    Swag.assert(g.at(1, 1) == 0)
+    Swag.require(g.at(1, 1) == 0)
 }
 
 // BFS on open grid
@@ -395,7 +395,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     var g: Grid
     g.w = 7; g.h = 7
     // Open: (0,0) to (6,6) = 12
-    Swag.assert(bfs(&g) == 12)
+    Swag.require(bfs(&g) == 12)
 }
 
 // BFS blocked
@@ -405,23 +405,23 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     g.w = 3; g.h = 3
     g.set(0, 1, 1)
     g.set(1, 0, 1)
-    Swag.assert(bfs(&g) == -1)
+    Swag.require(bfs(&g) == -1)
 }
 
 // Sample: Part 1 after 12 bytes on 7×7 grid → distance 22
 #test
 {
     let result = solve(SampleInput, 7, 12)
-    Swag.assert(result.part1Dist == 22)
+    Swag.require(result.part1Dist == 22)
 }
 
 // Sample: Part 2 blocking byte at index 20 → (6,1)
 #test
 {
     let result = solve(SampleInput, 7, 12)
-    Swag.assert(result.blockingByteIdx == 20'u32)
-    Swag.assert(result.blockingCol == 6'u32)
-    Swag.assert(result.blockingRow == 1'u32)
+    Swag.require(result.blockingByteIdx == 20'u32)
+    Swag.require(result.blockingCol == 6'u32)
+    Swag.require(result.blockingRow == 1'u32)
 }
 
 // Format coordinate
@@ -429,14 +429,14 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 {
     var buf: [16] u8
     let len = formatCoord(6, 1, &buf[0], 16)
-    Swag.assert(len == 3'u32)
-    Swag.assert(buf[0] == '6')
-    Swag.assert(buf[1] == ',')
-    Swag.assert(buf[2] == '1')
+    Swag.require(len == 3'u32)
+    Swag.require(buf[0] == '6')
+    Swag.require(buf[1] == ',')
+    Swag.require(buf[2] == '1')
 
     // cstring: construct from buffer
     let cs = Swag.makeSlice(&buf[0], cast(u64, len))
-    Swag.assert(cs.count == 3)
+    Swag.require(cs.count == 3)
 }
 
 // reverse-view iteration on digits
@@ -449,10 +449,10 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     // Just test formatCoord with single digits
     var buf2: [8] u8
     let len2 = formatCoord(0, 0, &buf2[0], 8)
-    Swag.assert(len2 == 3'u32)
-    Swag.assert(buf2[0] == '0')
-    Swag.assert(buf2[1] == ',')
-    Swag.assert(buf2[2] == '0')
+    Swag.require(len2 == 3'u32)
+    Swag.require(buf2[0] == '0')
+    Swag.require(buf2[1] == ',')
+    Swag.require(buf2[2] == '0')
 }
 
 // Binary search correctness: all bytes blocked trivially
@@ -468,5 +468,5 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     let idx = findBlockingByte(&g, &bl)
     // After 1 byte: (0,1) blocked. Path (0,0)→(1,0)→(1,1) still open
     // After 2 bytes: (1,0) also blocked. No path. So blocking = index 1
-    Swag.assert(idx == 1'u32)
+    Swag.require(idx == 1'u32)
 }

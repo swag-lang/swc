@@ -7,8 +7,8 @@ var ALIGNOF_FLOAT = #alignof(2.5)
 
 #test
 {
-    Swag.assert(SIZEOF_INT == 4)
-    Swag.assert(ALIGNOF_INT == 4)
-    Swag.assert(SIZEOF_FLOAT == 4)
-    Swag.assert(ALIGNOF_FLOAT == 4)
+    Swag.require(SIZEOF_INT == 4)
+    Swag.require(ALIGNOF_INT == 4)
+    Swag.require(SIZEOF_FLOAT == 4)
+    Swag.require(ALIGNOF_FLOAT == 4)
 }

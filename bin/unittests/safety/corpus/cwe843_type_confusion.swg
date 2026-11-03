@@ -73,7 +73,7 @@ func reinterpretSmallAddress()->bool
 
 #test
 {
-    Swag.assert(reinterpretSmallAddress())
+    Swag.require(reinterpretSmallAddress())
 }
 
 // GAP compiler.safety.006 - reading the union member that was not written turns an integer
@@ -130,8 +130,8 @@ func readWrittenUnionMember()->u64
 
 #test
 {
-    Swag.assert(extractRightTypeFromAny(42's32) == 42)
-    Swag.assert(tryAnyType())
-    Swag.assert(readWrittenUnionMember() == 0x4142434445)
-    Swag.assert(relatedPointerRoundTrip() == 17)
+    Swag.require(extractRightTypeFromAny(42's32) == 42)
+    Swag.require(tryAnyType())
+    Swag.require(readWrittenUnionMember() == 0x4142434445)
+    Swag.require(relatedPointerRoundTrip() == 17)
 }

@@ -54,7 +54,7 @@ func check64(x: s64)
     {
         check32(i)
         check64(i)
-        Swag.assert(lerp(i, 3 * i, 77) == i + div32((3 * i - i) * 77, 256))
+        Swag.require(lerp(i, 3 * i, 77) == i + div32((3 * i - i) * 77, 256))
     }
     for x in [0x7FFFFFFF's32, -0x7FFFFFFF, -0x7FFFFFFF - 1, 0x40000000, -0x40000000, -0x3FFFFFFF, -0x40000001, 255, -255, -256, -257] do
         check32(x)
@@ -62,5 +62,5 @@ func check64(x: s64)
         check64(x)
 
     var values: [4] s32 = [-9, -8, -7, 17]
-    Swag.assert(averageQuarters(&values[0], 4) == -1 + -1 + 0 + 2)
+    Swag.require(averageQuarters(&values[0], 4) == -1 + -1 + 0 + 2)
 }

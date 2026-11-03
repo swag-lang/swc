@@ -138,22 +138,22 @@ func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
 #test
 {
     // (a+1) + 3(b+1) + 5(a+b+1) + 7((a^b)+1)
-    Swag.assert(readU32Lanes(10, 20) == 11 + 63 + 155 + 7 * 31)
-    Swag.assert(readS64Lanes(100, 7) == 98 * 11 - 5)
-    Swag.assert(readF32Lanes(1.5, 2.0) == 3.0 + 40.0 + 600.0 - 1000.0)
-    Swag.assert(readF64Lanes(1.0, 3.0) == 14.0 - 1.5)
-    Swag.assert(readU8Lanes(3) == 3 + 12 * 256 + 18 * 65536)
+    Swag.require(readU32Lanes(10, 20) == 11 + 63 + 155 + 7 * 31)
+    Swag.require(readS64Lanes(100, 7) == 98 * 11 - 5)
+    Swag.require(readF32Lanes(1.5, 2.0) == 3.0 + 40.0 + 600.0 - 1000.0)
+    Swag.require(readF64Lanes(1.0, 3.0) == 14.0 - 1.5)
+    Swag.require(readU8Lanes(3) == 3 + 12 * 256 + 18 * 65536)
 
     let bytes = cast(#simd [16] u8, [1'u8, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4])
-    Swag.assert(lowLanesThroughBitcast(bytes) == 1 + 0x0000_0002_0000_0001 + 0x0400_0000_0000_0003)
+    Swag.require(lowLanesThroughBitcast(bytes) == 1 + 0x0000_0002_0000_0001 + 0x0400_0000_0000_0003)
 }
 
 #test
 {
     // -5, -12, -20 as bytes; -1500, -1497, -1493 as words.
-    Swag.assert(readSignedNarrowLanes(-5) == -5 - 12000 - 20000000 - 1500 - 1497 - 1493)
-    Swag.assert(readSignedNarrowLanes(100) == 100 + 93000 + 85000000 + 30000 + 30003 + 30007)
-    Swag.assert(readU16Lanes(0xFFF0) == 0xFFF0 + (0xFFF5 << 16) + (0xFFF7 << 32))
+    Swag.require(readSignedNarrowLanes(-5) == -5 - 12000 - 20000000 - 1500 - 1497 - 1493)
+    Swag.require(readSignedNarrowLanes(100) == 100 + 93000 + 85000000 + 30000 + 30003 + 30007)
+    Swag.require(readU16Lanes(0xFFF0) == 0xFFF0 + (0xFFF5 << 16) + (0xFFF7 << 32))
 }
 
 #test
@@ -163,20 +163,20 @@ func writeDynamicLane(v: #simd [4] u32, lane: u64, value: u32)->#simd [4] u32
     for i in 16
     {
         let expected = i == 0 ? 200'u8 : i == 9 ? 0xAB'u8 : i == 15 ? 100'u8 : cast(u8, i)
-        Swag.assert(written[i] == expected)
+        Swag.require(written[i] == expected)
     }
 
     let words = cast([8] u16, writeWordLane(cast(#simd [8] u16, [10'u16, 11, 12, 13, 14, 15, 16, 17]), 0xBEEF))
-    Swag.assert(words == [10, 11, 12, 13, 14, 15, 0xBEEF, 17])
+    Swag.require(words == [10, 11, 12, 13, 14, 15, 0xBEEF, 17])
 
     let pairs = cast(#simd [2] u64, [0x0123456789ABCDEF'u64, 0xFEDCBA9876543210])
-    Swag.assert(cast([2] u64, writeLowQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x80000000FFFFFFFF, 0xFEDCBA9876543210])
-    Swag.assert(cast([2] u64, writeHighQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x0123456789ABCDEF, 0x80000000FFFFFFFF])
-    Swag.assert(cast([2] u64, writeQwordLanes(pairs, 0xFFFFFFFF00000001, 0x1234567887654321)) == [0xFFFFFFFF00000001, 0x1234567887654321])
-    Swag.assert(cast([2] u64, pairs) == [0x0123456789ABCDEF, 0xFEDCBA9876543210])
+    Swag.require(cast([2] u64, writeLowQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x80000000FFFFFFFF, 0xFEDCBA9876543210])
+    Swag.require(cast([2] u64, writeHighQwordLane(pairs, 0x80000000FFFFFFFF)) == [0x0123456789ABCDEF, 0x80000000FFFFFFFF])
+    Swag.require(cast([2] u64, writeQwordLanes(pairs, 0xFFFFFFFF00000001, 0x1234567887654321)) == [0xFFFFFFFF00000001, 0x1234567887654321])
+    Swag.require(cast([2] u64, pairs) == [0x0123456789ABCDEF, 0xFEDCBA9876543210])
 
     let source = cast(#simd [4] u32, [1'u32, 2, 3, 4])
-    Swag.assert(cast([4] u32, writeDwordLane(source, 0xDEAD_BEEF)) == [1, 2, 0xDEAD_BEEF, 4])
-    Swag.assert(cast([4] u32, writeDynamicLane(source, 3, 9)) == [1, 2, 3, 9])
-    Swag.assert(cast([4] u32, source) == [1, 2, 3, 4])
+    Swag.require(cast([4] u32, writeDwordLane(source, 0xDEAD_BEEF)) == [1, 2, 0xDEAD_BEEF, 4])
+    Swag.require(cast([4] u32, writeDynamicLane(source, 3, 9)) == [1, 2, 3, 9])
+    Swag.require(cast([4] u32, source) == [1, 2, 3, 4])
 }

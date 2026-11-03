@@ -50,16 +50,16 @@ func sumPicked(p: const [*] u8, n: u64)->u32
 {
     let first  = Sample{tag: 200, delta: -300, count: -45678, total: 99, weight: 1.5}
     let second = Sample{tag: 7, delta: 12, count: 34, total: 0xFFFFFFFFFFFFFFFF, weight: -0.25}
-    Swag.assert(passFields(&first) == 200_000_000 - 300_000 - 45678 + 99)
-    Swag.assert(passFields(&second) == 7_000_000 + 12_000 + 34 - 1)
-    Swag.assert(passFloats(&first, &second) == 1.5 * 2 + 7 - 0.25 * 3 - 45678)
+    Swag.require(passFields(&first) == 200_000_000 - 300_000 - 45678 + 99)
+    Swag.require(passFields(&second) == 7_000_000 + 12_000 + 34 - 1)
+    Swag.require(passFloats(&first, &second) == 1.5 * 2 + 7 - 0.25 * 3 - 45678)
 
     var bytes: [4] u8  = [255, 1, 2, 3]
     var words: [3] s16 = [-32768, 32767, -1]
-    Swag.assert(passElements(&bytes[0], &words[0], 0, 0) == 255_000_000 - 32_768_000 - 7 + 5)
-    Swag.assert(passElements(&bytes[0], &words[0], 1, 1) == 4_328_804_295's64)
-    Swag.assert(passElements(&bytes[0], &words[0], 3, 2) == 3_000_000 - 1000 + 70000 + 5)
+    Swag.require(passElements(&bytes[0], &words[0], 0, 0) == 255_000_000 - 32_768_000 - 7 + 5)
+    Swag.require(passElements(&bytes[0], &words[0], 1, 1) == 4_328_804_295's64)
+    Swag.require(passElements(&bytes[0], &words[0], 3, 2) == 3_000_000 - 1000 + 70000 + 5)
 
     var table: [4] u8 = [3, 0, 1, 2]
-    Swag.assert(sumPicked(&table[0], 4) == 2 + 3 + 0 + 1)
+    Swag.require(sumPicked(&table[0], 4) == 2 + 3 + 0 + 1)
 }

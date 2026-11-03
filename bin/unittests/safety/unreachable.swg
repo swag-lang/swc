@@ -40,7 +40,7 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run hitUnreachable()
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -55,7 +55,7 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run ignoreUnreachable()
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
 }
 
 // Unreachable in a conditional branch
@@ -90,5 +90,5 @@ func unreachableSafetyEnabled()->bool
     }
 
     const value = #run unreachableNotReached(-1)
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
 }

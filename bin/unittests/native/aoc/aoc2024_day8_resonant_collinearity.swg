@@ -331,33 +331,33 @@ func analyzeResonance(text: string)->ResonanceReport
 {
     let sample = analyzeResonance(SampleInput)
 
-    Swag.assert(sample.width == 12'u32)
-    Swag.assert(sample.height == 12'u32)
-    Swag.assert(sample.antennaCount == 7'u32)
-    Swag.assert(sample.frequencyCount == 2'u32)
-    Swag.assert(sample.simpleAntinodes == 14'u32)
-    Swag.assert(sample.harmonicAntinodes == 34'u32)
+    Swag.require(sample.width == 12'u32)
+    Swag.require(sample.height == 12'u32)
+    Swag.require(sample.antennaCount == 7'u32)
+    Swag.require(sample.frequencyCount == 2'u32)
+    Swag.require(sample.simpleAntinodes == 14'u32)
+    Swag.require(sample.harmonicAntinodes == 34'u32)
 }
 
 #test
 {
     let small = analyzeResonance(SmallInput)
 
-    Swag.assert(small.width == 10'u32)
-    Swag.assert(small.height == 10'u32)
-    Swag.assert(small.antennaCount == 2'u32)
-    Swag.assert(small.frequencyCount == 1'u32)
-    Swag.assert(small.simpleAntinodes == 2'u32)
-    Swag.assert(small.harmonicAntinodes == 5'u32)
+    Swag.require(small.width == 10'u32)
+    Swag.require(small.height == 10'u32)
+    Swag.require(small.antennaCount == 2'u32)
+    Swag.require(small.frequencyCount == 1'u32)
+    Swag.require(small.simpleAntinodes == 2'u32)
+    Swag.require(small.harmonicAntinodes == 5'u32)
 }
 
 #test
 {
     let twoFreq = analyzeResonance(TwoFreqInput)
 
-    Swag.assert(twoFreq.width == 10'u32)
-    Swag.assert(twoFreq.height == 10'u32)
-    Swag.assert(twoFreq.antennaCount == 4'u32)
-    Swag.assert(twoFreq.frequencyCount == 2'u32)
-    Swag.assert(twoFreq.simpleAntinodes == 4'u32)
+    Swag.require(twoFreq.width == 10'u32)
+    Swag.require(twoFreq.height == 10'u32)
+    Swag.require(twoFreq.antennaCount == 4'u32)
+    Swag.require(twoFreq.frequencyCount == 2'u32)
+    Swag.require(twoFreq.simpleAntinodes == 4'u32)
 }

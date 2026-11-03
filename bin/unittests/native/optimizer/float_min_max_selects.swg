@@ -41,18 +41,18 @@ func bits(x: f32)->u32 => cast #bit (u32, x)
     {
         for b in values
         {
-            Swag.assert(bits(maxGreater(a, b)) == bits(greaterRef(a, b) ? a : b))
-            Swag.assert(bits(minGreater(a, b)) == bits(greaterRef(a, b) ? b : a))
-            Swag.assert(bits(minLess(a, b)) == bits(greaterRef(b, a) ? a : b))
-            Swag.assert(bits(maxLess(a, b)) == bits(greaterRef(b, a) ? b : a))
-            Swag.assert(bits(maxGreaterEqual(a, b)) == bits(greaterEqualRef(a, b) ? a : b))
-            Swag.assert(bits(minLessEqual(a, b)) == bits(greaterEqualRef(b, a) ? a : b))
+            Swag.require(bits(maxGreater(a, b)) == bits(greaterRef(a, b) ? a : b))
+            Swag.require(bits(minGreater(a, b)) == bits(greaterRef(a, b) ? b : a))
+            Swag.require(bits(minLess(a, b)) == bits(greaterRef(b, a) ? a : b))
+            Swag.require(bits(maxLess(a, b)) == bits(greaterRef(b, a) ? b : a))
+            Swag.require(bits(maxGreaterEqual(a, b)) == bits(greaterEqualRef(a, b) ? a : b))
+            Swag.require(bits(minLessEqual(a, b)) == bits(greaterEqualRef(b, a) ? a : b))
 
             let wide = wideMax(cast(f64, a), cast(f64, b))
-            Swag.assert(cast #bit (u64, wide) == cast #bit (u64, (greaterRef(a, b) ? cast(f64, a) : cast(f64, b))))
+            Swag.require(cast #bit (u64, wide) == cast #bit (u64, (greaterRef(a, b) ? cast(f64, a) : cast(f64, b))))
         }
 
         let clamped = clamp01(a)
-        Swag.assert(bits(clamped) == bits(greaterRef(0.0, a) ? 0.0'f32 : (greaterRef(a, 1.0) ? 1.0'f32 : a)))
+        Swag.require(bits(clamped) == bits(greaterRef(0.0, a) ? 0.0'f32 : (greaterRef(a, 1.0) ? 1.0'f32 : a)))
     }
 }

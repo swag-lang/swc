@@ -32,8 +32,8 @@ impl BufferBox
     let ptr = box.firstPtr()
     let sl  = box.toLocalSlice()
 
-    Swag.assert(ptr[0] == 11)
-    Swag.assert(sl.count == 3)
-    Swag.assert(sl[0] == 11)
-    Swag.assert(sl[2] == 33)
+    Swag.require(ptr[0] == 11)
+    Swag.require(sl.count == 3)
+    Swag.require(sl[0] == 11)
+    Swag.require(sl[2] == 33)
 }

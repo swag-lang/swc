@@ -27,6 +27,6 @@ struct SizedPair
 // #sizeof on arrays and structs at runtime
 #test
 {
-    Swag.assert(#sizeof([2] s64) == 16)
-    Swag.assert(#sizeof(SizedPair) == 16)
+    Swag.require(#sizeof([2] s64) == 16)
+    Swag.require(#sizeof(SizedPair) == 16)
 }

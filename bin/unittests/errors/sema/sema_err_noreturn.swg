@@ -75,5 +75,5 @@ func closureInside()
 
 #test
 {
-    Swag.assert(valueOrStop(true) == 1)
+    Swag.require(valueOrStop(true) == 1)
 }

@@ -103,20 +103,20 @@ func nonNullInterfaceWinsAndKeepsRuntimeShape()->bool
 
 #test
 {
-    Swag.assert(falseBoolFallback(false))
-    Swag.assert(falseBoolFallback(true))
-    Swag.assert(nullStringFallback())
-    Swag.assert(nonNullStringWins())
+    Swag.require(falseBoolFallback(false))
+    Swag.require(falseBoolFallback(true))
+    Swag.require(nullStringFallback())
+    Swag.require(nonNullStringWins())
 }
 
 #test
 {
-    Swag.assert(nullSliceFallback())
-    Swag.assert(nonNullSliceWins())
+    Swag.require(nullSliceFallback())
+    Swag.require(nonNullSliceWins())
 }
 
 #test
 {
-    Swag.assert(nullInterfaceFallbackWritesThroughSelectedReceiver())
-    Swag.assert(nonNullInterfaceWinsAndKeepsRuntimeShape())
+    Swag.require(nullInterfaceFallbackWritesThroughSelectedReceiver())
+    Swag.require(nonNullInterfaceWinsAndKeepsRuntimeShape())
 }

@@ -31,7 +31,7 @@ func castVariadicValue(x: ...)
 {
     var value: CastTriple
     castVariadicValue(value)
-    Swag.assert(value.x == 456)
+    Swag.require(value.x == 456)
 }
 
 #test
@@ -39,8 +39,8 @@ func castVariadicValue(x: ...)
     var value: CastWide
     var boxed: any = value
     let copyValue  = assume cast(CastWide, boxed)
-    Swag.assert(copyValue.value == 456)
-    Swag.assert(copyValue.value4 == 456)
+    Swag.require(copyValue.value == 456)
+    Swag.require(copyValue.value4 == 456)
 }
 
 #test
@@ -50,10 +50,10 @@ func castVariadicValue(x: ...)
     var copyValue  = assume cast(CastTriple, boxed)
     let refValue   = assume cast(const *CastTriple, boxed)
     copyValue.y = 99
-    Swag.assert(copyValue.x == 456)
-    Swag.assert(copyValue.y == 99)
-    Swag.assert(copyValue.z == 456)
-    Swag.assert(refValue.x == 456)
-    Swag.assert(refValue.y == 456)
-    Swag.assert(refValue.z == 456)
+    Swag.require(copyValue.x == 456)
+    Swag.require(copyValue.y == 99)
+    Swag.require(copyValue.z == 456)
+    Swag.require(refValue.x == 456)
+    Swag.require(refValue.y == 456)
+    Swag.require(refValue.z == 456)
 }

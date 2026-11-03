@@ -21,9 +21,9 @@ func reloadAfterStore(address: *u64, value: u64)->u64
 {
     g_Zero        = 7
     g_Initialized = 11
-    Swag.assert(repeatedGlobal() == 14)
-    Swag.assert(distinctGlobals() == 18)
-    Swag.assert(reloadAfterStore(&g_Zero, 31) == 38)
-    Swag.assert(reloadAfterStore(&g_Initialized, 41) == 62)
-    Swag.assert(distinctGlobals() == 72)
+    Swag.require(repeatedGlobal() == 14)
+    Swag.require(distinctGlobals() == 18)
+    Swag.require(reloadAfterStore(&g_Zero, 31) == 38)
+    Swag.require(reloadAfterStore(&g_Initialized, 41) == 62)
+    Swag.require(distinctGlobals() == 72)
 }

@@ -47,7 +47,7 @@ func referencePrefix(left, right: [*] u8, count: u64, initial: bool)->bool
 
                 let actual   = samePrefix(&left[0], &right[0], count, initial)
                 let expected = referencePrefix(&left[0], &right[0], count, initial)
-                Swag.assert(actual == expected)
+                Swag.require(actual == expected)
             }
         }
     }

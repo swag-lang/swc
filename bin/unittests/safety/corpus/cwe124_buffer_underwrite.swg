@@ -65,5 +65,5 @@ func lastElementFromEnd()->s32
 
 #test
 {
-    Swag.assert(lastElementFromEnd() == 30)
+    Swag.require(lastElementFromEnd() == 30)
 }

@@ -28,5 +28,5 @@ const dynamicBootstrapResult = #run dynamicBootstrapValue()
 
 #test
 {
-    Swag.assert(dynamicBootstrapResult == 42)
+    Swag.require(dynamicBootstrapResult == 42)
 }

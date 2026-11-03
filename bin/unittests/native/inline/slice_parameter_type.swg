@@ -62,18 +62,18 @@ func constBuffer(values: const [..] s32)->s32
     var data: [3] s32  = [1, 2, 3]
     let explicitCount  = explicitBuffer(data)
     let automaticCount = automaticBuffer(data)
-    Swag.assert(explicitCount == 3 and automaticCount == 3)
-    Swag.assert(data[0] == 3)
+    Swag.require(explicitCount == 3 and automaticCount == 3)
+    Swag.require(data[0] == 3)
 
     let view: [..] s32 = data
     singleBuffer(view)
-    Swag.assert(data[0] == 4)
-    Swag.assert(constBuffer(view) == 4)
+    Swag.require(data[0] == 4)
+    Swag.require(constBuffer(view) == 4)
 
     Calls   = 0
     Storage = [4, 5, 6]
     let returnedCount = explicitBuffer(nextSlice())
-    Swag.assert(returnedCount == 3 and Calls == 1 and Storage[0] == 5)
+    Swag.require(returnedCount == 3 and Calls == 1 and Storage[0] == 5)
 }
 
 #[Swag.Inline]
@@ -93,21 +93,21 @@ func nullableSlice(values: [..] s32?)->bool
 #test
 {
     var data: [3] s32 = [1, 2, 3]
-    Swag.assert(explicitSlice(data) == 3)
-    Swag.assert(automaticSlice(data) == 3)
-    Swag.assert(data[1] == 22)
-    Swag.assert(genericSlice(data) == 3)
+    Swag.require(explicitSlice(data) == 3)
+    Swag.require(automaticSlice(data) == 3)
+    Swag.require(data[1] == 22)
+    Swag.require(genericSlice(data) == 3)
 
     let view: [..] s32 = data
-    Swag.assert(explicitSlice(view) == 3)
-    Swag.assert(view.count == 3 and data[1] == 32)
-    Swag.assert(not nullableSlice(view))
-    Swag.assert(nullableSlice(null))
+    Swag.require(explicitSlice(view) == 3)
+    Swag.require(view.count == 3 and data[1] == 32)
+    Swag.require(not nullableSlice(view))
+    Swag.require(nullableSlice(null))
 
     Calls   = 0
     Storage = [4, 5, 6]
-    Swag.assert(explicitSlice(nextSlice()) == 3)
-    Swag.assert(Calls == 1 and Storage[1] == 15)
+    Swag.require(explicitSlice(nextSlice()) == 3)
+    Swag.require(Calls == 1 and Storage[1] == 15)
 }
 
 struct Converted
@@ -149,10 +149,10 @@ func convertedTotal(values: const [..] Converted)->u64
 #test
 {
     Conversions = 0
-    Swag.assert(convertedTotal(["ab", "cde"]) == 201)
-    Swag.assert(Conversions == 2)
+    Swag.require(convertedTotal(["ab", "cde"]) == 201)
+    Swag.require(Conversions == 2)
 
     Calls = 0
-    Swag.assert(convertedTotal([nextText(), "ab"]) == 222)
-    Swag.assert(Calls == 1 and Conversions == 4)
+    Swag.require(convertedTotal([nextText(), "ab"]) == 222)
+    Swag.require(Calls == 1 and Conversions == 4)
 }

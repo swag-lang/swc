@@ -175,20 +175,20 @@ impl DynString
     var s: DynString
     s = "hello"
 
-    Swag.assert(s.count == 5)
-    Swag.assert(s.capacity >= 5)
-    Swag.assert(s[0] == 'h'u8)
-    Swag.assert(s[4] == 'o'u8)
+    Swag.require(s.count == 5)
+    Swag.require(s.capacity >= 5)
+    Swag.require(s[0] == 'h'u8)
+    Swag.require(s[4] == 'o'u8)
 }
 
 #test
 {
     var s: DynString = "hello"
 
-    Swag.assert(s.count == 5)
-    Swag.assert(s.capacity >= 5)
-    Swag.assert(s[0] == 'h'u8)
-    Swag.assert(s[4] == 'o'u8)
+    Swag.require(s.count == 5)
+    Swag.require(s.capacity >= 5)
+    Swag.require(s[0] == 'h'u8)
+    Swag.require(s[4] == 'o'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -203,13 +203,13 @@ impl DynString
     var dst: DynString
     dst = src     // copy-assign: triggers opPostCopy on dst
 
-    Swag.assert(src.count == 5)
-    Swag.assert(dst.count == 5)
-    Swag.assert(src.data != dst.data)     // distinct heap buffers
+    Swag.require(src.count == 5)
+    Swag.require(dst.count == 5)
+    Swag.require(src.data != dst.data)     // distinct heap buffers
 
     dst[0] = 'A'u8
-    Swag.assert(dst[0] == 'A'u8)
-    Swag.assert(src[0] == 'a'u8)     // original untouched
+    Swag.require(dst[0] == 'A'u8)
+    Swag.require(src[0] == 'a'u8)     // original untouched
 }
 
 // ---------------------------------------------------------------------------
@@ -223,15 +223,15 @@ impl DynString
     var dst: DynString
     dst = #move src
 
-    Swag.assert(dst.count == 8)
-    Swag.assert(dst[0] == 't'u8)
-    Swag.assert(dst[7] == 'r'u8)
+    Swag.require(dst.count == 8)
+    Swag.require(dst[0] == 't'u8)
+    Swag.require(dst[7] == 'r'u8)
 
     // src was moved-from; it won't be opDrop'd at scope exit, so dst owns the
     // sole buffer. Rebind src to prove it is still a usable DynString.
     src = "reused"
-    Swag.assert(src.count == 6)
-    Swag.assert(src[0] == 'r'u8)
+    Swag.require(src.count == 6)
+    Swag.require(src[0] == 'r'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -250,10 +250,10 @@ impl DynString
         s[i] = c - ('a'u8 - 'A'u8)
     }
 
-    Swag.assert(s.count == 6)
-    Swag.assert(s[0] == 'A'u8)
-    Swag.assert(s[1] == 'B'u8)
-    Swag.assert(s[5] == 'F'u8)
+    Swag.require(s.count == 6)
+    Swag.require(s[0] == 'A'u8)
+    Swag.require(s[1] == 'B'u8)
+    Swag.require(s[5] == 'F'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -269,28 +269,28 @@ impl DynString
 
     s += "-"
     s += "bar"
-    Swag.assert(s.count == 7)
-    Swag.assert(s[0] == 'f'u8)
-    Swag.assert(s[3] == '-'u8)
-    Swag.assert(s[6] == 'r'u8)
+    Swag.require(s.count == 7)
+    Swag.require(s[0] == 'f'u8)
+    Swag.require(s[3] == '-'u8)
+    Swag.require(s[6] == 'r'u8)
 
     // Append another DynString by const reference.
     var tail: DynString
     tail = "-baz"
     s    += tail
-    Swag.assert(s.count == 11)
-    Swag.assert(s[7] == '-'u8)
-    Swag.assert(s[10] == 'z'u8)
+    Swag.require(s.count == 11)
+    Swag.require(s[7] == '-'u8)
+    Swag.require(s[10] == 'z'u8)
 
     // Force at least one grow past the initial capacity.
     var wide: DynString
     wide = "x"
     for 40 do
         wide += "y"
-    Swag.assert(wide.count == 41)
-    Swag.assert(wide.capacity > startCap)
-    Swag.assert(wide[0] == 'x'u8)
-    Swag.assert(wide[40] == 'y'u8)
+    Swag.require(wide.count == 41)
+    Swag.require(wide.capacity > startCap)
+    Swag.require(wide[0] == 'x'u8)
+    Swag.require(wide[40] == 'y'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -305,16 +305,16 @@ impl DynString
     b += "ma"
     b += "tch"
 
-    Swag.assert(a == b)     // same content, different allocations
-    Swag.assert(a.data != b.data)
+    Swag.require(a == b)     // same content, different allocations
+    Swag.require(a.data != b.data)
 
     var c: DynString
     c = "MATCH"
-    Swag.assert(not (a == c))
+    Swag.require(not (a == c))
 
     var d: DynString
     d = "matchx"
-    Swag.assert(not (a == d))
+    Swag.require(not (a == d))
 }
 
 // ---------------------------------------------------------------------------
@@ -326,16 +326,16 @@ impl DynString
 {
     var empty: DynString
     empty = ""
-    Swag.assert(empty.count == 0)
-    Swag.assert(empty.data == null)
+    Swag.require(empty.count == 0)
+    Swag.require(empty.data == null)
 
     var copy: DynString
     copy = empty     // opPostCopy on empty payload
-    Swag.assert(copy.count == 0)
-    Swag.assert(copy.data == null)
+    Swag.require(copy.count == 0)
+    Swag.require(copy.data == null)
 
     copy += "kick"
-    Swag.assert(copy.count == 4)
-    Swag.assert(empty.count == 0)
-    Swag.assert(copy[0] == 'k'u8)
+    Swag.require(copy.count == 4)
+    Swag.require(empty.count == 0)
+    Swag.require(copy[0] == 'k'u8)
 }

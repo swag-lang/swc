@@ -76,9 +76,9 @@ func leakThroughOwnerWithoutDrop()
     defer context.allocator = heap.base
 
     leakOnEveryPath()
-    Swag.assert(heap.count == 1)
-    Swag.assert(heap.frees == 0)
-    Swag.assert(heap.liveCount() == 1)
+    Swag.require(heap.count == 1)
+    Swag.require(heap.frees == 0)
+    Swag.require(heap.liveCount() == 1)
 }
 
 #test
@@ -90,9 +90,9 @@ func leakThroughOwnerWithoutDrop()
 
     leakOnOnePath(opaqueBool(false))
     leakOnOnePath(opaqueBool(true))
-    Swag.assert(heap.count == 2)
-    Swag.assert(heap.frees == 1)
-    Swag.assert(heap.liveCount() == 1)
+    Swag.require(heap.count == 2)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.liveCount() == 1)
 }
 
 #test
@@ -103,9 +103,9 @@ func leakThroughOwnerWithoutDrop()
     defer context.allocator = heap.base
 
     leakByOverwrite()
-    Swag.assert(heap.count == 2)
-    Swag.assert(heap.frees == 1)
-    Swag.assert(heap.liveCount() == 1)
+    Swag.require(heap.count == 2)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.liveCount() == 1)
 }
 
 #test
@@ -116,9 +116,9 @@ func leakThroughOwnerWithoutDrop()
     defer context.allocator = heap.base
 
     leakThroughOwnerWithoutDrop()
-    Swag.assert(heap.count == 1)
-    Swag.assert(heap.frees == 0)
-    Swag.assert(heap.liveCount() == 1)
+    Swag.require(heap.count == 1)
+    Swag.require(heap.frees == 0)
+    Swag.require(heap.liveCount() == 1)
 }
 
 // --- Sound ---
@@ -174,11 +174,11 @@ func ownerReleasesOnDrop()->s32
     let normal  = releasedOnEveryPath(opaqueBool(false))
     let early   = releasedOnEveryPath(opaqueBool(true))
     let dropped = ownerReleasesOnDrop()
-    Swag.assert(normal == 1)
-    Swag.assert(early == 0)
-    Swag.assert(dropped == 5)
-    Swag.assert(heap.count == 3)
-    Swag.assert(heap.frees == 3)
-    Swag.assert(heap.liveCount() == 0)
-    Swag.assert(heap.duplicates == 0)
+    Swag.require(normal == 1)
+    Swag.require(early == 0)
+    Swag.require(dropped == 5)
+    Swag.require(heap.count == 3)
+    Swag.require(heap.frees == 3)
+    Swag.require(heap.liveCount() == 0)
+    Swag.require(heap.duplicates == 0)
 }

@@ -117,5 +117,5 @@ func addOne(value: *s32)
     callbackTotal = 0
     signal.call(&value)
 
-    Swag.assert(callbackTotal == 11)
+    Swag.require(callbackTotal == 11)
 }

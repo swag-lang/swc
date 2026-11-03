@@ -62,18 +62,18 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
         b.words[i] = a.words[i]
     }
 
-    Swag.assert(sameLongBytes(&a, &b))
+    Swag.require(sameLongBytes(&a, &b))
     for i in 40
     {
         b.words[i] ^= 1
-        Swag.assert(not sameLongBytes(&a, &b))
+        Swag.require(not sameLongBytes(&a, &b))
         b.words[i] ^= 1
     }
 
     b.tail[2] = 9
-    Swag.assert(not sameLongBytes(&a, &b))
+    Swag.require(not sameLongBytes(&a, &b))
     b.tail[2] = 0
-    Swag.assert(sameLongBytes(&a, &b))
+    Swag.require(sameLongBytes(&a, &b))
 }
 
 #test
@@ -89,12 +89,12 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
         b.cells[i].value = cast(s32, i)
     }
 
-    Swag.assert(sameCellTable(&a, &b))
+    Swag.require(sameCellTable(&a, &b))
     b.cells[8].name = "z"
-    Swag.assert(not sameCellTable(&a, &b))
+    Swag.require(not sameCellTable(&a, &b))
     b.cells[8].name  = "i"
     b.cells[0].value = 7
-    Swag.assert(not sameCellTable(&a, &b))
+    Swag.require(not sameCellTable(&a, &b))
 }
 
 #test
@@ -107,11 +107,11 @@ func sameCountingTable(a, b: *CountingTable)->bool => a[] == b[]
     }
 
     g_CountingEqualCalls = 0
-    Swag.assert(sameCountingTable(&a, &b))
-    Swag.assert(g_CountingEqualCalls == 7)
+    Swag.require(sameCountingTable(&a, &b))
+    Swag.require(g_CountingEqualCalls == 7)
 
     b.items[3].value     = 99
     g_CountingEqualCalls = 0
-    Swag.assert(not sameCountingTable(&a, &b))
-    Swag.assert(g_CountingEqualCalls == 4)
+    Swag.require(not sameCountingTable(&a, &b))
+    Swag.require(g_CountingEqualCalls == 4)
 }

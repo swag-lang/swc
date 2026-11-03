@@ -45,13 +45,13 @@ func repeatEightBanks(count: u32)->s64
 
 #test
 {
-    Swag.assert(sumRegisterBanks(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) == 78)
-    Swag.assert(sumSpilledBanks(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) == 105)
+    Swag.require(sumRegisterBanks(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12) == 78)
+    Swag.require(sumSpilledBanks(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) == 105)
 
     let fn: RegisterBankFn = &sumRegisterBanks
-    Swag.assert(fn(12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1) == 78)
-    Swag.assert(repeatEightBanks(0) == 0)
-    Swag.assert(repeatEightBanks(64) == 18432)
+    Swag.require(fn(12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1) == 78)
+    Swag.require(repeatEightBanks(0) == 0)
+    Swag.require(repeatEightBanks(64) == 18432)
 
     var changing = 0's64
     for i in 8
@@ -59,5 +59,5 @@ func repeatEightBanks(count: u32)->s64
         let value = cast(s64, i)
         changing += sumRegisterBanks(value, cast(f64, value), value, 2, value, 3, value, 4, value, 5, value, 6)
     }
-    Swag.assert(changing == 356)
+    Swag.require(changing == 356)
 }

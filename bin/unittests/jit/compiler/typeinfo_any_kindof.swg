@@ -20,5 +20,5 @@ func anyKindOfFunc()->s32 => 1
                assume cast(const *TypeInfoFunc, funcBox).returnType == s32
     }
 
-    Swag.assert(boxedTypeInfoKindof())
+    Swag.require(boxedTypeInfoKindof())
 }

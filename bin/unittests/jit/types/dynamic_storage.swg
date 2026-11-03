@@ -15,9 +15,9 @@ func copyEmptyDynamicStorage(value: EmptyDynamicStorage)->EmptyDynamicStorage =>
 {
     var owner: EmptyDynamicChild
     var base = copyEmptyDynamicStorage(owner.base)
-    Swag.assert(not (&base is EmptyDynamicChild))
+    Swag.require(not (&base is EmptyDynamicChild))
     let embedded = &owner.base
-    Swag.assert((catch cast(*EmptyDynamicChild?, embedded)) == &owner)
+    Swag.require((catch cast(*EmptyDynamicChild?, embedded)) == &owner)
 }
 
 #[Swag.DynCast, Swag.Pack(1)]
@@ -29,9 +29,9 @@ struct PackedDynamicStorage
 #test
 {
     var value: PackedDynamicStorage
-    Swag.assert(#sizeof(PackedDynamicStorage) == 9)
-    Swag.assert(#alignof(PackedDynamicStorage) == 1)
-    Swag.assert(cast(*PackedDynamicStorage?, &value) == &value)
+    Swag.require(#sizeof(PackedDynamicStorage) == 9)
+    Swag.require(#alignof(PackedDynamicStorage) == 1)
+    Swag.require(cast(*PackedDynamicStorage?, &value) == &value)
 }
 
 #[Swag.DynCast]
@@ -72,9 +72,9 @@ func checkStorage(value: *void, type: typeinfo)
     checkStorage(&base, StorageBase)
     checkStorage(&child, StorageChild)
     checkStorage(&container.child, StorageChild)
-    Swag.assert(child.prefix == 31)
-    Swag.assert(child.value == 12)
-    Swag.assert(child.extra == 45)
+    Swag.require(child.prefix == 31)
+    Swag.require(child.value == 12)
+    Swag.require(child.extra == 45)
 }
 
 // Inlined, the type argument is a constant and its slot table folds to a constant

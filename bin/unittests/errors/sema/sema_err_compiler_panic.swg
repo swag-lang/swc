@@ -8,5 +8,5 @@ func raiseCompilerPanic()->s32
 #test
 {
     const v = #run raiseCompilerPanic()
-    Swag.assert(v == 0)
+    Swag.require(v == 0)
 }

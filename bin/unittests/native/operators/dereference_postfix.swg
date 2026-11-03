@@ -5,7 +5,7 @@
 {
     var value = 42's32
     let p     = &value
-    Swag.assert(p[] == 42)
+    Swag.require(p[] == 42)
 }
 
 // Write through the postfix dereference
@@ -14,7 +14,7 @@
     var value = 1's32
     let p     = &value
     p[] = 7
-    Swag.assert(value == 7)
+    Swag.require(value == 7)
 }
 
 // Compound assignment through the postfix dereference
@@ -23,7 +23,7 @@
     var value = 40's32
     let p     = &value
     p[] += 2
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
 }
 
 // Whole struct value read and replace
@@ -39,9 +39,9 @@
     let p    = &st
     var copy = p[]
     #assert(#typeof(copy) == AA)
-    Swag.assert(copy.x == 1 and copy.y == 2)
+    Swag.require(copy.x == 1 and copy.y == 2)
     p[] = AA{x: 3, y: 4}
-    Swag.assert(st.x == 3 and st.y == 4)
+    Swag.require(st.x == 3 and st.y == 4)
 }
 
 // The postfix dereference composes left-to-right through a double pointer
@@ -50,9 +50,9 @@
     var value = 5's32
     var p     = &value
     var pp    = &p
-    Swag.assert(pp[][] == 5)
+    Swag.require(pp[][] == 5)
     pp[][] = 9
-    Swag.assert(value == 9)
+    Swag.require(value == 9)
 }
 
 // Postfix dereference then index
@@ -60,9 +60,9 @@
 {
     var arr: [3] s32 = [1, 2, 3]
     let p = &arr
-    Swag.assert(p[][1] == 2)
+    Swag.require(p[][1] == 2)
     p[][2] = 9
-    Swag.assert(arr[2] == 9)
+    Swag.require(arr[2] == 9)
 }
 
 // '(cast(*T, expr))[]' reads the pointed storage as a T of the same size
@@ -70,7 +70,7 @@
 {
     var bits = 0xFFFF_FFFF'u32
     let p    = &bits
-    Swag.assert(cast(const *s32, p)[] == -1)
+    Swag.require(cast(const *s32, p)[] == -1)
 }
 
 // '(cast(*T, expr))[]' writes through the reinterpreted place
@@ -79,7 +79,7 @@
     var value = 0's32
     let p     = &value
     cast(*u32, p)[] = 0xFFFF_FFFF
-    Swag.assert(value == -1)
+    Swag.require(value == -1)
 }
 
 // '(cast(*T, expr))[]' opens a narrower window on the storage (x64 is little-endian)
@@ -87,9 +87,9 @@
 {
     var value = 0x0102_0304'u32
     let p     = &value
-    Swag.assert(cast(const *u8, p)[] == 0x04)
+    Swag.require(cast(const *u8, p)[] == 0x04)
     cast(*u8, p)[] = 0xFF
-    Swag.assert(value == 0x0102_03FF)
+    Swag.require(value == 0x0102_03FF)
 }
 
 // '(cast(*T, expr))[]' exposes the bit pattern of a float
@@ -97,7 +97,7 @@
 {
     var f = 1.0'f32
     let p = &f
-    Swag.assert(cast(const *u32, p)[] == 0x3F80_0000)
+    Swag.require(cast(const *u32, p)[] == 0x3F80_0000)
 }
 
 // A conversion around '(cast(*T, expr))[]' converts the T that was read; it never widens the read
@@ -122,13 +122,13 @@ func derefPlaceWidenF32(data: const *void)->f64
 #test
 {
     var value: s32 = -7
-    Swag.assert(derefPlaceWidenS32(&value) == -7)
+    Swag.require(derefPlaceWidenS32(&value) == -7)
 
     var bits: u32 = 0xFFFF_FFFF
-    Swag.assert(derefPlaceWidenU32(&bits) == 0xFFFF_FFFF)
+    Swag.require(derefPlaceWidenU32(&bits) == 0xFFFF_FFFF)
 
     var single: f32 = 1.5
-    Swag.assert(derefPlaceWidenF32(&single) == 1.5)
+    Swag.require(derefPlaceWidenF32(&single) == 1.5)
 }
 
 // The same conversion inside the caller's frame, where the neighbouring storage is a known
@@ -138,7 +138,7 @@ func derefPlaceWidenF32(data: const *void)->f64
     var pair:    [2] s32 = [-7, 0x7FFF_FFFF]
     let p = &pair[0]
     let widened: s64     = cast(const *s32, p)[]
-    Swag.assert(widened == -7)
+    Swag.require(widened == -7)
 }
 
 struct DerefPlaceReceiver
@@ -166,7 +166,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void, &slot)
     cast(*DerefPlaceReceiver, p)[].record(11)
-    Swag.assert(slot.seen == 11)
+    Swag.require(slot.seen == 11)
 }
 
 // A member write through the reinterpreted place
@@ -175,7 +175,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void, &slot)
     cast(*DerefPlaceReceiver, p)[].seen = 5
-    Swag.assert(slot.seen == 5)
+    Swag.require(slot.seen == 5)
 }
 
 // An assignment routed through the implicit 'opSet' of the reinterpreted place
@@ -184,7 +184,7 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void, &slot)
     cast(*DerefPlaceReceiver, p)[] = "beta"
-    Swag.assert(slot.seen == 4)
+    Swag.require(slot.seen == 4)
 }
 
 // A compound assignment routed through 'opAssign' of the reinterpreted place
@@ -193,5 +193,5 @@ impl DerefPlaceReceiver
     var slot: DerefPlaceReceiver
     let p = cast(*void, &slot)
     cast(*DerefPlaceReceiver, p)[] += 3
-    Swag.assert(slot.seen == 3)
+    Swag.require(slot.seen == 3)
 }

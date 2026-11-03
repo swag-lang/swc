@@ -33,13 +33,13 @@ func oracle64(x, n: u64)->u64
     let counts32 = [0'u32, 1, 7, 31, 32, 33, 100]
     for n in counts32
     {
-        Swag.assert(rotl32(0x80000001, n) == oracle32(0x80000001, n))
-        Swag.assert(rotl32(0x12345678, n) == oracle32(0x12345678, n))
+        Swag.require(rotl32(0x80000001, n) == oracle32(0x80000001, n))
+        Swag.require(rotl32(0x12345678, n) == oracle32(0x12345678, n))
     }
     let counts64 = [0'u64, 1, 13, 63, 64, 65]
     for n in counts64
     {
-        Swag.assert(rotr64(0x8000000000000001, n) == oracle64(0x8000000000000001, n))
-        Swag.assert(rotr64(0x0123456789ABCDEF, n) == oracle64(0x0123456789ABCDEF, n))
+        Swag.require(rotr64(0x8000000000000001, n) == oracle64(0x8000000000000001, n))
+        Swag.require(rotr64(0x0123456789ABCDEF, n) == oracle64(0x0123456789ABCDEF, n))
     }
 }

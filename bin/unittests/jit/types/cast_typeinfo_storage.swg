@@ -14,7 +14,7 @@ func replaceType(value: *typeinfo)
     replaceType(&type)
     let raw = cast(const *void, type)
     let expected: typeinfo = CastTypeInfoSecond
-    Swag.assert(raw == cast(const *void, expected))
+    Swag.require(raw == cast(const *void, expected))
     let info = cast(const *Swag.TypeInfoStruct, raw)
-    Swag.assert(info.sizeof == #sizeof(CastTypeInfoSecond))
+    Swag.require(info.sizeof == #sizeof(CastTypeInfoSecond))
 }

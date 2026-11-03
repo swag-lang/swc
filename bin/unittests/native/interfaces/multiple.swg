@@ -50,8 +50,8 @@ func makeBar()->IBar
     var m: Multi
     var f = cast(IFoo, m)
     var b = cast(IBar, m)
-    Swag.assert(f.foo() == 5)
-    Swag.assert(b.bar() == 7)
+    Swag.require(f.foo() == 5)
+    Swag.require(b.bar() == 7)
 }
 
 // Interface reassignment with different concrete types.
@@ -70,18 +70,18 @@ impl IFoo for Other
     var m: Multi
     var o: Other
     var f: IFoo = cast(IFoo, m)
-    Swag.assert(f.foo() == 5)
+    Swag.require(f.foo() == 5)
     f = cast(IFoo, o)
-    Swag.assert(f.foo() == 99)
+    Swag.require(f.foo() == 99)
 }
 
 // Interface as function return value.
 #test
 {
     var f = makeFoo()
-    Swag.assert(f.foo() == 5)
+    Swag.require(f.foo() == 5)
     var b = makeBar()
-    Swag.assert(b.bar() == 7)
+    Swag.require(b.bar() == 7)
 }
 
 // Interface passed to a function.
@@ -93,8 +93,8 @@ func callFoo(f: IFoo)->s32
 #test
 {
     var m: Multi
-    Swag.assert(callFoo(cast(IFoo, m)) == 5)
+    Swag.require(callFoo(cast(IFoo, m)) == 5)
 
     var o: Other
-    Swag.assert(callFoo(cast(IFoo, o)) == 99)
+    Swag.require(callFoo(cast(IFoo, o)) == 99)
 }

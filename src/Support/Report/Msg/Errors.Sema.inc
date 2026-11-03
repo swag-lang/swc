@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning)
 SWC_DIAG_DEF(sema_warn_unreachable_code)
 SWC_DIAG_DEF(sema_warn_redundant_try)
+SWC_DIAG_DEF(sema_warn_assert_in_test)
 
 SWC_DIAG_DEF(sema_err_unknown_warning)
 SWC_DIAG_DEF(sema_err_notnull_already_proven)

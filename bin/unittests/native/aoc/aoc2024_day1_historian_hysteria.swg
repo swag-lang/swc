@@ -342,17 +342,17 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let sampleClean    = solveClean(sampleLists)
     let sampleFeatures = solveWithLanguageFeatures(cast(const [..] u8, SampleInput))
 
-    Swag.assert(sampleClean.pairCount == 6'u32)
-    Swag.assert(sampleClean.totalDistance == 11'u64)
-    Swag.assert(sampleClean.similarityScore == 31'u64)
-    Swag.assert(SampleLanguageReport.pairCount == 6'u32)
-    Swag.assert(SampleLanguageReport.totalDistance == 11'u64)
-    Swag.assert(SampleLanguageReport.similarityScore == 31'u64)
-    Swag.assert(sampleFeatures.pairCount == SampleLanguageReport.pairCount)
-    Swag.assert(sampleFeatures.totalDistance == SampleLanguageReport.totalDistance)
-    Swag.assert(sampleFeatures.similarityScore == SampleLanguageReport.similarityScore)
-    Swag.assert(sampleClean.totalDistance == sampleFeatures.totalDistance)
-    Swag.assert(sampleClean.similarityScore == sampleFeatures.similarityScore)
+    Swag.require(sampleClean.pairCount == 6'u32)
+    Swag.require(sampleClean.totalDistance == 11'u64)
+    Swag.require(sampleClean.similarityScore == 31'u64)
+    Swag.require(SampleLanguageReport.pairCount == 6'u32)
+    Swag.require(SampleLanguageReport.totalDistance == 11'u64)
+    Swag.require(SampleLanguageReport.similarityScore == 31'u64)
+    Swag.require(sampleFeatures.pairCount == SampleLanguageReport.pairCount)
+    Swag.require(sampleFeatures.totalDistance == SampleLanguageReport.totalDistance)
+    Swag.require(sampleFeatures.similarityScore == SampleLanguageReport.similarityScore)
+    Swag.require(sampleClean.totalDistance == sampleFeatures.totalDistance)
+    Swag.require(sampleClean.similarityScore == sampleFeatures.similarityScore)
 }
 
 #test
@@ -360,12 +360,12 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let denseLists = parseLocationLists(cast(const [..] u8, DenseInput))
     let denseClean = solveClean(denseLists)
 
-    Swag.assert(DenseLanguageReport.pairCount == 4'u32)
-    Swag.assert(DenseLanguageReport.totalDistance == 10'u64)
-    Swag.assert(DenseLanguageReport.similarityScore == 90'u64)
-    Swag.assert(denseClean.pairCount == DenseLanguageReport.pairCount)
-    Swag.assert(denseClean.totalDistance == DenseLanguageReport.totalDistance)
-    Swag.assert(denseClean.similarityScore == DenseLanguageReport.similarityScore)
+    Swag.require(DenseLanguageReport.pairCount == 4'u32)
+    Swag.require(DenseLanguageReport.totalDistance == 10'u64)
+    Swag.require(DenseLanguageReport.similarityScore == 90'u64)
+    Swag.require(denseClean.pairCount == DenseLanguageReport.pairCount)
+    Swag.require(denseClean.totalDistance == DenseLanguageReport.totalDistance)
+    Swag.require(denseClean.similarityScore == DenseLanguageReport.similarityScore)
 }
 
 #test
@@ -373,10 +373,10 @@ const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(c
     let coverageLists = parseLocationLists(cast(const [..] u8, CoverageInput))
     let coverageClean = solveClean(coverageLists)
 
-    Swag.assert(CoverageLanguageReport.pairCount == 8'u32)
-    Swag.assert(CoverageLanguageReport.totalDistance == 40'u64)
-    Swag.assert(CoverageLanguageReport.similarityScore == 400'u64)
-    Swag.assert(coverageClean.pairCount == CoverageLanguageReport.pairCount)
-    Swag.assert(coverageClean.totalDistance == CoverageLanguageReport.totalDistance)
-    Swag.assert(coverageClean.similarityScore == CoverageLanguageReport.similarityScore)
+    Swag.require(CoverageLanguageReport.pairCount == 8'u32)
+    Swag.require(CoverageLanguageReport.totalDistance == 40'u64)
+    Swag.require(CoverageLanguageReport.similarityScore == 400'u64)
+    Swag.require(coverageClean.pairCount == CoverageLanguageReport.pairCount)
+    Swag.require(coverageClean.totalDistance == CoverageLanguageReport.totalDistance)
+    Swag.require(coverageClean.similarityScore == CoverageLanguageReport.similarityScore)
 }

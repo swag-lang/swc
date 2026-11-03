@@ -78,27 +78,27 @@ impl LoopRefIndexContainer
 #test
 {
     var values = RefIndexContainer{values: [11, 99]}
-    Swag.assert(arrayRefFirst(&values) == 11)
+    Swag.require(arrayRefFirst(&values) == 11)
 }
 
 #test
 {
     var values = RefIndexContainer{values: [12, 99]}
-    Swag.assert(arrayRefDouble(&values) == 24)
+    Swag.require(arrayRefDouble(&values) == 24)
 }
 
 #test
 {
     var values = RefIndexContainer{values: [1, 2]}
     arrayRefWrite(&values)
-    Swag.assert(values[0] == 42)
+    Swag.require(values[0] == 42)
 }
 
 #test
 {
     var all = [RefIndexContainer{values: [7, 0]}, RefIndexContainer{values: [13, 0]}]
-    Swag.assert(arrayRefFirst(&all[0]) == 7)
-    Swag.assert(arrayRefFirst(&all[1]) == 13)
+    Swag.require(arrayRefFirst(&all[0]) == 7)
+    Swag.require(arrayRefFirst(&all[1]) == 13)
 }
 
 #test
@@ -109,7 +109,7 @@ impl LoopRefIndexContainer
     }
 
     var values = GenericRefIndexContainer'(s32){values: [21, 34]}
-    Swag.assert(genericFirst(&values) == 21)
+    Swag.require(genericFirst(&values) == 21)
 }
 
 func refIndexSentinelSum(values: *LoopRefIndexContainer, index: *s32)->s32
@@ -138,8 +138,8 @@ func refNestedIndexAssign(values: *LoopRefIndexContainer, index: *s32, value: s3
 {
     var values = LoopRefIndexContainer{values: [7, 11, 13, 17, 99, 0]}
     var index  = 0
-    Swag.assert(refIndexSentinelSum(&values, &index) == 28)
-    Swag.assert(index == 4)
+    Swag.require(refIndexSentinelSum(&values, &index) == 28)
+    Swag.require(index == 4)
 }
 
 #test
@@ -147,8 +147,8 @@ func refNestedIndexAssign(values: *LoopRefIndexContainer, index: *s32, value: s3
     var values = LoopRefIndexContainer{values: [5, 8, 13, 21, 34, 55]}
     var index  = 1
     refIndexAssignAt(&values, &index, 42)
-    Swag.assert(values[1] == 42)
-    Swag.assert(index == 1)
+    Swag.require(values[1] == 42)
+    Swag.require(index == 1)
 }
 
 #test
@@ -156,6 +156,6 @@ func refNestedIndexAssign(values: *LoopRefIndexContainer, index: *s32, value: s3
     var values = LoopRefIndexContainer{values: [0, 4, 2, 3, 1, 5]}
     var index  = 0
     refNestedIndexAssign(&values, &index, 42)
-    Swag.assert(values[4] == 42)
-    Swag.assert(index == 0)
+    Swag.require(values[4] == 42)
+    Swag.require(index == 0)
 }

@@ -19,11 +19,11 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     req.size      = 257
     req.alignment = 128
     itf.alloc(&req)
-    Swag.assert(req.address != null)
-    Swag.assert(cast(u64, req.address) % 128 == 0)
+    Swag.require(req.address != null)
+    Swag.require(cast(u64, req.address) % 128 == 0)
 
     itf.free(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }
 
@@ -36,11 +36,11 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     aligned.size      = 257
     aligned.alignment = 128
     alignedItf.alloc(&aligned)
-    Swag.assert(aligned.address != null)
-    Swag.assert(cast(u64, aligned.address) % 128 == 0)
+    Swag.require(aligned.address != null)
+    Swag.require(cast(u64, aligned.address) % 128 == 0)
 
     alignedItf.free(&aligned)
-    Swag.assert(aligned.address == null)
+    Swag.require(aligned.address == null)
     alignedAlloc.releaseAll()
 
     var captureAlloc: Allocator
@@ -50,15 +50,15 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     captured.size = 112
     captured.hint = "alignment-then-capture"
     captureItf.alloc(&captured)
-    Swag.assert(captured.address != null)
+    Swag.require(captured.address != null)
 
     let header   = cast(*AllocatorHeader, (cast([*] u8, captured.address) - #sizeof(AllocatorHeader)))
     let tracking = unwrap header.tracking
-    Swag.assert(header.magic == Allocator.MagicAlloc)
-    Swag.assert(tracking.stackCount <= tracking.stack.count)
+    Swag.require(header.magic == Allocator.MagicAlloc)
+    Swag.require(tracking.stackCount <= tracking.stack.count)
 
     captureItf.free(&captured)
-    Swag.assert(captured.address == null)
+    Swag.require(captured.address == null)
     captureAlloc.releaseAll()
 }
 
@@ -73,14 +73,14 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
         reqs[i].size      = 64 + cast(u64, i) * 41
         reqs[i].alignment = 128
         itf.alloc(&reqs[i])
-        Swag.assert(reqs[i].address != null)
-        Swag.assert(cast(u64, reqs[i].address) % 128 == 0)
+        Swag.require(reqs[i].address != null)
+        Swag.require(cast(u64, reqs[i].address) % 128 == 0)
     }
 
     for i in 6
     {
         itf.free(&reqs[i])
-        Swag.assert(reqs[i].address == null)
+        Swag.require(reqs[i].address == null)
     }
 
     alloc.releaseAll()

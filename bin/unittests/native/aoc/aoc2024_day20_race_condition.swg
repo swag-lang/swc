@@ -288,12 +288,12 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    Swag.assert(g.w == 15'u32)
-    Swag.assert(g.h == 15'u32)
-    Swag.assert(g.sr == 3'u32)
-    Swag.assert(g.sc == 1'u32)
-    Swag.assert(g.er == 7'u32)
-    Swag.assert(g.ec == 5'u32)
+    Swag.require(g.w == 15'u32)
+    Swag.require(g.h == 15'u32)
+    Swag.require(g.sr == 3'u32)
+    Swag.require(g.sc == 1'u32)
+    Swag.require(g.er == 7'u32)
+    Swag.require(g.ec == 5'u32)
 }
 
 // Grid inline methods: nested inline (isOpen → cell → idx)
@@ -301,18 +301,18 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    Swag.assert(not g.isOpen(0, 0))     // wall
-    Swag.assert(g.isOpen(1, 1))         // open
-    Swag.assert(g.cell(0, 0) == '#')
-    Swag.assert(g.cell(3, 1) == 'S')
+    Swag.require(not g.isOpen(0, 0))     // wall
+    Swag.require(g.isOpen(1, 1))         // open
+    Swag.require(g.cell(0, 0) == '#')
+    Swag.require(g.cell(3, 1) == 'S')
 }
 
 // Pos.make inline returning struct
 #test
 {
     let p = makePos(3, 7)
-    Swag.assert(p.r == 3'u32)
-    Swag.assert(p.c == 7'u32)
+    Swag.require(p.r == 3'u32)
+    Swag.require(p.c == 7'u32)
 }
 
 // Manhattan distance with Swag.abs on s32
@@ -320,13 +320,13 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     let a = makePos(1, 5)
     let b = makePos(4, 2)
-    Swag.assert(manhattan(a, b) == 6'u32)
+    Swag.require(manhattan(a, b) == 6'u32)
 
     // Same point
-    Swag.assert(manhattan(a, a) == 0'u32)
+    Swag.require(manhattan(a, a) == 0'u32)
 
     // Reversed order
-    Swag.assert(manhattan(b, a) == 6'u32)
+    Swag.require(manhattan(b, a) == 6'u32)
 }
 
 // Trace path
@@ -335,23 +335,23 @@ func solve(text: string, minSaving: u32)->SolveResult
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
     tracePath(&g)
-    Swag.assert(g.pathLen == 84'u32)
-    Swag.assert(g.distAt(g.sr, g.sc) == 0'u32)
-    Swag.assert(g.distAt(g.er, g.ec) == 84'u32)
+    Swag.require(g.pathLen == 84'u32)
+    Swag.require(g.distAt(g.sr, g.sc) == 0'u32)
+    Swag.require(g.distAt(g.er, g.ec) == 84'u32)
 }
 
 // Part 1: cheats of length 2, saving >= 2 → 44
 #test
 {
     let result = solve(SampleInput, 2)
-    Swag.assert(result.part1 == 44'u64)
+    Swag.require(result.part1 == 44'u64)
 }
 
 // Part 2: cheats of length 20, saving >= 50 → 285
 #test
 {
     let result = solve(SampleInput, 50)
-    Swag.assert(result.part2 == 285'u64)
+    Swag.require(result.part2 == 285'u64)
 }
 
 // Edge: single-cell path (S == E)
@@ -369,7 +369,7 @@ func solve(text: string, minSaving: u32)->SolveResult
     cells[2 * MaxDim + 0] = '#'; cells[2 * MaxDim + 1] = '#'; cells[2 * MaxDim + 2] = '#'
     g.sr = 1; g.sc = 1; g.er = 1; g.ec = 1
     tracePath(&g)
-    Swag.assert(g.pathLen == 0'u32)
+    Swag.require(g.pathLen == 0'u32)
 }
 
 // Manhattan distance edge: large coordinates
@@ -377,7 +377,7 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     let a = makePos(0, 0)
     let b = makePos(100, 100)
-    Swag.assert(manhattan(a, b) == 200'u32)
+    Swag.require(manhattan(a, b) == 200'u32)
 }
 
 // inBounds inline with signed args
@@ -385,10 +385,10 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    Swag.assert(g.inBounds(0, 0))
+    Swag.require(g.inBounds(0, 0))
     var neg: s32 = -1
-    Swag.assert(not g.inBounds(neg, 0))
-    Swag.assert(not g.inBounds(0, neg))
-    Swag.assert(g.inBounds(cast(s32, g.h) - 1, cast(s32, g.w) - 1))
-    Swag.assert(not g.inBounds(cast(s32, g.h), 0))
+    Swag.require(not g.inBounds(neg, 0))
+    Swag.require(not g.inBounds(0, neg))
+    Swag.require(g.inBounds(cast(s32, g.h) - 1, cast(s32, g.w) - 1))
+    Swag.require(not g.inBounds(cast(s32, g.h), 0))
 }

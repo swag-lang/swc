@@ -31,15 +31,15 @@ impl Struct
 #test
 {
     let v: Struct = 4's32
-    Swag.assert(v.x == 4)
-    Swag.assert(v.y == 4)
-    Swag.assert(v.z == 666)
+    Swag.require(v.x == 4)
+    Swag.require(v.y == 4)
+    Swag.require(v.z == 666)
     var v1: Struct = true
-    Swag.assert(v1.x == 1)
-    Swag.assert(v1.y == 1)
+    Swag.require(v1.x == 1)
+    Swag.require(v1.y == 1)
     v1 = false
-    Swag.assert(v1.x == 0)
-    Swag.assert(v1.y == 0)
+    Swag.require(v1.x == 0)
+    Swag.require(v1.y == 0)
 }
 
 /**
@@ -67,9 +67,9 @@ impl Struct
 #test
 {
     let v: Struct = 2'u64
-    Swag.assert(v.x == 2)
-    Swag.assert(v.y == 2)
-    Swag.assert(v.z == 2)
+    Swag.require(v.x == 2)
+    Swag.require(v.y == 2)
+    Swag.require(v.z == 2)
 }
 
 /**

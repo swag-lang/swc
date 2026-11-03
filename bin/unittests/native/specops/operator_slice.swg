@@ -57,13 +57,13 @@ struct RuntimeSliceHolder
     let slice = box[1 to 3]
 
     #assert(#typeof(slice) == [..] s32)
-    Swag.assert(slice.count == 3)
-    Swag.assert(slice[0] == 20)
-    Swag.assert(slice[1] == 30)
-    Swag.assert(slice[2] == 40)
-    Swag.assert(box.sliceCalls == 1)
-    Swag.assert(box.lastLow == 1)
-    Swag.assert(box.lastUp == 3)
+    Swag.require(slice.count == 3)
+    Swag.require(slice[0] == 20)
+    Swag.require(slice[1] == 30)
+    Swag.require(slice[2] == 40)
+    Swag.require(box.sliceCalls == 1)
+    Swag.require(box.lastLow == 1)
+    Swag.require(box.lastUp == 3)
 }
 
 #test
@@ -71,12 +71,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[1 until 3]
 
-    Swag.assert(slice.count == 2)
-    Swag.assert(slice[0] == 20)
-    Swag.assert(slice[1] == 30)
-    Swag.assert(box.sliceCalls == 1)
-    Swag.assert(box.lastLow == 1)
-    Swag.assert(box.lastUp == 2)
+    Swag.require(slice.count == 2)
+    Swag.require(slice[0] == 20)
+    Swag.require(slice[1] == 30)
+    Swag.require(box.sliceCalls == 1)
+    Swag.require(box.lastLow == 1)
+    Swag.require(box.lastUp == 2)
 }
 
 #test
@@ -84,12 +84,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to 2]
 
-    Swag.assert(slice.count == 3)
-    Swag.assert(slice[0] == 10)
-    Swag.assert(slice[1] == 20)
-    Swag.assert(slice[2] == 30)
-    Swag.assert(box.lastLow == 0)
-    Swag.assert(box.lastUp == 2)
+    Swag.require(slice.count == 3)
+    Swag.require(slice[0] == 10)
+    Swag.require(slice[1] == 20)
+    Swag.require(slice[2] == 30)
+    Swag.require(box.lastLow == 0)
+    Swag.require(box.lastUp == 2)
 }
 
 #test
@@ -97,12 +97,12 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 to]
 
-    Swag.assert(slice.count == 3)
-    Swag.assert(slice[0] == 30)
-    Swag.assert(slice[1] == 40)
-    Swag.assert(slice[2] == 50)
-    Swag.assert(box.lastLow == 2)
-    Swag.assert(box.lastUp == 4)
+    Swag.require(slice.count == 3)
+    Swag.require(slice[0] == 30)
+    Swag.require(slice[1] == 40)
+    Swag.require(slice[2] == 50)
+    Swag.require(box.lastLow == 2)
+    Swag.require(box.lastUp == 4)
 }
 
 #test
@@ -110,11 +110,11 @@ struct RuntimeSliceHolder
     var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to]
 
-    Swag.assert(slice.count == 5)
-    Swag.assert(slice[0] == 10)
-    Swag.assert(slice[4] == 50)
-    Swag.assert(box.lastLow == 0)
-    Swag.assert(box.lastUp == 4)
+    Swag.require(slice.count == 5)
+    Swag.require(slice[0] == 10)
+    Swag.require(slice[4] == 50)
+    Swag.require(box.lastLow == 0)
+    Swag.require(box.lastUp == 4)
 }
 
 #test
@@ -122,13 +122,13 @@ struct RuntimeSliceHolder
     var holder = RuntimeSliceHolder{value: RuntimeSliceBox{values: [10, 20, 30, 40, 50]}}
     let slice  = holder.value[1 until 4]
 
-    Swag.assert(slice.count == 3)
-    Swag.assert(slice[0] == 20)
-    Swag.assert(slice[1] == 30)
-    Swag.assert(slice[2] == 40)
-    Swag.assert(holder.value.sliceCalls == 1)
-    Swag.assert(holder.value.lastLow == 1)
-    Swag.assert(holder.value.lastUp == 3)
+    Swag.require(slice.count == 3)
+    Swag.require(slice[0] == 20)
+    Swag.require(slice[1] == 30)
+    Swag.require(slice[2] == 40)
+    Swag.require(holder.value.sliceCalls == 1)
+    Swag.require(holder.value.lastLow == 1)
+    Swag.require(holder.value.lastUp == 3)
 }
 
 #test
@@ -139,7 +139,7 @@ struct RuntimeSliceHolder
     let head   = box[to 2]
 
     #assert(#typeof(middle) == string)
-    Swag.assert(middle == "trin")
-    Swag.assert(tail == "ring")
-    Swag.assert(head == "str")
+    Swag.require(middle == "trin")
+    Swag.require(tail == "ring")
+    Swag.require(head == "str")
 }

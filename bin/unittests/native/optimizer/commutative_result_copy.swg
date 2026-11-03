@@ -31,17 +31,17 @@ func checked(a, b: u64)->u64 => a + b * 7
     for a in values
     {
         let isolated = a & (~a + 1)
-        Swag.assert(lowest(a) == isolated)
-        Swag.assert(lowest32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (isolated & 0xFFFFFFFF)))
-        Swag.assert(compared(a) == (a == 0))
+        Swag.require(lowest(a) == isolated)
+        Swag.require(lowest32(cast(u32, (a & 0xFFFFFFFF))) == cast(u32, (isolated & 0xFFFFFFFF)))
+        Swag.require(compared(a) == (a == 0))
         for b in values
         {
-            Swag.assert(orComplement(a, b) == (a | ~b))
-            Swag.assert(xorComplement(a, b) == (a ^ ~b))
-            Swag.assert(added(a, b) == a + b * 7)
-            Swag.assert(multiplied(a, b) == a * (b + 7))
-            Swag.assert(preserve(a, b) == (b != 0 ? isolated ^ a : isolated))
+            Swag.require(orComplement(a, b) == (a | ~b))
+            Swag.require(xorComplement(a, b) == (a ^ ~b))
+            Swag.require(added(a, b) == a + b * 7)
+            Swag.require(multiplied(a, b) == a * (b + 7))
+            Swag.require(preserve(a, b) == (b != 0 ? isolated ^ a : isolated))
         }
     }
-    Swag.assert(checked(9, 11) == 86)
+    Swag.require(checked(9, 11) == 86)
 }

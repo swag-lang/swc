@@ -55,27 +55,27 @@ func assumedBlock(value: *s32)
 
 #test
 {
-    Swag.assert(uncheckedAssumedCall(41) == 42)
-    Swag.assert(guardedAssumedCall(41) == 42)
+    Swag.require(uncheckedAssumedCall(41) == 42)
+    Swag.require(guardedAssumedCall(41) == 42)
     var value: s32 = 12
     let pointer    = assume assumedPointer(&value)
-    Swag.assert(pointer == &value)
-    Swag.assert(assumedCastAndCall(&value) == &value)
-    Swag.assert(parenthesizedAssumedCast(&value) == &value)
-    Swag.assert(contextuallyAssumedCast(value) == 12)
-    Swag.assert(contextuallyAssumedCall(value) == 12)
+    Swag.require(pointer == &value)
+    Swag.require(assumedCastAndCall(&value) == &value)
+    Swag.require(parenthesizedAssumedCast(&value) == &value)
+    Swag.require(contextuallyAssumedCast(value) == 12)
+    Swag.require(contextuallyAssumedCall(value) == 12)
     assume assumedVoid(&value)
-    Swag.assert(value == 13)
+    Swag.require(value == 13)
     assumedBlock(&value)
-    Swag.assert(value == 15)
+    Swag.require(value == 15)
     #[Swag.Safety(.Assume, false)]
     {
-        Swag.assert(assume internallyHandledOperation() == 42)
+        Swag.require(assume internallyHandledOperation() == 42)
         // A later checked operation still owns its failure.
         var errorOutcome: Swag.Error
         var failed:       #decltype(expect assumedOperation(-1))
         catch { failed = try assumedOperation(-1) } as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(failed == 0 and error != null)
+        Swag.require(failed == 0 and error != null)
     }
 }

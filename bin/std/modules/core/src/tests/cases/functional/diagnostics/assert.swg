@@ -12,17 +12,18 @@ private func assertionMessage(count: *s32)->string
     return "assertion message"
 }
 
-#[Swag.Safety(.Assert, true)]
+// This test is about the assertion itself, so its body writes 'Swag.assert' on purpose.
+#[Swag.Safety(.Assert, true), Swag.Warning("sema_warn_assert_in_test", .Disable)]
 #test
 {
     var count = 0
     Swag.assert(assertionCondition(&count), assertionMessage(&count))
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
     #[Swag.Safety(.Assert, false)]
     {
         Swag.assert(assertionCondition(&count), assertionMessage(&count))
         Swag.assert(false)
     }
 
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }

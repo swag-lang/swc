@@ -39,30 +39,30 @@ func(T) readCastValue(value: *T)->s32
     var value: CastValue
     let itf      = cast(ICastValue, &value)
     let concrete = catch cast(*CastValue?, itf)
-    Swag.assert(concrete == &value)
+    Swag.require(concrete == &value)
     let castResult1 = catch cast(*OtherCastValue?, itf)
-    Swag.assert(castResult1 == null)
-    Swag.assert(assume cast (*CastValue, itf) == &value)
+    Swag.require(castResult1 == null)
+    Swag.require(assume cast (*CastValue, itf) == &value)
     let label = catch cast(ICastLabel?, itf)
     if label != null do
-        Swag.assert(label.label() == "value")
-    Swag.assert(label != null)
+        Swag.require(label.label() == "value")
+    Swag.require(label != null)
     let directLabel: ICastLabel = &value
-    Swag.assert(label == directLabel)
-    Swag.assert(readCastValue(&value) == 42)
+    Swag.require(label == directLabel)
+    Swag.require(readCastValue(&value) == 42)
 }
 
 #test
 {
     var value: CastValue
     var boxed: any = &value
-    Swag.assert((catch cast(*CastValue?, boxed)) == &value)
+    Swag.require((catch cast(*CastValue?, boxed)) == &value)
     let castResult2 = catch cast(*OtherCastValue?, boxed)
-    Swag.assert(castResult2 == null)
+    Swag.require(castResult2 == null)
     let view = catch cast(ICastValue?, boxed)
     if view != null do
-        Swag.assert(view.value() == 42)
-    Swag.assert(view != null)
+        Swag.require(view.value() == 42)
+    Swag.require(view != null)
 }
 
 #test
@@ -70,11 +70,11 @@ func(T) readCastValue(value: *T)->s32
     var boxed: any = 17's32
     let value      = catch cast(*s32?, boxed)
     if value != null do
-        Swag.assert(value[] == 17)
-    Swag.assert(value != null)
+        Swag.require(value[] == 17)
+    Swag.require(value != null)
     let castResult3 = catch cast(*s64?, boxed)
-    Swag.assert(castResult3 == null)
-    Swag.assert(assume cast (s32, boxed) == 17)
+    Swag.require(castResult3 == null)
+    Swag.require(assume cast (s32, boxed) == 17)
 }
 
 #assert(CastValue is ICastValue)
@@ -86,10 +86,10 @@ func(T) readCastValue(value: *T)->s32
     var value:    CastValue
     let readOnly: const *CastValue = &value
     let boxed:    const any        = readOnly
-    Swag.assert((catch cast(const *CastValue?, boxed)) == readOnly)
+    Swag.require((catch cast(const *CastValue?, boxed)) == readOnly)
     let absent: *CastValue? = null
     let castResult4         = cast(*CastValue?, absent)
-    Swag.assert(castResult4 == null)
+    Swag.require(castResult4 == null)
 }
 
 #test
@@ -97,21 +97,21 @@ func(T) readCastValue(value: *T)->s32
     var value: CastValue
     let itf        = cast(ICastValue, &value)
     let boxed: any = itf
-    Swag.assert((catch cast(*CastValue?, boxed)) == &value)
+    Swag.require((catch cast(*CastValue?, boxed)) == &value)
     let label = catch cast(ICastLabel?, boxed)
-    Swag.assert(label != null)
-    Swag.assert(label.label() == "value")
+    Swag.require(label != null)
+    Swag.require(label.label() == "value")
 }
 
 #test
 {
     let source = Swag.makeInterface(null, CastValue, ICastValue)
     let target = catch cast(ICastLabel?, source)
-    Swag.assert(target != null)
-    Swag.assert(target.label() == "value")
+    Swag.require(target != null)
+    Swag.require(target.label() == "value")
     let castResult5 = catch cast(*CastValue?, source)
-    Swag.assert(castResult5 == null)
+    Swag.require(castResult5 == null)
     let absent: *CastValue? = null
     let castResult6         = cast(ICastLabel?, absent)
-    Swag.assert(castResult6 == null)
+    Swag.require(castResult6 == null)
 }

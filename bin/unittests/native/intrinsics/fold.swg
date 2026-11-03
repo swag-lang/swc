@@ -60,8 +60,8 @@
     #assert(Y == 2.0)
     #assert(Z == 1.0)
     #assert(AA == 2.0)
-    Swag.assert(A == 2.0)
-    Swag.assert(AA == 2.0)
+    Swag.require(A == 2.0)
+    Swag.require(AA == 2.0)
 }
 
 // ============================================================
@@ -82,8 +82,8 @@
     const F: s32 = Swag.max(1's32, 2's32)
     #assert(E == 1)
     #assert(F == 2)
-    Swag.assert(C == -3)
-    Swag.assert(F == 2)
+    Swag.require(C == -3)
+    Swag.require(F == 2)
 }
 
 #test
@@ -92,7 +92,7 @@
     const B: s64 = Swag.max(-5's64, 3's64)
     #assert(A == -5)
     #assert(B == 3)
-    Swag.assert(B == 3)
+    Swag.require(B == 3)
 }
 
 #test
@@ -101,7 +101,7 @@
     const B: u32 = Swag.max(10'u32, 20'u32)
     #assert(A == 10'u32)
     #assert(B == 20'u32)
-    Swag.assert(B == 20'u32)
+    Swag.require(B == 20'u32)
 }
 
 #test
@@ -114,7 +114,7 @@
     const D: u16 = Swag.max(3'u16, 1'u16)
     #assert(C == 1'u16)
     #assert(D == 3'u16)
-    Swag.assert(D == 3'u16)
+    Swag.require(D == 3'u16)
 }
 
 #test
@@ -123,7 +123,7 @@
     const B: u64 = Swag.max(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
     #assert(A == 1'u64)
     #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
-    Swag.assert(B == 0xFFFFFFFFFFFFFFFF'u64)
+    Swag.require(B == 0xFFFFFFFFFFFFFFFF'u64)
 }
 
 // ============================================================
@@ -134,7 +134,7 @@
 {
     const E: f64 = Swag.atan2(0.0'f32, 0.0'f32)
     #assert(E == 0.0)
-    Swag.assert(E == 0.0)
+    Swag.require(E == 0.0)
 }
 
 // ============================================================
@@ -157,8 +157,8 @@
     const C: f64 = Swag.exp2(10.0'f64)
     #assert(B == 8.0)
     #assert(C == 1024.0)
-    Swag.assert(B == 8.0)
-    Swag.assert(C == 1024.0)
+    Swag.require(B == 8.0)
+    Swag.require(C == 1024.0)
 }
 
 #test
@@ -169,7 +169,7 @@
     #assert(A == 9.0)
     #assert(B == 1024.0)
     #assert(C == 1.0)
-    Swag.assert(A == 9.0)
+    Swag.require(A == 9.0)
 }
 
 #test
@@ -188,8 +188,8 @@
     #assert(E == -2.0)
     #assert(F == 2.0)
     #assert(I == 2.0)
-    Swag.assert(A == -2.0)
-    Swag.assert(D == 3.0)
+    Swag.require(A == -2.0)
+    Swag.require(D == 3.0)
 }
 
 #test
@@ -202,8 +202,8 @@
     #assert(B == 10.0)
     #assert(C == 2.0)
     #assert(D == 3.0)
-    Swag.assert(A == 3.0)
-    Swag.assert(C == 2.0)
+    Swag.require(A == 3.0)
+    Swag.require(C == 2.0)
 }
 
 #test
@@ -214,8 +214,8 @@
     #assert(A == 5.0)
     #assert(B == 5.0)
     #assert(C == 0.0)
-    Swag.assert(A == 5.0)
-    Swag.assert(C == 0.0)
+    Swag.require(A == 5.0)
+    Swag.require(C == 0.0)
 }
 
 // ============================================================
@@ -312,109 +312,109 @@ func rtRound32(v: f32)->f32 => Swag.round(v)
 // Runtime — sqrt
 #test
 {
-    Swag.assert(rtSqrt64(0.0) == 0.0)
-    Swag.assert(rtSqrt64(1.0) == 1.0)
-    Swag.assert(rtSqrt64(4.0) == 2.0)
-    Swag.assert(rtSqrt64(9.0) == 3.0)
-    Swag.assert(rtSqrt64(16.0) == 4.0)
-    Swag.assert(rtSqrt32(4.0'f32) == 2.0'f32)
-    Swag.assert(rtSqrt32(25.0'f32) == 5.0'f32)
+    Swag.require(rtSqrt64(0.0) == 0.0)
+    Swag.require(rtSqrt64(1.0) == 1.0)
+    Swag.require(rtSqrt64(4.0) == 2.0)
+    Swag.require(rtSqrt64(9.0) == 3.0)
+    Swag.require(rtSqrt64(16.0) == 4.0)
+    Swag.require(rtSqrt32(4.0'f32) == 2.0'f32)
+    Swag.require(rtSqrt32(25.0'f32) == 5.0'f32)
 }
 
 // Runtime — trig at zero
 #test
 {
-    Swag.assert(rtSin64(0.0) == 0.0)
-    Swag.assert(rtCos64(0.0) == 1.0)
-    Swag.assert(rtTan64(0.0) == 0.0)
+    Swag.require(rtSin64(0.0) == 0.0)
+    Swag.require(rtCos64(0.0) == 1.0)
+    Swag.require(rtTan64(0.0) == 0.0)
 
     let s = rtSin32(0.0'f32)
     let c = rtCos32(0.0'f32)
-    Swag.assert(s == 0.0'f32)
-    Swag.assert(c == 1.0'f32)
+    Swag.require(s == 0.0'f32)
+    Swag.require(c == 1.0'f32)
 }
 
 // Runtime — hyperbolic at zero
 #test
 {
-    Swag.assert(rtSinh64(0.0) == 0.0)
-    Swag.assert(rtCosh64(0.0) == 1.0)
-    Swag.assert(rtTanh64(0.0) == 0.0)
+    Swag.require(rtSinh64(0.0) == 0.0)
+    Swag.require(rtCosh64(0.0) == 1.0)
+    Swag.require(rtTanh64(0.0) == 0.0)
 }
 
 // Runtime — inverse trig
 #test
 {
-    Swag.assert(rtAsin64(0.0) == 0.0)
-    Swag.assert(rtAcos64(1.0) == 0.0)
-    Swag.assert(rtAtan64(0.0) == 0.0)
-    Swag.assert(rtAtan2_64(0.0, 1.0) == 0.0)
-    Swag.assert(rtAtan2_64(0.0, 0.0) == 0.0)
+    Swag.require(rtAsin64(0.0) == 0.0)
+    Swag.require(rtAcos64(1.0) == 0.0)
+    Swag.require(rtAtan64(0.0) == 0.0)
+    Swag.require(rtAtan2_64(0.0, 1.0) == 0.0)
+    Swag.require(rtAtan2_64(0.0, 0.0) == 0.0)
 }
 
 // Runtime — log / exp
 #test
 {
-    Swag.assert(rtLog64(1.0) == 0.0)
-    Swag.assert(rtLog2_64(1.0) == 0.0)
-    Swag.assert(rtLog2_64(8.0) == 3.0)
-    Swag.assert(rtLog2_64(1024.0) == 10.0)
-    Swag.assert(rtLog10_64(1.0) == 0.0)
-    Swag.assert(rtLog10_64(100.0) == 2.0)
-    Swag.assert(rtLog10_64(1000.0) == 3.0)
+    Swag.require(rtLog64(1.0) == 0.0)
+    Swag.require(rtLog2_64(1.0) == 0.0)
+    Swag.require(rtLog2_64(8.0) == 3.0)
+    Swag.require(rtLog2_64(1024.0) == 10.0)
+    Swag.require(rtLog10_64(1.0) == 0.0)
+    Swag.require(rtLog10_64(100.0) == 2.0)
+    Swag.require(rtLog10_64(1000.0) == 3.0)
 }
 
 #test
 {
-    Swag.assert(rtExp64(0.0) == 1.0)
-    Swag.assert(rtExp2_64(0.0) == 1.0)
-    Swag.assert(rtExp2_64(3.0) == 8.0)
-    Swag.assert(rtExp2_64(10.0) == 1024.0)
+    Swag.require(rtExp64(0.0) == 1.0)
+    Swag.require(rtExp2_64(0.0) == 1.0)
+    Swag.require(rtExp2_64(3.0) == 8.0)
+    Swag.require(rtExp2_64(10.0) == 1024.0)
 }
 
 // Runtime — pow
 #test
 {
-    Swag.assert(rtPow64(2.0, 0.0) == 1.0)
-    Swag.assert(rtPow64(2.0, 1.0) == 2.0)
-    Swag.assert(rtPow64(2.0, 8.0) == 256.0)
-    Swag.assert(rtPow64(2.0, 10.0) == 1024.0)
-    Swag.assert(rtPow64(3.0, 2.0) == 9.0)
-    Swag.assert(rtPow64(10.0, 0.0) == 1.0)
+    Swag.require(rtPow64(2.0, 0.0) == 1.0)
+    Swag.require(rtPow64(2.0, 1.0) == 2.0)
+    Swag.require(rtPow64(2.0, 8.0) == 256.0)
+    Swag.require(rtPow64(2.0, 10.0) == 1024.0)
+    Swag.require(rtPow64(3.0, 2.0) == 9.0)
+    Swag.require(rtPow64(10.0, 0.0) == 1.0)
 }
 
 // Runtime — rounding
 #test
 {
-    Swag.assert(rtFloor64(1.9) == 1.0)
-    Swag.assert(rtFloor64(-1.5) == -2.0)
-    Swag.assert(rtFloor64(2.0) == 2.0)
-    Swag.assert(rtCeil64(1.1) == 2.0)
-    Swag.assert(rtCeil64(-1.5) == -1.0)
-    Swag.assert(rtCeil64(2.0) == 2.0)
-    Swag.assert(rtTrunc64(-1.9) == -1.0)
-    Swag.assert(rtTrunc64(2.9) == 2.0)
-    Swag.assert(rtRound64(1.4) == 1.0)
-    Swag.assert(rtRound64(2.5) == 3.0)
+    Swag.require(rtFloor64(1.9) == 1.0)
+    Swag.require(rtFloor64(-1.5) == -2.0)
+    Swag.require(rtFloor64(2.0) == 2.0)
+    Swag.require(rtCeil64(1.1) == 2.0)
+    Swag.require(rtCeil64(-1.5) == -1.0)
+    Swag.require(rtCeil64(2.0) == 2.0)
+    Swag.require(rtTrunc64(-1.9) == -1.0)
+    Swag.require(rtTrunc64(2.9) == 2.0)
+    Swag.require(rtRound64(1.4) == 1.0)
+    Swag.require(rtRound64(2.5) == 3.0)
 }
 
 #test
 {
-    Swag.assert(rtFloor32(1.9'f32) == 1.0'f32)
-    Swag.assert(rtFloor32(-1.5'f32) == -2.0'f32)
-    Swag.assert(rtCeil32(1.1'f32) == 2.0'f32)
-    Swag.assert(rtCeil32(-1.5'f32) == -1.0'f32)
-    Swag.assert(rtTrunc32(-1.9'f32) == -1.0'f32)
-    Swag.assert(rtTrunc32(2.9'f32) == 2.0'f32)
-    Swag.assert(rtRound32(1.4'f32) == 1.0'f32)
-    Swag.assert(rtRound32(2.5'f32) == 3.0'f32)
+    Swag.require(rtFloor32(1.9'f32) == 1.0'f32)
+    Swag.require(rtFloor32(-1.5'f32) == -2.0'f32)
+    Swag.require(rtCeil32(1.1'f32) == 2.0'f32)
+    Swag.require(rtCeil32(-1.5'f32) == -1.0'f32)
+    Swag.require(rtTrunc32(-1.9'f32) == -1.0'f32)
+    Swag.require(rtTrunc32(2.9'f32) == 2.0'f32)
+    Swag.require(rtRound32(1.4'f32) == 1.0'f32)
+    Swag.require(rtRound32(2.5'f32) == 3.0'f32)
 }
 
 // Runtime — mulAdd
 #test
 {
-    Swag.assert(rtMuladd64(2.0, 3.0, 4.0) == 10.0)
-    Swag.assert(rtMuladd64(0.0, 100.0, 5.0) == 5.0)
-    Swag.assert(rtMuladd64(10.0, 10.0, -100.0) == 0.0)
-    Swag.assert(rtMuladd64(1.0, 1.0, 0.0) == 1.0)
+    Swag.require(rtMuladd64(2.0, 3.0, 4.0) == 10.0)
+    Swag.require(rtMuladd64(0.0, 100.0, 5.0) == 5.0)
+    Swag.require(rtMuladd64(10.0, 10.0, -100.0) == 0.0)
+    Swag.require(rtMuladd64(1.0, 1.0, 0.0) == 1.0)
 }

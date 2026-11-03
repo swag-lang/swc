@@ -139,27 +139,27 @@ func optChainNarrowedRedundant(p: *OptChainNode?)->s32
     g_optChainNode.next        = &g_optChainOther
     g_optChainOther.value      = 9
 
-    Swag.assert(optChainScalar(true) == 42)
-    Swag.assert(optChainScalar(false) == -1)
-    Swag.assert(optChainBool(true) == false)
-    Swag.assert(optChainBool(false) == true)
-    Swag.assert(optChainFloat(true) == 2.5)
-    Swag.assert(optChainFloat(false) == -1.5)
-    Swag.assert(optChainDeep(true) == 7)
-    Swag.assert(optChainDeep(false) == -1)
+    Swag.require(optChainScalar(true) == 42)
+    Swag.require(optChainScalar(false) == -1)
+    Swag.require(optChainBool(true) == false)
+    Swag.require(optChainBool(false) == true)
+    Swag.require(optChainFloat(true) == 2.5)
+    Swag.require(optChainFloat(false) == -1.5)
+    Swag.require(optChainDeep(true) == 7)
+    Swag.require(optChainDeep(false) == -1)
 }
 
 #test
 {
     g_optChainNode.value = 42
-    Swag.assert(optChainMethod(true) == 43)
-    Swag.assert(optChainMethod(false) == -1)
+    Swag.require(optChainMethod(true) == 43)
+    Swag.require(optChainMethod(false) == -1)
 
     optChainVoidCall(true)
-    Swag.assert(g_optChainNode.value == 0)
+    Swag.require(g_optChainNode.value == 0)
     g_optChainNode.value = 5
     optChainVoidCall(false)
-    Swag.assert(g_optChainNode.value == 5)
+    Swag.require(g_optChainNode.value == 5)
 }
 
 #test
@@ -168,23 +168,23 @@ func optChainNarrowedRedundant(p: *OptChainNode?)->s32
     g_optChainNode.next   = &g_optChainOther
     g_optChainOther.value = 9
 
-    Swag.assert(optChainNullablePtr(true) == &g_optChainOther)
-    Swag.assert(optChainNullablePtr(false) == null)
-    Swag.assert(optChainString(true) == "hello")
-    Swag.assert(optChainString(false) == null)
-    Swag.assert(optChainTwoLinks(true) == 9)
-    Swag.assert(optChainTwoLinks(false) == -1)
-    Swag.assert(optChainCondition(true))
-    Swag.assert(not optChainCondition(false))
+    Swag.require(optChainNullablePtr(true) == &g_optChainOther)
+    Swag.require(optChainNullablePtr(false) == null)
+    Swag.require(optChainString(true) == "hello")
+    Swag.require(optChainString(false) == null)
+    Swag.require(optChainTwoLinks(true) == 9)
+    Swag.require(optChainTwoLinks(false) == -1)
+    Swag.require(optChainCondition(true))
+    Swag.require(not optChainCondition(false))
 
     g_optChainNode.next = null
-    Swag.assert(optChainTwoLinks(true) == -1)
-    Swag.assert(not optChainCondition(true))
+    Swag.require(optChainTwoLinks(true) == -1)
+    Swag.require(not optChainCondition(true))
     g_optChainNode.next = &g_optChainOther
 
     g_optChainNode.value = 42
-    Swag.assert(optChainInterface(cast(IOptChain, g_optChainNode)) == 42)
-    Swag.assert(optChainInterface(null) == -1)
-    Swag.assert(optChainNarrowedRedundant(&g_optChainNode) == 42)
-    Swag.assert(optChainNarrowedRedundant(null) == -1)
+    Swag.require(optChainInterface(cast(IOptChain, g_optChainNode)) == 42)
+    Swag.require(optChainInterface(null) == -1)
+    Swag.require(optChainNarrowedRedundant(&g_optChainNode) == 42)
+    Swag.require(optChainNarrowedRedundant(null) == -1)
 }

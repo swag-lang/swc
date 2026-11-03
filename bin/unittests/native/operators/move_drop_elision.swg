@@ -46,8 +46,8 @@ impl Tracked
         dst = #move src
     }
     // Drops: 'dst' as assignment target (7), 'dst' at scope exit (3+20). 'src': elided.
-    Swag.assert(DropCount == 2)
-    Swag.assert(DropTrace == 723)
+    Swag.require(DropCount == 2)
+    Swag.require(DropTrace == 723)
 }
 
 // A read after the move keeps the documented reset semantics: no elision.
@@ -61,9 +61,9 @@ impl Tracked
         dst    = #move src
         g_sink = src.value
     }
-    Swag.assert(g_sink == 5)     // reset to defaults
-    Swag.assert(DropCount == 3)
-    Swag.assert(DropTrace == 72305)
+    Swag.require(g_sink == 5)     // reset to defaults
+    Swag.require(DropCount == 3)
+    Swag.require(DropTrace == 72305)
 }
 
 // A move inside a branch does not post-dominate the scope exit: no elision.
@@ -77,8 +77,8 @@ impl Tracked
         if g_cond do
             dst = #move src
     }
-    Swag.assert(DropCount == 3)
-    Swag.assert(DropTrace == 72305)
+    Swag.require(DropCount == 3)
+    Swag.require(DropTrace == 72305)
 }
 
 // A taken address can outlive the move: no elision.
@@ -93,9 +93,9 @@ impl Tracked
         g_sink = p.value
         dst    = #move src
     }
-    Swag.assert(g_sink == 3)
-    Swag.assert(DropCount == 3)
-    Swag.assert(DropTrace == 72305)
+    Swag.require(g_sink == 3)
+    Swag.require(DropCount == 3)
+    Swag.require(DropTrace == 72305)
 }
 
 // A move inside a loop below the declaration re-reads the source next iteration: no elision.
@@ -109,8 +109,8 @@ impl Tracked
         for var i = 0; i < 1; i += 1 do
             dst = #nodrop #move src
     }
-    Swag.assert(DropCount == 2)
-    Swag.assert(DropTrace == 2305)
+    Swag.require(DropCount == 2)
+    Swag.require(DropTrace == 2305)
 }
 
 // Elision also applies to the 'var a = #move b' initialization form.
@@ -123,9 +123,9 @@ impl Tracked
         var dst = #move src
         g_sink = dst.value
     }
-    Swag.assert(g_sink == 23)
-    Swag.assert(DropCount == 1)
-    Swag.assert(DropTrace == 23)
+    Swag.require(g_sink == 23)
+    Swag.require(DropCount == 1)
+    Swag.require(DropTrace == 23)
 }
 
 // Only the LAST move of a chain elides: the first one keeps the reset semantics.
@@ -141,8 +141,8 @@ impl Tracked
         d2 = #move src     // moves the reset value (5); 'src' then elided
     }
     // Drops: d1 target (6), d2 target (7), scope: d2 (5+20), d1 (3+20). src: elided.
-    Swag.assert(DropCount == 4)
-    Swag.assert(DropTrace == 6072523)
+    Swag.require(DropCount == 4)
+    Swag.require(DropTrace == 6072523)
 }
 
 // Leaving a nested block restores the declaration owner of later locals.
@@ -161,7 +161,7 @@ impl Tracked
         var target = #move source
         g_sink = target.value
     }
-    Swag.assert(g_sink == 23)
-    Swag.assert(DropCount == 2)
-    Swag.assert(DropTrace == 2123)
+    Swag.require(g_sink == 23)
+    Swag.require(DropCount == 2)
+    Swag.require(DropTrace == 2123)
 }

@@ -25,11 +25,11 @@ func byteShift0(a: u64)->u64 => (a & 255) << 0
     {
         let lowByte = value & 255
         let lowWord = value & 65535
-        Swag.assert(byteShift8(value) == lowByte * 256)
-        Swag.assert(byteShift24(value) == lowByte * 0x1000000)
-        Swag.assert(byteShift25(value) == lowByte * 0x2000000)
-        Swag.assert(wordShift16(value) == lowWord * 65536)
-        Swag.assert(wordShift17(value) == lowWord * 131072)
-        Swag.assert(byteShift0(value) == lowByte)
+        Swag.require(byteShift8(value) == lowByte * 256)
+        Swag.require(byteShift24(value) == lowByte * 0x1000000)
+        Swag.require(byteShift25(value) == lowByte * 0x2000000)
+        Swag.require(wordShift16(value) == lowWord * 65536)
+        Swag.require(wordShift17(value) == lowWord * 131072)
+        Swag.require(byteShift0(value) == lowByte)
     }
 }

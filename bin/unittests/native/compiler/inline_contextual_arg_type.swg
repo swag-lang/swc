@@ -17,5 +17,5 @@ func forwardInlineByte(value: u8)
 {
     InlineContextualTypeSize = 0
     forwardInlineByte(0)
-    Swag.assert(InlineContextualTypeSize == 1)
+    Swag.require(InlineContextualTypeSize == 1)
 }

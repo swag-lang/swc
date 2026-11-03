@@ -52,17 +52,17 @@ func slowThree(x: u32)->u32
 {
     for y in 0'u32 until 2500
     {
-        Swag.assert(isLeap(y) == slowLeap(y))
-        Swag.assert(threeLinks(y) == slowThree(y))
+        Swag.require(isLeap(y) == slowLeap(y))
+        Swag.require(threeLinks(y) == slowThree(y))
     }
     for x in 0'u32 until 60
     {
         for y in 0'u32 until 60 do
-            Swag.assert(mixed(x, y) == slowMixed(x, y))
+            Swag.require(mixed(x, y) == slowMixed(x, y))
     }
     for i in 0 until 256
     {
         let c = cast(u8, i)
-        Swag.assert(identChar(c) == slowIdent(c))
+        Swag.require(identChar(c) == slowIdent(c))
     }
 }

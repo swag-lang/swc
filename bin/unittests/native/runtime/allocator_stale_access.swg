@@ -71,7 +71,7 @@ func recoverLock(allocator: *Allocator)
         writeAt(address, 7)
         writeAt(address + size - 1, 9)
         freeAt(itf, address)
-        Swag.assert(allocator.headerOf(address).commitSize == AllocatorCommitGranularity)
+        Swag.require(allocator.headerOf(address).commitSize == AllocatorCommitGranularity)
 
         // The read lands in a captured byte so that optimized code cannot drop it.
         var seen: u8
@@ -79,12 +79,12 @@ func recoverLock(allocator: *Allocator)
         {
             let read  = Swag.catchPanic(func|address, offset, &seen|() { seen = readAt(address + offset) })
             let write = Swag.catchPanic(func|address, offset|() { writeAt(address + offset, 1) })
-            Swag.assert(read.raised and read.message() == "memory access violation")
-            Swag.assert(write.raised and write.message() == "memory access violation")
+            Swag.require(read.raised and read.message() == "memory access violation")
+            Swag.require(write.raised and write.message() == "memory access violation")
         }
     }
 
-    Swag.assert(allocator.stats().countFree == 6)
+    Swag.require(allocator.stats().countFree == 6)
 }
 
 // An electric block freed twice is reported through its header, which stays readable while the
@@ -98,7 +98,7 @@ func recoverLock(allocator: *Allocator)
     let address = allocOne(itf, 48)
     freeAt(itf, address)
     let caught = Swag.catchPanic(func|itf, address|() { freeAt(itf, address) })
-    Swag.assert(caught.raised and caught.message() == "memory block is freed twice")
+    Swag.require(caught.raised and caught.message() == "memory block is freed twice")
     recoverLock(&allocator)
 }
 
@@ -113,15 +113,15 @@ func recoverLock(allocator: *Allocator)
     for alignment in [16'u32, 64, 4096]
     {
         let address = allocOne(itf, 129, alignment)
-        Swag.assert((address & (alignment - 1)) == 0)
+        Swag.require((address & (alignment - 1)) == 0)
         let header = allocator.headerOf(address)
-        Swag.assert(header.isElectric and header.userAddr == address)
+        Swag.require(header.isElectric and header.userAddr == address)
         let slack = cast(u64, header.allocAddr) + header.allocSize - address - 129
-        Swag.assert(slack > 0 and slack < alignment)
+        Swag.require(slack > 0 and slack < alignment)
 
         writeAt(address + 129, 1)
         let caught = Swag.catchPanic(func|itf, address|() { freeAt(itf, address) })
-        Swag.assert(caught.raised and caught.message() == "memory block was written past its end")
+        Swag.require(caught.raised and caught.message() == "memory block was written past its end")
         recoverLock(&allocator)
     }
 
@@ -132,7 +132,7 @@ func recoverLock(allocator: *Allocator)
     let header  = allocator.headerOf(address)
     let guard   = cast(u64, header.allocAddr) + header.allocSize
     let caught  = Swag.catchPanic(func|guard|() { writeAt(guard, 1) })
-    Swag.assert(caught.raised and caught.message() == "memory access violation")
+    Swag.require(caught.raised and caught.message() == "memory access violation")
     freeAt(itf, address)
 }
 
@@ -157,13 +157,13 @@ func recoverLock(allocator: *Allocator)
     request.size    = 3000
     itf.realloc(&request)
     let moved = cast(u64, request.address)
-    Swag.assert(moved != 0 and moved != old)
+    Swag.require(moved != 0 and moved != old)
     for i in 100 do
-        Swag.assert(readAt(moved + i) == cast #wrap (u8, i))
+        Swag.require(readAt(moved + i) == cast #wrap (u8, i))
 
     var seen: u8
     let caught = Swag.catchPanic(func|old, &seen|() { seen = readAt(old) })
-    Swag.assert(caught.raised and caught.message() == "memory access violation")
+    Swag.require(caught.raised and caught.message() == "memory access violation")
     itf.free(&request)
 }
 
@@ -177,15 +177,15 @@ func recoverLock(allocator: *Allocator)
 
     let address = allocOne(itf, 200)
     freeAt(itf, address)
-    Swag.assert(readAt(address + 100) == Allocator.FreeByte)
+    Swag.require(readAt(address + 100) == Allocator.FreeByte)
     allocator.checkAllMemory()
 
     writeAt(address + 100, 0x11)
     let checked = Swag.catchPanic(func|&allocator|() { allocator.checkAllMemory() })
-    Swag.assert(checked.raised and checked.message() == "memory block was written after being freed")
+    Swag.require(checked.raised and checked.message() == "memory block was written after being freed")
 
     allocator.maxQuarantineBytes = 1
     let evicted = Swag.catchPanic(func|itf|() { freeAt(itf, allocOne(itf, 200)) })
-    Swag.assert(evicted.raised and evicted.message() == "memory block was written after being freed")
+    Swag.require(evicted.raised and evicted.message() == "memory block was written after being freed")
     recoverLock(&allocator)
 }

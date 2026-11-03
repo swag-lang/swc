@@ -173,11 +173,11 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
         "#####"
         ]
 
-    Swag.assert(isLockSchematic(lock0))
-    Swag.assert(isLockSchematic(lock1))
-    Swag.assert(isKeySchematic(key0))
-    Swag.assert(isKeySchematic(key1))
-    Swag.assert(isKeySchematic(key2))
+    Swag.require(isLockSchematic(lock0))
+    Swag.require(isLockSchematic(lock1))
+    Swag.require(isKeySchematic(key0))
+    Swag.require(isKeySchematic(key1))
+    Swag.require(isKeySchematic(key2))
 
     let lockProfile0 = profileFromSchematic(lock0)
     let lockProfile1 = profileFromSchematic(lock1)
@@ -185,24 +185,24 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
     let keyProfile1  = profileFromSchematic(key1)
     let keyProfile2  = profileFromSchematic(key2)
 
-    Swag.assert(lockProfile0.heights[0] == 0)
-    Swag.assert(lockProfile0.heights[1] == 5)
-    Swag.assert(lockProfile0.heights[2] == 3)
-    Swag.assert(lockProfile0.heights[3] == 4)
-    Swag.assert(lockProfile0.heights[4] == 3)
+    Swag.require(lockProfile0.heights[0] == 0)
+    Swag.require(lockProfile0.heights[1] == 5)
+    Swag.require(lockProfile0.heights[2] == 3)
+    Swag.require(lockProfile0.heights[3] == 4)
+    Swag.require(lockProfile0.heights[4] == 3)
 
-    Swag.assert(keyProfile0.heights[0] == 5)
-    Swag.assert(keyProfile0.heights[1] == 0)
-    Swag.assert(keyProfile0.heights[2] == 2)
-    Swag.assert(keyProfile0.heights[3] == 1)
-    Swag.assert(keyProfile0.heights[4] == 3)
+    Swag.require(keyProfile0.heights[0] == 5)
+    Swag.require(keyProfile0.heights[1] == 0)
+    Swag.require(keyProfile0.heights[2] == 2)
+    Swag.require(keyProfile0.heights[3] == 1)
+    Swag.require(keyProfile0.heights[4] == 3)
 
-    Swag.assert(not fits(lockProfile0, keyProfile0))
-    Swag.assert(not fits(lockProfile0, keyProfile1))
-    Swag.assert(fits(lockProfile0, keyProfile2))
-    Swag.assert(not fits(lockProfile1, keyProfile0))
-    Swag.assert(fits(lockProfile1, keyProfile1))
-    Swag.assert(fits(lockProfile1, keyProfile2))
+    Swag.require(not fits(lockProfile0, keyProfile0))
+    Swag.require(not fits(lockProfile0, keyProfile1))
+    Swag.require(fits(lockProfile0, keyProfile2))
+    Swag.require(not fits(lockProfile1, keyProfile0))
+    Swag.require(fits(lockProfile1, keyProfile1))
+    Swag.require(fits(lockProfile1, keyProfile2))
 
     var sampleLocks: [2] PinProfile
     sampleLocks[0] = lockProfile0
@@ -215,7 +215,7 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
 
     let sampleAudit = auditPairings(sampleLocks, sampleKeys)
 
-    Swag.assert(sampleAudit.lockCount == 2)
-    Swag.assert(sampleAudit.keyCount == 3)
-    Swag.assert(sampleAudit.compatiblePairCount == 3)
+    Swag.require(sampleAudit.lockCount == 2)
+    Swag.require(sampleAudit.keyCount == 3)
+    Swag.require(sampleAudit.compatiblePairCount == 3)
 }

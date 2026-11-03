@@ -51,6 +51,6 @@ impl CrossAstVec
     var v: CrossAstVec
     v.value = 7
     v.count = 5
-    Swag.assert(v.at(2) == 7)
-    Swag.assert(v.at(0) == 7)
+    Swag.require(v.at(2) == 7)
+    Swag.require(v.at(0) == 7)
 }

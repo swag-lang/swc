@@ -40,7 +40,7 @@ func compilerJitStableWithNullAllocatorContext()->bool
 
 #test
 {
-    Swag.assert(jitStableWithNullAllocatorContext())
+    Swag.require(jitStableWithNullAllocatorContext())
 }
 
 #test

@@ -62,7 +62,7 @@ only the last value discards the ones before it rather than naming them.
     for _, _, index in values do
         total += cast(s32, index)
 
-    Swag.assert(total == 306)
+    Swag.require(total == 306)
 }
 
 #[Swag.Opaque]
@@ -108,7 +108,7 @@ does not copy the source or allocate memory. Since the view itself implements
     for value in values.reversed() do
         code = code * 100 + value
 
-    Swag.assert(code == 302010)
+    Swag.require(code == 302010)
 }
 
 struct SliceStruct
@@ -146,8 +146,8 @@ into the loop binding.
     for &value, index in values do
         value[] += cast(s32, index)
 
-    Swag.assert(values.buffer[0] == 1)
-    Swag.assert(values.buffer[4] == 9)
+    Swag.require(values.buffer[0] == 1)
+    Swag.require(values.buffer[4] == 9)
 }
 
 /**
@@ -170,6 +170,6 @@ hands out: '.pairs()' adds the position of the left element after the two values
         steps += index
     }
 
-    Swag.assert(code == 244668)
-    Swag.assert(steps == 0 + 1 + 2)
+    Swag.require(code == 244668)
+    Swag.require(steps == 0 + 1 + 2)
 }

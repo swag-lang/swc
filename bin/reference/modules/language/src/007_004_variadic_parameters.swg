@@ -132,5 +132,5 @@ Handle mixed-type parameters dynamically, performing type-specific actions.
     }
 
     let result = processParameters(1, 2, "Hello, ", 3, "World!")
-    Swag.assert(result == 1 + 1 + 10 + 1 + 10)
+    Swag.require(result == 1 + 1 + 10 + 1 + 10)
 }

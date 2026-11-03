@@ -85,28 +85,28 @@ func runNestedInlineStress(count: u32)->s32
 {
     var data: [6] u8 = [1, 5, 3, 9, 2, 4]
 
-    Swag.assert(hasAnyAbove(&data[0], 6, 0))
-    Swag.assert(hasAnyAbove(&data[0], 6, 4))
-    Swag.assert(hasAnyAbove(&data[0], 6, 8))
-    Swag.assert(not hasAnyAbove(&data[0], 6, 9))
+    Swag.require(hasAnyAbove(&data[0], 6, 0))
+    Swag.require(hasAnyAbove(&data[0], 6, 4))
+    Swag.require(hasAnyAbove(&data[0], 6, 8))
+    Swag.require(not hasAnyAbove(&data[0], 6, 9))
 
-    Swag.assert(firstAboveIndex(&data[0], 6, 0) == 0)
-    Swag.assert(firstAboveIndex(&data[0], 6, 4) == 1)
-    Swag.assert(firstAboveIndex(&data[0], 6, 8) == 3)
-    Swag.assert(firstAboveIndex(&data[0], 6, 9) == -1)
+    Swag.require(firstAboveIndex(&data[0], 6, 0) == 0)
+    Swag.require(firstAboveIndex(&data[0], 6, 4) == 1)
+    Swag.require(firstAboveIndex(&data[0], 6, 8) == 3)
+    Swag.require(firstAboveIndex(&data[0], 6, 9) == -1)
 
-    Swag.assert(runInlineScanStress(&data[0], 6) == 7)
+    Swag.require(runInlineScanStress(&data[0], 6) == 7)
 }
 
 #test
 {
     var value = 10
 
-    Swag.assert(bumpThenDouble(5) == 12)
-    Swag.assert(bumpThenDouble(value) == 22)
-    Swag.assert(nestedChain(5) == 26)
-    Swag.assert(nestedChain(value) == 46)
-    Swag.assert(double(addOne(double(addOne(5)))) == 26)
-    Swag.assert(packPair(bumpThenDouble(1), bumpThenDouble(value)) == 422)
-    Swag.assert(runNestedInlineStress(4) == 20)
+    Swag.require(bumpThenDouble(5) == 12)
+    Swag.require(bumpThenDouble(value) == 22)
+    Swag.require(nestedChain(5) == 26)
+    Swag.require(nestedChain(value) == 46)
+    Swag.require(double(addOne(double(addOne(5)))) == 26)
+    Swag.require(packPair(bumpThenDouble(1), bumpThenDouble(value)) == 422)
+    Swag.require(runNestedInlineStress(4) == 20)
 }

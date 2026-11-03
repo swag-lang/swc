@@ -11,8 +11,8 @@ func typeInfoArrayLiteralRejectsPoint(value: TypeInfoArrayLiteralPoint)->bool =>
     let items = [#typeof(typeInfoArrayLiteralAcceptsPoint), #typeof(typeInfoArrayLiteralRejectsPoint)]
 
     #assert(#typeof(items) == [2] const *TypeInfoFunc)
-    Swag.assert(items[0] == #type func(TypeInfoArrayLiteralPoint)->bool)
-    Swag.assert(items[1] == #type func(TypeInfoArrayLiteralPoint)->bool)
-    Swag.assert((items[0].parameters).count == 1)
-    Swag.assert(items[1].returnType == bool)
+    Swag.require(items[0] == #type func(TypeInfoArrayLiteralPoint)->bool)
+    Swag.require(items[1] == #type func(TypeInfoArrayLiteralPoint)->bool)
+    Swag.require((items[0].parameters).count == 1)
+    Swag.require(items[1].returnType == bool)
 }

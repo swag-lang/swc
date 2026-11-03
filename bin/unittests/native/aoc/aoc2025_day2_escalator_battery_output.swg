@@ -77,14 +77,14 @@ func auditBanks(banks: const [..] string)->BatteryAudit
 
     let sampleAudit = auditBanks(sampleBanks)
 
-    Swag.assert(bestBankOutput(sampleBanks[0]) == 98)
-    Swag.assert(bestBankOutput(sampleBanks[1]) == 89)
-    Swag.assert(bestBankOutput(sampleBanks[2]) == 78)
-    Swag.assert(bestBankOutput(sampleBanks[3]) == 92)
-    Swag.assert(sampleAudit.bankCount == 4'u32)
-    Swag.assert(sampleAudit.totalOutput == 357)
-    Swag.assert(sampleAudit.highestBank == 98)
-    Swag.assert(sampleAudit.lowestBank == 78)
+    Swag.require(bestBankOutput(sampleBanks[0]) == 98)
+    Swag.require(bestBankOutput(sampleBanks[1]) == 89)
+    Swag.require(bestBankOutput(sampleBanks[2]) == 78)
+    Swag.require(bestBankOutput(sampleBanks[3]) == 92)
+    Swag.require(sampleAudit.bankCount == 4'u32)
+    Swag.require(sampleAudit.totalOutput == 357)
+    Swag.require(sampleAudit.highestBank == 98)
+    Swag.require(sampleAudit.lowestBank == 78)
 
     const depotBanks: [5] string =
         [
@@ -97,13 +97,13 @@ func auditBanks(banks: const [..] string)->BatteryAudit
 
     let depotAudit = auditBanks(depotBanks)
 
-    Swag.assert(bestBankOutput(depotBanks[0]) == 55)
-    Swag.assert(bestBankOutput(depotBanks[1]) == 79)
-    Swag.assert(bestBankOutput(depotBanks[2]) == 55)
-    Swag.assert(bestBankOutput(depotBanks[3]) == 66)
-    Swag.assert(bestBankOutput(depotBanks[4]) == 88)
-    Swag.assert(depotAudit.bankCount == 5'u32)
-    Swag.assert(depotAudit.totalOutput == 343)
-    Swag.assert(depotAudit.highestBank == 88)
-    Swag.assert(depotAudit.lowestBank == 55)
+    Swag.require(bestBankOutput(depotBanks[0]) == 55)
+    Swag.require(bestBankOutput(depotBanks[1]) == 79)
+    Swag.require(bestBankOutput(depotBanks[2]) == 55)
+    Swag.require(bestBankOutput(depotBanks[3]) == 66)
+    Swag.require(bestBankOutput(depotBanks[4]) == 88)
+    Swag.require(depotAudit.bankCount == 5'u32)
+    Swag.require(depotAudit.totalOutput == 343)
+    Swag.require(depotAudit.highestBank == 88)
+    Swag.require(depotAudit.lowestBank == 55)
 }

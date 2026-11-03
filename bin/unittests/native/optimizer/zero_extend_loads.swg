@@ -27,14 +27,14 @@ func keepNarrowArguments(a, b, c, d, e, f: u16)->u64
 #test
 {
     var value = NarrowValues{byte: 255, word: 65535}
-    Swag.assert(loadByte(&value) == 255)
-    Swag.assert(loadWord(&value) == 65535)
+    Swag.require(loadByte(&value) == 255)
+    Swag.require(loadWord(&value) == 65535)
     var bytes = [0'u8, 127, 128, 255]
     var words = [0'u16, 32767, 32768, 65535]
     for i in 4'u64
     {
-        Swag.assert(indexedByte(&bytes[0], i) == bytes[i])
-        Swag.assert(indexedWord(&words[0], i) == words[i])
+        Swag.require(indexedByte(&bytes[0], i) == bytes[i])
+        Swag.require(indexedWord(&words[0], i) == words[i])
     }
-    Swag.assert(keepNarrowArguments(1, 128, 255, 32768, 65535, 65535) == 164222)
+    Swag.require(keepNarrowArguments(1, 128, 255, 32768, 65535, 65535) == 164222)
 }

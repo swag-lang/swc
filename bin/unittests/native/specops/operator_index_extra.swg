@@ -26,23 +26,23 @@ impl RuntimeRefMutBox
     let v1  = box[1]
     let v2  = box[2]
 
-    Swag.assert(v0 == 10)
-    Swag.assert(v1 == 20)
-    Swag.assert(v2 == 30)
+    Swag.require(v0 == 10)
+    Swag.require(v1 == 20)
+    Swag.require(v2 == 30)
 }
 
 #test
 {
     var box = RuntimeRefMutBox{buffer: [10, 20, 30]}
     box[1] = 99
-    Swag.assert(box.buffer[1] == 99)
+    Swag.require(box.buffer[1] == 99)
 }
 
 #test
 {
     var box = RuntimeRefMutBox{buffer: [5, 10, 15]}
     box[0] += 100
-    Swag.assert(box.buffer[0] == 105)
+    Swag.require(box.buffer[0] == 105)
 }
 
 // ============================================================================
@@ -79,9 +79,9 @@ impl RuntimeMultiKeyBox
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
     let v   = box[1's32]
 
-    Swag.assert(v == 2)
-    Swag.assert(box.s32Reads == 1)
-    Swag.assert(box.u64Reads == 0)
+    Swag.require(v == 2)
+    Swag.require(box.s32Reads == 1)
+    Swag.require(box.u64Reads == 0)
 }
 
 // Test: dispatch to u64 overload
@@ -90,9 +90,9 @@ impl RuntimeMultiKeyBox
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
     let v   = box[2'u64]
 
-    Swag.assert(v == 30)
-    Swag.assert(box.s32Reads == 0)
-    Swag.assert(box.u64Reads == 1)
+    Swag.require(v == 30)
+    Swag.require(box.s32Reads == 0)
+    Swag.require(box.u64Reads == 1)
 }
 
 // Test: both overloads in same scope
@@ -102,10 +102,10 @@ impl RuntimeMultiKeyBox
     let a   = box[0's32]
     let b   = box[3'u64]
 
-    Swag.assert(a == 10)
-    Swag.assert(b == 400)
-    Swag.assert(box.s32Reads == 1)
-    Swag.assert(box.u64Reads == 1)
+    Swag.require(a == 10)
+    Swag.require(b == 400)
+    Swag.require(box.s32Reads == 1)
+    Swag.require(box.u64Reads == 1)
 }
 
 // ============================================================================
@@ -143,9 +143,9 @@ impl RuntimeMultiValueBox
     var box = RuntimeMultiValueBox{}
     box[3] = 100's32
 
-    Swag.assert(box.intVal == 103)
-    Swag.assert(box.intWrites == 1)
-    Swag.assert(box.fltWrites == 0)
+    Swag.require(box.intVal == 103)
+    Swag.require(box.intWrites == 1)
+    Swag.require(box.fltWrites == 0)
 }
 
 // Test: dispatch opIndexSet to f32 value overload
@@ -154,9 +154,9 @@ impl RuntimeMultiValueBox
     var box = RuntimeMultiValueBox{}
     box[2] = 1.5'f32
 
-    Swag.assert(box.floatVal == 3.5)
-    Swag.assert(box.intWrites == 0)
-    Swag.assert(box.fltWrites == 1)
+    Swag.require(box.floatVal == 3.5)
+    Swag.require(box.intWrites == 0)
+    Swag.require(box.fltWrites == 1)
 }
 
 // Test: both value overloads in same scope
@@ -166,10 +166,10 @@ impl RuntimeMultiValueBox
     box[0] = 42's32
     box[1] = 2.5'f32
 
-    Swag.assert(box.intVal == 42)
-    Swag.assert(box.floatVal == 3.5)
-    Swag.assert(box.intWrites == 1)
-    Swag.assert(box.fltWrites == 1)
+    Swag.require(box.intVal == 42)
+    Swag.require(box.floatVal == 3.5)
+    Swag.require(box.intWrites == 1)
+    Swag.require(box.fltWrites == 1)
 }
 
 // ============================================================================
@@ -204,8 +204,8 @@ impl RuntimeConstMutBox
     var box = RuntimeConstMutBox{data: [7, 8]}
     let v   = box[0]
 
-    Swag.assert(v == 7)
-    Swag.assert(box.mutReads == 1)
+    Swag.require(v == 7)
+    Swag.require(box.mutReads == 1)
 }
 
 // Test: const receiver calls const overload
@@ -214,13 +214,13 @@ impl RuntimeConstMutBox
     const box = RuntimeConstMutBox{data: [7, 8]}
     let v = box[1]
 
-    Swag.assert(v == 8)
+    Swag.require(v == 8)
 }
 
 #test
 {
     var box = RuntimeConstMutBox{data: [1, 2]}
     box[0] = 100
-    Swag.assert(box.data[0] == 100)
-    Swag.assert(box.mutReads == 1)
+    Swag.require(box.data[0] == 100)
+    Swag.require(box.mutReads == 1)
 }

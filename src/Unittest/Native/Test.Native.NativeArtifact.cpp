@@ -1542,7 +1542,7 @@ var GValue: s32 = 0
     const a = 666
     let b = #run a
     GValue = b
-    Swag.assert(GValue == 666)
+    Swag.require(GValue == 666)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerRunExprInsideTestKeepsJitRunnable");
@@ -1657,7 +1657,7 @@ var GZero: s32
 
 #test
 {
-    Swag.assert(GAddOne(GValue + GZero) == 42)
+    Swag.require(GAddOne(GValue + GZero) == 42)
 }
 
 #main
@@ -2172,7 +2172,7 @@ impl Buffer
 {
     var value: Buffer
     value = "abc"
-    Swag.assert(value.value == 3)
+    Swag.require(value.value == 3)
 }
 #test
 {
@@ -2180,7 +2180,7 @@ impl Buffer
     src = "wxyz"
     var dst: Buffer
     dst = src
-    Swag.assert(dst.value == 4)
+    Swag.require(dst.value == 4)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "SilentSpecOpProbeDoesNotDropStructCopyTests");
@@ -2215,7 +2215,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_TestFileFilterKeepsReusableArtifactAndSelectsAtRunTime)
 {
-    static constexpr std::string_view SOURCE     = R"(#test { Swag.assert(true) }
+    static constexpr std::string_view SOURCE     = R"(#test { Swag.require(true) }
 )";
     const fs::path                    firstPath  = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterFirst");
     const fs::path                    secondPath = Unittest::makeTestSourcePath("NativeArtifact", "TestFileFilterSecond");
@@ -2281,15 +2281,15 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(NativeArtifact_TestTagFilterKeepsReusableArtifactAndSelectsAtRunTime)
 {
     static constexpr std::string_view GOLDEN_SOURCE      = R"(#[Swag.TestTag("golden")]
-#test { Swag.assert(true) }
+#test { Swag.require(true) }
 )";
     static constexpr std::string_view SLOW_SOURCE        = R"(#[Swag.TestTag("slow")]
-#test { Swag.assert(true) }
+#test { Swag.require(true) }
 )";
-    static constexpr std::string_view PLAIN_SOURCE       = R"(#test { Swag.assert(true) }
+    static constexpr std::string_view PLAIN_SOURCE       = R"(#test { Swag.require(true) }
 )";
     static constexpr std::string_view INTEGRATION_SOURCE = R"(#[Swag.TestTag("integration.renderer.opengl")]
-#test { Swag.assert(true) }
+#test { Swag.require(true) }
 )";
     const fs::path                    goldenPath         = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterGolden");
     const fs::path                    slowPath           = Unittest::makeTestSourcePath("NativeArtifact", "TestTagFilterSlow");

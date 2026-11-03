@@ -49,34 +49,34 @@ var g_ErasedCounter: ErasedCounter
 {
     erasedAnimate(&g_ErasedSlider, func(slider, value) { slider.progress = value })
     erasedStep(0.5)
-    Swag.assert(g_ErasedSlider.progress == 0.5)
+    Swag.require(g_ErasedSlider.progress == 0.5)
 
     erasedForward(&g_ErasedCounter, func(counter, value) { counter.count = cast(s32, value) })
     erasedStep(3)
-    Swag.assert(g_ErasedCounter.count == 3)
+    Swag.require(g_ErasedCounter.count == 3)
 
     erasedAnimate(&g_ErasedCounter, &erasedSetCount)
     erasedStep(7)
-    Swag.assert(g_ErasedCounter.count == 7)
+    Swag.require(g_ErasedCounter.count == 7)
 }
 
 #test
 {
     var slider:  ErasedSlider
     var counter: ErasedCounter
-    Swag.assert(erasedName(&slider) == "T")
-    Swag.assert(erasedName(&counter) == "T")
-    Swag.assert(plainName(&slider) == "ErasedSlider")
-    Swag.assert(plainName(&counter) == "ErasedCounter")
+    Swag.require(erasedName(&slider) == "T")
+    Swag.require(erasedName(&counter) == "T")
+    Swag.require(plainName(&slider) == "ErasedSlider")
+    Swag.require(plainName(&counter) == "ErasedCounter")
 }
 
 #test
 {
     var slider: ErasedSlider
     slider.id = 9
-    Swag.assert(erasedId(&slider) == 9)
-    Swag.assert(erasedId'ErasedSlider(&slider) == 9)
-    Swag.assert(erasedId(&slider.wnd) == 9)
+    Swag.require(erasedId(&slider) == 9)
+    Swag.require(erasedId'ErasedSlider(&slider) == 9)
+    Swag.require(erasedId(&slider.wnd) == 9)
 }
 
 // A callback written for the bound accepts every 'T' that starts with it.
@@ -95,9 +95,9 @@ func(T is ErasedWnd) erasedScaled(target: *T, options: ErasedOptions)->f32 => op
     g_ErasedCounter.id = 5
     erasedAnimate(&g_ErasedCounter, &erasedResetWnd)
     erasedStep(1)
-    Swag.assert(g_ErasedCounter.id == 0)
+    Swag.require(g_ErasedCounter.id == 0)
 
     var slider: ErasedSlider
     slider.id = 3
-    Swag.assert(erasedScaled(&slider, {scale: 2}) == 6)
+    Swag.require(erasedScaled(&slider, {scale: 2}) == 6)
 }

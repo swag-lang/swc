@@ -59,5 +59,5 @@ func pureLifecycleCaller()->s32
 
 #test
 {
-    Swag.assert(pureLifecycleCaller() == 2)
+    Swag.require(pureLifecycleCaller() == 2)
 }

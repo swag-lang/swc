@@ -27,7 +27,7 @@ func incrementThroughLocal()->u32
 {
     for 4
     {
-        Swag.assert(incrementThroughReturn() == 1)
-        Swag.assert(incrementThroughLocal() == 1)
+        Swag.require(incrementThroughReturn() == 1)
+        Swag.require(incrementThroughLocal() == 1)
     }
 }

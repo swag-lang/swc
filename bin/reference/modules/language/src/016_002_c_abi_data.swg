@@ -13,9 +13,9 @@ trailing zero; take its data pointer before casting that pointer to 'cstring'.
 {
     let literal = "Swag"
     let text    = cast(const cstring, literal.buffer)
-    Swag.assert(text.count == 4)
-    Swag.assert(text[0] == 'S'u8)
-    Swag.assert(text[3] == 'g'u8)
+    Swag.require(text.count == 4)
+    Swag.require(text[0] == 'S'u8)
+    Swag.require(text[3] == 'g'u8)
 }
 
 /**

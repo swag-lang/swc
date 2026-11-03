@@ -19,13 +19,13 @@ func computedInput(a, b: u64)->u64 => cast(u64, ((a ^ b) != b))
     {
         for b in values
         {
-            Swag.assert(unsignedCompare(a, b) == (a < b ? 1 : 0))
-            Swag.assert(liveInputs(a, b) == (a ^ b ^ (a == b ? 1 : 0)))
-            Swag.assert(computedInput(a, b) == (a != 0 ? 1 : 0))
+            Swag.require(unsignedCompare(a, b) == (a < b ? 1 : 0))
+            Swag.require(liveInputs(a, b) == (a ^ b ^ (a == b ? 1 : 0)))
+            Swag.require(computedInput(a, b) == (a != 0 ? 1 : 0))
         }
     }
-    Swag.assert(signedCompare(-1, 1) == 0)
-    Swag.assert(signedCompare(1, -1) == 1)
-    Swag.assert(signedCompare(0, 0) == 1)
-    Swag.assert(signedCompare(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == 0)
+    Swag.require(signedCompare(-1, 1) == 0)
+    Swag.require(signedCompare(1, -1) == 1)
+    Swag.require(signedCompare(0, 0) == 1)
+    Swag.require(signedCompare(-0x7FFFFFFFFFFFFFFF - 1, 0x7FFFFFFFFFFFFFFF) == 0)
 }

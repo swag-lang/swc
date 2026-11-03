@@ -39,7 +39,7 @@ func runtimeResolved(parent: *RuntimeNode)->{parent: *RuntimeNode, name: Runtime
 // enclosing aggregate literal from being folded as a static struct constant.
 #test
 {
-    Swag.assert(runtimeChoiceScore(RuntimeChoice{"MiB", "mib"}) == 83)
+    Swag.require(runtimeChoiceScore(RuntimeChoice{"MiB", "mib"}) == 83)
 }
 
 // A returned aggregate can be destructured after one of its fields was built
@@ -48,16 +48,16 @@ func runtimeResolved(parent: *RuntimeNode)->{parent: *RuntimeNode, name: Runtime
 {
     var node = RuntimeNode{marker: 42}
     let {parent, name} = runtimeResolved(&node)
-    Swag.assert(parent == &node)
-    Swag.assert(parent.marker == 42)
-    Swag.assert(name.length == 5)
-    Swag.assert(name.first == 'v')
+    Swag.require(parent == &node)
+    Swag.require(parent.marker == 42)
+    Swag.require(name.length == 5)
+    Swag.require(name.first == 'v')
 }
 
 // Fixed-array literals use the same runtime element conversion path.
 #test
 {
     var values: [2] RuntimeText = ["one", "four"]
-    Swag.assert(values[0].length == 3 and values[0].first == 'o')
-    Swag.assert(values[1].length == 4 and values[1].first == 'f')
+    Swag.require(values[0].length == 3 and values[0].first == 'o')
+    Swag.require(values[1].length == 4 and values[1].first == 'f')
 }

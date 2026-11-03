@@ -64,12 +64,12 @@ func oneWriteThenSum(index: u64, value: u32)->u32
 #test
 {
     for i in 16'u32 do
-        Swag.assert(mixArray(i) == mixScalars(i))
+        Swag.require(mixArray(i) == mixScalars(i))
 
-    Swag.assert(untouchedTail(0) == 0)
-    Swag.assert(untouchedTail(12_345) == 12_345)
+    Swag.require(untouchedTail(0) == 0)
+    Swag.require(untouchedTail(12_345) == 12_345)
 
-    Swag.assert(oneWriteThenSum(0, 5) == 5)
-    Swag.assert(oneWriteThenSum(7, 5) == 5)
-    Swag.assert(oneWriteThenSum(3, 0) == 0)
+    Swag.require(oneWriteThenSum(0, 5) == 5)
+    Swag.require(oneWriteThenSum(7, 5) == 5)
+    Swag.require(oneWriteThenSum(3, 0) == 0)
 }

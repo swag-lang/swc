@@ -28,13 +28,13 @@ func innerSmall(state: *SmallState, thing: SmallThing)->u32
 {
     var state: State = State{thing: Thing{value: 10}}
     let observed     = inner(&state, #copy state.thing)
-    Swag.assert(observed == 20)
-    Swag.assert(state.thing.value == 0)
+    Swag.require(observed == 20)
+    Swag.require(state.thing.value == 0)
 
     var small: SmallState = SmallState{thing: SmallThing{value: 10}}
     let smallObserved     = innerSmall(&small, small.thing)
-    Swag.assert(smallObserved == 20)
-    Swag.assert(small.thing.value == 0)
+    Swag.require(smallObserved == 20)
+    Swag.require(small.thing.value == 0)
 }
 
 var globalThing: Thing
@@ -50,8 +50,8 @@ func changeGlobal(thing: Thing)->u64
 {
     globalThing.value = 10
     let observed = changeGlobal(#copy globalThing)
-    Swag.assert(observed == 10)
-    Swag.assert(globalThing.value == 1)
+    Swag.require(observed == 10)
+    Swag.require(globalThing.value == 1)
 }
 
 var copyCount, dropCount, evaluationCount: u32
@@ -82,9 +82,9 @@ func source(value: *Counted)->*Counted
     copyCount, dropCount, evaluationCount = 0
     var value: Counted = Counted{value: 10}
     let observed       = observe(#copy source(&value)[], &value)
-    Swag.assert(observed == 11 and value.value == 10)
-    Swag.assert(copyCount == 1 and evaluationCount == 1)
-    Swag.assert(dropCount == 1)
+    Swag.require(observed == 11 and value.value == 10)
+    Swag.require(copyCount == 1 and evaluationCount == 1)
+    Swag.require(dropCount == 1)
 }
 
 // A copied element survives a growth that may release the previous allocation.
@@ -101,7 +101,7 @@ func appendWithGrowth(data: *[*] Thing, item: Thing)
     defer testFree(data)
     data[0] = {value: 17}
     appendWithGrowth(&data, #copy data[0])
-    Swag.assert(data[0].value == 17 and data[1].value == 17)
+    Swag.require(data[0].value == 17 and data[1].value == 17)
 }
 
 #[Swag.NoInline]
@@ -115,7 +115,7 @@ func replaceText(text: string, original: *string)->u64
 {
     var text     = "abc"
     let observed = replaceText(#copy text, &text)
-    Swag.assert(observed == 3 and text == "changed")
+    Swag.require(observed == 3 and text == "changed")
 }
 
 #test
@@ -125,12 +125,12 @@ func replaceText(text: string, original: *string)->u64
     scope
     {
         var snapshot = #copy value
-        Swag.assert(snapshot.value == 21 and value.value == 20)
-        Swag.assert(copyCount == 1 and dropCount == 0)
+        Swag.require(snapshot.value == 21 and value.value == 20)
+        Swag.require(copyCount == 1 and dropCount == 0)
         snapshot.value = 23
-        Swag.assert(value.value == 20)
+        Swag.require(value.value == 20)
     }
-    Swag.assert(dropCount == 1)
+    Swag.require(dropCount == 1)
 }
 
 #[Swag.NoInline]
@@ -145,9 +145,9 @@ func observeArray(values: [2] Counted, original: const *[2] Counted)->u64
     copyCount, dropCount = 0
     var values: [2] Counted = [Counted{value: 3}, Counted{value: 5}]
     let observed = observeArray(#copy values, &values)
-    Swag.assert(observed == 10)
-    Swag.assert(copyCount == 2 and dropCount == 2)
-    Swag.assert(values[0].value == 3 and values[1].value == 5)
+    Swag.require(observed == 10)
+    Swag.require(copyCount == 2 and dropCount == 2)
+    Swag.require(values[0].value == 3 and values[1].value == 5)
 }
 
 #[Swag.NoInline]
@@ -162,11 +162,11 @@ func observeSelected(selectFirst: bool, first, second: *Counted)->u64
     var first:  Counted = Counted{value: 3}
     var second: Counted = Counted{value: 5}
     let observed        = observeSelected(false, &first, &second)
-    Swag.assert(observed == 6)
-    Swag.assert(copyCount == 1)
-    Swag.assert(dropCount == 1)
+    Swag.require(observed == 6)
+    Swag.require(copyCount == 1)
+    Swag.require(dropCount == 1)
     let firstObserved = observeSelected(true, &first, &second)
-    Swag.assert(firstObserved == 4 and copyCount == 2 and dropCount == 2)
+    Swag.require(firstObserved == 4 and copyCount == 2 and dropCount == 2)
 }
 
 #[Swag.NoInline]
@@ -185,11 +185,11 @@ func observeInlineCopy(value: const *Counted)->u64
     scope
     {
         let snapshot = returnCopy(&value)
-        Swag.assert(snapshot.value == 13 and copyCount == 1 and dropCount == 0)
+        Swag.require(snapshot.value == 13 and copyCount == 1 and dropCount == 0)
     }
-    Swag.assert(dropCount == 1)
+    Swag.require(dropCount == 1)
     let observed = observeInlineCopy(&value)
-    Swag.assert(observed == 13 and copyCount == 2 and dropCount == 2)
+    Swag.require(observed == 13 and copyCount == 2 and dropCount == 2)
 }
 
 func makeCopiedThing()->Thing => #copy Thing{value: 31}
@@ -198,7 +198,7 @@ var initializedCopy: Thing = #run makeCopiedThing()
 
 #test
 {
-    Swag.assert(initializedCopy.value == 31)
+    Swag.require(initializedCopy.value == 31)
 }
 
 #[Swag.NoInline]
@@ -213,7 +213,7 @@ func observeBeforeDeferredCleanup(value: const *Counted)->u64
     copyCount, dropCount = 0
     var value: Counted = Counted{value: 9}
     let observed       = observeBeforeDeferredCleanup(&value)
-    Swag.assert(observed == 10 and dropCount == 1)
+    Swag.require(observed == 10 and dropCount == 1)
 }
 
 #[Swag.NoInline]
@@ -228,7 +228,7 @@ func mutateBoxBesideValue(value: Thing, boxed: any)->u64
 {
     var value: Thing = Thing{value: 19}
     let observed     = mutateBoxBesideValue(value, #copy value.value)
-    Swag.assert(observed == 19 and value.value == 19)
+    Swag.require(observed == 19 and value.value == 19)
 }
 
 struct NestedCounted
@@ -253,9 +253,9 @@ func observeNested(value: NestedCounted)->u64
 {
     copyCount, dropCount = 0
     var value: NestedCounted = NestedCounted{field: Counted{value: 10}, tag: 20}
-    Swag.assert(observeNested(#copy value) == 32)
-    Swag.assert(value.field.value == 10 and value.tag == 20)
-    Swag.assert(copyCount == 1 and dropCount == 1)
+    Swag.require(observeNested(#copy value) == 32)
+    Swag.require(value.field.value == 10 and value.tag == 20)
+    Swag.require(copyCount == 1 and dropCount == 1)
 }
 
 func makeNestedSnapshot()->u64

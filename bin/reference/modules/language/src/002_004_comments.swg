@@ -15,10 +15,10 @@ ordinary characters, so a URL does not start a comment.
 {
     // A line comment may precede a statement.
     let answer = 40 /* a block comment between tokens */ + 2
-    Swag.assert(answer == 42)     // A trailing comment belongs to this line.
+    Swag.require(answer == 42)     // A trailing comment belongs to this line.
 
     let address = "https://example.com"
-    Swag.assert(address.count == 19)
+    Swag.require(address.count == 19)
 }
 
 /**
@@ -36,7 +36,7 @@ contains block comments.
         /* This inner comment ends without ending the outer one. */
         disabled += 1
     */
-    Swag.assert(true)
+    Swag.require(true)
 }
 
 /**

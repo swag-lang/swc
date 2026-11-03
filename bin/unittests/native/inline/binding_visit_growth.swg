@@ -27,5 +27,5 @@ func invokeBinding(callback: func||()->s32)->s32 => callback()
         total += seed
         return double(total)
     })
-    Swag.assert(result == 72)
+    Swag.require(result == 72)
 }

@@ -41,5 +41,5 @@ impl IForwardSignature for ForwardReceiver
 {
     let receiver = ForwardReceiver{base: 10}
     let itf: IForwardSignature = receiver
-    Swag.assert(itf.score(.Bonus, {value: 7}) == 22)
+    Swag.require(itf.score(.Bonus, {value: 7}) == 22)
 }

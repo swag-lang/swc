@@ -87,10 +87,10 @@ func runCrossFile(ok: bool) fail
     g_Released = 0
 
     expect runLocal(true)
-    Swag.assert(g_Released == 21)
+    Swag.require(g_Released == 21)
 
     discard catch runLocal(false)
-    Swag.assert(g_Released == 42)
+    Swag.require(g_Released == 42)
 }
 
 #test
@@ -98,8 +98,8 @@ func runCrossFile(ok: bool) fail
     g_Released = 0
 
     expect runCrossFile(true)
-    Swag.assert(g_Released == 21)
+    Swag.require(g_Released == 21)
 
     discard catch runCrossFile(false)
-    Swag.assert(g_Released == 42)
+    Swag.require(g_Released == 42)
 }

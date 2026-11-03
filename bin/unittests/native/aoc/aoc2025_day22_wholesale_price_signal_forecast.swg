@@ -101,14 +101,14 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 {
     var secret = 123'u32
     secret = nextSecret(secret)
-    Swag.assert(secret == 15_887_950'u32)
+    Swag.require(secret == 15_887_950'u32)
 
     for 9
     {
         secret = nextSecret(secret)
     }
 
-    Swag.assert(secret == 5_908_254'u32)
+    Swag.require(secret == 5_908_254'u32)
 
     const samplePart1: [4] u32 = [1, 10, 100, 2024]
     const samplePart2: [4] u32 = [1, 2, 3, 2024]
@@ -116,6 +116,6 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
     let forecastPart1 = analyzeForecast(samplePart1)
     let forecastPart2 = analyzeForecast(samplePart2)
 
-    Swag.assert(forecastPart1.sumAfterForecast == 37_327_623'u64)
-    Swag.assert(forecastPart2.bestBananaTotal == 23)
+    Swag.require(forecastPart1.sumAfterForecast == 37_327_623'u64)
+    Swag.require(forecastPart2.bestBananaTotal == 23)
 }

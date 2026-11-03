@@ -44,7 +44,7 @@ func switchSafetyEnabled()->bool
     }
 
     const value = #run completeScalarSwitchPanic(9)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -60,7 +60,7 @@ func switchSafetyEnabled()->bool
     }
 
     const value = #run completeWhereSwitchPanic(1)
-    Swag.assert(value == 0)
+    Swag.require(value == 0)
 }
 
 #test
@@ -80,7 +80,7 @@ func switchSafetyEnabled()->bool
     }
 
     const value = #run completeScalarSwitchDisabled(9)
-    Swag.assert(value == 77)
+    Swag.require(value == 77)
 }
 
 // Complete switch that actually matches must not panic
@@ -101,7 +101,7 @@ func switchSafetyEnabled()->bool
     }
 
     const value = #run completeScalarSwitchValid(3)
-    Swag.assert(value == 20)
+    Swag.require(value == 20)
 }
 
 // The guard covers 'switch #complete' only. A plain enum switch missing a case reaches
@@ -127,7 +127,7 @@ func switchSafetyEnabled()->bool
         return -1
     }
 
-    Swag.assert(plainEnumSwitchFallsThrough(Color.Blue) == -1)
+    Swag.require(plainEnumSwitchFallsThrough(Color.Blue) == -1)
     const value = #run plainEnumSwitchFallsThrough(Color.Blue)
-    Swag.assert(value == -1)
+    Swag.require(value == -1)
 }

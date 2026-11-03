@@ -68,30 +68,30 @@ func sumBoth(a, b: const *u32?)->u32
 {
     let one = 1'u32
     let two = 2'u32
-    Swag.assert(sumBoth(&one, &two) == 3)
-    Swag.assert(sumBoth(&one, null) == 0)
-    Swag.assert(sumBoth(null, &two) == 0)
+    Swag.require(sumBoth(&one, &two) == 3)
+    Swag.require(sumBoth(&one, null) == 0)
+    Swag.require(sumBoth(null, &two) == 0)
 
     let values: [4] u32 = [1, 2, 3, 4]
-    Swag.assert(sumGuarded(&values[0], 0) == 0)
-    Swag.assert(sumGuarded(&values[0], 1) == 1)
-    Swag.assert(sumGuarded(&values[0], 4) == 10)
-    Swag.assert(sumFromTwo(&values[0], 1) == 0)
-    Swag.assert(sumFromTwo(&values[0], 2) == 3)
-    Swag.assert(sumFromTwo(&values[0], 4) == 10)
+    Swag.require(sumGuarded(&values[0], 0) == 0)
+    Swag.require(sumGuarded(&values[0], 1) == 1)
+    Swag.require(sumGuarded(&values[0], 4) == 10)
+    Swag.require(sumFromTwo(&values[0], 1) == 0)
+    Swag.require(sumFromTwo(&values[0], 2) == 3)
+    Swag.require(sumFromTwo(&values[0], 4) == 10)
 
-    Swag.assert(signedBands(-50) == -1)
-    Swag.assert(signedBands(9) == -1)
-    Swag.assert(signedBands(10) == 1)
-    Swag.assert(signedBands(2147483647) == 1)
+    Swag.require(signedBands(-50) == -1)
+    Swag.require(signedBands(9) == -1)
+    Swag.require(signedBands(10) == 1)
+    Swag.require(signedBands(2147483647) == 1)
 
-    Swag.assert(openBands(4) == 0)
-    Swag.assert(openBands(5) == 1)
-    Swag.assert(openBands(6) == 1)
-    Swag.assert(openBands(7) == 2)
-    Swag.assert(openBands(0xFFFFFFFFFFFFFFFF) == 2)
+    Swag.require(openBands(4) == 0)
+    Swag.require(openBands(5) == 1)
+    Swag.require(openBands(6) == 1)
+    Swag.require(openBands(7) == 2)
+    Swag.require(openBands(0xFFFFFFFFFFFFFFFF) == 2)
 
-    Swag.assert(negativeBands(0) == 0)
-    Swag.assert(negativeBands(-1) == 1)
-    Swag.assert(negativeBands(-9223372036854775807 - 1) == 1)
+    Swag.require(negativeBands(0) == 0)
+    Swag.require(negativeBands(-1) == 1)
+    Swag.require(negativeBands(-9223372036854775807 - 1) == 1)
 }

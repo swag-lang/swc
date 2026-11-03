@@ -45,61 +45,61 @@ func bswapStrictU32(value: ByteSwapStrictU32)->ByteSwapStrictU32 => Swag.byteSwa
 // u16
 #test
 {
-    Swag.assert(bswapU16(0x1234'u16) == 0x3412'u16)
-    Swag.assert(bswapU16(0'u16) == 0'u16)
-    Swag.assert(bswapU16(0xFFFF'u16) == 0xFFFF'u16)
-    Swag.assert(bswapU16(0xFF00'u16) == 0x00FF'u16)
-    Swag.assert(bswapU16(0x00FF'u16) == 0xFF00'u16)
-    Swag.assert(bswapU16(0x0100'u16) == 0x0001'u16)
-    Swag.assert(bswapU16(0xABCD'u16) == 0xCDAB'u16)
+    Swag.require(bswapU16(0x1234'u16) == 0x3412'u16)
+    Swag.require(bswapU16(0'u16) == 0'u16)
+    Swag.require(bswapU16(0xFFFF'u16) == 0xFFFF'u16)
+    Swag.require(bswapU16(0xFF00'u16) == 0x00FF'u16)
+    Swag.require(bswapU16(0x00FF'u16) == 0xFF00'u16)
+    Swag.require(bswapU16(0x0100'u16) == 0x0001'u16)
+    Swag.require(bswapU16(0xABCD'u16) == 0xCDAB'u16)
 }
 
 // u32
 #test
 {
-    Swag.assert(bswapU32(0x12345678'u32) == 0x78563412'u32)
-    Swag.assert(bswapU32(0'u32) == 0'u32)
-    Swag.assert(bswapU32(0xFFFFFFFF'u32) == 0xFFFFFFFF'u32)
-    Swag.assert(bswapU32(0xFF000000'u32) == 0x000000FF'u32)
-    Swag.assert(bswapU32(0x000000FF'u32) == 0xFF000000'u32)
-    Swag.assert(bswapU32(0x00FF0000'u32) == 0x0000FF00'u32)
-    Swag.assert(bswapU32(0x0000FF00'u32) == 0x00FF0000'u32)
-    Swag.assert(bswapU32(0x01020304'u32) == 0x04030201'u32)
+    Swag.require(bswapU32(0x12345678'u32) == 0x78563412'u32)
+    Swag.require(bswapU32(0'u32) == 0'u32)
+    Swag.require(bswapU32(0xFFFFFFFF'u32) == 0xFFFFFFFF'u32)
+    Swag.require(bswapU32(0xFF000000'u32) == 0x000000FF'u32)
+    Swag.require(bswapU32(0x000000FF'u32) == 0xFF000000'u32)
+    Swag.require(bswapU32(0x00FF0000'u32) == 0x0000FF00'u32)
+    Swag.require(bswapU32(0x0000FF00'u32) == 0x00FF0000'u32)
+    Swag.require(bswapU32(0x01020304'u32) == 0x04030201'u32)
 }
 
 // u64
 #test
 {
-    Swag.assert(bswapU64(0x01234567_89ABCDEF'u64) == 0xEFCDAB89_67452301'u64)
-    Swag.assert(bswapU64(0'u64) == 0'u64)
-    Swag.assert(bswapU64(0xFFFFFFFF_FFFFFFFF'u64) == 0xFFFFFFFF_FFFFFFFF'u64)
-    Swag.assert(bswapU64(0xFF000000_00000000'u64) == 0x00000000_000000FF'u64)
-    Swag.assert(bswapU64(0x00000000_000000FF'u64) == 0xFF000000_00000000'u64)
-    Swag.assert(bswapU64(0x01020304_05060708'u64) == 0x08070605_04030201'u64)
+    Swag.require(bswapU64(0x01234567_89ABCDEF'u64) == 0xEFCDAB89_67452301'u64)
+    Swag.require(bswapU64(0'u64) == 0'u64)
+    Swag.require(bswapU64(0xFFFFFFFF_FFFFFFFF'u64) == 0xFFFFFFFF_FFFFFFFF'u64)
+    Swag.require(bswapU64(0xFF000000_00000000'u64) == 0x00000000_000000FF'u64)
+    Swag.require(bswapU64(0x00000000_000000FF'u64) == 0xFF000000_00000000'u64)
+    Swag.require(bswapU64(0x01020304_05060708'u64) == 0x08070605_04030201'u64)
 }
 
 // Double swap is identity
 #test
 {
-    Swag.assert(bswapU16(bswapU16(0xBEEF'u16)) == 0xBEEF'u16)
-    Swag.assert(bswapU32(bswapU32(0xDEADBEEF'u32)) == 0xDEADBEEF'u32)
-    Swag.assert(bswapU64(bswapU64(0xCAFEBABE_DEADBEEF'u64)) == 0xCAFEBABE_DEADBEEF'u64)
+    Swag.require(bswapU16(bswapU16(0xBEEF'u16)) == 0xBEEF'u16)
+    Swag.require(bswapU32(bswapU32(0xDEADBEEF'u32)) == 0xDEADBEEF'u32)
+    Swag.require(bswapU64(bswapU64(0xCAFEBABE_DEADBEEF'u64)) == 0xCAFEBABE_DEADBEEF'u64)
 }
 
 // Single byte isolation
 #test
 {
-    Swag.assert(bswapU32(0x00000001'u32) == 0x01000000'u32)
-    Swag.assert(bswapU32(0x00000100'u32) == 0x00010000'u32)
-    Swag.assert(bswapU32(0x00010000'u32) == 0x00000100'u32)
-    Swag.assert(bswapU32(0x01000000'u32) == 0x00000001'u32)
+    Swag.require(bswapU32(0x00000001'u32) == 0x01000000'u32)
+    Swag.require(bswapU32(0x00000100'u32) == 0x00010000'u32)
+    Swag.require(bswapU32(0x00010000'u32) == 0x00000100'u32)
+    Swag.require(bswapU32(0x01000000'u32) == 0x00000001'u32)
 }
 
 // Uniform byte patterns are invariant
 #test
 {
-    Swag.assert(bswapU16(0xAAAA'u16) == 0xAAAA'u16)
-    Swag.assert(bswapU16(0x1111'u16) == 0x1111'u16)
+    Swag.require(bswapU16(0xAAAA'u16) == 0xAAAA'u16)
+    Swag.require(bswapU16(0x1111'u16) == 0x1111'u16)
 }
 
 // Strict aliases
@@ -109,7 +109,7 @@ func bswapStrictU32(value: ByteSwapStrictU32)->ByteSwapStrictU32 => Swag.byteSwa
 
     #assert(#typeof(a) == ByteSwapStrictU32)
 
-    Swag.assert(a == cast(ByteSwapStrictU32, 0x78563412'u32))
+    Swag.require(a == cast(ByteSwapStrictU32, 0x78563412'u32))
 }
 
 #test
@@ -118,5 +118,5 @@ func bswapStrictU32(value: ByteSwapStrictU32)->ByteSwapStrictU32 => Swag.byteSwa
 
     #assert(#typeof(a) == ByteSwapStrictU32)
 
-    Swag.assert(a == cast(ByteSwapStrictU32, 0x04030201'u32))
+    Swag.require(a == cast(ByteSwapStrictU32, 0x04030201'u32))
 }

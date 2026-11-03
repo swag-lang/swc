@@ -56,14 +56,14 @@ func chain(values: const [*] s32)->s32
         src[i * 16] = cast(u8, (i + 1))
 
     let total = scaleRows(&dst[0], &src[0], 16)
-    Swag.assert(dst[0] == 2 and dst[1] == 2 and dst[16] == 4 and dst[17] == 4 and dst[48] == 8)
-    Swag.assert(total == 2 + 4 + 6 + 8 + 8)
+    Swag.require(dst[0] == 2 and dst[1] == 2 and dst[16] == 4 and dst[17] == 4 and dst[48] == 8)
+    Swag.require(total == 2 + 4 + 6 + 8 + 8)
 
     var values: [8] u8 = [10, 11, 12, 13, 14, 15, 16, 17]
     var out:    [8 * 16] u8
     fillRows(&out[0], 16, &values[0])
-    Swag.assert(out[0] == 10 and out[7] == 10 and out[8] == 0 and out[16] == 11 and out[7 * 16 + 7] == 17)
+    Swag.require(out[0] == 10 and out[7] == 10 and out[8] == 0 and out[16] == 11 and out[7 * 16 + 7] == 17)
 
     var steps: [5] s32 = [3, 5, 8, 13, 21]
-    Swag.assert(chain(&steps[0]) == (21 - 3) + 21)
+    Swag.require(chain(&steps[0]) == (21 - 3) + 21)
 }

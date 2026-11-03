@@ -30,10 +30,10 @@ func buildMutationMap(text: string)->[3] MutationSpan
 #test
 {
     let map = buildMutationMap("233")
-    Swag.assert(map[0].what == 0)
-    Swag.assert(map[0].num == 2)
-    Swag.assert(map[1].what == -1)
-    Swag.assert(map[1].num == 3)
-    Swag.assert(map[2].what == 1)
-    Swag.assert(map[2].num == 3)
+    Swag.require(map[0].what == 0)
+    Swag.require(map[0].num == 2)
+    Swag.require(map[1].what == -1)
+    Swag.require(map[1].num == 3)
+    Swag.require(map[2].what == 1)
+    Swag.require(map[2].num == 3)
 }

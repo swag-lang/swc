@@ -54,5 +54,5 @@ func tryDynamicChild(value: *CheckedDynamicBase)->*CheckedDynamicChild?
 #test
 {
     var value: CheckedDynamicBase
-    Swag.assert(tryDynamicChild(&value) == null)
+    Swag.require(tryDynamicChild(&value) == null)
 }

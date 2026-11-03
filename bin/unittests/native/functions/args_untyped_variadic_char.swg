@@ -13,10 +13,10 @@ func kindName(values: ...)->string? => Swag.kindOf(values[0]).name
 
 #test
 {
-    Swag.assert(firstRune('A') == 'A')
-    Swag.assert(firstRune('é') == 'é')
-    Swag.assert(kindName('z') == "rune")
+    Swag.require(firstRune('A') == 'A')
+    Swag.require(firstRune('é') == 'é')
+    Swag.require(kindName('z') == "rune")
 
     let fromLiteral: any = 'x'
-    Swag.assert(Swag.kindOf(fromLiteral) == rune)
+    Swag.require(Swag.kindOf(fromLiteral) == rune)
 }

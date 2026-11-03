@@ -18,8 +18,8 @@ func independentFloat32(a, b, c, d, e, f, g, h: f32)->f32
 
 #test
 {
-    Swag.assert(independentFloat64(1.5, 2.5, 8, 4, 16, 2, 3, 0.5) == 60)
-    Swag.assert(independentFloat32(1.5, 2.5, 8, 4, 16, 2, 3, 0.5) == 60)
-    Swag.assert(independentFloat64(2, 2, 2, 2, 2, 2, 2, 2) == 13)
-    Swag.assert(independentFloat32(2, 2, 2, 2, 2, 2, 2, 2) == 13)
+    Swag.require(independentFloat64(1.5, 2.5, 8, 4, 16, 2, 3, 0.5) == 60)
+    Swag.require(independentFloat32(1.5, 2.5, 8, 4, 16, 2, 3, 0.5) == 60)
+    Swag.require(independentFloat64(2, 2, 2, 2, 2, 2, 2, 2) == 13)
+    Swag.require(independentFloat32(2, 2, 2, 2, 2, 2, 2, 2) == 13)
 }

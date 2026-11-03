@@ -40,14 +40,14 @@ func retainOriginal(a, b: u64)->u64
                 lo = b
                 hi = a
             }
-            Swag.assert(minimum(a, b) == lo)
-            Swag.assert(maximum(a, b) == hi)
+            Swag.require(minimum(a, b) == lo)
+            Swag.require(maximum(a, b) == hi)
             let changed = b ^ 0xABCD
-            Swag.assert(retainOriginal(a, b) == ((a < changed ? a : b) ^ changed))
+            Swag.require(retainOriginal(a, b) == ((a < changed ? a : b) ^ changed))
             for c in values do
-                Swag.assert(twoSelections(a, b, c) == (lo ^ (b > c ? b : c) ^ b))
+                Swag.require(twoSelections(a, b, c) == (lo ^ (b > c ? b : c) ^ b))
         }
     }
-    Swag.assert(signedMinimum(-0x7FFFFFFF - 1, 0x7FFFFFFF) == -0x7FFFFFFF - 1)
-    Swag.assert(signedMinimum(17, -31) == -31)
+    Swag.require(signedMinimum(-0x7FFFFFFF - 1, 0x7FFFFFFF) == -0x7FFFFFFF - 1)
+    Swag.require(signedMinimum(17, -31) == -31)
 }

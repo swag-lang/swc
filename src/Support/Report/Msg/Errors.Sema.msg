@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compile-time warning: {because}")
 SWC_DIAG_DEF(sema_warn_unreachable_code, Warning, "unreachable code; [help] remove it, or move it before the statement that stops the flow")
 SWC_DIAG_DEF(sema_warn_redundant_try, Warning, "'try' is implied in '{sym}', which has 'Swag.Propagate'; [help] remove 'try'")
+SWC_DIAG_DEF(sema_warn_assert_in_test, Warning, "'Swag.assert' states a program invariant, which a safety setting can remove; [help] state what the test verifies with 'Swag.require', or with 'Swag.check' to let it go on")
 
 SWC_DIAG_DEF(sema_err_unknown_warning, Error, "'#[Swag.Warning]' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
 SWC_DIAG_DEF(sema_err_notnull_already_proven, Error, "'{tok}' asserts a value of type '{type}' that cannot be null here; [help] remove '{tok}'")

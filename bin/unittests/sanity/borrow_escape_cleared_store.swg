@@ -92,7 +92,7 @@ func clearedStoreCaller(slot: *ClearedStoreSlot, signal: *ClearedStoreSignal)
     var slot:   ClearedStoreSlot
     var signal: ClearedStoreSignal
     clearedStoreCaller(&slot, &signal)
-    Swag.assert(slot.value == null)
+    Swag.require(slot.value == null)
 }
 
 // An early exit leaves the caller-owned destination holding the frame borrow.
@@ -198,6 +198,6 @@ func clearedStoreAcceptWrap(slot: *ClearedStoreSlot)->u8
 #test
 {
     var slot: ClearedStoreSlot
-    Swag.assert(clearedStoreAcceptWrap(&slot) == 0)
-    Swag.assert(slot.value == null)
+    Swag.require(clearedStoreAcceptWrap(&slot) == 0)
+    Swag.require(slot.value == null)
 }

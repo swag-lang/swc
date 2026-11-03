@@ -159,13 +159,13 @@ func rejectEscapeComposedCarrier()->*Carrier
     release(createThroughIdentity(&value), #sizeof(Carrier))
     release(independentComposed(&value), #sizeof(s32))
     storeInFreshCarrier(&stableValue, &value)
-    Swag.assert(value == 31)
+    Swag.require(value == 31)
 
     var owner = Owner{data: cast([*] s32, allocate(#sizeof(s32)))}
     owner.data![0] = 17
     let before = owner.forwardedView()[]
     owner.clearThroughView()
-    Swag.assert(before == 17 and not owner.data)
+    Swag.require(before == 17 and not owner.data)
 }
 
 // Releasing the allocation does not release the local its field references.
@@ -173,18 +173,18 @@ func rejectEscapeComposedCarrier()->*Carrier
 {
     var value: s32 = 42
     let carrier    = create(&value)
-    Swag.assert(carrier.target[] == 42)
+    Swag.require(carrier.target[] == 42)
     release(carrier, #sizeof(Carrier))
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
 }
 
 #test
 {
     var value: s32 = 17
     let carrier    = createWrapped(&value)
-    Swag.assert(carrier.target[] == 17)
+    Swag.require(carrier.target[] == 17)
     release(carrier, #sizeof(Carrier))
-    Swag.assert(value == 17)
+    Swag.require(value == 17)
 }
 
 // The same distinction applies before any factory summary is involved.
@@ -194,7 +194,7 @@ func rejectEscapeComposedCarrier()->*Carrier
     let carrier    = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = &value
     release(carrier, #sizeof(Carrier))
-    Swag.assert(value == 9)
+    Swag.require(value == 9)
 }
 
 // A real alias still cannot be freed, including through a chain of wrappers.
@@ -234,7 +234,7 @@ func rejectEscapeNestedAlias()->*s32
 {
     var value: s32 = 23
     release(createWrapped(identity(&value)), #sizeof(Carrier))
-    Swag.assert(value == 23)
+    Swag.require(value == 23)
 }
 
 func rejectReleaseCarrierTarget()

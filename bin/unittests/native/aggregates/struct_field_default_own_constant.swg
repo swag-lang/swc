@@ -23,10 +23,10 @@ impl OwnConstantWindow
 #test
 {
     var window: OwnConstantWindow
-    Swag.assert(window.width == 640)
-    Swag.assert(window.height == 400)
-    Swag.assert(window.margin == 16.0)
-    Swag.assert(OwnConstantWindow.area(window) == 640 * 400)
+    Swag.require(window.width == 640)
+    Swag.require(window.height == 400)
+    Swag.require(window.margin == 16.0)
+    Swag.require(OwnConstantWindow.area(window) == 640 * 400)
 }
 
 // Functions reached through the type still see their whole overload set, even when the overloads
@@ -50,7 +50,7 @@ func ownConstantKeyDown()->bool => OwnConstantKeys.isDown(1)
 
 #test
 {
-    Swag.assert(ownConstantKeyDown())
+    Swag.require(ownConstantKeyDown())
     var keys = OwnConstantKeys{pressed: 3}
-    Swag.assert(keys.isDown(3, true))
+    Swag.require(keys.isDown(3, true))
 }

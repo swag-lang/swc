@@ -1429,6 +1429,23 @@ namespace
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
     }
 
+    // An assertion written in a '#test' body states what the test verifies, which a safety
+    // setting can remove. A function or closure declared in that body keeps its own invariants,
+    // and only the body's own analysis reports it, not each inline expansion of that body.
+    void reportAssertInTest(Sema& sema)
+    {
+        const SymbolFunction* owner = sema.currentFunction();
+        if (!owner || !owner->decl())
+            return;
+        const auto* compilerFunc = owner->decl()->safeCast<AstCompilerFunc>();
+        if (!compilerFunc || sema.token(compilerFunc->codeRef()).id != TokenId::CompilerFuncTest)
+            return;
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return;
+
+        SemaError::report(sema, DiagnosticId::sema_warn_assert_in_test, sema.curNode().codeRef()).report(sema.ctx());
+    }
+
     // Once assert succeeds, its condition's true facts hold for the rest of the
     // enclosing block, like a guard whose false branch exits.
     void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
@@ -1766,6 +1783,7 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
     {
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
         setupIntrinsicAssertNarrowFacts(sema, *this);
+        reportAssertInTest(sema);
     }
     else if (intrinsicId == TokenId::IntrinsicRequire)
     {

@@ -53,13 +53,13 @@ func checksumConfig(cfg: Config)->s32
 #test
 {
     let cfg: Config = Config{width: 10, height: 20, depth: 30, flags: 0xFF}
-    Swag.assert(checksumConfig(cfg) == 60)
+    Swag.require(checksumConfig(cfg) == 60)
 }
 
 #test
 {
     let cfg: Config = Config{width: -5, height: 100, depth: 0, flags: 42}
-    Swag.assert(checksumConfig(cfg) == 95)
+    Swag.require(checksumConfig(cfg) == 95)
 }
 
 // Count how many fields of a given type a struct has (runtime).
@@ -81,11 +81,11 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
     let vertexInfo = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
     let metaInfo   = cast(const *Swag.TypeInfoStruct, #typeof(Metadata))
 
-    Swag.assert(countFieldsOfType(configInfo, #typeof(s32)) == 3)
-    Swag.assert(countFieldsOfType(configInfo, #typeof(u32)) == 1)
-    Swag.assert(countFieldsOfType(vertexInfo, #typeof(f32)) == 3)
-    Swag.assert(countFieldsOfType(metaInfo, #typeof(u64)) == 1)
-    Swag.assert(countFieldsOfType(metaInfo, #typeof(bool)) == 1)
+    Swag.require(countFieldsOfType(configInfo, #typeof(s32)) == 3)
+    Swag.require(countFieldsOfType(configInfo, #typeof(u32)) == 1)
+    Swag.require(countFieldsOfType(vertexInfo, #typeof(f32)) == 3)
+    Swag.require(countFieldsOfType(metaInfo, #typeof(u64)) == 1)
+    Swag.require(countFieldsOfType(metaInfo, #typeof(bool)) == 1)
 }
 
 // Build a "schema fingerprint" from field names: sum of first chars.
@@ -106,22 +106,22 @@ func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
 {
     let configInfo = cast(const *Swag.TypeInfoStruct, #typeof(Config))
     // 'w'=119, 'h'=104, 'd'=100, 'f'=102 -> 425
-    Swag.assert(nameFingerprint(configInfo) == 425)
+    Swag.require(nameFingerprint(configInfo) == 425)
 }
 
 #test
 {
     let vertexInfo = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
     // 'x'=120, 'y'=121, 'z'=122 -> 363
-    Swag.assert(nameFingerprint(vertexInfo) == 363)
+    Swag.require(nameFingerprint(vertexInfo) == 363)
 }
 
 // Verify total sizeof through reflection matches sum of known field sizes.
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(Vertex))
-    Swag.assert(info.sizeof == #sizeof(Vertex))
-    Swag.assert(info.sizeof == 12)
+    Swag.require(info.sizeof == #sizeof(Vertex))
+    Swag.require(info.sizeof == 12)
 }
 
 // Enum value reflection: build a tag->name lookup.
@@ -148,15 +148,15 @@ func levelName(level: LogLevel)->string
 
 #test
 {
-    Swag.assert(levelName(.Trace) == "Trace")
-    Swag.assert(levelName(.Info) == "Info")
-    Swag.assert(levelName(.Error) == "Error")
+    Swag.require(levelName(.Trace) == "Trace")
+    Swag.require(levelName(.Info) == "Info")
+    Swag.require(levelName(.Error) == "Error")
 }
 
 // Count enum values at runtime.
 #test
 {
     let info = cast(const *Swag.TypeInfoEnum, #typeof(LogLevel))
-    Swag.assert(info.values.count == 5)
-    Swag.assert(info.rawType == u8)
+    Swag.require(info.values.count == 5)
+    Swag.require(info.rawType == u8)
 }

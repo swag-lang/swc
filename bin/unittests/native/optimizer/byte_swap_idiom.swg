@@ -27,11 +27,11 @@ func twice(x: u32)->u32 => (x >> 24) | ((x >> 16) & 0xFF00) | ((x << 8) & 0xFF00
 
 #test
 {
-    Swag.assert(swap32(0x11223344) == 0x44332211)
-    Swag.assert(swap32(0xFF000001) == 0x010000FF)
-    Swag.assert(swap32Reordered(0xA1B2C3D4) == 0xD4C3B2A1)
-    Swag.assert(swap64(0x0102030405060708) == 0x0807060504030201)
-    Swag.assert(swap64(0xFF00000000000000) == 0xFF)
-    Swag.assert(notQuite(0x11223344) == 0x44222211)
-    Swag.assert(twice(0x11223344) == 0x44331111)
+    Swag.require(swap32(0x11223344) == 0x44332211)
+    Swag.require(swap32(0xFF000001) == 0x010000FF)
+    Swag.require(swap32Reordered(0xA1B2C3D4) == 0xD4C3B2A1)
+    Swag.require(swap64(0x0102030405060708) == 0x0807060504030201)
+    Swag.require(swap64(0xFF00000000000000) == 0xFF)
+    Swag.require(notQuite(0x11223344) == 0x44222211)
+    Swag.require(twice(0x11223344) == 0x44331111)
 }

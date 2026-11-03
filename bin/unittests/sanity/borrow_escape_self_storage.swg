@@ -111,14 +111,14 @@ func returnFullyReboundSelfStorage(pointer: *s32, clear: bool)->SelfStorage
     source.cursor   = &source.values[0]
     source.cursor[] = 7
     let copy = source
-    Swag.assert(source.values[0] == 7)
-    Swag.assert(copy.cursor![] == 7)
+    Swag.require(source.values[0] == 7)
+    Swag.require(copy.cursor![] == 7)
 
     var external = 9
     let rebound  = returnReboundSelfStorage(&external)
-    Swag.assert(rebound.cursor![] == 9)
-    Swag.assert(returnClearedSelfStorage().cursor == null)
-    Swag.assert(returnFullyReboundSelfStorage(&external, true).cursor == null)
+    Swag.require(rebound.cursor![] == 9)
+    Swag.require(returnClearedSelfStorage().cursor == null)
+    Swag.require(returnFullyReboundSelfStorage(&external, true).cursor == null)
     let branchRebound = returnFullyReboundSelfStorage(&external, false)
-    Swag.assert(branchRebound.cursor![] == 9)
+    Swag.require(branchRebound.cursor![] == 9)
 }

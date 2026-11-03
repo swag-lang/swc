@@ -27,12 +27,12 @@ func table(c: u32, lo, hi: u32)->bool => c >= lo and c <= hi
     {
         let c = cast(u8, v)
         let u = cast(u32, v)
-        Swag.assert(isHex(c) == (table(u, 48, 57) or table(u, 97, 102) or table(u, 65, 70)))
-        Swag.assert(isAlnum(c) == (table(u, 97, 122) or table(u, 65, 90) or table(u, 48, 57)))
-        Swag.assert(isIdentStart(c) == (table(u, 97, 122) or table(u, 65, 90) or u == 95))
-        Swag.assert(notControl(c) == (u >= 32 and u != 127))
+        Swag.require(isHex(c) == (table(u, 48, 57) or table(u, 97, 102) or table(u, 65, 70)))
+        Swag.require(isAlnum(c) == (table(u, 97, 122) or table(u, 65, 90) or table(u, 48, 57)))
+        Swag.require(isIdentStart(c) == (table(u, 97, 122) or table(u, 65, 90) or u == 95))
+        Swag.require(notControl(c) == (u >= 32 and u != 127))
     }
 
     for v in [0'u32, 1, 2, 89, 90, 91, 199, 200, 201, 3999, 4000, 4001, 0xFFFFFFFF] do
-        Swag.assert(isFar(v) == (v == 1 or v == 90 or v == 200 or v == 4000))
+        Swag.require(isFar(v) == (v == 1 or v == 90 or v == 200 or v == 4000))
 }

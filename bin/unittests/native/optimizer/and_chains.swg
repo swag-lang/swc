@@ -48,19 +48,19 @@ func stored(slot: *bool, a, b, c: s64)->s64
         for py in ys
         {
             let wanted = px >= 10 and px < 15 and py >= 20 and py < 26
-            Swag.assert(inside(&b, px, py) == wanted)
-            Swag.assert(outside(&b, px, py) == not wanted)
+            Swag.require(inside(&b, px, py) == wanted)
+            Swag.require(outside(&b, px, py) == not wanted)
         }
     }
 
-    Swag.assert(mixed(1, 2, 3, 0))
-    Swag.assert(not mixed(2, 1, 3, 0))
-    Swag.assert(mixed(0, 0, 3, 4) == false)
-    Swag.assert(mixed(5, 0, 3, 4))
+    Swag.require(mixed(1, 2, 3, 0))
+    Swag.require(not mixed(2, 1, 3, 0))
+    Swag.require(mixed(0, 0, 3, 4) == false)
+    Swag.require(mixed(5, 0, 3, 4))
 
     var slot = false
-    Swag.assert(stored(&slot, 1, 2, 3) == 6 and slot)
-    Swag.assert(stored(&slot, 1, 0, 3) == -1 and not slot)
-    Swag.assert(stored(&slot, 1, 2, -3) == -1 and not slot)
-    Swag.assert(stored(&slot, -1, 2, 3) == -1 and not slot)
+    Swag.require(stored(&slot, 1, 2, 3) == 6 and slot)
+    Swag.require(stored(&slot, 1, 0, 3) == -1 and not slot)
+    Swag.require(stored(&slot, 1, 2, -3) == -1 and not slot)
+    Swag.require(stored(&slot, -1, 2, 3) == -1 and not slot)
 }

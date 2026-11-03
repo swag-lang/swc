@@ -207,16 +207,16 @@ struct InventoryRow
     put'(string, s32)(&table, "bananas", 7)
     put'(string, s32)(&table, "apples", 20)
 
-    Swag.assert(table.count == 2)
-    Swag.assert(contains'(string, s32)(&table, "apples"))
-    Swag.assert(contains'(string, s32)(&table, "bananas"))
-    Swag.assert(not contains'(string, s32)(&table, "pears"))
-    Swag.assert(getOr'(string, s32)(&table, "apples", -1) == 20)
-    Swag.assert(getOr'(string, s32)(&table, "pears", -1) == -1)
+    Swag.require(table.count == 2)
+    Swag.require(contains'(string, s32)(&table, "apples"))
+    Swag.require(contains'(string, s32)(&table, "bananas"))
+    Swag.require(not contains'(string, s32)(&table, "pears"))
+    Swag.require(getOr'(string, s32)(&table, "apples", -1) == 20)
+    Swag.require(getOr'(string, s32)(&table, "pears", -1) == -1)
 
     let ptr = unwrap tryGet'(string, s32)(&table, "bananas")
     ptr[] += 5
-    Swag.assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
+    Swag.require(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }
 
 // ---------------------------------------------------------------------------
@@ -233,12 +233,12 @@ struct InventoryRow
     put'(s32, string)(&table, 30, "thirty")
     put'(s32, string)(&table, 40, "forty")
 
-    Swag.assert(table.count == 4)
-    Swag.assert(getOr'(s32, string)(&table, 10, "missing") == "ten")
-    Swag.assert(getOr'(s32, string)(&table, 20, "missing") == "twenty")
-    Swag.assert(getOr'(s32, string)(&table, 30, "missing") == "thirty")
-    Swag.assert(getOr'(s32, string)(&table, 40, "missing") == "forty")
-    Swag.assert(getOr'(s32, string)(&table, 99, "missing") == "missing")
+    Swag.require(table.count == 4)
+    Swag.require(getOr'(s32, string)(&table, 10, "missing") == "ten")
+    Swag.require(getOr'(s32, string)(&table, 20, "missing") == "twenty")
+    Swag.require(getOr'(s32, string)(&table, 30, "missing") == "thirty")
+    Swag.require(getOr'(s32, string)(&table, 40, "missing") == "forty")
+    Swag.require(getOr'(s32, string)(&table, 99, "missing") == "missing")
 }
 
 // ---------------------------------------------------------------------------
@@ -253,12 +253,12 @@ struct InventoryRow
     for i in 100'u64 do
         put'(u64, u64)(&table, i, i * i + 3)
 
-    Swag.assert(table.count == 100)
-    Swag.assert(table.capacity >= 128)
-    Swag.assert(getOr'(u64, u64)(&table, 0, 0) == 3)
-    Swag.assert(getOr'(u64, u64)(&table, 10, 0) == 103)
-    Swag.assert(getOr'(u64, u64)(&table, 99, 0) == 9804)
-    Swag.assert(getOr'(u64, u64)(&table, 1_000, 55) == 55)
+    Swag.require(table.count == 100)
+    Swag.require(table.capacity >= 128)
+    Swag.require(getOr'(u64, u64)(&table, 0, 0) == 3)
+    Swag.require(getOr'(u64, u64)(&table, 10, 0) == 103)
+    Swag.require(getOr'(u64, u64)(&table, 99, 0) == 9804)
+    Swag.require(getOr'(u64, u64)(&table, 1_000, 55) == 55)
 }
 
 // ---------------------------------------------------------------------------
@@ -276,8 +276,8 @@ struct InventoryRow
     let hammer = getOr'(string, InventoryRow)(&table, "hammer", {sku: "missing", quantity: -1})
     let drill  = getOr'(string, InventoryRow)(&table, "drill", {sku: "missing", quantity: -1})
 
-    Swag.assert(hammer.sku == "HM-01")
-    Swag.assert(hammer.quantity == 8)
-    Swag.assert(drill.sku == "missing")
-    Swag.assert(drill.quantity == -1)
+    Swag.require(hammer.sku == "HM-01")
+    Swag.require(hammer.quantity == 8)
+    Swag.require(drill.sku == "missing")
+    Swag.require(drill.quantity == -1)
 }

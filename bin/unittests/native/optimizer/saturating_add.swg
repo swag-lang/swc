@@ -25,8 +25,8 @@ func indexed32(values: const [*]u32, index: u64)->u32
     for value, index in expected
     {
         let source = index * 2
-        Swag.assert(saturated64(values[source], values[source + 1]) == value)
-        Swag.assert(indexed64(&values[0], source) == value)
+        Swag.require(saturated64(values[source], values[source + 1]) == value)
+        Swag.require(indexed64(&values[0], source) == value)
     }
 
     let values32   = [0'u32, 0, 1, 2, 0xFFFFFFFE, 1, 0xFFFFFFFF, 1, 0x80000000, 0x80000000]
@@ -34,7 +34,7 @@ func indexed32(values: const [*]u32, index: u64)->u32
     for value, index in expected32
     {
         let source = index * 2
-        Swag.assert(saturated32(values32[source], values32[source + 1]) == value)
-        Swag.assert(indexed32(&values32[0], source) == value)
+        Swag.require(saturated32(values32[source], values32[source + 1]) == value)
+        Swag.require(indexed32(&values32[0], source) == value)
     }
 }

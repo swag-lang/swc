@@ -80,32 +80,32 @@ func countAcrossCalls(slots: [*] u64)->u64
 {
     g_PrivateTable = &g_TableStorage[0]
     g_PrivateCount = 10
-    Swag.assert(fillPrivateTable() == 135)
+    Swag.require(fillPrivateTable() == 135)
 
     var slots: [8] u64
     takeCountAddress()
     g_TakenCount = 0
-    Swag.assert(countThroughEscapedAddress(&slots[0], unwrap g_TakenAddress) == 828)
-    Swag.assert(slots[7] == 107)
+    Swag.require(countThroughEscapedAddress(&slots[0], unwrap g_TakenAddress) == 828)
+    Swag.require(slots[7] == 107)
 
     g_DirectCount = 1
-    Swag.assert(countDirectWrites(&slots[0]) == 80)
-    Swag.assert(slots[7] == 15)
+    Swag.require(countDirectWrites(&slots[0]) == 80)
+    Swag.require(slots[7] == 15)
 
     g_CalledCount = 0
-    Swag.assert(countAcrossCalls(&slots[0]) == 36)
-    Swag.assert(slots[7] == 7)
+    Swag.require(countAcrossCalls(&slots[0]) == 36)
+    Swag.require(slots[7] == 7)
 
     g_PrivateCount = 13
     var target = 0'u64
-    Swag.assert(readPrivateAroundStores(&target, false) == 26)
-    Swag.assert(target == 20 and g_DirectCount == 99)
-    Swag.assert(readPrivateAroundStores(&target, true) == 26)
-    Swag.assert(target == 24)
+    Swag.require(readPrivateAroundStores(&target, false) == 26)
+    Swag.require(target == 20 and g_DirectCount == 99)
+    Swag.require(readPrivateAroundStores(&target, true) == 26)
+    Swag.require(target == 24)
     g_CalledCount = 0
     var laterSlots: [4] u64
-    Swag.assert(readBeforeLaterCall(&laterSlots[0]) == 6)
-    Swag.assert(laterSlots[0] == 0 and laterSlots[3] == 3 and g_CalledCount == 4)
+    Swag.require(readBeforeLaterCall(&laterSlots[0]) == 6)
+    Swag.require(laterSlots[0] == 0 and laterSlots[3] == 3 and g_CalledCount == 4)
 }
 
 // A straight-line pointer store and a write of another private global do not

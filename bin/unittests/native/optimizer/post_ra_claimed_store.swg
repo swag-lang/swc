@@ -32,5 +32,5 @@ func keepClaimedStoreReload(seed: u64)->u64
 
 #test
 {
-    Swag.assert(keepClaimedStoreReload(100) == 2366)
+    Swag.require(keepClaimedStoreReload(100) == 2366)
 }

@@ -28,7 +28,7 @@ func borrowDynamicField(view: IDynamicField)->*s32?
 {
     var value: DynamicField
     let field = borrowDynamicField(&value)
-    Swag.assert(field == &value.value)
+    Swag.require(field == &value.value)
     var nested: NestedDynamicField
-    Swag.assert(borrowNestedDynamicField(&nested) == &nested.inner.value)
+    Swag.require(borrowNestedDynamicField(&nested) == &nested.inner.value)
 }

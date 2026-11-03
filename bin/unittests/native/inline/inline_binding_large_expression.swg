@@ -16,6 +16,6 @@ func calculate(value: s32)->s32
 
 #test
 {
-    Swag.assert(calculate(3) == 96)
-    Swag.assert(calculate(-2) == -64)
+    Swag.require(calculate(3) == 96)
+    Swag.require(calculate(-2) == -64)
 }

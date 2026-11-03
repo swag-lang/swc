@@ -78,11 +78,11 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     let starterTotals = buildInvoiceTotals(starterInvoice, false)
 
-    Swag.assert(starterTotals.lineCount == 3)
-    Swag.assert(starterTotals.taxableLineCount == 2)
-    Swag.assert(starterTotals.subtotalCents == 21000)
-    Swag.assert(starterTotals.taxableSubtotalCents == 13000)
-    Swag.assert(starterTotals.shippingCents == 600)
-    Swag.assert(starterTotals.taxCents == 1300)
-    Swag.assert(starterTotals.totalCents == 22900)
+    Swag.require(starterTotals.lineCount == 3)
+    Swag.require(starterTotals.taxableLineCount == 2)
+    Swag.require(starterTotals.subtotalCents == 21000)
+    Swag.require(starterTotals.taxableSubtotalCents == 13000)
+    Swag.require(starterTotals.shippingCents == 600)
+    Swag.require(starterTotals.taxCents == 1300)
+    Swag.require(starterTotals.totalCents == 22900)
 }

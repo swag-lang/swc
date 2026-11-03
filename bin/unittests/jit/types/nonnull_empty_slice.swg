@@ -36,5 +36,5 @@ func jitPresentEmptySlices()->bool
 
 #test
 {
-    Swag.assert(jitPresentEmptySlices())
+    Swag.require(jitPresentEmptySlices())
 }

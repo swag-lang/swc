@@ -23,9 +23,9 @@ func mixinBumpCaller()
 {
     let base: s32 = 40
 
-    Swag.assert(macroAdd(base, 2) == 42)
-    Swag.assert(macroCompute(40) == 42)
-    Swag.assert(macroCompute(a: 20, c: 20, b: 2) == 42)
+    Swag.require(macroAdd(base, 2) == 42)
+    Swag.require(macroCompute(40) == 42)
+    Swag.require(macroCompute(a: 20, c: 20, b: 2) == 42)
 }
 
 // Mixin resolves caller locals at expansion time
@@ -34,5 +34,5 @@ func mixinBumpCaller()
     var total = 0
     mixinBumpCaller()
     mixinBumpCaller()
-    Swag.assert(total == 2)
+    Swag.require(total == 2)
 }

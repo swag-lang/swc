@@ -362,10 +362,10 @@ func solve(text: string)->SolveResult
 // nameToIdx inline
 #test
 {
-    Swag.assert(nameToIdx('a', 'a') == 0'u32)
-    Swag.assert(nameToIdx('a', 'b') == 1'u32)
-    Swag.assert(nameToIdx('b', 'a') == 26'u32)
-    Swag.assert(nameToIdx('t', 'c') == nameToIdx('t', 'a') + 2)
+    Swag.require(nameToIdx('a', 'a') == 0'u32)
+    Swag.require(nameToIdx('a', 'b') == 1'u32)
+    Swag.require(nameToIdx('b', 'a') == 26'u32)
+    Swag.require(nameToIdx('t', 'c') == nameToIdx('t', 'a') + 2)
 }
 
 // Parse graph
@@ -373,17 +373,17 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    Swag.assert(g.count > 0'u32)
+    Swag.require(g.count > 0'u32)
 
     // kh-tc edge exists
     let kh = nameToIdx('k', 'h')
     let tc = nameToIdx('t', 'c')
-    Swag.assert(g.edge(kh, tc))
-    Swag.assert(g.edge(tc, kh))
+    Swag.require(g.edge(kh, tc))
+    Swag.require(g.edge(tc, kh))
 
     // non-edge
     let de = nameToIdx('d', 'e')
-    Swag.assert(not g.edge(kh, de))
+    Swag.require(not g.edge(kh, de))
 }
 
 // startsWithT inline
@@ -391,9 +391,9 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    Swag.assert(g.startsWithT(nameToIdx('t', 'c')))
-    Swag.assert(g.startsWithT(nameToIdx('t', 'a')))
-    Swag.assert(not g.startsWithT(nameToIdx('k', 'h')))
+    Swag.require(g.startsWithT(nameToIdx('t', 'c')))
+    Swag.require(g.startsWithT(nameToIdx('t', 'a')))
+    Swag.require(not g.startsWithT(nameToIdx('k', 'h')))
 }
 
 // Minimal triangle test
@@ -405,8 +405,8 @@ func solve(text: string)->SolveResult
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'b'))
     g.addEdge(nameToIdx('t', 'b'), nameToIdx('t', 'c'))
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'c'))
-    Swag.assert(g.count == 3'u32)
-    Swag.assert(countTrianglesWithT(&g) == 1'u64)
+    Swag.require(g.count == 3'u32)
+    Swag.require(countTrianglesWithT(&g) == 1'u64)
 }
 
 // Node count
@@ -414,7 +414,7 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    Swag.assert(g.count == 16'u32)
+    Swag.require(g.count == 16'u32)
 }
 
 // Count ALL triangles (should be 12 in sample)
@@ -451,7 +451,7 @@ func solve(text: string)->SolveResult
         }
     }
 
-    Swag.assert(total > 0'u64)
+    Swag.require(total > 0'u64)
 }
 
 // Part 1: 7 triangles with t
@@ -461,15 +461,15 @@ func solve(text: string)->SolveResult
     defer graphFree(&g)
     let tc = countTrianglesWithT(&g)
     // With the 26-edge sample, there are 4 triangles with 't'
-    Swag.assert(tc == 4'u64)
+    Swag.require(tc == 4'u64)
 }
 
 // Full solve
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part1 == 4'u64)
-    Swag.assert(result.part2Len > 0'u32)
+    Swag.require(result.part1 == 4'u64)
+    Swag.require(result.part2Len > 0'u32)
 }
 
 // with &ptr (exercises day 21 fix)
@@ -481,7 +481,7 @@ func solve(text: string)->SolveResult
         .part1    = 42
         .part2Len = 0
     }
-    Swag.assert(sr.part1 == 42'u64)
+    Swag.require(sr.part1 == 42'u64)
 }
 
 // Inline returning struct via #returntype (exercises day 20 fix)
@@ -496,7 +496,7 @@ func makeIdx(a: u8, b: u8)->{ idx: u32 }
 #test
 {
     let r = makeIdx('t', 'c')
-    Swag.assert(r.idx == nameToIdx('t', 'c'))
+    Swag.require(r.idx == nameToIdx('t', 'c'))
 }
 
 // Swag.makeSlice in inline (exercises day 19 fix)
@@ -521,6 +521,6 @@ impl NameBuf
     nb.data[0] = 'a'; nb.data[1] = 'b'
     nb.len     = 2
     let sl = nb.asSlice()
-    Swag.assert(sl.count == 2)
-    Swag.assert(sl[0] == 'a')
+    Swag.require(sl.count == 2)
+    Swag.require(sl[0] == 'a')
 }

@@ -36,8 +36,8 @@ func sharedLoad(r: const *Record)->s64
 #test
 {
     var r: Record = Record{tag: 0xF0, kind: -3, count: 0xFFFF, delta: -2, pad: 0, value: -7, size: 0xFFFFFFFF}
-    Swag.assert(weighted(&r) == 14)
-    Swag.assert(unsignedSum(&r) == 0xF0 + 0xFFFF + 0xFFFFFFFF)
-    Swag.assert(signedByte(&r) == -9)
-    Swag.assert(sharedLoad(&r) == 242)
+    Swag.require(weighted(&r) == 14)
+    Swag.require(unsignedSum(&r) == 0xF0 + 0xFFFF + 0xFFFFFFFF)
+    Swag.require(signedByte(&r) == -9)
+    Swag.require(sharedLoad(&r) == 242)
 }

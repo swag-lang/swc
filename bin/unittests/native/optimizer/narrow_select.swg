@@ -26,19 +26,19 @@ func manhattan(ax, ay, bx, by: s32)->s32
 
 #test
 {
-    Swag.assert(abs32(-4) == 4 and abs32(5) == 5 and abs32(0) == 0)
-    Swag.assert(abs32(-0x7FFFFFFF - 1) == -0x7FFFFFFF - 1)
-    Swag.assert(pickLow(0x1_0000_0005, -3, true) == 5)
-    Swag.assert(pickLow(0x1_0000_0005, -3, false) == -3)
-    Swag.assert(pickLow(-0x1_0000_0000, 7, true) == 0)
-    Swag.assert(pickWide(0x1_0000_0005, -3, true) == 0x1_0000_0005)
-    Swag.assert(pickWide(0x1_0000_0005, -3, false) == -3)
+    Swag.require(abs32(-4) == 4 and abs32(5) == 5 and abs32(0) == 0)
+    Swag.require(abs32(-0x7FFFFFFF - 1) == -0x7FFFFFFF - 1)
+    Swag.require(pickLow(0x1_0000_0005, -3, true) == 5)
+    Swag.require(pickLow(0x1_0000_0005, -3, false) == -3)
+    Swag.require(pickLow(-0x1_0000_0000, 7, true) == 0)
+    Swag.require(pickWide(0x1_0000_0005, -3, true) == 0x1_0000_0005)
+    Swag.require(pickWide(0x1_0000_0005, -3, false) == -3)
     for v in 0 until 256
     {
         let c        = cast(u8, v)
         let expected = c >= 'a' and c <= 'z' ? c - 32 : c
-        Swag.assert(upper(c) == expected)
+        Swag.require(upper(c) == expected)
     }
-    Swag.assert(manhattan(1, 2, 4, -6) == 11)
-    Swag.assert(manhattan(-100, 50, 100, 50) == 200)
+    Swag.require(manhattan(1, 2, 4, -6) == 11)
+    Swag.require(manhattan(-100, 50, 100, 50) == 200)
 }

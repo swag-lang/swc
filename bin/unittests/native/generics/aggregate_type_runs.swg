@@ -14,7 +14,7 @@ func(T) matrixIdentity(values: [2, 4] T)->[2, 4] T  => values
     var total = 0
     for value in values do
         total += value
-    Swag.assert(total == 528)
+    Swag.require(total == 528)
 }
 
 #test
@@ -22,15 +22,15 @@ func(T) matrixIdentity(values: [2, 4] T)->[2, 4] T  => values
     // Later sized values still refine an unsized run, and later runs are revisited.
     let refined = arrayIdentity([1, 2, 3, 4, 5.5'f64, 6.5'f64, 7, 8, 9.5'f64])
     #assert(#typeof(refined) == [9] f64)
-    Swag.assert(refined[0] == 1.0'f64)
-    Swag.assert(refined[4] == 5.5'f64)
-    Swag.assert(refined[7] == 8.0'f64)
-    Swag.assert(refined[8] == 9.5'f64)
+    Swag.require(refined[0] == 1.0'f64)
+    Swag.require(refined[4] == 5.5'f64)
+    Swag.require(refined[7] == 8.0'f64)
+    Swag.require(refined[8] == 9.5'f64)
 
     let alternating = arrayIdentity([1.5'f64, 2's32, 3.5'f64, 4's32, 5.5'f64])
     #assert(#typeof(alternating) == [5] f64)
-    Swag.assert(alternating[1] == 2.0'f64)
-    Swag.assert(alternating[4] == 5.5'f64)
+    Swag.require(alternating[1] == 2.0'f64)
+    Swag.require(alternating[4] == 5.5'f64)
 }
 
 #test
@@ -38,7 +38,7 @@ func(T) matrixIdentity(values: [2, 4] T)->[2, 4] T  => values
     // Equal row types still retain the full traversal of the nested dimension.
     let values = matrixIdentity([[1'u8, 2'u8, 3'u8, 4'u8], [5'u8, 6'u8, 7'u8, 8'u8]])
     #assert(#typeof(values) == [2, 4] u8)
-    Swag.assert(values[0, 3] == 4'u8)
-    Swag.assert(values[1, 0] == 5'u8)
-    Swag.assert(values[1, 3] == 8'u8)
+    Swag.require(values[0, 3] == 4'u8)
+    Swag.require(values[1, 0] == 5'u8)
+    Swag.require(values[1, 3] == 8'u8)
 }

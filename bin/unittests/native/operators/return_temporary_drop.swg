@@ -86,24 +86,24 @@ func failureResult() fail
 {
     trace = 0
     let result = scalarResult()
-    Swag.assert(result == 1)
-    Swag.assert(trace == 19)
+    Swag.require(result == 1)
+    Swag.require(trace == 19)
 }
 
 #test
 {
     trace = 0
     let result = aggregateResult()
-    Swag.assert(result.value == 2)
-    Swag.assert(trace == 29)
+    Swag.require(result.value == 2)
+    Swag.require(trace == 29)
 }
 
 #test
 {
     trace = 0
     let result = inlineResult()
-    Swag.assert(result == 3)
-    Swag.assert(trace == 39)
+    Swag.require(result == 3)
+    Swag.require(trace == 39)
 }
 
 // Only the inner operand dies here; the returned owner belongs to the caller.
@@ -113,17 +113,17 @@ func failureResult() fail
     scope
     {
         let result = transferredResult()
-        Swag.assert(result.value == 4)
-        Swag.assert(trace == 4)
+        Swag.require(result.value == 4)
+        Swag.require(trace == 4)
     }
-    Swag.assert(trace == 44)
+    Swag.require(trace == 44)
 }
 
 #test
 {
     trace = 0
     voidResult()
-    Swag.assert(trace == 59)
+    Swag.require(trace == 59)
 }
 
 #test
@@ -133,7 +133,7 @@ func failureResult() fail
     catch failureResult() as errorOutcome
     let error = errorOutcome.value()
     if error do trace = trace * 10 + 9
-    Swag.assert(trace == 69)
+    Swag.require(trace == 69)
 }
 
 // Cleanup may handle its own failure without consuming the one being propagated.
@@ -145,8 +145,8 @@ func failureResult() fail
     catch failureResult() as errorOutcome
     let error = errorOutcome.value()
     failDuringDrop = false
-    Swag.assert(trace == 6)
-    Swag.assert(error != null)
-    if error is Failure as failure do Swag.assert(failure.code == 6)
-    else do Swag.assert(false)
+    Swag.require(trace == 6)
+    Swag.require(error != null)
+    if error is Failure as failure do Swag.require(failure.code == 6)
+    else do Swag.require(false)
 }

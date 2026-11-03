@@ -40,7 +40,7 @@ impl IConstrainedDynamicValue for RejectedDynamicValue
     var value: RejectedDynamicValue
     #assert(not (RejectedDynamicValue is IConstrainedDynamicValue))
     let boxed: any = &value
-    Swag.assert(not (boxed is IConstrainedDynamicValue))
+    Swag.require(not (boxed is IConstrainedDynamicValue))
 }
 
 struct(T) GenericConstrainedDynamicValue
@@ -61,13 +61,13 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
     var accepted  = GenericConstrainedDynamicValue's32{42}
     let boxedAccepted: any = &accepted
     let converted = catch cast(IConstrainedDynamicValue?, boxedAccepted)
-    Swag.assert(converted != null)
-    Swag.assert(converted.value() == 42)
+    Swag.require(converted != null)
+    Swag.require(converted.value() == 42)
 
     var rejected = GenericConstrainedDynamicValue's64{42}
     #assert(not (GenericConstrainedDynamicValue's64 is IConstrainedDynamicValue))
     let boxedRejected: any = &rejected
-    Swag.assert(not (boxedRejected is IConstrainedDynamicValue))
+    Swag.require(not (boxedRejected is IConstrainedDynamicValue))
 }
 
 #test
@@ -76,10 +76,10 @@ impl IConstrainedDynamicValue for GenericConstrainedDynamicValue
     let direct: IConstrainedDynamicValue = &value
     let boxed:  any = &value
     let converted   = catch cast(IConstrainedDynamicValue?, boxed)
-    Swag.assert(converted != null)
+    Swag.require(converted != null)
     if let view = converted
     {
-        Swag.assert(view.value() == 42)
-        Swag.assert(view == direct)
+        Swag.require(view.value() == 42)
+        Swag.require(view == direct)
     }
 }

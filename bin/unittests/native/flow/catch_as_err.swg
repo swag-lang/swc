@@ -38,14 +38,14 @@ func catchAsErrValue(ok: bool)->s32
 
 #test
 {
-    Swag.assert(catchAsErrRun(true) == 1000)
-    Swag.assert(catchAsErrRun(false) == 7)
+    Swag.require(catchAsErrRun(true) == 1000)
+    Swag.require(catchAsErrRun(false) == 7)
 }
 
 #test
 {
-    Swag.assert(catchAsErrValue(true) == 42)
-    Swag.assert(catchAsErrValue(false) == -7)
+    Swag.require(catchAsErrValue(true) == 42)
+    Swag.require(catchAsErrValue(false) == -7)
 }
 
 // An explicit owner keeps its runtime lowering when an inline fallible call folds
@@ -61,8 +61,8 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
     var errOutcome: Swag.Error
     let x   = catch catchAsErrInlineFoldable(63) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(x == 63)
-    Swag.assert(err == null)
+    Swag.require(x == 63)
+    Swag.require(err == null)
 }
 
 #test
@@ -71,7 +71,7 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
     var errOutcome: Swag.Error
     discard catch catchAsErrInlineFoldable(11) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err == null)
+    Swag.require(err == null)
 }
 
 #[Swag.Inline]
@@ -109,10 +109,10 @@ func catchAsErrReraise(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert(catch (catchAsErrReraise(true) == 5))
+    Swag.require(catch (catchAsErrReraise(true) == 5))
     var seen = 0
     discard catch catchAsErrReraise(false) { seen = assume cast(CatchAsErrError, Swag.err).code }
-    Swag.assert(seen == 7)
+    Swag.require(seen == 7)
 }
 
 var catchAsErrFailDeferCount: s32
@@ -135,9 +135,9 @@ func catchAsErrSuccessWithFailDefer() fail
     var previousErrorOutcome: Swag.Error
     catch catchAsErrMayFail(false) as previousErrorOutcome
     let previousError = previousErrorOutcome.value()
-    Swag.assert(previousError != null)
+    Swag.require(previousError != null)
 
     catchAsErrFailDeferCount = 0
     discard expect catchAsErrSuccessWithFailDefer()
-    Swag.assert(catchAsErrFailDeferCount == 0)
+    Swag.require(catchAsErrFailDeferCount == 0)
 }

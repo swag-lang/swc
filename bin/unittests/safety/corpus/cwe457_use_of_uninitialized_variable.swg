@@ -79,7 +79,7 @@ func loopLocalIsFreshEveryTurn()->s32
 
 #test
 {
-    Swag.assert(defaultsAreObservable())
-    Swag.assert(fieldsStartAtZero() == 3)
-    Swag.assert(loopLocalIsFreshEveryTurn() == 3)
+    Swag.require(defaultsAreObservable())
+    Swag.require(fieldsStartAtZero() == 3)
+    Swag.require(loopLocalIsFreshEveryTurn() == 3)
 }

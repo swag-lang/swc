@@ -87,20 +87,20 @@ func variadicAnyWideIntArray(values: ...)->bool
 
 #test
 {
-    Swag.assert(variadicAnyOnly() == 0)
-    Swag.assert(variadicAnyOnly(1, 2, 3, 4) == 4)
-    Swag.assert(variadicAnyWithHead(42) == 42)
-    Swag.assert(variadicAnyWithHead(42, "x", 1, false) == 45)
+    Swag.require(variadicAnyOnly() == 0)
+    Swag.require(variadicAnyOnly(1, 2, 3, 4) == 4)
+    Swag.require(variadicAnyWithHead(42) == 42)
+    Swag.require(variadicAnyWithHead(42, "x", 1, false) == 45)
 }
 
 #test
 {
-    Swag.assert(variadicAnyS32(1's32, 2's32, 3's32, 4's32) == 10)
-    Swag.assert(variadicAnyF64(10.0'f64, 0.5'f64, 1.25'f64) == 11.75'f64)
-    Swag.assert(variadicAnyBool(false, true, true) == 2)
-    Swag.assert(variadicAnyRune('a', 'b', 'c') == 294)
-    Swag.assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
-    Swag.assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias, VariadicStrictFlag.B)))
-    Swag.assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias, 1.5)))
-    Swag.assert(variadicAnyWideIntArray([1, 5_000_000_000]))
+    Swag.require(variadicAnyS32(1's32, 2's32, 3's32, 4's32) == 10)
+    Swag.require(variadicAnyF64(10.0'f64, 0.5'f64, 1.25'f64) == 11.75'f64)
+    Swag.require(variadicAnyBool(false, true, true) == 2)
+    Swag.require(variadicAnyRune('a', 'b', 'c') == 294)
+    Swag.require(variadicAnyString("ab", "cd", "ef") == 41'u8)
+    Swag.require(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias, VariadicStrictFlag.B)))
+    Swag.require(variadicAnyStrictF32(cast(VariadicStrictF32Alias, 1.5)))
+    Swag.require(variadicAnyWideIntArray([1, 5_000_000_000]))
 }

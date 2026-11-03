@@ -22,8 +22,8 @@ const CReg: [?] Holder = [
 {
     // Scalar local initialization
     let t: typeinfo = MyStruct
-    Swag.assert(t == MyStruct)
-    Swag.assert(t == #typeof(MyStruct))
+    Swag.require(t == MyStruct)
+    Swag.require(t == #typeof(MyStruct))
 }
 
 #test
@@ -31,19 +31,19 @@ const CReg: [?] Holder = [
     // Runtime struct literal, positional and named
     var h1: Holder = Holder{MyStruct, 1}
     var h2: Holder = Holder{t: OtherStruct, tag: 2}
-    Swag.assert(h1.t == MyStruct)
-    Swag.assert(h1.tag == 1)
-    Swag.assert(h2.t == OtherStruct)
-    Swag.assert(h2.tag == 2)
+    Swag.require(h1.t == MyStruct)
+    Swag.require(h1.tag == 1)
+    Swag.require(h2.t == OtherStruct)
+    Swag.require(h2.tag == 2)
 }
 
 #test
 {
     // Runtime array literal of typeinfo
     var arr: [2] typeinfo = [MyStruct, OtherStruct]
-    Swag.assert(arr[0] == MyStruct)
-    Swag.assert(arr[1] == OtherStruct)
-    Swag.assert(arr[0] != arr[1])
+    Swag.require(arr[0] == MyStruct)
+    Swag.require(arr[1] == OtherStruct)
+    Swag.require(arr[0] != arr[1])
 }
 
 #test
@@ -52,9 +52,9 @@ const CReg: [?] Holder = [
     var reg: [2] Holder = [
         Holder{MyStruct, 10},
         Holder{OtherStruct, 20}]
-    Swag.assert(reg[0].t == MyStruct)
-    Swag.assert(reg[1].t == OtherStruct)
-    Swag.assert(reg[0].tag == 10)
+    Swag.require(reg[0].t == MyStruct)
+    Swag.require(reg[1].t == OtherStruct)
+    Swag.require(reg[0].tag == 10)
 }
 
 #test
@@ -62,11 +62,11 @@ const CReg: [?] Holder = [
     // A typeinfo variable mixed with real values in the same literal
     let t: typeinfo = MyStruct
     var h: Holder   = Holder{t, 3}
-    Swag.assert(h.t == MyStruct)
-    Swag.assert(h.tag == 3)
+    Swag.require(h.t == MyStruct)
+    Swag.require(h.tag == 3)
 
     // The const registry is usable at runtime too
-    Swag.assert(CReg[0].t == MyStruct)
-    Swag.assert(CReg[0].t != CReg[1].t)
-    Swag.assert(CReg[1].tag == 20)
+    Swag.require(CReg[0].t == MyStruct)
+    Swag.require(CReg[0].t != CReg[1].t)
+    Swag.require(CReg[1].tag == 20)
 }

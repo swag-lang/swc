@@ -65,13 +65,13 @@ func escaped(p, q: s16)->s32
 #test
 {
     let p = makePair(1, 0xFFFFFFFF)
-    Swag.assert(p.a == 0xFFFFFFFF and p.b == 1)
-    Swag.assert(passPair(7, 8) == 7009)
+    Swag.require(p.a == 0xFFFFFFFF and p.b == 1)
+    Swag.require(passPair(7, 8) == 7009)
 
     let m = makeMixed(0xFE, -5)
-    Swag.assert(m.x == 0xFE and m.y == 0xAB and m.z == 300 and m.w == -5)
+    Swag.require(m.x == 0xFE and m.y == 0xAB and m.z == 300 and m.w == -5)
 
     let q = makeQuad(-2, 3)
-    Swag.assert(q.p == -2 and q.q == 3)
-    Swag.assert(escaped(4, -6) == 494)
+    Swag.require(q.p == -2 and q.q == 3)
+    Swag.require(escaped(4, -6) == 494)
 }

@@ -14,6 +14,6 @@ func(T) mixinTypeInfoValueArg()->bool
 
 #test
 {
-    Swag.assert(mixinTypeInfoValueArg's32())
-    Swag.assert(mixinTypeInfoValueArg'bool())
+    Swag.require(mixinTypeInfoValueArg's32())
+    Swag.require(mixinTypeInfoValueArg'bool())
 }

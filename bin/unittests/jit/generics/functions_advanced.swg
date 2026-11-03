@@ -66,49 +66,49 @@ func(T) unbox(box: Box'T)->T => box.value
 
 #test
 {
-    Swag.assert(minVal(3, 7) == 3)
-    Swag.assert(maxVal(3, 7) == 7)
-    Swag.assert(clamp(5, 0, 10) == 5)
-    Swag.assert(clamp(-5, 0, 10) == 0)
-    Swag.assert(clamp(15, 0, 10) == 10)
+    Swag.require(minVal(3, 7) == 3)
+    Swag.require(maxVal(3, 7) == 7)
+    Swag.require(clamp(5, 0, 10) == 5)
+    Swag.require(clamp(-5, 0, 10) == 0)
+    Swag.require(clamp(15, 0, 10) == 10)
 }
 
 #test
 {
-    Swag.assert(absValue(-5) == 5)
-    Swag.assert(absValue(5) == 5)
-    Swag.assert(absValue(0) == 0)
-    Swag.assert(absValue(-3.5) == 3.5)
+    Swag.require(absValue(-5) == 5)
+    Swag.require(absValue(5) == 5)
+    Swag.require(absValue(0) == 0)
+    Swag.require(absValue(-3.5) == 3.5)
 }
 
 #test
 {
-    Swag.assert(addTwo(0) == 2)
-    Swag.assert(addTwo(10) == 12)
-    Swag.assert(addTwo(1.5) == 3.5)
+    Swag.require(addTwo(0) == 2)
+    Swag.require(addTwo(10) == 12)
+    Swag.require(addTwo(1.5) == 3.5)
 }
 
 #test
 {
-    Swag.assert(castTo'(s32, f64)(42) == 42.0)
-    Swag.assert(castTo'(bool, s32)(true) == 1)
-    Swag.assert(castTo'(f64, s32)(3.7) == 3)
+    Swag.require(castTo'(s32, f64)(42) == 42.0)
+    Swag.require(castTo'(bool, s32)(true) == 1)
+    Swag.require(castTo'(f64, s32)(3.7) == 3)
 }
 
 #test
 {
-    Swag.assert(constProduct'(3, 4)() == 12)
-    Swag.assert(constProduct'(0, 100)() == 0)
-    Swag.assert(constDoubled'(7)() == 14)
+    Swag.require(constProduct'(3, 4)() == 12)
+    Swag.require(constProduct'(0, 100)() == 0)
+    Swag.require(constDoubled'(7)() == 14)
 }
 
 #test
 {
     let b = makeBox(99)
-    Swag.assert(b.value == 99)
-    Swag.assert(unbox(b) == 99)
+    Swag.require(b.value == 99)
+    Swag.require(unbox(b) == 99)
 
     let b2 = makeBox(makeBox(42))
-    Swag.assert(b2.value.value == 42)
-    Swag.assert(unbox(b2).value == 42)
+    Swag.require(b2.value.value == 42)
+    Swag.require(unbox(b2).value == 42)
 }

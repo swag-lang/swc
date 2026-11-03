@@ -107,7 +107,7 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var x: s32
     x = 7
-    Swag.assert(x == 7)
+    Swag.require(x == 7)
 }
 
 // A setter that reads a member before writing cannot receive raw storage.
@@ -115,7 +115,7 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var value: ObservesDefault
     value = 8
-    Swag.assert(value.marker == 41 and value.value == 8)
+    Swag.require(value.marker == 41 and value.value == 8)
 }
 
 // No #[Swag.FullInit] is required: the setter's resolved body proves that it
@@ -124,14 +124,14 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var value: FullyInitializedBySet
     value = 8
-    Swag.assert(value.first == 8 and value.second == 9)
+    Swag.require(value.first == 8 and value.second == 9)
 }
 
 // All fields are written before a read, so the 64-byte default is dead before
 // codegen and only the eight construction stores reach the backend.
 #test
 {
-    Swag.assert(defaultInitLoweringProbe(3) == 52)
+    Swag.require(defaultInitLoweringProbe(3) == 52)
 }
 
 // Out parameter: the default stays observable through the pointer.
@@ -139,7 +139,7 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var x: s32
     fillDefaultValue(&x)
-    Swag.assert(x == 42)
+    Swag.require(x == 42)
 }
 
 // Array fill loop: arrays retain their safe default until range coverage analysis
@@ -152,7 +152,7 @@ func defaultPair()->{ x: s32, y: s32 }
     var sum = 0's32
     for i in 8 do
         sum += arr[i]
-    Swag.assert(sum == 28)
+    Swag.require(sum == 28)
 }
 
 // Destructuring assignment initializes every element.
@@ -161,14 +161,14 @@ func defaultPair()->{ x: s32, y: s32 }
     var a: s32
     var b: s32
     {x: a, y: b} = defaultPair()
-    Swag.assert(a == 1 and b == 2)
+    Swag.require(a == 1 and b == 2)
 }
 
 // defer reading a variable initialized later.
 #test
 {
     var x: s32
-    defer Swag.assert(x == 9)
+    defer Swag.require(x == 9)
     x = 9
 }
 
@@ -181,9 +181,9 @@ func defaultPair()->{ x: s32, y: s32 }
     {
         var v: DefaultDrop
         v = makeDefaultDrop(5)
-        Swag.assert(v.value == 5)
+        Swag.require(v.value == 5)
     }
-    Swag.assert(g_defaultDropCount == 2)
+    Swag.require(g_defaultDropCount == 2)
 }
 
 // Same at field granularity.
@@ -195,9 +195,9 @@ func defaultPair()->{ x: s32, y: s32 }
         var o: DefaultOuter
         o.d = makeDefaultDrop(3)
         o.x = 4
-        Swag.assert(o.d.value == 3 and o.x == 4)
+        Swag.require(o.d.value == 3 and o.x == 4)
     }
-    Swag.assert(g_defaultDropCount == 2)
+    Swag.require(g_defaultDropCount == 2)
 }
 
 // Each replacement drops the previous valid value, then scope exit drops the last.
@@ -209,7 +209,7 @@ func defaultPair()->{ x: s32, y: s32 }
         var v: DefaultDrop
         v = makeDefaultDrop(1)
         v = makeDefaultDrop(2)
-        Swag.assert(v.value == 2)
+        Swag.require(v.value == 2)
     }
-    Swag.assert(g_defaultDropCount == 3)
+    Swag.require(g_defaultDropCount == 3)
 }

@@ -19,7 +19,7 @@ namespace compiler1064
     // #run fibonacci result persists at runtime
     #test
     {
-        Swag.assert(fibonacciOfAge == 987)
+        Swag.require(fibonacciOfAge == 987)
     }
 }
 
@@ -41,7 +41,7 @@ namespace compiler1386
     #test
     {
         using A, B
-        Swag.assert(#typeof(A.AA) != #typeof(B.BB))
+        Swag.require(#typeof(A.AA) != #typeof(B.BB))
     }
 }
 
@@ -60,7 +60,7 @@ namespace compiler1504
     #test
     {
         #run set()
-        Swag.assert(X == 6)
+        Swag.require(X == 6)
     }
 }
 
@@ -152,7 +152,7 @@ namespace compiler1665
     {
         var x: TT
         C(x)
-        Swag.assert(x.x == 456)
+        Swag.require(x.x == 456)
     }
 }
 
@@ -179,7 +179,7 @@ namespace compiler1667
     {
         var x: TT
         C(x)
-        Swag.assert(x.value == 456)
+        Swag.require(x.value == 456)
     }
 }
 
@@ -197,7 +197,7 @@ namespace compiler1672
     // #typeof on variadic element returns any
     #test
     {
-        Swag.assert(toto(5) == any)
+        Swag.require(toto(5) == any)
     }
 }
 
@@ -257,7 +257,7 @@ namespace compiler239
     #test
     {
         main()
-        Swag.assert(main1() == 77)
+        Swag.require(main1() == 77)
     }
 }
 
@@ -289,7 +289,7 @@ namespace compiler2447
     // #run result used as array size
     #test
     {
-        Swag.assert(arr.count == 10)
+        Swag.require(arr.count == 10)
     }
 }
 
@@ -314,7 +314,7 @@ namespace compiler250
     #test
     {
         main1()
-        Swag.assert(main() == 55)
+        Swag.require(main() == 55)
     }
 }
 
@@ -343,19 +343,19 @@ namespace compiler295
     //
     #test
     {
-        Swag.assert(#sizeof(bool) == 1)
-        Swag.assert(#sizeof(s8) == 1)
-        Swag.assert(#sizeof(s16) == 2)
-        Swag.assert(#sizeof(s32) == 4)
-        Swag.assert(#sizeof(s64) == 8)
-        Swag.assert(#sizeof(u8) == 1)
-        Swag.assert(#sizeof(u16) == 2)
-        Swag.assert(#sizeof(u32) == 4)
-        Swag.assert(#sizeof(u64) == 8)
-        Swag.assert(#sizeof(f32) == 4)
-        Swag.assert(#sizeof(f64) == 8)
-        Swag.assert(#sizeof(rune) == 4)
-        Swag.assert(#sizeof(string) == 8 + 8)
+        Swag.require(#sizeof(bool) == 1)
+        Swag.require(#sizeof(s8) == 1)
+        Swag.require(#sizeof(s16) == 2)
+        Swag.require(#sizeof(s32) == 4)
+        Swag.require(#sizeof(s64) == 8)
+        Swag.require(#sizeof(u8) == 1)
+        Swag.require(#sizeof(u16) == 2)
+        Swag.require(#sizeof(u32) == 4)
+        Swag.require(#sizeof(u64) == 8)
+        Swag.require(#sizeof(f32) == 4)
+        Swag.require(#sizeof(f64) == 8)
+        Swag.require(#sizeof(rune) == 4)
+        Swag.require(#sizeof(string) == 8 + 8)
     }
 }
 
@@ -398,12 +398,12 @@ namespace compiler296
     //
     #test
     {
-        Swag.assert(#sizeof(*bool) == 8)
-        Swag.assert(#sizeof(1's32) == 4)
-        Swag.assert(#sizeof(1'u64) == 8)
-        Swag.assert(#sizeof(1.0'f32) == 4)
-        Swag.assert(#sizeof(1.0'f64) == 8)
-        Swag.assert(#sizeof(5 * 4's32) == 4)
+        Swag.require(#sizeof(*bool) == 8)
+        Swag.require(#sizeof(1's32) == 4)
+        Swag.require(#sizeof(1'u64) == 8)
+        Swag.require(#sizeof(1.0'f32) == 4)
+        Swag.require(#sizeof(1.0'f64) == 8)
+        Swag.require(#sizeof(5 * 4's32) == 4)
     }
 }
 
@@ -438,8 +438,8 @@ namespace compiler3029
     #test
     {
         let {x: x1, y: y1} = #run toto(2, 2)
-        Swag.assert(x1 == 4)
-        Swag.assert(y1 == 8)
+        Swag.require(x1 == 4)
+        Swag.require(y1 == 8)
     }
 }
 
@@ -471,7 +471,7 @@ namespace compiler3120
     #test
     {
         const Msg = #run mySillyFunction()
-        Swag.assert(Msg == "666")
+        Swag.require(Msg == "666")
     }
 }
 
@@ -498,7 +498,7 @@ namespace compiler3324
             return ret
         }
 
-        Swag.assert(a == 660)
+        Swag.require(a == 660)
     }
 }
 
@@ -542,9 +542,9 @@ namespace compiler334
     #test
     {
         var a: [2, 2] s32
-        Swag.assert(#sizeof(a) == 16)
+        Swag.require(#sizeof(a) == 16)
         var b: [5, 5] bool
-        Swag.assert(#sizeof(b) == 25)
+        Swag.require(#sizeof(b) == 25)
     }
 }
 
@@ -567,8 +567,8 @@ namespace compiler345
     {
         var a: s32
         var b: *s32
-        Swag.assert(#typeof(a) == s32)
-        Swag.assert(#typeof(b) == *s32)
+        Swag.require(#typeof(a) == s32)
+        Swag.require(#typeof(b) == *s32)
     }
 }
 
@@ -579,7 +579,7 @@ namespace compiler350
     {
         const a = 666
         let b = #run a
-        Swag.assert(b == 666)
+        Swag.require(b == 666)
     }
 }
 
@@ -728,9 +728,9 @@ namespace compiler4849
             return [cast(any, "first"), cast(any, "second")]
         }
 
-        Swag.assert(assume cast(string, value.item) == "abc")
-        Swag.assert(assume cast(string, value.other) == "def")
-        Swag.assert(assume cast(string, values[0]) == "first")
-        Swag.assert(assume cast (string, values[1]) == "second")
+        Swag.require(assume cast(string, value.item) == "abc")
+        Swag.require(assume cast(string, value.other) == "def")
+        Swag.require(assume cast(string, values[0]) == "first")
+        Swag.require(assume cast (string, values[1]) == "second")
     }
 }

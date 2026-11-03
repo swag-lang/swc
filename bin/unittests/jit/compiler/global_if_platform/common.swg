@@ -7,12 +7,12 @@ public struct Value { data: s32 = 42 }
 #test
 {
     var value: Value
-    Swag.assert(answer() == 42)
-    Swag.assert(genericAnswer(9) == 42)
-    Swag.assert(value.read() == 42)
-    Swag.assert(first == 11 and second == 22)
+    Swag.require(answer() == 42)
+    Swag.require(genericAnswer(9) == 42)
+    Swag.require(value.read() == 42)
+    Swag.require(first == 11 and second == 22)
     let selected: Choice = Choice{value: 31}
     let result:   Result = selected.value
-    Swag.assert(result == 31)
-    Swag.assert(Shared.selected() == 19)
+    Swag.require(result == 31)
+    Swag.require(Shared.selected() == 19)
 }

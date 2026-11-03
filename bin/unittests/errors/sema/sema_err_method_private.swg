@@ -5,7 +5,7 @@
 #test
 {
     var s: AccessSafe
-    Swag.assert(s.pick(1) == 5)
+    Swag.require(s.pick(1) == 5)
 }
 
 #test

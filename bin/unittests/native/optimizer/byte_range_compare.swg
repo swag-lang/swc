@@ -38,12 +38,12 @@ func within(v, lo, hi: u32)->bool => v >= lo and v <= hi
         let c = cast(u8, v)
         all[v] = c
         let u = cast(u32, v)
-        Swag.assert(isUpper(c) == within(u, 65, 90))
-        Swag.assert(isDigit(c) == within(u, 48, 57))
-        Swag.assert(isHigh(c) == within(u, 200, 255))
-        Swag.assert(isLow(c) == within(u, 0, 31))
+        Swag.require(isUpper(c) == within(u, 65, 90))
+        Swag.require(isDigit(c) == within(u, 48, 57))
+        Swag.require(isHigh(c) == within(u, 200, 255))
+        Swag.require(isLow(c) == within(u, 0, 31))
     }
 
-    Swag.assert(countUpper(all) == 26)
-    Swag.assert(countUpper("Hello World, ABC xyz Z@[") == 6)
+    Swag.require(countUpper(all) == 26)
+    Swag.require(countUpper("Hello World, ABC xyz Z@[") == 6)
 }

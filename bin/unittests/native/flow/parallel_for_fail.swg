@@ -30,7 +30,7 @@ func failCopied() fail
     var serialErrorOutcome: Swag.Error
     catch failCopied() as serialErrorOutcome
     let serialError = serialErrorOutcome.value()
-    Swag.assert(serialError != null and (serialError is CopiedLoopFailure))
+    Swag.require(serialError != null and (serialError is CopiedLoopFailure))
     let serialGeneration = assume cast(const *CopiedLoopFailure, serialError).generation
     for &drops in copiedErrorDrops do
         drops.store(0)
@@ -41,10 +41,10 @@ func failCopied() fail
         try failCopied()
     } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is CopiedLoopFailure))
+    Swag.require(error != null and (error is CopiedLoopFailure))
     let generation = assume cast(const *CopiedLoopFailure, error).generation
-    Swag.assert(generation == serialGeneration + 2)
-    Swag.assert(copiedErrorDrops[serialGeneration + 1].load() == 1)
+    Swag.require(generation == serialGeneration + 2)
+    Swag.require(copiedErrorDrops[serialGeneration + 1].load() == 1)
 }
 
 func failAt(index: u64) fail
@@ -74,19 +74,19 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     var unwound: Swag.AtomicValue'u32
     expect fillFallible(values, Swag.U64.Max, &unwound)
     for index in 257 do
-        Swag.assert(values[index] == index + 1)
-    Swag.assert(unwound.load() == 0)
+        Swag.require(values[index] == index + 1)
+    Swag.require(unwound.load() == 0)
 
     var errorOutcome: Swag.Error
     catch fillFallible(values, 128, &unwound) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is LoopFailure))
+    Swag.require(error != null and (error is LoopFailure))
     let detail = assume cast(const *LoopFailure, error)
-    Swag.assert(detail.index == 128)
+    Swag.require(detail.index == 128)
     for slot in 32 do
-        Swag.assert(detail.data[slot] == 12800 + slot)
-    Swag.assert(unwound.load() == 1)
-    Swag.assert(values[128] == 129)
+        Swag.require(detail.data[slot] == 12800 + slot)
+    Swag.require(unwound.load() == 1)
+    Swag.require(values[128] == 129)
 
     var emptyErrorOutcome: Swag.Error
     catch parallel for || index in 0
@@ -94,7 +94,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         try failAt(index)
     } as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
-    Swag.assert(emptyError == null)
+    Swag.require(emptyError == null)
 }
 
 // Every active body has left before the error escapes, including its failure defers.
@@ -112,12 +112,12 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         try failAt(index)
     } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is LoopFailure))
-    Swag.assert(active.load() == 0 and finished.load() > 0)
+    Swag.require(error != null and (error is LoopFailure))
+    Swag.require(active.load() == 0 and finished.load() > 0)
     let detail = assume cast(const *LoopFailure, error)
-    Swag.assert(detail.index < 1024)
+    Swag.require(detail.index < 1024)
     for slot in 32 do
-        Swag.assert(detail.data[slot] == detail.index * 100 + slot)
+        Swag.require(detail.data[slot] == detail.index * 100 + slot)
 }
 
 // Catch handlers run once on the caller, and handled failures do not poison a later loop.
@@ -128,13 +128,13 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         try failAt(index)
             do
         handled += 1
-    Swag.assert(handled == 1)
+    Swag.require(handled == 1)
 
     var values: [17] u64
     expect parallel for |&values| index in 17 do
         values[index] = index + 1
     for index in 17 do
-        Swag.assert(values[index] == index + 1)
+        Swag.require(values[index] == index + 1)
 }
 
 // Nested failures cross two joins; both loops retain their captured frames through cleanup.
@@ -153,10 +153,10 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         }
     } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(active.load() == 0)
-    Swag.assert(error != null and (error is LoopFailure))
+    Swag.require(active.load() == 0)
+    Swag.require(error != null and (error is LoopFailure))
     let detail = assume cast(const *LoopFailure, error)
-    Swag.assert(detail.index < 64 and detail.index % 8 == 3)
+    Swag.require(detail.index < 64 and detail.index % 8 == 3)
 }
 
 // Concurrent callers share a body profile, but never an error owner or captured destination.
@@ -183,5 +183,5 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         }
     }
     for row in 8 do
-        Swag.assert(results[row] == row * 1000 + 128)
+        Swag.require(results[row] == row * 1000 + 128)
 }

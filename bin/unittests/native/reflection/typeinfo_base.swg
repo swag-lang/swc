@@ -57,9 +57,9 @@ func getDeclaredType(useString: bool)->typeinfo
     var y: #decltype(type1)
     #assert(#typeof(x) == s32)
     #assert(#typeof(y) == string)
-    Swag.assert(x == 0)
+    Swag.require(x == 0)
     y = "hello"
-    Swag.assert(y == "hello")
+    Swag.require(y == "hello")
 }
 
 const PA = cast(const *Swag.TypeInfoStruct, #typeof(A))
@@ -91,16 +91,16 @@ const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped
     const e: typeinfo = #typeof(f32)
     #assert(a != e)
     #assert(e != s32)
-    Swag.assert(a == b)
-    Swag.assert(a == s32)
-    Swag.assert(a != e)
+    Swag.require(a == b)
+    Swag.require(a == s32)
+    Swag.require(a != e)
 }
 
 #test
 {
     const p = #typeof(*s32)
     #assert(cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
-    Swag.assert(cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
+    Swag.require(cast(const *Swag.TypeInfoPointer, p).pointedType == s32)
 }
 
 #test
@@ -116,7 +116,7 @@ const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped
         break
     }
 
-    Swag.assert(hit)
+    Swag.require(hit)
 }
 
 #test
@@ -134,14 +134,14 @@ const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped
         break
     }
 
-    Swag.assert(hit)
+    Swag.require(hit)
 }
 
 #test
 {
     const t = #typeof(A)
     #assert(cast(const *Swag.TypeInfo, t).name == "A")
-    Swag.assert(cast(const *Swag.TypeInfo, t).name == "A")
+    Swag.require(cast(const *Swag.TypeInfo, t).name == "A")
 }
 
 #test
@@ -150,6 +150,6 @@ const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped
     const wrapperType = #typeof(Scoped.Wrapper'(Scoped.Box))
     #assert(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
     #assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
-    Swag.assert(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
-    Swag.assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    Swag.require(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
+    Swag.require(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
 }

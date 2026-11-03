@@ -40,8 +40,8 @@ func staggered(first, second: u32)->u32
 
 #test
 {
-    Swag.assert(spread(3, false) == 3333)
-    Swag.assert(spread(2, true) == 302)
-    Swag.assert(staggered(1, 2) == 2121)
-    Swag.assert(staggered(7, 9) == 9797)
+    Swag.require(spread(3, false) == 3333)
+    Swag.require(spread(2, true) == 302)
+    Swag.require(staggered(1, 2) == 2121)
+    Swag.require(staggered(7, 9) == 9797)
 }

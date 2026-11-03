@@ -24,8 +24,8 @@ func nestedFailures(levels: u32)->u32 fail
 #test
 {
     let depth = Swag.getContext().errorIndex
-    Swag.assert((catch nestedCatches(300)) == 300)
-    Swag.assert(Swag.getContext().errorIndex == depth)
+    Swag.require((catch nestedCatches(300)) == 300)
+    Swag.require(Swag.getContext().errorIndex == depth)
 }
 
 // A failure at every level of a deep stack is caught by each level in turn.
@@ -35,8 +35,8 @@ func nestedFailures(levels: u32)->u32 fail
     var errorOutcome: Swag.Error
     discard catch nestedFailures(100) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null)
-    Swag.assert(Swag.getContext().errorIndex == depth)
+    Swag.require(error != null)
+    Swag.require(Swag.getContext().errorIndex == depth)
 }
 
 // Only the first levels of the error stack live in the context, which keeps it small.

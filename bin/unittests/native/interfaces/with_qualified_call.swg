@@ -46,7 +46,7 @@ func withQualifiedThroughPointer(thing: *WithQualifiedThing, owner: *WithQualifi
     var owner: WithQualifiedOwner
     var thing: WithQualifiedThing
     thing.IWithQualifiedSetup.setup(&owner)
-    Swag.assert(thing.owner == &owner)
+    Swag.require(thing.owner == &owner)
 
     var other: WithQualifiedThing
     with other
@@ -54,12 +54,12 @@ func withQualifiedThroughPointer(thing: *WithQualifiedThing, owner: *WithQualifi
         .IWithQualifiedSetup.setup(&owner)
         .value = 2
     }
-    Swag.assert(other.owner == &owner)
-    Swag.assert(other.IWithQualifiedSetup.total() == 3)
-    Swag.assert(owner.count == 2)
+    Swag.require(other.owner == &owner)
+    Swag.require(other.IWithQualifiedSetup.total() == 3)
+    Swag.require(owner.count == 2)
 
     var third: WithQualifiedThing
-    Swag.assert(withQualifiedThroughPointer(&third, &owner) == 6)
-    Swag.assert(third.owner == &owner)
-    Swag.assert(owner.count == 3)
+    Swag.require(withQualifiedThroughPointer(&third, &owner) == 6)
+    Swag.require(third.owner == &owner)
+    Swag.require(owner.count == 3)
 }

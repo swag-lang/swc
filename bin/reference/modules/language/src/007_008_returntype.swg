@@ -15,7 +15,7 @@ return types such as tuples.
         return result
     }
 
-    Swag.assert(toto() == 10)
+    Swag.require(toto() == 10)
 }
 
 /**
@@ -46,9 +46,9 @@ step by step.
     }
 
     let {x: r, y: g, z: b} = getWhite()
-    Swag.assert(r == 0.5)
-    Swag.assert(g == 0.1)
-    Swag.assert(b == 1.0)
+    Swag.require(r == 0.5)
+    Swag.require(g == 0.1)
+    Swag.require(b == 1.0)
 }
 
 /**
@@ -67,9 +67,9 @@ it, without an intermediate copy.
     }
 
     var arr = toto()
-    Swag.assert(arr[0] == 0)
-    Swag.assert(arr[100] == 100)
-    Swag.assert(arr[254] == 254)
+    Swag.require(arr[0] == 0)
+    Swag.require(arr[100] == 100)
+    Swag.require(arr[254] == 254)
 }
 
 /**
@@ -89,9 +89,9 @@ local change under it nor changes what was returned.
         return Swag.min(result, 100)
     }
 
-    Swag.assert(clampedDouble(-4) == 0)
-    Swag.assert(clampedDouble(4) == 8)
-    Swag.assert(clampedDouble(80) == 100)
+    Swag.require(clampedDouble(-4) == 0)
+    Swag.require(clampedDouble(4) == 8)
+    Swag.require(clampedDouble(80) == 100)
 
     func counted()->s32
     {
@@ -100,5 +100,5 @@ local change under it nor changes what was returned.
         return result
     }
 
-    Swag.assert(counted() == 1)
+    Swag.require(counted() == 1)
 }

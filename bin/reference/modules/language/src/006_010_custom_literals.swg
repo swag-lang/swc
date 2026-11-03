@@ -56,10 +56,10 @@ func toto(x: Duration) => Swag.assert(x.timeInSeconds > 0)
     let delayMinutes:      Duration = 2'min
     let delayHours:        Duration = 1'h
 
-    Swag.assert(delaySeconds.timeInSeconds == 5.0)
-    Swag.assert(delayMilliseconds.timeInSeconds == 0.5)
-    Swag.assert(delayMinutes.timeInSeconds == 120.0)
-    Swag.assert(delayHours.timeInSeconds == 3600.0)
+    Swag.require(delaySeconds.timeInSeconds == 5.0)
+    Swag.require(delayMilliseconds.timeInSeconds == 0.5)
+    Swag.require(delayMinutes.timeInSeconds == 120.0)
+    Swag.require(delayHours.timeInSeconds == 3600.0)
 
     // Use the 'Duration' type in functions
     toto(5'ms)

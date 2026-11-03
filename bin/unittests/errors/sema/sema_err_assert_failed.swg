@@ -21,11 +21,11 @@ func failRequireWithoutAssertions()->s64
 #test
 {
     const V = #run failAnyCastAssert()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }
 
 #test
 {
     const W = #run failRequireWithoutAssertions()
-    Swag.assert(W == 0)
+    Swag.require(W == 0)
 }

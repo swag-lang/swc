@@ -129,8 +129,8 @@ impl Container
     let c = r.center()
 
     #assert(#typeof(c) == Vec2's32)
-    Swag.assert(c.x == 10)
-    Swag.assert(c.y == 5)
+    Swag.require(c.x == 10)
+    Swag.require(c.y == 5)
 }
 
 // Test: cross-struct param deduction (Vec2 in Rect's impl)
@@ -141,10 +141,10 @@ impl Container
     let moved = r.translate(&offset)
 
     #assert(#typeof(moved) == Rect's32)
-    Swag.assert(moved.min.x == 5)
-    Swag.assert(moved.min.y == -3)
-    Swag.assert(moved.max.x == 15)
-    Swag.assert(moved.max.y == 7)
+    Swag.require(moved.min.x == 5)
+    Swag.require(moved.min.y == -3)
+    Swag.require(moved.max.x == 15)
+    Swag.require(moved.max.y == 7)
 }
 
 // Test: scale with deduced return type
@@ -154,10 +154,10 @@ impl Container
     let scaled      = r.scale(10)
 
     #assert(#typeof(scaled) == Rect's32)
-    Swag.assert(scaled.min.x == 10)
-    Swag.assert(scaled.min.y == 20)
-    Swag.assert(scaled.max.x == 30)
-    Swag.assert(scaled.max.y == 40)
+    Swag.require(scaled.min.x == 10)
+    Swag.require(scaled.min.y == 20)
+    Swag.require(scaled.max.x == 30)
+    Swag.require(scaled.max.y == 40)
 }
 
 // Test: self-type deduction in Vec2
@@ -168,8 +168,8 @@ impl Container
     let sum         = a.add(&b)
 
     #assert(#typeof(sum) == Vec2's32)
-    Swag.assert(sum.x == 11)
-    Swag.assert(sum.y == 22)
+    Swag.require(sum.x == 11)
+    Swag.require(sum.y == 22)
 }
 
 // Test: deduction with Vec2 negate
@@ -179,8 +179,8 @@ impl Container
     let neg         = v.negate()
 
     #assert(#typeof(neg) == Vec2's32)
-    Swag.assert(neg.x == -3)
-    Swag.assert(neg.y == 7)
+    Swag.require(neg.x == -3)
+    Swag.require(neg.y == 7)
 }
 
 // Test: member lookup on a bare generic root still uses the current specialization
@@ -190,8 +190,8 @@ impl Container
     let doubled     = v.doubled()
 
     #assert(#typeof(doubled) == Vec2's32)
-    Swag.assert(doubled.x == 6)
-    Swag.assert(doubled.y == 8)
+    Swag.require(doubled.x == 6)
+    Swag.require(doubled.y == 8)
 }
 
 // Test: deduction in Container (cross-struct matching T)
@@ -201,8 +201,8 @@ impl Container
     let v = c.getVec()
 
     #assert(#typeof(v) == Vec2's32)
-    Swag.assert(v.x == 42)
-    Swag.assert(v.y == 99)
+    Swag.require(v.x == 42)
+    Swag.require(v.y == 99)
 }
 
 // Test: deduction with s64 type
@@ -212,8 +212,8 @@ impl Container
     let c = r.center()
 
     #assert(#typeof(c) == Vec2's64)
-    Swag.assert(c.x == 50000)
-    Swag.assert(c.y == 25000)
+    Swag.require(c.x == 50000)
+    Swag.require(c.y == 25000)
 }
 
 // Test: deduction with Wrapper
@@ -223,5 +223,5 @@ impl Container
     let val = w.get()
 
     #assert(#typeof(val) == s32)
-    Swag.assert(val == 42)
+    Swag.require(val == 42)
 }

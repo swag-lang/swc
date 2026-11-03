@@ -4,5 +4,5 @@
 #test
 {
     if not Swag.jit() do
-        Swag.assert(Swag.getContext().runtimeTlsIdPlusOne != 0)
+        Swag.require(Swag.getContext().runtimeTlsIdPlusOne != 0)
 }

@@ -29,7 +29,7 @@ const FUNC_TYPE   = #typeof(genericFlagRepeat'(u16, 3))
 
 #test
 {
-    Swag.assert(not (PLAIN_TYPE.flags & TypeInfoFlags.Generic))
-    Swag.assert(STRUCT_TYPE.flags & TypeInfoFlags.Generic)
-    Swag.assert(FUNC_TYPE.flags & TypeInfoFlags.Generic)
+    Swag.require(not (PLAIN_TYPE.flags & TypeInfoFlags.Generic))
+    Swag.require(STRUCT_TYPE.flags & TypeInfoFlags.Generic)
+    Swag.require(FUNC_TYPE.flags & TypeInfoFlags.Generic)
 }

@@ -24,14 +24,14 @@ using Swag
         let segment = unwrap allocatorAcquireSegment(&owner, shift)
         segments[i] = segment
         let base = cast(u64, segment)
-        Swag.assert(allocatorPageOf(base + AllocatorSegmentHeaderBytes) == &segment.pages[0])
-        Swag.assert(allocatorPageOf(base + AllocatorSegmentSize - 1) == &segment.pages[segment.pageCount - 1])
+        Swag.require(allocatorPageOf(base + AllocatorSegmentHeaderBytes) == &segment.pages[0])
+        Swag.require(allocatorPageOf(base + AllocatorSegmentSize - 1) == &segment.pages[segment.pageCount - 1])
         for unit in AllocatorUnitsPerSegment do
-            Swag.assert(allocatorPageOf(base + cast(u64, unit) * AllocatorPageSize) == &segment.pages[unit >> shift])
+            Swag.require(allocatorPageOf(base + cast(u64, unit) * AllocatorPageSize) == &segment.pages[unit >> shift])
     }
 
-    Swag.assert(allocatorPageOf(0) == null)
-    Swag.assert(allocatorPageOf(cast(u64, &owner)) == null)
+    Swag.require(allocatorPageOf(0) == null)
+    Swag.require(allocatorPageOf(cast(u64, &owner)) == null)
 
     var allocator: Allocator
     allocator.setup()
@@ -42,12 +42,12 @@ using Swag
         var request: AllocatorRequest
         request.size = size
         itf.alloc(&request)
-        Swag.assert(request.address != null)
+        Swag.require(request.address != null)
         let block = cast([*] u8, request.address)
         block[0]        = 17
         block[size - 1] = 29
-        Swag.assert(block[0] == 17 and block[size - 1] == 29)
+        Swag.require(block[0] == 17 and block[size - 1] == 29)
         itf.free(&request)
-        Swag.assert(request.address == null)
+        Swag.require(request.address == null)
     }
 }

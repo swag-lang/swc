@@ -30,18 +30,18 @@ func checked(a, b: u64)->u64 => (a & 1) * b
     for a in values
     {
         let odd = (a & 1) != 0
-        Swag.assert(same(a) == (odd ? a : 0))
+        Swag.require(same(a) == (odd ? a : 0))
         for b in values
         {
             let expected = odd ? b : 0
-            Swag.assert(low(a, b) == expected)
-            Swag.assert(reversed(a, b) == expected)
-            Swag.assert(narrow(cast(u32, (a & 0xFFFFFFFF)), cast(u32, (b & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
-            Swag.assert(shifted(a, b) == ((a & 0x20000) != 0 ? b : 0))
-            Swag.assert(sharedInput(a, b) == (expected ^ a))
-            Swag.assert(sharedMask(a, b) == expected + (a & 1))
-            Swag.assert(signed(cast #bit(s64, a), cast #bit(s64, b)) == cast #bit(s64, expected))
-            Swag.assert(checked(a, b) == expected)
+            Swag.require(low(a, b) == expected)
+            Swag.require(reversed(a, b) == expected)
+            Swag.require(narrow(cast(u32, (a & 0xFFFFFFFF)), cast(u32, (b & 0xFFFFFFFF))) == cast(u32, (expected & 0xFFFFFFFF)))
+            Swag.require(shifted(a, b) == ((a & 0x20000) != 0 ? b : 0))
+            Swag.require(sharedInput(a, b) == (expected ^ a))
+            Swag.require(sharedMask(a, b) == expected + (a & 1))
+            Swag.require(signed(cast #bit(s64, a), cast #bit(s64, b)) == cast #bit(s64, expected))
+            Swag.require(checked(a, b) == expected)
         }
     }
 }

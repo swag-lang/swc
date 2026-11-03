@@ -17,14 +17,14 @@ They can be used for clarity or grouping, but they are not required.
     var a = 0
 
     if a == 1 do
-        Swag.assert(false)
+        Swag.require(false)
 
     if a == 1 do
-        Swag.assert(false)
+        Swag.require(false)
 
     if a == 0
     {
-        Swag.assert(true)
+        Swag.require(true)
     }
 
     // The 'else' keyword works as in most languages.
@@ -33,26 +33,26 @@ They can be used for clarity or grouping, but they are not required.
         a += 1
     else do
         a += 2
-    Swag.assert(a == 1)
+    Swag.require(a == 1)
 
     // 'elif' functions like 'else if' in other languages.
     if a == 1 do
         a += 1
     else do
         if a == 2 do
-            Swag.assert(false)
+            Swag.require(false)
         elif a == 3 do
-            Swag.assert(false)
+            Swag.require(false)
         elif a == 4 do
-            Swag.assert(false)
+            Swag.require(false)
 
     // Logical expressions work as expected with 'and' and 'or'.
     if a == 0 and a == 1 do
-        Swag.assert(false)
+        Swag.require(false)
     if a == 0 or a == 1 do
-        Swag.assert(false)
+        Swag.require(false)
     if a == 1 or a == 2 do
-        Swag.assert(true)
+        Swag.require(true)
 }
 
 /**
@@ -71,19 +71,19 @@ non-zero (or non-null) values are considered `true`.
     // Since 'a' is 0, the condition is false and the block will not execute.
     if let a = 0
     {
-        Swag.assert(a != 0)
+        Swag.require(a != 0)
     }
 
     // Redeclare 'a' as a constant in another scope.
     // Since 'a' is 1, the block will execute.
     if const a = 1 do
-        Swag.assert(a == 1)
+        Swag.require(a == 1)
     else do
-        Swag.assert(false)
+        Swag.require(false)
     if let a = 1 do
-        Swag.assert(a == 1)
+        Swag.require(a == 1)
     else do
-        Swag.assert(false)
+        Swag.require(false)
 }
 
 /**
@@ -100,15 +100,15 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
 
     // The 'where' clause runs only if 'str' is not null.
     if let str = retSomething() where str[0] == 's' do
-        Swag.assert(true)
+        Swag.require(true)
     else do
-        Swag.assert(false)
+        Swag.require(false)
 
     // Since 'retNothing()' returns null, the 'where' clause is skipped.
     if let str = retNothing() where str[0] == 's' do
-        Swag.assert(false)
+        Swag.require(false)
     else do
-        Swag.assert(true)
+        Swag.require(true)
 }
 
 /**
@@ -127,9 +127,9 @@ A false guard continues to the next branch. `elif` accepts the same binding form
 {
     let value: any = 42's32
     if value is s32 as number where number[] > 0 do
-        Swag.assert(number[] == 42)
+        Swag.require(number[] == 42)
     elif value is string as text do
-        Swag.assert(text[].count != 0)
+        Swag.require(text[].count != 0)
     else do
-        Swag.assert(false)
+        Swag.require(false)
 }

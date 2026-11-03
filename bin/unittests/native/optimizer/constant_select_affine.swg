@@ -37,22 +37,22 @@ func reused(a, b: u64)->u64
         for b in values
         {
             let low = a < b
-            Swag.assert(adjacent(a, b) == (low ? 4 : 3))
-            Swag.assert(doubled(a, b) == (low ? 5 : 3))
-            Swag.assert(tripled(a, b) == (low ? 10 : 7))
-            Swag.assert(quadrupled(a, b) == (low ? 7 : 3))
-            Swag.assert(five(a, b) == (low ? 12 : 7))
-            Swag.assert(eight(a, b) == (low ? 9 : 1))
-            Swag.assert(nine(a, b) == (low ? 16 : 7))
-            Swag.assert(reversed(a, b) == (low ? 3 : 5))
-            Swag.assert(wrapped(a, b) == (a == b ? 1'u64 : 0xFFFFFFFFFFFFFFFF))
+            Swag.require(adjacent(a, b) == (low ? 4 : 3))
+            Swag.require(doubled(a, b) == (low ? 5 : 3))
+            Swag.require(tripled(a, b) == (low ? 10 : 7))
+            Swag.require(quadrupled(a, b) == (low ? 7 : 3))
+            Swag.require(five(a, b) == (low ? 12 : 7))
+            Swag.require(eight(a, b) == (low ? 9 : 1))
+            Swag.require(nine(a, b) == (low ? 16 : 7))
+            Swag.require(reversed(a, b) == (low ? 3 : 5))
+            Swag.require(wrapped(a, b) == (a == b ? 1'u64 : 0xFFFFFFFFFFFFFFFF))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(narrow(a32, b32) == (a32 == b32 ? 1'u32 : 0xFFFFFFFF))
-            Swag.assert(reused(a, b) == (low ? 5'u64 : 3) + (a == b ? 7'u64 : 11))
+            Swag.require(narrow(a32, b32) == (a32 == b32 ? 1'u32 : 0xFFFFFFFF))
+            Swag.require(reused(a, b) == (low ? 5'u64 : 3) + (a == b ? 7'u64 : 11))
         }
     }
-    Swag.assert(signedValues(-1, 0) == -3)
-    Swag.assert(signedValues(0, -1) == 5)
-    Swag.assert(signedValues(-1, -1) == 5)
+    Swag.require(signedValues(-1, 0) == -3)
+    Swag.require(signedValues(0, -1) == 5)
+    Swag.require(signedValues(-1, -1) == 5)
 }

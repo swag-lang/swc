@@ -387,7 +387,7 @@ func jitForeachVisitReturn()->bool
 
 #test
 {
-    Swag.assert(jitForeachVisitReturn())
+    Swag.require(jitForeachVisitReturn())
 }
 
 #test

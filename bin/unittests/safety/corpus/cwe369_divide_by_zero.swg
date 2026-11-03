@@ -79,7 +79,7 @@ func divideFloatByZero(value, divisor: f32)->f32
 #test
 {
     let result = divideFloatByZero(opaqueF32(1.0), opaqueF32(0.0))
-    Swag.assert(result > 0)
+    Swag.require(result > 0)
 }
 
 // An intrinsic argument outside its domain is the same class: a partial function applied
@@ -107,7 +107,7 @@ func divideByGuardedDivisor(value, divisor: s32)->s32
 
 #test
 {
-    Swag.assert(divideByGuardedDivisor(opaqueS32(10), opaqueS32(0)) == 0)
-    Swag.assert(divideByGuardedDivisor(opaqueS32(10), opaqueS32(2)) == 5)
-    Swag.assert(Swag.sqrt(opaqueF32(4.0)) == 2.0)
+    Swag.require(divideByGuardedDivisor(opaqueS32(10), opaqueS32(0)) == 0)
+    Swag.require(divideByGuardedDivisor(opaqueS32(10), opaqueS32(2)) == 5)
+    Swag.require(Swag.sqrt(opaqueF32(4.0)) == 2.0)
 }

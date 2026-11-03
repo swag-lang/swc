@@ -48,8 +48,8 @@ impl RuntimeArithAssignBox
     var box = RuntimeArithAssignBox{value: 100}
     box -= 37
 
-    Swag.assert(box.value == 63)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 63)
+    Swag.require(box.calls == 1)
 }
 
 // Test: /=
@@ -58,8 +58,8 @@ impl RuntimeArithAssignBox
     var box = RuntimeArithAssignBox{value: 100}
     box /= 4
 
-    Swag.assert(box.value == 25)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 25)
+    Swag.require(box.calls == 1)
 }
 
 // Test: %=
@@ -68,8 +68,8 @@ impl RuntimeArithAssignBox
     var box = RuntimeArithAssignBox{value: 17}
     box %= 5
 
-    Swag.assert(box.value == 2)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 2)
+    Swag.require(box.calls == 1)
 }
 
 // Test: sequential chained assigns
@@ -80,8 +80,8 @@ impl RuntimeArithAssignBox
     box *= 3
     box -= 15
 
-    Swag.assert(box.value == 30)
-    Swag.assert(box.calls == 3)
+    Swag.require(box.value == 30)
+    Swag.require(box.calls == 3)
 }
 
 // Test: -= to negative
@@ -90,8 +90,8 @@ impl RuntimeArithAssignBox
     var box = RuntimeArithAssignBox{value: 3}
     box -= 10
 
-    Swag.assert(box.value == -7)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == -7)
+    Swag.require(box.calls == 1)
 }
 
 // ============================================================================
@@ -142,8 +142,8 @@ impl RuntimeBitAssignBox
     var box = RuntimeBitAssignBox{value: 0xFF}
     box &= 0x0F
 
-    Swag.assert(box.value == 0x0F)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 0x0F)
+    Swag.require(box.calls == 1)
 }
 
 // Test: |=
@@ -152,8 +152,8 @@ impl RuntimeBitAssignBox
     var box = RuntimeBitAssignBox{value: 0xF0}
     box |= 0x0F
 
-    Swag.assert(box.value == 0xFF)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 0xFF)
+    Swag.require(box.calls == 1)
 }
 
 // Test: ^=
@@ -162,8 +162,8 @@ impl RuntimeBitAssignBox
     var box = RuntimeBitAssignBox{value: 0xFF}
     box ^= 0x0F
 
-    Swag.assert(box.value == 0xF0)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 0xF0)
+    Swag.require(box.calls == 1)
 }
 
 // Test: >>=
@@ -172,8 +172,8 @@ impl RuntimeBitAssignBox
     var box = RuntimeBitAssignBox{value: 256}
     box >>= 4
 
-    Swag.assert(box.value == 16)
-    Swag.assert(box.calls == 1)
+    Swag.require(box.value == 16)
+    Swag.require(box.calls == 1)
 }
 
 // Test: sequential bitwise assigns
@@ -184,6 +184,6 @@ impl RuntimeBitAssignBox
     box &= 0x0F
     box ^= 0x05
 
-    Swag.assert(box.value == 0x0A)
-    Swag.assert(box.calls == 3)
+    Swag.require(box.value == 0x0A)
+    Swag.require(box.calls == 3)
 }

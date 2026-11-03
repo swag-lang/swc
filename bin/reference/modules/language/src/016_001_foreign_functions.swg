@@ -50,7 +50,7 @@ linker. It does not declare functions by itself.
 
 #test
 {
-    Swag.assert(GetCurrentProcessId() != 0)
+    Swag.require(GetCurrentProcessId() != 0)
     Sleep(0)
 }
 

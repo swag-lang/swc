@@ -30,16 +30,16 @@ func makeHandle(v: s32)->Handle
 
     var a = Handle{1}     // direct construction
     var b = #move a       // explicit move
-    Swag.assert(b.x == 1)
-    Swag.assert(g_moves == 1)
+    Swag.require(b.x == 1)
+    Swag.require(g_moves == 1)
 
     var c: Handle
     c = #move b     // move assignment
-    Swag.assert(c.x == 1)
-    Swag.assert(g_moves == 2)
+    Swag.require(c.x == 1)
+    Swag.require(g_moves == 2)
 
     var d = makeHandle(7)     // rvalue init from a call result
-    Swag.assert(d.x == 7)
+    Swag.require(d.x == 7)
 }
 
 // A struct with 'opDrop' owns what that method releases, so it states no copy and is handed
@@ -69,18 +69,18 @@ impl DropAndCopy
 {
     var a = DropOnly{5}
     var b = #move a
-    Swag.assert(b.x == 5)
+    Swag.require(b.x == 5)
     var c: DropOnly
     c = #move b
-    Swag.assert(c.x == 5)
+    Swag.require(c.x == 5)
 }
 
 #test
 {
     var a = DropAndCopy{5}
     var b = a
-    Swag.assert(b.x == 5)
+    Swag.require(b.x == 5)
     var c: DropAndCopy
     c = a
-    Swag.assert(c.x == 5)
+    Swag.require(c.x == 5)
 }

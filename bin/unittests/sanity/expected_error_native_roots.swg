@@ -22,5 +22,5 @@ func rejectedNativeCaller()->s32
 
 #test
 {
-    Swag.assert(6 * 7 == 42)
+    Swag.require(6 * 7 == 42)
 }

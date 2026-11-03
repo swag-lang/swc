@@ -377,18 +377,18 @@ func auditPatrol(text: string)->PatrolReport
 {
     let sample = auditPatrol(SampleInput)
 
-    Swag.assert(sample.visitedCount == 41'u32)
-    Swag.assert(sample.loopObstacleCount == 6'u32)
-    Swag.assert(sample.traceCapacity == 64'u32)
-    Swag.assert(sample.reallocCount == 5'u32)
+    Swag.require(sample.visitedCount == 41'u32)
+    Swag.require(sample.loopObstacleCount == 6'u32)
+    Swag.require(sample.traceCapacity == 64'u32)
+    Swag.require(sample.reallocCount == 5'u32)
 }
 
 #test
 {
     let coverage = auditPatrol(CoverageInput)
 
-    Swag.assert(coverage.visitedCount == 3'u32)
-    Swag.assert(coverage.loopObstacleCount == 0'u32)
-    Swag.assert(coverage.traceCapacity == 4'u32)
-    Swag.assert(coverage.reallocCount == 1'u32)
+    Swag.require(coverage.visitedCount == 3'u32)
+    Swag.require(coverage.loopObstacleCount == 0'u32)
+    Swag.require(coverage.traceCapacity == 4'u32)
+    Swag.require(coverage.reallocCount == 1'u32)
 }

@@ -28,12 +28,12 @@ func preserveInput(a: u64)->u64 => a ^ byteZero(a)
     {
         let byte = value % 256
         let word = value % 65536
-        Swag.assert(byteZero(value) == (byte == 0 ? 1 : 0))
-        Swag.assert(byteNotZero(value) == (byte != 0 ? 1 : 0))
-        Swag.assert(byteEqual(value) == (byte == 127 ? 1 : 0))
-        Swag.assert(byteLess(value) == (byte < 128 ? 1 : 0))
-        Swag.assert(wordAtLeast(value) == (word >= 32768 ? 1 : 0))
-        Swag.assert(wideImmediate(value) == 1)
-        Swag.assert(preserveInput(value) == (value ^ (byte == 0 ? 1 : 0)))
+        Swag.require(byteZero(value) == (byte == 0 ? 1 : 0))
+        Swag.require(byteNotZero(value) == (byte != 0 ? 1 : 0))
+        Swag.require(byteEqual(value) == (byte == 127 ? 1 : 0))
+        Swag.require(byteLess(value) == (byte < 128 ? 1 : 0))
+        Swag.require(wordAtLeast(value) == (word >= 32768 ? 1 : 0))
+        Swag.require(wideImmediate(value) == 1)
+        Swag.require(preserveInput(value) == (value ^ (byte == 0 ? 1 : 0)))
     }
 }

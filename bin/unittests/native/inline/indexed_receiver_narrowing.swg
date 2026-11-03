@@ -10,6 +10,6 @@
 
     items[1].clearFirst()
 
-    Swag.assert(items[0].storage[0] == 11)
-    Swag.assert(items[1].storage[0] == 0)
+    Swag.require(items[0].storage[0] == 11)
+    Swag.require(items[1].storage[0] == 0)
 }

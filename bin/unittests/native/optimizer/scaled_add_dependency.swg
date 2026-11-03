@@ -30,10 +30,10 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
     {
         for y in values
         {
-            Swag.assert(scaled64(x, y) == dynamic64(x, y, 33))
-            Swag.assert(retainedAddend64(x, y) == (dynamic64(x, y, 33) ^ y))
-            Swag.assert(reversed64(x, y) == dynamic64(x, y, 257))
-            Swag.assert(chain64(x, y, x, y) == dynamicChain64(x, y, x, y, 33))
+            Swag.require(scaled64(x, y) == dynamic64(x, y, 33))
+            Swag.require(retainedAddend64(x, y) == (dynamic64(x, y, 33) ^ y))
+            Swag.require(reversed64(x, y) == dynamic64(x, y, 257))
+            Swag.require(chain64(x, y, x, y) == dynamicChain64(x, y, x, y, 33))
         }
     }
 }
@@ -44,7 +44,7 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
     for x in values
     {
         for y in values do
-            Swag.assert(scaled32(x, y) == dynamic32(x, y, 17))
+            Swag.require(scaled32(x, y) == dynamic32(x, y, 17))
     }
 }
 
@@ -54,7 +54,7 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
     for x in values
     {
         for y in values do
-            Swag.assert(signed64(x, y) == dynamicSigned64(x, y, 33))
+            Swag.require(signed64(x, y) == dynamicSigned64(x, y, 33))
     }
 }
 
@@ -83,7 +83,7 @@ func referenceWeighted64(values: [*] u8, count: u64)->u64
         values[i] = cast(u8, i)
 
     for count in [0'u64, 1, 7, 32, 64] do
-        Swag.assert(weighted64(&values[0], count) == referenceWeighted64(&values[0], count))
+        Swag.require(weighted64(&values[0], count) == referenceWeighted64(&values[0], count))
 }
 
 #[Swag.NoInline]
@@ -127,9 +127,9 @@ func referenceWideCoefficient64(a, b, c, d: u64)->u64 => ((a * 65537 + b) * 6553
     {
         for y in values
         {
-            Swag.assert(mixed64(x, y, x, y, x) == referenceMixed64(x, y, x, y, x))
-            Swag.assert(sharedPrefix64(x, y, x, y) == referenceSharedPrefix64(x, y, x, y))
-            Swag.assert(wideCoefficient64(x, y, x, y) == referenceWideCoefficient64(x, y, x, y))
+            Swag.require(mixed64(x, y, x, y, x) == referenceMixed64(x, y, x, y, x))
+            Swag.require(sharedPrefix64(x, y, x, y) == referenceSharedPrefix64(x, y, x, y))
+            Swag.require(wideCoefficient64(x, y, x, y) == referenceWideCoefficient64(x, y, x, y))
         }
     }
 }
@@ -140,7 +140,7 @@ func referenceWideCoefficient64(a, b, c, d: u64)->u64 => ((a * 65537 + b) * 6553
     for x in values
     {
         for y in values do
-            Swag.assert(chain32(x, y, x, y) == referenceChain32(x, y, x, y))
+            Swag.require(chain32(x, y, x, y) == referenceChain32(x, y, x, y))
     }
 }
 
@@ -150,6 +150,6 @@ func referenceWideCoefficient64(a, b, c, d: u64)->u64 => ((a * 65537 + b) * 6553
     for x in values
     {
         for y in values do
-            Swag.assert(signedChain64(x, y, x, y) == referenceSignedChain64(x, y, x, y))
+            Swag.require(signedChain64(x, y, x, y) == referenceSignedChain64(x, y, x, y))
     }
 }

@@ -380,13 +380,13 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    Swag.assert(guide.count == 3'u32)
-    Swag.assert(clean.partOne == 15'u32)
-    Swag.assert(clean.partTwo == 12'u32)
-    Swag.assert(SampleResult.partOne == clean.partOne)
-    Swag.assert(SampleResult.partTwo == clean.partTwo)
-    Swag.assert(features.partOne == clean.partOne)
-    Swag.assert(features.partTwo == clean.partTwo)
+    Swag.require(guide.count == 3'u32)
+    Swag.require(clean.partOne == 15'u32)
+    Swag.require(clean.partTwo == 12'u32)
+    Swag.require(SampleResult.partOne == clean.partOne)
+    Swag.require(SampleResult.partTwo == clean.partTwo)
+    Swag.require(features.partOne == clean.partOne)
+    Swag.require(features.partTwo == clean.partTwo)
 }
 
 #test
@@ -396,13 +396,13 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
-    Swag.assert(guide.count == 9'u32)
-    Swag.assert(clean.partOne == 45'u32)
-    Swag.assert(clean.partTwo == 45'u32)
-    Swag.assert(CoverageResult.partOne == clean.partOne)
-    Swag.assert(CoverageResult.partTwo == clean.partTwo)
-    Swag.assert(features.partOne == clean.partOne)
-    Swag.assert(features.partTwo == clean.partTwo)
+    Swag.require(guide.count == 9'u32)
+    Swag.require(clean.partOne == 45'u32)
+    Swag.require(clean.partTwo == 45'u32)
+    Swag.require(CoverageResult.partOne == clean.partOne)
+    Swag.require(CoverageResult.partTwo == clean.partTwo)
+    Swag.require(features.partOne == clean.partOne)
+    Swag.require(features.partTwo == clean.partTwo)
 }
 
 #test
@@ -412,18 +412,18 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let edgeClean    = solveClean(edgeGuide)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
-    Swag.assert(edgeGuide.count == 2'u32)
-    Swag.assert(edgeGuide.rounds[0].opponentToken == 'A'u8)
-    Swag.assert(edgeGuide.rounds[0].codeToken == 'Z'u8)
-    Swag.assert(edgeClean.partOne == 10'u32)
-    Swag.assert(edgeClean.partTwo == 10'u32)
-    Swag.assert(edgeFeatures.partOne == edgeClean.partOne)
-    Swag.assert(edgeFeatures.partTwo == edgeClean.partTwo)
+    Swag.require(edgeGuide.count == 2'u32)
+    Swag.require(edgeGuide.rounds[0].opponentToken == 'A'u8)
+    Swag.require(edgeGuide.rounds[0].codeToken == 'Z'u8)
+    Swag.require(edgeClean.partOne == 10'u32)
+    Swag.require(edgeClean.partTwo == 10'u32)
+    Swag.require(edgeFeatures.partOne == edgeClean.partOne)
+    Swag.require(edgeFeatures.partTwo == edgeClean.partTwo)
 
-    Swag.assert(roundOutcome(.Rock, .Rock) == .Draw)
-    Swag.assert(roundOutcome(.Paper, .Rock) == .Win)
-    Swag.assert(roundOutcome(.Scissors, .Rock) == .Lose)
-    Swag.assert(chooseShape(.Rock, .Win) == .Paper)
-    Swag.assert(chooseShape(.Paper, .Lose) == .Rock)
-    Swag.assert(chooseShape(.Scissors, .Draw) == .Scissors)
+    Swag.require(roundOutcome(.Rock, .Rock) == .Draw)
+    Swag.require(roundOutcome(.Paper, .Rock) == .Win)
+    Swag.require(roundOutcome(.Scissors, .Rock) == .Lose)
+    Swag.require(chooseShape(.Rock, .Win) == .Paper)
+    Swag.require(chooseShape(.Paper, .Lose) == .Rock)
+    Swag.require(chooseShape(.Scissors, .Draw) == .Scissors)
 }

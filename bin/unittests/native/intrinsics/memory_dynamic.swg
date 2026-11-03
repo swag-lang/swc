@@ -33,32 +33,32 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
 
     fillDynamic(target, 0xA5, #sizeof(target))
     for value in target do
-        Swag.assert(value == 0xA5)
+        Swag.require(value == 0xA5)
 
     copyDynamic(target, source, #sizeof(target))
-    Swag.assert(compareDynamic(target, source, #sizeof(target)) == 0)
+    Swag.require(compareDynamic(target, source, #sizeof(target)) == 0)
 
     target[8] = 0
-    Swag.assert(compareDynamic(target, source, #sizeof(target)) < 0)
+    Swag.require(compareDynamic(target, source, #sizeof(target)) < 0)
     target[8] = 0xFF
-    Swag.assert(compareDynamic(target, source, #sizeof(target)) > 0)
+    Swag.require(compareDynamic(target, source, #sizeof(target)) > 0)
 }
 
 #test
 {
     var data: [10] u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     moveDynamic(&data[2], &data[0], 7)
-    Swag.assert(data == [0, 1, 0, 1, 2, 3, 4, 5, 6, 9])
+    Swag.require(data == [0, 1, 0, 1, 2, 3, 4, 5, 6, 9])
 
     moveDynamic(&data[0], &data[2], 7)
-    Swag.assert(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
+    Swag.require(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
 
     moveDynamic(&data[0], &data[0], #sizeof(data))
     fillDynamic(data, 0, 0)
     copyDynamic(data, data, 0)
     moveDynamic(data, data, 0)
-    Swag.assert(compareDynamic(data, data, 0) == 0)
-    Swag.assert(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
+    Swag.require(compareDynamic(data, data, 0) == 0)
+    Swag.require(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
 }
 
 #test
@@ -69,13 +69,13 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
 
     moveDynamic(&data[8], &data[0], 80)
     for index in 80 do
-        Swag.assert(data[8 + index] == cast(u8, index))
+        Swag.require(data[8 + index] == cast(u8, index))
 
     for &value, index in data do
         value[] = cast(u8, index)
     moveDynamic(&data[0], &data[8], 80)
     for index in 80 do
-        Swag.assert(data[index] == cast(u8, (index + 8)))
+        Swag.require(data[index] == cast(u8, (index + 8)))
 }
 
 // A mismatch at any position returns the difference of the first unsigned bytes,
@@ -97,8 +97,8 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
             target[leftOffset + changed] ^= 0x80
 
             let difference = cast(s32, target[leftOffset + changed]) - cast(s32, source[rightOffset + changed])
-            Swag.assert(compareDynamic(&target[leftOffset], &source[rightOffset], size) == difference)
-            Swag.assert(compareDynamic(&source[rightOffset], &target[leftOffset], size) == -difference)
+            Swag.require(compareDynamic(&target[leftOffset], &source[rightOffset], size) == difference)
+            Swag.require(compareDynamic(&source[rightOffset], &target[leftOffset], size) == -difference)
         }
     }
 }
@@ -125,14 +125,14 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
             for i in Capacity
             {
                 let inside = i >= targetOffset and i < targetOffset + size
-                Swag.assert(target[i] == (inside ? source[sourceOffset + i - targetOffset] : 0xCD))
+                Swag.require(target[i] == (inside ? source[sourceOffset + i - targetOffset] : 0xCD))
             }
 
-            Swag.assert(compareDynamic(&target[targetOffset], &source[sourceOffset], size) == 0)
+            Swag.require(compareDynamic(&target[targetOffset], &source[sourceOffset], size) == 0)
             if size
             {
                 target[targetOffset + size - 1] ^= 0xFF
-                Swag.assert(compareDynamic(&target[targetOffset], &source[sourceOffset], size) != 0)
+                Swag.require(compareDynamic(&target[targetOffset], &source[sourceOffset], size) != 0)
             }
         }
     }
@@ -150,7 +150,7 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
             for i in size do
                 expected[32 + distance + i] = cast(u8, (32 + i))
             moveDynamic(&target[32 + distance], &target[32], size)
-            Swag.assert(compareDynamic(target, expected, Capacity) == 0)
+            Swag.require(compareDynamic(target, expected, Capacity) == 0)
 
             for i in Capacity
             {
@@ -160,7 +160,7 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
             for i in size do
                 expected[32 + i] = cast(u8, (32 + distance + i))
             moveDynamic(&target[32], &target[32 + distance], size)
-            Swag.assert(compareDynamic(target, expected, Capacity) == 0)
+            Swag.require(compareDynamic(target, expected, Capacity) == 0)
         }
     }
 }
@@ -179,8 +179,8 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
             fillDynamic(right, 0x80, #sizeof(right))
             left[3 + first]    = 0x7F
             left[3 + size - 1] = 0xFF
-            Swag.assert(compareDynamic(&left[3], &right[5], size) == -1)
-            Swag.assert(compareDynamic(&right[5], &left[3], size) == 1)
+            Swag.require(compareDynamic(&left[3], &right[5], size) == -1)
+            Swag.require(compareDynamic(&right[5], &left[3], size) == 1)
         }
     }
 }

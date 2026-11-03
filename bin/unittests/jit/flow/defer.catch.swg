@@ -49,8 +49,8 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
     var value:      #decltype(expect readWithCleanup(false))
     catch { value = try readWithCleanup(false) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err == null)
-    Swag.assert(value == 42)
+    Swag.require(err == null)
+    Swag.require(value == 42)
 }
 
 #test
@@ -58,8 +58,8 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
     var errOutcome: Swag.Error
     discard catch readWithCleanup(true) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(assume cast(CleanupError, err).code == 9)
+    Swag.require(err != null)
+    Swag.require(assume cast(CleanupError, err).code == 9)
 }
 
 #test
@@ -68,8 +68,8 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
     var value:      #decltype(expect readWithBoundCleanup(false))
     catch { value = try readWithBoundCleanup(false) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err == null)
-    Swag.assert(value == 42)
+    Swag.require(err == null)
+    Swag.require(value == 42)
 }
 
 #test
@@ -77,6 +77,6 @@ func readWithBoundCleanup(shouldFail: bool)->s32 fail
     var errOutcome: Swag.Error
     discard catch readWithBoundCleanup(true) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(assume cast(CleanupError, err).code == 9)
+    Swag.require(err != null)
+    Swag.require(assume cast(CleanupError, err).code == 9)
 }

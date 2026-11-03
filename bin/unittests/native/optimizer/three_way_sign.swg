@@ -43,22 +43,22 @@ func reference(less, greater: bool)->s64
     for x in values
     {
         let x32 = cast #wrap (s32, x)
-        Swag.assert(cast(s64, sign32(x32)) == reference(x32 < 0, x32 > 0))
-        Swag.assert(sign64(x) == reference(x < 0, x > 0))
-        Swag.assert(signOf(x) == reference(x < 0, x > 0))
+        Swag.require(cast(s64, sign32(x32)) == reference(x32 < 0, x32 > 0))
+        Swag.require(sign64(x) == reference(x < 0, x > 0))
+        Swag.require(signOf(x) == reference(x < 0, x > 0))
         for y in values
         {
-            Swag.assert(cast(s64, order64(x, y)) == reference(x < y, x > y))
+            Swag.require(cast(s64, order64(x, y)) == reference(x < y, x > y))
             let ux = cast #bit (u64, x)
             let uy = cast #bit (u64, y)
-            Swag.assert(orderU64(ux, uy) == reference(ux < uy, ux > uy))
-            Swag.assert(orderMirrorU(ux, uy) == reference(ux < uy, ux > uy))
+            Swag.require(orderU64(ux, uy) == reference(ux < uy, ux > uy))
+            Swag.require(orderMirrorU(ux, uy) == reference(ux < uy, ux > uy))
             let ux32 = cast #wrap (u32, x)
             let uy32 = cast #wrap (u32, y)
-            Swag.assert(cast(s64, orderU32(ux32, uy32)) == reference(ux32 < uy32, ux32 > uy32))
+            Swag.require(cast(s64, orderU32(ux32, uy32)) == reference(ux32 < uy32, ux32 > uy32))
             let x32b = cast #wrap (s32, x)
             let y32b = cast #wrap (s32, y)
-            Swag.assert(cast(s64, orderMirror(x32b, y32b)) == reference(x32b < y32b, x32b > y32b))
+            Swag.require(cast(s64, orderMirror(x32b, y32b)) == reference(x32b < y32b, x32b > y32b))
         }
     }
 }

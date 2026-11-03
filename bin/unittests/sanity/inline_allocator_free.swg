@@ -33,8 +33,8 @@ func release(address: *void?, size: u64)
 {
     let value = cast(*u32, allocate(4))
     let same  = value
-    release(value, 4)            // swc-expected-note {{sanity_note_pointer_released_here}}
-    Swag.assert(same[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
+    release(value, 4)             // swc-expected-note {{sanity_note_pointer_released_here}}
+    Swag.require(same[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -52,7 +52,7 @@ func release(address: *void?, size: u64)
     release(value, 4)
     value   = cast(*u32, allocate(4))
     value[] = 7
-    Swag.assert(value[] == 7)
+    Swag.require(value[] == 7)
     release(value, 4)
 }
 
@@ -74,7 +74,7 @@ func releaseParameter(value: *u32)
     var holder = Holder{allocate(4)}
     release(holder.buffer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let buffer = cast(*u32, holder.buffer)
-    Swag.assert(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
+    Swag.require(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -84,7 +84,7 @@ func releaseParameter(value: *u32)
     let holder = opaqueHolder(&local)
     release(holder.buffer, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     let buffer = cast(*u32, holder.buffer)
-    Swag.assert(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
+    Swag.require(buffer[] == 7)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -155,14 +155,14 @@ func releaseAndReplace(holder: *Holder, replacement: *void, indirect: bool)
     releaseAndReplace(holder, allocate(4), false)
     let first = cast(*u32, holder.buffer)
     first[] = 7
-    Swag.assert(first[] == 7)
+    Swag.require(first[] == 7)
     releaseAndReplace(holder, allocate(4), true)
     let second = cast(*u32, holder.buffer)
     second[] = 8
-    Swag.assert(second[] == 8)
+    Swag.require(second[] == 8)
     releaseAndReplaceIndexed(holder, allocate(4), opaqueIndex())
     let third = cast(*u32, holder.buffer)
     third[] = 9
-    Swag.assert(third[] == 9)
+    Swag.require(third[] == 9)
     release(third, 4)
 }

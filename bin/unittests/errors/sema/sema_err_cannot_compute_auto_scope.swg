@@ -24,7 +24,7 @@ impl AutoScopeOpBox
     let b = AutoScopeOpBox{2}
 
     // The failed body already explains the error; the operands themselves remain valid.
-    Swag.assert((a + b).value == 3)
+    Swag.require((a + b).value == 3)
 }
 
 #test

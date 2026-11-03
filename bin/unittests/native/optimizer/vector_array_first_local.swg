@@ -53,8 +53,8 @@ func sumTable(values: const [*] u32, count: u64)->u32
         expected[r] = a + b + c
     }
     for row in 4 do
-        Swag.assert(out[row * 8] == expected[row] + expected[row + 2] + expected[row + 5])
+        Swag.require(out[row * 8] == expected[row] + expected[row + 2] + expected[row + 5])
 
     var values: [6] u32 = [1, 2, 3, 4, 5, 6]
-    Swag.assert(sumTable(&values[0], 6) == 42 + 6)
+    Swag.require(sumTable(&values[0], 6) == 42 + 6)
 }

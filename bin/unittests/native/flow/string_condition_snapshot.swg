@@ -45,9 +45,9 @@ func capture(value: string, state: State)->State
 #test
 {
     let saved = capture("Transparency", {mask: {id: 7}, alpha: 0.5})
-    Swag.assert(saved.mask.id == 7)
-    Swag.assert(saved.alpha == 0.5)
+    Swag.require(saved.mask.id == 7)
+    Swag.require(saved.alpha == 0.5)
     let untouched = capture("Other", {mask: {id: 7}, alpha: 0.5})
-    Swag.assert(untouched.mask.id == 0xFFFFFFFF)
-    Swag.assert(untouched.alpha == 1)
+    Swag.require(untouched.mask.id == 0xFFFFFFFF)
+    Swag.require(untouched.alpha == 1)
 }

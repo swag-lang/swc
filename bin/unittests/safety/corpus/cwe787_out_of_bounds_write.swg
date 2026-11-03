@@ -65,5 +65,5 @@ func fillExactly()->s32
 
 #test
 {
-    Swag.assert(fillExactly() == 3)
+    Swag.require(fillExactly() == 3)
 }

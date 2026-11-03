@@ -24,16 +24,16 @@ func keepSource(a, b: u64)->u64 => (~a & b) ^ a
     {
         for mask in [0'u64, 0xFF, 0xF0F0F0F0F0F0F0F0, 0xFFFFFFFFFFFFFFFF]
         {
-            Swag.assert(clearBits(value, mask) == (value & (mask ^ 0xFFFFFFFFFFFFFFFF)))
-            Swag.assert(keepSource(mask, value) == (((mask ^ 0xFFFFFFFFFFFFFFFF) & value) ^ mask))
+            Swag.require(clearBits(value, mask) == (value & (mask ^ 0xFFFFFFFFFFFFFFFF)))
+            Swag.require(keepSource(mask, value) == (((mask ^ 0xFFFFFFFFFFFFFFFF) & value) ^ mask))
             let lowValue = cast(u32, value & M32)
             let lowMask  = cast(u32, mask & M32)
-            Swag.assert(clearBits32(lowValue, lowMask) == (lowValue & (lowMask ^ 0xFFFFFFFF)))
+            Swag.require(clearBits32(lowValue, lowMask) == (lowValue & (lowMask ^ 0xFFFFFFFF)))
         }
     }
 
     let e = 0x510E527F'u64
     let f = 0x9B05688C'u64
     let g = 0xFFFFFFFF1F83D9AB'u64
-    Swag.assert(choose(e, f, g) == ((e & f) ^ ((e ^ M32) & g & M32)))
+    Swag.require(choose(e, f, g) == ((e & f) ^ ((e ^ M32) & g & M32)))
 }

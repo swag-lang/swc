@@ -42,8 +42,8 @@ func makeBig(ok: bool)->Big fail
     var errOutcome: Swag.Error
     let v   = catch makeSmall(false) as errOutcome orelse Small{}
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(v.a == 0)
+    Swag.require(err != null)
+    Swag.require(v.a == 0)
 }
 
 #test
@@ -51,9 +51,9 @@ func makeBig(ok: bool)->Big fail
     var errOutcome: Swag.Error
     let v   = catch makeBig(false) as errOutcome orelse Big{}
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(v.data[0] == 0)
-    Swag.assert(v.data[63] == 0)
+    Swag.require(err != null)
+    Swag.require(v.data[0] == 0)
+    Swag.require(v.data[63] == 0)
 }
 
 #test
@@ -61,7 +61,7 @@ func makeBig(ok: bool)->Big fail
     var errOutcome: Swag.Error
     let v   = catch makeBig(true) as errOutcome orelse Big{}
     let err = errOutcome.value()
-    Swag.assert(err == null)
-    Swag.assert(v.data[0] == 1)
-    Swag.assert(v.data[63] == 2)
+    Swag.require(err == null)
+    Swag.require(v.data[0] == 1)
+    Swag.require(v.data[63] == 2)
 }

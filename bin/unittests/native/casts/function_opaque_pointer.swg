@@ -33,14 +33,14 @@ func invokeDeferred(value: *u32)
 {
     var value = 0'u32
     invokeDeferred(&value)
-    Swag.assert(value == 10)
+    Swag.require(value == 10)
 
     let forwarded = cast(func(*u32, u32), forwardedFunctionAddress())
     forwarded(&value, 5)
-    Swag.assert(value == 15)
+    Swag.require(value == 15)
 
     let wrapped = wrappedFunctionAddress()
     let action  = cast(func(*u32, u32), wrapped.address)
     action(&value, 9)
-    Swag.assert(value == 24)
+    Swag.require(value == 24)
 }

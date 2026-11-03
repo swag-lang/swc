@@ -477,39 +477,39 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 #test
 {
     let grid = parseGrid(cast(const [..] u8, SampleInput))
-    Swag.assert(grid.width == 10'u32)
-    Swag.assert(grid.height == 10'u32)
-    Swag.assert(grid.at(0, 0) == '4'u8)
-    Swag.assert(grid.at(1, 3) == '*'u8)
+    Swag.require(grid.width == 10'u32)
+    Swag.require(grid.height == 10'u32)
+    Swag.require(grid.at(0, 0) == '4'u8)
+    Swag.require(grid.at(1, 3) == '*'u8)
 
     let clean = solveClean(grid)
-    Swag.assert(clean.partNumberSum == 4361'u64)
-    Swag.assert(clean.gearRatioSum == 467835'u64)
+    Swag.require(clean.partNumberSum == 4361'u64)
+    Swag.require(clean.gearRatioSum == 467835'u64)
 
     let feat = solveWithLanguageFeatures(grid)
-    Swag.assert(feat.partNumberSum == clean.partNumberSum)
-    Swag.assert(feat.gearRatioSum == clean.gearRatioSum)
-    Swag.assert(feat.partCount == clean.partCount)
-    Swag.assert(feat.gearCount == clean.gearCount)
+    Swag.require(feat.partNumberSum == clean.partNumberSum)
+    Swag.require(feat.gearRatioSum == clean.gearRatioSum)
+    Swag.require(feat.partCount == clean.partCount)
+    Swag.require(feat.gearCount == clean.gearCount)
 
-    Swag.assert(clean.gearCount == 2'u32)
+    Swag.require(clean.gearCount == 2'u32)
 }
 
 #test
 {
     let grid = parseGrid(cast(const [..] u8, TinyInput))
-    Swag.assert(grid.width == 4'u32)
-    Swag.assert(grid.height == 3'u32)
+    Swag.require(grid.width == 4'u32)
+    Swag.require(grid.height == 3'u32)
 
     let clean = solveClean(grid)
     // 12 adjacent to '*' via (0,1)→(1,2). 45 adjacent to '*' via (2,2)→(1,2).
-    Swag.assert(clean.partNumberSum == 57'u64)
+    Swag.require(clean.partNumberSum == 57'u64)
     // '*' at (1,2) has exactly 2 neighbors: 12, 45 → gear ratio = 540
-    Swag.assert(clean.gearRatioSum == 540'u64)
+    Swag.require(clean.gearRatioSum == 540'u64)
 
     let feat = solveWithLanguageFeatures(grid)
-    Swag.assert(feat.partNumberSum == clean.partNumberSum)
-    Swag.assert(feat.gearRatioSum == clean.gearRatioSum)
+    Swag.require(feat.partNumberSum == clean.partNumberSum)
+    Swag.require(feat.gearRatioSum == clean.gearRatioSum)
 }
 
 #test
@@ -517,13 +517,13 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let grid  = parseGrid(cast(const [..] u8, EdgeInput))
     let clean = solveClean(grid)
     // Both 100s are adjacent to '*'
-    Swag.assert(clean.partNumberSum == 200'u64)
+    Swag.require(clean.partNumberSum == 200'u64)
     // '*' has exactly 2 adjacent numbers → gear ratio = 10000
-    Swag.assert(clean.gearRatioSum == 10000'u64)
+    Swag.require(clean.gearRatioSum == 10000'u64)
 
     let feat = solveWithLanguageFeatures(grid)
-    Swag.assert(feat.partNumberSum == clean.partNumberSum)
-    Swag.assert(feat.gearRatioSum == clean.gearRatioSum)
+    Swag.require(feat.partNumberSum == clean.partNumberSum)
+    Swag.require(feat.gearRatioSum == clean.gearRatioSum)
 }
 
 #test
@@ -531,41 +531,41 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let grid  = parseGrid(cast(const [..] u8, SingleDigitInput))
     let clean = solveClean(grid)
     // 5 adjacent to '*', 3 adjacent to '*'
-    Swag.assert(clean.partNumberSum == 8'u64)
+    Swag.require(clean.partNumberSum == 8'u64)
     // '*' touches 5 and 3 → gear ratio = 15
-    Swag.assert(clean.gearRatioSum == 15'u64)
+    Swag.require(clean.gearRatioSum == 15'u64)
 
     let feat = solveWithLanguageFeatures(grid)
-    Swag.assert(feat.partNumberSum == clean.partNumberSum)
-    Swag.assert(feat.gearRatioSum == clean.gearRatioSum)
+    Swag.require(feat.partNumberSum == clean.partNumberSum)
+    Swag.require(feat.gearRatioSum == clean.gearRatioSum)
 }
 
 #test
 {
     // Character classification coverage
-    Swag.assert(isDigit('0'u8))
-    Swag.assert(isDigit('9'u8))
-    Swag.assert(not isDigit('a'u8))
-    Swag.assert(isDot('.'u8))
-    Swag.assert(not isDot('*'u8))
-    Swag.assert(isSymbol('*'u8))
-    Swag.assert(isSymbol('#'u8))
-    Swag.assert(isSymbol('+'u8))
-    Swag.assert(isSymbol('$'u8))
-    Swag.assert(not isSymbol('.'u8))
-    Swag.assert(not isSymbol('5'u8))
-    Swag.assert(isGear('*'u8))
-    Swag.assert(not isGear('#'u8))
+    Swag.require(isDigit('0'u8))
+    Swag.require(isDigit('9'u8))
+    Swag.require(not isDigit('a'u8))
+    Swag.require(isDot('.'u8))
+    Swag.require(not isDot('*'u8))
+    Swag.require(isSymbol('*'u8))
+    Swag.require(isSymbol('#'u8))
+    Swag.require(isSymbol('+'u8))
+    Swag.require(isSymbol('$'u8))
+    Swag.require(not isSymbol('.'u8))
+    Swag.require(not isSymbol('5'u8))
+    Swag.require(isGear('*'u8))
+    Swag.require(not isGear('#'u8))
 
     // Direction name coverage
-    Swag.assert(dirName(Dir.N) == "N")
-    Swag.assert(dirName(Dir.SE) == "SE")
+    Swag.require(dirName(Dir.N) == "N")
+    Swag.require(dirName(Dir.SE) == "SE")
 
     // Generic min/max
-    Swag.assert(minOf's32(3, 7) == 3)
-    Swag.assert(maxOf's32(3, 7) == 7)
-    Swag.assert(minOf'u32(10, 5) == 5)
-    Swag.assert(maxOf'u32(10, 5) == 10)
+    Swag.require(minOf's32(3, 7) == 3)
+    Swag.require(maxOf's32(3, 7) == 7)
+    Swag.require(minOf'u32(10, 5) == 5)
+    Swag.require(maxOf'u32(10, 5) == 10)
 
     // Adjacency check
     var entry: NumberEntry
@@ -573,8 +573,8 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     entry.row   = 2
     entry.col0  = 2
     entry.col1  = 3
-    Swag.assert(isAdjacentToCell(entry, 1, 3))
-    Swag.assert(isAdjacentToCell(entry, 2, 1))
-    Swag.assert(not isAdjacentToCell(entry, 0, 0))
-    Swag.assert(not isAdjacentToCell(entry, 4, 4))
+    Swag.require(isAdjacentToCell(entry, 1, 3))
+    Swag.require(isAdjacentToCell(entry, 2, 1))
+    Swag.require(not isAdjacentToCell(entry, 0, 0))
+    Swag.require(not isAdjacentToCell(entry, 4, 4))
 }

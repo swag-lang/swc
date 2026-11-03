@@ -55,7 +55,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         count += 1
     }
-    Swag.assert(count == 3)
+    Swag.require(count == 3)
 }
 
 #test
@@ -67,7 +67,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -84,9 +84,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
-    Swag.assert(first == 2)
-    Swag.assert(last == 0)
-    Swag.assert(sum == 3)
+    Swag.require(first == 2)
+    Swag.require(last == 0)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -98,7 +98,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         count += 1
     }
-    Swag.assert(count == 5)
+    Swag.require(count == 5)
 }
 
 #test
@@ -110,7 +110,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 10)
+    Swag.require(sum == 10)
 }
 
 #test
@@ -121,7 +121,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         break
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }
 
 #test
@@ -132,7 +132,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         break
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }
 
 #test
@@ -144,7 +144,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 15)
+    Swag.require(sum == 15)
 }
 
 #test
@@ -155,7 +155,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         #assert(#typeof(i) == ForStrictS32)
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 15)
+    Swag.require(sum == 15)
 }
 
 #test
@@ -168,8 +168,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, i)
     }
-    Swag.assert(count == 256)
-    Swag.assert(sum == 32640)
+    Swag.require(count == 256)
+    Swag.require(sum == 32640)
 }
 
 #test
@@ -182,8 +182,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, value)
     }
-    Swag.assert(count == 256)
-    Swag.assert(sum == 32640)
+    Swag.require(count == 256)
+    Swag.require(sum == 32640)
 }
 
 #test
@@ -196,8 +196,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, value)
     }
-    Swag.assert(count == 256)
-    Swag.assert(sum == 32640)
+    Swag.require(count == 256)
+    Swag.require(sum == 32640)
 }
 
 #test
@@ -219,9 +219,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
             break
     }
 
-    Swag.assert(count == 1)
-    Swag.assert(first == 0xFFFF_FFFF_FFFF_FFFF'u64)
-    Swag.assert(second == 0)
+    Swag.require(count == 1)
+    Swag.require(first == 0xFFFF_FFFF_FFFF_FFFF'u64)
+    Swag.require(second == 0)
 }
 
 #test
@@ -235,8 +235,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         break
     }
 
-    Swag.assert(count == 1)
-    Swag.assert(first == 0)
+    Swag.require(count == 1)
+    Swag.require(first == 0)
 }
 
 #test
@@ -248,7 +248,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 10)
+    Swag.require(sum == 10)
 }
 
 #test
@@ -265,9 +265,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
-    Swag.assert(first == 5)
-    Swag.assert(last == 1)
-    Swag.assert(sum == 15)
+    Swag.require(first == 5)
+    Swag.require(last == 1)
+    Swag.require(sum == 15)
 }
 
 #test
@@ -284,9 +284,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         last = cast(s32, i)
         sum  += cast(s32, i)
     }
-    Swag.assert(first == 4)
-    Swag.assert(last == 1)
-    Swag.assert(sum == 10)
+    Swag.require(first == 4)
+    Swag.require(last == 1)
+    Swag.require(sum == 10)
 }
 
 #test
@@ -300,8 +300,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, i)
     }
-    Swag.assert(count == 6)
-    Swag.assert(sum == 39)
+    Swag.require(count == 6)
+    Swag.require(sum == 39)
 }
 
 #test
@@ -317,8 +317,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for value1 do
         count1 += 1
 
-    Swag.assert(count0 == 4)
-    Swag.assert(count1 == 0)
+    Swag.require(count0 == 4)
+    Swag.require(count1 == 0)
 }
 
 #test
@@ -333,8 +333,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in value.count do
         sum += cast(s32, i)
 
-    Swag.assert(count == 4)
-    Swag.assert(sum == 6)
+    Swag.require(count == 4)
+    Swag.require(sum == 6)
 }
 
 #test
@@ -348,8 +348,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, i)
     }
-    Swag.assert(count == 6)
-    Swag.assert(sum == 30)
+    Swag.require(count == 6)
+    Swag.require(sum == 30)
 }
 
 #test
@@ -363,8 +363,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         sum   += cast(s32, i)
     }
-    Swag.assert(count == 4)
-    Swag.assert(sum == 30)
+    Swag.require(count == 4)
+    Swag.require(sum == 30)
 }
 
 #test
@@ -381,9 +381,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         last  = cast(s32, i)
         count += 1
     }
-    Swag.assert(first == 4)
-    Swag.assert(last == 0)
-    Swag.assert(count == 5)
+    Swag.require(first == 4)
+    Swag.require(last == 0)
+    Swag.require(count == 5)
 }
 
 #test
@@ -400,7 +400,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
             count += 1
         }
     }
-    Swag.assert(count == 9)
+    Swag.require(count == 9)
 }
 
 #test
@@ -416,8 +416,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
             count += 1
         }
     }
-    Swag.assert(count == 1)
-    Swag.assert(last == 0)
+    Swag.require(count == 1)
+    Swag.require(last == 0)
 }
 
 #test
@@ -430,7 +430,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         count += 1
         break
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }
 
 #[Swag.Warning("sema_warn_unreachable_code", .Disable)]
@@ -446,7 +446,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         var y = 0     // Unreachable code is allowed
         discard y
     }
-    Swag.assert(sum == 45)
+    Swag.require(sum == 45)
 }
 
 #test
@@ -464,8 +464,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         outerCount += 1
     }
-    Swag.assert(outerCount == 2)
-    Swag.assert(innerCount == 2)
+    Swag.require(outerCount == 2)
+    Swag.require(innerCount == 2)
 }
 
 #test
@@ -478,7 +478,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         count += 1
     }
-    Swag.assert(count == 5)
+    Swag.require(count == 5)
 }
 
 #test
@@ -490,7 +490,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         var x = i
         sum += cast(s32, x)
     }
-    Swag.assert(sum == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -500,7 +500,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         count += 1
     }
-    Swag.assert(count == 3)
+    Swag.require(count == 3)
 }
 
 #test
@@ -510,7 +510,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 6)
+    Swag.require(sum == 6)
 }
 
 #test
@@ -518,7 +518,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var count = 0
     for 3 do
         count += 1
-    Swag.assert(count == 3)
+    Swag.require(count == 3)
 }
 
 #test
@@ -526,7 +526,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var sum = 0
     for i in 3 do
         sum += cast(s32, i)
-    Swag.assert(sum == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -541,7 +541,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     {
         count += 1
     }
-    Swag.assert(count == 2)
+    Swag.require(count == 2)
 }
 
 #test
@@ -554,8 +554,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         count += 1
     }
-    Swag.assert(i == 5)
-    Swag.assert(count == 3)
+    Swag.require(i == 5)
+    Swag.require(count == 3)
 }
 
 #test
@@ -567,7 +567,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         discard x
         sum += cast(s32, i)
     }
-    Swag.assert(sum == 10)
+    Swag.require(sum == 10)
 }
 
 #test
@@ -579,9 +579,9 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     var count1 = 0
     for v { count1 += 1 }
     var v1: s32
-    Swag.assert(count0 == 0)
-    Swag.assert(count1 == 0)
-    Swag.assert(v1 == 0)
+    Swag.require(count0 == 0)
+    Swag.require(count1 == 0)
+    Swag.require(v1 == 0)
 }
 
 #test
@@ -598,7 +598,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         }
     }
 
-    Swag.assert(sum == 6)
+    Swag.require(sum == 6)
 }
 
 #test
@@ -615,8 +615,8 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         sum   += cast(s32, idx)
     }
 
-    Swag.assert(count == 3)
-    Swag.assert(sum == 3)
+    Swag.require(count == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -626,7 +626,7 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
     for i in box[0].count do
         sum += cast(s32, i)
 
-    Swag.assert(sum == 10)
+    Swag.require(sum == 10)
 }
 
 #test
@@ -642,5 +642,5 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
         total += cast(s32, i)
     }
 
-    Swag.assert(total == 9)
+    Swag.require(total == 9)
 }

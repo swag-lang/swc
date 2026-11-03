@@ -277,16 +277,16 @@ const ReallocRunSuiteOk        = #run GenericReallocDefaultArgsCodegen.runSuite(
 
 #test
 {
-    Swag.assert(ReallocPositionalS32Ok)
-    Swag.assert(ReallocNamedS32Ok)
-    Swag.assert(ReallocPositionalBoolOk)
-    Swag.assert(ReallocNamedBoolOk)
-    Swag.assert(ReallocPositionalPairOk)
-    Swag.assert(ReallocNamedPairOk)
-    Swag.assert(ReallocPositionalArrayOk)
-    Swag.assert(ReallocNamedArrayOk)
-    Swag.assert(ReallocNestedS32Ok)
-    Swag.assert(ReallocNestedPairOk)
-    Swag.assert(ReallocRunSuiteOk)
-    Swag.assert(GenericReallocDefaultArgsCodegen.runSuite())
+    Swag.require(ReallocPositionalS32Ok)
+    Swag.require(ReallocNamedS32Ok)
+    Swag.require(ReallocPositionalBoolOk)
+    Swag.require(ReallocNamedBoolOk)
+    Swag.require(ReallocPositionalPairOk)
+    Swag.require(ReallocNamedPairOk)
+    Swag.require(ReallocPositionalArrayOk)
+    Swag.require(ReallocNamedArrayOk)
+    Swag.require(ReallocNestedS32Ok)
+    Swag.require(ReallocNestedPairOk)
+    Swag.require(ReallocRunSuiteOk)
+    Swag.require(GenericReallocDefaultArgsCodegen.runSuite())
 }

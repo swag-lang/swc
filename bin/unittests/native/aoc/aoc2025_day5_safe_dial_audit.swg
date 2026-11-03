@@ -82,10 +82,10 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 
     let entranceAudit = auditRotations(entranceSheet, 50)
 
-    Swag.assert(entranceAudit.zeroHits == 3)
-    Swag.assert(entranceAudit.finalPosition == 32)
-    Swag.assert(entranceAudit.totalClicks == 462)
-    Swag.assert(entranceAudit.longestRotation == 99)
+    Swag.require(entranceAudit.zeroHits == 3)
+    Swag.require(entranceAudit.finalPosition == 32)
+    Swag.require(entranceAudit.totalClicks == 462)
+    Swag.require(entranceAudit.longestRotation == 99)
 
     const cashRoomSheet: [6] string =
         [
@@ -99,8 +99,8 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
 
     let cashRoomAudit = auditRotations(cashRoomSheet, 50)
 
-    Swag.assert(cashRoomAudit.zeroHits == 3)
-    Swag.assert(cashRoomAudit.finalPosition == 0)
-    Swag.assert(cashRoomAudit.totalClicks == 250)
-    Swag.assert(cashRoomAudit.longestRotation == 99)
+    Swag.require(cashRoomAudit.zeroHits == 3)
+    Swag.require(cashRoomAudit.finalPosition == 0)
+    Swag.require(cashRoomAudit.totalClicks == 250)
+    Swag.require(cashRoomAudit.longestRotation == 99)
 }

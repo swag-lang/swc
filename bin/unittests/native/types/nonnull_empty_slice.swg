@@ -36,5 +36,5 @@ func nativePresentEmptySlices()->bool
 
 #test
 {
-    Swag.assert(nativePresentEmptySlices())
+    Swag.require(nativePresentEmptySlices())
 }

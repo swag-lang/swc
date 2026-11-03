@@ -69,6 +69,6 @@ func solvePuzzle(puzzle: LightPuzzle)->u32
         buttonMasks: [1, 2, 4, 8, 3, 12]
         }
 
-    Swag.assert(solvePuzzle(lobbyPanel) == 2'u32)
-    Swag.assert(solvePuzzle(stagePanel) == 2'u32)
+    Swag.require(solvePuzzle(lobbyPanel) == 2'u32)
+    Swag.require(solvePuzzle(stagePanel) == 2'u32)
 }

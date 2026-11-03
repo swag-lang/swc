@@ -19,9 +19,9 @@ func select8(values: [*] u8, condition: u64)->u8 => condition != 0 ? values[0] :
     var values8  = [77'u8, 88]
     for condition in [0'u64, 1, 7, 0xFFFFFFFFFFFFFFFF]
     {
-        Swag.assert(select64(&values64[0], condition) == (condition != 0 ? 11 : 22))
-        Swag.assert(select64Reverse(&values64[0], condition) == (condition != 0 ? 22 : 11))
-        Swag.assert(select32Offset(&values32[0], condition) == (condition == 0 ? 55 : 66))
-        Swag.assert(select8(&values8[0], condition) == (condition != 0 ? 77 : 88))
+        Swag.require(select64(&values64[0], condition) == (condition != 0 ? 11 : 22))
+        Swag.require(select64Reverse(&values64[0], condition) == (condition != 0 ? 22 : 11))
+        Swag.require(select32Offset(&values32[0], condition) == (condition == 0 ? 55 : 66))
+        Swag.require(select8(&values8[0], condition) == (condition != 0 ? 77 : 88))
     }
 }

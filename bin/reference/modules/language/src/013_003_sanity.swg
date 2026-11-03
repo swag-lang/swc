@@ -136,11 +136,11 @@ reads that the static check cannot prove, but does not catch a stale pointer's w
 
     var a = Item{x: 1}
     var b = #move a
-    Swag.assert(b.x == 1)
+    Swag.require(b.x == 1)
 
     // Swag.assert(a.x == 1)  // Uncomment: error, use of moved-from value
     a = Item{x: 2}
-    Swag.assert(a.x == 2)     // Reassigning makes it readable again
+    Swag.require(a.x == 2)     // Reassigning makes it readable again
 }
 
 /**

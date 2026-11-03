@@ -27,8 +27,8 @@ To access the constant or the function, use the 'MyStruct' namespace.
 */
 #test
 {
-    Swag.assert(MyStruct.MyConst)
-    Swag.assert(MyStruct.returnTrue())
+    Swag.require(MyStruct.MyConst)
+    Swag.require(MyStruct.returnTrue())
 }
 
 /**
@@ -66,11 +66,11 @@ impl MyStruct
 {
     var c: MyStruct
 
-    Swag.assert(c.returnX() == 5)
-    Swag.assert(c.methodReturnX() == 5)
-    Swag.assert(c.funcReturnX() == 5)
-    Swag.assert(c.returnY() == 10)
-    Swag.assert(c.returnZ() == 20)
+    Swag.require(c.returnX() == 5)
+    Swag.require(c.methodReturnX() == 5)
+    Swag.require(c.funcReturnX() == 5)
+    Swag.require(c.returnY() == 10)
+    Swag.require(c.returnZ() == 20)
 }
 
 /**
@@ -98,11 +98,11 @@ alias ReflectedMyStructMethod = func(*MyStruct)->s32
         }
     }
 
-    Swag.assert(returnX != null)
+    Swag.require(returnX != null)
     let method = returnX
-    Swag.assert(method.pointedType!.kind == .Func)
+    Swag.require(method.pointedType!.kind == .Func)
 
     let call = cast(ReflectedMyStructMethod, unwrap method.value)
     var value: MyStruct
-    Swag.assert(call(&value) == 5)
+    Swag.require(call(&value) == 5)
 }

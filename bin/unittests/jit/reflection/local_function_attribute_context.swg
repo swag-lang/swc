@@ -22,5 +22,5 @@ func reflectLocalContext()->s32
 
 #test
 {
-    Swag.assert(reflectLocalContext() == 7)
+    Swag.require(reflectLocalContext() == 7)
 }

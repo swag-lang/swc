@@ -14,14 +14,14 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
 {
     var alloc: Allocator
     let itf = makeCaptureAllocator(&alloc)
-    Swag.assert(alloc.captureAllocStack)
-    Swag.assert(alloc.detectLeaks)
-    Swag.assert(not alloc.trackAllocations)
-    Swag.assert(alloc.fillAlloc)
+    Swag.require(alloc.captureAllocStack)
+    Swag.require(alloc.detectLeaks)
+    Swag.require(not alloc.trackAllocations)
+    Swag.require(alloc.fillAlloc)
 
     var req: AllocatorRequest
     itf.freeAll(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }
 
@@ -33,7 +33,7 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     var req: AllocatorRequest
     req.size = 0
     itf.alloc(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }
 
@@ -45,10 +45,10 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     var req: AllocatorRequest
     req.size = 1
     itf.alloc(&req)
-    Swag.assert(req.address != null)
+    Swag.require(req.address != null)
 
     itf.free(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }
 
@@ -61,14 +61,14 @@ func makeCaptureAllocator(alloc: *Allocator)->IAllocator
     req.size = 112
     req.hint = "capture-stack-minimal"
     itf.alloc(&req)
-    Swag.assert(req.address != null)
+    Swag.require(req.address != null)
 
     let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = unwrap header.tracking
-    Swag.assert(header.magic == Allocator.MagicAlloc)
-    Swag.assert(tracking.stackCount <= tracking.stack.count)
+    Swag.require(header.magic == Allocator.MagicAlloc)
+    Swag.require(tracking.stackCount <= tracking.stack.count)
 
     itf.free(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }

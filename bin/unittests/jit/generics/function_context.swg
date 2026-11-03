@@ -125,11 +125,11 @@ impl MethodConstShadowHolder
     #assert(#typeof(tail) == f32)
     #assert(#typeof(explicit) == s64)
     #assert(#typeof(forwarded) == u16)
-    Swag.assert(value == 12'u16)
-    Swag.assert(first == 4'u8)
-    Swag.assert(tail == 4.5'f32)
-    Swag.assert(explicit == 21's64)
-    Swag.assert(forwarded == 12'u16)
+    Swag.require(value == 12'u16)
+    Swag.require(first == 4'u8)
+    Swag.require(tail == 4.5'f32)
+    Swag.require(explicit == 21's64)
+    Swag.require(forwarded == 12'u16)
 }
 
 #test
@@ -141,6 +141,6 @@ impl MethodConstShadowHolder
     let count = constShadowHolder.localUsesMethodConst'4()
 
     #assert(#typeof(value) == bool)
-    Swag.assert(value == true)
-    Swag.assert(count == 4)
+    Swag.require(value == true)
+    Swag.require(count == 4)
 }

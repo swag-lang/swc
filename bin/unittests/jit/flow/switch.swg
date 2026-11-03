@@ -409,11 +409,11 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = "hello"
-    Swag.assert(switchAnyString(a) == 1)
+    Swag.require(switchAnyString(a) == 1)
     a = 42
-    Swag.assert(switchAnyString(a) == 2)
+    Swag.require(switchAnyString(a) == 2)
     a = true
-    Swag.assert(switchAnyString(a) == 0)
+    Swag.require(switchAnyString(a) == 0)
 }
 
 #test
@@ -434,13 +434,13 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = true
-    Swag.assert(switchAnyMultiType(a) == 10)
+    Swag.require(switchAnyMultiType(a) == 10)
     a = 3.14
-    Swag.assert(switchAnyMultiType(a) == 20)
+    Swag.require(switchAnyMultiType(a) == 20)
     a = 99
-    Swag.assert(switchAnyMultiType(a) == 30)
+    Swag.require(switchAnyMultiType(a) == 30)
     a = "fallback"
-    Swag.assert(switchAnyMultiType(a) == 0)
+    Swag.require(switchAnyMultiType(a) == 0)
 }
 
 #test
@@ -459,7 +459,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
-    Swag.assert(switchAnyUsingBase(a) == 1)
+    Swag.require(switchAnyUsingBase(a) == 1)
 }
 
 #test
@@ -476,7 +476,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
-    Swag.assert(switchAnyUsingBaseBinding(a) == 7)
+    Swag.require(switchAnyUsingBaseBinding(a) == 7)
 }
 
 #test
@@ -493,7 +493,7 @@ const SwitchPointerValues = [11, 22, 33]
     }
 
     var a: any = "value"
-    Swag.assert(switchAnyStringBinding(a))
+    Swag.require(switchAnyStringBinding(a))
 }
 
 #test
@@ -530,7 +530,7 @@ const SwitchPointerValues = [11, 22, 33]
         }
     }
 
-    Swag.assert(nameOf(SwitchCompleteKind.First) == "first")
-    Swag.assert(nameOf(SwitchCompleteKind.Second) == "second")
-    Swag.assert(nameOf(SwitchCompleteKind.Third) == "third")
+    Swag.require(nameOf(SwitchCompleteKind.First) == "first")
+    Swag.require(nameOf(SwitchCompleteKind.Second) == "second")
+    Swag.require(nameOf(SwitchCompleteKind.Third) == "third")
 }

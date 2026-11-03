@@ -41,12 +41,12 @@ func inlineFallback(ok: bool)->Owner => catch load(ok) orelse Owner{}
         scope
         {
             let result = fallback(index % 2 == 0)
-            Swag.assert(result.data == (index % 2 == 0 ? &target : null))
+            Swag.require(result.data == (index % 2 == 0 ? &target : null))
             let defaultResult = defaultFallback(index % 2 == 0)
-            Swag.assert(defaultResult.data == result.data)
+            Swag.require(defaultResult.data == result.data)
             let inlineResult = inlineFallback(index % 2 == 0)
-            Swag.assert(inlineResult.data == result.data)
+            Swag.require(inlineResult.data == result.data)
         }
     }
-    Swag.assert(drops == 1500)
+    Swag.require(drops == 1500)
 }

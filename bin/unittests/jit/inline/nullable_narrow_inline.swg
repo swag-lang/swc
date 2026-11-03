@@ -44,10 +44,10 @@ func narrowedCall(compute: Compute?, value: s32)->s32
 {
     storage.value = 5
     var values = [1, 2, 3]
-    Swag.assert(narrowedIndex(values) == 1)
-    Swag.assert(narrowedIndex(null) == -1)
-    Swag.assert(narrowedCall(&doubleIt, 4) == 8)
-    Swag.assert(narrowedCall(null, 4) == -1)
-    Swag.assert(narrowedByTest(&storage) == 5)
-    Swag.assert(narrowedByTest(opaqueNode(null)) == -1)
+    Swag.require(narrowedIndex(values) == 1)
+    Swag.require(narrowedIndex(null) == -1)
+    Swag.require(narrowedCall(&doubleIt, 4) == 8)
+    Swag.require(narrowedCall(null, 4) == -1)
+    Swag.require(narrowedByTest(&storage) == 5)
+    Swag.require(narrowedByTest(opaqueNode(null)) == -1)
 }

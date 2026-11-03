@@ -17,7 +17,7 @@ unambiguous and can be written explicitly when they are part of the contract.
 
     #assert(#typeof(MaxRetries) == s32)
     #assert(#typeof(serviceName) == string)
-    Swag.assert(attempts == 1)
+    Swag.require(attempts == 1)
 }
 
 /**
@@ -46,10 +46,10 @@ impl TourPoint
 #test
 {
     var point = TourPoint{3, 4}
-    Swag.assert(point.squaredLength() == 25)
+    Swag.require(point.squaredLength() == 25)
 
     point.translate(1, -2)
-    Swag.assert(point.x == 4 and point.y == 2)
+    Swag.require(point.x == 4 and point.y == 2)
 }
 
 /**
@@ -67,11 +67,11 @@ the logical index is needed: 'for value, index in collection'.
 
     for value, index in middle
     {
-        Swag.assert(value == values[index + 1])
+        Swag.require(value == values[index + 1])
         total += value
     }
 
-    Swag.assert(total == 10)
+    Swag.require(total == 10)
 }
 
 /**
@@ -105,7 +105,7 @@ func tourStateLabel(state: TourState)->string
     let state = TourState.Running
 
     if state == .Running do
-        Swag.assert(tourStateLabel(state) == "running")
+        Swag.require(tourStateLabel(state) == "running")
     else do
         unreachable
 }
@@ -127,8 +127,8 @@ func(T) tourClamp(value, lower, upper: T)->T
 
 #test
 {
-    Swag.assert(tourClamp(12, 0, 10) == 10)
-    Swag.assert(tourClamp(0.25'f32, 0.0, 1.0) == 0.25)
+    Swag.require(tourClamp(12, 0, 10) == 10)
+    Swag.require(tourClamp(0.25'f32, 0.0, 1.0) == 0.25)
 }
 
 /**
@@ -148,12 +148,12 @@ func tourDivide(numerator, denominator: s32)->s32 fail
 
 #test
 {
-    Swag.assert(expect tourDivide(12, 3) == 4)
+    Swag.require(expect tourDivide(12, 3) == 4)
 
     var err: Swag.Error
     let fallback = catch tourDivide(12, 0) as err orelse -1
-    Swag.assert(fallback == -1)
-    Swag.assert(not err.isEmpty())
+    Swag.require(fallback == -1)
+    Swag.require(not err.isEmpty())
 }
 
 /**

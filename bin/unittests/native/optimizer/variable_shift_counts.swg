@@ -33,12 +33,12 @@ func slowShiftLeft(x: u64, n: u32)->u64
     for v in 0 until 64
     {
         let n = cast(u32, v)
-        Swag.assert(lowMask(n) == slowShiftLeft(1, n) - 1)
-        Swag.assert(shiftDown(pattern, cast(u8, v)) == pattern / slowShiftLeft(1, n))
-        Swag.assert(shiftSigned(-1, cast(u16, v)) == -1)
-        Swag.assert(shiftSum(pattern, cast(u8, (v / 2)), cast(u8, (v - v / 2))) == slowShiftLeft(pattern, n))
+        Swag.require(lowMask(n) == slowShiftLeft(1, n) - 1)
+        Swag.require(shiftDown(pattern, cast(u8, v)) == pattern / slowShiftLeft(1, n))
+        Swag.require(shiftSigned(-1, cast(u16, v)) == -1)
+        Swag.require(shiftSum(pattern, cast(u8, (v / 2)), cast(u8, (v - v / 2))) == slowShiftLeft(pattern, n))
         if v < 32 do
-            Swag.assert(shiftDword(0x8765_4321, cast(u64, v)) == cast #wrap (u32, slowShiftLeft(0x8765_4321, n)))
+            Swag.require(shiftDword(0x8765_4321, cast(u64, v)) == cast #wrap (u32, slowShiftLeft(0x8765_4321, n)))
     }
-    Swag.assert(shiftSigned(-64, 3) == -8)
+    Swag.require(shiftSigned(-64, 3) == -8)
 }

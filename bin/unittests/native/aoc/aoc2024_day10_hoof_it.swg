@@ -237,41 +237,41 @@ func analyzeTrails(text: string)->HikingReport
 {
     let sample = analyzeTrails(SampleInput)
 
-    Swag.assert(sample.width == 8'u32)
-    Swag.assert(sample.height == 8'u32)
-    Swag.assert(sample.trailheads == 9'u32)
-    Swag.assert(sample.totalScore == 36'u32)
-    Swag.assert(sample.totalRating == 81'u32)
+    Swag.require(sample.width == 8'u32)
+    Swag.require(sample.height == 8'u32)
+    Swag.require(sample.trailheads == 9'u32)
+    Swag.require(sample.totalScore == 36'u32)
+    Swag.require(sample.totalRating == 81'u32)
 }
 
 #test
 {
     let tiny = analyzeTrails(TinyInput)
 
-    Swag.assert(tiny.width == 4'u32)
-    Swag.assert(tiny.height == 4'u32)
-    Swag.assert(tiny.trailheads == 1'u32)
-    Swag.assert(tiny.totalScore == 1'u32)
-    Swag.assert(tiny.totalRating == 16'u32)
+    Swag.require(tiny.width == 4'u32)
+    Swag.require(tiny.height == 4'u32)
+    Swag.require(tiny.trailheads == 1'u32)
+    Swag.require(tiny.totalScore == 1'u32)
+    Swag.require(tiny.totalRating == 16'u32)
 }
 
 #test
 {
     let single = analyzeTrails(SingleInput)
 
-    Swag.assert(single.width == 1'u32)
-    Swag.assert(single.height == 1'u32)
-    Swag.assert(single.trailheads == 0'u32)
-    Swag.assert(single.totalScore == 0'u32)
-    Swag.assert(single.totalRating == 0'u32)
+    Swag.require(single.width == 1'u32)
+    Swag.require(single.height == 1'u32)
+    Swag.require(single.trailheads == 0'u32)
+    Swag.require(single.totalScore == 0'u32)
+    Swag.require(single.totalRating == 0'u32)
 }
 
 #test
 {
-    Swag.assert(NumDirections == 4'u32)
+    Swag.require(NumDirections == 4'u32)
     let a: TrailResult = TrailResult{score: 10, rating: 20}
     let b: TrailResult = TrailResult{score: 5, rating: 15}
     let c = addTrailResult(a, b)
-    Swag.assert(c.score == 15'u32)
-    Swag.assert(c.rating == 35'u32)
+    Swag.require(c.score == 15'u32)
+    Swag.require(c.rating == 35'u32)
 }

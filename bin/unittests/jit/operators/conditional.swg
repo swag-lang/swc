@@ -187,13 +187,13 @@ var g_Int42:   s32 = 42
 #test
 {
     let v = cast(s32, (g_CondTrue ? g_Float15 : g_Float25))
-    Swag.assert(v == 1)
+    Swag.require(v == 1)
     let w = cast(s32, (not g_CondTrue ? g_Float15 : g_Float25))
-    Swag.assert(w == 2)
+    Swag.require(w == 2)
 
     let f = g_CondTrue ? g_Float15 : g_Float25
-    Swag.assert(f == 1.5)
-    Swag.assert(f + g_Float25 == 4.0)
+    Swag.require(f == 1.5)
+    Swag.require(f + g_Float25 == 4.0)
 }
 
 // A conditional wrapped by an implicit cast keeps its own result type; the
@@ -202,11 +202,11 @@ var g_Int42:   s32 = 42
 #test
 {
     let x: f32 = g_CondTrue ? g_Int42 : 200
-    Swag.assert(x == 42.0)
+    Swag.require(x == 42.0)
     let y: f32 = not g_CondTrue ? g_Int42 : 200
-    Swag.assert(y == 200.0)
+    Swag.require(y == 200.0)
     let z: f64 = g_CondTrue ? g_Int42 : 200
-    Swag.assert(z == 42.0)
+    Swag.require(z == 42.0)
 }
 
 // A SIMD value is register-backed despite its 16-byte size. Treating it like a
@@ -239,15 +239,15 @@ var g_CondSt: CondSt
 
     let p: *CondSt? = g_CondTrue ? &g_CondSt : null
     let f: f32      = p ? p.col : 200
-    Swag.assert(f == 200.0)
+    Swag.require(f == 200.0)
 
-    Swag.assert(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
+    Swag.require(takeF(g_CondTrue ? g_Int42 : 200) == 42.0)
 
     let a = cast(f32, (g_CondTrue ? g_Int42 : 200))
-    Swag.assert(a == 42.0)
+    Swag.require(a == 42.0)
 
-    Swag.assert(retF(true, 7) == 7.0)
-    Swag.assert(retF(false, 7) == 200.0)
+    Swag.require(retF(true, 7) == 7.0)
+    Swag.require(retF(false, 7) == 200.0)
 }
 
 // A conditional between two typed values keeps their type whatever the enclosing function
@@ -263,8 +263,8 @@ var g_CondSt: CondSt
     }
 
     var values: [4] s32 = [1008, 1024, 1056, 1072]
-    Swag.assert(pick(true, &values[0], 0, 7, -144) == 864)
-    Swag.assert(pick(false, &values[0], 0, 7, -144) == 0)
+    Swag.require(pick(true, &values[0], 0, 7, -144) == 864)
+    Swag.require(pick(false, &values[0], 0, 7, -144) == 0)
 }
 
 // With no expected type, the false branch names its member against the enum of the true branch.
@@ -279,5 +279,5 @@ var g_CondSt: CondSt
 
     #assert(#run pick(true) == CondEnum.A)
     #assert(#run pick(false) == CondEnum.B)
-    Swag.assert(pick(false) == .B)
+    Swag.require(pick(false) == .B)
 }

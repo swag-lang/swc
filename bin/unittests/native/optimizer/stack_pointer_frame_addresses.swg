@@ -35,7 +35,7 @@ func passSix(x: s64)->s64
 
 #test
 {
-    Swag.assert(throughVariadic())
-    Swag.assert(passSix(1) == 1 + 4 + 3 + 8 + 55 + 132)
-    Swag.assert(passSix(-1) == -1 + 0 - 3 + 0 + 45 + 120)
+    Swag.require(throughVariadic())
+    Swag.require(passSix(1) == 1 + 4 + 3 + 8 + 55 + 132)
+    Swag.require(passSix(-1) == -1 + 0 - 3 + 0 + 45 + 120)
 }

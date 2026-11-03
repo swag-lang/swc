@@ -55,6 +55,6 @@ func check(v: u64)
     for v in [0xFFFFFFFF'u64, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFFFF9C, 0x80000000, 4294967200, 4294967000, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFF9, 7000000000000000000, 18446744073709000000] do
         check(v)
 
-    Swag.assert(countBy6(0, 100) == 17)
-    Swag.assert(countBy6(1, 7) == 1)
+    Swag.require(countBy6(0, 100) == 17)
+    Swag.require(countBy6(1, 7) == 1)
 }

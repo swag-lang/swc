@@ -78,10 +78,10 @@ func overwrittenAfterGuard(enabled: bool, input: const *[4] u64)->u64
 #test
 {
     let input = [11'u64, 17, 23, 31]
-    Swag.assert(overwrittenAfterGuard(true, &input) == 82)
-    Swag.assert(overwrittenAfterGuard(false, &input) == 0)
-    Swag.assert(overwritten(1, 2, 3, 4) == 10)
-    Swag.assert(partlyOverwritten(1, 2, 3) == 6)
-    Swag.assert(readBeforeOverwrite(1, 2, 3, 4) == 10)
-    Swag.assert(readThroughCopiedAddress(1, 2, 3, 4) == 10)
+    Swag.require(overwrittenAfterGuard(true, &input) == 82)
+    Swag.require(overwrittenAfterGuard(false, &input) == 0)
+    Swag.require(overwritten(1, 2, 3, 4) == 10)
+    Swag.require(partlyOverwritten(1, 2, 3) == 6)
+    Swag.require(readBeforeOverwrite(1, 2, 3, 4) == 10)
+    Swag.require(readThroughCopiedAddress(1, 2, 3, 4) == 10)
 }

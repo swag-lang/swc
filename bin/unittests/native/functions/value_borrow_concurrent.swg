@@ -36,11 +36,11 @@ func writeLarge(value: Large, target: *Large)->u8
         var small: Small
         var other: Small
         let observed = writeSmall(small, &other)
-        Swag.assert(observed == 0 and other.bytes[95] == 7)
+        Swag.require(observed == 0 and other.bytes[95] == 7)
         let caught = Swag.catchPanic(func|&small|() { discard writeSmall(small, &small) })
-        Swag.assert(caught.raised and small.bytes[95] == 0)
+        Swag.require(caught.raised and small.bytes[95] == 0)
         small.bytes[95] = 13
-        Swag.assert(small.bytes[95] == 13)
+        Swag.require(small.bytes[95] == 13)
     }
 }
 
@@ -56,11 +56,11 @@ func writeLarge(value: Large, target: *Large)->u8
         var large: Large
         var other: Large
         let observed = writeLarge(large, &other)
-        Swag.assert(observed == 0 and other.bytes[2047] == 11)
+        Swag.require(observed == 0 and other.bytes[2047] == 11)
         let caught = Swag.catchPanic(func|&large|() { discard writeLarge(large, &large) })
-        Swag.assert(caught.raised and large.bytes[2047] == 0)
+        Swag.require(caught.raised and large.bytes[2047] == 0)
         large.bytes[2047] = 17
-        Swag.assert(large.bytes[2047] == 17)
+        Swag.require(large.bytes[2047] == 17)
     }
 }
 
@@ -95,10 +95,10 @@ func holdAcrossThreads(small: Small, large: Large, state: *SharedBorrow)->u64
     let large = Swag.catchPanic(func|&state|() { state.large.bytes[2047] = 11 })
     state.release.release()
     let result = expect task.take()
-    Swag.assert(small.raised and large.raised and result == 0)
-    Swag.assert(small.message() == "write overlaps storage borrowed by a value argument")
-    Swag.assert(large.message() == "write overlaps storage borrowed by a value argument")
+    Swag.require(small.raised and large.raised and result == 0)
+    Swag.require(small.message() == "write overlaps storage borrowed by a value argument")
+    Swag.require(large.message() == "write overlaps storage borrowed by a value argument")
     state.small.bytes[95]   = 13
     state.large.bytes[2047] = 17
-    Swag.assert(state.small.bytes[95] == 13 and state.large.bytes[2047] == 17)
+    Swag.require(state.small.bytes[95] == 13 and state.large.bytes[2047] == 17)
 }

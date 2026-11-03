@@ -12,9 +12,9 @@
     let args = Swag.args()
     for arg, index in args where arg == "--expect-runtime-threads"
     {
-        Swag.assert(index + 1 < args.count)
+        Swag.require(index + 1 < args.count)
         let (expected, valid) = Swag.parseRuntimeThreadLimit(args[index + 1])
-        Swag.assert(valid)
+        Swag.require(valid)
         expectedLimit    = expected
         hasExpectedLimit = true
     }
@@ -24,16 +24,16 @@
     let initial = Swag.workerCount()
     let limit   = Swag.schedulerInstance().threadLimit
     if hasExpectedLimit do
-        Swag.assert(limit == expectedLimit)
-    Swag.assert(initial >= 1)
+        Swag.require(limit == expectedLimit)
+    Swag.require(initial >= 1)
     if limit != 0
     {
-        Swag.assert(initial <= limit)
+        Swag.require(initial <= limit)
         Swag.setWorkerCount(0xFFFF_FFFF)
         let grown = Swag.workerCount()
-        Swag.assert(grown >= initial and grown <= limit)
+        Swag.require(grown >= initial and grown <= limit)
         Swag.setWorkerCount(0)
-        Swag.assert(Swag.workerCount() == grown)
+        Swag.require(Swag.workerCount() == grown)
     }
 
     // Nested parallel work and both task priorities must still complete with a one-thread pool.
@@ -51,7 +51,7 @@
         tasks[index].submit(run, priority: index % 2 == 0 ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
     for &task in tasks do
         task.wait()
-    Swag.assert(completed.load() == 8 * 32 * 16)
+    Swag.require(completed.load() == 8 * 32 * 16)
     if limit != 0 do
-        Swag.assert(Swag.workerCount() <= limit)
+        Swag.require(Swag.workerCount() <= limit)
 }

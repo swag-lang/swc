@@ -27,5 +27,5 @@ func readIndexedMovedBorrow()->s32
     source.pointers[1] = &source.value
     var target     = source
     var index: u64 = 1
-    Swag.assert(target.pointers[index]![] == 9)
+    Swag.require(target.pointers[index]![] == 9)
 }

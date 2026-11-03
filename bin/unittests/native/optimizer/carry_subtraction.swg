@@ -37,19 +37,19 @@ func below(a, b: u64)->bool => a < b
             {
                 var bit = 0'u64
                 if below(b, c) do bit = 1
-                Swag.assert(subtract(a, b, c) == a - bit)
-                Swag.assert(addInverse(a, b, c) == a + (1 - bit))
-                Swag.assert(subtractInverse(a, b, c) == a - (1 - bit))
-                Swag.assert(shared(a, b, c) == ((a - bit) ^ bit))
-                Swag.assert(reverseSubtract(a, b, c) == bit - a)
-                if a - bit == 0 do Swag.assert(checked(a, b, c) == 7)
-                else do Swag.assert(checked(a, b, c) == 11)
+                Swag.require(subtract(a, b, c) == a - bit)
+                Swag.require(addInverse(a, b, c) == a + (1 - bit))
+                Swag.require(subtractInverse(a, b, c) == a - (1 - bit))
+                Swag.require(shared(a, b, c) == ((a - bit) ^ bit))
+                Swag.require(reverseSubtract(a, b, c) == bit - a)
+                if a - bit == 0 do Swag.require(checked(a, b, c) == 7)
+                else do Swag.require(checked(a, b, c) == 11)
                 let a32   = cast(u32, (a & 0xFFFFFFFF))
                 let b32   = cast(u32, (b & 0xFFFFFFFF))
                 let c32   = cast(u32, (c & 0xFFFFFFFF))
                 var bit32 = 0'u32
                 if below(b32, c32) do bit32 = 1
-                Swag.assert(subtract32(a32, b32, c32) == a32 - bit32)
+                Swag.require(subtract32(a32, b32, c32) == a32 - bit32)
             }
         }
     }

@@ -68,24 +68,24 @@ func armStore(p: [*] s32, c: bool)->s32
 #test
 {
     var values: [6] s32 = [3, -9, 4, 8, -2, 9]
-    Swag.assert(maxAbsIndex(&values[0], 6) == 1)
-    Swag.assert(maxAbsIndex(&values[0], 1) == 0)
-    Swag.assert(maxAbsIndex(&values[0], 0) == 0)
+    Swag.require(maxAbsIndex(&values[0], 6) == 1)
+    Swag.require(maxAbsIndex(&values[0], 1) == 0)
+    Swag.require(maxAbsIndex(&values[0], 0) == 0)
 
     var cell: [1] s32 = [5]
-    Swag.assert(bumpThenRead(&cell[0]) == 6)
+    Swag.require(bumpThenRead(&cell[0]) == 6)
     cell[0] = -5
-    Swag.assert(bumpThenRead(&cell[0]) == 4)
+    Swag.require(bumpThenRead(&cell[0]) == 4)
 
     cell[0] = 5
-    Swag.assert(readAcrossCall(&cell[0], true) == 101)
+    Swag.require(readAcrossCall(&cell[0], true) == 101)
     cell[0] = 5
-    Swag.assert(readAcrossCall(&cell[0], false) == 100)
+    Swag.require(readAcrossCall(&cell[0], false) == 100)
     cell[0] = -5
-    Swag.assert(readAcrossCall(&cell[0], true) == -5)
+    Swag.require(readAcrossCall(&cell[0], true) == -5)
 
     cell[0] = 7
-    Swag.assert(armStore(&cell[0], true) == 21)
+    Swag.require(armStore(&cell[0], true) == 21)
     cell[0] = 7
-    Swag.assert(armStore(&cell[0], false) == 0)
+    Swag.require(armStore(&cell[0], false) == 0)
 }

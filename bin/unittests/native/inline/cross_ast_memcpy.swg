@@ -31,9 +31,9 @@ impl CryptoState
     var dst: [5] u32
     h.extract(&dst[0])
 
-    Swag.assert(dst[0] == 0x11111111)
-    Swag.assert(dst[1] == 0x22222222)
-    Swag.assert(dst[2] == 0x33333333)
-    Swag.assert(dst[3] == 0x44444444)
-    Swag.assert(dst[4] == 0x55555555)
+    Swag.require(dst[0] == 0x11111111)
+    Swag.require(dst[1] == 0x22222222)
+    Swag.require(dst[2] == 0x33333333)
+    Swag.require(dst[3] == 0x44444444)
+    Swag.require(dst[4] == 0x55555555)
 }

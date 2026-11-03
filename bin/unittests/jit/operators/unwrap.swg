@@ -20,8 +20,8 @@ func unwrapNullable(node: *UnwrapNode?)->*UnwrapNode => unwrap node
     g_unwrapCalls = 0
     let node = unwrap unwrapNode(true)
     #assert(#typeof(node) == *UnwrapNode)
-    Swag.assert(node.value == 42)
-    Swag.assert(g_unwrapCalls == 1)
+    Swag.require(node.value == 42)
+    Swag.require(g_unwrapCalls == 1)
 }
 
 #test
@@ -30,15 +30,15 @@ func unwrapNullable(node: *UnwrapNode?)->*UnwrapNode => unwrap node
     var values: [2] Slot = [null, &g_unwrapNode]
     let node = unwrap values[1]
     #assert(#typeof(node) == *UnwrapNode)
-    Swag.assert(node.value == 42)
-    Swag.assert(unwrapNullable(&g_unwrapNode).value == 42)
+    Swag.require(node.value == 42)
+    Swag.require(unwrapNullable(&g_unwrapNode).value == 42)
 }
 
 #test
 {
     let node = unwrap expect unwrapFallible(true)
     #assert(#typeof(node) == *UnwrapNode)
-    Swag.assert(node.value == 42)
+    Swag.require(node.value == 42)
 }
 
 func unwrapProof(node: *UnwrapNode?)->s32
@@ -49,11 +49,11 @@ func unwrapProof(node: *UnwrapNode?)->s32
 
 #test
 {
-    Swag.assert(unwrapProof(&g_unwrapNode) == 84)
+    Swag.require(unwrapProof(&g_unwrapNode) == 84)
     g_unwrapCalls = 0
     let node = true ? &g_unwrapNode : unwrap unwrapNode(true)
-    Swag.assert(node.value == 42)
-    Swag.assert(g_unwrapCalls == 0)
+    Swag.require(node.value == 42)
+    Swag.require(g_unwrapCalls == 0)
 }
 
 enum UnwrapKind { Empty, Node }
@@ -76,5 +76,5 @@ func unwrapPayload(value: UnwrapUnion)->s32
 {
     var value: UnwrapUnion
     value.payload = .Node{UnwrapNode{42}}
-    Swag.assert(unwrapPayload(value) == 42)
+    Swag.require(unwrapPayload(value) == 42)
 }

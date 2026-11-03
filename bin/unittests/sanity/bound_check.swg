@@ -52,8 +52,8 @@
     var hi = 3
     a[lo] = 1
     a[hi] = 2
-    Swag.assert(a[lo] == 1)
-    Swag.assert(a[hi] == 2)
+    Swag.require(a[lo] == 1)
+    Swag.require(a[hi] == 2)
 }
 
 // An unknown index is never flagged (the runtime guard covers it).

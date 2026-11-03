@@ -38,12 +38,12 @@ func(T) choose(box: const *OtherQualified.Box'T)->u32 => 2
     var holder: Holder'(u32, 3)
     holder.box = make'u32(42)
     holder.buffer.values = [1, 2, 3]
-    Swag.assert(read'u32(&holder.box) == 42)
-    Swag.assert(read(&holder.box) == 42)
-    Swag.assert(make(17'u32).value == 17)
-    Swag.assert(makeShadowed(19'u32).value == 19)
-    Swag.assert(holder.buffer.values[2] == 3)
-    Swag.assert(choose(&holder.box) == 1)
+    Swag.require(read'u32(&holder.box) == 42)
+    Swag.require(read(&holder.box) == 42)
+    Swag.require(make(17'u32).value == 17)
+    Swag.require(makeShadowed(19'u32).value == 19)
+    Swag.require(holder.buffer.values[2] == 3)
+    Swag.require(choose(&holder.box) == 1)
     var other: OtherQualified.Box'u32 = OtherQualified.Box'u32{12}
-    Swag.assert(choose(&other) == 2)
+    Swag.require(choose(&other) == 2)
 }

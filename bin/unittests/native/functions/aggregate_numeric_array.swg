@@ -23,6 +23,6 @@ func wideNumericArrayMiddle()->u64
 
 #test
 {
-    Swag.assert(wideNumericArraySum() == 5_000_000_001)
-    Swag.assert(wideNumericArrayMiddle() == 5_000_000_000)
+    Swag.require(wideNumericArraySum() == 5_000_000_001)
+    Swag.require(wideNumericArrayMiddle() == 5_000_000_000)
 }

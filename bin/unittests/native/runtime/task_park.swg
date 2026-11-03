@@ -64,9 +64,9 @@ func awaitParked(count: u32)->bool
     let blockerPending = blocker.isPending()
     release.raise()
     blocker.wait()
-    Swag.assert(blockerStarted and targetStarted and parked)
-    Swag.assert(blockerPending)
-    Swag.assert(Swag.schedulerInstance().joining.load() == 0)
+    Swag.require(blockerStarted and targetStarted and parked)
+    Swag.require(blockerPending)
+    Swag.require(Swag.schedulerInstance().joining.load() == 0)
 }
 
 struct Observer
@@ -134,7 +134,7 @@ func observe(param: *void?)->u32
             let closed = CloseHandle(observer.handle)
             joined = joined and waited == 0 and closed != 0 and observer.finished
         }
-        Swag.assert(targetStarted and parked and joined)
-        Swag.assert(Swag.schedulerInstance().joining.load() == 0)
+        Swag.require(targetStarted and parked and joined)
+        Swag.require(Swag.schedulerInstance().joining.load() == 0)
     }
 }

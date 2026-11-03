@@ -212,8 +212,8 @@ const RunSuiteOk  = #run GenericForeachLazyCodegen.runRuntimeSuite()
 
 #test
 {
-    Swag.assert(IntSuiteOk)
-    Swag.assert(BoolSuiteOk)
-    Swag.assert(RunSuiteOk)
-    Swag.assert(GenericForeachLazyCodegen.runRuntimeSuite())
+    Swag.require(IntSuiteOk)
+    Swag.require(BoolSuiteOk)
+    Swag.require(RunSuiteOk)
+    Swag.require(GenericForeachLazyCodegen.runRuntimeSuite())
 }

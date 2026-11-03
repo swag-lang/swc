@@ -41,24 +41,24 @@ func makeDateTime()->DestructAssignDateTime
 #test
 {
     let value = makeDateTime()
-    Swag.assert(value.year == 2024)
-    Swag.assert(value.month == 2)
-    Swag.assert(value.day == 29)
-    Swag.assert(value.hour == 1)
-    Swag.assert(value.minute == 2)
-    Swag.assert(value.second == 3)
-    Swag.assert(value.millisecond == 4)
+    Swag.require(value.year == 2024)
+    Swag.require(value.month == 2)
+    Swag.require(value.day == 29)
+    Swag.require(value.hour == 1)
+    Swag.require(value.minute == 2)
+    Swag.require(value.second == 3)
+    Swag.require(value.millisecond == 4)
 }
 
 #test
 {
     var pair = DestructAssignPair{1, 2}
     {a: pair.b, b: pair.a} = pair
-    Swag.assert(pair.a == 2)
-    Swag.assert(pair.b == 1)
+    Swag.require(pair.a == 2)
+    Swag.require(pair.b == 1)
 
     var other = DestructAssignPair{0, 0}
     {a: other.a, b: _} = pair
-    Swag.assert(other.a == 2)
-    Swag.assert(other.b == 0)
+    Swag.require(other.a == 2)
+    Swag.require(other.b == 0)
 }

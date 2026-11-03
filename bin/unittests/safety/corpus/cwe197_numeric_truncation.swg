@@ -79,7 +79,7 @@ func fitsInTarget(value: s32)->s8
 
 #test
 {
-    Swag.assert(truncatesOnRequest(opaqueS32(255)) == -1)
-    Swag.assert(widensImplicitly(opaqueS8(-1)) == -1)
-    Swag.assert(fitsInTarget(opaqueS32(120)) == 120)
+    Swag.require(truncatesOnRequest(opaqueS32(255)) == -1)
+    Swag.require(widensImplicitly(opaqueS8(-1)) == -1)
+    Swag.require(fitsInTarget(opaqueS32(120)) == 120)
 }

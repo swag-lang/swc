@@ -80,10 +80,10 @@ func fallibleEarlyReturnThroughNestedCall(value: s32)->s32 fail
 
 #test
 {
-    Swag.assert(autoInlineOnce(21) == 42)
-    Swag.assert(recursiveFirst(4) == 0)
-    Swag.assert(earlyReturnThroughNestedCall(1) == 1)
-    Swag.assert(earlyReturnThroughNestedCall(0) == 2)
-    Swag.assert((expect fallibleEarlyReturnThroughNestedCall(1)) == 3)
-    Swag.assert((expect fallibleEarlyReturnThroughNestedCall(0)) == 4)
+    Swag.require(autoInlineOnce(21) == 42)
+    Swag.require(recursiveFirst(4) == 0)
+    Swag.require(earlyReturnThroughNestedCall(1) == 1)
+    Swag.require(earlyReturnThroughNestedCall(0) == 2)
+    Swag.require((expect fallibleEarlyReturnThroughNestedCall(1)) == 3)
+    Swag.require((expect fallibleEarlyReturnThroughNestedCall(0)) == 4)
 }

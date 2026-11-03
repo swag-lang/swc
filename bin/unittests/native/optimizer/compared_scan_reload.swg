@@ -28,8 +28,8 @@ func scanSwap(values: [*] u64, last: s64, pivot: u64, mutate: bool)->s64
 {
     var values: [6] u64 = [1, 5, 2, 9, 8, 7]
     let positions       = scanSwap(&values[0], 5, 4, false)
-    Swag.assert(positions == 12)
-    Swag.assert(values == [1, 2, 5, 9, 8, 7])
+    Swag.require(positions == 12)
+    Swag.require(values == [1, 2, 5, 9, 8, 7])
 }
 
 #test
@@ -37,22 +37,22 @@ func scanSwap(values: [*] u64, last: s64, pivot: u64, mutate: bool)->s64
     // The second scan changes the cell the first scan compared.
     var values: [6] u64 = [1, 5, 2, 9, 8, 7]
     let positions       = scanSwap(&values[0], 5, 4, true)
-    Swag.assert(positions == 12)
-    Swag.assert(values == [1, 2, 8, 9, 8, 7])
+    Swag.require(positions == 12)
+    Swag.require(values == [1, 2, 8, 9, 8, 7])
 }
 
 #test
 {
     var values: [6] u64 = [1, 2, 3, 4, 5, 6]
     let positions       = scanSwap(&values[0], 5, 4, false)
-    Swag.assert(positions == 33)
-    Swag.assert(values == [1, 2, 3, 4, 5, 6])
+    Swag.require(positions == 33)
+    Swag.require(values == [1, 2, 3, 4, 5, 6])
 }
 
 #test
 {
     var values: [6] u64 = [6, 5, 4, 3, 2, 1]
     let positions       = scanSwap(&values[0], 5, 4, false)
-    Swag.assert(positions == 5)
-    Swag.assert(values == [1, 5, 4, 3, 2, 6])
+    Swag.require(positions == 5)
+    Swag.require(values == [1, 5, 4, 3, 2, 6])
 }

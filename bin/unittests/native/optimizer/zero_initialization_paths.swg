@@ -38,13 +38,13 @@ func selected(a, b: u64)->u64 => a < b ? a : 0
 #test
 {
     var values = [1'u64, 2, 0, 4, 0xFFFFFFFFFFFFFFFF]
-    Swag.assert(sum(&values[0], 0) == 0)
-    Swag.assert(sum(&values[0], 5) == 6)
-    Swag.assert(countNonzero(&values[0], 0) == 0)
-    Swag.assert(countNonzero(&values[0], 5) == 4)
-    Swag.assert(nested(&values[0], 5, false) == 0)
-    Swag.assert(nested(&values[0], 5, true) == 3)
-    Swag.assert(selected(3, 7) == 3)
-    Swag.assert(selected(7, 3) == 0)
-    Swag.assert(selected(0xFFFFFFFFFFFFFFFF, 3) == 0)
+    Swag.require(sum(&values[0], 0) == 0)
+    Swag.require(sum(&values[0], 5) == 6)
+    Swag.require(countNonzero(&values[0], 0) == 0)
+    Swag.require(countNonzero(&values[0], 5) == 4)
+    Swag.require(nested(&values[0], 5, false) == 0)
+    Swag.require(nested(&values[0], 5, true) == 3)
+    Swag.require(selected(3, 7) == 3)
+    Swag.require(selected(7, 3) == 0)
+    Swag.require(selected(0xFFFFFFFFFFFFFFFF, 3) == 0)
 }

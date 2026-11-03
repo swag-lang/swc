@@ -35,5 +35,5 @@ func checkFour(value: const *FourChunks)
 
     var dense: FiveChunks
     checkFour(&dense.base)
-    Swag.assert(dense.extra == 0x1020304050607080)
+    Swag.require(dense.extra == 0x1020304050607080)
 }

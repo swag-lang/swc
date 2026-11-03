@@ -28,16 +28,16 @@ impl BufferMemberWins
 
 #test
 {
-    Swag.assert(assert(1) == 2)
-    Swag.assert(index() == 7)
-    Swag.assert(count() == 11)
-    Swag.assert(buffer() == 13)
+    Swag.require(assert(1) == 2)
+    Swag.require(index() == 7)
+    Swag.require(count() == 11)
+    Swag.require(buffer() == 13)
 }
 
 #test
 {
     let value = CountMemberWins{count: 5}
-    Swag.assert(value.count == 5)
+    Swag.require(value.count == 5)
 }
 
 #test
@@ -45,6 +45,6 @@ impl BufferMemberWins
     var external: [1] u8 = [42]
     var value = BufferMemberWins{buffer: &external[0], data: [1, 2]}
 
-    Swag.assert(value.buffer == &external[0])
-    Swag.assert(value.buffer[] == 42)
+    Swag.require(value.buffer == &external[0])
+    Swag.require(value.buffer[] == 42)
 }

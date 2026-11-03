@@ -114,18 +114,18 @@ func runMePathCapture()->s32
 #test
 {
     var cb: (func||(s32)->s32)? = null
-    Swag.assert(cb == null)
+    Swag.require(cb == null)
 
     cb = func(value: s32)->s32 { return value + 1 }
-    Swag.assert(cb(4) == 5)
+    Swag.require(cb(4) == 5)
 
     cb = &addOne
-    Swag.assert(cb(8) == 9)
+    Swag.require(cb(8) == 9)
 
     let offset = 5
     cb = func|offset|(value: s32)->s32 { return value + offset }
-    Swag.assert(cb(3) == 8)
-    Swag.assert(cb != null)
+    Swag.require(cb(3) == 8)
+    Swag.require(cb != null)
 }
 
 #test
@@ -144,11 +144,11 @@ func runMePathCapture()->s32
     }
 
     seed = 100
-    Swag.assert(first() == 6)
-    Swag.assert(first() == 7)
-    Swag.assert(second() == 15)
-    Swag.assert(second() == 25)
-    Swag.assert(seed == 100)
+    Swag.require(first() == 6)
+    Swag.require(first() == 7)
+    Swag.require(second() == 15)
+    Swag.require(second() == 25)
+    Swag.require(seed == 100)
 }
 
 #test
@@ -158,8 +158,8 @@ func runMePathCapture()->s32
     holder.cb = func|offset|(value: s32)->s32 { return value + offset }
 
     offset = 100
-    Swag.assert(holder.cb(4) == 9)
-    Swag.assert(invokeUnary(holder.cb, 7) == 12)
+    Swag.require(holder.cb(4) == 9)
+    Swag.require(invokeUnary(holder.cb, 7) == 12)
 }
 
 #test
@@ -172,9 +172,9 @@ func runMePathCapture()->s32
         return total
     }
 
-    Swag.assert(holder.cb() == 12)
-    Swag.assert(holder.cb() == 14)
-    Swag.assert(total == 14)
+    Swag.require(holder.cb() == 12)
+    Swag.require(holder.cb() == 14)
+    Swag.require(total == 14)
 }
 
 #test
@@ -192,10 +192,10 @@ func runMePathCapture()->s32
         return total
     }
 
-    Swag.assert(inc() == 1)
-    Swag.assert(boost() == 11)
-    Swag.assert(inc() == 12)
-    Swag.assert(total == 12)
+    Swag.require(inc() == 1)
+    Swag.require(boost() == 11)
+    Swag.require(inc() == 12)
+    Swag.require(total == 12)
 }
 
 #test
@@ -210,10 +210,10 @@ func runMePathCapture()->s32
     }
 
     factor = 100
-    Swag.assert(cb(2) == 104)
-    Swag.assert(cb(1) == 145)
-    Swag.assert(total == 14)
-    Swag.assert(factor == 100)
+    Swag.require(cb(2) == 104)
+    Swag.require(cb(1) == 145)
+    Swag.require(total == 14)
+    Swag.require(factor == 100)
 }
 
 #test
@@ -225,9 +225,9 @@ func runMePathCapture()->s32
     }
 
     values = [100, 2, 3]
-    Swag.assert(cb() == 6)
-    Swag.assert(cb() == 6)
-    Swag.assert(values[0] == 100)
+    Swag.require(cb() == 6)
+    Swag.require(cb() == 6)
+    Swag.require(values[0] == 100)
 }
 
 #test
@@ -239,96 +239,96 @@ func runMePathCapture()->s32
     }
 
     values = [5, 2, 3]
-    Swag.assert(cb() == 10)
+    Swag.require(cb() == 10)
 
     values = [20, 2, 3]
-    Swag.assert(cb() == 25)
-    Swag.assert(values[0] == 20)
+    Swag.require(cb() == 25)
+    Swag.require(values[0] == 20)
 }
 
 #test
 {
     let cb = makeParamPairClosure({base: 4, step: 3})
-    Swag.assert(cb(2) == 9)
-    Swag.assert(cb(1) == 10)
+    Swag.require(cb(2) == 9)
+    Swag.require(cb(1) == 10)
 }
 
 #test
 {
     let cb = makeParamArrayClosure([1, 2, 3])
-    Swag.assert(cb() == 7)
-    Swag.assert(cb() == 8)
+    Swag.require(cb() == 7)
+    Swag.require(cb() == 8)
 }
 
 #test
 {
     let plain = relayUnary(func(value: s32)->s32 { return value + 1 })
-    Swag.assert(plain(4) == 5)
+    Swag.require(plain(4) == 5)
 
     let fromFunction = relayUnary(&addOne)
-    Swag.assert(fromFunction(4) == 5)
+    Swag.require(fromFunction(4) == 5)
 
     let offset   = 10
     let captured = relayUnary(func|offset|(value: s32)->s32 { return value + offset })
-    Swag.assert(captured(4) == 14)
+    Swag.require(captured(4) == 14)
 }
 
 #test
 {
-    Swag.assert(maybeInvoke() == -1)
-    Swag.assert(maybeInvoke(null) == -1)
+    Swag.require(maybeInvoke() == -1)
+    Swag.require(maybeInvoke(null) == -1)
 }
 
 #test
 {
-    Swag.assert(maybeInvoke(func()->s32 { return 9 }) == 9)
+    Swag.require(maybeInvoke(func()->s32 { return 9 }) == 9)
 }
 
 #test
 {
-    Swag.assert(invokeUnary(func(value: s32)->s32 { return value * 2 }, 6) == 12)
+    Swag.require(invokeUnary(func(value: s32)->s32 { return value * 2 }, 6) == 12)
 }
 
 #test
 {
     let factor = 3
     let cb: func||(s32)->s32 = func|factor|(value: s32)->s32 { return value * factor }
-    Swag.assert(invokeUnary(cb, 7) == 21)
+    Swag.require(invokeUnary(cb, 7) == 21)
 }
 
 #test
 {
     let offset = 3
     let cb     = func|offset|(value: s32)->s32 { return value + offset }
-    Swag.assert(cb(7) == 10)
+    Swag.require(cb(7) == 10)
 }
 
 #test
 {
     let factor = 3
-    Swag.assert((func|factor|(value: s32)->s32 { return value * factor })(7) == 21)
+    Swag.require((func|factor|(value: s32)->s32 { return value * factor })(7) == 21)
 }
 
 #test
 {
-    Swag.assert(runDottedPathCapture() == 1650)
+    Swag.require(runDottedPathCapture() == 1650)
 }
 
 #test
 {
-    Swag.assert(runMePathCapture() == 913)
+    Swag.require(runMePathCapture() == 913)
 }
 
 #test
 {
     let globalReader: func||()->s32 = func()->s32 { return GlobalSeed + GlobalBonus }
-    Swag.assert(globalReader() == 42)
+    Swag.require(globalReader() == 42)
 
     var text = "abc"
     let byValue: func||()->string = func|text|()->string { return text }
     let byRef:   func||()->string = func|&text|()->string { return text }
 
     text = "zzz"
-    Swag.assert(byValue() == "abc")
-    Swag.assert(byRef() == "zzz")
+    Swag.require(byValue() == "abc")
+    Swag.require(byRef() == "zzz")
 }

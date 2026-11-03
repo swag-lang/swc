@@ -31,14 +31,14 @@ func less64(a: s64, b: s64)->u64
 {
     for index in 17
     {
-        Swag.assert(different32(index, index) == 0)
-        Swag.assert(different32(index, index + 1) == 1)
-        Swag.assert(different64(index, index) == 0)
-        Swag.assert(different64(index, index + 1) == 1)
+        Swag.require(different32(index, index) == 0)
+        Swag.require(different32(index, index + 1) == 1)
+        Swag.require(different64(index, index) == 0)
+        Swag.require(different64(index, index + 1) == 1)
     }
-    Swag.assert(different32(-1, 0) == 1)
-    Swag.assert(different64(-1, 0) == 1)
-    Swag.assert(less64(-1, 0) == 1)
-    Swag.assert(less64(0, -1) == 0)
-    Swag.assert(less64(0, 0) == 0)
+    Swag.require(different32(-1, 0) == 1)
+    Swag.require(different64(-1, 0) == 1)
+    Swag.require(less64(-1, 0) == 1)
+    Swag.require(less64(0, -1) == 0)
+    Swag.require(less64(0, 0) == 0)
 }

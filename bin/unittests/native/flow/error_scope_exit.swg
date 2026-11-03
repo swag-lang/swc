@@ -87,13 +87,13 @@ func loopExits()
     for 300
     {
         let result = expect choose(["missing", "present"])
-        Swag.assert(result[] == 42)
-        Swag.assert(Swag.getContext().errorIndex == depth)
+        Swag.require(result[] == 42)
+        Swag.require(Swag.getContext().errorIndex == depth)
         let other = expect chooseWithoutInlining(["missing", "present"])
-        Swag.assert(other == result)
-        Swag.assert(Swag.getContext().errorIndex == depth)
+        Swag.require(other == result)
+        Swag.require(Swag.getContext().errorIndex == depth)
     }
-    Swag.assert(cleanups == 1200)
+    Swag.require(cleanups == 1200)
 }
 
 #test
@@ -102,11 +102,11 @@ func loopExits()
     cleanups = 0
     for 300
     {
-        Swag.assert(required()[] == 42)
+        Swag.require(required()[] == 42)
         loopExits()
-        Swag.assert(Swag.getContext().errorIndex == depth)
+        Swag.require(Swag.getContext().errorIndex == depth)
     }
-    Swag.assert(cleanups == 1500)
+    Swag.require(cleanups == 1500)
 }
 
 #test
@@ -114,7 +114,7 @@ func loopExits()
     let depth = Swag.getContext().errorIndex
     for 300
     {
-        Swag.assert(nestedScopes()[] == 42)
-        Swag.assert(Swag.getContext().errorIndex == depth)
+        Swag.require(nestedScopes()[] == 42)
+        Swag.require(Swag.getContext().errorIndex == depth)
     }
 }

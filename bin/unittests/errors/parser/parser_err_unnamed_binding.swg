@@ -6,12 +6,12 @@ func ignoreBoth(_: s32, _: s32)->s32 => 0
 
 #test
 {
-    Swag.assert(ignoreBoth(1, 2) == 0)
+    Swag.require(ignoreBoth(1, 2) == 0)
     var total = 0
     for _, value in [1, 2] do
         total += value
     let (_, second) = (1, 2)
-    Swag.assert(total == 3 and second == 2)
+    Swag.require(total == 3 and second == 2)
 }
 
 // Nothing can read an unnamed binding back.

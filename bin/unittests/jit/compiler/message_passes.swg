@@ -25,5 +25,5 @@ internal var MessageStageValue = 0
 
 #test
 {
-    Swag.assert(MessageStageValue == 12)
+    Swag.require(MessageStageValue == 12)
 }

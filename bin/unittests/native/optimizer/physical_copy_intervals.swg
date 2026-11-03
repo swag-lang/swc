@@ -42,11 +42,11 @@ func throughDivision(a, b, mask: u64)->u64
             for mask in values
             {
                 let selected = b ^ ((a ^ b) & mask)
-                Swag.assert(combine(a, b, mask) == selected)
-                Swag.assert(acrossCall(a, b, mask, b, a, ~mask) == (a ^ b))
-                Swag.assert(throughBranches(a, b, mask, 0) == a)
-                Swag.assert(throughBranches(a, b, mask, 5) == selected)
-                Swag.assert(throughDivision(a, b, mask) == selected / 7 + selected % 7)
+                Swag.require(combine(a, b, mask) == selected)
+                Swag.require(acrossCall(a, b, mask, b, a, ~mask) == (a ^ b))
+                Swag.require(throughBranches(a, b, mask, 0) == a)
+                Swag.require(throughBranches(a, b, mask, 5) == selected)
+                Swag.require(throughDivision(a, b, mask) == selected / 7 + selected % 7)
             }
         }
     }

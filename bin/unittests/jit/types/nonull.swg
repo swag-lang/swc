@@ -315,5 +315,5 @@ func jitNonNullConstruction()->bool
 
 #test
 {
-    Swag.assert(jitNonNullConstruction())
+    Swag.require(jitNonNullConstruction())
 }

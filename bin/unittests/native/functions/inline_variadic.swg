@@ -75,38 +75,38 @@ func inlineTypedVariadicLiteralEdges(values: s32...)->s32
     var t1: s32 = 2
     var t2: s32 = 3
     var t3: s32 = 4
-    Swag.assert(inlineTypedVariadicSum(t0, t1, t2, t3) == 13)
+    Swag.require(inlineTypedVariadicSum(t0, t1, t2, t3) == 13)
 
     var t4: s32 = 5
-    Swag.assert(inlineTypedVariadicSum(t4) == 5)
+    Swag.require(inlineTypedVariadicSum(t4) == 5)
 
     var n0: s32 = 7
     var n1: s32 = 8
     var n2: s32 = 9
-    Swag.assert(inlineTypedVariadicNamed(n0, n1, n2) == 24)
+    Swag.require(inlineTypedVariadicNamed(n0, n1, n2) == 24)
 
     var u0: s32    = 1
     var u1: bool   = true
     var u2: string = "A"
-    Swag.assert(inlineUntypedVariadicScore(u0, u1, u2) == 76)
+    Swag.require(inlineUntypedVariadicScore(u0, u1, u2) == 76)
 
     var u3: s32    = 2
     var u4: bool   = false
     var u5: string = "B"
     var u6: s32    = 3
-    Swag.assert(inlineUntypedVariadicScore(u3, u4, u5, u6) == 71)
+    Swag.require(inlineUntypedVariadicScore(u3, u4, u5, u6) == 71)
 
     var h0: s32    = 40
     var h1: s32    = 1
     var h2: string = "a"
     var h3: bool   = false
-    Swag.assert(inlineUntypedVariadicHead(h0, h1, h2, h3) == 43)
+    Swag.require(inlineUntypedVariadicHead(h0, h1, h2, h3) == 43)
 
     var h4: s32    = 50
     var h5: string = "x"
-    Swag.assert(inlineUntypedVariadicHead(h4, h5) == 51)
+    Swag.require(inlineUntypedVariadicHead(h4, h5) == 51)
 
-    Swag.assert(forwardInlineTypedVariadic(10, 20, 30) == 60)
-    Swag.assert(inlineTypedVariadicLiteralForward() == 10)
-    Swag.assert(inlineTypedVariadicLiteralEdges(10, 20, 30, 40) == 50)
+    Swag.require(forwardInlineTypedVariadic(10, 20, 30) == 60)
+    Swag.require(inlineTypedVariadicLiteralForward() == 10)
+    Swag.require(inlineTypedVariadicLiteralEdges(10, 20, 30, 40) == 50)
 }

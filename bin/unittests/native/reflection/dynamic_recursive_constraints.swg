@@ -28,5 +28,5 @@ struct DynamicRecursiveNode
 #test
 {
     let type: typeinfo = DynamicRecursiveNode
-    Swag.assert(type.kind == .Struct)
+    Swag.require(type.kind == .Struct)
 }

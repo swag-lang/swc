@@ -62,19 +62,19 @@ func mul64(a, b: u64)->u64 => a * #wrap b
         {
             let dx = j - i
             let dy = i * 3 - j
-            Swag.assert(distSq(i, j, j, i * 3) == mul32(dx, dx) + mul32(dy, dy))
+            Swag.require(distSq(i, j, j, i * 3) == mul32(dx, dx) + mul32(dy, dy))
         }
 
         var kept = 0's32
-        Swag.assert(squareAndKeep(i, &kept) == mul32(i + 3, i + 3) + i + 3)
-        Swag.assert(kept == i + 3)
-        Swag.assert(powerFour(i) == mul32(mul32(i, i), mul32(i, i)))
-        Swag.assert(doubled(cast #wrap (u32, i)) == (cast #wrap (u32, i) | 1) * #wrap 2)
+        Swag.require(squareAndKeep(i, &kept) == mul32(i + 3, i + 3) + i + 3)
+        Swag.require(kept == i + 3)
+        Swag.require(powerFour(i) == mul32(mul32(i, i), mul32(i, i)))
+        Swag.require(doubled(cast #wrap (u32, i)) == (cast #wrap (u32, i) | 1) * #wrap 2)
     }
 
     var values: [5] s32 = [1, -2, 30000, -30000, 7]
-    Swag.assert(sumSquares(&values[0], 5) == 0 + 9 + 29999 * 29999 + 30001 * 30001 + 36)
+    Swag.require(sumSquares(&values[0], 5) == 0 + 9 + 29999 * 29999 + 30001 * 30001 + 36)
 
     for x in [0'u64, 1, 0x55, 0xFFFFFFFF, 0x1234567890ABCDEF, 0xFFFFFFFFFFFFFFFF] do
-        Swag.assert(wideSquare(x) == mul64(x ^ 0x55, x ^ 0x55))
+        Swag.require(wideSquare(x) == mul64(x ^ 0x55, x ^ 0x55))
 }

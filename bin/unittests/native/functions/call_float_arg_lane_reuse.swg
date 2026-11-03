@@ -12,5 +12,5 @@ func reuseFloatAcrossArgLanes(v: f32)->f32
 
 #test
 {
-    Swag.assert(reuseFloatAcrossArgLanes(1.5) == 6.0)
+    Swag.require(reuseFloatAcrossArgLanes(1.5) == 6.0)
 }

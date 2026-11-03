@@ -32,7 +32,7 @@ namespace Reflection
     #assert(Reflection.canCopy(u32))
     #assert(Reflection.isPod(u32))
 
-    Swag.assert(not Reflection.isPod(null))
-    Swag.assert(not Reflection.canCopy(null))
-    Swag.assert(Reflection.isPod(#typeof(null)))
+    Swag.require(not Reflection.isPod(null))
+    Swag.require(not Reflection.canCopy(null))
+    Swag.require(Reflection.isPod(#typeof(null)))
 }

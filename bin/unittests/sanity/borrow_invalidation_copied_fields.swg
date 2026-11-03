@@ -58,7 +58,7 @@ impl BorrowFieldCache
     cache.set(&value)
     let first = cache.get()
     cache.reserve(2)
-    Swag.assert(first == &value and first![] == 33)
+    Swag.require(first == &value and first![] == 33)
 }
 
 #[Swag.NoInline]
@@ -74,8 +74,8 @@ func borrowFieldIdentity(value: *s32?)->*s32? => value
     let copied    = entry.value
     let forwarded = borrowFieldIdentity(entry.value)
     cache.reserve(2)
-    Swag.assert(copied == &value and forwarded == &value)
-    Swag.assert(copied![] == 41 and forwarded![] == 41)
+    Swag.require(copied == &value and forwarded == &value)
+    Swag.require(copied![] == 41 and forwarded![] == 41)
 }
 
 // Copying a field must not change the original accessor snapshot shared by entry.

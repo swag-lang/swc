@@ -85,15 +85,15 @@ impl SetterReceiver
 #test
 {
     var receiver: SetterReceiver
-    Swag.assert(expect receiver.direct(false))
-    Swag.assert(not expect receiver.direct(true))
-    Swag.assert(expect receiver.direct(false))
+    Swag.require(expect receiver.direct(false))
+    Swag.require(not expect receiver.direct(true))
+    Swag.require(expect receiver.direct(false))
 }
 
 #test
 {
     var receiver: SetterReceiver
-    Swag.assert(expect receiver.staged(false))
-    Swag.assert(not expect receiver.staged(true))
-    Swag.assert(expect receiver.staged(false))
+    Swag.require(expect receiver.staged(false))
+    Swag.require(not expect receiver.staged(true))
+    Swag.require(expect receiver.staged(false))
 }

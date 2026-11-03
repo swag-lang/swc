@@ -168,15 +168,15 @@ impl InterpolationWindow
     let values: [3] s32 = [5, 6, 7]
     let fixed:  [4] u8  = [1'u8, 2, 3, 4]
 
-    Swag.assert(kind(1.0'f32) == 1)
-    Swag.assert(kind(1's64) == 2)
-    Swag.assert(onlyFloat(1.0'f64) == 1.0'f64)
-    Swag.assert(onlyIntegersBlock(12's32) == 12)
-    Swag.assert(head(values) == 5)
-    Swag.assert(mustBePositive'3() == 3)
-    Swag.assert(defaultFloatValue() == 2.0'f32)
-    Swag.assert(defaultFloatValue'(f64)() == 2.0'f64)
-    Swag.assert(fixedTail(fixed) == 4'u8)
+    Swag.require(kind(1.0'f32) == 1)
+    Swag.require(kind(1's64) == 2)
+    Swag.require(onlyFloat(1.0'f64) == 1.0'f64)
+    Swag.require(onlyIntegersBlock(12's32) == 12)
+    Swag.require(head(values) == 5)
+    Swag.require(mustBePositive'3() == 3)
+    Swag.require(defaultFloatValue() == 2.0'f32)
+    Swag.require(defaultFloatValue'(f64)() == 2.0'f64)
+    Swag.require(fixedTail(fixed) == 4'u8)
 }
 
 #test
@@ -184,14 +184,14 @@ impl InterpolationWindow
     let signedPair: Pair'(s32, string) = {first: 7, second: "ok"}
     let floatBox:   Wrapper'f32        = {value: 1.5}
 
-    Swag.assert(sameTypePair(1's32, 2's32) == 2)
-    Swag.assert(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
-    Swag.assert(sameTypeBlock(1.5'f32, 2.5'f32))
-    Swag.assert(interpolateWithWhere(10.0'f32, 20.0'f32, 0.25'f32) == 12.5'f32)
-    Swag.assert(secondIfLeftIsSigned(signedPair) == "ok")
-    Swag.assert(floatBox.pairValue's32(99) == 99)
-    Swag.assert(floatBox.mirrorType(2.5'f32) == 2.5'f32)
-    Swag.assert(floatBox.copyIfFloat() == 1.5'f32)
+    Swag.require(sameTypePair(1's32, 2's32) == 2)
+    Swag.require(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
+    Swag.require(sameTypeBlock(1.5'f32, 2.5'f32))
+    Swag.require(interpolateWithWhere(10.0'f32, 20.0'f32, 0.25'f32) == 12.5'f32)
+    Swag.require(secondIfLeftIsSigned(signedPair) == "ok")
+    Swag.require(floatBox.pairValue's32(99) == 99)
+    Swag.require(floatBox.mirrorType(2.5'f32) == 2.5'f32)
+    Swag.require(floatBox.copyIfFloat() == 1.5'f32)
 }
 
 #test
@@ -200,10 +200,10 @@ impl InterpolationWindow
     let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
     let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
 
-    Swag.assert(floatWindow.at'1() == 20.0'f32)
-    Swag.assert(intWindow.at'2() == 3)
-    Swag.assert(floatWindow.sameSample(77.0'f32) == 77.0'f32)
-    Swag.assert(intWindow.sameSample(9's32) == 9)
-    Swag.assert(floatWindow.firstIfFloat() == 10.0'f32)
-    Swag.assert(interpolated.midpoint() == 20.0'f64)
+    Swag.require(floatWindow.at'1() == 20.0'f32)
+    Swag.require(intWindow.at'2() == 3)
+    Swag.require(floatWindow.sameSample(77.0'f32) == 77.0'f32)
+    Swag.require(intWindow.sameSample(9's32) == 9)
+    Swag.require(floatWindow.firstIfFloat() == 10.0'f32)
+    Swag.require(interpolated.midpoint() == 20.0'f64)
 }

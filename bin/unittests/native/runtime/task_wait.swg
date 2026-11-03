@@ -27,8 +27,8 @@ func recordDropPanic(_: string?, _: Swag.SourceCodeLocation)
         joined        = completed.isRaised() and task.isDone()
         task.wait()
     })
-    Swag.assert(ready)
-    Swag.assert(Swag.jit() or (joined and dropPanics == 0))
+    Swag.require(ready)
+    Swag.require(Swag.jit() or (joined and dropPanics == 0))
 }
 
 struct ParentFailure
@@ -90,8 +90,8 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
         let value = round + 1
         for 5 do group.spawn(func|&total, value|() { total.add(value) })
         expect group.join()
-        Swag.assert(not group.isCancelled())
-        Swag.assert(total.load() == 5 * value * (value + 1) / 2)
+        Swag.require(not group.isCancelled())
+        Swag.require(total.load() == 5 * value * (value + 1) / 2)
     }
 }
 
@@ -117,7 +117,7 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
 {
     var completed: Swag.AtomicValue'u32
     completeDescendants(40, &completed)
-    Swag.assert(completed.load() == 1)
+    Swag.require(completed.load() == 1)
 }
 
 func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
@@ -149,8 +149,8 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
             valid = assume cast(const *ParentFailure, error).value == 42
         valid = valid and succeeded.load() == 11 and failed.load() == 0
     })
-    Swag.assert(ready)
-    Swag.assert(Swag.jit() or valid)
+    Swag.require(ready)
+    Swag.require(Swag.jit() or valid)
 }
 
 // Implicit destruction joins on normal exit, early return and failure, before outer cleanup.
@@ -165,10 +165,10 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         var errorOutcome: Swag.Error
         catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert((error != null) == (path == 2))
-        Swag.assert(completed.load() == path + 1)
-        Swag.assert(succeeded.load() == path + 1 and failed.load() == 0)
-        Swag.assert(parentFailed.load() == (path == 2 ? 1'u32 : 0'u32))
+        Swag.require((error != null) == (path == 2))
+        Swag.require(completed.load() == path + 1)
+        Swag.require(succeeded.load() == path + 1 and failed.load() == 0)
+        Swag.require(parentFailed.load() == (path == 2 ? 1'u32 : 0'u32))
     }
 }
 
@@ -188,7 +188,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
             })
         }
     }
-    Swag.assert(completed.load() == 16)
+    Swag.require(completed.load() == 16)
 }
 
 // Helping executes a different logical computation, even when the caller is unwinding.
@@ -207,8 +207,8 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
             valid = assume cast(const *ParentFailure, error).value == 42
         valid = valid and succeeded.load() == 1 and failed.load() == 0
     })
-    Swag.assert(ready)
-    Swag.assert(Swag.jit() or valid)
+    Swag.require(ready)
+    Swag.require(Swag.jit() or valid)
 }
 
 // Workers and joining callers race to claim nodes while several parents submit and reuse them.
@@ -226,7 +226,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
                 tasks[(index * 5) % 8].wait()
         }
     }
-    Swag.assert(total.load() == 9216)
+    Swag.require(total.load() == 9216)
 }
 
 // Hold every worker on an external gate so only the calling thread can execute queued work.
@@ -309,8 +309,8 @@ func withBlockedWorkers(body: func||())->bool
         unrelated.wait()
         invalid = completed.load() != 1 or premature.isRaised()
     })
-    Swag.assert(ready)
-    Swag.assert(not invalid)
+    Swag.require(ready)
+    Swag.require(not invalid)
 }
 
 // Remove queued targets from the middle, tail, and head, then reuse their storage. No other
@@ -337,8 +337,8 @@ func withBlockedWorkers(body: func||())->bool
             }
         }
     })
-    Swag.assert(ready)
-    Swag.assert(not invalid)
+    Swag.require(ready)
+    Swag.require(not invalid)
 }
 
 // Descendant-only joins and structured loops must progress even while every worker is busy.
@@ -363,6 +363,6 @@ func withBlockedWorkers(body: func||())->bool
         }
         invalid = total.load() != 75
     })
-    Swag.assert(ready)
-    Swag.assert(not invalid)
+    Swag.require(ready)
+    Swag.require(not invalid)
 }

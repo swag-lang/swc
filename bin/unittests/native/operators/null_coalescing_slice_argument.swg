@@ -13,7 +13,7 @@ func(T) coalescedByteCount(value: T)->u64
 {
     let present: string? = "abc"
     let absent:  string? = null
-    Swag.assert(coalescedByteCount("abc") == 3)
-    Swag.assert(coalescedByteCount(present) == 3)
-    Swag.assert(coalescedByteCount(absent) == 0)
+    Swag.require(coalescedByteCount("abc") == 3)
+    Swag.require(coalescedByteCount(present) == 3)
+    Swag.require(coalescedByteCount(absent) == 0)
 }

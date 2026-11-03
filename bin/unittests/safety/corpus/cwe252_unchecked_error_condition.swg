@@ -101,11 +101,11 @@ func discardsOnPurpose()
 
 #test
 {
-    Swag.assert((catch propagates(true)) == 1)
-    Swag.assert(catchesAndInspects(true) == 1)
-    Swag.assert(catchesAndInspects(false) == -7)
-    Swag.assert(dismisses(false) == 0)
-    Swag.assert(handlesOnFailure(true) == 1)
-    Swag.assert(handlesOnFailure(false) == -2)
+    Swag.require((catch propagates(true)) == 1)
+    Swag.require(catchesAndInspects(true) == 1)
+    Swag.require(catchesAndInspects(false) == -7)
+    Swag.require(dismisses(false) == 0)
+    Swag.require(handlesOnFailure(true) == 1)
+    Swag.require(handlesOnFailure(false) == -2)
     discardsOnPurpose()
 }

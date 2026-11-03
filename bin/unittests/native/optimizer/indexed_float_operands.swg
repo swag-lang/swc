@@ -45,7 +45,7 @@ func ratiosRef(d: [*] f32, a, b: const [*] f32, n: u64)
 {
     let a: [6] f32 = [1.5, -2, 3.25, 4, -0.5, 8]
     let b: [6] f32 = [2, 0.25, -1, 3, 5, -4]
-    Swag.assert(dotF(&a[0], &b[0], 6) == dotFRef(&a[0], &b[0], 6))
+    Swag.require(dotF(&a[0], &b[0], 6) == dotFRef(&a[0], &b[0], 6))
 
     let w:  [6] f64 = [1, 4, 9, 16, 25, 36]
     var d1: [5] f64
@@ -53,12 +53,12 @@ func ratiosRef(d: [*] f32, a, b: const [*] f32, n: u64)
     diffNext(&d1[0], &w[0], 5)
     diffNextRef(&d2[0], &w[0], 5)
     for i in 5 do
-        Swag.assert(d1[i] == d2[i])
+        Swag.require(d1[i] == d2[i])
 
     var r1: [6] f32
     var r2: [6] f32
     ratios(&r1[0], &a[0], &b[0], 6)
     ratiosRef(&r2[0], &a[0], &b[0], 6)
     for i in 6 do
-        Swag.assert(r1[i] == r2[i])
+        Swag.require(r1[i] == r2[i])
 }

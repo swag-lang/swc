@@ -48,14 +48,14 @@ func sumAfterCall(values: const [*] s64, count: u64, limit: s64)->s64
 {
     var pair = Pair{1, 2}
     swapPair(&pair)
-    Swag.assert(pair.a == 2 and pair.b == 1)
+    Swag.require(pair.a == 2 and pair.b == 1)
 
-    Swag.assert(bothBelow(1, 2, 3, 4))
-    Swag.assert(not bothBelow(2, 1, 3, 4))
-    Swag.assert(not bothBelow(1, 2, 4, 3))
+    Swag.require(bothBelow(1, 2, 3, 4))
+    Swag.require(not bothBelow(2, 1, 3, 4))
+    Swag.require(not bothBelow(1, 2, 4, 3))
 
     let values = [5's64, -2, 9, 7]
-    Swag.assert(firstAbove(&values[0], 4, 6) == 2)
-    Swag.assert(firstAbove(&values[0], 4, 9) == 4)
-    Swag.assert(sumAfterCall(&values[0], 4, 6) == 21)
+    Swag.require(firstAbove(&values[0], 4, 6) == 2)
+    Swag.require(firstAbove(&values[0], 4, 9) == 4)
+    Swag.require(sumAfterCall(&values[0], 4, 6) == 21)
 }

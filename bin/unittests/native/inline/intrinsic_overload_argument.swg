@@ -14,10 +14,10 @@ func addQuad(a, b: #simd [4] s32)->#simd [4] s32 => a + b
 #test
 {
     let f = addF(Swag.min(1.5'f32, 2.5), Swag.max(1.5'f32, 2.5))
-    Swag.assert(f == 4.0)
+    Swag.require(f == 4.0)
 
     let u = addU(Swag.min(3'u64, 4), Swag.max(3'u64, 4))
-    Swag.assert(u == 7)
+    Swag.require(u == 7)
 }
 
 #test
@@ -25,5 +25,5 @@ func addQuad(a, b: #simd [4] s32)->#simd [4] s32 => a + b
     var v: #simd [8] s16
     v += 5
     let r = cast([4] s32, addQuad(Swag.vecWidenLo(v), Swag.vecWidenHi(v)))
-    Swag.assert(r[0] == 10 and r[3] == 10)
+    Swag.require(r[0] == 10 and r[3] == 10)
 }

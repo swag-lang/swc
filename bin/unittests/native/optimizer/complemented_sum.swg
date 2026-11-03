@@ -27,18 +27,18 @@ func checked(a, b: u64)->u64 => ~(~a + b)
     let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xAAAAAAAAAAAAAAAA, 0x5555555555555555, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(constant(a) == a - 7)
-        Swag.assert(negativeConstant(a) == a + 7)
+        Swag.require(constant(a) == a - 7)
+        Swag.require(negativeConstant(a) == a + 7)
         for b in values
         {
-            Swag.assert(complemented(a, b) == a - b)
-            Swag.assert(swapped(a, b) == a - b)
-            Swag.assert(shared(a, b) == ((a - b) ^ ~a))
-            Swag.assert(compared(a, b) == (a == b))
+            Swag.require(complemented(a, b) == a - b)
+            Swag.require(swapped(a, b) == a - b)
+            Swag.require(shared(a, b) == ((a - b) ^ ~a))
+            Swag.require(compared(a, b) == (a == b))
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(complemented32(lowA, lowB) == lowA - lowB)
+            Swag.require(complemented32(lowA, lowB) == lowA - lowB)
         }
     }
-    Swag.assert(checked(9, 3) == 6)
+    Swag.require(checked(9, 3) == 6)
 }

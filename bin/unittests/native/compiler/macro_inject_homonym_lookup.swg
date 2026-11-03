@@ -29,7 +29,7 @@ func injectPlain(stmt: #code)
         result = set.count
     }
 
-    Swag.assert(result == 3)
+    Swag.require(result == 3)
 }
 
 #test
@@ -42,7 +42,7 @@ func injectPlain(stmt: #code)
         result = before + score
     }
 
-    Swag.assert(result == 42)
+    Swag.require(result == 42)
 }
 
 #test
@@ -59,7 +59,7 @@ func injectPlain(stmt: #code)
         result += set().count
     }
 
-    Swag.assert(result == 5)
+    Swag.require(result == 5)
 }
 
 #test
@@ -76,7 +76,7 @@ func injectPlain(stmt: #code)
         result += entry()
     }
 
-    Swag.assert(result == 106)
+    Swag.require(result == 106)
 }
 
 // A caller constant must not bypass the local shadow check when the injected
@@ -95,7 +95,7 @@ func injectPlain(stmt: #code)
         result += before + shadowConst
     }
 
-    Swag.assert(result == 200)
+    Swag.require(result == 200)
 }
 
 // The same lookup rule applies when a caller's let has a folded constant value.
@@ -114,5 +114,5 @@ func injectPlain(stmt: #code)
         result += before + shadowLet
     }
 
-    Swag.assert(result == 210)
+    Swag.require(result == 210)
 }

@@ -15,9 +15,9 @@ func unboxNullablePointer(value: any?)->*s32?
 #test
 {
     let absent: *s32? = null
-    Swag.assert(unboxNullablePointer(absent) == null)
-    Swag.assert(unboxNullablePointer(null) == null)
+    Swag.require(unboxNullablePointer(absent) == null)
+    Swag.require(unboxNullablePointer(null) == null)
     var value: s32 = 42
-    Swag.assert(unboxNullablePointer(&value) == &value)
-    Swag.assert(unboxPresentPointer(&value) == &value)
+    Swag.require(unboxNullablePointer(&value) == &value)
+    Swag.require(unboxPresentPointer(&value) == &value)
 }

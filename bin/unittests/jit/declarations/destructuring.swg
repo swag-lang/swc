@@ -29,55 +29,55 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 {
     let pair         = DestructPair{x: 10, y: 20}
     let {x: a, y: b} = pair
-    Swag.assert(a == 10)
-    Swag.assert(b == 20)
+    Swag.require(a == 10)
+    Swag.require(b == 20)
 }
 
 #test
 {
     var pair         = DestructPair{x: 10, y: 20}
     var {x: a, y: b} = pair
-    Swag.assert(a == 10)
-    Swag.assert(b == 20)
+    Swag.require(a == 10)
+    Swag.require(b == 20)
     a = 100
     b = 200
-    Swag.assert(a == 100)
-    Swag.assert(b == 200)
+    Swag.require(a == 100)
+    Swag.require(b == 200)
 }
 
 #test
 {
     let {x: a, y: b} = {x: 1, y: 2}
-    Swag.assert(a == 1)
-    Swag.assert(b == 2)
+    Swag.require(a == 1)
+    Swag.require(b == 2)
 }
 
 #test
 {
     var {x: a, y: b} = {x: 1, y: 2}
-    Swag.assert(a == 1)
-    Swag.assert(b == 2)
+    Swag.require(a == 1)
+    Swag.require(b == 2)
     a = 10
     b = 20
-    Swag.assert(a == 10)
-    Swag.assert(b == 20)
+    Swag.require(a == 10)
+    Swag.require(b == 20)
 }
 
 #test
 {
     let {x: a, y: b, z: c} = {x: true, y: 42's32, z: 3.14}
-    Swag.assert(a == true)
-    Swag.assert(b == 42)
-    Swag.assert(c == 3.14)
+    Swag.require(a == true)
+    Swag.require(b == 42)
+    Swag.require(c == 3.14)
 }
 
 #test
 {
     var {x: a, y: b} = {x: true, y: false}
-    Swag.assert(a == true)
-    Swag.assert(b == false)
+    Swag.require(a == true)
+    Swag.require(b == false)
     a = false
-    Swag.assert(a == false)
+    Swag.require(a == false)
 }
 
 #test
@@ -85,44 +85,44 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     let t = {x: 1.0, y: 2.0, z: 3.0}
     discard t
     let {x: a, y: _} = {x: 10, y: 20}
-    Swag.assert(a == 10)
+    Swag.require(a == 10)
     let {x: _, y: b} = {x: 10, y: 20}
-    Swag.assert(b == 20)
+    Swag.require(b == 20)
 }
 
 #test
 {
     let t = {a: 1's32, b: 2's32, c: 3's32}
     let {a: _, b: _, c} = t
-    Swag.assert(c == 3)
+    Swag.require(c == 3)
     let {a: x, b: _, c: _} = t
-    Swag.assert(x == 1)
+    Swag.require(x == 1)
     let {a: _, b: y, c: _} = t
-    Swag.assert(y == 2)
+    Swag.require(y == 2)
 }
 
 #test
 {
     let point = DestructPair{x: 10, y: 20}
     let {y: second, x: first} = point
-    Swag.assert(first == 10)
-    Swag.assert(second == 20)
+    Swag.require(first == 10)
+    Swag.require(second == 20)
 
     let {x: onlyX} = point
-    Swag.assert(onlyX == 10)
+    Swag.require(onlyX == 10)
 }
 
 #test
 {
     let namedThenUnnamed = {x: 11's32, item1: 22's32}
     let {item1: second, x: first} = namedThenUnnamed
-    Swag.assert(first == 11)
-    Swag.assert(second == 22)
+    Swag.require(first == 11)
+    Swag.require(second == 22)
 
     let unnamedThenNamed = {item0: 33's32, y: 44's32}
     let {y: fourth, item0: third} = unnamedThenNamed
-    Swag.assert(third == 33)
-    Swag.assert(fourth == 44)
+    Swag.require(third == 33)
+    Swag.require(fourth == 44)
 }
 
 #test
@@ -132,26 +132,26 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var second: s32
     #[Swag.Safety(.Overflow, false)]
     {y: second, x: first} = point
-    Swag.assert(first == 51)
-    Swag.assert(second == 52)
+    Swag.require(first == 51)
+    Swag.require(second == 52)
 
     first  = 0
     second = 0
     if true do
         {x: first, y: second} = point
-    Swag.assert(first == 51)
-    Swag.assert(second == 52)
+    Swag.require(first == 51)
+    Swag.require(second == 52)
 
     first  = 0
     second = 0
     #static if true do
         {y: second, x: first} = point
-    Swag.assert(first == 51)
-    Swag.assert(second == 52)
+    Swag.require(first == 51)
+    Swag.require(second == 52)
 
     {x: point.y, y: point.x} = point
-    Swag.assert(point.x == 52)
-    Swag.assert(point.y == 51)
+    Swag.require(point.x == 52)
+    Swag.require(point.y == 51)
 }
 
 #test
@@ -160,13 +160,13 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  s32
     var second: s32
     {item1: second, x: first} = namedThenUnnamed
-    Swag.assert(first == 61)
-    Swag.assert(second == 62)
+    Swag.require(first == 61)
+    Swag.require(second == 62)
 
     var unnamedThenNamed = {item0: 71's32, y: 72's32}
     {y: second, item0: first} = unnamedThenNamed
-    Swag.assert(first == 71)
-    Swag.assert(second == 72)
+    Swag.require(first == 71)
+    Swag.require(second == 72)
 }
 
 #test
@@ -174,16 +174,16 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  s32
     var second: s32
     (first, second) = (81, 82)
-    Swag.assert(first == 81)
-    Swag.assert(second == 82)
+    Swag.require(first == 81)
+    Swag.require(second == 82)
 
     {x: first, item1: second} = {x: 83, item1: 84}
-    Swag.assert(first == 83)
-    Swag.assert(second == 84)
+    Swag.require(first == 83)
+    Swag.require(second == 84)
 
     {item0: first, y: second} = {item0: 85, y: 86}
-    Swag.assert(first == 85)
-    Swag.assert(second == 86)
+    Swag.require(first == 85)
+    Swag.require(second == 86)
 }
 
 #test
@@ -191,15 +191,15 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  u32
     var second: u32
     {first, second} = jitMakeAssignDestructRet(11, 22)
-    Swag.assert(first == 11)
-    Swag.assert(second == 22)
+    Swag.require(first == 11)
+    Swag.require(second == 22)
 }
 
 #test
 {
     var second: u32
     {first: _, second} = jitMakeAssignDestructRet(33, 44)
-    Swag.assert(second == 44)
+    Swag.require(second == 44)
 }
 
 #test
@@ -207,8 +207,8 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  u32 = 7
     var second: u32
     {first, second} = jitMakeAssignDestructRet(first + 1, first + 2)
-    Swag.assert(first == 8)
-    Swag.assert(second == 9)
+    Swag.require(first == 8)
+    Swag.require(second == 9)
 }
 
 #test
@@ -216,15 +216,15 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  u32
     var second: u32
     {first, second} = jitMakeAnonymousAssignDestructRet(55, 66)
-    Swag.assert(first == 55)
-    Swag.assert(second == 66)
+    Swag.require(first == 55)
+    Swag.require(second == 66)
 }
 
 #test
 {
     var second: u32
     {first: _, second} = jitMakeAnonymousAssignDestructRet(77, 88)
-    Swag.assert(second == 88)
+    Swag.require(second == 88)
 }
 
 #test
@@ -247,7 +247,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         return total
     }
 
-    Swag.assert(run() == 33)
+    Swag.require(run() == 33)
 }
 
 #test
@@ -288,14 +288,14 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     }
 
     let {next: nextLeaf, sum: sumLeaf} = read(data[to], 2)
-    Swag.assert(nextLeaf == 7)
-    Swag.assert(sumLeaf == 33)
+    Swag.require(nextLeaf == 7)
+    Swag.require(sumLeaf == 33)
 
     let {next: nextBranch, sum: sumBranch} = read(data[to], 7)
-    Swag.assert(nextBranch == 13)
-    Swag.assert(sumBranch == 0)
+    Swag.require(nextBranch == 13)
+    Swag.require(sumBranch == 0)
 
     var total: u32
     {next: _, sum: total} = read(data[to], 0)
-    Swag.assert(total == 66)
+    Swag.require(total == 66)
 }

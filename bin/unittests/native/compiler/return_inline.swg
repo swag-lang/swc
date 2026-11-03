@@ -67,8 +67,8 @@ func runMixinCaller()->bool
 // Macro and mixin return values and callee return
 #test
 {
-    Swag.assert(runMacroValue())
-    Swag.assert(runMixinValue())
-    Swag.assert(runMacroCaller() == 7)
-    Swag.assert(runMixinCaller())
+    Swag.require(runMacroValue())
+    Swag.require(runMixinValue())
+    Swag.require(runMacroCaller() == 7)
+    Swag.require(runMixinCaller())
 }

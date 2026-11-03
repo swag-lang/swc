@@ -17,14 +17,14 @@ var state: s32
 #test
 {
     state += 100
-    Swag.assert(state == 111)
+    Swag.require(state == 111)
 }
 
 // State accumulates across tests
 #test
 {
     state += 1000
-    Swag.assert(state == 1111)
+    Swag.require(state == 1111)
 }
 
 #drop

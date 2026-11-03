@@ -27,7 +27,7 @@ impl CountedBag
     var sum = 0
     for v in arr do
         sum += v
-    Swag.assert(sum == 60)
+    Swag.require(sum == 60)
 }
 
 // Single name over a slice binds the element values.
@@ -38,7 +38,7 @@ impl CountedBag
     var sum = 0
     for v in slice do
         sum += v
-    Swag.assert(sum == 60)
+    Swag.require(sum == 60)
 }
 
 // Single name over a string binds the bytes.
@@ -48,7 +48,7 @@ impl CountedBag
     var sum  = 0
     for b in text do
         sum += cast(s32, b)
-    Swag.assert(sum == 97 + 98 + 99)
+    Swag.require(sum == 97 + 98 + 99)
 }
 
 // Two names bind value and index.
@@ -58,7 +58,7 @@ impl CountedBag
     var sum = 0
     for v, i in arr do
         sum += v + cast(s32, i)
-    Swag.assert(sum == 60 + 3)
+    Swag.require(sum == 60 + 3)
 }
 
 // '&' binds a mutable reference to the element; mutation writes through.
@@ -67,7 +67,7 @@ impl CountedBag
     var arr: [3] s32 = [10, 20, 30]
     for &v in arr do
         v[] += 1
-    Swag.assert(arr[0] == 11 and arr[1] == 21 and arr[2] == 31)
+    Swag.require(arr[0] == 11 and arr[1] == 21 and arr[2] == 31)
 }
 
 // Single name over an enum type binds the enum values.
@@ -79,7 +79,7 @@ impl CountedBag
         if c == Color.Green do
             count += 1
     }
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
 }
 
 // Integer expressions and ranges keep index-loop semantics.
@@ -94,7 +94,7 @@ impl CountedBag
     for i in 0 until arr.count do
         total += i
 
-    Swag.assert(total == 6)
+    Swag.require(total == 6)
 }
 
 // The unnamed form stays a count loop, including through 'opCount'.
@@ -104,7 +104,7 @@ impl CountedBag
     var count = 0
     for bag do
         count += 1
-    Swag.assert(count == 4)
+    Swag.require(count == 4)
 }
 
 // '.reversed()' element iteration.
@@ -118,7 +118,7 @@ impl CountedBag
         order[slot] = v
         slot        += 1
     }
-    Swag.assert(order[0] == 3 and order[1] == 2 and order[2] == 1)
+    Swag.require(order[0] == 3 and order[1] == 2 and order[2] == 1)
 }
 
 // 'where' filters element iteration.
@@ -128,5 +128,5 @@ impl CountedBag
     var sum = 0
     for v in arr where v % 2 == 0 do
         sum += v
-    Swag.assert(sum == 6)
+    Swag.require(sum == 6)
 }

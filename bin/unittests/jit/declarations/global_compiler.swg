@@ -24,5 +24,5 @@ func updateCompilerGlobals()->s32
 #test
 {
     const V = #run updateCompilerGlobals()
-    Swag.assert(V == 26)
+    Swag.require(V == 26)
 }

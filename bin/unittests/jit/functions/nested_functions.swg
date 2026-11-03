@@ -52,20 +52,20 @@ func runLocalRecursion(value: s32)->s32
 
 #test
 {
-    Swag.assert(runLocalDirectCall() == 42)
+    Swag.require(runLocalDirectCall() == 42)
 }
 
 #test
 {
-    Swag.assert(runLocalSiblingCall() == 17)
+    Swag.require(runLocalSiblingCall() == 17)
 }
 
 #test
 {
-    Swag.assert(runLocalFunctionPointer() == 12)
+    Swag.require(runLocalFunctionPointer() == 12)
 }
 
 #test
 {
-    Swag.assert(runLocalRecursion(6) == 720)
+    Swag.require(runLocalRecursion(6) == 720)
 }

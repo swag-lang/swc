@@ -96,44 +96,44 @@ func smallerChild(heap: [*] u64, l, n: u64)->u64
 
 #test
 {
-    Swag.assert(selectMin(3, 5) == 3)
-    Swag.assert(selectMin(5, 3) == 3)
-    Swag.assert(selectMin(-7, 7) == -7)
-    Swag.assert(selectMaxU64(3, 5) == 5)
-    Swag.assert(selectMaxU64(0xFFFF_FFFF_FFFF_FFFF, 5) == 0xFFFF_FFFF_FFFF_FFFF)
-    Swag.assert(selectConstant(true) == 7)
-    Swag.assert(selectConstant(false) == 9)
-    Swag.assert(clampByte(-5) == 0)
-    Swag.assert(clampByte(300) == 255)
-    Swag.assert(clampByte(77) == 77)
+    Swag.require(selectMin(3, 5) == 3)
+    Swag.require(selectMin(5, 3) == 3)
+    Swag.require(selectMin(-7, 7) == -7)
+    Swag.require(selectMaxU64(3, 5) == 5)
+    Swag.require(selectMaxU64(0xFFFF_FFFF_FFFF_FFFF, 5) == 0xFFFF_FFFF_FFFF_FFFF)
+    Swag.require(selectConstant(true) == 7)
+    Swag.require(selectConstant(false) == 9)
+    Swag.require(clampByte(-5) == 0)
+    Swag.require(clampByte(300) == 255)
+    Swag.require(clampByte(77) == 77)
     var cells: [2] s32 = [42, 43]
-    Swag.assert(selectGuardedLoad(&cells[0], 1, 2) == 43)
-    Swag.assert(selectGuardedLoad(&cells[0], 0x7FFF_FFFF_FFFF, 2) == -1)
-    Swag.assert(selectWithArithmetic(1, 2) == 2)
-    Swag.assert(selectWithArithmetic(5, 2) == 4)
+    Swag.require(selectGuardedLoad(&cells[0], 1, 2) == 43)
+    Swag.require(selectGuardedLoad(&cells[0], 0x7FFF_FFFF_FFFF, 2) == -1)
+    Swag.require(selectWithArithmetic(1, 2) == 2)
+    Swag.require(selectWithArithmetic(5, 2) == 4)
 
     var src: [4] s32 = [-5, 10, 300, 255]
     var dst: [4] u8
     clampLoop(&dst[0], &src[0], 4)
-    Swag.assert(dst[0] == 0 and dst[1] == 10 and dst[2] == 255 and dst[3] == 255)
+    Swag.require(dst[0] == 0 and dst[1] == 10 and dst[2] == 255 and dst[3] == 255)
 
     var a: [4] s32 = [1, 9, -3, 4]
     var b: [4] s32 = [4, 2, 3, 4]
-    Swag.assert(absDiffSum(&a[0], &b[0], 4) == 3 + 7 + 6 + 0)
+    Swag.require(absDiffSum(&a[0], &b[0], 4) == 3 + 7 + 6 + 0)
 
-    Swag.assert(clampEarly(-5, 0, 10) == 0)
-    Swag.assert(clampEarly(50, 0, 10) == 10)
-    Swag.assert(clampEarly(5, 0, 10) == 5)
-    Swag.assert(clampEarly(-2147483648, -10, 10) == -10)
-    Swag.assert(absEarly(-3) == 3)
-    Swag.assert(absEarly(4) == 4)
-    Swag.assert(absEarly(0) == 0)
-    Swag.assert(selectEarlyConstant(0) == 1)
-    Swag.assert(selectEarlyConstant(21) == 42)
+    Swag.require(clampEarly(-5, 0, 10) == 0)
+    Swag.require(clampEarly(50, 0, 10) == 10)
+    Swag.require(clampEarly(5, 0, 10) == 5)
+    Swag.require(clampEarly(-2147483648, -10, 10) == -10)
+    Swag.require(absEarly(-3) == 3)
+    Swag.require(absEarly(4) == 4)
+    Swag.require(absEarly(0) == 0)
+    Swag.require(selectEarlyConstant(0) == 1)
+    Swag.require(selectEarlyConstant(21) == 42)
 
     var heap: [4] u64 = [5, 3, 4, 4]
-    Swag.assert(smallerChild(&heap[0], 0, 4) == 1003)
-    Swag.assert(smallerChild(&heap[0], 0, 1) == 5)
-    Swag.assert(smallerChild(&heap[0], 1, 4) == 1003)
-    Swag.assert(smallerChild(&heap[0], 2, 4) == 2004)
+    Swag.require(smallerChild(&heap[0], 0, 4) == 1003)
+    Swag.require(smallerChild(&heap[0], 0, 1) == 5)
+    Swag.require(smallerChild(&heap[0], 1, 4) == 1003)
+    Swag.require(smallerChild(&heap[0], 2, 4) == 2004)
 }

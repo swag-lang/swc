@@ -91,14 +91,14 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 
     let sampleReport = analyzeBadgeRequests(samplePatterns, sampleDesigns)
 
-    Swag.assert(sampleReport.matchableCount == 6)
-    Swag.assert(sampleReport.totalArrangements == 16)
+    Swag.require(sampleReport.matchableCount == 6)
+    Swag.require(sampleReport.totalArrangements == 16)
 
     const compactPatterns: [4] string = ["a", "ab", "ba", "b"]
     const compactDesigns:  [4] string = ["aba", "abba", "bbb", "c"]
 
     let compactReport = analyzeBadgeRequests(compactPatterns, compactDesigns)
 
-    Swag.assert(compactReport.matchableCount == 3)
-    Swag.assert(compactReport.totalArrangements == 8)
+    Swag.require(compactReport.matchableCount == 3)
+    Swag.require(compactReport.totalArrangements == 8)
 }

@@ -46,31 +46,31 @@ func freeOne(itf: IAllocator, address: *void?)
     defer allocator.releaseAll()
 
     let before = allocator.stats().sizeCommitted
-    Swag.assert(allocator.blockCacheBudget() == AllocatorBlockCacheMinBytes)
-    Swag.assert(HugeBytes > AllocatorBlockCacheMinBytes and MidBytes < AllocatorBlockCacheMinBytes)
+    Swag.require(allocator.blockCacheBudget() == AllocatorBlockCacheMinBytes)
+    Swag.require(HugeBytes > AllocatorBlockCacheMinBytes and MidBytes < AllocatorBlockCacheMinBytes)
 
     let huge = allocTouched(itf, HugeBytes)
-    Swag.assert(allocator.stats().sizeCommitted >= before + HugeBytes)
+    Swag.require(allocator.stats().sizeCommitted >= before + HugeBytes)
     freeOne(itf, huge)
-    Swag.assert(allocator.cachedBlockCount == 1)
-    Swag.assert(allocator.stats().sizeCommitted >= before + HugeBytes)
+    Swag.require(allocator.cachedBlockCount == 1)
+    Swag.require(allocator.stats().sizeCommitted >= before + HugeBytes)
 
     let commits = allocator.stats().countOsCommit
     let again   = allocTouched(itf, HugeBytes)
-    Swag.assert(again == huge)
-    Swag.assert(allocator.stats().countOsCommit == commits)
+    Swag.require(again == huge)
+    Swag.require(allocator.stats().countOsCommit == commits)
     freeOne(itf, again)
-    Swag.assert(allocator.cachedBlockCount == 1)
+    Swag.require(allocator.cachedBlockCount == 1)
 
     let mid = allocTouched(itf, MidBytes)
     freeOne(itf, mid)
-    Swag.assert(allocator.cachedBlockCount == 1)
-    Swag.assert(allocator.cachedBlocks[0].reserved < HugeBytes)
-    Swag.assert(allocator.stats().sizeCommitted < before + HugeBytes)
+    Swag.require(allocator.cachedBlockCount == 1)
+    Swag.require(allocator.cachedBlocks[0].reserved < HugeBytes)
+    Swag.require(allocator.stats().sizeCommitted < before + HugeBytes)
 
     allocator.trim()
-    Swag.assert(allocator.cachedBlockCount == 0)
-    Swag.assert(allocator.stats().sizeCommitted == before)
+    Swag.require(allocator.cachedBlockCount == 0)
+    Swag.require(allocator.stats().sizeCommitted == before)
 }
 
 // A huge block grows in place while its rounded reservation has room, committing only the pages
@@ -86,24 +86,24 @@ func freeOne(itf: IAllocator, address: *void?)
     itf.alloc(&request)
     let original = unwrap request.address
     let header   = allocator.headerOf(cast(u64, original))
-    Swag.assert(header.allocSize >= HugeBytes + 1024 * 1024)
-    Swag.assert(header.commitSize < header.allocSize)
+    Swag.require(header.allocSize >= HugeBytes + 1024 * 1024)
+    Swag.require(header.commitSize < header.allocSize)
     cast([*] u8, original)[HugeBytes - 1] = 7
 
     let committed = allocator.stats().sizeCommitted
     request.oldSize = HugeBytes
     request.size    = HugeBytes + 1024 * 1024
     itf.realloc(&request)
-    Swag.assert(request.address == original)
-    Swag.assert(allocator.stats().sizeCommitted >= committed + 1024 * 1024)
+    Swag.require(request.address == original)
+    Swag.require(allocator.stats().sizeCommitted >= committed + 1024 * 1024)
     cast([*] u8, original)[request.size - 1] = 9
 
     request.oldSize = request.size
     request.size    = HugeBytes + 12 * 1024 * 1024
     itf.realloc(&request)
-    Swag.assert(request.address != null and request.address != original)
+    Swag.require(request.address != null and request.address != original)
     let moved = cast([*] u8, request.address)
-    Swag.assert(moved[HugeBytes - 1] == 7 and moved[HugeBytes + 1024 * 1024 - 1] == 9)
-    Swag.assert(allocator.stats().countAlloc == 1)
+    Swag.require(moved[HugeBytes - 1] == 7 and moved[HugeBytes + 1024 * 1024 - 1] == 9)
+    Swag.require(allocator.stats().countAlloc == 1)
     itf.free(&request)
 }

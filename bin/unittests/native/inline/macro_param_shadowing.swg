@@ -17,7 +17,7 @@ func runClosure(value, factor: s32)->s32 => InlineMacroParamShadowing.scaledSum(
 
 #test
 {
-    Swag.assert(runMacro(3) == 0 + 1 + 2 + 3 + 4 + 5)
-    Swag.assert(runMacro(1) == 0 + 1)
-    Swag.assert(runClosure(7, 10) == 37)
+    Swag.require(runMacro(3) == 0 + 1 + 2 + 3 + 4 + 5)
+    Swag.require(runMacro(1) == 0 + 1)
+    Swag.require(runClosure(7, 10) == 37)
 }

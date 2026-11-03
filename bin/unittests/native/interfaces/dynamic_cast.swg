@@ -83,44 +83,44 @@ func runRuntimeTargetCasts()->bool
     let derivedPtr = &derived
     let asMid      = cast(*Mid?, derivedPtr)
     let asBase     = cast(*Base?, derivedPtr)
-    Swag.assert((derivedPtr is Derived))
-    Swag.assert((derivedPtr is Mid))
-    Swag.assert((derivedPtr is Base))
-    Swag.assert(not (derivedPtr is PointerWrapper))
-    Swag.assert(asMid == &derived.mid)
-    Swag.assert(asBase == &derived.mid.base)
+    Swag.require((derivedPtr is Derived))
+    Swag.require((derivedPtr is Mid))
+    Swag.require((derivedPtr is Base))
+    Swag.require(not (derivedPtr is PointerWrapper))
+    Swag.require(asMid == &derived.mid)
+    Swag.require(asBase == &derived.mid.base)
 
     var base        = Base{value: 77}
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = catch cast(*Base?, wrapperPtr)
-    Swag.assert((wrapperPtr is Base))
-    Swag.assert(wrappedBase == &base)
+    Swag.require((wrapperPtr is Base))
+    Swag.require(wrappedBase == &base)
 
     let itf: INode = derived
     let itfBase    = catch cast(*Base?, itf)
-    Swag.assert((itf is Derived))
-    Swag.assert((itf is Mid))
-    Swag.assert((itf is Base))
-    Swag.assert(not (itf is PointerWrapper))
-    Swag.assert(itf.buffer != null)
-    Swag.assert(itfBase != null)
-    Swag.assert(itfBase.value == 10)
+    Swag.require((itf is Derived))
+    Swag.require((itf is Mid))
+    Swag.require((itf is Base))
+    Swag.require(not (itf is PointerWrapper))
+    Swag.require(itf.buffer != null)
+    Swag.require(itfBase != null)
+    Swag.require(itfBase.value == 10)
 
     let dyn: any = derived
     let dynBase  = catch cast(*Base?, dyn)
-    Swag.assert((dyn is Derived))
-    Swag.assert((dyn is Base))
-    Swag.assert(not (dyn is PointerWrapper))
-    Swag.assert(dynBase != null)
-    Swag.assert(dynBase.value == 10)
+    Swag.require((dyn is Derived))
+    Swag.require((dyn is Base))
+    Swag.require(not (dyn is PointerWrapper))
+    Swag.require(dynBase != null)
+    Swag.require(dynBase.value == 10)
 
     let notStruct: any = 33
-    Swag.assert(not (notStruct is Base))
-    Swag.assert(not (notStruct is Base))
+    Swag.require(not (notStruct is Base))
+    Swag.require(not (notStruct is Base))
 }
 
 #test
 {
-    Swag.assert(runRuntimeTargetCasts())
+    Swag.require(runRuntimeTargetCasts())
 }

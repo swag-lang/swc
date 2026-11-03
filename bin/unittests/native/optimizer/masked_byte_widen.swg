@@ -43,11 +43,11 @@ func slowPopcount(x: u64)->u32
     for v in 0 until 256
     {
         let x = cast(u8, v)
-        Swag.assert(popcount8(x) == slowPopcount(cast(u64, v)))
-        Swag.assert(highBit(x) == cast(u64, (v & 0x80)))
+        Swag.require(popcount8(x) == slowPopcount(cast(u64, v)))
+        Swag.require(highBit(x) == cast(u64, (v & 0x80)))
         let wide = cast(u64, v) | 0xABCD_EF00_1234_5600
-        Swag.assert(mixed(wide) == cast(u32, (((v >> 2) & 3) + (v & 0x40))))
+        Swag.require(mixed(wide) == cast(u32, (((v >> 2) & 3) + (v & 0x40))))
         let word = cast(u16, (v * 257))
-        Swag.assert(lowNibbles(x, word) == cast(u32, (v & 0x0F)) + cast(u32, ((v * 257) & 0xF0F0)))
+        Swag.require(lowNibbles(x, word) == cast(u32, (v & 0x0F)) + cast(u32, ((v * 257) & 0xF0F0)))
     }
 }

@@ -68,5 +68,5 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
 
 #test
 {
-    Swag.assert(genericLazyMethodReflectionSkipsFailedWhere())
+    Swag.require(genericLazyMethodReflectionSkipsFailedWhere())
 }

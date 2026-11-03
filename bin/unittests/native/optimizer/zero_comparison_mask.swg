@@ -24,26 +24,26 @@ func isZero(a: u64)->bool => a == 0
         if isZero(a)
         {
             mask = 0xFFFFFFFFFFFFFFFF
-            Swag.assert(zero(a) == 0xFFFFFFFFFFFFFFFF)
-            Swag.assert(nonzero(a) == 0)
+            Swag.require(zero(a) == 0xFFFFFFFFFFFFFFFF)
+            Swag.require(nonzero(a) == 0)
         }
         else
         {
-            Swag.assert(zero(a) == 0)
-            Swag.assert(nonzero(a) == 0xFFFFFFFFFFFFFFFF)
+            Swag.require(zero(a) == 0)
+            Swag.require(nonzero(a) == 0xFFFFFFFFFFFFFFFF)
         }
-        Swag.assert(shared(a) == (~mask ^ a))
-        Swag.assert(equalShared(a) == (mask ^ a))
+        Swag.require(shared(a) == (~mask ^ a))
+        Swag.require(equalShared(a) == (mask ^ a))
         let narrow = cast(u32, (a & 0xFFFFFFFF))
         if isZero(narrow)
         {
-            Swag.assert(zero32(narrow) == 0xFFFFFFFF)
-            Swag.assert(nonzero32(narrow) == 0)
+            Swag.require(zero32(narrow) == 0xFFFFFFFF)
+            Swag.require(nonzero32(narrow) == 0)
         }
         else
         {
-            Swag.assert(zero32(narrow) == 0)
-            Swag.assert(nonzero32(narrow) == 0xFFFFFFFF)
+            Swag.require(zero32(narrow) == 0)
+            Swag.require(nonzero32(narrow) == 0xFFFFFFFF)
         }
     }
 }

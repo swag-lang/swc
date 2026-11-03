@@ -27,15 +27,15 @@ func apply(value: Action, target: *s32) { value(target) }
     let parenthesized = (expect checked(callback))
     apply(value: (expect checked(callback)), target: &count)
     parenthesized(&count)
-    Swag.assert(count == 6)
+    Swag.require(count == 6)
 }
 
 #test
 {
     let callback = expect checked'Value(&twice)
-    Swag.assert(callback(21) == 42)
+    Swag.require(callback(21) == 42)
     let pointer = expect checked'Pointer(&absent)
-    Swag.assert(pointer() == null)
+    Swag.require(pointer() == null)
 }
 
 struct CallbackValues
@@ -52,8 +52,8 @@ struct CallbackValues
     callbacks.value   = expect checked'Value(&twice)
     callbacks.pointer = expect checked'Pointer(&absent)
     var count: s32
-    defer Swag.assert(count == 1)
+    defer Swag.require(count == 1)
     defer callbacks.action(&count)
-    Swag.assert(callbacks.value(12) == 24)
-    Swag.assert(callbacks.pointer() == null)
+    Swag.require(callbacks.value(12) == 24)
+    Swag.require(callbacks.pointer() == null)
 }

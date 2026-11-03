@@ -19,17 +19,17 @@ func roomySample()->Swag.WorkPressure
         sample.totalTicks += 1000
         sample.idleTicks  += 900
     }
-    Swag.assert(budget.limit > 6 and budget.limit <= 22)
+    Swag.require(budget.limit > 6 and budget.limit <= 22)
 
     // This process's productive CPU is not external contention.
     sample.idleTicks    = budget.previous.idleTicks
     sample.processTicks += 1000
     budget.update(sample, 22, 0)
-    Swag.assert(budget.limit > 6)
+    Swag.require(budget.limit > 6)
 
     sample.totalTicks += 1000
     budget.update(sample, 22, 0)
-    Swag.assert(budget.limit == 1)
+    Swag.require(budget.limit == 1)
 
     sample = roomySample()
     for 12
@@ -38,10 +38,10 @@ func roomySample()->Swag.WorkPressure
         sample.totalTicks += 1000
         sample.idleTicks  += 900
     }
-    Swag.assert(budget.limit > 6)
+    Swag.require(budget.limit > 6)
     sample.availableBytes = sample.physicalBytes / 16
     budget.update(sample, 22, 12)
-    Swag.assert(budget.limit == 1)
+    Swag.require(budget.limit == 1)
 
     sample = roomySample()
     for 12
@@ -50,21 +50,21 @@ func roomySample()->Swag.WorkPressure
         sample.totalTicks += 1000
         sample.idleTicks  += 900
     }
-    Swag.assert(budget.limit > 6)
+    Swag.require(budget.limit > 6)
     sample.availableCommitBytes = sample.commitBytes / 16
     budget.update(sample, 22, 12)
-    Swag.assert(budget.limit == 1)
+    Swag.require(budget.limit == 1)
 
     sample = roomySample()
     budget.update(sample, 22, 0)
-    Swag.assert(budget.limit <= 3)
+    Swag.require(budget.limit <= 3)
     sample.cpuValid    = false
     sample.memoryValid = false
     let previous = budget.limit
     budget.update(sample, 22, 0)
-    Swag.assert(budget.limit == previous)
+    Swag.require(budget.limit == previous)
     budget.update(sample, 1, 0)
-    Swag.assert(budget.limit == 1)
+    Swag.require(budget.limit == 1)
 }
 
 func pauseObserver()
@@ -106,7 +106,7 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
         for index in 16
         {
             let value = expect tasks[15 - index].take()
-            Swag.assert(value == 16 - index)
+            Swag.require(value == 16 - index)
         }
     }
     Swag.drainWork()
@@ -115,7 +115,7 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
     let running = scheduler.backgroundRunning
     let empty   = scheduler.backgroundHead == null and scheduler.backgroundTail == null
     scheduler.mutex.unlock()
-    Swag.assert(running == 0 and empty)
+    Swag.require(running == 0 and empty)
 }
 
 // A held background slot cannot occupy the remaining workers or let newer background tasks
@@ -175,15 +175,15 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
     }
     normal.submit(func|&foreground|() { foreground.store(1) })
     let foregroundRan = awaitValue(&foreground, 1)
-    Swag.assert(started and foregroundRan and completed.load() == 0)
+    Swag.require(started and foregroundRan and completed.load() == 0)
 
     helped.submit(func|&foreground|() { foreground.store(2) }, priority: .Background)
     helped.wait()
-    Swag.assert(foreground.load() == 2 and completed.load() == 0)
+    Swag.require(foreground.load() == 2 and completed.load() == 0)
 
     helped.submit(func|&foreground|() { foreground.store(3) }, priority: .Background)
     let waited = helped.waitUnlessCancelled()
-    Swag.assert(waited and foreground.load() == 3 and completed.load() == 0)
+    Swag.require(waited and foreground.load() == 3 and completed.load() == 0)
 
     var demanded: [2] Swag.Task'u32
     for index in 2 do
@@ -192,27 +192,27 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
     for index in 2
     {
         let value = expect demanded[index].take()
-        Swag.assert(value == index)
+        Swag.require(value == index)
     }
     for index in 2 do
         demanded[index].submit(func|index|()->u32 => cast(u32, index), priority: .Background)
     let winner = expect Swag.whenAny(demanded)
-    Swag.assert(winner < 2)
+    Swag.require(winner < 2)
     for &task in demanded do
         task.wait()
-    Swag.assert(completed.load() == 0)
+    Swag.require(completed.load() == 0)
 
     release.raise()
     // Observe completion without claiming queued nodes, so the worker admission path is tested.
     let drained = awaitValue(&completed, 8)
-    Swag.assert(drained)
+    Swag.require(drained)
     for index in 8 do
-        Swag.assert(order[index] == index)
+        Swag.require(order[index] == index)
     first.wait()
     for &task in queued do
         task.wait()
     scheduler.mutex.lock()
     let remaining = scheduler.backgroundRunning
     scheduler.mutex.unlock()
-    Swag.assert(remaining == 0)
+    Swag.require(remaining == 0)
 }

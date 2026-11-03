@@ -51,7 +51,7 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
             mustReject(func|elements, address, operation|() {
                 discard invalidateAllocation(elements[1], address, operation)
             })
-            Swag.assert(elements[1].value == 113)
+            Swag.require(elements[1].value == 113)
         }
     }
 }

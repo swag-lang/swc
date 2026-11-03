@@ -29,8 +29,8 @@ const RESTORED_ENCODED_READER = #run restoredEncodedReader()
 {
     let direct  = restoredReader()
     let encoded = restoredEncodedReader()
-    Swag.assert(direct == 383 and RESTORED_READER == direct)
-    Swag.assert(encoded == 389 and RESTORED_ENCODED_READER == encoded)
+    Swag.require(direct == 383 and RESTORED_READER == direct)
+    Swag.require(encoded == 389 and RESTORED_ENCODED_READER == encoded)
 }
 
 struct ReaderBox { callback: Reader }
@@ -49,7 +49,7 @@ const RESTORED_STORAGE = #run restoredReaderStorage()
 #test
 {
     let result = restoredReaderStorage()
-    Swag.assert(result == 409 and RESTORED_STORAGE == result)
+    Swag.require(result == 409 and RESTORED_STORAGE == result)
 }
 
 #[Swag.ExportType(.Methods)]
@@ -74,5 +74,5 @@ const REFLECTED_READER = #run reflectedReader()
 #test
 {
     let result = reflectedReader()
-    Swag.assert(result == 419 and REFLECTED_READER == result)
+    Swag.require(result == 419 and REFLECTED_READER == result)
 }

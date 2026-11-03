@@ -78,12 +78,12 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let other = viewText(cast(const [*] u8, &g_other[0]), 3)
     let short = viewText(cast(const [*] u8, &g_left[0]), 2)
 
-    Swag.assert(left == right)
-    Swag.assert(eqNames([left, left], [right, right]))
-    Swag.assert(not eqNames([left, left], [right, other]))
-    Swag.assert(not eqNames([left, left], [short, right]))
-    Swag.assert(not neNames([left, left], [right, right]))
-    Swag.assert(neNames([left, left], [right, other]))
+    Swag.require(left == right)
+    Swag.require(eqNames([left, left], [right, right]))
+    Swag.require(not eqNames([left, left], [right, other]))
+    Swag.require(not eqNames([left, left], [short, right]))
+    Swag.require(not neNames([left, left], [right, right]))
+    Swag.require(neNames([left, left], [right, other]))
 }
 
 // A second dimension keeps the element comparison.
@@ -97,8 +97,8 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     var equal:     [2, 2] string = [[right, right], [right, right]]
     var different: [2, 2] string = [[right, right], [right, other]]
 
-    Swag.assert(eqGrid(same, equal))
-    Swag.assert(not eqGrid(same, different))
+    Swag.require(eqGrid(same, equal))
+    Swag.require(not eqGrid(same, different))
 }
 
 // A slice element compares its content, like a bare slice does.
@@ -108,24 +108,24 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let right = viewBytes(cast(const [*] u8, &g_right[0]), 3)
     let other = viewBytes(cast(const [*] u8, &g_other[0]), 3)
 
-    Swag.assert(left == right)
-    Swag.assert(eqViews([left, left], [right, right]))
-    Swag.assert(not eqViews([left, left], [right, other]))
+    Swag.require(left == right)
+    Swag.require(eqViews([left, left], [right, right]))
+    Swag.require(not eqViews([left, left], [right, other]))
 }
 
 // A struct element answers through the 'opEquals' it owns.
 #test
 {
-    Swag.assert(Point{1, 2} == Point{1, 9})
-    Swag.assert(eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{3, 9}]))
-    Swag.assert(not eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{4, 9}]))
+    Swag.require(Point{1, 2} == Point{1, 9})
+    Swag.require(eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{3, 9}]))
+    Swag.require(not eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{4, 9}]))
 }
 
 // An array no wider than a machine register still asks its elements.
 #test
 {
-    Swag.assert(eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{21}]))
-    Swag.assert(not eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{30}]))
+    Swag.require(eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{21}]))
+    Swag.require(not eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{30}]))
 }
 
 // A struct holding such an array asks the array, which asks its elements.
@@ -135,14 +135,14 @@ var g_other: [3] u8 = ['a', 'b', 'z']
     let right = viewText(cast(const [*] u8, &g_right[0]), 3)
     let other = viewText(cast(const [*] u8, &g_other[0]), 3)
 
-    Swag.assert(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
-    Swag.assert(not eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
-    Swag.assert(not eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
+    Swag.require(eqHolder(Holder{[left, left], 7}, Holder{[right, right], 7}))
+    Swag.require(not eqHolder(Holder{[left, left], 7}, Holder{[right, right], 8}))
+    Swag.require(not eqHolder(Holder{[left, left], 7}, Holder{[right, other], 7}))
 }
 
 // An element with nothing of its own to say still compares as one contiguous run.
 #test
 {
-    Swag.assert(eqPlain([1, 2, 3, 4], [1, 2, 3, 4]))
-    Swag.assert(not eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
+    Swag.require(eqPlain([1, 2, 3, 4], [1, 2, 3, 4]))
+    Swag.require(not eqPlain([1, 2, 3, 4], [1, 2, 3, 5]))
 }

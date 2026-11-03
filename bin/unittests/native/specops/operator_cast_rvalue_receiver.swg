@@ -52,12 +52,12 @@ var g_CastSink: CastSink
 
     var sink: CastSink
     sink = makeCastFat("hello")
-    Swag.assert(sink.total == 5)
-    Swag.assert(sink.first == 'h'u8)
-    Swag.assert(decoyPtr.count == 16)
+    Swag.require(sink.total == 5)
+    Swag.require(sink.first == 'h'u8)
+    Swag.require(decoyPtr.count == 16)
 
     // Same shape through a GLOBAL assignment target, like g_StoreArgs.
     g_CastSink = makeCastFat("worldly")
-    Swag.assert(g_CastSink.total == 7)
-    Swag.assert(g_CastSink.first == 'w'u8)
+    Swag.require(g_CastSink.total == 7)
+    Swag.require(g_CastSink.first == 'w'u8)
 }

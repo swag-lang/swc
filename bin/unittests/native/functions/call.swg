@@ -9,7 +9,7 @@ namespace compiler115
     #test
     {
         var v = 10's8 + 2.0'f64
-        Swag.assert(v == 12.0)
+        Swag.require(v == 12.0)
     }
 }
 
@@ -27,14 +27,14 @@ namespace compiler1580
         }
 
         let a = Color.Green
-        Swag.assert(a == 1)
+        Swag.require(a == 1)
     }
 
     func toto()->bool { return true }
 
     #test
     {
-        Swag.assert(toto())
+        Swag.require(toto())
     }
 }
 
@@ -47,7 +47,7 @@ namespace compiler1629
         var arr: [64] u8
         var ptr = cast([*] ([*] void?), &arr[0])
         ptr[0] = null
-        Swag.assert(ptr[0] == null)
+        Swag.require(ptr[0] == null)
     }
 }
 
@@ -65,8 +65,8 @@ namespace compiler1633
     {
         var st: A
         // st.y = 0
-        Swag.assert(st.x == 0)
-        Swag.assert(st.y == 0)
+        Swag.require(st.x == 0)
+        Swag.require(st.y == 0)
     }
 }
 
@@ -84,7 +84,7 @@ namespace compiler1637
     {
         var st: A
         st.y = 0
-        Swag.assert(st.y == 0)
+        Swag.require(st.y == 0)
     }
 }
 
@@ -103,7 +103,7 @@ namespace compiler1638
     {
         var st: A
         st.y = 0
-        Swag.assert(st.y == 0)
+        Swag.require(st.y == 0)
     }
 }
 
@@ -117,7 +117,7 @@ namespace compiler1640
         c += 0xFF00
         var usedBuckets: u32
         usedBuckets = c ? 1 : 0
-        Swag.assert(usedBuckets == 1)
+        Swag.require(usedBuckets == 1)
     }
 }
 
@@ -132,7 +132,7 @@ namespace compiler1648
 
         let m: u32 = 16
         x %= cast(u64, m)
-        Swag.assert(x == 15)
+        Swag.require(x == 15)
     }
 }
 
@@ -149,7 +149,7 @@ namespace compiler1651
 
     #test
     {
-        Swag.assert(toto1(100) == 100)
+        Swag.require(toto1(100) == 100)
     }
 }
 
@@ -163,8 +163,8 @@ namespace compiler1653
 
     #test
     {
-        Swag.assert(toto() == 0)
-        Swag.assert(toto1() == 0)
+        Swag.require(toto() == 0)
+        Swag.require(toto1() == 0)
     }
 }
 
@@ -176,7 +176,7 @@ namespace compiler1659
     {
         let precision: u32 = 5
         let roundValue     = 0.5 / (10 * precision)
-        Swag.assert(roundValue == 0.01)
+        Swag.require(roundValue == 0.01)
     }
 }
 
@@ -199,7 +199,7 @@ namespace compiler1661
         // addr1[0] = &value
 
         // Swag.print(addr[0].value)
-        Swag.assert(addr[0] == &addr1)
+        Swag.require(addr[0] == &addr1)
     }
 }
 
@@ -218,7 +218,7 @@ namespace compiler1662
         var addr1: [*] s64         = cast([*] s64, &value)
         var addr:  [1] [*] [*] s64 = [cast([*] [*] s64, &addr1)]
 
-        Swag.assert(addr[0][0][0] == 666)
+        Swag.require(addr[0][0][0] == 666)
     }
 }
 
@@ -238,7 +238,7 @@ namespace compiler1663
         var addr:  [1] [*] [*] TT = [cast([*] [*] TT, &addr1)]
 
         // Swag.print(addr1.value)
-        Swag.assert(addr[0][0].value == 456)
+        Swag.require(addr[0][0].value == 456)
     }
 }
 
@@ -259,7 +259,7 @@ namespace compiler1664
         addr[0, 0] = &value
 
         // Swag.print(addr[0,0].value)
-        Swag.assert(addr[0, 0]!.value == 456)
+        Swag.require(addr[0, 0]!.value == 456)
     }
 }
 
@@ -285,7 +285,7 @@ namespace compiler1666
     {
         var x: TT
         C(x)
-        Swag.assert(x.value == 456)
+        Swag.require(x.value == 456)
     }
 }
 
@@ -303,7 +303,7 @@ namespace compiler1668
     #test
     {
         let ptr = &function
-        Swag.assert(ptr(50) == 100)
+        Swag.require(ptr(50) == 100)
     }
 }
 
@@ -320,7 +320,7 @@ namespace compiler1669
     #test
     {
         let ptr = &function
-        Swag.assert(ptr(50) == 0)
+        Swag.require(ptr(50) == 0)
     }
 }
 
@@ -330,17 +330,17 @@ namespace compiler167
     //
     #test
     {
-        Swag.assert(1 == 1)
+        Swag.require(1 == 1)
     }
 
     #test
     {
-        Swag.assert(2 > 1)
+        Swag.require(2 > 1)
     }
 
     #test
     {
-        Swag.assert(not false)
+        Swag.require(not false)
     }
 }
 
@@ -358,7 +358,7 @@ namespace compiler1671
 
     #test
     {
-        Swag.assert(toto(5) == s32)
+        Swag.require(toto(5) == s32)
     }
 }
 
@@ -382,7 +382,7 @@ namespace compiler1677
     #test
     {
         var x: TT
-        Swag.assert(C(x) == 456)
+        Swag.require(C(x) == 456)
     }
 }
 
@@ -412,7 +412,7 @@ namespace compiler1678
     #test
     {
         var x: TT
-        Swag.assert(C(x) == 456)
+        Swag.require(C(x) == 456)
     }
 }
 
@@ -451,7 +451,7 @@ namespace compiler1679
     #test
     {
         var x: TT
-        Swag.assert(D(x) == 456)
+        Swag.require(D(x) == 456)
     }
 }
 
@@ -488,7 +488,7 @@ namespace compiler1680
     #test
     {
         var x: TT
-        Swag.assert(D(x) == 456)
+        Swag.require(D(x) == 456)
     }
 }
 
@@ -517,7 +517,7 @@ namespace compiler1681
     #test
     {
         var x: myStruct
-        Swag.assert(C(x) == 456)
+        Swag.require(C(x) == 456)
     }
 }
 
@@ -547,7 +547,7 @@ namespace compiler1682
     #test
     {
         var x: myStruct
-        Swag.assert(C(x) == 456)
+        Swag.require(C(x) == 456)
     }
 }
 
@@ -558,7 +558,7 @@ namespace compiler1788
     #test
     {
         G += 1
-        Swag.assert(G == 1)
+        Swag.require(G == 1)
     }
 
     #init
@@ -573,8 +573,8 @@ namespace compiler206
     //
     #test
     {
-        Swag.assert(1 == 1)
-        Swag.assert(2 == 2)
+        Swag.require(1 == 1)
+        Swag.require(2 == 2)
     }
 }
 
@@ -590,7 +590,7 @@ namespace compiler208
 
     #test
     {
-        Swag.assert(main(666's64) == 666)
+        Swag.require(main(666's64) == 666)
     }
 }
 
@@ -607,7 +607,7 @@ namespace compiler209
 
     #test
     {
-        Swag.assert(main(666'f64, 555'f64) == 1221.0)
+        Swag.require(main(666'f64, 555'f64) == 1221.0)
     }
 }
 
@@ -621,9 +621,9 @@ namespace compiler218
 
     #test
     {
-        Swag.assert(g == 5)
-        Swag.assert(h == 5555)
-        Swag.assert(i == 1.5)
+        Swag.require(g == 5)
+        Swag.require(h == 5555)
+        Swag.require(i == 1.5)
     }
 }
 
@@ -638,7 +638,7 @@ namespace compiler219
 
     #test
     {
-        Swag.assert(v == 555)
+        Swag.require(v == 555)
     }
 }
 
@@ -651,7 +651,7 @@ namespace compiler221
     #test
     {
         v = 6; v = (5 * 3) + 11;
-        Swag.assert(v == 26)
+        Swag.require(v == 26)
     }
 }
 
@@ -670,7 +670,7 @@ namespace compiler223
     #test
     {
         main()
-        Swag.assert(v == 666)
+        Swag.require(v == 666)
     }
 }
 
@@ -696,8 +696,8 @@ namespace compiler224
     #test
     {
         main()
-        Swag.assert(b0 == true)
-        Swag.assert(b4 == 4)
+        Swag.require(b0 == true)
+        Swag.require(b4 == 4)
     }
 }
 
@@ -724,9 +724,9 @@ namespace compiler225
     #test
     {
         main()
-        Swag.assert(b0 == false)
-        Swag.assert(b1 == 50)
-        Swag.assert(b2 == 4.0)
+        Swag.require(b0 == false)
+        Swag.require(b1 == 50)
+        Swag.require(b2 == 4.0)
     }
 }
 
@@ -752,7 +752,7 @@ namespace compiler227
 
     #test
     {
-        Swag.assert(main1() == 600)
+        Swag.require(main1() == 600)
     }
 }
 
@@ -774,7 +774,7 @@ namespace compiler228
 
     #test
     {
-        Swag.assert(main() == 666)
+        Swag.require(main() == 666)
     }
 }
 
@@ -793,7 +793,7 @@ namespace compiler229
 
     #test
     {
-        Swag.assert(main() == 1221)
+        Swag.require(main() == 1221)
     }
 }
 
@@ -813,7 +813,7 @@ namespace compiler231
 
     #test
     {
-        Swag.assert(main() == 13.5)
+        Swag.require(main() == 13.5)
     }
 }
 
@@ -824,11 +824,11 @@ namespace compiler234
     #test
     {
         var a = 1
-        a *= 2; Swag.assert(a == 2)
-        a *= 2; Swag.assert(a == 4)
+        a *= 2; Swag.require(a == 2)
+        a *= 2; Swag.require(a == 4)
 
         var b = 1.0'f32
-        b /= 2; Swag.assert(b == 0.5)
+        b /= 2; Swag.require(b == 0.5)
     }
 }
 
@@ -849,7 +849,7 @@ namespace compiler235
 
     #test
     {
-        Swag.assert(main() == 331)
+        Swag.require(main() == 331)
     }
 }
 
@@ -867,7 +867,7 @@ namespace compiler236
 
     #test
     {
-        Swag.assert(main() == 0b101010100)
+        Swag.require(main() == 0b101010100)
     }
 }
 
@@ -886,7 +886,7 @@ namespace compiler238
 
     #test
     {
-        Swag.assert(main() == 676)
+        Swag.require(main() == 676)
     }
 }
 
@@ -907,7 +907,7 @@ namespace compiler246
 
     #test
     {
-        Swag.assert(main1() == 6)
+        Swag.require(main1() == 6)
     }
 }
 
@@ -931,7 +931,7 @@ namespace compiler249
     #test
     {
         main1()
-        Swag.assert(main() == 55)
+        Swag.require(main() == 55)
     }
 }
 
@@ -944,7 +944,7 @@ namespace compiler287
         var a: bool = true
         let b       = &a
         let c       = b[]
-        Swag.assert(c == true)
+        Swag.require(c == true)
     }
 
     #test
@@ -952,7 +952,7 @@ namespace compiler287
         var a: s32 = 666
         let b      = &a
         let c      = b[]
-        Swag.assert(c == 666)
+        Swag.require(c == 666)
     }
 }
 
@@ -964,8 +964,8 @@ namespace compiler310
 
     #test
     {
-        g = false; Swag.assert(g == false)
-        g = true; Swag.assert(g == true)
+        g = false; Swag.require(g == false)
+        g = true; Swag.require(g == true)
         // Swag.print(g);
     }
 }
@@ -979,8 +979,8 @@ namespace compiler322
         var a: s32  = 666
         let b       = &a
         var c: *s32 = b
-        c = b; Swag.assert(b[] == 666)
-        Swag.assert(c[] == 666)
+        c = b; Swag.require(b[] == 666)
+        Swag.require(c[] == 666)
         /*Swag.assert(a == 1);
     	b[0] = 666;
 	Swag.assert(a == 666);*/
@@ -995,8 +995,8 @@ namespace compiler323
     {
         var a: s32 = 1
         var b      = &a
-        b[] = 666; Swag.assert(a == 666)
-        Swag.assert(b[] == a)
+        b[] = 666; Swag.require(a == 666)
+        Swag.require(b[] == a)
     }
 }
 
@@ -1008,10 +1008,10 @@ namespace compiler324
     #test
     {
         var a: [4] s32
-        a[0] = 1; a[1] = 2; a[2] = 20; a[3] = 30; Swag.assert(a[0] == 1)
-        Swag.assert(a[1] == 2)
-        Swag.assert(a[2] == 20)
-        Swag.assert(a[3] == 30)
+        a[0] = 1; a[1] = 2; a[2] = 20; a[3] = 30; Swag.require(a[0] == 1)
+        Swag.require(a[1] == 2)
+        Swag.require(a[2] == 20)
+        Swag.require(a[3] == 30)
     }
 }
 
@@ -1023,9 +1023,9 @@ namespace compiler332
     {
         var a: [2] s32 = [50, 60]
         let b = 666
-        Swag.assert(a[0] == 50)
-        Swag.assert(a[1] == 60)
-        Swag.assert(b == 666)
+        Swag.require(a[0] == 50)
+        Swag.require(a[1] == 60)
+        Swag.require(b == 666)
     }
 }
 
@@ -1037,8 +1037,8 @@ namespace compiler333
 
     #test
     {
-        Swag.assert(a[0] == 50)
-        Swag.assert(a[1] == 60)
+        Swag.require(a[0] == 50)
+        Swag.require(a[1] == 60)
     }
 }
 
@@ -1048,8 +1048,8 @@ namespace compiler335
     //
     #test
     {
-        Swag.assert(16 == 4 * 2 * 2)
-        Swag.assert(16 == 16)
+        Swag.require(16 == 4 * 2 * 2)
+        Swag.require(16 == 16)
     }
 }
 
@@ -1064,7 +1064,7 @@ namespace compiler339
         a[0, 1] = 2
         a[1, 0] = 3
         a[1, 1] = 4
-        Swag.assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
+        Swag.require(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10)
     }
 }
 
@@ -1075,11 +1075,11 @@ namespace compiler340
     #test
     {
         var a: [2, 2] s32 = [[1, 2], [3, 4]]
-        Swag.assert(a[0, 0] == 1)
-        Swag.assert(a[0, 1] == 2)
-        Swag.assert(a[1, 0] == 3)
-        Swag.assert(a[1, 1] == 4)
-        Swag.assert(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10);
+        Swag.require(a[0, 0] == 1)
+        Swag.require(a[0, 1] == 2)
+        Swag.require(a[1, 0] == 3)
+        Swag.require(a[1, 1] == 4)
+        Swag.require(a[0, 0] + a[0, 1] + a[1, 0] + a[1, 1] == 10);
     }
 }
 
@@ -1094,12 +1094,12 @@ namespace compiler342
         let pa1 = &a
         let pa2 = &a
         let pb  = &b
-        Swag.assert(pa1 == pa2)
-        Swag.assert(pb > pa1)
-        Swag.assert(pa1 < pb)
-        Swag.assert(pb >= pa1)
-        Swag.assert(pa1 <= pb)
-        Swag.assert(pa1 != pb)
+        Swag.require(pa1 == pa2)
+        Swag.require(pb > pa1)
+        Swag.require(pa1 < pb)
+        Swag.require(pb >= pa1)
+        Swag.require(pa1 <= pb)
+        Swag.require(pa1 != pb)
     }
 }
 
@@ -1110,7 +1110,7 @@ namespace compiler343
     #test
     {
         let a: *s32? = null
-        Swag.assert(a == null)
+        Swag.require(a == null)
     }
 }
 
@@ -1121,8 +1121,8 @@ namespace compiler344
     #test
     {
         var a: s32
-        Swag.assert(a == 0)
+        Swag.require(a == 0)
         var b: *s32? = null
-        Swag.assert(b == null)
+        Swag.require(b == null)
     }
 }

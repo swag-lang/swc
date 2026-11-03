@@ -41,9 +41,9 @@ func fallbackString()->string
 #test
 {
     var a: s32
-    Swag.assert((a != 0 ? a : 11) == 11)
+    Swag.require((a != 0 ? a : 11) == 11)
     a = 5
-    Swag.assert((a != 0 ? a : 11) == 5)
+    Swag.require((a != 0 ? a : 11) == 5)
 }
 
 // Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
@@ -54,17 +54,17 @@ func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
 {
     var p: *s32?
     var v: s32 = 10
-    Swag.assert((p orelse &v) == &v)
+    Swag.require((p orelse &v) == &v)
     p = &v
-    Swag.assert(nullCoalescingNullFallback(p) == &v)
+    Swag.require(nullCoalescingNullFallback(p) == &v)
 }
 
 #test
 {
     var s: string?
-    Swag.assert((s orelse "fallback") == "fallback")
+    Swag.require((s orelse "fallback") == "fallback")
     s = "ok"
-    Swag.assert((s orelse "fallback") == "ok")
+    Swag.require((s orelse "fallback") == "ok")
 }
 
 #test
@@ -72,8 +72,8 @@ func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
     NullCoercCounter = 0
     let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
 
-    Swag.assert(value == 12'u32)
-    Swag.assert(NullCoercCounter == 0)
+    Swag.require(value == 12'u32)
+    Swag.require(NullCoercCounter == 0)
 }
 
 #test
@@ -82,9 +82,9 @@ func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
     var ptr: *s32? = null
     let value      = ptr orelse fallbackPointer()
 
-    Swag.assert(value == &NullCoercValue)
-    Swag.assert(value[] == 33)
-    Swag.assert(NullCoercCounter == 1)
+    Swag.require(value == &NullCoercValue)
+    Swag.require(value[] == 33)
+    Swag.require(NullCoercCounter == 1)
 }
 
 #test
@@ -93,8 +93,8 @@ func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
     var s: string? = null
     let value      = s orelse fallbackString()
 
-    Swag.assert(value == "fallback")
-    Swag.assert(NullCoercCounter == 1)
+    Swag.require(value == "fallback")
+    Swag.require(NullCoercCounter == 1)
 }
 
 #test
@@ -103,6 +103,6 @@ func nullCoalescingNullFallback(p: *s32?)->*s32? => p orelse null
     let s: string = "ok"
     let value     = s orelse fallbackString()
 
-    Swag.assert(value == "ok")
-    Swag.assert(NullCoercCounter == 0)
+    Swag.require(value == "ok")
+    Swag.require(NullCoercCounter == 0)
 }

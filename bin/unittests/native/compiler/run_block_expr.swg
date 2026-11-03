@@ -191,8 +191,8 @@ func functionScopedShortCompilerOnlyRunCall()
         return [cast(any, "first"), cast(any, "second")]
     }
 
-    Swag.assert(assume cast(string, value.item) == "abc")
-    Swag.assert(assume cast(string, value.other) == "def")
-    Swag.assert(assume cast(string, values[0]) == "first")
-    Swag.assert(assume cast(string, values[1]) == "second")
+    Swag.require(assume cast(string, value.item) == "abc")
+    Swag.require(assume cast(string, value.other) == "def")
+    Swag.require(assume cast(string, values[0]) == "first")
+    Swag.require(assume cast(string, values[1]) == "second")
 }

@@ -18,15 +18,15 @@
 
     // Store an s32 literal value in the 'any'
     a = 6
-    Swag.assert(assume cast(s32, a) == 6)
+    Swag.require(assume cast(s32, a) == 6)
 
     // Now store a string
     a = "string"
-    Swag.assert(assume cast (string, unwrap a) == "string")
+    Swag.require(assume cast (string, unwrap a) == "string")
 
     // Now store a bool
     a = true
-    Swag.assert(assume cast (bool, a) == true)
+    Swag.require(assume cast (bool, a) == true)
 }
 
 /**
@@ -40,8 +40,8 @@ Use `catch cast(*T?, boxed)` when a failed conversion should produce null.
 {
     let a: any = 6
     let ptr    = catch cast(const *s32?, a)
-    Swag.assert(ptr != null)
-    Swag.assert(ptr[] == 6)
+    Swag.require(ptr != null)
+    Swag.require(ptr[] == 6)
 }
 
 /**
@@ -55,10 +55,10 @@ Use 'Swag.kindOf' to get the concrete runtime type of the viewed value.
 {
     var a: any = "string"
     #assert(#typeof(a) == any)
-    Swag.assert(Swag.kindOf(a) == string)
+    Swag.require(Swag.kindOf(a) == string)
 
     a = true
-    Swag.assert(Swag.kindOf(a) == bool)
+    Swag.require(Swag.kindOf(a) == bool)
 }
 
 /**
@@ -71,13 +71,13 @@ You can retrieve the stored value directly or through a constant pointer.
 {
     let a: any = 42
     #assert(#typeof(a) == any)
-    Swag.assert(Swag.kindOf(a) == s32)
+    Swag.require(Swag.kindOf(a) == s32)
 
     let b = assume cast(s32, a)     // Get the value itself
-    Swag.assert(b == 42)
+    Swag.require(b == 42)
 
     let d = assume cast (const *s32, a)     // Get a constant pointer to the value
-    Swag.assert(d[] == 42)
+    Swag.require(d[] == 42)
 }
 
 /**
@@ -90,15 +90,15 @@ You can create heterogeneous arrays where each element holds a different type.
 {
     var array: [?] any = [true, 2, 3.0, "4"]
 
-    Swag.assert(Swag.kindOf(array[0]) == bool)
-    Swag.assert(Swag.kindOf(array[1]) == s32)
-    Swag.assert(Swag.kindOf(array[2]) == f32)
-    Swag.assert(Swag.kindOf(array[3]) == string)
+    Swag.require(Swag.kindOf(array[0]) == bool)
+    Swag.require(Swag.kindOf(array[1]) == s32)
+    Swag.require(Swag.kindOf(array[2]) == f32)
+    Swag.require(Swag.kindOf(array[3]) == string)
 
-    Swag.assert(assume cast(bool, array[0]) == true)
-    Swag.assert(assume cast (s32, array[1]) == 2)
-    Swag.assert(assume cast (f32, array[2]) == 3.0)
-    Swag.assert(assume cast (string, array[3]) == "4")
+    Swag.require(assume cast(bool, array[0]) == true)
+    Swag.require(assume cast (s32, array[1]) == 2)
+    Swag.require(assume cast (f32, array[2]) == 3.0)
+    Swag.require(assume cast (string, array[3]) == "4")
 }
 
 /**
@@ -112,18 +112,18 @@ value, just as for pointers and other nullable types.
 #test
 {
     var x: any?
-    Swag.assert(x == null)
+    Swag.require(x == null)
 
     x = 6
-    Swag.assert(x != null)
-    Swag.assert(assume cast(s32, x) == 6)
+    Swag.require(x != null)
+    Swag.require(assume cast(s32, x) == 6)
 
     x = "string"
-    Swag.assert(x != null)
-    Swag.assert(assume cast (string, x) == "string")
+    Swag.require(x != null)
+    Swag.require(assume cast (string, x) == "string")
 
     x = null
-    Swag.assert(x == null)
+    Swag.require(x == null)
 }
 
 /**
@@ -136,17 +136,17 @@ Use `if value is T as name` when the branch also needs to access the value.
 #test
 {
     var x: any?
-    Swag.assert(x == null)
+    Swag.require(x == null)
 
     x = 6
-    Swag.assert(x is s32)
-    Swag.assert(not (x is bool))
+    Swag.require(x is s32)
+    Swag.require(not (x is bool))
 
     x = "string"
-    Swag.assert(not (x is s32))
-    Swag.assert(x is string)
+    Swag.require(not (x is s32))
+    Swag.require(x is string)
 
     struct A {}
     x = A{}
-    Swag.assert(x is A)
+    Swag.require(x is A)
 }

@@ -32,10 +32,10 @@ impl AggregateLiteralTracked
         var source = AggregateLiteralTracked{7}
         var values: [1] AggregateLiteralTracked = [source]
 
-        Swag.assert(AggregateLiteralPostCopyCount == 1)
-        Swag.assert(source.value == 7)
-        Swag.assert(values[0].value == 107)
+        Swag.require(AggregateLiteralPostCopyCount == 1)
+        Swag.require(source.value == 7)
+        Swag.require(values[0].value == 107)
     }
 
-    Swag.assert(AggregateLiteralDropCount == 2)
+    Swag.require(AggregateLiteralDropCount == 2)
 }

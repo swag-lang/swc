@@ -15,14 +15,14 @@ func maximum32(values: const [*]u32, index: u64)->u32 => Swag.max(Swag.max(value
 #test
 {
     let values = [9'u64, 3, 7, 5, 0xFFFFFFFFFFFFFFFF, 12, 42, 1]
-    Swag.assert(minimum(&values[0], 0) == 3)
-    Swag.assert(maximum(&values[0], 0) == 9)
-    Swag.assert(minimum(&values[0], 4) == 1)
-    Swag.assert(maximum(&values[0], 4) == 0xFFFFFFFFFFFFFFFF)
+    Swag.require(minimum(&values[0], 0) == 3)
+    Swag.require(maximum(&values[0], 0) == 9)
+    Swag.require(minimum(&values[0], 4) == 1)
+    Swag.require(maximum(&values[0], 4) == 0xFFFFFFFFFFFFFFFF)
 
     let values32 = [9'u32, 3, 7, 5, 0xFFFFFFFF, 12, 42, 1]
-    Swag.assert(minimum32(&values32[0], 0) == 3)
-    Swag.assert(maximum32(&values32[0], 0) == 9)
-    Swag.assert(minimum32(&values32[0], 4) == 1)
-    Swag.assert(maximum32(&values32[0], 4) == 0xFFFFFFFF)
+    Swag.require(minimum32(&values32[0], 0) == 3)
+    Swag.require(maximum32(&values32[0], 0) == 9)
+    Swag.require(minimum32(&values32[0], 4) == 1)
+    Swag.require(maximum32(&values32[0], 4) == 0xFFFFFFFF)
 }

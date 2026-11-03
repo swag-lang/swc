@@ -122,16 +122,16 @@ impl SensorChannel
 #test
 {
     let safe: Range'f64 = {min: -10.0, max: 10.0}
-    Swag.assert(clampToRange(-15.0'f64, safe) == -10.0'f64)
-    Swag.assert(clampToRange(6.0'f64, safe) == 6.0'f64)
-    Swag.assert(clampToRange(15.0'f64, safe) == 10.0'f64)
+    Swag.require(clampToRange(-15.0'f64, safe) == -10.0'f64)
+    Swag.require(clampToRange(6.0'f64, safe) == 6.0'f64)
+    Swag.require(clampToRange(15.0'f64, safe) == 10.0'f64)
 
-    Swag.assert(lerp(10.0'f64, 20.0'f64, 0.25'f64) == 12.5'f64)
+    Swag.require(lerp(10.0'f64, 20.0'f64, 0.25'f64) == 12.5'f64)
 
-    Swag.assert(severity(5's32) == 1)
-    Swag.assert(severity(15's64) == 2)
-    Swag.assert(severity(1.5'f32) == 2)
-    Swag.assert(severity(8.0'f64) == 3)
+    Swag.require(severity(5's32) == 1)
+    Swag.require(severity(15's64) == 2)
+    Swag.require(severity(1.5'f32) == 2)
+    Swag.require(severity(8.0'f64) == 3)
 }
 
 #test
@@ -142,13 +142,13 @@ impl SensorChannel
     window.push(20.0)
     window.push(30.0)
 
-    Swag.assert(window.at'1() == 20.0'f32)
-    Swag.assert(window.echoTyped(99.0'f32) == 99.0'f32)
-    Swag.assert(window.average() == 20.0'f32)
+    Swag.require(window.at'1() == 20.0'f32)
+    Swag.require(window.echoTyped(99.0'f32) == 99.0'f32)
+    Swag.require(window.average() == 20.0'f32)
 
     window.push(40.0)
-    Swag.assert(window.at'0() == 40.0'f32)
-    Swag.assert(window.average() == 30.0'f32)
+    Swag.require(window.at'0() == 40.0'f32)
+    Swag.require(window.average() == 30.0'f32)
 }
 
 #test
@@ -161,9 +161,9 @@ impl SensorChannel
         window: {values: [0.0'f32, 0.0], next: 0, filled: 0}
         }
 
-    Swag.assert(channel.ingest(10.0'f32) == 10.0'f32)
-    Swag.assert(channel.ingest(150.0'f32) == 100.0'f32)
-    Swag.assert(channel.latest() == 100.0'f32)
-    Swag.assert(channel.window.average() == 55.0'f32)
-    Swag.assert(channel.deviation(50.0'f32) == 5.0'f32)
+    Swag.require(channel.ingest(10.0'f32) == 10.0'f32)
+    Swag.require(channel.ingest(150.0'f32) == 100.0'f32)
+    Swag.require(channel.latest() == 100.0'f32)
+    Swag.require(channel.window.average() == 55.0'f32)
+    Swag.require(channel.deviation(50.0'f32) == 5.0'f32)
 }

@@ -54,7 +54,7 @@ the code after a join reads what the partitions wrote.
 
     // The join is the edge: every partition's write happens before these reads.
     for index in 8 do
-        Swag.assert(squares[index] == index * index)
+        Swag.require(squares[index] == index * index)
 }
 
 /**
@@ -95,7 +95,7 @@ always sequentially consistent.
 
     // An acquire read that returns the flag also sees what was written before it.
     while ready.loadAcquire() == 0 {}
-    Swag.assert(data == 42)
+    Swag.require(data == 42)
     task.wait()
 }
 
@@ -129,5 +129,5 @@ atomic operation.
     parallel for |&visited| 16 do
         visited.add(1)
 
-    Swag.assert(visited.loadRelaxed() == 16)
+    Swag.require(visited.loadRelaxed() == 16)
 }

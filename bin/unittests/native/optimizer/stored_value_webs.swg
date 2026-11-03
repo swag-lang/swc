@@ -26,6 +26,6 @@ func update(values: *[8] f64, chooseFirst: bool)
     var second         = first
     update(&first, true)
     update(&second, false)
-    Swag.assert(first[4] == 4 and first[5] == 20 and first[6] == 25.5 and first[7] == 29.5)
-    Swag.assert(second[4] == 9 and second[5] == 20 and second[6] == 30.5 and second[7] == 39.5)
+    Swag.require(first[4] == 4 and first[5] == 20 and first[6] == 25.5 and first[7] == 29.5)
+    Swag.require(second[4] == 9 and second[5] == 20 and second[6] == 30.5 and second[7] == 39.5)
 }

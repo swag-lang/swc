@@ -8,5 +8,5 @@
 
 #test
 {
-    Swag.assert(true)
+    Swag.require(true)
 }

@@ -14,6 +14,6 @@ func(T) roundTrip(value: T)->s32
 
 #test
 {
-    Swag.assert(roundTrip(42) == 42)
-    Swag.assert(roundTrip(-17) == -17)
+    Swag.require(roundTrip(42) == 42)
+    Swag.require(roundTrip(-17) == -17)
 }

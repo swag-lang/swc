@@ -37,8 +37,8 @@ func checkedValue(ok: bool)->s32 fail
     var errOutcome: Swag.Error
     catch checkedVoid(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
-    Swag.assert(assume cast(InlineError, err).code == 7)
+    Swag.require((err is InlineError))
+    Swag.require(assume cast(InlineError, err).code == 7)
     expect checkedVoid(true)
 }
 
@@ -48,17 +48,17 @@ func checkedValue(ok: bool)->s32 fail
     var errOutcome: Swag.Error
     catch checkedVoid(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
+    Swag.require((err is InlineError))
 }
 
 #test
 {
     let value = expect checkedValue(true)
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
     var errOutcome: Swag.Error
     discard catch checkedValue(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
+    Swag.require((err is InlineError))
 }
 
 #test
@@ -66,9 +66,9 @@ func checkedValue(ok: bool)->s32 fail
     var errOutcome: Swag.Error
     discard catch checkedValue(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
+    Swag.require((err is InlineError))
     let value = expect checkedValue(true)
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
 }
 
 #[Swag.Macro]
@@ -100,7 +100,7 @@ func checkedInjection() fail
     var errOutcome: Swag.Error
     catch checkedMacro() as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
+    Swag.require((err is InlineError))
 }
 
 #test
@@ -108,7 +108,7 @@ func checkedInjection() fail
     var errOutcome: Swag.Error
     catch checkedInjection() as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is InlineError))
+    Swag.require((err is InlineError))
 }
 
 #[Swag.Inline]
@@ -120,9 +120,9 @@ func identity(value: s32)->s32 => value
 #test
 {
     var reached = false
-    defer Swag.assert(reached)
+    defer Swag.require(reached)
     let value = identity(expect checkedValue(true))
-    Swag.assert(value == 42)
+    Swag.require(value == 42)
     reached = true
 }
 
@@ -130,7 +130,7 @@ func identity(value: s32)->s32 => value
 #test
 {
     var reached = false
-    defer Swag.assert(reached)
+    defer Swag.require(reached)
     injectStatement(#code { expect checkedVoid(true) })
     reached = true
 }

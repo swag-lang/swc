@@ -254,20 +254,20 @@ func analyze(data: const [..] u8)->IntegrityReport
 #test
 {
     // Empty input
-    Swag.assert(Adler32.compute("") == 1)
+    Swag.require(Adler32.compute("") == 1)
 
     // RFC test vector: adler32("Wikipedia") = 0x11E60398
-    Swag.assert(Adler32.compute("Wikipedia") == 0x11E60398)
+    Swag.require(Adler32.compute("Wikipedia") == 0x11E60398)
 
     // Single byte
-    Swag.assert(Adler32.compute("a") == 0x00620062)
+    Swag.require(Adler32.compute("a") == 0x00620062)
 
     // Incremental update matches single-shot compute
     var adler: Adler32
     adler.init()
     adler.update("Wiki")
     adler.update("pedia")
-    Swag.assert(adler.adler == Adler32.compute("Wikipedia"))
+    Swag.require(adler.adler == Adler32.compute("Wikipedia"))
 
     // Longer payload exercises the count >= 16 branch
     const payload = "The quick brown fox jumps over the lazy dog"
@@ -275,7 +275,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     a2.init()
     a2.update(payload)
     let fullChecksum = Adler32.compute(payload)
-    Swag.assert(a2.adler == fullChecksum)
+    Swag.require(a2.adler == fullChecksum)
 
     // Three-part split must match bulk update
     var a3: Adler32
@@ -283,120 +283,120 @@ func analyze(data: const [..] u8)->IntegrityReport
     a3.update("The quick brown ")
     a3.update("fox jumps over ")
     a3.update("the lazy dog")
-    Swag.assert(a3.adler == fullChecksum)
+    Swag.require(a3.adler == fullChecksum)
 }
 
 // Test bit reversal
 #test
 {
-    Swag.assert(reverse8(0x00) == 0x00)
-    Swag.assert(reverse8(0xFF) == 0xFF)
-    Swag.assert(reverse8(0x01) == 0x80)
-    Swag.assert(reverse8(0x80) == 0x01)
-    Swag.assert(reverse8(0x0F) == 0xF0)
-    Swag.assert(reverse8(0xA5) == 0xA5)     // 10100101 is a palindrome
+    Swag.require(reverse8(0x00) == 0x00)
+    Swag.require(reverse8(0xFF) == 0xFF)
+    Swag.require(reverse8(0x01) == 0x80)
+    Swag.require(reverse8(0x80) == 0x01)
+    Swag.require(reverse8(0x0F) == 0xF0)
+    Swag.require(reverse8(0xA5) == 0xA5)     // 10100101 is a palindrome
 
     // Double-reverse is identity
     for i in 256
     {
         let b = cast(u8, i)
-        Swag.assert(reverse8(reverse8(b)) == b)
+        Swag.require(reverse8(reverse8(b)) == b)
     }
 
     // 16-bit reversal
-    Swag.assert(reverse16(0x0001) == 0x8000)
-    Swag.assert(reverse16(0x00FF) == 0xFF00)
-    Swag.assert(reverse16(reverse16(0xABCD)) == 0xABCD)
+    Swag.require(reverse16(0x0001) == 0x8000)
+    Swag.require(reverse16(0x00FF) == 0xFF00)
+    Swag.require(reverse16(reverse16(0xABCD)) == 0xABCD)
 
     // 32-bit reversal
-    Swag.assert(reverse32(0x00000001) == 0x80000000)
-    Swag.assert(reverse32(0x80000000) == 0x00000001)
-    Swag.assert(reverse32(reverse32(0xDEADBEEF)) == 0xDEADBEEF)
+    Swag.require(reverse32(0x00000001) == 0x80000000)
+    Swag.require(reverse32(0x80000000) == 0x00000001)
+    Swag.require(reverse32(reverse32(0xDEADBEEF)) == 0xDEADBEEF)
 }
 
 // Test integer tricks
 #test
 {
     // isPowerOf2
-    Swag.assert(isPowerOf2(1'u32))
-    Swag.assert(isPowerOf2(2'u32))
-    Swag.assert(isPowerOf2(4'u32))
-    Swag.assert(isPowerOf2(1024'u32))
-    Swag.assert(isPowerOf2(0x80000000'u32))
-    Swag.assert(not isPowerOf2(0'u32))
-    Swag.assert(not isPowerOf2(3'u32))
-    Swag.assert(not isPowerOf2(6'u32))
-    Swag.assert(not isPowerOf2(0xFFFFFFFF'u32))
+    Swag.require(isPowerOf2(1'u32))
+    Swag.require(isPowerOf2(2'u32))
+    Swag.require(isPowerOf2(4'u32))
+    Swag.require(isPowerOf2(1024'u32))
+    Swag.require(isPowerOf2(0x80000000'u32))
+    Swag.require(not isPowerOf2(0'u32))
+    Swag.require(not isPowerOf2(3'u32))
+    Swag.require(not isPowerOf2(6'u32))
+    Swag.require(not isPowerOf2(0xFFFFFFFF'u32))
 
     // All u32 powers of 2
     for i in 32'u32
     {
-        Swag.assert(isPowerOf2(1'u32 << i))
+        Swag.require(isPowerOf2(1'u32 << i))
     }
 
     // hasZeroByte
-    Swag.assert(hasZeroByte(0x12003456))
-    Swag.assert(hasZeroByte(0x00010101))
-    Swag.assert(not hasZeroByte(0x01010101))
-    Swag.assert(not hasZeroByte(0xFFFFFFFF))
+    Swag.require(hasZeroByte(0x12003456))
+    Swag.require(hasZeroByte(0x00010101))
+    Swag.require(not hasZeroByte(0x01010101))
+    Swag.require(not hasZeroByte(0xFFFFFFFF))
 
     // hasByte
-    Swag.assert(hasByte(0x12345678, 0x12))
-    Swag.assert(hasByte(0x12345678, 0x34))
-    Swag.assert(hasByte(0x12345678, 0x56))
-    Swag.assert(hasByte(0x12345678, 0x78))
-    Swag.assert(not hasByte(0x12345678, 0xFF))
-    Swag.assert(not hasByte(0x12345678, 0x00))
+    Swag.require(hasByte(0x12345678, 0x12))
+    Swag.require(hasByte(0x12345678, 0x34))
+    Swag.require(hasByte(0x12345678, 0x56))
+    Swag.require(hasByte(0x12345678, 0x78))
+    Swag.require(not hasByte(0x12345678, 0xFF))
+    Swag.require(not hasByte(0x12345678, 0x00))
 
     // gcd / lcm
-    Swag.assert(gcd(12, 8) == 4)
-    Swag.assert(gcd(100, 75) == 25)
-    Swag.assert(gcd(17, 13) == 1)     // coprime
-    Swag.assert(gcd(0, 5) == 5)
-    Swag.assert(gcd(7, 7) == 7)
-    Swag.assert(lcm(4, 6) == 12)
-    Swag.assert(lcm(3, 7) == 21)
-    Swag.assert(lcm(12, 18) == 36)
+    Swag.require(gcd(12, 8) == 4)
+    Swag.require(gcd(100, 75) == 25)
+    Swag.require(gcd(17, 13) == 1)     // coprime
+    Swag.require(gcd(0, 5) == 5)
+    Swag.require(gcd(7, 7) == 7)
+    Swag.require(lcm(4, 6) == 12)
+    Swag.require(lcm(3, 7) == 21)
+    Swag.require(lcm(12, 18) == 36)
 
     // sign
-    Swag.assert(sign(42's32) == 1)
-    Swag.assert(sign(-7's32) == -1)
-    Swag.assert(sign(0's32) == 0)
+    Swag.require(sign(42's32) == 1)
+    Swag.require(sign(-7's32) == -1)
+    Swag.require(sign(0's32) == 0)
 }
 
 // Test bit intrinsics
 #test
 {
     // Population count (standard semantics)
-    Swag.assert(Swag.countOnes(0'u32) == 0)
-    Swag.assert(Swag.countOnes(1'u32) == 1)
-    Swag.assert(Swag.countOnes(0xFFFFFFFF'u32) == 32)
-    Swag.assert(Swag.countOnes(0xAAAAAAAA'u32) == 16)
-    Swag.assert(Swag.countOnes(0x55555555'u32) == 16)
-    Swag.assert(Swag.countOnes(0xDEADBEEF'u32) == 24)
+    Swag.require(Swag.countOnes(0'u32) == 0)
+    Swag.require(Swag.countOnes(1'u32) == 1)
+    Swag.require(Swag.countOnes(0xFFFFFFFF'u32) == 32)
+    Swag.require(Swag.countOnes(0xAAAAAAAA'u32) == 16)
+    Swag.require(Swag.countOnes(0x55555555'u32) == 16)
+    Swag.require(Swag.countOnes(0xDEADBEEF'u32) == 24)
 
     // Leading zeros (counts consecutive zero bits from the most significant bit)
-    Swag.assert(Swag.leadingZeros(0'u32) == 32)
-    Swag.assert(Swag.leadingZeros(0x80000000'u32) == 0)
-    Swag.assert(Swag.leadingZeros(1'u32) == 31)
-    Swag.assert(Swag.leadingZeros(0x00010000'u32) == 15)
+    Swag.require(Swag.leadingZeros(0'u32) == 32)
+    Swag.require(Swag.leadingZeros(0x80000000'u32) == 0)
+    Swag.require(Swag.leadingZeros(1'u32) == 31)
+    Swag.require(Swag.leadingZeros(0x00010000'u32) == 15)
 
     // Trailing zeros (counts consecutive zero bits from the least significant bit)
-    Swag.assert(Swag.trailingZeros(0'u32) == 32)
-    Swag.assert(Swag.trailingZeros(1'u32) == 0)
-    Swag.assert(Swag.trailingZeros(2'u32) == 1)
-    Swag.assert(Swag.trailingZeros(0x80000000'u32) == 31)
-    Swag.assert(Swag.trailingZeros(0x00010000'u32) == 16)
+    Swag.require(Swag.trailingZeros(0'u32) == 32)
+    Swag.require(Swag.trailingZeros(1'u32) == 0)
+    Swag.require(Swag.trailingZeros(2'u32) == 1)
+    Swag.require(Swag.trailingZeros(0x80000000'u32) == 31)
+    Swag.require(Swag.trailingZeros(0x00010000'u32) == 16)
 
     // Rotate left/right
-    Swag.assert(Swag.rol(0x80000001'u32, 1) == 0x00000003'u32)
-    Swag.assert(Swag.ror(0x80000001'u32, 1) == 0xC0000000'u32)
-    Swag.assert(Swag.rol(Swag.ror(0xDEADBEEF'u32, 13), 13) == 0xDEADBEEF'u32)
+    Swag.require(Swag.rol(0x80000001'u32, 1) == 0x00000003'u32)
+    Swag.require(Swag.ror(0x80000001'u32, 1) == 0xC0000000'u32)
+    Swag.require(Swag.rol(Swag.ror(0xDEADBEEF'u32, 13), 13) == 0xDEADBEEF'u32)
 
     // Byteswap
-    Swag.assert(Swag.byteSwap(0x01020304'u32) == 0x04030201'u32)
-    Swag.assert(Swag.byteSwap(0xAABBCCDD'u32) == 0xDDCCBBAA'u32)
-    Swag.assert(Swag.byteSwap(Swag.byteSwap(0xDEADBEEF'u32)) == 0xDEADBEEF'u32)
+    Swag.require(Swag.byteSwap(0x01020304'u32) == 0x04030201'u32)
+    Swag.require(Swag.byteSwap(0xAABBCCDD'u32) == 0xDDCCBBAA'u32)
+    Swag.require(Swag.byteSwap(Swag.byteSwap(0xDEADBEEF'u32)) == 0xDEADBEEF'u32)
 }
 
 // Integration: full integrity analysis pipeline
@@ -406,30 +406,30 @@ func analyze(data: const [..] u8)->IntegrityReport
     let report = analyze(message)
 
     let bytes = cast(const [..] u8, message)
-    Swag.assert(report.byteCount == bytes.count)
-    Swag.assert(report.checksum == Adler32.compute(message))
-    Swag.assert(report.reversedFirst == reverse8(cast(u8, 'S')))
-    Swag.assert(report.reversedLast == reverse8(cast(u8, 'Z')))
-    Swag.assert(report.bitEntropy > 0)
+    Swag.require(report.byteCount == bytes.count)
+    Swag.require(report.checksum == Adler32.compute(message))
+    Swag.require(report.reversedFirst == reverse8(cast(u8, 'S')))
+    Swag.require(report.reversedLast == reverse8(cast(u8, 'Z')))
+    Swag.require(report.bitEntropy > 0)
 
     // Entropy of all-zero bytes would be 0; printable ASCII is always nonzero
     let avgBitsPerByte = report.bitEntropy / cast(u32, report.byteCount)
-    Swag.assert(avgBitsPerByte >= 3 and avgBitsPerByte <= 6)
+    Swag.require(avgBitsPerByte >= 3 and avgBitsPerByte <= 6)
 
     // Empty analysis
     let empty = analyze("")
-    Swag.assert(empty.byteCount == 0)
-    Swag.assert(empty.checksum == 0)
-    Swag.assert(empty.bitEntropy == 0)
+    Swag.require(empty.byteCount == 0)
+    Swag.require(empty.checksum == 0)
+    Swag.require(empty.bitEntropy == 0)
 
     // Two different messages must produce different checksums
     let report2 = analyze("different payload entirely")
-    Swag.assert(report.checksum != report2.checksum)
+    Swag.require(report.checksum != report2.checksum)
 
     // Verify the relationship: popcount of reversed byte == popcount of original
     let testBytes = cast(const [..] u8, message)
     for b in testBytes
     {
-        Swag.assert(Swag.countOnes(b) == Swag.countOnes(reverse8(b)))
+        Swag.require(Swag.countOnes(b) == Swag.countOnes(reverse8(b)))
     }
 }

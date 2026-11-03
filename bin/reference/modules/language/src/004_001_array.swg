@@ -50,8 +50,8 @@ The '.buffer' intrinsic retrieves the address of the first element in an array.
     var ptr1 = cast([*] s32, &array[0])
     ptr1[1] = 2
 
-    Swag.assert(array[0] == 1)
-    Swag.assert(array[1] == 2)
+    Swag.require(array[0] == 1)
+    Swag.require(array[1] == 2)
 }
 
 /**
@@ -74,13 +74,13 @@ Swag can deduce array size and element type from the initialization expression.
 #test
 {
     var array: [?] s32 = [1, 2]
-    Swag.assert(array[0] == 1)
-    Swag.assert(array[1] == 2)
+    Swag.require(array[0] == 1)
+    Swag.require(array[1] == 2)
     #assert(array.count == 2)
     var array1 = ["10", "20", "30"]
-    Swag.assert(array1[0] == "10")
-    Swag.assert(array1[1] == "20")
-    Swag.assert(array1[2] == "30")
+    Swag.require(array1[0] == "10")
+    Swag.require(array1[1] == "20")
+    Swag.require(array1[2] == "30")
     #assert(array1.count == 3)
 }
 
@@ -94,8 +94,8 @@ such as a non-null pointer or string, needs a complete explicit initializer.
 #test
 {
     var array: [2] s32
-    Swag.assert(array[0] == 0)
-    Swag.assert(array[1] == 0)
+    Swag.require(array[0] == 0)
+    Swag.require(array[1] == 0)
 }
 
 /**
@@ -142,7 +142,7 @@ let widened = [1's32, 2.75, 3]     // a '[3] f32', not a '[3] s32'
     var arr = [1'f64, 2, 3, 4]
     #assert(arr.count == 4)
     #assert(#typeof(arr) == #type [4] f64)
-    Swag.assert(arr[3] == 4.0)
+    Swag.require(arr[3] == 4.0)
 }
 
 /**
@@ -211,9 +211,9 @@ strings, booleans, and runes.
 #test
 {
     var arr: [2, 2] bool = true
-    Swag.assert(arr[0, 0] == true)
-    Swag.assert(arr[1, 1] == true)
+    Swag.require(arr[0, 0] == true)
+    Swag.require(arr[1, 1] == true)
     var arr1: [5, 10] string = "string"
-    Swag.assert(arr1[0, 0] == "string")
-    Swag.assert(arr1[4, 9] == "string")
+    Swag.require(arr1[0, 0] == "string")
+    Swag.require(arr1[4, 9] == "string")
 }

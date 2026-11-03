@@ -212,43 +212,43 @@ func makeElf(id: u32, cals: const [..] u32)->Elf
     elves[4] = makeElf(4, [10000'u32])
 
     let elfSlice = elves[to]
-    Swag.assert(elfSlice.count == 5)
+    Swag.require(elfSlice.count == 5)
 
     let best = solvePartOne(elfSlice)
-    Swag.assert(best == 24000)
+    Swag.require(best == 24000)
 
     let top3 = solvePartTwo(elfSlice)
-    Swag.assert(top3 == 45000)
+    Swag.require(top3 == 45000)
 
     let top2 = solvePartTwo'(2)(elfSlice)
-    Swag.assert(top2 == 35000)
+    Swag.require(top2 == 35000)
 
     let totalE0 = e0.ICalorieSource.totalCalories()
-    Swag.assert(totalE0 == 6000)
+    Swag.require(totalE0 == 6000)
 
-    Swag.assert(maxOf'(u32)(10, 20) == 20)
-    Swag.assert(minOf'(u32)(10, 20) == 10)
+    Swag.require(maxOf'(u32)(10, 20) == 20)
+    Swag.require(minOf'(u32)(10, 20) == 10)
 
     var a = 42'u32
     var b = 99'u32
     swap'(u32)(&a, &b)
-    Swag.assert(a == 99 and b == 42)
+    Swag.require(a == 99 and b == 42)
 
-    Swag.assert(rankFromIndex(0) == .First)
-    Swag.assert(rankFromIndex(1) == .Second)
-    Swag.assert(rankFromIndex(2) == .Third)
+    Swag.require(rankFromIndex(0) == .First)
+    Swag.require(rankFromIndex(1) == .Second)
+    Swag.require(rankFromIndex(2) == .Third)
 
     var totals: [MaxElves] u32
     let totalCount = collectTotals(totals, elfSlice, func(e: Elf)->u32 { return elfTotal(e) })
-    Swag.assert(totalCount == 5)
-    Swag.assert(totals[0] == 6000)
-    Swag.assert(totals[3] == 24000)
+    Swag.require(totalCount == 5)
+    Swag.require(totals[0] == 6000)
+    Swag.require(totals[3] == 24000)
 
     var sorted = totals
     sortDescending(sorted[until totalCount])
-    Swag.assert(sorted[0] == 24000)
-    Swag.assert(sorted[1] == 11000)
-    Swag.assert(sorted[2] == 10000)
-    Swag.assert(sorted[3] == 6000)
-    Swag.assert(sorted[4] == 4000)
+    Swag.require(sorted[0] == 24000)
+    Swag.require(sorted[1] == 11000)
+    Swag.require(sorted[2] == 10000)
+    Swag.require(sorted[3] == 6000)
+    Swag.require(sorted[4] == 4000)
 }

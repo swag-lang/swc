@@ -58,9 +58,9 @@ func returnStoredText(text: string)->string? fail
     let afterRelease = allocator.stats().countAlloc
     Swag.setContext(previous)
 
-    Swag.assert(after32 == baseline)
-    Swag.assert(after64 == baseline)
-    Swag.assert(afterRelease == baseline)
+    Swag.require(after32 == baseline)
+    Swag.require(after64 == baseline)
+    Swag.require(afterRelease == baseline)
 }
 
 // Releasing a context's bump buffer and spill blocks preserves both captured messages;
@@ -101,8 +101,8 @@ func returnStoredText(text: string)->string? fail
     let afterOwners = allocator.stats().countAlloc
     Swag.setContext(previous)
 
-    Swag.assert(shortValid and longValid)
-    Swag.assert(afterOwners == baseline)
+    Swag.require(shortValid and longValid)
+    Swag.require(afterOwners == baseline)
 }
 
 // Each dismissed handled operation releases its message arena, without a manual release
@@ -131,7 +131,7 @@ func returnStoredText(text: string)->string? fail
         catch failStoredText("a copied failure message larger than the configured error buffer")
     let after64 = allocator.stats().countAlloc
     Swag.setContext(previous)
-    Swag.assert(after32 == baseline and after64 == baseline)
+    Swag.require(after32 == baseline and after64 == baseline)
 }
 
 // Successful catch/expect operands can return copied plain views. An unrelated failure
@@ -162,8 +162,8 @@ func returnStoredText(text: string)->string? fail
     context.errorAllocator.release()
     let afterRelease = allocator.stats().countAlloc
     Swag.setContext(previous)
-    Swag.assert(valid)
-    Swag.assert(afterRelease == baseline)
+    Swag.require(valid)
+    Swag.require(afterRelease == baseline)
 }
 
 struct PairedStoredError
@@ -240,9 +240,9 @@ func failStoredTextWithCleanup() fail
     let afterCleanup = allocator.stats().countAlloc
     context.releaseErrorStorage()
     Swag.setContext(previous)
-    Swag.assert(pairValid and cleanupValid)
-    Swag.assert(storedTextCleanupCount == 1)
-    Swag.assert(afterPair == baseline and afterCleanup == baseline)
+    Swag.require(pairValid and cleanupValid)
+    Swag.require(storedTextCleanupCount == 1)
+    Swag.require(afterPair == baseline and afterCleanup == baseline)
 }
 
 // Many successful returns retain plain views until their surrounding context releases them.
@@ -271,8 +271,8 @@ func failStoredTextWithCleanup() fail
     context.errorAllocator.release()
     let afterRelease = allocator.stats().countAlloc
     Swag.setContext(previous)
-    Swag.assert(valid)
-    Swag.assert(afterRelease == baseline)
+    Swag.require(valid)
+    Swag.require(afterRelease == baseline)
 }
 
 // The parallel failure publication and receiver copies keep the message after the worker
@@ -309,8 +309,8 @@ func failStoredTextWithCleanup() fail
     }
     let afterOwner = allocator.stats().countAlloc
     Swag.setContext(previous)
-    Swag.assert(valid)
-    Swag.assert(afterOwner == baseline)
+    Swag.require(valid)
+    Swag.require(afterOwner == baseline)
 }
 
 // The bootstrap-only seam publishes on a different OS thread, releases that producer's root
@@ -318,5 +318,5 @@ func failStoredTextWithCleanup() fail
 #test
 {
     if not Swag.jit() do
-        Swag.assert(Swag.testErrorTransportAfterThreadExit())
+        Swag.require(Swag.testErrorTransportAfterThreadExit())
 }

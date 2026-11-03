@@ -34,10 +34,10 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
             var expected = leaf + index + 1
             for round in 32768 do
                 expected = (expected * 33 + round) & 0xFFFF
-            Swag.assert(values[leaf][index] == expected * 2)
+            Swag.require(values[leaf][index] == expected * 2)
         }
         for index in 3 until 17 do
-            Swag.assert(values[leaf][index] == 0)
+            Swag.require(values[leaf][index] == 0)
     }
 }
 
@@ -54,7 +54,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
         for leaf in 512
         {
             for index in 17 do
-                Swag.assert(values[leaf][index] == (index < width ? 17 * (leaf + index + 1) : 0))
+                Swag.require(values[leaf][index] == (index < width ? 17 * (leaf + index + 1) : 0))
         }
     }
 }
@@ -80,7 +80,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
         for leaf in 512
         {
             for index in 17 do
-                Swag.assert(grids[lane][leaf][index] == 17 * (leaf + index + 1))
+                Swag.require(grids[lane][leaf][index] == 17 * (leaf + index + 1))
         }
     }
 }

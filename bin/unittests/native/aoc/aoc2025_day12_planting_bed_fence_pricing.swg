@@ -189,9 +189,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let sampleReport = analyzeFencePricing(sampleBeds)
 
-    Swag.assert(sampleReport.regionCount == 5'u32)
-    Swag.assert(sampleReport.totalPerimeterPrice == 140'u64)
-    Swag.assert(sampleReport.totalDiscountedPrice == 80'u64)
+    Swag.require(sampleReport.regionCount == 5'u32)
+    Swag.require(sampleReport.totalPerimeterPrice == 140'u64)
+    Swag.require(sampleReport.totalDiscountedPrice == 80'u64)
 
     const courtyardBeds: [4] string =
         [
@@ -203,7 +203,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let courtyardReport = analyzeFencePricing(courtyardBeds)
 
-    Swag.assert(courtyardReport.regionCount == 2'u32)
-    Swag.assert(courtyardReport.totalPerimeterPrice == 320'u64)
-    Swag.assert(courtyardReport.totalDiscountedPrice == 112'u64)
+    Swag.require(courtyardReport.regionCount == 2'u32)
+    Swag.require(courtyardReport.totalPerimeterPrice == 320'u64)
+    Swag.require(courtyardReport.totalDiscountedPrice == 112'u64)
 }

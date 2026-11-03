@@ -12,14 +12,14 @@ the variable’s type.
 #test
 {
     let a: u32 = 1     // Immutable variable
-    Swag.assert(a == 1)
+    Swag.require(a == 1)
 
     let b: string = "string"
-    Swag.assert(b == "string")
+    Swag.require(b == "string")
 
     var c: s32 = 42     // Mutable variable
     c += 1
-    Swag.assert(c == 43)
+    Swag.require(c == 43)
 }
 
 /**
@@ -30,8 +30,8 @@ Swag allows declaring multiple variables of the same type on a single line.
 #test
 {
     let a, b: u32 = 123
-    Swag.assert(a == 123)
-    Swag.assert(b == 123)
+    Swag.require(a == 123)
+    Swag.require(b == 123)
 }
 
 /**
@@ -40,8 +40,8 @@ Multiple variables of different types can also be declared on one line.
 #test
 {
     let a: u32 = 12, b: f32 = 1.5
-    Swag.assert(a == 12)
-    Swag.assert(b == 1.5)
+    Swag.require(a == 12)
+    Swag.require(b == 1.5)
 }
 
 /**
@@ -57,13 +57,13 @@ initialization as an optimization, without changing the program's semantics.
 #test
 {
     var a: bool
-    Swag.assert(a == false)
+    Swag.require(a == false)
 
     var b: string?
-    Swag.assert(b == null)
+    Swag.require(b == null)
 
     var c: f64
-    Swag.assert(c == 0)
+    Swag.require(c == 0)
 }
 
 /**
@@ -91,15 +91,15 @@ annotations.
 #test
 {
     let a = 1.5
-    Swag.assert(a == 1.5)
+    Swag.require(a == 1.5)
     #assert(#typeof(a) == f32)
 
     let b = "string"
-    Swag.assert(b == "string")
+    Swag.require(b == "string")
     #assert(#typeof(b) == string)
 
     let c = 1.5'f64
-    Swag.assert(c == 1.5)
+    Swag.require(c == 1.5)
     #assert(#typeof(c) == f64)
 }
 
@@ -109,14 +109,14 @@ Type inference also applies when declaring multiple variables simultaneously.
 #test
 {
     let a, b = true
-    Swag.assert(a == true)
-    Swag.assert(b == true)
+    Swag.require(a == true)
+    Swag.require(b == true)
     #assert(#typeof(a) == #typeof(true))
     #assert(#typeof(b) == #typeof(a))
 
     let c = 1.5, d = "string"
-    Swag.assert(c == 1.5)
-    Swag.assert(d == "string")
+    Swag.require(c == 1.5)
+    Swag.require(d == "string")
     #assert(#typeof(c) == f32)
     #assert(#typeof(d) == string)
 }
@@ -161,9 +161,9 @@ retaining its value between function calls.
         return G1
     }
 
-    Swag.assert(toto() == 1)
-    Swag.assert(toto() == 2)
-    Swag.assert(toto() == 3)
+    Swag.require(toto() == 1)
+    Swag.require(toto() == 2)
+    Swag.require(toto() == 3)
 }
 
 /**

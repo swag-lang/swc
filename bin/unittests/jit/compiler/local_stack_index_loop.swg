@@ -36,10 +36,10 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
             index += 1
     }
 
-    Swag.assert(slot == 0'u32)
-    Swag.assert(index == 4'u32)
-    Swag.assert(boxes[0].min == 3'u32)
-    Swag.assert(boxes[0].max == 5'u32)
+    Swag.require(slot == 0'u32)
+    Swag.require(index == 4'u32)
+    Swag.require(boxes[0].min == 3'u32)
+    Swag.require(boxes[0].max == 5'u32)
 }
 
 func bumpForIndex(index: *u32)
@@ -75,7 +75,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
         }
     }
 
-    Swag.assert(seen == '3'u8)
+    Swag.require(seen == '3'u8)
 }
 
 #test
@@ -92,7 +92,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
         }
     }
 
-    Swag.assert(seen == '3'u8)
+    Swag.require(seen == '3'u8)
 }
 
 #test
@@ -101,8 +101,8 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
     for i in bytes.count
     {
         let a = parseForDigit32(bytes, &i), b = parseForDigit32(bytes, &i)
-        Swag.assert(a == 2'u32)
-        Swag.assert(b == 4'u32)
+        Swag.require(a == 2'u32)
+        Swag.require(b == 4'u32)
         break
     }
 }
@@ -121,5 +121,5 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
     }
 
     let bytes = cast(const [..] u8, "2a4b")
-    Swag.assert(solveDigits(bytes) == 24'u32)
+    Swag.require(solveDigits(bytes) == 24'u32)
 }

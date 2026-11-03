@@ -37,19 +37,19 @@ func copyParameter(value: #move Owner)->u64
 {
     copies, drops = 0
     var first: Owner = Owner{value: 17}
-    Swag.assert(take(#move first) == 17 and first.value == 0)
-    Swag.assert(copies == 0 and drops == 1)
+    Swag.require(take(#move first) == 17 and first.value == 0)
+    Swag.require(copies == 0 and drops == 1)
     var second: Owner = Owner{value: 23}
-    Swag.assert(takeParenthesized(#move second) == 24 and second.value == 0)
-    Swag.assert(copies == 0 and drops == 2)
+    Swag.require(takeParenthesized(#move second) == 24 and second.value == 0)
+    Swag.require(copies == 0 and drops == 2)
 }
 
 #test
 {
     copies, drops = 0
     var value: Owner = Owner{value: 29}
-    Swag.assert(copyParameter(#move value) == 29)
-    Swag.assert(value.value == 29 and copies == 1 and drops == 1)
+    Swag.require(copyParameter(#move value) == 29)
+    Swag.require(value.value == 29 and copies == 1 and drops == 1)
 }
 
 #[Swag.NoCopy]
@@ -74,8 +74,8 @@ func takeMoveOnlyParenthesized(value: #move MoveOnly)->u64
 {
     var first  = MoveOnly{31}
     var second = MoveOnly{37}
-    Swag.assert(takeMoveOnly(#move first) == 31 and first.value == 0)
-    Swag.assert(takeMoveOnlyParenthesized(#move second) == 37 and second.value == 0)
+    Swag.require(takeMoveOnly(#move first) == 31 and first.value == 0)
+    Swag.require(takeMoveOnlyParenthesized(#move second) == 37 and second.value == 0)
 }
 
 #test
@@ -85,7 +85,7 @@ func takeMoveOnlyParenthesized(value: #move MoveOnly)->u64
     {
         var source       = Owner{41}
         let owned: Owner = (#move source)
-        Swag.assert(owned.value == 41 and source.value == 0 and copies == 0)
+        Swag.require(owned.value == 41 and source.value == 0 and copies == 0)
     }
-    Swag.assert(drops == 1)
+    Swag.require(drops == 1)
 }

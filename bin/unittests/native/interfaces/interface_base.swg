@@ -48,13 +48,13 @@ func itfReadBase(base: *ItfBase)->s32 => base.x
 {
     var square: ItfSquare
     let shape = cast(IItfShape, &square)
-    Swag.assert(shape.area() == 9)
-    Swag.assert(shape.x == 4)
-    Swag.assert(shape.twice() == 8)
+    Swag.require(shape.area() == 9)
+    Swag.require(shape.x == 4)
+    Swag.require(shape.twice() == 8)
 
     shape.frozen = true
-    Swag.assert(square.frozen)
-    Swag.assert(itfReadBase(shape) == 4)
+    Swag.require(square.frozen)
+    Swag.require(itfReadBase(shape) == 4)
 }
 
 #test
@@ -62,9 +62,9 @@ func itfReadBase(base: *ItfBase)->s32 => base.x
     var arrow: ItfArrow
     let shape = cast(IItfShape, &arrow)
     let base:  *ItfBase = shape
-    Swag.assert(base == &arrow.square.base)
+    Swag.require(base == &arrow.square.base)
 
     shape.x = 7
-    Swag.assert(arrow.x == 7)
-    Swag.assert(shape.area() == 1)
+    Swag.require(arrow.x == 7)
+    Swag.require(shape.area() == 1)
 }

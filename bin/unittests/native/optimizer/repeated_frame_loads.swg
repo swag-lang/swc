@@ -25,5 +25,5 @@ func compute()->f64
 
 #test
 {
-    Swag.assert(compute() == 20)
+    Swag.require(compute() == 20)
 }

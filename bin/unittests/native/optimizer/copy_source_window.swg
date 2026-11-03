@@ -48,15 +48,15 @@ func narrowSnapshot(a: u32, b: u64)->u64
     {
         for b in values
         {
-            Swag.assert(changeSource(a, b) == ((a ^ b) & (b ^ 0x55)))
+            Swag.require(changeSource(a, b) == ((a ^ b) & (b ^ 0x55)))
             let a32 = cast(u32, (a & 0xFFFFFFFF))
-            Swag.assert(narrowSnapshot(a32, b) == (((a & 255) << 32) ^ b))
+            Swag.require(narrowSnapshot(a32, b) == (((a & 255) << 32) ^ b))
             for mask in values
             {
                 let selected = (a & mask) | (b & ~mask)
-                Swag.assert(combine(a, b, mask) == selected)
-                Swag.assert(acrossCall(a, b, mask) == selected)
-                Swag.assert(acrossBranch(a, b, mask) == (mask == 0 ? ~a : selected))
+                Swag.require(combine(a, b, mask) == selected)
+                Swag.require(acrossCall(a, b, mask) == selected)
+                Swag.require(acrossBranch(a, b, mask) == (mask == 0 ? ~a : selected))
             }
         }
     }

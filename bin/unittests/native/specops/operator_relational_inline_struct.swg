@@ -95,14 +95,14 @@ func inlineRectangleCompare(a, c: InlineRectangle)->s32
     var b = InlineRectangle{1, 2, 3, 4}
     var c = InlineRectangle{1, 2, 4, 4}
 
-    Swag.assert(inlineRectanglePick(a, b, c) == 63)
-    Swag.assert(inlineRectanglePickDirect(a, b, c) == 63)
-    Swag.assert(inlineRectangleLess(a, c))
-    Swag.assert(inlineRectangleCompare(a, c) == -1)
-    Swag.assert(a == b)
-    Swag.assert(a != c)
-    Swag.assert(a < c)
-    Swag.assert(c > b)
-    Swag.assert(a <= b)
-    Swag.assert(c >= a)
+    Swag.require(inlineRectanglePick(a, b, c) == 63)
+    Swag.require(inlineRectanglePickDirect(a, b, c) == 63)
+    Swag.require(inlineRectangleLess(a, c))
+    Swag.require(inlineRectangleCompare(a, c) == -1)
+    Swag.require(a == b)
+    Swag.require(a != c)
+    Swag.require(a < c)
+    Swag.require(c > b)
+    Swag.require(a <= b)
+    Swag.require(c >= a)
 }

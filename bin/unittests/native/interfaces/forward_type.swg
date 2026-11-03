@@ -26,8 +26,8 @@ impl Renderer for Backend
     var backend: Backend
     let renderer = cast(Renderer, &backend)
     var painter  = Painter{renderer}
-    Swag.assert(renderer.render(&painter).x == 1)
-    Swag.assert(backend.calls == 1)
+    Swag.require(renderer.render(&painter).x == 1)
+    Swag.require(backend.calls == 1)
 }
 
 interface Shape is Base
@@ -47,6 +47,6 @@ impl Shape for Square
 {
     var square: Square
     let shape = cast(Shape, &square)
-    Swag.assert(shape.area() == 16)
-    Swag.assert(shape.width == 4)
+    Swag.require(shape.area() == 16)
+    Swag.require(shape.width == 4)
 }

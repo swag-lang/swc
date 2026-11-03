@@ -132,13 +132,13 @@ func bareNeedsNothing(node: *Node)->s32
 #test
 {
     nodeStorage.value = 5
-    Swag.assert(narrowedByTest(&nodeStorage) == 5)
-    Swag.assert(narrowedByTest(null) == -1)
-    Swag.assert(narrowedByAssert(&nodeStorage) == 5)
-    Swag.assert(narrowedByConjunction(&nodeStorage))
-    Swag.assert(not narrowedByConjunction(null))
-    Swag.assert(narrowedByJoin(opaqueBool(true)) == 5)
-    Swag.assert(guardedAccess(null) == -1)
-    Swag.assert(guardedAccess(&nodeStorage) == 5)
-    Swag.assert(bareNeedsNothing(&nodeStorage) == 5)
+    Swag.require(narrowedByTest(&nodeStorage) == 5)
+    Swag.require(narrowedByTest(null) == -1)
+    Swag.require(narrowedByAssert(&nodeStorage) == 5)
+    Swag.require(narrowedByConjunction(&nodeStorage))
+    Swag.require(not narrowedByConjunction(null))
+    Swag.require(narrowedByJoin(opaqueBool(true)) == 5)
+    Swag.require(guardedAccess(null) == -1)
+    Swag.require(guardedAccess(&nodeStorage) == 5)
+    Swag.require(bareNeedsNothing(&nodeStorage) == 5)
 }

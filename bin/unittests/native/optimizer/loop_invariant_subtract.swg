@@ -37,7 +37,7 @@ func referenceReplay(values: [*] u8, start, distance, count: u64)
 
             replay(&actual[0], 32, distance, count)
             referenceReplay(&expected[0], 32, distance, count)
-            Swag.assert(actual == expected)
+            Swag.require(actual == expected)
         }
     }
 }

@@ -18,5 +18,5 @@ func referencedFunctionTarget()->s32 => 42
 {
     let holder: ReferencedFunctionHolder = ReferencedFunctionHolder{callback: &referencedFunctionTarget}
     let callback = holder.atFn()
-    Swag.assert(callback[]() == 42)
+    Swag.require(callback[]() == 42)
 }

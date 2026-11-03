@@ -23,7 +23,7 @@
 
     const V = #run emptyArraySliceAtZero()
     #assert(V == 0)
-    Swag.assert(emptyArraySliceAtZero() == 0)
+    Swag.require(emptyArraySliceAtZero() == 0)
 }
 
 #test
@@ -37,7 +37,7 @@
 
     const V = #run emptyArraySliceInside()
     #assert(V == 0)
-    Swag.assert(emptyArraySliceInside() == 0)
+    Swag.require(emptyArraySliceInside() == 0)
 }
 
 #test
@@ -51,8 +51,8 @@
 
     const V = #run emptyStringSlice()
     #assert(V == 0)
-    Swag.assert(emptyStringSlice() == 0)
-    Swag.assert("string"[3 until 3] == "")
+    Swag.require(emptyStringSlice() == 0)
+    Swag.require("string"[3 until 3] == "")
 }
 
 // The inclusive form with equal bounds still selects exactly one element.
@@ -68,7 +68,7 @@
 
     const V = #run inclusiveSingleElement()
     #assert(V == 20)
-    Swag.assert(inclusiveSingleElement() == 20)
+    Swag.require(inclusiveSingleElement() == 20)
 }
 
 //
@@ -86,10 +86,10 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     var storage: [4] s32        = [1, 2, 3, 4]
     let values:  const [..] s32 = storage
 
-    Swag.assert(sliceCount(values, 0, 0) == 0)
-    Swag.assert(sliceCount(values, 2, 2) == 0)
-    Swag.assert(sliceCount(values, 4, 4) == 0)
-    Swag.assert(sliceCount(values, 1, 3) == 2)
+    Swag.require(sliceCount(values, 0, 0) == 0)
+    Swag.require(sliceCount(values, 2, 2) == 0)
+    Swag.require(sliceCount(values, 4, 4) == 0)
+    Swag.require(sliceCount(values, 1, 3) == 2)
 }
 
 // An empty slice of an empty slice stays empty, and iterating it visits nothing.
@@ -112,7 +112,7 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 
     const V = #run sliceOfEmptySlice()
     #assert(V == 0)
-    Swag.assert(sliceOfEmptySlice() == 0)
+    Swag.require(sliceOfEmptySlice() == 0)
 }
 
 // An empty slice keeps pointing inside its source, so the source is left untouched.
@@ -129,7 +129,7 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 
     const V = #run emptySliceLeavesSourceIntact()
     #assert(V == 15)
-    Swag.assert(emptySliceLeavesSourceIntact() == 15)
+    Swag.require(emptySliceLeavesSourceIntact() == 15)
 }
 
 //
@@ -146,9 +146,9 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 
     var storage: [4] s32 = [10, 20, 30, 40]
 
-    Swag.assert(windowOf(storage, 1, 2) == 2)
-    Swag.assert(windowOf(storage, 0, 3) == 4)
-    Swag.assert(windowOf(storage, 2, 2) == 1)
+    Swag.require(windowOf(storage, 1, 2) == 2)
+    Swag.require(windowOf(storage, 0, 3) == 4)
+    Swag.require(windowOf(storage, 2, 2) == 1)
 }
 
 // Without guards an inverted range yields an empty view, never a wrapped count.
@@ -163,6 +163,6 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
         return values[low to high].count
     }
 
-    Swag.assert(invertedUnguarded(3, 1) == 0)
-    Swag.assert(invertedUnguarded(1, 2) == 2)
+    Swag.require(invertedUnguarded(3, 1) == 0)
+    Swag.require(invertedUnguarded(1, 2) == 2)
 }

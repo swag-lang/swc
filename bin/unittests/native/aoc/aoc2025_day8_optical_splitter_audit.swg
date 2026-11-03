@@ -123,10 +123,10 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let sampleAudit = auditSplitterRack(samplePlan)
 
-    Swag.assert(sampleAudit.rowCount == 16'u32)
-    Swag.assert(sampleAudit.columnCount == 15'u32)
-    Swag.assert(sampleAudit.splitCount == 21'u32)
-    Swag.assert(sampleAudit.survivingBeamCount == 9'u32)
+    Swag.require(sampleAudit.rowCount == 16'u32)
+    Swag.require(sampleAudit.columnCount == 15'u32)
+    Swag.require(sampleAudit.splitCount == 21'u32)
+    Swag.require(sampleAudit.survivingBeamCount == 9'u32)
 
     const servicePlan: [9] string =
         [
@@ -143,8 +143,8 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
     let serviceAudit = auditSplitterRack(servicePlan)
 
-    Swag.assert(serviceAudit.rowCount == 9'u32)
-    Swag.assert(serviceAudit.columnCount == 9'u32)
-    Swag.assert(serviceAudit.splitCount == 9'u32)
-    Swag.assert(serviceAudit.survivingBeamCount == 5'u32)
+    Swag.require(serviceAudit.rowCount == 9'u32)
+    Swag.require(serviceAudit.columnCount == 9'u32)
+    Swag.require(serviceAudit.splitCount == 9'u32)
+    Swag.require(serviceAudit.survivingBeamCount == 5'u32)
 }

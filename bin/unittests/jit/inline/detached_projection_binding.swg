@@ -31,7 +31,7 @@ func fillChunks(buffer: [..] u8) fail
     data[0]    = 17
     data[1025] = 29
     expect fillChunks(data[1 until 1025])
-    Swag.assert(data[0] == 17 and data[1025] == 29)
+    Swag.require(data[0] == 17 and data[1025] == 29)
     for value in data[1 until 1025] do
-        Swag.assert(value == 42)
+        Swag.require(value == 42)
 }

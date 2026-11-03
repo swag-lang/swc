@@ -42,17 +42,17 @@ func wideScore(value: Wide)->u32
         f12: .A, f11: .A, f10: .A, f09: .A, f08: .A, f07: .A, f06: .A,
         f05: .A, f04: .A, f03: .A, f02: .A, f01: .A, f00: .B
         }
-    Swag.assert(wideScore(value) == 1111)
+    Swag.require(wideScore(value) == 1111)
 
     let sparse = Wide{last: .D, field32: .B}
-    Swag.assert(wideScore(sparse) == 1100)
+    Swag.require(wideScore(sparse) == 1100)
 }
 
 #test
 {
     // Named arguments keep their slots after a positional prefix, even out of order.
     let value: Mixed = Mixed{.B, third: .A, second: .D}
-    Swag.assert(value.first == .B)
-    Swag.assert(value.second == .D)
-    Swag.assert(value.third == .A)
+    Swag.require(value.first == .B)
+    Swag.require(value.second == .D)
+    Swag.require(value.third == .A)
 }

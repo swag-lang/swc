@@ -31,15 +31,15 @@ func intersectionValue(a, b: u64)->u64 => a & b
     {
         for b in values
         {
-            Swag.assert(difference(a, b) == (a ^ b))
-            Swag.assert(swapped(a, b) == (a ^ b))
-            Swag.assert(reversed(a, b) == 0'u64 - (a ^ b))
-            Swag.assert(shared(a, b) == unionValue(a, b))
-            Swag.assert(compared(a, b) == (a == b))
-            Swag.assert(other(a, b, ~b) == unionValue(a, b) - intersectionValue(a, ~b))
+            Swag.require(difference(a, b) == (a ^ b))
+            Swag.require(swapped(a, b) == (a ^ b))
+            Swag.require(reversed(a, b) == 0'u64 - (a ^ b))
+            Swag.require(shared(a, b) == unionValue(a, b))
+            Swag.require(compared(a, b) == (a == b))
+            Swag.require(other(a, b, ~b) == unionValue(a, b) - intersectionValue(a, ~b))
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(difference32(lowA, lowB) == (lowA ^ lowB))
+            Swag.require(difference32(lowA, lowB) == (lowA ^ lowB))
         }
     }
 }

@@ -32,11 +32,11 @@ impl Vec2
 #test
 {
     var v: Vec2 = Vec2{x: 3, y: 4}
-    Swag.assert(v.length2() == 25)
-    Swag.assert(not v.isZero())
+    Swag.require(v.length2() == 25)
+    Swag.require(not v.isZero())
 
     var z: Vec2 = Vec2{x: 0, y: 0}
-    Swag.assert(z.isZero())
+    Swag.require(z.isZero())
 }
 
 // Method returning new struct, chained.
@@ -45,8 +45,8 @@ impl Vec2
     var a: Vec2 = Vec2{x: 1, y: 2}
     var b: Vec2 = Vec2{x: 3, y: 4}
     let result  = a.add(b).scale(2)
-    Swag.assert(result.x == 8)
-    Swag.assert(result.y == 12)
+    Swag.require(result.x == 8)
+    Swag.require(result.y == 12)
 }
 
 // Mutating method via pointer.
@@ -69,8 +69,8 @@ impl Vec2
 {
     var v: Vec2 = Vec2{x: 5, y: -3}
     v.negate()
-    Swag.assert(v.x == -5)
-    Swag.assert(v.y == 3)
+    Swag.require(v.x == -5)
+    Swag.require(v.y == 3)
 }
 
 #test
@@ -79,18 +79,18 @@ impl Vec2
     var b: Vec2 = Vec2{x: 1, y: 2}
     a.addInPlace(b)
     a.addInPlace(b)
-    Swag.assert(a.x == 12)
-    Swag.assert(a.y == 24)
+    Swag.require(a.x == 12)
+    Swag.require(a.y == 24)
 }
 
 #test
 {
     var v: Vec2 = Vec2{x: 6, y: 8}
     let p       = cast(StructImplStrictVec2Ptr, &v)
-    Swag.assert(p.length2() == 100)
+    Swag.require(p.length2() == 100)
     p.negate()
-    Swag.assert(v.x == -6)
-    Swag.assert(v.y == -8)
+    Swag.require(v.x == -6)
+    Swag.require(v.y == -8)
 }
 
 // Struct with nested struct and methods accessing nested fields.
@@ -118,10 +118,10 @@ impl Circle
 #test
 {
     var c: Circle = Circle{center: Vec2{x: 0, y: 0}, radius: 10}
-    Swag.assert(c.area100() == 31400)
+    Swag.require(c.area100() == 31400)
     c.translate(5, 7)
-    Swag.assert(c.center.x == 5)
-    Swag.assert(c.center.y == 7)
+    Swag.require(c.center.x == 5)
+    Swag.require(c.center.y == 7)
 }
 
 // Method on struct with pointer field.
@@ -151,7 +151,7 @@ impl ListNode
     var c: ListNode = ListNode{value: 3, next: null}
     var b: ListNode = ListNode{value: 2, next: &c}
     var a: ListNode = ListNode{value: 1, next: &b}
-    Swag.assert(a.count() == 3)
-    Swag.assert(b.count() == 2)
-    Swag.assert(c.count() == 1)
+    Swag.require(a.count() == 3)
+    Swag.require(b.count() == 2)
+    Swag.require(c.count() == 1)
 }

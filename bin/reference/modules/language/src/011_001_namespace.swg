@@ -38,8 +38,8 @@ namespace A.B.C
 #test
 {
     // Access functions using their fully qualified namespace paths.
-    Swag.assert(A.a() == 1)         // Calls 'a' from namespace 'A'
-    Swag.assert(A.B.C.a() == 2)     // Calls 'a' from nested namespace 'A.B.C'
+    Swag.require(A.a() == 1)         // Calls 'a' from namespace 'A'
+    Swag.require(A.B.C.a() == 2)     // Calls 'a' from nested namespace 'A.B.C'
 }
 
 /**
@@ -60,7 +60,7 @@ namespace A.B.C
 
 #test
 {
-    Swag.assert(A.B.C.scaled() == 20)
+    Swag.require(A.B.C.scaled() == 20)
 }
 
 /**

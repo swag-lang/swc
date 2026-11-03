@@ -168,11 +168,11 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let sampleRollup = rollupWorksheet(sampleSheet)
 
-    Swag.assert(sampleRollup.problemCount == 4'u32)
-    Swag.assert(sampleRollup.additiveProblemCount == 2'u32)
-    Swag.assert(sampleRollup.multiplicativeCount == 2'u32)
-    Swag.assert(sampleRollup.grandTotal == 4277556'u64)
-    Swag.assert(sampleRollup.largestProblemValue == 4243455'u64)
+    Swag.require(sampleRollup.problemCount == 4'u32)
+    Swag.require(sampleRollup.additiveProblemCount == 2'u32)
+    Swag.require(sampleRollup.multiplicativeCount == 2'u32)
+    Swag.require(sampleRollup.grandTotal == 4277556'u64)
+    Swag.require(sampleRollup.largestProblemValue == 4243455'u64)
 
     const eveningSheet: [5] string =
         [
@@ -185,9 +185,9 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
     let eveningRollup = rollupWorksheet(eveningSheet)
 
-    Swag.assert(eveningRollup.problemCount == 3'u32)
-    Swag.assert(eveningRollup.additiveProblemCount == 1'u32)
-    Swag.assert(eveningRollup.multiplicativeCount == 2'u32)
-    Swag.assert(eveningRollup.grandTotal == 110640'u64)
-    Swag.assert(eveningRollup.largestProblemValue == 77000'u64)
+    Swag.require(eveningRollup.problemCount == 3'u32)
+    Swag.require(eveningRollup.additiveProblemCount == 1'u32)
+    Swag.require(eveningRollup.multiplicativeCount == 2'u32)
+    Swag.require(eveningRollup.grandTotal == 110640'u64)
+    Swag.require(eveningRollup.largestProblemValue == 77000'u64)
 }

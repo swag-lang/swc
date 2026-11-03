@@ -221,11 +221,11 @@ var EarlyReturnAndElifGlobalButton: EarlyReturnAndElifButton
     box.enabled = true
     box.setText("abc")
     box.showHide()
-    Swag.assert(box.button != null)
-    Swag.assert(box.value == 10)
+    Swag.require(box.button != null)
+    Swag.require(box.value == 10)
 
     box.setText(null)
     box.showHide()
-    Swag.assert(box.button == null)
-    Swag.assert(box.value == 20)
+    Swag.require(box.button == null)
+    Swag.require(box.value == 20)
 }

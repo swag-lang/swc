@@ -10,22 +10,22 @@ func receiveContextualAny(value: s64)->s64 => value
 {
     const boxed: any = 987654321's64
     let value: s64 = assume cast(boxed)
-    Swag.assert(value == 987654321)
+    Swag.require(value == 987654321)
 }
 
 #test
 {
     const boxed: any = true
     let value: bool = assume cast(boxed)
-    Swag.assert(value)
+    Swag.require(value)
 }
 
 #test
 {
     var value: s64 = 73
-    Swag.assert(extractContextualAny(value) == 73)
+    Swag.require(extractContextualAny(value) == 73)
     var boxed:     any = value
     let extracted: s64 = assume cast(boxed)
-    Swag.assert(extracted == 73)
-    Swag.assert(receiveContextualAny(assume cast(boxed)) == 73)
+    Swag.require(extracted == 73)
+    Swag.require(receiveContextualAny(assume cast(boxed)) == 73)
 }

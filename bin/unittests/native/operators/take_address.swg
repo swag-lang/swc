@@ -20,7 +20,7 @@ alias StrictAddressArray = [3] s32
     var st: AA
     var v:  *AA = &st
     #assert(#typeof(v) == *AA)
-    Swag.assert(v == &st)
+    Swag.require(v == &st)
 }
 
 #test
@@ -28,7 +28,7 @@ alias StrictAddressArray = [3] s32
     var A  = 10's32
     var PA = &A
     #assert(#typeof(PA) == *s32)
-    Swag.assert(PA[] == 10)
+    Swag.require(PA[] == 10)
 }
 
 #test
@@ -36,7 +36,7 @@ alias StrictAddressArray = [3] s32
     var x: [4] s32
     var px = &x
     #assert(#typeof(px) == [*][4] s32)
-    Swag.assert(px == &x)
+    Swag.require(px == &x)
 }
 
 #test
@@ -44,14 +44,14 @@ alias StrictAddressArray = [3] s32
     var x: StrictAddressArray = cast(StrictAddressArray, [1, 2, 3])
     var px = &x
     #assert(#typeof(px) == [*]StrictAddressArray)
-    Swag.assert(px == &x)
+    Swag.require(px == &x)
 }
 
 #test
 {
     struct AA { x: s32 }
     var x = 0
-    Swag.assert(x == 0)
+    Swag.require(x == 0)
 }
 
 #test
@@ -59,7 +59,7 @@ alias StrictAddressArray = [3] s32
     struct AA { x: s32 }
     var st: AA
     var z = &st.x
-    Swag.assert(z == &st.x)
+    Swag.require(z == &st.x)
 }
 
 #test
@@ -67,7 +67,7 @@ alias StrictAddressArray = [3] s32
     var x: s32
     var px = &x
     #assert(#typeof(px) == *s32)
-    Swag.assert(px == &x)
+    Swag.require(px == &x)
 }
 
 #test
@@ -76,7 +76,7 @@ alias StrictAddressArray = [3] s32
     var px  = &x
     var ppx = &px
     #assert(#typeof(ppx) == **s32)
-    Swag.assert(ppx[] == &x)
+    Swag.require(ppx[] == &x)
 }
 
 #test
@@ -84,7 +84,7 @@ alias StrictAddressArray = [3] s32
     var a: [4] s32
     var p = &a[0]
     #assert(#typeof(p) == *s32)
-    Swag.assert(p == &a[0])
+    Swag.require(p == &a[0])
 }
 
 #test
@@ -94,7 +94,7 @@ alias StrictAddressArray = [3] s32
     var c: C
     var p = &c.b.y
     #assert(#typeof(p) == *s32)
-    Swag.assert(p == &c.b.y)
+    Swag.require(p == &c.b.y)
 }
 
 #test
@@ -103,7 +103,7 @@ alias StrictAddressArray = [3] s32
     var st: AA
     var p1 = &st
     #assert(#typeof(p1) == *AA)
-    Swag.assert(p1 == &st)
+    Swag.require(p1 == &st)
 }
 
 #test
@@ -115,8 +115,8 @@ alias StrictAddressArray = [3] s32
     px = py
     #assert(#typeof(px) == *s32)
     #assert(#typeof(py) == *s32)
-    Swag.assert(px == &y)
-    Swag.assert(py == &y)
+    Swag.require(px == &y)
+    Swag.require(py == &y)
 }
 
 #test
@@ -127,7 +127,7 @@ alias StrictAddressArray = [3] s32
     var PB = &B
     #assert(#typeof(PA) == *s32)
     #assert(#typeof(PB) == *s32)
-    Swag.assert(PA[] + PB[] == 30)
+    Swag.require(PA[] + PB[] == 30)
 }
 
 #test
@@ -140,8 +140,8 @@ alias StrictAddressArray = [3] s32
     var ppy = &py
     #assert(#typeof(ppx) == **s32)
     #assert(#typeof(ppy) == **s32)
-    Swag.assert(ppx[] == &x)
-    Swag.assert(ppy[] == &y)
+    Swag.require(ppx[] == &x)
+    Swag.require(ppy[] == &y)
 }
 
 #test
@@ -152,7 +152,7 @@ alias StrictAddressArray = [3] s32
     var p2 = &y
     #assert(#typeof(p1) == *s32)
     #assert(#typeof(p2) == *s32)
-    Swag.assert(p1 != p2)
+    Swag.require(p1 != p2)
 }
 
 #test
@@ -160,7 +160,7 @@ alias StrictAddressArray = [3] s32
     var x: s32
     var y = &(x)
     #assert(#typeof(y) == *s32)
-    Swag.assert(y == &x)
+    Swag.require(y == &x)
 }
 
 #test
@@ -179,7 +179,7 @@ alias StrictAddressArray = [3] s32
 
     var x: s32 = 10
     mutateThroughRefPtr(&x)
-    Swag.assert(x == 55)
+    Swag.require(x == 55)
 
     inspectConstRefPtr(x, 55)
     inspectConstRefPtr(4, 4)
@@ -190,13 +190,13 @@ alias StrictAddressArray = [3] s32
     let rebound = r
     #assert(#typeof(rebound) == *s32)
     rebound[] = 123
-    Swag.assert(x == 55)
-    Swag.assert(y == 123)
+    Swag.require(x == 55)
+    Swag.require(y == 123)
 
     var cr: const *s32 = &x
     let constRefPtr    = cr
     #assert(#typeof(constRefPtr) == const *s32)
-    Swag.assert(constRefPtr[] == 55)
+    Swag.require(constRefPtr[] == 55)
 }
 
 #test
@@ -205,7 +205,7 @@ alias StrictAddressArray = [3] s32
     var i = 1's32
     var p = &a[i]
     #assert(#typeof(p) == *s32)
-    Swag.assert(p == &a[1])
+    Swag.require(p == &a[1])
 }
 
 // Taking the address of a constant array element.
@@ -215,8 +215,8 @@ alias StrictAddressArray = [3] s32
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
     let bp = cast(const [*] s32, p)
-    Swag.assert(p[] == 10)
-    Swag.assert(bp[2] == 30)
+    Swag.require(p[] == 10)
+    Swag.require(bp[2] == 30)
 }
 
 #test
@@ -224,7 +224,7 @@ alias StrictAddressArray = [3] s32
     const a: [4] u8 = [1, 2, 3, 4]
     let p = &a[2]
     #assert(#typeof(p) == const *u8)
-    Swag.assert(p[] == 3)
+    Swag.require(p[] == 3)
 }
 
 #test
@@ -233,8 +233,8 @@ alias StrictAddressArray = [3] s32
     let p = &a[0]
     #assert(#typeof(p) == const *s32)
     let bp = cast(const [*] s32, p)
-    Swag.assert(p[] == 10)
-    Swag.assert(bp[2] == 30)
+    Swag.require(p[] == 10)
+    Swag.require(bp[2] == 30)
 }
 
 #test
@@ -243,10 +243,10 @@ alias StrictAddressArray = [3] s32
     #assert(#typeof(cast(u64, nativeFunctionAddressAsPointer())) == u64)
     let p = cast(const *void, &nativeFunctionAddressAsPointer)
     #assert(#typeof(p) == const *void)
-    Swag.assert(p != null)
+    Swag.require(p != null)
 
     var value = 77
     let rp    = nativeFunctionAddressReturnedReference(&value)
     #assert(#typeof(rp) == *s32)
-    Swag.assert(rp == &value)
+    Swag.require(rp == &value)
 }

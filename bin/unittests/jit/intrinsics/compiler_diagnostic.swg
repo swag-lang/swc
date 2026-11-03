@@ -15,11 +15,11 @@ func raiseCompilerWarning()->s32
 #test
 {
     const V = #run raiseCompilerError()
-    Swag.assert(V == 0)
+    Swag.require(V == 0)
 }
 
 #test
 {
     const V = #run raiseCompilerWarning()
-    Swag.assert(V == 1)
+    Swag.require(V == 1)
 }

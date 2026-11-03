@@ -123,55 +123,55 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     callDefaultsManyTimes()
     callDefaultsManyTimes()
 
-    Swag.assert(addDefault(1) == 12)
-    Swag.assert(addDefault(1, 2) == 9)
-    Swag.assert(addDefault(1, 2, 3) == 6)
-    Swag.assert(addDefault(c: 3, a: 1) == 9)
-    Swag.assert(addDefault(a: 1, c: 3) == 9)
-    Swag.assert(addDefault(a: 1, b: 2, c: 3) == 6)
-    Swag.assert(defaultCounter == 30)
+    Swag.require(addDefault(1) == 12)
+    Swag.require(addDefault(1, 2) == 9)
+    Swag.require(addDefault(1, 2, 3) == 6)
+    Swag.require(addDefault(c: 3, a: 1) == 9)
+    Swag.require(addDefault(a: 1, c: 3) == 9)
+    Swag.require(addDefault(a: 1, b: 2, c: 3) == 6)
+    Swag.require(defaultCounter == 30)
 }
 
 #test
 {
-    Swag.assert(boolDefault() == 7)
-    Swag.assert(boolDefault(false) == 3)
-    Swag.assert(boolDefault(flag: true) == 7)
+    Swag.require(boolDefault() == 7)
+    Swag.require(boolDefault(false) == 3)
+    Swag.require(boolDefault(flag: true) == 7)
 
-    Swag.assert(floatDefault() == 3.5)
-    Swag.assert(floatDefault(3.0) == 5.0)
-    Swag.assert(floatDefault(b: 4.5, a: 0.5) == 5.0)
+    Swag.require(floatDefault() == 3.5)
+    Swag.require(floatDefault(3.0) == 5.0)
+    Swag.require(floatDefault(b: 4.5, a: 0.5) == 5.0)
 }
 
 #test
 {
-    Swag.assert(stringDefaultTag() == 1)
-    Swag.assert(stringDefaultTag("hello") == 2)
-    Swag.assert(pointerDefaultIsNull())
+    Swag.require(stringDefaultTag() == 1)
+    Swag.require(stringDefaultTag("hello") == 2)
+    Swag.require(pointerDefaultIsNull())
 
-    Swag.assert(pointerDefaultIsNull())
+    Swag.require(pointerDefaultIsNull())
     var local: s32 = 10
-    Swag.assert(not pointerDefaultIsNull(&local))
-    Swag.assert(pointerDefaultIsNull(ptr: null))
+    Swag.require(not pointerDefaultIsNull(&local))
+    Swag.require(pointerDefaultIsNull(ptr: null))
 }
 
 #test
 {
-    Swag.assert(enumDefault() == 20)
-    Swag.assert(enumDefault(DefaultKind.A) == 10)
-    Swag.assert(enumDefault(kind: DefaultKind.C) == 30)
-    Swag.assert(strictEnumDefault() == 20)
-    Swag.assert(strictEnumDefault(cast(StrictDefaultKind, DefaultKind.A)) == 10)
-    Swag.assert(strictFloatDefault())
+    Swag.require(enumDefault() == 20)
+    Swag.require(enumDefault(DefaultKind.A) == 10)
+    Swag.require(enumDefault(kind: DefaultKind.C) == 30)
+    Swag.require(strictEnumDefault() == 20)
+    Swag.require(strictEnumDefault(cast(StrictDefaultKind, DefaultKind.A)) == 10)
+    Swag.require(strictFloatDefault())
 
-    Swag.assert(vecDefaultSum() == 30)
-    Swag.assert(vecDefaultSum({x: 3, y: 4}) == 7)
-    Swag.assert(vecDefaultSum(v: {x: -1, y: 8}) == 7)
+    Swag.require(vecDefaultSum() == 30)
+    Swag.require(vecDefaultSum({x: 3, y: 4}) == 7)
+    Swag.require(vecDefaultSum(v: {x: -1, y: 8}) == 7)
 }
 
 #test
 {
-    Swag.assert(arrayDefaultSum() == 6)
-    Swag.assert(arrayDefaultSum([5, 6, 7]) == 18)
-    Swag.assert(arrayDefaultSum(values: [9, 0, 1]) == 10)
+    Swag.require(arrayDefaultSum() == 6)
+    Swag.require(arrayDefaultSum([5, 6, 7]) == 18)
+    Swag.require(arrayDefaultSum(values: [9, 0, 1]) == 10)
 }

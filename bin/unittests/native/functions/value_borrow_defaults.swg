@@ -8,7 +8,7 @@ func observe(value: Value, original: const *Value)->bool => &value == original a
 {
     var value: Value = Value{first: 281}
     let observed     = observe(value, &value)
-    Swag.assert(observed)
+    Swag.require(observed)
 }
 
 // An enabled inline body keeps its guards when release disables them only by default.
@@ -24,5 +24,5 @@ func defaultCaller(target: *Value)->u64 => enabledInline(target)
 {
     var value: Value = Value{first: 317}
     let panic        = Swag.catchPanic(func|&value|() { discard defaultCaller(&value) })
-    Swag.assert(panic.raised and value.first == 317)
+    Swag.require(panic.raised and value.first == 317)
 }

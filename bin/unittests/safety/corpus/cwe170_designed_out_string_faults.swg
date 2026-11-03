@@ -70,8 +70,8 @@ func readPastEndOfString(index: u64)->u8
 
 #test
 {
-    Swag.assert(stringCarriesItsCount())
-    Swag.assert(interiorZeroDoesNotTerminate())
-    Swag.assert(sliceKeepsItsOwnCount())
-    Swag.assert(emptyIsNotNull())
+    Swag.require(stringCarriesItsCount())
+    Swag.require(interiorZeroDoesNotTerminate())
+    Swag.require(sliceKeepsItsOwnCount())
+    Swag.require(emptyIsNotNull())
 }

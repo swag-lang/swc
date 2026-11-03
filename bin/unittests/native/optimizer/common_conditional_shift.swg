@@ -19,15 +19,15 @@ func right64(value, first, second, flag: u64)->u64 => flag != 0 ? value >> first
                     let count    = first & 63
                     let other    = second & 63
                     let selected = flag != 0 ? count : other
-                    Swag.assert(left64(value, count, other, flag) == value << selected)
-                    Swag.assert(right64(value, count, other, flag) == value >> selected)
+                    Swag.require(left64(value, count, other, flag) == value << selected)
+                    Swag.require(right64(value, count, other, flag) == value >> selected)
 
                     let value32    = cast #wrap (u32, value)
                     let count32    = cast #wrap (u32, first) & 31
                     let other32    = cast #wrap (u32, second) & 31
                     let flag32     = cast #wrap (u32, flag)
                     let selected32 = flag32 != 0 ? count32 : other32
-                    Swag.assert(left32(value32, count32, other32, flag32) == value32 << selected32)
-                    Swag.assert(right32(value32, count32, other32, flag32) == value32 >> selected32)
+                    Swag.require(left32(value32, count32, other32, flag32) == value32 << selected32)
+                    Swag.require(right32(value32, count32, other32, flag32) == value32 >> selected32)
                 }
 }

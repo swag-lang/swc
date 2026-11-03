@@ -47,14 +47,14 @@ func indirectContentsKeepSlot(source: *IndirectContentsValue)
     indirectContentsGlobalCarrier = IndirectContentsValue{pointer: &indirectContentsGlobal, count: 2}
     var value = IndirectContentsValue{pointer: &indirectContentsGlobal, count: 1}
     indirectContentsByValue(&indirectContentsSaved, value)
-    Swag.assert(indirectContentsSaved.pointer == &indirectContentsGlobal)
-    Swag.assert(indirectContentsSaved.count == 1)
+    Swag.require(indirectContentsSaved.pointer == &indirectContentsGlobal)
+    Swag.require(indirectContentsSaved.count == 1)
     let copied = indirectContentsRead(&value)
-    Swag.assert(copied.pointer == &indirectContentsGlobal)
+    Swag.require(copied.pointer == &indirectContentsGlobal)
     var destination: IndirectContentsValue
     indirectContentsCopy(&destination, &indirectContentsGlobalCarrier)
-    Swag.assert(destination.pointer == &indirectContentsGlobal)
-    Swag.assert(destination.count == 2)
+    Swag.require(destination.pointer == &indirectContentsGlobal)
+    Swag.require(destination.count == 2)
 }
 
 // These unsafe paths are definitions only. Copying contents must preserve their lifetime.

@@ -68,9 +68,9 @@ func zeroCopy()->bool
 
 #test
 {
-    Swag.assert(accepted() == 23)
-    Swag.assert(cCopy() == 1)
-    Swag.assert(zeroCopy())
+    Swag.require(accepted() == 23)
+    Swag.require(cCopy() == 1)
+    Swag.require(zeroCopy())
 }
 
 #[Swag.NoCopy]
@@ -115,15 +115,15 @@ func inlineRead(value: Value)->u64 => value.a
 #test
 {
     var unique: Unique = Unique{a: 42}
-    Swag.assert(readUnique(unique, &unique))
+    Swag.require(readUnique(unique, &unique))
     var small: Small = Small{value: 3}
-    Swag.assert(registerValue(small, &small) == 3)
-    Swag.assert(small.value == 9)
+    Swag.require(registerValue(small, &small) == 3)
+    Swag.require(small.value == 9)
     var odd: Odd = Odd{a: 4, b: 5, c: 6}
-    Swag.assert(cOdd(odd, &odd) == 4)
-    Swag.assert(odd.a == 9)
+    Swag.require(cOdd(odd, &odd) == 4)
+    Swag.require(odd.a == 9)
     var value: Value = Value{a: 7}
-    Swag.assert(inlineRead(value) == 7)
+    Swag.require(inlineRead(value) == 7)
 }
 
 #[Swag.NoInline]
@@ -141,7 +141,7 @@ func replaceFrom(value: Value)->Value
 {
     var value: Value = Value{a: 1, b: 2, c: 3}
     value = replaceFrom(value)
-    Swag.assert(value.a == 41 and value.b == 1 and value.c == 2)
+    Swag.require(value.a == 41 and value.b == 1 and value.c == 2)
 }
 
 struct Header
@@ -170,20 +170,20 @@ func writeSlice(bytes: [..] u8)
 {
     var target: u64
     let header = makeHeader(&target)
-    Swag.assert(writeHeaderTarget(header) == 8)
-    Swag.assert(writeHeaderTarget(Header{&target, 7, 11}) == 18)
-    Swag.assert(target == 17)
+    Swag.require(writeHeaderTarget(header) == 8)
+    Swag.require(writeHeaderTarget(Header{&target, 7, 11}) == 18)
+    Swag.require(target == 17)
     var bytes: [8] u8
     writeSlice(bytes[2 until 5])
-    Swag.assert(bytes[2] == 19)
+    Swag.require(bytes[2] == 19)
 }
 
 #test
 {
     var value: Value = Value{a: 1, b: 2, c: 3}
     let callback     = &cValue
-    Swag.assert(callback(value, &value) == 1)
-    Swag.assert(value.a == 13)
+    Swag.require(callback(value, &value) == 1)
+    Swag.require(value.a == 13)
 }
 
 #[Swag.NoInline]
@@ -212,11 +212,11 @@ func writeSliceAfterReadingHeader(bytes: [..] u8)->u64
 {
     var target: u64
     let header: Header = Header{&target, 5, 7}
-    Swag.assert(writePayloadAfterReadingHeader(header) == 12)
-    Swag.assert(target == 23)
+    Swag.require(writePayloadAfterReadingHeader(header) == 12)
+    Swag.require(target == 23)
     var bytes: [4] u8
-    Swag.assert(writeSliceAfterReadingHeader(bytes) == 4)
-    Swag.assert(bytes[0] == 29)
+    Swag.require(writeSliceAfterReadingHeader(bytes) == 4)
+    Swag.require(bytes[0] == 29)
 }
 
 struct TextHeader
@@ -274,10 +274,10 @@ func makeTextUsingInline()->string
 #test
 {
     let header: TextHeader = TextHeader{text: "borrow"}
-    Swag.assert(useTextHeader(header) == 6)
-    Swag.assert(updateCounter(header) == 6)
-    Swag.assert(updateCounter(forwardText()) == 6)
-    Swag.assert(updateCounter(makeTextUsingInline()) == 6)
+    Swag.require(useTextHeader(header) == 6)
+    Swag.require(updateCounter(header) == 6)
+    Swag.require(updateCounter(forwardText()) == 6)
+    Swag.require(updateCounter(makeTextUsingInline()) == 6)
 }
 
 #[Swag.NoInline]
@@ -292,7 +292,7 @@ func passTemporaryView(value: string)->u64 => readTemporaryView([value])
 
 #test
 {
-    Swag.assert(passTemporaryView("view") == 4)
+    Swag.require(passTemporaryView("view") == 4)
 }
 
 interface WriteSink
@@ -343,8 +343,8 @@ func readWithSeparateSink(value: Value, owner: *SinkOwner)->u64
     var owner:   SinkOwner = SinkOwner{sink: &counter}
     let value:   Value     = Value{a: 37}
     let result             = readWithSeparateSink(value, &owner)
-    Swag.assert(result == 37)
-    Swag.assert(counter.count == 1)
+    Swag.require(result == 37)
+    Swag.require(counter.count == 1)
 }
 
 #[Swag.NoInline]
@@ -370,9 +370,9 @@ func readWithSelectedSink(value: Value, first: *SinkOwner, second: *SinkOwner)->
     var second: SinkOwner = SinkOwner{sink: &secondCounter}
     let value:  Value     = Value{a: 41}
     let result            = readWithSelectedSink(value, &first, &second)
-    Swag.assert(result == 41)
-    Swag.assert(firstCounter.count == 0)
-    Swag.assert(secondCounter.count == 1)
+    Swag.require(result == 41)
+    Swag.require(firstCounter.count == 0)
+    Swag.require(secondCounter.count == 1)
 }
 
 #[Swag.NoInline]
@@ -386,10 +386,10 @@ func forwardSelectedText(value: string, useValue: bool)->u64
 
 #test
 {
-    Swag.assert(forwardOptionalText("value") == 5)
-    Swag.assert(forwardOptionalText(null) == 8)
-    Swag.assert(forwardSelectedText("value", true) == 5)
-    Swag.assert(forwardSelectedText("value", false) == 8)
+    Swag.require(forwardOptionalText("value") == 5)
+    Swag.require(forwardOptionalText(null) == 8)
+    Swag.require(forwardSelectedText("value", true) == 5)
+    Swag.require(forwardSelectedText("value", false) == 8)
 }
 
 #[Swag.NoInline]
@@ -402,7 +402,7 @@ func readEncodedValue(value: Value)->u64 => decodeReadAddress(cast(u64, &value))
 {
     let value: Value = Value{a: 61}
     let result       = readEncodedValue(value)
-    Swag.assert(result == 61)
+    Swag.require(result == 61)
 }
 
 #[Swag.NoInline]
@@ -427,7 +427,7 @@ func readPackedEncoding(value: Value)->u64
 {
     let value: Value = Value{a: 67}
     let result       = readPackedEncoding(value)
-    Swag.assert(result == 134)
+    Swag.require(result == 134)
 }
 
 struct EncodedSelf { address, padding1, padding2: u64 }
@@ -458,7 +458,7 @@ func mutateEncodedSelf(value: EncodedSelf)->u64
 #test
 {
     let result = mutateEncodedSelf(#copy makeEncodedSelf())
-    Swag.assert(result == 1)
+    Swag.require(result == 1)
 }
 
 // Relaying a pointer preserves writes to its slot, not to the object it contains.
@@ -482,8 +482,8 @@ func readAndClearPointerSlot(value: Value, slot: *PointerSlot)->u64
     var value: Value       = Value{a: 83}
     var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearPointerSlot(value, &slot)
-    Swag.assert(result == 83)
-    Swag.assert(slot.target == null)
+    Swag.require(result == 83)
+    Swag.require(slot.target == null)
 }
 
 #[Swag.NoInline]
@@ -497,7 +497,7 @@ func relayPlainValue()->Value => makePlainValue()
     var other: u64
     let direct  = writeOther(makePlainValue(), &other)
     let relayed = writeOther(relayPlainValue(), &other)
-    Swag.assert(direct == 89 and relayed == 89 and other == 12)
+    Swag.require(direct == 89 and relayed == 89 and other == 12)
 }
 
 #[Swag.NoInline]
@@ -506,7 +506,7 @@ func invokeLiteral(callback: func(value: Value)->u64)->u64 => callback({a: 127})
 #test
 {
     let result = invokeLiteral(&read)
-    Swag.assert(result == 127)
+    Swag.require(result == 127)
 }
 
 #[Swag.CallingConvention(.C)]
@@ -517,7 +517,7 @@ alias CValueCallback = func(value: Value, target: *Value)->u64
     let callback: CValueCallback = &cValue
     var value:    Value = Value{a: 131}
     let result = callback(value, &value)
-    Swag.assert(result == 131 and value.a == 13)
+    Swag.require(result == 131 and value.a == 13)
 }
 
 // Indexing a pointer changes the addressed slot without following its contents.
@@ -552,7 +552,7 @@ func readAndClearOffsetPointerSlot(value: Value, slot: [*] PointerSlot)->u64
     var value: Value       = Value{a: 137}
     var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearIndexedPointerSlot(value, cast([*] PointerSlot, &slot))
-    Swag.assert(result == 137 and slot.target == null)
+    Swag.require(result == 137 and slot.target == null)
 }
 
 #test
@@ -560,7 +560,7 @@ func readAndClearOffsetPointerSlot(value: Value, slot: [*] PointerSlot)->u64
     var value: Value       = Value{a: 139}
     var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearOffsetPointerSlot(value, cast([*] PointerSlot, &slot))
-    Swag.assert(result == 139 and slot.target == null)
+    Swag.require(result == 139 and slot.target == null)
 }
 
 struct DepthValue
@@ -602,6 +602,6 @@ const COMPILE_TIME_DEEP_COPY = #run compileTimeDeepCopy()
 
 #test
 {
-    Swag.assert(COMPILE_TIME_DEEP_COPY)
-    Swag.assert(compileTimeDeepCopy())
+    Swag.require(COMPILE_TIME_DEEP_COPY)
+    Swag.require(compileTimeDeepCopy())
 }

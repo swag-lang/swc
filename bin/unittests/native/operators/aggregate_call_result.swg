@@ -55,9 +55,9 @@ func makeRequest()->Request => {source: makeOwner(), stage: makeOwner(), kind: 3
     scope
     {
         let settings = makeRequest().settings
-        Swag.assert(settings.value.value == 42 and settings.value.buffer == &settings.value.value)
-        Swag.assert(settings.preset == 1 and settings.level == 2)
-        Swag.assert(Drops == 3)
+        Swag.require(settings.value.value == 42 and settings.value.buffer == &settings.value.value)
+        Swag.require(settings.preset == 1 and settings.level == 2)
+        Swag.require(Drops == 3)
     }
-    Swag.assert(Drops == 4)
+    Swag.require(Drops == 4)
 }

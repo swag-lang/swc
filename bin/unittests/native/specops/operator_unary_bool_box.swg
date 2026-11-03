@@ -24,7 +24,7 @@ impl BoolUnaryBox
     var value: BoolUnaryBox'bool = {value: false}
     let flipped = not value
 
-    Swag.assert(flipped.value)
+    Swag.require(flipped.value)
 }
 
 // Test: unary ! on BoolUnaryBox'bool (true -> false)
@@ -33,7 +33,7 @@ impl BoolUnaryBox
     var value: BoolUnaryBox'bool = {value: true}
     let flipped = not value
 
-    Swag.assert(not flipped.value)
+    Swag.require(not flipped.value)
 }
 
 // Test: double negation on BoolUnaryBox'bool
@@ -42,5 +42,5 @@ impl BoolUnaryBox
     var value: BoolUnaryBox'bool = {value: true}
     let double_flip = not (not value)
 
-    Swag.assert(double_flip.value)
+    Swag.require(double_flip.value)
 }

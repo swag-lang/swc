@@ -17,6 +17,6 @@ struct NativeIndexListRuntimeStorageCallbackHolder
     }
         }
 
-    Swag.assert(holder.cb(flag)[1, 0] == 62'u16)
-    Swag.assert(holder.cb(flag)[0, 1] == 61'u16)
+    Swag.require(holder.cb(flag)[1, 0] == 62'u16)
+    Swag.require(holder.cb(flag)[0, 1] == 61'u16)
 }

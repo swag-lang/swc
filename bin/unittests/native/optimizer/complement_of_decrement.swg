@@ -23,13 +23,13 @@ func keptDecrement(x: u32)->u64
 
 #test
 {
-    Swag.assert(alignUp(13, 8) == 16)
-    Swag.assert(alignUp(16, 8) == 16)
-    Swag.assert(alignUp(0, 4096) == 0)
-    Swag.assert(negated32(0) == 0)
-    Swag.assert(negated32(1) == 0xFFFFFFFF)
-    Swag.assert(negated32(0x80000000) == 0x80000000)
-    Swag.assert(negated64(5) == -5)
-    Swag.assert(negated64(-9223372036854775807 - 1) == -9223372036854775807 - 1)
-    Swag.assert(keptDecrement(10) == 0xFFFFFFFF)
+    Swag.require(alignUp(13, 8) == 16)
+    Swag.require(alignUp(16, 8) == 16)
+    Swag.require(alignUp(0, 4096) == 0)
+    Swag.require(negated32(0) == 0)
+    Swag.require(negated32(1) == 0xFFFFFFFF)
+    Swag.require(negated32(0x80000000) == 0x80000000)
+    Swag.require(negated64(5) == -5)
+    Swag.require(negated64(-9223372036854775807 - 1) == -9223372036854775807 - 1)
+    Swag.require(keptDecrement(10) == 0xFFFFFFFF)
 }

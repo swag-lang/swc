@@ -99,14 +99,14 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let sampleAudit = auditForkliftAccess(samplePlan)
 
-    Swag.assert(sampleAudit.rowCount == 10'u32)
-    Swag.assert(sampleAudit.columnCount == 10'u32)
-    Swag.assert(sampleAudit.totalRolls == 71'u32)
-    Swag.assert(sampleAudit.accessibleRolls == 13'u32)
-    Swag.assert(sampleAudit.blockedRolls == 58'u32)
-    Swag.assert(sampleAudit.densestCluster == 8'u32)
-    Swag.assert(countAdjacentRolls(samplePlan, 0, 2) == 3'u32)
-    Swag.assert(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
+    Swag.require(sampleAudit.rowCount == 10'u32)
+    Swag.require(sampleAudit.columnCount == 10'u32)
+    Swag.require(sampleAudit.totalRolls == 71'u32)
+    Swag.require(sampleAudit.accessibleRolls == 13'u32)
+    Swag.require(sampleAudit.blockedRolls == 58'u32)
+    Swag.require(sampleAudit.densestCluster == 8'u32)
+    Swag.require(countAdjacentRolls(samplePlan, 0, 2) == 3'u32)
+    Swag.require(countAdjacentRolls(samplePlan, 5, 4) == 7'u32)
 
     const loadingBayPlan: [6] string =
         [
@@ -120,12 +120,12 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
 
     let loadingBayAudit = auditForkliftAccess(loadingBayPlan)
 
-    Swag.assert(loadingBayAudit.rowCount == 6'u32)
-    Swag.assert(loadingBayAudit.columnCount == 6'u32)
-    Swag.assert(loadingBayAudit.totalRolls == 15'u32)
-    Swag.assert(loadingBayAudit.accessibleRolls == 3'u32)
-    Swag.assert(loadingBayAudit.blockedRolls == 12'u32)
-    Swag.assert(loadingBayAudit.densestCluster == 6'u32)
-    Swag.assert(countAdjacentRolls(loadingBayPlan, 0, 2) == 3'u32)
-    Swag.assert(countAdjacentRolls(loadingBayPlan, 3, 3) == 6'u32)
+    Swag.require(loadingBayAudit.rowCount == 6'u32)
+    Swag.require(loadingBayAudit.columnCount == 6'u32)
+    Swag.require(loadingBayAudit.totalRolls == 15'u32)
+    Swag.require(loadingBayAudit.accessibleRolls == 3'u32)
+    Swag.require(loadingBayAudit.blockedRolls == 12'u32)
+    Swag.require(loadingBayAudit.densestCluster == 6'u32)
+    Swag.require(countAdjacentRolls(loadingBayPlan, 0, 2) == 3'u32)
+    Swag.require(countAdjacentRolls(loadingBayPlan, 3, 3) == 6'u32)
 }

@@ -15,12 +15,12 @@ func reflectStruct(type: typeinfo)->const *Swag.TypeInfoStruct?
 #test
 {
     let info = reflectStruct(ReflectedObject)
-    Swag.assert(info != null)
-    Swag.assert(info.fields.count == 1)
-    Swag.assert(reflectStruct(s32) == null)
-    Swag.assert(reflectStruct(IReflectedObject) == null)
-    Swag.assert(s32 is const *Swag.TypeInfoNative)
-    Swag.assert(not (s32 is const *Swag.TypeInfoStruct))
+    Swag.require(info != null)
+    Swag.require(info.fields.count == 1)
+    Swag.require(reflectStruct(s32) == null)
+    Swag.require(reflectStruct(IReflectedObject) == null)
+    Swag.require(s32 is const *Swag.TypeInfoNative)
+    Swag.require(not (s32 is const *Swag.TypeInfoStruct))
 }
 
 #test
@@ -28,9 +28,9 @@ func reflectStruct(type: typeinfo)->const *Swag.TypeInfoStruct?
     // A public discriminator is descriptive data, not evidence of the allocation type.
     var forged         = Swag.TypeInfo{kind: .Struct}
     let root: typeinfo = &forged
-    Swag.assert(reflectStruct(root) == null)
+    Swag.require(reflectStruct(root) == null)
     forged.kind = .Native
-    Swag.assert(not (root is Swag.TypeInfoNative))
+    Swag.require(not (root is Swag.TypeInfoNative))
 }
 
 #test
@@ -38,8 +38,8 @@ func reflectStruct(type: typeinfo)->const *Swag.TypeInfoStruct?
     var concrete: Swag.TypeInfoStruct
     concrete.kind = .Native
     let root: typeinfo = &concrete
-    Swag.assert(reflectStruct(root) == &concrete)
-    Swag.assert(not (root is Swag.TypeInfoNative))
+    Swag.require(reflectStruct(root) == &concrete)
+    Swag.require(not (root is Swag.TypeInfoNative))
     let absent: typeinfo? = null
-    Swag.assert(not (absent is Swag.TypeInfoStruct))
+    Swag.require(not (absent is Swag.TypeInfoStruct))
 }

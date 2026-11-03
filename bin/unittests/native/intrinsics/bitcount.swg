@@ -57,47 +57,47 @@ func nzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.countOnes(
 // u8
 #test
 {
-    Swag.assert(nzU8(0'u8) == 0)
-    Swag.assert(nzU8(0xFF'u8) == 8)
-    Swag.assert(nzU8(0b10110000'u8) == 3)
-    Swag.assert(nzU8(0b01010101'u8) == 4)
-    Swag.assert(nzU8(0b10101010'u8) == 4)
-    Swag.assert(nzU8(1'u8) == 1)
-    Swag.assert(nzU8(0x80'u8) == 1)
+    Swag.require(nzU8(0'u8) == 0)
+    Swag.require(nzU8(0xFF'u8) == 8)
+    Swag.require(nzU8(0b10110000'u8) == 3)
+    Swag.require(nzU8(0b01010101'u8) == 4)
+    Swag.require(nzU8(0b10101010'u8) == 4)
+    Swag.require(nzU8(1'u8) == 1)
+    Swag.require(nzU8(0x80'u8) == 1)
 }
 
 // u16
 #test
 {
-    Swag.assert(nzU16(0'u16) == 0)
-    Swag.assert(nzU16(0xFFFF'u16) == 16)
-    Swag.assert(nzU16(0xF0F0'u16) == 8)
-    Swag.assert(nzU16(0x0001'u16) == 1)
-    Swag.assert(nzU16(0x8000'u16) == 1)
-    Swag.assert(nzU16(0x5555'u16) == 8)
+    Swag.require(nzU16(0'u16) == 0)
+    Swag.require(nzU16(0xFFFF'u16) == 16)
+    Swag.require(nzU16(0xF0F0'u16) == 8)
+    Swag.require(nzU16(0x0001'u16) == 1)
+    Swag.require(nzU16(0x8000'u16) == 1)
+    Swag.require(nzU16(0x5555'u16) == 8)
 }
 
 // u32
 #test
 {
-    Swag.assert(nzU32(0'u32) == 0)
-    Swag.assert(nzU32(0xFFFFFFFF'u32) == 32)
-    Swag.assert(nzU32(0xFFFF0001'u32) == 17)
-    Swag.assert(nzU32(0x80000000'u32) == 1)
-    Swag.assert(nzU32(1'u32) == 1)
-    Swag.assert(nzU32(0x55555555'u32) == 16)
-    Swag.assert(nzU32(0xAAAAAAAA'u32) == 16)
+    Swag.require(nzU32(0'u32) == 0)
+    Swag.require(nzU32(0xFFFFFFFF'u32) == 32)
+    Swag.require(nzU32(0xFFFF0001'u32) == 17)
+    Swag.require(nzU32(0x80000000'u32) == 1)
+    Swag.require(nzU32(1'u32) == 1)
+    Swag.require(nzU32(0x55555555'u32) == 16)
+    Swag.require(nzU32(0xAAAAAAAA'u32) == 16)
 }
 
 // u64
 #test
 {
-    Swag.assert(nzU64(0'u64) == 0)
-    Swag.assert(nzU64(0xFFFFFFFF_FFFFFFFF'u64) == 64)
-    Swag.assert(nzU64(0xF0000000_0000000F'u64) == 8)
-    Swag.assert(nzU64(1'u64) == 1)
-    Swag.assert(nzU64(0x80000000_00000000'u64) == 1)
-    Swag.assert(nzU64(0x55555555_55555555'u64) == 32)
+    Swag.require(nzU64(0'u64) == 0)
+    Swag.require(nzU64(0xFFFFFFFF_FFFFFFFF'u64) == 64)
+    Swag.require(nzU64(0xF0000000_0000000F'u64) == 8)
+    Swag.require(nzU64(1'u64) == 1)
+    Swag.require(nzU64(0x80000000_00000000'u64) == 1)
+    Swag.require(nzU64(0x55555555_55555555'u64) == 32)
 }
 
 // ============================================================
@@ -148,42 +148,42 @@ func tzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.trailingZe
 // u8
 #test
 {
-    Swag.assert(tzU8(0'u8) == 8)
-    Swag.assert(tzU8(1'u8) == 0)
-    Swag.assert(tzU8(0x80'u8) == 7)
-    Swag.assert(tzU8(0x28'u8) == 3)
-    Swag.assert(tzU8(0xFF'u8) == 0)
-    Swag.assert(tzU8(0b00010000'u8) == 4)
+    Swag.require(tzU8(0'u8) == 8)
+    Swag.require(tzU8(1'u8) == 0)
+    Swag.require(tzU8(0x80'u8) == 7)
+    Swag.require(tzU8(0x28'u8) == 3)
+    Swag.require(tzU8(0xFF'u8) == 0)
+    Swag.require(tzU8(0b00010000'u8) == 4)
 }
 
 // u16
 #test
 {
-    Swag.assert(tzU16(0'u16) == 16)
-    Swag.assert(tzU16(1'u16) == 0)
-    Swag.assert(tzU16(0x8000'u16) == 15)
-    Swag.assert(tzU16(0xFFFF'u16) == 0)
-    Swag.assert(tzU16(0x0100'u16) == 8)
+    Swag.require(tzU16(0'u16) == 16)
+    Swag.require(tzU16(1'u16) == 0)
+    Swag.require(tzU16(0x8000'u16) == 15)
+    Swag.require(tzU16(0xFFFF'u16) == 0)
+    Swag.require(tzU16(0x0100'u16) == 8)
 }
 
 // u32
 #test
 {
-    Swag.assert(tzU32(0'u32) == 32)
-    Swag.assert(tzU32(1'u32) == 0)
-    Swag.assert(tzU32(0x80000000'u32) == 31)
-    Swag.assert(tzU32(0xFFFFFFFF'u32) == 0)
-    Swag.assert(tzU32(0x00010000'u32) == 16)
+    Swag.require(tzU32(0'u32) == 32)
+    Swag.require(tzU32(1'u32) == 0)
+    Swag.require(tzU32(0x80000000'u32) == 31)
+    Swag.require(tzU32(0xFFFFFFFF'u32) == 0)
+    Swag.require(tzU32(0x00010000'u32) == 16)
 }
 
 // u64
 #test
 {
-    Swag.assert(tzU64(0'u64) == 64)
-    Swag.assert(tzU64(1'u64) == 0)
-    Swag.assert(tzU64(0x80000000_00000000'u64) == 63)
-    Swag.assert(tzU64(0xFFFFFFFF_FFFFFFFF'u64) == 0)
-    Swag.assert(tzU64(0x00010000_00000000'u64) == 48)
+    Swag.require(tzU64(0'u64) == 64)
+    Swag.require(tzU64(1'u64) == 0)
+    Swag.require(tzU64(0x80000000_00000000'u64) == 63)
+    Swag.require(tzU64(0xFFFFFFFF_FFFFFFFF'u64) == 0)
+    Swag.require(tzU64(0x00010000_00000000'u64) == 48)
 }
 
 // ============================================================
@@ -240,42 +240,42 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.leadingZer
 // u8
 #test
 {
-    Swag.assert(lzU8(0'u8) == 8)
-    Swag.assert(lzU8(1'u8) == 7)
-    Swag.assert(lzU8(0x80'u8) == 0)
-    Swag.assert(lzU8(0xFF'u8) == 0)
-    Swag.assert(lzU8(0x0F'u8) == 4)
-    Swag.assert(lzU8(0x40'u8) == 1)
+    Swag.require(lzU8(0'u8) == 8)
+    Swag.require(lzU8(1'u8) == 7)
+    Swag.require(lzU8(0x80'u8) == 0)
+    Swag.require(lzU8(0xFF'u8) == 0)
+    Swag.require(lzU8(0x0F'u8) == 4)
+    Swag.require(lzU8(0x40'u8) == 1)
 }
 
 // u16
 #test
 {
-    Swag.assert(lzU16(0'u16) == 16)
-    Swag.assert(lzU16(1'u16) == 15)
-    Swag.assert(lzU16(0x8000'u16) == 0)
-    Swag.assert(lzU16(0xFFFF'u16) == 0)
-    Swag.assert(lzU16(0x00FF'u16) == 8)
+    Swag.require(lzU16(0'u16) == 16)
+    Swag.require(lzU16(1'u16) == 15)
+    Swag.require(lzU16(0x8000'u16) == 0)
+    Swag.require(lzU16(0xFFFF'u16) == 0)
+    Swag.require(lzU16(0x00FF'u16) == 8)
 }
 
 // u32
 #test
 {
-    Swag.assert(lzU32(0'u32) == 32)
-    Swag.assert(lzU32(1'u32) == 31)
-    Swag.assert(lzU32(0x80000000'u32) == 0)
-    Swag.assert(lzU32(0xFFFFFFFF'u32) == 0)
-    Swag.assert(lzU32(0x0000FFFF'u32) == 16)
+    Swag.require(lzU32(0'u32) == 32)
+    Swag.require(lzU32(1'u32) == 31)
+    Swag.require(lzU32(0x80000000'u32) == 0)
+    Swag.require(lzU32(0xFFFFFFFF'u32) == 0)
+    Swag.require(lzU32(0x0000FFFF'u32) == 16)
 }
 
 // u64
 #test
 {
-    Swag.assert(lzU64(0'u64) == 64)
-    Swag.assert(lzU64(1'u64) == 63)
-    Swag.assert(lzU64(0x80000000_00000000'u64) == 0)
-    Swag.assert(lzU64(0xFFFFFFFF_FFFFFFFF'u64) == 0)
-    Swag.assert(lzU64(0x00000000_FFFFFFFF'u64) == 32)
+    Swag.require(lzU64(0'u64) == 64)
+    Swag.require(lzU64(1'u64) == 63)
+    Swag.require(lzU64(0x80000000_00000000'u64) == 0)
+    Swag.require(lzU64(0xFFFFFFFF_FFFFFFFF'u64) == 0)
+    Swag.require(lzU64(0x00000000_FFFFFFFF'u64) == 32)
 }
 
 // ============================================================
@@ -284,29 +284,29 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.leadingZer
 
 #test
 {
-    Swag.assert(nzU8(0x01'u8) == 1)
-    Swag.assert(lzU8(0x01'u8) == 7)
-    Swag.assert(tzU8(0x01'u8) == 0)
+    Swag.require(nzU8(0x01'u8) == 1)
+    Swag.require(lzU8(0x01'u8) == 7)
+    Swag.require(tzU8(0x01'u8) == 0)
 
-    Swag.assert(nzU8(0x80'u8) == 1)
-    Swag.assert(lzU8(0x80'u8) == 0)
-    Swag.assert(tzU8(0x80'u8) == 7)
+    Swag.require(nzU8(0x80'u8) == 1)
+    Swag.require(lzU8(0x80'u8) == 0)
+    Swag.require(tzU8(0x80'u8) == 7)
 
-    Swag.assert(nzU32(0x00008000'u32) == 1)
-    Swag.assert(lzU32(0x00008000'u32) == 16)
-    Swag.assert(tzU32(0x00008000'u32) == 15)
+    Swag.require(nzU32(0x00008000'u32) == 1)
+    Swag.require(lzU32(0x00008000'u32) == 16)
+    Swag.require(tzU32(0x00008000'u32) == 15)
 }
 
 // Power-of-two patterns
 #test
 {
-    Swag.assert(nzU64(0x00000001_00000000'u64) == 1)
-    Swag.assert(lzU64(0x00000001_00000000'u64) == 31)
-    Swag.assert(tzU64(0x00000001_00000000'u64) == 32)
+    Swag.require(nzU64(0x00000001_00000000'u64) == 1)
+    Swag.require(lzU64(0x00000001_00000000'u64) == 31)
+    Swag.require(tzU64(0x00000001_00000000'u64) == 32)
 
-    Swag.assert(nzU16(0x0010'u16) == 1)
-    Swag.assert(lzU16(0x0010'u16) == 11)
-    Swag.assert(tzU16(0x0010'u16) == 4)
+    Swag.require(nzU16(0x0010'u16) == 1)
+    Swag.require(lzU16(0x0010'u16) == 11)
+    Swag.require(tzU16(0x0010'u16) == 4)
 }
 
 // Strict aliases
@@ -320,9 +320,9 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.leadingZer
     #assert(#typeof(tz) == BitCountStrictU32)
     #assert(#typeof(lz) == BitCountStrictU32)
 
-    Swag.assert(nz == cast(BitCountStrictU32, 8))
-    Swag.assert(tz == cast(BitCountStrictU32, 15))
-    Swag.assert(lz == cast(BitCountStrictU32, 16))
+    Swag.require(nz == cast(BitCountStrictU32, 8))
+    Swag.require(tz == cast(BitCountStrictU32, 15))
+    Swag.require(lz == cast(BitCountStrictU32, 16))
 }
 
 #test
@@ -335,7 +335,7 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.leadingZer
     #assert(#typeof(tz) == BitCountStrictU32)
     #assert(#typeof(lz) == BitCountStrictU32)
 
-    Swag.assert(nz == cast(BitCountStrictU32, 16))
-    Swag.assert(tz == cast(BitCountStrictU32, 16))
-    Swag.assert(lz == cast(BitCountStrictU32, 15))
+    Swag.require(nz == cast(BitCountStrictU32, 16))
+    Swag.require(tz == cast(BitCountStrictU32, 16))
+    Swag.require(lz == cast(BitCountStrictU32, 15))
 }

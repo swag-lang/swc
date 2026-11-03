@@ -16,6 +16,6 @@
 {
     let a = #raw "C:\path"
     let b = #raw """has a " inside"""
-    Swag.assert(a == "C:\\path")
-    Swag.assert(b == "has a \" inside")
+    Swag.require(a == "C:\\path")
+    Swag.require(b == "has a \" inside")
 }

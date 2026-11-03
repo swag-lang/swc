@@ -113,23 +113,23 @@ func makeOwnedMessage()->OwnedMessage
     return {}
 }
 
-#[Swag.Safety(.Assert, true)]
+#[Swag.Safety(.Assert, true), Swag.Warning("sema_warn_assert_in_test", .Disable)]
 #test
 {
     messageCreated = 0
     messageDropped = 0
     Swag.assert(true, makeOwnedMessage())
-    Swag.assert(messageCreated == 0 and messageDropped == 0)
+    Swag.require(messageCreated == 0 and messageDropped == 0)
 }
 
 // The condition's owner is evaluated and dropped even when diagnostic owners are skipped.
-#[Swag.Safety(.Assert, true)]
+#[Swag.Safety(.Assert, true), Swag.Warning("sema_warn_assert_in_test", .Disable)]
 #test
 {
     messageCreated = 0
     messageDropped = 0
     Swag.assert(makeOwnedMessage().condition(), makeOwnedMessage().text())
-    Swag.assert(messageCreated == 1 and messageDropped == 1)
+    Swag.require(messageCreated == 1 and messageDropped == 1)
 }
 
 #[Swag.NoInline, Swag.Safety(.Assert, true)]
@@ -145,5 +145,5 @@ func assertWithOwnedMessage(value: bool)
     messageCreated = 0
     messageDropped = 0
     assertWithOwnedMessage(true)
-    Swag.assert(messageCreated == 0 and messageDropped == 0)
+    Swag.require(messageCreated == 0 and messageDropped == 0)
 }

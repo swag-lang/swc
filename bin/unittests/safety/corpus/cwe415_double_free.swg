@@ -140,12 +140,12 @@ func releaseHandle(handle: *Handle)
     var second = first
     releaseHandle(&first)
     releaseHandle(&second)
-    Swag.assert(first.pointer == null)
-    Swag.assert(second.pointer == null)
-    Swag.assert(heap.count == 1)
-    Swag.assert(heap.frees == 2)
-    Swag.assert(heap.duplicates == 1)
-    Swag.assert(heap.liveCount() == 0)
+    Swag.require(first.pointer == null)
+    Swag.require(second.pointer == null)
+    Swag.require(heap.count == 1)
+    Swag.require(heap.frees == 2)
+    Swag.require(heap.duplicates == 1)
+    Swag.require(heap.liveCount() == 0)
 }
 
 // --- Sound ---
@@ -179,10 +179,10 @@ func freeReallocateFree()
 
     freeTwoBlocks()
     freeReallocateFree()
-    Swag.assert(heap.count == 4)
-    Swag.assert(heap.frees == 4)
-    Swag.assert(heap.duplicates == 0)
-    Swag.assert(heap.liveCount() == 0)
+    Swag.require(heap.count == 4)
+    Swag.require(heap.frees == 4)
+    Swag.require(heap.duplicates == 0)
+    Swag.require(heap.liveCount() == 0)
 }
 
 // Resetting one handle makes a repeated call harmless; copying it created the fault above.
@@ -197,8 +197,8 @@ func freeReallocateFree()
     handle.pointer = cast(*s32, heapAlloc(4))
     releaseHandle(&handle)
     releaseHandle(&handle)
-    Swag.assert(heap.count == 1)
-    Swag.assert(heap.frees == 1)
-    Swag.assert(heap.duplicates == 0)
-    Swag.assert(heap.liveCount() == 0)
+    Swag.require(heap.count == 1)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.duplicates == 0)
+    Swag.require(heap.liveCount() == 0)
 }

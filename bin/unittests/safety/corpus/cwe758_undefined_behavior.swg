@@ -153,13 +153,13 @@ func voidOwesNothing(flag: bool)
 
 #test
 {
-    Swag.assert(everyBranchReturns(opaqueBool(true)) == 1)
-    Swag.assert(completeSwitchEndsTheFunction(Season.Winter) == 90)
-    Swag.assert(defaultArmEndsTheFunction(opaqueS32(3)) == 2)
-    Swag.assert(fallthroughEndsTheFunction(opaqueS32(0)) == 2)
-    Swag.assert(loopWithoutBreak() == 1)
-    Swag.assert(nestedBreakDoesNotEscape() == 1)
-    Swag.assert(endsInUnreachable(opaqueBool(true)) == 1)
-    Swag.assert((catch endsInFail(opaqueBool(true))) == 1)
-    Swag.assert(expressionBody(1) == 2)
+    Swag.require(everyBranchReturns(opaqueBool(true)) == 1)
+    Swag.require(completeSwitchEndsTheFunction(Season.Winter) == 90)
+    Swag.require(defaultArmEndsTheFunction(opaqueS32(3)) == 2)
+    Swag.require(fallthroughEndsTheFunction(opaqueS32(0)) == 2)
+    Swag.require(loopWithoutBreak() == 1)
+    Swag.require(nestedBreakDoesNotEscape() == 1)
+    Swag.require(endsInUnreachable(opaqueBool(true)) == 1)
+    Swag.require((catch endsInFail(opaqueBool(true))) == 1)
+    Swag.require(expressionBody(1) == 2)
 }

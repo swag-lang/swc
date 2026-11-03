@@ -83,13 +83,13 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
         checkSegments(&allocator)
         if refused != 0
         {
-            Swag.assert(address == null)
-            Swag.assert(allocator.stats().countAlloc == 0)
-            Swag.assert(allocator.stats().countPage == 0)
+            Swag.require(address == null)
+            Swag.require(allocator.stats().countAlloc == 0)
+            Swag.require(allocator.stats().countPage == 0)
         }
         else
         {
-            Swag.assert(address != null)
+            Swag.require(address != null)
             freeOne(itf, address)
         }
 
@@ -113,12 +113,12 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
         checkSegments(&allocator)
         if address
         {
-            Swag.assert(allocator.stats().countAlloc == 1)
+            Swag.require(allocator.stats().countAlloc == 1)
             freeOne(itf, address)
         }
         else
         {
-            Swag.assert(allocator.stats().countAlloc == 0)
+            Swag.require(allocator.stats().countAlloc == 0)
         }
 
         checkRecovers(&allocator, itf)
@@ -132,11 +132,11 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     var allocator: Allocator
     let itf = failureAllocator(&allocator)
     allocatorFailOsReserve()
-    Swag.assert(allocOne(itf, 64) == null)
-    Swag.assert(g_AllocatorOsFailures.reserve.failures == 1)
+    Swag.require(allocOne(itf, 64) == null)
+    Swag.require(g_AllocatorOsFailures.reserve.failures == 1)
     allocatorClearOsFailures()
-    Swag.assert(allocator.firstHeap == null)
-    Swag.assert(allocator.stats().countAlloc == 0)
+    Swag.require(allocator.firstHeap == null)
+    Swag.require(allocator.stats().countAlloc == 0)
     checkRecovers(&allocator, itf)
 }
 
@@ -150,25 +150,25 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     let page  = unwrap allocatorPageOf(cast(u64, first))
     let fill  = cast(u64, page.capacityBytes() / page.blockSize) - 1
     var held:      [1024] (*void?)
-    Swag.assert(fill <= held.count)
+    Swag.require(fill <= held.count)
     for i in fill do
         held[i] = allocOne(itf, 64)
-    Swag.assert(allocator.stats().countPage == 1)
+    Swag.require(allocator.stats().countPage == 1)
     let segment = allocatorSegmentOf(page)
 
     allocatorFailOsCommit(sticky: true)
-    Swag.assert(allocOne(itf, 64) == null)
-    Swag.assert(g_AllocatorOsFailures.commit.failures >= 1)
+    Swag.require(allocOne(itf, 64) == null)
+    Swag.require(g_AllocatorOsFailures.commit.failures >= 1)
     allocatorClearOsFailures()
-    Swag.assert(allocator.stats().countPage == 1)
-    Swag.assert(Swag.countOnes(atomicGet(&segment.pageMask)) == 1)
+    Swag.require(allocator.stats().countPage == 1)
+    Swag.require(Swag.countOnes(atomicGet(&segment.pageMask)) == 1)
     checkSegments(&allocator)
 
     allocatorFailOsCommit()
     let served = allocOne(itf, 64)
     allocatorClearOsFailures()
-    Swag.assert(served != null)
-    Swag.assert(allocatorSegmentOf(unwrap allocatorPageOf(cast(u64, served))) != segment)
+    Swag.require(served != null)
+    Swag.require(allocatorSegmentOf(unwrap allocatorPageOf(cast(u64, served))) != segment)
     checkSegments(&allocator)
 
     freeOne(itf, served)
@@ -188,26 +188,26 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     // Take every pooled segment of the shape first, so the acquisitions under test must create one.
     var held: [256] (*AllocatorSegment?)
     let pooled = allocatorPooledSegmentCount(AllocatorSmallUnitShift)
-    Swag.assert(pooled <= held.count)
+    Swag.require(pooled <= held.count)
     for i in pooled
     {
         held[i] = allocatorAcquireSegment(owner, AllocatorSmallUnitShift)
-        Swag.assert(held[i] != null)
+        Swag.require(held[i] != null)
     }
-    Swag.assert(allocatorPooledSegmentCount(AllocatorSmallUnitShift) == 0)
+    Swag.require(allocatorPooledSegmentCount(AllocatorSmallUnitShift) == 0)
 
     let reserves = atomicGet(&g_AllocatorOsReserveCount)
     allocatorFillArenas()
     allocatorFailOsReserve()
-    Swag.assert(allocatorAcquireSegment(owner, AllocatorSmallUnitShift) == null)
-    Swag.assert(g_AllocatorOsFailures.reserve.failures == 1)
-    Swag.assert(atomicGet(&g_AllocatorOsReserveCount) == reserves)
+    Swag.require(allocatorAcquireSegment(owner, AllocatorSmallUnitShift) == null)
+    Swag.require(g_AllocatorOsFailures.reserve.failures == 1)
+    Swag.require(atomicGet(&g_AllocatorOsReserveCount) == reserves)
 
     allocatorClearOsFailures()
     allocatorFillArenas()
     let fresh = allocatorAcquireSegment(owner, AllocatorSmallUnitShift)
-    Swag.assert(fresh != null)
-    Swag.assert(atomicGet(&g_AllocatorOsReserveCount) == reserves + 1)
+    Swag.require(fresh != null)
+    Swag.require(atomicGet(&g_AllocatorOsReserveCount) == reserves + 1)
     allocatorClearOsFailures()
 
     allocatorReleaseSegment(fresh)
@@ -228,26 +228,26 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
         let before = allocator.stats()
 
         allocatorFailOsReserve()
-        Swag.assert(allocOne(itf, 200_000) == null)
+        Swag.require(allocOne(itf, 200_000) == null)
         allocatorFailOsCommit()
-        Swag.assert(allocOne(itf, 200_000) == null)
-        Swag.assert(g_AllocatorOsFailures.reserve.failures == 1 and g_AllocatorOsFailures.commit.failures == 1)
+        Swag.require(allocOne(itf, 200_000) == null)
+        Swag.require(g_AllocatorOsFailures.reserve.failures == 1 and g_AllocatorOsFailures.commit.failures == 1)
         allocatorClearOsFailures()
 
         let after = allocator.stats()
-        Swag.assert(after.countAlloc == 0)
-        Swag.assert(after.sizeCommitted == before.sizeCommitted)
-        Swag.assert(after.countOsCommit == before.countOsCommit)
-        Swag.assert(allocator.firstAlloc == null)
+        Swag.require(after.countAlloc == 0)
+        Swag.require(after.sizeCommitted == before.sizeCommitted)
+        Swag.require(after.countOsCommit == before.countOsCommit)
+        Swag.require(allocator.firstAlloc == null)
         for i in AllocatorHeaderShardCount do
-            Swag.assert(allocator.shards[i].first == null)
-        Swag.assert(allocator.cachedBlockCount == 0)
+            Swag.require(allocator.shards[i].first == null)
+        Swag.require(allocator.cachedBlockCount == 0)
 
         let block = allocOne(itf, 200_000)
-        Swag.assert(block != null)
+        Swag.require(block != null)
         freeOne(itf, block)
         allocator.releaseAll()
-        Swag.assert(allocator.stats().sizeCommitted == before.sizeCommitted)
+        Swag.require(allocator.stats().sizeCommitted == before.sizeCommitted)
     }
 }
 
@@ -269,15 +269,15 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     request.oldSize = 66000
     request.size    = 72000
     itf.realloc(&request)
-    Swag.assert(g_AllocatorOsFailures.commit.failures == 1)
+    Swag.require(g_AllocatorOsFailures.commit.failures == 1)
     allocatorClearOsFailures()
 
-    Swag.assert(request.address != null and request.address != original)
+    Swag.require(request.address != null and request.address != original)
     let moved = cast([*] u8, request.address)
     for i in 66000 do
-        Swag.assert(moved[i] == cast #wrap (u8, i))
-    Swag.assert(allocator.stats().countAlloc == 1)
-    Swag.assert(allocator.cachedBlockCount == 1)
+        Swag.require(moved[i] == cast #wrap (u8, i))
+    Swag.require(allocator.stats().countAlloc == 1)
+    Swag.require(allocator.cachedBlockCount == 1)
 
     itf.free(&request)
     allocator.releaseAll()
@@ -293,19 +293,19 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     let first  = unwrap allocOne(itf, 66000)
     let region = allocator.headerOf(cast(u64, first)).allocAddr
     freeOne(itf, first)
-    Swag.assert(allocator.cachedBlockCount == 1)
-    Swag.assert(allocator.cachedBlocks[0].address == cast(u64, region))
-    Swag.assert(allocator.cachedBlocks[0].committed < allocator.cachedBlocks[0].reserved)
+    Swag.require(allocator.cachedBlockCount == 1)
+    Swag.require(allocator.cachedBlocks[0].address == cast(u64, region))
+    Swag.require(allocator.cachedBlocks[0].committed < allocator.cachedBlocks[0].reserved)
 
     allocatorFailOsCommit()
     let second = allocOne(itf, 72000)
-    Swag.assert(g_AllocatorOsFailures.commit.failures == 1)
+    Swag.require(g_AllocatorOsFailures.commit.failures == 1)
     allocatorClearOsFailures()
 
-    Swag.assert(second != null and second != first)
-    Swag.assert(allocator.cachedBlockCount == 1)
-    Swag.assert(allocator.cachedBlocks[0].address == cast(u64, region))
-    Swag.assert(allocator.stats().countAlloc == 1)
+    Swag.require(second != null and second != first)
+    Swag.require(allocator.cachedBlockCount == 1)
+    Swag.require(allocator.cachedBlocks[0].address == cast(u64, region))
+    Swag.require(allocator.stats().countAlloc == 1)
 
     freeOne(itf, second)
     allocator.releaseAll()

@@ -22,5 +22,5 @@ func inlineLocalMacroInject(count: s32, contextData: *void, stmt: #code(data: *v
     {
         discard Swag.atomicAdd(cast(*s32, data), 1)
     }
-    Swag.assert(runs == 3)
+    Swag.require(runs == 3)
 }

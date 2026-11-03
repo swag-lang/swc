@@ -46,12 +46,12 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
     #assert(#typeof(wrapped.item.value) == string)
     #assert(#typeof(partial.values) == #type [2] u16)
 
-    Swag.assert(bufferCount'(s32, 4)(buffer) == 4)
-    Swag.assert(sumFour(buffer) == 10)
-    Swag.assert(wrapped.item.value == "swag")
-    Swag.assert(doubled.second.values[2] == 6'u8)
-    Swag.assert(partial.values[0] == 10'u16)
-    Swag.assert(partial.values[1] == 20'u16)
+    Swag.require(bufferCount'(s32, 4)(buffer) == 4)
+    Swag.require(sumFour(buffer) == 10)
+    Swag.require(wrapped.item.value == "swag")
+    Swag.require(doubled.second.values[2] == 6'u8)
+    Swag.require(partial.values[0] == 10'u16)
+    Swag.require(partial.values[1] == 20'u16)
 }
 
 #test
@@ -68,8 +68,8 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
 
         #assert(#typeof(intBox.value) == s32)
         #assert(#typeof(boolBox.value) == bool)
-        Swag.assert(intBox.value == 42)
-        Swag.assert(boolBox.value == true)
+        Swag.require(intBox.value == 42)
+        Swag.require(boolBox.value == true)
     }
     scope
     {
@@ -80,7 +80,7 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
 
         let buffer: LocalBuffer'(u16, 3) = {values: [1'u16, 2, 3]}
         #assert(#typeof(buffer.values) == #type [3] u16)
-        Swag.assert(buffer.values[0] == 1'u16)
-        Swag.assert(buffer.values[2] == 3'u16)
+        Swag.require(buffer.values[0] == 1'u16)
+        Swag.require(buffer.values[2] == 3'u16)
     }
 }

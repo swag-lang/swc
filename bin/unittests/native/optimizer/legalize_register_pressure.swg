@@ -78,7 +78,7 @@ func reference(values: [*] u64, rounds: u32)
             transform(&actual[0], rounds)
             reference(&expected[0], rounds)
             for i in 14 do
-                Swag.assert(actual[i] == expected[i])
+                Swag.require(actual[i] == expected[i])
         }
     }
 }

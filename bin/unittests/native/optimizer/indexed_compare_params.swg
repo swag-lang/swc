@@ -44,17 +44,17 @@ func lastBelow(data: const [*] s32, count: u64, limit: s32)->s64
 #test
 {
     var bytes: [6] u8 = [7, 200, 7, 0, 255, 7]
-    Swag.assert(countByte(&bytes[0], 6, 7) == 3)
-    Swag.assert(countByte(&bytes[0], 6, 255) == 1)
-    Swag.assert(countByte(&bytes[0], 6, 1) == 0)
+    Swag.require(countByte(&bytes[0], 6, 7) == 3)
+    Swag.require(countByte(&bytes[0], 6, 255) == 1)
+    Swag.require(countByte(&bytes[0], 6, 1) == 0)
 
     var words: [5] u16 = [0x1234, 0xFFFF, 0x1234, 0x34, 0x1200]
-    Swag.assert(countWord(&words[0], 5, 0x1234) == 2)
-    Swag.assert(countWord(&words[0], 5, 0x34) == 1)
-    Swag.assert(countWord(&words[0], 5, 0xFFFF) == 1)
+    Swag.require(countWord(&words[0], 5, 0x1234) == 2)
+    Swag.require(countWord(&words[0], 5, 0x34) == 1)
+    Swag.require(countWord(&words[0], 5, 0xFFFF) == 1)
 
     var ints: [5] s32 = [-5, 10, 3, 20, 30]
-    Swag.assert(lastBelow(&ints[0], 5, 5) == 2)
-    Swag.assert(lastBelow(&ints[0], 5, -5) == -1)
-    Swag.assert(lastBelow(&ints[0], 5, 100) == 4)
+    Swag.require(lastBelow(&ints[0], 5, 5) == 2)
+    Swag.require(lastBelow(&ints[0], 5, -5) == -1)
+    Swag.require(lastBelow(&ints[0], 5, 100) == 4)
 }

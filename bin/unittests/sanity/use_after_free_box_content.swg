@@ -78,14 +78,14 @@ impl BoxOwner
     owner.item = boxNewItem()
     owner.finish()
     owner.count = 1
-    Swag.assert(owner.count == 1)
-    Swag.assert(owner.item == null)
+    Swag.require(owner.count == 1)
+    Swag.require(owner.item == null)
 
     owner.item = boxNewItem()
     boxStop(&owner.item)
     owner.count = 2
-    Swag.assert(owner.count == 2)
-    Swag.assert(owner.item == null)
+    Swag.require(owner.count == 2)
+    Swag.require(owner.item == null)
     boxFree(owner, #sizeof(BoxOwner))
 }
 
@@ -95,14 +95,14 @@ impl BoxOwner
 {
     var item: *BoxItem? = boxNewItem()
     boxStop(&item)
-    Swag.assert(item == null)
+    Swag.require(item == null)
 
     var owner: BoxOwner
     owner.item = boxNewItem()
     owner.finish()
     owner.count = 3
-    Swag.assert(owner.count == 3)
-    Swag.assert(owner.item == null)
+    Swag.require(owner.count == 3)
+    Swag.require(owner.item == null)
 }
 
 // A copy of the pointer the box held is released with it.
@@ -164,9 +164,9 @@ func boxReadOldCopyThroughWrappers()->s32
 {
     var box: *BoxItem? = boxNewItem()
     boxStopOuter(&box)
-    Swag.assert(box == null)
+    Swag.require(box == null)
     box       = boxNewItem()
     box.value = 6
-    Swag.assert(box.value == 6)
+    Swag.require(box.value == 6)
     boxStopOuter(&box)
 }

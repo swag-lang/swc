@@ -13,6 +13,6 @@ alias LambdaDefaultTypeInfoFn = func(info = #typeof(lambdaDefaultTypeInfoFunc0))
         return cast(u64, info.parameters.count)
     }
 
-    Swag.assert(cb() == 0)
-    Swag.assert(cb(#typeof(lambdaDefaultTypeInfoFunc1)) == 1)
+    Swag.require(cb() == 0)
+    Swag.require(cb(#typeof(lambdaDefaultTypeInfoFunc1)) == 1)
 }

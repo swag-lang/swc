@@ -62,9 +62,9 @@ impl GenVec3
     let sum = a + b
 
     #assert(#typeof(sum) == GenVec3's32)
-    Swag.assert(sum.x == 11)
-    Swag.assert(sum.y == 22)
-    Swag.assert(sum.z == 33)
+    Swag.require(sum.x == 11)
+    Swag.require(sum.y == 22)
+    Swag.require(sum.z == 33)
 }
 
 // Test: GenVec3 - GenVec3 with s64
@@ -74,9 +74,9 @@ impl GenVec3
     var b: GenVec3's64 = {x: 150, y: 50, z: 300}
     let diff = a - b
 
-    Swag.assert(diff.x == -50)
-    Swag.assert(diff.y == 150)
-    Swag.assert(diff.z == 0)
+    Swag.require(diff.x == -50)
+    Swag.require(diff.y == 150)
+    Swag.require(diff.z == 0)
 }
 
 // Test: GenVec3 * GenVec3 component-wise with u32
@@ -86,9 +86,9 @@ impl GenVec3
     var b: GenVec3'u32 = {x: 5, y: 6, z: 7}
     let prod = a * b
 
-    Swag.assert(prod.x == 10)
-    Swag.assert(prod.y == 18)
-    Swag.assert(prod.z == 28)
+    Swag.require(prod.x == 10)
+    Swag.require(prod.y == 18)
+    Swag.require(prod.z == 28)
 }
 
 // Test: GenVec3 / GenVec3 with u64
@@ -98,9 +98,9 @@ impl GenVec3
     var b: GenVec3'u64 = {x: 10, y: 20, z: 30}
     let quot = a / b
 
-    Swag.assert(quot.x == 10'u64)
-    Swag.assert(quot.y == 10'u64)
-    Swag.assert(quot.z == 10'u64)
+    Swag.require(quot.x == 10'u64)
+    Swag.require(quot.y == 10'u64)
+    Swag.require(quot.z == 10'u64)
 }
 
 // Test: GenVec3 * scalar with u32
@@ -109,9 +109,9 @@ impl GenVec3
     var a: GenVec3'u32 = {x: 1, y: 2, z: 3}
     let result         = a * 10'u32
 
-    Swag.assert(result.x == 10)
-    Swag.assert(result.y == 20)
-    Swag.assert(result.z == 30)
+    Swag.require(result.x == 10)
+    Swag.require(result.y == 20)
+    Swag.require(result.z == 30)
 }
 
 // Test: GenVec3 + scalar with s32
@@ -120,9 +120,9 @@ impl GenVec3
     var a: GenVec3's32 = {x: -5, y: 0, z: 5}
     let result         = a + 10's32
 
-    Swag.assert(result.x == 5)
-    Swag.assert(result.y == 10)
-    Swag.assert(result.z == 15)
+    Swag.require(result.x == 5)
+    Swag.require(result.y == 10)
+    Swag.require(result.z == 15)
 }
 
 // Test: GenVec3 / scalar with u64
@@ -131,9 +131,9 @@ impl GenVec3
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
     let result         = a / 10'u64
 
-    Swag.assert(result.x == 10'u64)
-    Swag.assert(result.y == 20'u64)
-    Swag.assert(result.z == 30'u64)
+    Swag.require(result.x == 10'u64)
+    Swag.require(result.y == 20'u64)
+    Swag.require(result.z == 30'u64)
 }
 
 // Test: chaining GenVec3 operations
@@ -144,9 +144,9 @@ impl GenVec3
     var c: GenVec3's32 = {x: 10, y: 10, z: 10}
     let result         = a + b - c
 
-    Swag.assert(result.x == -5)
-    Swag.assert(result.y == -3)
-    Swag.assert(result.z == -1)
+    Swag.require(result.x == -5)
+    Swag.require(result.y == -3)
+    Swag.require(result.z == -1)
 }
 
 // Test: GenVec3 with u8
@@ -158,12 +158,12 @@ impl GenVec3
     let diff          = a - b
 
     #assert(#typeof(sum) == GenVec3'u8)
-    Swag.assert(sum.x == 11)
-    Swag.assert(sum.y == 22)
-    Swag.assert(sum.z == 33)
-    Swag.assert(diff.x == 9)
-    Swag.assert(diff.y == 18)
-    Swag.assert(diff.z == 27)
+    Swag.require(sum.x == 11)
+    Swag.require(sum.y == 22)
+    Swag.require(sum.z == 33)
+    Swag.require(diff.x == 9)
+    Swag.require(diff.y == 18)
+    Swag.require(diff.z == 27)
 }
 
 // Test: GenVec3 - scalar with s64
@@ -172,7 +172,7 @@ impl GenVec3
     var a: GenVec3's64 = {x: 0, y: 0, z: 0}
     let result         = a - 42's64
 
-    Swag.assert(result.x == -42)
-    Swag.assert(result.y == -42)
-    Swag.assert(result.z == -42)
+    Swag.require(result.x == -42)
+    Swag.require(result.y == -42)
+    Swag.require(result.z == -42)
 }

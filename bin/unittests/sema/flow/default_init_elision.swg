@@ -60,20 +60,20 @@ func flowCompleteRetval()->FlowPod
 #test
 {
     // An incomplete write keeps the safe default for the unread field.
-    Swag.assert(flowPartialRead() == 0)
+    Swag.require(flowPartialRead() == 0)
 }
 
 #test
 {
     // Taking an address is deliberately conservative: the callee can observe the
     // default before it writes anything.
-    Swag.assert(flowEscapedRead() == 0)
+    Swag.require(flowEscapedRead() == 0)
 }
 
 #test
 {
     let value = flowCompleteRetval()
-    Swag.assert(value.a == 1 and value.b == 2 and value.c == 3)
+    Swag.require(value.a == 1 and value.b == 2 and value.c == 3)
 }
 
 #test
@@ -85,7 +85,7 @@ func flowCompleteRetval()->FlowPod
     {
         var value: FlowDrop
         value = makeFlowDrop(7)
-        Swag.assert(value.value == 7)
+        Swag.require(value.value == 7)
     }
-    Swag.assert(g_flowDropCount == 1)
+    Swag.require(g_flowDropCount == 1)
 }

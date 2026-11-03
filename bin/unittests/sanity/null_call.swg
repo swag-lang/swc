@@ -41,7 +41,7 @@ func giveSeven()->s32
 #test
 {
     var f = &giveSeven
-    Swag.assert(f() == 7)
+    Swag.require(f() == 7)
 }
 
 // A function pointer received as a parameter is not assumed null.
@@ -52,5 +52,5 @@ func callIt(f: func()->s32)->s32
 
 #test
 {
-    Swag.assert(callIt(&giveSeven) == 7)
+    Swag.require(callIt(&giveSeven) == 7)
 }

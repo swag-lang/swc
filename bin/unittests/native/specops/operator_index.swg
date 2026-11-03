@@ -69,9 +69,9 @@ struct RuntimeIndexHolder
     let a   = box[0]
     let b   = box[1]
 
-    Swag.assert(a == 7)
-    Swag.assert(b == 9)
-    Swag.assert(box.reads == 2)
+    Swag.require(a == 7)
+    Swag.require(b == 9)
+    Swag.require(box.reads == 2)
 }
 
 #test
@@ -80,9 +80,9 @@ struct RuntimeIndexHolder
     let v1  = box[1]
     let v0  = box[0]
 
-    Swag.assert(v1 == 5)
-    Swag.assert(v0 == 3)
-    Swag.assert(box.reads == 2)
+    Swag.require(v1 == 5)
+    Swag.require(v0 == 3)
+    Swag.require(box.reads == 2)
 }
 
 #test
@@ -90,7 +90,7 @@ struct RuntimeIndexHolder
     const box = RuntimeRefIndexBox{buffer: [11, 13]}
     let value = box[0]
 
-    Swag.assert(value == 11)
+    Swag.require(value == 11)
 }
 
 #test
@@ -98,8 +98,8 @@ struct RuntimeIndexHolder
     var box   = RuntimeMultiIndexBox{values: [10, 20, 30, 40]}
     let value = box[1, 0]
 
-    Swag.assert(value == 30)
-    Swag.assert(box.reads == 1)
+    Swag.require(value == 30)
+    Swag.require(box.reads == 1)
 }
 
 #test
@@ -112,10 +112,10 @@ struct RuntimeIndexHolder
     let nested    = holder.value[1]
     let nestedRef = holder.refs[0]
 
-    Swag.assert(nested == 2)
-    Swag.assert(nestedRef == 20)
-    Swag.assert(holder.value.reads == 1)
-    Swag.assert(holder.refs.reads == 1)
+    Swag.require(nested == 2)
+    Swag.require(nestedRef == 20)
+    Swag.require(holder.value.reads == 1)
+    Swag.require(holder.refs.reads == 1)
 }
 
 enum RuntimeIndexedSlot { First, Second, Third }
@@ -204,23 +204,23 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
 {
     const values: [RuntimeIndexedSlot] s32 = [0, 1, 2]
     const first = values[RuntimeIndexedSlot.First]
-    Swag.assert(first == 0)
+    Swag.require(first == 0)
 
     var index = RuntimeIndexedSlot.Third
-    Swag.assert(values[index] == 2)
+    Swag.require(values[index] == 2)
 }
 
 #test
 {
     const reordered: [ReorderedRuntimeIndexedSlot] s32 = [10, 20, 30]
     #assert(#typeof(reordered) == [ReorderedRuntimeIndexedSlot] s32)
-    Swag.assert(reordered[ReorderedRuntimeIndexedSlot.First] == 10)
-    Swag.assert(reordered[ReorderedRuntimeIndexedSlot.Second] == 20)
-    Swag.assert(reordered[ReorderedRuntimeIndexedSlot.Third] == 30)
+    Swag.require(reordered[ReorderedRuntimeIndexedSlot.First] == 10)
+    Swag.require(reordered[ReorderedRuntimeIndexedSlot.Second] == 20)
+    Swag.require(reordered[ReorderedRuntimeIndexedSlot.Third] == 30)
 
     const singleton: [SingletonRuntimeIndexedSlot] s32 = [42]
     #assert(#typeof(singleton) == [SingletonRuntimeIndexedSlot] s32)
-    Swag.assert(singleton[SingletonRuntimeIndexedSlot.Only] == 42)
+    Swag.require(singleton[SingletonRuntimeIndexedSlot.Only] == 42)
 }
 
 #test
@@ -228,11 +228,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var values: [RuntimeIndexedSlot] bool
 
     values[RuntimeIndexedSlot.Second] = true
-    Swag.assert(values[RuntimeIndexedSlot.Second])
-    Swag.assert(values[1])
+    Swag.require(values[RuntimeIndexedSlot.Second])
+    Swag.require(values[1])
 
     var index = RuntimeIndexedSlot.Second
-    Swag.assert(values[index])
+    Swag.require(values[index])
 }
 
 #test
@@ -240,11 +240,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var values: [RuntimeIndexedSlot, RuntimeIndexedColumn] s32
 
     values[RuntimeIndexedSlot.Third, RuntimeIndexedColumn.Right] = 42
-    Swag.assert(values[RuntimeIndexedSlot.Third, RuntimeIndexedColumn.Right] == 42)
+    Swag.require(values[RuntimeIndexedSlot.Third, RuntimeIndexedColumn.Right] == 42)
 
     let row = values[RuntimeIndexedSlot.Third]
     #assert(#typeof(row) == [RuntimeIndexedColumn] s32)
-    Swag.assert(row[RuntimeIndexedColumn.Right] == 42)
+    Swag.require(row[RuntimeIndexedColumn.Right] == 42)
 }
 
 #test
@@ -252,11 +252,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var values: [RuntimeIndexedSlot] bool
 
     values[cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)] = true
-    Swag.assert(values[cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)])
+    Swag.require(values[cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)])
 
     var index = cast(StrictRuntimeIndexedSlot, RuntimeIndexedSlot.Second)
-    Swag.assert(values[index])
-    Swag.assert(readStrictRuntimeIndexedSlot(&values, index))
+    Swag.require(values[index])
+    Swag.require(readStrictRuntimeIndexedSlot(&values, index))
 }
 
 #test
@@ -264,10 +264,10 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var holder: RuntimeIndexedHolder
 
     holder.state.values[RuntimeIndexedSlot.Second] = true
-    Swag.assert(holder.state.values[RuntimeIndexedSlot.Second])
+    Swag.require(holder.state.values[RuntimeIndexedSlot.Second])
 
     var index = RuntimeIndexedSlot.Second
-    Swag.assert(holder.state.values[index])
+    Swag.require(holder.state.values[index])
 }
 
 #test
@@ -275,12 +275,12 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var holder: RuntimeIndexedHolder
 
     holder.state.values[RuntimeIndexedSlot.Second] = true
-    Swag.assert(readRuntimeIndexedSlot(&holder, RuntimeIndexedSlot.Second))
-    Swag.assert(holder.readSlot(RuntimeIndexedSlot.Second))
+    Swag.require(readRuntimeIndexedSlot(&holder, RuntimeIndexedSlot.Second))
+    Swag.require(holder.readSlot(RuntimeIndexedSlot.Second))
 
     var index = RuntimeIndexedSlot.Second
-    Swag.assert(readRuntimeIndexedSlot(&holder, index))
-    Swag.assert(holder.readSlot(index))
+    Swag.require(readRuntimeIndexedSlot(&holder, index))
+    Swag.require(holder.readSlot(index))
 }
 
 #test
@@ -288,11 +288,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var values: [128] bool
 
     values[cast(u64, RuntimeWideIndexedSlot.Mid)] = true
-    Swag.assert(values[cast(u64, RuntimeWideIndexedSlot.Mid)])
-    Swag.assert(readRuntimeWideIndexedSlot(&values, RuntimeWideIndexedSlot.Mid))
+    Swag.require(values[cast(u64, RuntimeWideIndexedSlot.Mid)])
+    Swag.require(readRuntimeWideIndexedSlot(&values, RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid
-    Swag.assert(readRuntimeWideIndexedSlot(&values, index))
+    Swag.require(readRuntimeWideIndexedSlot(&values, index))
 }
 
 #test
@@ -300,11 +300,11 @@ func readRuntimeWideIndexedSlot(values: [128] bool, slot: RuntimeWideIndexedSlot
     var holder: RuntimeIndexedHolder
 
     holder.wideValues[cast(u64, RuntimeWideIndexedSlot.Mid)] = true
-    Swag.assert(holder.wideValues[cast(u64, RuntimeWideIndexedSlot.Mid)])
-    Swag.assert(holder.readWideSlot(RuntimeWideIndexedSlot.Mid))
+    Swag.require(holder.wideValues[cast(u64, RuntimeWideIndexedSlot.Mid)])
+    Swag.require(holder.readWideSlot(RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid
-    Swag.assert(holder.readWideSlot(index))
+    Swag.require(holder.readWideSlot(index))
 }
 
 // An 'opIndex' call in a truthiness context is wrapped in an implicit cast, and code
@@ -322,6 +322,6 @@ func runtimeValueIndexIsNotEmpty(first: s32)->s32
 
 #test
 {
-    Swag.assert(runtimeValueIndexIsNotEmpty(7) == 1)
-    Swag.assert(runtimeValueIndexIsNotEmpty(0) == 0)
+    Swag.require(runtimeValueIndexIsNotEmpty(7) == 1)
+    Swag.require(runtimeValueIndexIsNotEmpty(0) == 0)
 }

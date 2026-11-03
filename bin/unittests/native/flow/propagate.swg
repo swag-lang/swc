@@ -38,15 +38,15 @@ func propagateSum(first, second: bool)->s32 fail
     var sum:        #decltype(expect propagateSum(true, true))
     catch { sum = try propagateSum(true, true) } as errOutcome
     let err = errOutcome.value()
-    Swag.assert(sum == 20 and err == null)
+    Swag.require(sum == 20 and err == null)
     var secondOutcome: Swag.Error
     discard catch propagateSum(true, false) as secondOutcome
     let second = secondOutcome.value()
-    Swag.assert(propagateErrorCode(second) == 2)
+    Swag.require(propagateErrorCode(second) == 2)
     var firstOutcome: Swag.Error
     discard catch propagateSum(false, true) as firstOutcome
     let first = firstOutcome.value()
-    Swag.assert(propagateErrorCode(first) == 1)
+    Swag.require(propagateErrorCode(first) == 1)
 }
 
 // A spelled 'catch' handles its own failure; the unmarked call after it still propagates.
@@ -62,11 +62,11 @@ func propagateAfterCatch(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert((catch propagateAfterCatch(true)) == 10)
+    Swag.require((catch propagateAfterCatch(true)) == 10)
     var errOutcome: Swag.Error
     discard catch propagateAfterCatch(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(propagateErrorCode(err) == 4)
+    Swag.require(propagateErrorCode(err) == 4)
 }
 
 // Inside a 'catch' block, an unmarked call goes to that block, exactly where 'try' sends it.
@@ -84,8 +84,8 @@ func propagateIntoBlock(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert((catch propagateIntoBlock(true)) == 11)
-    Swag.assert((catch propagateIntoBlock(false)) == -5)
+    Swag.require((catch propagateIntoBlock(true)) == 11)
+    Swag.require((catch propagateIntoBlock(false)) == -5)
 }
 
 struct PropagateReader
@@ -110,18 +110,18 @@ func propagateNested(reader: *PropagateReader, boxed: any)->s32 fail
 #test
 {
     var reader: PropagateReader
-    Swag.assert((catch propagateNested(&reader, 5's32)) == 15)
+    Swag.require((catch propagateNested(&reader, 5's32)) == 15)
 
     var castErrorOutcome: Swag.Error
     discard catch propagateNested(&reader, "text") as castErrorOutcome
     let castError = castErrorOutcome.value()
-    Swag.assert(castError != null and propagateErrorCode(castError) == 0)
+    Swag.require(castError != null and propagateErrorCode(castError) == 0)
 
     reader.fails = true
     var readErrorOutcome: Swag.Error
     discard catch propagateNested(&reader, 5's32) as readErrorOutcome
     let readError = readErrorOutcome.value()
-    Swag.assert(propagateErrorCode(readError) == 6)
+    Swag.require(propagateErrorCode(readError) == 6)
 }
 
 // Deferred cleanup runs on an implicit propagation as it does on 'try'.
@@ -137,9 +137,9 @@ func propagateDefer(ok: bool, log: *s32) fail
 {
     var log = 0
     discard catch propagateDefer(true, &log)
-    Swag.assert(log == 1)
+    Swag.require(log == 1)
     discard catch propagateDefer(false, &log)
-    Swag.assert(log == 102)
+    Swag.require(log == 102)
 }
 
 // An explicit inline expansion keeps the callee's propagation, whatever the caller spells.
@@ -155,17 +155,17 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.assert((catch propagateInline(true)) == 11)
+    Swag.require((catch propagateInline(true)) == 11)
     var inlineErrorOutcome: Swag.Error
     discard catch propagateInline(false) as inlineErrorOutcome
     let inlineError = inlineErrorOutcome.value()
-    Swag.assert(propagateErrorCode(inlineError) == 8)
+    Swag.require(propagateErrorCode(inlineError) == 8)
 
-    Swag.assert((catch propagateGeneric(3's32, true)) == 3)
+    Swag.require((catch propagateGeneric(3's32, true)) == 3)
     var genericErrorOutcome: Swag.Error
     discard catch propagateGeneric(1.5'f32, false) as genericErrorOutcome
     let genericError = genericErrorOutcome.value()
-    Swag.assert(propagateErrorCode(genericError) == 9)
+    Swag.require(propagateErrorCode(genericError) == 9)
 }
 
 // An attribute block broadcasts 'Swag.Propagate' to each function it holds.
@@ -177,9 +177,9 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.assert((catch propagateBlockSecond(true)) == 20)
+    Swag.require((catch propagateBlockSecond(true)) == 20)
     var errOutcome: Swag.Error
     discard catch propagateBlockSecond(false) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(propagateErrorCode(err) == 10)
+    Swag.require(propagateErrorCode(err) == 10)
 }

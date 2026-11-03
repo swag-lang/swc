@@ -70,7 +70,7 @@ func invertedRangeRunsEmpty(low, high: s32)->s32
 
 #test
 {
-    Swag.assert(invertedRangeRunsEmpty(opaqueS32(4), opaqueS32(2)) == 0)
+    Swag.require(invertedRangeRunsEmpty(opaqueS32(4), opaqueS32(2)) == 0)
 }
 
 // --- Sound ---
@@ -84,11 +84,11 @@ func sliceUntilCount()->s64
 
 #test
 {
-    Swag.assert(sliceUntilCount() == 3)
+    Swag.require(sliceUntilCount() == 3)
 
     // An empty 'until' range is empty, not inverted: it runs zero turns and does not panic.
     var turns = 0's32
     for opaqueS32(2) until opaqueS32(2) do
         turns += 1
-    Swag.assert(turns == 0)
+    Swag.require(turns == 0)
 }

@@ -45,17 +45,17 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     #assert(s32 is s32)
     #assert(not (s32 is s64))
     var value: PatternValue
-    Swag.assert(patternRead(&value) == 42)
+    Swag.require(patternRead(&value) == 42)
     let view: IPatternValue = &value
-    Swag.assert(view is PatternValue)
-    Swag.assert(not (view is PatternOther))
-    Swag.assert(view is PatternValue and view is IPatternOther)
-    Swag.assert(view is PatternOther or view is PatternValue)
-    Swag.assert((view is PatternValue) == true)
+    Swag.require(view is PatternValue)
+    Swag.require(not (view is PatternOther))
+    Swag.require(view is PatternValue and view is IPatternOther)
+    Swag.require(view is PatternOther or view is PatternValue)
+    Swag.require((view is PatternValue) == true)
     if view is IPatternOther as other do
-        Swag.assert(other.other() == 43)
+        Swag.require(other.other() == 43)
     else do
-        Swag.assert(false)
+        Swag.require(false)
 }
 
 #test
@@ -71,12 +71,12 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     elif patternSource(view, &calls) is PatternValue as item where item.number == 42
     {
         #assert(#typeof(item) == #type *PatternValue)
-        Swag.assert(item == &value)
+        Swag.require(item == &value)
         result = item.number
     }
     else do
         result = -3
-    Swag.assert(calls == 3 and result == 42)
+    Swag.require(calls == 3 and result == 42)
 }
 
 #test
@@ -91,7 +91,7 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     case PatternValue as item where item.number < 0: result = -2
     case PatternValue as item where item.number == 42:
         #assert(#typeof(item) == #type *PatternValue)
-        Swag.assert(item == &value)
+        Swag.require(item == &value)
         result = item.number
         fallthrough
     case PatternOther:         result = -3
@@ -99,11 +99,11 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     case PatternValue as item: result += item.number
     default: result = -5
     }
-    Swag.assert(calls == 1 and result == 84)
+    Swag.require(calls == 1 and result == 84)
     switch view
     {
-    case IPatternOther as other: Swag.assert(other.other() == 43)
-    default: Swag.assert(false)
+    case IPatternOther as other: Swag.require(other.other() == 43)
+    default: Swag.require(false)
     }
 }
 
@@ -111,32 +111,32 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
 {
     var value: PatternValue
     let base:  *PatternBase = &value
-    Swag.assert(base is PatternValue)
-    Swag.assert(not (base is PatternOther))
+    Swag.require(base is PatternValue)
+    Swag.require(not (base is PatternOther))
     if base is PatternValue as item do
-        Swag.assert(item == &value)
+        Swag.require(item == &value)
     else do
-        Swag.assert(false)
+        Swag.require(false)
     switch base
     {
-    case PatternOther:         Swag.assert(false)
-    case PatternValue as item: Swag.assert(item == &value)
-    default: Swag.assert(false)
+    case PatternOther:         Swag.require(false)
+    case PatternValue as item: Swag.require(item == &value)
+    default: Swag.require(false)
     }
     let readOnly: const *PatternBase = base
     if readOnly is PatternValue as item
     {
         #assert(#typeof(item) == #type const *PatternValue)
-        Swag.assert(item.number == 42)
+        Swag.require(item.number == 42)
     }
     else do
-        Swag.assert(false)
+        Swag.require(false)
     switch readOnly
     {
     case PatternValue as item:
         #assert(#typeof(item) == #type const *PatternValue)
-        Swag.assert(item.number == 42)
-    default: Swag.assert(false)
+        Swag.require(item.number == 42)
+    default: Swag.require(false)
     }
 }
 
@@ -155,8 +155,8 @@ func patternAbsent(value: any?)->bool
 {
     var storage: s32 = 42
     let boxed:   any = &storage
-    Swag.assert(boxed is s32)
-    Swag.assert(not (boxed is s64))
+    Swag.require(boxed is s32)
+    Swag.require(not (boxed is s64))
     if boxed is s32 as number
     {
         #assert(#typeof(number) == #type *s32)
@@ -164,22 +164,22 @@ func patternAbsent(value: any?)->bool
     }
     switch boxed
     {
-    case s32 as number: Swag.assert(number[] == 43)
-    default: Swag.assert(false)
+    case s32 as number: Swag.require(number[] == 43)
+    default: Swag.require(false)
     }
-    Swag.assert(not patternAbsent(null))
+    Swag.require(not patternAbsent(null))
     let missing: IPatternValue? = null
-    Swag.assert(not (missing is PatternValue))
+    Swag.require(not (missing is PatternValue))
     switch missing
     {
-    case PatternValue: Swag.assert(false)
+    case PatternValue: Swag.require(false)
     default: break
     }
     let noBase: *PatternBase? = null
-    Swag.assert(not (noBase is PatternValue))
+    Swag.require(not (noBase is PatternValue))
     switch noBase
     {
-    case PatternValue: Swag.assert(false)
+    case PatternValue: Swag.require(false)
     default: break
     }
 }
@@ -188,13 +188,13 @@ func patternType(source: typeinfo)->bool => source is IPatternValue
 
 #test
 {
-    Swag.assert(patternType(PatternValue))
-    Swag.assert(not patternType(PatternOther))
+    Swag.require(patternType(PatternValue))
+    Swag.require(not patternType(PatternOther))
     let metadata: typeinfo = PatternValue
     if metadata is Swag.TypeInfoStruct as info do
-        Swag.assert(info.fields.count != 0)
+        Swag.require(info.fields.count != 0)
     else do
-        Swag.assert(false)
+        Swag.require(false)
 }
 
 func(T) patternOverload(value: T)->s32 where T is IPatternValue and T is IPatternOther => 1
@@ -203,17 +203,17 @@ func(T) patternOverload(value: T)->s32 where not (T is IPatternValue) => 2
 #test
 {
     var value: PatternValue
-    Swag.assert(patternOverload(value) == 1)
-    Swag.assert(patternOverload(42) == 2)
+    Swag.require(patternOverload(value) == 1)
+    Swag.require(patternOverload(42) == 2)
     var calls = 0
-    Swag.assert(patternSource(&value, &calls) is PatternValue)
-    Swag.assert(calls == 1)
+    Swag.require(patternSource(&value, &calls) is PatternValue)
+    Swag.require(calls == 1)
     let boxed: any = &value
     switch boxed
     {
-    case PatternOther, s64: Swag.assert(false)
+    case PatternOther, s64: Swag.require(false)
     case PatternValue:      break
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
 }
 
@@ -222,13 +222,13 @@ func(T) patternOverload(value: T)->s32 where not (T is IPatternValue) => 2
     // An interface can expose static methods without an object. Presence follows
     // its table, as it does for the equivalent 'catch cast' interface conversion.
     let view = Swag.makeInterface(null, PatternValue, IPatternValue)
-    Swag.assert(view is IPatternOther)
-    Swag.assert(not (view is PatternValue))
+    Swag.require(view is IPatternOther)
+    Swag.require(not (view is PatternValue))
     switch view
     {
-    case PatternValue: Swag.assert(false)
-    case IPatternOther as other: Swag.assert(other != null)
-    default: Swag.assert(false)
+    case PatternValue: Swag.require(false)
+    case IPatternOther as other: Swag.require(other != null)
+    default: Swag.require(false)
     }
 }
 
@@ -254,28 +254,28 @@ func patternPointerOnly(value: *PatternBase?)->bool
 #test
 {
     var value: PatternValue
-    Swag.assert(patternPointerMatch(null) == 0)
-    Swag.assert(patternPointerMatch(&value) == 42)
-    Swag.assert(patternPointerOnly(null))
-    Swag.assert(not patternPointerOnly(&value))
+    Swag.require(patternPointerMatch(null) == 0)
+    Swag.require(patternPointerMatch(&value) == 42)
+    Swag.require(patternPointerOnly(null))
+    Swag.require(not patternPointerOnly(&value))
     let empty: *PatternBase? = null
     switch empty
     {
-    case PatternValue: Swag.assert(false)
+    case PatternValue: Swag.require(false)
     case null:         break
-    default:           Swag.assert(false)
+    default:           Swag.require(false)
     }
     let base: *PatternBase = &value
     switch base
     {
     case null, PatternValue: break
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
     switch base
     {
-    case PatternOther, null: Swag.assert(false)
+    case PatternOther, null: Swag.require(false)
     case PatternValue:       break
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
 }
 
@@ -291,5 +291,5 @@ func(T) patternGenericSwitch(value: IPatternValue, unused: *T)->s32
 #test
 {
     var value: PatternValue
-    Swag.assert(patternGenericSwitch(&value, &value) == 42)
+    Swag.require(patternGenericSwitch(&value, &value) == 42)
 }

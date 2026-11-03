@@ -28,15 +28,15 @@ func accumulate(v: s32)->s32
 
 #test
 {
-    Swag.assert(counter() == 1)
-    Swag.assert(counter() == 2)
-    Swag.assert(counter() == 3)
+    Swag.require(counter() == 1)
+    Swag.require(counter() == 2)
+    Swag.require(counter() == 3)
 
-    Swag.assert(markedCounter() == 101)
-    Swag.assert(markedCounter() == 102)
+    Swag.require(markedCounter() == 101)
+    Swag.require(markedCounter() == 102)
 
-    Swag.assert(accumulate(10) == 10)
-    Swag.assert(accumulate(20) == 30)
+    Swag.require(accumulate(10) == 10)
+    Swag.require(accumulate(20) == 30)
 }
 
 // One call site in a loop always worked: the storage is shared because there is one copy of the
@@ -53,5 +53,5 @@ func accumulate(v: s32)->s32
     var last = 0
     for 3 do
         last = looped()
-    Swag.assert(last == 3)
+    Swag.require(last == 3)
 }

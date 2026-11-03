@@ -134,37 +134,37 @@ func jitWithAutoUsingMemberReturnBindingConflictValue()->s32
 #test
 {
     const value = #run jitWithAnonymous()
-    Swag.assert(value == 813)
+    Swag.require(value == 813)
 }
 
 #test
 {
     const pair = #run jitWithRetval()
-    Swag.assert(pair.a == 21)
-    Swag.assert(pair.b == 34)
+    Swag.require(pair.a == 21)
+    Swag.require(pair.b == 34)
 }
 
 #test
 {
     const value = #run jitWithLocalInit()
-    Swag.assert(value == 2236)
+    Swag.require(value == 2236)
 }
 
 #test
 {
     const pair = #run jitWithRetvalUndefined()
-    Swag.assert(pair.a == 55)
-    Swag.assert(pair.b == 89)
+    Swag.require(pair.a == 55)
+    Swag.require(pair.b == 89)
 }
 
 #test
 {
     const value = #run jitWithLetPointer()
-    Swag.assert(value == 1324)
+    Swag.require(value == 1324)
 }
 
 #test
 {
     const value = #run jitWithAutoUsingMemberReturnBindingConflictValue()
-    Swag.assert(value == 23)
+    Swag.require(value == 23)
 }

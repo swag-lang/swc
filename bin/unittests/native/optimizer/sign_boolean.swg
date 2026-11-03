@@ -27,20 +27,20 @@ func indexedNegative32(values: const [*]s32, index: u64)->u32 => values[index] <
     for a in values
     {
         let expected = cast #bit (u64, a) >> 63
-        Swag.assert(negative(a) == expected)
-        Swag.assert(negativeNarrow(a) == expected)
-        Swag.assert(nonnegative(a) == (expected ^ 1))
-        Swag.assert(preserve(a) == (cast #bit (u64, a) ^ expected))
+        Swag.require(negative(a) == expected)
+        Swag.require(negativeNarrow(a) == expected)
+        Swag.require(nonnegative(a) == (expected ^ 1))
+        Swag.require(preserve(a) == (cast #bit (u64, a) ^ expected))
     }
     let narrow = [-2147483648's32, -1, 0, 1, 2147483647]
     for a in narrow
     {
         let expected = cast #bit (u32, a) >> 31
-        Swag.assert(negative32(a) == expected)
-        Swag.assert(negativeWide(a) == expected)
+        Swag.require(negative32(a) == expected)
+        Swag.require(negativeWide(a) == expected)
     }
     for a, index in values do
-        Swag.assert(indexedNegative(&values[0], index) == (cast #bit (u64, a) >> 63))
+        Swag.require(indexedNegative(&values[0], index) == (cast #bit (u64, a) >> 63))
     for a, index in narrow do
-        Swag.assert(indexedNegative32(&narrow[0], index) == (cast #bit (u32, a) >> 31))
+        Swag.require(indexedNegative32(&narrow[0], index) == (cast #bit (u32, a) >> 31))
 }

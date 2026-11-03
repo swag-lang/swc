@@ -41,5 +41,5 @@ func sumAcrossGather(base: const [*] s32)->f64
         g_Values[i] = cast(f64, i + 1)
 
     let table = [10's32, 20, 30, 40]
-    Swag.assert(sumAcrossGather(table.buffer) == 78.0 + 30.0)
+    Swag.require(sumAcrossGather(table.buffer) == 78.0 + 30.0)
 }

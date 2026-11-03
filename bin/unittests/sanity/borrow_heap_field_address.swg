@@ -34,7 +34,7 @@ var heapFieldAddressSaved: *s32?
     table.entries          = cast([*] HeapFieldAddressEntry, unwrap request.address)
     table.entries[0].value = 41
     heapFieldAddressSaved  = table.valueAddr()
-    Swag.assert(heapFieldAddressSaved![] == 41)
+    Swag.require(heapFieldAddressSaved![] == 41)
     heapFieldAddressSaved = null
 }
 

@@ -29,15 +29,15 @@ func highMask(a, b, c: u64)->u64 => (a & 0x10000000001) != 0 ? b : c
     {
         let low    = cast(u32, (a & 0xFFFFFFFF))
         let masked = a & 0x65
-        Swag.assert(selectBit(a, 17, 29) == ((a & 1) != 0 ? 17 : 29))
-        Swag.assert(selectLow(low, 17, 29) == ((low & 0x65) == 0 ? 17 : 29))
-        Swag.assert(selectHigh(a, 17, 29) == ((a & 0x80) != 0 ? 17 : 29))
-        Swag.assert(positive(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x7F) != 0 ? 17 : 29))
-        Swag.assert(signBoundary(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x80) != 0 ? 17 : 29))
-        Swag.assert(shared(a) == (masked != 0 ? masked ^ a : a))
-        Swag.assert(extendedRegisters(17, 29, 91, a) == (((a & 0x43) != 0 ? 17'u64 : 29) ^ 91))
-        Swag.assert(highMask(a, 17, 29) == ((a & 0x10000000001) != 0 ? 17 : 29))
+        Swag.require(selectBit(a, 17, 29) == ((a & 1) != 0 ? 17 : 29))
+        Swag.require(selectLow(low, 17, 29) == ((low & 0x65) == 0 ? 17 : 29))
+        Swag.require(selectHigh(a, 17, 29) == ((a & 0x80) != 0 ? 17 : 29))
+        Swag.require(positive(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x7F) != 0 ? 17 : 29))
+        Swag.require(signBoundary(cast(s64, (a & 0x7FFFFFFFFFFFFFFF)), 17, 29) == ((a & 0x80) != 0 ? 17 : 29))
+        Swag.require(shared(a) == (masked != 0 ? masked ^ a : a))
+        Swag.require(extendedRegisters(17, 29, 91, a) == (((a & 0x43) != 0 ? 17'u64 : 29) ^ 91))
+        Swag.require(highMask(a, 17, 29) == ((a & 0x10000000001) != 0 ? 17 : 29))
     }
-    Swag.assert(positive(-1, 17, 29) == 17)
-    Swag.assert(signBoundary(-1, 17, 29) == 17)
+    Swag.require(positive(-1, 17, 29) == 17)
+    Swag.require(signBoundary(-1, 17, 29) == 17)
 }

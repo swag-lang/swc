@@ -30,17 +30,17 @@ func shifted(a, b: u64)->u64 => ((0 - a) - b) >> 3
         for b in values
         {
             let expected = ~(a + b) + 1
-            Swag.assert(left(a, b) == expected)
-            Swag.assert(sum(a, b) == expected)
-            Swag.assert(shared(a, b) == (expected ^ (~a + 1)))
-            Swag.assert(compared(a, b) == (expected == 0))
-            Swag.assert(shifted(a, b) == expected >> 3)
+            Swag.require(left(a, b) == expected)
+            Swag.require(sum(a, b) == expected)
+            Swag.require(shared(a, b) == (expected ^ (~a + 1)))
+            Swag.require(compared(a, b) == (expected == 0))
+            Swag.require(shifted(a, b) == expected >> 3)
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(left32(lowA, lowB) == cast(u32, (expected & 0xFFFFFFFF)))
-            Swag.assert(sum32(lowA, lowB) == cast(u32, (expected & 0xFFFFFFFF)))
+            Swag.require(left32(lowA, lowB) == cast(u32, (expected & 0xFFFFFFFF)))
+            Swag.require(sum32(lowA, lowB) == cast(u32, (expected & 0xFFFFFFFF)))
         }
     }
-    Swag.assert(checked(-7, 3) == 4)
-    Swag.assert(checked(7, -3) == -4)
+    Swag.require(checked(-7, 3) == 4)
+    Swag.require(checked(7, -3) == -4)
 }

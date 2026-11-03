@@ -45,7 +45,7 @@ func slowBelow(x, y: u64)->bool => x < y
     for i in 0 until 256
     {
         let c = cast(u8, i)
-        Swag.assert(utf8Len(c) == slowUtf8Len(c))
+        Swag.require(utf8Len(c) == slowUtf8Len(c))
     }
 
     let values = [0'u64, 1, 2, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF]
@@ -56,15 +56,15 @@ func slowBelow(x, y: u64)->bool => x < y
             let x32     = cast #wrap (u32, x)
             let y32     = cast #wrap (u32, y)
             let below32 = slowBelow(cast(u64, x32), cast(u64, y32))
-            Swag.assert(belowMinusOne(x32, y32) == (below32 ? 9 : 10))
-            Swag.assert(belowPlusOne(x32, y32) == (below32 ? 11 : 10))
-            Swag.assert(wrapAround(x32, y32) == (below32 ? 0xFFFFFFFF : 0))
-            Swag.assert(negativeBelow(x32, y32) == (below32 ? -9 : -10))
-            Swag.assert(negativeNotBelow(x32, y32) == (below32 ? -10 : -9))
+            Swag.require(belowMinusOne(x32, y32) == (below32 ? 9 : 10))
+            Swag.require(belowPlusOne(x32, y32) == (below32 ? 11 : 10))
+            Swag.require(wrapAround(x32, y32) == (below32 ? 0xFFFFFFFF : 0))
+            Swag.require(negativeBelow(x32, y32) == (below32 ? -9 : -10))
+            Swag.require(negativeNotBelow(x32, y32) == (below32 ? -10 : -9))
             let below = slowBelow(x, y)
-            Swag.assert(notBelowMinusOne(x, y) == (below ? 0x100000000 : 0xFFFFFFFF))
-            Swag.assert(notBelowPlusOne(x, y) == (below ? 0xFFFFFFFFFFFFFFFF : 0))
-            Swag.assert(wideNegativeBelow(x, y) == (below ? -1000 : -1001))
+            Swag.require(notBelowMinusOne(x, y) == (below ? 0x100000000 : 0xFFFFFFFF))
+            Swag.require(notBelowPlusOne(x, y) == (below ? 0xFFFFFFFFFFFFFFFF : 0))
+            Swag.require(wideNegativeBelow(x, y) == (below ? -1000 : -1001))
         }
     }
 }

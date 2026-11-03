@@ -29,34 +29,34 @@ struct Node
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(Color))
-    Swag.assert(info.fields.count == 4)
+    Swag.require(info.fields.count == 4)
 
     var offsetSum: u32 = 0
     for i in info.fields.count do
         offsetSum += cast(u32, info.fields[i].offset)
 
     // offsets: 0, 1, 2, 3
-    Swag.assert(offsetSum == 6)
+    Swag.require(offsetSum == 6)
 }
 
 // Check field names at runtime.
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(Rect))
-    Swag.assert(info.fields[0].name == "x")
-    Swag.assert(info.fields[1].name == "y")
-    Swag.assert(info.fields[2].name == "w")
-    Swag.assert(info.fields[3].name == "h")
+    Swag.require(info.fields[0].name == "x")
+    Swag.require(info.fields[1].name == "y")
+    Swag.require(info.fields[2].name == "w")
+    Swag.require(info.fields[3].name == "h")
 }
 
 // Check field types at runtime.
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(Node))
-    Swag.assert(info.fields.count == 3)
-    Swag.assert(info.fields[0].pointedType == string)
-    Swag.assert(info.fields[1].pointedType == s32)
-    Swag.assert(info.fields[2].pointedType == bool)
+    Swag.require(info.fields.count == 3)
+    Swag.require(info.fields[0].pointedType == string)
+    Swag.require(info.fields[1].pointedType == s32)
+    Swag.require(info.fields[2].pointedType == bool)
 }
 
 // Field count and names for single-field struct.
@@ -66,9 +66,9 @@ struct Single { only: f64 }
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(Single))
-    Swag.assert(info.fields.count == 1)
-    Swag.assert(info.fields[0].name == "only")
-    Swag.assert(info.fields[0].pointedType == f64)
+    Swag.require(info.fields.count == 1)
+    Swag.require(info.fields[0].name == "only")
+    Swag.require(info.fields[0].pointedType == f64)
 }
 
 // Enum type info: iterate values at runtime.
@@ -82,11 +82,11 @@ enum Status: u8
 #test
 {
     let info = cast(const *Swag.TypeInfoEnum, #typeof(Status))
-    Swag.assert(info.rawType == u8)
-    Swag.assert(info.values.count == 3)
-    Swag.assert(info.values[0].name == "Idle")
-    Swag.assert(info.values[1].name == "Running")
-    Swag.assert(info.values[2].name == "Done")
+    Swag.require(info.rawType == u8)
+    Swag.require(info.values.count == 3)
+    Swag.require(info.values[0].name == "Idle")
+    Swag.require(info.values[1].name == "Running")
+    Swag.require(info.values[2].name == "Done")
 }
 
 // Verify sizeof through reflection matches #sizeof.
@@ -94,6 +94,6 @@ enum Status: u8
 {
     let colorInfo = cast(const *Swag.TypeInfo, #typeof(Color))
     let rectInfo  = cast(const *Swag.TypeInfo, #typeof(Rect))
-    Swag.assert(colorInfo.sizeof == #sizeof(Color))
-    Swag.assert(rectInfo.sizeof == #sizeof(Rect))
+    Swag.require(colorInfo.sizeof == #sizeof(Color))
+    Swag.require(rectInfo.sizeof == #sizeof(Rect))
 }

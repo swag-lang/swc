@@ -40,7 +40,7 @@ func dropValue(value: Owner)
     owner.owned  = true
     dropValue(owner[])
     owner.width = 17
-    Swag.assert(owner.width == 17)
+    Swag.require(owner.width == 17)
     release(owner, #sizeof(Owner))
 }
 

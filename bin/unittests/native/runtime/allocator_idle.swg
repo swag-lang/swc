@@ -73,22 +73,22 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     let segment = allocatorSegmentOf(page)
     let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
     let filled  = allocator.stats()
-    Swag.assert(filled.countPage == 3)
+    Swag.require(filled.countPage == 3)
 
     for block in held where block do
         freeOne(itf, block)
 
     // The current page and the class's spare stay; the other emptied page is idle.
     let emptied = allocator.stats()
-    Swag.assert(emptied.countPage == 2)
-    Swag.assert(emptied.countOsDecommit == filled.countOsDecommit)
-    Swag.assert(atomicGet(&segment.idleMask) & bit)
-    Swag.assert(allocatorIdleBytes() >= page.capacityBytes())
+    Swag.require(emptied.countPage == 2)
+    Swag.require(emptied.countOsDecommit == filled.countOsDecommit)
+    Swag.require(atomicGet(&segment.idleMask) & bit)
+    Swag.require(allocatorIdleBytes() >= page.capacityBytes())
 
     let other = allocOne(itf, 200)
-    Swag.assert(allocatorPageOf(cast(u64, other)) == page)
-    Swag.assert(allocator.stats().countOsCommit == emptied.countOsCommit)
-    Swag.assert((atomicGet(&segment.idleMask) & bit) == 0)
+    Swag.require(allocatorPageOf(cast(u64, other)) == page)
+    Swag.require(allocator.stats().countOsCommit == emptied.countOsCommit)
+    Swag.require((atomicGet(&segment.idleMask) & bit) == 0)
     freeOne(itf, other)
 }
 
@@ -106,22 +106,22 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
     for block in held where block do
         freeOne(itf, block)
-    Swag.assert(atomicGet(&segment.idleMask) & bit)
+    Swag.require(atomicGet(&segment.idleMask) & bit)
 
     allocator.purgeDeadline = 0
     allocator.maybePurge()
-    Swag.assert(allocator.purgeDeadline != 0)
+    Swag.require(allocator.purgeDeadline != 0)
 
     let decommits = allocator.stats().countOsDecommit
     allocator.maybePurge()
-    Swag.assert(allocator.stats().countOsDecommit == decommits)
-    Swag.assert(atomicGet(&segment.idleMask) & bit)
+    Swag.require(allocator.stats().countOsDecommit == decommits)
+    Swag.require(atomicGet(&segment.idleMask) & bit)
 
     allocator.purgeDeadline = 1
     allocator.maybePurge()
-    Swag.assert(allocator.stats().countOsDecommit > decommits)
-    Swag.assert((atomicGet(&segment.idleMask) & bit) == 0)
-    Swag.assert(allocator.purgeDeadline == 0)
+    Swag.require(allocator.stats().countOsDecommit > decommits)
+    Swag.require((atomicGet(&segment.idleMask) & bit) == 0)
+    Swag.require(allocator.purgeDeadline == 0)
 }
 
 #static if #os == Swag.TargetOs.Windows
@@ -179,23 +179,23 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         owner.itf = itf
         var tid: Th.DWORD
         let thread = Th.CreateThread(null, 0, &idleOwnerThread, &owner, 0, &tid)
-        Swag.assert(thread != null)
+        Swag.require(thread != null)
         while Swag.atomicCompareExchange(&owner.allocated, 0, 0) == 0 {}
-        Swag.assert(allocator.stats().countAlloc == owner.blocks.count)
+        Swag.require(allocator.stats().countAlloc == owner.blocks.count)
 
         for block in owner.blocks do
             freeOne(itf, block)
         let page = unwrap allocatorPageOf(cast(u64, owner.blocks[0]))
-        Swag.assert(page.remoteCount() == owner.blocks.count)
-        Swag.assert(allocator.stats().countAlloc == 0)
-        Swag.assert(allocator.stats().countPage == 1)
+        Swag.require(page.remoteCount() == owner.blocks.count)
+        Swag.require(allocator.stats().countAlloc == 0)
+        Swag.require(allocator.stats().countPage == 1)
 
         allocator.trim()
-        Swag.assert(allocator.stats().countPage == 1)
+        Swag.require(allocator.stats().countPage == 1)
 
         discard Swag.atomicExchange(&owner.release, 1)
         discard Th.WaitForSingleObject(thread, Th.INFINITE)
         Th.CloseHandle(thread)
-        Swag.assert(allocator.stats().countPage == 0)
+        Swag.require(allocator.stats().countPage == 0)
     }
 }

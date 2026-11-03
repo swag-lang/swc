@@ -31,17 +31,17 @@ func slowRotate(x: u64, bits, count: u32)->u64
     for i in 0 until 65536
     {
         let x = cast(u16, i)
-        Swag.assert(cast(u64, swapWord(x)) == slowRotate(cast(u64, x), 16, 8))
-        Swag.assert(cast(u64, rotateWordLeft3(x)) == slowRotate(cast(u64, x), 16, 3))
+        Swag.require(cast(u64, swapWord(x)) == slowRotate(cast(u64, x), 16, 8))
+        Swag.require(cast(u64, rotateWordLeft3(x)) == slowRotate(cast(u64, x), 16, 3))
     }
     for i in 0 until 256
     {
         let x = cast(u8, i)
-        Swag.assert(cast(u64, rotateByteLeft1(x)) == slowRotate(cast(u64, x), 8, 1))
-        Swag.assert(cast(u64, rotateByteRight3(x)) == slowRotate(cast(u64, x), 8, 5))
+        Swag.require(cast(u64, rotateByteLeft1(x)) == slowRotate(cast(u64, x), 8, 1))
+        Swag.require(cast(u64, rotateByteRight3(x)) == slowRotate(cast(u64, x), 8, 5))
     }
     var words: [3] u16 = [0x1234, 0xFF00, 0x00FF]
-    Swag.assert(swapWordAt(&words[0], 0) == 0x3413)
-    Swag.assert(swapWordAt(&words[0], 1) == 0x0100)
-    Swag.assert(swapWordAt(&words[0], 2) == 0xFF01)
+    Swag.require(swapWordAt(&words[0], 0) == 0x3413)
+    Swag.require(swapWordAt(&words[0], 1) == 0x0100)
+    Swag.require(swapWordAt(&words[0], 2) == 0xFF01)
 }

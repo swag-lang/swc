@@ -24,7 +24,7 @@ var g_State: s32
 
 #test
 {
-    Swag.assert(g_State == 11)
+    Swag.require(g_State == 11)
 }
 
 #drop

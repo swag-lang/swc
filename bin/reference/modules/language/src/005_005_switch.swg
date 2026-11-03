@@ -14,17 +14,17 @@ Unintentional fallthroughs are prevented by default, ensuring each `case` is iso
 
     switch value
     {
-    case 0:  Swag.assert(false)
-    case 5:  Swag.assert(false)
-    case 6:  Swag.assert(true)
-    default: Swag.assert(false)
+    case 0:  Swag.require(false)
+    case 5:  Swag.require(false)
+    case 6:  Swag.require(true)
+    default: Swag.require(false)
     }
 
     let ch = 'A'rune
 
     switch ch
     {
-    case 'B': Swag.assert(false)
+    case 'B': Swag.require(false)
     case 'A': break
     }
 }
@@ -41,8 +41,8 @@ A `case` can match multiple values, simplifying logic when several values share 
 
     switch value
     {
-    case 2, 4, 6: Swag.assert(true)
-    default:      Swag.assert(false)
+    case 2, 4, 6: Swag.require(true)
+    default:      Swag.require(false)
     }
 
     // Alternatively, list each value on its own line for clarity.
@@ -51,9 +51,9 @@ A `case` can match multiple values, simplifying logic when several values share 
     case 2,
          4,
          6:
-        Swag.assert(true)
+        Swag.require(true)
 
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
 }
 
@@ -69,9 +69,9 @@ A `case` can match multiple values, simplifying logic when several values share 
 
     switch value
     {
-    case "myString":    Swag.assert(true)
-    case "otherString": Swag.assert(false)
-    default:            Swag.assert(false)
+    case "myString":    Swag.require(true)
+    case "otherString": Swag.require(false)
+    default:            Swag.require(false)
     }
 }
 
@@ -88,8 +88,8 @@ Use `fallthrough` to intentionally continue execution into the next case.
     switch value
     {
     case 6:  fallthrough
-    case 7:  Swag.assert(value == 6)
-    default: Swag.assert(true)
+    case 7:  Swag.require(value == 6)
+    default: Swag.require(true)
     }
 }
 
@@ -108,10 +108,10 @@ Use `break` to exit a `case` early when a certain condition is met.
     case 6:
         if value == 6 do
             break
-        Swag.assert(false)
+        Swag.require(false)
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -127,9 +127,9 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 
     switch value
     {
-    case 5:  Swag.assert(false)
+    case 5:  Swag.require(false)
     case 6:  break
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
 }
 
@@ -147,9 +147,9 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 
     switch test
     {
-    case a:     Swag.assert(false)
-    case b:     Swag.assert(false)
-    case b + 1: Swag.assert(true)
+    case a:     Swag.require(false)
+    case b:     Swag.require(false)
+    case b + 1: Swag.require(true)
     }
 }
 
@@ -168,7 +168,7 @@ Ordinary constants and other case expressions remain valid.
 
     switch state
     {
-    case .Idle:  Swag.assert(false)
+    case .Idle:  Swag.require(false)
     case .Ready: break
     }
 }
@@ -195,8 +195,8 @@ declared enum value needs a `case`, and a `default` is rejected.
     switch #complete color
     {
     case .Red:   break
-    case .Green: Swag.assert(false)
-    case .Blue:  Swag.assert(false)
+    case .Green: Swag.require(false)
+    case .Blue:  Swag.require(false)
     }
 }
 
@@ -213,11 +213,11 @@ Swag supports matching a **range of values** in `case` conditions for concise ra
 
     switch x
     {
-    case 0 to 5:  Swag.assert(false)
+    case 0 to 5:  Swag.require(false)
     case 6 to 15: success = true
     }
 
-    Swag.assert(success)
+    Swag.require(success)
 }
 
 /**
@@ -234,10 +234,10 @@ When ranges overlap, the **first matching range** is executed; later overlaps ar
     switch x
     {
     case 0 to 10:    success = true
-    case 5 until 15: Swag.assert(false)
+    case 5 until 15: Swag.require(false)
     }
 
-    Swag.assert(success)
+    Swag.require(success)
 }
 
 /**
@@ -253,9 +253,9 @@ Add a `where` clause to a `case` to refine matching conditions based on addition
 
     switch x
     {
-    case 6 where y == 9:  Swag.assert(false)
-    case 6 where y == 10: Swag.assert(true)
-    default: Swag.assert(false)
+    case 6 where y == 9:  Swag.require(false)
+    case 6 where y == 10: Swag.require(true)
+    default: Swag.require(false)
     }
 }
 
@@ -271,10 +271,10 @@ A `where` clause can also modify the `default` case for conditional fallbacks.
     let y = 10
     switch x
     {
-    case 6 where y == 10:  Swag.assert(false)
-    case 7 where y == 9:   Swag.assert(false)
+    case 6 where y == 10:  Swag.require(false)
+    case 7 where y == 9:   Swag.require(false)
     default where y == 10: break
-    default: Swag.assert(false)
+    default: Swag.require(false)
     }
 }
 
@@ -299,10 +299,10 @@ lifetime. The name is visible in its case's guard and body only.
     let value: any = "value"
     switch value
     {
-    case s32: Swag.assert(false)
-    case string as text where text[] == "other": Swag.assert(false)
-    case string as text: Swag.assert(text[] == "value")
-    default:  Swag.assert(false)
+    case s32: Swag.require(false)
+    case string as text where text[] == "other": Swag.require(false)
+    case string as text: Swag.require(text[] == "value")
+    default:  Swag.require(false)
     }
 }
 
@@ -322,8 +322,8 @@ typed switch when dispatching by the dynamic type.
     var value = "value"
     switch
     {
-    case let text = findText(&value) where text[] == "value": Swag.assert(text[] == "value")
-    default: Swag.assert(false)
+    case let text = findText(&value) where text[] == "value": Swag.require(text[] == "value")
+    default: Swag.require(false)
     }
 }
 
@@ -342,13 +342,13 @@ Each `case` is evaluated in order, executing the first one that evaluates to `tr
     switch
     {
     case value == 6 or value > 10:
-        Swag.assert(true)
+        Swag.require(true)
         fallthrough
 
     case value1 == "true":
-        Swag.assert(true)
+        Swag.require(true)
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }

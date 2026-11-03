@@ -42,18 +42,18 @@ func storeBits(dst: [*] u64, value: f64)
         plane[i] = cast(u8, (i & 0x3F))
 
     storeLowRows(&out[0], 16, &plane[0], 64, 4)
-    Swag.assert(out[0] == 0 and out[1] == 2 and out[7] == 14)
-    Swag.assert(out[8] == 0 and out[16] == 0 and out[17] == 2 and out[23] == 14)
-    Swag.assert(out[48] == 0 and out[55] == 14)
+    Swag.require(out[0] == 0 and out[1] == 2 and out[7] == 14)
+    Swag.require(out[8] == 0 and out[16] == 0 and out[17] == 2 and out[23] == 14)
+    Swag.require(out[48] == 0 and out[55] == 14)
 
     let digits = cast(#simd [16] u8, [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0])
     storeLow4(&out[8], digits)
-    Swag.assert(out[8] == 9 and out[11] == 6 and out[12] == 0)
+    Swag.require(out[8] == 9 and out[11] == 6 and out[12] == 0)
 
     storeLow4Indexed(&out[0], 28, digits)
-    Swag.assert(out[27] == 0 and out[28] == 9 and out[31] == 6 and out[32] == 0)
+    Swag.require(out[27] == 0 and out[28] == 9 and out[31] == 6 and out[32] == 0)
 
     var bits: [1] u64
     storeBits(&bits[0], 1.0)
-    Swag.assert(bits[0] == 0x3FF0_0000_0000_0000)
+    Swag.require(bits[0] == 0x3FF0_0000_0000_0000)
 }

@@ -101,16 +101,16 @@ func switchNaNRange()->bool
     const a = 1.25'f32
     const b = 2.5'f32
 
-    Swag.assert(not eqF32(a, b))
-    Swag.assert(eqF32(a, a))
-    Swag.assert(neF32(a, b))
-    Swag.assert(ltF32(a, b))
-    Swag.assert(leF32(a, b))
-    Swag.assert(not gtF32(a, b))
-    Swag.assert(not geF32(a, b))
-    Swag.assert(cmpF32(a, b) == -1)
-    Swag.assert(cmpF32(b, a) == 1)
-    Swag.assert(cmpF32(a, a) == 0)
+    Swag.require(not eqF32(a, b))
+    Swag.require(eqF32(a, a))
+    Swag.require(neF32(a, b))
+    Swag.require(ltF32(a, b))
+    Swag.require(leF32(a, b))
+    Swag.require(not gtF32(a, b))
+    Swag.require(not geF32(a, b))
+    Swag.require(cmpF32(a, b) == -1)
+    Swag.require(cmpF32(b, a) == 1)
+    Swag.require(cmpF32(a, a) == 0)
 }
 
 // NaN comparison for f32
@@ -119,13 +119,13 @@ func switchNaNRange()->bool
     const a = Swag.F32.NaN
     const b = Swag.F32.NaN
 
-    Swag.assert(not eqF32(a, b))
-    Swag.assert(neF32(a, b))
-    Swag.assert(not ltF32(a, b))
-    Swag.assert(not leF32(a, b))
-    Swag.assert(not gtF32(a, b))
-    Swag.assert(not geF32(a, b))
-    Swag.assert(cmpF32(a, b) == 0)
+    Swag.require(not eqF32(a, b))
+    Swag.require(neF32(a, b))
+    Swag.require(not ltF32(a, b))
+    Swag.require(not leF32(a, b))
+    Swag.require(not gtF32(a, b))
+    Swag.require(not geF32(a, b))
+    Swag.require(cmpF32(a, b) == 0)
 }
 
 // NaN comparison for f64
@@ -134,18 +134,18 @@ func switchNaNRange()->bool
     const a = Swag.F64.NaN
     const b = Swag.F64.NaN
 
-    Swag.assert(not eqF64(a, b))
-    Swag.assert(neF64(a, b))
-    Swag.assert(not ltF64(a, b))
-    Swag.assert(not leF64(a, b))
-    Swag.assert(not gtF64(a, b))
-    Swag.assert(not geF64(a, b))
-    Swag.assert(cmpF64(a, b) == 0)
+    Swag.require(not eqF64(a, b))
+    Swag.require(neF64(a, b))
+    Swag.require(not ltF64(a, b))
+    Swag.require(not leF64(a, b))
+    Swag.require(not gtF64(a, b))
+    Swag.require(not geF64(a, b))
+    Swag.require(cmpF64(a, b) == 0)
 }
 
 // NaN in switch equality and range
 #test
 {
-    Swag.assert(switchNaNEquality())
-    Swag.assert(switchNaNRange())
+    Swag.require(switchNaNEquality())
+    Swag.require(switchNaNRange())
 }

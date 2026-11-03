@@ -93,12 +93,12 @@ impl Owner
     let outerFn = unwrap g_outer
     outerFn(0)
     // The early use must have written through the captured pointers.
-    Swag.assert(g_owner.pop == &g_item)
-    Swag.assert(g_item.a == 1)
+    Swag.require(g_owner.pop == &g_item)
+    Swag.require(g_item.a == 1)
 
     let innerFn = unwrap g_inner
     innerFn(5)
     // The nested closure must write through the re-captured pointers.
-    Swag.assert(g_color.v == (5 | 0x10) + 7)
-    Swag.assert(g_item.v == (5 | 0x10))
+    Swag.require(g_color.v == (5 | 0x10) + 7)
+    Swag.require(g_item.v == (5 | 0x10))
 }

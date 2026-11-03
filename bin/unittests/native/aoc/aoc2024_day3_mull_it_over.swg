@@ -295,13 +295,13 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let sampleStreamA = tokenizeClean(cast(const [..] u8, SampleInputA))
     let sampleCleanA  = evaluateClean(sampleStreamA)
 
-    Swag.assert(sampleStreamA.count == 4'u32)
-    Swag.assert(sampleCleanA.sumAll == 161)
-    Swag.assert(sampleCleanA.sumEnabled == 161)
+    Swag.require(sampleStreamA.count == 4'u32)
+    Swag.require(sampleCleanA.sumAll == 161)
+    Swag.require(sampleCleanA.sumEnabled == 161)
 
     let sampleFeatA = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, SampleInputA)))
-    Swag.assert(sampleFeatA.sumAll == sampleCleanA.sumAll)
-    Swag.assert(sampleFeatA.sumEnabled == sampleCleanA.sumEnabled)
+    Swag.require(sampleFeatA.sumAll == sampleCleanA.sumAll)
+    Swag.require(sampleFeatA.sumEnabled == sampleCleanA.sumEnabled)
 }
 
 #test
@@ -309,12 +309,12 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let sampleStreamB = tokenizeClean(cast(const [..] u8, SampleInputB))
     let sampleCleanB  = evaluateClean(sampleStreamB)
 
-    Swag.assert(sampleCleanB.sumAll == 161)
-    Swag.assert(sampleCleanB.sumEnabled == 48)
+    Swag.require(sampleCleanB.sumAll == 161)
+    Swag.require(sampleCleanB.sumEnabled == 48)
 
     let sampleFeatB = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, SampleInputB)))
-    Swag.assert(sampleFeatB.sumAll == sampleCleanB.sumAll)
-    Swag.assert(sampleFeatB.sumEnabled == sampleCleanB.sumEnabled)
+    Swag.require(sampleFeatB.sumAll == sampleCleanB.sumAll)
+    Swag.require(sampleFeatB.sumEnabled == sampleCleanB.sumEnabled)
 }
 
 #test
@@ -322,13 +322,13 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let edgeStream = tokenizeClean(cast(const [..] u8, EdgeInput))
     let edgeClean  = evaluateClean(edgeStream)
 
-    Swag.assert(edgeStream.count == 5'u32)
-    Swag.assert(edgeClean.sumAll == 14)
-    Swag.assert(edgeClean.sumEnabled == 10)
+    Swag.require(edgeStream.count == 5'u32)
+    Swag.require(edgeClean.sumAll == 14)
+    Swag.require(edgeClean.sumEnabled == 10)
 
     let edgeFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, EdgeInput)))
-    Swag.assert(edgeFeat.sumAll == edgeClean.sumAll)
-    Swag.assert(edgeFeat.sumEnabled == edgeClean.sumEnabled)
+    Swag.require(edgeFeat.sumAll == edgeClean.sumAll)
+    Swag.require(edgeFeat.sumEnabled == edgeClean.sumEnabled)
 }
 
 #test
@@ -336,13 +336,13 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let emptyStream = tokenizeClean(cast(const [..] u8, EmptyInput))
     let emptyClean  = evaluateClean(emptyStream)
 
-    Swag.assert(emptyStream.count == 0'u32)
-    Swag.assert(emptyClean.sumAll == 0)
-    Swag.assert(emptyClean.sumEnabled == 0)
+    Swag.require(emptyStream.count == 0'u32)
+    Swag.require(emptyClean.sumAll == 0)
+    Swag.require(emptyClean.sumEnabled == 0)
 
     let emptyFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, EmptyInput)))
-    Swag.assert(emptyFeat.sumAll == 0)
-    Swag.assert(emptyFeat.sumEnabled == 0)
+    Swag.require(emptyFeat.sumAll == 0)
+    Swag.require(emptyFeat.sumEnabled == 0)
 }
 
 #test
@@ -350,11 +350,11 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let coverageStream = tokenizeClean(cast(const [..] u8, CoverageInput))
     let coverageClean  = evaluateClean(coverageStream)
 
-    Swag.assert(coverageStream.count == 9'u32)
-    Swag.assert(coverageClean.sumAll == 81)
-    Swag.assert(coverageClean.sumEnabled == 60)
+    Swag.require(coverageStream.count == 9'u32)
+    Swag.require(coverageClean.sumAll == 81)
+    Swag.require(coverageClean.sumEnabled == 60)
 
     let coverageFeat = evaluateWithLanguageFeatures(tokenizeWithLanguageFeatures(cast(const [..] u8, CoverageInput)))
-    Swag.assert(coverageFeat.sumAll == coverageClean.sumAll)
-    Swag.assert(coverageFeat.sumEnabled == coverageClean.sumEnabled)
+    Swag.require(coverageFeat.sumAll == coverageClean.sumAll)
+    Swag.require(coverageFeat.sumEnabled == coverageClean.sumEnabled)
 }

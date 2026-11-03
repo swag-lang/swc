@@ -23,9 +23,9 @@ func byteOr7(p: const [*] u8, n, i: u64)->u32 => i >= n ? 7 : cast(u32, p[i])
     for i in 5
     {
         let inside = i < 3
-        Swag.assert(getOr0(&a[0], 3, i) == (inside ? a[i] : 0))
-        Swag.assert(getOrMinus(&b[0], 3, i) == (inside ? b[i] : -1))
-        Swag.assert(getOrFallback(&c[0], 3, i, 99) == (inside ? c[i] : 99))
-        Swag.assert(byteOr7(&d[0], 3, i) == (inside ? cast(u32, d[i]) : 7))
+        Swag.require(getOr0(&a[0], 3, i) == (inside ? a[i] : 0))
+        Swag.require(getOrMinus(&b[0], 3, i) == (inside ? b[i] : -1))
+        Swag.require(getOrFallback(&c[0], 3, i, 99) == (inside ? c[i] : 99))
+        Swag.require(byteOr7(&d[0], 3, i) == (inside ? cast(u32, d[i]) : 7))
     }
 }

@@ -19,8 +19,8 @@ func nativeAnyKindOfFunc(flag: bool)->string
     let structBox:  any      = structInfo
     let funcBox:    any      = funcInfo
 
-    Swag.assert(Swag.kindOf(structBox) == const *TypeInfoStruct)
-    Swag.assert(Swag.kindOf(funcBox) == const *TypeInfoFunc)
-    Swag.assert(assume cast (const *TypeInfoStruct, structBox).fields![1].name == "right")
-    Swag.assert(assume cast (const *TypeInfoFunc, funcBox).returnType == string)
+    Swag.require(Swag.kindOf(structBox) == const *TypeInfoStruct)
+    Swag.require(Swag.kindOf(funcBox) == const *TypeInfoFunc)
+    Swag.require(assume cast (const *TypeInfoStruct, structBox).fields![1].name == "right")
+    Swag.require(assume cast (const *TypeInfoFunc, funcBox).returnType == string)
 }

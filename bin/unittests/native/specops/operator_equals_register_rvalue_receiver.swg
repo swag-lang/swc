@@ -37,7 +37,7 @@ impl Id
     // Through the regular UFCS call path.
     var b: Id
     b.value = 42
-    Swag.assert(Id.make().sameAs(b))
+    Swag.require(Id.make().sameAs(b))
 }
 
 #test
@@ -45,7 +45,7 @@ impl Id
     // Through the explicit spec-op name.
     var b: Id
     b.value = 42
-    Swag.assert(Id.make().opEquals(b))
+    Swag.require(Id.make().opEquals(b))
 }
 
 #test
@@ -53,5 +53,5 @@ impl Id
     // Through the '==' operator.
     var b: Id
     b.value = 42
-    Swag.assert(Id.make() == b)
+    Swag.require(Id.make() == b)
 }

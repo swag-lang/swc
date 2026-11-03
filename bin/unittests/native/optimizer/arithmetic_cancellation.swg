@@ -39,17 +39,17 @@ func checkedCancellation(a, b: u64)->u64 => (a + b) - a
     {
         for b in values
         {
-            Swag.assert(cancelAddedLeft(a, b) == b)
-            Swag.assert(cancelAddedRight(a, b) == a)
-            Swag.assert(cancelSubtracted(a, b) == a)
-            Swag.assert(cancelSubtractedCommuted(a, b) == a)
+            Swag.require(cancelAddedLeft(a, b) == b)
+            Swag.require(cancelAddedRight(a, b) == a)
+            Swag.require(cancelSubtracted(a, b) == a)
+            Swag.require(cancelSubtractedCommuted(a, b) == a)
             let a32 = cast(u32, (a & 0xFFFFFFFF))
             let b32 = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(cancel32(a32, b32) == b32)
-            Swag.assert(keepSubtractionOrder(a, b) == (~b + 1))
-            Swag.assert(keepSubtractionInput(a, b) == ((a * 2) - b))
-            Swag.assert(reusedSum(a, b) == (b ^ (a + b)))
+            Swag.require(cancel32(a32, b32) == b32)
+            Swag.require(keepSubtractionOrder(a, b) == (~b + 1))
+            Swag.require(keepSubtractionInput(a, b) == ((a * 2) - b))
+            Swag.require(reusedSum(a, b) == (b ^ (a + b)))
         }
     }
-    Swag.assert(checkedCancellation(0x8000000000000000, 17) == 17)
+    Swag.require(checkedCancellation(0x8000000000000000, 17) == 17)
 }

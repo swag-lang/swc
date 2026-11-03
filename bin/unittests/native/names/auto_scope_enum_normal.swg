@@ -30,18 +30,18 @@ func isGreen(value: A)->bool
     let values: [3] A    = [.R, .G, .B]
     let matrix: [2, 2] A = [[.R, .G], [.B, .R]]
 
-    Swag.assert(value == A.G)
-    Swag.assert(isGreen(value))
-    Swag.assert(holder.value == A.B)
-    Swag.assert(values[0] == .R)
-    Swag.assert(values[1] == .G)
-    Swag.assert(values[2] == .B)
-    Swag.assert(matrix[0][0] == .R)
-    Swag.assert(matrix[0][1] == .G)
-    Swag.assert(matrix[1][0] == .B)
-    Swag.assert(matrix[1][1] == .R)
-    Swag.assert(pickA(true) == .R)
-    Swag.assert(pickA(false) == .B)
+    Swag.require(value == A.G)
+    Swag.require(isGreen(value))
+    Swag.require(holder.value == A.B)
+    Swag.require(values[0] == .R)
+    Swag.require(values[1] == .G)
+    Swag.require(values[2] == .B)
+    Swag.require(matrix[0][0] == .R)
+    Swag.require(matrix[0][1] == .G)
+    Swag.require(matrix[1][0] == .B)
+    Swag.require(matrix[1][1] == .R)
+    Swag.require(pickA(true) == .R)
+    Swag.require(pickA(false) == .B)
 }
 
 // Auto-scope enum in conditionals and reassignment
@@ -67,6 +67,6 @@ func isGreen(value: A)->bool
         total += 100
     }
 
-    Swag.assert(total == 111)
-    Swag.assert(value == .B)
+    Swag.require(total == 111)
+    Swag.require(value == .B)
 }

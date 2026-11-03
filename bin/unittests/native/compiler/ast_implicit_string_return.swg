@@ -64,5 +64,5 @@ var compilerAstImplicitStringTotal: s32
         return sb.toString()
     }
 
-    Swag.assert(compilerAstImplicitStringTotal == 17)
+    Swag.require(compilerAstImplicitStringTotal == 17)
 }

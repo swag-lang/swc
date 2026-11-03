@@ -19,7 +19,7 @@ An integer iteration count must be **non-negative**. A zero count runs no iterat
     var cpt = 0
     for 10 do
         cpt += 1
-    Swag.assert(cpt == 10)
+    Swag.require(cpt == 10)
 }
 
 /**
@@ -37,7 +37,7 @@ iteration, starting from 0. A loop that never reads its index does not have to n
         cpt += index
     }
 
-    Swag.assert(cpt == 0 + 1 + 2 + 3 + 4)
+    Swag.require(cpt == 0 + 1 + 2 + 3 + 4)
 }
 
 /**
@@ -54,7 +54,7 @@ nearest one.
             pairs += row * 10 + column
     }
 
-    Swag.assert(pairs == 63)
+    Swag.require(pairs == 63)
 }
 
 /**
@@ -108,12 +108,12 @@ instead, so a loop that indexes back into the collection counts `.count`.
     var turns = 0
     for arr do
         turns += 1
-    Swag.assert(turns == 4)
+    Swag.require(turns == 4)
 
     var cpt = 0
     for index in arr.count do
         cpt += arr[index]
-    Swag.assert(cpt == 10 + 20 + 30 + 40)
+    Swag.require(cpt == 10 + 20 + 30 + 40)
 }
 
 /**
@@ -126,7 +126,7 @@ instead, so a loop that indexes back into the collection counts `.count`.
     var cpt = 0
     for "⻘" do
         cpt += 1
-    Swag.assert(cpt == 3)
+    Swag.require(cpt == 3)
 }
 
 /**
@@ -142,11 +142,11 @@ To iterate in reverse order, iterate the zero-allocation view returned by
     for index in reversed(3)
     {
         if cpt == 0 do
-            Swag.assert(index == 2)
+            Swag.require(index == 2)
         elif cpt == 1 do
-            Swag.assert(index == 1)
+            Swag.require(index == 1)
         elif cpt == 2 do
-            Swag.assert(index == 0)
+            Swag.require(index == 0)
         cpt += 1
     }
 }
@@ -173,7 +173,7 @@ The `break` and `continue` keywords control loop flow.
         cpt += 1
     }
 
-    Swag.assert(cpt == 5)
+    Swag.require(cpt == 5)
 }
 
 /**
@@ -191,7 +191,7 @@ The `break` and `continue` keywords control loop flow.
         cpt += 1
     }
 
-    Swag.assert(cpt == 9)
+    Swag.require(cpt == 9)
 }
 
 /**
@@ -231,8 +231,8 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
         sum   += i
     }
 
-    Swag.assert(sum == 0)
-    Swag.assert(count == 3)
+    Swag.require(sum == 0)
+    Swag.require(count == 3)
 }
 
 /**
@@ -248,7 +248,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
         cpt += i
     }
 
-    Swag.assert(cpt == 1 + 2)
+    Swag.require(cpt == 1 + 2)
 }
 
 /**
@@ -270,14 +270,14 @@ zero times; this differs from slicing, which validates the requested length.
         return sum
     }
 
-    Swag.assert(sumUpTo(0) == 0)
-    Swag.assert(sumUpTo(4) == 0 + 1 + 2 + 3)
+    Swag.require(sumUpTo(0) == 0)
+    Swag.require(sumUpTo(4) == 0 + 1 + 2 + 3)
 
     // The same holds for a constant empty range, and away from zero.
     var cpt = 0
     for 7 until 7 do
         cpt += 1
-    Swag.assert(cpt == 0)
+    Swag.require(cpt == 0)
 }
 
 /**
@@ -312,7 +312,7 @@ turns keeps an ordinary variable.
         turns += 1
     }
 
-    Swag.assert(turns == 4)
+    Swag.require(turns == 4)
 }
 
 /**
@@ -336,7 +336,7 @@ Only iterations meeting the condition are executed.
         result += i
     }
 
-    Swag.assert(result == 0 + 2 + 4 + 6 + 8)
+    Swag.require(result == 0 + 2 + 4 + 6 + 8)
 }
 
 /**
@@ -354,7 +354,7 @@ Loop over the element count and use `where` to filter which indices run the body
         sumOfEvens += arr[i]
     }
 
-    Swag.assert(sumOfEvens == 10 + 30 + 50)
+    Swag.require(sumOfEvens == 10 + 30 + 50)
 }
 
 /**
@@ -372,7 +372,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
         filteredSum += arr[i]
     }
 
-    Swag.assert(filteredSum == 20 + 30)
+    Swag.require(filteredSum == 20 + 30)
 }
 
 #test
@@ -385,7 +385,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
         complexSum += arr[i]
     }
 
-    Swag.assert(complexSum == 10 + 30 + 45 + 50 + 65)
+    Swag.require(complexSum == 10 + 30 + 45 + 50 + 65)
 }
 
 /**
@@ -402,7 +402,7 @@ The `where` clause can also be applied to ranges.
         sumOfPositiveEvens += i
     }
 
-    Swag.assert(sumOfPositiveEvens == 2 + 4)
+    Swag.require(sumOfPositiveEvens == 2 + 4)
 }
 
 /**
@@ -420,7 +420,7 @@ You can combine a reverse view with `where` for conditional iteration.
         reversedSum += arr[i]
     }
 
-    Swag.assert(reversedSum == 50 + 40 + 30 + 20 + 10)
+    Swag.require(reversedSum == 50 + 40 + 30 + 20 + 10)
 }
 
 /**
@@ -435,7 +435,7 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
     // Standard syntax
     for var i = 0; i < 10; i += 1 do
         cpt += 1
-    Swag.assert(cpt == 10)
+    Swag.require(cpt == 10)
 
     // Alternative syntax with newlines
     for var i = 0; i < 10; i += 1
@@ -443,7 +443,7 @@ Swag also supports a C-style `for` loop with initialization, condition, and incr
         cpt += 1
     }
 
-    Swag.assert(cpt == 20)
+    Swag.require(cpt == 20)
 }
 
 /**
@@ -458,7 +458,7 @@ and the loop is free to start it anywhere and step it by anything.
 
     for var i: u32 = 10; i < 15; i += 1 do
         cpt += i
-    Swag.assert(cpt == 10 + 11 + 12 + 13 + 14)
+    Swag.require(cpt == 10 + 11 + 12 + 13 + 14)
 }
 
 /**
@@ -477,7 +477,7 @@ and the loop is free to start it anywhere and step it by anything.
         sum += i
     }
 
-    Swag.assert(sum == 0 + 1 + 2 + 3 + 4)
+    Swag.require(sum == 0 + 1 + 2 + 3 + 4)
 
     sum = 0
     for var i = 0; i < 10; i += 1
@@ -487,7 +487,7 @@ and the loop is free to start it anywhere and step it by anything.
         sum += i
     }
 
-    Swag.assert(sum == 1 + 3 + 5 + 7 + 9)
+    Swag.require(sum == 1 + 3 + 5 + 7 + 9)
 }
 
 /**
@@ -508,7 +508,7 @@ both.
         }
     }
 
-    Swag.assert(result == 100)
+    Swag.require(result == 100)
 }
 
 /**
@@ -526,5 +526,5 @@ You can also use `for` to iterate over arrays and collections.
         sum += array[i]
     }
 
-    Swag.assert(sum == 1 + 2 + 3 + 4 + 5)
+    Swag.require(sum == 1 + 2 + 3 + 4 + 5)
 }

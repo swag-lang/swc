@@ -28,10 +28,10 @@ func nearF64Ref(d: f64)->bool => d < 1e-9 and d > -1e-9
     let values: [14] f32 = [0.0, negZero, 0.001, -0.001, 0.0009, -0.0009, 2.5, -2.5, 2.4999, -2.5001, nan, inf, -inf, tiny]
     for v in values
     {
-        Swag.assert(nearF32(v) == nearF32Ref(v))
-        Swag.assert(withinF32(v) == withinF32Ref(v))
+        Swag.require(nearF32(v) == nearF32Ref(v))
+        Swag.require(withinF32(v) == withinF32Ref(v))
         let w = cast(f64, v)
-        Swag.assert(nearF64(w) == nearF64Ref(w))
-        Swag.assert(nearF64(w * 1e-7) == nearF64Ref(w * 1e-7))
+        Swag.require(nearF64(w) == nearF64Ref(w))
+        Swag.require(nearF64(w * 1e-7) == nearF64Ref(w * 1e-7))
     }
 }

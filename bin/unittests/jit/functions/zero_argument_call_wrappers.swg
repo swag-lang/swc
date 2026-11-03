@@ -34,12 +34,12 @@ func callValue(callback: func()->Value)->Value
 {
     Calls = 0
     let box = makeBox()
-    Swag.assert(box.value.number == 42)
+    Swag.require(box.value.number == 42)
     let value = (makeValue())
-    Swag.assert(value.number == 42)
+    Swag.require(value.number == 42)
     let called = callValue(callback: &makeValue)
-    Swag.assert(called.number == 42)
+    Swag.require(called.number == 42)
     let wrapped = Box{value: (makeValue())}
-    Swag.assert(wrapped.value.number == 42)
-    Swag.assert(Calls == 4)
+    Swag.require(wrapped.value.number == 42)
+    Swag.require(Calls == 4)
 }

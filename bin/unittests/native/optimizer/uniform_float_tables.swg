@@ -53,9 +53,9 @@ func unordered(index: u64)->u64
 {
     for index in 4'u64
     {
-        Swag.assert(positive(index) == index + 7)
-        Swag.assert(nonPositive(index) == index + 13)
-        Swag.assert(mixed(index) == index + (index == 3 ? 13 : 7))
+        Swag.require(positive(index) == index + 7)
+        Swag.require(nonPositive(index) == index + 13)
+        Swag.require(mixed(index) == index + (index == 3 ? 13 : 7))
     }
 }
 
@@ -63,13 +63,13 @@ func unordered(index: u64)->u64
 {
     for index in 4'u64
     {
-        Swag.assert(positive32(index) == index + 7)
-        Swag.assert(mixed32(index) == index + (index == 3 ? 7 : 13))
+        Swag.require(positive32(index) == index + 7)
+        Swag.require(mixed32(index) == index + (index == 3 ? 7 : 13))
     }
 }
 
 #test
 {
     for index in 4'u64 do
-        Swag.assert(unordered(index) == index + 13)
+        Swag.require(unordered(index) == index + 13)
 }

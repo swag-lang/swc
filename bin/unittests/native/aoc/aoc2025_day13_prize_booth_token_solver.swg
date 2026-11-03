@@ -73,10 +73,10 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
     let sampleReport     = analyzeMachines(sampleMachines, 0)
     let calibratedReport = analyzeMachines(sampleMachines, 10_000_000_000_000)
 
-    Swag.assert(sampleReport.solvableCount == 2'u32)
-    Swag.assert(sampleReport.totalTokenCost == 480)
-    Swag.assert(calibratedReport.solvableCount == 2'u32)
-    Swag.assert(calibratedReport.totalTokenCost == 875_318_608_908)
+    Swag.require(sampleReport.solvableCount == 2'u32)
+    Swag.require(sampleReport.totalTokenCost == 480)
+    Swag.require(calibratedReport.solvableCount == 2'u32)
+    Swag.require(calibratedReport.totalTokenCost == 875_318_608_908)
 
     const arcadeMachines: [3] PrizeMachine =
         [
@@ -88,8 +88,8 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
     let arcadeReport       = analyzeMachines(arcadeMachines, 0)
     let recalibratedArcade = analyzeMachines(arcadeMachines, 100)
 
-    Swag.assert(arcadeReport.solvableCount == 1'u32)
-    Swag.assert(arcadeReport.totalTokenCost == 7)
-    Swag.assert(recalibratedArcade.solvableCount == 2'u32)
-    Swag.assert(recalibratedArcade.totalTokenCost == 148)
+    Swag.require(arcadeReport.solvableCount == 1'u32)
+    Swag.require(arcadeReport.totalTokenCost == 7)
+    Swag.require(recalibratedArcade.solvableCount == 2'u32)
+    Swag.require(recalibratedArcade.totalTokenCost == 148)
 }

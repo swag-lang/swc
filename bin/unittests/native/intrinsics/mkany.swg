@@ -30,8 +30,8 @@ alias MkanyStrictTypeInfo = typeinfo
     let a: any = Swag.makeAny(&x, s32)
     let p      = cast(*s32, a.buffer)
 
-    Swag.assert(Swag.kindOf(a) == s32)
-    Swag.assert(p[] == 42)
+    Swag.require(Swag.kindOf(a) == s32)
+    Swag.require(p[] == 42)
 }
 
 #test
@@ -43,7 +43,7 @@ alias MkanyStrictTypeInfo = typeinfo
     b = a
     let p = cast(*s32, b.buffer)
 
-    Swag.assert(p[] == 123)
+    Swag.require(p[] == 123)
 }
 
 #test
@@ -54,9 +54,9 @@ alias MkanyStrictTypeInfo = typeinfo
     let data  = cast(*MkanyPair, a.buffer)
     let value = data[]
 
-    Swag.assert(Swag.kindOf(a) == MkanyPair)
-    Swag.assert(value.a == 11)
-    Swag.assert(value.b == 10)
+    Swag.require(Swag.kindOf(a) == MkanyPair)
+    Swag.require(value.a == 11)
+    Swag.require(value.b == 10)
 }
 
 #test
@@ -72,7 +72,7 @@ alias MkanyStrictTypeInfo = typeinfo
         acc += v * cast(s32, (i + 1))
     }
 
-    Swag.assert(acc == 91)
+    Swag.require(acc == 91)
 }
 
 #test
@@ -82,8 +82,8 @@ alias MkanyStrictTypeInfo = typeinfo
     let a: any = Swag.makeAny(ptr, s32)
     let p      = cast(*s32, a.buffer)
 
-    Swag.assert(Swag.kindOf(a) == s32)
-    Swag.assert(p[] == 55)
+    Swag.require(Swag.kindOf(a) == s32)
+    Swag.require(p[] == 55)
 }
 
 #test
@@ -92,8 +92,8 @@ alias MkanyStrictTypeInfo = typeinfo
     let a: any       = Swag.makeAny(&k, MkanyKind)
     let p            = cast(*MkanyKind, a.buffer)
 
-    Swag.assert(Swag.kindOf(a) == MkanyKind)
-    Swag.assert(p[] == MkanyKind.B)
+    Swag.require(Swag.kindOf(a) == MkanyKind)
+    Swag.require(p[] == MkanyKind.B)
 }
 
 #test
@@ -120,7 +120,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p2 = cast(*s64, c.buffer)
     let p3 = cast(*s64, d.buffer)
 
-    Swag.assert(cast(u64, (p0[] + p1[] + p2[] + p3[])) == 100'u64)
+    Swag.require(cast(u64, (p0[] + p1[] + p2[] + p3[])) == 100'u64)
 }
 
 #test
@@ -132,7 +132,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let pb       = cast(*bool, ab.buffer)
     let pr       = cast(*rune, ar.buffer)
 
-    Swag.assert(cast(s32, pb[]) + cast(s32, pr[]) == 66)
+    Swag.require(cast(s32, pb[]) + cast(s32, pr[]) == 66)
 }
 
 #test
@@ -142,8 +142,8 @@ alias MkanyStrictTypeInfo = typeinfo
     boxed = Swag.makeAny(&value, s64)
     let p = cast(*s64, boxed.buffer)
 
-    Swag.assert(Swag.kindOf(boxed) == s64)
-    Swag.assert(p[] == 9000)
+    Swag.require(Swag.kindOf(boxed) == s64)
+    Swag.require(p[] == 9000)
 }
 
 #test
@@ -154,10 +154,10 @@ alias MkanyStrictTypeInfo = typeinfo
 
     text = "beta"
 
-    Swag.assert(Swag.kindOf(boxed) == string)
-    Swag.assert(ptr[] == "beta")
-    Swag.assert((ptr[]).count == 4)
-    Swag.assert(assume cast(string, boxed) == "beta")
+    Swag.require(Swag.kindOf(boxed) == string)
+    Swag.require(ptr[] == "beta")
+    Swag.require((ptr[]).count == 4)
+    Swag.require(assume cast(string, boxed) == "beta")
 }
 
 func mkanyCastStringFromAny(value: any)->string
@@ -179,8 +179,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    Swag.assert(mkanyCastStringFromAny("gamma") == "gamma")
-    Swag.assert(mkanyCastStringToBytesFromAny("delta") == 5)
+    Swag.require(mkanyCastStringFromAny("gamma") == "gamma")
+    Swag.require(mkanyCastStringToBytesFromAny("delta") == 5)
 }
 
 #test
@@ -193,10 +193,10 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     values[1] = 77
     values    = buffer[1 to 3]
 
-    Swag.assert(Swag.kindOf(boxed) == [..] s32)
-    Swag.assert((ptr[]).count == 3)
-    Swag.assert(ptr[][0] == 77)
-    Swag.assert(ptr[][2] == 12)
+    Swag.require(Swag.kindOf(boxed) == [..] s32)
+    Swag.require((ptr[]).count == 3)
+    Swag.require(ptr[][0] == 77)
+    Swag.require(ptr[][2] == 12)
 }
 
 #test
@@ -206,8 +206,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed: any = Swag.makeAny(ptr, s32)
     let data       = cast(*s32, boxed.buffer)
 
-    Swag.assert(Swag.kindOf(boxed) == s32)
-    Swag.assert(data[] == 314)
+    Swag.require(Swag.kindOf(boxed) == s32)
+    Swag.require(data[] == 314)
 }
 
 #test
@@ -217,8 +217,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed: any = Swag.makeAny(ptr, s32)
     let data       = cast(*s32, boxed.buffer)
 
-    Swag.assert(Swag.kindOf(boxed) == s32)
-    Swag.assert(data[] == 271)
+    Swag.require(Swag.kindOf(boxed) == s32)
+    Swag.require(data[] == 271)
 }
 
 #test
@@ -228,8 +228,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed: any = Swag.makeAny(&x, info)
     let data       = cast(*s32, boxed.buffer)
 
-    Swag.assert(Swag.kindOf(boxed) == s32)
-    Swag.assert(data[] == 812)
+    Swag.require(Swag.kindOf(boxed) == s32)
+    Swag.require(data[] == 812)
 }
 
 #test
@@ -237,8 +237,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     var x = cast(MkanyStrictS32, 409)
     let boxed: any = Swag.makeAny(&x, MkanyStrictS32)
 
-    Swag.assert(Swag.kindOf(boxed) == MkanyStrictS32)
-    Swag.assert(assume cast(MkanyStrictS32, boxed) == cast(MkanyStrictS32, 409))
+    Swag.require(Swag.kindOf(boxed) == MkanyStrictS32)
+    Swag.require(assume cast(MkanyStrictS32, boxed) == cast(MkanyStrictS32, 409))
 }
 
 #test
@@ -247,8 +247,8 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let info       = #typeof(text)
     let boxed: any = Swag.makeAny(&text, info)
 
-    Swag.assert(Swag.kindOf(boxed) == string)
-    Swag.assert(assume cast(string, boxed) == "omega")
+    Swag.require(Swag.kindOf(boxed) == string)
+    Swag.require(assume cast(string, boxed) == "omega")
 }
 
 #test
@@ -259,9 +259,9 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data  = assume cast(const *s32, boxed)
     let raw   = cast(const *s32, boxed.buffer)
 
-    Swag.assert(Swag.kindOf(boxed) == s32)
-    Swag.assert(data[] == 733)
-    Swag.assert(raw[] == 733)
+    Swag.require(Swag.kindOf(boxed) == s32)
+    Swag.require(data[] == 733)
+    Swag.require(raw[] == 733)
 }
 
 #test
@@ -272,7 +272,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let data              = assume cast(const *s32, boxed)
 
     #assert(#typeof(boxed) == const any)
-    Swag.assert(data[] == 123)
+    Swag.require(data[] == 123)
 }
 
 #test
@@ -282,9 +282,9 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed                  = Swag.makeAny(&bytes, const [..] u8)
     let view                   = assume cast(const [..] u8, boxed)
 
-    Swag.assert(view.count == 3)
-    Swag.assert(view[0] == 3'u8)
-    Swag.assert(view[2] == 8'u8)
+    Swag.require(view.count == 3)
+    Swag.require(view[0] == 3'u8)
+    Swag.require(view[2] == 8'u8)
 }
 
 #test
@@ -294,9 +294,9 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed                  = Swag.makeAny(&text, const cstring)
     let view                   = assume cast(const cstring, boxed)
 
-    Swag.assert(view.count == 3)
-    Swag.assert(view[0] == 'a'u8)
-    Swag.assert(view[2] == 'y'u8)
+    Swag.require(view.count == 3)
+    Swag.require(view[0] == 'a'u8)
+    Swag.require(view[2] == 'y'u8)
 }
 
 #test
@@ -306,7 +306,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let boxed:   const any     = text
     let view = assume cast(const cstring, boxed)
 
-    Swag.assert(view.count == 5)
-    Swag.assert(view[0] == 'b'u8)
-    Swag.assert(view[4] == 'd'u8)
+    Swag.require(view.count == 5)
+    Swag.require(view[0] == 'b'u8)
+    Swag.require(view[4] == 'd'u8)
 }

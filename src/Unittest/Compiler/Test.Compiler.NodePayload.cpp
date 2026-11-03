@@ -291,7 +291,7 @@ func lateLocationLine(loc: Swag.SourceCodeLocation)->u32 => loc.lineStart + 1
 
 #test
 {
-    Swag.assert(foldedLocationCaller() != 0)
+    Swag.require(foldedLocationCaller() != 0)
 }
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NodePayload", "FoldedAggregateArgumentKeepsOneRuntimeStorage");

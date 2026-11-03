@@ -15,13 +15,13 @@ func multiply(left: Complex, right: Complex)->Complex
     let imaginary: Complex = Complex{0, 1}
     var value = imaginary
     value = multiply(value, value)
-    Swag.assert(value.x == -1 and value.y == 0)
+    Swag.require(value.x == -1 and value.y == 0)
     value = imaginary
     value = multiply(value, imaginary)
-    Swag.assert(value.x == -1 and value.y == 0)
+    Swag.require(value.x == -1 and value.y == 0)
     value = imaginary
     value = multiply(imaginary, value)
-    Swag.assert(value.x == -1 and value.y == 0)
+    Swag.require(value.x == -1 and value.y == 0)
 }
 
 // ziglang/zig#3696: repeated matrix products with the accumulator as destination.
@@ -44,8 +44,8 @@ func product(left: Matrix, right: Matrix)->Matrix
     var value          = first
     value = product(value, second)
     value = product(value, first)
-    Swag.assert(value.a == expected.a and value.b == expected.b)
-    Swag.assert(value.c == expected.c and value.d == expected.d)
-    Swag.assert(value.a == 85 and value.b == 126)
-    Swag.assert(value.c == 193 and value.d == 286)
+    Swag.require(value.a == expected.a and value.b == expected.b)
+    Swag.require(value.c == expected.c and value.d == expected.d)
+    Swag.require(value.a == 85 and value.b == 126)
+    Swag.require(value.c == 193 and value.d == 286)
 }

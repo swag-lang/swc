@@ -393,37 +393,37 @@ func solve(text: string)->SolveResult
 #test
 {
     // '7' is at (0,0)
-    Swag.assert(NumPad[7].r == 0)
-    Swag.assert(NumPad[7].c == 0)
+    Swag.require(NumPad[7].r == 0)
+    Swag.require(NumPad[7].c == 0)
     // 'A' is at (3,2)
-    Swag.assert(NumPad[10].r == 3)
-    Swag.assert(NumPad[10].c == 2)
+    Swag.require(NumPad[10].r == 3)
+    Swag.require(NumPad[10].c == 2)
     // '0' is at (3,1)
-    Swag.assert(NumPad[0].r == 3)
-    Swag.assert(NumPad[0].c == 1)
+    Swag.require(NumPad[0].r == 3)
+    Swag.require(NumPad[0].c == 1)
 }
 
 // Directional pad
 #test
 {
     // '^' at (0,1)
-    Swag.assert(DirPad[0].r == 0)
-    Swag.assert(DirPad[0].c == 1)
+    Swag.require(DirPad[0].r == 0)
+    Swag.require(DirPad[0].c == 1)
     // 'A' at (0,2)
-    Swag.assert(DirPad[1].r == 0)
-    Swag.assert(DirPad[1].c == 2)
+    Swag.require(DirPad[1].r == 0)
+    Swag.require(DirPad[1].c == 2)
     // '<' at (1,0)
-    Swag.assert(DirPad[2].r == 1)
-    Swag.assert(DirPad[2].c == 0)
+    Swag.require(DirPad[2].r == 1)
+    Swag.require(DirPad[2].c == 0)
 }
 
 // dirKeyIdx inline
 #test
 {
-    Swag.assert(dirKeyIdx(-1, 0) == 0'u32)     // ^
-    Swag.assert(dirKeyIdx(1, 0) == 3'u32)      // v
-    Swag.assert(dirKeyIdx(0, -1) == 2'u32)     // <
-    Swag.assert(dirKeyIdx(0, 1) == 4'u32)      // >
+    Swag.require(dirKeyIdx(-1, 0) == 0'u32)     // ^
+    Swag.require(dirKeyIdx(1, 0) == 3'u32)      // v
+    Swag.require(dirKeyIdx(0, -1) == 2'u32)     // <
+    Swag.require(dirKeyIdx(0, 1) == 4'u32)      // >
 }
 
 // packKey inline
@@ -431,9 +431,9 @@ func solve(text: string)->SolveResult
 {
     let k1 = packKey(0, 1, 2, true)
     let k2 = packKey(0, 1, 2, false)
-    Swag.assert(k1 != k2)
+    Swag.require(k1 != k2)
     let k3 = packKey(1, 0, 2, true)
-    Swag.assert(k1 != k3)
+    Swag.require(k1 != k3)
 }
 
 // Memo basics
@@ -444,20 +444,20 @@ func solve(text: string)->SolveResult
 
     var found: bool
     discard memoGet(&m, 42, &found)
-    Swag.assert(not found)
+    Swag.require(not found)
 
     memoPut(&m, 42, 100)
     let v = memoGet(&m, 42, &found)
-    Swag.assert(found)
-    Swag.assert(v == 100'u64)
+    Swag.require(found)
+    Swag.require(v == 100'u64)
 }
 
 // charToNumIdx
 #test
 {
-    Swag.assert(charToNumIdx('0') == 0'u32)
-    Swag.assert(charToNumIdx('9') == 9'u32)
-    Swag.assert(charToNumIdx('A') == 10'u32)
+    Swag.require(charToNumIdx('0') == 0'u32)
+    Swag.require(charToNumIdx('9') == 9'u32)
+    Swag.require(charToNumIdx('A') == 10'u32)
 }
 
 // codeNumericValue
@@ -466,7 +466,7 @@ func solve(text: string)->SolveResult
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
     let sl = Swag.makeSlice(&buf[0], 4'u64)
-    Swag.assert(codeNumericValue(sl, 4) == 29'u64)
+    Swag.require(codeNumericValue(sl, 4) == 29'u64)
 }
 
 // Depth 0: direct presses, manhattan + 1
@@ -476,14 +476,14 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     // A(10) to 0(0): A at (3,2), 0 at (3,1) → manhattan 1 + press = 2
     let c = moveCost(10, 0, 0, true, &m)
-    Swag.assert(c == 2'u64)
+    Swag.require(c == 2'u64)
 }
 
 // Sample Part 1 = 126384
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part1 == 126384'u64)
+    Swag.require(result.part1 == 126384'u64)
 }
 
 // Single code "029A" at depth 2 = 68 presses
@@ -495,14 +495,14 @@ func solve(text: string)->SolveResult
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
     let sl   = Swag.makeSlice(&buf[0], 4'u64)
     let cost = solveCode(sl, 4, 2, &m)
-    Swag.assert(cost == 68'u64)
+    Swag.require(cost == 68'u64)
 }
 
 // Part 2 is computed but no sample answer given — just verify it runs
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part2 > 0'u64)
+    Swag.require(result.part2 > 0'u64)
 }
 
 // with &ptr: exercises the fix for with-pointer codegen crash
@@ -514,6 +514,6 @@ func solve(text: string)->SolveResult
         .r = 5
         .c = 10
     }
-    Swag.assert(c.r == 5)
-    Swag.assert(c.c == 10)
+    Swag.require(c.r == 5)
+    Swag.require(c.c == 10)
 }

@@ -37,7 +37,7 @@ func contextCaptureFree(req: *AllocatorRequest)
     let beforeSize  = alloc.stats().sizeAlloc
 
     var req = contextCaptureAlloc(80)
-    Swag.assert(req.address != null)
+    Swag.require(req.address != null)
 
     let ptr = cast([*] u8, req.address)
     for i in 80 do
@@ -47,15 +47,15 @@ func contextCaptureFree(req: *AllocatorRequest)
     req.size    = 4096
     let allocItf = unwrap Swag.getContext().allocator
     allocItf.realloc(&req)
-    Swag.assert(req.address != null)
+    Swag.require(req.address != null)
 
     let grown = cast([*] u8, req.address)
     for i in 80 do
-        Swag.assert(grown[i] == cast(u8, (i + 9)))
+        Swag.require(grown[i] == cast(u8, (i + 9)))
 
     contextCaptureFree(&req)
-    Swag.assert(alloc.stats().countAlloc == beforeCount)
-    Swag.assert(alloc.stats().sizeAlloc == beforeSize)
+    Swag.require(alloc.stats().countAlloc == beforeCount)
+    Swag.require(alloc.stats().sizeAlloc == beforeSize)
 }
 
 #test
@@ -70,15 +70,15 @@ func contextCaptureFree(req: *AllocatorRequest)
     for i in 8
     {
         reqs[i] = contextCaptureAlloc(31 + cast(u64, i) * 37, i % 3 == 0 ? 64 : 0)
-        Swag.assert(reqs[i].address != null)
+        Swag.require(reqs[i].address != null)
     }
 
-    Swag.assert(alloc.stats().countAlloc == beforeCount + 8)
+    Swag.require(alloc.stats().countAlloc == beforeCount + 8)
 
     for i in 8 do
         contextCaptureFree(&reqs[i])
 
-    Swag.assert(alloc.stats().countAlloc == beforeCount)
+    Swag.require(alloc.stats().countAlloc == beforeCount)
 }
 
 #test
@@ -90,14 +90,14 @@ func contextCaptureFree(req: *AllocatorRequest)
     req.size = 112
     req.hint = "after-context-debug"
     itf.alloc(&req)
-    Swag.assert(req.address != null)
+    Swag.require(req.address != null)
 
     let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
     let tracking = unwrap header.tracking
-    Swag.assert(header.magic == Allocator.MagicAlloc)
-    Swag.assert(tracking.stackCount <= tracking.stack.count)
+    Swag.require(header.magic == Allocator.MagicAlloc)
+    Swag.require(tracking.stackCount <= tracking.stack.count)
 
     itf.free(&req)
-    Swag.assert(req.address == null)
+    Swag.require(req.address == null)
     alloc.releaseAll()
 }

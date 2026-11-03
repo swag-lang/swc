@@ -601,10 +601,10 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 // charVal inline
 #test
 {
-    Swag.assert(charVal('0') == 0'u32)
-    Swag.assert(charVal('9') == 9'u32)
-    Swag.assert(charVal('a') == 10'u32)
-    Swag.assert(charVal('z') == 35'u32)
+    Swag.require(charVal('0') == 0'u32)
+    Swag.require(charVal('9') == 9'u32)
+    Swag.require(charVal('a') == 10'u32)
+    Swag.require(charVal('z') == 35'u32)
 }
 
 // encodeWire inline
@@ -612,45 +612,45 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 {
     let z00 = encodeWire('z', '0', '0')
     let z01 = encodeWire('z', '0', '1')
-    Swag.assert(z00 != z01)
-    Swag.assert(z01 == z00 + 1)
+    Swag.require(z00 != z01)
+    Swag.require(z01 == z00 + 1)
 
     let x00 = encodeWire('x', '0', '0')
     let y00 = encodeWire('y', '0', '0')
-    Swag.assert(x00 != y00)
+    Swag.require(x00 != y00)
 }
 
 // Wire checks inline
 #test
 {
-    Swag.assert(wireIsZ('z'))
-    Swag.assert(not wireIsZ('x'))
-    Swag.assert(wireIsX('x'))
-    Swag.assert(wireIsY('y'))
-    Swag.assert(not wireIsY('z'))
+    Swag.require(wireIsZ('z'))
+    Swag.require(not wireIsZ('x'))
+    Swag.require(wireIsX('x'))
+    Swag.require(wireIsY('y'))
+    Swag.require(not wireIsY('z'))
 }
 
 // GateOp enum
 #test
 {
     var op = GateOp.OpAnd
-    Swag.assert(op == GateOp.OpAnd)
+    Swag.require(op == GateOp.OpAnd)
     op = GateOp.OpOr
-    Swag.assert(op != GateOp.OpAnd)
+    Swag.require(op != GateOp.OpAnd)
     op = GateOp.OpXor
-    Swag.assert(op == GateOp.OpXor)
+    Swag.require(op == GateOp.OpXor)
 }
 
 // evalGate inline with switch on enum
 #test
 {
-    Swag.assert(evalGate(GateOp.OpAnd, 1, 1) == 1)
-    Swag.assert(evalGate(GateOp.OpAnd, 1, 0) == 0)
-    Swag.assert(evalGate(GateOp.OpAnd, 0, 1) == 0)
-    Swag.assert(evalGate(GateOp.OpOr, 1, 0) == 1)
-    Swag.assert(evalGate(GateOp.OpOr, 0, 0) == 0)
-    Swag.assert(evalGate(GateOp.OpXor, 1, 1) == 0)
-    Swag.assert(evalGate(GateOp.OpXor, 1, 0) == 1)
+    Swag.require(evalGate(GateOp.OpAnd, 1, 1) == 1)
+    Swag.require(evalGate(GateOp.OpAnd, 1, 0) == 0)
+    Swag.require(evalGate(GateOp.OpAnd, 0, 1) == 0)
+    Swag.require(evalGate(GateOp.OpOr, 1, 0) == 1)
+    Swag.require(evalGate(GateOp.OpOr, 0, 0) == 0)
+    Swag.require(evalGate(GateOp.OpXor, 1, 1) == 0)
+    Swag.require(evalGate(GateOp.OpXor, 1, 0) == 1)
 }
 
 // Parse initial wires
@@ -668,13 +668,13 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     let y01 = encodeWire('y', '0', '1')
     let y02 = encodeWire('y', '0', '2')
 
-    Swag.assert(c.isSet(x00))
-    Swag.assert(c.getWire(x00) == 1)
-    Swag.assert(c.getWire(x01) == 1)
-    Swag.assert(c.getWire(x02) == 1)
-    Swag.assert(c.getWire(y00) == 0)
-    Swag.assert(c.getWire(y01) == 1)
-    Swag.assert(c.getWire(y02) == 0)
+    Swag.require(c.isSet(x00))
+    Swag.require(c.getWire(x00) == 1)
+    Swag.require(c.getWire(x01) == 1)
+    Swag.require(c.getWire(x02) == 1)
+    Swag.require(c.getWire(y00) == 0)
+    Swag.require(c.getWire(y01) == 1)
+    Swag.require(c.getWire(y02) == 0)
 }
 
 // Parse gates
@@ -685,11 +685,11 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 
     parseGates(&c, SampleSmallGates)
 
-    Swag.assert(c.gateCount == 3'u32)
-    Swag.assert(c.gates[0].op == GateOp.OpAnd)
-    Swag.assert(c.gates[1].op == GateOp.OpXor)
-    Swag.assert(c.gates[2].op == GateOp.OpOr)
-    Swag.assert(c.gates[0].nameOut0 == 'z')
+    Swag.require(c.gateCount == 3'u32)
+    Swag.require(c.gates[0].op == GateOp.OpAnd)
+    Swag.require(c.gates[1].op == GateOp.OpXor)
+    Swag.require(c.gates[2].op == GateOp.OpOr)
+    Swag.require(c.gates[0].nameOut0 == 'z')
 }
 
 // Small example: part 1
@@ -700,7 +700,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     // z01 = x01 XOR y01 = 1^1 = 0
     // z02 = x02 OR y02 = 1|0 = 1
     // binary: z02 z01 z00 = 100 = 4
-    Swag.assert(result == 4'u64)
+    Swag.require(result == 4'u64)
 }
 
 // Large example: gate parsing check
@@ -710,8 +710,8 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     defer circuitFree(&c)
     parseGates(&c, SampleLargeGates)
     // SampleLargeGates has 36 gates
-    Swag.assert(c.gateCount == 36'u32)
-    Swag.assert(c.maxZBit == 11'u32)
+    Swag.require(c.gateCount == 36'u32)
+    Swag.require(c.maxZBit == 11'u32)
 }
 
 // Large example: part 1
@@ -725,12 +725,12 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     parseGates(&c, SampleLargeGates)
     simulate(&c)
 
-    Swag.assert(c.getWire(encodeWire('z', '0', '0')) == 0)
-    Swag.assert(c.getWire(encodeWire('z', '0', '1')) == 0)
-    Swag.assert(c.getWire(encodeWire('z', '0', '2')) == 1)
+    Swag.require(c.getWire(encodeWire('z', '0', '0')) == 0)
+    Swag.require(c.getWire(encodeWire('z', '0', '1')) == 0)
+    Swag.require(c.getWire(encodeWire('z', '0', '2')) == 1)
 
     let val = readZValue(&c)
-    Swag.assert(val == 1956'u64)
+    Swag.require(val == 1956'u64)
 }
 
 // with &ptr block (exercises with-pointer codegen)
@@ -742,28 +742,28 @@ func solve(wiresText: string, gatesText: string)->SolveResult
         .part1    = 99
         .part2Len = 3
     }
-    Swag.assert(sr.part1 == 99'u64)
-    Swag.assert(sr.part2Len == 3'u32)
+    Swag.require(sr.part1 == 99'u64)
+    Swag.require(sr.part2Len == 3'u32)
 }
 
 // Circuit init/free (exercises dynamic memory)
 #test
 {
     var c = circuitInit()
-    Swag.assert(not c.isSet(0))
+    Swag.require(not c.isSet(0))
     c.setWire(0, 1)
-    Swag.assert(c.isSet(0))
-    Swag.assert(c.getWire(0) == 1)
+    Swag.require(c.isSet(0))
+    Swag.require(c.getWire(0) == 1)
     circuitFree(&c)
 }
 
 // isXY inline
 #test
 {
-    Swag.assert(isXY('x'))
-    Swag.assert(isXY('y'))
-    Swag.assert(not isXY('z'))
-    Swag.assert(not isXY('a'))
+    Swag.require(isXY('x'))
+    Swag.require(isXY('y'))
+    Swag.require(not isXY('z'))
+    Swag.require(not isXY('a'))
 }
 
 // addSwapped dedup (exercises struct with array of arrays)
@@ -773,7 +773,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     addSwapped(&result, 'z', '0', '1')
     addSwapped(&result, 'z', '0', '1')     // duplicate
     addSwapped(&result, 'z', '0', '2')
-    Swag.assert(result.count == 2'u32)
+    Swag.require(result.count == 2'u32)
 }
 
 // formatSwapped sorting (exercises sorting + output formatting)
@@ -787,18 +787,18 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     var buf: [64] u8
     let len = formatSwapped(&result, &buf[0], 64)
     // Should be sorted: abc,z01,z05
-    Swag.assert(len == 11'u32)
-    Swag.assert(buf[0] == 'a')
-    Swag.assert(buf[1] == 'b')
-    Swag.assert(buf[2] == 'c')
-    Swag.assert(buf[3] == ',')
-    Swag.assert(buf[4] == 'z')
-    Swag.assert(buf[5] == '0')
-    Swag.assert(buf[6] == '1')
-    Swag.assert(buf[7] == ',')
-    Swag.assert(buf[8] == 'z')
-    Swag.assert(buf[9] == '0')
-    Swag.assert(buf[10] == '5')
+    Swag.require(len == 11'u32)
+    Swag.require(buf[0] == 'a')
+    Swag.require(buf[1] == 'b')
+    Swag.require(buf[2] == 'c')
+    Swag.require(buf[3] == ',')
+    Swag.require(buf[4] == 'z')
+    Swag.require(buf[5] == '0')
+    Swag.require(buf[6] == '1')
+    Swag.require(buf[7] == ',')
+    Swag.require(buf[8] == 'z')
+    Swag.require(buf[9] == '0')
+    Swag.require(buf[10] == '5')
 }
 
 // Bit shifting for z-value construction (exercises u64 shifts)
@@ -815,7 +815,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     c.setWire(encodeWire('z', '0', '3'), 1)
 
     let val = readZValue(&c)
-    Swag.assert(val == 13'u64)
+    Swag.require(val == 13'u64)
 }
 
 // Inline returning struct via #returntype
@@ -837,11 +837,11 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 #test
 {
     let wi = makeWireInfo('z', '0', '1')
-    Swag.assert(wi.isOutput)
-    Swag.assert(wi.encoded == encodeWire('z', '0', '1'))
+    Swag.require(wi.isOutput)
+    Swag.require(wi.encoded == encodeWire('z', '0', '1'))
 
     let wi2 = makeWireInfo('x', '0', '0')
-    Swag.assert(not wi2.isOutput)
+    Swag.require(not wi2.isOutput)
 }
 
 // Nested inline calls: makeWireInfo calls encodeWire and wireIsZ (both inline)
@@ -849,7 +849,7 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 {
     let a = makeWireInfo('a', 'b', 'c')
     let b = makeWireInfo('a', 'b', 'c')
-    Swag.assert(a.encoded == b.encoded)
+    Swag.require(a.encoded == b.encoded)
 }
 
 // hasDownstream (exercises loop + enum comparison)
@@ -865,23 +865,23 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     c.gates[0].op  = GateOp.OpXor
     c.gateCount    = 1
 
-    Swag.assert(hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpXor))
-    Swag.assert(not hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpAnd))
-    Swag.assert(not hasDownstream(&c, encodeWire('z', 'z', 'z'), GateOp.OpXor))
+    Swag.require(hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpXor))
+    Swag.require(not hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpAnd))
+    Swag.require(not hasDownstream(&c, encodeWire('z', 'z', 'z'), GateOp.OpXor))
 }
 
 // Full solve with small example
 #test
 {
     let result = solve(SampleSmall, SampleSmallGates)
-    Swag.assert(result.part1 == 4'u64)
+    Swag.require(result.part1 == 4'u64)
 }
 
 // Full solve with large example
 #test
 {
     let result = solve(SampleLarge, SampleLargeGates)
-    Swag.assert(result.part1 == 1956'u64)
+    Swag.require(result.part1 == 1956'u64)
 }
 
 // Enum value equality after assignment (exercises enum codegen)
@@ -898,7 +898,7 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
         if i == 0 do expected = GateOp.OpAnd
         elif i == 1 do expected = GateOp.OpOr
         else do expected = GateOp.OpXor
-        Swag.assert(ops[i] == expected)
+        Swag.require(ops[i] == expected)
     }
 }
 
@@ -930,7 +930,7 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
         for ii in 4'u32
         {
             let result = evalGate(ops[oi], inputs[ii][0], inputs[ii][1])
-            Swag.assert(result == expected[oi][ii])
+            Swag.require(result == expected[oi][ii])
         }
     }
 }
@@ -970,5 +970,5 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     simulate(&c)
     let val = readZValue(&c)
     // a AND b = 1, then 1 XOR 1 = 0, so z00 = 0
-    Swag.assert(val == 0'u64)
+    Swag.require(val == 0'u64)
 }

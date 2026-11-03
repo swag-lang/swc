@@ -55,11 +55,11 @@ impl Owner
     DropCount = 0
     var owner: Owner
     owner.replaceDirect(181)
-    Swag.assert(owner.direct.value.value == 181)
-    Swag.assert(owner.direct.value.target![] == 181)
-    Swag.assert(DropCount == 1 and LastDropAddress != 0)
+    Swag.require(owner.direct.value.value == 181)
+    Swag.require(owner.direct.value.target![] == 181)
+    Swag.require(DropCount == 1 and LastDropAddress != 0)
     owner.replaceIndexed(1, 191)
-    Swag.assert(owner.indexed[1].value.value == 191)
-    Swag.assert(owner.indexed[1].value.target![] == 191)
-    Swag.assert(DropCount == 2)
+    Swag.require(owner.indexed[1].value.value == 191)
+    Swag.require(owner.indexed[1].value.target![] == 191)
+    Swag.require(DropCount == 2)
 }

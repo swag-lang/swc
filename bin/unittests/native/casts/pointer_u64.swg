@@ -18,8 +18,8 @@ func forwardedPointerInteger()->u64 => literalPointerInteger()
     var ptr       = cast(*void, raw)
     var roundtrip = cast(u64, ptr)
 
-    Swag.assert(roundtrip == raw)
-    Swag.assert(ptr == cast(*void, roundtrip))
+    Swag.require(roundtrip == raw)
+    Swag.require(ptr == cast(*void, roundtrip))
 }
 
 #test
@@ -28,8 +28,8 @@ func forwardedPointerInteger()->u64 => literalPointerInteger()
     var ptr       = cast([*]u8, raw)
     var roundtrip = cast(u64, ptr)
 
-    Swag.assert(roundtrip == raw)
-    Swag.assert(ptr == cast([*]u8, roundtrip))
+    Swag.require(roundtrip == raw)
+    Swag.require(ptr == cast([*]u8, roundtrip))
 }
 
 // Converting a literal address must use the loaded program's address in both backends.
@@ -37,9 +37,9 @@ func forwardedPointerInteger()->u64 => literalPointerInteger()
 {
     let literal = literalPointerInteger()
     let runtime = runtimePointerInteger(pointerTarget)
-    Swag.assert(literal == runtime)
-    Swag.assert(forwardedPointerInteger() == runtime)
-    Swag.assert(cast(const [*] u8, literal) == pointerTarget)
+    Swag.require(literal == runtime)
+    Swag.require(forwardedPointerInteger() == runtime)
+    Swag.require(cast(const [*] u8, literal) == pointerTarget)
 }
 
 // Absolute numeric pointers remain foldable constants.
@@ -47,5 +47,5 @@ func forwardedPointerInteger()->u64 => literalPointerInteger()
 {
     const pointer = cast([*] u8, 0x1234'u64)
     const integer = cast(u64, pointer)
-    Swag.assert(integer == 0x1234)
+    Swag.require(integer == 0x1234)
 }

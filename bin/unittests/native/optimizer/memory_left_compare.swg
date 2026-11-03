@@ -34,17 +34,17 @@ func ticksBelow(a: const *Stamp, t: s32)->s32 => a.ticks <= t ? 1 : 2
 {
     var a: Stamp = Stamp{year: 2026, month: 9, day: -3, ticks: -100, size: 0x8000000000000001}
     var b        = a
-    Swag.assert(same(&a, &b))
+    Swag.require(same(&a, &b))
     b.day = 4
-    Swag.assert(not same(&a, &b))
+    Swag.require(not same(&a, &b))
     b      = a
     b.size += 1
-    Swag.assert(not same(&a, &b))
+    Swag.require(not same(&a, &b))
 
-    Swag.assert(earlierDay(&a, 0))
-    Swag.assert(not earlierDay(&a, -5))
-    Swag.assert(biggerThan(&a, 5))
-    Swag.assert(not biggerThan(&a, 0xFFFFFFFFFFFFFFFF))
-    Swag.assert(ticksBelow(&a, -100) == 1)
-    Swag.assert(ticksBelow(&a, -101) == 2)
+    Swag.require(earlierDay(&a, 0))
+    Swag.require(not earlierDay(&a, -5))
+    Swag.require(biggerThan(&a, 5))
+    Swag.require(not biggerThan(&a, 0xFFFFFFFFFFFFFFFF))
+    Swag.require(ticksBelow(&a, -100) == 1)
+    Swag.require(ticksBelow(&a, -101) == 2)
 }

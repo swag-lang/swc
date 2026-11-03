@@ -38,21 +38,21 @@ struct Holder
 {
     // Suffixed literal on a plain variable.
     let direct: Angle = 10.0'deg
-    Swag.assert(direct.radians == 20.0)
+    Swag.require(direct.radians == 20.0)
 }
 
 #test
 {
     // Suffixed literal on a struct literal field.
     let holder = Holder{angle: 10.0'deg}
-    Swag.assert(holder.angle.radians == 20.0)
+    Swag.require(holder.angle.radians == 20.0)
 }
 
 #test
 {
     // Plain implicit opSet on a struct literal field, let and var destinations.
     let a = Holder{angle: 1.5}
-    Swag.assert(a.angle.radians == 1.5)
+    Swag.require(a.angle.radians == 1.5)
     var b = Holder{angle: 2.5}
-    Swag.assert(b.angle.radians == 2.5)
+    Swag.require(b.angle.radians == 2.5)
 }

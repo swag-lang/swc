@@ -45,7 +45,7 @@
         return back == null
     }
 
-    Swag.assert(nullAnyExtractDisabled())
+    Swag.require(nullAnyExtractDisabled())
 }
 
 #test
@@ -68,5 +68,5 @@
         return assume cast(s32, boxed) == 42
     }
 
-    Swag.assert(nullAnyExtractOk())
+    Swag.require(nullAnyExtractOk())
 }

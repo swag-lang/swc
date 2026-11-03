@@ -36,9 +36,9 @@ func subobjectPointerExecuteDirect(cmd: SubobjectPointerCommand)
     var cmd: SubobjectPointerCommand
     cmd.shader.shader = &subobjectPointerGlobal
     subobjectPointerExecute(cmd)
-    Swag.assert(subobjectPointerSaved == &subobjectPointerGlobal)
+    Swag.require(subobjectPointerSaved == &subobjectPointerGlobal)
     subobjectPointerExecuteDirect(cmd)
-    Swag.assert(subobjectPointerSaved == &subobjectPointerGlobal)
+    Swag.require(subobjectPointerSaved == &subobjectPointerGlobal)
 }
 
 func subobjectPointerRejectLocal()

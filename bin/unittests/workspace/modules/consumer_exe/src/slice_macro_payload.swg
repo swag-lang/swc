@@ -17,5 +17,5 @@ private func workspaceMarkdownAnchor(line: string)->String
 
 #test
 {
-    Swag.assert(workspaceMarkdownAnchor("#hello") == "hello")
+    Swag.require(workspaceMarkdownAnchor("#hello") == "hello")
 }

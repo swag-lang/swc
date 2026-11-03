@@ -69,7 +69,7 @@ func walkInsideBuffer()->s32
 
 #test
 {
-    Swag.assert(walkInsideBuffer() == 30)
+    Swag.require(walkInsideBuffer() == 30)
 }
 
 // Taking the address of an element yields a single-object pointer, which has no arithmetic:
@@ -84,5 +84,5 @@ func elementAddressIsSingleObject()->s32
 
 #test
 {
-    Swag.assert(elementAddressIsSingleObject() == 20)
+    Swag.require(elementAddressIsSingleObject() == 20)
 }

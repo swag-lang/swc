@@ -49,5 +49,5 @@ func makeFromTemporaryReceiver(holder: const *Holder)->u64
 {
     var holder: Holder
     holder.big.values[0] = 5
-    Swag.assert(makeFromTemporaryReceiver(&holder) == 5)
+    Swag.require(makeFromTemporaryReceiver(&holder) == 5)
 }

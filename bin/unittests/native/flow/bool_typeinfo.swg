@@ -43,9 +43,9 @@ using Swag
         break
     }
 
-    Swag.assert(count == 6)
-    Swag.assert(switchHit == 11)
+    Swag.require(count == 6)
+    Swag.require(switchHit == 11)
 
     intType = null
-    Swag.assert(not intType)
+    Swag.require(not intType)
 }

@@ -73,12 +73,12 @@ struct GenericHolder
     var holder: Holder
     #assert(#defined(holder.items.whenCopyable))
     #assert(not #defined(holder.items.whenNot))
-    Swag.assert(holder.items.whenCopyable() == 1)
+    Swag.require(holder.items.whenCopyable() == 1)
 }
 
 #test
 {
     var holder: GenericHolder
     #assert(#defined(holder.items.gated))
-    Swag.assert(holder.items.gated() == 3)
+    Swag.require(holder.items.gated() == 3)
 }

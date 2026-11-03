@@ -12,8 +12,8 @@ namespace compiler1643
         var c = tbl[0]
         discard c
         // Swag.print(cast(s64, c))
-        Swag.assert(tbl[0] == cast(u8, '0'rune))
-        Swag.assert(tbl[1] == cast(u8, '1'rune))
+        Swag.require(tbl[0] == cast(u8, '0'rune))
+        Swag.require(tbl[1] == cast(u8, '1'rune))
     }
 }
 
@@ -26,7 +26,7 @@ namespace compiler1644
         const tbl = "0123456789ABCDEF"
         let x = 1
         let c = tbl[x]
-        Swag.assert(c == cast(u8, '1'rune))
+        Swag.require(c == cast(u8, '1'rune))
     }
 }
 
@@ -38,7 +38,7 @@ namespace compiler1654
     {
         let s   = "%%"
         let ptr = s.buffer
-        Swag.assert(ptr[0] == cast(u8, '%'rune))
+        Swag.require(ptr[0] == cast(u8, '%'rune))
     }
 }
 
@@ -56,7 +56,7 @@ namespace compiler1673
 
     #test
     {
-        Swag.assert(toto(5) == s32)
+        Swag.require(toto(5) == s32)
     }
 }
 
@@ -74,7 +74,7 @@ namespace compiler169
     #test
     {
         var r = main()
-        Swag.assert(r == 666)
+        Swag.require(r == 666)
     }
 }
 
@@ -104,7 +104,7 @@ namespace compiler247
     #test
     {
         main1()
-        Swag.assert(main(5, 7) == 7)
+        Swag.require(main(5, 7) == 7)
     }
 }
 
@@ -121,7 +121,7 @@ namespace compiler291
 
     #test
     {
-        Swag.assert(test2("toto", "titi"))
+        Swag.require(test2("toto", "titi"))
     }
 }
 
@@ -132,10 +132,10 @@ namespace compiler292
     #test
     {
         let b = "abcd"
-        Swag.assert(b[0] == cast(u8, 'a'rune))
-        Swag.assert(b[1] == cast(u8, 'b'rune))
-        Swag.assert(b[2] == cast(u8, 'c'rune))
-        Swag.assert(b[3] == cast(u8, 'd'rune))
+        Swag.require(b[0] == cast(u8, 'a'rune))
+        Swag.require(b[1] == cast(u8, 'b'rune))
+        Swag.require(b[2] == cast(u8, 'c'rune))
+        Swag.require(b[3] == cast(u8, 'd'rune))
     }
 }
 
@@ -144,14 +144,14 @@ namespace cstring_index_runtime
     #test
     {
         var text: const cstring = cast(const cstring, ("abcd").buffer)
-        Swag.assert(text[0] == cast(u8, 'a'rune))
-        Swag.assert(text[3] == cast(u8, 'd'rune))
+        Swag.require(text[0] == cast(u8, 'a'rune))
+        Swag.require(text[3] == cast(u8, 'd'rune))
     }
 
     #test
     {
         let value = cast(const cstring, ("abcd").buffer)[2]
-        Swag.assert(value == cast(u8, 'c'rune))
+        Swag.require(value == cast(u8, 'c'rune))
     }
 }
 
@@ -162,7 +162,7 @@ namespace compiler293
     #test
     {
         let b = "XYZ"
-        Swag.assert(b[2] == cast(u8, 'Z'rune))
+        Swag.require(b[2] == cast(u8, 'Z'rune))
     }
 }
 
@@ -178,7 +178,7 @@ namespace compiler297
     #test
     {
         let c = test1()
-        Swag.assert(c == "toto1")
+        Swag.require(c == "toto1")
     }
 }
 
@@ -196,8 +196,8 @@ namespace compiler298
         var res = test2()
         // Swag.print(res);
         // Swag.print(test2.count);
-        Swag.assert(res == "toto1")
-        Swag.assert(res.count == 5)
+        Swag.require(res == "toto1")
+        Swag.require(res.count == 5)
     }
 }
 
@@ -207,8 +207,8 @@ namespace compiler299
     //
     #test
     {
-        Swag.assert(("toto").count == 4)
-        Swag.assert(("totototo").count == 8)
+        Swag.require(("toto").count == 4)
+        Swag.require(("totototo").count == 8)
     }
 }
 
@@ -220,9 +220,9 @@ namespace compiler301
     {
         var str = "toto"
         var c   = str.count
-        Swag.assert(c == 4)
+        Swag.require(c == 4)
 
-        str = "totototo"; c = str.count; Swag.assert(c == 8)
+        str = "totototo"; c = str.count; Swag.require(c == 8)
     }
 }
 
@@ -234,10 +234,10 @@ namespace compiler302
     {
         let str = "ABCD"
         let p: const [*] u8 = str.buffer
-        Swag.assert(p[0] == cast(u8, 'A'rune))
-        Swag.assert(p[1] == cast(u8, 'B'rune))
-        Swag.assert(p[2] == cast(u8, 'C'rune))
-        Swag.assert(p[3] == cast(u8, 'D'rune))
+        Swag.require(p[0] == cast(u8, 'A'rune))
+        Swag.require(p[1] == cast(u8, 'B'rune))
+        Swag.require(p[2] == cast(u8, 'C'rune))
+        Swag.require(p[3] == cast(u8, 'D'rune))
     }
 }
 
@@ -250,7 +250,7 @@ namespace compiler308
     #test
     {
         let c = g.count
-        Swag.assert(c == 4)
+        Swag.require(c == 4)
     }
 }
 
@@ -261,8 +261,8 @@ namespace compiler309
     #test
     {
         let c = "toto"
-        Swag.assert(c == "toto")
-        Swag.assert(c != "titi")
+        Swag.require(c == "toto")
+        Swag.require(c != "titi")
     }
 }
 
@@ -274,8 +274,8 @@ namespace compiler311
 
     #test
     {
-        g = "toto"; Swag.assert(g == "toto")
-        g = "titi"; Swag.assert(g == "titi")
+        g = "toto"; Swag.require(g == "toto")
+        g = "titi"; Swag.require(g == "titi")
         // Swag.print(g);
     }
 }

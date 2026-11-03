@@ -19,8 +19,8 @@ func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook:
 {
     var window: Window
     let target = create'Window(&window, Rect{40, 20, 100, 50})
-    Swag.assert(target.position.x == 40 and target.position.y == 20)
-    Swag.assert(target.position.width == 100 and target.position.height == 50)
+    Swag.require(target.position.x == 40 and target.position.y == 20)
+    Swag.require(target.position.width == 100 and target.position.height == 50)
 }
 
 // Runtime elements and reordered named fields use the same conversion boundary.
@@ -29,8 +29,8 @@ func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook:
     var window: Window
     var width  = 100
     let target = create'Window(&window, {height: 50, width: width, y: 20, x: 40})
-    Swag.assert(target.position.x == 40 and target.position.y == 20)
-    Swag.assert(target.position.width == 100 and target.position.height == 50)
+    Swag.require(target.position.x == 40 and target.position.y == 20)
+    Swag.require(target.position.width == 100 and target.position.height == 50)
 }
 
 struct Options
@@ -50,8 +50,8 @@ func readOptions(value: Options)->u64
 // An empty literal still needs the target's defaults and full storage size.
 #test
 {
-    Swag.assert(readOptions({}) == 73)
-    Swag.assert(readOptions({marker: 79}) == 79)
+    Swag.require(readOptions({}) == 73)
+    Swag.require(readOptions({marker: 79}) == 79)
 }
 
 struct Nested { rect: Rect; options: Options }
@@ -60,5 +60,5 @@ func readNested(value: Nested)->f32 => value.rect.width + value.options.height
 
 #test
 {
-    Swag.assert(readNested(Nested{Rect{40, 20, 100, 50}, Options{}}) == 150)
+    Swag.require(readNested(Nested{Rect{40, 20, 100, 50}, Options{}}) == 150)
 }

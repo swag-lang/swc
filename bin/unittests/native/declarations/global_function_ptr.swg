@@ -17,6 +17,6 @@ var GMulTwo: UnaryFn = &mulTwo
 
 #test
 {
-    Swag.assert(GAddOne(41) == 42)
-    Swag.assert(GMulTwo(21) == 42)
+    Swag.require(GAddOne(41) == 42)
+    Swag.require(GMulTwo(21) == 42)
 }

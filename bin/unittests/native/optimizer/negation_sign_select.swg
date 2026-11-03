@@ -46,15 +46,15 @@ func sharedCondition(a: s64)->u64
         let mask     = 0'u64 - sign
         let expected = (raw ^ mask) + sign
         let value    = cast #bit (s64, raw)
-        Swag.assert(positive(value) == expected)
-        Swag.assert(positiveStrict(value) == expected)
-        Swag.assert(cast #bit (u64, negative(value)) == 0'u64 - expected)
-        Swag.assert(cast #bit (u64, negativeInclusive(value)) == 0'u64 - expected)
-        Swag.assert(shared(value) == (expected ^ raw))
-        Swag.assert(sharedCondition(value) == (expected ^ sign))
+        Swag.require(positive(value) == expected)
+        Swag.require(positiveStrict(value) == expected)
+        Swag.require(cast #bit (u64, negative(value)) == 0'u64 - expected)
+        Swag.require(cast #bit (u64, negativeInclusive(value)) == 0'u64 - expected)
+        Swag.require(shared(value) == (expected ^ raw))
+        Swag.require(sharedCondition(value) == (expected ^ sign))
         let low     = cast(u32, (raw & 0xFFFFFFFF))
         let lowSign = low >> 31
         let lowMask = 0'u32 - lowSign
-        Swag.assert(positive32(cast #bit (s32, low)) == (low ^ lowMask) + lowSign)
+        Swag.require(positive32(cast #bit (s32, low)) == (low ^ lowMask) + lowSign)
     }
 }

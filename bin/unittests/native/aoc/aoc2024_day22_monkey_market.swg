@@ -239,53 +239,53 @@ func solve(text: string)->SolveResult
 {
     var s: u64 = 123
     s = evolve(s)
-    Swag.assert(s == 15887950'u64)
+    Swag.require(s == 15887950'u64)
     s = evolve(s)
-    Swag.assert(s == 16495136'u64)
+    Swag.require(s == 16495136'u64)
 }
 
 // evolveN
 #test
 {
-    Swag.assert(evolveN(1, 2000) == 8685429'u64)
-    Swag.assert(evolveN(10, 2000) == 4700978'u64)
-    Swag.assert(evolveN(100, 2000) == 15273692'u64)
-    Swag.assert(evolveN(2024, 2000) == 8667524'u64)
+    Swag.require(evolveN(1, 2000) == 8685429'u64)
+    Swag.require(evolveN(10, 2000) == 4700978'u64)
+    Swag.require(evolveN(100, 2000) == 15273692'u64)
+    Swag.require(evolveN(2024, 2000) == 8667524'u64)
 }
 
 // Parsing
 #test
 {
     let buyers = parseBuyers(SamplePart1)
-    Swag.assert(buyers.count == 4'u32)
-    Swag.assert(buyers.secrets[0] == 1'u64)
-    Swag.assert(buyers.secrets[1] == 10'u64)
-    Swag.assert(buyers.secrets[2] == 100'u64)
-    Swag.assert(buyers.secrets[3] == 2024'u64)
+    Swag.require(buyers.count == 4'u32)
+    Swag.require(buyers.secrets[0] == 1'u64)
+    Swag.require(buyers.secrets[1] == 10'u64)
+    Swag.require(buyers.secrets[2] == 100'u64)
+    Swag.require(buyers.secrets[3] == 2024'u64)
 }
 
 // Part 1
 #test
 {
     var buyers = parseBuyers(SamplePart1)
-    Swag.assert(solvePart1(&buyers, 2000) == 37327623'u64)
+    Swag.require(solvePart1(&buyers, 2000) == 37327623'u64)
 }
 
 // encodeSeq inline
 #test
 {
     let idx = encodeSeq(-2, 1, -1, 3)
-    Swag.assert(idx < SeqCount)
+    Swag.require(idx < SeqCount)
     // Different sequences give different indices
     let idx2 = encodeSeq(0, 0, 0, 0)
-    Swag.assert(idx != idx2)
+    Swag.require(idx != idx2)
 }
 
 // makeSeqResult inline + #returntype
 #test
 {
     let r = makeSeqResult(42)
-    Swag.assert(r.bestBananas == 42'u64)
+    Swag.require(r.bestBananas == 42'u64)
 }
 
 // reverse-view iteration sliding window
@@ -295,10 +295,10 @@ func solve(text: string)->SolveResult
     ch[0] = 10; ch[1] = 20; ch[2] = 30; ch[3] = 40
     for i in range(1, 4).reversed() { ch[i] = ch[i - 1] }
     ch[0] = 99
-    Swag.assert(ch[0] == 99)
-    Swag.assert(ch[1] == 10)
-    Swag.assert(ch[2] == 20)
-    Swag.assert(ch[3] == 30)
+    Swag.require(ch[0] == 99)
+    Swag.require(ch[1] == 10)
+    Swag.require(ch[2] == 20)
+    Swag.require(ch[3] == 30)
 }
 
 // Part 2 sample: best sequence gives 23 bananas
@@ -306,14 +306,14 @@ func solve(text: string)->SolveResult
 {
     var buyers = parseBuyers(SamplePart2)
     let p2     = solvePart2(&buyers, 2000)
-    Swag.assert(p2.bestBananas == 23'u64)
+    Swag.require(p2.bestBananas == 23'u64)
 }
 
 // mix and prune inline
 #test
 {
-    Swag.assert(mix(42, 15) == 37'u64)     // 42 ^ 15 = 37
-    Swag.assert(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
+    Swag.require(mix(42, 15) == 37'u64)     // 42 ^ 15 = 37
+    Swag.require(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
 }
 
 // with &ptr on Coord (exercises the with-pointer fix)
@@ -325,8 +325,8 @@ func solve(text: string)->SolveResult
         .part1 = 111
         .part2 = 222
     }
-    Swag.assert(sr.part1 == 111'u64)
-    Swag.assert(sr.part2 == 222'u64)
+    Swag.require(sr.part1 == 111'u64)
+    Swag.require(sr.part2 == 222'u64)
 }
 
 // Swag.makeSlice in inline (exercises the mkslice fix)
@@ -352,7 +352,7 @@ impl SliceBuf
     buf.data[1] = 'i'
     buf.len     = 2
     let sl = buf.asSlice()
-    Swag.assert(sl.count == 2)
-    Swag.assert(sl[0] == 'H')
-    Swag.assert(sl[1] == 'i')
+    Swag.require(sl.count == 2)
+    Swag.require(sl[0] == 'H')
+    Swag.require(sl[1] == 'i')
 }

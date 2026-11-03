@@ -17,6 +17,6 @@ struct DataOfTempArrayHolder
         }
 
     let p = (holder.cb(false)).buffer
-    Swag.assert(p[0] == 'w'u8)
-    Swag.assert(p[4] == 'd'u8)
+    Swag.require(p[0] == 'w'u8)
+    Swag.require(p[4] == 'd'u8)
 }

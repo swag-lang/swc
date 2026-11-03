@@ -41,14 +41,14 @@ func pushAfterRescale(v: *Velocity, dx: f64, scale: *f64)->f64
 {
     var v = Velocity{10.0, 20.0, 30.0}
     push(&v, 1.0, 2.0, 3.0, 4.0)
-    Swag.assert(v.vx == 6.0)
-    Swag.assert(v.vy == 28.0)
-    Swag.assert(v.vz == 18.0)
+    Swag.require(v.vx == 6.0)
+    Swag.require(v.vy == 28.0)
+    Swag.require(v.vz == 18.0)
 
-    Swag.assert(pushAndKeep(&v, 2.0, 5.0) == 38.0)
-    Swag.assert(v.vx == 16.0)
+    Swag.require(pushAndKeep(&v, 2.0, 5.0) == 38.0)
+    Swag.require(v.vx == 16.0)
 
     var scale = 3.0'f64
-    Swag.assert(pushAfterRescale(&v, 2.0, &scale) == 18.0)
-    Swag.assert(v.vx == 22.0)
+    Swag.require(pushAfterRescale(&v, 2.0, &scale) == 18.0)
+    Swag.require(v.vx == 22.0)
 }

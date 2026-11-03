@@ -44,12 +44,12 @@ func choose(flag: bool)
     {
         var source = Owner{5}
         let pair   = Pair{item: #move source, kind: 2}
-        Swag.assert(pair.item.value == 5)
-        Swag.assert(pair.kind == 2)
-        Swag.assert(source.value == 0)
-        Swag.assert(copies == 0)
+        Swag.require(pair.item.value == 5)
+        Swag.require(pair.kind == 2)
+        Swag.require(source.value == 0)
+        Swag.require(copies == 0)
     }
-    Swag.assert(drops == 5)
+    Swag.require(drops == 5)
 }
 
 #test
@@ -62,11 +62,11 @@ func choose(flag: bool)
         var first  = Owner{2}
         var second = Owner{4}
         let values: [2] Owner = [#move first, #move second]
-        Swag.assert(values[0].value == 2 and values[1].value == 4)
-        Swag.assert(first.value == 0 and second.value == 0)
-        Swag.assert(copies == 0)
+        Swag.require(values[0].value == 2 and values[1].value == 4)
+        Swag.require(first.value == 0 and second.value == 0)
+        Swag.require(copies == 0)
     }
-    Swag.assert(drops == 6)
+    Swag.require(drops == 6)
 }
 
 #test
@@ -76,7 +76,7 @@ func choose(flag: bool)
     moves  = 0
     choose(true)
     choose(false)
-    Swag.assert(drops == 20)
+    Swag.require(drops == 20)
 }
 
 func chooseCopy(flag: bool)
@@ -92,10 +92,10 @@ func chooseCopy(flag: bool)
     drops  = 0
     copies = 0
     chooseCopy(true)
-    Swag.assert(copies == 1)
+    Swag.require(copies == 1)
     chooseCopy(false)
-    Swag.assert(copies == 1)
-    Swag.assert(drops == 33)
+    Swag.require(copies == 1)
+    Swag.require(drops == 33)
 }
 
 struct Unique
@@ -135,17 +135,17 @@ func chooseUnique(flag: bool)
     drops = 0
     chooseUnique(true)
     chooseUnique(false)
-    Swag.assert(drops == 34)
+    Swag.require(drops == 34)
     scope
     {
         let pair = makePair()
         takePair(pair)
     }
-    Swag.assert(drops == 51)
+    Swag.require(drops == 51)
     var first  = Unique{8}
     var second = Unique{9}
     takePair(UniquePair{#move first, #move second})
-    Swag.assert(drops == 68)
+    Swag.require(drops == 68)
 }
 
 func readValue(owner: *Owner)->s32 => cast(s32, owner.value)
@@ -169,7 +169,7 @@ func interruptedPair() fail
 {
     dropTrace = 0
     catch interruptedPair()
-    Swag.assert(dropTrace == 21)
+    Swag.require(dropTrace == 21)
 }
 
 #test
@@ -180,10 +180,10 @@ func interruptedPair() fail
         var first  = Unique{2}
         var second = Unique{3}
         let values: [2] Unique = [(#move first), #move second]
-        Swag.assert(values[0].value == 2 and values[1].value == 3)
-        Swag.assert(first.value == 0 and second.value == 0)
+        Swag.require(values[0].value == 2 and values[1].value == 3)
+        Swag.require(first.value == 0 and second.value == 0)
     }
-    Swag.assert(drops == 5)
+    Swag.require(drops == 5)
 }
 
 struct ConstructionError { using base: Swag.BaseError }
@@ -200,7 +200,7 @@ func interruptedLiteral() fail
 {
     drops = 0
     catch interruptedLiteral()
-    Swag.assert(drops == 17)
+    Swag.require(drops == 17)
 }
 
 #test
@@ -211,11 +211,11 @@ func interruptedLiteral() fail
     {
         var source = Owner{13}
         let pair   = Pair{item: #move source, kind: readValue(&source)}
-        Swag.assert(pair.item.value == 13)
-        Swag.assert(pair.kind == 0)
+        Swag.require(pair.item.value == 13)
+        Swag.require(pair.kind == 0)
     }
-    Swag.assert(drops == 13)
-    Swag.assert(copies == 0)
+    Swag.require(drops == 13)
+    Swag.require(copies == 0)
 }
 
 func nestedSelection(flag: bool, inner: bool)
@@ -232,8 +232,8 @@ func nestedSelection(flag: bool, inner: bool)
     drops  = 0
     copies = 0
     nestedSelection(true, false)
-    Swag.assert(copies == 1)
-    Swag.assert(drops == 13)
+    Swag.require(copies == 1)
+    Swag.require(drops == 13)
 }
 
 func makeOwner()->Owner
@@ -255,8 +255,8 @@ func chooseTemporary(flag: bool)
     copies = 0
     chooseTemporary(true)
     chooseTemporary(false)
-    Swag.assert(drops == 65)
-    Swag.assert(copies == 0)
+    Swag.require(drops == 65)
+    Swag.require(copies == 0)
 }
 
 func interruptedBranch(flag: bool) fail
@@ -269,14 +269,14 @@ func interruptedBranch(flag: bool) fail
 {
     drops = 0
     catch interruptedBranch(false)
-    Swag.assert(drops == 29)
+    Swag.require(drops == 29)
 }
 
 #test
 {
     drops = 0
     catch interruptedBranch(true)
-    Swag.assert(drops == 29)
+    Swag.require(drops == 29)
 }
 
 struct AddressOwner
@@ -308,10 +308,10 @@ func addressResult(flag: bool)->AddressOwner
     scope
     {
         let selected = addressResult(true)
-        Swag.assert(selected.value == 31)
-        Swag.assert(selected.address == &selected.value)
+        Swag.require(selected.value == 31)
+        Swag.require(selected.address == &selected.value)
     }
-    Swag.assert(drops == 68)
+    Swag.require(drops == 68)
 }
 
 #test
@@ -321,7 +321,7 @@ func addressResult(flag: bool)->AddressOwner
     {
         var source   = Unique{41}
         let selected = true ? #move source : Unique{43}
-        Swag.assert(selected.value == 41)
+        Swag.require(selected.value == 41)
     }
-    Swag.assert(drops == 41)
+    Swag.require(drops == 41)
 }

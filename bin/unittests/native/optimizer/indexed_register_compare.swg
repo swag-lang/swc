@@ -15,20 +15,20 @@ func lessSigned32(values: [*] s32, index: u64, value: s32)->u32 => cast(u32, (va
 #test
 {
     var values64: [4] u64 = [0, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    Swag.assert(equal64(&values64[0], 0, 0) == 1)
-    Swag.assert(equal64(&values64[0], 2, 0x8000000000000000) == 1)
-    Swag.assert(equal64(&values64[0], 3, 0) == 0)
-    Swag.assert(below64(&values64[0], 0, 1) == 1)
-    Swag.assert(below64(&values64[0], 2, 0x7FFFFFFFFFFFFFFF) == 0)
-    Swag.assert(below64(&values64[0], 3, 0xFFFFFFFFFFFFFFFF) == 0)
+    Swag.require(equal64(&values64[0], 0, 0) == 1)
+    Swag.require(equal64(&values64[0], 2, 0x8000000000000000) == 1)
+    Swag.require(equal64(&values64[0], 3, 0) == 0)
+    Swag.require(below64(&values64[0], 0, 1) == 1)
+    Swag.require(below64(&values64[0], 2, 0x7FFFFFFFFFFFFFFF) == 0)
+    Swag.require(below64(&values64[0], 3, 0xFFFFFFFFFFFFFFFF) == 0)
 
     var values32: [4] u32 = [0, 1, 0x80000000, 0xFFFFFFFF]
-    Swag.assert(notEqual32(&values32[0], 0, 0) == 0)
-    Swag.assert(notEqual32(&values32[0], 1, 0) == 1)
-    Swag.assert(notEqual32(&values32[0], 3, 0xFFFFFFFF) == 0)
+    Swag.require(notEqual32(&values32[0], 0, 0) == 0)
+    Swag.require(notEqual32(&values32[0], 1, 0) == 1)
+    Swag.require(notEqual32(&values32[0], 3, 0xFFFFFFFF) == 0)
 
     var signed32: [4] s32 = [-2147483648's32, -1, 0, 2147483647]
-    Swag.assert(lessSigned32(&signed32[0], 0, -1) == 1)
-    Swag.assert(lessSigned32(&signed32[0], 1, -1) == 0)
-    Swag.assert(lessSigned32(&signed32[0], 3, 0) == 0)
+    Swag.require(lessSigned32(&signed32[0], 0, -1) == 1)
+    Swag.require(lessSigned32(&signed32[0], 1, -1) == 0)
+    Swag.require(lessSigned32(&signed32[0], 3, 0) == 0)
 }

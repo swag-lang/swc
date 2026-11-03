@@ -7,8 +7,8 @@
     ptr += 1
     var ptr1: const [*] s32 = cast(const [*] s32, &x)
     ptr1 += 1
-    Swag.assert(#typeof(ptr) == [*] s32)
-    Swag.assert(#typeof(ptr1) == const [*] s32)
+    Swag.require(#typeof(ptr) == [*] s32)
+    Swag.require(#typeof(ptr1) == const [*] s32)
 }
 
 enum R { A, B }
@@ -16,21 +16,21 @@ enum R { A, B }
 {
     var a: R
     a = .A
-    Swag.assert(a == .A)
+    Swag.require(a == .A)
 }
 
 #test
 {
     var a: f32
     a += 1's16
-    Swag.assert(a == 1.0)
+    Swag.require(a == 1.0)
 }
 
 #test
 {
     var a: f32
     a = 1
-    Swag.assert(a == 1.0)
+    Swag.require(a == 1.0)
 }
 
 #test
@@ -44,5 +44,5 @@ enum R { A, B }
     p -= 1
     var d: s64
     d = p - p
-    Swag.assert(d == 0)
+    Swag.require(d == 0)
 }

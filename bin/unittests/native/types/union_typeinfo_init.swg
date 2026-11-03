@@ -35,13 +35,13 @@ func unionInitHook(type: typeinfo)->bool
 
 #test
 {
-    Swag.assert(not unionInitHook(#typeof(UnionInitZero)))
-    Swag.assert(not unionInitHook(#typeof(UnionInitLatePointer)))
-    Swag.assert(unionInitHook(#typeof(UnionInitText)))
+    Swag.require(not unionInitHook(#typeof(UnionInitZero)))
+    Swag.require(not unionInitHook(#typeof(UnionInitLatePointer)))
+    Swag.require(unionInitHook(#typeof(UnionInitText)))
 
     var zero: UnionInitZero
-    Swag.assert(zero.bits == 0)
+    Swag.require(zero.bits == 0)
 
     var text: UnionInitText
-    Swag.assert(text.text == "union-init-default")
+    Swag.require(text.text == "union-init-default")
 }

@@ -12,5 +12,5 @@ func inlineCompilerSet()
 #test
 {
     #run inlineCompilerSet()
-    Swag.assert(X == 6)
+    Swag.require(X == 6)
 }

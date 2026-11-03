@@ -43,17 +43,17 @@ func below(a, b: u64)->bool => a < b
             if below(a, b)
             {
                 bit = 1
-                Swag.assert(mask(a, b) == 0xFFFFFFFFFFFFFFFF)
-                Swag.assert(offset(a, b) == 4)
-                Swag.assert(largeOffset(a, b) == 0x12345679)
-                Swag.assert(negativeOffset(a, b) == -3)
+                Swag.require(mask(a, b) == 0xFFFFFFFFFFFFFFFF)
+                Swag.require(offset(a, b) == 4)
+                Swag.require(largeOffset(a, b) == 0x12345679)
+                Swag.require(negativeOffset(a, b) == -3)
             }
             else
             {
-                Swag.assert(mask(a, b) == 0)
-                Swag.assert(offset(a, b) == 3)
-                Swag.assert(largeOffset(a, b) == 0x12345678)
-                Swag.assert(negativeOffset(a, b) == -4)
+                Swag.require(mask(a, b) == 0)
+                Swag.require(offset(a, b) == 3)
+                Swag.require(largeOffset(a, b) == 0x12345678)
+                Swag.require(negativeOffset(a, b) == -4)
             }
             let a32   = cast(u32, (a & 0xFFFFFFFF))
             let b32   = cast(u32, (b & 0xFFFFFFFF))
@@ -61,20 +61,20 @@ func below(a, b: u64)->bool => a < b
             if below(a32, b32)
             {
                 bit32 = 1
-                Swag.assert(mask32(a32, b32) == 0xFFFFFFFF)
+                Swag.require(mask32(a32, b32) == 0xFFFFFFFF)
             }
-            else do Swag.assert(mask32(a32, b32) == 0)
+            else do Swag.require(mask32(a32, b32) == 0)
             for c in values
             {
-                Swag.assert(sum(a, b, c) == c + bit)
-                Swag.assert(shared(a, b, c) == ((c + bit) ^ bit))
+                Swag.require(sum(a, b, c) == c + bit)
+                Swag.require(shared(a, b, c) == ((c + bit) ^ bit))
                 let c32 = cast(u32, (c & 0xFFFFFFFF))
-                Swag.assert(sum32(a32, b32, c32) == c32 + bit32)
-                if c + bit == 0 do Swag.assert(checked(a, b, c) == 7)
-                else do Swag.assert(checked(a, b, c) == 11)
+                Swag.require(sum32(a32, b32, c32) == c32 + bit32)
+                if c + bit == 0 do Swag.require(checked(a, b, c) == 7)
+                else do Swag.require(checked(a, b, c) == 11)
                 var expected = bit
                 if below(b, c) do expected += 1
-                Swag.assert(twice(a, b, c) == expected)
+                Swag.require(twice(a, b, c) == expected)
             }
         }
     }

@@ -113,28 +113,28 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
 
     let sampleReport = executeProgram({regA: 729'u64, regB: 0'u64, regC: 0'u64}, sampleProgram)
 
-    Swag.assert(sampleReport.finalA == 0'u64)
-    Swag.assert(sampleReport.finalB == 0'u64)
-    Swag.assert(sampleReport.finalC == 0'u64)
-    Swag.assert(sampleReport.outputCount == 10'u32)
-    Swag.assert(sampleReport.outputChecksum == 4_635_635_210'u64)
+    Swag.require(sampleReport.finalA == 0'u64)
+    Swag.require(sampleReport.finalB == 0'u64)
+    Swag.require(sampleReport.finalC == 0'u64)
+    Swag.require(sampleReport.outputCount == 10'u32)
+    Swag.require(sampleReport.outputChecksum == 4_635_635_210'u64)
 
     const outputProgram: [6] u8 = [5, 0, 5, 1, 5, 4]
     let outputReport = executeProgram({regA: 10'u64, regB: 0'u64, regC: 0'u64}, outputProgram)
 
-    Swag.assert(outputReport.outputCount == 3'u32)
-    Swag.assert(outputReport.outputChecksum == 12'u64)
-    Swag.assert(outputReport.finalA == 10'u64)
+    Swag.require(outputReport.outputCount == 3'u32)
+    Swag.require(outputReport.outputChecksum == 12'u64)
+    Swag.require(outputReport.finalA == 10'u64)
 
     const xorProgram: [2] u8 = [1, 7]
     let xorReport = executeProgram({regA: 0'u64, regB: 29'u64, regC: 0'u64}, xorProgram)
 
-    Swag.assert(xorReport.finalB == 26'u64)
-    Swag.assert(xorReport.outputCount == 0'u32)
+    Swag.require(xorReport.finalB == 26'u64)
+    Swag.require(xorReport.outputCount == 0'u32)
 
     const mixedProgram: [2] u8 = [4, 0]
     let mixedReport = executeProgram({regA: 0'u64, regB: 2024'u64, regC: 43_690'u64}, mixedProgram)
 
-    Swag.assert(mixedReport.finalB == 44_354'u64)
-    Swag.assert(mixedReport.finalC == 43_690'u64)
+    Swag.require(mixedReport.finalB == 44_354'u64)
+    Swag.require(mixedReport.finalC == 43_690'u64)
 }

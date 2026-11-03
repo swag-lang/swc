@@ -108,16 +108,16 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 
     let weekdaySchedule = buildSchedule(weekdayPrep, 2, 240, 420)
 
-    Swag.assert(weekdaySchedule.batchCount == 7)
-    Swag.assert(weekdaySchedule.steamBatchCount == 5)
-    Swag.assert(weekdaySchedule.traysProduced == 14)
-    Swag.assert(weekdaySchedule.setupCount == 3)
-    Swag.assert(weekdaySchedule.setupMinutes == 36)
-    Swag.assert(weekdaySchedule.bakeMinutes == 126)
-    Swag.assert(weekdaySchedule.ovenBusyMinutes == 162)
-    Swag.assert(weekdaySchedule.lastBakeMinute == 402)
-    Swag.assert(weekdaySchedule.finalReadyMinute == 432)
-    Swag.assert(weekdaySchedule.opensOnTime == false)
+    Swag.require(weekdaySchedule.batchCount == 7)
+    Swag.require(weekdaySchedule.steamBatchCount == 5)
+    Swag.require(weekdaySchedule.traysProduced == 14)
+    Swag.require(weekdaySchedule.setupCount == 3)
+    Swag.require(weekdaySchedule.setupMinutes == 36)
+    Swag.require(weekdaySchedule.bakeMinutes == 126)
+    Swag.require(weekdaySchedule.ovenBusyMinutes == 162)
+    Swag.require(weekdaySchedule.lastBakeMinute == 402)
+    Swag.require(weekdaySchedule.finalReadyMinute == 432)
+    Swag.require(weekdaySchedule.opensOnTime == false)
 
     const marketPrep: [3] BakeOrder =
         [
@@ -128,14 +128,14 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 
     let marketSchedule = buildSchedule(marketPrep, 3, 180, 390)
 
-    Swag.assert(marketSchedule.batchCount == 5)
-    Swag.assert(marketSchedule.steamBatchCount == 2)
-    Swag.assert(marketSchedule.traysProduced == 14)
-    Swag.assert(marketSchedule.setupCount == 3)
-    Swag.assert(marketSchedule.setupMinutes == 36)
-    Swag.assert(marketSchedule.bakeMinutes == 100)
-    Swag.assert(marketSchedule.ovenBusyMinutes == 136)
-    Swag.assert(marketSchedule.lastBakeMinute == 316)
-    Swag.assert(marketSchedule.finalReadyMinute == 351)
-    Swag.assert(marketSchedule.opensOnTime)
+    Swag.require(marketSchedule.batchCount == 5)
+    Swag.require(marketSchedule.steamBatchCount == 2)
+    Swag.require(marketSchedule.traysProduced == 14)
+    Swag.require(marketSchedule.setupCount == 3)
+    Swag.require(marketSchedule.setupMinutes == 36)
+    Swag.require(marketSchedule.bakeMinutes == 100)
+    Swag.require(marketSchedule.ovenBusyMinutes == 136)
+    Swag.require(marketSchedule.lastBakeMinute == 316)
+    Swag.require(marketSchedule.finalReadyMinute == 351)
+    Swag.require(marketSchedule.opensOnTime)
 }

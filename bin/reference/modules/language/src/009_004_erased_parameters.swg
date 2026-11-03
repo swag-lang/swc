@@ -45,7 +45,7 @@ var g_EraseSlider: EraseSlider
     var animation: EraseAnimation
     animation.start(&g_EraseSlider, func(slider, value) { slider.progress = value })
     animation.step(0.25)
-    Swag.assert(g_EraseSlider.progress == 0.25)
+    Swag.require(g_EraseSlider.progress == 0.25)
 }
 
 /**
@@ -71,9 +71,9 @@ func(T is EraseWidget) eraseShow(target: *T)->bool
 {
     var slider:  EraseSlider
     var counter: EraseCounter
-    Swag.assert(eraseShow(&slider))
-    Swag.assert(eraseShow(&counter))
-    Swag.assert(eraseShow(&counter.widget))
+    Swag.require(eraseShow(&slider))
+    Swag.require(eraseShow(&counter))
+    Swag.require(eraseShow(&counter.widget))
 }
 
 /**
@@ -99,8 +99,8 @@ func(T is EraseWidget) eraseName(_: *T)->string => #typeof(T).name orelse ""
 {
     var slider:  EraseSlider
     var counter: EraseCounter
-    Swag.assert(eraseName(&slider) == "T")
-    Swag.assert(eraseName(&counter) == "T")
+    Swag.require(eraseName(&slider) == "T")
+    Swag.require(eraseName(&counter) == "T")
 }
 
 /**
@@ -127,7 +127,7 @@ func eraseHide(widget: *EraseWidget, _: f32)
     slider.visible = true
     animation.start(&slider, &eraseHide)
     animation.step(1)
-    Swag.assert(not slider.visible)
+    Swag.require(not slider.visible)
 }
 
 /**

@@ -184,7 +184,7 @@ func returnParameter(pointer: *s32)->*s32
 
 #test
 {
-    Swag.assert(returnAddressOfGlobal() == &globalValue)
-    Swag.assert(returnSliceOfGlobal().count == 4)
-    Swag.assert(returnParameter(&globalValue) == &globalValue)
+    Swag.require(returnAddressOfGlobal() == &globalValue)
+    Swag.require(returnSliceOfGlobal().count == 4)
+    Swag.require(returnParameter(&globalValue) == &globalValue)
 }

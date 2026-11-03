@@ -77,5 +77,5 @@ func forwardMoveDefer(seed: s32)->MovePayload fail
     check(c.value == Seed * 3, 63)
     check(MoveCopies == bareCopies, 64)
 
-    Swag.assert(a.value == b.value and b.value == c.value)
+    Swag.require(a.value == b.value and b.value == c.value)
 }

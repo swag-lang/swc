@@ -127,7 +127,7 @@ func constAccessorDoesNotInvalidate()->s32
 
 #test
 {
-    Swag.assert(pointerToTheBagSurvives() == 2)
-    Swag.assert(viewRetakenAfterGrowth() == 1)
-    Swag.assert(constAccessorDoesNotInvalidate() == 14)
+    Swag.require(pointerToTheBagSurvives() == 2)
+    Swag.require(viewRetakenAfterGrowth() == 1)
+    Swag.require(constAccessorDoesNotInvalidate() == 14)
 }

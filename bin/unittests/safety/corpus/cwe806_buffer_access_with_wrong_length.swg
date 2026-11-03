@@ -64,5 +64,5 @@ func viewFromSizedValue()->s64
 
 #test
 {
-    Swag.assert(viewFromSizedValue() == 4)
+    Swag.require(viewFromSizedValue() == 4)
 }

@@ -34,17 +34,17 @@ impl Vector3
 
     // Copy semantics: drop 'a' (if needed), copy 'b' to 'a', then call 'opPostCopy' on 'a'.
     a = b
-    Swag.assert(a.x == 101)
-    Swag.assert(a.y == 201)
-    Swag.assert(a.z == 301)
+    Swag.require(a.x == 101)
+    Swag.require(a.y == 201)
+    Swag.require(a.z == 301)
 
     // Move semantics with '#move': drop 'a' (if needed), move 'b' to 'a', then call 'opPostMove' on 'a'.
     // With 'opDrop' present, 'b' is reinitialized to defaults (666).
     a = #move b
-    Swag.assert(a.x == 102)
-    Swag.assert(a.y == 202)
-    Swag.assert(a.z == 302)
-    Swag.assert(b.x == 666)
+    Swag.require(a.x == 102)
+    Swag.require(a.y == 202)
+    Swag.require(a.z == 302)
+    Swag.require(b.x == 666)
 
     // '#nodrop' skips the initial drop of 'a'.
     a = #nodrop b           // Copy without dropping 'a' first.
@@ -83,8 +83,8 @@ func readSnapshot(value: Vector3, original: *Vector3)->s32
 {
     var original = Vector3{10, 20, 30}
     let observed = readSnapshot(#copy original, &original)
-    Swag.assert(observed == 11)
-    Swag.assert(original.x == 0)
+    Swag.require(observed == 11)
+    Swag.require(original.x == 0)
 }
 
 /**
@@ -144,25 +144,25 @@ impl MovedField
 {
     var source = Vector3{1, 2, 3}
     let field  = MovedField{#move source}
-    Swag.assert(source.x == 666)
-    Swag.assert(field.value.x > 1)
+    Swag.require(source.x == 666)
+    Swag.require(field.value.x > 1)
 
     var first  = Vector3{10, 20, 30}
     var second = Vector3{40, 50, 60}
     let values = [#move first, #move second]
-    Swag.assert(first.x == 666 and second.x == 666)
-    Swag.assert(values[0].x > 10 and values[1].x > 40)
+    Swag.require(first.x == 666 and second.x == 666)
+    Swag.require(values[0].x > 10 and values[1].x > 40)
 
     var left     = Vector3{100, 200, 300}
     var right    = Vector3{400, 500, 600}
     let selected = left.x < right.x ? #move left : #move right
-    Swag.assert(left.x == 666)
-    Swag.assert(right.x == 400)
-    Swag.assert(selected.x > 100)
+    Swag.require(left.x == 666)
+    Swag.require(right.x == 400)
+    Swag.require(selected.x > 100)
 
     var holder = MovedField{Vector3{7, 8, 9}}
     let taken  = holder.takeValue()
-    Swag.assert(taken.x > 7 and holder.value.x == 666)
+    Swag.require(taken.x > 7 and holder.value.x == 666)
 }
 
 /**
@@ -273,13 +273,13 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 
     // Copy path.
     assign(&b, a)
-    Swag.assert(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
-    Swag.assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
+    Swag.require(b.x == 2 and b.y == 3 and b.z == 4)     // +1 via 'opPostCopy'.
+    Swag.require(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move path: '#move' transfers 'a' into the parameter.
     assign(&b, #move a)
-    Swag.assert(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
-    Swag.assert(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
+    Swag.require(b.x == 3 and b.y == 4 and b.z == 5)           // +2 via 'opPostMove'.
+    Swag.require(a.x == 666 and a.y == 666 and a.z == 666)     // 'a' reset to defaults after move.
 }
 
 #test
@@ -296,11 +296,11 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
 
     // Copy call style: 'a' is copied into a temporary (+1), the temporary is moved (+2).
     assign(&b, a)
-    Swag.assert(b.x == 4 and b.y == 5 and b.z == 6)
-    Swag.assert(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
+    Swag.require(b.x == 4 and b.y == 5 and b.z == 6)
+    Swag.require(a.x == 1 and a.y == 2 and a.z == 3)     // 'a' unchanged.
 
     // Move call style: zero extra cost.
     assign(&b, #move a)
-    Swag.assert(b.x == 3 and b.y == 4 and b.z == 5)
-    Swag.assert(a.x == 666 and a.y == 666 and a.z == 666)
+    Swag.require(b.x == 3 and b.y == 4 and b.z == 5)
+    Swag.require(a.x == 666 and a.y == 666 and a.z == 666)
 }

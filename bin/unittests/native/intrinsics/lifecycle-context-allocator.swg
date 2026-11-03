@@ -346,44 +346,44 @@ const MemoryRunInfo = #run memoryAllocatorRunDropInfo()
 
 #test
 {
-    Swag.assert(DirectRunInfo.firstTrace == 4)
-    Swag.assert(DirectRunInfo.secondTrace == 30_700_000_005)
-    Swag.assert(DirectRunInfo.count == 5)
-    Swag.assert(DirectRunInfo.capacity == 5)
+    Swag.require(DirectRunInfo.firstTrace == 4)
+    Swag.require(DirectRunInfo.secondTrace == 30_700_000_005)
+    Swag.require(DirectRunInfo.count == 5)
+    Swag.require(DirectRunInfo.capacity == 5)
 
     let v = directAllocatorRunInitInfo()
-    Swag.assert(v.firstTrace == DirectRunInfo.firstTrace)
-    Swag.assert(v.secondTrace == DirectRunInfo.secondTrace)
-    Swag.assert(v.count == DirectRunInfo.count)
-    Swag.assert(v.capacity == DirectRunInfo.capacity)
+    Swag.require(v.firstTrace == DirectRunInfo.firstTrace)
+    Swag.require(v.secondTrace == DirectRunInfo.secondTrace)
+    Swag.require(v.count == DirectRunInfo.count)
+    Swag.require(v.capacity == DirectRunInfo.capacity)
 }
 
 #test
 {
-    Swag.assert(HelperRunInfo.firstTrace == 3)
-    Swag.assert(HelperRunInfo.secondTrace == 400000004)
-    Swag.assert(HelperRunInfo.count == 4)
-    Swag.assert(HelperRunInfo.capacity == 4)
+    Swag.require(HelperRunInfo.firstTrace == 3)
+    Swag.require(HelperRunInfo.secondTrace == 400000004)
+    Swag.require(HelperRunInfo.count == 4)
+    Swag.require(HelperRunInfo.capacity == 4)
 
     let v = helperAllocatorRunInitInfo()
-    Swag.assert(v.firstTrace == HelperRunInfo.firstTrace)
-    Swag.assert(v.secondTrace == HelperRunInfo.secondTrace)
-    Swag.assert(v.count == HelperRunInfo.count)
-    Swag.assert(v.capacity == HelperRunInfo.capacity)
+    Swag.require(v.firstTrace == HelperRunInfo.firstTrace)
+    Swag.require(v.secondTrace == HelperRunInfo.secondTrace)
+    Swag.require(v.count == HelperRunInfo.count)
+    Swag.require(v.capacity == HelperRunInfo.capacity)
 }
 
 #test
 {
-    Swag.assert(MemoryRunInfo.liveTrace == 10208080805)
-    Swag.assert(MemoryRunInfo.drops == 7)
-    Swag.assert(MemoryRunInfo.dropTrace == 3040102080808)
-    Swag.assert(MemoryRunInfo.count == 0)
-    Swag.assert(MemoryRunInfo.capacity == 0)
+    Swag.require(MemoryRunInfo.liveTrace == 10208080805)
+    Swag.require(MemoryRunInfo.drops == 7)
+    Swag.require(MemoryRunInfo.dropTrace == 3040102080808)
+    Swag.require(MemoryRunInfo.count == 0)
+    Swag.require(MemoryRunInfo.capacity == 0)
 
     let v = memoryAllocatorRunDropInfo()
-    Swag.assert(v.liveTrace == MemoryRunInfo.liveTrace)
-    Swag.assert(v.drops == MemoryRunInfo.drops)
-    Swag.assert(v.dropTrace == MemoryRunInfo.dropTrace)
-    Swag.assert(v.count == MemoryRunInfo.count)
-    Swag.assert(v.capacity == MemoryRunInfo.capacity)
+    Swag.require(v.liveTrace == MemoryRunInfo.liveTrace)
+    Swag.require(v.drops == MemoryRunInfo.drops)
+    Swag.require(v.dropTrace == MemoryRunInfo.dropTrace)
+    Swag.require(v.count == MemoryRunInfo.count)
+    Swag.require(v.capacity == MemoryRunInfo.capacity)
 }

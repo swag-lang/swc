@@ -24,16 +24,16 @@ func sharedInput(a, b: u64)->u64 => (a * 5 + b) ^ a
     let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000]
     for a in values
     {
-        Swag.assert(timesThree(a) == ((a << 1) + a))
-        Swag.assert(timesFive(a) == ((a << 2) + a))
-        Swag.assert(timesNine(a) == ((a << 3) + a))
+        Swag.require(timesThree(a) == ((a << 1) + a))
+        Swag.require(timesFive(a) == ((a << 2) + a))
+        Swag.require(timesNine(a) == ((a << 3) + a))
         for b in values
         {
-            Swag.assert(scaledSum(a, b) == (b + a * 8))
-            Swag.assert(sharedInput(a, b) == ((((a << 2) + a) + b) ^ a))
+            Swag.require(scaledSum(a, b) == (b + a * 8))
+            Swag.require(sharedInput(a, b) == ((((a << 2) + a) + b) ^ a))
         }
     }
     var array = [11'u64, 27, 49, 83]
     for i in 4'u64 do
-        Swag.assert(indexed(&array[0], i) == array[i])
+        Swag.require(indexed(&array[0], i) == array[i])
 }

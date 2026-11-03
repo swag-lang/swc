@@ -45,19 +45,19 @@ func widenConstant(dst: [*] s32)
     for i in 4 * 8 do
         src[i] = cast(s16, (i * 3))
     roundRows(&dst[0], &src[0], 4)
-    Swag.assert(dst[0] == ((0 + 2) >> 2) & 0xFF and dst[3] == ((9 + 2) >> 2) & 0xFF)
-    Swag.assert(dst[4] == 0 and dst[7] == 0)
-    Swag.assert(dst[8] == ((24 + 2) >> 2) & 0xFF and dst[31] == 0)
+    Swag.require(dst[0] == ((0 + 2) >> 2) & 0xFF and dst[3] == ((9 + 2) >> 2) & 0xFF)
+    Swag.require(dst[4] == 0 and dst[7] == 0)
+    Swag.require(dst[8] == ((24 + 2) >> 2) & 0xFF and dst[31] == 0)
 
     var bytes: [16] u8
     var out:   [32] u8
     for i in 16 do
         bytes[i] = cast(u8, (i * 5))
     tableOffsets(&out[0], &bytes[0])
-    Swag.assert(out[0] == 1 and out[15] == 75 + 1)
-    Swag.assert(out[16] == 2 and out[31] == 75 + 2)
+    Swag.require(out[0] == 1 and out[15] == 75 + 1)
+    Swag.require(out[16] == 2 and out[31] == 75 + 2)
 
     var words: [4] s32
     widenConstant(&words[0])
-    Swag.assert(words[0] == 11 and words[1] == 22 and words[2] == 33 and words[3] == 44)
+    Swag.require(words[0] == 11 and words[1] == 22 and words[2] == 33 and words[3] == 44)
 }

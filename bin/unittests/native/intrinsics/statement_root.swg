@@ -9,22 +9,22 @@ var Sink: u32 = 0
 {
     var storage: [16] u8
     cast(*u32, storage.buffer)[] = 0x0102_0304
-    Swag.assert(storage[0] == 4)
-    Swag.assert(storage[3] == 1)
+    Swag.require(storage[0] == 4)
+    Swag.require(storage[3] == 1)
 }
 
 #test
 {
     var storage: [4] u8
     storage.buffer[1] = 0xFF
-    Swag.assert(storage[1] == 0xFF)
+    Swag.require(storage[1] == 0xFF)
 }
 
 #test
 {
     var storage: [4] u32 = [1, 2, 3, 4]
     storage.buffer[2] += 10
-    Swag.assert(storage[2] == 13)
+    Swag.require(storage[2] == 13)
 }
 
 #test
@@ -34,8 +34,8 @@ var Sink: u32 = 0
     cast(*u32, (storage.buffer))[] = 0x0102_0304
     let p = storage.buffer
     p[0] = 9
-    Swag.assert(storage[0] == 9)
-    Swag.assert(storage[3] == 1)
+    Swag.require(storage[0] == 9)
+    Swag.require(storage[3] == 1)
 }
 
 #test
@@ -44,5 +44,5 @@ var Sink: u32 = 0
     // expression statement.
     var storage: [4] u8
     Sink = storage.count
-    Swag.assert(Sink == 4)
+    Swag.require(Sink == 4)
 }

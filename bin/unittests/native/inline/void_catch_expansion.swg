@@ -85,12 +85,12 @@ var g_Storage: u64
     var region = Region{&g_Storage, &g_Storage, 11, 22, 96, true}
     region.closeNative()
 
-    Swag.assert(g_Unmapped == 1)
-    Swag.assert(g_Released == 2)
-    Swag.assert(region.nativeView == null)
-    Swag.assert(region.view == null)
-    Swag.assert(region.mapHandle == 0)
-    Swag.assert(region.fileHandle == 0)
-    Swag.assert(region.length == 0)
-    Swag.assert(not region.valid)
+    Swag.require(g_Unmapped == 1)
+    Swag.require(g_Released == 2)
+    Swag.require(region.nativeView == null)
+    Swag.require(region.view == null)
+    Swag.require(region.mapHandle == 0)
+    Swag.require(region.fileHandle == 0)
+    Swag.require(region.length == 0)
+    Swag.require(not region.valid)
 }

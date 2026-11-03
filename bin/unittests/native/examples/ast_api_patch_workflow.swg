@@ -211,17 +211,17 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let updated = applyPatch'(TenantSettings)(patch, base)
 
-    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 3)
-    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 26'u64)
-    Swag.assert(updated.seatLimit == 25)
-    Swag.assert(updated.storageGb == 750)
-    Swag.assert(updated.auditRetentionDays == 30)
-    Swag.assert(updated.ssoEnabled)
-    Swag.assert(updated.billingEmail == "ops@acme.test")
-    Swag.assert(updated.tier == .Growth)
-    Swag.assert(base.storageGb == 250)
-    Swag.assert(not base.ssoEnabled)
-    Swag.assert(base.billingEmail == "billing@acme.test")
+    Swag.require(patchChangedCount'(TenantSettings)(patch) == 3)
+    Swag.require(patchChangedMask'(TenantSettings)(patch) == 26'u64)
+    Swag.require(updated.seatLimit == 25)
+    Swag.require(updated.storageGb == 750)
+    Swag.require(updated.auditRetentionDays == 30)
+    Swag.require(updated.ssoEnabled)
+    Swag.require(updated.billingEmail == "ops@acme.test")
+    Swag.require(updated.tier == .Growth)
+    Swag.require(base.storageGb == 250)
+    Swag.require(not base.ssoEnabled)
+    Swag.require(base.billingEmail == "billing@acme.test")
 }
 
 #test
@@ -251,18 +251,18 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let rebuilt = applyPatch'(TenantSettings)(patch, blank)
 
-    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 6)
-    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 63'u64)
-    Swag.assert(rebuilt.seatLimit == 120)
-    Swag.assert(rebuilt.storageGb == 2000)
-    Swag.assert(rebuilt.auditRetentionDays == 365)
-    Swag.assert(rebuilt.ssoEnabled)
-    Swag.assert(rebuilt.billingEmail == "finance@northwind.test")
-    Swag.assert(rebuilt.tier == .Enterprise)
+    Swag.require(patchChangedCount'(TenantSettings)(patch) == 6)
+    Swag.require(patchChangedMask'(TenantSettings)(patch) == 63'u64)
+    Swag.require(rebuilt.seatLimit == 120)
+    Swag.require(rebuilt.storageGb == 2000)
+    Swag.require(rebuilt.auditRetentionDays == 365)
+    Swag.require(rebuilt.ssoEnabled)
+    Swag.require(rebuilt.billingEmail == "finance@northwind.test")
+    Swag.require(rebuilt.tier == .Enterprise)
 
     clearPatch'(TenantSettings)(&patch)
-    Swag.assert(patchChangedCount'(TenantSettings)(patch) == 0)
-    Swag.assert(patchChangedMask'(TenantSettings)(patch) == 0'u64)
+    Swag.require(patchChangedCount'(TenantSettings)(patch) == 0)
+    Swag.require(patchChangedMask'(TenantSettings)(patch) == 0'u64)
 }
 
 #test
@@ -283,10 +283,10 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 
     let updated = applyPatch'(NotificationPolicy)(patch, base)
 
-    Swag.assert(patchChangedCount'(NotificationPolicy)(patch) == 2)
-    Swag.assert(patchChangedMask'(NotificationPolicy)(patch) == 6'u64)
-    Swag.assert(updated.dailyDigest)
-    Swag.assert(updated.weeklyReport)
-    Swag.assert(updated.escalationMinutes == 15)
-    Swag.assert(not updated.smsEnabled)
+    Swag.require(patchChangedCount'(NotificationPolicy)(patch) == 2)
+    Swag.require(patchChangedMask'(NotificationPolicy)(patch) == 6'u64)
+    Swag.require(updated.dailyDigest)
+    Swag.require(updated.weeklyReport)
+    Swag.require(updated.escalationMinutes == 15)
+    Swag.require(not updated.smsEnabled)
 }

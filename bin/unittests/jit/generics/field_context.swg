@@ -96,27 +96,27 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
 {
     var wrapped: WrapperImplicit'u16
     wrapped.item.value = 7
-    Swag.assert(wrapped.item.value == 7)
+    Swag.require(wrapped.item.value == 7)
     #assert(#typeof(wrapped.item.value) == u16)
 
     var renamed: RenamedDoubleBufferImplicit'(u16, 3)
     renamed.first.values[0]  = 1
     renamed.second.values[2] = 9
-    Swag.assert(renamed.first.values[0] == 1'u16)
-    Swag.assert(renamed.second.values[2] == 9'u16)
+    Swag.require(renamed.first.values[0] == 1'u16)
+    Swag.require(renamed.second.values[2] == 9'u16)
     #assert(#typeof(renamed.first.values) == #type [3] u16)
 
     var partial = PartialMiddleDefaultHolder'(u32, f64){item: {first: 11, second: "value", third: 2.5}}
-    Swag.assert(partial.item.first == 11'u32)
-    Swag.assert(partial.item.second == "value")
-    Swag.assert(partial.item.third == 2.5)
+    Swag.require(partial.item.first == 11'u32)
+    Swag.require(partial.item.second == "value")
+    Swag.require(partial.item.third == 2.5)
     #assert(#typeof(partial.item.second) == string)
 
     var explicitPrefix: ExplicitPrefixValueHolder'u8
     explicitPrefix.item.values[0] = 3
     explicitPrefix.item.values[2] = 5
-    Swag.assert(explicitPrefix.item.values[0] == 3'u8)
-    Swag.assert(explicitPrefix.item.values[2] == 5'u8)
+    Swag.require(explicitPrefix.item.values[0] == 3'u8)
+    Swag.require(explicitPrefix.item.values[2] == 5'u8)
     #assert(#typeof(explicitPrefix.item.values) == #type [3] u8)
 }
 
@@ -125,10 +125,10 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     let methodBufferContext: MethodBufferContext'(u16, 9)
     let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
 
-    Swag.assert(methodBufferContext.localStructInferenceWorks())
-    Swag.assert(methodBufferContext.defaultCount() == 9)
-    Swag.assert(methodBufferContext.defaultTyped() == 9'u16)
-    Swag.assert(distinctMethodBuffer.values[0] == 42'u16)
+    Swag.require(methodBufferContext.localStructInferenceWorks())
+    Swag.require(methodBufferContext.defaultCount() == 9)
+    Swag.require(methodBufferContext.defaultTyped() == 9'u16)
+    Swag.require(distinctMethodBuffer.values[0] == 42'u16)
     #assert(#typeof(distinctMethodBuffer.values) == #type [9] u16)
 }
 
@@ -137,8 +137,8 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     let value = functionLocalImplicitBox'u16(12)
     let tail  = functionLocalPartialBox'(bool, f32)(true, 4.5)
 
-    Swag.assert(value == 12'u16)
-    Swag.assert(tail == 4.5'f32)
+    Swag.require(value == 12'u16)
+    Swag.require(tail == 4.5'f32)
     #assert(#typeof(value) == u16)
     #assert(#typeof(tail) == f32)
 }

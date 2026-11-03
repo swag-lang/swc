@@ -110,7 +110,7 @@ func shiftDiscardsBits(value: u8)->u8
 
 #test
 {
-    Swag.assert(wrapsOnRequest(opaqueU8(255)) == 0)
-    Swag.assert(promotesOnRequest() == 256)
-    Swag.assert(shiftDiscardsBits(opaqueU8(255)) == 254)
+    Swag.require(wrapsOnRequest(opaqueU8(255)) == 0)
+    Swag.require(promotesOnRequest() == 256)
+    Swag.require(shiftDiscardsBits(opaqueU8(255)) == 254)
 }

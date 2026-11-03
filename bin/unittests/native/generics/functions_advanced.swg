@@ -160,114 +160,114 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 
 #test
 {
-    Swag.assert(clampPositive(5) == 5)
-    Swag.assert(clampPositive(-3) == 0)
-    Swag.assert(clampPositive(0) == 0)
-    Swag.assert(clampPositive(-1.5) == 0.0)
-    Swag.assert(clampPositive(2.5) == 2.5)
+    Swag.require(clampPositive(5) == 5)
+    Swag.require(clampPositive(-3) == 0)
+    Swag.require(clampPositive(0) == 0)
+    Swag.require(clampPositive(-1.5) == 0.0)
+    Swag.require(clampPositive(2.5) == 2.5)
 }
 
 #test
 {
     let a: [3] s32 = [10, 20, 30]
-    Swag.assert(sum(a) == 60)
+    Swag.require(sum(a) == 60)
 
     let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
-    Swag.assert(sum(b) == 10.0)
+    Swag.require(sum(b) == 10.0)
 
     let c: [2] s64 = [100's64, 200]
-    Swag.assert(sum(c) == 300's64)
+    Swag.require(sum(c) == 300's64)
 }
 
 #test
 {
     let a: [5] s32 = [-2, 3, -1, 0, 5]
-    Swag.assert(countPositive(a) == 2)
+    Swag.require(countPositive(a) == 2)
 
     let b: [3] f64 = [-1.0, 0.0, 1.0]
-    Swag.assert(countPositive(b) == 1)
+    Swag.require(countPositive(b) == 1)
 }
 
 #test
 {
-    Swag.assert(addTwo(5) == 7)
-    Swag.assert(addTwo(0) == 2)
-    Swag.assert(addFour(10) == 14)
-    Swag.assert(addFour(0) == 4)
-    Swag.assert(addFour'(f64)(1.0) == 5.0)
+    Swag.require(addTwo(5) == 7)
+    Swag.require(addTwo(0) == 2)
+    Swag.require(addFour(10) == 14)
+    Swag.require(addFour(0) == 4)
+    Swag.require(addFour'(f64)(1.0) == 5.0)
 }
 
 #test
 {
-    Swag.assert(doubleAsF64(5) == 10.0)
-    Swag.assert(doubleAsF64(3'u8) == 6.0)
-    Swag.assert(doubleAsF64(2's16) == 4.0)
+    Swag.require(doubleAsF64(5) == 10.0)
+    Swag.require(doubleAsF64(3'u8) == 6.0)
+    Swag.require(doubleAsF64(2's16) == 4.0)
 }
 
 #test
 {
-    Swag.assert(absValue(-5) == 5)
-    Swag.assert(absValue(5) == 5)
-    Swag.assert(absValue(0) == 0)
-    Swag.assert(absValue(-3.5) == 3.5)
-    Swag.assert(absValue(2.5) == 2.5)
+    Swag.require(absValue(-5) == 5)
+    Swag.require(absValue(5) == 5)
+    Swag.require(absValue(0) == 0)
+    Swag.require(absValue(-3.5) == 3.5)
+    Swag.require(absValue(2.5) == 2.5)
 }
 
 #test
 {
-    Swag.assert(minVal(3, 7) == 3)
-    Swag.assert(minVal(7, 3) == 3)
-    Swag.assert(maxVal(3, 7) == 7)
-    Swag.assert(maxVal(7, 3) == 7)
-    Swag.assert(minVal(1.5, 2.5) == 1.5)
-    Swag.assert(maxVal(1.5, 2.5) == 2.5)
+    Swag.require(minVal(3, 7) == 3)
+    Swag.require(minVal(7, 3) == 3)
+    Swag.require(maxVal(3, 7) == 7)
+    Swag.require(maxVal(7, 3) == 7)
+    Swag.require(minVal(1.5, 2.5) == 1.5)
+    Swag.require(maxVal(1.5, 2.5) == 2.5)
 }
 
 #test
 {
-    Swag.assert(clamp(5, 0, 10) == 5)
-    Swag.assert(clamp(-5, 0, 10) == 0)
-    Swag.assert(clamp(15, 0, 10) == 10)
-    Swag.assert(clamp(3.5, 1.0, 5.0) == 3.5)
-    Swag.assert(clamp(0.5, 1.0, 5.0) == 1.0)
-    Swag.assert(clamp(9.0, 1.0, 5.0) == 5.0)
+    Swag.require(clamp(5, 0, 10) == 5)
+    Swag.require(clamp(-5, 0, 10) == 0)
+    Swag.require(clamp(15, 0, 10) == 10)
+    Swag.require(clamp(3.5, 1.0, 5.0) == 3.5)
+    Swag.require(clamp(0.5, 1.0, 5.0) == 1.0)
+    Swag.require(clamp(9.0, 1.0, 5.0) == 5.0)
 }
 
 #test
 {
-    Swag.assert(applyS32(5, &doubleS32) == 10)
-    Swag.assert(applyS32(-3, &negateS32) == 3)
-    Swag.assert(applyS32(0, &doubleS32) == 0)
-    Swag.assert(applyF64(2.5, &doubleF64) == 5.0)
+    Swag.require(applyS32(5, &doubleS32) == 10)
+    Swag.require(applyS32(-3, &negateS32) == 3)
+    Swag.require(applyS32(0, &doubleS32) == 0)
+    Swag.require(applyF64(2.5, &doubleF64) == 5.0)
 }
 
 #test
 {
     let values: [3] s32 = [1, 2, 3]
     let doubled         = mapS32x3(values, &doubleS32)
-    Swag.assert(doubled[0] == 2)
-    Swag.assert(doubled[1] == 4)
-    Swag.assert(doubled[2] == 6)
+    Swag.require(doubled[0] == 2)
+    Swag.require(doubled[1] == 4)
+    Swag.require(doubled[2] == 6)
 
     let negated = mapS32x3(values, &negateS32)
-    Swag.assert(negated[0] == -1)
-    Swag.assert(negated[1] == -2)
-    Swag.assert(negated[2] == -3)
+    Swag.require(negated[0] == -1)
+    Swag.require(negated[1] == -2)
+    Swag.require(negated[2] == -3)
 }
 
 #test
 {
     let values: [4] s32 = [1, 2, 3, 4]
-    Swag.assert(reduceS32x4(values, 0, &addS32) == 10)
-    Swag.assert(reduceS32x4(values, 1, &mulS32) == 24)
+    Swag.require(reduceS32x4(values, 0, &addS32) == 10)
+    Swag.require(reduceS32x4(values, 1, &mulS32) == 24)
 }
 
 #test
 {
-    Swag.assert(castTo'(s32, f64)(42) == 42.0)
-    Swag.assert(castTo'(f64, s32)(3.7) == 3)
-    Swag.assert(castTo'(u8, s32)(255'u8) == 255)
-    Swag.assert(castTo'(bool, s32)(true) == 1)
+    Swag.require(castTo'(s32, f64)(42) == 42.0)
+    Swag.require(castTo'(f64, s32)(3.7) == 3)
+    Swag.require(castTo'(u8, s32)(255'u8) == 255)
+    Swag.require(castTo'(bool, s32)(true) == 1)
 }
 
 #test
@@ -275,57 +275,57 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
     var a: s32 = 10
     var b: s32 = 20
     swap(&a, &b)
-    Swag.assert(a == 20)
-    Swag.assert(b == 10)
+    Swag.require(a == 20)
+    Swag.require(b == 10)
 
     var x: f64 = 1.5
     var y: f64 = 2.5
     swap(&x, &y)
-    Swag.assert(x == 2.5)
-    Swag.assert(y == 1.5)
+    Swag.require(x == 2.5)
+    Swag.require(y == 1.5)
 }
 
 #test
 {
     let arr: [5] s32 = [10, 20, 30, 40, 50]
-    Swag.assert(indexOf(arr, 30) == 2)
-    Swag.assert(indexOf(arr, 10) == 0)
-    Swag.assert(indexOf(arr, 50) == 4)
-    Swag.assert(indexOf(arr, 99) == -1)
+    Swag.require(indexOf(arr, 30) == 2)
+    Swag.require(indexOf(arr, 10) == 0)
+    Swag.require(indexOf(arr, 50) == 4)
+    Swag.require(indexOf(arr, 99) == -1)
 }
 
 #test
 {
     let ones: [3] s32 = [1, 1, 1]
-    Swag.assert(allEqual(ones, 1) == true)
-    Swag.assert(allEqual(ones, 2) == false)
+    Swag.require(allEqual(ones, 1) == true)
+    Swag.require(allEqual(ones, 2) == false)
 
     let mixed: [3] s32 = [1, 2, 1]
-    Swag.assert(allEqual(mixed, 1) == false)
+    Swag.require(allEqual(mixed, 1) == false)
 }
 
 #test
 {
     let arr: [4] s32 = [10, 20, 30, 40]
     let rev = reverse(arr)
-    Swag.assert(rev[0] == 40)
-    Swag.assert(rev[1] == 30)
-    Swag.assert(rev[2] == 20)
-    Swag.assert(rev[3] == 10)
+    Swag.require(rev[0] == 40)
+    Swag.require(rev[1] == 30)
+    Swag.require(rev[2] == 20)
+    Swag.require(rev[3] == 10)
 
     let farr: [3] f64 = [1.0, 2.0, 3.0]
     let frev = reverse(farr)
-    Swag.assert(frev[0] == 3.0)
-    Swag.assert(frev[1] == 2.0)
-    Swag.assert(frev[2] == 1.0)
+    Swag.require(frev[0] == 3.0)
+    Swag.require(frev[1] == 2.0)
+    Swag.require(frev[2] == 1.0)
 }
 
 #test
 {
     let arr: [5] s32 = [10, 20, 30, 20, 50]
-    Swag.assert(contains(arr, 30) == true)
-    Swag.assert(contains(arr, 99) == false)
-    Swag.assert(countOf(arr, 20) == 2)
-    Swag.assert(countOf(arr, 10) == 1)
-    Swag.assert(countOf(arr, 99) == 0)
+    Swag.require(contains(arr, 30) == true)
+    Swag.require(contains(arr, 99) == false)
+    Swag.require(countOf(arr, 20) == 2)
+    Swag.require(countOf(arr, 10) == 1)
+    Swag.require(countOf(arr, 99) == 0)
 }

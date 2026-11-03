@@ -246,6 +246,6 @@ func analyzeShortcuts(layout: const [..] string)->ShortcutReport
 
     let sampleReport = analyzeShortcuts(sampleMap)
 
-    Swag.assert(sampleReport.shortCheatCount == 5)
-    Swag.assert(sampleReport.longCheatCount == 285)
+    Swag.require(sampleReport.shortCheatCount == 5)
+    Swag.require(sampleReport.longCheatCount == 285)
 }

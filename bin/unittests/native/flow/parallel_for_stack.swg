@@ -24,5 +24,5 @@ func nestedParallelStack(depth: u64)->u64
     let anchor   = cast(u64, &marker)
     let leaf     = nestedParallelStack(16)
     let distance = anchor > leaf ? anchor - leaf : leaf - anchor
-    Swag.assert(distance < 64 * 1024)
+    Swag.require(distance < 64 * 1024)
 }

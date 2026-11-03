@@ -24,8 +24,8 @@ impl Item
         for &item in items do
             item.value = 1
     }
-    Swag.assert(dropped == 3)
-    Swag.assert(sum == 3)
+    Swag.require(dropped == 3)
+    Swag.require(sum == 3)
 }
 
 alias Grid = [2][3] Item
@@ -43,9 +43,9 @@ func leaveArrayScope(early: bool)
     dropped = 0
     sum     = 0
     leaveArrayScope(true)
-    Swag.assert(dropped == 6 and sum == 42)
+    Swag.require(dropped == 6 and sum == 42)
     leaveArrayScope(false)
-    Swag.assert(dropped == 12 and sum == 86)
+    Swag.require(dropped == 12 and sum == 86)
 }
 
 struct ArrayFailure {}
@@ -63,6 +63,6 @@ func failArrayScope() fail
     var errorOutcome: Swag.Error
     catch failArrayScope() as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is ArrayFailure))
-    Swag.assert(dropped == 4 and sum == 28)
+    Swag.require(error != null and (error is ArrayFailure))
+    Swag.require(dropped == 4 and sum == 28)
 }

@@ -74,10 +74,10 @@ func reference64(value, divisor: u64, output: [*] u64)
         for divisor, i in divisors
         {
             reference32(value, divisor, &expected[0])
-            Swag.assert(actual[i * 2] == expected[0])
-            Swag.assert(actual[i * 2 + 1] == expected[1])
+            Swag.require(actual[i * 2] == expected[0])
+            Swag.require(actual[i * 2 + 1] == expected[1])
         }
-        Swag.assert(actual[14] == value)
+        Swag.require(actual[14] == value)
         state ^= state << 13
         state ^= state >> 17
         state ^= state << 5
@@ -92,8 +92,8 @@ func reference64(value, divisor: u64, output: [*] u64)
             for tested, i in divisors
             {
                 reference32(value, tested, &expected[0])
-                Swag.assert(actual[i * 2] == expected[0])
-                Swag.assert(actual[i * 2 + 1] == expected[1])
+                Swag.require(actual[i * 2] == expected[0])
+                Swag.require(actual[i * 2 + 1] == expected[1])
             }
         }
     }
@@ -115,10 +115,10 @@ func reference64(value, divisor: u64, output: [*] u64)
         for divisor, i in divisors
         {
             reference64(value, divisor, &expected[0])
-            Swag.assert(actual[i * 2] == expected[0])
-            Swag.assert(actual[i * 2 + 1] == expected[1])
+            Swag.require(actual[i * 2] == expected[0])
+            Swag.require(actual[i * 2 + 1] == expected[1])
         }
-        Swag.assert(actual[18] == value)
+        Swag.require(actual[18] == value)
         state ^= state << 13
         state ^= state >> 17
         state ^= state << 5
@@ -133,8 +133,8 @@ func reference64(value, divisor: u64, output: [*] u64)
             for tested, i in divisors
             {
                 reference64(value, tested, &expected[0])
-                Swag.assert(actual[i * 2] == expected[0])
-                Swag.assert(actual[i * 2 + 1] == expected[1])
+                Swag.require(actual[i * 2] == expected[0])
+                Swag.require(actual[i * 2 + 1] == expected[1])
             }
         }
     }

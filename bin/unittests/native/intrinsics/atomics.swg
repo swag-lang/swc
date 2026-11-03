@@ -20,15 +20,15 @@ func publishIfZero(ptr: *u32, value: u32)
 #test
 {
     var word = 0x1234'u32
-    Swag.assert(atomGetU32(&word) == 0x1234)
+    Swag.require(atomGetU32(&word) == 0x1234)
     word = 7
-    Swag.assert(atomGetU32(&word) == 7)
+    Swag.require(atomGetU32(&word) == 7)
 
     var byte = 200'u8
-    Swag.assert(atomGetU8(&byte) == 200)
+    Swag.require(atomGetU8(&byte) == 200)
 
     var wide = -5's64
-    Swag.assert(atomGetS64(&wide) == -5)
+    Swag.require(atomGetS64(&wide) == -5)
 }
 
 // A compare-exchange whose result is discarded still writes
@@ -36,9 +36,9 @@ func publishIfZero(ptr: *u32, value: u32)
 {
     var flag = 0'u32
     publishIfZero(&flag, 5)
-    Swag.assert(flag == 5)
+    Swag.require(flag == 5)
     publishIfZero(&flag, 9)
-    Swag.assert(flag == 5)
+    Swag.require(flag == 5)
 }
 
 // A polled flag reads its current value on every turn of the loop
@@ -53,5 +53,5 @@ func publishIfZero(ptr: *u32, value: u32)
             flag = 3
     }
 
-    Swag.assert(turns == 3 and flag == 3)
+    Swag.require(turns == 3 and flag == 3)
 }

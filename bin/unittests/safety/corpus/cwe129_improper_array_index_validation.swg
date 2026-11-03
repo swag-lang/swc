@@ -58,6 +58,6 @@ func validatedCorrectly(index: u64)->s32
 
 #test
 {
-    Swag.assert(validatedCorrectly(2) == 30)
-    Swag.assert(validatedCorrectly(3) == -1)
+    Swag.require(validatedCorrectly(2) == 30)
+    Swag.require(validatedCorrectly(3) == -1)
 }

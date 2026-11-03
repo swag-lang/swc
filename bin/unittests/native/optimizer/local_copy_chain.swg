@@ -45,24 +45,24 @@ func loopSource(a: u64, count: u32)->u64
     let values = [0'u64, 1, 2, 3, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        Swag.assert(remainder(a) == dynamicRemainder(a, 3))
+        Swag.require(remainder(a) == dynamicRemainder(a, 3))
         for b in values
         {
             let reduced = dynamicRemainder(a, 3)
-            Swag.assert(keepSource(a, b) == (reduced ^ a ^ dynamicRemainder(b, 3) ^ b))
-            Swag.assert(branchSource(a, b, true) == (reduced ^ a))
-            Swag.assert(branchSource(a, b, false) == (reduced ^ b))
-            Swag.assert(callSource(a, b) == (reduced ^ dynamicRemainder(b, 7) ^ a ^ b))
+            Swag.require(keepSource(a, b) == (reduced ^ a ^ dynamicRemainder(b, 3) ^ b))
+            Swag.require(branchSource(a, b, true) == (reduced ^ a))
+            Swag.require(branchSource(a, b, false) == (reduced ^ b))
+            Swag.require(callSource(a, b) == (reduced ^ dynamicRemainder(b, 7) ^ a ^ b))
         }
         var expected = a
         for i in 9 do
             expected = dynamicRemainder(expected, 3) ^ a ^ cast(u64, i)
-        Swag.assert(loopSource(a, 9) == expected)
+        Swag.require(loopSource(a, 9) == expected)
     }
     let signedValues = [-9223372036854775808's64, -9223372036854775807, -8, -7, -3, -1, 0, 1, 3, 7, 8, 9223372036854775807]
     for a in signedValues
     {
-        Swag.assert(signedRemainder(a) == dynamicSignedRemainder(a, 3))
-        Swag.assert(signedDivide(a) == dynamicSignedDivide(a, 7))
+        Swag.require(signedRemainder(a) == dynamicSignedRemainder(a, 3))
+        Swag.require(signedDivide(a) == dynamicSignedDivide(a, 7))
     }
 }

@@ -302,5 +302,5 @@ func runtimeMethodReflectionWorks()->bool
 
 #test
 {
-    Swag.assert(runtimeMethodReflectionWorks())
+    Swag.require(runtimeMethodReflectionWorks())
 }

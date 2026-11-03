@@ -50,6 +50,6 @@ func pushAllocatorWithLocalInterface()->bool
 
 #test
 {
-    Swag.assert(pushAllocatorWithNull())
-    Swag.assert(pushAllocatorWithLocalInterface())
+    Swag.require(pushAllocatorWithNull())
+    Swag.require(pushAllocatorWithLocalInterface())
 }

@@ -15,7 +15,7 @@ func raiseDeferredPatternError() fail
         if Swag.getContext().curError is s32 as error do
             matched = error[] == 7
     }
-    Swag.assert(matched)
+    Swag.require(matched)
 }
 
 #[Swag.NoInline]
@@ -37,7 +37,7 @@ func deferredPatternBinding(value: s32, result: *s32, early: bool)
     var result = 0
     deferredPatternBinding(7, &result, true)
     deferredPatternBinding(11, &result, false)
-    Swag.assert(result == 18)
+    Swag.require(result == 18)
 }
 
 // Switch condition bindings use the same stack-address materialization as if bindings.
@@ -57,5 +57,5 @@ func deferredPatternBinding(value: s32, result: *s32, early: bool)
             result = -2
         }
     }
-    Swag.assert(result == 7)
+    Swag.require(result == 7)
 }

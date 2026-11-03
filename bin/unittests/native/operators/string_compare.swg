@@ -14,8 +14,8 @@ func stringNe(a: string, b: string)->bool
 
 #test
 {
-    Swag.assert(stringEq("toto", "toto"))
-    Swag.assert(not stringEq("toto", "titi"))
-    Swag.assert(stringNe("toto", "titi"))
-    Swag.assert(not stringNe("toto", "toto"))
+    Swag.require(stringEq("toto", "toto"))
+    Swag.require(not stringEq("toto", "titi"))
+    Swag.require(stringNe("toto", "titi"))
+    Swag.require(not stringNe("toto", "toto"))
 }

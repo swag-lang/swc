@@ -132,18 +132,18 @@ func buildCsvPreview(csv: string)->CsvPreview
 {
     const csv = "id,name,qty,price_cents\n1,keyboard,4,12900\n2,\"mouse pad\",12,2500\n3,cable,8,900"
 
-    Swag.assert(countRows(csv) == 4)
-    Swag.assert(countColumns(csv) == 4)
-    Swag.assert(countNumericCells(csv) == 9)
-    Swag.assert(longestLineLength(csv) == 23)
-    Swag.assert(hasQuotedField(csv))
+    Swag.require(countRows(csv) == 4)
+    Swag.require(countColumns(csv) == 4)
+    Swag.require(countNumericCells(csv) == 9)
+    Swag.require(longestLineLength(csv) == 23)
+    Swag.require(hasQuotedField(csv))
 
     let preview = buildCsvPreview(csv)
 
-    Swag.assert(preview.rowCount == 4)
-    Swag.assert(preview.columnCount == 4)
-    Swag.assert(preview.numericCellCount == 9)
-    Swag.assert(preview.longestLineLength == 23)
-    Swag.assert(preview.hasQuotedField)
-    Swag.assert(preview.byteCount == 78)
+    Swag.require(preview.rowCount == 4)
+    Swag.require(preview.columnCount == 4)
+    Swag.require(preview.numericCellCount == 9)
+    Swag.require(preview.longestLineLength == 23)
+    Swag.require(preview.hasQuotedField)
+    Swag.require(preview.byteCount == 78)
 }

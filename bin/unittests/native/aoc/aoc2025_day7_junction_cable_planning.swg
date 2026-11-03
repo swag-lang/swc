@@ -218,12 +218,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let samplePlan = planCables(samplePoints, 10)
 
-    Swag.assert(samplePlan.pointCount == 20'u32)
-    Swag.assert(samplePlan.attemptedLinks == 10'u32)
-    Swag.assert(samplePlan.largestCluster == 5'u32)
-    Swag.assert(samplePlan.secondCluster == 4'u32)
-    Swag.assert(samplePlan.thirdCluster == 2'u32)
-    Swag.assert(samplePlan.topThreeProduct == 40'u64)
+    Swag.require(samplePlan.pointCount == 20'u32)
+    Swag.require(samplePlan.attemptedLinks == 10'u32)
+    Swag.require(samplePlan.largestCluster == 5'u32)
+    Swag.require(samplePlan.secondCluster == 4'u32)
+    Swag.require(samplePlan.thirdCluster == 2'u32)
+    Swag.require(samplePlan.topThreeProduct == 40'u64)
 
     const corridorPoints: [7] string =
         [
@@ -238,10 +238,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let corridorPlan = planCables(corridorPoints, 5)
 
-    Swag.assert(corridorPlan.pointCount == 7'u32)
-    Swag.assert(corridorPlan.attemptedLinks == 5'u32)
-    Swag.assert(corridorPlan.largestCluster == 3'u32)
-    Swag.assert(corridorPlan.secondCluster == 2'u32)
-    Swag.assert(corridorPlan.thirdCluster == 2'u32)
-    Swag.assert(corridorPlan.topThreeProduct == 12'u64)
+    Swag.require(corridorPlan.pointCount == 7'u32)
+    Swag.require(corridorPlan.attemptedLinks == 5'u32)
+    Swag.require(corridorPlan.largestCluster == 3'u32)
+    Swag.require(corridorPlan.secondCluster == 2'u32)
+    Swag.require(corridorPlan.thirdCluster == 2'u32)
+    Swag.require(corridorPlan.topThreeProduct == 12'u64)
 }

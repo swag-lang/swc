@@ -86,9 +86,9 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var event = PartialUndefinedEvent{}
     event.kind = .Changed
 
-    Swag.assert(event.kind == PartialUndefinedEvent.Kind.Changed)
-    Swag.assert(event.accepted == false)
-    Swag.assert(event.from == null)
+    Swag.require(event.kind == PartialUndefinedEvent.Kind.Changed)
+    Swag.require(event.accepted == false)
+    Swag.require(event.from == null)
 }
 
 #test
@@ -96,15 +96,15 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value = PartialUndefinedDefaults{}
     value.required = 25
 
-    Swag.assert(value.required == 25)
-    Swag.assert(value.label[0] == 'r'u8)
-    Swag.assert(value.value == 17)
-    Swag.assert(value.enabled == false)
+    Swag.require(value.required == 25)
+    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.value == 17)
+    Swag.require(value.enabled == false)
 }
 
 #test
 {
-    Swag.assert(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
+    Swag.require(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
 }
 
 #test
@@ -112,10 +112,10 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value: PartialUndefinedDefaults = PartialUndefinedDefaults{}
     value.required = 31
 
-    Swag.assert(value.required == 31)
-    Swag.assert(value.label[0] == 'r'u8)
-    Swag.assert(value.value == 17)
-    Swag.assert(value.enabled == false)
+    Swag.require(value.required == 31)
+    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.value == 17)
+    Swag.require(value.enabled == false)
 }
 
 #test
@@ -123,10 +123,10 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     var value: PartialUndefinedDefaults
     value.required = 49
 
-    Swag.assert(value.required == 49)
-    Swag.assert(value.label[0] == 'r'u8)
-    Swag.assert(value.value == 17)
-    Swag.assert(value.enabled == false)
+    Swag.require(value.required == 49)
+    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.value == 17)
+    Swag.require(value.enabled == false)
 }
 
 // Contextually typed aggregate literals use the same default initialization as named locals,
@@ -142,5 +142,5 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
         PartialSliceDescriptor{"six", runtimeDescriptorLabels().six, .Value},
         PartialSliceDescriptor{"seven", runtimeDescriptorLabels().seven, .Value},
         PartialSliceDescriptor{"eight", runtimeDescriptorLabels().eight, .Value}]
-    Swag.assert(countHiddenDescriptors(descriptors) == 0)
+    Swag.require(countHiddenDescriptors(descriptors) == 0)
 }

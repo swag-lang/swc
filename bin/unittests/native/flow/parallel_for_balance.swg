@@ -39,8 +39,8 @@ func fillBalanced(values: [..] u64, visits: [..] Swag.AtomicValue'u32, begin, he
         for index in values.count
         {
             let rounds = index >= heavyBegin and index < heavyEnd ? 4096'u64 : 128'u64
-            Swag.assert(visits[index].load() == 1)
-            Swag.assert(values[index] == expectedValue(index, rounds))
+            Swag.require(visits[index].load() == 1)
+            Swag.require(values[index] == expectedValue(index, rounds))
         }
     }
 }
@@ -65,10 +65,10 @@ struct BalanceFailure { index: u64 }
             fail BalanceFailure{value}
     } as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null and (error is BalanceFailure))
-    Swag.assert(assume cast(const *BalanceFailure, error).index == expectedValue(1796, 4096))
-    Swag.assert(entered.load() == left.load())
-    Swag.assert(visits[1796].load() == 1)
+    Swag.require(error != null and (error is BalanceFailure))
+    Swag.require(assume cast(const *BalanceFailure, error).index == expectedValue(1796, 4096))
+    Swag.require(entered.load() == left.load())
+    Swag.require(visits[1796].load() == 1)
     for visit in visits do
-        Swag.assert(visit.load() <= 1)
+        Swag.require(visit.load() <= 1)
 }

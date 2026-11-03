@@ -10,14 +10,14 @@ func takes_s32(_: s32) {}
     const A: u64 = 255
     const B: u8  = A
     #assert(B == 255'u8)
-    Swag.assert(B == 255'u8)
+    Swag.require(B == 255'u8)
 }
 
 #test
 {
     var a: u16 = 10
     takes_u32(a)
-    Swag.assert(gIntU32 == 10)
+    Swag.require(gIntU32 == 10)
 }
 
 #test
@@ -26,8 +26,8 @@ func takes_s32(_: s32) {}
     var b: u32 = 0
     b = a
     var c: u8 = 0
-    Swag.assert(b == 10)
-    Swag.assert(c == 0)
+    Swag.require(b == 10)
+    Swag.require(c == 0)
 }
 
 #test
@@ -35,5 +35,5 @@ func takes_s32(_: s32) {}
     const A: s32 = 42
     const B: u8  = A
     #assert(B == 42'u8)
-    Swag.assert(B == 42'u8)
+    Swag.require(B == 42'u8)
 }

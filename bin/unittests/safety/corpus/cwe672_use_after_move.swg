@@ -145,7 +145,7 @@ func readDroppableAfterMove()->s32
 
 #test
 {
-    Swag.assert(reassignedAfterMove() == 2)
-    Swag.assert(readDroppableAfterMove() == 9)
-    Swag.assert(readAfterMoveThroughCall() == -572662307)     // 0xDDDDDDDD: the enabled lifecycle poison.
+    Swag.require(reassignedAfterMove() == 2)
+    Swag.require(readDroppableAfterMove() == 9)
+    Swag.require(readAfterMoveThroughCall() == -572662307)     // 0xDDDDDDDD: the enabled lifecycle poison.
 }

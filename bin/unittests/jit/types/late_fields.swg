@@ -76,10 +76,10 @@ func jitLateRelease()->bool
 
 #test
 {
-    Swag.assert(jitLateLifecycle())
-    Swag.assert(jitLateRelease())
-    Swag.assert(jitLateAddressOf())
-    Swag.assert(jitLateLiteral())
+    Swag.require(jitLateLifecycle())
+    Swag.require(jitLateRelease())
+    Swag.require(jitLateAddressOf())
+    Swag.require(jitLateLiteral())
 }
 
 // Regression: a struct with non-zero field defaults initializes through the
@@ -110,5 +110,5 @@ func jitLateDirtyMemoryInit()->bool
 
 #test
 {
-    Swag.assert(jitLateDirtyMemoryInit())
+    Swag.require(jitLateDirtyMemoryInit())
 }

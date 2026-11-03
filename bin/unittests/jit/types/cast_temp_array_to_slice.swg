@@ -10,7 +10,7 @@
     }
 
     let view = cast(const [..] u16, cb(false))
-    Swag.assert(view.count == 4)
-    Swag.assert(view[0] == 50'u16)
-    Swag.assert(view[3] == 80'u16)
+    Swag.require(view.count == 4)
+    Swag.require(view[0] == 50'u16)
+    Swag.require(view[3] == 80'u16)
 }

@@ -210,8 +210,8 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     slot.assign(src)
 
-    Swag.assert(slot.value.first() == 7)
-    Swag.assert(slot.value.buffer == cast([*] u8, &slot.value.storage[0]))
+    Swag.require(slot.value.first() == 7)
+    Swag.require(slot.value.buffer == cast([*] u8, &slot.value.storage[0]))
 }
 
 #test
@@ -228,8 +228,8 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     table.addAt(0, src)
 
-    Swag.assert(table.entries[0].value.first() == 9)
-    Swag.assert(table.entries[0].value.buffer == cast([*] u8, &table.entries[0].value.storage[0]))
+    Swag.require(table.entries[0].value.first() == 9)
+    Swag.require(table.entries[0].value.buffer == cast([*] u8, &table.entries[0].value.storage[0]))
     Swag.drop(&table.entries[0].value)
 }
 
@@ -244,8 +244,8 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
     table.addAt(0, makeInlineBufferText("swag"))
 
-    Swag.assert(table.entries[0].value.asString() == "swag")
-    Swag.assert(table.entries[0].value.buffer == cast([*] u8, &table.entries[0].value.padding[0]))
+    Swag.require(table.entries[0].value.asString() == "swag")
+    Swag.require(table.entries[0].value.buffer == cast([*] u8, &table.entries[0].value.padding[0]))
     Swag.drop(&table.entries[0].value)
 }
 
@@ -261,12 +261,12 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     table.add("alpha", makeInlineBufferText("one"))
     let expectedDropAddr   = cast([*] void, &table.entries[0].value)
     let expectedDropBuffer = cast([*] u8, &table.entries[0].value.padding[0])
-    Swag.assert(table.valueAddr(0) == expectedDropAddr)
+    Swag.require(table.valueAddr(0) == expectedDropAddr)
 
-    Swag.assert(table.entries[0].hash == 2)
-    Swag.assert(table.entries[0].key == "alpha")
-    Swag.assert(table.entries[0].value.asString() == "one")
-    Swag.assert(table.entries[0].value.buffer == expectedDropBuffer)
+    Swag.require(table.entries[0].hash == 2)
+    Swag.require(table.entries[0].key == "alpha")
+    Swag.require(table.entries[0].value.asString() == "one")
+    Swag.require(table.entries[0].value.buffer == expectedDropBuffer)
     LastInlineBufferTextDropAddr   = null
     LastInlineBufferTextDropBuffer = null
     testFree(entries)
@@ -289,8 +289,8 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     ExpectedInlineBufferTextDropAddr   = expectedDropAddr
     ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
     table.free()
-    Swag.assert(LastInlineBufferTextDropAddr == expectedDropAddr)
-    Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    Swag.require(LastInlineBufferTextDropAddr == expectedDropAddr)
+    Swag.require(LastInlineBufferTextDropBuffer == expectedDropBuffer)
     // Disarm the probe: a later test's argument temporaries are dropped by their caller.
     ExpectedInlineBufferTextDropAddr   = null
     ExpectedInlineBufferTextDropBuffer = null
@@ -313,8 +313,8 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     ExpectedInlineBufferTextDropAddr   = table.valueAddr(0)
     ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
     table.free()
-    Swag.assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
-    Swag.assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
+    Swag.require(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)
+    Swag.require(LastInlineBufferTextDropBuffer == expectedDropBuffer)
     // Disarm the probe: a later test's argument temporaries are dropped by their caller.
     ExpectedInlineBufferTextDropAddr   = null
     ExpectedInlineBufferTextDropBuffer = null

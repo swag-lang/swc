@@ -33,5 +33,5 @@ func runMacroDeferContinue()->s64
 
 #test
 {
-    Swag.assert(runMacroDeferContinue() == 99991)
+    Swag.require(runMacroDeferContinue() == 99991)
 }

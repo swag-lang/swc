@@ -106,24 +106,24 @@ func changedAfterTest(value: s64)->s64
 #test
 {
     let links: [8] s64 = [3, -1, 5, 6, 0, 7, 1, 2]
-    Swag.assert(follow(&links[0], 4) == -95)
-    Swag.assert(follow(&links[0], 12) == -95)
-    Swag.assert(follow(&links[0], -3) == -300)
-    Swag.assert(follow(&links[0], 2) == 516)
+    Swag.require(follow(&links[0], 4) == -95)
+    Swag.require(follow(&links[0], 12) == -95)
+    Swag.require(follow(&links[0], -3) == -300)
+    Swag.require(follow(&links[0], 2) == 516)
 
-    Swag.assert(middle(10, 100) == 55)
-    Swag.assert(middle(-101, 0) == -51)
-    Swag.assert(middle(0, 10) == -1)
+    Swag.require(middle(10, 100) == 55)
+    Swag.require(middle(-101, 0) == -51)
+    Swag.require(middle(0, 10) == -1)
 
-    Swag.assert(afterMask(-1) == 4100)
-    Swag.assert(afterMask(0x12345) == 573)
-    Swag.assert(afterWidening(0xFFFFFFFF) == 536871206)
+    Swag.require(afterMask(-1) == 4100)
+    Swag.require(afterMask(0x12345) == 573)
+    Swag.require(afterWidening(0xFFFFFFFF) == 536871206)
 
-    Swag.assert(remainder(-13) == -5 and remainder(13) == 5)
-    Swag.assert(half(-7) == -3 and half(7) == 3)
-    Swag.assert(isMultipleOf8(-16) and isMultipleOf8(24) and isMultipleOf8(0))
-    Swag.assert(not isMultipleOf8(-13) and not isMultipleOf8(7) and not isMultipleOf8(-1))
-    Swag.assert(alternate(5) == -15)
-    Swag.assert(guardedByOther(-13, 4) == -5 and guardedByOther(-13, -1) == 0)
-    Swag.assert(changedAfterTest(5) == -7 and changedAfterTest(30) == 2 and changedAfterTest(-4) == 1)
+    Swag.require(remainder(-13) == -5 and remainder(13) == 5)
+    Swag.require(half(-7) == -3 and half(7) == 3)
+    Swag.require(isMultipleOf8(-16) and isMultipleOf8(24) and isMultipleOf8(0))
+    Swag.require(not isMultipleOf8(-13) and not isMultipleOf8(7) and not isMultipleOf8(-1))
+    Swag.require(alternate(5) == -15)
+    Swag.require(guardedByOther(-13, 4) == -5 and guardedByOther(-13, -1) == 0)
+    Swag.require(changedAfterTest(5) == -7 and changedAfterTest(30) == 2 and changedAfterTest(-4) == 1)
 }

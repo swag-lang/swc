@@ -20,11 +20,11 @@ func unknownWidePair(value: u64)->u32 => cast(u32, (((value >> 6) | (value << 26
 {
     for value in [0'u32, 1, 0x80000000, 0xFFFFFFFF, 0x12345678]
     {
-        Swag.assert(pair32(value) == Swag.ror(value, 6'u8))
-        Swag.assert(widenedPair(value) == Swag.ror(value, 6'u8))
+        Swag.require(pair32(value) == Swag.ror(value, 6'u8))
+        Swag.require(widenedPair(value) == Swag.ror(value, 6'u8))
     }
     for value in [0'u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF, 0x0123456789ABCDEF] do
-        Swag.assert(pair64(value) == Swag.rol(value, 13'u8))
+        Swag.require(pair64(value) == Swag.rol(value, 13'u8))
     // Truncating the result does not prove that the input's high bits are zero.
-    Swag.assert(unknownWidePair(0x100000000) == 0x04000000)
+    Swag.require(unknownWidePair(0x100000000) == 0x04000000)
 }

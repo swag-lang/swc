@@ -35,17 +35,17 @@ func carryAfter(a, b: u64)->u64
     {
         let q = quotient(a, 3)
         let r = remainder(a, 3)
-        Swag.assert(combined3(a) == q + r)
-        Swag.assert(combined7(a) == quotient(a, 7) + remainder(a, 7))
+        Swag.require(combined3(a) == q + r)
+        Swag.require(combined7(a) == quotient(a, 7) + remainder(a, 7))
         let signed = cast #bit (s64, a)
-        Swag.assert(combinedSigned(signed) == signedQuotient(signed, 3) + signedRemainder(signed, 3))
-        Swag.assert(acrossBranch(a, true) == q + r)
-        Swag.assert(acrossBranch(a, false) == (q ^ r))
+        Swag.require(combinedSigned(signed) == signedQuotient(signed, 3) + signedRemainder(signed, 3))
+        Swag.require(acrossBranch(a, true) == q + r)
+        Swag.require(acrossBranch(a, false) == (q ^ r))
         for b in values
         {
             var expected = q + r
             if a < b do expected += 1
-            Swag.assert(carryAfter(a, b) == expected)
+            Swag.require(carryAfter(a, b) == expected)
         }
     }
 }

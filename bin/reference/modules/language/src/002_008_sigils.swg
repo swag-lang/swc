@@ -86,9 +86,9 @@ perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomicAdd').
 {
     var values: const [..] s32 = [10, 20, 30]
 
-    Swag.assert(values.count == 3)
+    Swag.require(values.count == 3)
     let data = values.buffer
-    Swag.assert(data[1] == 20)
+    Swag.require(data[1] == 20)
 
     // The same intrinsic can be evaluated by the compiler in a constant context.
     const Minimum = Swag.min(7's32, 3's32)
@@ -136,7 +136,7 @@ type (see the chapter on unused values and names). The bare `null` token is a va
 #test
 {
     let missing: *s32? = null
-    Swag.assert(missing == null)
+    Swag.require(missing == null)
 }
 
 /**
@@ -147,7 +147,7 @@ vector whose lanes compute element-wise (see the simd chapter):
 #test
 {
     var lanes: #simd [4] s32
-    Swag.assert(#alignof(lanes) == 16)
+    Swag.require(#alignof(lanes) == 16)
 }
 
 /**
@@ -170,12 +170,12 @@ These change one operation rather than producing a value:
 {
     var byte = 255'u8
     byte += #wrap 1'u8
-    Swag.assert(byte == 0)
+    Swag.require(byte == 0)
 
     #assert(#typeof(255'u8 + #prom 1'u8) == u32)
 
     let bits = cast #bit (u32, 1.0'f32)
-    Swag.assert(bits == 0x3F800000)
+    Swag.require(bits == 0x3F800000)
 }
 
 /**
@@ -207,8 +207,8 @@ returned by methods such as '.pairs()' and '.reversed()'.
 
     switch #complete direction
     {
-    case .Up:   Swag.assert(true)
-    case .Down: Swag.assert(false)
+    case .Up:   Swag.require(true)
+    case .Down: Swag.require(false)
     }
 }
 
@@ -295,7 +295,7 @@ view in an 'if value is T as name' or 'case T as name' pattern.
 
     switch value
     {
-    case string as text: Swag.assert(text[] == "text")
-    default: Swag.assert(false)
+    case string as text: Swag.require(text[] == "text")
+    default: Swag.require(false)
     }
 }

@@ -16,7 +16,7 @@
         count += 1
     }
 
-    Swag.assert(count == 500)
+    Swag.require(count == 500)
 }
 
 // A read-write lock admits readers together and a writer alone.
@@ -36,8 +36,8 @@
         readSum.add(value)
     }
 
-    Swag.assert(readSum.load() == 1400)
-    Swag.assert(lock.tryLock())
+    Swag.require(readSum.load() == 1400)
+    Swag.require(lock.tryLock())
     lock.unlock()
 }
 
@@ -70,7 +70,7 @@
     mutex.unlock()
 
     task.wait()
-    Swag.assert(ready)
+    Swag.require(ready)
 }
 
 // Rejecting permit overflow leaves the semaphore usable and preserves its count.
@@ -79,14 +79,14 @@
     var permits: Swag.Semaphore
     permits.setPermits(Swag.U32.Max)
     let result = Swag.catchPanic(func|&permits|() { permits.release() })
-    Swag.assert(result.raised and result.message() == "semaphore permit count overflow")
+    Swag.require(result.raised and result.message() == "semaphore permit count overflow")
     let acquired = permits.tryAcquire()
-    Swag.assert(acquired)
+    Swag.require(acquired)
     permits.release()
     permits.setPermits(1)
     let last  = permits.tryAcquire()
     let empty = permits.tryAcquire()
-    Swag.assert(last and not empty)
+    Swag.require(last and not empty)
 }
 
 // A semaphore hands out exactly its permits.
@@ -110,8 +110,8 @@
         permits.release()
     }
 
-    Swag.assert(inFlight.load() == 0)
-    Swag.assert(peak.load() >= 1 and peak.load() <= 2)
+    Swag.require(inFlight.load() == 0)
+    Swag.require(peak.load() >= 1 and peak.load() <= 2)
 }
 
 // A barrier with one participant completes each phase on arrival.
@@ -131,7 +131,7 @@
             phases += 1
     }
 
-    Swag.assert(phases == 3)
+    Swag.require(phases == 3)
 }
 
 // A group joins every child before its scope ends, and a cancelled group is a request its
@@ -147,14 +147,14 @@
             group.spawn(func|&done|() { done.add(1) })
     }
 
-    Swag.assert(done.load() == 40)
+    Swag.require(done.load() == 40)
 
     var started: Swag.AtomicValue'u32
     scope
     {
         var group: Swag.TaskGroup
         group.cancel()
-        Swag.assert(group.isCancelled())
+        Swag.require(group.isCancelled())
         for 8
         {
             group.spawn(func|&group, &started|()
@@ -166,7 +166,7 @@
         }
     }
 
-    Swag.assert(started.load() == 0)
+    Swag.require(started.load() == 0)
 }
 
 // A task reports its own completion, and can be submitted again once it finished.
@@ -175,16 +175,16 @@
     var runs: Swag.AtomicValue'u32
     var task: Swag.Task
 
-    Swag.assert(not task.isPending() and not task.isDone())
+    Swag.require(not task.isPending() and not task.isDone())
 
     for 50
     {
         task.submit(func|&runs|() { runs.add(1) })
         task.wait()
-        Swag.assert(task.isDone() and not task.isPending())
+        Swag.require(task.isDone() and not task.isPending())
     }
 
-    Swag.assert(runs.load() == 50)
+    Swag.require(runs.load() == 50)
 }
 
 // A drain covers submitted work nobody is waiting on.
@@ -199,8 +199,8 @@
     Swag.drainWork()
 
     for index in 24 do
-        Swag.assert(tasks[index].isDone())
-    Swag.assert(done.load() == 24)
+        Swag.require(tasks[index].isDone())
+    Swag.require(done.load() == 24)
 }
 
 // The pool exists, and asking for more workers than it runs starts them.
@@ -212,11 +212,11 @@
     Swag.startWorkers()
     if Swag.jit()
     {
-        Swag.assert(Swag.workerCount() == 0)
+        Swag.require(Swag.workerCount() == 0)
         return
     }
 
-    Swag.assert(Swag.workerCount() >= 1)
+    Swag.require(Swag.workerCount() >= 1)
     Swag.setWorkerCount(2)
-    Swag.assert(Swag.workerCount() >= 2)
+    Swag.require(Swag.workerCount() >= 2)
 }

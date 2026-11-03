@@ -25,7 +25,7 @@ alias StrictForeachF32           = f32
         var x = v
         sum += x
     }
-    Swag.assert(sum == 6)
+    Swag.require(sum == 6)
 }
 
 #test
@@ -42,8 +42,8 @@ alias StrictForeachF32           = f32
         sumV += x
         sumI += cast(s32, y)
     }
-    Swag.assert(sumV == 3)
-    Swag.assert(sumI == 1)
+    Swag.require(sumV == 3)
+    Swag.require(sumI == 1)
 }
 
 #test
@@ -55,7 +55,7 @@ alias StrictForeachF32           = f32
         var x = v
         sum += x
     }
-    Swag.assert(sum == 3)
+    Swag.require(sum == 3)
 }
 
 #test
@@ -65,8 +65,8 @@ alias StrictForeachF32           = f32
     {
         v[] += 1
     }
-    Swag.assert(arr[0] == 11)
-    Swag.assert(arr[1] == 21)
+    Swag.require(arr[0] == 11)
+    Swag.require(arr[1] == 21)
 }
 
 #test
@@ -83,8 +83,8 @@ alias StrictForeachF32           = f32
         sumV += cast(s32, x)
         sumI += cast(s32, y)
     }
-    Swag.assert(sumV == cast(s32, 'A'u8) + cast(s32, 'B'u8))
-    Swag.assert(sumI == 1)
+    Swag.require(sumV == cast(s32, 'A'u8) + cast(s32, 'B'u8))
+    Swag.require(sumI == 1)
 }
 
 #test
@@ -96,7 +96,7 @@ alias StrictForeachF32           = f32
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32, v[])
     }
-    Swag.assert(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
+    Swag.require(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
 }
 
 #test
@@ -111,8 +111,8 @@ alias StrictForeachF32           = f32
         sumV += cast(s32, v)
         sumI += i
     }
-    Swag.assert(sumV == cast(s32, 'A'u8) + cast(s32, 'Z'u8))
-    Swag.assert(sumI == 1)
+    Swag.require(sumV == cast(s32, 'A'u8) + cast(s32, 'Z'u8))
+    Swag.require(sumI == 1)
 }
 
 #test
@@ -124,7 +124,7 @@ alias StrictForeachF32           = f32
         #assert(#typeof(v) == #type const *u8)
         sum += cast(s32, v[])
     }
-    Swag.assert(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
+    Swag.require(sum == cast(s32, 'C'u8) + cast(s32, 'D'u8))
 }
 
 #test
@@ -136,11 +136,11 @@ alias StrictForeachF32           = f32
     {
         order[pos] = v
         pos        += 1
-        Swag.assert(i == 2 - (pos - 1))
+        Swag.require(i == 2 - (pos - 1))
     }
-    Swag.assert(order[0] == 'C'u8)
-    Swag.assert(order[1] == 'B'u8)
-    Swag.assert(order[2] == 'A'u8)
+    Swag.require(order[0] == 'C'u8)
+    Swag.require(order[1] == 'B'u8)
+    Swag.require(order[2] == 'A'u8)
 }
 
 func foreachCStringRefSum(value: *cstring)->s32
@@ -155,7 +155,7 @@ func foreachCStringRefSum(value: *cstring)->s32
 {
     var textData: [3] u8  = ['B'u8, 'Y'u8, 0]
     var text:     cstring = cast(cstring, &textData[0])
-    Swag.assert(foreachCStringRefSum(&text) == cast(s32, 'B'u8) + cast(s32, 'Y'u8))
+    Swag.require(foreachCStringRefSum(&text) == cast(s32, 'B'u8) + cast(s32, 'Y'u8))
 }
 
 #test
@@ -173,8 +173,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumV += x
         sumI += cast(s32, y)
     }
-    Swag.assert(sumV == 7)
-    Swag.assert(sumI == 1)
+    Swag.require(sumV == 7)
+    Swag.require(sumI == 1)
 }
 
 #test
@@ -194,7 +194,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    Swag.assert(foreachVariadicAny(1, 2, 3) == 3)
+    Swag.require(foreachVariadicAny(1, 2, 3) == 3)
 }
 
 #test
@@ -214,7 +214,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    Swag.assert(foreachVariadicTyped(1, 2, 3) == 3)
+    Swag.require(foreachVariadicTyped(1, 2, 3) == 3)
 }
 
 #test
@@ -228,7 +228,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    Swag.assert(foreachVariadicAnyErr(1, true, "a") == 3)
+    Swag.require(foreachVariadicAnyErr(1, true, "a") == 3)
 }
 
 #test
@@ -242,7 +242,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         }
         return count
     }
-    Swag.assert(foreachVariadicTypedErr(5, 6) == 2)
+    Swag.require(foreachVariadicTypedErr(5, 6) == 2)
 }
 
 #test
@@ -264,8 +264,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    Swag.assert(sumV == 16)
-    Swag.assert(sumI == 3)
+    Swag.require(sumV == 16)
+    Swag.require(sumI == 3)
 }
 
 #test
@@ -278,7 +278,7 @@ func foreachCStringRefSum(value: *cstring)->s32
         sum += cast(f32, value)
     }
 
-    Swag.assert(sum == 4.0'f32)
+    Swag.require(sum == 4.0'f32)
 }
 
 #test
@@ -290,7 +290,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     for value in Bits do
         mask |= cast(u32, value)
 
-    Swag.assert(mask == 7)
+    Swag.require(mask == 7)
 }
 
 #test
@@ -305,8 +305,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    Swag.assert(sumV == 16)
-    Swag.assert(sumI == 3)
+    Swag.require(sumV == 16)
+    Swag.require(sumI == 3)
 }
 
 #test
@@ -321,8 +321,8 @@ func foreachCStringRefSum(value: *cstring)->s32
         sumI += idx
     }
 
-    Swag.assert(sumV == 16)
-    Swag.assert(sumI == 3)
+    Swag.require(sumV == 16)
+    Swag.require(sumI == 3)
 }
 
 // A '&name' binding stays mutable when the iterated storage is mutable. The immutable
@@ -333,7 +333,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     var values = [1, 2, 3]
     for &v in values do
         v[] = 9
-    Swag.assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
+    Swag.require(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
 
 #test
@@ -343,7 +343,7 @@ func foreachCStringRefSum(value: *cstring)->s32
     let view: [..] s32 = backing
     for &v in view do
         v[] = 7
-    Swag.assert(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
+    Swag.require(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
 }
 
 #test
@@ -353,5 +353,5 @@ func foreachCStringRefSum(value: *cstring)->s32
     var sum    = 0
     for v in values do
         sum += v
-    Swag.assert(sum == 6)
+    Swag.require(sum == 6)
 }

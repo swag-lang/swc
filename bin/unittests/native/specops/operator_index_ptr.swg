@@ -132,11 +132,11 @@ impl NestedContainer
     var c: PtrContainer
     c[0].x = 5
     c[0].y = 6
-    Swag.assert(c.values[0].x == 5)
-    Swag.assert(c.values[0].y == 6)
+    Swag.require(c.values[0].x == 5)
+    Swag.require(c.values[0].y == 6)
 
     c[0].x += 10
-    Swag.assert(c.values[0].x == 15)
+    Swag.require(c.values[0].x == 15)
 }
 
 // Whole-element assignment without 'opIndexSet' writes through the element address.
@@ -144,8 +144,8 @@ impl NestedContainer
 {
     var c: PtrContainer
     c[1] = PtrElem{7, 8}
-    Swag.assert(c.values[1].x == 7)
-    Swag.assert(c.values[1].y == 8)
+    Swag.require(c.values[1].x == 7)
+    Swag.require(c.values[1].y == 8)
 }
 
 // The element address escapes as a plain pointer and stays writable.
@@ -155,7 +155,7 @@ impl NestedContainer
     let p = &c[2]
     #assert(#typeof(p) == #type *PtrElem)
     p.x = 42
-    Swag.assert(c.values[2].x == 42)
+    Swag.require(c.values[2].x == 42)
 }
 
 // A mutating method call binds the element address as its receiver.
@@ -164,7 +164,7 @@ impl NestedContainer
     var c: PtrContainer
     c[3].bump()
     c[3].bump()
-    Swag.assert(c.values[3].x == 2)
+    Swag.require(c.values[3].x == 2)
 }
 
 // Reading an element loads the value out: the copy does not alias the storage.
@@ -174,7 +174,7 @@ impl NestedContainer
     c[0] = PtrElem{1, 2}
     var v = c[0]
     v.x = 99
-    Swag.assert(c.values[0].x == 1)
+    Swag.require(c.values[0].x == 1)
 }
 
 // A const receiver selects the const overload and keeps reads working.
@@ -182,7 +182,7 @@ impl NestedContainer
 {
     var c: PtrContainer
     c[0] = PtrElem{3, 4}
-    Swag.assert(c.constProbe() == 7)
+    Swag.require(c.constProbe() == 7)
 }
 
 // 'opIndexSet' and 'opIndexAssign' keep priority over the element address; plain reads
@@ -193,18 +193,18 @@ impl NestedContainer
 
     var c: FullContainer
     c[0] = 10
-    Swag.assert(g_SetCalls == 1)
+    Swag.require(g_SetCalls == 1)
 
     c[0] += 5
-    Swag.assert(g_AssignCalls == 1)
+    Swag.require(g_AssignCalls == 1)
 
     let v = c[0]
-    Swag.assert(v == 15)
-    Swag.assert(g_ValueReads == 1)
+    Swag.require(v == 15)
+    Swag.require(g_ValueReads == 1)
 
     let p = &c[0]
-    Swag.assert(p[] == 15)
-    Swag.assert(g_PtrAccesses == 1)
+    Swag.require(p[] == 15)
+    Swag.require(g_PtrAccesses == 1)
 }
 
 // A generic container hands back a typed element address.
@@ -213,11 +213,11 @@ impl NestedContainer
     var box: GenBox's32
     box[0] = 4
     box[0] += 3
-    Swag.assert(box.values[0] == 7)
+    Swag.require(box.values[0] == 7)
 
     var pts: GenBox'PtrElem
     pts[1].x = 11
-    Swag.assert(pts.values[1].x == 11)
+    Swag.require(pts.values[1].x == 11)
 }
 
 // Multi-dimensional indexing routes every place context through 'opIndexPtr'.
@@ -226,11 +226,11 @@ impl NestedContainer
     var g: Grid
     g[1, 2] = 9
     g[1, 2] += 1
-    Swag.assert(g.cells[1, 2] == 10)
+    Swag.require(g.cells[1, 2] == 10)
 
     let p = &g[0, 1]
     p[] = 33
-    Swag.assert(g.cells[0, 1] == 33)
+    Swag.require(g.cells[0, 1] == 33)
 }
 
 // A chained member path stays one in-place write.
@@ -239,5 +239,5 @@ impl NestedContainer
     var c: NestedContainer
     c[1].inner.x = 21
     c[1].inner.bump()
-    Swag.assert(c.values[1].inner.x == 22)
+    Swag.require(c.values[1].inner.x == 22)
 }

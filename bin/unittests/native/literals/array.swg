@@ -27,9 +27,9 @@ const A2 = [1, true, 3]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
-    Swag.assert(B[0] == 1)
-    Swag.assert(C[2] == 3)
-    Swag.assert(D[1] == 2.0)
+    Swag.require(B[0] == 1)
+    Swag.require(C[2] == 3)
+    Swag.require(D[1] == 2.0)
 }
 
 const G: [2] f32 = [1.0, 2]
@@ -55,7 +55,7 @@ const I: [2] s32 = [1, cast(s32, 2.2)]
 {
     const K: [4] s32 = [10, 20, 30, 40]
     #assert(#typeof(K) == #type [4] s32)
-    Swag.assert(K[3] == 40)
+    Swag.require(K[3] == 40)
 }
 
 #test
@@ -63,7 +63,7 @@ const I: [2] s32 = [1, cast(s32, 2.2)]
     const M: [2] [2] s32 = [[1, 2], [3, 4]]
     #assert(#typeof(M) == #type [2] [2] s32)
     #assert(M[1][0] == 3)
-    Swag.assert(M[0][1] == 2)
+    Swag.require(M[0][1] == 2)
 }
 
 const AB:  [2] u32 = [1, 2]
@@ -78,23 +78,23 @@ const AB2: [?] u32 = [[1], [2]]
 {
     var a = [10, 20, 30]
     #assert(#typeof(a) == #type [3] s32)
-    Swag.assert(a[0] == 10)
-    Swag.assert(a[2] == 30)
+    Swag.require(a[0] == 10)
+    Swag.require(a[2] == 30)
 }
 
 #test
 {
     var a = [1'f64, 2, 3]
     #assert(#typeof(a) == #type [3] f64)
-    Swag.assert(a[2] == 3.0)
+    Swag.require(a[2] == 3.0)
 }
 
 #test
 {
     var a = [[1, 2], [3, 4]]
     #assert(#typeof(a) == #type [2][2] s32)
-    Swag.assert(a[0, 0] == 1)
-    Swag.assert(a[1, 1] == 4)
+    Swag.require(a[0, 0] == 1)
+    Swag.require(a[1, 1] == 4)
     #assert(a.count == 2)
 }
 
@@ -102,29 +102,29 @@ const AB2: [?] u32 = [[1], [2]]
 #test
 {
     var a: [40] s32 = 7
-    Swag.assert(a[0] == 7)
-    Swag.assert(a[39] == 7)
+    Swag.require(a[0] == 7)
+    Swag.require(a[39] == 7)
 }
 
 #test
 {
     var a: [2, 2] bool = true
-    Swag.assert(a[0, 0] == true)
-    Swag.assert(a[1, 1] == true)
+    Swag.require(a[0, 0] == true)
+    Swag.require(a[1, 1] == true)
 }
 
 #test
 {
     var a: [3] string = "hi"
-    Swag.assert(a[0] == "hi")
-    Swag.assert(a[2] == "hi")
+    Swag.require(a[0] == "hi")
+    Swag.require(a[2] == "hi")
 }
 
 #test
 {
     var a: [2, 3] f32 = 1.5
-    Swag.assert(a[0, 0] == 1.5)
-    Swag.assert(a[1, 2] == 1.5)
+    Swag.require(a[0, 0] == 1.5)
+    Swag.require(a[1, 2] == 1.5)
 }
 
 private
@@ -135,24 +135,24 @@ private
 #test
 {
     const a: [2] u8 = [HexFill, HexFill]
-    Swag.assert(a[0] == 0xF0'u8)
-    Swag.assert(a[1] == 0xF0'u8)
+    Swag.require(a[0] == 0xF0'u8)
+    Swag.require(a[1] == 0xF0'u8)
 }
 
 #test
 {
     const a: [3] u8 = HexFill
-    Swag.assert(a[0] == 0xF0'u8)
-    Swag.assert(a[2] == 0xF0'u8)
+    Swag.require(a[0] == 0xF0'u8)
+    Swag.require(a[2] == 0xF0'u8)
 }
 
 #test
 {
     const a = [{x: 1, y: 2}, {x: 3, y: 4}]
-    Swag.assert(a[0].x == 1)
-    Swag.assert(a[0].y == 2)
-    Swag.assert(a[1].x == 3)
-    Swag.assert(a[1].y == 4)
+    Swag.require(a[0].x == 1)
+    Swag.require(a[0].y == 2)
+    Swag.require(a[1].x == 3)
+    Swag.require(a[1].y == 4)
 }
 
 // An element written as a bare number has no width of its own, and it takes one from the elements
@@ -167,12 +167,12 @@ private
     #assert(#sizeof([a, b, 0, a]) == 8)
 
     let v = cast(#simd [8] s16, [a, b, 0, a, b, 0, a, b])
-    Swag.assert(v[0] == 111)
-    Swag.assert(v[1] == 222)
-    Swag.assert(v[2] == 0)
-    Swag.assert(v[3] == 111)
-    Swag.assert(v[4] == 222)
-    Swag.assert(v[5] == 0)
-    Swag.assert(v[6] == 111)
-    Swag.assert(v[7] == 222)
+    Swag.require(v[0] == 111)
+    Swag.require(v[1] == 222)
+    Swag.require(v[2] == 0)
+    Swag.require(v[3] == 111)
+    Swag.require(v[4] == 222)
+    Swag.require(v[5] == 0)
+    Swag.require(v[6] == 111)
+    Swag.require(v[7] == 222)
 }

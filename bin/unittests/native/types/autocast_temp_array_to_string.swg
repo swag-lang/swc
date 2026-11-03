@@ -23,8 +23,8 @@ func autocastTempArrayToStringConsume(text: string)->u8
 
     let text: string = holder.cb(false)
     let bytes        = cast(const [..] u8, text)
-    Swag.assert(bytes.count == 5)
-    Swag.assert(text[0] == 'w'u8)
-    Swag.assert(text[4] == 'd'u8)
-    Swag.assert(autocastTempArrayToStringConsume(holder.cb(false)) == 'w'u8 + 'd'u8)
+    Swag.require(bytes.count == 5)
+    Swag.require(text[0] == 'w'u8)
+    Swag.require(text[4] == 'd'u8)
+    Swag.require(autocastTempArrayToStringConsume(holder.cb(false)) == 'w'u8 + 'd'u8)
 }

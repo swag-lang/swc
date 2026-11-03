@@ -28,7 +28,7 @@ func contextualRows(index: u32)->u32
 {
     #assert(#run contextualRows(0) == 0)
     #assert(#run contextualRows(1) == 11)
-    Swag.assert(contextualRows(2) == 1)
+    Swag.require(contextualRows(2) == 1)
 }
 
 #test
@@ -40,5 +40,5 @@ func contextualRows(index: u32)->u32
         ]
     #assert(#typeof(records[1].lanes[0]) == u8)
     #assert(#typeof(records[1].tag) == s32)
-    Swag.assert(records[0].lanes[1] + records[1].lanes[0] + records[1].tag == 12)
+    Swag.require(records[0].lanes[1] + records[1].lanes[0] + records[1].tag == 12)
 }

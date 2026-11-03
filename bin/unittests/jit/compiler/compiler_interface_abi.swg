@@ -11,5 +11,5 @@ internal var CompilerInterfaceGeneratedValue = 0
 
 #test
 {
-    Swag.assert(CompilerInterfaceGeneratedValue == 42)
+    Swag.require(CompilerInterfaceGeneratedValue == 42)
 }

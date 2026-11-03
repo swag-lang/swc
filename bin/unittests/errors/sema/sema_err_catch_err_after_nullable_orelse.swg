@@ -18,7 +18,7 @@ func catchErrorName(error: any?)->string => error != null ? "error" : "none"
 #test
 {
     let code = catch catchErrorCode() orelse cast(s32, Swag.err != null)
-    Swag.assert(code == 1)
+    Swag.require(code == 1)
 }
 
 // A nullable result also takes it after a success that returns null, where no error exists.

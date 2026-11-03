@@ -12,8 +12,8 @@ func selectArrayInfo(flag: bool)->const *TypeInfoArray
 {
     let trueInfo  = selectArrayInfo(true)
     let falseInfo = selectArrayInfo(false)
-    Swag.assert(trueInfo.count == 2)
-    Swag.assert(trueInfo.finalType == f32)
-    Swag.assert(falseInfo.count == 2)
-    Swag.assert(falseInfo.finalType == s32)
+    Swag.require(trueInfo.count == 2)
+    Swag.require(trueInfo.finalType == f32)
+    Swag.require(falseInfo.count == 2)
+    Swag.require(falseInfo.finalType == s32)
 }

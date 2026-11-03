@@ -45,13 +45,13 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 // All-literal aggregate as a call argument.
 #test
 {
-    Swag.assert(totalLength(["ab", "cde"]) == 5)
+    Swag.require(totalLength(["ab", "cde"]) == 5)
 }
 
 // A single literal element.
 #test
 {
-    Swag.assert(totalLength(["--publish"]) == 9)
+    Swag.require(totalLength(["--publish"]) == 9)
 }
 
 // The same call as an argument of another call: the aggregate must not be treated as
@@ -67,7 +67,7 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 #test
 {
     let values: const [..] Wrapped = ["a", "bc", "def"]
-    Swag.assert(totalLength(values) == 6)
+    Swag.require(totalLength(values) == 6)
 }
 
 // One runtime element mixed with literals: the shape that already worked.
@@ -75,7 +75,7 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
 {
     var runtime: Wrapped
     runtime = "wxyz"
-    Swag.assert(totalLength(["ab", runtime]) == 6)
+    Swag.require(totalLength(["ab", runtime]) == 6)
 }
 
 // Elements built through 'opSet' point at real payloads, not at stale constants.
@@ -88,5 +88,5 @@ func totalLengthReport(values: const [..] Wrapped, expected: u64)->string
         return values[0].ptr![]
     }
 
-    Swag.assert(firstByte(["qr", "s"]) == 'q')
+    Swag.require(firstByte(["qr", "s"]) == 'q')
 }

@@ -84,6 +84,6 @@ func unguardedResults()->bool
 
 #test
 {
-    Swag.assert(guardedResults())
-    Swag.assert(unguardedResults())
+    Swag.require(guardedResults())
+    Swag.require(unguardedResults())
 }

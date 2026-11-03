@@ -136,9 +136,9 @@ func none()->u64 => 0
     moveBodies(bodies, 0.01)
     moveBodiesRef(want, 0.01)
     for i in 5 do
-        Swag.assert(bodies[i].x == want[i].x and bodies[i].y == want[i].y and bodies[i].z == want[i].z)
+        Swag.require(bodies[i].x == want[i].x and bodies[i].y == want[i].y and bodies[i].z == want[i].z)
     moveBodies(bodies[0 until none()], 0.01)
-    Swag.assert(bodies[0].x == want[0].x)
+    Swag.require(bodies[0].x == want[0].x)
 }
 
 #test
@@ -146,15 +146,15 @@ func none()->u64 => 0
     var triples: [9] Triple
     for i in 9 do
         triples[i] = Triple{cast(u32, i) * 11, cast(u32, i) * 7 + 1, 100 - cast(u32, i)}
-    Swag.assert(sumTriples(triples) == sumTriplesRef(triples))
-    Swag.assert(sumTriples(triples[3 until 5]) == sumTriplesRef(triples[3 until 5]))
-    Swag.assert(sumTriples(triples[0 until none()]) == 0)
+    Swag.require(sumTriples(triples) == sumTriplesRef(triples))
+    Swag.require(sumTriples(triples[3 until 5]) == sumTriplesRef(triples[3 until 5]))
+    Swag.require(sumTriples(triples[0 until none()]) == 0)
 
     var pairs: [7] Pair24
     for i in 7 do
         pairs[i] = Pair24{cast(u64, i) * 13 + 2, cast(u64, i) * 5, cast(u64, i) ^ 3}
-    Swag.assert(sumEveryOther(pairs) == sumEveryOtherRef(pairs))
-    Swag.assert(sumEveryOther(pairs[1 until 4]) == sumEveryOtherRef(pairs[1 until 4]))
-    Swag.assert(sumDownwards(pairs) == sumDownwardsRef(pairs))
-    Swag.assert(sumDownwards(pairs[0 until none()]) == 0)
+    Swag.require(sumEveryOther(pairs) == sumEveryOtherRef(pairs))
+    Swag.require(sumEveryOther(pairs[1 until 4]) == sumEveryOtherRef(pairs[1 until 4]))
+    Swag.require(sumDownwards(pairs) == sumDownwardsRef(pairs))
+    Swag.require(sumDownwards(pairs[0 until none()]) == 0)
 }

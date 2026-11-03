@@ -215,50 +215,50 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
         Body{2.0, 1.0, 0.5, 0.0, 1.0},
         Body{-1.0, 3.0, 0.0, -0.25, 2.0}]
     advance(bodies, 0.5)
-    Swag.assert(bodies[0].x == 0.0 and bodies[0].y == 1.75)
-    Swag.assert(bodies[0].vx == 0.0 and bodies[0].vy == 3.5)
-    Swag.assert(bodies[1].x == -1.25 and bodies[1].y == 1.0)
-    Swag.assert(bodies[1].vx == -6.5 and bodies[1].vy == 0.0)
-    Swag.assert(bodies[2].x == 0.75 and bodies[2].y == -0.625)
-    Swag.assert(bodies[2].vx == 3.5 and bodies[2].vy == -7.25)
+    Swag.require(bodies[0].x == 0.0 and bodies[0].y == 1.75)
+    Swag.require(bodies[0].vx == 0.0 and bodies[0].vy == 3.5)
+    Swag.require(bodies[1].x == -1.25 and bodies[1].y == 1.0)
+    Swag.require(bodies[1].vx == -6.5 and bodies[1].vy == 0.0)
+    Swag.require(bodies[2].x == 0.75 and bodies[2].y == -0.625)
+    Swag.require(bodies[2].vx == 3.5 and bodies[2].vy == -7.25)
 
     var upper: [16] u8
     let raised = upperInto(&upper[0], "swag, 2026!")
-    Swag.assert(raised == 4)
-    Swag.assert(upper[0] == 'S'u8 and upper[3] == 'G'u8 and upper[4] == ','u8 and upper[10] == '!'u8)
+    Swag.require(raised == 4)
+    Swag.require(upper[0] == 'S'u8 and upper[3] == 'G'u8 and upper[4] == ','u8 and upper[10] == '!'u8)
 
     let src: [4] s64 = [1, -2, 3, 40]
     var dst: [4] s64
     let scaled       = scaleInto(&dst[0], &src[0], Scale{3, 5, 4})
-    Swag.assert(scaled == 166)
-    Swag.assert(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
+    Swag.require(scaled == 166)
+    Swag.require(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
 
     GCalls = 0
     let around = scaleAround(&dst[0], &src[0], Scale{3, 5, 4})
-    Swag.assert(around == 166 and GCalls == 16)
-    Swag.assert(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
+    Swag.require(around == 166 and GCalls == 16)
+    Swag.require(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
 
     GCalls = 0
     let counted = countAround("abc")
-    Swag.assert(counted == 12)
-    Swag.assert(GCalls == 294)
+    Swag.require(counted == 12)
+    Swag.require(GCalls == 294)
 
     var forwarded: [4] u64
     GCalls = 0
     let forwardedSum = sumForwarded(&forwarded[0], "abc")
-    Swag.assert(forwardedSum == 303 and GCalls == 3)
-    Swag.assert(forwarded[0] == 97 and forwarded[2] == 99 and forwarded[3] == 0)
+    Swag.require(forwardedSum == 303 and GCalls == 3)
+    Swag.require(forwarded[0] == 97 and forwarded[2] == 99 and forwarded[3] == 0)
 
     var worker: Worker
     let polled = pollUntilEnd(&worker, &worker)
-    Swag.assert(polled == 33 and worker.requestEnd)
+    Swag.require(polled == 33 and worker.requestEnd)
 
     var values: [6] s64 = [1, 2, 3, 4, 5, 6]
     let summed = prefixSums(values)
-    Swag.assert(summed == 22)
-    Swag.assert(values[1] == 3 and values[5] == 21)
+    Swag.require(summed == 22)
+    Swag.require(values[1] == 3 and values[5] == 21)
 
     let addressed = sumThroughAddress(&dst[0], Scale{7, -2, 3})
-    Swag.assert(addressed == 36)
-    Swag.assert(dst[0] == 5 and dst[2] == 5 and dst[3] == 125)
+    Swag.require(addressed == 36)
+    Swag.require(dst[0] == 5 and dst[2] == 5 and dst[3] == 125)
 }

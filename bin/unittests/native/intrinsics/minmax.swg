@@ -197,34 +197,34 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
 
 #test
 {
-    Swag.assert(minS8(-7's8, 3's8) == -7's8)
-    Swag.assert(maxS8(-7's8, 3's8) == 3's8)
-    Swag.assert(minS8(-128's8, 127's8) == -128's8)
-    Swag.assert(maxS8(-128's8, 127's8) == 127's8)
-    Swag.assert(minS8(5's8, 5's8) == 5's8)
-    Swag.assert(maxS8(5's8, 5's8) == 5's8)
+    Swag.require(minS8(-7's8, 3's8) == -7's8)
+    Swag.require(maxS8(-7's8, 3's8) == 3's8)
+    Swag.require(minS8(-128's8, 127's8) == -128's8)
+    Swag.require(maxS8(-128's8, 127's8) == 127's8)
+    Swag.require(minS8(5's8, 5's8) == 5's8)
+    Swag.require(maxS8(5's8, 5's8) == 5's8)
 }
 
 #test
 {
-    Swag.assert(minS16(-321's16, 100's16) == -321's16)
-    Swag.assert(maxS16(-321's16, 100's16) == 100's16)
-    Swag.assert(minS16(0's16, 0's16) == 0's16)
+    Swag.require(minS16(-321's16, 100's16) == -321's16)
+    Swag.require(maxS16(-321's16, 100's16) == 100's16)
+    Swag.require(minS16(0's16, 0's16) == 0's16)
 }
 
 #test
 {
-    Swag.assert(minS32(-7, 3) == -7)
-    Swag.assert(maxS32(-7, 3) == 3)
-    Swag.assert(minS32(9, 9) == 9)
-    Swag.assert(maxS32(0, -1) == 0)
-    Swag.assert(minS32(0, -1) == -1)
+    Swag.require(minS32(-7, 3) == -7)
+    Swag.require(maxS32(-7, 3) == 3)
+    Swag.require(minS32(9, 9) == 9)
+    Swag.require(maxS32(0, -1) == 0)
+    Swag.require(minS32(0, -1) == -1)
 }
 
 #test
 {
-    Swag.assert(minS64(-5000000000's64, 3's64) == -5000000000's64)
-    Swag.assert(maxS64(-5000000000's64, 3's64) == 3's64)
+    Swag.require(minS64(-5000000000's64, 3's64) == -5000000000's64)
+    Swag.require(maxS64(-5000000000's64, 3's64) == 3's64)
 }
 
 // ============================================================
@@ -233,29 +233,29 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
 
 #test
 {
-    Swag.assert(minU8(1'u8, 200'u8) == 1'u8)
-    Swag.assert(maxU8(1'u8, 200'u8) == 200'u8)
-    Swag.assert(minU8(0'u8, 255'u8) == 0'u8)
-    Swag.assert(maxU8(0'u8, 255'u8) == 255'u8)
+    Swag.require(minU8(1'u8, 200'u8) == 1'u8)
+    Swag.require(maxU8(1'u8, 200'u8) == 200'u8)
+    Swag.require(minU8(0'u8, 255'u8) == 0'u8)
+    Swag.require(maxU8(0'u8, 255'u8) == 255'u8)
 }
 
 #test
 {
-    Swag.assert(minU16(100'u16, 200'u16) == 100'u16)
-    Swag.assert(maxU16(100'u16, 200'u16) == 200'u16)
+    Swag.require(minU16(100'u16, 200'u16) == 100'u16)
+    Swag.require(maxU16(100'u16, 200'u16) == 200'u16)
 }
 
 #test
 {
-    Swag.assert(minU32(4000000000'u32, 7'u32) == 7'u32)
-    Swag.assert(maxU32(4000000000'u32, 7'u32) == 4000000000'u32)
+    Swag.require(minU32(4000000000'u32, 7'u32) == 7'u32)
+    Swag.require(maxU32(4000000000'u32, 7'u32) == 4000000000'u32)
 }
 
 #test
 {
-    Swag.assert(minU64(4'u64, 9'u64) == 4'u64)
-    Swag.assert(maxU64(4'u64, 9'u64) == 9'u64)
-    Swag.assert(maxU64(11'u64, 11'u64) == 11'u64)
+    Swag.require(minU64(4'u64, 9'u64) == 4'u64)
+    Swag.require(maxU64(4'u64, 9'u64) == 9'u64)
+    Swag.require(maxU64(11'u64, 11'u64) == 11'u64)
 }
 
 // ============================================================
@@ -264,29 +264,29 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
 
 #test
 {
-    Swag.assert(minF32(1.25'f32, 2.75'f32) == 1.25'f32)
-    Swag.assert(maxF32(1.25'f32, 2.75'f32) == 2.75'f32)
-    Swag.assert(minF32(-1.0'f32, 1.0'f32) == -1.0'f32)
-    Swag.assert(maxF32(-1.0'f32, 1.0'f32) == 1.0'f32)
+    Swag.require(minF32(1.25'f32, 2.75'f32) == 1.25'f32)
+    Swag.require(maxF32(1.25'f32, 2.75'f32) == 2.75'f32)
+    Swag.require(minF32(-1.0'f32, 1.0'f32) == -1.0'f32)
+    Swag.require(maxF32(-1.0'f32, 1.0'f32) == 1.0'f32)
 }
 
 #test
 {
-    Swag.assert(minF64(6.5'f64, 3.0'f64) == 3.0'f64)
-    Swag.assert(maxF64(6.5'f64, 3.0'f64) == 6.5'f64)
-    Swag.assert(minF64(-100.0'f64, -50.0'f64) == -100.0'f64)
-    Swag.assert(maxF64(-100.0'f64, -50.0'f64) == -50.0'f64)
+    Swag.require(minF64(6.5'f64, 3.0'f64) == 3.0'f64)
+    Swag.require(maxF64(6.5'f64, 3.0'f64) == 6.5'f64)
+    Swag.require(minF64(-100.0'f64, -50.0'f64) == -100.0'f64)
+    Swag.require(maxF64(-100.0'f64, -50.0'f64) == -50.0'f64)
 }
 
 // Commutativity
 #test
 {
-    Swag.assert(minS32(3, -7) == minS32(-7, 3))
-    Swag.assert(maxS32(3, -7) == maxS32(-7, 3))
-    Swag.assert(minU64(100'u64, 200'u64) == minU64(200'u64, 100'u64))
-    Swag.assert(maxU64(100'u64, 200'u64) == maxU64(200'u64, 100'u64))
-    Swag.assert(minF64(1.5'f64, 2.5'f64) == minF64(2.5'f64, 1.5'f64))
-    Swag.assert(maxF32(1.0'f32, 9.0'f32) == maxF32(9.0'f32, 1.0'f32))
+    Swag.require(minS32(3, -7) == minS32(-7, 3))
+    Swag.require(maxS32(3, -7) == maxS32(-7, 3))
+    Swag.require(minU64(100'u64, 200'u64) == minU64(200'u64, 100'u64))
+    Swag.require(maxU64(100'u64, 200'u64) == maxU64(200'u64, 100'u64))
+    Swag.require(minF64(1.5'f64, 2.5'f64) == minF64(2.5'f64, 1.5'f64))
+    Swag.require(maxF32(1.0'f32, 9.0'f32) == maxF32(9.0'f32, 1.0'f32))
 }
 
 // Strict aliases
@@ -302,10 +302,10 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
     #assert(#typeof(c) == MinMaxStrictU32)
     #assert(#typeof(d) == MinMaxStrictF32)
 
-    Swag.assert(a == cast(MinMaxStrictS32, -5))
-    Swag.assert(b == cast(MinMaxStrictS32, 3))
-    Swag.assert(c == cast(MinMaxStrictU32, 4))
-    Swag.assert(d == cast(MinMaxStrictF32, 2.5'f32))
+    Swag.require(a == cast(MinMaxStrictS32, -5))
+    Swag.require(b == cast(MinMaxStrictS32, 3))
+    Swag.require(c == cast(MinMaxStrictU32, 4))
+    Swag.require(d == cast(MinMaxStrictF32, 2.5'f32))
 }
 
 #test
@@ -324,10 +324,10 @@ func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => Sw
     #assert(#typeof(fi) == MinMaxStrictF32)
     #assert(#typeof(fx) == MinMaxStrictF32)
 
-    Swag.assert(si == cast(MinMaxStrictS32, -2))
-    Swag.assert(sx == cast(MinMaxStrictS32, 7))
-    Swag.assert(ui == cast(MinMaxStrictU32, 9))
-    Swag.assert(ux == cast(MinMaxStrictU32, 11))
-    Swag.assert(fi == cast(MinMaxStrictF32, 2.25'f32))
-    Swag.assert(fx == cast(MinMaxStrictF32, 4.5'f32))
+    Swag.require(si == cast(MinMaxStrictS32, -2))
+    Swag.require(sx == cast(MinMaxStrictS32, 7))
+    Swag.require(ui == cast(MinMaxStrictU32, 9))
+    Swag.require(ux == cast(MinMaxStrictU32, 11))
+    Swag.require(fi == cast(MinMaxStrictF32, 2.25'f32))
+    Swag.require(fx == cast(MinMaxStrictF32, 4.5'f32))
 }

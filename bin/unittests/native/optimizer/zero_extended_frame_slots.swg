@@ -129,8 +129,8 @@ func rotateSlotsReference(seed: u64)->u64
 {
     for seed in [0x12345678'u64, 0xFFFFFFFF, 0x0123456789ABCDEF, 0xFEDCBA9876543210]
     {
-        Swag.assert(schedule(seed) == scheduleReference(seed))
-        Swag.assert(scheduleUnmasked(seed) == scheduleUnmaskedReference(seed))
-        Swag.assert(rotateSlots(seed) == rotateSlotsReference(seed))
+        Swag.require(schedule(seed) == scheduleReference(seed))
+        Swag.require(scheduleUnmasked(seed) == scheduleUnmaskedReference(seed))
+        Swag.require(rotateSlots(seed) == rotateSlotsReference(seed))
     }
 }

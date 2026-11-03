@@ -46,7 +46,7 @@ const IntrinsicCompileTimeMinimum = Swag.min(12's32, 7's32)
 {
     var left:  s32 = 12
     let right: s32 = 7
-    Swag.assert(Swag.min(left, right) == 7)
+    Swag.require(Swag.min(left, right) == 7)
 }
 
 /**
@@ -74,6 +74,8 @@ this reference.
 > for lifetime, bounds, alignment, and element semantics.
 */
 
+// This test shows the assertion itself, so its body writes 'Swag.assert' on purpose.
+#[Swag.Warning("sema_warn_assert_in_test", .Disable)]
 #test
 {
     #[Swag.Safety(.Assert, true)]
@@ -102,6 +104,10 @@ and no configuration removes them, and their condition is always evaluated.
 
 Without a message, the report shows the condition's source. Outside a running test, a failed
 verdict stops the program, so a failure is never lost.
+
+A 'Swag.assert' written directly in a '#test' body raises 'sema_warn_assert_in_test'. A function
+or closure declared in that body keeps its own assertions, and a test about the assertion itself
+disables the warning with '#[Swag.Warning("sema_warn_assert_in_test", .Disable)]'.
 */
 
 #test

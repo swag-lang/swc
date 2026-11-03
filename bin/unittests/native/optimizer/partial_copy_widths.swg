@@ -39,13 +39,13 @@ func checkedPair(a: u64, p: PairU32, b: u64)->u64 => a * 1000000 + cast(u64, p.x
 
 #test
 {
-    Swag.assert(truncThenWiden(0x100000005) == 15)
-    Swag.assert(truncThenWiden(0xFFFFFFFF00000001) == 3)
-    Swag.assert(widenedSum(0xFFFFFFFF, 2) == 2)
-    Swag.assert(widenedSum(0x8000000000000000, 7) == 8)
-    Swag.assert(checkedPair(7, PairU32{18, 24}, 3) == 7018027)
+    Swag.require(truncThenWiden(0x100000005) == 15)
+    Swag.require(truncThenWiden(0xFFFFFFFF00000001) == 3)
+    Swag.require(widenedSum(0xFFFFFFFF, 2) == 2)
+    Swag.require(widenedSum(0x8000000000000000, 7) == 8)
+    Swag.require(checkedPair(7, PairU32{18, 24}, 3) == 7018027)
 
     var table: [4] u64
     table[2] = 40
-    Swag.assert(lowByteIndex(0x7700000000000002, &table[0]) == 42)
+    Swag.require(lowByteIndex(0x7700000000000002, &table[0]) == 42)
 }

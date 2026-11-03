@@ -46,12 +46,12 @@ func firstByte(s: string)->u8
 #test
 {
     // Rvalue receiver: the slice must still see the receiver's bytes.
-    Swag.assert(firstByte(makeText().view()) == 'H'u8)
+    Swag.require(firstByte(makeText().view()) == 'H'u8)
 }
 
 #test
 {
     // Named receiver: the healthy control.
     let t = makeText()
-    Swag.assert(firstByte(t.view()) == 'H'u8)
+    Swag.require(firstByte(t.view()) == 'H'u8)
 }

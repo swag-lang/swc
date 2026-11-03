@@ -47,8 +47,8 @@ func lookupAlternative(table: [*] u64, key, bias, scale: u64)->u64
         expected += value * 2 + 5 + key
     }
 
-    Swag.assert(sum == expected)
-    Swag.assert(g_SlowCalls == 8)
+    Swag.require(sum == expected)
+    Swag.require(g_SlowCalls == 8)
 
     table[2]    = 0
     g_SlowCalls = 0
@@ -61,6 +61,6 @@ func lookupAlternative(table: [*] u64, key, bias, scale: u64)->u64
         expected += value * 2 + 5 + key
     }
 
-    Swag.assert(sum == expected)
-    Swag.assert(g_SlowCalls == 9)
+    Swag.require(sum == expected)
+    Swag.require(g_SlowCalls == 9)
 }

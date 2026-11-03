@@ -69,15 +69,15 @@ func typedNullDataOf()->bool
 
 #test
 {
-    Swag.assert(typedNullString())
-    Swag.assert(typedNullSlice())
-    Swag.assert(typedNullAny())
-    Swag.assert(typedNullCString())
-    Swag.assert(typedNullConstBytes())
-    Swag.assert(typedNullPointerOrelse())
-    Swag.assert(typedNullConditional(true))
-    Swag.assert(typedNullConditional(false))
-    Swag.assert(typedNullSliceConditional(true))
-    Swag.assert(typedNullSliceConditional(false))
-    Swag.assert(typedNullDataOf())
+    Swag.require(typedNullString())
+    Swag.require(typedNullSlice())
+    Swag.require(typedNullAny())
+    Swag.require(typedNullCString())
+    Swag.require(typedNullConstBytes())
+    Swag.require(typedNullPointerOrelse())
+    Swag.require(typedNullConditional(true))
+    Swag.require(typedNullConditional(false))
+    Swag.require(typedNullSliceConditional(true))
+    Swag.require(typedNullSliceConditional(false))
+    Swag.require(typedNullDataOf())
 }

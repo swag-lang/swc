@@ -27,12 +27,12 @@ func variable(a, factor: u64)->u64 => a * factor
     {
         for b in values
         {
-            Swag.assert(factor3(a, b) == variable(a + b, 3))
-            Swag.assert(factor5(a, b) == variable(a + b, 5))
-            Swag.assert(factor9(a, b) == variable(a + b, 9))
-            Swag.assert(subtract(a, b) == variable(a - b, 3))
-            Swag.assert(shared(a, b) == ((variable(a, 3) + variable(b, 3)) ^ variable(a, 3)))
-            Swag.assert(different(a, b) == variable(a, 3) + variable(b, 5))
+            Swag.require(factor3(a, b) == variable(a + b, 3))
+            Swag.require(factor5(a, b) == variable(a + b, 5))
+            Swag.require(factor9(a, b) == variable(a + b, 9))
+            Swag.require(subtract(a, b) == variable(a - b, 3))
+            Swag.require(shared(a, b) == ((variable(a, 3) + variable(b, 3)) ^ variable(a, 3)))
+            Swag.require(different(a, b) == variable(a, 3) + variable(b, 5))
         }
     }
 }

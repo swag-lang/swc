@@ -43,11 +43,11 @@ func boxStrictTestFlagsAuto(value: StrictTestFlags)->bool
 
 #test
 {
-    Swag.assert(boxStrictTestFlags(cast(StrictTestFlags, TestFlags.C)))
-    Swag.assert(widen(41) == 42)
+    Swag.require(boxStrictTestFlags(cast(StrictTestFlags, TestFlags.C)))
+    Swag.require(widen(41) == 42)
 
     const seed: any = cast(StrictTestFlags, TestFlags.B)
-    Swag.assert(Swag.kindOf(seed) == StrictTestFlags)
-    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.C)))
-    Swag.assert(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.A)))
+    Swag.require(Swag.kindOf(seed) == StrictTestFlags)
+    Swag.require(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.C)))
+    Swag.require(boxStrictTestFlagsAuto(cast(StrictTestFlags, TestFlags.A)))
 }

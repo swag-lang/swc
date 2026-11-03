@@ -34,5 +34,5 @@ func buildDeclaration()->string => "const Id = 42"
 #test
 {
     var other: OtherMember
-    Swag.assert(other.read() == 42)
+    Swag.require(other.read() == 42)
 }

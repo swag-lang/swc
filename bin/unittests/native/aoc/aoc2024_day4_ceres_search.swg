@@ -251,15 +251,15 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let sampleClean = solveClean(sampleGrid)
     let sampleFeat  = solveWithLanguageFeatures(sampleGrid)
 
-    Swag.assert(sampleGrid.rowCount == 10'u32)
-    Swag.assert(sampleGrid.colCount == 10'u32)
-    Swag.assert(gridAt(sampleGrid, 0, 0) == 'M'u8)
-    Swag.assert(sampleGrid.at(0, 0) == 'M'u8)
+    Swag.require(sampleGrid.rowCount == 10'u32)
+    Swag.require(sampleGrid.colCount == 10'u32)
+    Swag.require(gridAt(sampleGrid, 0, 0) == 'M'u8)
+    Swag.require(sampleGrid.at(0, 0) == 'M'u8)
 
-    Swag.assert(sampleClean.xmasCount == 18'u32)
-    Swag.assert(sampleClean.crossCount == 9'u32)
-    Swag.assert(sampleFeat.xmasCount == sampleClean.xmasCount)
-    Swag.assert(sampleFeat.crossCount == sampleClean.crossCount)
+    Swag.require(sampleClean.xmasCount == 18'u32)
+    Swag.require(sampleClean.crossCount == 9'u32)
+    Swag.require(sampleFeat.xmasCount == sampleClean.xmasCount)
+    Swag.require(sampleFeat.crossCount == sampleClean.crossCount)
 }
 
 #test
@@ -268,12 +268,12 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let tinyClean = solveClean(tinyGrid)
     let tinyFeat  = solveWithLanguageFeatures(tinyGrid)
 
-    Swag.assert(tinyGrid.rowCount == 2'u32)
-    Swag.assert(tinyGrid.colCount == 4'u32)
-    Swag.assert(tinyClean.xmasCount == 2'u32)
-    Swag.assert(tinyClean.crossCount == 0'u32)
-    Swag.assert(tinyFeat.xmasCount == tinyClean.xmasCount)
-    Swag.assert(tinyFeat.crossCount == tinyClean.crossCount)
+    Swag.require(tinyGrid.rowCount == 2'u32)
+    Swag.require(tinyGrid.colCount == 4'u32)
+    Swag.require(tinyClean.xmasCount == 2'u32)
+    Swag.require(tinyClean.crossCount == 0'u32)
+    Swag.require(tinyFeat.xmasCount == tinyClean.xmasCount)
+    Swag.require(tinyFeat.crossCount == tinyClean.crossCount)
 }
 
 #test
@@ -282,10 +282,10 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
     let coverageClean = solveClean(coverageGrid)
     let coverageFeat  = solveWithLanguageFeatures(coverageGrid)
 
-    Swag.assert(coverageGrid.rowCount == 5'u32)
-    Swag.assert(coverageGrid.colCount == 5'u32)
-    Swag.assert(coverageClean.xmasCount == 4'u32)
-    Swag.assert(coverageClean.crossCount == 1'u32)
-    Swag.assert(coverageFeat.xmasCount == coverageClean.xmasCount)
-    Swag.assert(coverageFeat.crossCount == coverageClean.crossCount)
+    Swag.require(coverageGrid.rowCount == 5'u32)
+    Swag.require(coverageGrid.colCount == 5'u32)
+    Swag.require(coverageClean.xmasCount == 4'u32)
+    Swag.require(coverageClean.crossCount == 1'u32)
+    Swag.require(coverageFeat.xmasCount == coverageClean.xmasCount)
+    Swag.require(coverageFeat.crossCount == coverageClean.crossCount)
 }

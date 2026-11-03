@@ -184,10 +184,10 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 
     let sampleReport = analyzeObstacleDrops(sampleDrops, 7, 12)
 
-    Swag.assert(sampleReport.shortestSteps == 22)
-    Swag.assert(sampleReport.firstBlockingX == 6)
-    Swag.assert(sampleReport.firstBlockingY == 1)
-    Swag.assert(sampleReport.firstBlockingDropCount == 21)
+    Swag.require(sampleReport.shortestSteps == 22)
+    Swag.require(sampleReport.firstBlockingX == 6)
+    Swag.require(sampleReport.firstBlockingY == 1)
+    Swag.require(sampleReport.firstBlockingDropCount == 21)
 
     const compactDrops: [7] ByteDrop =
         [
@@ -202,8 +202,8 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 
     let compactReport = analyzeObstacleDrops(compactDrops, 5, 4)
 
-    Swag.assert(compactReport.shortestSteps == 8)
-    Swag.assert(compactReport.firstBlockingX == 0)
-    Swag.assert(compactReport.firstBlockingY == 3)
-    Swag.assert(compactReport.firstBlockingDropCount == 7)
+    Swag.require(compactReport.shortestSteps == 8)
+    Swag.require(compactReport.firstBlockingX == 0)
+    Swag.require(compactReport.firstBlockingY == 3)
+    Swag.require(compactReport.firstBlockingDropCount == 7)
 }

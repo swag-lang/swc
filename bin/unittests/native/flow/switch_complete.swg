@@ -23,7 +23,7 @@ enum Color
         hit = 3
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }
 
 #test
@@ -42,5 +42,5 @@ enum Color
         hit = 3
         break
     }
-    Swag.assert(hit == 2)
+    Swag.require(hit == 2)
 }

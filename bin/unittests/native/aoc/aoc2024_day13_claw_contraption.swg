@@ -263,8 +263,8 @@ func costTier(cost: u64)->u32
     let a: Vec2 = Vec2{x: 10, y: 20}
     let b: Vec2 = Vec2{x: 10, y: 20}
     let c: Vec2 = Vec2{x: 10, y: 99}
-    Swag.assert(vec2Eq(a, b))
-    Swag.assert(not vec2Eq(a, c))
+    Swag.require(vec2Eq(a, b))
+    Swag.require(not vec2Eq(a, c))
 }
 
 // Parse number with ternary, negative, while..do
@@ -273,12 +273,12 @@ func costTier(cost: u64)->u32
     let bytes    = cast(const [..] u8, "X+94")
     var pos: u32 = 2
     let v        = parseNum(bytes, &pos)
-    Swag.assert(v == 94)
+    Swag.require(v == 94)
 
     let bytes2    = cast(const [..] u8, "-42rest")
     var pos2: u32 = 0
     let v2        = parseNum(bytes2, &pos2)
-    Swag.assert(v2 == -42)
+    Swag.require(v2 == -42)
 }
 
 // Parse full sample input
@@ -286,11 +286,11 @@ func costTier(cost: u64)->u32
 {
     var machines: [MaxMachines] Machine
     let n = parseMachines(SampleInput, &machines[0])
-    Swag.assert(n == 4'u32)
-    Swag.assert(vec2Eq(machines[0].a, {x: 94, y: 34}))
-    Swag.assert(vec2Eq(machines[0].b, {x: 22, y: 67}))
-    Swag.assert(vec2Eq(machines[0].prize, {x: 8400, y: 5400}))
-    Swag.assert(vec2Eq(machines[3].a, {x: 69, y: 23}))
+    Swag.require(n == 4'u32)
+    Swag.require(vec2Eq(machines[0].a, {x: 94, y: 34}))
+    Swag.require(vec2Eq(machines[0].b, {x: 22, y: 67}))
+    Swag.require(vec2Eq(machines[0].prize, {x: 8400, y: 5400}))
+    Swag.require(vec2Eq(machines[3].a, {x: 69, y: 23}))
 }
 
 // Individual machine solve
@@ -298,33 +298,33 @@ func costTier(cost: u64)->u32
 {
     // Machine 1: A=(94,34) B=(22,67) Prize=(8400,5400) → 80A+40B = 280
     let m1: Machine = Machine{a: Vec2{x: 94, y: 34}, b: Vec2{x: 22, y: 67}, prize: Vec2{x: 8400, y: 5400}}
-    Swag.assert(solveMachine(m1) == 280'u64)
+    Swag.require(solveMachine(m1) == 280'u64)
 
     // Machine 2: no integer solution
     let m2: Machine = Machine{a: Vec2{x: 26, y: 66}, b: Vec2{x: 67, y: 21}, prize: Vec2{x: 12748, y: 12176}}
-    Swag.assert(solveMachine(m2) == 0'u64)
+    Swag.require(solveMachine(m2) == 0'u64)
 
     // Machine 3: A=(17,86) B=(84,37) Prize=(7870,6450) → 38A+86B = 200
     let m3: Machine = Machine{a: Vec2{x: 17, y: 86}, b: Vec2{x: 84, y: 37}, prize: Vec2{x: 7870, y: 6450}}
-    Swag.assert(solveMachine(m3) == 200'u64)
+    Swag.require(solveMachine(m3) == 200'u64)
 
     // Machine 4: no integer solution
     let m4: Machine = Machine{a: Vec2{x: 69, y: 23}, b: Vec2{x: 27, y: 71}, prize: Vec2{x: 18641, y: 10279}}
-    Swag.assert(solveMachine(m4) == 0'u64)
+    Swag.require(solveMachine(m4) == 0'u64)
 }
 
 // Full sample: Part1 = 480
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part1 == 480'u64)
+    Swag.require(result.part1 == 480'u64)
 }
 
 // Part2: machines 2 and 4 become solvable with the offset
 #test
 {
     let result = solve(SampleInput)
-    Swag.assert(result.part2 > 0'u64)
+    Swag.require(result.part2 > 0'u64)
 }
 
 // Inclusive range and Swag.abs
@@ -334,38 +334,38 @@ func costTier(cost: u64)->u32
     let n = parseMachines(SampleInput, &machines[0])
 
     // Machines 0 and 2 are solvable (indices 0 to 3 inclusive)
-    Swag.assert(countSolvable(&machines[0], 0, n - 1) == 2'u32)
+    Swag.require(countSolvable(&machines[0], 0, n - 1) == 2'u32)
     // Only machine 0 in range [0, 0]
-    Swag.assert(countSolvable(&machines[0], 0, 0) == 1'u32)
+    Swag.require(countSolvable(&machines[0], 0, 0) == 1'u32)
 
     // Determinant magnitude
-    Swag.assert(detMagnitude(machines[0]) > 0)
+    Swag.require(detMagnitude(machines[0]) > 0)
 }
 
 // Cost tier switch exercise
 #test
 {
-    Swag.assert(costTier(0) == 0'u32)
-    Swag.assert(costTier(1) == 1'u32)
-    Swag.assert(costTier(99) == 1'u32)
-    Swag.assert(costTier(100) == 2'u32)
-    Swag.assert(costTier(280) == 2'u32)
-    Swag.assert(costTier(1000) == 3'u32)
-    Swag.assert(costTier(99999) == 3'u32)
+    Swag.require(costTier(0) == 0'u32)
+    Swag.require(costTier(1) == 1'u32)
+    Swag.require(costTier(99) == 1'u32)
+    Swag.require(costTier(100) == 2'u32)
+    Swag.require(costTier(280) == 2'u32)
+    Swag.require(costTier(1000) == 3'u32)
+    Swag.require(costTier(99999) == 3'u32)
 }
 
 // Edge case: zero-delta buttons (det=0)
 #test
 {
     let m: Machine = Machine{a: Vec2{x: 0, y: 0}, b: Vec2{x: 0, y: 0}, prize: Vec2{x: 100, y: 100}}
-    Swag.assert(solveMachine(m) == 0'u64)
+    Swag.require(solveMachine(m) == 0'u64)
 }
 
 // Edge case: prize at origin
 #test
 {
     let m: Machine = Machine{a: Vec2{x: 1, y: 0}, b: Vec2{x: 0, y: 1}, prize: Vec2{x: 0, y: 0}}
-    Swag.assert(solveMachine(m) == 0'u64)
+    Swag.require(solveMachine(m) == 0'u64)
 }
 
 // reverse-view iteration: reverse order produces same sum
@@ -381,6 +381,6 @@ func costTier(cost: u64)->u32
     {
         rev += cast(s64, i)
     }
-    Swag.assert(fwd == rev)
-    Swag.assert(fwd == 55)
+    Swag.require(fwd == rev)
+    Swag.require(fwd == 55)
 }

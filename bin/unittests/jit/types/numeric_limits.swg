@@ -21,5 +21,5 @@
     var highest = Swag.F32.Min
     for value in [-5.0'f32, -2.5, -9.0] do
         highest = Swag.max(highest, value)
-    Swag.assert(highest == -2.5)
+    Swag.require(highest == -2.5)
 }

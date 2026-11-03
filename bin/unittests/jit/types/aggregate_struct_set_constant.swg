@@ -72,42 +72,42 @@ func nullableLength(value: string?)->u64 => value.count
 #test
 {
     // The same constant is correct in every position that already worked.
-    Swag.assert(nullableLength(KEY) == 4)
-    Swag.assert(cast(NullableName, KEY).length == 4)
+    Swag.require(nullableLength(KEY) == 4)
+    Swag.require(cast(NullableName, KEY).length == 4)
 
     var row: Row
     row.id   = 1
     row.name = KEY
-    Swag.assert(row.name.length == 4)
+    Swag.require(row.name.length == 4)
 }
 
 #test
 {
     // Positional and named literal slots, untyped and typed constants, literal and local.
     let local: string = KEY
-    Swag.assert(Row{1, KEY}.name.length == 4)
-    Swag.assert(Row{1, TKEY}.name.length == 4)
-    Swag.assert(Row{1, "text"}.name.length == 4)
-    Swag.assert(Row{1, local}.name.length == 4)
-    Swag.assert(Row{name: KEY}.name.length == 4)
-    Swag.assert(SoloRow{KEY}.name.length == 4)
+    Swag.require(Row{1, KEY}.name.length == 4)
+    Swag.require(Row{1, TKEY}.name.length == 4)
+    Swag.require(Row{1, "text"}.name.length == 4)
+    Swag.require(Row{1, local}.name.length == 4)
+    Swag.require(Row{name: KEY}.name.length == 4)
+    Swag.require(SoloRow{KEY}.name.length == 4)
 }
 
 #test
 {
     // A non-nullable operator parameter takes a different path through the cast, and has to
     // reach the same result.
-    Swag.assert(StrictRow{1, KEY}.name.length == 4)
-    Swag.assert(StrictRow{name: TKEY}.name.length == 4)
+    Swag.require(StrictRow{1, KEY}.name.length == 4)
+    Swag.require(StrictRow{name: TKEY}.name.length == 4)
 }
 
 #test
 {
     // The same shape with a numeric constant, and nested inside an array literal.
-    Swag.assert(CountedPair{NUM, 7}.first.value == 42)
-    Swag.assert(CountedPair{NUM, 7}.second.value == 7)
+    Swag.require(CountedPair{NUM, 7}.first.value == 42)
+    Swag.require(CountedPair{NUM, 7}.second.value == 7)
 
     let rows = [Row{1, KEY}, Row{2, TKEY}]
-    Swag.assert(rows[0].name.length == 4)
-    Swag.assert(rows[1].name.length == 4)
+    Swag.require(rows[0].name.length == 4)
+    Swag.require(rows[1].name.length == 4)
 }

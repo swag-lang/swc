@@ -62,7 +62,7 @@ clear callback-local name.
 
     let fct: func||()->s32 = func|left = leftBox.value, right = rightBox.value|()->s32 { return left * 10 + right }
 
-    Swag.assert(fct() == 27)
+    Swag.require(fct() == 27)
 }
 
 /**
@@ -79,10 +79,10 @@ reach the original storage.
     let fct: func||() = func|&a|() { a += 1 }
 
     fct()
-    Swag.assert(a == 126)
+    Swag.require(a == 126)
 
     fct()
-    Swag.assert(a == 127)
+    Swag.require(a == 127)
 }
 
 /**
@@ -101,8 +101,8 @@ addressable.
         return current
     }
 
-    Swag.assert(fct() == 126)
-    Swag.assert(a == 126)
+    Swag.require(fct() == 126)
+    Swag.require(a == 126)
 }
 
 /**
@@ -115,7 +115,7 @@ A closure variable can also hold a regular lambda (no captures).
     var fct: (func||(s32, s32)->s32)?
 
     fct = func(x, y) => x + y
-    Swag.assert(fct(1, 2) == 3)
+    Swag.require(fct(1, 2) == 3)
 }
 
 /**
@@ -138,7 +138,7 @@ and are plain data (POD).
     }
 
     let result = fct(4)
-    Swag.assert(result == 1 + 2 + 3 + 4)
+    Swag.require(result == 1 + 2 + 3 + 4)
 }
 
 /**
@@ -163,9 +163,9 @@ closure. The source is untouched, whether it was declared 'let' or 'var'.
 
     let fct = getInc()
 
-    Swag.assert(fct() == 11)
-    Swag.assert(fct() == 12)
-    Swag.assert(fct() == 13)
+    Swag.require(fct() == 11)
+    Swag.require(fct() == 12)
+    Swag.require(fct() == 13)
 }
 
 /**
@@ -181,6 +181,6 @@ first assignment. Use '&' instead of 'var' to write the outer variable itself.
     let writable: func||()      = func|&counter|() { counter += 1 }
 
     writable()
-    Swag.assert(counter == 1)
-    Swag.assert(readOnly() == 0)     // The read-only capture copied the original value
+    Swag.require(counter == 1)
+    Swag.require(readOnly() == 0)     // The read-only capture copied the original value
 }

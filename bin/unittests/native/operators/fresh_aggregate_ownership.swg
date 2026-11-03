@@ -139,7 +139,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeExpression(FreshSeed)
-        Swag.assert(owner.value == 11)
+        Swag.require(owner.value == 11)
         expectFresh(0, 0, 0, 0)
     }
     expectFresh(0, 0, 1, 11)
@@ -148,7 +148,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeBlock(FreshSeed)
-        Swag.assert(owner.value == 12 and owner.extra == 13)
+        Swag.require(owner.value == 12 and owner.extra == 13)
     }
     expectFresh(0, 0, 1, 12)
 
@@ -156,7 +156,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeBare(FreshSeed)
-        Swag.assert(owner.value == 13 and owner.extra == 14)
+        Swag.require(owner.value == 13 and owner.extra == 14)
     }
     expectFresh(0, 0, 1, 13)
 
@@ -164,7 +164,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeConstant()
-        Swag.assert(owner.value == 3 and owner.extra == 4)
+        Swag.require(owner.value == 3 and owner.extra == 4)
     }
     expectFresh(0, 0, 1, 3)
 }
@@ -176,8 +176,8 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeDeferred(FreshSeed)
-        Swag.assert(owner.value == 14)
-        Swag.assert(FreshSeed == 15)
+        Swag.require(owner.value == 14)
+        Swag.require(FreshSeed == 15)
     }
     expectFresh(0, 0, 1, 14)
 }
@@ -189,7 +189,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = catch makeFallible(FreshSeed)
-        Swag.assert(owner.value == 15)
+        Swag.require(owner.value == 15)
     }
     expectFresh(0, 0, 1, 15)
 
@@ -197,7 +197,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = catch makeFallible(FreshSeed)
-        Swag.assert(owner.value == 0)
+        Swag.require(owner.value == 0)
     }
     expectFresh(0, 0, 1, 0)
 }
@@ -210,7 +210,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeInline(FreshSeed)
-        Swag.assert(owner.value == 17)
+        Swag.require(owner.value == 17)
     }
     expectFresh(0, 1, 1, 17)
 
@@ -218,7 +218,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeInlineBranches(FreshSeed)
-        Swag.assert(owner.value == 18)
+        Swag.require(owner.value == 18)
     }
     expectFresh(0, 1, 1, 18)
 
@@ -226,7 +226,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeInlineBranches(FreshSeed)
-        Swag.assert(owner.value == 19 and owner.extra == 1)
+        Swag.require(owner.value == 19 and owner.extra == 1)
     }
     expectFresh(0, 1, 1, 19)
 
@@ -237,9 +237,9 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = forwardInline(FreshSeed)
-        Swag.assert(owner.value == 31)
+        Swag.require(owner.value == 31)
     }
-    Swag.assert(FreshMoves == 1 or FreshMoves == 2)
+    Swag.require(FreshMoves == 1 or FreshMoves == 2)
     FreshMoves = 0
     expectFresh(0, 0, 1, 31)
 
@@ -248,9 +248,9 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = makeAuto(FreshSeed)
-        Swag.assert(owner.value == 20)
+        Swag.require(owner.value == 20)
     }
-    Swag.assert(FreshMoves <= 1)
+    Swag.require(FreshMoves <= 1)
     FreshMoves = 0
     expectFresh(0, 0, 1, 20)
 }
@@ -264,7 +264,7 @@ func makeAuto(value: s64)->FreshOwner
     {
         var owner: FreshOwner
         owner = makeBlock(FreshSeed)
-        Swag.assert(owner.value == 21)
+        Swag.require(owner.value == 21)
     }
     expectFresh(0, 1, 2, 21)
 }
@@ -279,7 +279,7 @@ func makeAuto(value: s64)->FreshOwner
     {
         let source = makeBlock(FreshSeed)
         let pair   = makePair(source)
-        Swag.assert(pair.first.value == 22 and pair.second.value == 23)
+        Swag.require(pair.first.value == 22 and pair.second.value == 23)
         expectFresh(1, 1, 0, 0)
     }
     expectFresh(1, 1, 3, 232_222)
@@ -289,7 +289,7 @@ func makeAuto(value: s64)->FreshOwner
     {
         let source = makeBlock(FreshSeed)
         let pair   = FreshPair{source, makeBlock(FreshSeed + 1)}
-        Swag.assert(pair.first.value == 32 and pair.second.value == 33)
+        Swag.require(pair.first.value == 32 and pair.second.value == 33)
         expectFresh(1, 1, 0, 0)
     }
     expectFresh(1, 1, 3, 333_232)
@@ -304,7 +304,7 @@ func makeAuto(value: s64)->FreshOwner
     {
         let source = makeBlock(FreshSeed)
         let sum    = sumPair(FreshPair{source, makeBlock(FreshSeed + 1)})
-        Swag.assert(sum == 69)
+        Swag.require(sum == 69)
         expectFresh(1, 1, 2, 3534)
     }
     expectFresh(1, 1, 3, 353_434)
@@ -318,7 +318,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owners = makeArray(FreshSeed)
-        Swag.assert(owners[0].value == 24 and owners[1].value == 25)
+        Swag.require(owners[0].value == 24 and owners[1].value == 25)
     }
     expectFresh(0, 2, 2, 2425)
 }
@@ -330,7 +330,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owner = FreshOwner{FreshSeed}
-        Swag.assert(owner.value == 26)
+        Swag.require(owner.value == 26)
     }
     expectFresh(0, 0, 1, 26)
 
@@ -338,7 +338,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         var owner: FreshOwner = FreshOwner{FreshSeed, 1}
-        Swag.assert(owner.value == 27 and owner.extra == 1)
+        Swag.require(owner.value == 27 and owner.extra == 1)
     }
     expectFresh(0, 0, 1, 27)
 
@@ -346,7 +346,7 @@ func makeAuto(value: s64)->FreshOwner
     scope
     {
         let owners = [FreshOwner{FreshSeed}, FreshOwner{FreshSeed + 1}]
-        Swag.assert(owners[0].value == 28 and owners[1].value == 29)
+        Swag.require(owners[0].value == 28 and owners[1].value == 29)
     }
     expectFresh(0, 2, 2, 2829)
 }
@@ -359,7 +359,7 @@ func makeAuto(value: s64)->FreshOwner
     {
         var owner: FreshOwner
         owner = FreshOwner{FreshSeed}
-        Swag.assert(owner.value == 30)
+        Swag.require(owner.value == 30)
     }
     expectFresh(0, 1, 2, 30)
 }
@@ -373,7 +373,7 @@ func readFresh(owner: FreshOwner)->s64 => owner.value
 {
     resetFresh(41)
     let value = readFresh(FreshOwner{FreshSeed, FreshSeed + 1})
-    Swag.assert(value == 41)
+    Swag.require(value == 41)
     expectFresh(0, 0, 1, 41)
 }
 
@@ -393,7 +393,7 @@ func readFresh(owner: FreshOwner)->s64 => owner.value
     {
         let first  = FreshOwner{FreshSeed}
         let second = FreshOwner{FreshSeed + 1}
-        Swag.assert(sumPair(FreshPair{first, second}) == 91)
+        Swag.require(sumPair(FreshPair{first, second}) == 91)
         expectFresh(2, 0, 2, 4645)
     }
     expectFresh(2, 0, 4, 46_454_645)

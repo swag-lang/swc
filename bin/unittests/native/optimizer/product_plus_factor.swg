@@ -38,18 +38,18 @@ func checked(a, b: u64)->u64 => a * b + a
         for b in values
         {
             let product = a * b
-            Swag.assert(add(a, b) == product + a)
-            Swag.assert(reversed(a, b) == product + a)
-            Swag.assert(subtract(a, b) == product - a)
-            Swag.assert(right(a, b) == product + b)
+            Swag.require(add(a, b) == product + a)
+            Swag.require(reversed(a, b) == product + a)
+            Swag.require(subtract(a, b) == product - a)
+            Swag.require(right(a, b) == product + b)
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
-            Swag.assert(narrow(lowA, lowB) == lowA * lowB + lowA)
-            Swag.assert(sharedFactor(a, b) == ((product + a) ^ b))
-            Swag.assert(sharedProduct(a, b) == ((product + a) ^ product))
-            Swag.assert(changed(a, b) == product + (a + 7))
+            Swag.require(narrow(lowA, lowB) == lowA * lowB + lowA)
+            Swag.require(sharedFactor(a, b) == ((product + a) ^ b))
+            Swag.require(sharedProduct(a, b) == ((product + a) ^ product))
+            Swag.require(changed(a, b) == product + (a + 7))
         }
     }
-    Swag.assert(checked(7, 9) == 70)
-    Swag.assert(checked(0xFFFFFFFFFFFFFFFF, 0) == 0xFFFFFFFFFFFFFFFF)
+    Swag.require(checked(7, 9) == 70)
+    Swag.require(checked(0xFFFFFFFFFFFFFFFF, 0) == 0xFFFFFFFFFFFFFFFF)
 }

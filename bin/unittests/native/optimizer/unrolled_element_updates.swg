@@ -55,12 +55,12 @@ impl Four
 {
     var four = Four{[3, 4, 5, 6]}
     four.add(2)
-    Swag.assert(four.values == [5, 6, 7, 8])
+    Swag.require(four.values == [5, 6, 7, 8])
     four.multiply(4)
-    Swag.assert(four.values == [20, 24, 28, 32])
+    Swag.require(four.values == [20, 24, 28, 32])
     four.subtract(5)
-    Swag.assert(four.values == [15, 19, 23, 27])
+    Swag.require(four.values == [15, 19, 23, 27])
     four.divide(3)
-    Swag.assert(four.values == [5, 6, 7, 9])
-    Swag.assert(four.multiplyAndReturn(7) == 14 + 21 + 35 + 7)
+    Swag.require(four.values == [5, 6, 7, 9])
+    Swag.require(four.multiplyAndReturn(7) == 14 + 21 + 35 + 7)
 }

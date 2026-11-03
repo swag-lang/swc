@@ -49,26 +49,26 @@ func checked(p: *u64, a: u64)->u64 => p[] * a + p[]
             var cell = value
             cells[17] = value
             let product = value * factor
-            Swag.assert(add(&cell, factor) == product + value)
-            Swag.assert(subtract(&cell, factor) == product - value)
-            Swag.assert(reversed(&cell, factor) == product + value)
-            Swag.assert(sharedFactor(&cell, factor) == ((product + value) ^ factor))
-            Swag.assert(offset(&cells[0], factor) == product + value)
-            Swag.assert(sharedProduct(&cell, factor) == ((product + value) ^ product))
+            Swag.require(add(&cell, factor) == product + value)
+            Swag.require(subtract(&cell, factor) == product - value)
+            Swag.require(reversed(&cell, factor) == product + value)
+            Swag.require(sharedFactor(&cell, factor) == ((product + value) ^ factor))
+            Swag.require(offset(&cells[0], factor) == product + value)
+            Swag.require(sharedProduct(&cell, factor) == ((product + value) ^ product))
             var other = 29'u64
-            Swag.assert(distinct(&cell, &other, factor) == product + 29)
-            Swag.assert(distinct(&cell, &cell, factor) == product + value)
-            Swag.assert(overwrite(&cell, &other, factor) == product + value)
-            Swag.assert(other == 17 and cell == value)
-            Swag.assert(overwrite(&cell, &cell, factor) == product + 17)
-            Swag.assert(cell == 17)
+            Swag.require(distinct(&cell, &other, factor) == product + 29)
+            Swag.require(distinct(&cell, &cell, factor) == product + value)
+            Swag.require(overwrite(&cell, &other, factor) == product + value)
+            Swag.require(other == 17 and cell == value)
+            Swag.require(overwrite(&cell, &cell, factor) == product + 17)
+            Swag.require(cell == 17)
             cell = value
-            Swag.assert(callBetween(&cell, factor) == product + (value + 7))
-            Swag.assert(cell == value + 7)
+            Swag.require(callBetween(&cell, factor) == product + (value + 7))
+            Swag.require(cell == value + 7)
         }
     }
     var safe = 7'u64
-    Swag.assert(checked(&safe, 9) == 70)
+    Swag.require(checked(&safe, 9) == 70)
     safe = 0xFFFFFFFFFFFFFFFF
-    Swag.assert(checked(&safe, 0) == safe)
+    Swag.require(checked(&safe, 0) == safe)
 }

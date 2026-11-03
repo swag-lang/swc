@@ -59,21 +59,21 @@ func dispatch(base: *Base)->s32
     var redo:    RedoAction
     let actions: [2] IAction = [cast(IAction, undo), cast(IAction, redo)]
 
-    Swag.assert(actions[0].accept(1))
-    Swag.assert(not actions[0].accept(2))
-    Swag.assert(actions[0].execute(2) == 42)
-    Swag.assert(actions[1].accept(2))
-    Swag.assert(not actions[1].accept(1))
-    Swag.assert(actions[1].execute(3) == 83)
+    Swag.require(actions[0].accept(1))
+    Swag.require(not actions[0].accept(2))
+    Swag.require(actions[0].execute(2) == 42)
+    Swag.require(actions[1].accept(2))
+    Swag.require(not actions[1].accept(1))
+    Swag.require(actions[1].execute(3) == 83)
 }
 
 #test
 {
     var base: Base
     base.itf = cast(IDispatch, base)
-    Swag.assert(dispatch(&base) == 10)
+    Swag.require(dispatch(&base) == 10)
 
     var child: Child
     child.itf = cast(IDispatch, child)
-    Swag.assert(dispatch(&child.base) == 20)
+    Swag.require(dispatch(&child.base) == 20)
 }

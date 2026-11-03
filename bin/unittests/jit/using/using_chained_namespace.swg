@@ -4,5 +4,5 @@ using Core, Serialization
 #test
 {
     discard #typeof(Marker)
-    Swag.assert(true)
+    Swag.require(true)
 }

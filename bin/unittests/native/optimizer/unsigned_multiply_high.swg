@@ -28,15 +28,15 @@ func keepInputs(a, b, c, d: u64)->u64 => (a / 7) ^ (b % 10) ^ (c / 63) ^ (d % 3)
     let values = [0'u64, 1, 2, 3, 6, 7, 9, 10, 62, 63, 64, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for value in values
     {
-        Swag.assert(divide3(value) == dynamicDivide(value, 3))
-        Swag.assert(divide7(value) == dynamicDivide(value, 7))
-        Swag.assert(divide63(value) == dynamicDivide(value, 63))
-        Swag.assert(remainder3(value) == dynamicRemainder(value, 3))
-        Swag.assert(remainder7(value) == dynamicRemainder(value, 7))
-        Swag.assert(remainder10(value) == dynamicRemainder(value, 10))
+        Swag.require(divide3(value) == dynamicDivide(value, 3))
+        Swag.require(divide7(value) == dynamicDivide(value, 7))
+        Swag.require(divide63(value) == dynamicDivide(value, 63))
+        Swag.require(remainder3(value) == dynamicRemainder(value, 3))
+        Swag.require(remainder7(value) == dynamicRemainder(value, 7))
+        Swag.require(remainder10(value) == dynamicRemainder(value, 10))
         let narrow = cast(u32, (value & 0xFFFFFFFF))
-        Swag.assert(divide32(narrow) == dynamicDivide(narrow, 7))
-        Swag.assert(remainder32(narrow) == dynamicRemainder(narrow, 10))
+        Swag.require(divide32(narrow) == dynamicDivide(narrow, 7))
+        Swag.require(remainder32(narrow) == dynamicRemainder(narrow, 10))
         for other in values
         {
             let expected = dynamicDivide(value, 7) ^
@@ -47,7 +47,7 @@ func keepInputs(a, b, c, d: u64)->u64 => (a / 7) ^ (b % 10) ^ (c / 63) ^ (d % 3)
                            other ^
                            ~value ^
                            ~other
-            Swag.assert(keepInputs(value, other, ~value, ~other) == expected)
+            Swag.require(keepInputs(value, other, ~value, ~other) == expected)
         }
     }
 }

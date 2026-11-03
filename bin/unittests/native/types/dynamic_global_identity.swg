@@ -18,10 +18,10 @@ var completed: Swag.AtomicFlag
     for &owner in owners
     {
         let base = &owner.base
-        Swag.assert((catch cast(*GlobalOwner?, base)) == owner)
-        Swag.assert(assume cast (*GlobalOwner, base) == owner)
-        Swag.assert(base.value == 12)
-        Swag.assert(owner.prefix == 31)
+        Swag.require((catch cast(*GlobalOwner?, base)) == owner)
+        Swag.require(assume cast (*GlobalOwner, base) == owner)
+        Swag.require(base.value == 12)
+        Swag.require(owner.prefix == 31)
     }
 }
 
@@ -29,5 +29,5 @@ var completed: Swag.AtomicFlag
 {
     task.submit(func() { discard completed.raise() })
     task.wait()
-    Swag.assert(completed.isRaised())
+    Swag.require(completed.isRaised())
 }

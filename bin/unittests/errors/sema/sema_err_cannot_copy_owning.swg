@@ -84,9 +84,9 @@ var g_target: Owner
 {
     var a = Owner{1}
     var b = #move a
-    Swag.assert(b.handle == 1)
+    Swag.require(b.handle == 1)
 
     var c = Duplicable{2}
     var d = c
-    Swag.assert(d.handle == 2)
+    Swag.require(d.handle == 2)
 }

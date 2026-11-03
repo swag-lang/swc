@@ -45,6 +45,8 @@ private struct NativeThread
     mutex:      Swag.Mutex
     changed:    Swag.Condition
     id:         s32
+    normalNice: s32
+    finished:   bool
     started:    bool
     joined:     bool
 }
@@ -63,17 +65,28 @@ private func nativeThreadEntry(param: *void?)->*void?
     state.mutex.unlock()
 
     discard state.entry(state.param)
+
+    // Retire the kernel identity before pthread exit can make it available to another thread.
+    state.mutex.lock()
+    state.finished = true
+    state.mutex.unlock()
     return null
 }
 
 internal func createSuspendedNative(entry: ThreadEntry, param: *void, id: *u64)->ThreadHandle fail
 {
+    Linux.errno(0)
+    let normalNice = Linux.getpriority(Linux.PRIO_PROCESS, 0)
+    let queried    = Linux.errno()
+    if queried != 0 do
+        try Errors.failLinuxError(queried)
     let allocator = unwrap Swag.getContext().allocator
     let state     = cast(*NativeThread, Memory.alloc(#sizeof(NativeThread), allocator))
     Swag.init(state, 1)
-    state.allocator = allocator
-    state.entry     = entry
-    state.param     = param
+    state.allocator  = allocator
+    state.normalNice = normalNice
+    state.entry      = entry
+    state.param      = param
     let error = Linux.pthread_create(&state.thread, null, &nativeThreadEntry, state)
     if error != 0
     {
@@ -104,17 +117,33 @@ internal func startNative(handle: ThreadHandle) fail
 
 internal func setPriorityNative(handle: ThreadHandle, priority: ThreadPriority) fail
 {
-    // POSIX SCHED_OTHER has only priority zero. Do not silently substitute real-time
-    // scheduling or a per-process nice change for the five portable priority levels.
-    if priority != .Normal do
-        try Errors.failLinuxError(Linux.ENOTSUP)
     let state = nativeThread(handle)
-    if state.joined do
+    state.mutex.lock()
+    defer state.mutex.unlock()
+    if state.joined or state.finished do
         try Errors.failLinuxError(Linux.ESRCH)
+
+    // Nice levels apply to the ordinary scheduler; do not silently replace a real-time policy.
+    var policy:    s32
     var parameter: Linux.sched_param
-    let error = Linux.pthread_setschedparam(state.thread, Linux.SCHED_OTHER, &parameter)
-    if error != 0 do
-        try Errors.failLinuxError(error)
+    let queried = Linux.pthread_getschedparam(state.thread, &policy, &parameter)
+    if queried != 0 do
+        try Errors.failLinuxError(queried)
+    if policy != Linux.SCHED_OTHER do
+        try Errors.failLinuxError(Linux.ENOTSUP)
+    var offset: s32
+    switch #complete priority
+    {
+    case .Lowest:      offset = 2
+    case .BelowNormal: offset = 1
+    case .Normal:      offset = 0
+    case .AboveNormal: offset = -1
+    case .Highest:     offset = -2
+    }
+
+    let nice = Math.clamp(state.normalNice + offset, -20, 19)
+    if Linux.setpriority(Linux.PRIO_PROCESS, cast(u32, state.id), nice) != 0 do
+        try Errors.failLinuxError(Linux.errno())
 }
 
 internal func waitOneNative(handle: ThreadHandle)

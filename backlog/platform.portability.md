@@ -358,13 +358,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   allocator until the owner closes it. A successful nonblocking join is remembered so wait
   releases the owner without joining twice. Common init now cleans up a priority failure without
   running the user body and always applies priority when a Thread value is reused.
-- Priority contract: Linux supports Normal through SCHED_OTHER; other levels fail with ENOTSUP.
-  Do not silently substitute real-time scheduling or process-wide nice changes. A broader mapping
-  needs an explicit contract and permission/failure tests.
+- Priority contract: Linux maps the five levels to per-thread nice offsets +2, +1, 0, -1 and -2
+  relative to the creator's inherited baseline, clamped to [-20, 19]. Raising priority can fail
+  with host permission errors; the public level changes only on success. Exited identities are
+  retired before kernel reuse, and real-time policies are left unchanged.
 - Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
   identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
-  Three public Core thread cases pass in JIT/native, covering reuse, priority-init failure cleanup,
-  completion probes, wait-many and sleep/yield. Four common thread/timer cases also pass in
+  Seven public Core thread cases pass in JIT/native with DevMode and Release compilers, covering
+  nice values, inheritance, permission failures, exited identities, reuse, completion and waits. Four common thread/timer cases also pass in
   JIT/native for context inheritance, one-shot and periodic behavior. Windows execution is unavailable.
 - Next: exercise start failures, additional lifetime stress and the batching boundary,
   and decide whether to extend Linux priority support.

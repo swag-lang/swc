@@ -39,17 +39,6 @@ func linuxThreadBody(thread: const *Threading.Thread)
 {
     var probe:  LinuxThreadProbe
     var thread: Threading.Thread
-    for priority in [Threading.ThreadPriority.Lowest, .BelowNormal, .AboveNormal, .Highest]
-    {
-        var rejected = false
-        catch thread.init(&linuxThreadBody, &probe, priority)
-        {
-            rejected = true
-        }
-
-        Swag.assert(rejected and not thread.isValid() and not probe.ran.isRaised())
-    }
-
     expect thread.init(&linuxThreadBody, &probe)
     expect thread.start()
 

@@ -6,8 +6,11 @@ alias ThreadHandle = const *void?
 
 // Selects the scheduling priority of a thread.
 //
-// Linux currently supports only `Normal` (POSIX `SCHED_OTHER`). Other levels fail with a
-// system error; they are never silently mapped to privileged real-time scheduling.
+// On Linux, these are per-thread nice levels under POSIX `SCHED_OTHER`, relative to the
+// creator's nice value sampled during initialization: Lowest adds 2, BelowNormal adds 1,
+// Normal adds 0, AboveNormal subtracts 1, and Highest subtracts 2, clamped to -20 through 19.
+// Raising priority, including returning to Normal after lowering it, can fail without the
+// required host permission or resource limit. Other scheduling policies are not changed.
 enum ThreadPriority
 {
     Lowest          // Two steps below normal
@@ -139,6 +142,9 @@ impl Thread
     }
 
     // Changes this thread's scheduling priority.
+    //
+    // On Linux, only this thread's nice value changes; the caller and sibling threads keep
+    // theirs. An exited thread or a denied change fails without updating `priority`.
     mtd setPriority(priority: ThreadPriority) fail
     {
         Swag.assert(.isValid())

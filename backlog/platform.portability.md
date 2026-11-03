@@ -11,31 +11,6 @@ with its target backends and prerequisites so one port cannot be scattered acros
 The checked dependency layers and their path ownership are defined in
 [bin/PORTABILITY.md](../bin/PORTABILITY.md).
 
-Current Linux validation: the complete C++ suite passes 1,768 tests. The native language suite
-passes 4,047 tests in JIT and native execution. The raw Linux module
-passes 24 system tests and three opt-in XCB tests in JIT and native ELF. The last complete Core run built
-core.so and passed 867 ordinary tests in JIT and native execution. Additional public boundary
-suites pass in JIT/native for memory (2), filesystem
-(8), environment (3), hardware (1), native libraries (2), threads (3), events (5), timer lifecycle (2), processes
-(8), watchers (10), sandbox paths (1), evdev normalization/absence (2), crypto (5), calendars/clocks
-(31), XDG parsing (1), common thread/timer context behavior (4), and the initial X11 desktop
-(5, including an unavailable display and disabled extensions). The XDG public path case also passes with empty and relative
-HOME/XDG overrides. Tagged platform integration coverage remains limited to the boundaries
-listed above; one additional ordinary desktop-action validation case now passes in both modes.
-Pixel passes 92 native golden tests with Linux installed-font fallback enabled. Its six direct
-typeface tests pass in JIT and native execution; installed-family loading also passes through
-a separate importing module, including synthetic styles with independent glyph workspaces.
-The complete golden campaign still stops before GUI and application tests because Linux GUI
-services are incomplete.
-A separately linked Core consumer passes 13 Linux console scenarios: Unicode formatting and
-nested silence, line/CRLF/EOF boundaries, a 128 KiB input line, a 917,504-byte output, color
-suppression on pipes or unavailable terminal capabilities, terminal reset at explicit request
-and shutdown, and interrupted blocking reads/writes under a non-restarting signal handler.
-The terminal cases use a pseudo-terminal; transfer sizes exceed the pipe buffer capacity.
-Core API generation succeeds: all 2,092 declarations and 388 exposed members have comments.
-The only unresolved documentation link in this probe points to the separate GUI API page,
-which is not built here.
-
 Raw interoperability modules such as `win32`, `gdi32`, `gdiplus`, `xinput`, and `xaudio2` are
 not themselves portability debt. Explicit adapters such as `Image.from(HBITMAP)` may remain
 Windows-only. The debt begins when portable code or a cross-platform product must mention their
@@ -145,7 +120,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.050, platform.portability.058, platform.portability.059
 - Done when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
 
-### platform.portability.058 — No second-platform GUI font integration
+### platform.portability.058 — Finish Linux mixed-script font validation
 
 - Progress: `FontFamily.createTypeFace(name, style)` now loads selected Linux families from the
   shared catalog, accepting typographic and legacy names and preserving collection indices.
@@ -158,8 +133,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   JIT/native, and the complete Pixel API page passes its structure and link audit.
   Native GUI application, surface, cursor and clipboard services now execute on X11; Capture
   and Vault startup smokes render their font consumers successfully.
-- Next: exercise mixed-script text and fallback in complete Linux application workflows. The
-  property editor consumes portable owned family names, and `Font.resolveRune` uses cached
+- Validation: the multilingual HTML golden now owns small, renamed SIL-licensed CJK and
+  outline-emoji subsets and disables system fallback for that fixture. Its reviewed reference
+  changed only around those runs and their spacing; all 85 HTML cases pass with the existing
+  tolerance. This replaces the old implicit dependence on Windows fallback fonts.
+- Next: exercise mixed-script text, missing glyphs and installed fallback in complete application
+  workflows. Bitmap-only color emoji remains outside the outline reader's supported formats.
+  The property editor consumes portable owned family names, and `Font.resolveRune` uses cached
   installed fallback.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
@@ -472,23 +452,29 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.038, platform.portability.010
 - Done when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
 
-### platform.portability.001 — Neutral bin sources need a Linux build gate
+### platform.portability.001 — Complete the Linux repository test gate
 
-- Evidence: DevMode and Release Linux compilers build from source. Lexer/parser and C++ suites
-  pass; `--os linux` selects System V, hosted runtime bindings, ELF objects and GNU-linked native
-  executables/archives. Static module consumers execute lifecycle hooks across imports. The
-  host target is selected by default, but neutral standard/application modules have no Linux gate.
-  Core's Linux filesystem, environment, thread, timer and sandbox leaves are implemented;
-  watching, process launch and evdev gamepads are also implemented. Initial X11 desktop, mouse
-  and keyboard leaves now unblock whole-Core linking and public test compilation.
-  The `linux` ABI module independently tests descriptors, directories, ioctl, mappings, entropy,
-  secure clearing, dynamic loading and clocks in JIT and native ELF. Core's public memory,
-  filesystem, thread and initial desktop tests execute; other service suites are being validated.
-- Next: complete the remaining Core host services and execute the public resource-owner suites.
-  Validate gamepad state/vibration and discovery on an input-enabled host. Select headless/no-sound backends only where
-  their contracts permit them; do not treat absent declarations or success stubs as a backend.
-- Done when: a Linux configuration compiles every neutral runtime and bin source and fails on
-  an accidental native Windows import.
+- Evidence: `tools/linux-tests.py all` covers compiler suites, workspace fixtures, standard
+  modules, examples, applications and reference through the shared Windows/Linux command
+  builders. Complete execution still exposes GUI runtime and platform-assumption failures.
+- Progress: resumable checks now report failure through the shared runtime context, including
+  checks raised inside imported native libraries. Linux timeouts stop detached test descendants,
+  and isolated campaigns reuse dependencies and release inactive file cache on admission waits.
+- Validation on the synchronized GPU-resource changes: all 4,049 native-language cases pass
+  in JIT and native execution. The complete GUI module passes 965 of 969 cases; PDF text and
+  viewer cases pass after standard-font metric/style repairs. The HTML failure then passes in
+  its 85-case focused run with pinned fixture fonts. Three recorded antialiased contour
+  differences remain on Mesa software rendering: confirmation focus (8 pixels, maximum channel delta 4), floating sheet (4 pixels,
+  delta 3), and property-menu separator endpoint (1 pixel, delta 20). Preserve their strict
+  failure status while identifying the geometry, coverage, or driver boundary.
+- Next: fix remaining failures at their owning boundaries and complete one uninterrupted
+  campaign on the synchronized checkout.
+  Keep functional, golden and stress coverage, golden expectations and failure status.
+  Select native `integration.*` families separately with their service/hardware prerequisites.
+  Prioritize this gate before debug-record expansion or unrelated compiler capabilities.
+- Done when: one documented Linux command executes every applicable repository test family,
+  produces a complete report with no unexplained failure or unexecuted stage, and rejects
+  accidental Windows dependencies in neutral sources.
 
 ### platform.portability.005 — Validate argument lifetime across native Unix modules
 

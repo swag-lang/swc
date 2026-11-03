@@ -9,18 +9,18 @@ using Swag
     let bias = 10
 
     Slice.forEachMutable(values, func|bias|(it: *s32) { it[] += bias })
-    Swag.assert(Slice.equals(values, [11, 12, 13, 14]))
+    Swag.require(Slice.equals(values, [11, 12, 13, 14]))
 
     let mapped = Slice.map(values, func(value: s32)->s32 => value / 2)
-    Swag.assert(mapped.count == 4)
-    Swag.assert(Slice.equals(mapped.toSlice(), [5, 6, 6, 7]))
+    Swag.require(mapped.count == 4)
+    Swag.require(Slice.equals(mapped.toSlice(), [5, 6, 6, 7]))
 }
 
 #test
 {
-    Swag.assert(Slice.reduce([5], func(left, right: s32)->s32 => left + right) == 5)
-    Swag.assert(Slice.reduce([1, 2, 3, 4], func(left, right: s32)->s32 => left + right) == 10)
-    Swag.assert(Slice.reduce([2, 3, 4], func(left, right: s32)->s32 => left * right) == 24)
+    Swag.require(Slice.reduce([5], func(left, right: s32)->s32 => left + right) == 5)
+    Swag.require(Slice.reduce([1, 2, 3, 4], func(left, right: s32)->s32 => left + right) == 10)
+    Swag.require(Slice.reduce([2, 3, 4], func(left, right: s32)->s32 => left * right) == 24)
 }
 
 #test
@@ -29,15 +29,15 @@ using Swag
     let minValue        = Slice.min(values)
     let maxValue        = Slice.max(values)
 
-    Swag.assert(minValue.value == -3)
-    Swag.assert(minValue.index == 1)
-    Swag.assert(maxValue.value == 9)
-    Swag.assert(maxValue.index == 2)
+    Swag.require(minValue.value == -3)
+    Swag.require(minValue.index == 1)
+    Swag.require(maxValue.value == 9)
+    Swag.require(maxValue.index == 2)
 
     let singleMin = Slice.min([42])
     let singleMax = Slice.max([42])
-    Swag.assert(singleMin.value == 42 and singleMin.index == 0)
-    Swag.assert(singleMax.value == 42 and singleMax.index == 0)
+    Swag.require(singleMin.value == 42 and singleMin.index == 0)
+    Swag.require(singleMax.value == 42 and singleMax.index == 0)
 }
 
 #test
@@ -45,18 +45,18 @@ using Swag
     let values: [4] s32 = [2, 4, 6, 8]
     let empty = values[until 0]
 
-    Swag.assert(Slice.allOf(values, func(value: s32)->bool => value % 2 == 0))
-    Swag.assert(not Slice.allOf(values, func(value: s32)->bool => value < 8))
+    Swag.require(Slice.allOf(values, func(value: s32)->bool => value % 2 == 0))
+    Swag.require(not Slice.allOf(values, func(value: s32)->bool => value < 8))
 
-    Swag.assert(Slice.anyOf(values, func(value: s32)->bool => value == 6))
-    Swag.assert(not Slice.anyOf(values, func(value: s32)->bool => value == 5))
+    Swag.require(Slice.anyOf(values, func(value: s32)->bool => value == 6))
+    Swag.require(not Slice.anyOf(values, func(value: s32)->bool => value == 5))
 
-    Swag.assert(Slice.noneOf(values, func(value: s32)->bool => value < 0))
-    Swag.assert(not Slice.noneOf(values, func(value: s32)->bool => value == 4))
+    Swag.require(Slice.noneOf(values, func(value: s32)->bool => value < 0))
+    Swag.require(not Slice.noneOf(values, func(value: s32)->bool => value == 4))
 
-    Swag.assert(Slice.allOf(empty, func(_: s32)->bool => false))
-    Swag.assert(not Slice.anyOf(empty, func(_: s32)->bool => true))
-    Swag.assert(Slice.noneOf(empty, func(_: s32)->bool => true))
+    Swag.require(Slice.allOf(empty, func(_: s32)->bool => false))
+    Swag.require(not Slice.anyOf(empty, func(_: s32)->bool => true))
+    Swag.require(Slice.noneOf(empty, func(_: s32)->bool => true))
 }
 
 #test
@@ -67,24 +67,24 @@ using Swag
     Slice.reverse(odd)
     Slice.reverse(single)
 
-    Swag.assert(Slice.equals(odd, [5, 4, 3, 2, 1]))
-    Swag.assert(Slice.equals(single, [9]))
+    Swag.require(Slice.equals(odd, [5, 4, 3, 2, 1]))
+    Swag.require(Slice.equals(single, [9]))
 }
 
 #test
 {
     var values: [3] s32 = [1, 2, 3]
 
-    Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [1, 3, 2]))
-    Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [2, 1, 3]))
-    Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [2, 3, 1]))
-    Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [3, 1, 2]))
-    Swag.assert(Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [3, 2, 1]))
-    Swag.assert(not Slice.nextPermutation(values))
-    Swag.assert(Slice.equals(values, [3, 2, 1]))
+    Swag.require(Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [1, 3, 2]))
+    Swag.require(Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [2, 1, 3]))
+    Swag.require(Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [2, 3, 1]))
+    Swag.require(Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [3, 1, 2]))
+    Swag.require(Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [3, 2, 1]))
+    Swag.require(not Slice.nextPermutation(values))
+    Swag.require(Slice.equals(values, [3, 2, 1]))
 }

@@ -53,12 +53,12 @@ func exifFixture(little: bool)->Array'u8
         var bytes      = exifFixture(little)
         let properties = expect Exif.decode(bytes.toSlice())
         bytes.clear()
-        Swag.assert(properties.count == 5)
-        Swag.assert(properties[0].name() == "Make" and properties[0].value == "Camera")
-        Swag.assert(properties[1].name() == "Orientation" and properties[1].value == "6")
-        Swag.assert(properties[2].directory == .Photo and properties[2].value == "1/125")
-        Swag.assert(properties[3].value == "-1/3")
-        Swag.assert(properties[4].name() == "PhotographicSensitivity" and properties[4].value == "400")
+        Swag.require(properties.count == 5)
+        Swag.require(properties[0].name() == "Make" and properties[0].value == "Camera")
+        Swag.require(properties[1].name() == "Orientation" and properties[1].value == "6")
+        Swag.require(properties[2].directory == .Photo and properties[2].value == "1/125")
+        Swag.require(properties[3].value == "-1/3")
+        Swag.require(properties[4].name() == "PhotographicSensitivity" and properties[4].value == "400")
     }
 }
 
@@ -71,7 +71,7 @@ func exifFixture(little: bool)->Array'u8
         var errorOutcome: Swag.Error
         discard catch Exif.decode(bytes.toSlice()[until length]) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error != null)
+        Swag.require(error != null)
     }
 }
 
@@ -83,19 +83,19 @@ func exifFixture(little: bool)->Array'u8
     var cycleOutcome: Swag.Error
     discard catch Exif.decode(bytes.toSlice()) as cycleOutcome
     let cycle = cycleOutcome.value()
-    Swag.assert(cycle != null)
+    Swag.require(cycle != null)
     exifNumber(&bytes, 42, 64, 4, true)
     exifNumber(&bytes, 18, 0xFFFFFFFF, 4, true)
     var offsetOutcome: Swag.Error
     discard catch Exif.decode(bytes.toSlice()) as offsetOutcome
     let offset = offsetOutcome.value()
-    Swag.assert(offset != null)
+    Swag.require(offset != null)
     exifNumber(&bytes, 18, 50, 4, true)
     exifNumber(&bytes, 14, 0xFFFFFFFF, 4, true)
     var countOutcome: Swag.Error
     discard catch Exif.decode(bytes.toSlice()) as countOutcome
     let count = countOutcome.value()
-    Swag.assert(count != null)
+    Swag.require(count != null)
 }
 
 // GPS tags keep their own namespace, and a zero denominator remains readable without division.
@@ -106,6 +106,6 @@ func exifFixture(little: bool)->Array'u8
     exifNumber(&bytes, 66, 2, 2, false)
     exifNumber(&bytes, 112, 0, 4, false)
     let properties = expect Exif.decode(bytes.toSlice())
-    Swag.assert(properties[2].directory == .Gps)
-    Swag.assert(properties[2].name() == "GPSLatitude" and properties[2].value == "1/0")
+    Swag.require(properties[2].directory == .Gps)
+    Swag.require(properties[2].name() == "GPSLatitude" and properties[2].value == "1/0")
 }

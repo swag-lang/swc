@@ -35,5 +35,5 @@ using Core, Core.Math
     Testing.assertImagesNear(&expected, &actual, "renderthread.ogl")
     renderer.end()
     worker.wait()
-    Swag.assert(worker.isReady())
+    Swag.require(worker.isReady())
 }

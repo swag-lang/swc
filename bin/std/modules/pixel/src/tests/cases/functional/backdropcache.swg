@@ -35,9 +35,9 @@ func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, sc
 
 func assertSamePixels(first, second: Image)
 {
-    Swag.assert(first.width == second.width and first.height == second.height)
-    Swag.assert(first.pixels.count == second.pixels.count)
-    Swag.assert(Memory.compare(first.pixels.storage(), second.pixels.storage(), first.pixels.count) == 0)
+    Swag.require(first.width == second.width and first.height == second.height)
+    Swag.require(first.pixels.count == second.pixels.count)
+    Swag.require(Memory.compare(first.pixels.storage(), second.pixels.storage(), first.pixels.count) == 0)
 }
 
 // Cache hits preserve every output byte; one changed source byte and a different kernel
@@ -50,22 +50,22 @@ func assertSamePixels(first, second: Image)
     var cpu: RenderCpu
     let first = drawGaussian(&cpu, source)
     let again = drawGaussian(&cpu, source)
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].hits == 1)
     assertSamePixels(first, again)
 
     source.pixels[0] = 255
     let changed = drawGaussian(&cpu, source)
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].hits == 1)
     var fresh: RenderCpu
     assertSamePixels(changed, drawGaussian(&fresh, source))
     let wider = drawGaussian(&cpu, source, radius: 6)
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].hits == 1)
     assertSamePixels(wider, drawGaussian(&fresh, source, radius: 6))
 
     let vertical = drawGaussian(&cpu, source, mode: 1)
     assertSamePixels(vertical, drawGaussian(&cpu, source, mode: 1))
-    Swag.assert(cpu.backdropCache[1].hits == 1)
-    Swag.assert(cpu.backdropCache[0].retainedBytes() + cpu.backdropCache[1].retainedBytes() <= 2 * CpuBackdropCache.MaxBytes)
+    Swag.require(cpu.backdropCache[1].hits == 1)
+    Swag.require(cpu.backdropCache[0].retainedBytes() + cpu.backdropCache[1].retainedBytes() <= 2 * CpuBackdropCache.MaxBytes)
 }
 
 // Device scale and extent belong in the key. Clipped and translated draws use the general
@@ -78,18 +78,18 @@ func assertSamePixels(first, second: Image)
     var fresh: RenderCpu
     let first = drawGaussian(&cpu, source, scale: 1.25)
     assertSamePixels(first, drawGaussian(&cpu, source, scale: 1.25))
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].hits == 1)
     assertSamePixels(drawGaussian(&cpu, source, scale: 1.5), drawGaussian(&fresh, source, scale: 1.5))
-    Swag.assert(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].hits == 1)
     assertSamePixels(drawGaussian(&cpu, source, clipped: true), drawGaussian(&fresh, source, clipped: true))
     assertSamePixels(drawGaussian(&cpu, source, translated: true), drawGaussian(&fresh, source, translated: true))
-    Swag.assert(cpu.backdropCache[0].retainedBytes() == 0)
+    Swag.require(cpu.backdropCache[0].retainedBytes() == 0)
 
     source = Image.create(31, 19, .BGRA8)
     source.fill(Argb.Green)
     assertSamePixels(drawGaussian(&cpu, source), drawGaussian(&fresh, source))
-    Swag.assert(cpu.backdropCache[0].hits == 0)
-    Swag.assert(cpu.backdropCache[0].source.width == 31 and cpu.backdropCache[0].source.height == 19)
+    Swag.require(cpu.backdropCache[0].hits == 0)
+    Swag.require(cpu.backdropCache[0].source.width == 31 and cpu.backdropCache[0].source.height == 19)
 }
 
 // Closing a backdrop releases the cached source/result images on the next ordinary frame.
@@ -100,23 +100,23 @@ func assertSamePixels(first, second: Image)
     var cpu: RenderCpu
     discard drawGaussian(&cpu, source)
     discard drawGaussian(&cpu, source)
-    Swag.assert(cpu.backdropCache[0].hits == 1)
-    Swag.assert(cpu.backdropCache[0].retainedBytes() == 40 * 24 * 8)
+    Swag.require(cpu.backdropCache[0].hits == 1)
+    Swag.require(cpu.backdropCache[0].retainedBytes() == 40 * 24 * 8)
 
     let renderer: IRenderer = &cpu
     renderer.begin({width: 40, height: 24})
     renderer.end()
     for cache in cpu.backdropCache do
-        Swag.assert(cache.retainedBytes() == 0 and not cache.valid)
+        Swag.require(cache.retainedBytes() == 0 and not cache.valid)
 }
 
 // Both passes fit a 4K screen using useful texels, within a fixed total retention budget.
 #test
 {
-    Swag.assert(CpuBackdropCache.acceptsSize(3840, 2160))
-    Swag.assert(not CpuBackdropCache.acceptsSize(4096, 4096))
-    Swag.assert(not CpuBackdropCache.acceptsSize(0, 10))
-    Swag.assert(not CpuBackdropCache.acceptsSize(Swag.S32.Max, Swag.S32.Max))
+    Swag.require(CpuBackdropCache.acceptsSize(3840, 2160))
+    Swag.require(not CpuBackdropCache.acceptsSize(4096, 4096))
+    Swag.require(not CpuBackdropCache.acceptsSize(0, 10))
+    Swag.require(not CpuBackdropCache.acceptsSize(Swag.S32.Max, Swag.S32.Max))
 }
 
 // Preconverted Gaussian samples must match the general sampler byte for byte, including
@@ -133,8 +133,8 @@ func assertSamePixels(first, second: Image)
             var optimized, general: RenderCpu
             let actual   = drawGaussian(&optimized, source, radius: 10.5, mode: mode, scale: scale)
             let expected = drawGaussian(&general, source, radius: 10.5, mode: mode, scale: scale, fullClip: true)
-            Swag.assert(optimized.backdropCache[mode].valid)
-            Swag.assert(not general.backdropCache[mode].valid)
+            Swag.require(optimized.backdropCache[mode].valid)
+            Swag.require(not general.backdropCache[mode].valid)
             assertSamePixels(expected, actual)
         }
     }

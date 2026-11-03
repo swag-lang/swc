@@ -24,27 +24,27 @@ using Core, Win32, Ogl
 
         var minimized: RECT
         let readMinimized = GetWindowRect(surface.win32Handle(), &minimized)
-        Swag.assert(readMinimized)
+        Swag.require(readMinimized)
         for 3
         {
             surface.invalidate()
             app.runFrame()
             var current: RECT
             let readCurrent = GetWindowRect(surface.win32Handle(), &current)
-            Swag.assert(readCurrent)
-            Swag.assert(current.left == minimized.left and current.top == minimized.top)
-            Swag.assert(current.right == minimized.right and current.bottom == minimized.bottom)
-            Swag.assert(surface.isMinimized and surface.isDirty)
-            Swag.assert(surface.position == bounds)
+            Swag.require(readCurrent)
+            Swag.require(current.left == minimized.left and current.top == minimized.top)
+            Swag.require(current.right == minimized.right and current.bottom == minimized.bottom)
+            Swag.require(surface.isMinimized and surface.isDirty)
+            Swag.require(surface.position == bounds)
         }
 
         surface.requestRestore()
         app.runFrame()
-        Swag.assert(not surface.isMinimized and surface.isMaximized == maximize)
-        Swag.assert(surface.position == bounds)
-        Swag.assert(not surface.isDirty)
+        Swag.require(not surface.isMinimized and surface.isMaximized == maximize)
+        Swag.require(surface.position == bounds)
+        Swag.require(not surface.isDirty)
         surface.showNormal()
-        Swag.assert(surface.position == normal)
+        Swag.require(surface.position == normal)
     }
 }
 
@@ -69,7 +69,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     elif msg == WM_WINDOWPOSCHANGED and observation.watchBounds
     {
         var rect: RECT
-        Swag.assert(GetWindowRect(hWnd, &rect))
+        Swag.require(GetWindowRect(hWnd, &rect))
         if rect.left != cast(s32, observation.expected.x) or
            rect.top != cast(s32, observation.expected.y) or
            rect.right != cast(s32, observation.expected.right()) or
@@ -88,33 +88,33 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     let surface = expect app.createSurface(40, 40, 640, 400, surfaceId: "gui-placement-transaction-test")
     surface.show()
     var observation: PlacementObservation
-    Swag.assert(SetWindowSubclass(surface.win32Handle(), &observePlacement, 1, cast(u64, &observation)))
+    Swag.require(SetWindowSubclass(surface.win32Handle(), &observePlacement, 1, cast(u64, &observation)))
     defer discard RemoveWindowSubclass(surface.win32Handle(), &observePlacement, 1)
 
     var normal: WINDOWPLACEMENT
     normal.length = #sizeof(normal)
-    Swag.assert(GetWindowPlacement(surface.win32Handle(), &normal))
+    Swag.require(GetWindowPlacement(surface.win32Handle(), &normal))
     let bounds = surface.position
     surface.showMaximized()
     let maximizedBounds = surface.position
     var maximized: WINDOWPLACEMENT
     maximized.length = #sizeof(maximized)
-    Swag.assert(GetWindowPlacement(surface.win32Handle(), &maximized))
-    Swag.assert(maximized.showCmd == SW_SHOWMAXIMIZED)
-    Swag.assert(maximized.rcNormalPosition.left == normal.rcNormalPosition.left)
-    Swag.assert(maximized.rcNormalPosition.top == normal.rcNormalPosition.top)
-    Swag.assert(maximized.rcNormalPosition.right == normal.rcNormalPosition.right)
-    Swag.assert(maximized.rcNormalPosition.bottom == normal.rcNormalPosition.bottom)
+    Swag.require(GetWindowPlacement(surface.win32Handle(), &maximized))
+    Swag.require(maximized.showCmd == SW_SHOWMAXIMIZED)
+    Swag.require(maximized.rcNormalPosition.left == normal.rcNormalPosition.left)
+    Swag.require(maximized.rcNormalPosition.top == normal.rcNormalPosition.top)
+    Swag.require(maximized.rcNormalPosition.right == normal.rcNormalPosition.right)
+    Swag.require(maximized.rcNormalPosition.bottom == normal.rcNormalPosition.bottom)
     surface.showNormal()
     surface.showNormalAt(Env.monitorForRectangle(bounds).physicalBounds)
     observation.expected    = maximizedBounds
     observation.watchBounds = true
     surface.showMaximized(bounds)
     observation.watchBounds = false
-    Swag.assert(observation.intermediateBounds == 0, "returning to maximized must not visit the normal restore bounds")
+    Swag.require(observation.intermediateBounds == 0, "returning to maximized must not visit the normal restore bounds")
     surface.showNormalAt(bounds)
-    Swag.assert(observation.hides == 0, "placement must preserve native visibility throughout the transaction")
-    Swag.assert(surface.position == bounds)
+    Swag.require(observation.hides == 0, "placement must preserve native visibility throughout the transaction")
+    Swag.require(surface.position == bounds)
 }
 
 // The window's rendering context must stay on its owner thread. Delegating synchronous WGL
@@ -126,18 +126,18 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     var app: Application
     let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-render-owner-test")
     let context = Ogl.wglGetCurrentContext()
-    Swag.assert(context != null, "the window owner must own the default OpenGL context")
+    Swag.require(context != null, "the window owner must own the default OpenGL context")
 
     var processId: u32
     let owner = GetWindowThreadProcessId(surface.win32Handle(), &processId)
-    Swag.assert(owner == GetCurrentThreadId())
+    Swag.require(owner == GetCurrentThreadId())
 
     for step in 4
     {
         surface.setPosition(Math.Rectangle{40, 40, cast(f32, (320 + step * 2)), 180})
         surface.paint()
-        Swag.assert(Ogl.wglGetCurrentContext() == context)
-        Swag.assert(surface.rt.colorBuffer.isValid())
+        Swag.require(Ogl.wglGetCurrentContext() == context)
+        Swag.require(surface.rt.colorBuffer.isValid())
     }
 }
 
@@ -155,18 +155,18 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     surface.showMaximized()
 
     var client: RECT
-    Swag.assert(GetClientRect(surface.win32Handle(), &client))
-    Swag.assert(surface.isMaximized)
-    Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
-    Swag.assert(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
-    Swag.assert(not surface.preparedFrame and not surface.isDirty)
+    Swag.require(GetClientRect(surface.win32Handle(), &client))
+    Swag.require(surface.isMaximized)
+    Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
+    Swag.require(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
+    Swag.require(not surface.preparedFrame and not surface.isDirty)
 
     surface.showNormal()
-    Swag.assert(GetClientRect(surface.win32Handle(), &client))
-    Swag.assert(not surface.isMaximized)
-    Swag.assert(surface.position == normal)
-    Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
-    Swag.assert(not surface.preparedFrame and not surface.isDirty)
+    Swag.require(GetClientRect(surface.win32Handle(), &client))
+    Swag.require(not surface.isMaximized)
+    Swag.require(surface.position == normal)
+    Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
+    Swag.require(not surface.preparedFrame and not surface.isDirty)
 }
 
 // Placing a window at explicit bounds is a discrete placement too, from a regular window and from
@@ -186,13 +186,13 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
         surface.showNormalAt(target)
 
         var client: RECT
-        Swag.assert(GetClientRect(surface.win32Handle(), &client))
+        Swag.require(GetClientRect(surface.win32Handle(), &client))
         let style = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
-        Swag.assert(not surface.isMaximized and not (style & WS_MAXIMIZE))
-        Swag.assert(IsWindowVisible(surface.win32Handle()))
-        Swag.assert(surface.position == target)
-        Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
-        Swag.assert(not surface.preparedFrame and not surface.isDirty)
+        Swag.require(not surface.isMaximized and not (style & WS_MAXIMIZE))
+        Swag.require(IsWindowVisible(surface.win32Handle()))
+        Swag.require(surface.position == target)
+        Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
+        Swag.require(not surface.preparedFrame and not surface.isDirty)
     }
 }
 
@@ -211,16 +211,16 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
 
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
     app.runFrame()
-    Swag.assert(surface.isMinimized and surface.isMaximized)
-    Swag.assert(surface.position == maximized)
+    Swag.require(surface.isMinimized and surface.isMaximized)
+    Swag.require(surface.position == maximized)
 
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
     app.runFrame()
     let maximizedStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
-    Swag.assert(not surface.isMinimized and surface.isMaximized)
-    Swag.assert(maximizedStyle & WS_MAXIMIZE and not (maximizedStyle & WS_MINIMIZE))
-    Swag.assert(IsWindowVisible(surface.win32Handle()))
-    Swag.assert(surface.position == maximized)
+    Swag.require(not surface.isMinimized and surface.isMaximized)
+    Swag.require(maximizedStyle & WS_MAXIMIZE and not (maximizedStyle & WS_MINIMIZE))
+    Swag.require(IsWindowVisible(surface.win32Handle()))
+    Swag.require(surface.position == maximized)
 
     surface.showNormal()
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
@@ -228,18 +228,18 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_RESTORE, 0)
     app.runFrame()
     let normalStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
-    Swag.assert(not surface.isMinimized and not surface.isMaximized)
-    Swag.assert(not (normalStyle & WS_MINIMIZE) and not (normalStyle & WS_MAXIMIZE))
-    Swag.assert(IsWindowVisible(surface.win32Handle()))
-    Swag.assert(surface.position == normal)
+    Swag.require(not surface.isMinimized and not surface.isMaximized)
+    Swag.require(not (normalStyle & WS_MINIMIZE) and not (normalStyle & WS_MAXIMIZE))
+    Swag.require(IsWindowVisible(surface.win32Handle()))
+    Swag.require(surface.position == normal)
 
     surface.showMaximized()
     discard SendMessageW(surface.win32Handle(), WM_SYSCOMMAND, SC_MINIMIZE, 0)
     app.runFrame()
     surface.showNormal()
     let restoredStyle = cast(u32, GetWindowLongPtrW(surface.win32Handle(), GWL_STYLE))
-    Swag.assert(not surface.isMinimized and not surface.isMaximized)
-    Swag.assert(not (restoredStyle & WS_MINIMIZE) and not (restoredStyle & WS_MAXIMIZE))
-    Swag.assert(IsWindowVisible(surface.win32Handle()))
-    Swag.assert(surface.position == normal)
+    Swag.require(not surface.isMinimized and not surface.isMaximized)
+    Swag.require(not (restoredStyle & WS_MINIMIZE) and not (restoredStyle & WS_MAXIMIZE))
+    Swag.require(IsWindowVisible(surface.win32Handle()))
+    Swag.require(surface.position == normal)
 }

@@ -8,18 +8,18 @@ using Core, Net, Pixel, Audio
     var group = OnlineMusic{title: "A collaboration"}
     group.artists.add({name: "Artist One", joinphrase: " & "})
     group.artists.add({name: "Artist Two"})
-    Swag.assert(group.artistText() == "Artist One & Artist Two")
+    Swag.require(group.artistText() == "Artist One & Artist Two")
     var search = MusicSearch{count: 1}
     search.groups.add(group)
     let tags = SoundTags{album: "A collaboration", artist: "Artist One & Artist Two"}
-    Swag.assert(search.choose(&tags) == 0)
+    Swag.require(search.choose(&tags) == 0)
     let compilation = SoundTags{album: "A collaboration", artist: "Guest Performer", albumArtist: "Artist One & Artist Two"}
-    Swag.assert(search.choose(&compilation) == 0)
+    Swag.require(search.choose(&compilation) == 0)
     let local = localMusicSummary(&compilation)
-    Swag.assert(local.title == "A collaboration" and
-                local.artist == "Guest Performer" and
-                local.albumArtist == "Artist One & Artist Two" and
-                local.source == "tags")
+    Swag.require(local.title == "A collaboration" and
+                 local.artist == "Guest Performer" and
+                 local.albumArtist == "Artist One & Artist Two" and
+                 local.source == "tags")
 }
 
 struct MusicServerFixture
@@ -88,24 +88,24 @@ func serveMusicRetry(thread: const *Threading.Thread)
     let tags   = SoundTags{album: "Discovery", artist: "Daft Punk"}
     var error: Swag.Error
     discard catch OnlineMusic.lookup(&tags, source) as error
-    Swag.assert(error.value() != null)
+    Swag.require(error.value() != null)
     let music = expect OnlineMusic.lookup(&tags, source)
     thread.wait()
-    Swag.assert(music.title == "Discovery" and fixture.requests[1].length > 0)
+    Swag.require(music.title == "Discovery" and fixture.requests[1].length > 0)
 }
 
 #test
 {
     let id = "48140466-cff6-3222-bd55-63c27e43190d"
-    Swag.assert(validMusicId(id) and not validMusicId("bad-id"))
+    Swag.require(validMusicId(id) and not validMusicId("bad-id"))
     var choices: Array'MusicChoice
     var entry = ExplorerEntry{path: "C:/music/test.mp3", size: 10, creationStamp: 1, modifiedStamp: 2}
     setMusicChoice(&choices, &entry, id)
-    Swag.assert(musicChoiceId(choices.toSlice(), &entry) == id)
+    Swag.require(musicChoiceId(choices.toSlice(), &entry) == id)
     entry.modifiedStamp += 1
-    Swag.assert(musicChoiceId(choices.toSlice(), &entry) == "")
+    Swag.require(musicChoiceId(choices.toSlice(), &entry) == "")
     setMusicChoice(&choices, &entry, "")
-    Swag.assert(choices.isEmpty())
+    Swag.require(choices.isEmpty())
 
     var listener = expect TcpListener.listen({address: [127, 0, 0, 1], port: 0})
     let endpoint = expect listener.localEndpoint()
@@ -117,8 +117,8 @@ func serveMusicRetry(thread: const *Threading.Thread)
     let tags: SoundTags
     var music  = expect OnlineMusic.lookup(&tags, source, chosenId: id)
     thread.wait()
-    Swag.assert(music.id == id and music.artistText() == "Daft Punk")
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/ws/2/release-group/48140466-cff6-3222-bd55-63c27e43190d?"))
+    Swag.require(music.id == id and music.artistText() == "Daft Punk")
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/ws/2/release-group/48140466-cff6-3222-bd55-63c27e43190d?"))
 }
 
 func sendMusicBytes(stream: *TcpStream, bytes: const [..] u8)
@@ -165,20 +165,20 @@ func serveMusic(thread: const *Threading.Thread)
 
 #test
 {
-    Swag.assert(musicQueryLiteral("A \"B\" & C") == "A \\\"B\\\" \\& C")
+    Swag.require(musicQueryLiteral("A \"B\" & C") == "A \\\"B\\\" \\& C")
     let source = MusicSource{apiHost: "127.0.0.1", apiPort: 1234,
                              artHost: "127.0.0.1", artPort: 1234, secure: false}
     let current = CoverTarget{host: "127.0.0.1", port: 1234, path: "/front"}
     let next    = expect coverRedirect("http://127.0.0.1:1234/cover.jpg", current, source)
-    Swag.assert(next.host == "127.0.0.1" and next.port == 1234 and next.path == "/cover.jpg")
+    Swag.require(next.host == "127.0.0.1" and next.port == 1234 and next.path == "/cover.jpg")
     let archive = expect coverRedirect("http://archive.org/download/cover.jpg#fragment", current, {})
-    Swag.assert(archive.host == "archive.org" and archive.port == 443 and archive.path == "/download/cover.jpg")
+    Swag.require(archive.host == "archive.org" and archive.port == 443 and archive.path == "/download/cover.jpg")
     for invalid in ["https://archive.org.evil.example/image", "https://archive.org@evil.example/image",
                     "//evil.example/image", "https://archive.org:81/image", "/bad%zz"]
     {
         var error: Swag.Error
         discard catch coverRedirect(invalid, current, source) as error
-        Swag.assert(error.value() != null)
+        Swag.require(error.value() != null)
     }
 }
 
@@ -204,17 +204,17 @@ func serveMusic(thread: const *Threading.Thread)
     thread.wait()
     listener.close()
     let reused = expect OnlineMusic.lookup(&tags, source)
-    Swag.assert(reused.id == music.id)
+    Swag.require(reused.id == music.id)
     let guest = SoundTags{album: "Discovery", artist: "Guest", albumArtist: "Daft Punk", year: "2001"}
-    Swag.assert((expect OnlineMusic.lookup(&guest, source)).id == music.id)
+    Swag.require((expect OnlineMusic.lookup(&guest, source)).id == music.id)
     let reusedCover = expect music.coverBytes(source)
-    Swag.assert(reusedCover.count == bytes.count)
-    Swag.assert(music.title == "Discovery" and cover.isValid())
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/ws/2/release-group/"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/front-250"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/cover.jpg"))
+    Swag.require(reusedCover.count == bytes.count)
+    Swag.require(music.title == "Discovery" and cover.isValid())
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/ws/2/release-group/"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "/front-250"))
+    Swag.require(Utf8.contains(fixture.requests[2].toString(), "/cover.jpg"))
     music.label(&cover, &tags)
     let summary = MusicSummary.fromImage(&cover)
-    Swag.assert(summary.title == "Discovery" and summary.artist == "Daft Punk")
-    Swag.assert(cachedMediaIsFresh(&cover, Time.Timestamp.utcNow().ticks))
+    Swag.require(summary.title == "Discovery" and summary.artist == "Daft Punk")
+    Swag.require(cachedMediaIsFresh(&cover, Time.Timestamp.utcNow().ticks))
 }

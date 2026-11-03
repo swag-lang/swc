@@ -11,7 +11,7 @@ using Core
     var cache: FontCache
     let font  = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
     let arrow = font.resolveRune('\u2192'rune)
-    Swag.assert(arrow != font and arrow.glyphIndex('\u2192'rune) != 0)
-    Swag.assert(arrow.cache.typeFace.isBold() or arrow.cache.typeFace.forceBold or arrow.forceBold)
-    Swag.assert(arrow.cache.typeFace.isItalic() or arrow.cache.typeFace.forceItalic or arrow.forceItalic)
+    Swag.require(arrow != font and arrow.glyphIndex('\u2192'rune) != 0)
+    Swag.require(arrow.cache.typeFace.isBold() or arrow.cache.typeFace.forceBold or arrow.forceBold)
+    Swag.require(arrow.cache.typeFace.isItalic() or arrow.cache.typeFace.forceItalic or arrow.forceItalic)
 }

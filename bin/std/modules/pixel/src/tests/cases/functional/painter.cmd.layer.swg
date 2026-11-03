@@ -66,5 +66,5 @@ using Swag, Core
         sawCopy = true
     for cmd in painter.commandBuffer where cmd.op is .ReleaseRenderTarget do
         sawRelease = true
-    Swag.assert(sawCopy and sawRelease and layer.contentTarget == null)
+    Swag.require(sawCopy and sawRelease and layer.contentTarget == null)
 }

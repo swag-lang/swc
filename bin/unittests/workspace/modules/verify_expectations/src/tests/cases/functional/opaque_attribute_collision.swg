@@ -9,10 +9,10 @@ using StaticApi.OpaqueAttributeCollision
     scope
     {
         var value: Value
-        Swag.assert(value.isDefault())
+        Swag.require(value.isDefault())
         value.arm()
     }
-    Swag.assert(drops() == 1)
+    Swag.require(drops() == 1)
 }
 
 #test
@@ -21,10 +21,10 @@ using StaticApi.OpaqueAttributeCollision
     let scalar   = Scalar{}
     let required = cast(Required, "ready")
     let tagged   = Tagged{37}
-    Swag.assert(value.isDefault())
-    Swag.assert(scalar.isDefault())
-    Swag.assert(required.isReady())
-    Swag.assert(tagged.value == 37)
+    Swag.require(value.isDefault())
+    Swag.require(scalar.isDefault())
+    Swag.require(required.isReady())
+    Swag.require(tagged.value == 37)
 }
 
 func rejectMissingCollisionDefault()

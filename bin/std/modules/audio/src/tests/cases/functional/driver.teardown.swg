@@ -50,8 +50,8 @@ impl IAllocator for AudioTeardownAllocator
         if removeUnrelated do
             unrelated.destroy()
         destroyEngine()
-        Swag.assert(allocator.childFreed and allocator.parentFreed)
-        Swag.assert(not allocator.parentBeforeChild, "audio parent was released before its child")
+        Swag.require(allocator.childFreed and allocator.parentFreed)
+        Swag.require(not allocator.parentBeforeChild, "audio parent was released before its child")
     }
 }
 
@@ -71,7 +71,7 @@ impl IAllocator for AudioTeardownAllocator
     var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice = expect Voice.create(&file)
     allocator.nativeVoice = voice.handle
-    Swag.assert(g_Driver.activeVoices.isEmpty())
+    Swag.require(g_Driver.activeVoices.isEmpty())
     destroyEngine()
-    Swag.assert(allocator.voiceFreed, "shutdown leaked an unregistered native voice")
+    Swag.require(allocator.voiceFreed, "shutdown leaked an unregistered native voice")
 }

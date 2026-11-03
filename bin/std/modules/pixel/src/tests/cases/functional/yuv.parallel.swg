@@ -11,8 +11,8 @@ using Core
     let view      = flatPlanarPicture(&storage, 8, 1, 100, 90, 200)
     var image:   Image
     view.convertToRgb(&image)
-    Swag.assert(image.pixelColor(7, 0) == expectedPlanarColor(100, 90, 200))
-    Swag.assert(scheduler.started.load() == started)
+    Swag.require(image.pixelColor(7, 0) == expectedPlanarColor(100, 90, 200))
+    Swag.require(scheduler.started.load() == started)
 }
 
 // Odd, padded planes exercise SIMD, scalar tails, the last pixel and the last row across
@@ -50,7 +50,7 @@ using Core
                         let cb       = expectedChromaSample(view.chromaB, ChromaStride, (Width + 1) / 2, (Height + 1) / 2, Width, Height, x, y)
                         let cr       = expectedChromaSample(view.chromaR, ChromaStride, (Width + 1) / 2, (Height + 1) / 2, Width, Height, x, y)
                         let expected = expectedPlanarColor(view.luma[cast(u64, y) * LumaStride + cast(u64, x)], cb, cr, matrix, view.studioRange)
-                        Swag.assert(image.pixelColor(x, y) == expected)
+                        Swag.require(image.pixelColor(x, y) == expected)
                     }
                 }
             }

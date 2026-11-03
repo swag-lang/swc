@@ -59,9 +59,9 @@ using Swag, Core, Pixel
 
     let button = AppearanceButton.create(&host.surface)
     host.surfaceWnd.sendResizeEvent()
-    Swag.assert(button.parent == &host.surfaceWnd)
-    Swag.assert(host.surfaceWnd.captionButtons.count == 1)
-    Swag.assert(button.position.right() < host.surfaceWnd.clientRect().right())
+    Swag.require(button.parent == &host.surfaceWnd)
+    Swag.require(host.surfaceWnd.captionButtons.count == 1)
+    Swag.require(button.position.right() < host.surfaceWnd.clientRect().right())
 
     var themeChanges, languageChanges, aboutRequests: u32
     button.sigThemeChanged += func|count = &themeChanges|(_)
@@ -71,7 +71,7 @@ using Swag, Core, Pixel
 
     button.sigLanguageChanged += func|count = &languageChanges|(appearance)
     {
-        Swag.assert(appearance.language == "fr")
+        Swag.require(appearance.language == "fr")
         count[] += 1
     }
 
@@ -82,37 +82,37 @@ using Swag, Core, Pixel
 
     let encre  = ThemeColors.encrePalette().ground
     let papier = ThemeColors.papierPalette().ground
-    Swag.assert(button.appearanceTheme == .Dark)
+    Swag.require(button.appearanceTheme == .Dark)
     button.setAppearanceTheme(.Light, notify: true)
-    Swag.assert(button.appearanceTheme == .Light and host.theme.colors.ground == papier)
+    Swag.require(button.appearanceTheme == .Light and host.theme.colors.ground == papier)
     button.setAppearanceTheme(.Dark, notify: true)
-    Swag.assert(button.appearanceTheme == .Dark and host.theme.colors.ground == encre)
+    Swag.require(button.appearanceTheme == .Dark and host.theme.colors.ground == encre)
 
     // The button opens a sheet whose theme page applies a theme as soon as it is chosen. System
     // follows the setting of the operating system, and keeps following it when it changes.
     host.activateOptionRowWhenShown(strings().appearance_Theme)
     host.thenActivateOptionRow(strings().appearance_System)
     host.clickWnd(button)
-    Swag.assert(host.autoHandled)
-    Swag.assert(button.appearanceTheme == .System and host.app.appearance == .System)
+    Swag.require(host.autoHandled)
+    Swag.require(button.appearanceTheme == .System and host.app.appearance == .System)
     host.app.setSystemPrefersLight(true)
-    Swag.assert(host.theme.colors.ground == papier)
+    Swag.require(host.theme.colors.ground == papier)
     host.app.setSystemPrefersLight(false)
-    Swag.assert(host.theme.colors.ground == encre)
+    Swag.require(host.theme.colors.ground == encre)
     expect button.setAppearanceLanguage("fr", notify: true)
-    Swag.assert(themeChanges == 3 and languageChanges == 1)
-    Swag.assert(host.app.language() == "fr")
+    Swag.require(themeChanges == 3 and languageChanges == 1)
+    Swag.require(host.app.language() == "fr")
 
     // About closes the sheet before its owner opens anything.
     host.activateOptionRowWhenShown(strings().appearance_About)
     host.clickWnd(button)
-    Swag.assert(aboutRequests == 1)
+    Swag.require(aboutRequests == 1)
 
     // The first page names the palette and the language in force.
     var options: OptionSheet.Page
     button.describeAppearance(&options)
-    Swag.assert(options.rows[0].value == strings().appearance_System)
-    Swag.assert(options.rows[2].kind == .Action and options.rows[2].closesSheet)
+    Swag.require(options.rows[0].value == strings().appearance_System)
+    Swag.require(options.rows[2].kind == .Action and options.rows[2].closesSheet)
 
     // From the title bar the sheet joins its button and is drawn above the content of the window.
     var sheetChecked: bool
@@ -122,9 +122,9 @@ using Swag, Core, Pixel
         if checked[] or not sheet do
             return
         host.finishAnimations()
-        Swag.assert(sheet.parent == &host.surfaceWnd and not sheet.opensUp)
-        Swag.assert(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom()) < 0.5)
-        Swag.assert(sheet.activateRow(strings().appearance_Theme))
+        Swag.require(sheet.parent == &host.surfaceWnd and not sheet.opensUp)
+        Swag.require(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom()) < 0.5)
+        Swag.require(sheet.activateRow(strings().appearance_Theme))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, "appearancebutton.sheet.caption")
@@ -134,14 +134,14 @@ using Swag, Core, Pixel
 
     host.clickWnd(button)
     host.app.sigFrame.clear()
-    Swag.assert(sheetChecked)
+    Swag.require(sheetChecked)
 
     let popup = MenuCtrl.createPopup(button)
     let sub   = MenuCtrl.createPopup(popup)
     sub.addItem("Swag", "Gui.Appearance.Test")
     popup.addPopup("Theme", sub)
-    Swag.assert(popup.parent == &host.surfaceWnd)
-    Swag.assert(sub.parent == &host.surfaceWnd)
+    Swag.require(popup.parent == &host.surfaceWnd)
+    Swag.require(sub.parent == &host.surfaceWnd)
 
     var popupChecked: bool
     host.app.sigFrame += func|host = &host, button, popup, sub, checked = &popupChecked|(_)
@@ -151,10 +151,10 @@ using Swag, Core, Pixel
 
         let anchor  = button.surfaceRect()
         let bodyTop = popup.surfaceRect().y + popup.popupBarItemSurfaceRect.height + popup.themeMetrics().menuPopup_ShadowSize
-        Swag.assert(Math.abs(bodyTop - anchor.bottom()) < 0.5)
+        Swag.require(Math.abs(bodyTop - anchor.bottom()) < 0.5)
         let submenuOpened = host.openPopupSubMenu("Theme")
-        Swag.assert(submenuOpened)
-        Swag.assert(sub.surfaceRect().y < host.surfaceWnd.stripHeight())
+        Swag.require(submenuOpened)
+        Swag.require(sub.surfaceRect().y < host.surfaceWnd.stripHeight())
         var image = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&image, "appearancebutton.popup.caption")
         sub.setEndModal(null)
@@ -162,9 +162,9 @@ using Swag, Core, Pixel
     }
 
     discard popup.doModal(button, autoDestroy: true)
-    Swag.assert(popupChecked)
+    Swag.require(popupChecked)
 
     button.destroy()
     host.pump()
-    Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
+    Swag.require(host.surfaceWnd.captionButtons.isEmpty())
 }

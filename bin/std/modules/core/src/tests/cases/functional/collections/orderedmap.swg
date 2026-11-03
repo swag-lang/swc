@@ -39,23 +39,23 @@ struct OrderedMapKey
     {
         keyCode = keyCode * 100 + key
         if index == 1 do
-            Swag.assert(value[] == "TWENTY")
+            Swag.require(value[] == "TWENTY")
     }
 
-    Swag.assert(keyCode == 102030)
-    Swag.assert(map.count == 3 and map.capacity() >= 3)
-    Swag.assert(map.lowerBound(20) == 1)
-    Swag.assert(map.upperBound(20) == 2)
-    Swag.assert(map.contains(10) and not map.contains(11))
-    Swag.assert(map.find(30).value == "thirty")
+    Swag.require(keyCode == 102030)
+    Swag.require(map.count == 3 and map.capacity() >= 3)
+    Swag.require(map.lowerBound(20) == 1)
+    Swag.require(map.upperBound(20) == 2)
+    Swag.require(map.contains(10) and not map.contains(11))
+    Swag.require(map.find(30).value == "thirty")
 
     let middle = map.range(15, 30)
-    Swag.assert(middle.count == 1 and middle[0].key == 20 and middle[0].value == "TWENTY")
-    Swag.assert((map.range(30, 10)).count == 0)
+    Swag.require(middle.count == 1 and middle[0].key == 20 and middle[0].value == "TWENTY")
+    Swag.require((map.range(30, 10)).count == 0)
 
-    Swag.assert(map.remove(20))
-    Swag.assert(not map.remove(20))
-    Swag.assert(map.count == 2)
+    Swag.require(map.remove(20))
+    Swag.require(not map.remove(20))
+    Swag.require(map.count == 2)
 }
 
 #test
@@ -73,8 +73,8 @@ struct OrderedMapKey
     for key in map.reversed() do
         reverse = reverse * 10 + key
 
-    Swag.assert(forward == 321)
-    Swag.assert(reverse == 123)
+    Swag.require(forward == 321)
+    Swag.require(reverse == 123)
 }
 
 #test
@@ -84,11 +84,11 @@ struct OrderedMapKey
     map.add({rank: 4}, 40)
     map.add({rank: 1}, 10)
 
-    Swag.assert(map.find({rank: 1}).value == 10)
+    Swag.require(map.find({rank: 1}).value == 10)
 
     var copy = map
     copy.add({rank: 2}, 20)
-    Swag.assert(map.count == 2 and copy.count == 3)
+    Swag.require(map.count == 2 and copy.count == 3)
 }
 
 // Reserving less storage preserves the elements and their existing capacity.
@@ -98,6 +98,6 @@ struct OrderedMapKey
     map.add(42, "kept")
     let capacity = map.capacity()
     map.reserve(0)
-    Swag.assert(map.count == 1 and map.capacity() == capacity)
-    Swag.assert(map.find(42).value == "kept")
+    Swag.require(map.count == 1 and map.capacity() == capacity)
+    Swag.require(map.find(42).value == "kept")
 }

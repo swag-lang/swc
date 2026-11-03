@@ -19,13 +19,13 @@ func createDirectoryJunction(link, target: string)->bool
 #test
 {
     let temp = Env.getSpecialDirectory(.Temp)
-    Swag.assert(expect Directory.freeSpace(temp) > 0)
+    Swag.require(expect Directory.freeSpace(temp) > 0)
 
     let missing = CoreTests.makeFilesystemTestPath("core_free_space_missing")
     var errOutcome: Swag.Error
     discard catch Directory.freeSpace(missing) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err is Errors.FileNotFoundError)
+    Swag.require(err is Errors.FileNotFoundError)
 }
 
 #test
@@ -35,14 +35,14 @@ func createDirectoryJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     discard catch Directory.create(dirName) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 
     // The sandbox rejects invalid paths before they reach the native filesystem call.
     if Env.isSandboxed() do
-        Swag.assert(err is Errors.SandboxError)
+        Swag.require(err is Errors.SandboxError)
     else do
-        Swag.assert(err is Errors.InvalidFileNameError)
-    Swag.assert(not Directory.exists(dirName))
+        Swag.require(err is Errors.InvalidFileNameError)
+    Swag.require(not Directory.exists(dirName))
 }
 
 #test
@@ -53,13 +53,13 @@ func createDirectoryJunction(link, target: string)->bool
     // Every missing level is created, and asking again for a directory that exists succeeds.
     let leaf = Path.combine(root, "a", "b")
     expect Directory.create(leaf, recurse: true)
-    Swag.assert(Directory.exists(leaf))
+    Swag.require(Directory.exists(leaf))
     expect Directory.create(leaf, recurse: true)
 
     var errOutcome: Swag.Error
     discard catch Directory.create(leaf) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }
 
 // Selection does not prevent traversal, and special entries have their own option.
@@ -76,27 +76,27 @@ func createDirectoryJunction(link, target: string)->bool
     discard expect File.writeAllText(Path.combine(child, "nested.txt"), "nested")
 
     let files = expect Directory.enumerateFiles(root)
-    Swag.assert(files.count == 2)
+    Swag.require(files.count == 2)
     for entry in files do
-        Swag.assert(not entry.isDirectory())
+        Swag.require(not entry.isDirectory())
 
     let directories = expect Directory.enumerateDirectories(root)
-    Swag.assert(directories.count == 1 and directories[0].fullName == child)
+    Swag.require(directories.count == 1 and directories[0].fullName == child)
 
     let nested = expect Directory.enumerateFiles(root, ".txt", recurse: true)
-    Swag.assert(nested.count == 2)
+    Swag.require(nested.count == 2)
     for entry in nested do
-        Swag.assert(not entry.isDirectory() and Path.hasExtension(entry.fullName, ".txt"))
+        Swag.require(not entry.isDirectory() and Path.hasExtension(entry.fullName, ".txt"))
 
     let either = expect Directory.enumerate(root, {matchExtension: ".txt", matchFileName: "second.bin"})
-    Swag.assert(either.count == 2)
+    Swag.require(either.count == 2)
 
     let special = expect Directory.enumerate(root, {wantFiles: false, wantDirectories: false, wantSpecialDirectories: true})
-    Swag.assert(special.count == 2)
+    Swag.require(special.count == 2)
     for entry in special
     {
         let name = Path.fileName(entry.fullName)
-        Swag.assert(name == "." or name == "..")
+        Swag.require(name == "." or name == "..")
     }
 }
 
@@ -104,11 +104,11 @@ func createDirectoryJunction(link, target: string)->bool
 #test
 {
     let dirName = Path.combine(CoreTests.makeFilesystemTestPath("core_directory_missing"), Guid64.random().toString())
-    Swag.assert(not Directory.exists(dirName))
+    Swag.require(not Directory.exists(dirName))
 
     var errOutcome: Swag.Error
     discard catch Directory.enumerate(dirName, {}) as errOutcome
-    Swag.assert(errOutcome.value() != null)
+    Swag.require(errOutcome.value() != null)
 }
 
 // A drive letter without a mounted root is rejected before its path is queried.
@@ -131,7 +131,7 @@ func createDirectoryJunction(link, target: string)->bool
     }
 
     if not missingRoot.isEmpty() do
-        Swag.assert(not Directory.exists(missingRoot.toString()))
+        Swag.require(not Directory.exists(missingRoot.toString()))
 }
 
 // Empty paths are rejected before they can act like the current directory.
@@ -139,15 +139,15 @@ func createDirectoryJunction(link, target: string)->bool
 {
     var createError: Swag.Error
     discard catch Directory.create("", recurse: true) as createError
-    Swag.assert(createError.value() is Errors.BadParameterError)
+    Swag.require(createError.value() is Errors.BadParameterError)
 
     var deleteError: Swag.Error
     discard catch Directory.delete("", recurse: true) as deleteError
-    Swag.assert(deleteError.value() is Errors.BadParameterError)
+    Swag.require(deleteError.value() is Errors.BadParameterError)
 
     var enumerateError: Swag.Error
     discard catch Directory.enumerate("", {}) as enumerateError
-    Swag.assert(enumerateError.value() is Errors.BadParameterError)
+    Swag.require(enumerateError.value() is Errors.BadParameterError)
 }
 
 // Recursive deletion removes a directory link without walking into its target.
@@ -167,21 +167,21 @@ func createDirectoryJunction(link, target: string)->bool
 
     discard expect File.writeAllText(targetFile.toString(), "keep")
 
-    Swag.assert(createDirectoryJunction(link.toString(), target.toString()))
+    Swag.require(createDirectoryJunction(link.toString(), target.toString()))
     expect Directory.delete(root, recurse: true)
-    Swag.assert(File.exists(targetFile.toString()))
+    Swag.require(File.exists(targetFile.toString()))
 }
 
 // A UNC path names a share; a local temporary folder and a relative path do not.
 #test
 {
-    Swag.assert(Directory.isRemote("\\\\server\\share\\films"))
-    Swag.assert(Directory.isRemote("//server/share"))
-    Swag.assert(Directory.isRemote(#raw "\\?\UNC\server\share\films"))
-    Swag.assert(not Directory.isRemote(#raw "\\?\C:\films"))
-    Swag.assert(not Directory.isRemote(#raw "\\.\C:\films"))
-    Swag.assert(not Directory.isRemote(Env.getSpecialDirectory(.Temp)))
-    Swag.assert(not Directory.isRemote("films"))
+    Swag.require(Directory.isRemote("\\\\server\\share\\films"))
+    Swag.require(Directory.isRemote("//server/share"))
+    Swag.require(Directory.isRemote(#raw "\\?\UNC\server\share\films"))
+    Swag.require(not Directory.isRemote(#raw "\\?\C:\films"))
+    Swag.require(not Directory.isRemote(#raw "\\.\C:\films"))
+    Swag.require(not Directory.isRemote(Env.getSpecialDirectory(.Temp)))
+    Swag.require(not Directory.isRemote("films"))
 }
 
 // Removing a junction supplied as the root must not delete anything inside its target.
@@ -197,12 +197,12 @@ func createDirectoryJunction(link, target: string)->bool
     let link = Path.combine(root, "link")
     for suffix in ["", "/", "/./"]
     {
-        Swag.assert(createDirectoryJunction(link, target))
+        Swag.require(createDirectoryJunction(link, target))
         var requested = String.from(link)
         requested.append(suffix)
         expect Directory.delete(requested, recurse: true)
-        Swag.assert(not Directory.exists(link))
-        Swag.assert(Directory.exists(target) and File.exists(marker))
-        Swag.assert((expect File.readAllText(marker)) == "keep")
+        Swag.require(not Directory.exists(link))
+        Swag.require(Directory.exists(target) and File.exists(marker))
+        Swag.require((expect File.readAllText(marker)) == "keep")
     }
 }

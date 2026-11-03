@@ -130,24 +130,24 @@ func testCoreNonNullDynamicInitialization()->bool
     let appendedAliasValue     = cast(*CoreNonNullRuntimeDefault?, appendedAliasPtr)
     let initializedAppendAlias = appendedAliasValue != null and appendedAliasValue.value == "fallback"
 
-    Swag.assert(rejectedNew)
-    Swag.assert(preservedReset)
-    Swag.assert(preservedArray)
-    Swag.assert(rejectedZeroNew)
-    Swag.assert(preservedZeroReset)
-    Swag.assert(rejectedZeroAppend)
-    Swag.assert(initializedNewArray)
-    Swag.assert(initializedNewAlias)
-    Swag.assert(initializedNestedAliasArray)
-    Swag.assert(initializedNestedArray)
-    Swag.assert(initializedResetArray)
-    Swag.assert(initializedResetAlias)
-    Swag.assert(initializedAppendArray)
-    Swag.assert(initializedAppendAlias)
+    Swag.require(rejectedNew)
+    Swag.require(preservedReset)
+    Swag.require(preservedArray)
+    Swag.require(rejectedZeroNew)
+    Swag.require(preservedZeroReset)
+    Swag.require(rejectedZeroAppend)
+    Swag.require(initializedNewArray)
+    Swag.require(initializedNewAlias)
+    Swag.require(initializedNestedAliasArray)
+    Swag.require(initializedNestedArray)
+    Swag.require(initializedResetArray)
+    Swag.require(initializedResetAlias)
+    Swag.require(initializedAppendArray)
+    Swag.require(initializedAppendAlias)
     return true
 }
 
 #test
 {
-    Swag.assert(testCoreNonNullDynamicInitialization())
+    Swag.require(testCoreNonNullDynamicInitialization())
 }

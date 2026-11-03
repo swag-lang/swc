@@ -12,19 +12,19 @@ const EmbeddedOther = [111'u8, 107]
     var bundle: Resources.Bundle
     bundle.addEmbedded("lang/fr/app.tweak", EmbeddedHello)
 
-    Swag.assert(bundle.has("lang/fr/app.tweak"))
-    Swag.assert(not bundle.has("lang/de/app.tweak"))
-    Swag.assert(not bundle.isOverridden("lang/fr/app.tweak"))
+    Swag.require(bundle.has("lang/fr/app.tweak"))
+    Swag.require(not bundle.has("lang/de/app.tweak"))
+    Swag.require(not bundle.isOverridden("lang/fr/app.tweak"))
 
     let bytes = expect bundle.load("lang/fr/app.tweak")
-    Swag.assert(bytes.count == 5)
-    Swag.assert(bytes[0] == 'h'u8)
+    Swag.require(bytes.count == 5)
+    Swag.require(bytes[0] == 'h'u8)
 
     var errOutcome: Swag.Error
     discard catch bundle.load("lang/de/app.tweak") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert((err is Errors.FileNotFoundError))
+    Swag.require(err != null)
+    Swag.require((err is Errors.FileNotFoundError))
 }
 
 // Re-registering an embedded name replaces the previous bytes.
@@ -35,8 +35,8 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addEmbedded("data.bin", EmbeddedOther)
 
     let bytes = expect bundle.load("data.bin")
-    Swag.assert(bytes.count == 2)
-    Swag.assert(bytes[0] == 'o'u8)
+    Swag.require(bytes.count == 2)
+    Swag.require(bytes[0] == 'o'u8)
 }
 
 // A disk folder overrides embedded bytes, and a missing folder never matches.
@@ -55,15 +55,15 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addFolder(root.toString())
     bundle.addEmbedded("lang/fr.tweak", EmbeddedHello)
 
-    Swag.assert(bundle.isOverridden("lang/fr.tweak"))
+    Swag.require(bundle.isOverridden("lang/fr.tweak"))
     let bytes = expect bundle.load("lang/fr.tweak")
-    Swag.assert(bytes.count == 3)
-    Swag.assert(bytes[0] == '1'u8)
+    Swag.require(bytes.count == 3)
+    Swag.require(bytes[0] == '1'u8)
 
     // A name only the embedded table knows still resolves through it.
     bundle.addEmbedded("only/embedded.bin", EmbeddedOther)
-    Swag.assert(not bundle.isOverridden("only/embedded.bin"))
-    Swag.assert(bundle.has("only/embedded.bin"))
+    Swag.require(not bundle.isOverridden("only/embedded.bin"))
+    Swag.require(bundle.has("only/embedded.bin"))
 }
 
 // Listing merges disk and embedded names, without duplicates, sorted.
@@ -85,13 +85,13 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addEmbedded("theme/widgets.png", EmbeddedOther)
 
     let names = bundle.list("lang/")
-    Swag.assert(names.count == 3)
-    Swag.assert(names[0] == "lang/de.tweak")
-    Swag.assert(names[1] == "lang/es.tweak")
-    Swag.assert(names[2] == "lang/fr.tweak")
+    Swag.require(names.count == 3)
+    Swag.require(names[0] == "lang/de.tweak")
+    Swag.require(names[1] == "lang/es.tweak")
+    Swag.require(names[2] == "lang/fr.tweak")
 
     let all = bundle.list("")
-    Swag.assert(all.count == 4)
+    Swag.require(all.count == 4)
 }
 
 // Directory.delete removes an empty directory, refuses a filled one without recurse.
@@ -104,11 +104,11 @@ const EmbeddedOther = [111'u8, 107]
     var errOutcome: Swag.Error
     discard catch Directory.delete(root) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(Directory.exists(root))
+    Swag.require(err != null)
+    Swag.require(Directory.exists(root))
 
     expect Directory.delete(root, recurse: true)
-    Swag.assert(not Directory.exists(root))
+    Swag.require(not Directory.exists(root))
 }
 
 // A folder registered with a trailing separator lists the same names as one without.
@@ -128,8 +128,8 @@ const EmbeddedOther = [111'u8, 107]
     bundle.addFolder(folder.toString())
 
     let names = bundle.list("")
-    Swag.assert(names.count == 1)
-    Swag.assert(names[0] == "lang/fr.tweak")
+    Swag.require(names.count == 1)
+    Swag.require(names[0] == "lang/fr.tweak")
 }
 
 // Disk resource names cannot escape their registered folder through parent segments.
@@ -146,9 +146,9 @@ const EmbeddedOther = [111'u8, 107]
 
     var bundle: Resources.Bundle
     bundle.addFolder(root.toString())
-    Swag.assert(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
+    Swag.require(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
 
     var errorOutcome: Swag.Error
     discard catch bundle.load(name.toString()) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.FileNotFoundError)
+    Swag.require(errorOutcome.value() is Errors.FileNotFoundError)
 }

@@ -14,7 +14,7 @@ using Swag, Core
     for alignment, index in [StringHorzAlignment.Left, .Center, .Right]
     {
         let combo = ComboBox.create(&host.root, Math.Rectangle{10 + cast(f32, index) * 145, 14, 130, 32})
-        Swag.assert(combo.textHorizontalAlignment == .Left)
+        Swag.require(combo.textHorizontalAlignment == .Left)
         combo.addItem("MiB")
         combo.setSelectedIndex(0, notify: false)
         combo.setTextAlignment(alignment)

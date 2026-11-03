@@ -11,31 +11,31 @@ using Swag, Core.Errors
     discard expect File.writeAllText(fileName, "first line\nsecond line\n")
     var stream = expect File.openReadLive(fileName)
     let first  = expect stream.readUtf8Chunk(6)
-    Swag.assert(first == "first " and expect stream.position() == 6)
+    Swag.require(first == "first " and expect stream.position() == 6)
 
     discard expect File.writeAllText(fileName, "other replacement\n")
     let next = expect stream.readUtf8Chunk(11)
-    Swag.assert(next == "replacement")
+    Swag.require(next == "replacement")
     expect stream.seek(.End, cast #bit (u64, -1's64))
     let ending = expect stream.readUtf8Chunk(4)
-    Swag.assert(ending == "\n")
+    Swag.require(ending == "\n")
 
     let replacement = CoreTests.makeFilesystemTestPath("core_file_live_replacement.tmp")
     discard expect File.writeAllText(replacement, "new")
     defer discard catch File.delete(replacement)
     expect File.move(fileName, replacement)
-    Swag.assert(expect stream.size() == 3)
+    Swag.require(expect stream.size() == 3)
     expect stream.seek(.Begin, 0)
     let replaced = expect stream.readUtf8Chunk(4)
-    Swag.assert(replaced == "new")
+    Swag.require(replaced == "new")
     expect File.delete(fileName)
     var missingOutcome: Swag.Error
     discard catch stream.size() as missingOutcome
     let missing = missingOutcome.value()
-    Swag.assert(missing != null and stream.isOpen())
+    Swag.require(missing != null and stream.isOpen())
     stream.close()
     stream.close()
-    Swag.assert(not stream.isOpen())
+    Swag.require(not stream.isOpen())
 }
 
 #test
@@ -53,7 +53,7 @@ using Swag, Core.Errors
     scope
     {
         let content = expect File.readAllBytes(fileName)
-        Swag.assert(Slice.equals(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
+        Swag.require(Slice.equals(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
     }
 
     discard expect File.delete(fileName)
@@ -66,28 +66,28 @@ using Swag, Core.Errors
 
     var stream = expect File.open(fileName, File.FileMode.CreateNew, File.FileAccess.ReadWrite, File.FileShare.Read)
     expect stream.resize(32)
-    Swag.assert(expect stream.size() == 32)
-    Swag.assert(expect stream.position() == 0)
+    Swag.require(expect stream.size() == 32)
+    Swag.require(expect stream.position() == 0)
 
     let payload: [5] u8 = [1, 3, 5, 7, 9]
     expect stream.writeAllAt(11, payload)
     expect stream.flush()
-    Swag.assert(expect stream.position() == 16)
+    Swag.require(expect stream.position() == 16)
 
     var recovered: [5] u8
-    Swag.assert(expect stream.readExactAt(11, recovered))
-    Swag.assert(Slice.equals(recovered, payload))
-    Swag.assert(expect stream.position() == 16)
+    Swag.require(expect stream.readExactAt(11, recovered))
+    Swag.require(Slice.equals(recovered, payload))
+    Swag.require(expect stream.position() == 16)
 
     var beyond: [17] u8
-    Swag.assert(not (expect stream.readExactAt(16, beyond)))
+    Swag.require(not (expect stream.readExactAt(16, beyond)))
 
     expect stream.seek(.Begin, 8)
     expect stream.resize(12)
-    Swag.assert(expect stream.position() == 8)
+    Swag.require(expect stream.position() == 8)
     expect stream.resize(4)
-    Swag.assert(expect stream.position() == 4)
-    Swag.assert(expect stream.size() == 4)
+    Swag.require(expect stream.position() == 4)
+    Swag.require(expect stream.size() == 4)
     stream.close()
 }
 
@@ -107,12 +107,12 @@ using Swag, Core.Errors
         let chunk = expect stream.readUtf8Chunk(4)
         if chunk.isEmpty() do
             break
-        Swag.assert(chunk.count <= 4)
-        Swag.assert(Utf8.isValid(chunk.toSlice()))
+        Swag.require(chunk.count <= 4)
+        Swag.require(Utf8.isValid(chunk.toSlice()))
         recovered += chunk
     }
 
-    Swag.assert(recovered == content)
+    Swag.require(recovered == content)
 }
 
 #test
@@ -123,12 +123,12 @@ using Swag, Core.Errors
     discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF'u8, 'b'u8])
     var stream = expect File.openRead(fileName)
 
-    Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
+    Swag.require((expect stream.readUtf8Chunk(16)) == "a")
     var errOutcome: Swag.Error
     discard catch stream.readUtf8Chunk(16) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err is Errors.InvalidFormatError)
-    Swag.assert(expect stream.position() == 1)
+    Swag.require(err is Errors.InvalidFormatError)
+    Swag.require(expect stream.position() == 1)
 }
 
 // Offsets are 64-bit all the way down to the platform call. Everything from 2 GB upward has bit 31
@@ -145,19 +145,19 @@ using Swag, Core.Errors
     for offset in offsets
     {
         expect stream.seek(.Begin, offset)
-        Swag.assert(expect stream.position() == offset)
+        Swag.require(expect stream.position() == offset)
     }
 
     expect stream.seek(.Begin, 0x8000_0000)
     expect stream.skip(0x8000_0000)
-    Swag.assert(expect stream.position() == 0x1_0000_0000)
-    Swag.assert(expect stream.size() == 0)
+    Swag.require(expect stream.position() == 0x1_0000_0000)
+    Swag.require(expect stream.size() == 0)
 
     let previousPosition = expect stream.position()
     var overflowOutcome: Swag.Error
     discard catch stream.skip(Swag.U64.Max) as overflowOutcome
-    Swag.assert(overflowOutcome.value() is BadParameterError)
-    Swag.assert(expect stream.position() == previousPosition)
+    Swag.require(overflowOutcome.value() is BadParameterError)
+    Swag.require(expect stream.position() == previousPosition)
 }
 
 #test
@@ -169,7 +169,7 @@ using Swag, Core.Errors
     stream.close()
 
     let content = expect File.readAllBytes(fileName)
-    Swag.assert(Slice.equals(content.toSlice(), ['x'u8, 'y'u8]))
+    Swag.require(Slice.equals(content.toSlice(), ['x'u8, 'y'u8]))
 
     discard expect File.delete(fileName)
 }
@@ -190,14 +190,14 @@ using Swag, Core.Errors
     discard expect File.writeAllText(source.toString(), "moved")
     expect File.move(target.toString(), source.toString())
 
-    Swag.assert(not File.exists(source.toString()))
-    Swag.assert(File.exists(target.toString()))
-    Swag.assert((expect File.readAllText(target.toString())) == "moved")
+    Swag.require(not File.exists(source.toString()))
+    Swag.require(File.exists(target.toString()))
+    Swag.require((expect File.readAllText(target.toString())) == "moved")
 
     // Moving over an existing file replaces it rather than refusing.
     discard expect File.writeAllText(source.toString(), "again")
     expect File.move(target.toString(), source.toString())
-    Swag.assert((expect File.readAllText(target.toString())) == "again")
+    Swag.require((expect File.readAllText(target.toString())) == "again")
 }
 
 // Empty files and empty buffers need no absent pointer at the I/O boundary.
@@ -207,16 +207,16 @@ using Swag, Core.Errors
     defer discard catch File.delete(fileName)
     var empty: Array'u8
     let written = expect File.writeAllBytes(fileName, empty.toSlice())
-    Swag.assert(written == 0)
+    Swag.require(written == 0)
     let bytes = expect File.readAllBytes(fileName)
-    Swag.assert(bytes.isEmpty())
+    Swag.require(bytes.isEmpty())
 
     var stream   = expect File.open(fileName, .Open, .ReadWrite, .Read)
     var byte: u8 = 0xA5
     let read     = expect stream.read(&byte, 0)
     let write    = expect stream.write(&byte, 0)
-    Swag.assert(read == 0 and write == 0 and byte == 0xA5)
-    Swag.assert(expect stream.position() == 0)
+    Swag.require(read == 0 and write == 0 and byte == 0xA5)
+    Swag.require(expect stream.position() == 0)
 }
 
 // Creation modes enforce the write sandbox even when the requested handle is read-only.
@@ -231,6 +231,6 @@ using Swag, Core.Errors
     discard catch File.open(fileName.toString(), .Create, .Read, .Read) as errOutcome
 
     let err = errOutcome.value()
-    Swag.assert(err is Errors.SandboxError)
-    Swag.assert(not File.exists(fileName.toString()))
+    Swag.require(err is Errors.SandboxError)
+    Swag.require(not File.exists(fileName.toString()))
 }

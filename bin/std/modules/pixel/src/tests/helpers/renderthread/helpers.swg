@@ -18,8 +18,8 @@ impl IRenderer for PresentProbe
 
     mtd impl createContext(renderHandle: const *void?, width, height: s32, _: *RenderContext? = null)->RenderContext fail
     {
-        Swag.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
-        Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
+        Swag.require(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
+        Swag.require(width > 0 and height > 0, "renderer context dimensions must be positive")
         .workerId = Env.Process.currentThreadId()
         return RenderContext{renderHandle, null, width, height}
     }
@@ -169,11 +169,11 @@ func verifyWaitFailureProcess(tag: string)
         discard expect child.waitForExit()
     }
 
-    Swag.assert(finished, "the failed render request must terminate without hanging")
-    Swag.assert(child.exitCode() != 0)
+    Swag.require(finished, "the failed render request must terminate without hanging")
+    Swag.require(child.exitCode() != 0)
     let output = String.from(child.standardOutput())
-    Swag.assert(output.contains("render failure observed after retirement"))
-    Swag.assert(not output.contains("render failure resumed"))
+    Swag.require(output.contains("render failure observed after retirement"))
+    Swag.require(not output.contains("render failure resumed"))
 }
 
 var waitFailureBorrowLive: Swag.AtomicValue'u32

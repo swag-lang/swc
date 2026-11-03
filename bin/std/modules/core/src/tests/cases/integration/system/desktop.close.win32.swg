@@ -38,14 +38,14 @@ func drainCloseTestQuitMessages()
     window.callbacks.onCloseRequest = &recordCloseRequest
     let handle = cast(HWND, window.nativeRenderHandle())
     discard SendMessageA(handle, WM_CLOSE, 0, 0)
-    Swag.assert(g_CloseRequestCount == 1 and g_CloseRequestOwner == &window)
+    Swag.require(g_CloseRequestCount == 1 and g_CloseRequestOwner == &window)
     let afterRequest = Env.processWindowMessages()
-    Swag.assert(window.isOpen() and not afterRequest)
+    Swag.require(window.isOpen() and not afterRequest)
     let afterConsumedQuit = Env.processWindowMessages()
-    Swag.assert(afterConsumedQuit and window.isOpen())
+    Swag.require(afterConsumedQuit and window.isOpen())
     expect window.close()
     let afterDestruction = Env.processWindowMessages()
-    Swag.assert(g_CloseRequestCount == 1 and not afterDestruction)
+    Swag.require(g_CloseRequestCount == 1 and not afterDestruction)
 }
 
 #[Swag.TestTag("integration.desktop")]
@@ -61,21 +61,21 @@ func drainCloseTestQuitMessages()
     let handle = cast(HWND, window.nativeRenderHandle())
     discard SendMessageA(handle, WM_CLOSE, 0, 0)
     let afterRequest = Env.processWindowMessages()
-    Swag.assert(g_CloseRequestCount == 1 and window.isOpen() and afterRequest)
+    Swag.require(g_CloseRequestCount == 1 and window.isOpen() and afterRequest)
     expect window.close()
     let afterClose = Env.processWindowMessages()
-    Swag.assert(g_CloseRequestCount == 1 and survivor.isOpen() and afterClose)
+    Swag.require(g_CloseRequestCount == 1 and survivor.isOpen() and afterClose)
 
     // Without a callback the managed request is ignored, but an external quit still exits.
     discard SendMessageA(cast(HWND, survivor.nativeRenderHandle()), WM_CLOSE, 0, 0)
     let afterUnhandledRequest = Env.processWindowMessages()
-    Swag.assert(survivor.isOpen() and afterUnhandledRequest)
+    Swag.require(survivor.isOpen() and afterUnhandledRequest)
     PostQuitMessage(7)
     let afterExternalQuit = Env.processWindowMessages()
-    Swag.assert(not afterExternalQuit)
+    Swag.require(not afterExternalQuit)
     expect survivor.close()
     let afterFinalClose = Env.processWindowMessages()
-    Swag.assert(afterFinalClose)
+    Swag.require(afterFinalClose)
 }
 
 #[Swag.TestTag("integration.desktop")]
@@ -89,7 +89,7 @@ func drainCloseTestQuitMessages()
     window.callbacks.onCloseRequest = &moveAndCloseRequestedWindow
     discard SendMessageA(cast(HWND, window.nativeRenderHandle()), WM_CLOSE, 0, 0)
     let running = Env.processWindowMessages()
-    Swag.assert(g_CloseRequestCount == 1 and not window.isOpen() and running)
+    Swag.require(g_CloseRequestCount == 1 and not window.isOpen() and running)
 }
 
 #[Swag.TestTag("integration.desktop")]
@@ -103,5 +103,5 @@ func drainCloseTestQuitMessages()
     window.callbacks.onCloseRequest = &moveAndCloseRequestedWindow
     discard SendMessageA(cast(HWND, window.nativeRenderHandle()), WM_CLOSE, 0, 0)
     let running = Env.processWindowMessages()
-    Swag.assert(g_CloseRequestCount == 1 and not window.isOpen() and not running)
+    Swag.require(g_CloseRequestCount == 1 and not window.isOpen() and not running)
 }

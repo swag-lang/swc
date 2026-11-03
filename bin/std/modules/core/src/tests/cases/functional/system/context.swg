@@ -74,12 +74,12 @@ func pushContextRestoresAfterReturn()->bool
 
 #test
 {
-    Swag.assert(pushContextRestoresAfterContinue())
-    Swag.assert(pushContextRestoresAfterBreak())
+    Swag.require(pushContextRestoresAfterContinue())
+    Swag.require(pushContextRestoresAfterBreak())
 
     let base      = Swag.getContext()
     let baseUser0 = base.user0
-    Swag.assert(pushContextRestoresAfterReturn())
-    Swag.assert(Swag.getContext() == base)
-    Swag.assert(Swag.getContext().user0 == baseUser0)
+    Swag.require(pushContextRestoresAfterReturn())
+    Swag.require(Swag.getContext() == base)
+    Swag.require(Swag.getContext().user0 == baseUser0)
 }

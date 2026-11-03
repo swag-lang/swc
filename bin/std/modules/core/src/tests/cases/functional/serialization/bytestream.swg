@@ -8,23 +8,23 @@ using Swag
     let input = [0x10'u8, 0x20, 0x30, 0x40]
 
     var stream = ByteStream.openRead(input)
-    Swag.assert(stream.length() == 4)
-    Swag.assert(stream.position() == 0)
-    Swag.assert(not stream.isEof())
-    Swag.assert(stream.peekU8() == 0x10)
-    Swag.assert(stream.readU8() == 0x10)
-    Swag.assert(stream.position() == 1)
-    Swag.assert(stream.peekU8() == 0x20)
-    Swag.assert(Slice.equals(stream.remainingBytes(), [0x20, 0x30, 0x40]))
-    Swag.assert(stream.remainingString() == "\x20\x30\x40")
+    Swag.require(stream.length() == 4)
+    Swag.require(stream.position() == 0)
+    Swag.require(not stream.isEof())
+    Swag.require(stream.peekU8() == 0x10)
+    Swag.require(stream.readU8() == 0x10)
+    Swag.require(stream.position() == 1)
+    Swag.require(stream.peekU8() == 0x20)
+    Swag.require(Slice.equals(stream.remainingBytes(), [0x20, 0x30, 0x40]))
+    Swag.require(stream.remainingString() == "\x20\x30\x40")
 
     stream.advance(2)
-    Swag.assert(stream.position() == 3)
-    Swag.assert(not stream.isEof())
-    Swag.assert(stream.readU8() == 0x40)
-    Swag.assert(stream.position() == 4)
-    Swag.assert(stream.isEof())
-    Swag.assert(stream.peekU8() == 0)
+    Swag.require(stream.position() == 3)
+    Swag.require(not stream.isEof())
+    Swag.require(stream.readU8() == 0x40)
+    Swag.require(stream.position() == 4)
+    Swag.require(stream.isEof())
+    Swag.require(stream.peekU8() == 0)
 }
 
 #test
@@ -32,8 +32,8 @@ using Swag
     var bytes: Array'u8
     var stream = ByteStream.openRead(bytes.toSlice())
 
-    Swag.assert(stream.remainingBytes().count == 0)
-    Swag.assert(stream.remainingString().count == 0)
+    Swag.require(stream.remainingBytes().count == 0)
+    Swag.require(stream.remainingString().count == 0)
 }
 
 #test
@@ -42,15 +42,15 @@ using Swag
     var stream = ByteStream.openWrite(&buffer)
     stream.writeBytes([0xAB, 0xCD, 0xEF])
 
-    Swag.assert(stream.length() == 3)
-    Swag.assert(stream.position() == 3)
-    Swag.assert(Slice.equals(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
+    Swag.require(stream.length() == 3)
+    Swag.require(stream.position() == 3)
+    Swag.require(Slice.equals(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
 
     stream.setPosition(0)
-    Swag.assert(not stream.isEof())
-    Swag.assert(stream.peekU8() == 0xAB)
-    Swag.assert(stream.readU8() == 0xAB)
-    Swag.assert(Slice.equals(stream.remainingBytes(), [0xCD, 0xEF]))
+    Swag.require(not stream.isEof())
+    Swag.require(stream.peekU8() == 0xAB)
+    Swag.require(stream.readU8() == 0xAB)
+    Swag.require(Slice.equals(stream.remainingBytes(), [0xCD, 0xEF]))
 }
 
 #test
@@ -62,11 +62,11 @@ using Swag
     var stream = ByteStream.openWrite(&buffer)
     stream.setPosition(1)
     stream.writeBytes(buffer[0 until 3])
-    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30]))
+    Swag.require(Slice.equals(buffer.toSlice(), [10, 10, 20, 30]))
 
     stream.setPosition(4)
     stream.writeBytes(buffer.toSlice())
-    Swag.assert(Slice.equals(buffer.toSlice(), [10, 10, 20, 30, 10, 10, 20, 30]))
+    Swag.require(Slice.equals(buffer.toSlice(), [10, 10, 20, 30, 10, 10, 20, 30]))
 }
 
 #test
@@ -80,7 +80,7 @@ using Swag
     stream.writeSizedString(value)
 
     let expected: [12] u8 = [8, 0, 0, 0, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48]
-    Swag.assert(Slice.equals(buffer.toSlice(), expected))
+    Swag.require(Slice.equals(buffer.toSlice(), expected))
 }
 
 // LEB128 varints round-trip across the byte widths, and a truncated or over-long
@@ -95,14 +95,14 @@ using Swag
 
     var reader = ByteStream.openRead(buffer.toSlice())
     for v in values do
-        Swag.assert((expect reader.readVarint()) == v)
-    Swag.assert(reader.position() == buffer.count)
+        Swag.require((expect reader.readVarint()) == v)
+    Swag.require(reader.position() == buffer.count)
 
     // A single-byte value encodes as itself.
     var small: Array'u8
     var sw = ByteStream.openWrite(&small)
     sw.writeVarint(0x45)
-    Swag.assert(Slice.equals(small.toSlice(), [0x45]))
+    Swag.require(Slice.equals(small.toSlice(), [0x45]))
 
     // Truncated in the middle of a continuation.
     let cut: [1] u8 = [0x80]
@@ -110,7 +110,7 @@ using Swag
     var errcutOutcome: Swag.Error
     discard catch truncated.readVarint() as errcutOutcome
     let errcut = errcutOutcome.value()
-    Swag.assert(errcut != null)
+    Swag.require(errcut != null)
 
     // More than 64 bits of payload is refused.
     let long: [11] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
@@ -118,7 +118,7 @@ using Swag
     var errlongOutcome: Swag.Error
     discard catch overlong.readVarint() as errlongOutcome
     let errlong = errlongOutcome.value()
-    Swag.assert(errlong != null)
+    Swag.require(errlong != null)
 }
 
 #test
@@ -130,13 +130,13 @@ using Swag
     writer.writeBigEndian(0xAABBCCDD'u32)
 
     // The bytes must be the declared order, not the host's.
-    Swag.assert(Slice.equals(buffer.toSlice(), [0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA, 0xAA, 0xBB, 0xCC, 0xDD]))
+    Swag.require(Slice.equals(buffer.toSlice(), [0x34, 0x12, 0xDD, 0xCC, 0xBB, 0xAA, 0xAA, 0xBB, 0xCC, 0xDD]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    Swag.assert(expect reader.readLittleEndian'u16() == 0x1234)
-    Swag.assert(expect reader.readLittleEndian'u32() == 0xAABBCCDD)
-    Swag.assert(expect reader.readBigEndian'u32() == 0xAABBCCDD)
-    Swag.assert(reader.position() == 10)
+    Swag.require(expect reader.readLittleEndian'u16() == 0x1234)
+    Swag.require(expect reader.readLittleEndian'u32() == 0xAABBCCDD)
+    Swag.require(expect reader.readBigEndian'u32() == 0xAABBCCDD)
+    Swag.require(reader.position() == 10)
 }
 
 // A signed field is written and read with its exact bit pattern, and a single byte carries
@@ -153,17 +153,17 @@ using Swag
     writer.writeBigEndian(-100's8)
 
     // 800 is 0x0320, so a big-endian field stores its high byte first.
-    Swag.assert(Slice.equals(buffer[0 until 2], [0x03, 0x20]))
-    Swag.assert(Slice.equals(buffer[2 until 4], [0xFC, 0xE0]))
+    Swag.require(Slice.equals(buffer[0 until 2], [0x03, 0x20]))
+    Swag.require(Slice.equals(buffer[2 until 4], [0xFC, 0xE0]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    Swag.assert(expect reader.readBigEndian's16() == 800)
-    Swag.assert(expect reader.readBigEndian's16() == -800)
-    Swag.assert(expect reader.readBigEndian's32() == -70000)
-    Swag.assert(expect reader.readBigEndian's64() == -5_000_000_000)
-    Swag.assert(expect reader.readBigEndian'u8() == 200)
-    Swag.assert(expect reader.readBigEndian's8() == -100)
-    Swag.assert(reader.position() == 18)
+    Swag.require(expect reader.readBigEndian's16() == 800)
+    Swag.require(expect reader.readBigEndian's16() == -800)
+    Swag.require(expect reader.readBigEndian's32() == -70000)
+    Swag.require(expect reader.readBigEndian's64() == -5_000_000_000)
+    Swag.require(expect reader.readBigEndian'u8() == 200)
+    Swag.require(expect reader.readBigEndian's8() == -100)
+    Swag.require(reader.position() == 18)
 }
 
 #test
@@ -174,13 +174,13 @@ using Swag
     writer.writeLittleEndian(-70000's32)
     writer.writeLittleEndian(-100's8)
 
-    Swag.assert(Slice.equals(buffer[0 until 2], [0x20, 0x03]))
+    Swag.require(Slice.equals(buffer[0 until 2], [0x20, 0x03]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    Swag.assert(expect reader.readLittleEndian's16() == 800)
-    Swag.assert(expect reader.readLittleEndian's32() == -70000)
-    Swag.assert(expect reader.readLittleEndian's8() == -100)
-    Swag.assert(reader.position() == 7)
+    Swag.require(expect reader.readLittleEndian's16() == 800)
+    Swag.require(expect reader.readLittleEndian's32() == -70000)
+    Swag.require(expect reader.readLittleEndian's8() == -100)
+    Swag.require(reader.position() == 7)
 }
 
 #test
@@ -191,13 +191,13 @@ using Swag
     writer.writeSizedString("")
 
     // A 32-bit little-endian byte count precedes the bytes.
-    Swag.assert(buffer.count == 4 + 6 + 4)
-    Swag.assert(Slice.equals(buffer[0 until 4], [6, 0, 0, 0]))
+    Swag.require(buffer.count == 4 + 6 + 4)
+    Swag.require(Slice.equals(buffer[0 until 4], [6, 0, 0, 0]))
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    Swag.assert(expect reader.readSizedString() == "sample")
-    Swag.assert((expect reader.readSizedString()).isEmpty())
-    Swag.assert(reader.isEof() or reader.position() == buffer.count)
+    Swag.require(expect reader.readSizedString() == "sample")
+    Swag.require((expect reader.readSizedString()).isEmpty())
+    Swag.require(reader.isEof() or reader.position() == buffer.count)
 }
 
 #test
@@ -208,8 +208,8 @@ using Swag
     var writer    = ByteStream.openWrite(&buffer)
 
     let rejected = Swag.catchPanic(func|&writer, oversized|() { writer.writeSizedString(oversized) })
-    Swag.assert(rejected.raised and rejected.message() == "sized string exceeds the 32-bit byte-count limit")
-    Swag.assert(buffer.isEmpty())
+    Swag.require(rejected.raised and rejected.message() == "sized string exceeds the 32-bit byte-count limit")
+    Swag.require(buffer.isEmpty())
 }
 
 // A stored count beyond the cap must fail instead of reserving it.
@@ -223,7 +223,7 @@ using Swag
     var errOutcome: Swag.Error
     discard catch reader.readSizedString(4) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }
 
 // A truncated payload must fail rather than read past the end.
@@ -238,7 +238,7 @@ using Swag
     var errOutcome: Swag.Error
     discard catch reader.readSizedString() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }
 
 // A zero-byte read from an empty stream does not ask for backing storage.
@@ -248,7 +248,7 @@ using Swag
     var stream    = ByteStream.openWrite(&bytes)
     var byte:  u8 = 0xA5
     expect stream.readBytes(&byte, 0)
-    Swag.assert(byte == 0xA5 and stream.position() == 0)
+    Swag.require(byte == 0xA5 and stream.position() == 0)
 }
 
 // Oversized reads fail before touching the destination or advancing the cursor.
@@ -262,27 +262,27 @@ using Swag
     var oversizedReadOutcome: Swag.Error
     discard catch stream.readBytes(&byte, Swag.U64.Max) as oversizedReadOutcome
     let error = oversizedReadOutcome.value()
-    Swag.assert(error is Errors.OverflowError)
-    Swag.assert(byte == 0xA5 and stream.position() == 1)
+    Swag.require(error is Errors.OverflowError)
+    Swag.require(byte == 0xA5 and stream.position() == 1)
 
     let next = expect stream.readNative'u8()
-    Swag.assert(next == 0x20 and stream.position() == 2)
+    Swag.require(next == 0x20 and stream.position() == 2)
 
     var nativeReadOutcome: Swag.Error
     discard catch stream.readNative'u32() as nativeReadOutcome
     let nativeError = nativeReadOutcome.value()
-    Swag.assert(nativeError is Errors.OverflowError)
-    Swag.assert(stream.position() == 2)
+    Swag.require(nativeError is Errors.OverflowError)
+    Swag.require(stream.position() == 2)
 
     var tail: [2] u8
     expect stream.readBytes(&tail[0], tail.count)
-    Swag.assert(Slice.equals(tail, [0x30, 0x40]))
-    Swag.assert(stream.position() == input.count)
+    Swag.require(Slice.equals(tail, [0x30, 0x40]))
+    Swag.require(stream.position() == input.count)
 
     expect stream.readBytes(&byte, 0)
     var endReadOutcome: Swag.Error
     discard catch stream.readBytes(&byte, 1) as endReadOutcome
     let endError = endReadOutcome.value()
-    Swag.assert(endError is Errors.OverflowError)
-    Swag.assert(byte == 0xA5 and stream.position() == input.count)
+    Swag.require(endError is Errors.OverflowError)
+    Swag.require(byte == 0xA5 and stream.position() == input.count)
 }

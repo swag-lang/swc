@@ -15,7 +15,7 @@ using Swag, Core
     painter.end()
     let image = renderCpu(16, 16, &painter)
     assertPixel(image, 8, 8, Argb.White)
-    Swag.assert(scheduler.started.load() == started)
+    Swag.require(scheduler.started.load() == started)
 }
 
 // Clipped draws with an offset first row and an incomplete final block keep the same coverage
@@ -43,7 +43,7 @@ using Swag, Core
         for y in Height
         {
             for x in Narrow do
-                Swag.assert(serial.pixelColor(x, y) == image.pixelColor(x, y))
+                Swag.require(serial.pixelColor(x, y) == image.pixelColor(x, y))
         }
     }
 }

@@ -38,10 +38,10 @@ func writeStreamedFile(size: u64)->String
     host.setup(640, 420)
 
     var result = openTestViewer(Hex.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands != null)
     let view = assume cast(*Hex.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(not view.failureReason.isEmpty())
+    Swag.require(not view.failureReason.isEmpty())
 }
 
 // Typed grouping changes scalar presentation without taking byte-exact movement and selection away.
@@ -56,30 +56,30 @@ func writeStreamedFile(size: u64)->String
     let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setGrouping(.Unsigned32)
-    Swag.assert(grid.valueSize() == 4 and grid.displayGroupSize() == 4)
-    Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 1)
+    Swag.require(grid.valueSize() == 4 and grid.displayGroupSize() == 4)
+    Swag.require(grid.selectionStart() == 0 and grid.selectionLength() == 1)
 
     host.focus(grid)
     host.keyPress(.Right)
-    Swag.assert(grid.caret == 1 and grid.selectionStart() == 1 and grid.selectionLength() == 1)
+    Swag.require(grid.caret == 1 and grid.selectionStart() == 1 and grid.selectionLength() == 1)
     host.keyPress(.Right, .Shift)
-    Swag.assert(grid.caret == 2 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
+    Swag.require(grid.caret == 2 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
 
     grid.setGrouping(.Float64)
-    Swag.assert(grid.valueSize() == 8 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
+    Swag.require(grid.valueSize() == 8 and grid.selectionStart() == 1 and grid.selectionLength() == 2)
     grid.setGrouping(.Bytes)
-    Swag.assert(grid.selectionLength() == 2 and grid.hasSelection())
+    Swag.require(grid.selectionLength() == 2 and grid.hasSelection())
 
     // Width and spelling are independent controls. Float appears only where the selected width
     // has a corresponding representation.
     view.setValueWidth(1)
     view.setFormat(1)
-    Swag.assert(grid.grouping == .Unsigned16)
+    Swag.require(grid.grouping == .Unsigned16)
     view.setValueWidth(3)
     view.setFormat(3)
-    Swag.assert(grid.grouping == .Float64 and grid.valueSize() == 8)
+    Swag.require(grid.grouping == .Float64 and grid.valueSize() == 8)
     view.setValueWidth(0)
-    Swag.assert(view.formatCount() == 3 and view.formatIndex == 0 and grid.grouping == .Bytes)
+    Swag.require(view.formatCount() == 3 and view.formatIndex == 0 and grid.grouping == .Bytes)
 
     // The options reach the same choices, and offer float only where the width has one.
     host.activateOptionRowWhenShown(Hex.texts().ui_ValueWidth)
@@ -87,7 +87,7 @@ func writeStreamedFile(size: u64)->String
     host.thenActivateOptionRow(Hex.texts().ui_Representation)
     host.thenActivateOptionRow(Hex.texts().ui_FormatFloat)
     view.showOptions()
-    Swag.assert(host.autoHandled and grid.grouping == .Float32)
+    Swag.require(host.autoHandled and grid.grouping == .Float32)
     view.setValueWidth(0)
 }
 
@@ -95,35 +95,35 @@ func writeStreamedFile(size: u64)->String
 #test
 {
     let text = Hex.formatDump([0'u8, 1'u8, 0x20'u8, 0x41'u8, 0xFF'u8], 0x20, 16, 16)
-    Swag.assert(Utf8.contains(text.toSlice(), "0000000000000020"))
-    Swag.assert(Utf8.contains(text.toSlice(), "00 01 20 41 FF"))
-    Swag.assert(Utf8.contains(text.toSlice(), ".. A."))
+    Swag.require(Utf8.contains(text.toSlice(), "0000000000000020"))
+    Swag.require(Utf8.contains(text.toSlice(), "00 01 20 41 FF"))
+    Swag.require(Utf8.contains(text.toSlice(), ".. A."))
 
     let narrow = Hex.formatDump([0xAA'u8, 0xBB'u8, 0xCC'u8], 0, 2, 8)
-    Swag.assert(Utf8.contains(narrow.toSlice(), "00000000  AA BB"))
-    Swag.assert(Utf8.contains(narrow.toSlice(), "00000002  CC"))
+    Swag.require(Utf8.contains(narrow.toSlice(), "00000000  AA BB"))
+    Swag.require(Utf8.contains(narrow.toSlice(), "00000002  CC"))
 }
 
 // Go To keeps bare values hexadecimal, and accepts explicit decimal, percentage, named, and
 // caret-relative positions.
 #test
 {
-    Swag.assert(parseFileOffset("1F", 0, 1000) == 0x1F)
-    Swag.assert(parseFileOffset("  0x1f  ", 0, 1000) == 0x1F)
-    Swag.assert(parseFileOffset("00 1F", 0, 1000) == 0x1F)
-    Swag.assert(parseFileOffset("0d31", 0, 1000) == 31)
-    Swag.assert(parseFileOffset("50%", 0, 1000) == 499)
-    Swag.assert(parseFileOffset("caret", 0x20, 1000) == 0x20)
-    Swag.assert(parseFileOffset("FileSize", 0, 1000) == 999)
-    Swag.assert(parseFileOffset("+10", 0x20, 1000) == 0x30)
-    Swag.assert(parseFileOffset("-10", 0x20, 1000) == 0x10)
-    Swag.assert(parseFileOffset("-1000", 0x20, 1000) == 0)
-    Swag.assert(parseFileOffset("FFFFFF", 0, 1000) == 999)
-    Swag.assert(parseFileOffset("101%", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseFileOffset("0dG", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseFileOffset("zz", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseFileOffset("", 0, 1000) == Swag.U64.Max)
-    Swag.assert(parseFileOffset("10", 0, 0) == Swag.U64.Max)
+    Swag.require(parseFileOffset("1F", 0, 1000) == 0x1F)
+    Swag.require(parseFileOffset("  0x1f  ", 0, 1000) == 0x1F)
+    Swag.require(parseFileOffset("00 1F", 0, 1000) == 0x1F)
+    Swag.require(parseFileOffset("0d31", 0, 1000) == 31)
+    Swag.require(parseFileOffset("50%", 0, 1000) == 499)
+    Swag.require(parseFileOffset("caret", 0x20, 1000) == 0x20)
+    Swag.require(parseFileOffset("FileSize", 0, 1000) == 999)
+    Swag.require(parseFileOffset("+10", 0x20, 1000) == 0x30)
+    Swag.require(parseFileOffset("-10", 0x20, 1000) == 0x10)
+    Swag.require(parseFileOffset("-1000", 0x20, 1000) == 0)
+    Swag.require(parseFileOffset("FFFFFF", 0, 1000) == 999)
+    Swag.require(parseFileOffset("101%", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("0dG", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("zz", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("", 0, 1000) == Swag.U64.Max)
+    Swag.require(parseFileOffset("10", 0, 0) == Swag.U64.Max)
 }
 
 // Binary queries preserve their exact byte span: pairs can carry nibble wildcards, text is UTF-8,
@@ -131,32 +131,32 @@ func writeStreamedFile(size: u64)->String
 #test
 {
     let wildcard = Hex.parseSearch("hex: 4D 5? ?? A?", .Bytes, false)
-    Swag.assert(wildcard.state == .Valid and wildcard.pattern.length() == 4)
-    Swag.assert(wildcard.pattern.values[0] == 0x4D and wildcard.pattern.masks[0] == 0xFF)
-    Swag.assert(wildcard.pattern.values[1] == 0x50 and wildcard.pattern.masks[1] == 0xF0)
-    Swag.assert(wildcard.pattern.values[2] == 0 and wildcard.pattern.masks[2] == 0)
-    Swag.assert(wildcard.pattern.values[3] == 0xA0 and wildcard.pattern.masks[3] == 0xF0)
+    Swag.require(wildcard.state == .Valid and wildcard.pattern.length() == 4)
+    Swag.require(wildcard.pattern.values[0] == 0x4D and wildcard.pattern.masks[0] == 0xFF)
+    Swag.require(wildcard.pattern.values[1] == 0x50 and wildcard.pattern.masks[1] == 0xF0)
+    Swag.require(wildcard.pattern.values[2] == 0 and wildcard.pattern.masks[2] == 0)
+    Swag.require(wildcard.pattern.values[3] == 0xA0 and wildcard.pattern.masks[3] == 0xF0)
 
     let text = Hex.parseSearch("text: café", .Bytes, false)
-    Swag.assert(text.state == .Valid and text.pattern.length() == ("café").count)
-    Swag.assert(text.pattern.values[text.pattern.length() - 2] == 0xC3 and text.pattern.values[text.pattern.length() - 1] == 0xA9)
+    Swag.require(text.state == .Valid and text.pattern.length() == ("café").count)
+    Swag.require(text.pattern.values[text.pattern.length() - 2] == 0xC3 and text.pattern.values[text.pattern.length() - 1] == 0xA9)
 
     let little = Hex.parseSearch("value: 305419896", .Unsigned32, false)
     let big    = Hex.parseSearch("value: 305419896", .Unsigned32, true)
-    Swag.assert(little.state == .Valid and little.pattern.values[0] == 0x78 and little.pattern.values[3] == 0x12)
-    Swag.assert(big.state == .Valid and big.pattern.values[0] == 0x12 and big.pattern.values[3] == 0x78)
+    Swag.require(little.state == .Valid and little.pattern.values[0] == 0x78 and little.pattern.values[3] == 0x12)
+    Swag.require(big.state == .Valid and big.pattern.values[0] == 0x12 and big.pattern.values[3] == 0x78)
 
     let signed = Hex.parseSearch("value: -2", .Signed16, false)
-    Swag.assert(signed.state == .Valid and signed.pattern.values[0] == 0xFE and signed.pattern.values[1] == 0xFF)
+    Swag.require(signed.state == .Valid and signed.pattern.values[0] == 0xFE and signed.pattern.values[1] == 0xFF)
     let real = Hex.parseSearch("value: 1", .Float32, false)
-    Swag.assert(real.state == .Valid and
-                real.pattern.values[0] == 0 and
-                real.pattern.values[2] == 0x80 and
-                real.pattern.values[3] == 0x3F)
+    Swag.require(real.state == .Valid and
+                 real.pattern.values[0] == 0 and
+                 real.pattern.values[2] == 0x80 and
+                 real.pattern.values[3] == 0x3F)
 
-    Swag.assert(Hex.parseSearch("4", .Bytes, false).state == .Incomplete)
-    Swag.assert(Hex.parseSearch("4G", .Bytes, false).error == .Pattern)
-    Swag.assert(Hex.parseSearch("value: 70000", .Unsigned16, false).error == .Value)
+    Swag.require(Hex.parseSearch("4", .Bytes, false).state == .Incomplete)
+    Swag.require(Hex.parseSearch("4G", .Bytes, false).error == .Pattern)
+    Swag.require(Hex.parseSearch("value: 70000", .Unsigned16, false).error == .Value)
 }
 
 // Range analysis streams fixed byte counts and keeps inferred strings tied to their source bytes.
@@ -191,10 +191,10 @@ func writeStreamedFile(size: u64)->String
     operation.start(fileName, Viewers.Hex.AnalysisRange{0, payload.count})
     operation.task.wait()
     let result = operation.finish()
-    Swag.assert(result.failureReason.isEmpty() and not result.cancelled and result.scanned == payload.count)
-    Swag.assert(result.histogram[0xFF] == 1 and result.histogram[cast(u8, 'H')] == 1)
-    Swag.assert(result.zeroCount > 200 and result.printableCount == ascii.count + little.count + big.count)
-    Swag.assert(result.entropy > 0 and result.entropy < 8)
+    Swag.require(result.failureReason.isEmpty() and not result.cancelled and result.scanned == payload.count)
+    Swag.require(result.histogram[0xFF] == 1 and result.histogram[cast(u8, 'H')] == 1)
+    Swag.require(result.zeroCount > 200 and result.printableCount == ascii.count + little.count + big.count)
+    Swag.require(result.entropy > 0 and result.entropy < 8)
 
     var foundAscii:  bool
     var foundLittle: bool
@@ -209,7 +209,7 @@ func writeStreamedFile(size: u64)->String
             foundBig = one.text == big
     }
 
-    Swag.assert(foundAscii and foundLittle and foundBig)
+    Swag.require(foundAscii and foundLittle and foundBig)
 
     // A scan run by work that was asked to stop ends before reading anything.
     var stopper: Swag.Task'Hex.AnalysisResult
@@ -222,7 +222,7 @@ func writeStreamedFile(size: u64)->String
         return Hex.analyzeRange(path, Viewers.Hex.AnalysisRange{0, count})
     })
     let stopped = expect stopper.take()
-    Swag.assert(stopped.cancelled and not stopped.scanned)
+    Swag.require(stopped.cancelled and not stopped.scanned)
 }
 
 // The document never holds more than one window, wherever the reader is standing.
@@ -236,40 +236,40 @@ func writeStreamedFile(size: u64)->String
     var doc: Hex.Document
     defer doc.close()
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.fileSize == StreamedFileSize)
+    Swag.require(documentOpened)
+    Swag.require(doc.fileSize == StreamedFileSize)
 
-    Swag.assert(doc.ensure(0, 64))
-    Swag.assert(doc.byteAt(5) == 5)
-    Swag.assert(doc.window.count <= Hex.WindowSize)
+    Swag.require(doc.ensure(0, 64))
+    Swag.require(doc.byteAt(5) == 5)
+    Swag.require(doc.window.count <= Hex.WindowSize)
 
     // Refill before the visible screen reaches the edge, and retain enough overlap that a
     // reversal stays in the same window instead of alternating disk reads.
     let screen         = 1024'u64
     let approachingEnd = Hex.WindowSize - Hex.WindowAlign + screen
-    Swag.assert(doc.ensure(approachingEnd, screen))
-    Swag.assert(doc.windowStart > 0)
+    Swag.require(doc.ensure(approachingEnd, screen))
+    Swag.require(doc.windowStart > 0)
     let prefetchedStart = doc.windowStart
-    Swag.assert(doc.ensure(approachingEnd - screen, screen))
-    Swag.assert(doc.windowStart == prefetchedStart)
-    Swag.assert(doc.isResident(approachingEnd - screen) and doc.isResident(approachingEnd + screen - 1))
+    Swag.require(doc.ensure(approachingEnd - screen, screen))
+    Swag.require(doc.windowStart == prefetchedStart)
+    Swag.require(doc.isResident(approachingEnd - screen) and doc.isResident(approachingEnd + screen - 1))
 
     let last = StreamedFileSize - 1
-    Swag.assert(doc.ensure(last - 31, 32))
-    Swag.assert(doc.byteAt(last) == cast(u8, last & 0xFF))
-    Swag.assert(doc.window.count <= Hex.WindowSize)
-    Swag.assert(doc.windowStart > 0)
-    Swag.assert(not doc.isResident(0))
+    Swag.require(doc.ensure(last - 31, 32))
+    Swag.require(doc.byteAt(last) == cast(u8, last & 0xFF))
+    Swag.require(doc.window.count <= Hex.WindowSize)
+    Swag.require(doc.windowStart > 0)
+    Swag.require(not doc.isResident(0))
 
     // A bounded read reaches anywhere without moving what is on screen.
     let windowStart = doc.windowStart
     let bytes       = doc.read(1000, 4)
-    Swag.assert(bytes.count == 4 and bytes[0] == 0xE8 and bytes[3] == 0xEB)
-    Swag.assert(doc.windowStart == windowStart)
-    Swag.assert(doc.read(StreamedFileSize, 16).isEmpty())
+    Swag.require(bytes.count == 4 and bytes[0] == 0xE8 and bytes[3] == 0xEB)
+    Swag.require(doc.windowStart == windowStart)
+    Swag.require(doc.read(StreamedFileSize, 16).isEmpty())
 
     let resident = allocator.stats()
-    Swag.assert(resident.sizeAlloc < baseline.sizeAlloc + 2 * 1024 * 1024)
+    Swag.require(resident.sizeAlloc < baseline.sizeAlloc + 2 * 1024 * 1024)
 }
 
 // Walking a file larger than one window keeps the resident bytes bounded, and the end is one key
@@ -283,25 +283,25 @@ func writeStreamedFile(size: u64)->String
     host.setup(900, 600)
 
     let view = hexTestViewer(&host, fileName, 900, 560)
-    Swag.assert(view.grid.doc.fileSize == StreamedFileSize)
-    Swag.assert(view.grid.topRow == 0 and view.grid.caret == 0)
+    Swag.require(view.grid.doc.fileSize == StreamedFileSize)
+    Swag.require(view.grid.topRow == 0 and view.grid.caret == 0)
     discard host.render(view)
-    Swag.assert(view.grid.doc.window.count <= Hex.WindowSize)
+    Swag.require(view.grid.doc.window.count <= Hex.WindowSize)
 
     host.focus(view.grid)
     host.keyPress(.End, .Control)
-    Swag.assert(view.grid.caret == StreamedFileSize - 1)
-    Swag.assert(view.grid.topRow == view.grid.maxTopRow())
+    Swag.require(view.grid.caret == StreamedFileSize - 1)
+    Swag.require(view.grid.topRow == view.grid.maxTopRow())
     discard host.render(view)
-    Swag.assert(view.grid.doc.window.count <= Hex.WindowSize)
-    Swag.assert(view.grid.doc.byteAt(view.grid.caret) == cast(u8, ((StreamedFileSize - 1) & 0xFF)))
+    Swag.require(view.grid.doc.window.count <= Hex.WindowSize)
+    Swag.require(view.grid.doc.byteAt(view.grid.caret) == cast(u8, ((StreamedFileSize - 1) & 0xFF)))
 
     host.keyPress(.Home, .Control)
-    Swag.assert(view.grid.caret == 0 and view.grid.topRow == 0)
+    Swag.require(view.grid.caret == 0 and view.grid.topRow == 0)
 
     // The scrollbar spans the whole file and stays inside what an f32 counts exactly.
-    Swag.assert(view.grid.scroll.scrollSize.y > view.grid.clientRect().height)
-    Swag.assert(view.grid.scroll.scrollSize.y <= Hex.ScrollSpan)
+    Swag.require(view.grid.scroll.scrollSize.y > view.grid.clientRect().height)
+    Swag.require(view.grid.scroll.scrollSize.y <= Hex.ScrollSpan)
 }
 
 // The bar is a proportional control: the row it names comes back through the row count, so every
@@ -319,14 +319,14 @@ func writeStreamedFile(size: u64)->String
     let span = grid.scroll.scrollSize.y
 
     grid.scroll.setScrollPos(0, span)
-    Swag.assert(grid.topRow == grid.maxTopRow())
+    Swag.require(grid.topRow == grid.maxTopRow())
 
     grid.scroll.setScrollPos(0, 0)
-    Swag.assert(grid.topRow == 0)
+    Swag.require(grid.topRow == 0)
 
     grid.setTopRow(grid.maxTopRow() / 2)
-    Swag.assert(grid.scroll.scrollPosition().y > 0)
-    Swag.assert(grid.scroll.scrollPosition().y < span)
+    Swag.require(grid.scroll.scrollPosition().y > 0)
+    Swag.require(grid.scroll.scrollPosition().y < span)
 }
 
 // Caret movement, selection, and the row width the window fits.
@@ -341,32 +341,32 @@ func writeStreamedFile(size: u64)->String
     let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     let wide = grid.bytesPerRow
-    Swag.assert(wide >= Hex.MinBytesPerRow and wide % grid.valueSize() == 0)
+    Swag.require(wide >= Hex.MinBytesPerRow and wide % grid.valueSize() == 0)
 
     host.focus(grid)
     host.keyPress(.Right)
     host.keyPress(.Down)
-    Swag.assert(grid.caret == 1 + wide)
-    Swag.assert(not grid.hasSelection() and grid.selectionLength() == 1)
+    Swag.require(grid.caret == 1 + wide)
+    Swag.require(not grid.hasSelection() and grid.selectionLength() == 1)
 
     host.keyPress(.Right, .Shift)
     host.keyPress(.Right, .Shift)
-    Swag.assert(grid.hasSelection())
-    Swag.assert(grid.selectionStart() == 1 + wide and grid.selectionLength() == 3)
+    Swag.require(grid.hasSelection())
+    Swag.require(grid.selectionStart() == 1 + wide and grid.selectionLength() == 3)
 
     host.keyPress(.A, .Control)
-    Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
+    Swag.require(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
     // A narrow window gives up columns rather than the readability of the ones it keeps.
     grid.setBytesPerRow(0, true)
     view.resize(560, 560)
     view.applyLayout()
     grid.refreshLayout()
-    Swag.assert(grid.bytesPerRow <= wide)
-    Swag.assert(grid.contentWidth() <= grid.clientRect().width or grid.bytesPerRow == Hex.MinBytesPerRow)
+    Swag.require(grid.bytesPerRow <= wide)
+    Swag.require(grid.contentWidth() <= grid.clientRect().width or grid.bytesPerRow == Hex.MinBytesPerRow)
 
     grid.setBytesPerRow(32, false)
-    Swag.assert(grid.bytesPerRow == 32 and not grid.autoFitRow)
+    Swag.require(grid.bytesPerRow == 32 and not grid.autoFitRow)
 }
 
 // A point lands on the byte it names, in either column, and on nothing above the first row.
@@ -384,9 +384,9 @@ func writeStreamedFile(size: u64)->String
 
     let row    = 3'u64
     let column = 5'u64
-    Swag.assert(grid.offsetAt(Math.Point{grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.offsetAt({4, 2}) == Swag.U64.Max)
+    Swag.require(grid.offsetAt(Math.Point{grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.require(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.require(grid.offsetAt({4, 2}) == Swag.U64.Max)
 }
 
 // Byte order is an action-bar option and immediately changes multi-byte decoding.
@@ -400,20 +400,20 @@ func writeStreamedFile(size: u64)->String
     host.setup(900, 600)
 
     let view = hexTestViewer(&host, fileName, 900, 560)
-    Swag.assert(not view.bigEndian and not view.grid.bigEndian)
+    Swag.require(not view.bigEndian and not view.grid.bigEndian)
 
     // The combo changes the values drawn by the grid, not only the distance between bytes.
     view.grid.setGrouping(.Unsigned32)
-    Swag.assert(view.grid.doc.ensure(0, view.grid.doc.fileSize))
+    Swag.require(view.grid.doc.ensure(0, view.grid.doc.fileSize))
     view.grid.writeValueText(&view.grid.cellText, 0)
-    Swag.assert(view.grid.scalarAt(0) == 0x12345678)
-    Swag.assert(Hex.formatScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
-    Swag.assert(cast(string, view.grid.cellText.toSlice()) == "305419896")
+    Swag.require(view.grid.scalarAt(0) == 0x12345678)
+    Swag.require(Hex.formatScalar(.Unsigned32, view.grid.scalarAt(0)) == "305419896")
+    Swag.require(cast(string, view.grid.cellText.toSlice()) == "305419896")
 
     view.setBigEndian(true)
-    Swag.assert(view.grid.bigEndian)
+    Swag.require(view.grid.bigEndian)
     view.grid.writeValueText(&view.grid.cellText, 0)
-    Swag.assert(cast(string, view.grid.cellText.toSlice()) == "2018915346")
+    Swag.require(cast(string, view.grid.cellText.toSlice()) == "2018915346")
 }
 
 // What leaves through the clipboard is what the reader selected, in the form asked for.
@@ -438,29 +438,29 @@ func writeStreamedFile(size: u64)->String
     }
 
     grid.copySelection(.Bytes)
-    Swag.assert(Clipboard.getString() == "41 42 43 44")
+    Swag.require(Clipboard.getString() == "41 42 43 44")
 
     grid.copySelection(.Text)
-    Swag.assert(Clipboard.getString() == "ABCD")
+    Swag.require(Clipboard.getString() == "ABCD")
 
     grid.copySelection(.Dump)
     let dump = Clipboard.getString()
-    Swag.assert(Utf8.contains(dump.toSlice(), "00000041  41 42 43 44"))
-    Swag.assert(Utf8.contains(dump.toSlice(), "ABCD"))
+    Swag.require(Utf8.contains(dump.toSlice(), "00000041  41 42 43 44"))
+    Swag.require(Utf8.contains(dump.toSlice(), "ABCD"))
 
     // Scalar presentation never widens an exact byte selection or its clipboard payload.
     grid.setGrouping(.Unsigned32)
     grid.moveCaret(1, false)
     grid.moveCaret(4, true)
-    Swag.assert(grid.selectionStart() == 1 and grid.selectionLength() == 4)
+    Swag.require(grid.selectionStart() == 1 and grid.selectionLength() == 4)
     grid.copySelection(.Bytes)
-    Swag.assert(Clipboard.getString() == "01 02 03 04")
+    Swag.require(Clipboard.getString() == "01 02 03 04")
 
     // A selection wider than the clipboard bound is copied up to it, and never materializes more.
     grid.selectAll()
     grid.copySelection(.Text)
-    Swag.assert(Clipboard.getString().length == 4096)
-    Swag.assert(grid.doc.window.count <= Hex.WindowSize)
+    Swag.require(Clipboard.getString().length == 4096)
+    Swag.require(grid.doc.window.count <= Hex.WindowSize)
 }
 
 // The context menu reaches the same commands the keyboard does, and the go-to box opens and closes
@@ -479,35 +479,35 @@ func writeStreamedFile(size: u64)->String
     host.clickPopupMenuItemWhenShown(Hex.Action.SelectAll)
     grid.showContextMenu({120, 120})
     host.pump()
-    Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
+    Swag.require(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
     view.setRowWidth(3)
-    Swag.assert(grid.bytesPerRow == 32 and not grid.autoFitRow)
+    Swag.require(grid.bytesPerRow == 32 and not grid.autoFitRow)
 
     grid.moveCaret(0x123, false)
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     grid.promptGoToOffset()
-    Swag.assert(grid.caret == 0x123)
+    Swag.require(grid.caret == 0x123)
 
     // The offset a reader types is read the same way whatever opened the box.
-    Swag.assert(grid.goToTypedOffset("0x800"))
-    Swag.assert(grid.caret == 0x800)
-    Swag.assert(grid.topRow > 0 and grid.topRow < 0x800 / grid.bytesPerRow)
-    Swag.assert(grid.goToTypedOffset("50%"))
-    Swag.assert(grid.caret == (grid.doc.fileSize - 1) / 2)
-    Swag.assert(grid.goToTypedOffset("0d1024"))
-    Swag.assert(grid.caret == 1024)
-    Swag.assert(grid.goToTypedOffset("-100"))
-    Swag.assert(grid.caret == 0x300)
-    Swag.assert(not grid.goToTypedOffset("nowhere"))
-    Swag.assert(grid.caret == 0x300)
+    Swag.require(grid.goToTypedOffset("0x800"))
+    Swag.require(grid.caret == 0x800)
+    Swag.require(grid.topRow > 0 and grid.topRow < 0x800 / grid.bytesPerRow)
+    Swag.require(grid.goToTypedOffset("50%"))
+    Swag.require(grid.caret == (grid.doc.fileSize - 1) / 2)
+    Swag.require(grid.goToTypedOffset("0d1024"))
+    Swag.require(grid.caret == 1024)
+    Swag.require(grid.goToTypedOffset("-100"))
+    Swag.require(grid.caret == 0x300)
+    Swag.require(not grid.goToTypedOffset("nowhere"))
+    Swag.require(grid.caret == 0x300)
 
     let defaultFontSize = grid.fontSize
     host.mouseWheel(grid.surfaceRect().center(), 120, .Control)
-    Swag.assert(grid.fontSize == defaultFontSize + 1)
+    Swag.require(grid.fontSize == defaultFontSize + 1)
     host.focus(grid)
     host.keyPress(.D0, .Control)
-    Swag.assert(grid.fontSize == defaultFontSize)
+    Swag.require(grid.fontSize == defaultFontSize)
 }
 
 // A search hit is revealed at the offset the host found, and stays marked once the caret moves on.
@@ -521,16 +521,16 @@ func writeStreamedFile(size: u64)->String
 
     let view     = hexTestViewer(&host, fileName, 900, 560)
     var revealed = view.revealOffset(11, 5)
-    Swag.assert(revealed)
-    Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
-    Swag.assert(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 5)
+    Swag.require(revealed)
+    Swag.require(view.grid.matchStart == 11 and view.grid.matchLength == 5)
+    Swag.require(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 5)
     discard host.render(view)
-    Swag.assert(view.grid.doc.byteAt(11) == 'h'u8)
+    Swag.require(view.grid.doc.byteAt(11) == 'h'u8)
 
     view.grid.moveCaret(0, false)
-    Swag.assert(view.grid.matchStart == 11 and view.grid.matchLength == 5)
+    Swag.require(view.grid.matchStart == 11 and view.grid.matchLength == 5)
     revealed = view.revealOffset(view.grid.doc.fileSize, 5)
-    Swag.assert(not revealed)
+    Swag.require(not revealed)
 }
 
 // Multi-gigabyte geometry is synthetic: the test needs the address domain, not a multi-gigabyte
@@ -551,16 +551,16 @@ func writeStreamedFile(size: u64)->String
         .refreshLayout()
     }
 
-    Swag.assert(grid.offsetDigits == 16)
-    Swag.assert(grid.doc.fileSize > Swag.U32.Max)
-    Swag.assert(grid.rowCount() == (grid.doc.fileSize + grid.bytesPerRow - 1) / grid.bytesPerRow)
-    Swag.assert(grid.scroll.scrollSize.y <= Hex.ScrollSpan)
+    Swag.require(grid.offsetDigits == 16)
+    Swag.require(grid.doc.fileSize > Swag.U32.Max)
+    Swag.require(grid.rowCount() == (grid.doc.fileSize + grid.bytesPerRow - 1) / grid.bytesPerRow)
+    Swag.require(grid.scroll.scrollSize.y <= Hex.ScrollSpan)
     host.focus(grid)
     host.keyPress(.End, .Control)
-    Swag.assert(grid.caret == 0x1_0000_1233 and grid.topRow == grid.maxTopRow())
+    Swag.require(grid.caret == 0x1_0000_1233 and grid.topRow == grid.maxTopRow())
 
     let dump = Hex.formatDump([0xAB'u8], 0x1_0000_0000, 16, grid.offsetDigits)
-    Swag.assert(Utf8.contains(dump.toSlice(), "0000000100000000"))
+    Swag.require(Utf8.contains(dump.toSlice(), "0000000100000000"))
 }
 
 // A stream that returns fewer bytes than the size snapshot stops the document with one stable
@@ -573,12 +573,12 @@ func writeStreamedFile(size: u64)->String
     var doc: Hex.Document
     defer doc.close()
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
+    Swag.require(documentOpened)
     doc.fileSize += 4096
-    Swag.assert(not doc.ensure(0, doc.fileSize))
-    Swag.assert(doc.readFailed and doc.window.isEmpty())
-    Swag.assert(doc.failureReason == Hex.texts().err_Truncated)
-    Swag.assert(not doc.ensure(0, 1) and doc.read(0, 1).isEmpty())
+    Swag.require(not doc.ensure(0, doc.fileSize))
+    Swag.require(doc.readFailed and doc.window.isEmpty())
+    Swag.require(doc.failureReason == Hex.texts().err_Truncated)
+    Swag.require(not doc.ensure(0, 1) and doc.read(0, 1).isEmpty())
 }
 
 // A drag beyond the viewport autoscrolls on a timer, and losing focus ends it with no capture or
@@ -596,14 +596,14 @@ func writeStreamedFile(size: u64)->String
     grid.setBytesPerRow(16, false)
     let point = grid.localToSurface(Math.Point{grid.hexCellX(2) + 1, grid.rowTop(0) + 2})
     host.mouseDown(point)
-    Swag.assert(grid.selecting and grid.mouseCapture() == grid)
+    Swag.require(grid.selecting and grid.mouseCapture() == grid)
 
     let outside = grid.localToSurface(Math.Point{grid.textCellX(4), grid.clientRect().bottom() + 20})
     host.moveMouse(outside)
-    Swag.assert(grid.selectionTimer != null and grid.topRow > 0)
+    Swag.require(grid.selectionTimer != null and grid.topRow > 0)
     let firstTop = grid.topRow
     host.fireTimer(grid.selectionTimer)
-    Swag.assert(grid.topRow > firstTop and grid.selectionLength() > 1)
+    Swag.require(grid.topRow > firstTop and grid.selectionLength() > 1)
 
     with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
     {
@@ -611,7 +611,7 @@ func writeStreamedFile(size: u64)->String
         .setFocus()
     }
 
-    Swag.assert(not grid.selecting and grid.selectionTimer == null and grid.mouseCapture() == null)
+    Swag.require(not grid.selecting and grid.selectionTimer == null and grid.mouseCapture() == null)
 }
 
 // Snapped fixed-width metrics keep the hit geometry and fitted rows coherent at fractional DPI.
@@ -628,9 +628,9 @@ func writeStreamedFile(size: u64)->String
     grid.setBytesPerRow(16, false)
     let row    = 2'u64
     let column = 13'u64
-    Swag.assert(grid.deviceScale() == 1.5)
-    Swag.assert(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.contentWidth() <= grid.clientRect().width)
+    Swag.require(grid.deviceScale() == 1.5)
+    Swag.require(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.require(grid.contentWidth() <= grid.clientRect().width)
     discard host.render(view)
 }
 
@@ -646,24 +646,24 @@ func writeStreamedFile(size: u64)->String
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let view = hexTestViewer(&host, fileName, 900, 560)
-    Swag.assert(Hex.texts().ui_Empty == "This file is empty.")
+    Swag.require(Hex.texts().ui_Empty == "This file is empty.")
     var options: OptionSheet.Page
     view.describeOptions(&options)
-    Swag.assert(options.rows[1].value == "8-bit" and options.rows[3].value == "Little Endian")
+    Swag.require(options.rows[1].value == "8-bit" and options.rows[3].value == "Little Endian")
     discard host.render(view)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(Hex.texts().ui_Empty == "Ce fichier est vide.")
+    Swag.require(Hex.texts().ui_Empty == "Ce fichier est vide.")
     var translated: OptionSheet.Page
     view.describeOptions(&translated)
-    Swag.assert(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
-    Swag.assert(translated.rows[3].value == "Little Endian")
-    Swag.assert(view.optionsButton.toolTip == "Options")
-    Swag.assert(view.details == "0x00000000")
-    Swag.assert(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
-    Swag.assert(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
-    Swag.assert(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
+    Swag.require(translated.rows[1].label == "Largeur des valeurs" and translated.rows[1].value == "8 bits")
+    Swag.require(translated.rows[3].value == "Little Endian")
+    Swag.require(view.optionsButton.toolTip == "Options")
+    Swag.require(view.details == "0x00000000")
+    Swag.require(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
+    Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
+    Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
     discard host.render(view)
     Testing.assertContentFits(view.commands)
 }
@@ -685,8 +685,8 @@ func writeStreamedFile(size: u64)->String
     grid.selectAll()
 
     let state = grid.sendComputeCommandStateEvent(Hex.Action.CopyText)
-    Swag.assert(state.name == Format.toString(Hex.texts().ui_CopyTextMax, StrConv.toDisplaySize(Hex.CopyLimit)))
+    Swag.require(state.name == Format.toString(Hex.texts().ui_CopyTextMax, StrConv.toDisplaySize(Hex.CopyLimit)))
     grid.copySelection(.Text)
-    Swag.assert(Clipboard.getString().length == Hex.CopyLimit)
-    Swag.assert(grid.doc.window.count <= Hex.WindowSize)
+    Swag.require(Clipboard.getString().length == Hex.CopyLimit)
+    Swag.require(grid.doc.window.count <= Hex.WindowSize)
 }

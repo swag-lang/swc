@@ -14,12 +14,12 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     for fixture in fixtures
     {
         var reader = expect Reader.open(corpusPdfPath(fixture.name))
-        Swag.assert(reader.pageCount() == fixture.pageCount)
+        Swag.require(reader.pageCount() == fixture.pageCount)
         for pageIndex in fixture.pageCount
         {
             var page  = expect reader.loadPage(pageIndex)
             let image = expect page.render({scale: fixture.scale, maxDimension: 8192})
-            Swag.assert(image.isValid())
+            Swag.require(image.isValid())
         }
     }
 }

@@ -20,7 +20,7 @@ using Swag, Core
 
         var error: Swag.Error
         discard catch SoundFile.load(temporary) as error
-        Swag.assert(error.value() is Errors.InvalidFormatError)
+        Swag.require(error.value() is Errors.InvalidFormatError)
     }
 }
 
@@ -29,35 +29,35 @@ using Swag, Core
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
     let bytes = expect File.readAllBytes(path)
-    Swag.assert(bytes.count == 52)
+    Swag.require(bytes.count == 52)
 
     let file = expect SoundFile.load(path)
-    Swag.assert(file.encoding == .Pcm16)
-    Swag.assert(file.sampleEncoding() == .Pcm16)
-    Swag.assert(file.sampleRate == 44100)
-    Swag.assert(file.sampleRateHz() == 44100)
-    Swag.assert(file.channelCount == 2)
-    Swag.assert(file.numChannels() == 2)
-    Swag.assert(file.bitsPerSample == 16)
-    Swag.assert(file.frameCount == 2)
-    Swag.assert(file.sampleFrameCount() == 2)
-    Swag.assert(file.dataSize == 8)
-    Swag.assert(file.payloadSize() == 8)
-    Swag.assert(file.isDataPreloaded())
-    Swag.assert((file.preloadedData()).count == 8)
-    Swag.assert(file.dataOffset == 44)
-    Swag.assert(file.data.count == 8)
-    Swag.assert(file.availableFields.has(.Format))
-    Swag.assert(file.availableFields.has(.SampleRate))
-    Swag.assert(file.availableFields.has(.ChannelCount))
-    Swag.assert(file.availableFields.has(.BitsPerSample))
-    Swag.assert(file.availableFields.has(.Data))
-    Swag.assert(file.hasField(.Data))
-    Swag.assert(file.availableFields.has(.FrameCount))
-    Swag.assert(file.availableFields.has(.Duration))
+    Swag.require(file.encoding == .Pcm16)
+    Swag.require(file.sampleEncoding() == .Pcm16)
+    Swag.require(file.sampleRate == 44100)
+    Swag.require(file.sampleRateHz() == 44100)
+    Swag.require(file.channelCount == 2)
+    Swag.require(file.numChannels() == 2)
+    Swag.require(file.bitsPerSample == 16)
+    Swag.require(file.frameCount == 2)
+    Swag.require(file.sampleFrameCount() == 2)
+    Swag.require(file.dataSize == 8)
+    Swag.require(file.payloadSize() == 8)
+    Swag.require(file.isDataPreloaded())
+    Swag.require((file.preloadedData()).count == 8)
+    Swag.require(file.dataOffset == 44)
+    Swag.require(file.data.count == 8)
+    Swag.require(file.availableFields.has(.Format))
+    Swag.require(file.availableFields.has(.SampleRate))
+    Swag.require(file.availableFields.has(.ChannelCount))
+    Swag.require(file.availableFields.has(.BitsPerSample))
+    Swag.require(file.availableFields.has(.Data))
+    Swag.require(file.hasField(.Data))
+    Swag.require(file.availableFields.has(.FrameCount))
+    Swag.require(file.availableFields.has(.Duration))
     audioAssertFloat(file.durationSeconds, 2.0 / 44100.0, 0.000001)
     audioAssertFloat(file.durationInSeconds(), 2.0 / 44100.0, 0.000001)
-    Swag.assert(Slice.equals(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
+    Swag.require(Slice.equals(file.data.toSlice(), [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F]))
 }
 
 #test
@@ -65,13 +65,13 @@ using Swag, Core
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
     let file = expect SoundFile.load(path, preloadData: false)
-    Swag.assert(file.encoding == .Pcm16)
-    Swag.assert(file.dataSize == 8)
-    Swag.assert(file.dataOffset == 44)
-    Swag.assert(file.data.isEmpty())
-    Swag.assert(not file.isDataPreloaded())
-    Swag.assert((file.preloadedData()).count == 0)
-    Swag.assert(file.frameCount == 2)
+    Swag.require(file.encoding == .Pcm16)
+    Swag.require(file.dataSize == 8)
+    Swag.require(file.dataOffset == 44)
+    Swag.require(file.data.isEmpty())
+    Swag.require(not file.isDataPreloaded())
+    Swag.require((file.preloadedData()).count == 0)
+    Swag.require(file.frameCount == 2)
 
     var decoded: Array's16
     expect file.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
@@ -79,17 +79,17 @@ using Swag, Core
         decoded.add(samples)
         return true
     })
-    Swag.assert(decoded.count == 4)
-    Swag.assert(decoded[0] == Swag.S16.Min and
-                decoded[1] == -1 and
-                decoded[2] == 0 and
-                decoded[3] == Swag.S16.Max)
+    Swag.require(decoded.count == 4)
+    Swag.require(decoded[0] == Swag.S16.Min and
+                 decoded[1] == -1 and
+                 decoded[2] == 0 and
+                 decoded[3] == Swag.S16.Max)
 
     let first = expect file.readPayload(0, 3)
-    Swag.assert(Slice.equals(first.toSlice(), [0x00, 0x80, 0xFF]))
+    Swag.require(Slice.equals(first.toSlice(), [0x00, 0x80, 0xFF]))
     let tail = expect file.readPayload(6, 10)
-    Swag.assert(Slice.equals(tail.toSlice(), [0xFF, 0x7F]))
-    Swag.assert((expect file.readPayload(8, 1)).isEmpty())
+    Swag.require(Slice.equals(tail.toSlice(), [0xFF, 0x7F]))
+    Swag.require((expect file.readPayload(8, 1)).isEmpty())
 }
 
 #test
@@ -97,15 +97,15 @@ using Swag, Core
     let path = audioGetTestDataPath("pcm8_mono_odd.wav")
 
     let file = expect SoundFile.load(path)
-    Swag.assert(file.encoding == .Pcm8)
-    Swag.assert(file.sampleRate == 8000)
-    Swag.assert(file.channelCount == 1)
-    Swag.assert(file.bitsPerSample == 8)
-    Swag.assert(file.frameCount == 3)
-    Swag.assert(file.dataSize == 3)
-    Swag.assert(file.dataOffset == 44)
+    Swag.require(file.encoding == .Pcm8)
+    Swag.require(file.sampleRate == 8000)
+    Swag.require(file.channelCount == 1)
+    Swag.require(file.bitsPerSample == 8)
+    Swag.require(file.frameCount == 3)
+    Swag.require(file.dataSize == 3)
+    Swag.require(file.dataOffset == 44)
     audioAssertFloat(file.durationSeconds, 3.0 / 8000.0, 0.000001)
-    Swag.assert(Slice.equals(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
+    Swag.require(Slice.equals(file.data.toSlice(), [0'u8, 128'u8, 255'u8]))
 }
 
 #test
@@ -113,17 +113,17 @@ using Swag, Core
     let path = audioGetTestDataPath("pcm24_extensible_stereo.wav")
 
     let file = expect SoundFile.load(path)
-    Swag.assert(file.encoding == .Pcm24)
-    Swag.assert(file.sampleRate == 48000)
-    Swag.assert(file.channelCount == 2)
-    Swag.assert(file.bitsPerSample == 24)
-    Swag.assert(file.validBitsPerSample == 20)
-    Swag.assert(file.waveSpeakerMask == 3)
-    Swag.assert(file.frameCount == 2)
-    Swag.assert(file.dataSize == 12)
-    Swag.assert(file.availableFields.has(.ValidBitsPerSample))
-    Swag.assert(file.availableFields.has(.SpeakerMask))
-    Swag.assert(Slice.equals(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
+    Swag.require(file.encoding == .Pcm24)
+    Swag.require(file.sampleRate == 48000)
+    Swag.require(file.channelCount == 2)
+    Swag.require(file.bitsPerSample == 24)
+    Swag.require(file.validBitsPerSample == 20)
+    Swag.require(file.waveSpeakerMask == 3)
+    Swag.require(file.frameCount == 2)
+    Swag.require(file.dataSize == 12)
+    Swag.require(file.availableFields.has(.ValidBitsPerSample))
+    Swag.require(file.availableFields.has(.SpeakerMask))
+    Swag.require(Slice.equals(file.data.toSlice(), [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F, 0x34, 0x12, 0x00]))
 }
 
 #test
@@ -131,16 +131,16 @@ using Swag, Core
     let path = audioGetTestDataPath("float32_extensible_mono.wav")
 
     let file = expect SoundFile.load(path)
-    Swag.assert(file.encoding == .Float32)
-    Swag.assert(file.sampleRate == 22050)
-    Swag.assert(file.channelCount == 1)
-    Swag.assert(file.bitsPerSample == 32)
-    Swag.assert(file.validBitsPerSample == 32)
-    Swag.assert(file.waveSpeakerMask == 4)
-    Swag.assert(file.frameCount == 2)
-    Swag.assert(file.dataSize == 8)
-    Swag.assert(file.availableFields.has(.ValidBitsPerSample))
-    Swag.assert(file.availableFields.has(.SpeakerMask))
+    Swag.require(file.encoding == .Float32)
+    Swag.require(file.sampleRate == 22050)
+    Swag.require(file.channelCount == 1)
+    Swag.require(file.bitsPerSample == 32)
+    Swag.require(file.validBitsPerSample == 32)
+    Swag.require(file.waveSpeakerMask == 4)
+    Swag.require(file.frameCount == 2)
+    Swag.require(file.dataSize == 8)
+    Swag.require(file.availableFields.has(.ValidBitsPerSample))
+    Swag.require(file.availableFields.has(.SpeakerMask))
 }
 
 #test
@@ -148,14 +148,14 @@ using Swag, Core
     let path = audioGetTestDataPath("pcm16_with_unknown_chunk.wav")
 
     let file = expect SoundFile.load(path)
-    Swag.assert(file.encoding == .Pcm16)
-    Swag.assert(file.sampleRate == 44100)
-    Swag.assert(file.channelCount == 1)
-    Swag.assert(file.bitsPerSample == 16)
-    Swag.assert(file.frameCount == 2)
-    Swag.assert(file.dataSize == 4)
-    Swag.assert(file.dataOffset == 56)
-    Swag.assert(Slice.equals(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
+    Swag.require(file.encoding == .Pcm16)
+    Swag.require(file.sampleRate == 44100)
+    Swag.require(file.channelCount == 1)
+    Swag.require(file.bitsPerSample == 16)
+    Swag.require(file.frameCount == 2)
+    Swag.require(file.dataSize == 4)
+    Swag.require(file.dataOffset == 56)
+    Swag.require(Slice.equals(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
 }
 
 #test
@@ -163,15 +163,15 @@ using Swag, Core
     const Files: [11] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3", "clip.dts", "clip.ogg", "clip.oga", "clip.opus"]
 
     let extensions = SoundFile.decodableExtensions()
-    Swag.assert(extensions.count == Files.count)
+    Swag.require(extensions.count == Files.count)
     for file, index in Files
     {
-        Swag.assert(SoundFile.canLoad(file))
-        Swag.assert(extensions[index] == Path.lowercaseExtension(file))
+        Swag.require(SoundFile.canLoad(file))
+        Swag.require(extensions[index] == Path.lowercaseExtension(file))
     }
 
-    Swag.assert(SoundFile.canLoad("CLIP.MP3"))
-    Swag.assert(not SoundFile.canLoad("clip.mid") and not SoundFile.canLoad("clip"))
+    Swag.require(SoundFile.canLoad("CLIP.MP3"))
+    Swag.require(not SoundFile.canLoad("clip.mid") and not SoundFile.canLoad("clip"))
 }
 
 #test
@@ -179,7 +179,7 @@ using Swag, Core
     var err9Outcome: Swag.Error
     discard catch SoundFile.load("audio.unsupported") as err9Outcome
     let err9 = err9Outcome.value()
-    Swag.assert((err9 is Errors.UnsupportedFormatError))
+    Swag.require((err9 is Errors.UnsupportedFormatError))
 }
 
 #test
@@ -187,15 +187,15 @@ using Swag, Core
     var err10Outcome: Swag.Error
     discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as err10Outcome
     let err10 = err10Outcome.value()
-    Swag.assert((err10 is Errors.InvalidFormatError))
+    Swag.require((err10 is Errors.InvalidFormatError))
 
     var err11Outcome: Swag.Error
     discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav")) as err11Outcome
     let err11 = err11Outcome.value()
-    Swag.assert((err11 is Errors.InvalidFormatError))
+    Swag.require((err11 is Errors.InvalidFormatError))
 
     var err12Outcome: Swag.Error
     discard catch SoundFile.load(audioGetTestDataPath("truncated_fmt.wav")) as err12Outcome
     let err12 = err12Outcome.value()
-    Swag.assert((err12 is Errors.InvalidFormatError))
+    Swag.require((err12 is Errors.InvalidFormatError))
 }

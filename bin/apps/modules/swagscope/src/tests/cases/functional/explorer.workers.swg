@@ -10,7 +10,7 @@ using Core, Gui, Pixel
     host.setup(320, 240)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
-    Swag.assert(explorer.previews.count == cast(u64, Swag.workerCount()))
+    Swag.require(explorer.previews.count == cast(u64, Swag.workerCount()))
 }
 
 // Selecting a media file in a row view loads its cached provider details without a gallery.
@@ -53,9 +53,9 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.entries[0].music.title == "Discovery")
+    Swag.require(explorer.entries[0].music.title == "Discovery")
     explorer.showInformation()
-    Swag.assert(Utf8.contains(window.infoSheet.text(), "Daft Punk"))
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Daft Punk"))
 }
 
 // Busy slots schedule distinct visible tiles; cancelled generations never publish stale textures.
@@ -95,9 +95,9 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.requestPreview()
     for &preview, index in explorer.previews do
-        Swag.assert(preview.started == (index < count) and (not preview.started or preview.index == index))
+        Swag.require(preview.started == (index < count) and (not preview.started or preview.index == index))
     for preview in explorer.previews where preview.started do
-        Swag.assert(preview.task.priority == .Background)
+        Swag.require(preview.task.priority == .Background)
     explorer.hide()
     explorer.leave()
     for &preview in explorer.previews do
@@ -113,7 +113,7 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.cached.isEmpty())
+    Swag.require(explorer.cached.isEmpty())
 
     explorer.show()
     explorer.requestPreview()
@@ -130,9 +130,9 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.cached.count == count)
+    Swag.require(explorer.cached.count == count)
     for &entry in explorer.entries do
-        Swag.assert(entry.texture.isValid())
+        Swag.require(entry.texture.isValid())
 }
 
 // Each standard spinner animates on its own window until a completed preview replaces it.
@@ -151,7 +151,7 @@ using Core, Gui, Pixel
     preview.generation = explorer.generation
     preview.submit(func() {})
     let first = host.render(window)
-    Swag.assert(explorer.grid.spinners[0].isLocallyVisible())
+    Swag.require(explorer.grid.spinners[0].isLocallyVisible())
     let second = host.render(window)
     var changed: u32
     let rect   = explorer.grid.spinners[0].surfaceRect()
@@ -166,7 +166,7 @@ using Core, Gui, Pixel
         }
     }
 
-    Swag.assert(changed > 0)
+    Swag.require(changed > 0)
 
     preview.wait()
     var image = Image.create(24, 18, .RGB8)
@@ -174,5 +174,5 @@ using Core, Gui, Pixel
     explorer.entries[0].texture = host.app.renderer.addImage(&image)
     explorer.grid.invalidate()
     discard host.render(window)
-    Swag.assert(not explorer.grid.spinners[0].isLocallyVisible())
+    Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
 }

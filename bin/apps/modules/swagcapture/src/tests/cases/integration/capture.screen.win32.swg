@@ -25,7 +25,7 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionCapture.FullScreen)
 
-    Swag.assert(Clipboard.hasImage())
+    Swag.require(Clipboard.hasImage())
 }
 
 // Last-area capture reuses cached grab bounds, so it exercises the OS capture
@@ -51,12 +51,12 @@ using Swag, Core
     g_EndGrabY   = 12
 
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
 
     let image = Clipboard.getImage()
-    Swag.assert(image.isValid())
-    Swag.assert(image.width == 16)
-    Swag.assert(image.height == 12)
+    Swag.require(image.isValid())
+    Swag.require(image.width == 16)
+    Swag.require(image.height == 12)
 }
 
 // Monitor capture is non-interactive: a small fake monitor keeps the real screen
@@ -89,12 +89,12 @@ using Swag, Core
     testAddMonitorAt(f.main, {0, 0, 320, 240})
 
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4))
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
 
     let image = Clipboard.getImage()
-    Swag.assert(image.isValid())
-    Swag.assert(image.width == 320)
-    Swag.assert(image.height == 240)
+    Swag.require(image.isValid())
+    Swag.require(image.width == 320)
+    Swag.require(image.height == 240)
 }
 
 // A real OS grab must reach the editor and persist as a reloadable Swag Capture document.
@@ -120,7 +120,7 @@ using Swag, Core
     g_EndGrabY   = 12
 
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
     let capture = unwrap f.main.getCapture()
@@ -131,14 +131,14 @@ using Swag, Core
         g_Library.files.clear()
     }
 
-    Swag.assert(capture.sourceKind == .Screen)
-    Swag.assert(capture.width == 16 and capture.height == 12)
-    Swag.assert(capture.backImg.isValid())
-    Swag.assert(File.exists(path))
+    Swag.require(capture.sourceKind == .Screen)
+    Swag.require(capture.width == 16 and capture.height == 12)
+    Swag.require(capture.backImg.isValid())
+    Swag.require(File.exists(path))
 
     let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.width == 16 and loaded.height == 12)
-    Swag.assert(loaded.sourceKind == .Screen)
-    Swag.assert(loaded.backImg.isValid())
+    Swag.require(loaded.width == 16 and loaded.height == 12)
+    Swag.require(loaded.sourceKind == .Screen)
+    Swag.require(loaded.backImg.isValid())
 }

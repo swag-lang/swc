@@ -37,22 +37,22 @@ using Swag, Core
     let trash = Library.getTrashFolder()
 
     let u1 = Library.uniqueName(trash, src)
-    Swag.assert(not File.exists(u1))
+    Swag.require(not File.exists(u1))
 
     let moved = Library.moveFile(trash, src)
-    Swag.assert(not moved.isEmpty())
-    Swag.assert(not File.exists(src))
-    Swag.assert(File.exists(moved))
+    Swag.require(not moved.isEmpty())
+    Swag.require(not File.exists(src))
+    Swag.require(File.exists(moved))
 
     let u2 = Library.uniqueName(trash, moved)
-    Swag.assert(u2 != moved)
-    Swag.assert(not File.exists(u2))
+    Swag.require(u2 != moved)
+    Swag.require(not File.exists(u2))
 
     // Restore brings the capture back into the library folder.
     let restored = Library.restoreFile(moved)
-    Swag.assert(not restored.isEmpty())
-    Swag.assert(not File.exists(moved))
-    Swag.assert(File.exists(restored))
+    Swag.require(not restored.isEmpty())
+    Swag.require(not File.exists(moved))
+    Swag.require(File.exists(restored))
 
     discard catch File.delete(restored)
 }
@@ -79,9 +79,9 @@ using Swag, Core
 
     let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.title == "Renamed")
-    Swag.assert(loaded.width == 8)
-    Swag.assert(loaded.backImg.isValid())
+    Swag.require(loaded.title == "Renamed")
+    Swag.require(loaded.width == 8)
+    Swag.require(loaded.backImg.isValid())
 }
 
 // Copying a stored capture from the library places its full-resolution image on the
@@ -105,9 +105,9 @@ using Swag, Core
     f.main.copyLibraryImage(path)
 
     let image = Clipboard.getImage()
-    Swag.assert(image.isValid())
-    Swag.assert(image.width == 20)
-    Swag.assert(image.height == 14)
+    Swag.require(image.isValid())
+    Swag.require(image.width == 20)
+    Swag.require(image.height == 14)
 }
 
 // The page is named after the folder it shows, and its folders are tabs: the library first, its
@@ -124,12 +124,12 @@ using Swag, Core
     defer lib.requestClose()
 
     // Default (empty) current folder falls back to the library folder.
-    Swag.assert(lib.currentFolder() == Library.getFolder())
+    Swag.require(lib.currentFolder() == Library.getFolder())
     lib.updateFolderMode()
-    Swag.assert(lib.titleLabel.name == appStrings().act_Library)
-    Swag.assert(lib.tabFolders.count >= 2 and lib.tabFolders[0] == Library.getFolder())
-    Swag.assert(lib.folderTabs.selectedIndex == 0)
-    Swag.assert(lib.tabFolders.contains(Library.getTrashFolder()))
+    Swag.require(lib.titleLabel.name == appStrings().act_Library)
+    Swag.require(lib.tabFolders.count >= 2 and lib.tabFolders[0] == Library.getFolder())
+    Swag.require(lib.folderTabs.selectedIndex == 0)
+    Swag.require(lib.tabFolders.contains(Library.getTrashFolder()))
 
     // The recycle bin is one of the tabs; choosing it opens it and names the page after it.
     for folder, i in lib.tabFolders where folder[] == Library.getTrashFolder()
@@ -138,13 +138,13 @@ using Swag, Core
         break
     }
 
-    Swag.assert(lib.currentFolder() == Library.getTrashFolder())
-    Swag.assert(lib.trashMode)
-    Swag.assert(lib.titleLabel.name == appStrings().act_RecycleBin)
+    Swag.require(lib.currentFolder() == Library.getTrashFolder())
+    Swag.require(lib.trashMode)
+    Swag.require(lib.titleLabel.name == appStrings().act_RecycleBin)
 
     lib.setTrashMode(false)
-    Swag.assert(lib.currentFolder() == Library.getFolder())
-    Swag.assert(lib.titleLabel.name == appStrings().act_Library)
+    Swag.require(lib.currentFolder() == Library.getFolder())
+    Swag.require(lib.titleLabel.name == appStrings().act_Library)
 }
 
 // The lens of the library lists its folders, the recycle bin among them, and choosing one opens it.
@@ -171,7 +171,7 @@ using Swag, Core
 
     let run = unwrap (unwrap trash).run
     run()
-    Swag.assert(lib.currentFolder() == Library.getTrashFolder())
+    Swag.require(lib.currentFolder() == Library.getTrashFolder())
 }
 
 // Loading a capture that has no preview (e.g. an older file, or one restored from the
@@ -202,8 +202,8 @@ using Swag, Core
     view.loadOne(it)
 
     let itCapture = unwrap it.capture
-    Swag.assert(not itCapture.preview.isValid())
-    Swag.assert(itCapture.haar.size == 0)
+    Swag.require(not itCapture.preview.isValid())
+    Swag.require(itCapture.haar.size == 0)
 }
 
 // Batch export uses the full capture, not the lightweight library preview, and writes a
@@ -236,8 +236,8 @@ using Swag, Core
     }
 
     expect lib.exportCapture(source, folder)
-    Swag.assert(File.exists(exported))
+    Swag.require(File.exists(exported))
     let image = expect Image.load(exported)
-    Swag.assert(image.width == 24)
-    Swag.assert(image.height == 16)
+    Swag.require(image.width == 24)
+    Swag.require(image.height == 16)
 }

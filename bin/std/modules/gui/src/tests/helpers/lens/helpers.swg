@@ -4,17 +4,11 @@
 using Swag, Core, Pixel
 
 const LensOpen     = "test.lens.open"
-
 const LensSave     = "test.lens.save"
-
 const LensTheme    = "test.lens.theme"
-
 const LensHidden   = "test.lens.hidden"
-
 const LensDisabled = "test.lens.disabled"
-
 const LensCapture  = "test.lens.capture"
-
 const LensArrow    = "test.lens.arrow"
 
 // The lines of a small document a source answers from.

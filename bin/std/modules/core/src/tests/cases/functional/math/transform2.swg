@@ -5,36 +5,36 @@ using Swag
 
 func expectVec2(actual, expected: Math.Vector2)
 {
-    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.require(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectTransform(actual, expected: Math.Transform2)
 {
-    Swag.assert(Math.isEqualEpsilon(actual.m11, expected.m11, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.m12, expected.m12, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.m21, expected.m21, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.m22, expected.m22, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.tx, expected.tx, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.ty, expected.ty, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.m11, expected.m11, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.m12, expected.m12, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.m21, expected.m21, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.m22, expected.m22, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.tx, expected.tx, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.ty, expected.ty, 0.001))
 }
 
 #test
 {
     let identity = Math.Transform2.Identity
-    Swag.assert(identity.isIdentity())
+    Swag.require(identity.isIdentity())
     expectTransform(identity, {1, 0, 0, 1, 0, 0})
     expectVec2(identity.transformPoint({3, -4}), {3, -4})
     expectVec2(identity.translation(), Math.Vector2.Zero)
 
-    Swag.assert(identity.m[0, 0] == identity.m11)
-    Swag.assert(identity.m[0, 1] == identity.m12)
-    Swag.assert(identity.m[1, 0] == identity.m21)
-    Swag.assert(identity.m[1, 1] == identity.m22)
+    Swag.require(identity.m[0, 0] == identity.m11)
+    Swag.require(identity.m[0, 1] == identity.m12)
+    Swag.require(identity.m[1, 0] == identity.m21)
+    Swag.require(identity.m[1, 1] == identity.m22)
 
     var transform = Math.Transform2{2, 3, 4, 5, 6, 7}
-    Swag.assert(not transform.isIdentity())
+    Swag.require(not transform.isIdentity())
     transform.setIdentity()
-    Swag.assert(transform.isIdentity())
+    Swag.require(transform.isIdentity())
     expectTransform(transform, Math.Transform2.Identity)
 }
 
@@ -48,8 +48,8 @@ func expectTransform(actual, expected: Math.Transform2)
     transform.setTranslation({-5, 6})
     expectVec2(transform.translation(), {-5, 6})
     expectVec2(transform.transformPoint({1, 2}), {-4, 8})
-    Swag.assert(transform.m31 == transform.tx)
-    Swag.assert(transform.m32 == transform.ty)
+    Swag.require(transform.m31 == transform.tx)
+    Swag.require(transform.m32 == transform.ty)
 }
 
 #test
@@ -103,10 +103,10 @@ func expectTransform(actual, expected: Math.Transform2)
 
 func expectRect(actual, expected: Math.Rectangle)
 {
-    Swag.assert(Math.isEqualEpsilon(actual.x, expected.x, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.y, expected.y, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.width, expected.width, 0.001))
-    Swag.assert(Math.isEqualEpsilon(actual.height, expected.height, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.x, expected.x, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.y, expected.y, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.width, expected.width, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual.height, expected.height, 0.001))
 }
 
 // Transformed bounds hold the mapped corners, whatever the transform does to them.

@@ -23,18 +23,18 @@ using Core
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)
         glBindFramebuffer(GL_FRAMEBUFFER, buffers[index])
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[index], 0)
-        Swag.assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
+        Swag.require(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
         glClearColor(index == 0 ? 1.0 : 0.0, 0, 0, 1)
         glClear(GL_COLOR_BUFFER_BIT)
     }
 
-    Swag.assert(glGetError() == GL_NO_ERROR)
+    Swag.require(glGetError() == GL_NO_ERROR)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, buffers[0])
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, buffers[1])
     glBlitFramebuffer(0, 32, 32, 0, 0, 0, 32, 32, GL_COLOR_BUFFER_BIT, GL_NEAREST)
-    Swag.assert(glGetError() == GL_NO_ERROR)
+    Swag.require(glGetError() == GL_NO_ERROR)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, buffers[1])
     var pixel: u32
     glReadPixels(16, 16, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, cast([*] u8, &pixel))
-    Swag.assert(pixel == 0xFF0000FF)
+    Swag.require(pixel == 0xFF0000FF)
 }

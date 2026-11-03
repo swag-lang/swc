@@ -12,20 +12,20 @@ using Swag, Core, Pixel
     pixels.fill(Argb.Blue)
     expect atlas.setRaster(32, pixels)
     pixels.fill(Argb.Red)
-    Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
+    Swag.require(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
 
     for cell in [0, -1, 31]
     {
         var failure: Swag.Error
         catch atlas.setRaster(cell, pixels) as failure
-        Swag.assert(failure.value() != null)
-        Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
+        Swag.require(failure.value() != null)
+        Swag.require(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Blue))
     }
 
     let fallback = atlas.image(40)
-    Swag.assert(fallback.width == 40 and fallback.pixelColor(20, 20).argb == cast(u32, Argb.Blue))
+    Swag.require(fallback.width == 40 and fallback.pixelColor(20, 20).argb == cast(u32, Argb.Blue))
     expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='red'/></svg>")
-    Swag.assert(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Red))
+    Swag.require(atlas.image(32).pixelColor(16, 16).argb == cast(u32, Argb.Red))
 }
 
 // Icons already stored in controls remain valid when another request raises the atlas density.
@@ -50,13 +50,13 @@ using Swag, Core, Pixel
 
     // A third size raises the density without re-requesting either stored icon.
     let another = icons.icon(0, 20, 1.5)
-    Swag.assert(another.imageList!.frameWidth == 40)
-    Swag.assert(smallList.frameWidth == 32 and largeList.frameWidth == 48)
-    Swag.assert(smallList.frameCount == 1 and largeList.frameCount == 1)
-    Swag.assert(icons.icon(0, 16, 1).imageList == smallList)
-    Swag.assert(icons.icon(0, 24, 1).imageList == largeList)
+    Swag.require(another.imageList!.frameWidth == 40)
+    Swag.require(smallList.frameWidth == 32 and largeList.frameWidth == 48)
+    Swag.require(smallList.frameCount == 1 and largeList.frameCount == 1)
+    Swag.require(icons.icon(0, 16, 1).imageList == smallList)
+    Swag.require(icons.icon(0, 24, 1).imageList == largeList)
     let after = host.render()
-    Swag.assert(before.width == after.width and before.height == after.height)
-    Swag.assert(after.pixelColor(30, 30).argb == before.pixelColor(30, 30).argb)
-    Swag.assert(after.pixelColor(85, 30).argb == before.pixelColor(85, 30).argb)
+    Swag.require(before.width == after.width and before.height == after.height)
+    Swag.require(after.pixelColor(30, 30).argb == before.pixelColor(30, 30).argb)
+    Swag.require(after.pixelColor(85, 30).argb == before.pixelColor(85, 30).argb)
 }

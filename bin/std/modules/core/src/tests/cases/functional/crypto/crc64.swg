@@ -66,15 +66,15 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
 {
     let expected = crc64Reference(buffer, kind)
 
-    Swag.assert(Hash.Crc64.compute(buffer, kind) == expected)
+    Swag.require(Hash.Crc64.compute(buffer, kind) == expected)
 
     var crc: Hash.Crc64
     crc.reset(kind)
     crc.update(buffer)
-    Swag.assert(crc.value() == expected)
+    Swag.require(crc.value() == expected)
 
     crc.update("")
-    Swag.assert(crc.value() == expected)
+    Swag.require(crc.value() == expected)
 }
 
 func assertCrc64(buffer: const [..] u8)
@@ -96,10 +96,10 @@ func fillCrc64Pattern(buffer: [..] u8)
 
 #test
 {
-    Swag.assert(Hash.Crc64.compute("") == 0'u64)
-    Swag.assert(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
-    Swag.assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001'u64)
-    Swag.assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA'u64)
+    Swag.require(Hash.Crc64.compute("") == 0'u64)
+    Swag.require(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001'u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA'u64)
 
     assertCrc64("")
     assertCrc64("a")
@@ -125,5 +125,5 @@ func fillCrc64Pattern(buffer: [..] u8)
     split.update(data[1 until 64])
     split.update(data[64 until 129])
     split.update(data[129 until 257])
-    Swag.assert(split.value() == Hash.Crc64.compute(data, Hash.Crc64Kind.IsoXz))
+    Swag.require(split.value() == Hash.Crc64.compute(data, Hash.Crc64Kind.IsoXz))
 }

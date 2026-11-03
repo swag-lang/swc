@@ -104,7 +104,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
             let clip    = Math.Rectangle{20, 30, 150, 190}
             let clipped = renderViewport(&drawing, Width, Height, 0, offset, scale, clip, true)
             let whole   = renderViewport(&drawing, Width, Height, 0, offset, scale, clip, false)
-            Swag.assert(differingPixels(&clipped, &whole, clip) == 0)
+            Swag.require(differingPixels(&clipped, &whole, clip) == 0)
         }
     }
 }
@@ -164,7 +164,7 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     // disagreement lands well under one level; a band or a ring the minified pass had lost
     // would be worth tens of them.
     let average = total * 1000 / (cast(u64, Width) * cast(u64, Height) * 3)
-    Swag.assert(average < 2000)
+    Swag.require(average < 2000)
 }
 
 // Rejecting elements does not depend on the order the viewports were painted in, and a
@@ -187,5 +187,5 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     discard renderViewport(&drawing, Width, Height, 0, 0, 0.28, clip, true)
     discard renderViewport(&drawing, Width, Height, 0, -700, 1, clip, true)
     let again = renderViewport(&drawing, Width, Height, 0, -300, 1, clip, true)
-    Swag.assert(differingPixels(&first, &again, clip) == 0)
+    Swag.require(differingPixels(&first, &again, clip) == 0)
 }

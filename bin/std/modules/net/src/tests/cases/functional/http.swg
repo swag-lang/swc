@@ -56,10 +56,10 @@ func stallHttp(thread: const *Threading.Thread)
     discard catch Http.get("127.0.0.1", endpoint.port, "/", false, {timeoutMs: 100}) as error
     let elapsed = Time.monotonicMilliseconds() - started
     thread.wait()
-    Swag.assert(error.value() is NetworkError)
+    Swag.require(error.value() is NetworkError)
     if error.value() is NetworkError as networkError do
-        Swag.assert(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
-    Swag.assert(elapsed < 7_000)
+        Swag.require(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
+    Swag.require(elapsed < 7_000)
 }
 
 #test
@@ -76,10 +76,10 @@ func stallHttp(thread: const *Threading.Thread)
     options.headers.add(headers)
     let response = expect Http.get("127.0.0.1", endpoint.port, "/films?title=hello", false, options)
     thread.wait()
-    Swag.assert(response.status == 200 and cast(string, response.body.toSlice()) == "hello")
-    Swag.assert(Utf8.indexOf(fixture.request.toString(), "GET /films?title=hello HTTP/1.1") != Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(fixture.request.toString(), "X-Test: yes") != Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(fixture.request.toString(), "X_Test: also") != Swag.U64.Max)
+    Swag.require(response.status == 200 and cast(string, response.body.toSlice()) == "hello")
+    Swag.require(Utf8.indexOf(fixture.request.toString(), "GET /films?title=hello HTTP/1.1") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(fixture.request.toString(), "X-Test: yes") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(fixture.request.toString(), "X_Test: also") != Swag.U64.Max)
 }
 
 #test
@@ -89,14 +89,14 @@ func stallHttp(thread: const *Threading.Thread)
     options.headers.add(headers)
     var error: Swag.Error
     discard catch Http.get("127.0.0.1", 80, "/", false, options) as error
-    Swag.assert(error.value() != null)
+    Swag.require(error.value() != null)
 }
 
 #test
 {
     var error: Swag.Error
     discard catch Http.get("127.0.0.1", 80, "/resource#fragment", false) as error
-    Swag.assert(error.value() is Errors.BadParameterError)
+    Swag.require(error.value() is Errors.BadParameterError)
 }
 
 #test
@@ -111,7 +111,7 @@ func stallHttp(thread: const *Threading.Thread)
     var error: Swag.Error
     discard catch Http.get("127.0.0.1", endpoint.port, "/", false, {maxBodyBytes: 5}) as error
     thread.wait()
-    Swag.assert(error.value() is Errors.OverflowError)
+    Swag.require(error.value() is Errors.OverflowError)
 }
 
 #test
@@ -125,6 +125,6 @@ func stallHttp(thread: const *Threading.Thread)
 
     let response = expect Http.get("127.0.0.1", endpoint.port, "/", false)
     thread.wait()
-    Swag.assert(response.status == 302 and response.body.isEmpty())
-    Swag.assert(response.location == "http://127.0.0.1:1/")
+    Swag.require(response.status == 302 and response.body.isEmpty())
+    Swag.require(response.location == "http://127.0.0.1:1/")
 }

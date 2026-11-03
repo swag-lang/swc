@@ -22,23 +22,23 @@ func unbreakableMessage()->String
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     MessageDlg.ok(&host.surface, "The operation is complete.")
-    Swag.assert(host.autoHandled)
+    Swag.require(host.autoHandled)
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     let okCancel = MessageDlg.okCancel(&host.surface, "Save the changes?")
-    Swag.assert(host.autoHandled and okCancel == Dialog.BtnOk)
+    Swag.require(host.autoHandled and okCancel == Dialog.BtnOk)
 
     host.clickModalButtonWhenShown(Dialog.BtnYes)
     let yesNo = MessageDlg.yesNo(&host.surface, "Continue?")
-    Swag.assert(host.autoHandled and yesNo == Dialog.BtnYes)
+    Swag.require(host.autoHandled and yesNo == Dialog.BtnYes)
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     let yesNoCancel = MessageDlg.yesNoCancel(&host.surface, "Save the changes?")
-    Swag.assert(host.autoHandled and yesNoCancel == Dialog.BtnCancel)
+    Swag.require(host.autoHandled and yesNoCancel == Dialog.BtnCancel)
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
     let confirmation = MessageDlg.confirm(&host.surface, "The file could not be found.", "Remove it from the history?")
-    Swag.assert(host.autoHandled and confirmation == Dialog.BtnNo)
+    Swag.require(host.autoHandled and confirmation == Dialog.BtnNo)
 }
 
 // A box is bounded by its maximum width, whatever the message is made of.
@@ -57,9 +57,9 @@ func unbreakableMessage()->String
         .addButton("Ok", Dialog.BtnOk, true)
     }
 
-    Swag.assert(dlg.label.textHorizontalAlignment == .Left)
-    Swag.assert(dlg.contentView != null)
-    Swag.assert(dlg.label.parent!.parent == dlg.contentView)
+    Swag.require(dlg.label.textHorizontalAlignment == .Left)
+    Swag.require(dlg.contentView != null)
+    Swag.require(dlg.label.parent!.parent == dlg.contentView)
 
     // The box sizes itself as it opens, so its rectangle is read from inside the modal loop.
     var width = 0'f32
@@ -69,15 +69,15 @@ func unbreakableMessage()->String
             return
         width[] = dlg.surface!.position.width
         let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
-        Swag.assert(modalButtonClicked)
+        Swag.require(modalButtonClicked)
     }
 
     let modalResult = dlg.doModal()
-    Swag.assert(modalResult == Dialog.BtnOk)
+    Swag.require(modalResult == Dialog.BtnOk)
 
     // The message runs several times the width of the host; the box it opened does not.
-    Swag.assert(width != 0)
-    Swag.assert(width <= 700)
+    Swag.require(width != 0)
+    Swag.require(width <= 700)
 }
 
 // A box nobody is going to answer fails the test at once, naming its title and its message,
@@ -90,17 +90,17 @@ func unbreakableMessage()->String
 
     let before = host.app.timing.frameCount
     let caught = Swag.catchPanic(func|host = &host|() { MessageDlg.error(&host.surface, "The file is gone") })
-    Swag.assert(caught.raised)
-    Swag.assert(host.app.timing.frameCount - before <= 2)
+    Swag.require(caught.raised)
+    Swag.require(host.app.timing.frameCount - before <= 2)
 
     let text = caught.message()
-    Swag.assert(Utf8.contains(text, strings().dlg_ErrorTitle))
-    Swag.assert(Utf8.contains(text, "The file is gone"))
-    Swag.assert(host.app.modalSurfaces.isEmpty() and host.app.inModalLoop == 0)
-    Swag.assert(not host.surface.isDisabled)
+    Swag.require(Utf8.contains(text, strings().dlg_ErrorTitle))
+    Swag.require(Utf8.contains(text, "The file is gone"))
+    Swag.require(host.app.modalSurfaces.isEmpty() and host.app.inModalLoop == 0)
+    Swag.require(not host.surface.isDisabled)
 
     // Armed, the same box is answered.
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     MessageDlg.error(&host.surface, "The file is gone")
-    Swag.assert(host.autoHandled)
+    Swag.require(host.autoHandled)
 }

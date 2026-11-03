@@ -36,7 +36,7 @@ func borrowedDequeEnds(values: Deque'DequeBorrowedItem)->s32
             values.pushBack(#move last)
         }
 
-        Swag.assert(borrowedDequeEnds(values) == 12)
+        Swag.require(borrowedDequeEnds(values) == 12)
     }
 }
 
@@ -62,16 +62,16 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     values.pushFront(0)
 
     let expected: [4] s32 = [0, 1, 2, 3]
-    Swag.assert(assertDeque(values, expected))
-    Swag.assert(values.front() == 0 and values.back() == 3)
+    Swag.require(assertDeque(values, expected))
+    Swag.require(values.front() == 0 and values.back() == 3)
     values[1] = 10
-    Swag.assert(values[1] == 10)
+    Swag.require(values[1] == 10)
 
-    Swag.assert(values.popFront() == 0)
-    Swag.assert(values.popBack() == 3)
-    Swag.assert(values.popFront() == 10)
-    Swag.assert(values.popBack() == 2)
-    Swag.assert(values.isEmpty())
+    Swag.require(values.popFront() == 0)
+    Swag.require(values.popBack() == 3)
+    Swag.require(values.popFront() == 10)
+    Swag.require(values.popBack() == 2)
+    Swag.require(values.isEmpty())
 }
 
 #test
@@ -80,16 +80,16 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     for value in 32 do
         values.pushBack(cast(s32, value))
     for value in 16 do
-        Swag.assert(values.popFront() == cast(s32, value))
+        Swag.require(values.popFront() == cast(s32, value))
     for value in 16 do
         values.pushFront(-cast(s32, value) - 1)
 
-    Swag.assert(values.count == 32)
+    Swag.require(values.count == 32)
     for value in 16 do
-        Swag.assert(values.popBack() == 31 - cast(s32, value))
+        Swag.require(values.popBack() == 31 - cast(s32, value))
     for value in 16 do
-        Swag.assert(values.popBack() == -cast(s32, value) - 1)
-    Swag.assert(values.isEmpty())
+        Swag.require(values.popBack() == -cast(s32, value) - 1)
+    Swag.require(values.isEmpty())
 }
 
 #test
@@ -100,14 +100,14 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     values.pushBack("back")
 
     var copy = values
-    Swag.assert(copy.popFront() == "front")
-    Swag.assert(copy.popBack() == "back")
-    Swag.assert(values.count == 3 and copy.count == 1)
+    Swag.require(copy.popFront() == "front")
+    Swag.require(copy.popBack() == "back")
+    Swag.require(values.count == 3 and copy.count == 1)
 
     values.clear()
-    Swag.assert(values.isEmpty() and values.capacity() > 0)
+    Swag.require(values.isEmpty() and values.capacity() > 0)
     values.free()
-    Swag.assert(values.capacity() == 0)
+    Swag.require(values.capacity() == 0)
 }
 
 // Borrowing either end must keep every element in its existing storage.
@@ -127,13 +127,13 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
         let first    = &values[0]
         let last     = &values[values.count - 1]
         let capacity = values.capacity()
-        Swag.assert(values.frontPtr() == first)
-        Swag.assert(values.backPtr() == last)
-        Swag.assert(values.capacity() == capacity)
+        Swag.require(values.frontPtr() == first)
+        Swag.require(values.backPtr() == last)
+        Swag.require(values.capacity() == capacity)
         values.frontPtr()[] = 10
         values.backPtr()[]  = 20
-        Swag.assert(values.popFront() == 10)
-        Swag.assert(values.popBack() == 20)
+        Swag.require(values.popFront() == 10)
+        Swag.require(values.popBack() == 20)
     }
 }
 
@@ -151,8 +151,8 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
         for requested in [0'u64, 1'u64, capacity]
         {
             values.reserve(requested)
-            Swag.assert(values.count == 1 and values.capacity() >= capacity)
-            Swag.assert(values.front() == 42 and values.back() == 42)
+            Swag.require(values.count == 1 and values.capacity() >= capacity)
+            Swag.require(values.front() == 42 and values.back() == 42)
         }
     }
 }

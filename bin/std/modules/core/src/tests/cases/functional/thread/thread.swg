@@ -45,8 +45,8 @@ func waitManyThreads(threads: [..] Threading.Thread)
     discard expect thread.start()
     thread.wait()
 
-    Swag.assert(initPriority == THREAD_PRIORITY_ABOVE_NORMAL)
-    Swag.assert(updatedPriority == THREAD_PRIORITY_HIGHEST)
+    Swag.require(initPriority == THREAD_PRIORITY_ABOVE_NORMAL)
+    Swag.require(updatedPriority == THREAD_PRIORITY_HIGHEST)
 }
 
 #test
@@ -73,7 +73,7 @@ func waitManyThreads(threads: [..] Threading.Thread)
     let completedAfterWait = Atomic.get(&doneCount)
     waitUntilDone(&doneCount)
 
-    Swag.assert(completedAfterWait == WaitManyExpectedDoneCount)
+    Swag.require(completedAfterWait == WaitManyExpectedDoneCount)
 }
 
 // Independent owners share an auto-reset event, including a signal sent before opening.
@@ -84,17 +84,17 @@ func waitManyThreads(threads: [..] Threading.Thread)
     expect first.initNamed(name, initState: true)
     expect second.initNamed(name, manual: true)
     expect distinct.initNamed(Format.toString("%.other", name))
-    Swag.assert(first.isValid() and second.isValid())
-    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
-    Swag.assert((expect WaitForSingleObject(first.handle, 0)) == WAIT_TIMEOUT)
+    Swag.require(first.isValid() and second.isValid())
+    Swag.require((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.require((expect WaitForSingleObject(first.handle, 0)) == WAIT_TIMEOUT)
     first.signal()
-    Swag.assert((expect WaitForSingleObject(distinct.handle, 0)) == WAIT_TIMEOUT)
-    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.require((expect WaitForSingleObject(distinct.handle, 0)) == WAIT_TIMEOUT)
+    Swag.require((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
     first.release()
     first.release()
-    Swag.assert(not first.isValid())
+    Swag.require(not first.isValid())
     second.signal()
-    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.require((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
 }
 
 #test
@@ -108,19 +108,19 @@ func waitManyThreads(threads: [..] Threading.Thread)
             rejected = true
         }
 
-        Swag.assert(rejected and not event.isValid())
+        Swag.require(rejected and not event.isValid())
     }
 
     let name = Format.toString("Swag.Event.Manual.%", Guid128.random().toString())
     expect event.initNamed(name, manual: true)
     var second: Sync.Event
     expect second.initNamed(name, initState: true)
-    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
+    Swag.require((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
     event.signal()
-    Swag.assert((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
-    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_OBJECT_0)
+    Swag.require((expect WaitForSingleObject(second.handle, 0)) == WAIT_OBJECT_0)
+    Swag.require((expect WaitForSingleObject(event.handle, 0)) == WAIT_OBJECT_0)
     second.reset()
-    Swag.assert((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
+    Swag.require((expect WaitForSingleObject(event.handle, 0)) == WAIT_TIMEOUT)
 }
 
 // Reusing an owner must apply its priority to the new native thread each time.
@@ -133,6 +133,6 @@ func waitManyThreads(threads: [..] Threading.Thread)
         let priority = expect GetThreadPriority(cast(HANDLE, thread.handle))
         expect thread.start()
         thread.wait()
-        Swag.assert(priority == THREAD_PRIORITY_HIGHEST)
+        Swag.require(priority == THREAD_PRIORITY_HIGHEST)
     }
 }

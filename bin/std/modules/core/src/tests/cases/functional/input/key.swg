@@ -5,27 +5,27 @@ using Swag
 
 func assertKey(key: Input.Key, index: u32)
 {
-    Swag.assert(cast(u32, key) == index)
+    Swag.require(cast(u32, key) == index)
 }
 
 #test
 {
     var virtualKey: Input.VirtualKey = 42
-    Swag.assert(virtualKey == 42)
+    Swag.require(virtualKey == 42)
 
-    Swag.assert(cast(u32, Input.KeyModifiers.None) == 0)
-    Swag.assert(cast(u32, Input.KeyModifiers.Shift) == 1)
-    Swag.assert(cast(u32, Input.KeyModifiers.Control) == 2)
-    Swag.assert(cast(u32, Input.KeyModifiers.Alt) == 4)
-    Swag.assert(Input.KeyModifiers.CtrlShift == (Input.KeyModifiers.Control | Input.KeyModifiers.Shift))
-    Swag.assert(Input.KeyModifiers.CtrlAlt == (Input.KeyModifiers.Control | Input.KeyModifiers.Alt))
+    Swag.require(cast(u32, Input.KeyModifiers.None) == 0)
+    Swag.require(cast(u32, Input.KeyModifiers.Shift) == 1)
+    Swag.require(cast(u32, Input.KeyModifiers.Control) == 2)
+    Swag.require(cast(u32, Input.KeyModifiers.Alt) == 4)
+    Swag.require(Input.KeyModifiers.CtrlShift == (Input.KeyModifiers.Control | Input.KeyModifiers.Shift))
+    Swag.require(Input.KeyModifiers.CtrlAlt == (Input.KeyModifiers.Control | Input.KeyModifiers.Alt))
 }
 
 #test
 {
     using Input.Key
 
-    Swag.assert(Input.Key.count == 186)
+    Swag.require(Input.Key.count == 186)
 
     assertKey(None, 0)
     assertKey(A, 1)
@@ -217,29 +217,29 @@ func assertKey(key: Input.Key, index: u32)
 
 #test
 {
-    Swag.assert(Input.formatKeyShortcut(.None, .A) == "A")
-    Swag.assert(Input.formatKeyShortcut(.Alt, .A) == "Alt A")
-    Swag.assert(Input.formatKeyShortcut(.Control, .A) == "Ctrl A")
-    Swag.assert(Input.formatKeyShortcut(.Shift, .A) == "Shift A")
-    Swag.assert(Input.formatKeyShortcut(.CtrlShift, .A) == "Ctrl Shift A")
-    Swag.assert(Input.formatKeyShortcut(.CtrlAlt, .A) == "Alt Ctrl A")
-    Swag.assert(Input.formatKeyShortcut(.Alt | .Shift, .A) == "Alt Shift A")
+    Swag.require(Input.formatKeyShortcut(.None, .A) == "A")
+    Swag.require(Input.formatKeyShortcut(.Alt, .A) == "Alt A")
+    Swag.require(Input.formatKeyShortcut(.Control, .A) == "Ctrl A")
+    Swag.require(Input.formatKeyShortcut(.Shift, .A) == "Shift A")
+    Swag.require(Input.formatKeyShortcut(.CtrlShift, .A) == "Ctrl Shift A")
+    Swag.require(Input.formatKeyShortcut(.CtrlAlt, .A) == "Alt Ctrl A")
+    Swag.require(Input.formatKeyShortcut(.Alt | .Shift, .A) == "Alt Shift A")
 
-    Swag.assert(Input.formatKeyShortcut(.Control, .D0) == "Ctrl 0")
-    Swag.assert(Input.formatKeyShortcut(.Control, .OemPlus) == "Ctrl +")
-    Swag.assert(Input.formatKeyShortcut(.Control, .OemMinus) == "Ctrl -")
-    Swag.assert(Input.formatKeyShortcut(.None, .PrintScreen) == "Print Screen")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad0) == "0")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad1) == "1")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad2) == "2")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad3) == "3")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad4) == "4")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad5) == "5")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad6) == "6")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad7) == "7")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad8) == "8")
-    Swag.assert(Input.formatKeyShortcut(.None, .NumPad9) == "9")
-    Swag.assert(Input.formatKeyShortcut(.None, .Add) == "+")
-    Swag.assert(Input.formatKeyShortcut(.None, .Subtract) == "-")
-    Swag.assert(Input.formatKeyShortcut(.None, .F10) == "F10")
+    Swag.require(Input.formatKeyShortcut(.Control, .D0) == "Ctrl 0")
+    Swag.require(Input.formatKeyShortcut(.Control, .OemPlus) == "Ctrl +")
+    Swag.require(Input.formatKeyShortcut(.Control, .OemMinus) == "Ctrl -")
+    Swag.require(Input.formatKeyShortcut(.None, .PrintScreen) == "Print Screen")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad0) == "0")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad1) == "1")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad2) == "2")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad3) == "3")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad4) == "4")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad5) == "5")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad6) == "6")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad7) == "7")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad8) == "8")
+    Swag.require(Input.formatKeyShortcut(.None, .NumPad9) == "9")
+    Swag.require(Input.formatKeyShortcut(.None, .Add) == "+")
+    Swag.require(Input.formatKeyShortcut(.None, .Subtract) == "-")
+    Swag.require(Input.formatKeyShortcut(.None, .F10) == "F10")
 }

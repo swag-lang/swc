@@ -8,17 +8,17 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("rav1e-c420jpeg.y4m"))
-    Swag.assert(reader.width() == 64 and reader.height() == 64)
-    Swag.assert(reader.frameRate() == expect FrameRate.create(25, 1))
-    Swag.assert(reader.frameCount() == 5)
-    Swag.assert(reader.streamFormat().extensions == ".y4m")
+    Swag.require(reader.width() == 64 and reader.height() == 64)
+    Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
+    Swag.require(reader.frameCount() == 5)
+    Swag.require(reader.streamFormat().extensions == ".y4m")
 
     let first = expect reader.decodeFrame(0)
     let last  = expect reader.decodeFrame(4)
-    Swag.assert(first.isValid() and last.isValid())
+    Swag.require(first.isValid() and last.isValid())
     videoAssertColor(first.pixelColor(0, 0), 36, 41, 53, tolerance: 0)
     videoAssertColor(first.pixelColor(32, 32), 173, 218, 253, tolerance: 0)
-    Swag.assert(last.pixelColor(0, 0) != last.pixelColor(32, 32))
+    Swag.require(last.pixelColor(0, 0) != last.pixelColor(32, 32))
 }
 
 // The plane layouts a real encoder writes, read from streams ffmpeg produced.
@@ -28,8 +28,8 @@ using Core, Core.Errors, Pixel
     for file in Files
     {
         var reader = expect Reader.open(videoFixturePath(file))
-        Swag.assert(reader.width() == 32 and reader.height() == 24)
-        Swag.assert(reader.frameCount() == 3)
+        Swag.require(reader.width() == 32 and reader.height() == 24)
+        Swag.require(reader.frameCount() == 3)
 
         var frame: Image
         for index in 3'u64
@@ -41,12 +41,12 @@ using Core, Core.Errors, Pixel
 
     // A broadcast rate stays a ratio, and never becomes 29.97.
     var broadcast = expect Reader.open(videoFixturePath("ffmpeg-ntsc-c420.y4m"))
-    Swag.assert(broadcast.frameRate() == expect FrameRate.create(30_000, 1_001))
+    Swag.require(broadcast.frameRate() == expect FrameRate.create(30_000, 1_001))
 
     // A monochrome stream keeps the luma of each quadrant and loses its colour. This one also
     // carries the full-range tag, which is the other conversion the decoder implements.
     var mono = expect Reader.open(videoFixturePath("ffmpeg-mono.y4m"))
-    Swag.assert(mono.width() == 32 and mono.height() == 24 and mono.frameCount() == 3)
+    Swag.require(mono.width() == 32 and mono.height() == 24 and mono.frameCount() == 3)
     for index in 3'u64 do
         videoAssertFixtureLumaFrame(expect mono.decodeFrame(index), index, tolerance: 4)
 }
@@ -59,9 +59,9 @@ using Core, Core.Errors, Pixel
 #test
 {
     var claire = expect Reader.open(videoFixturePath("xiph-claire-qcif.y4m"))
-    Swag.assert(claire.width() == 176 and claire.height() == 144)
-    Swag.assert(claire.frameCount() == 30)
-    Swag.assert(claire.frameRate() == expect FrameRate.create(6_000, 1_001))
+    Swag.require(claire.width() == 176 and claire.height() == 144)
+    Swag.require(claire.frameCount() == 30)
+    Swag.require(claire.frameRate() == expect FrameRate.create(6_000, 1_001))
 
     var frame: Image
     expect claire.decodeFrameInto(&frame, 0)
@@ -71,10 +71,10 @@ using Core, Core.Errors, Pixel
     videoAssertColor(frame.pixelColor(132, 108), 0, 4, 109, tolerance: 4)
 
     var bus = expect Reader.open(videoFixturePath("xiph-bus-qcif-15fps.y4m"))
-    Swag.assert(bus.width() == 176 and bus.height() == 144)
-    Swag.assert(bus.frameCount() == 75)
-    Swag.assert(bus.frameRate() == expect FrameRate.create(15, 1))
-    Swag.assert(Math.isEqualEpsilon(bus.durationInSeconds(), 5.0, 0.0001))
+    Swag.require(bus.width() == 176 and bus.height() == 144)
+    Swag.require(bus.frameCount() == 75)
+    Swag.require(bus.frameRate() == expect FrameRate.create(15, 1))
+    Swag.require(Math.isEqualEpsilon(bus.durationInSeconds(), 5.0, 0.0001))
 
     // Reading the last frame first, then the first, proves the computed offsets rather than a
     // decoder that only ever walks forward.
@@ -103,9 +103,9 @@ using Core, Core.Errors, Pixel
 #test
 {
     let rate = expect FrameRate.create(30_000, 1_001)
-    Swag.assert(rate.numerator() == 30_000)
-    Swag.assert(rate.denominator() == 1_001)
-    Swag.assert(rate.framesPerSecond() > 29.97 and rate.framesPerSecond() < 29.971)
+    Swag.require(rate.numerator() == 30_000)
+    Swag.require(rate.denominator() == 1_001)
+    Swag.require(rate.framesPerSecond() > 29.97 and rate.framesPerSecond() < 29.971)
 
     var zeroNumeratorOutcome: Swag.Error
     discard catch FrameRate.create(0, 1) as zeroNumeratorOutcome
@@ -113,8 +113,8 @@ using Core, Core.Errors, Pixel
     var zeroDenominatorOutcome: Swag.Error
     discard catch FrameRate.create(1, 0) as zeroDenominatorOutcome
     let zeroDenominator = zeroDenominatorOutcome.value()
-    Swag.assert((zeroNumerator is BadParameterError))
-    Swag.assert((zeroDenominator is BadParameterError))
+    Swag.require((zeroNumerator is BadParameterError))
+    Swag.require((zeroDenominator is BadParameterError))
 }
 
 #test
@@ -140,8 +140,8 @@ using Core, Core.Errors, Pixel
     bytes.add([145'u8, 54, 34])
 
     var reader = expect Reader.openMemory("parameters.y4m", bytes.toSlice())
-    Swag.assert(not reader.frameCount())
-    Swag.assert(reader.durationInSeconds() == 0)
+    Swag.require(not reader.frameCount())
+    Swag.require(reader.durationInSeconds() == 0)
 
     let red = expect reader.decodeFrame(0)
     videoAssertColor(red.pixelColor(0, 0), 255, 0, 0)
@@ -153,7 +153,7 @@ using Core, Core.Errors, Pixel
     var endOfStreamOutcome: Swag.Error
     discard catch reader.decodeFrame(2) as endOfStreamOutcome
     let endOfStream = endOfStreamOutcome.value()
-    Swag.assert(endOfStream != null)
+    Swag.require(endOfStream != null)
 
     // Seeking backwards rewinds and walks forward again.
     let again = expect reader.decodeFrame(0)
@@ -174,7 +174,7 @@ using Core, Core.Errors, Pixel
 
     // The truncated tail is not a frame, and the stream no longer tiles, so it is walked.
     var reader = expect Reader.openMemory("truncated.y4m", bytes.toSlice())
-    Swag.assert(not reader.frameCount())
+    Swag.require(not reader.frameCount())
 
     let red = expect reader.decodeFrame(0)
     videoAssertColor(red.pixelColor(0, 0), 255, 0, 0)
@@ -185,8 +185,8 @@ using Core, Core.Errors, Pixel
     var truncatedAgainOutcome: Swag.Error
     discard catch reader.decodeFrame(1) as truncatedAgainOutcome
     let truncatedAgain = truncatedAgainOutcome.value()
-    Swag.assert((truncated is InvalidFormatError))
-    Swag.assert((truncatedAgain is InvalidFormatError))
+    Swag.require((truncated is InvalidFormatError))
+    Swag.require((truncatedAgain is InvalidFormatError))
 
     let again = expect reader.decodeFrame(0)
     videoAssertColor(again.pixelColor(0, 0), 255, 0, 0)
@@ -202,12 +202,12 @@ using Core, Core.Errors, Pixel
 
     let encoded = expect clip.encodeToBytes("sample.y4m")
     let header  = "YUV4MPEG2 W2 H1 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\nFRAME\n"
-    Swag.assert(encoded.count == header.count + 6)
-    Swag.assert(Swag.makeString(encoded.buffer, header.count) == header)
+    Swag.require(encoded.count == header.count + 6)
+    Swag.require(Swag.makeString(encoded.buffer, header.count) == header)
     let payload = encoded.toSlice()[header.count until encoded.count]
     const ExpectedPayload: [6] u8 = [16, 235, 128, 128, 128, 128]
     for value, index in ExpectedPayload do
-        Swag.assert(payload[index] == value)
+        Swag.require(payload[index] == value)
 }
 
 #test
@@ -223,15 +223,15 @@ using Core, Core.Errors, Pixel
                                        255, 0, 255, 16, 24, 32])
     expect source.addFrame(first)
     expect source.addFrame(second)
-    Swag.assert(source.frameCount() == 2)
-    Swag.assert((expect source.frame(1)).pixelColor(1, 0) == second.pixelColor(1, 0))
+    Swag.require(source.frameCount() == 2)
+    Swag.require((expect source.frame(1)).pixelColor(1, 0) == second.pixelColor(1, 0))
 
     let bytes   = expect source.encodeToBytes("roundtrip.y4m")
     var decoded = expect Reader.openMemory("roundtrip.y4m", bytes.toSlice())
-    Swag.assert(decoded.isOpen())
-    Swag.assert(decoded.width() == 2 and decoded.height() == 2)
-    Swag.assert(decoded.frameCount() == 2)
-    Swag.assert(decoded.durationInSeconds() == 2.0 / 24.0)
+    Swag.require(decoded.isOpen())
+    Swag.require(decoded.width() == 2 and decoded.height() == 2)
+    Swag.require(decoded.frameCount() == 2)
+    Swag.require(decoded.durationInSeconds() == 2.0 / 24.0)
 
     let frame0 = expect decoded.decodeFrame(0)
     let frame1 = expect decoded.decodeFrame(1)
@@ -253,14 +253,14 @@ using Core, Core.Errors, Pixel
     expect source.save(fileName)
 
     var loaded = expect Reader.open(fileName)
-    Swag.assert(loaded.sourcePath() == fileName.toString())
-    Swag.assert(loaded.frameCount() == 1)
+    Swag.require(loaded.sourcePath() == fileName.toString())
+    Swag.require(loaded.frameCount() == 1)
     let frame = expect loaded.decodeFrame(0)
     videoAssertColor(frame.pixelColor(0, 0), 40, 120, 220)
 
     // Closing releases the file while the reader value is still alive.
     loaded.close()
-    Swag.assert(not loaded.isOpen())
+    Swag.require(not loaded.isOpen())
 }
 
 #test
@@ -280,11 +280,11 @@ using Core, Core.Errors, Pixel
     var mp4HeaderOutcome: Swag.Error
     discard catch Reader.openMemory("bad.mp4", "") as mp4HeaderOutcome
     let mp4Header = mp4HeaderOutcome.value()
-    Swag.assert((missingHeader is InvalidFormatError))
-    Swag.assert((chroma is UnsupportedFormatError))
-    Swag.assert((truncated is InvalidFormatError))
-    Swag.assert((noFrame is InvalidFormatError))
-    Swag.assert((mp4Header is InvalidFormatError))
+    Swag.require((missingHeader is InvalidFormatError))
+    Swag.require((chroma is UnsupportedFormatError))
+    Swag.require((truncated is InvalidFormatError))
+    Swag.require((noFrame is InvalidFormatError))
+    Swag.require((mp4Header is InvalidFormatError))
 
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(2, 2, rate)
@@ -297,33 +297,33 @@ using Core, Core.Errors, Pixel
     var emptyMp4Outcome: Swag.Error
     discard catch clip.encode("empty.mp4") as emptyMp4Outcome
     let emptyMp4 = emptyMp4Outcome.value()
-    Swag.assert((dimensions is BadParameterError))
-    Swag.assert((empty is InvalidFormatError))
-    Swag.assert((emptyMp4 is InvalidFormatError))
+    Swag.require((dimensions is BadParameterError))
+    Swag.require((empty is InvalidFormatError))
+    Swag.require((emptyMp4 is InvalidFormatError))
 }
 
 // The registry is the only thing that decides which extensions the module reads and writes.
 #test
 {
-    Swag.assert(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
-    Swag.assert(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
-    Swag.assert(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
-    Swag.assert(not Reader.canOpen("clip") and not Reader.canOpen(""))
-    Swag.assert(Writer.canCreate("clip.y4m") and
-                Writer.canCreate("clip.avi") and
-                Writer.canCreate("clip.mp4") and
-                not Writer.canCreate("clip.mkv"))
+    Swag.require(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
+    Swag.require(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
+    Swag.require(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
+    Swag.require(not Reader.canOpen("clip") and not Reader.canOpen(""))
+    Swag.require(Writer.canCreate("clip.y4m") and
+                 Writer.canCreate("clip.avi") and
+                 Writer.canCreate("clip.mp4") and
+                 not Writer.canCreate("clip.mkv"))
 
     // The three writable formats are readable in the same order; Matroska is the read-only
     // container that follows them.
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
-    Swag.assert(decodable.count == 4 and encodable.count == 3)
+    Swag.require(decodable.count == 4 and encodable.count == 3)
     for index in encodable.count do
-        Swag.assert(decodable[index].name == encodable[index].name)
-    Swag.assert(decodable[0].matches("a.y4m") and
-                decodable[1].matches("a.avi") and
-                decodable[2].matches("a.mp4") and
-                decodable[2].matches("a.MOV"))
-    Swag.assert(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
+        Swag.require(decodable[index].name == encodable[index].name)
+    Swag.require(decodable[0].matches("a.y4m") and
+                 decodable[1].matches("a.avi") and
+                 decodable[2].matches("a.mp4") and
+                 decodable[2].matches("a.MOV"))
+    Swag.require(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
 }

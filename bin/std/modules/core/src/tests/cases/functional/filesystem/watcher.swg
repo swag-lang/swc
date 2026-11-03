@@ -42,7 +42,7 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
     var errOutcome: Swag.Error
     discard catch Directory.watch(".", options) as errOutcome
-    Swag.assert(errOutcome.value() is Errors.BadParameterError)
+    Swag.require(errOutcome.value() is Errors.BadParameterError)
 }
 
 #test
@@ -57,14 +57,14 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
     let first = Path.combine(root, "before.txt")
     discard expect File.writeAllBytes(first, ['a'u8])
-    Swag.assert(expect waitForWatchChange(&watcher, .Added, first.toString()))
+    Swag.require(expect waitForWatchChange(&watcher, .Added, first.toString()))
 
     let second = Path.combine(root, "after.txt")
     expect File.move(second, first)
-    Swag.assert(expect waitForWatchChange(&watcher, .Renamed, second.toString(), first.toString()))
+    Swag.require(expect waitForWatchChange(&watcher, .Renamed, second.toString(), first.toString()))
 
     watcher.cancel()
-    Swag.assert((expect watcher.next(0)).status == .Cancelled)
+    Swag.require((expect watcher.next(0)).status == .Cancelled)
     watcher.close()
 }
 
@@ -82,5 +82,5 @@ func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.ChangeKind,
 
     let batch = expect watcher.next()
     thread.wait()
-    Swag.assert(batch.status == .Cancelled)
+    Swag.require(batch.status == .Cancelled)
 }

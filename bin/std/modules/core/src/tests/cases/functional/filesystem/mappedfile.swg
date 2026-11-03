@@ -16,19 +16,19 @@
     mapped.close()
     discard expect File.writeAllText(fileName, "short")
     expect File.delete(fileName)
-    Swag.assert(Slice.equals(region.bytes(), source))
+    Swag.require(Slice.equals(region.bytes(), source))
     region.close()
-    Swag.assert(not File.exists(snapshotPath))
+    Swag.require(not File.exists(snapshotPath))
 
     discard expect File.writeAllText(fileName, "")
     var empty       = expect File.MappedFile.openSnapshot(fileName)
     var emptyRegion = expect empty.mapAll()
-    Swag.assert(emptyRegion.isOpen() and not emptyRegion.bytes().count)
+    Swag.require(emptyRegion.isOpen() and not emptyRegion.bytes().count)
 
     discard expect File.writeAllBytes(fileName, source)
     var prefix       = expect File.MappedFile.openSnapshot(fileName, 17)
     var prefixRegion = expect prefix.mapAll()
-    Swag.assert(Slice.equals(prefixRegion.bytes(), source[until 17]))
+    Swag.require(Slice.equals(prefixRegion.bytes(), source[until 17]))
 }
 
 #test
@@ -42,7 +42,7 @@
     discard expect File.writeAllBytes(fileName, source)
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
-    Swag.assert(expect mapped.size() == source.count)
+    Swag.require(expect mapped.size() == source.count)
 
     // The offset deliberately crosses the host allocation-granularity boundary so the public
     // slice starts after the internally aligned native view.
@@ -53,13 +53,13 @@
 
     // A region owns the handles required by flush and remains usable after its source closes.
     mapped.close()
-    Swag.assert(region.bytes()[0] == 0xA1)
+    Swag.require(region.bytes()[0] == 0xA1)
     expect region.flush()
     region.close()
 
     let persisted = expect File.readAllBytes(fileName)
-    Swag.assert(persisted[64 * 1024 - 7] == 0xA1)
-    Swag.assert(persisted[64 * 1024 - 7 + 31] == 0xB2)
+    Swag.require(persisted[64 * 1024 - 7] == 0xA1)
+    Swag.require(persisted[64 * 1024 - 7 + 31] == 0xB2)
 }
 
 #test
@@ -74,12 +74,12 @@
     var region = expect mapped.mapAll()
     region.writableBytes()[3] = 99
     expect region.flush()
-    Swag.assert(region.bytes()[3] == 99)
+    Swag.require(region.bytes()[3] == 99)
     region.close()
     mapped.close()
 
     let persisted = expect File.readAllBytes(fileName)
-    Swag.assert(Slice.equals(persisted.toSlice(), original))
+    Swag.require(Slice.equals(persisted.toSlice(), original))
 }
 
 #test
@@ -91,23 +91,23 @@
 
     var mapped = expect File.MappedFile.open(fileName, .ReadWrite)
     var empty  = expect mapped.map(0, 0)
-    Swag.assert(empty.isOpen())
-    Swag.assert((empty.bytes()).count == 0)
+    Swag.require(empty.isOpen())
+    Swag.require((empty.bytes()).count == 0)
     empty.close()
-    Swag.assert(not empty.isOpen())
+    Swag.require(not empty.isOpen())
 
     expect mapped.resize(8192)
-    Swag.assert(expect mapped.size() == 8192)
+    Swag.require(expect mapped.size() == 8192)
     var rangeErrorOutcome: Swag.Error
     discard catch mapped.map(8190, 4) as rangeErrorOutcome
     let rangeError = rangeErrorOutcome.value()
-    Swag.assert(rangeError != null)
+    Swag.require(rangeError != null)
 
     var region = expect mapped.map(4096, 4096)
     region.writableBytes()[0] = 42
     region.close()
     expect mapped.resize(16 * 1024)
-    Swag.assert(expect mapped.size() == 16 * 1024)
+    Swag.require(expect mapped.size() == 16 * 1024)
 }
 
 // Releasing the pages behind a walk is an accounting hint: the bytes read back unchanged, and
@@ -125,12 +125,12 @@
     var mapped = expect File.MappedFile.open(fileName)
     var region = expect mapped.mapAll()
     let bytes  = region.bytes()
-    Swag.assert(Slice.equals(bytes, source))
+    Swag.require(Slice.equals(bytes, source))
 
     File.MappedRegion.releasePages(bytes[0 until 0])
     File.MappedRegion.releasePages(bytes[1000 until 5000])
     File.MappedRegion.releasePages(bytes)
-    Swag.assert(Slice.equals(bytes, source))
+    Swag.require(Slice.equals(bytes, source))
 
     region.close()
     mapped.close()

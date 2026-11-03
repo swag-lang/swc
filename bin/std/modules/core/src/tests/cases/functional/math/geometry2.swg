@@ -5,24 +5,24 @@ using Swag
 
 func expectVec2(actual, expected: Math.Vector2)
 {
-    Swag.assert(actual.isEqualEpsilon(expected, 0.001))
+    Swag.require(actual.isEqualEpsilon(expected, 0.001))
 }
 
 func expectNear(actual, expected: f32)
 {
-    Swag.assert(Math.isEqualEpsilon(actual, expected, 0.001))
+    Swag.require(Math.isEqualEpsilon(actual, expected, 0.001))
 }
 
 #test
 {
     let center = Math.Vector2{10, 20}
-    Swag.assert(Math.Geometry.ellipseContainsPoint({10, 20}, center, 5, 10))
-    Swag.assert(Math.Geometry.ellipseContainsPoint({15, 20}, center, 5, 10))
-    Swag.assert(Math.Geometry.ellipseContainsPoint({10, 30}, center, 5, 10))
-    Swag.assert(Math.Geometry.ellipseContainsPoint({13, 24}, center, 5, 10))
-    Swag.assert(not Math.Geometry.ellipseContainsPoint({15.1, 20}, center, 5, 10))
-    Swag.assert(not Math.Geometry.ellipseContainsPoint({10, 30.1}, center, 5, 10))
-    Swag.assert(not Math.Geometry.ellipseContainsPoint({14, 28}, center, 5, 10))
+    Swag.require(Math.Geometry.ellipseContainsPoint({10, 20}, center, 5, 10))
+    Swag.require(Math.Geometry.ellipseContainsPoint({15, 20}, center, 5, 10))
+    Swag.require(Math.Geometry.ellipseContainsPoint({10, 30}, center, 5, 10))
+    Swag.require(Math.Geometry.ellipseContainsPoint({13, 24}, center, 5, 10))
+    Swag.require(not Math.Geometry.ellipseContainsPoint({15.1, 20}, center, 5, 10))
+    Swag.require(not Math.Geometry.ellipseContainsPoint({10, 30.1}, center, 5, 10))
+    Swag.require(not Math.Geometry.ellipseContainsPoint({14, 28}, center, 5, 10))
 }
 
 #test
@@ -31,16 +31,16 @@ func expectNear(actual, expected: f32)
     let b = Math.Vector2{10, 0}
     let c = Math.Vector2{0, 10}
 
-    Swag.assert(Math.Geometry.triangleContainsPoint({1, 1}, a, b, c))
-    Swag.assert(Math.Geometry.triangleContainsPoint(a, a, b, c))
-    Swag.assert(Math.Geometry.triangleContainsPoint({5, 0}, a, b, c))
-    Swag.assert(Math.Geometry.triangleContainsPoint({0, 5}, a, b, c))
-    Swag.assert(Math.Geometry.triangleContainsPoint({5, 5}, a, b, c))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({6, 5}, a, b, c))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({-1, 1}, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint({1, 1}, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint(a, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint({5, 0}, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint({0, 5}, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint({5, 5}, a, b, c))
+    Swag.require(not Math.Geometry.triangleContainsPoint({6, 5}, a, b, c))
+    Swag.require(not Math.Geometry.triangleContainsPoint({-1, 1}, a, b, c))
 
-    Swag.assert(Math.Geometry.triangleContainsPoint({1, 1}, a, c, b))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({6, 5}, a, c, b))
+    Swag.require(Math.Geometry.triangleContainsPoint({1, 1}, a, c, b))
+    Swag.require(not Math.Geometry.triangleContainsPoint({6, 5}, a, c, b))
 }
 
 #test
@@ -49,11 +49,11 @@ func expectNear(actual, expected: f32)
     let b = Math.Vector2{5, 0}
     let c = Math.Vector2{10, 0}
 
-    Swag.assert(Math.Geometry.triangleContainsPoint({7, 0}, a, b, c))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({7, 1}, a, b, c))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({11, 0}, a, b, c))
-    Swag.assert(Math.Geometry.triangleContainsPoint(a, a, a, a))
-    Swag.assert(not Math.Geometry.triangleContainsPoint({4, 4}, a, a, a))
+    Swag.require(Math.Geometry.triangleContainsPoint({7, 0}, a, b, c))
+    Swag.require(not Math.Geometry.triangleContainsPoint({7, 1}, a, b, c))
+    Swag.require(not Math.Geometry.triangleContainsPoint({11, 0}, a, b, c))
+    Swag.require(Math.Geometry.triangleContainsPoint(a, a, a, a))
+    Swag.require(not Math.Geometry.triangleContainsPoint({4, 4}, a, a, a))
 }
 
 #test
@@ -99,55 +99,55 @@ func expectNear(actual, expected: f32)
 #test
 {
     let lineCross = Math.Geometry.intersectLines({0, 0}, {10, 10}, {0, 10}, {10, 0})
-    Swag.assert(lineCross.intersects)
+    Swag.require(lineCross.intersects)
     expectVec2(lineCross.point, {5, 5})
 
     let lineParallel = Math.Geometry.intersectLines({0, 0}, {10, 0}, {0, 1}, {10, 1})
-    Swag.assert(not lineParallel.intersects)
+    Swag.require(not lineParallel.intersects)
 
     let lineCollinear = Math.Geometry.intersectLines({0, 0}, {10, 0}, {2, 0}, {8, 0})
-    Swag.assert(not lineCollinear.intersects)
+    Swag.require(not lineCollinear.intersects)
 }
 
 #test
 {
     let cross = Math.Geometry.intersectSegments({0, 0}, {10, 10}, {0, 10}, {10, 0})
-    Swag.assert(cross.intersects)
+    Swag.require(cross.intersects)
     expectVec2(cross.point, {5, 5})
 
     let touch = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {10, 0}, {10, 5})
-    Swag.assert(touch.intersects)
+    Swag.require(touch.intersects)
     expectVec2(touch.point, {10, 0})
 
     let outside = Math.Geometry.intersectSegments({0, 0}, {1, 1}, {2, 0}, {2, 4})
-    Swag.assert(not outside.intersects)
+    Swag.require(not outside.intersects)
 
     let sideBySide = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {0, 1}, {10, 1})
-    Swag.assert(not sideBySide.intersects)
+    Swag.require(not sideBySide.intersects)
 
     let collinearOverlap = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {4, 0}, {12, 0})
-    Swag.assert(collinearOverlap.intersects)
+    Swag.require(collinearOverlap.intersects)
     expectVec2(collinearOverlap.point, {4, 0})
 
     let collinearDisjoint = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {12, 0}, {15, 0})
-    Swag.assert(not collinearDisjoint.intersects)
+    Swag.require(not collinearDisjoint.intersects)
 }
 
 // Horizontal edges do not divide by zero, and winding does not change inside/outside.
 #test
 {
     var polygon: Array'Math.Vector2
-    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
 
     polygon.add({0, 0})
     polygon.add({10, 0})
     polygon.add({10, 10})
     polygon.add({0, 10})
-    Swag.assert(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
-    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
-    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {5, -1}))
+    Swag.require(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {5, -1}))
 
     Slice.reverse(polygon.toSlice())
-    Swag.assert(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
-    Swag.assert(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
+    Swag.require(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
 }

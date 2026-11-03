@@ -57,7 +57,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
     discard expect face.renderGlyphMsdf(8)
 
     let bitmap = &face.glyph.bitmap
-    Swag.assert(countMsdfSignMismatches(bitmap) == 0)
+    Swag.require(countMsdfSignMismatches(bitmap) == 0)
 
     let col = cast(u64, (x - face.glyph.bitmapLeft))
     let row = cast(u64, (face.glyph.bitmapTop - y))
@@ -85,7 +85,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
         discard expect face.loadChar(cast(rune, c))
         discard expect face.glyph.outline.embolden(3 * 64)
         discard expect face.renderGlyphMsdf(8)
-        Swag.assert(countMsdfSignMismatches(&face.glyph.bitmap) == 0)
+        Swag.require(countMsdfSignMismatches(&face.glyph.bitmap) == 0)
     }
 }
 
@@ -101,8 +101,8 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [640, 640, 1920, 1920]]
     let texel = renderSquares(face, squares, 15.5, 15.5)
-    Swag.assert(texel.median > 128)
-    Swag.assert(texel.alpha >= 239)
+    Swag.require(texel.median > 128)
+    Swag.require(texel.alpha >= 239)
 }
 
 // A contour nested inside another, wound the same way, adds nothing to the fill and bounds
@@ -116,6 +116,6 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [320, 320, 960, 960]]
     let texel = renderSquares(face, squares, 4.5, 10.5)
-    Swag.assert(texel.median > 128)
-    Swag.assert(texel.alpha >= 198)
+    Swag.require(texel.median > 128)
+    Swag.require(texel.alpha >= 198)
 }

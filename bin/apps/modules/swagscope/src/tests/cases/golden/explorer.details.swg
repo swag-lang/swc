@@ -41,15 +41,15 @@ using Core, Gui, Pixel
         explorer.show()
         window.applyLayout()
 
-        Swag.assert(explorer.list.header.items.count == 5)
-        Swag.assert(explorer.list.header.itemAt(4).name.raw == appStrings().explore_Duration)
+        Swag.require(explorer.list.header.items.count == 5)
+        Swag.require(explorer.list.header.itemAt(4).name.raw == appStrings().explore_Duration)
         let fillLine = unwrap explorer.list.onFillVirtualLine
         var first:  ListLine
         var second: ListLine
         fillLine(explorer.list, &first, 0)
         fillLine(explorer.list, &second, 1)
-        Swag.assert(first.itemAt(4).name.raw == "1:57:00")
-        Swag.assert(second.itemAt(4).name.raw == "3:57")
+        Swag.require(first.itemAt(4).name.raw == "1:57:00")
+        Swag.require(second.itemAt(4).name.raw == "3:57")
         let image = host.render(window)
         let name  = language == "fr" ? "explorer.details.paper.fr" : "explorer.details.paper"
         Pixel.Testing.assertImageGolden(&image, name)

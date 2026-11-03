@@ -45,7 +45,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
         return true
     })
 
-    Swag.assert(decoded.count == sound.sampleFrameCount() * sound.numChannels())
+    Swag.require(decoded.count == sound.sampleFrameCount() * sound.numChannels())
     var visible: bool
     for sample in decoded where Math.abs(cast(s32, sample)) > 256
     {
@@ -53,7 +53,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
         break
     }
 
-    Swag.assert(visible)
+    Swag.require(visible)
 }
 
 // Packetized MP3 playback advances the same public cursor the player polls for its timeline.
@@ -68,7 +68,7 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     defer voice.destroy()
     discard expect voice.play(.Loop)
     discard expect voice.updateNoSound()
-    Swag.assert(voice.playbackSampleFrame() > 0 and voice.playbackSampleFrame() < sound.sampleFrameCount())
+    Swag.require(voice.playbackSampleFrame() > 0 and voice.playbackSampleFrame() < sound.sampleFrameCount())
 }
 
 // Compares a decode against FFmpeg's, the way the standard's own compliance criterion does.
@@ -80,8 +80,8 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
 private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 {
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.mp3", name).toString()).toString())
-    Swag.assert(sound.sampleEncoding() == .Mp3)
-    Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
+    Swag.require(sound.sampleEncoding() == .Mp3)
+    Swag.require(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
 
     let decoded = expect mp3DecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
@@ -89,9 +89,9 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     // The reader states the priming the encoder added; what a player hears starts after it.
     let skip     = sound.leadingTrim * cast(u64, channels)
     let wantedAt = cast(const [*] s16, wanted.storage())
-    Swag.assert(decoded.count > skip)
+    Swag.require(decoded.count > skip)
     let count = Math.min(decoded.count - skip, wanted.count / #sizeof(s16))
-    Swag.assert(count > cast(u64, sampleRate) / 8)
+    Swag.require(count > cast(u64, sampleRate) / 8)
 
     var energy = 0.0'f64
     var worst  = 0.0'f64
@@ -105,7 +105,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     let rms = Math.sqrt(energy / cast(f64, count)) / 32768.0'f64
     if rms > 0.001'f64 do
         Swag.print("mp3 ", name, ": rms ", rms, " over ", count, " samples, worst ", worst, "\n")
-    Swag.assert(rms <= 0.001'f64)
+    Swag.require(rms <= 0.001'f64)
 }
 
 // MPEG-1 Layer III, joint stereo, 44.1 kHz: the shape almost every music file has, with an ID3v2
@@ -155,14 +155,14 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 #test
 {
     var tagged = expect SoundFile.load(audioGetTestDataPath("mp3-stereo-44100.mp3").toString())
-    Swag.assert(tagged.isPacketStream() and not tagged.isDataPreloaded())
-    Swag.assert((expect tagged.packet(0)).sampleFrameCount == 1152)
-    Swag.assert(tagged.leadingTrim == 1105)
-    Swag.assert(tagged.speakerChannelMask() == 0x0003)
+    Swag.require(tagged.isPacketStream() and not tagged.isDataPreloaded())
+    Swag.require((expect tagged.packet(0)).sampleFrameCount == 1152)
+    Swag.require(tagged.leadingTrim == 1105)
+    Swag.require(tagged.speakerChannelMask() == 0x0003)
 
     var bare = expect SoundFile.load(audioGetTestDataPath("mp3-mono-22050.mp3").toString())
-    Swag.assert((expect bare.packet(0)).sampleFrameCount == 576)
-    Swag.assert(bare.leadingTrim == 0)
+    Swag.require((expect bare.packet(0)).sampleFrameCount == 576)
+    Swag.require(bare.leadingTrim == 0)
 }
 
 // A file that is not one fails on its own terms rather than being decoded into noise.
@@ -179,5 +179,5 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     var errOutcome: Swag.Error
     discard catch SoundFile.load(path.toString()) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }

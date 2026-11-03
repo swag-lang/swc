@@ -61,14 +61,14 @@ private func circlePath(cx, cy, r: f32)->String
 
     var document = clipDocument(content.toString())
     let item     = onlyItem(document.pages[0], .Image)
-    Swag.assert(item.clipPath != InvalidClipPath)
+    Swag.require(item.clipPath != InvalidClipPath)
 
     // The centre is inside the circle; the corners of the image's square are outside it.
     let image = renderClipped(&document)
-    Swag.assert(isRed(image.pixelColor(50, 50)))
-    Swag.assert(isWhite(image.pixelColor(13, 87)))
-    Swag.assert(isWhite(image.pixelColor(87, 13)))
-    Swag.assert(isWhite(image.pixelColor(150, 50)))
+    Swag.require(isRed(image.pixelColor(50, 50)))
+    Swag.require(isWhite(image.pixelColor(13, 87)))
+    Swag.require(isWhite(image.pixelColor(87, 13)))
+    Swag.require(isWhite(image.pixelColor(150, 50)))
 }
 
 // An axis-aligned rectangle stays a rectangle clip, exact and without a shape.
@@ -76,9 +76,9 @@ private func circlePath(cx, cy, r: f32)->String
 {
     var document = clipDocument("q 20 20 50 50 re W n 0 0 1 rg 0 0 200 100 re f Q")
     let item     = onlyItem(document.pages[0], .Path)
-    Swag.assert(item.clipPath == InvalidClipPath)
-    Swag.assert(item.hasClip)
-    Swag.assert(item.itemClip().rect == {20, 30, 50, 50})
+    Swag.require(item.clipPath == InvalidClipPath)
+    Swag.require(item.hasClip)
+    Swag.require(item.itemClip().rect == {20, 30, 50, 50})
 }
 
 // A filled path through a round clip is cut to the circle.
@@ -89,15 +89,15 @@ private func circlePath(cx, cy, r: f32)->String
     content += " W n 0 0 1 rg 0 0 200 100 re f Q"
 
     var document = clipDocument(content.toString())
-    Swag.assert(onlyItem(document.pages[0], .Path).clipPath != InvalidClipPath)
+    Swag.require(onlyItem(document.pages[0], .Path).clipPath != InvalidClipPath)
 
     let image = renderClipped(&document)
-    Swag.assert(isBlue(image.pixelColor(50, 50)))
-    Swag.assert(isWhite(image.pixelColor(13, 87)))
-    Swag.assert(isWhite(image.pixelColor(150, 50)))
+    Swag.require(isBlue(image.pixelColor(50, 50)))
+    Swag.require(isWhite(image.pixelColor(13, 87)))
+    Swag.require(isWhite(image.pixelColor(150, 50)))
 
     // The edge of the cut, where the circle runs diagonally, is antialiased.
-    Swag.assert(hasSoftBlueEdge(&image, 78, 22))
+    Swag.require(hasSoftBlueEdge(&image, 78, 22))
 }
 
 // `W*` clips under the alternating rule: two nested squares leave a ring.
@@ -105,9 +105,9 @@ private func circlePath(cx, cy, r: f32)->String
 {
     var document = clipDocument("q 10 10 80 80 re 30 30 40 40 re W* n 0 0 1 rg 0 0 200 100 re f Q")
     let image    = renderClipped(&document)
-    Swag.assert(isBlue(image.pixelColor(20, 50)))
-    Swag.assert(isWhite(image.pixelColor(50, 50)))
-    Swag.assert(isWhite(image.pixelColor(150, 50)))
+    Swag.require(isBlue(image.pixelColor(20, 50)))
+    Swag.require(isWhite(image.pixelColor(50, 50)))
+    Swag.require(isWhite(image.pixelColor(150, 50)))
 }
 
 // A shape established inside another clips to their intersection.
@@ -121,9 +121,9 @@ private func circlePath(cx, cy, r: f32)->String
 
     var document = clipDocument(content.toString())
     let image    = renderClipped(&document)
-    Swag.assert(isBlue(image.pixelColor(65, 50)))
-    Swag.assert(isWhite(image.pixelColor(20, 50)))
-    Swag.assert(isWhite(image.pixelColor(110, 50)))
+    Swag.require(isBlue(image.pixelColor(65, 50)))
+    Swag.require(isWhite(image.pixelColor(20, 50)))
+    Swag.require(isWhite(image.pixelColor(110, 50)))
 }
 
 // `Q` restores the clip that was in force before the shape was established.
@@ -134,6 +134,6 @@ private func circlePath(cx, cy, r: f32)->String
     content += " W n Q 0 0 1 rg 0 0 200 100 re f"
 
     var document = clipDocument(content.toString())
-    Swag.assert(onlyItem(document.pages[0], .Path).clipPath == InvalidClipPath)
-    Swag.assert(isBlue(renderClipped(&document).pixelColor(150, 50)))
+    Swag.require(onlyItem(document.pages[0], .Path).clipPath == InvalidClipPath)
+    Swag.require(isBlue(renderClipped(&document).pixelColor(150, 50)))
 }

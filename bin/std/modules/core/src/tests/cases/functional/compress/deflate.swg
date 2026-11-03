@@ -17,7 +17,7 @@ using Swag
     var inflater: Compress.Inflate
     var decoded:  Array'u8
     expect inflater.decompress(&decoded, bytes[start to])
-    Swag.assert(Slice.equals(decoded.toSlice(), original.toSlice()))
+    Swag.require(Slice.equals(decoded.toSlice(), original.toSlice()))
 }
 
 func fillRandom(buffer: [..] u8, seed: u32)
@@ -74,12 +74,12 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
             let input = data.toSlice()[until size]
             for level in [Compress.Deflate.CompressionLevel.NoCompression, .BestSpeed, .Default, .BestCompression, .UberCompression]
             {
-                Swag.assert(roundTrip(input, level, .Default))
+                Swag.require(roundTrip(input, level, .Default))
             }
 
             for strategy in [Compress.Deflate.CompressionStrategy.Filtered, .HuffmanOnly, .Rle, .Fixed]
             {
-                Swag.assert(roundTrip(input, .Default, strategy))
+                Swag.require(roundTrip(input, .Default, strategy))
             }
         }
     }
@@ -102,7 +102,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     let da = expect reader.decompress(ca.toSlice())
     let db = expect reader.decompress(cb.toSlice())
     let dc = expect reader.decompress(cc.toSlice())
-    Swag.assert(Slice.equals(da.toSlice(), a))
-    Swag.assert(Slice.equals(db.toSlice(), b))
-    Swag.assert(Slice.equals(dc.toSlice(), a))
+    Swag.require(Slice.equals(da.toSlice(), a))
+    Swag.require(Slice.equals(db.toSlice(), b))
+    Swag.require(Slice.equals(dc.toSlice(), a))
 }

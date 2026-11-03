@@ -20,14 +20,14 @@ using Swag, Core, Pixel
     let closeButton    = unwrap host.surfaceWnd.closeBtn
     let maximizeButton = unwrap host.surfaceWnd.maximizeBtn
     let minimizeButton = unwrap host.surfaceWnd.minimizeBtn
-    Swag.assert(Math.abs(maximizeButton.position.right() + systemGap - closeButton.position.x) < 0.5)
-    Swag.assert(Math.abs(minimizeButton.position.right() + systemGap - maximizeButton.position.x) < 0.5)
-    Swag.assert(Math.abs(button.position.right() + actionGap - minimizeButton.position.x) < 0.5)
+    Swag.require(Math.abs(maximizeButton.position.right() + systemGap - closeButton.position.x) < 0.5)
+    Swag.require(Math.abs(minimizeButton.position.right() + systemGap - maximizeButton.position.x) < 0.5)
+    Swag.require(Math.abs(button.position.right() + actionGap - minimizeButton.position.x) < 0.5)
 
     host.openPopupSubMenuWhenShown(strings().appearance_Language, maxFrames: 2)
     host.clickWnd(button)
-    Swag.assert(not host.autoHandled and not host.autoFailure.isEmpty())
-    Swag.assert(host.capturedOptionSheet() == null)
+    Swag.require(not host.autoHandled and not host.autoFailure.isEmpty())
+    Swag.require(host.capturedOptionSheet() == null)
 }
 
 // The appearance is found through the lens like any other command: the themes and the languages
@@ -51,16 +51,16 @@ using Swag, Core, Pixel
     // A query naming the group lists all of it, with the choice in force checked.
     lens.open(strings().appearance_Theme)
     let themes = unwrap lens.results.sections[0]
-    Swag.assert(themes.label == strings().appearance_Theme and themes.entries.count == 3)
-    Swag.assert(themes.entries[0].checked and not themes.entries[1].checked)
+    Swag.require(themes.label == strings().appearance_Theme and themes.entries.count == 3)
+    Swag.require(themes.entries[0].checked and not themes.entries[1].checked)
 
     lens.setQuery(strings().appearance_Light)
-    Swag.assert(lens.chosenEntry()!.title == strings().appearance_Light)
+    Swag.require(lens.chosenEntry()!.title == strings().appearance_Light)
     lens.runChosen()
-    Swag.assert(button.appearanceTheme == .Light and themeChanges == 1)
+    Swag.require(button.appearanceTheme == .Light and themeChanges == 1)
 
     lens.open(strings().appearance_About)
-    Swag.assert(lens.chosenEntry()!.title == strings().appearance_About)
+    Swag.require(lens.chosenEntry()!.title == strings().appearance_About)
     lens.runChosen()
-    Swag.assert(aboutRequests == 1)
+    Swag.require(aboutRequests == 1)
 }

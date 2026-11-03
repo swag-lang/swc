@@ -22,7 +22,7 @@ using Swag, Core
     splitter.addPane(pane1)
     splitter.sendResizeEvent()
 
-    Swag.assert(splitter.themeMetrics().splitView_BarSize == 5)
+    Swag.require(splitter.themeMetrics().splitView_BarSize == 5)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "splitter.panel-panes.vertical")
 }

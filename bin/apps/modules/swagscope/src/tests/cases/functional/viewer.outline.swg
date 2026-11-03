@@ -17,21 +17,21 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let outline = unwrap zoom.outline
     outline.startMarkdown()
     completeViewerBackgroundLoad(&host, &outline.load)
-    Swag.assert(outline.rows.count == 1)
-    Swag.assert(outline.headings[0].title == title)
-    Swag.assert(Pixel.RichString.plainText(outline.rows[0].items[0]!.name.raw) == title)
+    Swag.require(outline.rows.count == 1)
+    Swag.require(outline.headings[0].title == title)
+    Swag.require(Pixel.RichString.plainText(outline.rows[0].items[0]!.name.raw) == title)
 
     outline.add(" \t\r\n\u00A0\u2003First\t\r\n\u00A0\u2003second \t\u00A0", 2, 1)
-    Swag.assert(outline.rows[1].items[0]!.name == "First second")
+    Swag.require(outline.rows[1].items[0]!.name == "First second")
     outline.add(" \t\r\n\u00A0\u2003", 2, 2)
-    Swag.assert(outline.rows[2].items[0]!.name == "")
+    Swag.require(outline.rows[2].items[0]!.name == "")
 
     let literal = "<b>Literal</b> <url>address</url> <p1>ink</p>"
     outline.add(literal, 4, 3)
     let display = Pixel.RichString.plainText(outline.rows[3].items[0]!.name.raw)
     display.replace("\u2060", "")
-    Swag.assert(display == literal)
-    Swag.assert(outline.rows[3].level == 3)
+    Swag.require(display == literal)
+    Swag.require(outline.rows[3].level == 3)
 }
 
 #test
@@ -47,14 +47,14 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     for 128 where session.isLoading!() do
         host.fireTimers()
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
-    Swag.assert(outline.rows.count == 2 and outline.rows[0].level == 0 and outline.rows[1].level == 2)
+    Swag.require(outline.rows.count == 2 and outline.rows[0].level == 0 and outline.rows[1].level == 2)
     outline.list.selectLine(1)
     let scroll = assume cast(*ScrollWnd, view.view.children[0])
-    Swag.assert(scroll.scrollPosition().y > 700)
+    Swag.require(scroll.scrollPosition().y > 700)
     view.setZoom(150)
-    Swag.assert(outline.rows.count == 2 and outline.list.selectedLine() == outline.rows[1])
+    Swag.require(outline.rows.count == 2 and outline.list.selectedLine() == outline.rows[1])
     outline.list.selectLine(0)
-    Swag.assert(scroll.scrollPosition().y < 2)
+    Swag.require(scroll.scrollPosition().y < 2)
 }
 
 // A long outline remains reachable with the wheel after the panel itself fills its viewport.
@@ -82,11 +82,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.applyLayout()
 
     let scroll = outline.list.scrollWnd
-    Swag.assert(outline.rows.count == 40)
-    Swag.assert(scroll.scrollSize.y > scroll.paddedClientRect().height)
+    Swag.require(outline.rows.count == 40)
+    Swag.require(scroll.scrollSize.y > scroll.paddedClientRect().height)
     let point = scroll.localToSurface(scroll.clientRect().center())
     host.mouseWheel(point, -120)
-    Swag.assert(scroll.scrollTarget().y > 0)
+    Swag.require(scroll.scrollTarget().y > 0)
 }
 
 // Its caption glyph and shortcut open the same panel while focus is inside the outline.
@@ -106,15 +106,15 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
     let outline = unwrap (assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])).outline
     let caption = window.outlineCaptionButton
-    Swag.assert(caption.isLocallyVisible() and caption.icon.isValid())
-    Swag.assert(window.currentSidePanelButton!.id == OutlineToggleId)
+    Swag.require(caption.isLocallyVisible() and caption.icon.isValid())
+    Swag.require(window.currentSidePanelButton!.id == OutlineToggleId)
 
     host.click(caption.surfaceRect().center())
-    Swag.assert(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(2),
-                Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(2)).toString())
+    Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(2),
+                 Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(2)).toString())
     host.focus(outline.list.listView)
     host.keyPress(.O, Input.KeyModifiers.Control | .Shift)
-    Swag.assert(not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(2))
+    Swag.require(not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(2))
 }
 
 #test
@@ -126,12 +126,12 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let view    = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)
     let outline = unwrap view.outline
-    Swag.assert(outline.rows.count == 4 and outline.rows[1].level == 1 and not outline.rows[0].canExpand())
+    Swag.require(outline.rows.count == 4 and outline.rows[1].level == 1 and not outline.rows[0].canExpand())
     view.pdfView.setZoom(1)
     outline.list.selectLine(1)
-    Swag.assert(view.pdfView.pageIndex == 1)
+    Swag.require(view.pdfView.pageIndex == 1)
     outline.list.selectLine(0)
-    Swag.assert(view.pdfView.pageIndex == 0)
+    Swag.require(view.pdfView.pageIndex == 0)
     outline.list.selectLine(3)
-    Swag.assert(view.pdfView.pageIndex == 0)
+    Swag.require(view.pdfView.pageIndex == 0)
 }

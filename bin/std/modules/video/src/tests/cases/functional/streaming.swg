@@ -18,13 +18,13 @@ using Core, Core.Errors, Pixel
     const Added: [2] SampleEntry = [SampleEntry{0, 0, 300, false}, SampleEntry{0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
-    Swag.assert(stream.sampleAtRank.count == 6)
-    Swag.assert(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 2)
-    Swag.assert(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
-    Swag.assert(stream.sampleAtRank[4] == 1 and stream.sampleAtRank[5] == 3)
+    Swag.require(stream.sampleAtRank.count == 6)
+    Swag.require(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 2)
+    Swag.require(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
+    Swag.require(stream.sampleAtRank[4] == 1 and stream.sampleAtRank[5] == 3)
     for rank in stream.sampleAtRank.count do
-        Swag.assert(stream.rankOfSample[cast(u64, stream.sampleAtRank[rank])] == cast(u32, rank))
-    Swag.assert(stream.nextRank == 2 and stream.nextDecode == 0 and stream.skipBefore == 2)
+        Swag.require(stream.rankOfSample[cast(u64, stream.sampleAtRank[rank])] == cast(u32, rank))
+    Swag.require(stream.nextRank == 2 and stream.nextDecode == 0 and stream.skipBefore == 2)
 }
 
 // Appending ahead of every sample already handed to H.264 updates presentation ranks without
@@ -42,11 +42,11 @@ using Core, Core.Errors, Pixel
     const Added: [2] SampleEntry = [SampleEntry{0, 0, 300, false}, SampleEntry{0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
-    Swag.assert(stream.sampleAtRank.count == 6)
-    Swag.assert(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 1)
-    Swag.assert(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
-    Swag.assert(stream.sampleAtRank[4] == 2 and stream.sampleAtRank[5] == 3)
-    Swag.assert(stream.nextRank == 1 and stream.nextDecode == 2 and stream.skipBefore == 0)
+    Swag.require(stream.sampleAtRank.count == 6)
+    Swag.require(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 1)
+    Swag.require(stream.sampleAtRank[2] == 5 and stream.sampleAtRank[3] == 4)
+    Swag.require(stream.sampleAtRank[4] == 2 and stream.sampleAtRank[5] == 3)
+    Swag.require(stream.nextRank == 1 and stream.nextDecode == 2 and stream.skipBefore == 0)
 }
 
 // Seeking decodes through the requested access unit, but does not fill spare frame lanes with
@@ -61,9 +61,9 @@ using Core, Core.Errors, Pixel
 
     stream.seekTo(1)
 
-    Swag.assert(stream.nextDecode == 0 and stream.skipBefore == 1)
-    Swag.assert(stream.decodeLimit == 3)
-    Swag.assert(not stream.reachedEnd)
+    Swag.require(stream.nextDecode == 0 and stream.skipBefore == 1)
+    Swag.require(stream.decodeLimit == 3)
+    Swag.require(not stream.reachedEnd)
 }
 
 // Geometry and content of `bars-scroll-c420.y4m`, the long fixture of this suite.
@@ -113,10 +113,10 @@ func barsAssertFrame(frame: Image, index: u64)
 #test
 {
     var reader = expect Reader.open(videoFixturePath(BarsFixture))
-    Swag.assert(reader.width() == BarsWidth and reader.height() == BarsHeight)
-    Swag.assert(reader.frameRate() == expect FrameRate.create(25, 1))
-    Swag.assert(reader.frameCount() == BarsFrameCount)
-    Swag.assert(Math.isEqualEpsilon(reader.durationInSeconds(), 16.0, 0.0001))
+    Swag.require(reader.width() == BarsWidth and reader.height() == BarsHeight)
+    Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
+    Swag.require(reader.frameCount() == BarsFrameCount)
+    Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 16.0, 0.0001))
 
     var frame: Image
     for index in reader.frameCount()
@@ -126,8 +126,8 @@ func barsAssertFrame(frame: Image, index: u64)
     }
 
     // Every frame reused the same pixel storage.
-    Swag.assert(frame.width == BarsWidth and frame.height == BarsHeight)
-    Swag.assert(frame.pixelFormat == .RGB8)
+    Swag.require(frame.width == BarsWidth and frame.height == BarsHeight)
+    Swag.require(frame.pixelFormat == .RGB8)
     barsAssertFrame(frame, BarsFrameCount - 1)
 }
 
@@ -152,7 +152,7 @@ func barsAssertFrame(frame: Image, index: u64)
     var pastEndOutcome: Swag.Error
     discard catch reader.decodeFrame(BarsFrameCount) as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
-    Swag.assert((pastEnd is BadParameterError))
+    Swag.require((pastEnd is BadParameterError))
 }
 
 // The same stream read from memory decodes to the same frames as read from the file: only the
@@ -161,8 +161,8 @@ func barsAssertFrame(frame: Image, index: u64)
 {
     let bytes  = expect File.readAllBytes(videoFixturePath(BarsFixture).toString())
     var reader = expect Reader.openMemory(BarsFixture, bytes.toSlice())
-    Swag.assert(reader.frameCount() == BarsFrameCount)
-    Swag.assert(not (reader.sourcePath()).count)
+    Swag.require(reader.frameCount() == BarsFrameCount)
+    Swag.require(not (reader.sourcePath()).count)
 
     var frame: Image
     const Probes: [3] u64 = [0, 137, BarsFrameCount - 1]
@@ -196,18 +196,18 @@ const WrittenFrameCount = 300'u64
     }
 
     expect writer.end()
-    Swag.assert(writer.frameCount() == WrittenFrameCount)
+    Swag.require(writer.frameCount() == WrittenFrameCount)
 
     // The encoder writes 4:4:4 planes behind a bare frame marker, so the size of the result is
     // known exactly; a writer that dropped, repeated or buffered away a frame would not match it.
     let header    = "YUV4MPEG2 W160 H120 F30:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"
     let frameSize = cast(u64, WrittenWidth) * cast(u64, WrittenHeight) * 3 + 6
     let info      = expect File.info(fileName.toString())
-    Swag.assert(info.size == header.count + WrittenFrameCount * frameSize)
+    Swag.require(info.size == header.count + WrittenFrameCount * frameSize)
 
     var reader = expect Reader.open(fileName)
-    Swag.assert(reader.frameCount() == WrittenFrameCount)
-    Swag.assert(reader.width() == WrittenWidth and reader.height() == WrittenHeight)
+    Swag.require(reader.frameCount() == WrittenFrameCount)
+    Swag.require(reader.width() == WrittenWidth and reader.height() == WrittenHeight)
 
     var frame: Image
     const Probes: [4] u64 = [0, 199, 200, WrittenFrameCount - 1]
@@ -251,8 +251,8 @@ const HoleFrameCount = 600'u64
     stream.close()
 
     var reader = expect Reader.open(fileName)
-    Swag.assert(reader.frameCount() == HoleFrameCount)
-    Swag.assert(Math.isEqualEpsilon(reader.durationInSeconds(), 24.0, 0.0001))
+    Swag.require(reader.frameCount() == HoleFrameCount)
+    Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 24.0, 0.0001))
 
     var frame: Image
     expect reader.decodeFrameInto(&frame, 0)
@@ -264,5 +264,5 @@ const HoleFrameCount = 600'u64
     var holeErrorOutcome: Swag.Error
     discard catch reader.decodeFrame(HoleFrameCount / 2) as holeErrorOutcome
     let holeError = holeErrorOutcome.value()
-    Swag.assert((holeError is InvalidFormatError))
+    Swag.require((holeError is InvalidFormatError))
 }

@@ -46,7 +46,7 @@ func checkResolve(width, height: s32)
         }
 
         for value, index in images[0].pixels do
-            Swag.assert(value == images[1].pixels[index])
+            Swag.require(value == images[1].pixels[index])
     }
 }
 
@@ -121,6 +121,6 @@ func checkResolve(width, height: s32)
         }
 
         for value, index in images[0].pixels do
-            Swag.assert(value == images[1].pixels[index])
+            Swag.require(value == images[1].pixels[index])
     }
 }

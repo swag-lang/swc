@@ -10,23 +10,23 @@ using Swag, Core
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
-    Swag.assert(glyphA > 0)
-    Swag.assert(glyphV > 0)
+    Swag.require(glyphA > 0)
+    Swag.require(glyphV > 0)
 
     discard expect face.setPixelSize(0, 100)
 
     // 'AV' is a classic negative kerning pair (glyphs tucked closer together).
     let kern100 = face.getKerning(glyphA, glyphV)
-    Swag.assert(kern100.x < 0)
+    Swag.require(kern100.x < 0)
 
     // Kerning is scaled to the pixel size, so it grows with the size.
     discard catch face.setPixelSize(0, 200)
     let kern200 = face.getKerning(glyphA, glyphV)
-    Swag.assert(kern200.x < kern100.x)
+    Swag.require(kern200.x < kern100.x)
 
     // A missing glyph yields no kerning.
     let none = face.getKerning(glyphA, 0)
-    Swag.assert(none.x == 0)
+    Swag.require(none.x == 0)
 }
 
 // Arial declares its kerning in the GPOS 'kern' feature, so that is what answers.
@@ -39,18 +39,18 @@ using Swag, Core
     let face     = unwrap faceScope.face
     let faceData = getFaceData(face)
 
-    Swag.assert(face.hasKerning())
-    Swag.assert(not faceData.gposPairSubtables.isEmpty())
+    Swag.require(face.hasKerning())
+    Swag.require(not faceData.gposPairSubtables.isEmpty())
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
     let units  = lookupGposKerning(faceData, cast(u16, glyphA), cast(u16, glyphV))
-    Swag.assert(units == -152)
+    Swag.require(units == -152)
 
     // An unkerned pair is covered by the same subtable and adjusts by nothing.
     let glyphH = face.glyphIndex('H')
     let flat   = lookupGposKerning(faceData, cast(u16, glyphH), cast(u16, glyphH))
-    Swag.assert(flat == 0)
+    Swag.require(flat == 0)
 }
 
 // Segoe UI reaches explicit pair sets as well as class matrices. This Arabic pair
@@ -64,15 +64,15 @@ using Swag, Core
 
     let glyphLeft  = face.glyphIndex(0xFE84)
     let glyphRight = face.glyphIndex(0x0622)
-    Swag.assert(glyphLeft > 0)
-    Swag.assert(glyphRight > 0)
+    Swag.require(glyphLeft > 0)
+    Swag.require(glyphRight > 0)
 
     let units = lookupGposKerning(faceData, cast(u16, glyphLeft), cast(u16, glyphRight))
-    Swag.assert(units == 171)
+    Swag.require(units == 171)
 
     discard expect face.setPixelSize(0, 100)
     let scaled = face.getKerning(glyphLeft, glyphRight)
-    Swag.assert(scaled.x > 0)
+    Swag.require(scaled.x > 0)
 }
 
 // Segoe UI states most of its pairs behind contextual lookups this module does not
@@ -85,8 +85,8 @@ using Swag, Core
     let face     = unwrap faceScope.face
     let faceData = getFaceData(face)
 
-    Swag.assert(not faceData.gposPairSubtables.isEmpty())
-    Swag.assert(not faceData.kernPairs.isEmpty())
+    Swag.require(not faceData.gposPairSubtables.isEmpty())
+    Swag.require(not faceData.kernPairs.isEmpty())
 
     discard expect face.setPixelSize(0, 100)
 
@@ -95,14 +95,14 @@ using Swag, Core
     let glyphP     = face.glyphIndex('P')
     let glyphComma = face.glyphIndex(',')
     let fromGpos   = lookupGposKerning(faceData, cast(u16, glyphP), cast(u16, glyphComma))
-    Swag.assert(fromGpos == 0)
-    Swag.assert(face.getKerning(glyphP, glyphComma).x < 0)
+    Swag.require(fromGpos == 0)
+    Swag.require(face.getKerning(glyphP, glyphComma).x < 0)
 
     // Where both state a pair, GPOS is the one that answers.
     let glyphA   = face.glyphIndex('A')
     let glyphV   = face.glyphIndex('V')
     let bothHave = lookupGposKerning(faceData, cast(u16, glyphA), cast(u16, glyphV))
-    Swag.assert(bothHave != 0)
+    Swag.require(bothHave != 0)
 }
 
 // A glyph index no font can hold is answered rather than truncated into a real one.
@@ -114,5 +114,5 @@ using Swag, Core
 
     discard expect face.setPixelSize(0, 100)
     let beyondU16 = face.getKerning(0x1_0024, face.glyphIndex('V'))
-    Swag.assert(beyondU16.x == 0)
+    Swag.require(beyondU16.x == 0)
 }

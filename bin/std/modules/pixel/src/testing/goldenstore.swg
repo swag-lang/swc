@@ -1,6 +1,5 @@
 #global public
 #global namespace Testing
-#global #[Swag.Safety(.Assert, true)]
 
 using Swag, Core
 
@@ -87,8 +86,8 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 // The check remains active when Pixel is built as a release dependency.
 func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
-    Swag.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
-    Swag.assert(actual != null and actual.isValid(), "actual image needs allocated pixels")
+    Swag.require(expected != null and expected.isValid(), "expected image needs allocated pixels")
+    Swag.require(actual != null and actual.isValid(), "actual image needs allocated pixels")
 
     let difference = compareImages(expected, actual, options)
     if isWithinTolerance(&difference, options) do
@@ -120,7 +119,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // test runs also accept a channel delta of two, with no pixels outside that tolerance.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
-    Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
+    Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
 
     if not File.exists(path)

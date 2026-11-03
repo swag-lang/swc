@@ -21,7 +21,7 @@ using Core, Pixel
 
     lens.close()
     host.settleAnimations()
-    Swag.assert(not host.root.hasBackdrop())
+    Swag.require(not host.root.hasBackdrop())
 }
 
 // The material samples the parent before the lens's own opacity layer is recorded.
@@ -39,6 +39,6 @@ using Core, Pixel
     let before  = clear.pixelColor(x, y)
     let after   = blurred.pixelColor(x, y)
     let middle  = halfway.pixelColor(x, y)
-    Swag.assert(before != after)
-    Swag.assert(Math.abs(cast(s32, middle.r) * 2 - before.r - after.r) <= 4)
+    Swag.require(before != after)
+    Swag.require(Math.abs(cast(s32, middle.r) * 2 - before.r - after.r) <= 4)
 }

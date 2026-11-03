@@ -28,7 +28,7 @@ using Core, Core.Errors, Pixel
     while expectedSync > 0 and decoder.video.avc.syncFlags[expectedSync] == 0 do
         expectedSync -= 1
     decoder.video.avc.seekTo(57)
-    Swag.assert(expectedSync > 0 and decoder.video.avc.nextDecode == expectedSync)
+    Swag.require(expectedSync > 0 and decoder.video.avc.nextDecode == expectedSync)
 
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-pyramid.yuv").toString())
     var frame: Image
@@ -61,8 +61,8 @@ using Core, Core.Errors, Pixel
     decoder.video.avc.stopFrameThreads()
 
     let configuredLanes = decoder.video.avc.laneCount
-    Swag.assert(configuredLanes >= 1 and configuredLanes <= Math.clamp(Swag.workerCount(), 1'u32, 16'u32))
-    Swag.assert(decoder.video.avc.threadedHighWater == configuredLanes)
+    Swag.require(configuredLanes >= 1 and configuredLanes <= Math.clamp(Swag.workerCount(), 1'u32, 16'u32))
+    Swag.require(decoder.video.avc.threadedHighWater == configuredLanes)
 }
 
 // High profile: CABAC, B frames with pyramid references, direct modes, weighted prediction,
@@ -133,7 +133,7 @@ using Core, Core.Errors, Pixel
         index += 3
     }
 
-    Swag.assert(decoder.video.avc.pending.count <= 4)
+    Swag.require(decoder.video.avc.pending.count <= 4)
 }
 
 // Random access decodes through the nearest sync sample and still matches, both across and
@@ -142,7 +142,7 @@ using Core, Core.Errors, Pixel
 {
     var reader    = expect Reader.open(videoFixturePath("ffmpeg-h264-high.mp4"))
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-high.yuv").toString())
-    Swag.assert(reader.frameRate() == expect FrameRate.create(12_800, 512))
+    Swag.require(reader.frameRate() == expect FrameRate.create(12_800, 512))
 
     const Frames: [5] u64 = [17, 3, 12, 0, 19]
     var frame: Image
@@ -160,7 +160,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("edited-mid-group-start.mkv"))
-    Swag.assert(reader.width() == 96 and reader.height() == 64)
+    Swag.require(reader.width() == 96 and reader.height() == 64)
 
     let reference = expect File.readAllBytes(videoFixturePath("edited-mid-group-start.yuv").toString())
     let bytes     = reference.toSlice()
@@ -171,7 +171,7 @@ using Core, Core.Errors, Pixel
     var early: PlanarFrame
     expect reader.decodeFramePlanesInto(&early, 0)
     let first = reader.syncFrameAt(0)
-    Swag.assert(first > 0)
+    Swag.require(first > 0)
 
     var frame: PlanarFrame
     for rank in 12'u64
@@ -180,7 +180,7 @@ using Core, Core.Errors, Pixel
         for y in 64'u64
         {
             for x in 96'u64 do
-                Swag.assert(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
+                Swag.require(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
         }
     }
 
@@ -188,6 +188,6 @@ using Core, Core.Errors, Pixel
     for y in 64'u64
     {
         for x in 96'u64 do
-            Swag.assert(early.luma[y * cast(u64, early.strideLuma) + x] == frame.luma[y * cast(u64, frame.strideLuma) + x])
+            Swag.require(early.luma[y * cast(u64, early.strideLuma) + x] == frame.luma[y * cast(u64, frame.strideLuma) + x])
     }
 }

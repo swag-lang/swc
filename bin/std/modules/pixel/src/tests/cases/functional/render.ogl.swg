@@ -9,8 +9,8 @@ using Swag, Core
 
     var image: Image
     let texture = render.addImage(image)
-    Swag.assert(not texture.isValid())
-    Swag.assert(texture.width == 0 and texture.height == 0)
+    Swag.require(not texture.isValid())
+    Swag.require(texture.width == 0 and texture.height == 0)
 }
 
 // A shader travels to the driver as the bytes of its file, and GLSL accepts nothing at all
@@ -23,7 +23,7 @@ using Swag, Core
     const Plain  = [0x23'u8, 0x76, 0x65, 0x72]
     const Mark   = [0xEF'u8, 0xBB]
 
-    Swag.assert(RenderOgl.shaderSource(Marked) == "#ver")
-    Swag.assert(RenderOgl.shaderSource(Plain) == "#ver")
-    Swag.assert(RenderOgl.shaderSource(Mark).count == 2)
+    Swag.require(RenderOgl.shaderSource(Marked) == "#ver")
+    Swag.require(RenderOgl.shaderSource(Plain) == "#ver")
+    Swag.require(RenderOgl.shaderSource(Mark).count == 2)
 }

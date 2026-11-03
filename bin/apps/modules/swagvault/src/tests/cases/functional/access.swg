@@ -14,7 +14,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     access.setInputs(accessTestPassword(), files.toSlice())
 
     var credential = expect access.derive()
-    Swag.assert(Slice.equals(credential.toSlice(), accessTestPassword()))
+    Swag.require(Slice.equals(credential.toSlice(), accessTestPassword()))
 }
 
 // Key-file contents, lengths, order, and password all participate; paths do not.
@@ -44,7 +44,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     var moved: VaultAccess
     moved.setInputs(accessTestPassword(), movedFiles.toSlice())
     var movedCredential = expect moved.derive()
-    Swag.assert(Slice.equals(firstCredential.toSlice(), movedCredential.toSlice()))
+    Swag.require(Slice.equals(firstCredential.toSlice(), movedCredential.toSlice()))
 
     var reversedFiles: Array'String
     reversedFiles.add(secondPath)
@@ -52,12 +52,12 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     var reversed: VaultAccess
     reversed.setInputs(accessTestPassword(), reversedFiles.toSlice())
     var reversedCredential = expect reversed.derive()
-    Swag.assert(not Slice.equals(firstCredential.toSlice(), reversedCredential.toSlice()))
+    Swag.require(not Slice.equals(firstCredential.toSlice(), reversedCredential.toSlice()))
 
     var otherPassword: VaultAccess
     otherPassword.setInputs("different", firstFiles.toSlice())
     var otherCredential = expect otherPassword.derive()
-    Swag.assert(not Slice.equals(firstCredential.toSlice(), otherCredential.toSlice()))
+    Swag.require(not Slice.equals(firstCredential.toSlice(), otherCredential.toSlice()))
 }
 
 // Adding, replacing, and removing key files all keep exactly one verified access slot.
@@ -91,35 +91,35 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     // Add the first key file to a password-only vault.
     var volume = expect Volume.create(vault, rawCredential.toSlice(), MinimumSize)
     expect volume.changePassword(rawCredential.toSlice(), oldCredential.toSlice())
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(volume.keySlotCount() == 1)
     volume.close()
 
     var rawAfterAddErrorOutcome: Swag.Error
     discard catch Volume.open(vault, rawCredential.toSlice()) as rawAfterAddErrorOutcome
     let rawAfterAddError = rawAfterAddErrorOutcome.value()
-    Swag.assert(rawAfterAddError != null)
+    Swag.require(rawAfterAddError != null)
     volume = expect Volume.open(vault, oldCredential.toSlice())
 
     // Replace its key-file set.
     expect volume.changePassword(oldCredential.toSlice(), newCredential.toSlice())
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(volume.keySlotCount() == 1)
     volume.close()
 
     var oldErrorOutcome: Swag.Error
     discard catch Volume.open(vault, oldCredential.toSlice()) as oldErrorOutcome
     let oldError = oldErrorOutcome.value()
-    Swag.assert(oldError != null)
+    Swag.require(oldError != null)
     volume = expect Volume.open(vault, newCredential.toSlice())
 
     // Remove every key file while preserving the panel password.
     expect volume.changePassword(newCredential.toSlice(), rawCredential.toSlice())
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(volume.keySlotCount() == 1)
     volume.close()
 
     var newAfterRemoveErrorOutcome: Swag.Error
     discard catch Volume.open(vault, newCredential.toSlice()) as newAfterRemoveErrorOutcome
     let newAfterRemoveError = newAfterRemoveErrorOutcome.value()
-    Swag.assert(newAfterRemoveError != null)
+    Swag.require(newAfterRemoveError != null)
     var reopened = expect Volume.open(vault, rawCredential.toSlice())
     reopened.close()
 }

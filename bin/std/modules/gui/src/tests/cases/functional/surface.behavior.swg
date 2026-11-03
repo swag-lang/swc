@@ -16,17 +16,17 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     let button = PushButton.create(&host.root, "Close", {20, 20, 90, 30}, GuiHeadlessSmoke_CloseWindow)
 
-    Swag.assert(not host.closed)
-    Swag.assert(host.wndAt({40, 30}) == button)
+    Swag.require(not host.closed)
+    Swag.require(host.wndAt({40, 30}) == button)
 
     host.click({40, 30})
 
-    Swag.assert(host.closed)
-    Swag.assert(host.commandCount == 1)
-    Swag.assert(host.lastCommand == GuiHeadlessSmoke_CloseWindow)
-    Swag.assert(host.root.isPendingDestroy)
-    Swag.assert(host.root.wndFlags.has(.Hidden))
-    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.require(host.closed)
+    Swag.require(host.commandCount == 1)
+    Swag.require(host.lastCommand == GuiHeadlessSmoke_CloseWindow)
+    Swag.require(host.root.isPendingDestroy)
+    Swag.require(host.root.wndFlags.has(.Hidden))
+    Swag.require(host.app.mouseCaptureWnd == null)
 }
 
 // A standard window rounds its corners, unless it has no shadow or is maximized.
@@ -37,14 +37,14 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.theme.metrics.surfaceWnd_CornerRadius = 18
     host.surface.flags = .StandardWindow
 
-    Swag.assert(host.surface.cornerRadius() == 18)
+    Swag.require(host.surface.cornerRadius() == 18)
 
     host.surface.flags.add(.NoShadow)
-    Swag.assert(host.surface.cornerRadius() == 0)
+    Swag.require(host.surface.cornerRadius() == 0)
 
     host.surface.flags.remove(.NoShadow)
     host.surface.isMaximized = true
-    Swag.assert(host.surface.cornerRadius() == 0)
+    Swag.require(host.surface.cornerRadius() == 0)
 }
 
 // A native placement can keep the same backing render-target allocation. Resizing still dirties
@@ -58,9 +58,9 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surface.isDirty = false
     host.surface.setPosition({10, 20, 320, 180})
 
-    Swag.assert(host.surface.position == {10, 20, 320, 180})
-    Swag.assert(host.surface.isDirty)
-    Swag.assert(host.surface.dirtyRect == {0, 0, 320, 180})
+    Swag.require(host.surface.position == {10, 20, 320, 180})
+    Swag.require(host.surface.isDirty)
+    Swag.require(host.surface.dirtyRect == {0, 0, 320, 180})
 }
 
 // A native update region is expressed in physical client pixels. Rounding both logical edges
@@ -74,8 +74,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surface.isDirty = false
     host.surface.invalidatePhysicalRect({3, 6, 4, 5})
 
-    Swag.assert(host.surface.isDirty)
-    Swag.assert(host.surface.dirtyRect == {2, 4, 3, 4})
+    Swag.require(host.surface.isDirty)
+    Swag.require(host.surface.dirtyRect == {2, 4, 3, 4})
 }
 
 // A fired timer reaches its window, and a removed one leaves the application once the timer queues
@@ -96,12 +96,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let timer = host.root.addTimer(10'ms)
     host.fireTimer(timer)
 
-    Swag.assert(timerCount == 1)
-    Swag.assert(host.app.timers.count == 1)
+    Swag.require(timerCount == 1)
+    Swag.require(host.app.timers.count == 1)
 
     host.app.removeTimer(timer)
     host.pumpTimerQueues()
-    Swag.assert(host.app.timers.isEmpty())
+    Swag.require(host.app.timers.isEmpty())
 }
 
 // Scheduling destruction immediately retires timers even though storage is released only after
@@ -125,12 +125,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let timer = view.addTimer(1'ms)
     view.destroy()
 
-    Swag.assert(view.isPendingDestroy)
-    Swag.assert(timer.isPendingRemoval)
+    Swag.require(view.isPendingDestroy)
+    Swag.require(timer.isPendingRemoval)
     host.fireTimer(timer)
-    Swag.assert(timerCount == 0)
+    Swag.require(timerCount == 0)
     host.pumpTimerQueues()
-    Swag.assert(host.app.timers.isEmpty())
+    Swag.require(host.app.timers.isEmpty())
 }
 
 // A timer callback may create another timer and discard its target in the same dispatch. The
@@ -157,8 +157,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let trigger = view.addTimer(1'ms)
     host.fireTimer(trigger)
 
-    Swag.assert(stagedWasRetired)
-    Swag.assert(host.app.timers.isEmpty())
+    Swag.require(stagedWasRetired)
+    Swag.require(host.app.timers.isEmpty())
 }
 
 // A surface the application creates honors its flags, swaps its view, and runs a modal loop that
@@ -174,35 +174,35 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     disabledBackground.show()
     disabledBackground.disable()
 
-    Swag.assert(surface.app == &host.app)
-    Swag.assert(surface.position.x == 20)
-    Swag.assert(surface.position.y == 30)
-    Swag.assert(surface.isTopMost())
-    Swag.assert(surface.flags.has(.TopMost))
-    Swag.assert(surface.isHidden)
+    Swag.require(surface.app == &host.app)
+    Swag.require(surface.position.x == 20)
+    Swag.require(surface.position.y == 30)
+    Swag.require(surface.isTopMost())
+    Swag.require(surface.flags.has(.TopMost))
+    Swag.require(surface.isHidden)
 
     surface.setTopMost(false)
-    Swag.assert(not surface.isTopMost())
-    Swag.assert(not surface.flags.has(.TopMost))
+    Swag.require(not surface.isTopMost())
+    Swag.require(not surface.flags.has(.TopMost))
     surface.setTopMost()
-    Swag.assert(surface.isTopMost())
-    Swag.assert(surface.flags.has(.TopMost))
+    Swag.require(surface.isTopMost())
+    Swag.require(surface.flags.has(.TopMost))
 
     let replacement  = Wnd.create'Wnd()
     let previousView = surface.view()
     surface.setView(replacement)
-    Swag.assert(surface.view() == replacement)
-    Swag.assert(replacement.parent == surface.wnd)
-    Swag.assert(replacement.surface == surface)
-    Swag.assert(previousView.isPendingDestroy)
+    Swag.require(surface.view() == replacement)
+    Swag.require(replacement.parent == surface.wnd)
+    Swag.require(replacement.surface == surface)
+    Swag.require(previousView.isPendingDestroy)
 
     let button = PushButton.create(surface.view(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
     button.sigPressed += func(btn) { btn.app().exitModal(btn.id orelse "") }
 
     surface.show()
-    Swag.assert(not surface.isHidden)
-    Swag.assert(surface.isInitialized)
-    Swag.assert(host.app.surfaceAt(40, 50) == surface)
+    Swag.require(not surface.isHidden)
+    Swag.require(surface.isInitialized)
+    Swag.require(host.app.surfaceAt(40, 50) == surface)
 
     var frameCount: u32
     var didClick:   bool
@@ -216,18 +216,18 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
         }
     })
 
-    Swag.assert(result == GuiHeadlessSmoke_ModalExit)
-    Swag.assert(frameCount == 1)
-    Swag.assert(didClick)
-    Swag.assert(not background.isDisabled)
-    Swag.assert(disabledBackground.isDisabled)
+    Swag.require(result == GuiHeadlessSmoke_ModalExit)
+    Swag.require(frameCount == 1)
+    Swag.require(didClick)
+    Swag.require(not background.isDisabled)
+    Swag.require(disabledBackground.isDisabled)
     host.pump()
-    Swag.assert(host.openedSurfaceCount() == 2)
+    Swag.require(host.openedSurfaceCount() == 2)
 
     background.destroy()
     disabledBackground.destroy()
     host.pump()
-    Swag.assert(host.openedSurfaceCount() == 0)
+    Swag.require(host.openedSurfaceCount() == 0)
 }
 
 // The frame limit makes the application quit after that many frames, each of them signalled.
@@ -240,12 +240,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.app.maxRunFrame = 2
 
     host.app.runFrame()
-    Swag.assert(not host.app.mustQuit)
+    Swag.require(not host.app.mustQuit)
     host.app.runFrame()
 
-    Swag.assert(host.app.mustQuit)
-    Swag.assert(host.app.timing.frameCount == 2)
-    Swag.assert(frameCallbacks == 2)
+    Swag.require(host.app.mustQuit)
+    Swag.require(host.app.timing.frameCount == 2)
+    Swag.require(frameCallbacks == 2)
 }
 
 // The caption hit-tests around its children and its menu bar, and dragging the caption or a border
@@ -262,10 +262,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     // A control in the strip keeps its clicks; a plain window there is ground the strip drags.
     let captionChild = Wnd.create'Wnd(&host.surfaceWnd, {20, 4, 60, 24})
-    Swag.assert(host.surfaceWnd.hitTestCaption({30, 15}))
+    Swag.require(host.surfaceWnd.hitTestCaption({30, 15}))
     captionChild.focusPolicy = .Click
-    Swag.assert(not host.surfaceWnd.hitTestCaption({30, 15}))
-    Swag.assert(host.surfaceWnd.hitTestCaption({100, 15}))
+    Swag.require(not host.surfaceWnd.hitTestCaption({30, 15}))
+    Swag.require(host.surfaceWnd.hitTestCaption({100, 15}))
     captionChild.destroy()
     host.pump()
 
@@ -275,14 +275,14 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     let menuIt0   = unwrap captionMenu.items[0]
     let menuItemX = menuIt0.pos + menuIt0.size * 0.5
-    Swag.assert(not host.surfaceWnd.hitTestCaption(Math.Point{menuItemX, 15}))
-    Swag.assert(host.surfaceWnd.hitTestCaption({180, 15}))
+    Swag.require(not host.surfaceWnd.hitTestCaption(Math.Point{menuItemX, 15}))
+    Swag.require(host.surfaceWnd.hitTestCaption({180, 15}))
 
     captionMenu.destroy()
     host.pump()
 
-    Swag.assert(host.surfaceWnd.hitTestBorders({30, 15}) == .None)
-    Swag.assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
+    Swag.require(host.surfaceWnd.hitTestBorders({30, 15}) == .None)
+    Swag.require(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
     host.surfaceWnd.itf     = &host.surfaceWnd
     host.surfaceWnd.surface = &host.surface
@@ -296,10 +296,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     evt.delta      = {20, 5}
     host.surfaceWnd.sendEvent(&evt)
 
-    Swag.assert(host.surface.position.x == 30)
-    Swag.assert(host.surface.position.y == 25)
-    Swag.assert(host.surface.position.width == 240)
-    Swag.assert(host.surface.position.height == 120)
+    Swag.require(host.surface.position.x == 30)
+    Swag.require(host.surface.position.y == 25)
+    Swag.require(host.surface.position.width == 240)
+    Swag.require(host.surface.position.height == 120)
 
     evt.kind       = .Released
     evt.surfacePos = {50, 20}
@@ -320,10 +320,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     evt.delta      = {0, 10}
     host.surfaceWnd.sendEvent(&evt)
 
-    Swag.assert(host.surface.position.x == 10)
-    Swag.assert(host.surface.position.y == 30)
-    Swag.assert(host.surface.position.width == 240)
-    Swag.assert(host.surface.position.height == 110)
+    Swag.require(host.surface.position.x == 10)
+    Swag.require(host.surface.position.y == 30)
+    Swag.require(host.surface.position.width == 240)
+    Swag.require(host.surface.position.height == 110)
 
     evt.kind = .Released
     host.surfaceWnd.sendEvent(&evt)

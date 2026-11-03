@@ -11,9 +11,9 @@ using Swag, Core
     let payload        = Clipboard.TypedPayload{crc: type.crc, data: source}
     var encoded        = payload.encode()
     let decoded        = expect Clipboard.TypedPayload.decode(encoded.toSlice())
-    Swag.assert(decoded.matches(s32) and not decoded.matches(u64))
-    Swag.assert(decoded.matches(null))
-    Swag.assert(decoded.data != null and decoded.data.count == 3 and decoded.data[2] == 3)
+    Swag.require(decoded.matches(s32) and not decoded.matches(u64))
+    Swag.require(decoded.matches(null))
+    Swag.require(decoded.data != null and decoded.data.count == 3 and decoded.data[2] == 3)
 
     // Every incomplete header and payload fails before any out-of-bounds read or slice.
     for size in encoded.count
@@ -21,7 +21,7 @@ using Swag, Core
         var errorOutcome: Swag.Error
         discard catch Clipboard.TypedPayload.decode(encoded.toSlice()[0 until size]) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error != null)
+        Swag.require(error != null)
     }
 
     for i in 8 do
@@ -29,11 +29,11 @@ using Swag, Core
     var oversizedOutcome: Swag.Error
     discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as oversizedOutcome
     let oversized = oversizedOutcome.value()
-    Swag.assert(oversized != null)
+    Swag.require(oversized != null)
 
     let empty      = Clipboard.TypedPayload{crc: type.crc}
     var emptyBytes = empty.encode()
     emptyBytes.add(0xA5)
     let withPadding = expect Clipboard.TypedPayload.decode(emptyBytes.toSlice())
-    Swag.assert(withPadding.matches(s32) and withPadding.data.count == 0)
+    Swag.require(withPadding.matches(s32) and withPadding.data.count == 0)
 }

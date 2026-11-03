@@ -23,11 +23,11 @@ using Swag, Core, Pixel
     var cache: HtmlImageCache
     cache.asynchronous = true
     let pending = cache.texture(renderer, fileName.toString(), 120, 60)
-    Swag.assert(pending == null and not cache.parsing.isEmpty())
+    Swag.require(pending == null and not cache.parsing.isEmpty())
     cache.parsing[0].task.wait()
-    Swag.assert(not cache.entries[0].image.isValid())
+    Swag.require(not cache.entries[0].image.isValid())
     let ready = cache.texture(renderer, fileName.toString(), 240, 120)
-    Swag.assert(ready != null and cache.entries[0].image.width == 240)
+    Swag.require(ready != null and cache.entries[0].image.width == 240)
     let drawing  = expect Svg.Drawing.parse(Source)
     let expected = drawing.rasterize(240, 120)
 

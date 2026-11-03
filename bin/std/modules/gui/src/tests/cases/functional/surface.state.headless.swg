@@ -20,14 +20,14 @@ using Core
         app.runFrame()
         surface.invalidate()
         app.runFrame()
-        Swag.assert(surface.isMinimized and surface.isDirty)
-        Swag.assert(surface.position == bounds)
+        Swag.require(surface.isMinimized and surface.isDirty)
+        Swag.require(surface.position == bounds)
 
         surface.requestRestore()
         app.runFrame()
-        Swag.assert(not surface.isMinimized and not surface.isMaximized)
-        Swag.assert(surface.position == bounds)
-        Swag.assert(not surface.isDirty)
+        Swag.require(not surface.isMinimized and not surface.isMaximized)
+        Swag.require(surface.position == bounds)
+        Swag.require(not surface.isDirty)
     }
 }
 
@@ -40,23 +40,23 @@ using Core
     app.setRenderer(&cpu)
 
     let surface = expect app.createSurface(40, 40, 320, 180)
-    Swag.assert(not surface.hWnd)
+    Swag.require(not surface.hWnd)
     surface.show()
     let normal = surface.position
 
     surface.showMaximized()
-    Swag.assert(surface.isMaximized and not surface.isMinimized)
+    Swag.require(surface.isMaximized and not surface.isMinimized)
     surface.setPosition({40, 40, 640, 400})
     surface.paint()
-    Swag.assert(surface.rc.width == 640 and surface.rc.height == 400)
-    Swag.assert(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
+    Swag.require(surface.rc.width == 640 and surface.rc.height == 400)
+    Swag.require(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)
 
     surface.showNormal()
     surface.paint()
-    Swag.assert(not surface.isMaximized and not surface.isMinimized)
-    Swag.assert(surface.position == normal)
-    Swag.assert(surface.rc.width == normal.width and surface.rc.height == normal.height)
-    Swag.assert(not surface.hWnd)
+    Swag.require(not surface.isMaximized and not surface.isMinimized)
+    Swag.require(surface.position == normal)
+    Swag.require(surface.rc.width == normal.width and surface.rc.height == normal.height)
+    Swag.require(not surface.hWnd)
 }
 
 // The application command path restores a minimized maximized surface to maximized state, and a
@@ -68,7 +68,7 @@ using Core
     app.setRenderer(&cpu)
 
     let surface = expect app.createSurface(40, 40, 640, 400)
-    Swag.assert(not surface.hWnd)
+    Swag.require(not surface.hWnd)
     surface.show()
 
     let normal = surface.position
@@ -77,30 +77,30 @@ using Core
 
     surface.requestMinimize()
     app.runFrame()
-    Swag.assert(surface.isMinimized and surface.isMaximized)
-    Swag.assert(surface.position == maximized)
+    Swag.require(surface.isMinimized and surface.isMaximized)
+    Swag.require(surface.position == maximized)
 
     surface.requestRestore()
     app.runFrame()
-    Swag.assert(not surface.isMinimized and surface.isMaximized)
-    Swag.assert(not surface.isHidden)
-    Swag.assert(surface.position == maximized)
+    Swag.require(not surface.isMinimized and surface.isMaximized)
+    Swag.require(not surface.isHidden)
+    Swag.require(surface.position == maximized)
 
     surface.showNormal()
     surface.requestMinimize()
     app.runFrame()
     surface.requestRestore()
     app.runFrame()
-    Swag.assert(not surface.isMinimized and not surface.isMaximized)
-    Swag.assert(not surface.isHidden)
-    Swag.assert(surface.position == normal)
+    Swag.require(not surface.isMinimized and not surface.isMaximized)
+    Swag.require(not surface.isHidden)
+    Swag.require(surface.position == normal)
 
     surface.showMaximized()
     surface.requestMinimize()
     app.runFrame()
     surface.showNormal()
-    Swag.assert(not surface.isMinimized and not surface.isMaximized)
-    Swag.assert(not surface.isHidden)
-    Swag.assert(surface.position == normal)
-    Swag.assert(not surface.hWnd)
+    Swag.require(not surface.isMinimized and not surface.isMaximized)
+    Swag.require(not surface.isHidden)
+    Swag.require(surface.position == normal)
+    Swag.require(not surface.hWnd)
 }

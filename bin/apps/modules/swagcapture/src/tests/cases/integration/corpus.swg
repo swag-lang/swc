@@ -10,7 +10,7 @@ using Swag, Core
 #test
 {
     let folder = Env.variable("SWAG_CAPTURE_CORPUS")
-    Swag.assert(not folder.isEmpty())
+    Swag.require(not folder.isEmpty())
     var host: Gui.Testing.HeadlessHost
     let main = testSetupSurfaceMain(&host)
     defer
@@ -22,16 +22,16 @@ using Swag, Core
 
     g_Library.files  = expect Library.enumerateSupportedFiles(folder)
     g_Library.loaded = true
-    Swag.assert(not g_Library.files.isEmpty())
+    Swag.require(not g_Library.files.isEmpty())
     var watch: Time.Stopwatch
     watch.start()
     main.swapLibraryMode()
     main.libWnd.view.thread.wait()
     host.finishAnimations()
     let view = main.libWnd.view
-    Swag.assert(view.allItems.count == g_Library.files.count)
+    Swag.require(view.allItems.count == g_Library.files.count)
     for item in view.allItems do
-        Swag.assert(item!.loaded)
+        Swag.require(item!.loaded)
     Console.print("Corpus items: ", view.allItems.count, "; load ms: ", watch.elapsedMilliseconds(), "\n")
 
     for 8 do
@@ -44,7 +44,7 @@ using Swag, Core
         main.swapLibraryMode()
         host.finishAnimations()
         discard host.render(main)
-        Swag.assert(view.allItems.count == count and not g_UpdatingLib)
+        Swag.require(view.allItems.count == count and not g_UpdatingLib)
     }
 
     Console.print("Four warm library returns with off-screen painting, ms: ", watch.elapsedMilliseconds(), "\n")

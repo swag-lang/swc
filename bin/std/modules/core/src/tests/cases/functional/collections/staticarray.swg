@@ -22,7 +22,7 @@ impl StaticArrayDropTracked
         if .value == 0 do
             return
 
-        Swag.assert(.value > 0)
+        Swag.require(.value > 0)
         StaticArrayDropCount += 1
         .value = -1
     }
@@ -66,8 +66,8 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     var values: StaticArray'(s32, 4'u64)
     values = seed
 
-    Swag.assert(values.count == 4)
-    Swag.assert(Slice.equals(values.toSlice(), seed))
+    Swag.require(values.count == 4)
+    Swag.require(Slice.equals(values.toSlice(), seed))
 }
 
 #test
@@ -75,11 +75,11 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     var values: StaticArray'(s32, 4'u64)
     values.resize(4)
 
-    Swag.assert(values.count == 4)
+    Swag.require(values.count == 4)
     values[0] = 7
     values[3] = 9
-    Swag.assert(values[0] == 7)
-    Swag.assert(values[3] == 9)
+    Swag.require(values[0] == 7)
+    Swag.require(values[3] == 9)
 }
 
 #test
@@ -92,7 +92,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     values.insertAt(values.count, #move moved)
 
     let expected: [3] s32 = [1, 2, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expected))
+    Swag.require(Slice.equals(values.toSlice(), expected))
 }
 
 #test
@@ -105,11 +105,11 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     for &value in values do
         value.value += 10
 
-    Swag.assert(values[0].value == 11)
-    Swag.assert(values[1].value == 12)
-    Swag.assert(values[2].value == 13)
-    Swag.assert(visitStructStaticArray(&values) == 15)
-    Swag.assert(visitStructStaticArrayReverse(&values) == 28)
+    Swag.require(values[0].value == 11)
+    Swag.require(values[1].value == 12)
+    Swag.require(values[2].value == 13)
+    Swag.require(visitStructStaticArray(&values) == 15)
+    Swag.require(visitStructStaticArrayReverse(&values) == 28)
 }
 
 #test
@@ -126,7 +126,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
             reverseIndex = index
     }
 
-    Swag.assert(reverseIndex == 2)
+    Swag.require(reverseIndex == 2)
 }
 
 #test
@@ -144,12 +144,12 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
         values.removeAtOrdered(2, 2)
 
-        Swag.assert(values.count == 2)
-        Swag.assert(values[0].value == 1)
-        Swag.assert(values[1].value == 2)
+        Swag.require(values.count == 2)
+        Swag.require(values[0].value == 1)
+        Swag.require(values[1].value == 2)
     }
 
-    Swag.assert(StaticArrayDropCount == 4)
+    Swag.require(StaticArrayDropCount == 4)
 }
 
 // An element can be inserted back into its own array: the shift would otherwise overwrite it
@@ -161,7 +161,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     s.add("two")
     s.add("three")
     s.insertBorrowedAt(0, &s[2])
-    Swag.assert(s.count == 4 and s[0] == "three" and s[1] == "one" and s[2] == "two" and s[3] == "three")
+    Swag.require(s.count == 4 and s[0] == "three" and s[1] == "one" and s[2] == "two" and s[3] == "three")
     s.insertBorrowedAt(1, &s[3])
-    Swag.assert(s.count == 5 and s[1] == "three" and s[2] == "one" and s[4] == "three")
+    Swag.require(s.count == 5 and s[1] == "three" and s[2] == "one" and s[4] == "three")
 }

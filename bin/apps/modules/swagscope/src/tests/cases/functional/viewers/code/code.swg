@@ -22,8 +22,8 @@ struct CodeLanguageSample
     host.setup(640, 420)
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(Utf8.contains(result.failureReason.toSlice(), Code.texts().err_ZeroByte))
+    Swag.require(result.view == null and result.commands == null)
+    Swag.require(Utf8.contains(result.failureReason.toSlice(), Code.texts().err_ZeroByte))
 }
 
 // A resident window revealed deep in a long source keeps numbering the lines of the whole file,
@@ -41,15 +41,15 @@ struct CodeLanguageSample
     host.setup(640, 420)
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     let view   = assume cast(*Code.Panel, result.view)
-    Swag.assert(view.editor.flags.has(.LineNumbers))
+    Swag.require(view.editor.flags.has(.LineNumbers))
 
     let line30000 = source.indexOf("int value30000 ")
-    Swag.assert(view.revealOffset(line30000, "value30000"))
-    Swag.assert(view.residentStart > 0 and view.lines.numberedOffset == view.residentStart)
-    Swag.assert(view.lines.numberedLine == view.lines.lineAt(fileName, view.residentStart))
-    Swag.assert(view.lines.lineAt(fileName, line30000) == 30_001)
-    Swag.assert(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)
-    Swag.assert(view.lines.lineAt(fileName, 0) == 1)
+    Swag.require(view.revealOffset(line30000, "value30000"))
+    Swag.require(view.residentStart > 0 and view.lines.numberedOffset == view.residentStart)
+    Swag.require(view.lines.numberedLine == view.lines.lineAt(fileName, view.residentStart))
+    Swag.require(view.lines.lineAt(fileName, line30000) == 30_001)
+    Swag.require(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)
+    Swag.require(view.lines.lineAt(fileName, 0) == 1)
 }
 
 // The code zoom value keeps the shared information-band air outside its button frame.
@@ -62,21 +62,21 @@ struct CodeLanguageSample
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
-    Swag.assert(result.view != null and result.info != null)
+    Swag.require(result.view != null and result.info != null)
     let view = assume cast(*Code.Panel, result.view)
     assertViewerInfoButton(unwrap view.zoomLabel)
-    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
 
     view.setZoom(150)
     let editor = view.editor
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
-    Swag.assert(view.zoomPercent == 150 and view.editor == editor)
+    Swag.require(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.require(view.zoomPercent == 150 and view.editor == editor)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == oldTip)
+    Swag.require(view.zoomLabel.toolTip == oldTip)
 }
 
 // End opens a bounded tail window instead of materializing every preceding byte.
@@ -99,9 +99,9 @@ struct CodeLanguageSample
 
     let beforeEnd = view.editor.scrollPosition()
     var end       = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.editor, &end))
+    Swag.require(view.hookOnChildEvent!(view.editor, &end))
     discard host.render(view)
-    Swag.assert(view.editor.scrollPosition().y > beforeEnd.y)
+    Swag.require(view.editor.scrollPosition().y > beforeEnd.y)
 }
 
 // Keeps the code viewer's estimated document extent from shrinking while multiple chunks are
@@ -113,7 +113,7 @@ struct CodeLanguageSample
     var source: String
     for 90_000 do
         source += "func streamedValue()->u32 => 42\n"
-    Swag.assert(source.length >= 2 * 1024 * 1024)
+    Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -128,75 +128,75 @@ struct CodeLanguageSample
     view.updateEstimatedHeight()
 
     view.setInitialFocus(view.editor)
-    Swag.assert(view.editor.hasFocus())
+    Swag.require(view.editor.hasFocus())
     host.keyPress(Input.Key.Down)
-    Swag.assert(view.editor.selectionEnd().lineIndex == 1)
+    Swag.require(view.editor.selectionEnd().lineIndex == 1)
     host.keyPress(Input.Key.Up)
-    Swag.assert(view.editor.selectionEnd().lineIndex == 0)
+    Swag.require(view.editor.selectionEnd().lineIndex == 0)
     host.keyPress(Input.Key.PageDown)
     let pageLine = view.editor.selectionEnd().lineIndex
-    Swag.assert(pageLine > 1)
+    Swag.require(pageLine > 1)
     host.keyPress(Input.Key.PageUp)
-    Swag.assert(view.editor.selectionEnd().lineIndex < pageLine)
+    Swag.require(view.editor.selectionEnd().lineIndex < pageLine)
 
     let firstVirtualHeight = view.virtualHeight
-    Swag.assert(firstVirtualHeight > view.editor.paddedClientRect().height)
+    Swag.require(firstVirtualHeight > view.editor.paddedClientRect().height)
     for 8
     {
         view.loadNextChunk()
-        Swag.assert(view.virtualHeight >= firstVirtualHeight)
-        Swag.assert(view.editor.scrollableClientRect().height >= firstVirtualHeight)
+        Swag.require(view.virtualHeight >= firstVirtualHeight)
+        Swag.require(view.editor.scrollableClientRect().height >= firstVirtualHeight)
     }
 
     host.keyPress(Input.Key.End)
     discard host.render(view)
-    Swag.assert(view.residentStart > 0)
-    Swag.assert(view.editor.scrollPosition().y > 0)
+    Swag.require(view.residentStart > 0)
+    Swag.require(view.editor.scrollPosition().y > 0)
     host.keyPress(Input.Key.Home)
     discard host.render(view)
-    Swag.assert(view.residentStart == 0)
-    Swag.assert(view.editor.selectionEnd().lineIndex == 0)
-    Swag.assert(view.editor.scrollPosition().y == 0)
+    Swag.require(view.residentStart == 0)
+    Swag.require(view.editor.selectionEnd().lineIndex == 0)
+    Swag.require(view.editor.scrollPosition().y == 0)
 }
 
 #test
 {
-    Swag.assert(File.exists(codeFixturePath("sample.cpp")))
-    Swag.assert(File.exists(codeFixturePath("sample.json")))
-    Swag.assert(Code.detectLanguage("sample.cpp") == .Cpp)
-    Swag.assert(Code.detectLanguage("sample.cs") == .CSharp)
-    Swag.assert(Code.detectLanguage("sample.tsx") == .TypeScript)
-    Swag.assert(Code.detectLanguage("sample.py") == .Python)
-    Swag.assert(Code.detectLanguage("sample.rs") == .Rust)
-    Swag.assert(Code.detectLanguage("sample.sql") == .Sql)
-    Swag.assert(Code.detectLanguage("sample.yaml") == .Yaml)
-    Swag.assert(Code.detectLanguage("sample.csproj") == .Xml)
-    Swag.assert(Code.detectLanguage("sample.html") == .Html)
-    Swag.assert(Code.detectLanguage("sample.asm") == .Assembly)
-    Swag.assert(Code.detectLanguage("sample.zig") == .Zig)
-    Swag.assert(Code.detectLanguage("sample.nim") == .Nim)
-    Swag.assert(Code.detectLanguage("sample.hs") == .Haskell)
-    Swag.assert(Code.detectLanguage("sample.scala") == .Scala)
-    Swag.assert(Code.detectLanguage("sample.groovy") == .Groovy)
-    Swag.assert(Code.detectLanguage("sample.exs") == .Elixir)
-    Swag.assert(Code.detectLanguage("sample.erl") == .Erlang)
-    Swag.assert(Code.detectLanguage("sample.clj") == .Clojure)
-    Swag.assert(Code.detectLanguage("sample.jl") == .Julia)
-    Swag.assert(Code.detectLanguage("sample.f90") == .Fortran)
-    Swag.assert(Code.detectLanguage("sample.pas") == .Pascal)
-    Swag.assert(Code.detectLanguage("sample.d") == .D)
-    Swag.assert(Code.detectLanguage("sample.mm") == .ObjectiveC)
-    Swag.assert(Code.detectLanguage("sample.m") == .Matlab)
-    Swag.assert(Code.detectLanguage("sample.tcl") == .Tcl)
-    Swag.assert(Code.detectLanguage("sample.awk") == .Awk)
-    Swag.assert(Code.detectLanguage("sample.vim") == .Vim)
-    Swag.assert(Code.detectLanguage("sample.tex") == .Latex)
-    Swag.assert(Code.detectLanguage("sample.proto") == .Protobuf)
-    Swag.assert(Code.detectLanguage("sample.graphql") == .GraphQl)
-    Swag.assert(Code.detectLanguage("sample.gradle") == .Gradle)
-    Swag.assert(Code.detectLanguage("Makefile") == .Makefile)
-    Swag.assert(Code.detectLanguage("Dockerfile") == .Dockerfile)
-    Swag.assert(Code.detectLanguage("sample.nix") == .Nix)
+    Swag.require(File.exists(codeFixturePath("sample.cpp")))
+    Swag.require(File.exists(codeFixturePath("sample.json")))
+    Swag.require(Code.detectLanguage("sample.cpp") == .Cpp)
+    Swag.require(Code.detectLanguage("sample.cs") == .CSharp)
+    Swag.require(Code.detectLanguage("sample.tsx") == .TypeScript)
+    Swag.require(Code.detectLanguage("sample.py") == .Python)
+    Swag.require(Code.detectLanguage("sample.rs") == .Rust)
+    Swag.require(Code.detectLanguage("sample.sql") == .Sql)
+    Swag.require(Code.detectLanguage("sample.yaml") == .Yaml)
+    Swag.require(Code.detectLanguage("sample.csproj") == .Xml)
+    Swag.require(Code.detectLanguage("sample.html") == .Html)
+    Swag.require(Code.detectLanguage("sample.asm") == .Assembly)
+    Swag.require(Code.detectLanguage("sample.zig") == .Zig)
+    Swag.require(Code.detectLanguage("sample.nim") == .Nim)
+    Swag.require(Code.detectLanguage("sample.hs") == .Haskell)
+    Swag.require(Code.detectLanguage("sample.scala") == .Scala)
+    Swag.require(Code.detectLanguage("sample.groovy") == .Groovy)
+    Swag.require(Code.detectLanguage("sample.exs") == .Elixir)
+    Swag.require(Code.detectLanguage("sample.erl") == .Erlang)
+    Swag.require(Code.detectLanguage("sample.clj") == .Clojure)
+    Swag.require(Code.detectLanguage("sample.jl") == .Julia)
+    Swag.require(Code.detectLanguage("sample.f90") == .Fortran)
+    Swag.require(Code.detectLanguage("sample.pas") == .Pascal)
+    Swag.require(Code.detectLanguage("sample.d") == .D)
+    Swag.require(Code.detectLanguage("sample.mm") == .ObjectiveC)
+    Swag.require(Code.detectLanguage("sample.m") == .Matlab)
+    Swag.require(Code.detectLanguage("sample.tcl") == .Tcl)
+    Swag.require(Code.detectLanguage("sample.awk") == .Awk)
+    Swag.require(Code.detectLanguage("sample.vim") == .Vim)
+    Swag.require(Code.detectLanguage("sample.tex") == .Latex)
+    Swag.require(Code.detectLanguage("sample.proto") == .Protobuf)
+    Swag.require(Code.detectLanguage("sample.graphql") == .GraphQl)
+    Swag.require(Code.detectLanguage("sample.gradle") == .Gradle)
+    Swag.require(Code.detectLanguage("Makefile") == .Makefile)
+    Swag.require(Code.detectLanguage("Dockerfile") == .Dockerfile)
+    Swag.require(Code.detectLanguage("sample.nix") == .Nix)
 
     var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
@@ -208,10 +208,10 @@ struct CodeLanguageSample
     editor.lexAll()
 
     let content = editor.textAndStyles()
-    Swag.assert(content.styles[0] == Code.GenericLexer.Style.Keyword)
-    Swag.assert(content.styles[7] == Code.GenericLexer.Style.Keyword)
-    Swag.assert(content.styles[13] == Code.GenericLexer.Style.Keyword)
-    Swag.assert(content.styles[content.styles.count - 1] == Code.GenericLexer.Style.Comment)
+    Swag.require(content.styles[0] == Code.GenericLexer.Style.Keyword)
+    Swag.require(content.styles[7] == Code.GenericLexer.Style.Keyword)
+    Swag.require(content.styles[13] == Code.GenericLexer.Style.Keyword)
+    Swag.require(content.styles[content.styles.count - 1] == Code.GenericLexer.Style.Comment)
 
     const Samples: [26] CodeLanguageSample = [
         CodeLanguageSample{.Html, "<main>content</main>"},
@@ -248,7 +248,7 @@ struct CodeLanguageSample
         editor.setLexer(&sampleLexer)
         editor.setText(sample.source)
         editor.lexAll()
-        Swag.assert(editor.textAndStyles().styles[0] == Code.GenericLexer.Style.Keyword)
+        Swag.require(editor.textAndStyles().styles[0] == Code.GenericLexer.Style.Keyword)
     }
 }
 
@@ -262,13 +262,13 @@ struct CodeLanguageSample
     host.setup(640, 160)
     let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
-    Swag.assert(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt({0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt({0, 23}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(view.editor.runeAt({0, 27}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(view.editor.runeAt({0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
+    Swag.require(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.require(view.editor.runeAt({0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.require(view.editor.runeAt({0, 23}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(view.editor.runeAt({0, 27}).style == RichEditLexerSwag.Style.Default)
+    Swag.require(view.editor.runeAt({0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.require(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.require(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
 }
 
 // The generic lexer colors strings, numbers, calls, and types in code, and the tags, attribute
@@ -285,10 +285,10 @@ struct CodeLanguageSample
     editor.setText("let s = \"x\"; f(12); Box")
     editor.lexAll()
     let codeStyles = editor.textAndStyles().styles
-    Swag.assert(codeStyles[8] == Code.GenericLexer.Style.String)
-    Swag.assert(codeStyles[13] == Code.GenericLexer.Style.Function)
-    Swag.assert(codeStyles[15] == Code.GenericLexer.Style.Number)
-    Swag.assert(codeStyles[20] == Code.GenericLexer.Style.Type)
+    Swag.require(codeStyles[8] == Code.GenericLexer.Style.String)
+    Swag.require(codeStyles[13] == Code.GenericLexer.Style.Function)
+    Swag.require(codeStyles[15] == Code.GenericLexer.Style.Number)
+    Swag.require(codeStyles[20] == Code.GenericLexer.Style.Type)
 
     var markup: Code.GenericLexer
     markup.configure(.Html)
@@ -296,8 +296,8 @@ struct CodeLanguageSample
     editor.setText("<a href=\"u\">t</a><!-- c -->")
     editor.lexAll()
     let markupStyles = editor.textAndStyles().styles
-    Swag.assert(markupStyles[0] == Code.GenericLexer.Style.Keyword)
-    Swag.assert(markupStyles[8] == Code.GenericLexer.Style.String)
-    Swag.assert(markupStyles[12] == Code.GenericLexer.Style.Default)
-    Swag.assert(markupStyles[17] == Code.GenericLexer.Style.Comment)
+    Swag.require(markupStyles[0] == Code.GenericLexer.Style.Keyword)
+    Swag.require(markupStyles[8] == Code.GenericLexer.Style.String)
+    Swag.require(markupStyles[12] == Code.GenericLexer.Style.Default)
+    Swag.require(markupStyles[17] == Code.GenericLexer.Style.Comment)
 }

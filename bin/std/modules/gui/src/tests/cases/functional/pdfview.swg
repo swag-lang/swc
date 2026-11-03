@@ -67,11 +67,11 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let view = PdfView.create(&host.root)
     view.exchangeDocument(&reader, &page)
-    Swag.assert(view.pageCount() == 2 and view.pageIndex == 0)
-    Swag.assert(reader.pageCount() == 0)
+    Swag.require(view.pageCount() == 2 and view.pageIndex == 0)
+    Swag.require(reader.pageCount() == 0)
 
     // The page the host decoded is the one the view holds; nothing decoded it a second time.
-    Swag.assert(view.cache.isResident(0) and not view.cache.isResident(1))
+    Swag.require(view.cache.isResident(0) and not view.cache.isResident(1))
 }
 
 // A document is laid out from its page tree, so the whole of it is scrollable before a single
@@ -85,15 +85,15 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.resize(800, 560)
     view.applyLayout()
     expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
-    Swag.assert(view.pageCount() == 28)
-    Swag.assert(view.cache.pages.isEmpty())
+    Swag.require(view.pageCount() == 28)
+    Swag.require(view.cache.pages.isEmpty())
 
     // Every page contributes its own height to the column, and the column is what the scroll
     // frame publishes.
     let content = view.contentSize()
-    Swag.assert(content.y > 20 * view.pageRect(0).height)
-    Swag.assert(Math.isEqualEpsilon(view.scroll.scrollSize.y, content.y, 0.5))
-    Swag.assert(view.pageRect(27).y > view.pageRect(26).y)
+    Swag.require(content.y > 20 * view.pageRect(0).height)
+    Swag.require(Math.isEqualEpsilon(view.scroll.scrollSize.y, content.y, 0.5))
+    Swag.require(view.pageRect(27).y > view.pageRect(26).y)
 }
 
 // A real multi-megabyte document keeps its mapped source, a lightweight page index, and a bounded
@@ -111,7 +111,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.resize(800, 560)
     view.applyLayout()
     expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
-    Swag.assert(view.pageCount() == 28)
+    Swag.require(view.pageCount() == 28)
 
     for pageIndex in view.pageCount()
     {
@@ -122,9 +122,9 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // The decoded pages are bounded by both of the view's limits, and the document itself — its
     // mapped source, its object index and the faces it resolved — is what the rest holds.
     let firstPass = allocator.stats()
-    Swag.assert(view.cache.pages.count <= PdfView.ResidentPageLimit)
-    Swag.assert(view.cache.memoryUsage() <= PdfView.ResidentPageBudget)
-    Swag.assert(firstPass.sizeAlloc < baseline.sizeAlloc + 128 * 1024 * 1024)
+    Swag.require(view.cache.pages.count <= PdfView.ResidentPageLimit)
+    Swag.require(view.cache.memoryUsage() <= PdfView.ResidentPageBudget)
+    Swag.require(firstPass.sizeAlloc < baseline.sizeAlloc + 128 * 1024 * 1024)
 
     for pageIndex in view.pageCount()
     {
@@ -133,9 +133,9 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     }
 
     let secondPass = allocator.stats()
-    Swag.assert(view.cache.pages.count <= PdfView.ResidentPageLimit)
-    Swag.assert(secondPass.sizeAlloc < baseline.sizeAlloc + 128 * 1024 * 1024)
-    Swag.assert(secondPass.sizeAlloc <= firstPass.sizeAlloc + 2 * 1024 * 1024)
+    Swag.require(view.cache.pages.count <= PdfView.ResidentPageLimit)
+    Swag.require(secondPass.sizeAlloc < baseline.sizeAlloc + 128 * 1024 * 1024)
+    Swag.require(secondPass.sizeAlloc <= firstPass.sizeAlloc + 2 * 1024 * 1024)
 }
 
 // The view paints decoded pages straight through the widget's painter: one rendered frame shows
@@ -152,27 +152,27 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.resize(640, 420)
     view.applyLayout()
     expect view.open(fileName.toString())
-    Swag.assert(view.pageCount() == 2 and view.pageIndex == 0)
-    Swag.assert(view.zoomMode == .FitPage and view.pageLayout == .Continuous)
+    Swag.require(view.pageCount() == 2 and view.pageIndex == 0)
+    Swag.require(view.zoomMode == .FitPage and view.pageLayout == .Continuous)
 
     settlePdfView(&host, view)
     let frame = host.render()
-    Swag.assert(frame.isValid())
+    Swag.require(frame.isValid())
     let evidence = countPageEvidence(&frame)
-    Swag.assert(evidence.paper > 10_000)
-    Swag.assert(evidence.ink > 50)
-    Swag.assert(not view.reportedPaintError)
+    Swag.require(evidence.paper > 10_000)
+    Swag.require(evidence.ink > 50)
+    Swag.require(not view.reportedPaintError)
 
     // Actual size is one PDF point per 1/96 logical inch, whatever the display resolution.
     view.actualSize()
-    Swag.assert(view.zoomMode == .Free)
-    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(view.zoomMode == .Free)
+    Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
 
     // Fitting the width uses the whole viewport, so it is never smaller than fitting the page.
     view.zoomToFitWidth()
     let width = view.effectiveZoom()
     view.zoomToFit()
-    Swag.assert(width >= view.effectiveZoom())
+    Swag.require(width >= view.effectiveZoom())
 }
 
 // Zoomed out, the column shows several pages at once: that is what makes it a document rather
@@ -191,25 +191,25 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
 
     // Fitted, one whole page stands in the viewport and the next one waits below it.
-    Swag.assert(view.pageRect(0).height <= view.viewportSize().y)
-    Swag.assert(view.pageRect(1).y >= view.pageRect(0).bottom())
+    Swag.require(view.pageRect(0).height <= view.viewportSize().y)
+    Swag.require(view.pageRect(1).y >= view.pageRect(0).bottom())
 
     view.setZoom(view.effectiveZoom() * 0.4)
-    Swag.assert(view.visibleRange().first == 0 and view.visibleRange().last == 1)
+    Swag.require(view.visibleRange().first == 0 and view.visibleRange().last == 1)
     settlePdfView(&host, view)
-    Swag.assert(view.cache.isResident(0) and view.cache.isResident(1))
+    Swag.require(view.cache.isResident(0) and view.cache.isResident(1))
 
     // Both pages are drawn in the same frame, so the ground shows twice the paper one page has.
     let frame    = host.render()
     let evidence = countPageEvidence(&frame)
     let expected = cast(u64, (view.pageRect(0).width * view.pageRect(0).height))
-    Swag.assert(evidence.paper > expected + expected / 2)
+    Swag.require(evidence.paper > expected + expected / 2)
 
     // One page at a time is the other reading of the same document, and it keeps the page.
     view.setPageLayout(.Single)
-    Swag.assert(view.visibleRange().first == 0 and view.visibleRange().last == 0)
+    Swag.require(view.visibleRange().first == 0 and view.visibleRange().last == 0)
     view.showPage(1)
-    Swag.assert(view.pageIndex == 1 and view.visibleRange().first == 1)
+    Swag.require(view.pageIndex == 1 and view.visibleRange().first == 1)
 }
 
 // A zoom step is a transform change, so the wheel takes effect immediately: no deferred
@@ -230,30 +230,30 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let fitted = view.effectiveZoom()
     host.mouseWheel({320, 210}, 1, .Control)
-    Swag.assert(view.zoomMode == .Free)
-    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
+    Swag.require(view.zoomMode == .Free)
+    Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
 
     // A deep zoom stays a transform change and still paints the page region under the view.
     view.setZoom(40)
-    Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(view.effectiveZoom(), 40.0, 0.001))
     settlePdfView(&host, view)
     let frame    = host.render()
     let evidence = countPageEvidence(&frame)
-    Swag.assert(evidence.paper > 10_000)
-    Swag.assert(not view.reportedPaintError)
+    Swag.require(evidence.paper > 10_000)
+    Swag.require(not view.reportedPaintError)
 
     // The plain wheel scrolls the document instead of zooming it, and it glides there: the
     // notch names where the document is heading, and the movement follows.
     view.zoomToFit()
     let before = view.scroll.scrollPosition().y
     host.mouseWheel({320, 210}, -1)
-    Swag.assert(view.scroll.scrollTarget().y == before + PdfView.WheelScrollStep)
+    Swag.require(view.scroll.scrollTarget().y == before + PdfView.WheelScrollStep)
 
     // A second notch retargets the movement in flight instead of restarting it.
     host.mouseWheel({320, 210}, -1)
-    Swag.assert(view.scroll.scrollTarget().y == before + 2 * PdfView.WheelScrollStep)
+    Swag.require(view.scroll.scrollTarget().y == before + 2 * PdfView.WheelScrollStep)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == before + 2 * PdfView.WheelScrollStep)
+    Swag.require(view.scroll.scrollPosition().y == before + 2 * PdfView.WheelScrollStep)
 }
 
 // Scrolling is bounded by the document, and reversing at an edge responds on the first notch.
@@ -273,26 +273,26 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     for 32 do
         host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
 
     // The end of the document is the last page's bottom, not the first page's.
     let limit = Math.max(view.contentSize().y - view.viewportSize().y, 0)
     for 128 do
         host.mouseWheel({320, 210}, -1)
     host.finishAnimations()
-    Swag.assert(Math.isEqualEpsilon(view.scroll.scrollPosition().y, limit, 1))
-    Swag.assert(view.pageIndex == 1)
+    Swag.require(Math.isEqualEpsilon(view.scroll.scrollPosition().y, limit, 1))
+    Swag.require(view.pageIndex == 1)
 
     let edge = view.scroll.scrollPosition().y
     host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == edge - PdfView.WheelScrollStep)
+    Swag.require(view.scroll.scrollPosition().y == edge - PdfView.WheelScrollStep)
 
     // Scrolling back through the whole document lands on the first page again.
     for 256 do
         host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == 0 and view.pageIndex == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0 and view.pageIndex == 0)
 }
 
 // The images of a page are uploaded to the renderer once per page and released with the page.
@@ -311,17 +311,17 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     settlePdfView(&host, view)
 
     let first = view.cache.resident(0)
-    Swag.assert(first != null and first.hasTextures and first.textures.count == 1)
-    Swag.assert(first.textures[0].isValid())
+    Swag.require(first != null and first.hasTextures and first.textures.count == 1)
+    Swag.require(first.textures[0].isValid())
 
     // A second frame reuses the uploaded texture instead of building a new one.
     let handle = first.textures[0].handle
     discard host.render()
-    Swag.assert(first.textures.count == 1 and first.textures[0].handle == handle)
+    Swag.require(first.textures.count == 1 and first.textures[0].handle == handle)
 
     // Closing the document releases every texture with the pages that owned them.
     view.close()
-    Swag.assert(view.cache.pages.isEmpty() and view.pageCount() == 0)
+    Swag.require(view.cache.pages.isEmpty() and view.pageCount() == 0)
 }
 
 // Page navigation keeps the zoom mode, reports the ends, and close releases the content.
@@ -346,18 +346,18 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     let fitted = view.effectiveZoom()
     view.nextPage()
-    Swag.assert(view.pageIndex == 1)
+    Swag.require(view.pageIndex == 1)
     view.nextPage()
-    Swag.assert(view.pageIndex == 1)
+    Swag.require(view.pageIndex == 1)
     view.previousPage()
-    Swag.assert(view.pageIndex == 0)
+    Swag.require(view.pageIndex == 0)
     view.previousPage()
-    Swag.assert(view.pageIndex == 0)
-    Swag.assert(pageChanges == 2)
-    Swag.assert(view.zoomMode == .FitPage and view.effectiveZoom() == fitted)
+    Swag.require(view.pageIndex == 0)
+    Swag.require(pageChanges == 2)
+    Swag.require(view.zoomMode == .FitPage and view.effectiveZoom() == fitted)
 
     view.close()
-    Swag.assert(view.pageCount() == 0 and view.contentSize() == Math.Point{})
+    Swag.require(view.pageCount() == 0 and view.contentSize() == Math.Point{})
 }
 
 // The text index reads a page the way a reader does: lines top to bottom, words separated by
@@ -369,26 +369,26 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     page.addText("gamma", 40, 80, 20, Color.fromArgb(Argb.Black))
 
     let index = TextIndex.build(&page)
-    Swag.assert(index.text == "alpha beta\ngamma")
-    Swag.assert(index.runs.count == 2)
+    Swag.require(index.text == "alpha beta\ngamma")
+    Swag.require(index.runs.count == 2)
 
     // A point inside the first glyph answers its exact offset.
     let hit = index.positionAt({41, 50})
-    Swag.assert(hit.distance == 0)
-    Swag.assert(hit.offset == 0)
+    Swag.require(hit.distance == 0)
+    Swag.require(hit.offset == 0)
 
     // A point far to the right of a line snaps to that line's end.
     let far = index.positionAt({300, 50})
-    Swag.assert(far.offset == 10)
+    Swag.require(far.offset == 10)
 
     let word = index.wordRangeAt(7)
-    Swag.assert(index.text.toString()[word.start until word.end] == "beta")
+    Swag.require(index.text.toString()[word.start until word.end] == "beta")
 
     var rects: Array'Math.Rectangle
     index.rangeRects(0, 5, &rects)
-    Swag.assert(rects.count == 1)
-    Swag.assert(rects[0].x >= 39 and rects[0].x <= 41)
-    Swag.assert(rects[0].y >= 39 and rects[0].y <= 41)
+    Swag.require(rects.count == 1)
+    Swag.require(rects[0].x >= 39 and rects[0].x <= 41)
+    Swag.require(rects[0].y >= 39 and rects[0].y <= 41)
 }
 
 // Selection on the view: a drag over words takes them, a double click takes one word, and the
@@ -414,20 +414,20 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let dragFrom = view.canvas.localToSurface(Math.Point{page.x + 33 * scale, page.y + 40 * scale})
     let dragTo   = view.canvas.localToSurface(Math.Point{page.x + 300 * scale, page.y + 40 * scale})
     host.drag(dragFrom, dragTo)
-    Swag.assert(view.hasSelection())
-    Swag.assert(view.selectedText() == "PDF viewer")
-    Swag.assert(view.copySelection())
-    Swag.assert(Clipboard.getString() == "PDF viewer")
+    Swag.require(view.hasSelection())
+    Swag.require(view.selectedText() == "PDF viewer")
+    Swag.require(view.copySelection())
+    Swag.require(Clipboard.getString() == "PDF viewer")
 
     host.doubleClick(dragFrom)
-    Swag.assert(view.selectedText() == "PDF")
+    Swag.require(view.selectedText() == "PDF")
 
     view.clearSelection()
-    Swag.assert(not view.hasSelection())
-    Swag.assert(not view.copySelection())
+    Swag.require(not view.hasSelection())
+    Swag.require(not view.copySelection())
 
     view.selectAll()
-    Swag.assert(view.selectedText() == "PDF viewer")
+    Swag.require(view.selectedText() == "PDF viewer")
 }
 
 // A selection running past the bottom of a page keeps going on the next one: the column is one
@@ -453,9 +453,9 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let start = view.canvas.localToSurface(Math.Point{first.x + 33 * scale, first.y + 40 * scale})
     let end   = view.canvas.localToSurface(Math.Point{last.x + 300 * scale, last.y + 40 * scale})
     host.drag(start, end)
-    Swag.assert(view.hasSelection())
-    Swag.assert(view.selectionStart().pageIndex == 0 and view.selectionEnd().pageIndex == 1)
-    Swag.assert(view.selectedText() == "PDF viewer\nSecond page")
+    Swag.require(view.hasSelection())
+    Swag.require(view.selectionStart().pageIndex == 0 and view.selectionEnd().pageIndex == 1)
+    Swag.require(view.selectedText() == "PDF viewer\nSecond page")
 }
 
 // Search scans forward from the current page, wraps once around the document, and turns the
@@ -474,45 +474,45 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
     settlePdfView(&host, view)
 
-    Swag.assert(view.findText("second"))
-    Swag.assert(view.pageIndex == 1)
-    Swag.assert(view.selectedText() == "Second")
+    Swag.require(view.findText("second"))
+    Swag.require(view.pageIndex == 1)
+    Swag.require(view.selectedText() == "Second")
 
     // The same query keeps walking and comes back around to the only match.
-    Swag.assert(view.findText("second"))
-    Swag.assert(view.pageIndex == 1)
-    Swag.assert(view.selectedText() == "Second")
+    Swag.require(view.findText("second"))
+    Swag.require(view.pageIndex == 1)
+    Swag.require(view.selectedText() == "Second")
 
     // A match behind the current page is reached through the wrap.
-    Swag.assert(view.findText("viewer"))
-    Swag.assert(view.pageIndex == 0)
-    Swag.assert(view.selectedText() == "viewer")
+    Swag.require(view.findText("viewer"))
+    Swag.require(view.pageIndex == 0)
+    Swag.require(view.selectedText() == "viewer")
 
-    Swag.assert(not view.findText("absent"))
+    Swag.require(not view.findText("absent"))
 
     let matches = view.findTextMatches("second")
-    Swag.assert(matches.count == 1 and matches[0].pageIndex == 1)
+    Swag.require(matches.count == 1 and matches[0].pageIndex == 1)
     let revealed = view.revealTextMatch(matches[0])
-    Swag.assert(revealed and view.selectedText() == "Second")
+    Swag.require(revealed and view.selectedText() == "Second")
     settlePdfView(&host, view)
     var matchRect: Math.Rectangle
-    Swag.assert(view.textMatchRect(matches[0], &matchRect) and not matchRect.isEmpty())
+    Swag.require(view.textMatchRect(matches[0], &matchRect) and not matchRect.isEmpty())
 
     var exact: PdfTextSearchOptions
     exact.comparison = .Latin1
-    Swag.assert(view.findTextMatches("second", exact).isEmpty())
+    Swag.require(view.findTextMatches("second", exact).isEmpty())
 
     var words: PdfTextSearchOptions
     words.wholeWord = true
-    Swag.assert(view.findTextMatches("view", words).isEmpty())
+    Swag.require(view.findTextMatches("view", words).isEmpty())
 
     var expression: PdfTextSearchOptions
     expression.regularExpression = true
     let expressionMatches = view.findTextMatches(#raw "Sec.nd", expression)
-    Swag.assert(expressionMatches.count == 1 and
-                expressionMatches[0].pageIndex == 1 and
-                expressionMatches[0].byteLength == 6)
-    Swag.assert(view.findTextMatches("(", expression).isEmpty())
+    Swag.require(expressionMatches.count == 1 and
+                 expressionMatches[0].pageIndex == 1 and
+                 expressionMatches[0].byteLength == 6)
+    Swag.require(view.findTextMatches("(", expression).isEmpty())
 
     // The progressive form answers the same matches a page at a time and never waits for one;
     // an invalid expression ends it at once.
@@ -520,14 +520,14 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     var page = 0'u64
     while not view.collectTextMatches("second", {}, &page, &collected) do
         Threading.Thread.sleep(1'ms)
-    Swag.assert(page == 2 and
-                collected.count == 1 and
-                collected[0].pageIndex == 1 and
-                collected[0].byteOffset == 0 and
-                collected[0].byteLength == 6)
+    Swag.require(page == 2 and
+                 collected.count == 1 and
+                 collected[0].pageIndex == 1 and
+                 collected[0].byteOffset == 0 and
+                 collected[0].byteLength == 6)
     page = 0
     collected.clear()
-    Swag.assert(view.collectTextMatches("(", expression, &page, &collected) and collected.isEmpty())
+    Swag.require(view.collectTextMatches("(", expression, &page, &collected) and collected.isEmpty())
 }
 
 // The document's text is extracted on a worker the first time a search asks for it, once per
@@ -542,28 +542,28 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.resize(640, 420)
     view.applyLayout()
     expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
-    Swag.assert(not view.documentText.started)
+    Swag.require(not view.documentText.started)
 
     var matches: Array'PdfTextMatch
     var page = 0'u64
     discard view.collectTextMatches("polly", {}, &page, &matches)
-    Swag.assert(view.documentText.started)
+    Swag.require(view.documentText.started)
     view.close()
-    Swag.assert(not view.documentText.started and view.pageCount() == 0)
+    Swag.require(not view.documentText.started and view.pageCount() == 0)
 
     let fileName = pdfViewFixture()
     defer discard catch File.delete(fileName)
     expect view.open(fileName.toString())
-    Swag.assert(not view.documentText.started)
+    Swag.require(not view.documentText.started)
     let found = view.findTextMatches("page")
-    Swag.assert(view.documentText.started and view.documentText.isComplete())
-    Swag.assert(found.count == 1 and found[0].pageIndex == 1 and found[0].byteOffset == 7)
-    Swag.assert(view.findText("viewer") and view.pageIndex == 0 and view.selectedText() == "viewer")
+    Swag.require(view.documentText.started and view.documentText.isComplete())
+    Swag.require(found.count == 1 and found[0].pageIndex == 1 and found[0].byteOffset == 7)
+    Swag.require(view.findText("viewer") and view.pageIndex == 0 and view.selectedText() == "viewer")
 
     // Showing another page keeps the extracted text: the second search costs no decode.
     view.showPage(1)
-    Swag.assert(view.documentText.started)
-    Swag.assert(view.findTextMatches("PDF").count == 1)
+    Swag.require(view.documentText.started)
+    Swag.require(view.findTextMatches("PDF").count == 1)
 }
 
 // The context menu reaches the same selection commands the keyboard binds.
@@ -584,12 +584,12 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     host.clickPopupMenuItemWhenShown(PdfView.CtxSelectAll)
     view.showContextMenu({100, 100})
     host.pump()
-    Swag.assert(view.selectedText() == "PDF viewer")
+    Swag.require(view.selectedText() == "PDF viewer")
 
     host.clickPopupMenuItemWhenShown(PdfView.CtxCopy)
     view.showContextMenu({100, 100})
     host.pump()
-    Swag.assert(Clipboard.getString() == "PDF viewer")
+    Swag.require(Clipboard.getString() == "PDF viewer")
 }
 
 // Zooming past a flattening bucket does not make the frame that crosses it flatten the whole
@@ -609,18 +609,18 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // A page is flattened for the scale it will be shown at by the worker that decoded it, so
     // the frame that first shows it neither decodes nor tessellates.
     let entry = view.cache.resident(0)
-    Swag.assert(entry != null)
+    Swag.require(entry != null)
     let fitted = entry.preparedScale
-    Swag.assert(fitted > 0 and not view.preparing)
+    Swag.require(fitted > 0 and not view.preparing)
 
     // Four times the zoom is two buckets up, so the page does not hold the flattening the frame
     // wants; the frame still paints, and asks for it.
     view.setZoom(view.effectiveZoom() * 4)
     let frame = host.render()
-    Swag.assert(frame.isValid())
-    Swag.assert(countPageEvidence(&frame).paper > 10_000)
-    Swag.assert(not view.reportedPaintError)
-    Swag.assert(view.preparingScale > fitted)
+    Swag.require(frame.isValid())
+    Swag.require(countPageEvidence(&frame).paper > 10_000)
+    Swag.require(not view.reportedPaintError)
+    Swag.require(view.preparingScale > fitted)
 
     // The worker publishes through the view's own poll, so firing that timer is what adopts it.
     for 2000
@@ -631,16 +631,16 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
         host.fireTimers()
     }
 
-    Swag.assert(not view.preparing)
-    Swag.assert(view.cache.resident(0)!.preparedScale > fitted)
+    Swag.require(not view.preparing)
+    Swag.require(view.cache.resident(0)!.preparedScale > fitted)
 
     // Zooming back out asks for less than the page holds, so nothing is prepared again.
     let raised = view.cache.resident(0)!.preparedScale
     view.setZoom(view.effectiveZoom() / 8)
     discard host.render()
-    Swag.assert(not view.preparing and view.cache.resident(0)!.preparedScale == raised)
+    Swag.require(not view.preparing and view.cache.resident(0)!.preparedScale == raised)
 
     // Closing the document stops the worker and releases what it was raising.
     view.close()
-    Swag.assert(not view.preparing and view.cache.pages.isEmpty())
+    Swag.require(not view.preparing and view.cache.pages.isEmpty())
 }

@@ -41,31 +41,31 @@ func base64Reference(bytes: const [..] u8)->String
 // Encoding covers every padding shape, and decoding reads its own output back.
 #test
 {
-    Swag.assert(Base64.encode(cast(const [..] u8, "")).isEmpty())
-    Swag.assert(Base64.encode(cast(const [..] u8, "f")) == "Zg==")
-    Swag.assert(Base64.encode(cast(const [..] u8, "fo")) == "Zm8=")
-    Swag.assert(Base64.encode(cast(const [..] u8, "foo")) == "Zm9v")
-    Swag.assert(Base64.encode(cast(const [..] u8, "foob")) == "Zm9vYg==")
-    Swag.assert(Base64.encode(cast(const [..] u8, "fooba")) == "Zm9vYmE=")
-    Swag.assert(Base64.encode(cast(const [..] u8, "foobar")) == "Zm9vYmFy")
+    Swag.require(Base64.encode(cast(const [..] u8, "")).isEmpty())
+    Swag.require(Base64.encode(cast(const [..] u8, "f")) == "Zg==")
+    Swag.require(Base64.encode(cast(const [..] u8, "fo")) == "Zm8=")
+    Swag.require(Base64.encode(cast(const [..] u8, "foo")) == "Zm9v")
+    Swag.require(Base64.encode(cast(const [..] u8, "foob")) == "Zm9vYg==")
+    Swag.require(Base64.encode(cast(const [..] u8, "fooba")) == "Zm9vYmE=")
+    Swag.require(Base64.encode(cast(const [..] u8, "foobar")) == "Zm9vYmFy")
 
     let bytes = expect Base64.decode("Zm9vYmFy")
-    Swag.assert(cast(string, bytes.toSlice()) == "foobar")
+    Swag.require(cast(string, bytes.toSlice()) == "foobar")
 }
 
 // Decoding accepts the forms real documents carry: padding, no padding, the URL-safe alphabet,
 // and embedded white space.
 #test
 {
-    Swag.assert(cast(string, (expect Base64.decode("Zm9vYg==")).toSlice()) == "foob")
-    Swag.assert(cast(string, (expect Base64.decode("Zm9vYg")).toSlice()) == "foob")
-    Swag.assert(cast(string, (expect Base64.decode("Zm9v\r\n YmFy")).toSlice()) == "foobar")
+    Swag.require(cast(string, (expect Base64.decode("Zm9vYg==")).toSlice()) == "foob")
+    Swag.require(cast(string, (expect Base64.decode("Zm9vYg")).toSlice()) == "foob")
+    Swag.require(cast(string, (expect Base64.decode("Zm9v\r\n YmFy")).toSlice()) == "foobar")
 
     // `+/` and `-_` spell the same two sextets.
     let standard = expect Base64.decode("+/8=")
     let urlSafe  = expect Base64.decode("-_8")
-    Swag.assert(standard.count == 2 and urlSafe.count == 2)
-    Swag.assert(standard[0] == urlSafe[0] and standard[1] == urlSafe[1])
+    Swag.require(standard.count == 2 and urlSafe.count == 2)
+    Swag.require(standard[0] == urlSafe[0] and standard[1] == urlSafe[1])
 }
 
 // Malformed input is reported rather than decoded into something else.
@@ -74,28 +74,28 @@ func base64Reference(bytes: const [..] u8)->String
     var badCharacterOutcome: Swag.Error
     discard catch Base64.decode("Zm9v!") as badCharacterOutcome
     let badCharacter = badCharacterOutcome.value()
-    Swag.assert(badCharacter != null)
+    Swag.require(badCharacter != null)
     var truncatedOutcome: Swag.Error
     discard catch Base64.decode("Z") as truncatedOutcome
     let truncated = truncatedOutcome.value()
-    Swag.assert(truncated != null)
+    Swag.require(truncated != null)
     var afterPaddingOutcome: Swag.Error
     discard catch Base64.decode("Zg==Zg") as afterPaddingOutcome
     let afterPadding = afterPaddingOutcome.value()
-    Swag.assert(afterPadding != null)
+    Swag.require(afterPadding != null)
 
     var missingPaddingOutcome: Swag.Error
     discard catch Base64.decode("Zg=") as missingPaddingOutcome
     let missingPadding = missingPaddingOutcome.value()
-    Swag.assert(missingPadding != null)
+    Swag.require(missingPadding != null)
     var excessPaddingOutcome: Swag.Error
     discard catch Base64.decode("Zm9v=") as excessPaddingOutcome
     let excessPadding = excessPaddingOutcome.value()
-    Swag.assert(excessPadding != null)
+    Swag.require(excessPadding != null)
     var misplacedPaddingOutcome: Swag.Error
     discard catch Base64.decode("Z=g=") as misplacedPaddingOutcome
     let misplacedPadding = misplacedPaddingOutcome.value()
-    Swag.assert(misplacedPadding != null)
+    Swag.require(misplacedPadding != null)
 }
 
 // Every short tail crosses the 12/16-byte packed boundaries and round-trips
@@ -110,13 +110,13 @@ func base64Reference(bytes: const [..] u8)->String
     {
         let expected = base64Reference(input[until length])
         let encoded  = Base64.encode(input[until length])
-        Swag.assert(encoded == expected)
+        Swag.require(encoded == expected)
         let decoded = expect Base64.decode(encoded)
-        Swag.assert(Slice.equals(decoded.toSlice(), input[until length]))
+        Swag.require(Slice.equals(decoded.toSlice(), input[until length]))
     }
 
     let spaced = expect Base64.decode("QUJDREVGR0hJSktM\r\nTU5PUA==")
-    Swag.assert(cast(string, spaced.toSlice()) == "ABCDEFGHIJKLMNOP")
+    Swag.require(cast(string, spaced.toSlice()) == "ABCDEFGHIJKLMNOP")
     let urlSafe = expect Base64.decode("LS0tX19fLS0tX19fLS0tX19f")
-    Swag.assert(cast(string, urlSafe.toSlice()) == "---___---___---___")
+    Swag.require(cast(string, urlSafe.toSlice()) == "---___---___---___")
 }

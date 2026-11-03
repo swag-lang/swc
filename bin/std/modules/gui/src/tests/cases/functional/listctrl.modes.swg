@@ -21,14 +21,14 @@ using Swag, Core, Pixel
     host.root.applyLayout()
     let row = list.lineHeight()
     host.moveMouse({40, row * 0.5})
-    Swag.assert(list.hotIndex == 0 and list.hotPresence < 1)
+    Swag.require(list.hotIndex == 0 and list.hotPresence < 1)
     host.finishAnimations()
-    Swag.assert(list.hotPresence == 1)
+    Swag.require(list.hotPresence == 1)
 
     host.moveMouse({40, row * 1.5})
-    Swag.assert(list.hotIndex == 1 and list.leftIndex == 0 and list.leftPresence == 1)
+    Swag.require(list.hotIndex == 1 and list.leftIndex == 0 and list.leftPresence == 1)
     host.finishAnimations()
-    Swag.assert(list.hotPresence == 1 and list.leftPresence == 0)
+    Swag.require(list.hotPresence == 1 and list.leftPresence == 0)
 }
 
 // Files carry the quiet hue of their kind; folders carry the mark of a place.
@@ -38,9 +38,9 @@ using Swag, Core, Pixel
     host.setup(100, 100)
     let theme  = host.root.theme()
     let colors = host.root.themeColors()
-    Swag.assert(theme.fileGlyph("photo.JPG", false).color == colors.fileKind_Image)
-    Swag.assert(theme.fileGlyph("film.mkv", false).color == colors.fileKind_Video)
-    Swag.assert(theme.fileGlyph("report.pdf", false).color == colors.fileKind_Document)
-    Swag.assert(theme.fileGlyph("notes.txt", false).color.a == 0)
-    Swag.assert(theme.fileGlyph("Captures", true).color == colors.arc)
+    Swag.require(theme.fileGlyph("photo.JPG", false).color == colors.fileKind_Image)
+    Swag.require(theme.fileGlyph("film.mkv", false).color == colors.fileKind_Video)
+    Swag.require(theme.fileGlyph("report.pdf", false).color == colors.fileKind_Document)
+    Swag.require(theme.fileGlyph("notes.txt", false).color.a == 0)
+    Swag.require(theme.fileGlyph("Captures", true).color == colors.arc)
 }

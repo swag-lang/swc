@@ -12,8 +12,8 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     let window   = framedViewerWindow(&host, fileName.toString(), true)
     let view     = assume cast(*Midi.Panel, window.instances[window.activeChoiceIndex].view)
-    Swag.assert(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
-    Swag.assert(view.details.contains("4 tracks · 4/4"))
+    Swag.require(view.roll.mode == .Tracks and view.roll.lanes.count == 4)
+    Swag.require(view.details.contains("4 tracks · 4/4"))
 
     var image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.midi.paper")

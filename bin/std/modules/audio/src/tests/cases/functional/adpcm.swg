@@ -21,15 +21,15 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
 {
     let path  = audioGetTestDataPath(Format.toString("%.wav", name).toString())
     var sound = expect SoundFile.load(path.toString())
-    Swag.assert(sound.sampleEncoding() == encoding)
-    Swag.assert(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
-    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
-    Swag.assert((expect sound.packet(0)).byteSize == 1024 and (expect sound.packet(0)).sampleFrameCount == blockFrames)
+    Swag.require(sound.sampleEncoding() == encoding)
+    Swag.require(sound.sampleRateHz() == sampleRate and sound.numChannels() == channels)
+    Swag.require(sound.isPacketStream() and not sound.isDataPreloaded())
+    Swag.require((expect sound.packet(0)).byteSize == 1024 and (expect sound.packet(0)).sampleFrameCount == blockFrames)
 
     let decoded = expect adpcmDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
-    Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
+    Swag.require(decoded.count == sound.sampleFrameCount() * channels)
+    Swag.require(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt   = cast(const [*] s16, wanted.storage())
     var mismatches = 0'u64
@@ -37,7 +37,7 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
         mismatches += 1
     if mismatches do
         Swag.print("adpcm ", name, ": ", mismatches, " of ", decoded.count, " samples differ\n")
-    Swag.assert(mismatches == 0)
+    Swag.require(mismatches == 0)
 }
 
 // Microsoft ADPCM, stereo: every byte carries one nibble for each channel.
@@ -80,10 +80,10 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     const Target = 1500'u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
-    Swag.assert(decoded.buffer != null and decoded.size >= 512 * 2 * #sizeof(s16))
+    Swag.require(decoded.buffer != null and decoded.size >= 512 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, decoded.buffer)
     for index in 512 * 2 do
-        Swag.assert(samples[index] == wanted[Target * 2 + index])
+        Swag.require(samples[index] == wanted[Target * 2 + index])
 }
 
 // A `fmt ` chunk that declares ADPCM without a block alignment cannot be indexed.
@@ -92,5 +92,5 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
     var errOutcome: Swag.Error
     discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is Errors.InvalidFormatError))
+    Swag.require((err is Errors.InvalidFormatError))
 }

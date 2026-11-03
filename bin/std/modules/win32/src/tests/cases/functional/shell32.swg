@@ -10,12 +10,12 @@ using Swag
     var badSizeOutcome: Swag.Error
     catch SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICONLOCATION, &info) as badSizeOutcome
     let badSize = badSizeOutcome.value()
-    Swag.assert((badSize is SystemError))
-    Swag.assert(assume cast (*SystemError, badSize).errorID == 0x80070057'u32)
+    Swag.require((badSize is SystemError))
+    Swag.require(assume cast (*SystemError, badSize).errorID == 0x80070057'u32)
 
     info.cbSize = #sizeof(SHSTOCKICONINFO)
     expect SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICON | SHGSI_SMALLICON, &info)
-    Swag.assert(info.hIcon != null)
+    Swag.require(info.hIcon != null)
     defer catch DestroyIcon(info.hIcon)
-    Swag.assert(info.szPath[0] != 0)
+    Swag.require(info.szPath[0] != 0)
 }

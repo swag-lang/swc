@@ -5,17 +5,17 @@ using StaticApi
 
 #test
 {
-    Swag.assert(opaqueUnionLifecycleSourceDrop())
+    Swag.require(opaqueUnionLifecycleSourceDrop())
 }
 
 #test
 {
-    Swag.assert(opaqueUnionLifecycleSourceCopy())
+    Swag.require(opaqueUnionLifecycleSourceCopy())
 }
 
 #test
 {
-    Swag.assert(opaqueUnionLifecycleSourceMove())
+    Swag.require(opaqueUnionLifecycleSourceMove())
 }
 
 #test
@@ -25,9 +25,9 @@ using StaticApi
     {
         var value: OpaqueUnionLifecycleOwner
         value.arm()
-        Swag.assert(value.isArmed())
+        Swag.require(value.isArmed())
     }
-    Swag.assert(opaqueUnionLifecycleDrops() == 1)
+    Swag.require(opaqueUnionLifecycleDrops() == 1)
 }
 
 #test
@@ -38,10 +38,10 @@ using StaticApi
         var first: OpaqueUnionLifecycleOwner
         first.arm()
         let second = first
-        Swag.assert(first.isArmed() and second.isArmed())
+        Swag.require(first.isArmed() and second.isArmed())
     }
-    Swag.assert(opaqueUnionLifecycleCopies() == 1)
-    Swag.assert(opaqueUnionLifecycleDrops() == 2)
+    Swag.require(opaqueUnionLifecycleCopies() == 1)
+    Swag.require(opaqueUnionLifecycleDrops() == 2)
 }
 
 #test
@@ -52,21 +52,21 @@ using StaticApi
         var first: OpaqueUnionLifecycleOwner
         first.arm()
         let second = #move first
-        Swag.assert(not first.isArmed() and second.isArmed())
+        Swag.require(not first.isArmed() and second.isArmed())
     }
-    Swag.assert(opaqueUnionLifecycleMoves() == 1)
-    Swag.assert(opaqueUnionLifecycleDrops() == 1)
+    Swag.require(opaqueUnionLifecycleMoves() == 1)
+    Swag.require(opaqueUnionLifecycleDrops() == 1)
 }
 
 #test
 {
     let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueUnionLifecycleOwner))
-    Swag.assert(info.opDrop != null)
-    Swag.assert(info.opPostCopy != null)
-    Swag.assert(info.opPostMove != null)
+    Swag.require(info.opDrop != null)
+    Swag.require(info.opPostCopy != null)
+    Swag.require(info.opPostMove != null)
 }
 
 #test
 {
-    Swag.assert(opaqueUnionLifecycleGenericControl())
+    Swag.require(opaqueUnionLifecycleGenericControl())
 }

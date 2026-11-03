@@ -23,7 +23,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
             return idx
     }
 
-    Swag.assert(false)
+    Swag.require(false)
     return 0
 }
 
@@ -68,8 +68,8 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     let value = model.fontSize == 48 ? 36'f32 : 48'f32
     let size  = unwrap testFindItem(prop, #nameof(FormText.fontSize))
     size.sliderBox.setValue(value)
-    Swag.assert(model.fontSize == value)
-    Swag.assert(not f.capture.changed and not f.capture.canUndo())
+    Swag.require(model.fontSize == value)
+    Swag.require(not f.capture.changed and not f.capture.canUndo())
 }
 
 // A grid command still invalidates its original form after selecting another one.
@@ -89,7 +89,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     discard f.gui.render(f.main)
 
     testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.setValue(48)
-    Swag.assert(text.fontSize == 48)
+    Swag.require(text.fontSize == 48)
     var edited = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()
     var fresh = f.gui.render(f.main)
@@ -102,13 +102,13 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     discard f.gui.render(f.main)
     f.capture.changed = false
     f.capture.undo()
-    Swag.assert(text.fontSize == 24 and f.capture.changed)
+    Swag.require(text.fontSize == 24 and f.capture.changed)
     var undone = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()
     fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &undone, "propwnd.cache.undo", {maxChannelDelta: 2})
     f.capture.redo()
-    Swag.assert(text.fontSize == 48)
+    Swag.require(text.fontSize == 48)
     var redone = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()
     fresh = f.gui.render(f.main)
@@ -118,7 +118,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.capture.changed = false
     f.capture.undo()
-    Swag.assert(text.fontSize == 24 and f.capture.changed)
+    Swag.require(text.fontSize == 24 and f.capture.changed)
 }
 
 // Replacing the editor document from history retargets the panel after the old capture
@@ -158,12 +158,12 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.main.recentWnd.recentView.select(0)
 
     let current = unwrap f.main.editWnd.getCapture()
-    Swag.assert(current.file == nextPath)
-    Swag.assert(current.selection.isEmpty())
+    Swag.require(current.file == nextPath)
+    Swag.require(current.selection.isEmpty())
 
     let border = unwrap testFindItem(prop, #nameof(BaseForm.borderSize))
     border.sliderBox.setValue(12)
-    Swag.assert(Math.isEqualEpsilon(f.main.mdlFormShape.borderSize, 12, 0.001))
+    Swag.require(Math.isEqualEpsilon(f.main.mdlFormShape.borderSize, 12, 0.001))
 }
 
 // Lines, arrows and freehand paths expose the same adjustable outer contour. It is hidden for
@@ -181,14 +181,14 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     let outline = unwrap testFindItem(prop, #nameof(FormLine.outlineSize))
-    Swag.assert((outline.sliderBox != null))
-    Swag.assert(outline.sliderBox.label.name == "Outline")
-    Swag.assert(outline.sliderBox.slider.minimum() == MinOutlineSize)
-    Swag.assert(outline.sliderBox.slider.maximum() == MaxOutlineSize)
+    Swag.require((outline.sliderBox != null))
+    Swag.require(outline.sliderBox.label.name == "Outline")
+    Swag.require(outline.sliderBox.slider.minimum() == MinOutlineSize)
+    Swag.require(outline.sliderBox.slider.maximum() == MaxOutlineSize)
     outline.sliderBox.setValue(4)
-    Swag.assert(Math.isEqualEpsilon(line.outlineSize, 4, 0.001))
-    Swag.assert(testHasStyleTip(prop, appStrings().ui_PropColor))
-    Swag.assert(testHasStyleTip(prop, appStrings().ui_PropOutline))
+    Swag.require(Math.isEqualEpsilon(line.outlineSize, 4, 0.001))
+    Swag.require(testHasStyleTip(prop, appStrings().ui_PropColor))
+    Swag.require(testHasStyleTip(prop, appStrings().ui_PropOutline))
 
     f.capture.selection.clear()
     let arrow = testAddArrow(f.capture, 10, 30, 100, 30)
@@ -196,7 +196,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.gui.pump()
     testFindItem(prop, #nameof(FormLine.outlineSize))!.sliderBox.setValue(5)
-    Swag.assert(Math.isEqualEpsilon(arrow.outlineSize, 5, 0.001))
+    Swag.require(Math.isEqualEpsilon(arrow.outlineSize, 5, 0.001))
 
     f.capture.selection.clear()
     var points: Array'Math.Vector2
@@ -207,12 +207,12 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.gui.pump()
     testFindItem(prop, #nameof(FormDraw.outlineSize))!.sliderBox.setValue(6)
-    Swag.assert(Math.isEqualEpsilon(draw.outlineSize, 6, 0.001))
+    Swag.require(Math.isEqualEpsilon(draw.outlineSize, 6, 0.001))
 
     draw.subKind = .PixSel
     prop.selectionHasChanged()
     f.gui.pump()
-    Swag.assert(not testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
+    Swag.require(not testFindItem(prop, #nameof(FormDraw.outlineSize))!.line.isVisible())
 }
 
 // FormArrow embeds FormLine, so the start and end glyphs must read and write the embedded caps
@@ -232,17 +232,17 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     // One glyph per line end, the current one checked.
     let starts = testFindStyleButtons(prop, appStrings().ui_PropStart)
-    Swag.assert(starts.count == LineCapStyle.count)
-    Swag.assert(starts[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
-    Swag.assert(not starts[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
+    Swag.require(starts.count == LineCapStyle.count)
+    Swag.require(starts[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
+    Swag.require(not starts[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
 
     // The panel rebuilds after a choice, since a line end decides which size rows it shows.
     f.gui.clickWnd(starts[cast(u64, LineCapStyle.ArrowAnchor)])
     f.gui.pump()
-    Swag.assert(arrow.beginCap == .ArrowAnchor)
+    Swag.require(arrow.beginCap == .ArrowAnchor)
     let rebuilt = testFindStyleButtons(prop, appStrings().ui_PropStart)
-    Swag.assert(rebuilt[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
-    Swag.assert(not rebuilt[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
+    Swag.require(rebuilt[cast(u64, LineCapStyle.ArrowAnchor)].isChecked)
+    Swag.require(not rebuilt[cast(u64, LineCapStyle.SquareAnchor)].isChecked)
 }
 
 // The dashes are a row of glyphs like the line ends: every style but `Pattern`, which takes its
@@ -262,14 +262,14 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     // The glyphs are None, Dot, Dash, DashDot: the second one is Dot.
     let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
-    Swag.assert(dashes.count == DashStyle.count - 1)
-    Swag.assert(dashes[3].isChecked)
+    Swag.require(dashes.count == DashStyle.count - 1)
+    Swag.require(dashes[3].isChecked)
 
     f.gui.clickWnd(dashes[1])
     f.gui.pump()
-    Swag.assert(line.dashStyle == .Dot)
+    Swag.require(line.dashStyle == .Dot)
     let rebuilt = testFindStyleButtons(prop, appStrings().ui_PropDash)
-    Swag.assert(rebuilt[1].isChecked and not rebuilt[3].isChecked)
+    Swag.require(rebuilt[1].isChecked and not rebuilt[3].isChecked)
 }
 
 // A selected text form generates the full grid: retargeted outline slider, joins combo
@@ -289,65 +289,65 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     // The border-size row is generated by the grid and retargeted for a text form
     let border = unwrap testFindItem(prop, #nameof(BaseForm.borderSize))
-    Swag.assert((border.sliderBox != null))
-    Swag.assert(border.sliderBox.label.name == "Outline")
-    Swag.assert(border.sliderBox.slider.minimum() == MinTextBorderSize)
-    Swag.assert(border.sliderBox.slider.maximum() == MaxTextBorderSize)
+    Swag.require((border.sliderBox != null))
+    Swag.require(border.sliderBox.label.name == "Outline")
+    Swag.require(border.sliderBox.slider.minimum() == MinTextBorderSize)
+    Swag.require(border.sliderBox.slider.maximum() == MaxTextBorderSize)
     let labelWidth = Math.ceil(Painter.measureString(border.sliderBox.label.name.raw, unwrap border.sliderBox.label.font().regular).width)
-    Swag.assert(border.sliderBox.labelWidth >= labelWidth)
+    Swag.require(border.sliderBox.labelWidth >= labelWidth)
 
     // The joins row is a generated combo omitting JoinStyle.None: Round selects index 1
     let joins = unwrap testFindItem(prop, #nameof(BaseForm.joinStyle))
-    Swag.assert((joins.comboBox != null))
-    Swag.assert(joins.comboBox.items.count == 4)
-    Swag.assert(tf.joinStyle == .Round)
-    Swag.assert(joins.comboBox.selectedIndex == 1)
+    Swag.require((joins.comboBox != null))
+    Swag.require(joins.comboBox.items.count == 4)
+    Swag.require(tf.joinStyle == .Round)
+    Swag.require(joins.comboBox.selectedIndex == 1)
 
     // The words are typed in place and their alignment across the box is in the mini-bar: the
     // inspector sets the face, then its size, then its style, then how the lines stand down.
-    Swag.assert(not testFindItem(prop, #nameof(FormText.text))!.line.isLocallyVisible())
-    Swag.assert(not testFindItem(prop, #nameof(FormText.alignHorz))!.line.isLocallyVisible())
-    Swag.assert(not testFindItem(prop, #nameof(FormText.alignVert))!.line.isLocallyVisible())
-    Swag.assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
-    Swag.assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(FormText.fontStyle)))
-    Swag.assert(testItemIndex(prop, #nameof(FormText.fontStyle)) < testItemIndex(prop, #nameof(FormText.alignVert)))
+    Swag.require(not testFindItem(prop, #nameof(FormText.text))!.line.isLocallyVisible())
+    Swag.require(not testFindItem(prop, #nameof(FormText.alignHorz))!.line.isLocallyVisible())
+    Swag.require(not testFindItem(prop, #nameof(FormText.alignVert))!.line.isLocallyVisible())
+    Swag.require(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(FormText.fontSize)))
+    Swag.require(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(FormText.fontStyle)))
+    Swag.require(testItemIndex(prop, #nameof(FormText.fontStyle)) < testItemIndex(prop, #nameof(FormText.alignVert)))
 
     // The style is one row of four segments, each lettered in the style it stands for.
     let style = unwrap testFindItem(prop, #nameof(FormText.fontStyle))
-    Swag.assert(style.comboBox != null and
-                style.comboBox.flags.has(.Segmented) and
-                style.comboBox.items.count == 4)
-    Swag.assert(style.comboBox.items[1]!.fontStyle == .Bold)
+    Swag.require(style.comboBox != null and
+                 style.comboBox.flags.has(.Segmented) and
+                 style.comboBox.items.count == 4)
+    Swag.require(style.comboBox.items[1]!.fontStyle == .Bold)
 
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first
-    Swag.assert(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
-    Swag.assert(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
+    Swag.require(testItemIndex(prop, #nameof(FormText.fontName)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
+    Swag.require(testItemIndex(prop, #nameof(FormText.fontSize)) < testItemIndex(prop, #nameof(BaseForm.borderSize)))
 
     // The settings stand under the section labels of the pictures: TEXT, then STROKE, then EFFECTS.
     let text    = unwrap testFindItem(prop, "Text")
     let stroke  = unwrap testFindItem(prop, "Stroke")
     let effects = unwrap testFindItem(prop, "Effects")
-    Swag.assert(text.flags.has(.Category) and text.line.isVisible() and effects.line.isVisible())
-    Swag.assert(testItemIndex(prop, "Text") < testItemIndex(prop, "Stroke") and testItemIndex(prop, "Stroke") < testItemIndex(prop, "Effects"))
-    Swag.assert(stroke.line.isVisible())
+    Swag.require(text.flags.has(.Category) and text.line.isVisible() and effects.line.isVisible())
+    Swag.require(testItemIndex(prop, "Text") < testItemIndex(prop, "Stroke") and testItemIndex(prop, "Stroke") < testItemIndex(prop, "Effects"))
+    Swag.require(stroke.line.isVisible())
 
     // The x/y and w/h rows close the grid. They carry no category separator of their own: each
     // one is named for what it holds, and a heading above them would only repeat it.
     let n = prop.grid.items.count
-    Swag.assert(n >= 3)
-    Swag.assert(prop.grid.items[n - 1]!.typeValue.name == appStrings().ui_PropPosition)
+    Swag.require(n >= 3)
+    Swag.require(prop.grid.items[n - 1]!.typeValue.name == appStrings().ui_PropPosition)
 
     // Rows span the whole panel width (they used to be clamped to editorWidth)
-    Swag.assert(border.line.position.width > 250)
-    Swag.assert(border.line.position.width >= prop.grid.position.width - 24)
+    Swag.require(border.line.position.width > 250)
+    Swag.require(border.line.position.width >= prop.grid.position.width - 24)
 
     // The placeholder section row consumes no vertical room: the first real row
     // starts right at the top of the grid (only its own margin above)
     let sectionIt = unwrap prop.grid.items[0]
-    Swag.assert(sectionIt.flags.has(.Section))
-    Swag.assert(sectionIt.line.position.height == 0)
-    Swag.assert(sectionIt.line.margin.y == 0 and sectionIt.line.margin.w == 0)
+    Swag.require(sectionIt.flags.has(.Section))
+    Swag.require(sectionIt.line.position.height == 0)
+    Swag.require(sectionIt.line.margin.y == 0 and sectionIt.line.margin.w == 0)
 }
 
 // Clicking inside the grid must never yank the scroll back to the top: neither on a
@@ -372,13 +372,13 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
     prop.grid.scrollWnd.setScrollPos(0, 10000)
     let sc = prop.grid.scrollWnd.scrollPosition()
-    Swag.assert(sc.y > 0)
+    Swag.require(sc.y > 0)
 
     let posItemX = unwrap testFindItem(prop, appStrings().ui_PropPosition)
     let stackX   = posItemX.line.children[0]
     f.gui.clickWnd((assume cast(*EditCtrl, stackX.children[0]).edit))
     f.gui.pump()
-    Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
+    Swag.require(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     // Focusing an editor may rebuild property-row widgets. Resolve them again after
     // every pump instead of retaining pointers into the previous window tree.
@@ -387,12 +387,12 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     let editY    = assume cast(*EditCtrl, stackY.children[1]).edit
     f.gui.clickWnd(editY)
     f.gui.pump()
-    Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
+    Swag.require(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     let posItemLine = unwrap testFindItem(prop, appStrings().ui_PropPosition)
     f.gui.clickWnd(posItemLine.line)
     f.gui.pump()
-    Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
+    Swag.require(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     // Dead zone just above the row (inside the separator margin)
     let posItemDead = unwrap testFindItem(prop, appStrings().ui_PropPosition)
@@ -401,7 +401,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     posItemDead.line.surface!.surfaceToScreen(&pt)
     f.gui.click(pt)
     f.gui.pump()
-    Swag.assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
+    Swag.require(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 }
 
 // The position strip holds X, Y, W and H in one row; a value typed in one of them moves or sizes
@@ -420,14 +420,14 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     let strip = unwrap testFindItem(prop, appStrings().ui_PropPosition)
     let boxes = strip.line.children[0]
-    Swag.assert(boxes.children.count == 4)
+    Swag.require(boxes.children.count == 4)
     let width = (assume cast(*EditCtrl, boxes.children[2])).edit
-    Swag.assert(width.text() == "100")
+    Swag.require(width.text() == "100")
 
     width.setText("140")
     width.sigCommitted.call(width)
     f.gui.pump()
-    Swag.assert(text.w == 140)
+    Swag.require(text.w == 140)
 
     // A cleared or out-of-range field must not collapse the object to zero on blur.
     for invalid in ["", "0", "invalid"]
@@ -435,7 +435,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
         width.setFocus()
         width.setText(invalid)
         f.main.setFocus()
-        Swag.assert(text.w == 140)
+        Swag.require(text.w == 140)
     }
 }
 
@@ -453,16 +453,16 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))
-    Swag.assert(border != null and not border.line.isVisible())
+    Swag.require(border != null and not border.line.isVisible())
     let joins = testFindItem(prop, #nameof(BaseForm.joinStyle))
-    Swag.assert(joins != null and not joins.line.isVisible())
+    Swag.require(joins != null and not joins.line.isVisible())
 
     // The stroke section has nothing left to show and leaves; the effects stay.
-    Swag.assert(not testFindItem(prop, "Stroke")!.line.isVisible())
-    Swag.assert(testFindItem(prop, "Effects")!.line.isVisible())
+    Swag.require(not testFindItem(prop, "Stroke")!.line.isVisible())
+    Swag.require(testFindItem(prop, "Effects")!.line.isVisible())
 
-    Swag.assert(testFindItem(prop, appStrings().ui_PropPosition) == null)
-    Swag.assert(testFindItem(prop, appStrings().ui_PropSize) == null)
+    Swag.require(testFindItem(prop, appStrings().ui_PropPosition) == null)
+    Swag.require(testFindItem(prop, appStrings().ui_PropSize) == null)
 }
 
 // A pixel-selection shape hides the whole style content, separators included (no
@@ -480,10 +480,10 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     let border = testFindItem(prop, #nameof(BaseForm.borderSize))
-    Swag.assert(border != null and not border.line.isVisible())
+    Swag.require(border != null and not border.line.isVisible())
     let round = testFindItem(prop, #nameof(FormShape.roundSize))
-    Swag.assert(round != null and not round.line.isVisible())
-    Swag.assert(not testFindItem(prop, "Effects")!.line.isVisible() and not testFindItem(prop, "Shape")!.line.isVisible())
+    Swag.require(round != null and not round.line.isVisible())
+    Swag.require(not testFindItem(prop, "Effects")!.line.isVisible() and not testFindItem(prop, "Shape")!.line.isVisible())
 }
 
 // A line end that cannot be resized does not offer the row that would resize it.
@@ -510,15 +510,15 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     let start = testFindItem(prop, #nameof(FormLine.startSize))
     let end   = testFindItem(prop, #nameof(FormLine.endSize))
-    Swag.assert(start != null and not start.line.isVisible())
-    Swag.assert(end != null and end.line.isVisible())
+    Swag.require(start != null and not start.line.isVisible())
+    Swag.require(end != null and end.line.isVisible())
 
     // Picking an anchor for the other end brings its row back, on the next frame: the style cell
     // sits outside the grid, so the panel rebuilds itself to re-read the rule.
     prop.pushTypedValue(cast(u32, LineCapStyle.RoundAnchor), FormLine, #nameof(FormLine.beginCap), true)
     f.gui.runFrames(2)
 
-    Swag.assert(testFindItem(prop, #nameof(FormLine.startSize))!.line.isVisible())
+    Swag.require(testFindItem(prop, #nameof(FormLine.startSize))!.line.isVisible())
 }
 
 // A French session shows the generated rows in French.
@@ -543,19 +543,19 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     // A slider row carries its label, and a combo row its entries. Both come from an
     // attribute literal: #[Name("Size")] and the JoinStyle case names.
-    Swag.assert(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Size")
-    Swag.assert(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Round")
+    Swag.require(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Size")
+    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Round")
 
     expect f.gui.app.setLanguage("fr")
 
     // The resolver answers from the live table, so it is French before a single row is built.
-    Swag.assert(Properties.resolveText("Size") == "Taille")
+    Swag.require(Properties.resolveText("Size") == "Taille")
 
     f.gui.notify(.LanguageChanged)
     f.gui.pump()
 
-    Swag.assert(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Taille")
-    Swag.assert(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Arrondi")
+    Swag.require(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Taille")
+    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Arrondi")
 
     f.capture.selection.clear()
     discard testAddShape(f.capture, 20, 20, 80, 40)
@@ -565,9 +565,9 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     let thickness     = testFindItem(prop, #nameof(BaseForm.borderSize))!.sliderBox
     let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw, unwrap thickness.label.font().regular).width)
-    Swag.assert(thickness.label.name == "Épaisseur")
-    Swag.assert(thickness.labelWidth >= expectedWidth)
-    Swag.assert(testFindItem(prop, "Effects")!.label.name == "EFFETS")
+    Swag.require(thickness.label.name == "Épaisseur")
+    Swag.require(thickness.labelWidth >= expectedWidth)
+    Swag.require(testFindItem(prop, "Effects")!.label.name == "EFFETS")
 }
 
 // A retained callout swatch can repaint between the selection change and the panel rebuild.
@@ -585,7 +585,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     let buttons = testFindStyleButtons(prop, appStrings().act_Text)
-    Swag.assert(buttons.count == 1)
+    Swag.require(buttons.count == 1)
     let button = buttons[0]
     let paint  = unwrap button.iconPainter
     var calls: u32
@@ -598,8 +598,8 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.capture.selection.clear()
     f.capture.selection.add(1)
     discard f.gui.render(f.main)
-    Swag.assert(calls > 0)
-    Swag.assert(prop.getSelectedForm'FormCallout() == null)
+    Swag.require(calls > 0)
+    Swag.require(prop.getSelectedForm'FormCallout() == null)
 }
 
 // A property editor is built for the kind that was selected, and the painters and handlers it
@@ -621,16 +621,16 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.capture.selection.add(0)
     prop.selectionHasChanged()
     prop.applyLayout()
-    Swag.assert(prop.getSelectedForm'FormShape() != null)
+    Swag.require(prop.getSelectedForm'FormShape() != null)
 
     // Move the selection to the text form without telling the panel, which is the window every
     // repaint between an editor being built and being rebuilt falls into.
     f.capture.selection.clear()
     f.capture.selection.add(1)
 
-    Swag.assert(prop.getSelectedForm'FormShape() == null)
-    Swag.assert(prop.getSelectedForm'FormStep() == null)
-    Swag.assert(prop.getSelectedForm'FormLine() == null)
-    Swag.assert(prop.getSelectedForm'FormCallout() == null)
-    Swag.assert(prop.getSelectedForm'FormText() != null)
+    Swag.require(prop.getSelectedForm'FormShape() == null)
+    Swag.require(prop.getSelectedForm'FormStep() == null)
+    Swag.require(prop.getSelectedForm'FormLine() == null)
+    Swag.require(prop.getSelectedForm'FormCallout() == null)
+    Swag.require(prop.getSelectedForm'FormText() != null)
 }

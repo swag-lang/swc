@@ -11,13 +11,13 @@ using Swag, Core
     info.scale = 0.8
     let first  = Painter.advanceTextX(8.099998474, 0, 9, info)
     let second = Painter.advanceTextX(first.rightX, 0, 9, info)
-    Swag.assert(first.glyphX == 8.099998474'f32)
-    Swag.assert(first.rightX == 15.299999237'f32)
-    Swag.assert(second.rightX == 22.5'f32)
+    Swag.require(first.glyphX == 8.099998474'f32)
+    Swag.require(first.rightX == 15.299999237'f32)
+    Swag.require(second.rightX == 22.5'f32)
 
     let offset = Painter.advanceTextX(-8.099998474, -9, -9, info)
-    Swag.assert(offset.glyphX == -15.299999237'f32)
-    Swag.assert(offset.rightX == -22.5'f32)
+    Swag.require(offset.glyphX == -15.299999237'f32)
+    Swag.require(offset.rightX == -22.5'f32)
 }
 
 func assertSnappedGlyphPhase(left, origin: f32, phase: u32)
@@ -35,8 +35,8 @@ func assertSnappedGlyphPhase(left, origin: f32, phase: u32)
     painter.end()
 
     let expected = drawnFont.cache.getGlyphDescByIndex(drawnFont.glyphIndex('4'), phase)
-    Swag.assert(painter.vertexBuffer.count == 6)
-    Swag.assert(painter.vertexBuffer[0].uv == Math.Vector2{expected.uv.x, expected.uv.y})
+    Swag.require(painter.vertexBuffer.count == 6)
+    Swag.require(painter.vertexBuffer[0].uv == Math.Vector2{expected.uv.x, expected.uv.y})
 }
 
 // Adjacent representable positions straddle a quarter-pixel midpoint after translation and

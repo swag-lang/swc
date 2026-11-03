@@ -20,7 +20,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         }
     }
 
-    Swag.assert(changed == 0)
+    Swag.require(changed == 0)
 }
 
 // Closing the information sheet returns its reserved width to the explorer page.
@@ -42,15 +42,15 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         host.pump()
     }
 
-    Swag.assert(not explorer.load.started)
+    Swag.require(not explorer.load.started)
     window.applyLayout()
 
     let pageWidth     = explorer.grid.position.width
     let scrollWidth   = explorer.scroll.position.width
     let explorerWidth = explorer.position.width
     explorer.showInformation()
-    Swag.assert(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
-    Swag.assert(explorer.grid.position.width < pageWidth)
+    Swag.require(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
+    Swag.require(explorer.grid.position.width < pageWidth)
 
     let sheet  = window.infoSheet.surfaceRect()
     let metric = window.themeMetrics()
@@ -59,16 +59,16 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     window.infoSheet.surface!.surfaceToScreen(&point)
     host.click(point)
 
-    Swag.assert(not window.infoSheet.isLocallyVisible())
-    Swag.assert(explorer.padding.z == 0)
-    Swag.assert(Math.abs(explorer.grid.position.width - pageWidth) < 0.5,
-                Format.toString("grid % / %, scroll % / %, explorer % / %",
-                                pageWidth,
-                                explorer.grid.position.width,
-                                scrollWidth,
-                                explorer.scroll.position.width,
-                                explorerWidth,
-                                explorer.position.width).toString())
+    Swag.require(not window.infoSheet.isLocallyVisible())
+    Swag.require(explorer.padding.z == 0)
+    Swag.require(Math.abs(explorer.grid.position.width - pageWidth) < 0.5,
+                 Format.toString("grid % / %, scroll % / %, explorer % / %",
+                                 pageWidth,
+                                 explorer.grid.position.width,
+                                 scrollWidth,
+                                 explorer.scroll.position.width,
+                                 explorerWidth,
+                                 explorer.position.width).toString())
 }
 
 // Filtering ignores case, narrows the shown indices, and restores the full listing when cleared.
@@ -84,16 +84,16 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     explorer.fill()
 
     explorer.filter.setText("AL")
-    Swag.assert(explorer.shown.count == 2)
-    Swag.assert(explorer.entries[explorer.shown[0]].name == "Alpha.txt")
-    Swag.assert(explorer.entries[explorer.shown[1]].name == "Alpine.png")
+    Swag.require(explorer.shown.count == 2)
+    Swag.require(explorer.entries[explorer.shown[0]].name == "Alpha.txt")
+    Swag.require(explorer.entries[explorer.shown[1]].name == "Alpine.png")
 
     explorer.filter.setText("bEtA.MD")
-    Swag.assert(explorer.shown.count == 1 and explorer.entries[explorer.shown[0]].name == "Beta.md")
+    Swag.require(explorer.shown.count == 1 and explorer.entries[explorer.shown[0]].name == "Beta.md")
     explorer.filter.setText("missing")
-    Swag.assert(explorer.shown.isEmpty())
+    Swag.require(explorer.shown.isEmpty())
     explorer.filter.setText("")
-    Swag.assert(explorer.shown.count == explorer.entries.count)
+    Swag.require(explorer.shown.count == explorer.entries.count)
 }
 
 // Sorting uses the selected field, keeps folders first, and reverses file order when descending.
@@ -105,31 +105,31 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     var listing: ExplorerListing
     var load:    ExplorerListingLoad
     load.start(dataDirectory, "", 0, false, &host.surfaceWnd)
-    Swag.assert(load.finish(&listing).isEmpty())
+    Swag.require(load.finish(&listing).isEmpty())
 
     for index in 1 until listing.entries.count do
-        Swag.assert(Latin1.compareNatural(listing.entries[index - 1].name, listing.entries[index].name) <= 0)
+        Swag.require(Latin1.compareNatural(listing.entries[index - 1].name, listing.entries[index].name) <= 0)
 
     load.start(dataDirectory, "", 2, false, &host.surfaceWnd)
-    Swag.assert(load.finish(&listing).isEmpty())
+    Swag.require(load.finish(&listing).isEmpty())
     for index in 1 until listing.entries.count
     {
         let previous = &listing.entries[index - 1]
         let current  = &listing.entries[index]
-        Swag.assert(previous.directory or not current.directory)
+        Swag.require(previous.directory or not current.directory)
         if not previous.directory and not current.directory do
-            Swag.assert(previous.size <= current.size)
+            Swag.require(previous.size <= current.size)
     }
 
     load.start(dataDirectory, "", 2, true, &host.surfaceWnd)
-    Swag.assert(load.finish(&listing).isEmpty())
+    Swag.require(load.finish(&listing).isEmpty())
     for index in 1 until listing.entries.count
     {
         let previous = &listing.entries[index - 1]
         let current  = &listing.entries[index]
-        Swag.assert(previous.directory or not current.directory)
+        Swag.require(previous.directory or not current.directory)
         if not previous.directory and not current.directory do
-            Swag.assert(previous.size >= current.size)
+            Swag.require(previous.size >= current.size)
     }
 }
 
@@ -154,7 +154,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
             {
                 let previous = &load.result.entries[index - 1]
                 let current  = &load.result.entries[index]
-                Swag.assert(previous.directory or not current.directory)
+                Swag.require(previous.directory or not current.directory)
                 if previous.directory or current.directory do
                     continue
 
@@ -171,7 +171,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
 
                 if order == 0 do
                     order = Latin1.compareNatural(previous.name, current.name)
-                Swag.assert(descending ? order >= 0 : order <= 0)
+                Swag.require(descending ? order >= 0 : order <= 0)
             }
         }
     }
@@ -202,7 +202,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         host.pump()
     }
 
-    Swag.assert(not explorer.load.started and explorer.entries.count == 1)
+    Swag.require(not explorer.load.started and explorer.entries.count == 1)
     explorer.suspend()
     for &preview in explorer.previews where preview.started
     {
@@ -215,7 +215,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     var listRect = explorer.list.listView.surfaceRect()
     var rowPoint = Math.Point{listRect.x + 32, listRect.y + explorer.list.lineHeight() * 0.5}
     host.click(rowPoint)
-    Swag.assert(explorer.selected == 0)
+    Swag.require(explorer.selected == 0)
     host.doubleClick(rowPoint)
     for 16
     {
@@ -225,24 +225,24 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         host.pump()
     }
 
-    Swag.assert(explorer.listing.path == (expect Path.absolute(nested)) and explorer.entries.count == 1)
+    Swag.require(explorer.listing.path == (expect Path.absolute(nested)) and explorer.entries.count == 1)
     explorer.setMode(.Details)
-    Swag.assert(explorer.mode == .Details and explorer.list.lineCount() == 1)
+    Swag.require(explorer.mode == .Details and explorer.list.lineCount() == 1)
     window.applyLayout()
     listRect = explorer.list.listView.surfaceRect()
     rowPoint = Math.Point{listRect.x + 32, listRect.y + explorer.list.lineHeight() * 0.5}
     host.click(rowPoint)
-    Swag.assert(explorer.selected == 0)
+    Swag.require(explorer.selected == 0)
     host.doubleClick(rowPoint)
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
-    Swag.assert(not explorer.isLocallyVisible())
+    Swag.require(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
+    Swag.require(not explorer.isLocallyVisible())
 
     window.closeFile()
     host.pump()
-    Swag.assert(explorer.isLocallyVisible() and explorer.folder.isEmpty())
-    Swag.assert(explorer.listing.path == (expect Path.absolute(nested)))
-    Swag.assert(explorer.mode == .Details and explorer.selected == 0)
+    Swag.require(explorer.isLocallyVisible() and explorer.folder.isEmpty())
+    Swag.require(explorer.listing.path == (expect Path.absolute(nested)))
+    Swag.require(explorer.mode == .Details and explorer.selected == 0)
     assertExplorerRenderStable(&host, window, explorer)
 
     explorer.setMode(.Names)
@@ -250,15 +250,15 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     host.focus(explorer.list.listView)
     host.keyPress(.Return)
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
+    Swag.require(window.currentView != null and window.currentFile == (expect Path.absolute(file)))
     window.closeFile()
     host.pump()
-    Swag.assert(explorer.mode == .Names and explorer.selected == 0)
+    Swag.require(explorer.mode == .Names and explorer.selected == 0)
     assertExplorerRenderStable(&host, window, explorer)
 
     window.closeFile()
     host.pump()
-    Swag.assert(not window.explorerActive and window.home.isLocallyVisible())
+    Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
 // Hover marks a thumbnail with the theme's stronger edge in both palettes.
@@ -288,7 +288,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         let tilePoint = explorer.grid.localToSurface(Math.Point{tile.x, tile.y})
         let point     = explorer.grid.localToSurface(Math.Point{tile.horzCenter(), tile.y + 1})
         host.moveMouse(point)
-        Swag.assert(explorer.grid.hovered == 0)
+        Swag.require(explorer.grid.hovered == 0)
 
         let after = host.render(window)
         var changed: u32
@@ -303,6 +303,6 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
             }
         }
 
-        Swag.assert(changed > 0)
+        Swag.require(changed > 0)
     }
 }

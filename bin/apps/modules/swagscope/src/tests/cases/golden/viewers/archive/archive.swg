@@ -29,8 +29,8 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
 
     let viewer = assume cast(*Archive.Panel, window.currentView)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    Swag.assert(viewer.list.lineCount() == 4)
-    Swag.assert(viewer.entryLines.count == 2)
+    Swag.require(viewer.list.lineCount() == 4)
+    Swag.require(viewer.entryLines.count == 2)
 
     // Shell icon pixels depend on Windows, file associations, and its scaling path. Keep
     // checking that the viewer supplied icons, then render fixed folder/JSON/text inputs.
@@ -38,12 +38,12 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     let iconImage = expect Image.load(iconFile)
     var icons     = ImageList.create(host.app.renderer.addImage(&iconImage), 16, 16)
     defer icons.release(host.app.renderer)
-    Swag.assert(icons.frameCount == 3)
+    Swag.require(icons.frameCount == 3)
     for index in viewer.list.lineCount()
     {
         let row  = unwrap viewer.list.lineAt(index)
         let item = row.itemAt(0)
-        Swag.assert(item.icon.isValid())
+        Swag.require(item.icon.isValid())
         let frame = row.canExpand() ? 0 : item.name == "sample.json" ? 1 : 2
         item.icon = Icon.from(&icons, frame)
     }
@@ -52,42 +52,42 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     var visibleIndex = Swag.U32.Max
     for index in viewer.list.lineCount() where viewer.list.lineAt(index) == line do
         visibleIndex = index
-    Swag.assert(visibleIndex != Swag.U32.Max)
+    Swag.require(visibleIndex != Swag.U32.Max)
     viewer.list.selectLine(visibleIndex)
     viewer.requestPreview(1)
-    Swag.assert(viewer.pendingPreview == Swag.U64.Max)
+    Swag.require(viewer.pendingPreview == Swag.U64.Max)
 
     viewer.extract.task.wait()
     host.pump()
-    Swag.assert(not viewer.previewFile.isEmpty())
+    Swag.require(not viewer.previewFile.isEmpty())
 
     let embedded = assume cast(*EmbeddedViewer, viewer.previewPane.children[0])
-    Swag.assert(embedded.choices[0].key == "text")
-    Swag.assert(embedded.currentView != null)
+    Swag.require(embedded.choices[0].key == "text")
+    Swag.require(embedded.currentView != null)
 
     let textView = assume cast(*PlainText.Panel, embedded.currentView)
     completeTextReads(&host, textView)
     host.fireTimer(textView.loadTimer)
 
-    Swag.assert(not viewer.embedded.isLoading())
+    Swag.require(not viewer.embedded.isLoading())
     var image = host.renderSettled(window)
     assertScopeImageGolden(&image, "viewer.archive.document")
 
     var matches: Array'Viewer.SearchMatch
     let session = &window.instances[window.activeChoiceIndex]
     collectViewerMatches(unwrap session.collectMatches, "readme", &matches)
-    Swag.assert(matches.count == 1 and matches[0].major == 1)
+    Swag.require(matches.count == 1 and matches[0].major == 1)
     let revealed = session.revealMatch!(matches[0], "readme")
-    Swag.assert(revealed)
+    Swag.require(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(session.searchBounds!(matches[0], &bounds) and not bounds.isEmpty())
+    Swag.require(session.searchBounds!(matches[0], &bounds) and not bounds.isEmpty())
     session.clearSearch!()
 
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(viewer.list.header.itemAt(0).name.raw == Archive.texts().ui_ColName)
-    Swag.assert(viewer.list.header.itemAt(1).name.raw == Archive.texts().ui_ColSize)
+    Swag.require(viewer.list.header.itemAt(0).name.raw == Archive.texts().ui_ColName)
+    Swag.require(viewer.list.header.itemAt(1).name.raw == Archive.texts().ui_ColSize)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
 }

@@ -15,35 +15,35 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.pump()
     }
 
-    Swag.assert(false, "exploration did not settle")
+    Swag.require(false, "exploration did not settle")
 }
 
 // Filesystem and ZIP locations expose the same immediate-child model, including implicit folders.
 #test
 {
     var listing = expect ExplorerListing.load(unwrap Path.directoryName(fixture("comprehensive.txt")))
-    Swag.assert(not listing.isArchive and listing.entries.count > 10)
+    Swag.require(not listing.isArchive and listing.entries.count > 10)
     var found = false
     for &entry in listing.entries where entry.name == "comprehensive.txt"
     {
         found = true
-        Swag.assert(not entry.directory and entry.size > 0 and not entry.modified.isEmpty())
+        Swag.require(not entry.directory and entry.size > 0 and not entry.modified.isEmpty())
     }
 
-    Swag.assert(found)
+    Swag.require(found)
 
     var archive = expect ExplorerListing.load(fixture("viewer.archive.zip"))
-    Swag.assert(archive.isArchive)
+    Swag.require(archive.isArchive)
     let roots = archive.children("")
-    Swag.assert(roots.count == 2)
+    Swag.require(roots.count == 2)
     let documents = archive.children("docs/")
-    Swag.assert(documents.count == 1 and documents[0].name == "readme.txt")
-    Swag.assert(documents[0].path == "docs/readme.txt" and documents[0].archiveIndex != Swag.U64.Max)
+    Swag.require(documents.count == 1 and documents[0].name == "readme.txt")
+    Swag.require(documents[0].path == "docs/readme.txt" and documents[0].archiveIndex != Swag.U64.Max)
     for &entry in roots where entry.directory
     {
         let children = archive.children(entry.path)
         for &child in children do
-            Swag.assert(Utf8.startsWith(child.path, entry.path))
+            Swag.require(Utf8.startsWith(child.path, entry.path))
     }
 
     archive.archive.entries.clear()
@@ -51,8 +51,8 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     archive.archive.entries.add({path: "docs/one.txt"})
     archive.archive.entries.add({path: "docs2/two.txt"})
     let explicitFolders = archive.children("")
-    Swag.assert(explicitFolders.count == 2 and explicitFolders[0].path == "docs/")
-    Swag.assert(archive.children(explicitFolders[0].path).count == 1)
+    Swag.require(explicitFolders.count == 2 and explicitFolders[0].path == "docs/")
+    Swag.require(archive.children(explicitFolders[0].path).count == 1)
 }
 
 // Opening a file directly stays simple; explicit exploration survives viewing and closing a file.
@@ -63,28 +63,28 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.queueFile(fixture("comprehensive.txt"))
     completeQueuedViewerFile(&host, window)
-    Swag.assert(not window.explorerActive and window.explorer == null)
+    Swag.require(not window.explorerActive and window.explorer == null)
     window.exploreFolder()
-    Swag.assert(window.explorerActive and window.explorer != null)
+    Swag.require(window.explorerActive and window.explorer != null)
     let explorer = window.explorer
     explorer.setMode(.Details)
     completeExplorer(&host, explorer)
-    Swag.assert(explorer.isLocallyVisible() and explorer.shown.count > 0)
+    Swag.require(explorer.isLocallyVisible() and explorer.shown.count > 0)
     var selected = Swag.U64.Max
     for &entry, index in explorer.entries where entry.name == "comprehensive.txt" do
         selected = index
-    Swag.assert(selected != Swag.U64.Max)
+    Swag.require(selected != Swag.U64.Max)
     explorer.selected = selected
     explorer.activate(selected)
     completeQueuedViewerFile(&host, window)
-    Swag.assert(not explorer.isLocallyVisible() and window.currentView != null)
+    Swag.require(not explorer.isLocallyVisible() and window.currentView != null)
     window.setFilePanelVisible(true)
-    Swag.assert(not window.isExploring() and window.folderList.lineCount() == window.folderFiles.count)
+    Swag.require(not window.isExploring() and window.folderList.lineCount() == window.folderFiles.count)
     window.closeFile()
     host.pump()
-    Swag.assert(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
+    Swag.require(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
     window.closeFile()
-    Swag.assert(not window.explorerActive and window.home.isLocallyVisible())
+    Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
 // A later location wins even when the preceding enumeration has not returned yet.
@@ -98,10 +98,10 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     explorer.setMode(.Names)
     explorer.navigate(fixture("viewer.archive.zip"))
     completeExplorer(&host, explorer)
-    Swag.assert(explorer.listing.isArchive and explorer.listing.path == (expect Path.absolute(fixture("viewer.archive.zip"))))
+    Swag.require(explorer.listing.isArchive and explorer.listing.path == (expect Path.absolute(fixture("viewer.archive.zip"))))
     explorer.goBack()
     completeExplorer(&host, explorer)
-    Swag.assert(not explorer.listing.isArchive)
+    Swag.require(not explorer.listing.isArchive)
 }
 
 // An archive is a page: its folders and members as quiet rows with their dates, "Extract All…" on
@@ -139,28 +139,28 @@ internal func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWind
     let forward  = &window.forwardCaptionButton.button
     let up       = &window.upCaptionButton.button
     window.updateCommandState()
-    Swag.assert(back.position.right() <= forward.position.x)
-    Swag.assert(forward.position.right() <= up.position.x)
-    Swag.assert(window.informationCaptionButton.position.x > window.clientRect().width / 2)
-    Swag.assert(not back.isEnabled() and not forward.isEnabled())
+    Swag.require(back.position.right() <= forward.position.x)
+    Swag.require(forward.position.right() <= up.position.x)
+    Swag.require(window.informationCaptionButton.position.x > window.clientRect().width / 2)
+    Swag.require(not back.isEnabled() and not forward.isEnabled())
     explorer.navigate(explorer.listing.path, "docs/")
     completeExplorer(&host, explorer)
     window.updateCommandState()
-    Swag.assert(back.isEnabled() and not forward.isEnabled())
+    Swag.require(back.isEnabled() and not forward.isEnabled())
     back.sigPressed.call(back)
     completeExplorer(&host, explorer)
     window.updateCommandState()
-    Swag.assert(explorer.folder.isEmpty(), "the caption Back button navigates to the prior folder")
-    Swag.assert(not back.isEnabled(), "Back is disabled at the first history entry")
-    Swag.assert(forward.isEnabled(), "Forward is enabled after going back")
+    Swag.require(explorer.folder.isEmpty(), "the caption Back button navigates to the prior folder")
+    Swag.require(not back.isEnabled(), "Back is disabled at the first history entry")
+    Swag.require(forward.isEnabled(), "Forward is enabled after going back")
     forward.sigPressed.call(forward)
     completeExplorer(&host, explorer)
-    Swag.assert(explorer.folder == "docs/")
+    Swag.require(explorer.folder == "docs/")
     up.sigPressed.call(up)
     completeExplorer(&host, explorer)
-    Swag.assert(explorer.folder.isEmpty())
+    Swag.require(explorer.folder.isEmpty())
     explorer.address.beginEdit()
-    Swag.assert(back.isVisible() and explorer.address.edit.isLocallyVisible())
+    Swag.require(back.isVisible() and explorer.address.edit.isLocallyVisible())
 }
 
 func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
@@ -173,7 +173,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.pump()
     }
 
-    Swag.assert(false, "extraction did not settle")
+    Swag.require(false, "extraction did not settle")
 }
 
 // Extracting writes the members under the chosen folder, keeps a file already there, and says how
@@ -181,12 +181,12 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 // leaves the chosen folder.
 #test
 {
-    Swag.assert(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
-    Swag.assert(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
+    Swag.require(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
+    Swag.require(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
     if WINDOWS do
-        Swag.assert(ArchiveExtraction.destination("C:/t", "", ".. /evil.txt").isEmpty())
-    Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
-    Swag.assert(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
+        Swag.require(ArchiveExtraction.destination("C:/t", "", ".. /evil.txt").isEmpty())
+    Swag.require(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
+    Swag.require(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
 
     var host: Testing.HeadlessHost
     host.setup(960, 640)
@@ -199,16 +199,16 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     defer discard catch Directory.delete(target, recurse: true)
     explorer.extractTo(target, all: true)
     completeExtraction(&host, explorer)
-    Swag.assert(explorer.extraction.error.isEmpty() and
-                explorer.extraction.written > 0 and
-                not explorer.extraction.kept)
-    Swag.assert(File.exists(Path.combine(target, "docs", "readme.txt")))
-    Swag.assert(explorer.toast!.isLocallyVisible() and explorer.toast.detail == target)
+    Swag.require(explorer.extraction.error.isEmpty() and
+                 explorer.extraction.written > 0 and
+                 not explorer.extraction.kept)
+    Swag.require(File.exists(Path.combine(target, "docs", "readme.txt")))
+    Swag.require(explorer.toast!.isLocallyVisible() and explorer.toast.detail == target)
     let written = explorer.extraction.written
 
     explorer.extractTo(target, all: true)
     completeExtraction(&host, explorer)
-    Swag.assert(explorer.extraction.written == 0 and explorer.extraction.kept == written)
+    Swag.require(explorer.extraction.written == 0 and explorer.extraction.kept == written)
 
     let member = Gui.Testing.tempFilePath("scope-extract-member-", "")
     defer discard catch Directory.delete(member, recurse: true)
@@ -218,7 +218,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.selected = index
     explorer.extractTo(member, all: false)
     completeExtraction(&host, explorer)
-    Swag.assert(explorer.extraction.written == 1 and File.exists(Path.combine(member, "readme.txt")))
+    Swag.require(explorer.extraction.written == 1 and File.exists(Path.combine(member, "readme.txt")))
 }
 
 // An archive member opens asynchronously with its logical name, then returns to its selected row.
@@ -234,7 +234,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeExplorer(&host, explorer)
     explorer.selected = 0
     explorer.activate(0)
-    Swag.assert(explorer.previews[0].started and explorer.previews[0].opening)
+    Swag.require(explorer.previews[0].started and explorer.previews[0].opening)
 
     // A second activation supersedes the extraction even if the first worker already finished.
     explorer.previews[0].task.wait()
@@ -249,22 +249,22 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     }
 
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.currentView != null and not explorer.isLocallyVisible())
-    Swag.assert(Utf8.endsWith(explorer.displayPath(window.currentFile), "docs/readme.txt"))
-    Swag.assert(Path.isValidPathName(explorer.logicalPath(window.currentFile)))
-    Swag.assert(Path.fileName(explorer.logicalPath(window.currentFile)) == "readme.txt")
-    Swag.assert(window.folderFiles.isEmpty())
+    Swag.require(window.currentView != null and not explorer.isLocallyVisible())
+    Swag.require(Utf8.endsWith(explorer.displayPath(window.currentFile), "docs/readme.txt"))
+    Swag.require(Path.isValidPathName(explorer.logicalPath(window.currentFile)))
+    Swag.require(Path.fileName(explorer.logicalPath(window.currentFile)) == "readme.txt")
+    Swag.require(window.folderFiles.isEmpty())
     window.setFilePanelVisible(true)
-    Swag.assert(window.isArchivePreview() and window.folderList.lineCount() == 1)
+    Swag.require(window.isArchivePreview() and window.folderList.lineCount() == 1)
     window.closeFile()
     host.pump()
-    Swag.assert(explorer.isLocallyVisible() and explorer.selected == 0)
+    Swag.require(explorer.isLocallyVisible() and explorer.selected == 0)
 
     explorer.activate(0)
     window.closeFile()
     explorer.previews[0].task.wait()
     host.pump()
-    Swag.assert(not window.explorerActive and window.pendingFile.isEmpty() and window.currentView == null)
+    Swag.require(not window.explorerActive and window.pendingFile.isEmpty() and window.currentView == null)
 }
 
 // Tile geometry remains bounded by the viewport even for a large folder, and survives mode changes.
@@ -323,24 +323,24 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         {
             discard expect host.app.setLanguage("fr")
             host.notify(.LanguageChanged)
-            Swag.assert(explorer.modeMenu.isLocallyVisible())
-            Swag.assert(window.folderLabel.text == appStrings().explore_Folders)
+            Swag.require(explorer.modeMenu.isLocallyVisible())
+            Swag.require(window.folderLabel.text == appStrings().explore_Folders)
         }
 
         window.applyLayout()
         host.settleAnimations(window)
-        Swag.assert(explorer.grid.clientRect().height > 200)
-        Swag.assert(not explorer.filter.isLocallyVisible())
+        Swag.require(explorer.grid.clientRect().height > 200)
+        Swag.require(not explorer.filter.isLocallyVisible())
         explorer.revealFilter()
-        Swag.assert(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
+        Swag.require(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
 
         // Filtering floats above the title; sort and view remain on its baseline.
         let filterRect = explorer.filter.surfaceRect()
         let sortRect   = explorer.sortMenu.surfaceRect()
-        Swag.assert(filterRect.y < sortRect.y and filterRect.height == Explorer.ToolHeight)
-        Swag.assert(explorer.modeMenu.surfaceRect().y == sortRect.y)
+        Swag.require(filterRect.y < sortRect.y and filterRect.height == Explorer.ToolHeight)
+        Swag.require(explorer.modeMenu.surfaceRect().y == sortRect.y)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
-        Swag.assert(explorer.grid.hovered == 0)
+        Swag.require(explorer.grid.hovered == 0)
 
         // Keep one publication pending to photograph its indicator without starting a decoder.
         host.app.renderer.removeTexture(&explorer.entries[2].texture)
@@ -348,11 +348,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.previews[0].generation = explorer.generation
         explorer.previews[0].submit(func() {})
         var image = host.render(window)
-        Swag.assert(explorer.grid.spinners[0].isLocallyVisible())
+        Swag.require(explorer.grid.spinners[0].isLocallyVisible())
         explorer.previews[0].wait()
         explorer.grid.invalidate()
         discard host.render(window)
-        Swag.assert(not explorer.grid.spinners[0].isLocallyVisible())
+        Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
         let review = Env.variable("SWAG_SCOPE_REVIEW")
         if not review.isEmpty() do
             expect image.save(Path.combine(review, Format.toString("explorer-palette-%.png", palette)))
@@ -373,11 +373,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeQueuedViewerFile(&host, window)
     window.exploreFolder()
     completeExplorer(&host, explorer)
-    Swag.assert(window.isExploring() and not explorer.listing.isArchive)
-    Swag.assert(explorer.listing.path == (expect Path.absolute(unwrap Path.directoryName(fixture("comprehensive.txt")))))
+    Swag.require(window.isExploring() and not explorer.listing.isArchive)
+    Swag.require(explorer.listing.path == (expect Path.absolute(unwrap Path.directoryName(fixture("comprehensive.txt")))))
     window.setFilePanelVisible(true)
     var folders: u64
     for &entry in explorer.entries where entry.directory do
         folders += 1
-    Swag.assert(window.folderList.lineCount() == folders)
+    Swag.require(window.folderList.lineCount() == folders)
 }

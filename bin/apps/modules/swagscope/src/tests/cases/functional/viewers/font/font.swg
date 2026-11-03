@@ -19,9 +19,9 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     defer face.destroy()
 
     let page = Typeface.characterPage(face, 0x20, 192)
-    Swag.assert(page.characters.count == 192)
-    Swag.assert(containsCharacter(page.characters.toSlice(), 'A'))
-    Swag.assert(page.end >= cast(u32, 'A') and page.hasNext)
+    Swag.require(page.characters.count == 192)
+    Swag.require(containsCharacter(page.characters.toSlice(), 'A'))
+    Swag.require(page.end >= cast(u32, 'A') and page.hasNext)
 }
 
 #test
@@ -32,27 +32,27 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(Typeface.viewerPlugin(), &host.root, fixture, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands != null)
 
     let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(view.pageLabel.arrowPosition == .RightUpward)
-    Swag.assert(view.details.indexOf("Segoe UI") != Swag.U64.Max)
-    Swag.assert(view.document.hasCharacter('A'))
+    Swag.require(view.pageLabel.arrowPosition == .RightUpward)
+    Swag.require(view.details.indexOf("Segoe UI") != Swag.U64.Max)
+    Swag.require(view.document.hasCharacter('A'))
     let firstStart = view.document.pageStart
     view.document.nextPage()
-    Swag.assert(view.document.pageStart > firstStart)
+    Swag.require(view.document.pageStart > firstStart)
     view.document.previousPage()
-    Swag.assert(view.document.pageStart == firstStart)
+    Swag.require(view.document.pageStart == firstStart)
     view.document.goToCharacterPage(0x370)
-    Swag.assert(view.document.pageStart >= 0x370 and not view.document.history.isEmpty())
+    Swag.require(view.document.pageStart >= 0x370 and not view.document.history.isEmpty())
 
     let oldPlaceholder = String.from(view.sampleEdit.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.sampleEdit.name.raw == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
-    Swag.assert(view.previousButton.toolTip == Typeface.texts().ui_PreviousPage)
-    Swag.assert(view.nextButton.toolTip == Typeface.texts().ui_NextPage)
+    Swag.require(view.sampleEdit.name.raw == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
+    Swag.require(view.previousButton.toolTip == Typeface.texts().ui_PreviousPage)
+    Swag.require(view.nextButton.toolTip == Typeface.texts().ui_NextPage)
 }
 
 #test
@@ -65,8 +65,8 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.setup(640, 360)
 
     var result = openTestViewer(Typeface.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands != null)
     let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(not view.failureReason.isEmpty())
+    Swag.require(not view.failureReason.isEmpty())
 }

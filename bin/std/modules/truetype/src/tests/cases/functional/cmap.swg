@@ -5,19 +5,19 @@ using Swag, Core
 #test
 {
     let glyphA = lookupCMap4(Cmap4Fixture, 'A'u32)
-    Swag.assert(glyphA == 3)
+    Swag.require(glyphA == 3)
 
     let glyphB = lookupCMap4(Cmap4Fixture, 'B'u32)
-    Swag.assert(glyphB == 0)
+    Swag.require(glyphB == 0)
 }
 
 #test
 {
     let glyph0 = lookupCMap12(Cmap12Fixture, 0x00010000)
-    Swag.assert(glyph0 == 7)
+    Swag.require(glyph0 == 7)
 
     let glyph1 = lookupCMap12(Cmap12Fixture, 0x00010001)
-    Swag.assert(glyph1 == 0)
+    Swag.require(glyph1 == 0)
 }
 
 #test
@@ -40,9 +40,9 @@ using Swag, Core
     faceData.tables.add({tag: TAG_CMAP, length: cmap.count})
 
     discard expect parseCMap(&faceData, false)
-    Swag.assert(faceData.face.charMap.platformID == 0)
-    Swag.assert(faceData.face.charMap.encodingID == 4)
-    Swag.assert(faceData.cmapFormat == 12)
+    Swag.require(faceData.face.charMap.platformID == 0)
+    Swag.require(faceData.face.charMap.encodingID == 4)
+    Swag.require(faceData.cmapFormat == 12)
 }
 
 #test
@@ -55,9 +55,9 @@ using Swag, Core
     let glyphE       = face.glyphIndex(0x00E9)
     let glyphMissing = face.glyphIndex(0x10FFFF)
 
-    Swag.assert(glyphA > 0)
-    Swag.assert(glyphE > 0)
-    Swag.assert(glyphMissing == 0)
+    Swag.require(glyphA > 0)
+    Swag.require(glyphE > 0)
+    Swag.require(glyphMissing == 0)
 }
 
 // Format 0 is a flat 256-entry byte map, so a code beyond a byte has no glyph.
@@ -72,45 +72,45 @@ using Swag, Core
     cmap[6 + 0xE9] = 9
 
     let glyphA = lookupCMap0(cmap.toSlice(), 'A'u32)
-    Swag.assert(glyphA == 3)
+    Swag.require(glyphA == 3)
 
     let glyphAccent = lookupCMap0(cmap.toSlice(), 0xE9)
-    Swag.assert(glyphAccent == 9)
+    Swag.require(glyphAccent == 9)
 
     let glyphUnmapped = lookupCMap0(cmap.toSlice(), 'B'u32)
-    Swag.assert(glyphUnmapped == 0)
+    Swag.require(glyphUnmapped == 0)
 
     let glyphBeyondByte = lookupCMap0(cmap.toSlice(), 0x0100)
-    Swag.assert(glyphBeyondByte == 0)
+    Swag.require(glyphBeyondByte == 0)
 }
 
 // Format 6 covers one contiguous run and nothing on either side of it.
 #test
 {
     let glyphA = lookupCMap6(Cmap6Fixture, 'A'u32)
-    Swag.assert(glyphA == 5)
+    Swag.require(glyphA == 5)
 
     let glyphC = lookupCMap6(Cmap6Fixture, 'C'u32)
-    Swag.assert(glyphC == 7)
+    Swag.require(glyphC == 7)
 
     let glyphBelow = lookupCMap6(Cmap6Fixture, '@'u32)
-    Swag.assert(glyphBelow == 0)
+    Swag.require(glyphBelow == 0)
 
     let glyphAbove = lookupCMap6(Cmap6Fixture, 'D'u32)
-    Swag.assert(glyphAbove == 0)
+    Swag.require(glyphAbove == 0)
 }
 
 // Format 13 folds a whole range onto one glyph instead of walking it.
 #test
 {
     let glyphA = lookupCMap13(Cmap13Fixture, 'A'u32)
-    Swag.assert(glyphA == 9)
+    Swag.require(glyphA == 9)
 
     let glyphZ = lookupCMap13(Cmap13Fixture, 'Z'u32)
-    Swag.assert(glyphZ == 9)
+    Swag.require(glyphZ == 9)
 
     let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'u32)
-    Swag.assert(glyphOutside == 0)
+    Swag.require(glyphOutside == 0)
 }
 
 // The subtable format outranks the platform score, so a Macintosh format-4 record
@@ -132,8 +132,8 @@ using Swag, Core
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
 
     discard expect parseCMap(&faceData, false)
-    Swag.assert(faceData.cmapFormat == 4)
-    Swag.assert(faceData.face.charMap.platformID == 1)
+    Swag.require(faceData.cmapFormat == 4)
+    Swag.require(faceData.face.charMap.platformID == 1)
 }
 
 // A format-14 subtable supplements the selected map instead of competing with it.
@@ -144,27 +144,27 @@ using Swag, Core
     faceData.tables.add({tag: TAG_CMAP, length: CmapVariationFixture.count})
 
     discard expect parseCMap(&faceData, false)
-    Swag.assert(faceData.cmapFormat == 4)
-    Swag.assert(faceData.face.charMap.platformID == 3)
-    Swag.assert(faceData.variationCMap != null)
+    Swag.require(faceData.cmapFormat == 4)
+    Swag.require(faceData.face.charMap.platformID == 3)
+    Swag.require(faceData.variationCMap != null)
 
     // U+FE0F names a distinct glyph for U+0042 and nothing for U+0041.
     let variant = expect lookupVariationGlyph(&faceData, 0x42, 0xFE0F)
-    Swag.assert(variant == 42)
+    Swag.require(variant == 42)
 
     let unregistered = expect lookupVariationGlyph(&faceData, 0x41, 0xFE0F)
-    Swag.assert(unregistered == 0)
+    Swag.require(unregistered == 0)
 
     // U+FE0E declares U+0041 through U+0043 to keep their default glyph, so the
     // sequence exists but resolves through the ordinary map.
     let byDefault = expect lookupVariationGlyph(&faceData, 0x41, 0xFE0E)
-    Swag.assert(byDefault == 0)
+    Swag.require(byDefault == 0)
 
-    Swag.assert(expect hasVariationSequence(&faceData, 0x41, 0xFE0E))
-    Swag.assert(expect hasVariationSequence(&faceData, 0x43, 0xFE0E))
-    Swag.assert(not expect hasVariationSequence(&faceData, 0x44, 0xFE0E))
-    Swag.assert(expect hasVariationSequence(&faceData, 0x42, 0xFE0F))
-    Swag.assert(not expect hasVariationSequence(&faceData, 0x41, 0xFF01))
+    Swag.require(expect hasVariationSequence(&faceData, 0x41, 0xFE0E))
+    Swag.require(expect hasVariationSequence(&faceData, 0x43, 0xFE0E))
+    Swag.require(not expect hasVariationSequence(&faceData, 0x44, 0xFE0E))
+    Swag.require(expect hasVariationSequence(&faceData, 0x42, 0xFE0F))
+    Swag.require(not expect hasVariationSequence(&faceData, 0x41, 0xFF01))
 }
 
 // A face declaring no variation sequence ignores the selector rather than losing
@@ -175,7 +175,7 @@ using Swag, Core
     faceScope.init("arial.ttf")
     let face = unwrap faceScope.face
 
-    Swag.assert(not face.hasVariant('A', 0xFE0F))
-    Swag.assert(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))
-    Swag.assert(face.glyphIndexVariant('A', 0xFE0F) > 0)
+    Swag.require(not face.hasVariant('A', 0xFE0F))
+    Swag.require(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))
+    Swag.require(face.glyphIndexVariant('A', 0xFE0F) > 0)
 }

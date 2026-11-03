@@ -62,10 +62,10 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     {
         var index: Scc.Reader
         expect index.initialize(path)
-        Swag.assert(index.kind() == kind)
-        Swag.assert(index.manifest().name == "Indexed document")
-        Swag.assert((index.chunks()).count == 2)
-        Swag.assert(index.findRole(previewRole)!.id == previewId)
+        Swag.require(index.kind() == kind)
+        Swag.require(index.manifest().name == "Indexed document")
+        Swag.require((index.chunks()).count == 2)
+        Swag.require(index.findRole(previewRole)!.id == previewId)
         imageOffset = index.findChunk(imageId)!.offset
     }
 
@@ -78,11 +78,11 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var reader: Scc.Reader
     expect reader.initialize(path)
     var preview = expect reader.readChunk(previewId)
-    Swag.assert(Slice.equals(preview.toSlice(), "small preview"))
+    Swag.require(Slice.equals(preview.toSlice(), "small preview"))
     var damagedErrorOutcome: Swag.Error
     discard catch reader.readChunk(imageId) as damagedErrorOutcome
     let damagedError = damagedErrorOutcome.value()
-    Swag.assert(damagedError != null)
+    Swag.require(damagedError != null)
 }
 
 // Predefined Deflate and a caller-provided codec both round-trip independently.
@@ -109,13 +109,13 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var missingCodecOutcome: Swag.Error
     discard catch reader.readChunk(customId) as missingCodecOutcome
     let missingCodec = missingCodecOutcome.value()
-    Swag.assert(missingCodec != null)
+    Swag.require(missingCodec != null)
     reader.registerCodec(&custom)
 
     let customBytes  = expect reader.readChunk(customId)
     let deflateBytes = expect reader.readChunk(deflateId)
-    Swag.assert(Slice.equals(customBytes.toSlice(), "custom codec"))
-    Swag.assert(Slice.equals(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
+    Swag.require(Slice.equals(customBytes.toSlice(), "custom codec"))
+    Swag.require(Slice.equals(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
 }
 
 // Header limits are enforced before the decoder allocates attacker-controlled sizes.
@@ -135,7 +135,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var limitErrorOutcome: Swag.Error
     discard catch reader.initialize(path, limits) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
-    Swag.assert(limitError != null)
+    Swag.require(limitError != null)
     expect File.delete(path)
 }
 
@@ -154,12 +154,12 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
     var reader: Scc.Reader
     expect reader.initialize(path)
-    Swag.assert(reader.manifest().name == "Metadata only")
-    Swag.assert((reader.chunks()).count == 0)
+    Swag.require(reader.manifest().name == "Metadata only")
+    Swag.require((reader.chunks()).count == 0)
     reader.close()
 
     expect File.delete(path)
-    Swag.assert(not File.exists(path))
+    Swag.require(not File.exists(path))
 }
 
 // The virtual hierarchy can group one logical file and its alternate representations.
@@ -191,9 +191,9 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
     var reader: Scc.Reader
     expect reader.initialize(path)
-    Swag.assert(reader.manifest().entries.count == 2)
-    Swag.assert(reader.manifest().entries[1].parentId == folder.id)
-    Swag.assert(reader.manifest().entries[1].variantChunks[0] == jpg)
+    Swag.require(reader.manifest().entries.count == 2)
+    Swag.require(reader.manifest().entries[1].parentId == folder.id)
+    Swag.require(reader.manifest().entries[1].variantChunks[0] == jpg)
 }
 
 // Invalid virtual references fail before an existing destination can be replaced.
@@ -214,9 +214,9 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var invalidOutcome: Swag.Error
     discard catch writer.saveAtomic(path) as invalidOutcome
     let invalid = invalidOutcome.value()
-    Swag.assert(invalid != null)
+    Swag.require(invalid != null)
     let bytes = expect File.readAllBytes(path)
-    Swag.assert(Slice.equals(bytes.toSlice(), "keep me"))
+    Swag.require(Slice.equals(bytes.toSlice(), "keep me"))
 }
 
 // Cyclic virtual-directory parents are rejected before the destination is replaced.
@@ -243,6 +243,6 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
     var errorOutcome: Swag.Error
     discard catch writer.saveAtomic(path) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
-    Swag.assert((expect File.readAllText(path)) == "keep me")
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require((expect File.readAllText(path)) == "keep me")
 }

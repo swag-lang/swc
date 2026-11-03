@@ -10,7 +10,7 @@ func testPrepareSavedCapture(capture: *Capture)->String
     capture.changed = true
 
     expect capture.save()
-    Swag.assert(File.exists(path))
+    Swag.require(File.exists(path))
     return path
 }
 
@@ -51,18 +51,18 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     f.capture.changed = true
     expect f.capture.scheduleSave()
-    Swag.assert(not f.capture.changed)
+    Swag.require(not f.capture.changed)
 
     // The scheduled write only reads its snapshot, never the live capture.
     f.capture.title = "Mutated after scheduling"
 
     let failedSave = g_CaptureSaves.flush()
-    Swag.assert(failedSave.isEmpty())
-    Swag.assert(g_CaptureSaves.pending == null)
+    Swag.require(failedSave.isEmpty())
+    Swag.require(g_CaptureSaves.pending == null)
 
     let saved = expect Capture.load(path)
     defer Memory.delete(saved)
-    Swag.assert(saved.title == "Scheduled title")
+    Swag.require(saved.title == "Scheduled title")
 }
 
 // New Image uses its real modal dialog, then creates and persists a new capture.
@@ -79,11 +79,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.withModalEdit("Height", "32")
 
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
 
     let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
@@ -93,14 +93,14 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_Library.files.clear()
     }
 
-    Swag.assert(capture.width == 48)
-    Swag.assert(capture.height == 32)
-    Swag.assert(capture.backImg.isValid())
-    Swag.assert(capture.backImg.width == 48)
-    Swag.assert(capture.backImg.height == 32)
-    Swag.assert(File.exists(generatedPath))
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(capture.width == 48)
+    Swag.require(capture.height == 32)
+    Swag.require(capture.backImg.isValid())
+    Swag.require(capture.backImg.width == 48)
+    Swag.require(capture.backImg.height == 32)
+    Swag.require(File.exists(generatedPath))
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
 // New From Clipboard consumes the real image clipboard and creates a persisted capture.
@@ -115,7 +115,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Clipboard.addImage(Gui.Testing.indexedImage(19, 11))
 
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
     let capture       = unwrap f.main.getCapture()
@@ -126,13 +126,13 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_Library.files.clear()
     }
 
-    Swag.assert(capture.width == 19)
-    Swag.assert(capture.height == 11)
-    Swag.assert(capture.backImg.isValid())
-    Swag.assert(capture.linkedImage == null)
-    Swag.assert(File.exists(generatedPath))
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(capture.width == 19)
+    Swag.require(capture.height == 11)
+    Swag.require(capture.backImg.isValid())
+    Swag.require(capture.linkedImage == null)
+    Swag.require(File.exists(generatedPath))
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
 // Open Image drives the real file dialog, loads a real PNG, then persists a capture.
@@ -151,11 +151,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.acceptModalFileDialog(sourcePath)
 
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
 
     let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
@@ -165,13 +165,13 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_Library.files.clear()
     }
 
-    Swag.assert(capture.width == 21)
-    Swag.assert(capture.height == 13)
-    Swag.assert(capture.backImg.isValid())
-    Swag.assert(testSamePath(capture.linkedImage, sourcePath))
-    Swag.assert(File.exists(generatedPath))
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(capture.width == 21)
+    Swag.require(capture.height == 13)
+    Swag.require(capture.backImg.isValid())
+    Swag.require(testSamePath(capture.linkedImage, sourcePath))
+    Swag.require(File.exists(generatedPath))
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
 // Dragging a capture out offers it as a PNG named after it, encoded only when a target asks.
@@ -194,20 +194,20 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.fillDragData(&data, f.capture, &image)
 
     // The gesture announces a file named after the capture, and has encoded nothing to do it.
-    Swag.assert(data.hasImage())
-    Swag.assert(data.contents.count == 1)
-    Swag.assert(Path.lowercaseExtension(data.contents[0].name) == ".png")
-    Swag.assert(Path.fileNameWithoutExtension(data.contents[0].name) == Path.fileNameWithoutExtension(f.capture.file))
-    Swag.assert(not data.contents[0].isReady())
+    Swag.require(data.hasImage())
+    Swag.require(data.contents.count == 1)
+    Swag.require(Path.lowercaseExtension(data.contents[0].name) == ".png")
+    Swag.require(Path.fileNameWithoutExtension(data.contents[0].name) == Path.fileNameWithoutExtension(f.capture.file))
+    Swag.require(not data.contents[0].isReady())
 
     // Asking for the file is what produces it, and what it holds is the capture, readable by
     // anything that reads a PNG.
     let bytes = data.contentData(0)
-    Swag.assert(bytes.count != 0)
+    Swag.require(bytes.count != 0)
 
     let readBack = expect Image.decode("drag.png", bytes, {})
-    Swag.assert(readBack.width == 18)
-    Swag.assert(readBack.height == 11)
+    Swag.require(readBack.width == 18)
+    Swag.require(readBack.height == 11)
 }
 
 // The whole drag-out path runs with no desktop under it, and leaves nothing behind.
@@ -233,7 +233,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
     expected += ".png"
     let exported = Path.combine(Path.combine(temp, "Swag Capture"), expected)
-    Swag.assert(not File.exists(exported))
+    Swag.require(not File.exists(exported))
 }
 
 // A picture dropped on the editor opens it, exactly as the Open command does.
@@ -250,7 +250,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     var source = Gui.Testing.indexedImage(23, 17)
     expect source.save(sourcePath)
 
-    Swag.assert(f.gui.dropFilesOnWnd(f.editView, [sourcePath.toString()]) == Gui.DropEffect.Copy)
+    Swag.require(f.gui.dropFilesOnWnd(f.editView, [sourcePath.toString()]) == Gui.DropEffect.Copy)
 
     let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
@@ -260,11 +260,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_Library.files.clear()
     }
 
-    Swag.assert(capture.width == 23)
-    Swag.assert(capture.height == 17)
-    Swag.assert(testSamePath(capture.linkedImage, sourcePath))
-    Swag.assert(File.exists(generatedPath))
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(capture.width == 23)
+    Swag.require(capture.height == 17)
+    Swag.require(testSamePath(capture.linkedImage, sourcePath))
+    Swag.require(File.exists(generatedPath))
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
 }
 
 // Several pictures dropped at once open one capture each, in the order they were listed.
@@ -285,17 +285,17 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     expect first.save(firstPath)
     expect last.save(lastPath)
 
-    Swag.assert(f.gui.dropFilesOnWnd(f.editView, [firstPath, lastPath.toString()]) == Gui.DropEffect.Copy)
+    Swag.require(f.gui.dropFilesOnWnd(f.editView, [firstPath, lastPath.toString()]) == Gui.DropEffect.Copy)
 
     defer g_Library.files.clear()
-    Swag.assert(f.main.recentWnd.recentView.items.count == 2)
+    Swag.require(f.main.recentWnd.recentView.items.count == 2)
 
     // The last one dropped is the one left on the easel.
     let capture = unwrap f.main.getCapture()
     defer discard catch File.delete(capture.file)
-    Swag.assert(capture.width == 31)
-    Swag.assert(capture.height == 7)
-    Swag.assert(testSamePath(capture.linkedImage, lastPath))
+    Swag.require(capture.width == 31)
+    Swag.require(capture.height == 7)
+    Swag.require(testSamePath(capture.linkedImage, lastPath))
 }
 
 // A file no decoder claims is refused, and leaves the editor on what it was showing.
@@ -308,9 +308,9 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     testPrepareRecentLibrary(f.main)
 
     let before = f.main.getCapture()
-    Swag.assert(f.gui.dropFilesOnWnd(f.editView, ["c:/notes/readme.txt"]) == Gui.DropEffect.None)
-    Swag.assert(f.main.getCapture() == before)
-    Swag.assert(f.main.recentWnd.recentView.items.count == 0)
+    Swag.require(f.gui.dropFilesOnWnd(f.editView, ["c:/notes/readme.txt"]) == Gui.DropEffect.None)
+    Swag.require(f.main.getCapture() == before)
+    Swag.require(f.main.recentWnd.recentView.items.count == 0)
 }
 
 // Save As Image writes a real PNG that can be loaded back with Swag Capture metadata.
@@ -332,14 +332,14 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.doSaveAsImage(pngPath)
     f.gui.pump()
 
-    Swag.assert(File.exists(pngPath))
+    Swag.require(File.exists(pngPath))
 
     let saved = expect Image.load(pngPath)
-    Swag.assert(saved.isValid())
-    Swag.assert(saved.width == 32)
-    Swag.assert(saved.height == 20)
-    Swag.assert(saved.metadata.count > 0)
-    Swag.assert(testHasCaptureFileMetadata(saved, capturePath))
+    Swag.require(saved.isValid())
+    Swag.require(saved.width == 32)
+    Swag.require(saved.height == 20)
+    Swag.require(saved.metadata.count > 0)
+    Swag.require(testHasCaptureFileMetadata(saved, capturePath))
 }
 
 // The Save As Image command drives the real file dialog before writing the PNG.
@@ -363,15 +363,15 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(File.exists(pngPath))
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(File.exists(pngPath))
 
     let saved = expect Image.load(pngPath)
-    Swag.assert(saved.isValid())
-    Swag.assert(saved.width == 34)
-    Swag.assert(saved.height == 22)
-    Swag.assert(testHasCaptureFileMetadata(saved, capturePath))
+    Swag.require(saved.isValid())
+    Swag.require(saved.width == 34)
+    Swag.require(saved.height == 22)
+    Swag.require(testHasCaptureFileMetadata(saved, capturePath))
 }
 
 // Existing file targets exercise the nested overwrite confirmation from FileDlg.
@@ -399,14 +399,14 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
 
     let saved = expect Image.load(pngPath)
-    Swag.assert(saved.isValid())
-    Swag.assert(saved.width == 40)
-    Swag.assert(saved.height == 30)
-    Swag.assert(testHasCaptureFileMetadata(saved, capturePath))
+    Swag.require(saved.isValid())
+    Swag.require(saved.width == 40)
+    Swag.require(saved.height == 30)
+    Swag.require(testHasCaptureFileMetadata(saved, capturePath))
 }
 
 // Save As Linked Image persists the linked file association into the capture file.
@@ -428,14 +428,14 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.doSaveAsImage(linkedPath, linked: true)
     f.gui.pump()
 
-    Swag.assert(File.exists(linkedPath))
-    Swag.assert(f.capture.linkedImage == linkedPath)
-    Swag.assert(f.capture.linkedUpToDate)
+    Swag.require(File.exists(linkedPath))
+    Swag.require(f.capture.linkedImage == linkedPath)
+    Swag.require(f.capture.linkedUpToDate)
 
     let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.linkedImage == linkedPath)
-    Swag.assert(loaded.linkedUpToDate)
+    Swag.require(loaded.linkedImage == linkedPath)
+    Swag.require(loaded.linkedUpToDate)
 }
 
 // The linked-image variant uses the same real file dialog and persists the chosen path.
@@ -459,16 +459,16 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.SaveAsLinkedImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(File.exists(linkedPath))
-    Swag.assert(testSamePath(f.capture.linkedImage, linkedPath))
-    Swag.assert(f.capture.linkedUpToDate)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(File.exists(linkedPath))
+    Swag.require(testSamePath(f.capture.linkedImage, linkedPath))
+    Swag.require(f.capture.linkedUpToDate)
 
     let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
-    Swag.assert(testSamePath(loaded.linkedImage, linkedPath))
-    Swag.assert(loaded.linkedUpToDate)
+    Swag.require(testSamePath(loaded.linkedImage, linkedPath))
+    Swag.require(loaded.linkedUpToDate)
 }
 
 // Updating an existing linked image avoids the file dialog and still exercises
@@ -495,19 +495,19 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
     f.gui.pump()
 
-    Swag.assert(File.exists(linkedPath))
-    Swag.assert(f.capture.linkedUpToDate)
+    Swag.require(File.exists(linkedPath))
+    Swag.require(f.capture.linkedUpToDate)
 
     let linked = expect Image.load(linkedPath)
-    Swag.assert(linked.isValid())
-    Swag.assert(linked.width == 26)
-    Swag.assert(linked.height == 16)
-    Swag.assert(testHasCaptureFileMetadata(linked, capturePath))
+    Swag.require(linked.isValid())
+    Swag.require(linked.width == 26)
+    Swag.require(linked.height == 16)
+    Swag.require(testHasCaptureFileMetadata(linked, capturePath))
 
     let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.linkedImage == linkedPath)
-    Swag.assert(loaded.linkedUpToDate)
+    Swag.require(loaded.linkedImage == linkedPath)
+    Swag.require(loaded.linkedUpToDate)
 }
 
 // Updating a linked image also works through the real overwrite confirmation dialog.
@@ -535,21 +535,21 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(File.exists(linkedPath))
-    Swag.assert(f.capture.linkedUpToDate)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(File.exists(linkedPath))
+    Swag.require(f.capture.linkedUpToDate)
 
     let linked = expect Image.load(linkedPath)
-    Swag.assert(linked.isValid())
-    Swag.assert(linked.width == 38)
-    Swag.assert(linked.height == 26)
-    Swag.assert(testHasCaptureFileMetadata(linked, capturePath))
+    Swag.require(linked.isValid())
+    Swag.require(linked.width == 38)
+    Swag.require(linked.height == 26)
+    Swag.require(testHasCaptureFileMetadata(linked, capturePath))
 
     let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
-    Swag.assert(testSamePath(loaded.linkedImage, linkedPath))
-    Swag.assert(loaded.linkedUpToDate)
+    Swag.require(testSamePath(loaded.linkedImage, linkedPath))
+    Swag.require(loaded.linkedUpToDate)
 }
 
 // Unlinking an image goes through the confirmation dialog and persists the capture.
@@ -577,15 +577,15 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.UnlinkImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(f.capture.linkedImage.isEmpty())
-    Swag.assert(not f.capture.linkedUpToDate)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(f.capture.linkedImage.isEmpty())
+    Swag.require(not f.capture.linkedUpToDate)
 
     let loaded = expect Capture.load(capturePath)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.linkedImage.isEmpty())
-    Swag.assert(not loaded.linkedUpToDate)
+    Swag.require(loaded.linkedImage.isEmpty())
+    Swag.require(not loaded.linkedUpToDate)
 }
 
 // Duplicate Capture creates an independent capture file and recent entry.
@@ -601,11 +601,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     let originalPath = testPrepareSavedCapture(f.capture)
     defer discard catch File.delete(originalPath)
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 
     let duplicatedPath = f.main.recentWnd.recentView.items[0]!.file
     defer
@@ -614,13 +614,13 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_Library.files.clear()
     }
 
-    Swag.assert(not testSamePath(duplicatedPath, originalPath))
-    Swag.assert(File.exists(duplicatedPath))
+    Swag.require(not testSamePath(duplicatedPath, originalPath))
+    Swag.require(File.exists(duplicatedPath))
 
     let duplicated = expect Capture.load(duplicatedPath)
     defer Memory.delete(duplicated)
-    Swag.assert(duplicated.forms.count == 1)
-    Swag.assert(duplicated.linkedImage == null)
+    Swag.require(duplicated.forms.count == 1)
+    Swag.require(duplicated.linkedImage == null)
 }
 
 // Delete Capture confirms through the real modal and removes the selected capture file.
@@ -638,7 +638,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     let loaded = expect f.main.recentWnd.addRecent(capturePath, true, true)
     Memory.delete(loaded)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 
     // The library observer is registered after the history observer, as it is when the user
     // opens the library after editing a new capture. Both observers must receive a stable path
@@ -650,15 +650,15 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(not File.exists(capturePath))
-    Swag.assert(g_Library.files.count == 0)
-    Swag.assert(f.main.recentWnd.recentView.items.count == 0)
-    Swag.assert(f.main.libWnd.view.items.count == 0)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(not File.exists(capturePath))
+    Swag.require(g_Library.files.count == 0)
+    Swag.require(f.main.recentWnd.recentView.items.count == 0)
+    Swag.require(f.main.libWnd.view.items.count == 0)
 }
 
 // File Details opens a real modal dialog after reading the saved capture size
@@ -677,8 +677,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.sendCommandEvent(ActionFile.FileDetails)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
 }
 
 // Opening a library item replaces the editor document only after saving that editor document.
@@ -718,8 +718,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     let saved = expect Capture.load(editorPath)
     defer Memory.delete(saved)
-    Swag.assert(saved.title == "Unsaved editor title")
-    Swag.assert(f.main.editWnd.getCapture()!.file == otherPath)
+    Swag.require(saved.title == "Unsaved editor title")
+    Swag.require(f.main.editWnd.getCapture()!.file == otherPath)
 }
 
 // Moving an existing recent item to the front keeps the old selected item identified while its
@@ -762,10 +762,10 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     f.main.recentWnd.addRecent(secondPath, second.preview, front: true, sel: true)
 
-    Swag.assert(f.main.recentWnd.recentView.items[0]!.file == secondPath)
-    Swag.assert(f.main.recentWnd.recentView.items[1]!.file == firstPath)
-    Swag.assert(Math.isEqualEpsilon(f.main.recentWnd.recentView.items[1]!.zoom, 1.75, 0.001))
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(f.main.recentWnd.recentView.items[0]!.file == secondPath)
+    Swag.require(f.main.recentWnd.recentView.items[1]!.file == firstPath)
+    Swag.require(Math.isEqualEpsilon(f.main.recentWnd.recentView.items[1]!.zoom, 1.75, 0.001))
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
 // Startup must not validate the complete library before showing the recent strip. The newest
@@ -798,33 +798,33 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Memory.delete(f.capture)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
     f.main.recentWnd.scheduleLoadRecent()
-    Swag.assert(not f.main.recentWnd.loadDone)
+    Swag.require(not f.main.recentWnd.loadDone)
     f.gui.fireTimer(f.main.recentWnd.loadTimer)
-    Swag.assert(f.main.recentWnd.loadDone)
-    Swag.assert(f.main.recentWnd.pendingRecentFiles.count == 1)
-    Swag.assert(f.main.editWnd.getCapture()!.file == capturePath)
-    Swag.assert(not f.main.recentWnd.loadTimer)
-    Swag.assert((expect Library.enumerateSupportedFiles(root)).count == 1)
+    Swag.require(f.main.recentWnd.loadDone)
+    Swag.require(f.main.recentWnd.pendingRecentFiles.count == 1)
+    Swag.require(f.main.editWnd.getCapture()!.file == capturePath)
+    Swag.require(not f.main.recentWnd.loadTimer)
+    Swag.require((expect Library.enumerateSupportedFiles(root)).count == 1)
 
     // The same basename remains an ordinary capture outside the reserved state path.
     let elsewhere = Path.combine(root, "elsewhere")
     expect Directory.create(elsewhere)
     let captureBytes = expect File.readAllBytes(capturePath)
     discard expect File.writeAllBytes(Path.combine(elsewhere, "settings.scc"), captureBytes.toSlice())
-    Swag.assert((expect Library.enumerateSupportedFiles(elsewhere)).count == 1)
+    Swag.require((expect Library.enumerateSupportedFiles(elsewhere)).count == 1)
 
-    Swag.assert(not g_Library.loaded)
+    Swag.require(not g_Library.loaded)
     while f.main.recentWnd.loadTimer
     {
         let timer = f.main.recentWnd.loadTimer
         f.gui.fireTimer(timer)
     }
 
-    Swag.assert(not g_Library.loaded)
-    Swag.assert(f.main.recentWnd.recentView.items.count == 1)
-    Swag.assert(f.main.recentWnd.recentView.selected == 0)
-    Swag.assert(f.main.editWnd.getCapture()!.file == capturePath)
-    Swag.assert(g_Library.files.count == 1)
+    Swag.require(not g_Library.loaded)
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == 0)
+    Swag.require(f.main.editWnd.getCapture()!.file == capturePath)
+    Swag.require(g_Library.files.count == 1)
 }
 
 // Captures created from an in-memory image use the preview overload directly. Keep that path
@@ -840,11 +840,11 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     for i in 16 do
         f.main.recentWnd.addRecent(Format.toString("capture-%", i), preview, front: true)
 
-    Swag.assert(f.main.recentWnd.recentView.items.count == 15)
-    Swag.assert(f.main.recentWnd.recentView.items[0]!.file == "capture-15")
-    Swag.assert(f.main.recentWnd.recentView.items.back()!.file == "capture-1")
+    Swag.require(f.main.recentWnd.recentView.items.count == 15)
+    Swag.require(f.main.recentWnd.recentView.items[0]!.file == "capture-15")
+    Swag.require(f.main.recentWnd.recentView.items.back()!.file == "capture-1")
 
     f.main.recentWnd.recentView.selected = 14
     f.main.recentWnd.addRecent("one-more", preview, front: true)
-    Swag.assert(f.main.recentWnd.recentView.selected == Swag.U64.Max)
+    Swag.require(f.main.recentWnd.recentView.selected == Swag.U64.Max)
 }

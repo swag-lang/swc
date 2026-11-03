@@ -10,30 +10,30 @@ using Swag
     var directory: [1024] u8
     var fileName:  [1024] u8
     let length = expect GetTempPathA(cast(u32, directory.count), directory.buffer)
-    Swag.assert(length > 0 and length < directory.count)
-    Swag.assert(GetTempFileNameA(directory.buffer, "swc".buffer, 0, fileName.buffer) != 0)
+    Swag.require(length > 0 and length < directory.count)
+    Swag.require(GetTempFileNameA(directory.buffer, "swc".buffer, 0, fileName.buffer) != 0)
     defer catch DeleteFileA(fileName.buffer)
 
     let file = expect CreateFileA(fileName.buffer, GENERIC_READ | GENERIC_WRITE, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)
     defer CloseHandle(file)
     var returned: DWORD
     const SetSparse = 0x000900C4'u32
-    Swag.assert(DeviceIoControl(file, SetSparse, null, 0, null, 0, &returned, null) != 0)
+    Swag.require(DeviceIoControl(file, SetSparse, null, 0, null, 0, &returned, null) != 0)
 
     var high = 0's32
     let low  = expect SetFilePointer(file, -1, &high, FILE_BEGIN)
-    Swag.assert(low == INVALID_SET_FILE_POINTER and high == 0)
+    Swag.require(low == INVALID_SET_FILE_POINTER and high == 0)
     expect SetEndOfFile(file)
     var sizeHigh: DWORD
     let sizeLow = expect GetFileSize(file, &sizeHigh)
-    Swag.assert(sizeLow == INVALID_FILE_SIZE and sizeHigh == 0)
+    Swag.require(sizeLow == INVALID_FILE_SIZE and sizeHigh == 0)
 
     var seekErrorOutcome: Swag.Error
     discard catch SetFilePointer(INVALID_HANDLE_VALUE, 0, &high, FILE_BEGIN) as seekErrorOutcome
     let seekError = seekErrorOutcome.value()
-    Swag.assert((seekError is SystemError))
+    Swag.require((seekError is SystemError))
     var sizeErrorOutcome: Swag.Error
     discard catch GetFileSize(INVALID_HANDLE_VALUE, &sizeHigh) as sizeErrorOutcome
     let sizeError = sizeErrorOutcome.value()
-    Swag.assert((sizeError is SystemError))
+    Swag.require((sizeError is SystemError))
 }

@@ -5,9 +5,9 @@ using Core, Gui, Viewers
 
 func assertClassificationFolder(result: const *ViewerClassifiedFile, names: const [..] String)
 {
-    Swag.assert(result.folderFiles.count == names.count)
+    Swag.require(result.folderFiles.count == names.count)
     for name, index in names do
-        Swag.assert(result.folderFiles[index] == name[])
+        Swag.require(result.folderFiles[index] == name[])
 }
 
 // Reusing the asynchronous classifier replaces its previous folder snapshot. It must never append
@@ -46,8 +46,8 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     load.start(&index, names[1], includeNeighbors: false)
     load.task.wait()
     let thumbnail = load.finish()
-    Swag.assert(thumbnail.exists and not thumbnail.choices.isEmpty())
-    Swag.assert(thumbnail.folderFiles.isEmpty())
+    Swag.require(thumbnail.exists and not thumbnail.choices.isEmpty())
+    Swag.require(thumbnail.folderFiles.isEmpty())
 }
 
 struct ClassificationRetirementGate
@@ -91,10 +91,10 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     }
 
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
+    Swag.require(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
     let previousView = unwrap window.currentView
     let previous     = assume cast(*PlainText.Panel, previousView)
-    Swag.assert(not previous.isStreaming())
+    Swag.require(not previous.isStreaming())
 
     // Replace completed statistics with a count whose lifetime is controlled by this test. Like
     // every viewer task, it tells its view when it ends.
@@ -103,35 +103,35 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     previous.statisticsTask.submit(func|held|()->TextStatistics => holdClassificationStatistics(held), previous.taskNotifier(&previous.statisticsTask))
     defer gate.release.signal()
     gate.entered.wait()
-    Swag.assert(previous.statisticsTask.isPending())
+    Swag.require(previous.statisticsTask.isPending())
 
     window.openFile(next, remember: false)
-    Swag.assert(window.startupTimer != null)
+    Swag.require(window.startupTimer != null)
     host.fireTimer(window.startupTimer)
-    Swag.assert(window.choiceLoad.started)
+    Swag.require(window.choiceLoad.started)
     window.choiceLoad.task.wait()
-    Swag.assert(window.choiceLoad.isDone())
+    Swag.require(window.choiceLoad.isDone())
 
     // Delivering the end of the classification must return while the statistics count remains
     // behind the gate. It is the production retirement path, not the test helper, that asks the
     // count to stop.
     host.pump()
-    Swag.assert(previous.statisticsTask.isCancelled())
-    Swag.assert(previous.statisticsTask.isPending())
-    Swag.assert(window.currentView == previousView and window.currentFile == first)
-    Swag.assert(window.pendingFile == next and window.choiceLoad.isDone())
+    Swag.require(previous.statisticsTask.isCancelled())
+    Swag.require(previous.statisticsTask.isPending())
+    Swag.require(window.currentView == previousView and window.currentFile == first)
+    Swag.require(window.pendingFile == next and window.choiceLoad.isDone())
 
     // Nothing asks again before the count ends: the window keeps the old document, without
     // consuming or publishing the completed classification result.
-    Swag.assert(window.awaitingRetirement and window.startupTimer == null)
+    Swag.require(window.awaitingRetirement and window.startupTimer == null)
     host.pump()
-    Swag.assert(Atomic.get(&gate.finished) == 0)
-    Swag.assert(window.currentView == previousView and window.pendingFile == next)
-    Swag.assert(window.choiceLoad.started and window.choiceLoad.isDone())
+    Swag.require(Atomic.get(&gate.finished) == 0)
+    Swag.require(window.currentView == previousView and window.pendingFile == next)
+    Swag.require(window.choiceLoad.started and window.choiceLoad.isDone())
 
     gate.release.signal()
     completeViewerWindowClassification(&host, window)
-    Swag.assert(Atomic.get(&gate.finished) == 1)
-    Swag.assert(window.pendingFile.isEmpty() and not window.choiceLoad.started)
-    Swag.assert(window.currentFile == next and window.currentView != previousView)
+    Swag.require(Atomic.get(&gate.finished) == 1)
+    Swag.require(window.pendingFile.isEmpty() and not window.choiceLoad.started)
+    Swag.require(window.currentFile == next and window.currentView != previousView)
 }

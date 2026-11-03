@@ -30,23 +30,23 @@ using Swag, Core, File
         dlg.surface.setPosition(rect)
         dlg.browser.setFileName(name)
         if name == "Short" do
-            Swag.assert(Utf8.contains(primary.name.raw, name))
+            Swag.require(Utf8.contains(primary.name.raw, name))
         rect.width = 540 * dlg.surface.dpiScale
         dlg.surface.setPosition(rect)
         dlg.applyLayout()
         let slot   = unwrap dlg.leadingControl!.parent
         let cancel = unwrap dlg.cancelButton()
-        Swag.assert(slot.surfaceRect().right() + dlg.themeMetrics().dialog_BtnPadding <= cancel.surfaceRect().x)
-        Swag.assert(cancel.surfaceRect().right() < primary.surfaceRect().x)
-        Swag.assert(primary.surfaceRect().right() <= dlg.surfaceRect().right() - dlg.padding.z)
-        Swag.assert(not dlg.browser.listCtrl.scrollWnd.showBarH)
+        Swag.require(slot.surfaceRect().right() + dlg.themeMetrics().dialog_BtnPadding <= cancel.surfaceRect().x)
+        Swag.require(cancel.surfaceRect().right() < primary.surfaceRect().x)
+        Swag.require(primary.surfaceRect().right() <= dlg.surfaceRect().right() - dlg.padding.z)
+        Swag.require(not dlg.browser.listCtrl.scrollWnd.showBarH)
     }
 
-    Swag.assert(primary.position.width == normalWidth)
+    Swag.require(primary.position.width == normalWidth)
     dlg.browser.pathField.setText("no matching folders")
-    Swag.assert(dlg.browser.listCtrl.lineCount() == 0)
+    Swag.require(dlg.browser.listCtrl.lineCount() == 0)
     dlg.browser.listCtrl.scrollWnd.setScrollPos(100, 0)
-    Swag.assert(dlg.browser.listCtrl.scrollWnd.scrollPosition().x == 0)
+    Swag.require(dlg.browser.listCtrl.scrollWnd.scrollPosition().x == 0)
     dlg.surface.destroy()
     host.pump()
 }
@@ -70,19 +70,19 @@ using Swag, Core, File
         if opened do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.assert(menu.items.count == 3)
-        Swag.assert(menu.items[0]!.name.raw == "Folder 1")
-        Swag.assert(menu.items[1]!.name.raw == "Folder 2" and menu.items[1]!.checked)
-        Swag.assert(menu.items[2]!.name.raw == "Folder 10")
+        Swag.require(menu.items.count == 3)
+        Swag.require(menu.items[0]!.name.raw == "Folder 1")
+        Swag.require(menu.items[1]!.name.raw == "Folder 2" and menu.items[1]!.checked)
+        Swag.require(menu.items[2]!.name.raw == "Folder 10")
         opened = true
         menu.setEndModal(menu.items[0]!.id)
     }
 
     browser.pathBar.breadcrumb.openMenu(browser.pathBar.breadcrumb.items.count - 2)
-    Swag.assert(opened)
+    Swag.require(opened)
     var expected = Path.combine(root, "Folder 1")
     Path.normalize(&expected)
-    Swag.assert(browser.currentFolder == expected, Format.toString("expected %, found %", expected, browser.currentFolder))
+    Swag.require(browser.currentFolder == expected, Format.toString("expected %, found %", expected, browser.currentFolder))
 }
 
 // The file browser composite builds its sub-controls and resolves selections
@@ -100,48 +100,48 @@ using Swag, Core, File
     opt.filters.add({name: "Text", extensions: ".txt;.md"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    Swag.assert((fb.editFile != null))
-    Swag.assert((fb.comboType != null))
-    Swag.assert((fb.listCtrl != null))
-    Swag.assert((fb.pathField != null))
-    Swag.assert((fb.upButton != null))
-    Swag.assert((fb.historyButton != null))
-    Swag.assert((fb.newFolderButton != null))
-    Swag.assert(fb.placesBar == null)
-    Swag.assert(fb.comboType.items.count == 1)
-    Swag.assert(fb.options.shortcuts.count == 6)
-    Swag.assert(fb.options.shortcuts[2].type == Env.SpecialDirectory.Downloads)
-    Swag.assert(not fb.canGoBack())
-    Swag.assert(not fb.canGoForward())
+    Swag.require((fb.editFile != null))
+    Swag.require((fb.comboType != null))
+    Swag.require((fb.listCtrl != null))
+    Swag.require((fb.pathField != null))
+    Swag.require((fb.upButton != null))
+    Swag.require((fb.historyButton != null))
+    Swag.require((fb.newFolderButton != null))
+    Swag.require(fb.placesBar == null)
+    Swag.require(fb.comboType.items.count == 1)
+    Swag.require(fb.options.shortcuts.count == 6)
+    Swag.require(fb.options.shortcuts[2].type == Env.SpecialDirectory.Downloads)
+    Swag.require(not fb.canGoBack())
+    Swag.require(not fb.canGoForward())
 
     // The file list is multi-column: the date and size keep their narrower defaults, and the names
     // take the room they leave.
-    Swag.assert(fb.listCtrl.header.items.count == 3)
-    Swag.assert(fb.listCtrl.header.itemWidthAt(0) > 220)
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 110) < 0.5)
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 72) < 0.5)
+    Swag.require(fb.listCtrl.header.items.count == 3)
+    Swag.require(fb.listCtrl.header.itemWidthAt(0) > 220)
+    Swag.require(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 110) < 0.5)
+    Swag.require(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 72) < 0.5)
 
     // selectedPath combines the folder + typed name and appends the active
     // filter extension when missing.
     fb.setFileName("notes")
-    Swag.assert(fb.fileName() == "notes")
+    Swag.require(fb.fileName() == "notes")
     let name     = fb.selectedPath()
     let fileName = unwrap Path.fileName(name.toString())
-    Swag.assert(fileName == "notes.txt")
+    Swag.require(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
     fb.setFileName("report.txt")
     let name2     = fb.selectedPath()
     let fileName2 = unwrap Path.fileName(name2.toString())
-    Swag.assert(fileName2 == "report.txt")
+    Swag.require(fileName2 == "report.txt")
 
     // Every extension offered by one filter is accepted as-is, not only its first one.
     fb.setFileName("readme.md")
     let name3     = fb.selectedPath()
     let fileName3 = unwrap Path.fileName(name3.toString())
-    Swag.assert(fileName3 == "readme.md")
-    Swag.assert(not fb.setCurrentFolder("this-folder-does-not-exist"))
-    Swag.assert(not fb.createFolder("bad/name"))
+    Swag.require(fileName3 == "readme.md")
+    Swag.require(not fb.setCurrentFolder("this-folder-does-not-exist"))
+    Swag.require(not fb.createFolder("bad/name"))
 }
 
 // SelectFolder mode offers a single "Folders" type entry.
@@ -155,15 +155,15 @@ using Swag, Core, File
     opt.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Workspace"})
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    Swag.assert(fb.comboType.items.count == 1)
-    Swag.assert(fb.options.shortcuts.count == 6)
-    Swag.assert((fb.editFile != null))
+    Swag.require(fb.comboType.items.count == 1)
+    Swag.require(fb.options.shortcuts.count == 6)
+    Swag.require((fb.editFile != null))
 
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
     fb.setFileName("myfolder")
     let name     = fb.selectedPath()
     let fileName = unwrap Path.fileName(name.toString())
-    Swag.assert(fileName == "myfolder")
+    Swag.require(fileName == "myfolder")
 }
 
 // File-browser history drops its forward branch after a new navigation.
@@ -173,17 +173,17 @@ using Swag, Core, File
     history.push("C:/one")
     history.push("C:/two")
     history.push("C:/three")
-    Swag.assert(history.canGoBack())
-    Swag.assert(not history.canGoForward())
-    Swag.assert(history.goBack() == "C:/two")
-    Swag.assert(history.goBack() == "C:/one")
-    Swag.assert(history.canGoForward())
-    Swag.assert(history.goForward() == "C:/two")
+    Swag.require(history.canGoBack())
+    Swag.require(not history.canGoForward())
+    Swag.require(history.goBack() == "C:/two")
+    Swag.require(history.goBack() == "C:/one")
+    Swag.require(history.canGoForward())
+    Swag.require(history.goForward() == "C:/two")
 
     history.push("C:/other")
-    Swag.assert(history.entries.count == 3)
-    Swag.assert(history.entries[2] == "C:/other")
-    Swag.assert(not history.canGoForward())
+    Swag.require(history.entries.count == 3)
+    Swag.require(history.entries[2] == "C:/other")
+    Swag.require(not history.canGoForward())
 }
 
 // The reusable dialog state receives the column widths on destruction, and the
@@ -203,18 +203,18 @@ using Swag, Core, File
     }
 
     let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
-    Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
+    Swag.require(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
+    Swag.require(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)
 
     // Recording the same existing folder twice keeps one entry at the front.
     let temp = Env.getSpecialDirectory(.Temp)
     fb.recordRecentFolder(temp.toString())
     fb.recordRecentFolder(temp.toString())
-    Swag.assert(state.recentFolders.count == 1)
+    Swag.require(state.recentFolders.count == 1)
 
     // A folder that does not exist is never recorded.
     fb.recordRecentFolder("Z:/this-folder-does-not-exist")
-    Swag.assert(state.recentFolders.count == 1)
+    Swag.require(state.recentFolders.count == 1)
 
     // The real history trigger must join its menu to the button, just like an options menu.
     host.root.applyLayout()
@@ -226,22 +226,22 @@ using Swag, Core, File
             return
         let popup  = unwrap host.capturedPopupMenu()
         let anchor = fb.historyButton.surfaceRect()
-        Swag.assert(popup.popupAnchorButton == fb.historyButton)
-        Swag.assert(popup.popupBarItemSurfaceRect == anchor)
-        Swag.assert(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom())
-        Swag.assert(popup.items.count == 1)
+        Swag.require(popup.popupAnchorButton == fb.historyButton)
+        Swag.require(popup.popupBarItemSurfaceRect == anchor)
+        Swag.require(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom())
+        Swag.require(popup.items.count == 1)
         checked[] = true
         popup.setEndModal(null)
     }
 
     fb.historyButton.sigPressed.call(fb.historyButton)
-    Swag.assert(checked)
+    Swag.require(checked)
 
     // The name editor targets a folder only when its content names an existing one.
     fb.setFileName(temp.toString())
-    Swag.assert(not fb.typedFolderTarget().isEmpty())
+    Swag.require(not fb.typedFolderTarget().isEmpty())
     fb.setFileName("no-such-subfolder-anywhere")
-    Swag.assert(fb.typedFolderTarget().isEmpty())
+    Swag.require(fb.typedFolderTarget().isEmpty())
 }
 
 // Dialogs create the composite before assigning its Center dock. The fields
@@ -260,15 +260,15 @@ using Swag, Core, File
     host.root.applyLayout()
     fb.applyLayout()
 
-    Swag.assert(fb.editFile.position.width > 300)
+    Swag.require(fb.editFile.position.width > 300)
 
     // Under the list, the name of a save, then the type filter as wide as its longest name.
     let form    = unwrap fb.editFile.parent
     let typeRow = unwrap fb.comboType.parent
-    Swag.assert(form.position.y >= fb.listCtrl.position.bottom())
-    Swag.assert(typeRow.position.y >= form.position.bottom())
-    Swag.assert(typeRow.position.bottom() <= fb.position.height)
-    Swag.assert(fb.comboType.position.width > 0 and fb.comboType.position.width < 300)
+    Swag.require(form.position.y >= fb.listCtrl.position.bottom())
+    Swag.require(typeRow.position.y >= form.position.bottom())
+    Swag.require(typeRow.position.bottom() <= fb.position.height)
+    Swag.require(fb.comboType.position.width > 0 and fb.comboType.position.width < 300)
 }
 
 // The path field filters the rows by the words typed after the path, browses to a typed path on
@@ -286,20 +286,20 @@ using Swag, Core, File
     var host: Testing.HeadlessHost
     host.setup(640, 460)
     let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
-    Swag.assert(fb.listCtrl.lines.count == 3)
+    Swag.require(fb.listCtrl.lines.count == 3)
 
     fb.pathField.setText("md")
-    Swag.assert(fb.listCtrl.lines.count == 1)
+    Swag.require(fb.listCtrl.lines.count == 1)
 
     fb.pathField.setText("sub/")
-    Swag.assert(fb.listCtrl.lines.count == 3)
+    Swag.require(fb.listCtrl.lines.count == 3)
     fb.pathField.sigSubmitted.call(fb.pathField)
-    Swag.assert((Path.fileName(fb.currentFolder.toString()) orelse "") == "sub")
-    Swag.assert(fb.pathField.text().count == 0)
+    Swag.require((Path.fileName(fb.currentFolder.toString()) orelse "") == "sub")
+    Swag.require(fb.pathField.text().count == 0)
 
     fb.pathField.setFocus()
     host.keyPress(.Back)
-    Swag.assert(fb.listCtrl.lines.count == 3)
+    Swag.require(fb.listCtrl.lines.count == 3)
 }
 
 // Preferred places stay first on the row, and built-in folders remain reachable in the overflow menu.
@@ -328,7 +328,7 @@ using Swag, Core, File
 
     host.root.applyLayout()
     places.arrange()
-    Swag.assert(places.visibleCount == 1)
+    Swag.require(places.visibleCount == 1)
     let target = places.stops[places.visibleCount].path.toString()
 
     var opened: bool
@@ -337,15 +337,15 @@ using Swag, Core, File
         if opened[] do
             return
         let popup = unwrap host.capturedPopupMenu()
-        Swag.assert(popup.items.count == places.stops.count - places.visibleCount)
+        Swag.require(popup.items.count == places.stops.count - places.visibleCount)
         opened[] = true
         popup.setEndModal(target)
     }
 
     let moreButton = unwrap places.moreButton
     moreButton.sigPressed.call(moreButton)
-    Swag.assert(opened)
-    Swag.assert(fb.currentFolder.toString() == target)
+    Swag.require(opened)
+    Swag.require(fb.currentFolder.toString() == target)
 }
 
 // Drives stay on the main row, and choosing Downloads from More Places navigates to its folder.
@@ -359,7 +359,7 @@ using Swag, Core, File
     let fb     = FileBrowserCtrl.create(&host.root, opt, {0, 0, 1400, 300})
     let places = unwrap fb.placesBar
     let drives = expect Directory.drives()
-    Swag.assert(drives.count > 0 and places.visibleCount > 0)
+    Swag.require(drives.count > 0 and places.visibleCount > 0)
 
     for drive, idx in drives
     {
@@ -367,18 +367,18 @@ using Swag, Core, File
         name.removeBack()
         var path = String.from(drive.toString())
         Path.normalize(&path)
-        Swag.assert(places.stops[idx].name == name)
-        Swag.assert(places.stops[idx].path == path)
+        Swag.require(places.stops[idx].name == name)
+        Swag.require(places.stops[idx].path == path)
     }
 
     var downloads = Env.getSpecialDirectory(.Downloads)
     Path.normalize(&downloads)
-    Swag.assert(Directory.exists(downloads.toString()))
+    Swag.require(Directory.exists(downloads.toString()))
 
     var downloadsIndex = Swag.U64.Max
     for &stop, idx in places.stops where stop.path == downloads do
         downloadsIndex = idx
-    Swag.assert(downloadsIndex != Swag.U64.Max and downloadsIndex >= places.visibleCount)
+    Swag.require(downloadsIndex != Swag.U64.Max and downloadsIndex >= places.visibleCount)
 
     var opened: bool
     host.app.sigFrame += func|host = &host, downloads = &downloads, opened = &opened|(_)
@@ -392,20 +392,20 @@ using Swag, Core, File
             let item = popup.itemAt(cast(u32, idx))
             if item.name.raw.toString() == strings().browser_Downloads
             {
-                Swag.assert((item.id orelse "") == downloads[].toString())
+                Swag.require((item.id orelse "") == downloads[].toString())
                 found = true
             }
         }
 
-        Swag.assert(found)
+        Swag.require(found)
         opened[] = true
         popup.setEndModal(downloads[].toString())
     }
 
     let moreButton = unwrap places.moreButton
     moreButton.sigPressed.call(moreButton)
-    Swag.assert(opened)
-    Swag.assert(fb.currentFolder == downloads)
+    Swag.require(opened)
+    Swag.require(fb.currentFolder == downloads)
 }
 
 // Opening a file from another folder works through the modal box's path field, not only in an
@@ -431,16 +431,16 @@ using Swag, Core, File
 
         dlg.browser.pathField.setText("sub/")
         dlg.browser.pathField.sigSubmitted.call(dlg.browser.pathField)
-        Swag.assert(dlg.browser.currentFolder == folder[])
-        Swag.assert(dlg.browser.listCtrl.lines.count == 1)
+        Swag.require(dlg.browser.currentFolder == folder[])
+        Swag.require(dlg.browser.listCtrl.lines.count == 1)
         dlg.browser.listCtrl.selectLine(0)
         let clicked = host.clickModalButton(Dialog.BtnOk)
-        Swag.assert(clicked)
+        Swag.require(clicked)
         browsed[] = true
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnOk)
-    Swag.assert(browsed and dlg.selectedPath() == Path.combine(folder.toString(), "notes.txt"))
+    Swag.require(dlg.doModal() == Dialog.BtnOk)
+    Swag.require(browsed and dlg.selectedPath() == Path.combine(folder.toString(), "notes.txt"))
     host.pump()
 }
 
@@ -464,13 +464,13 @@ using Swag, Core, File
             return
 
         let places = unwrap dlg.browser.placesBar
-        Swag.assert(places.stops.count >= 2)
-        Swag.assert(places.currentIndex() == 0)
+        Swag.require(places.stops.count >= 2)
+        Swag.require(places.currentIndex() == 0)
         let documentPlace = &places.stops[1]
         var point         = places.surfaceRect().topLeft()
         point.x += documentPlace.rect.x + documentPlace.rect.width * 0.5
         point.y += documentPlace.rect.vertCenter()
-        Swag.assert(not dlg.surface!.wnd.hitTestCaption(point))
+        Swag.require(not dlg.surface!.wnd.hitTestCaption(point))
         dlg.surface.surfaceToScreen(&point)
         host.click(point)
 
@@ -478,14 +478,14 @@ using Swag, Core, File
         Path.normalize(&expected)
         if expected.back() == '/' and expected.length > Path.rootLength(expected.toString()) do
             expected.removeBack()
-        Swag.assert(dlg.browser.currentFolder == expected and places.currentIndex() == 1)
+        Swag.require(dlg.browser.currentFolder == expected and places.currentIndex() == 1)
         let clicked = host.clickModalButton(Dialog.BtnCancel)
-        Swag.assert(clicked)
+        Swag.require(clicked)
         navigated[] = true
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
-    Swag.assert(navigated)
+    Swag.require(dlg.doModal() == Dialog.BtnCancel)
+    Swag.require(navigated)
     host.pump()
 }
 
@@ -507,14 +507,14 @@ using Swag, Core, File
         var start   = surface.wnd.view.surfaceRect().topLeft()
         start.x += dlg.themeMetrics().dialog_Padding + 100
         start.y += dlg.themeMetrics().dialog_Padding + 5
-        Swag.assert(surface.wnd.hitTestCaption(start))
+        Swag.require(surface.wnd.hitTestCaption(start))
         let clicked = host.clickModalButton(Dialog.BtnCancel)
-        Swag.assert(clicked)
+        Swag.require(clicked)
         checked[] = true
     }
 
-    Swag.assert(dlg.doModal() == Dialog.BtnCancel)
-    Swag.assert(checked)
+    Swag.require(dlg.doModal() == Dialog.BtnCancel)
+    Swag.require(checked)
     host.pump()
 }
 
@@ -533,19 +533,19 @@ using Swag, Core, File
     host.setup(640, 460)
 
     let folders = FileBrowserCtrl.create(&host.root, {mode: .SelectFolder, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
-    Swag.assert(not folders.comboType.isLocallyVisible())
-    Swag.assert(folders.selectedPath() == folders.currentFolder)
+    Swag.require(not folders.comboType.isLocallyVisible())
+    Swag.require(folders.selectedPath() == folders.currentFolder)
     folders.listCtrl.selectLine(0)
-    Swag.assert(Utf8.endsWith(folders.choiceLabel.text(), " / design"))
+    Swag.require(Utf8.endsWith(folders.choiceLabel.text(), " / design"))
 
     let files = FileBrowserCtrl.create(&host.root, {mode: .SelectFiles, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
-    Swag.assert(files.choiceLabel.text().count == 0)
+    Swag.require(files.choiceLabel.text().count == 0)
     files.listCtrl.selectLine(1)
     files.listCtrl.selectLine(2)
-    Swag.assert(files.listCtrl.isLineChecked(1) and files.listCtrl.isLineChecked(2))
-    Swag.assert(Utf8.startsWith(files.choiceLabel.text(), "2 "))
+    Swag.require(files.listCtrl.isLineChecked(1) and files.listCtrl.isLineChecked(2))
+    Swag.require(Utf8.startsWith(files.choiceLabel.text(), "2 "))
 
     // A checkbox unchecked lets its row go.
     files.listCtrl.setLineChecked(1, false)
-    Swag.assert(files.selectedPaths().count == 1)
+    Swag.require(files.selectedPaths().count == 1)
 }

@@ -26,8 +26,8 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     var values: BitArray
     values = seed
 
-    Swag.assert(values.count == 32)
-    Swag.assert(assertBitArray(values, seed))
+    Swag.require(values.count == 32)
+    Swag.require(assertBitArray(values, seed))
 }
 
 #test
@@ -49,9 +49,9 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
         lastValue   = value
     }
 
-    Swag.assert(visitCount == 33)
-    Swag.assert(lastOrdinal == 32)
-    Swag.assert(lastValue)
+    Swag.require(visitCount == 33)
+    Swag.require(lastOrdinal == 32)
+    Swag.require(lastValue)
 }
 
 #test
@@ -67,7 +67,7 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     var compare: BitArray
     compare = expected
 
-    Swag.assert(values == compare)
+    Swag.require(values == compare)
 }
 
 #test
@@ -89,15 +89,15 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 
     var compareOr: BitArray
     compareOr = expectedOr
-    Swag.assert(orResult == compareOr)
+    Swag.require(orResult == compareOr)
 
     var xorResult = orResult
     xorResult.xorWith(rhs)
-    Swag.assert(xorResult == lhs)
+    Swag.require(xorResult == lhs)
 
     var andResult = orResult
     andResult.andWith(rhs)
-    Swag.assert(andResult == rhs)
+    Swag.require(andResult == rhs)
 }
 
 #test
@@ -105,10 +105,10 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     var values: BitArray
     values.resize(65, true)
     values.resize(0)
-    Swag.assert(values.count == 0)
+    Swag.require(values.count == 0)
 
     values.resize(3, true)
-    Swag.assert(values[0] and values[1] and values[2])
+    Swag.require(values[0] and values[1] and values[2])
 }
 
 // Logic operations cross four-word SIMD batches and preserve the unused bits
@@ -131,24 +131,24 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
         let original = left
         left.invert()
         for i in length do
-            Swag.assert(left[i] == (i % 3 != 0))
+            Swag.require(left[i] == (i % 3 != 0))
         left.invert()
-        Swag.assert(left == original)
+        Swag.require(left == original)
 
         var value = original
         value.orWith(right)
         for i in length do
-            Swag.assert(value[i] == (i % 3 == 0 or i % 5 == 0))
+            Swag.require(value[i] == (i % 3 == 0 or i % 5 == 0))
 
         value = original
         value.andWith(right)
         for i in length do
-            Swag.assert(value[i] == (i % 3 == 0 and i % 5 == 0))
+            Swag.require(value[i] == (i % 3 == 0 and i % 5 == 0))
 
         value = original
         value.xorWith(right)
         for i in length do
-            Swag.assert(value[i] == ((i % 3 == 0) != (i % 5 == 0)))
+            Swag.require(value[i] == ((i % 3 == 0) != (i % 5 == 0)))
     }
 }
 
@@ -168,7 +168,7 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
             right[index] = value
         }
 
-        Swag.assert(left == right)
+        Swag.require(left == right)
 
         if length
         {
@@ -176,9 +176,9 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
             for position in positions
             {
                 right.invert(position)
-                Swag.assert(left != right)
+                Swag.require(left != right)
                 right.invert(position)
-                Swag.assert(left == right)
+                Swag.require(left == right)
             }
         }
     }

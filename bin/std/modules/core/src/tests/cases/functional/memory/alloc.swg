@@ -63,21 +63,21 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 {
     let request = Swag.AllocatorRequest{size: 0, alignment: 32, hint: "zero request"}
     let message = formatAllocationFailure("Memory.alloc", request, false)
-    Swag.assert(message.toString() == "Memory.alloc cannot allocate memory: requested size 0 bytes, alignment 32 bytes [zero request]")
+    Swag.require(message.toString() == "Memory.alloc cannot allocate memory: requested size 0 bytes, alignment 32 bytes [zero request]")
 }
 
 #test
 {
     let request = Swag.AllocatorRequest{size: 8192, alignment: 64, hint: "temporary arena"}
     let message = formatAllocationFailure("Memory.tempAlloc", request, false)
-    Swag.assert(message.toString() == "Memory.tempAlloc cannot allocate memory: requested size 8192 bytes, alignment 64 bytes [temporary arena]")
+    Swag.require(message.toString() == "Memory.tempAlloc cannot allocate memory: requested size 8192 bytes, alignment 64 bytes [temporary arena]")
 }
 
 #test
 {
     let request = Swag.AllocatorRequest{address: cast(*void?, 0x1234), size: 16384, oldSize: 4096, alignment: 128, hint: "growing texture cache"}
     let message = formatAllocationFailure("Memory.realloc", request, true)
-    Swag.assert(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
+    Swag.require(message.toString() == "Memory.realloc cannot reallocate memory: requested size 16384 bytes, old size 4096 bytes, alignment 128 bytes, address 0x1234 [growing texture cache]")
 }
 
 // An allocator that returns nothing makes the allocation panic with the complete request.
@@ -86,8 +86,8 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     var reject:    RejectAllocationAllocator
     let allocator: Swag.IAllocator = &reject
     let caught = Swag.catchPanic(func|allocator|() { discard Memory.alloc(777, allocator, 32, "asset cache") })
-    Swag.assert(caught.raised)
-    Swag.assert(caught.message() == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]")
+    Swag.require(caught.raised)
+    Swag.require(caught.message() == "Memory.alloc cannot allocate memory: requested size 777 bytes, alignment 32 bytes [asset cache]")
 }
 
 // A leak allocation must reject sizes whose header and alignment overhead would overflow.
@@ -104,8 +104,8 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     {
         discard Memory.alloc(Swag.U64.Max, scratchItf)
     })
-    Swag.assert(caught.raised)
-    Swag.assert(backing.calls == 1)
+    Swag.require(caught.raised)
+    Swag.require(backing.calls == 1)
 }
 
 // Both explicit and context-selected custom allocators receive the complete request.
@@ -115,23 +115,23 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     let allocator: Swag.IAllocator = &recorder
     let loc      = #curlocation
     let explicit = Memory.alloc(73, allocator, 32, "explicit request", loc)
-    Swag.assert(explicit == recorder.storage.buffer)
-    Swag.assert(recorder.request.size == 73 and recorder.request.alignment == 32)
-    Swag.assert(recorder.request.hint == "explicit request")
-    Swag.assert(recorder.request.callerLoc.lineStart == loc.lineStart)
-    Swag.assert(recorder.request.address == null and recorder.request.oldSize == 0)
+    Swag.require(explicit == recorder.storage.buffer)
+    Swag.require(recorder.request.size == 73 and recorder.request.alignment == 32)
+    Swag.require(recorder.request.hint == "explicit request")
+    Swag.require(recorder.request.callerLoc.lineStart == loc.lineStart)
+    Swag.require(recorder.request.address == null and recorder.request.oldSize == 0)
 
     Memory.withAllocator(allocator)
     {
         let contextual = Memory.alloc(91, alignment: 64, hint: "context request", loc: loc)
-        Swag.assert(contextual == recorder.storage.buffer)
+        Swag.require(contextual == recorder.storage.buffer)
     }
 
-    Swag.assert(recorder.calls == 2)
-    Swag.assert(recorder.request.size == 91 and recorder.request.alignment == 64)
-    Swag.assert(recorder.request.hint == "context request")
-    Swag.assert(recorder.request.callerLoc.fileName == loc.fileName)
-    Swag.assert(recorder.request.address == null and recorder.request.oldSize == 0)
+    Swag.require(recorder.calls == 2)
+    Swag.require(recorder.request.size == 91 and recorder.request.alignment == 64)
+    Swag.require(recorder.request.hint == "context request")
+    Swag.require(recorder.request.callerLoc.fileName == loc.fileName)
+    Swag.require(recorder.request.address == null and recorder.request.oldSize == 0)
 }
 
 // Reusing a current page and falling back for a larger size or alignment share the same contract.
@@ -149,16 +149,16 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
             {
                 let block = cast([*] u8, Memory.alloc(size, allocator, alignment))
                 if alignment != 0 do
-                    Swag.assert(cast(u64, block) % alignment == 0)
+                    Swag.require(cast(u64, block) % alignment == 0)
                 block[0]        = 17
                 block[size - 1] = 29
-                Swag.assert(block[size - 1] == 29)
+                Swag.require(block[size - 1] == 29)
                 Memory.free(block, size, allocator)
             }
         }
     }
 
-    Swag.assert(runtime.stats().countAlloc == 0)
+    Swag.require(runtime.stats().countAlloc == 0)
 }
 
 // Filling and tracking are allocator diagnostics: only a runtime built with them can enable them.
@@ -180,16 +180,16 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
             let loc   = #curlocation
             let block = cast([*] u8, Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc))
             for i in 32 do
-                Swag.assert(block[i] == Swag.Allocator.AllocByte)
+                Swag.require(block[i] == Swag.Allocator.AllocByte)
             if tracked
             {
                 let tracking = unwrap runtime.firstAlloc!.tracking
-                Swag.assert(tracking.hint == "tracked fast allocation")
-                Swag.assert(tracking.loc.lineStart == loc.lineStart)
+                Swag.require(tracking.hint == "tracked fast allocation")
+                Swag.require(tracking.loc.lineStart == loc.lineStart)
             }
 
             Memory.free(block, 32, allocator)
-            Swag.assert(runtime.stats().countAlloc == 0)
+            Swag.require(runtime.stats().countAlloc == 0)
         }
     }
 }

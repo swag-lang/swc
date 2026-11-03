@@ -11,7 +11,7 @@ using Core
     var renderer: RenderOgl
     renderer.setOffscreen()
     let gpu: IRenderer = &renderer
-    Swag.assert(not gpu.needsNativeWindow())
+    Swag.require(not gpu.needsNativeWindow())
     var first  = expect gpu.createContext(null, 64, 48)
     var second = expect gpu.createContext(null, 32, 24, &first)
     gpu.setCurrentContext(first)
@@ -29,14 +29,14 @@ using Core
         painter.end()
         gpu.draw(&painter)
         let pixels = gpu.readRenderTarget(&target, 0, 0, 32, 24)
-        Swag.assert(pixels.pixelColor(17, 13).argb == Argb.Red)
+        Swag.require(pixels.pixelColor(17, 13).argb == Argb.Red)
         gpu.end()
     }
 
     gpu.deleteContext(&first)
     gpu.begin(second)
     let retained = gpu.readRenderTarget(&target, 0, 0, 32, 24)
-    Swag.assert(retained.pixelColor(17, 13).argb == Argb.Red)
+    Swag.require(retained.pixelColor(17, 13).argb == Argb.Red)
     gpu.deleteRenderTarget(&target)
     gpu.end()
     gpu.deleteContext(&second)

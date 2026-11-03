@@ -17,13 +17,10 @@ struct SheetModel
 }
 
 const SheetRates: [4] f64 = [0.5, 1, 1.5, 2]
-
 const SheetSizes          = ["Small", "Normal", "Large"]
-
 const SheetTracks         = ["French", "English", "Commentary"]
 
 func rateText(rate: f64)->String   => rate == 1 ? String.from("Normal") : Format.toString("%x", rate)
-
 func delayText(delay: s32)->String => Format.toString("% ms", delay * 100)
 
 // Builds the pages of the test player: one link per setting, a page of choices with detail
@@ -93,7 +90,7 @@ func runSheet(host: *Gui.Testing.HeadlessHost,
     }
 
     sheet.doModal(button, autoDestroy: true)
-    Swag.assert(driven)
+    Swag.require(driven)
 
     // The callback borrows locals of this call, so it must not outlive it.
     host.app.sigFrame.clear()

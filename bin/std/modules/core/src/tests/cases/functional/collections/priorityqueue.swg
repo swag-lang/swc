@@ -36,12 +36,12 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     queue.push(3)
     queue.push(1)
 
-    Swag.assert(queue.peek() == 1)
-    Swag.assert(queue.pop() == 1)
-    Swag.assert(queue.pop() == 1)
-    Swag.assert(queue.pop() == 3)
-    Swag.assert(queue.pop() == 5)
-    Swag.assert(queue.isEmpty())
+    Swag.require(queue.peek() == 1)
+    Swag.require(queue.pop() == 1)
+    Swag.require(queue.pop() == 1)
+    Swag.require(queue.pop() == 3)
+    Swag.require(queue.pop() == 5)
+    Swag.require(queue.isEmpty())
 }
 
 #test
@@ -53,10 +53,10 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     queue.push(9)
     queue.push(4)
 
-    Swag.assert(queue.capacity() >= 8)
-    Swag.assert(queue.pop() == 9)
-    Swag.assert(queue.pop() == 4)
-    Swag.assert(queue.pop() == 2)
+    Swag.require(queue.capacity() >= 8)
+    Swag.require(queue.pop() == 9)
+    Swag.require(queue.pop() == 4)
+    Swag.require(queue.pop() == 2)
 }
 
 #test
@@ -73,16 +73,16 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
         queue.push(#move first)
         queue.push(#move second)
 
-        Swag.assert(borrowedPriority(queue) == 1)
-        Swag.assert(g_PriorityItemDrops == 0)
+        Swag.require(borrowedPriority(queue) == 1)
+        Swag.require(g_PriorityItemDrops == 0)
 
         let poppedFirst = queue.pop()
-        Swag.assert(poppedFirst.id == 1)
+        Swag.require(poppedFirst.id == 1)
         let poppedSecond = queue.pop()
-        Swag.assert(poppedSecond.id == 2)
+        Swag.require(poppedSecond.id == 2)
     }
 
-    Swag.assert(g_PriorityItemDrops == 3)
+    Swag.require(g_PriorityItemDrops == 3)
 }
 
 // Reserving less storage preserves the elements and their existing capacity.
@@ -92,6 +92,6 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     queue.push(42)
     let capacity = queue.capacity()
     queue.reserve(0)
-    Swag.assert(queue.count == 1 and queue.capacity() == capacity)
-    Swag.assert(queue.pop() == 42)
+    Swag.require(queue.count == 1 and queue.capacity() == capacity)
+    Swag.require(queue.pop() == 42)
 }

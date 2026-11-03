@@ -12,10 +12,10 @@ using Swag, Core
     assertImage(img, 2, 1, .RGBA8)
 
     let brightPixel = img.pixelColor(0, 0)
-    Swag.assert(brightPixel.a == 77)
-    Swag.assert(brightPixel.r > 200)
-    Swag.assert(brightPixel.r == brightPixel.g)
-    Swag.assert(brightPixel.g == brightPixel.b)
+    Swag.require(brightPixel.a == 77)
+    Swag.require(brightPixel.r > 200)
+    Swag.require(brightPixel.r == brightPixel.g)
+    Swag.require(brightPixel.g == brightPixel.b)
 
     let darkExpected = Color.fromHsl(0.3, 0.0, 30 / 255.0).withAlpha(88)
     assertPixel(img, 1, 0, darkExpected)

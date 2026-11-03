@@ -27,27 +27,27 @@ using Swag, Core, Pixel
     var first: Testing.HeadlessHost
     first.app.resources.addFolder(root.toString())
     first.setup(80, 60)
-    Swag.assert(first.theme.res.imgWidgets.width == 24)
+    Swag.require(first.theme.res.imgWidgets.width == 24)
     let firstIcon = first.theme.res.icons.icon(0, 24, 1)
-    Swag.assert(firstIcon.imageList!.frameCount == 1)
+    Swag.require(firstIcon.imageList!.frameCount == 1)
     let firstPixels = first.theme.res.icons.atlas!.image(24)
-    Swag.assert(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
+    Swag.require(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
 
     discard expect File.writeAllText(widgetsPath, Blue)
     discard expect File.writeAllText(iconsPath, Blue)
     var second: Testing.HeadlessHost
     second.app.resources.addFolder(root.toString())
     second.setup(80, 60)
-    Swag.assert(second.theme.res.imgWidgets.width == 48)
-    Swag.assert(second.theme.res.icons.icon(0, 24, 1).imageList!.frameCount == 2)
+    Swag.require(second.theme.res.imgWidgets.width == 48)
+    Swag.require(second.theme.res.icons.icon(0, 24, 1).imageList!.frameCount == 2)
     let secondPixels = second.theme.res.icons.atlas!.image(24)
-    Swag.assert(secondPixels.pixelColor(12, 12).argb == 0xFF0000FF)
+    Swag.require(secondPixels.pixelColor(12, 12).argb == 0xFF0000FF)
     first.app.renderer.setCurrentContext(first.surface.rc)
     first.theme.ensureAtlasScale(first.app.renderer, 2)
-    Swag.assert(first.theme.res.imgWidgets.width == 48)
-    Swag.assert(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
-    Swag.assert(original.theme.res.imgWidgets.width == originalWidth)
-    Swag.assert(original.theme.res.icons.atlas == originalAtlas)
+    Swag.require(first.theme.res.imgWidgets.width == 48)
+    Swag.require(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
+    Swag.require(original.theme.res.imgWidgets.width == originalWidth)
+    Swag.require(original.theme.res.icons.atlas == originalAtlas)
 
     // Empty and malformed files both fall back, even after an override was cached elsewhere.
     discard expect File.writeAllText(widgetsPath, "")
@@ -55,11 +55,11 @@ using Swag, Core, Pixel
     var fallback: Testing.HeadlessHost
     fallback.app.resources.addFolder(root.toString())
     fallback.setup(80, 60)
-    Swag.assert(fallback.theme.res.imgWidgets.width == originalWidth)
+    Swag.require(fallback.theme.res.imgWidgets.width == originalWidth)
     let fallbackIcons = fallback.theme.res.icons.atlas!.image(24)
     let originalIcons = originalAtlas!.image(24)
-    Swag.assert(fallbackIcons.width == originalIcons.width and fallbackIcons.height == originalIcons.height)
-    Swag.assert(Slice.equals(fallbackIcons.pixels.toSlice(), originalIcons.pixels.toSlice()))
+    Swag.require(fallbackIcons.width == originalIcons.width and fallbackIcons.height == originalIcons.height)
+    Swag.require(Slice.equals(fallbackIcons.pixels.toSlice(), originalIcons.pixels.toSlice()))
 }
 
 // A logical font name cannot alias different disk payloads in the process typeface cache.
@@ -83,10 +83,10 @@ using Swag, Core, Pixel
     second.app.resources.addFolder(root.toString())
     second.setup(80, 60)
     let bold = second.theme.res.defaultTypeFaceR
-    Swag.assert(regular != bold)
+    Swag.require(regular != bold)
     discard expect File.writeAllBytes(path, Regular)
     var third: Testing.HeadlessHost
     third.app.resources.addFolder(root.toString())
     third.setup(80, 60)
-    Swag.assert(third.theme.res.defaultTypeFaceR == regular)
+    Swag.require(third.theme.res.defaultTypeFaceR == regular)
 }

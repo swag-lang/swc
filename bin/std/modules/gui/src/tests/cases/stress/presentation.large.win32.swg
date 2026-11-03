@@ -33,7 +33,7 @@ impl IWnd for PresentationPatternWnd
 {
     var app: Application
     let monitors = Env.getMonitors()
-    Swag.assert(not monitors.isEmpty())
+    Swag.require(not monitors.isEmpty())
     for monitor in monitors
     {
         let bounds  = monitor.physicalBounds
@@ -61,7 +61,7 @@ impl IWnd for PresentationPatternWnd
             }
 
             surface.paint()
-            Swag.assert(surface.readback.isPending())
+            Swag.require(surface.readback.isPending())
 
             var watch: Time.Stopwatch
             watch.start()
@@ -71,9 +71,9 @@ impl IWnd for PresentationPatternWnd
                 Threading.Thread.sleep(1'ms)
             }
 
-            Swag.assert(not surface.readback.isPending())
+            Swag.require(not surface.readback.isPending())
             let verified = expect Testing.verifyNativePresentation(surface)
-            Swag.assert(verified)
+            Swag.require(verified)
         }
     }
 }

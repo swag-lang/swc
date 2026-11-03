@@ -185,48 +185,48 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .PeImage)
-    Swag.assert(doc.report.formatName == "PE32+")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "x64"))
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "DLL"))
-    Swag.assert(not doc.image.truncated)
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .PeImage)
+    Swag.require(doc.report.formatName == "PE32+")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "x64"))
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "DLL"))
+    Swag.require(not doc.image.truncated)
 
     // The header block, read field by field.
-    Swag.assert(rowDetail(&doc.report, "Machine") == "x64")
-    Swag.assert(rowValue(&doc.report, "NumberOfSections") == "2")
-    Swag.assert(rowValue(&doc.report, "AddressOfEntryPoint") == "0x00001000")
-    Swag.assert(rowValue(&doc.report, "ImageBase") == "0x0000000180000000")
-    Swag.assert(rowDetail(&doc.report, "Subsystem") == "Windows console")
-    Swag.assert(Utf8.contains(rowDetail(&doc.report, "DllCharacteristics"), "NX_COMPAT"))
-    Swag.assert(Utf8.contains(rowDetail(&doc.report, "Characteristics"), "DLL"))
-    Swag.assert(Utf8.contains(rowDetail(&doc.report, "TimeDateStamp"), "2020-09-13"))
+    Swag.require(rowDetail(&doc.report, "Machine") == "x64")
+    Swag.require(rowValue(&doc.report, "NumberOfSections") == "2")
+    Swag.require(rowValue(&doc.report, "AddressOfEntryPoint") == "0x00001000")
+    Swag.require(rowValue(&doc.report, "ImageBase") == "0x0000000180000000")
+    Swag.require(rowDetail(&doc.report, "Subsystem") == "Windows console")
+    Swag.require(Utf8.contains(rowDetail(&doc.report, "DllCharacteristics"), "NX_COMPAT"))
+    Swag.require(Utf8.contains(rowDetail(&doc.report, "Characteristics"), "DLL"))
+    Swag.require(Utf8.contains(rowDetail(&doc.report, "TimeDateStamp"), "2020-09-13"))
 
     // The two sections, and the one directory each of them carries.
     let text = findRow(&doc.report, ".text")
-    Swag.assert(text != null)
-    Swag.assert(text.offset == FixtureTextAt and text.length == 0x200)
-    Swag.assert(findRow(&doc.report, ".rdata") != null)
+    Swag.require(text != null)
+    Swag.require(text.offset == FixtureTextAt and text.length == 0x200)
+    Swag.require(findRow(&doc.report, ".rdata") != null)
 
     let exported = findRow(&doc.report, "swagExport")
-    Swag.assert(exported != null)
-    Swag.assert(exported.value == "ordinal 1")
+    Swag.require(exported != null)
+    Swag.require(exported.value == "ordinal 1")
 
     let module = findRow(&doc.report, "KERNEL32.dll")
-    Swag.assert(module != null)
-    Swag.assert(module.value == "1 symbol")
+    Swag.require(module != null)
+    Swag.require(module.value == "1 symbol")
 
     let imported = findRow(&doc.report, "ExitProcess")
-    Swag.assert(imported != null)
-    Swag.assert(imported.detail == "hint 7")
+    Swag.require(imported != null)
+    Swag.require(imported.detail == "hint 7")
 
     // The debug entry names the symbol file, and the pair only holds when the identity and the age
     // both match. Reading either from the wrong field would still print something plausible.
-    Swag.assert(findRow(&doc.report, "CODEVIEW") != null)
-    Swag.assert(rowValue(&doc.report, "Type") == "2")
-    Swag.assert(rowValue(&doc.report, "GUID") == "04030201-0605-0807-090A-0B0C0D0E0F10")
-    Swag.assert(rowValue(&doc.report, "Age") == "1")
-    Swag.assert(rowValue(&doc.report, "PDB") == "fixture.pdb")
+    Swag.require(findRow(&doc.report, "CODEVIEW") != null)
+    Swag.require(rowValue(&doc.report, "Type") == "2")
+    Swag.require(rowValue(&doc.report, "GUID") == "04030201-0605-0807-090A-0B0C0D0E0F10")
+    Swag.require(rowValue(&doc.report, "Age") == "1")
+    Swag.require(rowValue(&doc.report, "PDB") == "fixture.pdb")
 }
 
 // The binary view exposes every image in an ICO instead of silently keeping only its largest one.
@@ -236,11 +236,11 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Icon)
-    Swag.assert(doc.previews.count > 1)
-    Swag.assert(doc.previews[0].image.isValid())
-    Swag.assert(rowValue(&doc.report, "ImageCount") == "9")
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Icon)
+    Swag.require(doc.previews.count > 1)
+    Swag.require(doc.previews[0].image.isValid())
+    Swag.require(rowValue(&doc.report, "ImageCount") == "9")
 
     var host: Testing.HeadlessHost
     host.setup(860, 520)
@@ -251,9 +251,9 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     view.resize(860, 520)
     view.applyLayout()
     view.layoutPreviews()
-    Swag.assert(view.previewBand != null)
-    Swag.assert(view.previewBand.children.count == view.doc.previews.count)
-    Swag.assert(view.list.position.y >= view.previewBand.position.bottom())
+    Swag.require(view.previewBand != null)
+    Swag.require(view.previewBand.children.count == view.doc.previews.count)
+    Swag.require(view.list.position.y >= view.previewBand.position.bottom())
     Testing.assertContentFits(view)
 }
 
@@ -276,9 +276,9 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Scc and doc.previews.count == 1)
-    Swag.assert(doc.previews[0].label == "Preview" and doc.previews[0].image.isValid())
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Scc and doc.previews.count == 1)
+    Swag.require(doc.previews[0].label == "Preview" and doc.previews[0].image.isValid())
 }
 
 // A byte anywhere in the file maps back onto the innermost structure that covers it.
@@ -290,20 +290,20 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
+    Swag.require(documentOpened)
 
     // A hit inside a section's payload lands on that section even though no field was decoded
     // there, because a group carries the range it covers.
     let inText = doc.report.rowAt(FixtureTextAt + 0x40)
-    Swag.assert(inText != Swag.U64.Max)
-    Swag.assert(doc.report.rows[inText].label == ".text")
+    Swag.require(inText != Swag.U64.Max)
+    Swag.require(doc.report.rows[inText].label == ".text")
 
     // A hit on a decoded field lands on the field rather than on the header around it.
     let onMachine = doc.report.rowAt(FixturePeAt + 4)
-    Swag.assert(onMachine != Swag.U64.Max)
-    Swag.assert(doc.report.rows[onMachine].label == "Machine")
+    Swag.require(onMachine != Swag.U64.Max)
+    Swag.require(doc.report.rows[onMachine].label == "Machine")
 
-    Swag.assert(doc.report.rowAt(FixtureSize + 16) == Swag.U64.Max)
+    Swag.require(doc.report.rowAt(FixtureSize + 16) == Swag.U64.Max)
 }
 
 // The whole report leaves as text, one indented line per row.
@@ -315,12 +315,12 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
+    Swag.require(documentOpened)
 
     let text = doc.report.toText()
-    Swag.assert(Utf8.contains(text.toSlice(), "Machine: 0x8664"))
-    Swag.assert(Utf8.contains(text.toSlice(), "    .text"))
-    Swag.assert(Utf8.contains(text.toSlice(), "ExitProcess"))
+    Swag.require(Utf8.contains(text.toSlice(), "Machine: 0x8664"))
+    Swag.require(Utf8.contains(text.toSlice(), "    .text"))
+    Swag.require(Utf8.contains(text.toSlice(), "ExitProcess"))
 }
 
 // An object file has no image header, and is recognized by the header it does have.
@@ -342,15 +342,15 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .CoffObject)
-    Swag.assert(doc.report.formatName == "COFF")
-    Swag.assert(rowDetail(&doc.report, "Machine") == "x64")
-    Swag.assert(findRow(&doc.report, ".text") != null)
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .CoffObject)
+    Swag.require(doc.report.formatName == "COFF")
+    Swag.require(rowDetail(&doc.report, "Machine") == "x64")
+    Swag.require(findRow(&doc.report, ".text") != null)
 
     let symbol = findRow(&doc.report, "main")
-    Swag.assert(symbol != null)
-    Swag.assert(Utf8.contains(symbol.detail.toSlice(), "EXTERNAL"))
+    Swag.require(symbol != null)
+    Swag.require(Utf8.contains(symbol.detail.toSlice(), "EXTERNAL"))
 }
 
 // An archive is a directory of members before it is a container of objects.
@@ -374,13 +374,13 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Archive)
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Archive)
 
     let member = findRow(&doc.report, "greeting.o")
-    Swag.assert(member != null)
-    Swag.assert(member.offset == 68 and member.length == 16)
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "1 member"))
+    Swag.require(member != null)
+    Swag.require(member.offset == 68 and member.length == 16)
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "1 member"))
 }
 
 // A container written by the standard writer is read back through its own reader.
@@ -400,14 +400,14 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Scc)
-    Swag.assert(doc.report.formatName == "SCC")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "1 chunk"))
-    Swag.assert(rowValue(&doc.report, "FormatMajor") == "1")
-    Swag.assert(rowValue(&doc.report, Binary.texts().scc_Manifest) == "fixture container")
-    Swag.assert(rowValue(&doc.report, "StoredSize") == "0x0000000000000008 (8)")
-    Swag.assert(rowValue(&doc.report, Binary.texts().scc_Tags) == "probe")
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Scc)
+    Swag.require(doc.report.formatName == "SCC")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "1 chunk"))
+    Swag.require(rowValue(&doc.report, "FormatMajor") == "1")
+    Swag.require(rowValue(&doc.report, Binary.texts().scc_Manifest) == "fixture container")
+    Swag.require(rowValue(&doc.report, "StoredSize") == "0x0000000000000008 (8)")
+    Swag.require(rowValue(&doc.report, Binary.texts().scc_Tags) == "probe")
 }
 
 // A Mach-O image is read down to the segment it maps and the library it needs.
@@ -456,27 +456,27 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .MachO)
-    Swag.assert(doc.report.formatName == "Mach-O 64")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "x86-64"))
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "MH_EXECUTE"))
-    Swag.assert(Utf8.contains(rowDetail(&doc.report, "flags"), "PIE"))
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .MachO)
+    Swag.require(doc.report.formatName == "Mach-O 64")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "x86-64"))
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "MH_EXECUTE"))
+    Swag.require(Utf8.contains(rowDetail(&doc.report, "flags"), "PIE"))
 
     let segment = findRow(&doc.report, "segname")
-    Swag.assert(segment != null)
-    Swag.assert(segment.value == "__TEXT")
-    Swag.assert(Utf8.contains(segment.detail.toSlice(), "EXECUTE"))
+    Swag.require(segment != null)
+    Swag.require(segment.value == "__TEXT")
+    Swag.require(Utf8.contains(segment.detail.toSlice(), "EXECUTE"))
 
     let section = findRow(&doc.report, "__text")
-    Swag.assert(section != null)
-    Swag.assert(section.offset == 0xF00 and section.length == 0x40)
+    Swag.require(section != null)
+    Swag.require(section.offset == 0xF00 and section.length == 0x40)
 
     let library = findRow(&doc.report, "name")
-    Swag.assert(library != null)
-    Swag.assert(library.value == "/usr/lib/libSystem.B.dylib")
-    Swag.assert(rowValue(&doc.report, "current_version") == "1.2.3")
-    Swag.assert(findRow(&doc.report, Binary.texts().shr_Libraries) != null)
+    Swag.require(library != null)
+    Swag.require(library.value == "/usr/lib/libSystem.B.dylib")
+    Swag.require(rowValue(&doc.report, "current_version") == "1.2.3")
+    Swag.require(findRow(&doc.report, Binary.texts().shr_Libraries) != null)
 }
 
 // A ZIP archive is read through the index it keeps of itself, without decompressing anything.
@@ -513,17 +513,17 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Zip)
-    Swag.assert(doc.report.formatName == "ZIP")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "1 entry"))
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Zip)
+    Swag.require(doc.report.formatName == "ZIP")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "1 entry"))
 
     let entry = findRow(&doc.report, "hello.txt")
-    Swag.assert(entry != null)
-    Swag.assert(entry.detail == "store")
-    Swag.assert(rowValue(&doc.report, "Modified") == "2020-06-15 12:30:00")
-    Swag.assert(rowValue(&doc.report, "UncompressedSize") == "0x0000000C (12)")
-    Swag.assert(rowValue(&doc.report, "TotalEntries") == "1")
+    Swag.require(entry != null)
+    Swag.require(entry.detail == "store")
+    Swag.require(rowValue(&doc.report, "Modified") == "2020-06-15 12:30:00")
+    Swag.require(rowValue(&doc.report, "UncompressedSize") == "0x0000000C (12)")
+    Swag.require(rowValue(&doc.report, "TotalEntries") == "1")
 }
 
 // A WebAssembly module is a chain of sections, and the two that name things are decoded.
@@ -560,19 +560,19 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Wasm)
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "2 sections"))
-    Swag.assert(findRow(&doc.report, "import") != null)
-    Swag.assert(findRow(&doc.report, "export") != null)
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Wasm)
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "2 sections"))
+    Swag.require(findRow(&doc.report, "import") != null)
+    Swag.require(findRow(&doc.report, "export") != null)
 
     let imported = findRow(&doc.report, "env.puts")
-    Swag.assert(imported != null)
-    Swag.assert(imported.detail == Binary.texts().wasm_Function)
+    Swag.require(imported != null)
+    Swag.require(imported.detail == Binary.texts().wasm_Function)
 
     let exported = findRow(&doc.report, "memory")
-    Swag.assert(exported != null)
-    Swag.assert(exported.detail == Binary.texts().wasm_Memory)
+    Swag.require(exported != null)
+    Swag.require(exported.detail == Binary.texts().wasm_Memory)
 }
 
 // A RIFF container is one chunk chain, and the header chunks inside it are read as headers.
@@ -602,17 +602,17 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Riff)
-    Swag.assert(doc.report.formatName == "RIFF WAVE")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "2 chunks"))
-    Swag.assert(rowDetail(&doc.report, "wFormatTag") == "PCM")
-    Swag.assert(rowValue(&doc.report, "nChannels") == "2")
-    Swag.assert(rowValue(&doc.report, "nSamplesPerSec") == "44100")
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Riff)
+    Swag.require(doc.report.formatName == "RIFF WAVE")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "2 chunks"))
+    Swag.require(rowDetail(&doc.report, "wFormatTag") == "PCM")
+    Swag.require(rowValue(&doc.report, "nChannels") == "2")
+    Swag.require(rowValue(&doc.report, "nSamplesPerSec") == "44100")
 
     let data = findRow(&doc.report, "data")
-    Swag.assert(data != null)
-    Swag.assert(data.offset == 44 and data.length == 8)
+    Swag.require(data != null)
+    Swag.require(data.offset == 44 and data.length == 8)
 }
 
 // A Standard MIDI File exposes its timing, track metadata, and running-status channel events.
@@ -645,21 +645,21 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Midi)
-    Swag.assert(doc.report.formatName == Binary.texts().midi_File)
-    Swag.assert(rowDetail(&doc.report, "Division") == "480 ticks per quarter note")
-    Swag.assert(rowValue(&doc.report, "Sequence/Track Name") == "Piano")
-    Swag.assert(rowValue(&doc.report, "Set Tempo") == "120 BPM")
-    Swag.assert(rowValue(&doc.report, "Time Signature") == "4/4")
-    Swag.assert(rowValue(&doc.report, "Key Signature") == "E-flat minor")
-    Swag.assert(findRow(&doc.report, "System Exclusive") != null)
-    Swag.assert(rowValue(&doc.report, "Program Change") == "40")
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Midi)
+    Swag.require(doc.report.formatName == Binary.texts().midi_File)
+    Swag.require(rowDetail(&doc.report, "Division") == "480 ticks per quarter note")
+    Swag.require(rowValue(&doc.report, "Sequence/Track Name") == "Piano")
+    Swag.require(rowValue(&doc.report, "Set Tempo") == "120 BPM")
+    Swag.require(rowValue(&doc.report, "Time Signature") == "4/4")
+    Swag.require(rowValue(&doc.report, "Key Signature") == "E-flat minor")
+    Swag.require(findRow(&doc.report, "System Exclusive") != null)
+    Swag.require(rowValue(&doc.report, "Program Change") == "40")
 
     let note = findRow(&doc.report, "Note On")
-    Swag.assert(note != null and note.value == "60 · velocity 96")
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "9 events"))
-    Swag.assert(not doc.image.truncated)
+    Swag.require(note != null and note.value == "60 · velocity 96")
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "9 events"))
+    Swag.require(not doc.image.truncated)
 }
 
 // A font is read through the directory of tables it is assembled from.
@@ -696,15 +696,15 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Font)
-    Swag.assert(Utf8.contains(doc.report.summary.toSlice(), "Fixtura"))
-    Swag.assert(rowValue(&doc.report, Binary.texts().font_UnitsPerEm) == "2048")
-    Swag.assert(rowValue(&doc.report, Binary.texts().font_Family) == "Fixtura")
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Font)
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "Fixtura"))
+    Swag.require(rowValue(&doc.report, Binary.texts().font_UnitsPerEm) == "2048")
+    Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Fixtura")
 
     let table = findRow(&doc.report, "head")
-    Swag.assert(table != null)
-    Swag.assert(table.offset == headAt and table.length == 54)
+    Swag.require(table != null)
+    Swag.require(table.offset == headAt and table.length == 54)
 }
 
 // A file no reader claims is still named, measured, and weighed.
@@ -719,16 +719,16 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var doc: Binary.Document
     let documentOpened = doc.open(fileName)
-    Swag.assert(documentOpened)
-    Swag.assert(doc.kind == .Unknown)
-    Swag.assert(doc.report.formatName == "GIF image")
-    Swag.assert(doc.image.region.isOpen() and doc.image.bytes.count == bytes.count)
+    Swag.require(documentOpened)
+    Swag.require(doc.kind == .Unknown)
+    Swag.require(doc.report.formatName == "GIF image")
+    Swag.require(doc.image.region.isOpen() and doc.image.bytes.count == bytes.count)
 
     // A run of zeros carries no information at all, and the reading says so.
     let entropy = findRow(&doc.report, Binary.texts().rep_Entropy)
-    Swag.assert(entropy != null)
-    Swag.assert(entropy.detail == Binary.texts().rep_EntropyLow)
-    Swag.assert(findRow(&doc.report, Binary.texts().rep_FirstBytes) != null)
+    Swag.require(entropy != null)
+    Swag.require(entropy.detail == Binary.texts().rep_EntropyLow)
+    Swag.require(findRow(&doc.report, Binary.texts().rep_FirstBytes) != null)
 }
 
 // A signature is compared byte for byte, those above 0x7F included.
@@ -743,7 +743,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     defer discard catch File.delete(fileName)
 
     var doc: Binary.Document
-    Swag.assert(doc.open(fileName) and doc.report.formatName == "JPEG image")
+    Swag.require(doc.open(fileName) and doc.report.formatName == "JPEG image")
 }
 
 // A PNG is read as its chunk chain: each chunk a structure of its own, the image header decoded.
@@ -752,13 +752,13 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     let fileName = scopeTestDataPath("title.png")
 
     var doc: Binary.Document
-    Swag.assert(doc.open(fileName) and doc.kind == .Png and doc.image.bigEndian)
-    Swag.assert(doc.report.formatName == "PNG" and Utf8.contains(doc.report.summary.toSlice(), "5000 × 367"))
+    Swag.require(doc.open(fileName) and doc.kind == .Png and doc.image.bigEndian)
+    Swag.require(doc.report.formatName == "PNG" and Utf8.contains(doc.report.summary.toSlice(), "5000 × 367"))
 
     let header = findRow(&doc.report, "IHDR")
-    Swag.assert(header != null and header.offset == 8 and header.length == 25)
-    Swag.assert(rowValue(&doc.report, "Width") == "5000" and rowValue(&doc.report, "Colour type") == "6")
-    Swag.assert(findRow(&doc.report, "IEND") != null and findRow(&doc.report, Binary.texts().png_Malformed) == null)
+    Swag.require(header != null and header.offset == 8 and header.length == 25)
+    Swag.require(rowValue(&doc.report, "Width") == "5000" and rowValue(&doc.report, "Colour type") == "6")
+    Swag.require(findRow(&doc.report, "IEND") != null and findRow(&doc.report, Binary.texts().png_Malformed) == null)
 }
 
 // A file the reader cannot open crosses the viewer boundary without a local error view.
@@ -766,20 +766,20 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 {
     var doc: Binary.Document
     let documentOpened = doc.open("this-file-does-not-exist.bin")
-    Swag.assert(not documentOpened)
-    Swag.assert(not doc.image.failureReason.isEmpty())
+    Swag.require(not documentOpened)
+    Swag.require(not doc.image.failureReason.isEmpty())
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     var result = openTestViewer(Binary.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
-    Swag.assert(result.view != null and
-                result.actions == null and
-                result.commands != null and
-                result.collectMatches != null and
-                result.isLoading != null)
+    Swag.require(result.view != null and
+                 result.actions == null and
+                 result.commands != null and
+                 result.collectMatches != null and
+                 result.isLoading != null)
     let view = assume cast(*Binary.Panel, result.view)
     finishBinaryViewer(&host, view)
-    Swag.assert(not view.failureReason.isEmpty())
+    Swag.require(not view.failureReason.isEmpty())
 }
 
 internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw)
@@ -800,15 +800,15 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
     view.copyReport()
     let all = Clipboard.getString()
-    Swag.assert(Utf8.contains(all.toSlice(), "swagExport"))
+    Swag.require(Utf8.contains(all.toSlice(), "swagExport"))
 
     view.setExpandedAll(true)
     let revealed = view.revealOffset(FixtureTextAt)
-    Swag.assert(revealed)
+    Swag.require(revealed)
     view.copySelectedLine()
     let one = Clipboard.getString()
-    Swag.assert(Utf8.contains(one.toSlice(), ".text"))
-    Swag.assert(not Utf8.contains(one.toSlice(), "swagExport"))
+    Swag.require(Utf8.contains(one.toSlice(), ".text"))
+    Swag.require(not Utf8.contains(one.toSlice(), "swagExport"))
 }
 
 // Search indexes the decoded report, outlines the exact text, and reaches folded structures.
@@ -824,24 +824,24 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("file offset of the PE signature", {}, &matches)
-    Swag.assert(matches.count == 1)
-    Swag.assert(matches[0].minor == cast(u64, Binary.Column.Detail))
+    Swag.require(matches.count == 1)
+    Swag.require(matches[0].minor == cast(u64, Binary.Column.Detail))
     let revealed = view.revealMatch(matches[0], "")
-    Swag.assert(revealed)
-    Swag.assert(view.list.selectedLine() != null)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == "e_lfanew")
+    Swag.require(revealed)
+    Swag.require(view.list.selectedLine() != null)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == "e_lfanew")
     let item = view.list.selectedLine()!.itemAt(cast(u32, Binary.Column.Detail))
-    Swag.assert(item.name.raw == "file offset of the PE signature")
-    Swag.assert(not item.colorBk.a)
+    Swag.require(item.name.raw == "file offset of the PE signature")
+    Swag.require(not item.colorBk.a)
 
     var bounds: Math.Rectangle
     let bounded = view.searchBounds(&bounds)
-    Swag.assert(bounded)
+    Swag.require(bounded)
     let rowWidth = view.list.listView.clientRect().width
-    Swag.assert(bounds.width > 0 and bounds.width < rowWidth * 0.5)
+    Swag.require(bounds.width > 0 and bounds.width < rowWidth * 0.5)
 
     view.clearSearch()
-    Swag.assert(view.list.selectedLine() == null)
+    Swag.require(view.list.selectedLine() == null)
 }
 
 // Filtering reuses the report search semantics, retains the ancestry of nested matches, and does
@@ -863,19 +863,19 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var matched = Swag.U64.Max
     for row, index in view.doc.report.rows where row.label == "e_lfanew" do
         matched = index
-    Swag.assert(matched != Swag.U64.Max and view.rowLines[matched] != null)
-    Swag.assert(view.rowLines[matched]!.parent != null)
-    Swag.assert(view.list.lineCount() < view.doc.report.rows.count)
+    Swag.require(matched != Swag.U64.Max and view.rowLines[matched] != null)
+    Swag.require(view.rowLines[matched]!.parent != null)
+    Swag.require(view.list.lineCount() < view.doc.report.rows.count)
 
     var matches: Array'Viewer.SearchMatch
     view.collectMatches("e_lfanew", {}, &matches)
-    Swag.assert(matches.count == 1 and matches[0].major == matched)
+    Swag.require(matches.count == 1 and matches[0].major == matched)
 
     view.applyFilter("", {})
     while view.filterTimer do
         host.pump()
     for line in view.rowLines do
-        Swag.assert(line != null)
+        Swag.require(line != null)
 }
 
 // The report, its headings, and its controls all follow a live language change.
@@ -890,19 +890,19 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     defer expect host.app.setLanguage(ReferenceLanguage)
 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
-    Swag.assert(findRow(&view.doc.report, "File") != null)
+    Swag.require(findRow(&view.doc.report, "File") != null)
     let revealed = view.revealOffset(FixtureTextAt)
-    Swag.assert(revealed)
+    Swag.require(revealed)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     finishBinaryViewer(&host, view)
 
-    Swag.assert(findRow(&view.doc.report, "Fichier") != null)
-    Swag.assert(findRow(&view.doc.report, "En-tête DOS") != null)
-    Swag.assert(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.raw == "Signification")
-    Swag.assert(view.list.selectedLine() != null)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
+    Swag.require(findRow(&view.doc.report, "Fichier") != null)
+    Swag.require(findRow(&view.doc.report, "En-tête DOS") != null)
+    Swag.require(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.raw == "Signification")
+    Swag.require(view.list.selectedLine() != null)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
 }
 
 // File-offset jumps and row history make a large report navigable without flattening its tree.
@@ -917,22 +917,22 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
 
     let view    = binaryTestViewer(&host, fileName, 1100, 600)
     var reached = view.goToTypedOffset("400")
-    Swag.assert(reached)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
+    Swag.require(reached)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     reached = view.goToTypedOffset("7F0")
-    Swag.assert(reached)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
+    Swag.require(reached)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
 
     // The hexadecimal viewer's go-to grammar holds here too: `0d` is decimal, not hexadecimal 0xD1024.
     reached = view.goToTypedOffset("0d1024")
-    Swag.assert(reached)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
+    Swag.require(reached)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     reached = view.goToTypedOffset("7F0")
-    Swag.assert(reached)
+    Swag.require(reached)
     var navigated = view.navigateHistory(-1)
-    Swag.assert(navigated)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
+    Swag.require(navigated)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     navigated = view.navigateHistory(1)
-    Swag.assert(navigated)
-    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
+    Swag.require(navigated)
+    Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
 }

@@ -5,122 +5,122 @@ using Swag
 
 func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second, millisecond: u16)
 {
-    Swag.assert(value.year == year)
-    Swag.assert(value.month == month)
-    Swag.assert(value.day == day)
-    Swag.assert(value.hour == hour)
-    Swag.assert(value.minute == minute)
-    Swag.assert(value.second == second)
-    Swag.assert(value.millisecond == millisecond)
+    Swag.require(value.year == year)
+    Swag.require(value.month == month)
+    Swag.require(value.day == day)
+    Swag.require(value.hour == hour)
+    Swag.require(value.minute == minute)
+    Swag.require(value.second == second)
+    Swag.require(value.millisecond == millisecond)
 }
 
 #test
 {
     using Time.DayOfWeek
 
-    Swag.assert(cast(u32, Sunday) == 0)
-    Swag.assert(cast(u32, Monday) == 1)
-    Swag.assert(cast(u32, Tuesday) == 2)
-    Swag.assert(cast(u32, Wednesday) == 3)
-    Swag.assert(cast(u32, Thursday) == 4)
-    Swag.assert(cast(u32, Friday) == 5)
-    Swag.assert(cast(u32, Saturday) == 6)
-    Swag.assert(Time.DayOfWeek.count == 7)
+    Swag.require(cast(u32, Sunday) == 0)
+    Swag.require(cast(u32, Monday) == 1)
+    Swag.require(cast(u32, Tuesday) == 2)
+    Swag.require(cast(u32, Wednesday) == 3)
+    Swag.require(cast(u32, Thursday) == 4)
+    Swag.require(cast(u32, Friday) == 5)
+    Swag.require(cast(u32, Saturday) == 6)
+    Swag.require(Time.DayOfWeek.count == 7)
 
-    Swag.assert(Time.DateTime.dayOfWeekName(Sunday) == "Sunday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Monday) == "Monday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Tuesday) == "Tuesday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Wednesday) == "Wednesday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Thursday) == "Thursday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Friday) == "Friday")
-    Swag.assert(Time.DateTime.dayOfWeekName(Saturday) == "Saturday")
+    Swag.require(Time.DateTime.dayOfWeekName(Sunday) == "Sunday")
+    Swag.require(Time.DateTime.dayOfWeekName(Monday) == "Monday")
+    Swag.require(Time.DateTime.dayOfWeekName(Tuesday) == "Tuesday")
+    Swag.require(Time.DateTime.dayOfWeekName(Wednesday) == "Wednesday")
+    Swag.require(Time.DateTime.dayOfWeekName(Thursday) == "Thursday")
+    Swag.require(Time.DateTime.dayOfWeekName(Friday) == "Friday")
+    Swag.require(Time.DateTime.dayOfWeekName(Saturday) == "Saturday")
 }
 
 #test
 {
     let invalidDay = cast(Time.DayOfWeek, 7)
     let rejectedEnglishName = Swag.catchPanic(func|invalidDay|() { discard Time.DateTime.dayOfWeekName(invalidDay) })
-    Swag.assert(rejectedEnglishName.raised and rejectedEnglishName.message() == "day is outside the supported range")
+    Swag.require(rejectedEnglishName.raised and rejectedEnglishName.message() == "day is outside the supported range")
 
     var format                = Globalization.DateTimeFormatInfo{}
     let formatPointer         = &format
     let rejectedLocalizedName = Swag.catchPanic(func|formatPointer, invalidDay|() { discard formatPointer[].dayName(invalidDay) })
-    Swag.assert(rejectedLocalizedName.raised and rejectedLocalizedName.message() == "day is outside the supported range")
+    Swag.require(rejectedLocalizedName.raised and rejectedLocalizedName.message() == "day is outside the supported range")
 }
 
 #test
 {
     using Time.DateTimeFormat
 
-    Swag.assert(cast(u32, DateIso) == 0)
-    Swag.assert(cast(u32, TimeIso) == 1)
-    Swag.assert(cast(u32, TimeIsoMs) == 2)
-    Swag.assert(cast(u32, TimeIsoHm) == 3)
-    Swag.assert(cast(u32, Date) == 4)
-    Swag.assert(cast(u32, DateTime) == 5)
-    Swag.assert(cast(u32, DateTimeMs) == 6)
-    Swag.assert(cast(u32, DateTimeIso) == 7)
-    Swag.assert(cast(u32, DateTimeIsoMs) == 8)
-    Swag.assert(cast(u32, DateTimeIsoHm) == 9)
-    Swag.assert(Time.DateTimeFormat.count == 10)
+    Swag.require(cast(u32, DateIso) == 0)
+    Swag.require(cast(u32, TimeIso) == 1)
+    Swag.require(cast(u32, TimeIsoMs) == 2)
+    Swag.require(cast(u32, TimeIsoHm) == 3)
+    Swag.require(cast(u32, Date) == 4)
+    Swag.require(cast(u32, DateTime) == 5)
+    Swag.require(cast(u32, DateTimeMs) == 6)
+    Swag.require(cast(u32, DateTimeIso) == 7)
+    Swag.require(cast(u32, DateTimeIsoMs) == 8)
+    Swag.require(cast(u32, DateTimeIsoHm) == 9)
+    Swag.require(Time.DateTimeFormat.count == 10)
 }
 
 #test
 {
-    Swag.assert(Time.DateTime.monthName(1) == "January")
-    Swag.assert(Time.DateTime.monthName(2) == "February")
-    Swag.assert(Time.DateTime.monthName(3) == "March")
-    Swag.assert(Time.DateTime.monthName(4) == "April")
-    Swag.assert(Time.DateTime.monthName(5) == "May")
-    Swag.assert(Time.DateTime.monthName(6) == "June")
-    Swag.assert(Time.DateTime.monthName(7) == "July")
-    Swag.assert(Time.DateTime.monthName(8) == "August")
-    Swag.assert(Time.DateTime.monthName(9) == "September")
-    Swag.assert(Time.DateTime.monthName(10) == "October")
-    Swag.assert(Time.DateTime.monthName(11) == "November")
-    Swag.assert(Time.DateTime.monthName(12) == "December")
+    Swag.require(Time.DateTime.monthName(1) == "January")
+    Swag.require(Time.DateTime.monthName(2) == "February")
+    Swag.require(Time.DateTime.monthName(3) == "March")
+    Swag.require(Time.DateTime.monthName(4) == "April")
+    Swag.require(Time.DateTime.monthName(5) == "May")
+    Swag.require(Time.DateTime.monthName(6) == "June")
+    Swag.require(Time.DateTime.monthName(7) == "July")
+    Swag.require(Time.DateTime.monthName(8) == "August")
+    Swag.require(Time.DateTime.monthName(9) == "September")
+    Swag.require(Time.DateTime.monthName(10) == "October")
+    Swag.require(Time.DateTime.monthName(11) == "November")
+    Swag.require(Time.DateTime.monthName(12) == "December")
 }
 
 #test
 {
     let value = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
-    Swag.assert(value.isValid())
-    Swag.assert(value.dayOfWeek() == Time.DayOfWeek.Thursday)
+    Swag.require(value.isValid())
+    Swag.require(value.dayOfWeek() == Time.DayOfWeek.Thursday)
 
     var invalid = value
     invalid.year = 0
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid      = value
     invalid.year = 10000
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid       = value
     invalid.month = 0
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid       = value
     invalid.month = 13
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid     = value
     invalid.day = 0
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid     = value
     invalid.day = 30
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid      = value
     invalid.hour = 24
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid        = value
     invalid.minute = 60
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid        = value
     invalid.second = 60
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
     invalid = value
     invalid.millisecond = 1000
-    Swag.assert(not invalid.isValid())
+    Swag.require(not invalid.isValid())
 
-    Swag.assert(Time.DateTime{1970, 1, 1, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Thursday)
-    Swag.assert(Time.DateTime{2000, 2, 29, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Tuesday)
-    Swag.assert(Time.DateTime{2024, 4, 29, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Monday)
+    Swag.require(Time.DateTime{1970, 1, 1, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Thursday)
+    Swag.require(Time.DateTime{2000, 2, 29, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Tuesday)
+    Swag.require(Time.DateTime{2024, 4, 29, 0, 0, 0, 0}.dayOfWeek() == Time.DayOfWeek.Monday)
 }
 
 #test
@@ -128,40 +128,40 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let value    = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
     let paddedMs = Time.DateTime{2024, 2, 29, 1, 2, 3, 4}
 
-    Swag.assert(value.toString(.DateIso) == "2024-02-29")
-    Swag.assert(value.toString(.TimeIso) == "01:02:03")
-    Swag.assert(value.toString(.TimeIsoMs) == "01:02:03.456")
-    Swag.assert(value.toString(.TimeIsoHm) == "01:02")
-    Swag.assert(value.toString(.Date) == "Thursday February 29 2024")
-    Swag.assert(value.toString(.DateTime) == "Thursday February 29 2024 01:02:03")
-    Swag.assert(value.toString(.DateTimeMs) == "Thursday February 29 2024 01:02:03.456")
-    Swag.assert(value.toString(.DateTimeIso) == "2024-02-29 01:02:03")
-    Swag.assert(value.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.456")
-    Swag.assert(value.toString(.DateTimeIsoHm) == "2024-02-29 01:02")
-    Swag.assert(value.toString() == "Thursday February 29 2024 01:02:03")
+    Swag.require(value.toString(.DateIso) == "2024-02-29")
+    Swag.require(value.toString(.TimeIso) == "01:02:03")
+    Swag.require(value.toString(.TimeIsoMs) == "01:02:03.456")
+    Swag.require(value.toString(.TimeIsoHm) == "01:02")
+    Swag.require(value.toString(.Date) == "Thursday February 29 2024")
+    Swag.require(value.toString(.DateTime) == "Thursday February 29 2024 01:02:03")
+    Swag.require(value.toString(.DateTimeMs) == "Thursday February 29 2024 01:02:03.456")
+    Swag.require(value.toString(.DateTimeIso) == "2024-02-29 01:02:03")
+    Swag.require(value.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.456")
+    Swag.require(value.toString(.DateTimeIsoHm) == "2024-02-29 01:02")
+    Swag.require(value.toString() == "Thursday February 29 2024 01:02:03")
 
-    Swag.assert(paddedMs.toString(.TimeIsoMs) == "01:02:03.004")
-    Swag.assert(paddedMs.toString(.DateTimeMs) == "Thursday February 29 2024 01:02:03.004")
-    Swag.assert(paddedMs.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.004")
+    Swag.require(paddedMs.toString(.TimeIsoMs) == "01:02:03.004")
+    Swag.require(paddedMs.toString(.DateTimeMs) == "Thursday February 29 2024 01:02:03.004")
+    Swag.require(paddedMs.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.004")
 }
 
 #test
 {
     let dateOnly = expect Time.DateTime.parse("2024-02-29")
     assertDateTime(dateOnly.value, 2024, 2, 29, 0, 0, 0, 0)
-    Swag.assert(dateOnly.eat == 10)
+    Swag.require(dateOnly.eat == 10)
 
     let hourMinute = expect Time.DateTime.parse("2024-02-29 01:02")
     assertDateTime(hourMinute.value, 2024, 2, 29, 1, 2, 0, 0)
-    Swag.assert(hourMinute.eat == 16)
+    Swag.require(hourMinute.eat == 16)
 
     let fullIso = expect Time.DateTime.parse("2024-02-29 01:02:03.456")
     assertDateTime(fullIso.value, 2024, 2, 29, 1, 2, 3, 456)
-    Swag.assert(fullIso.eat == 23)
+    Swag.require(fullIso.eat == 23)
 
     let named = expect Time.DateTime.parse("Thursday February 29 2024 01:02:03")
     assertDateTime(named.value, 2024, 2, 29, 1, 2, 3, 0)
-    Swag.assert(named.eat == 34)
+    Swag.require(named.eat == 34)
 }
 
 #test
@@ -170,10 +170,10 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let b = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
     let c = Time.DateTime{2024, 3, 1, 0, 0, 0, 0}
 
-    Swag.assert(a == b)
-    Swag.assert(a != c)
-    Swag.assert(a < c)
-    Swag.assert(c > a)
+    Swag.require(a == b)
+    Swag.require(a != c)
+    Swag.require(a < c)
+    Swag.require(c > a)
 }
 
 // Fractional seconds read as a fraction, whatever the number of digits.
@@ -195,8 +195,8 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
         let original = Time.DateTime{2024, month, 1, 12, 34, 56, 789}
         let text     = original.toString(.DateTimeMs)
         let parsed   = expect Time.DateTime.parse(text.toString())
-        Swag.assert(parsed.value == original)
-        Swag.assert(parsed.eat == text.count)
+        Swag.require(parsed.value == original)
+        Swag.require(parsed.eat == text.count)
     }
 }
 
@@ -208,12 +208,12 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
         var errorOutcome: Swag.Error
         discard catch Time.DateTime.parse(text) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error is Errors.SyntaxError)
+        Swag.require(error is Errors.SyntaxError)
     }
 
     let unchecked = expect Time.DateTime.parse("Friday February 29 2024", checkDate: false)
     assertDateTime(unchecked.value, 2024, 2, 29, 0, 0, 0, 0)
-    Swag.assert(unchecked.eat == 23)
+    Swag.require(unchecked.eat == 23)
 }
 
 // Named dates reject invalid calendar values before computing their weekday.
@@ -224,22 +224,22 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
         var errorOutcome: Swag.Error
         discard catch Time.DateTime.parse(text) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error is Errors.SyntaxError)
+        Swag.require(error is Errors.SyntaxError)
     }
 
     let unchecked = expect Time.DateTime.parse("Sunday January 1 0", checkDate: false)
     assertDateTime(unchecked.value, 0, 1, 1, 0, 0, 0, 0)
-    Swag.assert(unchecked.eat == 18)
+    Swag.require(unchecked.eat == 18)
 }
 
 #test
 {
     let invalidDate  = Time.DateTime{2024, 4, 31, 0, 0, 0, 0}
     let rejectedDate = Swag.catchPanic(func|invalidDate|() { discard invalidDate.dayOfWeek() }).raised
-    Swag.assert(rejectedDate)
+    Swag.require(rejectedDate)
 
     let invalidTime = Time.DateTime{2024, 4, 30, 24, 0, 0, 0}
-    Swag.assert(invalidTime.dayOfWeek() == Time.DayOfWeek.Tuesday)
+    Swag.require(invalidTime.dayOfWeek() == Time.DayOfWeek.Tuesday)
 }
 
 // The current UTC time, read in the local zone, is the current local time.
@@ -248,5 +248,5 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let local = Time.Timestamp.fromDateTime(Time.DateTime.utcNow().toLocal())
     let now   = Time.Timestamp.fromDateTime(Time.DateTime.now())
     let delta = local.ticks > now.ticks ? local.ticks - now.ticks : now.ticks - local.ticks
-    Swag.assert(delta < Time.TicksPerMinute)
+    Swag.require(delta < Time.TicksPerMinute)
 }

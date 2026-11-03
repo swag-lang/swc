@@ -13,5 +13,5 @@ using Swag
     state.clear()
 
     for i in Input.Key.count do
-        Swag.assert(not state.pressed[i])
+        Swag.require(not state.pressed[i])
 }

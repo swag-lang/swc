@@ -16,7 +16,7 @@ using Core, Pixel, Gui, TrueType, Viewers
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(Typeface.viewerPlugin(), &host.root, fixture, commandParent: commands)
-    Swag.assert(result.view != null)
+    Swag.require(result.view != null)
     let view = assume cast(*Typeface.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center

@@ -110,13 +110,13 @@ func serveMovies(thread: const *Threading.Thread)
         let source = MovieSource{tmdbHost: "127.0.0.1", tmdbToken: "fixture-token-abcdefghijkl", appleHost: "127.0.0.1",
                                  wikiHost: "127.0.0.1", dataHost: "127.0.0.1", port: port, secure: false, useLocalCredentials: false}
         let movie = expect OnlineMovie.lookup("Blade Runner (1982).mkv", source)
-        Swag.assert(not movie.found())
+        Swag.require(not movie.found())
     })
     task.wait()
     discard expect Http.get("127.0.0.1", endpoint.port, "/stop", false)
     thread.wait()
-    Swag.assert(Utf8.contains(fixture.requests[0], "/3/search/movie?"))
-    Swag.assert(Utf8.contains(fixture.requests[1], "GET /stop "))
+    Swag.require(Utf8.contains(fixture.requests[0], "/3/search/movie?"))
+    Swag.require(Utf8.contains(fixture.requests[1], "GET /stop "))
 }
 
 // A TMDB miss still reaches the Apple catalogue before Wikipedia.
@@ -136,12 +136,12 @@ func serveMovies(thread: const *Threading.Thread)
     let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     discard expect movie.posterBytes(host)
     thread.wait()
-    Swag.assert(movie.id == "apple" and movie.sources == "Apple",
-                Format.toString("Expected Apple fallback; received % from %", movie.id, movie.sources))
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/3/search/movie?"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/search?term=Blade%20Runner"))
-    Swag.assert(Utf8.contains(fixture.requests[3].toString(), "/poster/600x900bb.jpg"))
+    Swag.require(movie.id == "apple" and movie.sources == "Apple",
+                 Format.toString("Expected Apple fallback; received % from %", movie.id, movie.sources))
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "/3/search/movie?"))
+    Swag.require(Utf8.contains(fixture.requests[2].toString(), "/search?term=Blade%20Runner"))
+    Swag.require(Utf8.contains(fixture.requests[3].toString(), "/poster/600x900bb.jpg"))
 }
 
 // A v3 key works when no token is configured; neither credential is embedded in the app.
@@ -161,24 +161,24 @@ func serveMovies(thread: const *Threading.Thread)
     let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host)
     discard expect movie.posterBytes(host)
     thread.wait()
-    Swag.assert(movie.id == "tmdb:78")
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "api_key=0123456789abcdef0123456789abcdef"))
-    Swag.assert(not Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer"))
+    Swag.require(movie.id == "tmdb:78")
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "api_key=0123456789abcdef0123456789abcdef"))
+    Swag.require(not Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer"))
 }
 
 #test
 {
     let text = safeMediaText("Title <url>https://example.com</url>\r\nNext")
-    Swag.assert(not Utf8.contains(text.toString(), "<url>"))
-    Swag.assert(not Utf8.contains(text.toString(), "\n"))
-    Swag.assert(validWikiId("Q184843") and not validWikiId("Q1/../other"))
+    Swag.require(not Utf8.contains(text.toString(), "<url>"))
+    Swag.require(not Utf8.contains(text.toString(), "\n"))
+    Swag.require(validWikiId("Q184843") and not validWikiId("Q1/../other"))
     let query = MovieQuery.fromFile("D:/Films/Blade.Runner (1982).mkv")
-    Swag.assert(query.title == "Blade Runner" and query.year == "1982")
+    Swag.require(query.title == "Blade Runner" and query.year == "1982")
     let json   = """{"query":{"pages":[{"title":"Blade Runner","description":"1982 film","pageprops":{"wikibase_item":"Q1"}},{"title":"Blade Runner (film)","description":"1982 film","pageprops":{"wikibase_item":"Q2"}}]}}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'MovieSearch(cast(const [..] u8, json))
     defer Memory.delete(search)
-    Swag.assert(query.choose(search) == Swag.U64.Max)
+    Swag.require(query.choose(search) == Swag.U64.Max)
 }
 
 // Search, credits and artwork are exercised without credentials against a local service.
@@ -199,15 +199,15 @@ func serveMovies(thread: const *Threading.Thread)
     let posterBytes = expect movie.posterBytes(host)
     var poster      = expect Image.decode("poster.png", posterBytes.toSlice())
     thread.wait()
-    Swag.assert(movie.id == "apple" and poster.isValid())
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/poster/600x900bb.jpg"))
-    Swag.assert(movie.sources == "Apple" and movie.articleUrl == "https://tv.apple.com/movie/blade-runner")
+    Swag.require(movie.id == "apple" and poster.isValid())
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "/poster/600x900bb.jpg"))
+    Swag.require(movie.sources == "Apple" and movie.articleUrl == "https://tv.apple.com/movie/blade-runner")
     movie.label(&poster)
     let summary = MovieSummary.fromImage(&poster)
-    Swag.assert(summary.title == "Blade Runner" and summary.director.isEmpty())
-    Swag.assert(summary.overview == "In a dark future, a blade runner hunts replicants.")
-    Swag.assert(summary.sources == "Apple" and Utf8.contains(summary.text().toString(), "Apple: https://tv.apple.com"))
+    Swag.require(summary.title == "Blade Runner" and summary.director.isEmpty())
+    Swag.require(summary.overview == "In a dark future, a blade runner hunts replicants.")
+    Swag.require(summary.sources == "Apple" and Utf8.contains(summary.text().toString(), "Apple: https://tv.apple.com"))
 
     // Only one film of the catalogue answers to a title and a year; a title alone that several
     // films share is not taken.
@@ -218,9 +218,9 @@ func serveMovies(thread: const *Threading.Thread)
     let dated   = MovieQuery{title: "Dune", year: "2021"}
     let undated = MovieQuery{title: "Dune"}
     let other   = MovieQuery{title: "Arrival"}
-    Swag.assert(dated.chooseApple(search) == 1)
-    Swag.assert(undated.chooseApple(search) == Swag.U64.Max)
-    Swag.assert(other.chooseApple(search) == Swag.U64.Max)
+    Swag.require(dated.chooseApple(search) == 1)
+    Swag.require(undated.chooseApple(search) == Swag.U64.Max)
+    Swag.require(other.chooseApple(search) == Swag.U64.Max)
 }
 
 #test
@@ -235,10 +235,10 @@ func serveMovies(thread: const *Threading.Thread)
                            port: endpoint.port, secure: false}
     let movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     thread.wait()
-    Swag.assert(movie.id == "Q184843" and movie.sources == "Wikipedia · Wikidata")
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/w/api.php"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/sparql?"))
+    Swag.require(movie.id == "Q184843" and movie.sources == "Wikipedia · Wikidata")
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/search?term=Blade%20Runner&entity=movie"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "/w/api.php"))
+    Swag.require(Utf8.contains(fixture.requests[2].toString(), "/sparql?"))
 }
 
 #test
@@ -256,28 +256,28 @@ func serveMovies(thread: const *Threading.Thread)
                            imageHost: "127.0.0.1", port: endpoint.port, secure: false, useLocalCredentials: false}
     var movie = expect OnlineMovie.lookup("Blade.Runner (1982).mkv", host, "fr")
     let expectedPoster = Format.toString("http://127.0.0.1:%/t/p/w500/blade-runner.jpg", endpoint.port)
-    Swag.assert(movie.posterUrl == expectedPoster, movie.posterUrl)
+    Swag.require(movie.posterUrl == expectedPoster, movie.posterUrl)
     let posterBytes = expect movie.posterBytes(host)
     var poster      = expect Image.decode("poster.png", posterBytes.toSlice())
     thread.wait()
-    Swag.assert(movie.id == "tmdb:78" and movie.sources == "TMDB" and poster.isValid())
-    Swag.assert(movie.ratingSource == "TMDB" and movie.imdbRating == "8.1/10")
-    Swag.assert(movie.genre == "Science Fiction, Drama" and movie.director == "Ridley Scott")
-    Swag.assert(movie.actors == "Harrison Ford, Rutger Hauer, Sean Young")
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?query=Blade%20Runner&language=fr-FR"))
-    Swag.assert(Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "/3/movie/78?language=fr-FR&append_to_response=credits"))
-    Swag.assert(Utf8.contains(fixture.requests[1].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
-    Swag.assert(Utf8.contains(fixture.requests[2].toString(), "/t/p/w500/blade-runner.jpg"))
+    Swag.require(movie.id == "tmdb:78" and movie.sources == "TMDB" and poster.isValid())
+    Swag.require(movie.ratingSource == "TMDB" and movie.imdbRating == "8.1/10")
+    Swag.require(movie.genre == "Science Fiction, Drama" and movie.director == "Ridley Scott")
+    Swag.require(movie.actors == "Harrison Ford, Rutger Hauer, Sean Young")
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "/3/search/movie?query=Blade%20Runner&language=fr-FR"))
+    Swag.require(Utf8.contains(fixture.requests[0].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "/3/movie/78?language=fr-FR&append_to_response=credits"))
+    Swag.require(Utf8.contains(fixture.requests[1].toString(), "Authorization: Bearer fixture-token-abcdefghijkl"))
+    Swag.require(Utf8.contains(fixture.requests[2].toString(), "/t/p/w500/blade-runner.jpg"))
     movie.label(&poster)
     let summary = MovieSummary.fromImage(&poster)
-    Swag.assert(summary.ratingSource == "TMDB" and Utf8.contains(summary.text().toString(), "TMDB rating: 8.1/10"))
-    Swag.assert(summary.genre == "Science Fiction, Drama")
+    Swag.require(summary.ratingSource == "TMDB" and Utf8.contains(summary.text().toString(), "TMDB rating: 8.1/10"))
+    Swag.require(summary.genre == "Science Fiction, Drama")
 
     let json   = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'TmdbSearch(cast(const [..] u8, json))
     defer Memory.delete(search)
-    Swag.assert(MovieQuery{title: "Dune", year: "2021"}.chooseTMDB(search) == 1)
-    Swag.assert(MovieQuery{title: "Dune"}.chooseTMDB(search) == Swag.U64.Max)
+    Swag.require(MovieQuery{title: "Dune", year: "2021"}.chooseTMDB(search) == 1)
+    Swag.require(MovieQuery{title: "Dune"}.chooseTMDB(search) == Swag.U64.Max)
 }

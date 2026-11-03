@@ -61,8 +61,8 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var values: HashSet's32
-    Swag.assert(values.isEmpty())
-    Swag.assert(not values.contains(1))
+    Swag.require(values.isEmpty())
+    Swag.require(not values.contains(1))
 
     values.add(1)
     values.add(3)
@@ -70,14 +70,14 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
     assertHashSetKeysAreReadOnly(&values)
 
-    Swag.assert(values.count == 2)
-    Swag.assert(values.contains(1))
-    Swag.assert(values.contains(3))
+    Swag.require(values.count == 2)
+    Swag.require(values.contains(1))
+    Swag.require(values.contains(3))
 
     var sum = 0
     for value in values do
         sum += value
-    Swag.assert(sum == 4)
+    Swag.require(sum == 4)
 }
 
 #test
@@ -88,7 +88,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(3)
     values.add(4)
 
-    Swag.assert(assertReverseIntSetIteration(values))
+    Swag.require(assertReverseIntSetIteration(values))
 }
 
 #test
@@ -99,18 +99,18 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(3)
 
     values.remove(2)
-    Swag.assert(not values.contains(2))
-    Swag.assert(values.count == 2)
+    Swag.require(not values.contains(2))
+    Swag.require(values.count == 2)
 
     values.add(2)
-    Swag.assert(values.contains(2))
-    Swag.assert(values.count == 3)
+    Swag.require(values.contains(2))
+    Swag.require(values.count == 3)
 
     values.clear()
-    Swag.assert(values.isEmpty())
-    Swag.assert(not values.contains(1))
-    Swag.assert(not values.contains(2))
-    Swag.assert(not values.contains(3))
+    Swag.require(values.isEmpty())
+    Swag.require(not values.contains(1))
+    Swag.require(not values.contains(2))
+    Swag.require(not values.contains(3))
 }
 
 #test
@@ -121,11 +121,11 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add("alpha")
     values.add(#move moved)
 
-    Swag.assert(values.count == 2)
-    Swag.assert(values.contains("alpha"))
-    Swag.assert(values.contains("beta"))
-    Swag.assert(assertStringSetHas(values, "alpha"))
-    Swag.assert(assertStringSetHas(values, "beta"))
+    Swag.require(values.count == 2)
+    Swag.require(values.contains("alpha"))
+    Swag.require(values.contains("beta"))
+    Swag.require(assertStringSetHas(values, "alpha"))
+    Swag.require(assertStringSetHas(values, "beta"))
 }
 
 #test
@@ -139,12 +139,12 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     copy.add("gamma")
     copy.add("alpha")
 
-    Swag.assert(not assertStringSetHas(original, "alpha"))
-    Swag.assert(assertStringSetHas(original, "beta"))
+    Swag.require(not assertStringSetHas(original, "alpha"))
+    Swag.require(assertStringSetHas(original, "beta"))
 
-    Swag.assert(assertStringSetHas(copy, "alpha"))
-    Swag.assert(assertStringSetHas(copy, "beta"))
-    Swag.assert(assertStringSetHas(copy, "gamma"))
+    Swag.require(assertStringSetHas(copy, "alpha"))
+    Swag.require(assertStringSetHas(copy, "beta"))
+    Swag.require(assertStringSetHas(copy, "gamma"))
 }
 
 #test
@@ -156,10 +156,10 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let seed: [1] s32 = [3]
     values = seed
 
-    Swag.assert(values.count == 1)
-    Swag.assert(not values.contains(1))
-    Swag.assert(not values.contains(2))
-    Swag.assert(values.contains(3))
+    Swag.require(values.count == 1)
+    Swag.require(not values.contains(1))
+    Swag.require(not values.contains(2))
+    Swag.require(values.contains(3))
 }
 
 #test
@@ -171,18 +171,18 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     values.add(42)
     values.add(74)
 
-    Swag.assert(values.capacity >= 33)
-    Swag.assert(values.contains(10))
-    Swag.assert(values.contains(42))
-    Swag.assert(values.contains(74))
+    Swag.require(values.capacity >= 33)
+    Swag.require(values.contains(10))
+    Swag.require(values.contains(42))
+    Swag.require(values.contains(74))
 }
 
 #test
 {
     var values: HashSet's32
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
-    Swag.assert(result.raised)
-    Swag.assert(result.message() == "HashSet capacity exceeds addressable memory")
+    Swag.require(result.raised)
+    Swag.require(result.message() == "HashSet capacity exceeds addressable memory")
 }
 
 #test
@@ -198,8 +198,8 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let failed = Swag.catchPanic(func|&values, oldCapacity|() { values.reserve(oldCapacity + 1) })
     values.allocator = oldAllocator
 
-    Swag.assert(failed.raised)
-    Swag.assert(values.capacity == oldCapacity and values.count == 1 and values.contains(42))
+    Swag.require(failed.raised)
+    Swag.require(values.capacity == oldCapacity and values.count == 1 and values.contains(42))
 }
 
 #test
@@ -218,26 +218,26 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     let toggleFailed    = Swag.catchPanic(func|&values, &toggleResult|() { toggleResult = values.toggle(7) })
     values.allocator = oldAllocator
 
-    Swag.assert(not duplicateFailed.raised and not toggleFailed.raised and not toggleResult)
-    Swag.assert(values.capacity == oldCapacity and values.count == 15 and not values.contains(7))
+    Swag.require(not duplicateFailed.raised and not toggleFailed.raised and not toggleResult)
+    Swag.require(values.capacity == oldCapacity and values.count == 15 and not values.contains(7))
 }
 
 #test
 {
     var values: HashSet's32
 
-    Swag.assert(values.toggle(10))
-    Swag.assert(values.contains(10))
-    Swag.assert(values.count == 1)
+    Swag.require(values.toggle(10))
+    Swag.require(values.contains(10))
+    Swag.require(values.count == 1)
 
-    Swag.assert(not values.toggle(10))
-    Swag.assert(not values.contains(10))
-    Swag.assert(values.isEmpty())
+    Swag.require(not values.toggle(10))
+    Swag.require(not values.contains(10))
+    Swag.require(values.isEmpty())
 
     values.add(42)
-    Swag.assert(not values.toggle(42))
-    Swag.assert(not values.contains(42))
-    Swag.assert(values.isEmpty())
+    Swag.require(not values.toggle(42))
+    Swag.require(not values.contains(42))
+    Swag.require(values.isEmpty())
 }
 
 // A key read from the set itself can be added back while the set grows.
@@ -256,5 +256,5 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
         discard s.add(Format.toString("key %", i))
     }
 
-    Swag.assert(s.count == 101 and s.contains("a key long enough to live outside the inline storage"))
+    Swag.require(s.count == 101 and s.contains("a key long enough to live outside the inline storage"))
 }

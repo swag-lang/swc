@@ -5,9 +5,9 @@ using Swag
 
 func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const [..] s32)
 {
-    Swag.assert(expected.count == 4)
+    Swag.require(expected.count == 4)
     for i in 4 do
-        Swag.assert(values[i] == expected[i])
+        Swag.require(values[i] == expected[i])
 }
 
 #test
@@ -40,8 +40,8 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
     expectNumericArray4(left * right, [10, 40, 150, 320])
     expectNumericArray4(left / right, [10, 10, 6, 5])
 
-    Swag.assert(left == left)
-    Swag.assert(left != right)
+    Swag.require(left == left)
+    Swag.require(left != right)
 }
 
 #test

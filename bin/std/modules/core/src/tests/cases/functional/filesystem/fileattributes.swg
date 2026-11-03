@@ -7,16 +7,16 @@ using Swag
 func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
 {
     let attributes = File.FileAttributes.fromDWORD(value)
-    Swag.assert(attributes == expected)
-    Swag.assert(attributes.has(expected))
+    Swag.require(attributes == expected)
+    Swag.require(attributes.has(expected))
 }
 
 #test
 {
     using File.FileAttributes
 
-    Swag.assert(File.FileAttributes.fromDWORD(0) == None)
-    Swag.assert(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == None)
+    Swag.require(File.FileAttributes.fromDWORD(0) == None)
+    Swag.require(File.FileAttributes.fromDWORD(0xFFFF_FFFF'u32) == None)
 
     assertOnlyFileAttribute(0x0000_0001, ReadOnly)
     assertOnlyFileAttribute(0x0000_0002, Hidden)
@@ -42,26 +42,26 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
     let attributes = File.FileAttributes.fromDWORD(0x0000_0010 | 0x0000_0020 | 0x0000_0400 | 0x0000_4000 |
                                                    0x0000_8000 | 0x0002_0000 | 0x0004_0000 | 0x0008_0000 |
                                                    0x0010_0000 | 0x0040_0000)
-    Swag.assert(attributes.has(Directory))
-    Swag.assert(attributes.has(Archive))
-    Swag.assert(attributes.has(ReparsePoint))
-    Swag.assert(attributes.has(Encrypted))
-    Swag.assert(attributes.has(IntegrityStream))
-    Swag.assert(attributes.has(NoScrubData))
-    Swag.assert(attributes.has(RecallOnOpen))
-    Swag.assert(attributes.has(Pinned))
-    Swag.assert(attributes.has(Unpinned))
-    Swag.assert(attributes.has(RecallOnDataAccess))
-    Swag.assert(not attributes.has(ReadOnly))
-    Swag.assert(not attributes.has(Hidden))
-    Swag.assert(not attributes.has(System))
-    Swag.assert(not attributes.has(Device))
-    Swag.assert(not attributes.has(Normal))
-    Swag.assert(not attributes.has(Temporary))
-    Swag.assert(not attributes.has(SparseFile))
-    Swag.assert(not attributes.has(Compressed))
-    Swag.assert(not attributes.has(Offline))
-    Swag.assert(not attributes.has(NotContentIndexed))
+    Swag.require(attributes.has(Directory))
+    Swag.require(attributes.has(Archive))
+    Swag.require(attributes.has(ReparsePoint))
+    Swag.require(attributes.has(Encrypted))
+    Swag.require(attributes.has(IntegrityStream))
+    Swag.require(attributes.has(NoScrubData))
+    Swag.require(attributes.has(RecallOnOpen))
+    Swag.require(attributes.has(Pinned))
+    Swag.require(attributes.has(Unpinned))
+    Swag.require(attributes.has(RecallOnDataAccess))
+    Swag.require(not attributes.has(ReadOnly))
+    Swag.require(not attributes.has(Hidden))
+    Swag.require(not attributes.has(System))
+    Swag.require(not attributes.has(Device))
+    Swag.require(not attributes.has(Normal))
+    Swag.require(not attributes.has(Temporary))
+    Swag.require(not attributes.has(SparseFile))
+    Swag.require(not attributes.has(Compressed))
+    Swag.require(not attributes.has(Offline))
+    Swag.require(not attributes.has(NotContentIndexed))
 }
 
 // Metadata queries translate a missing path into the same Core error.
@@ -71,9 +71,9 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
 
     var infoErrorOutcome: Swag.Error
     discard catch File.info(path.toString()) as infoErrorOutcome
-    Swag.assert(infoErrorOutcome.value() is Errors.FileNotFoundError)
+    Swag.require(infoErrorOutcome.value() is Errors.FileNotFoundError)
 
     var attributesErrorOutcome: Swag.Error
     discard catch File.attributes(path.toString()) as attributesErrorOutcome
-    Swag.assert(attributesErrorOutcome.value() is Errors.FileNotFoundError)
+    Swag.require(attributesErrorOutcome.value() is Errors.FileNotFoundError)
 }

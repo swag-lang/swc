@@ -6,7 +6,6 @@ using Swag, Core, Pixel
 const IconButtonHeadless_Command = "IconButtonHeadless.Command"
 
 var IconButtonHeadlessPressedCount: u32
-
 var IconButtonHeadlessCheckCount:   u32
 
 func iconButtonHeadlessPressed(_: *Button)
@@ -37,8 +36,8 @@ func iconButtonHeadlessReset()
     btn.sigPressed += &iconButtonHeadlessPressed
 
     host.click({40, 40})
-    Swag.assert(IconButtonHeadlessPressedCount == 1)
-    Swag.assert(not btn.isChecked)
+    Swag.require(IconButtonHeadlessPressedCount == 1)
+    Swag.require(not btn.isChecked)
 }
 
 // A Toggle button flips its checked state on every click.
@@ -54,12 +53,12 @@ func iconButtonHeadlessReset()
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
     host.click({40, 40})
-    Swag.assert(btn.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 1)
+    Swag.require(btn.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 1)
 
     host.click({40, 40})
-    Swag.assert(not btn.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 2)
+    Swag.require(not btn.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 2)
 }
 
 // A radio button can only be set, never unset, by user activation.
@@ -75,12 +74,12 @@ func iconButtonHeadlessReset()
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
     host.click({40, 40})
-    Swag.assert(btn.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 1)
+    Swag.require(btn.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 1)
 
     host.click({40, 40})
-    Swag.assert(btn.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 1)
+    Swag.require(btn.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 1)
 }
 
 // Programmatic checked-state changes support both stateful modes and remain silent.
@@ -93,18 +92,18 @@ func iconButtonHeadlessReset()
     let toggle = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
     toggle.sigCheckedChanged += &iconButtonHeadlessChecked
     toggle.setChecked(true)
-    Swag.assert(toggle.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 0)
+    Swag.require(toggle.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 0)
 
     toggle.setChecked(false)
-    Swag.assert(not toggle.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 0)
+    Swag.require(not toggle.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 0)
 
     let radio = IconButton.create(&host.root, {}, {80, 20, 40, 40}, flags: .Radio)
     radio.sigCheckedChanged += &iconButtonHeadlessChecked
     radio.setChecked(true)
-    Swag.assert(radio.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 0)
+    Swag.require(radio.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 0)
 }
 
 // Space and Enter activate a focused toggle with the same state, signal, and command contract as a click.
@@ -120,11 +119,11 @@ func iconButtonHeadlessReset()
     host.focus(btn)
 
     host.keyPress(Input.Key.Space)
-    Swag.assert(btn.isChecked)
+    Swag.require(btn.isChecked)
     host.keyPress(Input.Key.Return)
-    Swag.assert(not btn.isChecked)
-    Swag.assert(IconButtonHeadlessCheckCount == 2)
-    Swag.assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
+    Swag.require(not btn.isChecked)
+    Swag.require(IconButtonHeadlessCheckCount == 2)
+    Swag.require(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
 }
 
 // Number of pixels painted in one exact color.
@@ -159,14 +158,14 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.setChecked(true)
 
     let rule = host.theme.colors.btnIcon_CheckedRule
-    Swag.assert(rule.a == 255)
+    Swag.require(rule.a == 255)
 
     for indicator in [IconButtonCheckIndicator.None, .Ink]
     {
         btn.setCheckIndicator(indicator)
         host.finishAnimations()
         var image = host.render()
-        Swag.assert(iconButtonColorCount(&image, rule) == 0)
+        Swag.require(iconButtonColorCount(&image, rule) == 0)
     }
 
     for indicator in [IconButtonCheckIndicator.Bottom, .Top, .Left, .Right]
@@ -174,7 +173,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
         btn.setCheckIndicator(indicator)
         host.finishAnimations()
         var image = host.render()
-        Swag.assert(iconButtonColorCount(&image, rule) > 0)
+        Swag.require(iconButtonColorCount(&image, rule) > 0)
     }
 
     // A full mark and a frame are the selection ground and an Arc ring around the whole cell.
@@ -186,8 +185,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
         btn.setCheckIndicator(indicator)
         host.finishAnimations()
         var marked = host.render()
-        Swag.assert(not Slice.equals(marked.pixels.toSlice(), unmarked.pixels.toSlice()))
-        Swag.assert(iconButtonColorCount(&marked, rule) == 0)
+        Swag.require(not Slice.equals(marked.pixels.toSlice(), unmarked.pixels.toSlice()))
+        Swag.require(iconButtonColorCount(&marked, rule) == 0)
     }
 }
 
@@ -218,8 +217,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
             btn.setForm(form)
             host.finishAnimations()
             var image = host.render()
-            Swag.assert(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
-            Swag.assert(image.pixelColor(20, 20) == host.theme.colors.dlg_Bk)
+            Swag.require(btn.focusRingRadius == host.theme.rects.btnIcon_SquareBk.radius)
+            Swag.require(image.pixelColor(20, 20) == host.theme.colors.dlg_Bk)
         }
     }
 }
@@ -247,8 +246,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
             host.finishAnimations()
             var image = host.render()
             let glyph = host.theme.colors.btnIcon_CheckedIcon
-            Swag.assert(glyph == host.theme.colors.arc)
-            Swag.assert(iconButtonColorCount(&image, glyph) > 0)
+            Swag.require(glyph == host.theme.colors.arc)
+            Swag.require(iconButtonColorCount(&image, glyph) > 0)
         }
     }
 }
@@ -269,12 +268,12 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.setCheckIndicator(.None)
     host.finishAnimations()
     var pressed = host.render()
-    Swag.assert(iconButtonColorCount(&pressed, colors.btnIcon_CheckedPressedBk) > 0)
+    Swag.require(iconButtonColorCount(&pressed, colors.btnIcon_CheckedPressedBk) > 0)
 
     btn.setCheckIndicator(.Ink)
     host.finishAnimations()
     var ink = host.render()
-    Swag.assert(iconButtonColorCount(&ink, colors.btnIcon_CheckedPressedBk) == 0)
+    Swag.require(iconButtonColorCount(&ink, colors.btnIcon_CheckedPressedBk) == 0)
 }
 
 // Hiding a button resets both its pointer state and its animated overlay state.
@@ -289,9 +288,9 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     btn.hide()
 
-    Swag.assert(not btn.isHot)
-    Swag.assert(not btn.isPressed)
-    Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
+    Swag.require(not btn.isHot)
+    Swag.require(not btn.isPressed)
+    Swag.require(btn.aniBk.themeCrc == Swag.U32.Max)
 }
 
 // Disabling a button keeps it in the layout, but still drops transient input/paint state.
@@ -310,13 +309,13 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     btn.disable()
 
-    Swag.assert(not btn.isHot)
-    Swag.assert(not btn.isIn)
-    Swag.assert(not btn.isPressed)
-    Swag.assert(not btn.isPressing)
-    Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
-    Swag.assert(host.app.mouseEnterWnd == null)
-    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.require(not btn.isHot)
+    Swag.require(not btn.isIn)
+    Swag.require(not btn.isPressed)
+    Swag.require(not btn.isPressing)
+    Swag.require(btn.aniBk.themeCrc == Swag.U32.Max)
+    Swag.require(host.app.mouseEnterWnd == null)
+    Swag.require(host.app.mouseCaptureWnd == null)
 }
 
 // An icon button answers what its content needs, so a longer wording widens the button
@@ -334,17 +333,17 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     let short = btn.itf.measureContent({320, 200})
     btn.setText("Enregistrer sous")
     let long = btn.itf.measureContent({320, 200})
-    Swag.assert(long.x > short.x)
-    Swag.assert(long.y == short.y)
+    Swag.require(long.x > short.x)
+    Swag.require(long.y == short.y)
 
     // Stacked, the same wording grows the other axis instead.
     btn.setTextPosition(.Bottom)
     let stacked = btn.itf.measureContent({320, 200})
-    Swag.assert(stacked.y > short.y)
+    Swag.require(stacked.y > short.y)
 
     // A button hiding its label answers for the icon alone, whatever the wording is.
     btn.updateFlags(.IconOnly)
     let hidden = btn.itf.measureContent({320, 200})
     btn.setText("A much longer caption nobody sees")
-    Swag.assert(btn.itf.measureContent({320, 200}).x == hidden.x)
+    Swag.require(btn.itf.measureContent({320, 200}).x == hidden.x)
 }

@@ -16,7 +16,7 @@ func assertBytes(buffer: const [..] u8, prefix, value, suffix: u8, first, count:
     for byte, index in buffer
     {
         let expected = index < first ? prefix : index < first + count ? value : suffix
-        Swag.assert(byte == expected)
+        Swag.require(byte == expected)
     }
 }
 
@@ -62,27 +62,27 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     var copied: [40] u8
     Swag.memset(&copied, 0xA5, #sizeof(copied))
     depMemoryCopy(&copied[3], &source[2], 33)
-    Swag.assert(copied[2] == 0xA5 and copied[36] == 0xA5)
-    Swag.assert(depMemoryCompare(&copied[3], &source[2], 33) == 0)
+    Swag.require(copied[2] == 0xA5 and copied[36] == 0xA5)
+    Swag.require(depMemoryCompare(&copied[3], &source[2], 33) == 0)
 
     var moved = source
     depMemoryMove(&moved[3], &moved[0], 33)
-    Swag.assert(moved[2] == 2 and moved[3] == 0 and moved[35] == 32 and moved[36] == 36)
-    Swag.assert(depMemoryCompare(&moved[3], &source[0], 33) == 0)
-    Swag.assert(depMemoryCompare(&moved[3], &source[1], 33) < 0)
+    Swag.require(moved[2] == 2 and moved[3] == 0 and moved[35] == 32 and moved[36] == 36)
+    Swag.require(depMemoryCompare(&moved[3], &source[0], 33) == 0)
+    Swag.require(depMemoryCompare(&moved[3], &source[1], 33) < 0)
 
     var fields: MemoryFields
     fields.before = 0x1122334455667788
     fields.after  = 0x8877665544332211
     prepareMemoryFields(&fields)
     for value in fields.refIndex do
-        Swag.assert(value == -1)
+        Swag.require(value == -1)
     for value in fields.contextRef do
-        Swag.assert(value == -1)
+        Swag.require(value == -1)
     for value in fields.intraModes do
-        Swag.assert(value == 2)
-    Swag.assert(fields.before == 0x1122334455667788)
-    Swag.assert(fields.after == 0x8877665544332211)
+        Swag.require(value == 2)
+    Swag.require(fields.before == 0x1122334455667788)
+    Swag.require(fields.after == 0x8877665544332211)
 
     var paddedRow: [32] u8
     Swag.memset(&paddedRow, 0xA5, #sizeof(paddedRow))
@@ -92,10 +92,10 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     paddedRow[11] = 0x64
     extendMemoryRow(&paddedRow[8], 4, 8)
     for value in paddedRow[0 until 8] do
-        Swag.assert(value == 0x31)
+        Swag.require(value == 0x31)
     for value in paddedRow[12 until 20] do
-        Swag.assert(value == 0x64)
-    Swag.assert(paddedRow[20] == 0xA5)
+        Swag.require(value == 0x64)
+    Swag.require(paddedRow[20] == 0xA5)
 
     var plane: [136] u8
     plane[32]  = 0x11
@@ -108,11 +108,11 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     plane[103] = 0x88
     extendMemoryPlane(&plane[0], 4, 2)
     for value in plane[0 until 32] do
-        Swag.assert(value == 0x11)
+        Swag.require(value == 0x11)
     for value in plane[36 until 68] do
-        Swag.assert(value == 0x44)
+        Swag.require(value == 0x44)
     for value in plane[68 until 100] do
-        Swag.assert(value == 0x55)
+        Swag.require(value == 0x55)
     for value in plane[104 until 136] do
-        Swag.assert(value == 0x88)
+        Swag.require(value == 0x88)
 }

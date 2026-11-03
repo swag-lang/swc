@@ -51,7 +51,7 @@ private func mdctAssertMatchesDefinition(n: u32)
 
     if worst > scale * 1e-4 do
         Swag.print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\n")
-    Swag.assert(worst <= scale * 1e-4)
+    Swag.require(worst <= scale * 1e-4)
 }
 
 #test

@@ -19,11 +19,11 @@ using Core, Gui, Pixel, Viewers
     completeExplorer(&host, explorer)
     explorer.refreshPreviewSettings()
     let refreshed = expect ThumbnailCache.key(source, settings: explorer.previewSettings)
-    Swag.assert(refreshed != original)
+    Swag.require(refreshed != original)
     explorer.forceRefresh()
     completeExplorer(&host, explorer)
     explorer.refreshPreviewSettings()
-    Swag.assert((expect ThumbnailCache.key(source, settings: explorer.previewSettings)) != refreshed)
+    Swag.require((expect ThumbnailCache.key(source, settings: explorer.previewSettings)) != refreshed)
 }
 
 // Appearance changes leave previews intact; changing the selected viewer retires them.
@@ -48,19 +48,19 @@ using Core, Gui, Pixel, Viewers
     let generation = explorer.generation
     MarkdownText.g_ViewerSettings.themeIndex = 5
     explorer.refreshPreviewSettings()
-    Swag.assert(explorer.generation == generation and explorer.cached.count == 1)
-    Swag.assert(explorer.entries[0].attempted and explorer.entries[0].texture.isValid())
-    Swag.assert(explorer.previewSettings == originalSettings)
-    Swag.assert(originalKey == (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
-    Swag.assert(ThumbnailSettings.capture(window) == explorer.previewSettings)
+    Swag.require(explorer.generation == generation and explorer.cached.count == 1)
+    Swag.require(explorer.entries[0].attempted and explorer.entries[0].texture.isValid())
+    Swag.require(explorer.previewSettings == originalSettings)
+    Swag.require(originalKey == (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
+    Swag.require(ThumbnailSettings.capture(window) == explorer.previewSettings)
 
     window.preferences.add(ViewerPreference{"markdown", "text"})
     explorer.refreshPreviewSettings()
     let transferred = expect ThumbnailSettings.decode(explorer.previewSettings)
-    Swag.assert(not transferred.usesDefaultViewer("markdown"))
-    Swag.assert(explorer.generation == generation + 1 and explorer.cached.isEmpty())
-    Swag.assert(not explorer.entries[0].attempted and not explorer.entries[0].texture.isValid())
-    Swag.assert(originalKey != (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
+    Swag.require(not transferred.usesDefaultViewer("markdown"))
+    Swag.require(explorer.generation == generation + 1 and explorer.cached.isEmpty())
+    Swag.require(not explorer.entries[0].attempted and not explorer.entries[0].texture.isValid())
+    Swag.require(originalKey != (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
 }
 
 // Both user corrections survive the same application-state save and restore as the real window.
@@ -78,7 +78,7 @@ using Core, Gui, Pixel, Viewers
     expect host.app.saveState()
     window.musicChoices.clear()
     expect host.app.loadState()
-    Swag.assert(musicChoiceId(window.musicChoices.toSlice(), &album) == id)
+    Swag.require(musicChoiceId(window.musicChoices.toSlice(), &album) == id)
 }
 
 #test
@@ -91,14 +91,14 @@ using Core, Gui, Pixel, Viewers
     let musicId = "48140466-cff6-3222-bd55-63c27e43190d"
     setMusicChoice(&window.musicChoices, &second, musicId)
     let musicSettings = expect ThumbnailSettings.decode(ThumbnailSettings.capture(window, &second))
-    Swag.assert(musicSettings.musicId == musicId)
-    Swag.assert((expect ThumbnailSettings.decode(ThumbnailSettings.capture(window, &first))).musicId.isEmpty())
+    Swag.require(musicSettings.musicId == musicId)
+    Swag.require((expect ThumbnailSettings.decode(ThumbnailSettings.capture(window, &first))).musicId.isEmpty())
 
     var file: File.FileInfo
     file.size = 10
     var selected = ThumbnailSettings{choiceSize: file.size, choiceCreationStamp: Hash.hash64(file.creationTime),
                                      choiceModifiedStamp: Hash.hash64(file.lastWriteTime)}
-    Swag.assert(selected.choiceMatches(&file))
+    Swag.require(selected.choiceMatches(&file))
     file.size += 1
-    Swag.assert(not selected.choiceMatches(&file))
+    Swag.require(not selected.choiceMatches(&file))
 }

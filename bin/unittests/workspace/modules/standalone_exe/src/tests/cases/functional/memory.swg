@@ -5,9 +5,9 @@ using Core
 
 #test
 {
-    Swag.assert(Memory.align(17'u64, 16) == 32)
-    Swag.assert(Memory.align(32'u64, 16) == 32)
-    Swag.assert(Memory.align(17'u64, 0) == 24)
+    Swag.require(Memory.align(17'u64, 16) == 32)
+    Swag.require(Memory.align(32'u64, 16) == 32)
+    Swag.require(Memory.align(17'u64, 0) == 24)
 }
 
 struct RequestRecorder
@@ -51,33 +51,33 @@ impl Swag.IAllocator for RequestRecorder
     defer Swag.setContext(previous)
 
     let fromContext = Memory.alloc(17, alignment: 16, hint: "context allocation")
-    Swag.assert(fromContext == cast([*] void, &contextRecorder.storage))
-    Swag.assert(contextRecorder.allocations == 1)
-    Swag.assert(contextRecorder.last.size == 17)
-    Swag.assert(contextRecorder.last.alignment == 16)
-    Swag.assert(contextRecorder.last.hint == "context allocation")
-    Swag.assert(contextRecorder.last.address == null)
-    Swag.assert(contextRecorder.last.oldSize == 0)
-    Swag.assert(contextRecorder.last.callerLoc.fileName == #curlocation.fileName)
+    Swag.require(fromContext == cast([*] void, &contextRecorder.storage))
+    Swag.require(contextRecorder.allocations == 1)
+    Swag.require(contextRecorder.last.size == 17)
+    Swag.require(contextRecorder.last.alignment == 16)
+    Swag.require(contextRecorder.last.hint == "context allocation")
+    Swag.require(contextRecorder.last.address == null)
+    Swag.require(contextRecorder.last.oldSize == 0)
+    Swag.require(contextRecorder.last.callerLoc.fileName == #curlocation.fileName)
 
     let explicit: Swag.IAllocator = &explicitRecorder
     let fromExplicit = Memory.alloc(33, explicit, 32, "explicit allocation")
-    Swag.assert(fromExplicit == cast([*] void, &explicitRecorder.storage))
-    Swag.assert(contextRecorder.allocations == 1)
-    Swag.assert(explicitRecorder.allocations == 1)
-    Swag.assert(explicitRecorder.last.size == 33)
-    Swag.assert(explicitRecorder.last.alignment == 32)
-    Swag.assert(explicitRecorder.last.hint == "explicit allocation")
+    Swag.require(fromExplicit == cast([*] void, &explicitRecorder.storage))
+    Swag.require(contextRecorder.allocations == 1)
+    Swag.require(explicitRecorder.allocations == 1)
+    Swag.require(explicitRecorder.last.size == 33)
+    Swag.require(explicitRecorder.last.alignment == 32)
+    Swag.require(explicitRecorder.last.hint == "explicit allocation")
 
     Memory.free(fromContext, 17, hint: "context free")
     Memory.free(fromExplicit, 33, explicit, "explicit free")
     Memory.free(null, 0, explicit)
-    Swag.assert(contextRecorder.frees == 1)
-    Swag.assert(contextRecorder.last.address == fromContext)
-    Swag.assert(contextRecorder.last.size == 17)
-    Swag.assert(contextRecorder.last.hint == "context free")
-    Swag.assert(explicitRecorder.frees == 1)
-    Swag.assert(explicitRecorder.last.address == fromExplicit)
-    Swag.assert(explicitRecorder.last.size == 33)
-    Swag.assert(explicitRecorder.last.hint == "explicit free")
+    Swag.require(contextRecorder.frees == 1)
+    Swag.require(contextRecorder.last.address == fromContext)
+    Swag.require(contextRecorder.last.size == 17)
+    Swag.require(contextRecorder.last.hint == "context free")
+    Swag.require(explicitRecorder.frees == 1)
+    Swag.require(explicitRecorder.last.address == fromExplicit)
+    Swag.require(explicitRecorder.last.size == 33)
+    Swag.require(explicitRecorder.last.hint == "explicit free")
 }

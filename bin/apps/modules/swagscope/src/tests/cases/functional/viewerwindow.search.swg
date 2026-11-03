@@ -14,7 +14,7 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         steps += 1
     }
 
-    Swag.assert(window.searchTimer == null)
+    Swag.require(window.searchTimer == null)
 }
 
 // Markdown paints under the caption strip; the shared find bar stays below it and its arrows act.
@@ -34,23 +34,23 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.showSearch()
     let area = window.documentArea()
     let top  = Math.max(area.y, window.stripInset()) + window.themeMetrics().floating_Inset * 0.5
-    Swag.assert(window.searchBar.position.y >= top - 1)
-    Swag.assert(window.searchBar.radius() == window.themeMetrics().corner_Floating)
+    Swag.require(window.searchBar.position.y >= top - 1)
+    Swag.require(window.searchBar.radius() == window.themeMetrics().corner_Floating)
 
     window.searchBox.setText("Heading")
     completeFind(&host, window)
-    Swag.assert(window.searchMatches.count > 1 and
-                window.searchNext.isEnabled() and
-                window.searchPrevious.isEnabled())
+    Swag.require(window.searchMatches.count > 1 and
+                 window.searchNext.isEnabled() and
+                 window.searchPrevious.isEnabled())
     host.click(window.searchNext.surfaceRect().center())
-    Swag.assert(window.searchIndex == 1)
+    Swag.require(window.searchIndex == 1)
     host.click(window.searchPrevious.surfaceRect().center())
-    Swag.assert(window.searchIndex == 0)
+    Swag.require(window.searchIndex == 0)
 
     // A changed option must appear checked in the next search menu.
-    Swag.assert(window.searchOptionsButton.isVisible() and window.searchOptionsButton.isEnabled())
+    Swag.require(window.searchOptionsButton.isVisible() and window.searchOptionsButton.isEnabled())
     window.setSearchOption(ViewerCommands.MatchCase)
-    Swag.assert(window.searchMatchCaseOption)
+    Swag.require(window.searchMatchCaseOption)
     completeFind(&host, window)
 
     let menu = window.createSearchOptionsMenu()
@@ -60,9 +60,9 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         let item = unwrap maybeItem
         if item.id != ViewerCommands.MatchCase do
             continue
-        Swag.assert(item.checked)
+        Swag.require(item.checked)
         matchCaseChecked = true
     }
 
-    Swag.assert(matchCaseChecked)
+    Swag.require(matchCaseChecked)
 }

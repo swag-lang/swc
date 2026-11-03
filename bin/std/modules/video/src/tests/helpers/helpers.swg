@@ -84,9 +84,9 @@ func videoGrayRoundTrip(value: u8)->s32
 
 func videoAssertColor(actual: Color, r, g, b: u8, tolerance = 3)
 {
-    Swag.assert(Math.abs(cast(s32, actual.r) - r) <= tolerance)
-    Swag.assert(Math.abs(cast(s32, actual.g) - g) <= tolerance)
-    Swag.assert(Math.abs(cast(s32, actual.b) - b) <= tolerance)
+    Swag.require(Math.abs(cast(s32, actual.r) - r) <= tolerance)
+    Swag.require(Math.abs(cast(s32, actual.g) - g) <= tolerance)
+    Swag.require(Math.abs(cast(s32, actual.b) - b) <= tolerance)
 }
 
 func videoAssertGray(actual: Color, value: s32, tolerance = 3)
@@ -126,7 +126,7 @@ func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
 // Asserts that `frame` is frame `index` of a fixture clip.
 func videoAssertFixtureFrame(frame: Image, index: u64, tolerance = 3)
 {
-    Swag.assert(frame.isValid())
+    Swag.require(frame.isValid())
     for sample in videoFixtureSamples(frame.width, frame.height, index) do
         videoAssertColor(frame.pixelColor(sample.x, sample.y), sample.r, sample.g, sample.b, tolerance)
 }
@@ -158,7 +158,7 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
     let chromaSize   = chromaWidth * chromaHeight
     let frameSize    = lumaSize + chromaSize * 2
     let base         = index * frameSize
-    Swag.assert(base + frameSize <= bytes.count)
+    Swag.require(base + frameSize <= bytes.count)
 
     var result: #returntype = Image.create(width, height, .RGB8)
     for y in height
@@ -185,14 +185,14 @@ func videoReferenceFrame(bytes: const [..] u8, index: u64, width, height: s32, c
 // Compares a decoded frame against the reference, reporting the first difference.
 func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u64, width, height: s32, chromaShift = 1's32)
 {
-    Swag.assert(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
+    Swag.require(frame.width == width and frame.height == height and frame.pixelFormat == .RGB8)
     let expected   = videoReferenceFrame(reference, index, width, height, chromaShift)
     var mismatches = 0'u64
     for position in frame.pixels.count where frame.pixels.storage()[position] != expected.pixels.storage()[position] do
         mismatches += 1
     if mismatches > 0 do
         Swag.print("frame ", index, ": ", mismatches, " of ", frame.pixels.count, " bytes differ\n")
-    Swag.assert(mismatches == 0)
+    Swag.require(mismatches == 0)
 }
 
 // Decodes a whole stream in order and demands byte-exact frames.
@@ -204,7 +204,7 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
     Swag.setWorkerCount(workers)
 
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
-    Swag.assert(reader.width() == width and reader.height() == height)
+    Swag.require(reader.width() == width and reader.height() == height)
 
     let reference = expect File.readAllBytes(videoFixturePath(Format.toString("%.yuv", name).toString()).toString())
     var frame: Image
@@ -216,7 +216,7 @@ func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u6
 
     // A progressive container only knows its length once the stream has been walked, so the count
     // is demanded here rather than at open.
-    Swag.assert(reader.frameCount() == frameCount)
+    Swag.require(reader.frameCount() == frameCount)
 }
 
 // Returns the module's test root for test cases stored under cases/<type>.
@@ -231,6 +231,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside cases or helpers")
     return ""
 }

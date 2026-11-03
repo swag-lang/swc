@@ -9,19 +9,19 @@ using Swag
     var missingCodeOutcome: Swag.Error
     catch failWinError(0) as missingCodeOutcome
     let missingCode = missingCodeOutcome.value()
-    Swag.assert((missingCode is SystemError))
+    Swag.require((missingCode is SystemError))
     let missing = assume cast (*SystemError, missingCode)
-    Swag.assert(missing.errorID == 0)
-    Swag.assert(missing.message == "the Windows operation failed without an error code")
+    Swag.require(missing.errorID == 0)
+    Swag.require(missing.message == "the Windows operation failed without an error code")
 
     const InvalidHandleError = 6'u32
     var invalidHandleOutcome: Swag.Error
     catch failWinError(InvalidHandleError) as invalidHandleOutcome
     let invalidHandle = invalidHandleOutcome.value()
-    Swag.assert((invalidHandle is SystemError))
+    Swag.require((invalidHandle is SystemError))
     let invalid = assume cast (*SystemError, invalidHandle)
-    Swag.assert(invalid.errorID == InvalidHandleError)
-    Swag.assert(invalid.message != null and invalid.message.count != 0)
+    Swag.require(invalid.errorID == InvalidHandleError)
+    Swag.require(invalid.message != null and invalid.message.count != 0)
 }
 
 // Native formatted messages use tracked storage, including spills, and captures retain it
@@ -78,9 +78,9 @@ using Swag
     let afterOwner = allocator.stats().countAlloc
     Swag.setContext(previous)
 
-    Swag.assert(messagesValid and retainedValid)
-    Swag.assert(afterHandled == baseline)
-    Swag.assert(afterRepeated == baseline)
-    Swag.assert(retainedBlocks > baseline)
-    Swag.assert(afterOwner == baseline)
+    Swag.require(messagesValid and retainedValid)
+    Swag.require(afterHandled == baseline)
+    Swag.require(afterRepeated == baseline)
+    Swag.require(retainedBlocks > baseline)
+    Swag.require(afterOwner == baseline)
 }

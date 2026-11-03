@@ -14,7 +14,7 @@ using Swag, Core
     let encoded = expect source.encode("memory.exr")
     let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 3, 2, .RGBF16)
-    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test
@@ -40,7 +40,7 @@ using Swag, Core
         let encoded = expect source.encode("gray.exr")
         let decoded = expect Image.decode("gray.exr", nnBytes(encoded.toSlice()))
         assertImage(decoded, 3, 2, format)
-        Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+        Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
     }
 }
 
@@ -55,7 +55,7 @@ using Swag, Core
     let encoded = expect source.encode("float.exr")
     let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 2, 2, .RGBAF32)
-    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test
@@ -73,16 +73,16 @@ using Swag, Core
     let encoded = expect source.encode("integer.exr")
     let decoded = expect Image.decode("integer.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 2, 1, .RGBAF16)
-    Swag.assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
-    Swag.assert(decoded.pixelColor(1, 0).argb == source.pixelColor(1, 0).argb)
+    Swag.require(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
+    Swag.require(decoded.pixelColor(1, 0).argb == source.pixelColor(1, 0).argb)
 
     var options: DecodeOptions
     options.decodePixels = false
     let header = expect Image.decode("integer.exr", nnBytes(encoded.toSlice()), options)
-    Swag.assert(header.width == 2 and
-                header.height == 1 and
-                header.pixelFormat == .RGBAF16 and
-                not header.isValid())
+    Swag.require(header.width == 2 and
+                 header.height == 1 and
+                 header.pixelFormat == .RGBAF16 and
+                 not header.isValid())
 }
 
 // ZIP byte prediction and even/odd shuffling are exactly reversible before Deflate is involved.
@@ -113,7 +113,7 @@ using Swag, Core
     }
 
     Exr.undoZipPredictor(packed)
-    Swag.assert(Memory.compare(original.buffer, packed.buffer, original.count) == 0)
+    Swag.require(Memory.compare(original.buffer, packed.buffer, original.count) == 0)
 }
 
 #test
@@ -122,5 +122,5 @@ using Swag, Core
     var errorOutcome: Swag.Error
     discard catch Image.decode("bad.exr", Invalid) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null)
+    Swag.require(error != null)
 }

@@ -10,7 +10,7 @@ using Win32
     let pages = cast([*] u8, unwrap VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE))
     defer discard VirtualFree(pages, 0, MEM_RELEASE)
     let committed = VirtualAlloc(pages, 4096, MEM_COMMIT, PAGE_READWRITE)
-    Swag.assert(committed != null)
+    Swag.require(committed != null)
     for width in 16's32 until 33
     {
         let chromaWidth = cast(u64, ((width + 1) / 2))
@@ -28,7 +28,7 @@ using Win32
             for x in width
             {
                 let sample = expectedChromaSample(chroma, chromaWidth, cast(s32, chromaWidth), 1, width, 2, x, y)
-                Swag.assert(image.pixelColor(x, y) == expectedPlanarColor(luma[y * width + x], sample, sample))
+                Swag.require(image.pixelColor(x, y) == expectedPlanarColor(luma[y * width + x], sample, sample))
             }
         }
     }

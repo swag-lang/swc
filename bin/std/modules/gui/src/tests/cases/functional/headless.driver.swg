@@ -12,20 +12,20 @@ using Swag, Core
     host.clickModalButtonWhenShown("missing", maxFrames: 1)
     host.driveAutoStages(&host.app)
     host.driveAutoStages(&host.app)
-    Swag.assert(not host.autoArmed and not host.autoHandled)
-    Swag.assert(host.autoFailure == "modal did not appear while waiting for button 'missing'")
+    Swag.require(not host.autoArmed and not host.autoHandled)
+    Swag.require(host.autoFailure == "modal did not appear while waiting for button 'missing'")
 
     discard PushButton.create(&host.root, "Close", {10, 10, 90, 28}, id: "close")
     host.clickModalButtonWhenShown("missing", maxFrames: 1)
-    Swag.assert(host.autoFailure.isEmpty())
+    Swag.require(host.autoFailure.isEmpty())
     host.app.modalSurfaces.add(&host.surface)
     host.driveAutoStages(&host.app)
     host.app.modalSurfaces.removeBack()
 
     // Remember an observed modal even if it disappears before the timeout is reached.
     host.driveAutoStages(&host.app)
-    Swag.assert(not host.autoArmed and not host.autoHandled)
-    Swag.assert(host.autoFailure == "modal appeared without button 'missing'; observed button identifiers: 'close'")
+    Swag.require(not host.autoArmed and not host.autoHandled)
+    Swag.require(host.autoFailure == "modal appeared without button 'missing'; observed button identifiers: 'close'")
 }
 
 // A visible button whose validator refuses the action remains pending until the driver reports
@@ -44,9 +44,9 @@ using Swag, Core
 
     host.clickModalButtonWhenShown(Dialog.BtnOk, maxFrames: 1)
     let modalResult = dlg.doModal()
-    Swag.assert(modalResult == Dialog.BtnCancel)
-    Swag.assert(not host.autoArmed and not host.autoHandled)
-    Swag.assert(host.autoFailure == "modal preparation did not complete for button 'Dialog.BtnOk'")
+    Swag.require(modalResult == Dialog.BtnCancel)
+    Swag.require(not host.autoArmed and not host.autoHandled)
+    Swag.require(host.autoFailure == "modal preparation did not complete for button 'Dialog.BtnOk'")
 }
 
 // Advancing a stage before its click lets a validator open a nested confirmation synchronously;
@@ -68,6 +68,6 @@ using Swag, Core
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     host.thenClickModalButton(Dialog.BtnYes)
     let modalResult = dlg.doModal()
-    Swag.assert(modalResult == Dialog.BtnOk)
-    Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
+    Swag.require(modalResult == Dialog.BtnOk)
+    Swag.require(host.autoHandled and host.autoFailure.isEmpty())
 }

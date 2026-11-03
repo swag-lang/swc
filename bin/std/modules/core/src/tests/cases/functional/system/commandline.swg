@@ -84,12 +84,12 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let args: [4] string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
     let split = CommandLine.splitArguments(args, {})
 
-    Swag.assert(split.count == 5)
-    Swag.assert(split[0] == "-name")
-    Swag.assert(split[1] == "Bob")
-    Swag.assert(split[2] == "-count")
-    Swag.assert(split[3] == "42")
-    Swag.assert(split[4] == "payload")
+    Swag.require(split.count == 5)
+    Swag.require(split[0] == "-name")
+    Swag.require(split[1] == "Bob")
+    Swag.require(split[2] == "-count")
+    Swag.require(split[3] == "42")
+    Swag.require(split[4] == "payload")
 }
 
 #test
@@ -97,13 +97,13 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let args: [4] string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
     let split = CommandLine.splitArguments(args, {})
 
-    Swag.assert(split.count == 6)
-    Swag.assert(split[0] == "-threshold")
-    Swag.assert(split[1] == "-.5")
-    Swag.assert(split[2] == "-values")
-    Swag.assert(split[3] == "-1")
-    Swag.assert(split[4] == "2")
-    Swag.assert(split[5] == "3")
+    Swag.require(split.count == 6)
+    Swag.require(split[0] == "-threshold")
+    Swag.require(split[1] == "-.5")
+    Swag.require(split[2] == "-values")
+    Swag.require(split[3] == "-1")
+    Swag.require(split[4] == "2")
+    Swag.require(split[5] == "3")
 }
 
 #test
@@ -113,15 +113,15 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 
     let result = expect CommandLine.parse(&options, args)
 
-    Swag.assert(options.delta == -7)
-    Swag.assert(options.count == -12)
-    Swag.assert(options.enabled)
-    Swag.assert(options.mode == .Gamma)
+    Swag.require(options.delta == -7)
+    Swag.require(options.count == -12)
+    Swag.require(options.enabled)
+    Swag.require(options.mode == .Gamma)
 
-    Swag.assert(result.isSet.delta)
-    Swag.assert(result.isSet.count)
-    Swag.assert(result.isSet.enabled)
-    Swag.assert(result.isSet.mode)
+    Swag.require(result.isSet.delta)
+    Swag.require(result.isSet.count)
+    Swag.require(result.isSet.enabled)
+    Swag.require(result.isSet.mode)
 }
 
 #test
@@ -129,26 +129,26 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let fieldByName  = CommandLine.getField(#typeof(NameOptions), "name")
     let fieldByAlias = CommandLine.getField(#typeof(NameOptions), "n")
 
-    Swag.assert(fieldByName.field != null)
-    Swag.assert(fieldByAlias.field != null)
-    Swag.assert(fieldByName.index == 0)
-    Swag.assert(fieldByAlias.index == 0)
+    Swag.require(fieldByName.field != null)
+    Swag.require(fieldByAlias.field != null)
+    Swag.require(fieldByName.index == 0)
+    Swag.require(fieldByAlias.index == 0)
 }
 
 #test
 {
     var options: NameOptions
     let result = expect CommandLine.parse(&options, ["-n:Alice"])
-    Swag.assert(options.name == "Alice")
-    Swag.assert(result.isSet.name)
+    Swag.require(options.name == "Alice")
+    Swag.require(result.isSet.name)
 }
 
 #test
 {
     var options: NameOptions
     let result = expect CommandLine.parse(&options, ["-n:-Alice"])
-    Swag.assert(options.name == "-Alice")
-    Swag.assert(result.isSet.name)
+    Swag.require(options.name == "-Alice")
+    Swag.require(result.isSet.name)
 }
 
 #test
@@ -157,75 +157,75 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     let result = expect CommandLine.parse(&options, ["-n=", "Alice"], {captureUnknown: true})
     let split  = CommandLine.splitArguments(["-n="], {})
 
-    Swag.assert(options.name.isEmpty())
-    Swag.assert(result.isSet.name)
-    Swag.assert(result.unknown.count == 1 and result.unknown[0] == "Alice")
-    Swag.assert(split.count == 1 and split[0] == "-n")
-    Swag.assert(parseFailed(["-count=", "42"]))
+    Swag.require(options.name.isEmpty())
+    Swag.require(result.isSet.name)
+    Swag.require(result.unknown.count == 1 and result.unknown[0] == "Alice")
+    Swag.require(split.count == 1 and split[0] == "-n")
+    Swag.require(parseFailed(["-count=", "42"]))
 }
 
 #test
 {
     var options: NumericOptions
     let result = expect CommandLine.parse(&options, ["-enabled", "false"])
-    Swag.assert(not options.enabled)
-    Swag.assert(result.isSet.enabled)
-    Swag.assert(not result.isSet.threshold)
+    Swag.require(not options.enabled)
+    Swag.require(result.isSet.enabled)
+    Swag.require(not result.isSet.threshold)
 }
 
 #test
 {
     var value = 0'f32
     let rest  = expect StrConv.parseValue(&value, f32, "-0.5")
-    Swag.assert(rest.count == 0)
-    Swag.assert(value == -0.5)
+    Swag.require(rest.count == 0)
+    Swag.require(value == -0.5)
 }
 
 #test
 {
     var options: NumericOptions
     let result = expect CommandLine.parse(&options, ["-threshold", "-0.5"])
-    Swag.assert(options.threshold == -0.5)
-    Swag.assert(result.isSet.threshold)
-    Swag.assert(not result.isSet.enabled)
+    Swag.require(options.threshold == -0.5)
+    Swag.require(result.isSet.threshold)
+    Swag.require(not result.isSet.enabled)
 }
 
 #test
 {
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-values:-1", "2", "3"])
-    Swag.assert(Slice.equals(options.values.toSlice(), [-1, 2, 3]))
-    Swag.assert(not result.isSet.labels)
-    Swag.assert(result.isSet.values)
+    Swag.require(Slice.equals(options.values.toSlice(), [-1, 2, 3]))
+    Swag.require(not result.isSet.labels)
+    Swag.require(result.isSet.values)
 }
 
 #test
 {
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"])
-    Swag.assert(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
-    Swag.assert(not result.isSet.values)
-    Swag.assert(result.isSet.labels)
+    Swag.require(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
+    Swag.require(not result.isSet.values)
+    Swag.require(result.isSet.labels)
 }
 
 #test
 {
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-labels:-Bob", "Alice"])
-    Swag.assert(assertStringValues(options.labels, ["-Bob", "Alice"]))
-    Swag.assert(not result.isSet.values)
-    Swag.assert(result.isSet.labels)
+    Swag.require(assertStringValues(options.labels, ["-Bob", "Alice"]))
+    Swag.require(not result.isSet.values)
+    Swag.require(result.isSet.labels)
 }
 
 #test
 {
-    Swag.assert(parseFailed(["-missing", "42"]))
-    Swag.assert(parseFailed(["-count"]))
-    Swag.assert(parseFailed(["-count", "nope"]))
-    Swag.assert(parseFailed(["stray-positional"]))
-    Swag.assert(parseAdvancedFailed(["-labels"]))
-    Swag.assert(parseAdvancedFailed(["-values"]))
-    Swag.assert(parseAdvancedFailed(["-threshold", "-"]))
+    Swag.require(parseFailed(["-missing", "42"]))
+    Swag.require(parseFailed(["-count"]))
+    Swag.require(parseFailed(["-count", "nope"]))
+    Swag.require(parseFailed(["stray-positional"]))
+    Swag.require(parseAdvancedFailed(["-labels"]))
+    Swag.require(parseAdvancedFailed(["-values"]))
+    Swag.require(parseAdvancedFailed(["-threshold", "-"]))
 }
 
 // A double dash, a different case, and the '-'/'_' separators all reach the same field.
@@ -234,10 +234,10 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: BasicOptions
     let result = expect CommandLine.parse(&options, ["--delta", "-7", "-Count", "-12", "--e-na_bled"])
 
-    Swag.assert(options.delta == -7)
-    Swag.assert(options.count == -12)
-    Swag.assert(options.enabled)
-    Swag.assert(result.isSet.delta and result.isSet.count and result.isSet.enabled)
+    Swag.require(options.delta == -7)
+    Swag.require(options.count == -12)
+    Swag.require(options.enabled)
+    Swag.require(result.isSet.delta and result.isSet.count and result.isSet.enabled)
 }
 
 // The leading non-option tokens become positionals when asked for, and parsing goes on.
@@ -246,11 +246,11 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: BasicOptions
     let result = expect CommandLine.parse(&options, ["run", "snake", "-count", "3"], {capturePositionals: true})
 
-    Swag.assert(result.positionals.count == 2)
-    Swag.assert(result.positionals[0] == "run")
-    Swag.assert(result.positionals[1] == "snake")
-    Swag.assert(options.count == 3)
-    Swag.assert(result.unknown.isEmpty())
+    Swag.require(result.positionals.count == 2)
+    Swag.require(result.positionals[0] == "run")
+    Swag.require(result.positionals[1] == "snake")
+    Swag.require(options.count == 3)
+    Swag.require(result.unknown.isEmpty())
 }
 
 // What names no field is captured verbatim and in order, values included, so a caller can
@@ -260,12 +260,12 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
     var options: BasicOptions
     let result = expect CommandLine.parse(&options, ["--seed", "123", "-count", "3", "--rebuild", "--out:dir with space"], {captureUnknown: true})
 
-    Swag.assert(options.count == 3)
-    Swag.assert(result.unknown.count == 4)
-    Swag.assert(result.unknown[0] == "--seed")
-    Swag.assert(result.unknown[1] == "123")
-    Swag.assert(result.unknown[2] == "--rebuild")
-    Swag.assert(result.unknown[3] == "--out:dir with space")
+    Swag.require(options.count == 3)
+    Swag.require(result.unknown.count == 4)
+    Swag.require(result.unknown[0] == "--seed")
+    Swag.require(result.unknown[1] == "123")
+    Swag.require(result.unknown[2] == "--rebuild")
+    Swag.require(result.unknown[3] == "--out:dir with space")
 }
 
 // An array option appends at each occurrence instead of restarting.
@@ -273,6 +273,6 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 {
     var options: ArrayOptions
     let result = expect CommandLine.parse(&options, ["-labels", "Bob", "-labels", "Alice"])
-    Swag.assert(assertStringValues(options.labels, ["Bob", "Alice"]))
-    Swag.assert(result.isSet.labels)
+    Swag.require(assertStringValues(options.labels, ["Bob", "Alice"]))
+    Swag.require(result.isSet.labels)
 }

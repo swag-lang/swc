@@ -40,12 +40,12 @@ using Swag, Core
     Pixel.Testing.assertImageGolden(&image, "area")
 
     // The bar takes its own clicks: the tabs of the modes stand on it, the area first.
-    Swag.assert(wnd.modeTabs.count == AreaModes.count)
-    Swag.assert(wnd.barRect.contains(wnd.modeTabs[1].center()))
-    Swag.assert(wnd.modeAt(wnd.modeTabs[2].center()) == 2)
+    Swag.require(wnd.modeTabs.count == AreaModes.count)
+    Swag.require(wnd.barRect.contains(wnd.modeTabs[1].center()))
+    Swag.require(wnd.modeAt(wnd.modeTabs[2].center()) == 2)
 
     // After the modes, how the screen is read: the delay, then the cursor, on the same bar.
-    Swag.assert(wnd.hintLine.grounded)
-    Swag.assert(wnd.barRect.contains(wnd.delayRect.center()) and wnd.barRect.contains(wnd.cursorRect.center()))
-    Swag.assert(wnd.delayRect.x > wnd.modeTabs.back().right() and wnd.cursorRect.x > wnd.delayRect.right() - 1)
+    Swag.require(wnd.hintLine.grounded)
+    Swag.require(wnd.barRect.contains(wnd.delayRect.center()) and wnd.barRect.contains(wnd.cursorRect.center()))
+    Swag.require(wnd.delayRect.x > wnd.modeTabs.back().right() and wnd.cursorRect.x > wnd.delayRect.right() - 1)
 }

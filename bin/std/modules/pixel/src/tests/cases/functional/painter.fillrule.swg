@@ -80,13 +80,13 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
         path.lineTo(4, 28)
         path.close()
         painter.fillPath(&path, Color.fromArgb(Argb.Red))
-        Swag.assert(path.polygon.isSimple and not path.polygon.isConvex)
-        Swag.assert(path.triangles.vertices.count != 0)
+        Swag.require(path.polygon.isSimple and not path.polygon.isConvex)
+        Swag.require(path.triangles.vertices.count != 0)
         let cached = path.triangles.vertices.buffer
         let count  = path.triangles.vertices.count
         painter.fillPath(&path, Color.fromArgb(Argb.Red))
-        Swag.assert(path.triangles.vertices.buffer == cached)
-        Swag.assert(path.triangles.vertices.count == count)
+        Swag.require(path.triangles.vertices.buffer == cached)
+        Swag.require(path.triangles.vertices.count == count)
     }
 
     painter.end()
@@ -109,7 +109,7 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
         var triangles  = 0'u64
         for path in normalized.paths do
             triangles += path.triangles.vertices.count
-        Swag.assert(triangles != 0)
+        Swag.require(triangles != 0)
         let last   = normalized.paths[normalized.paths.count - 1]
         let cached = last.triangles.vertices.buffer
 
@@ -118,7 +118,7 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
         painter.clear(Color.fromArgb(Argb.Zero))
         painter.fillPath(&paths, Color.fromArgb(Argb.Red), .EvenOdd)
         painter.end()
-        Swag.assert(last.triangles.vertices.buffer == cached)
+        Swag.require(last.triangles.vertices.buffer == cached)
     }
 
     let image = renderCpu(40, 40, &painter)

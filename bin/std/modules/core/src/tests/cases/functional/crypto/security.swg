@@ -15,14 +15,14 @@ using Swag
         0x97, 0x47, 0x9D, 0xBC, 0x2D, 0x1A, 0x3C, 0xD8]
 
     let actual = Crypto.HmacSha256.compute(key, cast(const [..] u8, text))
-    Swag.assert(Slice.equals(actual, expected))
+    Swag.require(Slice.equals(actual, expected))
 
     var incremental = Crypto.HmacSha256.create(key)
     incremental.update(cast(const [..] u8, text[until 12]))
     incremental.update(cast(const [..] u8, text[12 to]))
     let split = incremental.finalize()
-    Swag.assert(Slice.equals(split, expected))
-    Swag.assert(not incremental.initialized)
+    Swag.require(Slice.equals(split, expected))
+    Swag.require(not incremental.initialized)
 }
 
 #test
@@ -41,11 +41,11 @@ using Swag
 
     var actual: [64] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, actual)
-    Swag.assert(Slice.equals(actual, expected))
+    Swag.require(Slice.equals(actual, expected))
 
     var partial: [40] u8
     expect Crypto.pbkdf2HmacSha256(password, salt, 2, partial)
-    Swag.assert(Slice.equals(partial, expected[until 40]))
+    Swag.require(Slice.equals(partial, expected[until 40]))
 
     var tails: [64] u8
     for length in 65
@@ -53,15 +53,15 @@ using Swag
         for index in tails.count do
             tails[index] = 0xA5
         expect Crypto.pbkdf2HmacSha256(password, salt, 2, tails[until length])
-        Swag.assert(Slice.equals(tails[until length], expected[until length]))
+        Swag.require(Slice.equals(tails[until length], expected[until length]))
         for i in length until tails.count do
-            Swag.assert(tails[i] == 0xA5)
+            Swag.require(tails[i] == 0xA5)
     }
 
     var errOutcome: Swag.Error
     discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is Errors.BadParameterError))
+    Swag.require((err is Errors.BadParameterError))
 }
 
 #test
@@ -69,21 +69,21 @@ using Swag
     let empty         = cast(const [..] u8, "")
     let one:   [1] u8 = [1]
     let other: [1] u8 = [2]
-    Swag.assert(Crypto.constantTimeEqual(empty, empty))
-    Swag.assert(Crypto.constantTimeEqual(one, one))
-    Swag.assert(not Crypto.constantTimeEqual(one, other))
-    Swag.assert(not Crypto.constantTimeEqual(empty, one))
+    Swag.require(Crypto.constantTimeEqual(empty, empty))
+    Swag.require(Crypto.constantTimeEqual(one, one))
+    Swag.require(not Crypto.constantTimeEqual(one, other))
+    Swag.require(not Crypto.constantTimeEqual(empty, one))
 
     var random: [64] u8
     expect Crypto.randomBytes(random)
     var anyNonZero: bool
     for byte in random do
         anyNonZero = anyNonZero or byte != 0
-    Swag.assert(anyNonZero)
+    Swag.require(anyNonZero)
 
     Crypto.secureClear(random)
     for byte in random do
-        Swag.assert(byte == 0)
+        Swag.require(byte == 0)
 }
 
 #test
@@ -102,11 +102,11 @@ using Swag
         {
             let a = left[offset until offset + length]
             let b = right[offset until offset + length]
-            Swag.assert(Crypto.constantTimeEqual(a, b))
+            Swag.require(Crypto.constantTimeEqual(a, b))
             if length
             {
                 right[offset + length - 1] ^= 0x80
-                Swag.assert(not Crypto.constantTimeEqual(a, b))
+                Swag.require(not Crypto.constantTimeEqual(a, b))
                 right[offset + length - 1] ^= 0x80
             }
         }

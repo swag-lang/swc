@@ -5,13 +5,13 @@
 #test
 {
     var library = expect NativeLibrary.load("kernel32.dll")
-    Swag.assert(library.isOpen())
-    Swag.assert(library.symbol("GetCurrentProcessId") != null)
-    Swag.assert(library.symbol("MissingSymbolThatDoesNotExist") == null)
+    Swag.require(library.isOpen())
+    Swag.require(library.symbol("GetCurrentProcessId") != null)
+    Swag.require(library.symbol("MissingSymbolThatDoesNotExist") == null)
 
     library.close()
-    Swag.assert(not library.isOpen())
-    Swag.assert(library.symbol("GetCurrentProcessId") == null)
+    Swag.require(not library.isOpen())
+    Swag.require(library.symbol("GetCurrentProcessId") == null)
 
     // Cleanup is idempotent so an early explicit close and the owner drop compose safely.
     library.close()

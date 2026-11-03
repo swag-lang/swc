@@ -15,19 +15,19 @@ using Swag, Core
     host.sendRune(Input.Key.A, '\u00E9')
     host.sendRune(Input.Key.A, '\U0001F642')
 
-    Swag.assert(password.edit.text() == "***")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "A\u00E9\U0001F642")))
-    Swag.assert(password.byteCount == 7)
+    Swag.require(password.edit.text() == "***")
+    Swag.require(Slice.equals(password.bytes(), cast(const [..] u8, "A\u00E9\U0001F642")))
+    Swag.require(password.byteCount == 7)
 
     host.keyPress(Input.Key.Left)
     host.keyPress(Input.Key.Back)
-    Swag.assert(password.edit.text() == "**")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "A\U0001F642")))
+    Swag.require(password.edit.text() == "**")
+    Swag.require(Slice.equals(password.bytes(), cast(const [..] u8, "A\U0001F642")))
 
     password.selectAll()
     host.sendRune(Input.Key.B, 'Z')
-    Swag.assert(password.edit.text() == "*")
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "Z")))
+    Swag.require(password.edit.text() == "*")
+    Swag.require(Slice.equals(password.bytes(), cast(const [..] u8, "Z")))
 }
 
 #test
@@ -46,14 +46,14 @@ using Swag, Core
 
     host.shortcut(Input.Key.V, Input.KeyModifiers.Control)
     host.shortcut(Input.Key.Insert, Input.KeyModifiers.Shift)
-    Swag.assert(Slice.equals(password.bytes(), cast(const [..] u8, "secret")))
-    Swag.assert(password.edit.text() == "******")
+    Swag.require(Slice.equals(password.bytes(), cast(const [..] u8, "secret")))
+    Swag.require(password.edit.text() == "******")
 
     password.clear()
-    Swag.assert(password.isEmpty())
-    Swag.assert(password.edit.text() == "")
+    Swag.require(password.isEmpty())
+    Swag.require(password.edit.text() == "")
     for byte in password.storage do
-        Swag.assert(byte == 0)
+        Swag.require(byte == 0)
 }
 
 // A password field refuses dropped text: it would show in clear and never reach the password.
@@ -65,7 +65,7 @@ using Swag, Core
     let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
     let rect     = password.edit.surfaceRect()
     let effect   = host.dropText(Math.Point{rect.center().x, rect.center().y}, "secret")
-    Swag.assert(effect == .None)
-    Swag.assert(password.edit.text() == "")
-    Swag.assert(password.byteCount == 0)
+    Swag.require(effect == .None)
+    Swag.require(password.edit.text() == "")
+    Swag.require(password.byteCount == 0)
 }

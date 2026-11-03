@@ -16,13 +16,13 @@ using Swag, Core, Pixel
     assertPassiveAndFits(tip, lbl)
 
     // Nothing was dropped, so no line budget was needed and the text is intact.
-    Swag.assert(lbl.maxLines == 0)
-    Swag.assert(lbl.text() == "Refresh")
+    Swag.require(lbl.maxLines == 0)
+    Swag.require(lbl.text() == "Refresh")
 
     // One line of text, plus the tip's own inset, and no room spent on anything else.
     let metrics = host.root.themeMetrics()
     let line    = lbl.font().regular!.height
-    Swag.assert(tip.position.height <= Math.ceil(line + metrics.toolTip_Padding.y + metrics.toolTip_Padding.w))
+    Swag.require(tip.position.height <= Math.ceil(line + metrics.toolTip_Padding.y + metrics.toolTip_Padding.w))
 }
 
 // A tip longer than the width cap wraps instead of growing, and still holds all of its text.
@@ -39,8 +39,8 @@ using Swag, Core, Pixel
 
     // Wrapped, not cut: several lines tall, and no budget was imposed.
     let line = lbl.font().regular!.height
-    Swag.assert(tip.position.height > line * 1.5)
-    Swag.assert(lbl.maxLines == 0)
+    Swag.require(tip.position.height > line * 1.5)
+    Swag.require(lbl.maxLines == 0)
 }
 
 // A tip taller than the height cap stops there and marks its last line, rather than scrolling.
@@ -58,8 +58,8 @@ using Swag, Core, Pixel
 
     // The height cap bit, so the label carries the line budget that produces the ellipsis.
     let metrics = host.root.themeMetrics()
-    Swag.assert(lbl.maxLines > 1)
-    Swag.assert(tip.position.height > metrics.toolTip_MaxHeight - lbl.font().regular!.height)
+    Swag.require(lbl.maxLines > 1)
+    Swag.require(tip.position.height > metrics.toolTip_MaxHeight - lbl.font().regular!.height)
 }
 
 // A window smaller than the theme's caps bounds the tip too, rather than shoving it back inside.
@@ -76,7 +76,6 @@ using Swag, Core, Pixel
 }
 
 var g_LinkOwner: *Wnd?
-
 var g_LinkText:  String
 
 // A tip carrying a link is reachable, keeps its markup colors, and says which owner it came from.
@@ -89,21 +88,21 @@ var g_LinkText:  String
     let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
 
     assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
-    Swag.assert(lbl.name.hasUrl)
+    Swag.require(lbl.name.hasUrl)
 
     // The palette survived. A tip that painted its text with one explicit color would collapse
     // the link, the three markup slots and the plain ink into the same value.
     let colors = lbl.themeColors()
-    Swag.assert(colors.label_Text == colors.toolTip_Text)
-    Swag.assert(colors.url_Text == colors.toolTip_Link)
-    Swag.assert(colors.richColor1 == colors.toolTip_Rich1)
-    Swag.assert(colors.url_Text != colors.label_Text)
+    Swag.require(colors.label_Text == colors.toolTip_Text)
+    Swag.require(colors.url_Text == colors.toolTip_Link)
+    Swag.require(colors.richColor1 == colors.toolTip_Rich1)
+    Swag.require(colors.url_Text != colors.label_Text)
 
     // The pointer may rest on it, which is what makes the link clickable; leaving ends it.
     host.app.toolTip.pointerMoved(btn, lbl)
-    Swag.assert(host.app.toolTip.current != null)
+    Swag.require(host.app.toolTip.current != null)
     host.app.toolTip.pointerMoved(lbl, &host.root)
-    Swag.assert(host.app.toolTip.current == null)
+    Swag.require(host.app.toolTip.current == null)
 
     host.app.toolTip.sigLinkActivated += func(owner, link)
     {
@@ -113,8 +112,8 @@ var g_LinkText:  String
 
     let again = showTip(btn, "Read <url>swag-lang.org</url>")
     again.sigLinkActivated.call(again, "swag-lang.org")
-    Swag.assert(g_LinkOwner == btn)
-    Swag.assert(g_LinkText == "swag-lang.org")
+    Swag.require(g_LinkOwner == btn)
+    Swag.require(g_LinkText == "swag-lang.org")
 }
 
 // A tip with nothing to click stays out of the way: the pointer reaching it ends it.
@@ -126,9 +125,9 @@ var g_LinkText:  String
     let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
-    Swag.assert(not lbl.name.hasUrl)
+    Swag.require(not lbl.name.hasUrl)
     host.app.toolTip.pointerMoved(btn, lbl)
-    Swag.assert(host.app.toolTip.current == null)
+    Swag.require(host.app.toolTip.current == null)
 }
 
 // A tip belongs to its application, so one left open cannot reach the next application.
@@ -142,11 +141,11 @@ var g_LinkText:  String
     first.setup(420, 200)
     let btn = PushButton.create(&first.root, "Refresh", {20, 20, 100, 30})
     discard showTip(btn, "Refresh")
-    Swag.assert(first.app.toolTip.current != null)
+    Swag.require(first.app.toolTip.current != null)
     first.shutdown()
 
     var second: Testing.HeadlessHost
     second.setup(420, 200)
-    Swag.assert(second.app.toolTip.current == null)
-    Swag.assert(second.app.toolTip.pending == null)
+    Swag.require(second.app.toolTip.current == null)
+    Swag.require(second.app.toolTip.pending == null)
 }

@@ -38,8 +38,8 @@ using Swag, Core, Pixel
         let first  = view.blocks[0].wnd.position
         let second = view.blocks[1].wnd.position
         var image  = host.render(view)
-        Swag.assert(not inline.images.parsing.isEmpty() and not html.images.parsing.isEmpty())
-        Swag.assert(not inline.images.entries[0].uploaded and not html.images.entries[0].uploaded)
+        Swag.require(not inline.images.parsing.isEmpty() and not html.images.parsing.isEmpty())
+        Swag.require(not inline.images.entries[0].uploaded and not html.images.entries[0].uploaded)
         Pixel.Testing.assertImageGolden(&image, Format.toString("markdownview.images.loading.%", name).toString())
 
         // Waiting belongs to the test harness; an actual frame only polls the tasks.
@@ -49,15 +49,15 @@ using Swag, Core, Pixel
                 parsing.task.wait()
             for parsing in html.images.parsing do
                 parsing.task.wait()
-            Swag.assert(host.surface.isDirty)
+            Swag.require(host.surface.isDirty)
             host.surface.paintWnd(view)
         }
 
-        Swag.assert(inline.images.parsing.isEmpty() and html.images.parsing.isEmpty())
-        Swag.assert(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
-        Swag.assert(html.images.entries.count == 2 and html.images.entries[1].uploaded)
-        Swag.assert(view.blocks[0].wnd.position == first and view.blocks[1].wnd.position == second)
-        Swag.assert(inline.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
-        Swag.assert(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
+        Swag.require(inline.images.parsing.isEmpty() and html.images.parsing.isEmpty())
+        Swag.require(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
+        Swag.require(html.images.entries.count == 2 and html.images.entries[1].uploaded)
+        Swag.require(view.blocks[0].wnd.position == first and view.blocks[1].wnd.position == second)
+        Swag.require(inline.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
+        Swag.require(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
     }
 }

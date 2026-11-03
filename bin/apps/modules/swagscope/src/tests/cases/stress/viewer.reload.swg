@@ -1,5 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Gui, Viewers
 
 #[Swag.TestTag("stress")]
@@ -32,15 +33,15 @@ using Core, Gui, Viewers
     for 64 where view.isLoading() do
         host.fireTimers()
     let position = assume cast(*ScrollWnd, view.children[0]).scrollPosition()
-    Swag.assert(position.y > 0)
+    Swag.require(position.y > 0)
 
     source += "The file now contains another paragraph.\n"
     writeReloadFile(fileName, source)
     pollFileWatch(&host, window)
-    Swag.assert(window.pendingFile.isEmpty())
+    Swag.require(window.pendingFile.isEmpty())
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(not window.pendingFile.isEmpty())
+    Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring
     {
@@ -48,22 +49,22 @@ using Core, Gui, Viewers
         host.fireTimer(window.fileWatchTimer)
     }
 
-    Swag.assert(not window.readingState.restoring)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == "markdown")
-    Swag.assert(window.searchBox.text() == "manuscript")
-    Swag.assert(assume cast(*MarkdownText.ZoomButton, window.currentInfo.children[0]).zoomPercent == 150)
-    Swag.assert(assume cast(*ScrollWnd, window.currentView!.children[0]).scrollPosition() == position)
+    Swag.require(not window.readingState.restoring)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "markdown")
+    Swag.require(window.searchBox.text() == "manuscript")
+    Swag.require(assume cast(*MarkdownText.ZoomButton, window.currentInfo.children[0]).zoomPercent == 150)
+    Swag.require(assume cast(*ScrollWnd, window.currentView!.children[0]).scrollPosition() == position)
     pollFileWatch(&host, window)
-    Swag.assert(window.pendingFile.isEmpty())
+    Swag.require(window.pendingFile.isEmpty())
 
     // A temporarily missing path leaves the current viewer readable; its return is observed.
     discard expect File.delete(fileName)
     pollFileWatch(&host, window)
-    Swag.assert(window.currentView != null and window.pendingFile.isEmpty())
+    Swag.require(window.currentView != null and window.pendingFile.isEmpty())
     writeReloadFile(fileName, "Short document.\n")
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
-    Swag.assert(assume cast(*ScrollWnd, window.currentView.children[0]).scrollPosition().y == 0)
+    Swag.require(assume cast(*ScrollWnd, window.currentView.children[0]).scrollPosition().y == 0)
 }

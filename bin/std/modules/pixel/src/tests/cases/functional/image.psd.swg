@@ -43,8 +43,8 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 
     let image = expect Image.decode("raw.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 2, 2, .RGB8)
-    Swag.assert(image.pixelColor(0, 0) == Color.fromRgb(1, 10, 100))
-    Swag.assert(image.pixelColor(1, 1) == Color.fromRgb(4, 40, 130))
+    Swag.require(image.pixelColor(0, 0) == Color.fromRgb(1, 10, 100))
+    Swag.require(image.pixelColor(1, 1) == Color.fromRgb(4, 40, 130))
 }
 
 #test
@@ -58,8 +58,8 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 
     let image = expect Image.decode("packbits.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 3, 1, .GrayAlpha8)
-    Swag.assert(image.pixelColor(0, 0) == Color.fromArgb(40, 10, 10, 10))
-    Swag.assert(image.pixelColor(2, 0) == Color.fromArgb(60, 30, 30, 30))
+    Swag.require(image.pixelColor(0, 0) == Color.fromArgb(40, 10, 10, 10))
+    Swag.require(image.pixelColor(2, 0) == Color.fromArgb(60, 30, 30, 30))
 }
 
 #test
@@ -74,13 +74,13 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     let image = expect Image.decode("deep.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 1, 1, .RGBA16)
     let raw = cast(const [*] u16, image.pixels.storage())
-    Swag.assert(raw[0] == 0x1234 and raw[1] == 0x5678 and raw[2] == 0x9ABC and raw[3] == 0xDEF0)
+    Swag.require(raw[0] == 0x1234 and raw[1] == 0x5678 and raw[2] == 0x9ABC and raw[3] == 0xDEF0)
 
     var options: DecodeOptions
     options.decodePixels = false
     let metadataOnly = expect Image.decode("deep.psd", nnBytes(bytes.toSlice()), options)
-    Swag.assert(metadataOnly.width == 1 and metadataOnly.height == 1 and metadataOnly.pixelFormat == .RGBA16)
-    Swag.assert(not metadataOnly.isValid())
+    Swag.require(metadataOnly.width == 1 and metadataOnly.height == 1 and metadataOnly.pixelFormat == .RGBA16)
+    Swag.require(not metadataOnly.isValid())
 }
 
 #test
@@ -92,7 +92,7 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     let image = expect Image.decode("gray16.psd", nnBytes(bytes.toSlice()))
     assertImage(image, 1, 1, .GrayAlpha16)
     let raw = cast(const [*] u16, image.pixels.storage())
-    Swag.assert(raw[0] == 0x2468 and raw[1] == 0xBEEF)
+    Swag.require(raw[0] == 0x2468 and raw[1] == 0xBEEF)
 }
 
 #test
@@ -101,11 +101,11 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     var shortOutcome: Swag.Error
     discard catch Image.decode("bad.psd", Invalid) as shortOutcome
     let short = shortOutcome.value()
-    Swag.assert(short != null)
+    Swag.require(short != null)
 
     var unsupported = psdHeader(4, 1, 1, 8, 4)
     var cmykOutcome: Swag.Error
     discard catch Image.decode("cmyk.psd", nnBytes(unsupported.toSlice())) as cmykOutcome
     let cmyk = cmykOutcome.value()
-    Swag.assert((cmyk is UnsupportedFormatError))
+    Swag.require((cmyk is UnsupportedFormatError))
 }

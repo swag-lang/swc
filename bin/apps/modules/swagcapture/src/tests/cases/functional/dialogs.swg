@@ -31,12 +31,12 @@ using Swag, Core
         g_Main = null
     }
 
-    Swag.assert(main.surface == &gui.surface and main.editWnd.editView.surface == &gui.surface)
-    Swag.assert(not main.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.require(main.surface == &gui.surface and main.editWnd.editView.surface == &gui.surface)
+    Swag.require(not main.appearanceButton.sigAboutRequested.isEmpty())
     gui.clickModalButtonWhenShown(Dialog.BtnCancel)
     let actionExecuted = Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About)
-    Swag.assert(actionExecuted)
+    Swag.require(actionExecuted)
     gui.pump()
-    Swag.assert(gui.autoHandled)
-    Swag.assert(gui.openedSurfaceCount() == 0)
+    Swag.require(gui.autoHandled)
+    Swag.require(gui.openedSurfaceCount() == 0)
 }

@@ -56,8 +56,8 @@ using Swag, Core
     }
 
     let clipped = dst.mixed(src, -1, 1, .Copy)
-    Swag.assert(Memory.compare(clipped.pixels.storage(), expected.storage(), expected.count) == 0)
+    Swag.require(Memory.compare(clipped.pixels.storage(), expected.storage(), expected.count) == 0)
 
     let outside = dst.mixed(src, 8, -5, .Copy)
-    Swag.assert(Memory.compare(outside.pixels.storage(), dstPixels.buffer, dstPixels.count) == 0)
+    Swag.require(Memory.compare(outside.pixels.storage(), dstPixels.buffer, dstPixels.count) == 0)
 }

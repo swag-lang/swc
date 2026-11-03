@@ -155,14 +155,14 @@ func buildMutationStressInput(repeats: u32)->String
 
 #test
 {
-    Swag.assert(compactMutationWhile(MutationStressChunk) == 1928'u64)
-    Swag.assert(compactMutationFor(MutationStressChunk) == 1928'u64)
+    Swag.require(compactMutationWhile(MutationStressChunk) == 1928'u64)
+    Swag.require(compactMutationFor(MutationStressChunk) == 1928'u64)
 }
 
 #test
 {
     let stress = buildMutationStressInput(MutationStressRepeats)
-    Swag.assert(compactMutationFor(stress) == compactMutationWhile(stress))
+    Swag.require(compactMutationFor(stress) == compactMutationWhile(stress))
 }
 
 // An element of the array can be added or inserted back into it: growing moves the storage the
@@ -172,11 +172,11 @@ func buildMutationStressInput(repeats: u32)->String
     var a: Array'String
     a.add("one")
     a.add("two")
-    Swag.assert(a.capacity == a.count)
+    Swag.require(a.capacity == a.count)
     a.addBorrowed(&a[0])
-    Swag.assert(a.count == 3 and a[0] == "one" and a[1] == "two" and a[2] == "one")
+    Swag.require(a.count == 3 and a[0] == "one" and a[1] == "two" and a[2] == "one")
     a.insertBorrowedAt(0, &a[1])
-    Swag.assert(a.count == 4 and a[0] == "two" and a[1] == "one" and a[2] == "two" and a[3] == "one")
+    Swag.require(a.count == 4 and a[0] == "two" and a[1] == "one" and a[2] == "two" and a[3] == "one")
     a.insertBorrowedAt(2, &a[3])
-    Swag.assert(a.count == 5 and a[2] == "one" and a[3] == "two" and a[4] == "one")
+    Swag.require(a.count == 5 and a[2] == "one" and a[3] == "two" and a[4] == "one")
 }

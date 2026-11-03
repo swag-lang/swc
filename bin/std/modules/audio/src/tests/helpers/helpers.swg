@@ -5,21 +5,21 @@ using Swag, Core
 
 func audioAssertFloat(actual, expected: f32, epsilon = 0.0001'f32)
 {
-    Swag.assert(Math.isEqualEpsilon(actual, expected, epsilon))
+    Swag.require(Math.isEqualEpsilon(actual, expected, epsilon))
 }
 
 func audioAssertBufferBytes(actual: [*] void?, actualSize: u64, expected: const [..] u8)
 {
-    Swag.assert(actualSize == expected.count)
-    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8?, actual), actualSize), expected))
+    Swag.require(actualSize == expected.count)
+    Swag.require(Slice.equals(Swag.makeSlice(cast(const [*] u8?, actual), actualSize), expected))
 }
 
 func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 {
-    Swag.assert(actual.count == expected.count * #sizeof(s16))
+    Swag.require(actual.count == expected.count * #sizeof(s16))
     let samples = cast(const [*] s16, actual.buffer)
     for index in expected.count do
-        Swag.assert(samples[index] == expected[index])
+        Swag.require(samples[index] == expected[index])
 }
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
@@ -27,7 +27,7 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let path = Path.combine(testSourceRoot(loc), "datas", fileName)
-    Swag.assert(File.exists(path))
+    Swag.require(File.exists(path))
     return path
 }
 
@@ -59,6 +59,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases")
+    Swag.require(false, "test source is outside cases")
     return ""
 }

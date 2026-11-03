@@ -19,8 +19,8 @@ using Core, Pixel
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(640, 480)
     view.applyLayout()
-    Swag.assert(view.virtualSource)
-    Swag.assert(view.revealFileOffset(source.length / 2, ""))
+    Swag.require(view.virtualSource)
+    Swag.require(view.revealFileOffset(source.length / 2, ""))
     let viewport = view.scroll.paddedClientRect()
     for forward in [true, false]
     {
@@ -31,18 +31,18 @@ using Core, Pixel
         let previousStart = view.virtualWindowStart
         for 20 where not view.virtualPendingSeek do
             view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
-        Swag.assert(view.virtualPendingSeek)
-        Swag.assert(view.scroll.scrollPosition().y > start + viewport.height * 3)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height < end - viewport.height * 3)
+        Swag.require(view.virtualPendingSeek)
+        Swag.require(view.scroll.scrollPosition().y > start + viewport.height * 3)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height < end - viewport.height * 3)
         for 32
         {
             view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25))
-            Swag.assert(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
-            Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.virtualOrigin + view.layout.documentHeight + 1)
+            Swag.require(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
+            Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.virtualOrigin + view.layout.documentHeight + 1)
         }
 
-        Swag.assert(view.virtualWindowStart != previousStart)
-        Swag.assert(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
+        Swag.require(view.virtualWindowStart != previousStart)
+        Swag.require(view.virtualWindowEnd - view.virtualWindowStart < 256 * 1024)
     }
 
     // A prefetch replaces content, not the running gesture. Its position, destination and
@@ -51,7 +51,7 @@ using Core, Pixel
     for forward in [true, false]
     {
         let revealed = view.revealFileOffset(source.length / 2, "")
-        Swag.assert(revealed)
+        Swag.require(revealed)
         let direction = forward ? 1.0'f32 : -1.0'f32
         let start     = view.virtualOrigin
         let end       = start + view.layout.documentHeight
@@ -59,35 +59,35 @@ using Core, Pixel
         view.virtualPendingSeek = false
         view.scroll.smoothScrollTo(Math.Point{0, view.scroll.scrollPosition().y + direction * viewport.height * 3})
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
-        Swag.assert(view.virtualPendingSeek and view.loadTimer != null)
-        Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+        Swag.require(view.virtualPendingSeek and view.loadTimer != null)
+        Swag.require(host.app.animator.isActive(view.scroll.scrollAnimation))
         let position = view.scroll.scrollPosition()
         let target   = view.scroll.scrollTarget()
         let velocity = view.scroll.scrollVelocity
         host.fireTimer(view.loadTimer)
-        Swag.assert(view.scroll.scrollPosition() == position)
-        Swag.assert(view.scroll.scrollTarget() == target)
-        Swag.assert(view.scroll.scrollVelocity == velocity)
-        Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+        Swag.require(view.scroll.scrollPosition() == position)
+        Swag.require(view.scroll.scrollTarget() == target)
+        Swag.require(view.scroll.scrollVelocity == velocity)
+        Swag.require(host.app.animator.isActive(view.scroll.scrollAnimation))
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
-        Swag.assert((view.scroll.scrollPosition().y - position.y) * direction > 0)
+        Swag.require((view.scroll.scrollPosition().y - position.y) * direction > 0)
         let reversal = view.scroll.scrollPosition()
         view.scroll.smoothScrollTo(Math.Point{0, reversal.y - direction * viewport.height})
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
-        Swag.assert((view.scroll.scrollPosition().y - reversal.y) * direction < 0)
+        Swag.require((view.scroll.scrollPosition().y - reversal.y) * direction < 0)
         host.finishAnimations()
     }
 
     // An explicit navigation still replaces a gesture even when its first frame has not
     // moved yet and the requested destination equals the current position.
     let atStart = view.revealFileOffset(view.virtualContentStart, "")
-    Swag.assert(atStart and view.scroll.scrollPosition().y == 0)
+    Swag.require(atStart and view.scroll.scrollPosition().y == 0)
     view.scroll.smoothScrollTo(Math.Point{0, viewport.height * 2})
-    Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
+    Swag.require(host.app.animator.isActive(view.scroll.scrollAnimation))
     let returned = view.revealFileOffset(view.virtualContentStart, "")
-    Swag.assert(returned and not host.app.animator.isActive(view.scroll.scrollAnimation))
+    Swag.require(returned and not host.app.animator.isActive(view.scroll.scrollAnimation))
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == 0 and view.scroll.scrollTarget().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0 and view.scroll.scrollTarget().y == 0)
 }
 
 // SVG image dimensions come from the root attributes; CSS dimensions can override them.
@@ -106,33 +106,33 @@ using Core, Pixel
     view.rebuild()
     let natural = view.layout.constBox(view.boxOfNode(view.elementById("natural"))).content
     let sized   = view.layout.constBox(view.boxOfNode(view.elementById("sized"))).content
-    Swag.assert(natural.width == 120 and natural.height == 60)
-    Swag.assert(sized.width == 240 and sized.height == 120)
-    Swag.assert(view.images.entries.count == 1 and not view.images.entries[0].image.isValid())
+    Swag.require(natural.width == 120 and natural.height == 60)
+    Swag.require(sized.width == 240 and sized.height == 120)
+    Swag.require(view.images.entries.count == 1 and not view.images.entries[0].image.isValid())
     var image = host.render(view)
-    Swag.assert(image.isValid() and view.images.entries[0].image.width == 240)
+    Swag.require(image.isValid() and view.images.entries[0].image.width == 240)
 
     // Both draws must survive: growing the texture during the second draw would retire the
     // smaller texture while the first draw still refers to it in the unsubmitted paint batch.
-    Swag.assert(image.pixelColor(cast(s32, natural.center().x), cast(s32, natural.center().y)).argb == 0xFF285078)
-    Swag.assert(image.pixelColor(cast(s32, sized.center().x), cast(s32, sized.center().y)).argb == 0xFF285078)
+    Swag.require(image.pixelColor(cast(s32, natural.center().x), cast(s32, natural.center().y)).argb == 0xFF285078)
+    Swag.require(image.pixelColor(cast(s32, sized.center().x), cast(s32, sized.center().y)).argb == 0xFF285078)
     let highDpi = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
-    Swag.assert(highDpi != null and view.images.entries[0].image.width == 480)
+    Swag.require(highDpi != null and view.images.entries[0].image.width == 480)
     let pixels  = cast(u64, view.images.entries[0].image.pixels.buffer)
     let smaller = view.images.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(smaller != null and cast(u64, view.images.entries[0].image.pixels.buffer) == pixels)
+    Swag.require(smaller != null and cast(u64, view.images.entries[0].image.pixels.buffer) == pixels)
 
     // A full-screen figure can use the physical width of a 4K display without upscaling.
     let fullScreen = view.images.texture(host.app.renderer, fileName.toString(), 3840, 1920)
-    Swag.assert(fullScreen != null and
-                view.images.entries[0].image.width == 3840 and
-                view.images.entries[0].image.height == 1920)
+    Swag.require(fullScreen != null and
+                 view.images.entries[0].image.width == 3840 and
+                 view.images.entries[0].image.height == 1920)
     let fullScreenPixels = cast(u64, view.images.entries[0].image.pixels.buffer)
     let windowed         = view.images.texture(host.app.renderer, fileName.toString(), 480, 240)
-    Swag.assert(windowed != null and cast(u64, view.images.entries[0].image.pixels.buffer) == fullScreenPixels)
+    Swag.require(windowed != null and cast(u64, view.images.entries[0].image.pixels.buffer) == fullScreenPixels)
     let oversized = view.images.texture(host.app.renderer, fileName.toString(), 16384, 8192)
-    Swag.assert(oversized != null and view.images.entries[0].image.width <= 4096)
-    Swag.assert(cast(u64, view.images.entries[0].image.width) * cast(u64, view.images.entries[0].image.height) <= 8 * 1024 * 1024)
+    Swag.require(oversized != null and view.images.entries[0].image.width <= 4096)
+    Swag.require(cast(u64, view.images.entries[0].image.width) * cast(u64, view.images.entries[0].image.height) <= 8 * 1024 * 1024)
 }
 
 // Large square figures obey the area budget as well as the longest-side limit.
@@ -145,30 +145,30 @@ using Core, Pixel
     host.setup(64, 64)
     var cache: HtmlImageCache
     let texture = cache.texture(host.app.renderer, fileName.toString(), 16384, 16384)
-    Swag.assert(texture != null)
+    Swag.require(texture != null)
     let image = &cache.entries[0].image
-    Swag.assert(image.width > 2048 and image.width == image.height)
-    Swag.assert(cast(u64, image.width) * cast(u64, image.height) <= 8 * 1024 * 1024)
-    Swag.assert(image.pixelColor(image.width / 2, image.height / 2).argb == 0xFF285078)
+    Swag.require(image.width > 2048 and image.width == image.height)
+    Swag.require(cast(u64, image.width) * cast(u64, image.height) <= 8 * 1024 * 1024)
+    Swag.require(image.pixelColor(image.width / 2, image.height / 2).argb == 0xFF285078)
 }
 
 // Every offline resource path uses the same lexical boundary before filesystem access.
 #test
 {
-    Swag.assert(Path.equals(htmlLocalResourcePath("pages", "images/title.png").toString(), "pages/images/title.png"))
-    Swag.assert(htmlLocalResourcePath("pages", "https://example.invalid/image.png").isEmpty())
-    Swag.assert(htmlLocalResourcePath("pages", "//server/share/image.png").isEmpty())
-    Swag.assert(htmlLocalResourcePath("pages", "data:image/png;base64,AA==").isEmpty())
-    Swag.assert(htmlLocalResourcePath("pages", "file:picture.png").isEmpty())
-    Swag.assert(htmlLocalResourcePath("pages", "bad\x00.png").isEmpty())
-    Swag.assert(htmlLocalResourcePath("//server/share", "image.png").isEmpty())
+    Swag.require(Path.equals(htmlLocalResourcePath("pages", "images/title.png").toString(), "pages/images/title.png"))
+    Swag.require(htmlLocalResourcePath("pages", "https://example.invalid/image.png").isEmpty())
+    Swag.require(htmlLocalResourcePath("pages", "//server/share/image.png").isEmpty())
+    Swag.require(htmlLocalResourcePath("pages", "data:image/png;base64,AA==").isEmpty())
+    Swag.require(htmlLocalResourcePath("pages", "file:picture.png").isEmpty())
+    Swag.require(htmlLocalResourcePath("pages", "bad\x00.png").isEmpty())
+    Swag.require(htmlLocalResourcePath("//server/share", "image.png").isEmpty())
     if WINDOWS
     {
-        Swag.assert(htmlLocalResourcePath("pages", #raw "\\server\share\image.png").isEmpty())
-        Swag.assert(htmlLocalResourcePath("pages", #raw "/\server\share\image.png").isEmpty())
-        Swag.assert(htmlLocalResourcePath("pages", #raw "\\?\UNC\server\share\image.png").isEmpty())
-        Swag.assert(htmlLocalResourcePath("pages", #raw "\\.\pipe\image.png").isEmpty())
-        Swag.assert(htmlLocalResourcePath("pages", "C:/images/title.png") == "C:/images/title.png")
+        Swag.require(htmlLocalResourcePath("pages", #raw "\\server\share\image.png").isEmpty())
+        Swag.require(htmlLocalResourcePath("pages", #raw "/\server\share\image.png").isEmpty())
+        Swag.require(htmlLocalResourcePath("pages", #raw "\\?\UNC\server\share\image.png").isEmpty())
+        Swag.require(htmlLocalResourcePath("pages", #raw "\\.\pipe\image.png").isEmpty())
+        Swag.require(htmlLocalResourcePath("pages", "C:/images/title.png") == "C:/images/title.png")
     }
 }
 
@@ -237,7 +237,7 @@ func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, ta
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
     return view.document.textContent(0)
 }
 
@@ -283,7 +283,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let document = parseDocument("<html><body><p>First<p>Second<ul><li>a<li>b</ul><div class=\"x y\" id=\"z\">t</div></body></html>")
 
     let body = findTag(&document, .Body)
-    Swag.assert(body != HtmlNoNode)
+    Swag.require(body != HtmlNoNode)
 
     var paragraphs = 0'u32
     var items      = 0'u32
@@ -297,40 +297,40 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     }
 
     // An unclosed paragraph ends where the next one begins instead of nesting inside it.
-    Swag.assert(paragraphs == 2 and items == 2)
+    Swag.require(paragraphs == 2 and items == 2)
     let first = findTag(&document, .P)
-    Swag.assert(document.constNode(first).parent == body)
+    Swag.require(document.constNode(first).parent == body)
 
     let division = findTag(&document, .Div)
-    Swag.assert(document.hasClass(division, "x") and document.hasClass(division, "y"))
-    Swag.assert(not document.hasClass(division, "z"))
-    Swag.assert(document.id(division) == "z")
-    Swag.assert(document.attribute(division, "class") == "x y")
+    Swag.require(document.hasClass(division, "x") and document.hasClass(division, "y"))
+    Swag.require(not document.hasClass(division, "z"))
+    Swag.require(document.id(division) == "z")
+    Swag.require(document.attribute(division, "class") == "x y")
 }
 
 // Character references decode to their code points, including the numeric forms.
 #test
 {
-    Swag.assert(htmlDecodeText("a&amp;b").toString() == "a&b")
-    Swag.assert(htmlDecodeText("&lt;tag&gt;").toString() == "<tag>")
-    Swag.assert(htmlDecodeText("&#65;&#x42;").toString() == "AB")
-    Swag.assert(htmlDecodeText("caf&eacute;").toString() == "café")
-    Swag.assert(htmlDecodeText("&nosuchentity;").toString() == "&nosuchentity;")
-    Swag.assert(htmlDecodeText("a & b").toString() == "a & b")
+    Swag.require(htmlDecodeText("a&amp;b").toString() == "a&b")
+    Swag.require(htmlDecodeText("&lt;tag&gt;").toString() == "<tag>")
+    Swag.require(htmlDecodeText("&#65;&#x42;").toString() == "AB")
+    Swag.require(htmlDecodeText("caf&eacute;").toString() == "café")
+    Swag.require(htmlDecodeText("&nosuchentity;").toString() == "&nosuchentity;")
+    Swag.require(htmlDecodeText("a & b").toString() == "a & b")
 }
 
 // A raw-text element never contributes markup, whatever it contains.
 #test
 {
     let document = parseDocument("<style>p { color: red }</style><script>if (a<b) {}</script><p>after</p>")
-    Swag.assert(findTag(&document, .P) != HtmlNoNode)
+    Swag.require(findTag(&document, .P) != HtmlNoNode)
 
     let style = findTag(&document, .Style)
-    Swag.assert(style != HtmlNoNode)
-    Swag.assert(Utf8.contains(document.textOf(document.childAt(style, 0)), "color: red"))
+    Swag.require(style != HtmlNoNode)
+    Swag.require(Utf8.contains(document.textOf(document.childAt(style, 0)), "color: red"))
 
     // A script body is text, so its `<` never opened an element.
-    Swag.assert(findTag(&document, .B) == HtmlNoNode)
+    Swag.require(findTag(&document, .B) == HtmlNoNode)
 }
 
 // Reading a document in chunks produces the tree the whole source produces.
@@ -352,8 +352,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     }
 
     parser.finish()
-    Swag.assert(streamed.nodes.count == whole.nodes.count)
-    Swag.assert(streamed.textContent(0) == whole.textContent(0))
+    Swag.require(streamed.nodes.count == whole.nodes.count)
+    Swag.require(streamed.textContent(0) == whole.textContent(0))
 }
 
 // The cascade orders declarations by importance, then specificity, then source order, and
@@ -382,11 +382,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let style     = view.layout.styleOfNode(paragraph)
 
     // The important declaration wins over the identifier, and the custom property is expanded.
-    Swag.assert(style.color == Color.fromArgb(0xFF0000FF))
-    Swag.assert(style.fontSize == 20)
+    Swag.require(style.color == Color.fromArgb(0xFF0000FF))
+    Swag.require(style.fontSize == 20)
 
     let emphasis = findTag(&view.document, .Em)
-    Swag.assert(not view.layout.styleOfNode(emphasis).italic)
+    Swag.require(not view.layout.styleOfNode(emphasis).italic)
 }
 
 // Unsupported complex functional selectors cannot silently become their first compound.
@@ -406,9 +406,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let nav  = view.layout.styleOfNode(view.elementById("nav"))
     let link = view.layout.styleOfNode(view.elementById("link"))
-    Swag.assert(nav.color == Color.fromArgb(0xFF123456) and nav.fontSize == 16)
-    Swag.assert(link.color == Color.fromArgb(0xFF123456) and link.fontSize == 16)
-    Swag.assert(view.layout.styleOfNode(view.elementById("accepted")).fontSize == 23)
+    Swag.require(nav.color == Color.fromArgb(0xFF123456) and nav.fontSize == 16)
+    Swag.require(link.color == Color.fromArgb(0xFF123456) and link.fontSize == 16)
+    Swag.require(view.layout.styleOfNode(view.elementById("accepted")).fontSize == 23)
 }
 
 // Lengths read every unit a document uses, and math expressions keep what layout must resolve.
@@ -417,15 +417,15 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var pool: HtmlValuePool
     let context = HtmlLengthContext{fontSize: 20, rootFontSize: 16, viewportWidth: 1000, viewportHeight: 500, basis: 400, hasBasis: true}
 
-    Swag.assert(htmlParseLength(&pool, "12px", context).length.resolve(&pool, context) == 12)
-    Swag.assert(htmlParseLength(&pool, "2em", context).length.resolve(&pool, context) == 40)
-    Swag.assert(htmlParseLength(&pool, "2rem", context).length.resolve(&pool, context) == 32)
-    Swag.assert(htmlParseLength(&pool, "50%", context).length.resolve(&pool, context) == 200)
-    Swag.assert(htmlParseLength(&pool, "10vw", context).length.resolve(&pool, context) == 100)
-    Swag.assert(htmlParseLength(&pool, "calc(100% - 44px)", context).length.resolve(&pool, context) == 356)
-    Swag.assert(htmlParseLength(&pool, "min(1560px, calc(100% - 44px))", context).length.resolve(&pool, context) == 356)
-    Swag.assert(htmlParseLength(&pool, "clamp(10px, 50%, 80px)", context).length.resolve(&pool, context) == 80)
-    Swag.assert(htmlParseLength(&pool, "auto", context).length.isAuto())
+    Swag.require(htmlParseLength(&pool, "12px", context).length.resolve(&pool, context) == 12)
+    Swag.require(htmlParseLength(&pool, "2em", context).length.resolve(&pool, context) == 40)
+    Swag.require(htmlParseLength(&pool, "2rem", context).length.resolve(&pool, context) == 32)
+    Swag.require(htmlParseLength(&pool, "50%", context).length.resolve(&pool, context) == 200)
+    Swag.require(htmlParseLength(&pool, "10vw", context).length.resolve(&pool, context) == 100)
+    Swag.require(htmlParseLength(&pool, "calc(100% - 44px)", context).length.resolve(&pool, context) == 356)
+    Swag.require(htmlParseLength(&pool, "min(1560px, calc(100% - 44px))", context).length.resolve(&pool, context) == 356)
+    Swag.require(htmlParseLength(&pool, "clamp(10px, 50%, 80px)", context).length.resolve(&pool, context) == 80)
+    Swag.require(htmlParseLength(&pool, "auto", context).length.isAuto())
 }
 
 // Polygonal clip paths remain paintable decorations rather than being treated as unsupported
@@ -442,32 +442,32 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let node  = findClass(&view.document, "cut")
     let style = view.layout.constStyle(view.layout.constBox(view.boxOfNode(node)).style)
-    Swag.assert(style.clipPath != HtmlNoNode)
-    Swag.assert(not style.masked)
+    Swag.require(style.clipPath != HtmlNoNode)
+    Swag.require(not style.masked)
 
     var image = host.render(view)
-    Swag.assert(image.isValid())
+    Swag.require(image.isValid())
 }
 
 // Every color notation a document uses reads back as the same paint.
 #test
 {
-    Swag.assert(htmlParseColor("#f00").color == Color.fromArgb(0xFFFF0000))
-    Swag.assert(htmlParseColor("#00ff00").color == Color.fromArgb(0xFF00FF00))
-    Swag.assert(htmlParseColor("#0000ff80").color == Color.fromArgb(0x800000FF))
-    Swag.assert(htmlParseColor("rgb(255, 0, 0)").color == Color.fromArgb(0xFFFF0000))
-    Swag.assert(htmlParseColor("rgba(255 0 0 / 50%)").color.a == 128)
-    Swag.assert(htmlParseColor("hsl(0, 100%, 50%)").color == Color.fromArgb(0xFFFF0000))
+    Swag.require(htmlParseColor("#f00").color == Color.fromArgb(0xFFFF0000))
+    Swag.require(htmlParseColor("#00ff00").color == Color.fromArgb(0xFF00FF00))
+    Swag.require(htmlParseColor("#0000ff80").color == Color.fromArgb(0x800000FF))
+    Swag.require(htmlParseColor("rgb(255, 0, 0)").color == Color.fromArgb(0xFFFF0000))
+    Swag.require(htmlParseColor("rgba(255 0 0 / 50%)").color.a == 128)
+    Swag.require(htmlParseColor("hsl(0, 100%, 50%)").color == Color.fromArgb(0xFFFF0000))
     let translucent = htmlParseColor("color-mix(in srgb, #ff0000 25%, transparent)")
-    Swag.assert(translucent.matched and
-                translucent.color.a == 64 and
-                translucent.color.r == 255 and
-                not translucent.color.g and
-                not translucent.color.b)
-    Swag.assert(htmlParseColor("color-mix(in srgb, #0000ff 20%, #ffffff)").color == Color.fromArgb(0xFFCCCCFF))
-    Swag.assert(htmlParseColor("rebeccapurple").color == Color.fromArgb(0xFF663399))
-    Swag.assert(htmlParseColor("transparent").matched and not htmlParseColor("transparent").color.a)
-    Swag.assert(not htmlParseColor("inherit").matched)
+    Swag.require(translucent.matched and
+                 translucent.color.a == 64 and
+                 translucent.color.r == 255 and
+                 not translucent.color.g and
+                 not translucent.color.b)
+    Swag.require(htmlParseColor("color-mix(in srgb, #0000ff 20%, #ffffff)").color == Color.fromArgb(0xFFCCCCFF))
+    Swag.require(htmlParseColor("rebeccapurple").color == Color.fromArgb(0xFF663399))
+    Swag.require(htmlParseColor("transparent").matched and not htmlParseColor("transparent").color.a)
+    Swag.require(not htmlParseColor("inherit").matched)
 }
 
 // Blocks stack with collapsed margins, and a grid places its children over its declared tracks.
@@ -494,13 +494,13 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let second = view.layout.constBox(view.boxOfNode(view.elementById("b")))
 
     // Adjacent margins of 20px collapse into one gap of 20px, not two.
-    Swag.assert(second.rect.y - first.rect.bottom() == 20)
+    Swag.require(second.rect.y - first.rect.bottom() == 20)
 
     let left  = view.layout.constBox(view.boxOfNode(view.elementById("c")))
     let right = view.layout.constBox(view.boxOfNode(view.elementById("d")))
-    Swag.assert(left.rect.width == 100)
-    Swag.assert(right.rect.x - left.rect.right() == 10)
-    Swag.assert(right.rect.width == view.scroll.paddedClientRect().width - 110)
+    Swag.require(left.rect.width == 100)
+    Swag.require(right.rect.x - left.rect.right() == 10)
+    Swag.require(right.rect.width == view.scroll.paddedClientRect().width - 110)
 }
 
 // A flex row shares what is left over between the items that grow.
@@ -524,9 +524,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let fixed = view.layout.constBox(view.boxOfNode(view.elementById("a")))
     let grow  = view.layout.constBox(view.boxOfNode(view.elementById("b")))
     let width = view.scroll.paddedClientRect().width
-    Swag.assert(fixed.rect.width == 100)
-    Swag.assert(grow.rect.x == 120)
-    Swag.assert(Math.abs(grow.rect.width - (width - 120)) <= 0.5)
+    Swag.require(fixed.rect.width == 100)
+    Swag.require(grow.rect.x == 120)
+    Swag.require(Math.abs(grow.rect.width - (width - 120)) <= 0.5)
 }
 
 // Text wraps into as many lines as the measure allows, and a forced break starts a new one.
@@ -546,19 +546,19 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let wrapped = view.layout.constBox(view.boxOfNode(view.elementById("p")))
-    Swag.assert(wrapped.lines.count > 20)
+    Swag.require(wrapped.lines.count > 20)
     for line in wrapped.lines where line.width > wrapped.content.width + 1 do
-        Swag.assert(false)
+        Swag.require(false)
 
     // Painting and hit testing use the line index instead of scanning every run in the block.
     let lineIndex = 12'u64
     let range     = htmlLineItemRange(wrapped, wrapped.lines[lineIndex].top, wrapped.lines[lineIndex].top + 1)
-    Swag.assert(range.first == wrapped.lines[lineIndex - 1].first)
-    Swag.assert(range.last == wrapped.lines[lineIndex + 1].last)
-    Swag.assert(range.last - range.first < wrapped.items.count / 4)
+    Swag.require(range.first == wrapped.lines[lineIndex - 1].first)
+    Swag.require(range.last == wrapped.lines[lineIndex + 1].last)
+    Swag.require(range.last - range.first < wrapped.items.count / 4)
 
     let broken = view.layout.constBox(view.boxOfNode(view.elementById("q")))
-    Swag.assert(broken.lines.count == 2)
+    Swag.require(broken.lines.count == 2)
 }
 
 // A terminal preserved newline ends the last line without creating another blank line.
@@ -573,7 +573,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let code = view.layout.constBox(view.boxOfNode(view.elementById("code")))
-    Swag.assert(code.lines.count == 2)
+    Swag.require(code.lines.count == 2)
 }
 
 // A block stays inside the measure its ancestors set, however deep it sits.
@@ -591,8 +591,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let block = view.layout.constBox(view.boxOfNode(view.elementById("code")))
-    Swag.assert(block.rect.x == 8)
-    Swag.assert(block.rect.width == 840)
+    Swag.require(block.rect.x == 8)
+    Swag.require(block.rect.width == 840)
 }
 
 // A table sizes its columns from what their cells need.
@@ -612,8 +612,8 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let narrow = view.layout.constBox(view.boxOfNode(view.elementById("a")))
     let wide   = view.layout.constBox(view.boxOfNode(view.elementById("b")))
-    Swag.assert(wide.rect.width > narrow.rect.width)
-    Swag.assert(wide.rect.x == narrow.rect.right())
+    Swag.require(wide.rect.width > narrow.rect.width)
+    Swag.require(wide.rect.x == narrow.rect.right())
 }
 
 // A table cell aligns its contents inside the row height established by a taller sibling.
@@ -631,10 +631,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let cell = view.layout.constBox(view.boxOfNode(view.elementById("bottom")))
-    Swag.assert(not cell.children.isEmpty())
+    Swag.require(not cell.children.isEmpty())
     let content = view.layout.constBox(cell.children[0])
-    Swag.assert(not content.items.isEmpty())
-    Swag.assert(content.items[0].y + content.items[0].ascent + content.items[0].descent >= cell.content.bottom() - 1)
+    Swag.require(not content.items.isEmpty())
+    Swag.require(content.items[0].y + content.items[0].ascent + content.items[0].descent >= cell.content.bottom() - 1)
 }
 
 // A bounded overflow region moves its own contents and never paints them outside its viewport.
@@ -658,23 +658,23 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 
     let rail = view.boxOfNode(view.elementById("rail"))
-    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
-    Swag.assert(view.layout.constBox(rail).rect.y == 40)
-    Swag.assert(view.painter().scrollableAt({20, 60}) == rail)
-    Swag.assert(view.scrollRegion(rail, 80))
-    Swag.assert(view.layout.constBox(rail).scrollTop == 80)
+    Swag.require(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    Swag.require(view.layout.constBox(rail).rect.y == 40)
+    Swag.require(view.painter().scrollableAt({20, 60}) == rail)
+    Swag.require(view.scrollRegion(rail, 80))
+    Swag.require(view.layout.constBox(rail).scrollTop == 80)
 
     var image = host.render(view)
-    Swag.assert(image.pixelColor(20, 60).argb == 0xFF0000FF)
-    Swag.assert(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
-    Swag.assert(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
-    Swag.assert(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
+    Swag.require(image.pixelColor(20, 60).argb == 0xFF0000FF)
+    Swag.require(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
+    Swag.require(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
+    Swag.require(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 
     // Once the region has been still long enough, its bar rests invisible like every scroll bar.
     host.fireTimers()
     host.app.animator.finishAll()
     image = host.render(view)
-    Swag.assert(image.pixelColor(97, 90).argb != host.theme.colors.scrollBar_Box.argb)
+    Swag.require(image.pixelColor(97, 90).argb != host.theme.colors.scrollBar_Box.argb)
 }
 
 // A tall inline image remains paintable after its typographic origin has left the viewport.
@@ -692,11 +692,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let parent  = view.layout.constBox(view.boxOfNode(view.elementById("short")))
     let picture = view.layout.constBox(view.boxOfNode(view.elementById("picture")))
-    Swag.assert(picture.rect.y < view.scroll.scrollPosition().y)
-    Swag.assert(parent.paintBounds.bottom() == picture.rect.bottom())
-    Swag.assert(view.layout.documentHeight == picture.rect.bottom())
+    Swag.require(picture.rect.y < view.scroll.scrollPosition().y)
+    Swag.require(parent.paintBounds.bottom() == picture.rect.bottom())
+    Swag.require(view.layout.documentHeight == picture.rect.bottom())
     var image = host.render(view)
-    Swag.assert(image.pixelColor(20, 20).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(20, 20).argb == 0xFFFF0000)
 }
 
 // A CSS region scrollbar pages through its track and drags its thumb like a native vertical bar.
@@ -713,19 +713,19 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 
     let rail = view.boxOfNode(view.elementById("rail"))
-    Swag.assert(rail != HtmlNoNode)
+    Swag.require(rail != HtmlNoNode)
     let bar = view.painter().scrollBarAt({96, 75})
-    Swag.assert(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
+    Swag.require(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
 
     host.click({96, 75})
-    Swag.assert(view.layout.constBox(rail).scrollTop == 100)
+    Swag.require(view.layout.constBox(rail).scrollTop == 100)
 
     let moved = view.painter().scrollBarAt({96, 50})
-    Swag.assert(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
+    Swag.require(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
     host.mouseDown({96, 50})
     host.moveMouse({96, 95})
     host.mouseUp({96, 95})
-    Swag.assert(view.layout.constBox(rail).scrollTop > 190)
+    Swag.require(view.layout.constBox(rail).scrollTop > 190)
 }
 
 // A viewport-relative rail has a definite height even though its document parent grows with its
@@ -749,12 +749,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     discard host.render(view)
 
     let rail = view.boxOfNode(view.elementById("rail"))
-    Swag.assert(rail != HtmlNoNode)
-    Swag.assert(Math.abs(view.layout.constBox(rail).content.height - (view.layout.viewport.y - 40)) <= 1)
-    Swag.assert(view.layout.constBox(rail).scrollable)
-    Swag.assert(view.painter().scrollableAt({20, 80}) == rail)
-    Swag.assert(view.scrollRegion(rail, 70))
-    Swag.assert(view.layout.constBox(rail).scrollTop == 70)
+    Swag.require(rail != HtmlNoNode)
+    Swag.require(Math.abs(view.layout.constBox(rail).content.height - (view.layout.viewport.y - 40)) <= 1)
+    Swag.require(view.layout.constBox(rail).scrollable)
+    Swag.require(view.painter().scrollableAt({20, 80}) == rail)
+    Swag.require(view.scrollRegion(rail, 70))
+    Swag.require(view.layout.constBox(rail).scrollTop == 70)
 }
 
 // A positive z-index keeps a sticky header above siblings that occur later in the document.
@@ -776,9 +776,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.scroll.setScrollPos(0, 80)
 
     var image = host.render(view)
-    Swag.assert(image.pixelColor(120, 20).argb == 0xFFFF0000)
-    Swag.assert(image.pixelColor(120, 80).argb == 0xFF0000FF)
-    Swag.assert(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
+    Swag.require(image.pixelColor(120, 20).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(120, 80).argb == 0xFF0000FF)
+    Swag.require(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
 }
 
 // Inline runs share one build arena, so retaining a paragraph costs storage proportional to its
@@ -804,11 +804,11 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var words = 0'u64
     for item in box.items where item.kind == .Text do
         words += 1
-    Swag.assert(words == 2_000)
-    Swag.assert(view.layout.textPool.length >= 2_000 * ("repeat").count)
+    Swag.require(words == 2_000)
+    Swag.require(view.layout.textPool.length >= 2_000 * ("repeat").count)
 
     let after = allocator.stats()
-    Swag.assert(after.countAlloc < before.countAlloc + 256)
+    Swag.require(after.countAlloc < before.countAlloc + 256)
 }
 
 // Painting a search hit survives every split of the match across inline items: an item that
@@ -824,9 +824,9 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     // One hit covering a whole item, then one the narrow viewport can split across a wrap.
-    Swag.assert(view.findText("alpha"))
+    Swag.require(view.findText("alpha"))
     discard host.render(view)
-    Swag.assert(view.findText("gamma delta"))
+    Swag.require(view.findText("gamma delta"))
     discard host.render(view)
 }
 
@@ -844,12 +844,12 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
 
     let revealed = view.revealFileOffset(second, "same")
-    Swag.assert(revealed)
-    Swag.assert(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
+    Swag.require(revealed)
+    Swag.require(view.searchNode != HtmlNoNode and view.searchStart == 5 and view.searchEnd == 9)
     var bounds: Math.Rectangle
-    Swag.assert(view.searchMatchRect(&bounds) and not bounds.isEmpty())
+    Swag.require(view.searchMatchRect(&bounds) and not bounds.isEmpty())
     view.clearSearch()
-    Swag.assert(not view.searchMatchRect(&bounds))
+    Swag.require(not view.searchMatchRect(&bounds))
 }
 
 // What a scroll position shows does not depend on how the reader got there.
@@ -886,7 +886,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
 
     // Three positions, visited downwards and then upwards; every one must draw the same pixels
     // both times, and none of them may be blank.
@@ -904,10 +904,10 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
         let reverse = stops.count - index - 1
         view.scroll.setScrollPos(0, stops[reverse])
         var image = host.render(view)
-        Swag.assert(Hash.hashBytes32(image.pixels.toSlice()) == downward[reverse])
+        Swag.require(Hash.hashBytes32(image.pixels.toSlice()) == downward[reverse])
     }
 
-    Swag.assert(downward[0] != downward[1] and downward[1] != downward[2])
+    Swag.require(downward[0] != downward[1] and downward[1] != downward[2])
 }
 
 // The focused document answers the whole keyboard scrolling contract.
@@ -927,28 +927,28 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     view.rebuild()
     discard host.render(view)
 
-    Swag.assert(view.focusPolicy == .Tab)
-    Swag.assert(view.scroll.scrollableClientRect().height > view.scroll.paddedClientRect().height)
+    Swag.require(view.focusPolicy == .Tab)
+    Swag.require(view.scroll.scrollableClientRect().height > view.scroll.paddedClientRect().height)
 
     var end = KeyEvent{kind: .Pressed, key: .End}
-    Swag.assert(scrollDocumentWithKey(view.scroll, &end))
+    Swag.require(scrollDocumentWithKey(view.scroll, &end))
     let bottom = view.scroll.scrollPosition().y
-    Swag.assert(bottom > 0)
+    Swag.require(bottom > 0)
 
     var pageUp = KeyEvent{kind: .Pressed, key: .PageUp}
-    Swag.assert(scrollDocumentWithKey(view.scroll, &pageUp))
-    Swag.assert(view.scroll.scrollPosition().y < bottom)
+    Swag.require(scrollDocumentWithKey(view.scroll, &pageUp))
+    Swag.require(view.scroll.scrollPosition().y < bottom)
 
     var home = KeyEvent{kind: .Pressed, key: .Home}
-    Swag.assert(scrollDocumentWithKey(view.scroll, &home))
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(scrollDocumentWithKey(view.scroll, &home))
+    Swag.require(view.scroll.scrollPosition().y == 0)
 
     // A pointer gesture on prose restores the document after another control temporarily owned
     // the keyboard, so later navigation keys cannot disappear into stale focus.
     host.focus(&host.root)
-    Swag.assert(not view.hasFocus())
+    Swag.require(not view.hasFocus())
     host.click({20, 20})
-    Swag.assert(view.hasFocus())
+    Swag.require(view.hasFocus())
 }
 
 // Reports whether a vertical run of one column holds the exact color.
@@ -985,10 +985,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     var image = host.render(view)
 
     // Only the top-right corner is cut away.
-    Swag.assert(image.pixelColor(2, 2).argb == 0xFFFF0000)
-    Swag.assert(image.pixelColor(97, 2).argb == 0xFFFFFFFF)
-    Swag.assert(image.pixelColor(2, 57).argb == 0xFFFF0000)
-    Swag.assert(image.pixelColor(97, 57).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(2, 2).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(97, 2).argb == 0xFFFFFFFF)
+    Swag.require(image.pixelColor(2, 57).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(97, 57).argb == 0xFFFF0000)
 }
 
 // A rounded box whose sides carry different colours keeps each side's own colour. One stroke
@@ -1011,10 +1011,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.rebuild()
     var image = host.render(view)
 
-    Swag.assert(image.pixelColor(50, 2).argb == 0xFFFF0000)
-    Swag.assert(image.pixelColor(2, 30).argb == 0xFFFFFF00)
-    Swag.assert(image.pixelColor(109, 30).argb == 0xFF00FF00)
-    Swag.assert(image.pixelColor(50, 69).argb == 0xFF0000FF)
+    Swag.require(image.pixelColor(50, 2).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(2, 30).argb == 0xFFFFFF00)
+    Swag.require(image.pixelColor(109, 30).argb == 0xFF00FF00)
+    Swag.require(image.pixelColor(50, 69).argb == 0xFF0000FF)
 }
 
 // A box whose four sides agree is still drawn as one rounded ring, on every side.
@@ -1036,16 +1036,16 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     // Every side is painted inside its own band; antialiasing decides the exact edge, so the
     // band is scanned rather than one pixel of it pinned.
-    Swag.assert(columnHasColor(&image, 56, 0, 6, 0xFF0000FF))
-    Swag.assert(rowHasColor(&image, 36, 0, 6, 0xFF0000FF))
-    Swag.assert(rowHasColor(&image, 36, 106, 112, 0xFF0000FF))
-    Swag.assert(columnHasColor(&image, 56, 66, 72, 0xFF0000FF))
+    Swag.require(columnHasColor(&image, 56, 0, 6, 0xFF0000FF))
+    Swag.require(rowHasColor(&image, 36, 0, 6, 0xFF0000FF))
+    Swag.require(rowHasColor(&image, 36, 106, 112, 0xFF0000FF))
+    Swag.require(columnHasColor(&image, 56, 66, 72, 0xFF0000FF))
 
     // A border is drawn inside the box it frames: nothing of it reaches the row or the column
     // just outside the element, and the rounded corner stays cut away.
-    Swag.assert(not rowHasColor(&image, 36, 112, 130, 0xFF0000FF))
-    Swag.assert(not columnHasColor(&image, 56, 72, 90, 0xFF0000FF))
-    Swag.assert(image.pixelColor(1, 1).argb == 0xFFFFFFFF)
+    Swag.require(not rowHasColor(&image, 36, 112, 130, 0xFF0000FF))
+    Swag.require(not columnHasColor(&image, 56, 72, 90, 0xFF0000FF))
+    Swag.require(image.pixelColor(1, 1).argb == 0xFFFFFFFF)
 }
 
 // A percentage height resolves against a parent that has one, down a whole chain of them, and
@@ -1073,12 +1073,12 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let height = view.scroll.paddedClientRect().height
     let app    = view.layout.constBox(view.boxOfNode(view.elementById("app")))
     let half   = view.layout.constBox(view.boxOfNode(view.elementById("half")))
-    Swag.assert(Math.abs(app.rect.height - height) <= 0.5)
-    Swag.assert(Math.abs(half.rect.height - height * 0.5) <= 0.5)
+    Swag.require(Math.abs(app.rect.height - height) <= 0.5)
+    Swag.require(Math.abs(half.rect.height - height * 0.5) <= 0.5)
 
     // Nothing definite stands above `.loose`, so `height: 100%` inside it keeps meaning content.
     let inside = view.layout.constBox(view.boxOfNode(view.elementById("inside")))
-    Swag.assert(inside.rect.height == 12)
+    Swag.require(inside.rect.height == 12)
 }
 
 // A positioned box answers to the nearest positioned ancestor, not to whatever box happens to
@@ -1113,14 +1113,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let frameRight  = card.rect.right() - 2
     let frameBottom = card.rect.bottom() - 2
 
-    Swag.assert(badge.rect.y == frameTop)
-    Swag.assert(badge.rect.right() == frameRight)
+    Swag.require(badge.rect.y == frameTop)
+    Swag.require(badge.rect.right() == frameRight)
 
     // A percentage height needs the frame's real height, which the flow only knows once the card
     // has closed over its content.
-    Swag.assert(filler.rect.x == frameLeft)
-    Swag.assert(filler.rect.bottom() == frameBottom)
-    Swag.assert(Math.abs(filler.rect.height - (frameBottom - frameTop) * 0.5) <= 0.5)
+    Swag.require(filler.rect.x == frameLeft)
+    Swag.require(filler.rect.bottom() == frameBottom)
+    Swag.require(Math.abs(filler.rect.height - (frameBottom - frameTop) * 0.5) <= 0.5)
 }
 
 // Two automatic insets keep a positioned box where the flow would have put it, rather than
@@ -1144,8 +1144,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     let page = view.layout.constBox(view.boxOfNode(view.elementById("page")))
     let note = view.layout.constBox(view.boxOfNode(view.elementById("note")))
-    Swag.assert(note.rect.x == page.content.x)
-    Swag.assert(note.rect.y == page.content.y + 30)
+    Swag.require(note.rect.x == page.content.x)
+    Swag.require(note.rect.y == page.content.y + 30)
 }
 
 // A positioned child of a flex or grid container is laid out like any other positioned box. It
@@ -1179,14 +1179,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let gridPin = view.layout.constBox(view.boxOfNode(view.elementById("gridpin")))
 
     // The positioned child leaves the flex line alone: the first item still starts the row.
-    Swag.assert(first.rect.x == bar.content.x)
-    Swag.assert(barPin.rect.width == 12 and barPin.rect.height == 6)
-    Swag.assert(barPin.rect.y == bar.rect.y + 4)
-    Swag.assert(barPin.rect.right() == bar.rect.right() - 4)
+    Swag.require(first.rect.x == bar.content.x)
+    Swag.require(barPin.rect.width == 12 and barPin.rect.height == 6)
+    Swag.require(barPin.rect.y == bar.rect.y + 4)
+    Swag.require(barPin.rect.right() == bar.rect.right() - 4)
 
-    Swag.assert(gridPin.rect.width == 12 and gridPin.rect.height == 6)
-    Swag.assert(gridPin.rect.y == grid.rect.y + 4)
-    Swag.assert(gridPin.rect.right() == grid.rect.right() - 4)
+    Swag.require(gridPin.rect.width == 12 and gridPin.rect.height == 6)
+    Swag.require(gridPin.rect.y == grid.rect.y + 4)
+    Swag.require(gridPin.rect.right() == grid.rect.right() - 4)
 }
 
 // A positioned span written in the middle of a paragraph splits that paragraph's text into
@@ -1212,10 +1212,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let card = view.layout.constBox(view.boxOfNode(view.elementById("card")))
     let para = view.layout.constBox(view.boxOfNode(view.elementById("para")))
     let tag  = view.layout.constBox(view.boxOfNode(view.elementById("tag")))
-    Swag.assert(para.children.count >= 2)
-    Swag.assert(tag.rect.width == 16 and tag.rect.height == 7)
-    Swag.assert(tag.rect.y == card.rect.y + 3)
-    Swag.assert(tag.rect.right() == card.rect.right() - 5)
+    Swag.require(para.children.count >= 2)
+    Swag.require(tag.rect.width == 16 and tag.rect.height == 7)
+    Swag.require(tag.rect.y == card.rect.y + 3)
+    Swag.require(tag.rect.right() == card.rect.right() - 5)
 }
 
 // A positioned box with no positioned ancestor resolves against the initial containing block:
@@ -1242,9 +1242,9 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let wrap   = view.layout.constBox(view.boxOfNode(view.elementById("wrap")))
     let corner = view.layout.constBox(view.boxOfNode(view.elementById("corner")))
     let width  = view.scroll.paddedClientRect().width
-    Swag.assert(wrap.rect.x > 0 and wrap.rect.y > 0)
-    Swag.assert(corner.rect.x == 0 and corner.rect.y == 0)
-    Swag.assert(Math.abs(corner.rect.width - width * 0.5) <= 0.5)
+    Swag.require(wrap.rect.x > 0 and wrap.rect.y > 0)
+    Swag.require(corner.rect.x == 0 and corner.rect.y == 0)
+    Swag.require(Math.abs(corner.rect.width - width * 0.5) <= 0.5)
 }
 
 // An absolutely positioned generated rule is a box of its own, and a functional color paints it.
@@ -1267,17 +1267,17 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     var bar     = HtmlNoNode
     for child in heading.children where view.layout.constStyle(view.layout.constBox(child).style).background.a do
         bar = child
-    Swag.assert(bar != HtmlNoNode)
+    Swag.require(bar != HtmlNoNode)
     let decoration = view.layout.constBox(bar)
-    Swag.assert(decoration.rect.width == 32 and decoration.rect.height == 4)
-    Swag.assert(decoration.rect.x == heading.rect.x and decoration.rect.y == heading.rect.y)
-    Swag.assert(heading.content.y == decoration.rect.y + 14)
+    Swag.require(decoration.rect.width == 32 and decoration.rect.height == 4)
+    Swag.require(decoration.rect.x == heading.rect.x and decoration.rect.y == heading.rect.y)
+    Swag.require(heading.content.y == decoration.rect.y + 14)
     var textBox = HtmlNoNode
     for child in heading.children where view.layout.constBox(child).items.count do
         textBox = child
-    Swag.assert(textBox != HtmlNoNode and view.layout.constBox(textBox).lines.front().top == heading.content.y)
+    Swag.require(textBox != HtmlNoNode and view.layout.constBox(textBox).lines.front().top == heading.content.y)
     var image = host.render(view)
-    Swag.assert(image.pixelColor(cast(u32, decoration.rect.horzCenter()), cast(u32, decoration.rect.vertCenter())).argb == 0xFFFF8080)
+    Swag.require(image.pixelColor(cast(u32, decoration.rect.horzCenter()), cast(u32, decoration.rect.vertCenter())).argb == 0xFFFF8080)
 }
 
 // Every checked-in HTML fixture is a complete document that the streaming parser accepts.
@@ -1294,8 +1294,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     {
         let source   = expect File.readAllText(guiFixturePath(name))
         let document = parseDocument(source.toString())
-        Swag.assert(document.nodes.count > 4)
-        Swag.assert(findTag(&document, .Body) != HtmlNoNode)
+        Swag.require(document.nodes.count > 4)
+        Swag.require(findTag(&document, .Body) != HtmlNoNode)
     }
 }
 
@@ -1314,10 +1314,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let brand  = view.layout.constBox(view.boxOfNode(findClass(&view.document, "brand")))
     let links  = view.layout.constBox(view.boxOfNode(view.elementById("header-links")))
     let github = view.layout.constBox(view.boxOfNode(view.elementById("github-link")))
-    Swag.assert(header.rect.height == 66)
-    Swag.assert(Math.abs(brand.rect.vertCenter() - header.rect.vertCenter()) <= 1)
-    Swag.assert(not links.children.isEmpty())
-    Swag.assert(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
+    Swag.require(header.rect.height == 66)
+    Swag.require(Math.abs(brand.rect.vertCenter() - header.rect.vertCenter()) <= 1)
+    Swag.require(not links.children.isEmpty())
+    Swag.require(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
 }
 
 // The left frame owns wheel input under the pointer at every page position, including when its
@@ -1334,23 +1334,23 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     discard host.render(view)
 
     var rail = view.boxOfNode(view.elementById("frame-rail"))
-    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    Swag.require(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
     view.scroll.setScrollPos(0, 520)
     let pageStart = view.scroll.scrollPosition().y
 
     host.mouseWheel({60, 100}, -1)
-    Swag.assert(view.layout.constBox(rail).scrollTop > 0)
-    Swag.assert(view.scroll.scrollPosition().y == pageStart)
+    Swag.require(view.layout.constBox(rail).scrollTop > 0)
+    Swag.require(view.scroll.scrollPosition().y == pageStart)
 
     discard view.scrollRegion(rail, 100_000)
     let railEnd = view.layout.constBox(rail).scrollTop
     host.mouseWheel({60, 100}, -1)
-    Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
-    Swag.assert(view.scroll.scrollPosition().y == pageStart)
+    Swag.require(view.layout.constBox(rail).scrollTop == railEnd)
+    Swag.require(view.scroll.scrollPosition().y == pageStart)
 
     host.mouseWheel({420, 180}, -1)
-    Swag.assert(view.scroll.scrollPosition().y > pageStart)
-    Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
+    Swag.require(view.scroll.scrollPosition().y > pageStart)
+    Swag.require(view.layout.constBox(rail).scrollTop == railEnd)
 }
 
 // Clicking a fragment in the independently scrolled rail positions its target after the CSS
@@ -1368,11 +1368,11 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     discard host.render(view)
 
     let hit = findVisibleLink(view, "#frame-target-two")
-    Swag.assert(hit.found)
+    Swag.require(hit.found)
     host.click(hit.point)
 
     let target = view.layout.constBox(view.boxOfNode(view.elementById("frame-target-two")))
-    Swag.assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 60) <= 1)
+    Swag.require(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 60) <= 1)
 }
 
 // A relative local link replaces the displayed file and follows its fragment in the new page.
@@ -1390,12 +1390,12 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     discard view.scrollRegion(rail, 100_000)
     discard host.render(view)
     let hit = findVisibleLink(view, "html.local-target.html#local-target")
-    Swag.assert(hit.found)
+    Swag.require(hit.found)
     host.click(hit.point)
 
-    Swag.assert(Path.fileName(view.fileName) == "html.local-target.html")
+    Swag.require(Path.fileName(view.fileName) == "html.local-target.html")
     let target = view.layout.constBox(view.boxOfNode(view.elementById("local-target")))
-    Swag.assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 68) <= 1)
+    Swag.require(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 68) <= 1)
 }
 
 // The generated Pixel API page stays progressive, preserves its independently scrolled rail
@@ -1408,46 +1408,46 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     host.setup(960, 540)
 
     let path = guiFixturePath("std.pixel.html")
-    Swag.assert((expect File.info(path)).size > 1024 * 1024)
+    Swag.require((expect File.info(path)).size > 1024 * 1024)
     let view = HtmlView.createFile(&host.root, path)
     view.resize(960, 540)
     view.applyLayout()
     view.rebuild()
-    Swag.assert(view.isLoading())
+    Swag.require(view.isLoading())
 
     let railNode = findClass(&view.document, "left")
-    Swag.assert(railNode != HtmlNoNode)
+    Swag.require(railNode != HtmlNoNode)
     var rail = view.boxOfNode(railNode)
-    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
-    Swag.assert(view.elementById("api-reference") == HtmlNoNode)
+    Swag.require(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
+    Swag.require(view.elementById("api-reference") == HtmlNoNode)
     let navigated = view.navigateToFragment("#api-reference")
-    Swag.assert(navigated)
-    Swag.assert(view.scrollRegion(rail, 180))
+    Swag.require(navigated)
+    Swag.require(view.scrollRegion(rail, 180))
 
     view.streamStep()
-    Swag.assert(view.isLoading())
+    Swag.require(view.isLoading())
     rail = view.boxOfNode(findClass(&view.document, "left"))
-    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
-    Swag.assert(view.elementById("api-reference") == HtmlNoNode)
+    Swag.require(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
+    Swag.require(view.elementById("api-reference") == HtmlNoNode)
 
     view.streamStep()
-    Swag.assert(view.isLoading())
+    Swag.require(view.isLoading())
     rail = view.boxOfNode(findClass(&view.document, "left"))
-    Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
-    Swag.assert(view.elementById("api-reference") != HtmlNoNode)
+    Swag.require(rail != HtmlNoNode and view.layout.constBox(rail).scrollTop == 180)
+    Swag.require(view.elementById("api-reference") != HtmlNoNode)
 
     let target = view.layout.constBox(view.boxOfNode(view.elementById("api-reference")))
-    Swag.assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 82) <= 1)
+    Swag.require(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 82) <= 1)
 
     let headerNode = findClass(&view.document, "site-header")
     let linksNode  = findClass(&view.document, "site-links")
     let header     = view.layout.constBox(view.boxOfNode(headerNode))
     let links      = view.layout.constBox(view.boxOfNode(linksNode))
-    Swag.assert(header.rect.height <= 68)
-    Swag.assert(not links.children.isEmpty())
+    Swag.require(header.rect.height <= 68)
+    Swag.require(not links.children.isEmpty())
     let firstY = view.layout.constBox(links.children[0]).rect.y
     for child in links.children do
-        Swag.assert(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
+        Swag.require(Math.abs(view.layout.constBox(child).rect.y - firstY) <= 1)
 
     view.stopLoading()
 }
@@ -1460,8 +1460,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_html_%.html", Guid64.random()).toString())
     let view = HtmlView.createFile(&host.root, path)
-    Swag.assert(not view.failureReason.isEmpty())
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.failureReason.isEmpty())
+    Swag.require(not view.isLoading())
 }
 
 // A `>` inside a quoted attribute value belongs to the value, not to the tag.
@@ -1469,21 +1469,21 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     let document = parseDocument("<p><a href=\"#x\" title=\"a > b\" data-note='1 > 0'>link</a> tail</p><p>second</p>")
     let anchor   = findTag(&document, .A)
-    Swag.assert(anchor != HtmlNoNode)
-    Swag.assert(document.attribute(anchor, "title") == "a > b")
-    Swag.assert(document.attribute(anchor, "data-note") == "1 > 0")
-    Swag.assert(document.textContent(anchor).toString() == "link")
+    Swag.require(anchor != HtmlNoNode)
+    Swag.require(document.attribute(anchor, "title") == "a > b")
+    Swag.require(document.attribute(anchor, "data-note") == "1 > 0")
+    Swag.require(document.textContent(anchor).toString() == "link")
 
     var paragraphs = 0'u32
     for index in document.nodes.count where document.constNode(cast(u32, index)).tag == .P do
         paragraphs += 1
-    Swag.assert(paragraphs == 2)
+    Swag.require(paragraphs == 2)
 
     // A stray quote outside any value still lets the tag end at its `>`.
     let strays = parseDocument("<p foo\"bar>text</p>")
     let para   = findTag(&strays, .P)
-    Swag.assert(para != HtmlNoNode)
-    Swag.assert(strays.textContent(para).toString() == "text")
+    Swag.require(para != HtmlNoNode)
+    Swag.require(strays.textContent(para).toString() == "text")
 }
 
 // The newline that immediately follows a `<pre>` or `<textarea>` start tag is not content, and
@@ -1491,13 +1491,13 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 #test
 {
     let document = parseDocument("<pre>\nkeep</pre><pre>\n\ntwo</pre><textarea>\nvalue</textarea>")
-    Swag.assert(document.textContent(findNthTag(&document, .Pre, 1)).toString() == "keep")
-    Swag.assert(document.textContent(findNthTag(&document, .Pre, 2)).toString() == "\ntwo")
-    Swag.assert(document.textContent(findTag(&document, .TextArea)).toString() == "value")
+    Swag.require(document.textContent(findNthTag(&document, .Pre, 1)).toString() == "keep")
+    Swag.require(document.textContent(findNthTag(&document, .Pre, 2)).toString() == "\ntwo")
+    Swag.require(document.textContent(findTag(&document, .TextArea)).toString() == "value")
 
     // A tag between the two keeps the newline: the rule only ever applies to the very next token.
     let nested = parseDocument("<pre><code>\nkept</code></pre>")
-    Swag.assert(nested.textContent(findTag(&nested, .Code)).toString() == "\nkept")
+    Swag.require(nested.textContent(findTag(&nested, .Code)).toString() == "\nkept")
 }
 
 // Both fixes hold when the source arrives in chunks that cut a quoted value and a dropped
@@ -1521,8 +1521,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     parser.finish()
 
     let anchor = findTag(&streamed, .A)
-    Swag.assert(streamed.attribute(anchor, "title") == "a > b")
-    Swag.assert(streamed.textContent(findTag(&streamed, .Pre)).toString() == "    indented")
+    Swag.require(streamed.attribute(anchor, "title") == "a > b")
+    Swag.require(streamed.textContent(findTag(&streamed, .Pre)).toString() == "    indented")
 }
 
 // Preserved white space keeps the indentation a code line starts with; collapsed white space
@@ -1547,18 +1547,18 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let kept     = view.boxOfNode(view.elementById("k"))
     let keptZero = findItemPos(view, kept, "zero")
     let keptFour = findItemPos(view, kept, "four")
-    Swag.assert(keptZero.found and keptFour.found)
-    Swag.assert(keptFour.y > keptZero.y)
+    Swag.require(keptZero.found and keptFour.found)
+    Swag.require(keptFour.y > keptZero.y)
 
     // The second line starts four monospace spaces in, not at the margin.
-    Swag.assert(keptFour.x > keptZero.x + 1)
+    Swag.require(keptFour.x > keptZero.x + 1)
 
     let folded     = view.boxOfNode(view.elementById("f"))
     let foldedZero = findItemPos(view, folded, "zero")
     let foldedFour = findItemPos(view, folded, "four")
-    Swag.assert(foldedZero.found and foldedFour.found)
-    Swag.assert(foldedFour.y > foldedZero.y)
-    Swag.assert(Math.abs(foldedFour.x - foldedZero.x) < 0.5)
+    Swag.require(foldedZero.found and foldedFour.found)
+    Swag.require(foldedFour.y > foldedZero.y)
+    Swag.require(Math.abs(foldedFour.x - foldedZero.x) < 0.5)
 }
 
 // `repeat()` expands to its full track list, alone and mixed with plain tracks.
@@ -1588,22 +1588,22 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let d     = view.layout.constBox(view.boxOfNode(view.elementById("d")))
 
     // Three columns share the row; the fourth item wraps to the next one.
-    Swag.assert(a.rect.y == b.rect.y and b.rect.y == c.rect.y)
-    Swag.assert(d.rect.y > a.rect.y)
-    Swag.assert(Math.abs(a.rect.width - track) <= 0.75)
-    Swag.assert(Math.abs(b.rect.x - a.rect.right() - 10) <= 0.75)
-    Swag.assert(Math.abs(c.rect.right() - width) <= 0.75)
+    Swag.require(a.rect.y == b.rect.y and b.rect.y == c.rect.y)
+    Swag.require(d.rect.y > a.rect.y)
+    Swag.require(Math.abs(a.rect.width - track) <= 0.75)
+    Swag.require(Math.abs(b.rect.x - a.rect.right() - 10) <= 0.75)
+    Swag.require(Math.abs(c.rect.right() - width) <= 0.75)
 
     let flexible = (width - 200) / 2
     let m1       = view.layout.constBox(view.boxOfNode(view.elementById("m1")))
     let m2       = view.layout.constBox(view.boxOfNode(view.elementById("m2")))
     let m3       = view.layout.constBox(view.boxOfNode(view.elementById("m3")))
     let m4       = view.layout.constBox(view.boxOfNode(view.elementById("m4")))
-    Swag.assert(m1.rect.y == m4.rect.y)
-    Swag.assert(Math.abs(m1.rect.width - 100) <= 0.75)
-    Swag.assert(Math.abs(m2.rect.width - flexible) <= 0.75)
-    Swag.assert(Math.abs(m3.rect.width - 100) <= 0.75)
-    Swag.assert(Math.abs(m3.rect.x - m2.rect.right()) <= 0.75)
+    Swag.require(m1.rect.y == m4.rect.y)
+    Swag.require(Math.abs(m1.rect.width - 100) <= 0.75)
+    Swag.require(Math.abs(m2.rect.width - flexible) <= 0.75)
+    Swag.require(Math.abs(m3.rect.width - 100) <= 0.75)
+    Swag.require(Math.abs(m3.rect.x - m2.rect.right()) <= 0.75)
 }
 
 // An image embedded in the document as a `data:` URI decodes like a file image, so a
@@ -1626,8 +1626,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     // The embedded picture provides its natural size, so the box is no broken-image placeholder.
     let box = view.layout.constBox(view.boxOfNode(view.elementById("i")))
-    Swag.assert(box.content.width == 32 and box.content.height == 32)
-    Swag.assert(view.images.entries.count == 1 and view.images.entries[0].loaded)
+    Swag.require(box.content.width == 32 and box.content.height == 32)
+    Swag.require(view.images.entries.count == 1 and view.images.entries[0].loaded)
     discard host.render(view)
 }
 
@@ -1647,14 +1647,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     declared.append(0xE9'u8)
     declared += "</p></body></html>"
     let declaredText = loadTemporaryDocument(&host, declared.bytes(), "declared")
-    Swag.assert(Utf8.contains(declaredText.toString(), "café"))
+    Swag.require(Utf8.contains(declaredText.toString(), "café"))
 
     // No declaration: the byte pattern itself says code page 1252.
     var plain: String = "<html><body><p>tr"
     plain.append(0xE8'u8)
     plain += "s vite</p></body></html>"
     let plainText = loadTemporaryDocument(&host, plain.bytes(), "plain")
-    Swag.assert(Utf8.contains(plainText.toString(), "très vite"))
+    Swag.require(Utf8.contains(plainText.toString(), "très vite"))
 
     // UTF-16 LE behind its byte-order mark, which is content in no encoding.
     var wide: Array'u8
@@ -1667,8 +1667,8 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     }
 
     let wideText = loadTemporaryDocument(&host, wide.toSlice(), "wide")
-    Swag.assert(Utf8.contains(wideText.toString(), "wide text"))
-    Swag.assert(not Utf8.contains(wideText.toString(), "ÿþ"))
+    Swag.require(Utf8.contains(wideText.toString(), "wide text"))
+    Swag.require(not Utf8.contains(wideText.toString(), "ÿþ"))
 }
 
 // Misnested formatting keeps its formatting: the close that pops an inline ancestor reopens the
@@ -1677,21 +1677,21 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     let document = parseDocument("<p><b>one <i class=\"x\">two</b> three</i> four</p>")
     let bold     = findTag(&document, .B)
-    Swag.assert(bold != HtmlNoNode)
-    Swag.assert(document.textContent(bold).toString() == "one two")
+    Swag.require(bold != HtmlNoNode)
+    Swag.require(document.textContent(bold).toString() == "one two")
 
     // Two italic elements exist: the original inside the bold, the reopened one after it, and
     // the clone carries the original's attributes.
     let first  = findNthTag(&document, .I, 1)
     let second = findNthTag(&document, .I, 2)
-    Swag.assert(first != HtmlNoNode and second != HtmlNoNode)
-    Swag.assert(document.constNode(first).parent == bold)
-    Swag.assert(document.constNode(second).parent == document.constNode(bold).parent)
-    Swag.assert(document.textContent(second).toString() == " three")
-    Swag.assert(document.hasClass(second, "x"))
+    Swag.require(first != HtmlNoNode and second != HtmlNoNode)
+    Swag.require(document.constNode(first).parent == bold)
+    Swag.require(document.constNode(second).parent == document.constNode(bold).parent)
+    Swag.require(document.textContent(second).toString() == " three")
+    Swag.require(document.hasClass(second, "x"))
 
     let para = findTag(&document, .P)
-    Swag.assert(document.textContent(para).toString() == "one two three four")
+    Swag.require(document.textContent(para).toString() == "one two three four")
 }
 
 // A source that writes no `<html>`, `<head>` or `<body>` is the same document as one that does.
@@ -1702,24 +1702,24 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let html     = findTag(&document, .Html)
     let head     = findTag(&document, .Head)
     let body     = findTag(&document, .Body)
-    Swag.assert(html != HtmlNoNode and head != HtmlNoNode and body != HtmlNoNode)
-    Swag.assert(document.constNode(html).parent == 0)
-    Swag.assert(document.constNode(head).parent == html)
-    Swag.assert(document.constNode(body).parent == html)
+    Swag.require(html != HtmlNoNode and head != HtmlNoNode and body != HtmlNoNode)
+    Swag.require(document.constNode(html).parent == 0)
+    Swag.require(document.constNode(head).parent == html)
+    Swag.require(document.constNode(body).parent == html)
 
     // A `<style>` belongs to the head, and the text that follows it starts the body.
-    Swag.assert(document.constNode(findTag(&document, .Style)).parent == head)
-    Swag.assert(document.constNode(findTag(&document, .P)).parent == body)
-    Swag.assert(document.textContent(body).toString() == "textcontent")
+    Swag.require(document.constNode(findTag(&document, .Style)).parent == head)
+    Swag.require(document.constNode(findTag(&document, .P)).parent == body)
+    Swag.require(document.textContent(body).toString() == "textcontent")
 
     // A written section is the section the document already has, whatever a malformed page repeats.
     let written = parseDocument("<html lang='en'><body class='page'><p>one</p></body><p>two</p><body class='again'>")
-    Swag.assert(written.constNode(findTag(&written, .Html)).attributes.count == 1)
+    Swag.require(written.constNode(findTag(&written, .Html)).attributes.count == 1)
     let onlyBody = findTag(&written, .Body)
-    Swag.assert(written.attribute(onlyBody, "class") == "page")
+    Swag.require(written.attribute(onlyBody, "class") == "page")
     for index in written.nodes.count where index != cast(u64, onlyBody) do
-        Swag.assert(written.constNode(cast(u32, index)).tag != .Body)
-    Swag.assert(written.textContent(onlyBody).toString() == "onetwo")
+        Swag.require(written.constNode(cast(u32, index)).tag != .Body)
+    Swag.require(written.textContent(onlyBody).toString() == "onetwo")
 }
 
 // Character references resolve against the standard's complete list, including the two-code-point
@@ -1728,14 +1728,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     let document = parseDocument("<p>&boxplus; &NotEqualTilde; &copy; &copy 2026 &notit; &unknownref;</p>")
     let text     = document.textContent(findTag(&document, .P))
-    Swag.assert(text == "\u229E \u2242\u0338 \u00A9 \u00A9 2026 \u00ACit; &unknownref;")
+    Swag.require(text == "\u229E \u2242\u0338 \u00A9 \u00A9 2026 \u00ACit; &unknownref;")
 
     // Inside an attribute value a legacy spelling stays literal when a name or an `=` follows it,
     // which is what keeps a query string intact.
     let query = parseDocument("<a href=\"?a=1&copy=2&amp;b=3\" title=\"&copy 2026\">x</a>")
     let link  = findTag(&query, .A)
-    Swag.assert(query.attribute(link, "href") == "?a=1&copy=2&b=3")
-    Swag.assert(query.attribute(link, "title") == "\u00A9 2026")
+    Swag.require(query.attribute(link, "href") == "?a=1&copy=2&b=3")
+    Swag.require(query.attribute(link, "title") == "\u00A9 2026")
 }
 
 // The background a document asks for covers the canvas, not just the box that carries it: a page
@@ -1751,12 +1751,12 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.rebuild()
 
     var image = host.render(view)
-    Swag.assert(image.pixelColor(150, 110).argb == 0xFFFF0000)
-    Swag.assert(image.pixelColor(4, 4).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(150, 110).argb == 0xFFFF0000)
+    Swag.require(image.pixelColor(4, 4).argb == 0xFFFF0000)
 
     // The body's own box no longer repaints what the canvas already carries, and the paragraph
     // still paints over it.
-    Swag.assert(image.pixelColor(20, 12).argb == 0xFF0000FF)
+    Swag.require(image.pixelColor(20, 12).argb == 0xFF0000FF)
 }
 
 // Content written inside the table structure but outside any cell renders before the table,
@@ -1767,18 +1767,18 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let host     = findTag(&document, .Div)
     let table    = findTag(&document, .Table)
     let bold     = findTag(&document, .B)
-    Swag.assert(document.constNode(bold).parent == host)
+    Swag.require(document.constNode(bold).parent == host)
 
     // Order under the host: the fostered text, the fostered bold run, then the table.
-    Swag.assert(document.childCount(host) == 3)
-    Swag.assert(document.constNode(document.childAt(host, 0)).kind == .Text)
-    Swag.assert(document.textOf(document.childAt(host, 0)) == "stray ")
-    Swag.assert(document.childAt(host, 1) == bold)
-    Swag.assert(document.childAt(host, 2) == table)
+    Swag.require(document.childCount(host) == 3)
+    Swag.require(document.constNode(document.childAt(host, 0)).kind == .Text)
+    Swag.require(document.textOf(document.childAt(host, 0)) == "stray ")
+    Swag.require(document.childAt(host, 1) == bold)
+    Swag.require(document.childAt(host, 2) == table)
 
     let cell = findTag(&document, .Td)
-    Swag.assert(document.textContent(cell).toString() == "cell")
-    Swag.assert(document.textContent(table).toString() == "cell")
+    Swag.require(document.textContent(cell).toString() == "cell")
+    Swag.require(document.textContent(table).toString() == "cell")
 }
 
 // A block interrupts a paragraph even through its open inline children: the paragraph closes,
@@ -1788,9 +1788,9 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     let document = parseDocument("<p>lead <b>bold<div>block</div>")
     let para     = findTag(&document, .P)
     let block    = findTag(&document, .Div)
-    Swag.assert(document.constNode(block).parent == document.constNode(para).parent)
-    Swag.assert(document.textContent(para).toString() == "lead bold")
-    Swag.assert(document.textContent(block).toString() == "block")
+    Swag.require(document.constNode(block).parent == document.constNode(para).parent)
+    Swag.require(document.textContent(para).toString() == "lead bold")
+    Swag.require(document.textContent(block).toString() == "block")
 }
 
 // The recoveries hold when the source arrives in chunks that cut every token.
@@ -1814,14 +1814,14 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     let host  = findTag(&streamed, .Div)
     let table = findTag(&streamed, .Table)
-    Swag.assert(streamed.childCount(host) == 2)
-    Swag.assert(streamed.textOf(streamed.childAt(host, 0)) == "stray")
-    Swag.assert(streamed.childAt(host, 1) == table)
-    Swag.assert(streamed.textContent(table).toString() == "cell")
+    Swag.require(streamed.childCount(host) == 2)
+    Swag.require(streamed.textOf(streamed.childAt(host, 0)) == "stray")
+    Swag.require(streamed.childAt(host, 1) == table)
+    Swag.require(streamed.textContent(table).toString() == "cell")
 
     let second = findNthTag(&streamed, .I, 2)
-    Swag.assert(second != HtmlNoNode)
-    Swag.assert(streamed.textContent(second).toString() == " three")
+    Swag.require(second != HtmlNoNode)
+    Swag.require(streamed.textContent(second).toString() == " three")
 }
 
 // A left float leaves the stack: the lines beside it shorten, the flow returns to the margin
@@ -1845,24 +1845,24 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     // The float sits at the top left, and the paragraph's own box still starts at the same top.
     let fig = view.layout.constBox(view.boxOfNode(view.elementById("f")))
-    Swag.assert(fig.rect.x == 0 and fig.rect.y == 0)
-    Swag.assert(fig.rect.width == 120 and fig.rect.height == 40)
+    Swag.require(fig.rect.x == 0 and fig.rect.y == 0)
+    Swag.require(fig.rect.width == 120 and fig.rect.height == 40)
 
     let para = view.boxOfNode(view.elementById("t"))
-    Swag.assert(view.layout.constBox(para).rect.y == 0)
+    Swag.require(view.layout.constBox(para).rect.y == 0)
 
     // Lines beside the float start at its right edge; the forced last line, well past the
     // float's bottom, returns to the margin.
     let beside = findItemPos(view, para, "first")
-    Swag.assert(beside.found and beside.x >= 120)
-    Swag.assert(beside.y < 40)
+    Swag.require(beside.found and beside.x >= 120)
+    Swag.require(beside.y < 40)
     let below = findItemPos(view, para, "last")
-    Swag.assert(below.found and below.x < 1)
-    Swag.assert(below.y >= 38)
+    Swag.require(below.found and below.x < 1)
+    Swag.require(below.y >= 38)
 
     // The cleared box starts below the float's bottom rather than at the flow position.
     let cleared = view.layout.constBox(view.boxOfNode(view.elementById("c")))
-    Swag.assert(cleared.rect.y >= 40)
+    Swag.require(cleared.rect.y >= 40)
 }
 
 // A right float hugs the right edge, and the text keeps the left one.
@@ -1883,12 +1883,12 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.rebuild()
 
     let fig = view.layout.constBox(view.boxOfNode(view.elementById("f")))
-    Swag.assert(fig.rect.y == 0)
-    Swag.assert(Math.abs(fig.rect.right() - 400) <= 0.5)
-    Swag.assert(fig.rect.width == 120)
+    Swag.require(fig.rect.y == 0)
+    Swag.require(Math.abs(fig.rect.right() - 400) <= 0.5)
+    Swag.require(fig.rect.width == 120)
 
     let first = findItemPos(view, view.boxOfNode(view.elementById("t")), "first")
-    Swag.assert(first.found and first.x < 1 and first.y < 40)
+    Swag.require(first.found and first.x < 1 and first.y < 40)
 }
 
 // Returns the right edge of the widest visible item of a box, so overflow tests read geometry.
@@ -1924,16 +1924,16 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     view.rebuild()
 
     let box = view.boxOfNode(view.elementById("t"))
-    Swag.assert(view.layout.constBox(box).lines.count >= 2)
-    Swag.assert(maxItemRight(view, box) <= 120.5)
-    Swag.assert(countTextItems(view, box) >= 2)
+    Swag.require(view.layout.constBox(box).lines.count >= 2)
+    Swag.require(maxItemRight(view, box) <= 120.5)
+    Swag.require(countTextItems(view, box) >= 2)
 
     // The split fragments merge back once the measure is wide enough for the whole run.
     view.resize(800, 600)
     view.applyLayout()
     view.placeDocument()
-    Swag.assert(view.layout.constBox(box).lines.count == 1)
-    Swag.assert(countTextItems(view, box) == 1)
+    Swag.require(view.layout.constBox(box).lines.count == 1)
+    Swag.require(countTextItems(view, box) == 1)
 }
 
 // CJK text carries no spaces: every character is a break opportunity, and the paragraph stays
@@ -1952,15 +1952,15 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     view.rebuild()
 
     let box = view.boxOfNode(view.elementById("c"))
-    Swag.assert(view.layout.constBox(box).lines.count >= 2)
-    Swag.assert(maxItemRight(view, box) <= 100.5)
+    Swag.require(view.layout.constBox(box).lines.count >= 2)
+    Swag.require(maxItemRight(view, box) <= 100.5)
 
     // `word-break: keep-all` restores the unbreakable run.
     let keep = HtmlView.createText(&host.root, "<style>body { margin: 0 } p { margin: 0; width: 100px; word-break: keep-all }</style><p id=\"c\">法国是一个位于西欧的国家法国是一个位于西欧的国家</p>")
     keep.resize(400, 300)
     keep.applyLayout()
     keep.rebuild()
-    Swag.assert(countTextItems(keep, keep.boxOfNode(keep.elementById("c"))) == 1)
+    Swag.require(countTextItems(keep, keep.boxOfNode(keep.elementById("c"))) == 1)
 }
 
 // `word-break: break-all` fills each line to its edge, splitting the run mid-word.
@@ -1978,8 +1978,8 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     view.rebuild()
 
     let box = view.boxOfNode(view.elementById("t"))
-    Swag.assert(view.layout.constBox(box).lines.count >= 2)
-    Swag.assert(maxItemRight(view, box) <= 120.5)
+    Swag.require(view.layout.constBox(box).lines.count >= 2)
+    Swag.require(maxItemRight(view, box) <= 120.5)
 }
 
 // `<wbr>` marks a soft break opportunity, and `&shy;` breaks with a visible hyphen only where
@@ -2002,12 +2002,12 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     let broken = view.boxOfNode(view.elementById("w"))
     let first  = findItemPos(view, broken, "aaaaaaaaaa")
     let second = findItemPos(view, broken, "bbbbbbbbbb")
-    Swag.assert(first.found and second.found)
-    Swag.assert(second.y > first.y)
+    Swag.require(first.found and second.found)
+    Swag.require(second.y > first.y)
 
     // The soft hyphen leaves the run, breaks it, and the head fragment draws its hyphen.
     let hyphenated = view.boxOfNode(view.elementById("s"))
-    Swag.assert(view.layout.constBox(hyphenated).lines.count == 2)
+    Swag.require(view.layout.constBox(hyphenated).lines.count == 2)
     var sawHyphen: bool
     for item in view.layout.constBox(hyphenated).items where item.kind == .Text and view.layout.inlineText(item) == "cccccccccc"
     {
@@ -2015,13 +2015,13 @@ func countTextItems(view: *HtmlView, box: u32)->u64
         break
     }
 
-    Swag.assert(sawHyphen)
+    Swag.require(sawHyphen)
 
     // A soft hyphen where no break is needed draws nothing and the line stays whole.
     let whole = view.boxOfNode(view.elementById("n"))
-    Swag.assert(view.layout.constBox(whole).lines.count == 1)
+    Swag.require(view.layout.constBox(whole).lines.count == 1)
     for item in view.layout.constBox(whole).items do
-        Swag.assert(not item.hyphenAtBreak)
+        Swag.require(not item.hyphenAtBreak)
 }
 
 // The `font` shorthand expands into its longhands, including the `/line-height` form, and
@@ -2042,19 +2042,19 @@ func countTextItems(view: *HtmlView, box: u32)->u64
     view.rebuild()
 
     let styled = view.layout.styleOfNode(view.elementById("f"))
-    Swag.assert(styled.italic)
-    Swag.assert(styled.fontWeight == 700)
-    Swag.assert(styled.fontSize == 20)
-    Swag.assert(styled.lineHeight.kind == .Percent and styled.lineHeight.value == 2)
-    Swag.assert(styled.fontFamily == .Mono)
+    Swag.require(styled.italic)
+    Swag.require(styled.fontWeight == 700)
+    Swag.require(styled.fontSize == 20)
+    Swag.require(styled.lineHeight.kind == .Percent and styled.lineHeight.value == 2)
+    Swag.require(styled.fontFamily == .Mono)
 
     var spaced, plain: f32
     for item in view.layout.constBox(view.boxOfNode(view.elementById("ws"))).items where item.kind == .Space do
         spaced = item.width
     for item in view.layout.constBox(view.boxOfNode(view.elementById("nb"))).items where item.kind == .Space do
         plain = item.width
-    Swag.assert(plain > 0)
-    Swag.assert(Math.abs(spaced - plain - 10) <= 0.01)
+    Swag.require(plain > 0)
+    Swag.require(Math.abs(spaced - plain - 10) <= 0.01)
 }
 
 // Reports whether a parsed color lands within a small tolerance of an expected paint, which is
@@ -2076,30 +2076,30 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 // `color()` function, and hue units other than degrees.
 #test
 {
-    Swag.assert(closeColor(htmlParseColor("oklch(0.62796 0.25768 29.234)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("oklab(0.62796 0.22486 0.12585)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("oklch(100% 0 0)"), 0xFFFFFFFF))
-    Swag.assert(closeColor(htmlParseColor("lab(54.29 80.805 69.891)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("lch(54.29 106.84 40.858)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("hwb(120 0% 0%)"), 0xFF00FF00))
-    Swag.assert(closeColor(htmlParseColor("hwb(0 100% 0%)"), 0xFFFFFFFF))
-    Swag.assert(closeColor(htmlParseColor("hwb(0 40% 60%)"), 0xFF666666))
-    Swag.assert(closeColor(htmlParseColor("color(srgb 1 0 0)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("color(srgb-linear 1 0 0)"), 0xFFFF0000))
-    Swag.assert(closeColor(htmlParseColor("color(display-p3 1 0 0)"), 0xFFFF0000, 12))
-    Swag.assert(closeColor(htmlParseColor("hsl(0.5turn 100% 50%)"), 0xFF00FFFF))
-    Swag.assert(closeColor(htmlParseColor("hsl(3.14159rad 100% 50%)"), 0xFF00FFFF))
+    Swag.require(closeColor(htmlParseColor("oklch(0.62796 0.25768 29.234)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("oklab(0.62796 0.22486 0.12585)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("oklch(100% 0 0)"), 0xFFFFFFFF))
+    Swag.require(closeColor(htmlParseColor("lab(54.29 80.805 69.891)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("lch(54.29 106.84 40.858)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("hwb(120 0% 0%)"), 0xFF00FF00))
+    Swag.require(closeColor(htmlParseColor("hwb(0 100% 0%)"), 0xFFFFFFFF))
+    Swag.require(closeColor(htmlParseColor("hwb(0 40% 60%)"), 0xFF666666))
+    Swag.require(closeColor(htmlParseColor("color(srgb 1 0 0)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("color(srgb-linear 1 0 0)"), 0xFFFF0000))
+    Swag.require(closeColor(htmlParseColor("color(display-p3 1 0 0)"), 0xFFFF0000, 12))
+    Swag.require(closeColor(htmlParseColor("hsl(0.5turn 100% 50%)"), 0xFF00FFFF))
+    Swag.require(closeColor(htmlParseColor("hsl(3.14159rad 100% 50%)"), 0xFF00FFFF))
 
     // Alpha rides behind the slash whatever the notation.
     let translucent = htmlParseColor("oklch(0.62796 0.25768 29.234 / 50%)")
-    Swag.assert(translucent.matched and Math.abs(cast(s32, translucent.color.a) - 128) <= 1)
+    Swag.require(translucent.matched and Math.abs(cast(s32, translucent.color.a) - 128) <= 1)
 
     // An out-of-gamut color clamps to the gamut edge instead of wrapping.
     let vivid = htmlParseColor("oklch(0.9 0.37 145)")
-    Swag.assert(vivid.matched and vivid.color.g == 255)
+    Swag.require(vivid.matched and vivid.color.g == 255)
 
     // An unknown color space is refused, so the cascade keeps its previous value.
-    Swag.assert(not htmlParseColor("color(rec2020 1 0 0)").matched)
+    Swag.require(not htmlParseColor("color(rec2020 1 0 0)").matched)
 }
 
 // The full `an+b` grammar matches, and the `-of-type` selectors count within their type.
@@ -2129,14 +2129,14 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
     {
         let item  = findNthTag(&view.document, .Li, wanted + 1)
         let style = view.layout.styleOfNode(item)
-        Swag.assert(style.color == ((wanted + 1) % 3 == 0 ? red : black))
-        Swag.assert(style.fontWeight == (wanted < 2 ? 700 : 400))
+        Swag.require(style.color == ((wanted + 1) % 3 == 0 ? red : black))
+        Swag.require(style.fontWeight == (wanted < 2 ? 700 : 400))
     }
 
-    Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .P, 1)).color != Pixel.Color.fromArgb(0xFF00FF00))
-    Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .P, 2)).color == Pixel.Color.fromArgb(0xFF00FF00))
-    Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 1)).color == Pixel.Color.fromArgb(0xFF0000FF))
-    Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 2)).color != Pixel.Color.fromArgb(0xFF0000FF))
+    Swag.require(view.layout.styleOfNode(findNthTag(&view.document, .P, 1)).color != Pixel.Color.fromArgb(0xFF00FF00))
+    Swag.require(view.layout.styleOfNode(findNthTag(&view.document, .P, 2)).color == Pixel.Color.fromArgb(0xFF00FF00))
+    Swag.require(view.layout.styleOfNode(findNthTag(&view.document, .Span, 1)).color == Pixel.Color.fromArgb(0xFF0000FF))
+    Swag.require(view.layout.styleOfNode(findNthTag(&view.document, .Span, 2)).color != Pixel.Color.fromArgb(0xFF0000FF))
 }
 
 // Returns the canvas rectangle of the first inline item drawn with `text`.
@@ -2168,16 +2168,16 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     view.applyLayout()
     view.rebuild()
 
-    Swag.assert(not view.hasSelection())
+    Swag.require(not view.hasSelection())
     view.selectAll()
-    Swag.assert(view.hasSelection())
-    Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
-    Swag.assert(view.copySelection())
-    Swag.assert(Clipboard.getString() == "alpha beta\ngamma delta")
+    Swag.require(view.hasSelection())
+    Swag.require(view.selectedText() == "alpha beta\ngamma delta")
+    Swag.require(view.copySelection())
+    Swag.require(Clipboard.getString() == "alpha beta\ngamma delta")
 
     view.clearSelection()
-    Swag.assert(not view.hasSelection())
-    Swag.assert(not view.copySelection())
+    Swag.require(not view.hasSelection())
+    Swag.require(not view.copySelection())
 }
 
 // A mouse drag selects what it crosses, and a double click takes the word under the pointer.
@@ -2193,15 +2193,15 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
 
     let alpha = findItemRect(view, "alpha")
     let gamma = findItemRect(view, "gamma")
-    Swag.assert(alpha.width > 0 and gamma.width > 0)
+    Swag.require(alpha.width > 0 and gamma.width > 0)
 
     let dragFrom = view.canvas.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()})
     let dragTo   = view.canvas.localToSurface(Math.Point{gamma.right() - 1, gamma.vertCenter()})
     host.drag(dragFrom, dragTo)
-    Swag.assert(view.selectedText() == "alpha beta gamma")
+    Swag.require(view.selectedText() == "alpha beta gamma")
 
     host.doubleClick(view.canvas.localToSurface(Math.Point{alpha.horzCenter(), alpha.vertCenter()}))
-    Swag.assert(view.selectedText() == "alpha")
+    Swag.require(view.selectedText() == "alpha")
 }
 
 // The context menu reaches the same selection commands the keyboard binds.
@@ -2218,10 +2218,10 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     host.clickPopupMenuItemWhenShown(HtmlView.CtxSelectAll)
     view.showContextMenu({50, 50})
     host.pump()
-    Swag.assert(view.selectedText() == "menu content")
+    Swag.require(view.selectedText() == "menu content")
 
     host.clickPopupMenuItemWhenShown(HtmlView.CtxCopy)
     view.showContextMenu({50, 50})
     host.pump()
-    Swag.assert(Clipboard.getString() == "menu content")
+    Swag.require(Clipboard.getString() == "menu content")
 }

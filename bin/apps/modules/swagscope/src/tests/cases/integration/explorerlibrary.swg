@@ -10,7 +10,7 @@ using Core, Gui, Pixel
 #test
 {
     let folder = Env.variable("SWAG_SCOPE_TEST_LIBRARY")
-    Swag.assert(folder.count and Directory.exists(folder), "set SWAG_SCOPE_TEST_LIBRARY to an existing media folder")
+    Swag.require(folder.count and Directory.exists(folder), "set SWAG_SCOPE_TEST_LIBRARY to an existing media folder")
     var app: Application
     app.setAppIcon(expect Image.decode(".png", AppIcon))
     registerAppStrings(&app.resources)
@@ -45,7 +45,7 @@ using Core, Gui, Pixel
             Threading.Thread.sleep(10'ms)
         }
 
-        Swag.assert(checked, "the library produced no completed native frame")
+        Swag.require(checked, "the library produced no completed native frame")
         var visible = 0'u64
         let range   = explorer.grid.visibleRange()
         for row in range.first until Math.min(range.end, explorer.shown.count) where
@@ -61,11 +61,11 @@ using Core, Gui, Pixel
                 let key      = expect ThumbnailCache.key(entry.path, settings: settings)
                 let expected = ThumbnailCache.read(key).convertedTo(.RGBA8)
                 let pixels   = app.renderer.readTexturePixels(entry.texture, .RGBA8)
-                Swag.assert(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
+                Swag.require(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
             }
         }
 
         Console.println("Library stage ", stage, ": ", explorer.shown.count, " entries; ", visible, " visible previews")
-        Swag.assert(visible > 0, "the library produced no visible previews")
+        Swag.require(visible > 0, "the library produced no visible previews")
     }
 }

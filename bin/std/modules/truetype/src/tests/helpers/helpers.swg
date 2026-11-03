@@ -15,7 +15,7 @@ struct OutlineCounter
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let path = Path.combine(testSourceRoot(loc), "datas", fileName)
-    Swag.assert(File.exists(path))
+    Swag.require(File.exists(path))
     return path
 }
 
@@ -89,7 +89,7 @@ impl FaceScope
         .bytes = loadFontBytes(fileName)
 
         .face = expect Face.load(.bytes.toSlice())
-        Swag.assert(.face != null)
+        Swag.require(.face != null)
     }
 
     mtd opDrop()
@@ -152,7 +152,7 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
 
 func findPointWithNonZeroY(outline: const *Outline)->u32
 {
-    Swag.assert(outline != null)
+    Swag.require(outline != null)
     let pts = unwrap outline.points
     for index in cast(u32, outline.pointCount)
     {
@@ -160,7 +160,7 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
             return index
     }
 
-    Swag.assert(false)
+    Swag.require(false)
     return 0
 }
 
@@ -248,6 +248,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside cases or helpers")
     return ""
 }

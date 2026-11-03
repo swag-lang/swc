@@ -27,11 +27,11 @@ struct XmlPayload
     var decoder: Serialization.Decoder'Serialization.Read.Xml
     let decoded = expect decoder.readAll'XmlPayload(source.toSlice())
     defer Memory.delete(decoded)
-    Swag.assert(decoded.id == 7)
-    Swag.assert(decoded.active)
-    Swag.assert(decoded.name == "a <b> & \"c'")
-    Swag.assert(Slice.equals(decoded.counts.toSlice(), [-1, 0, 4]))
-    Swag.assert(decoded.pair.x == 3 and decoded.pair.y == -2)
+    Swag.require(decoded.id == 7)
+    Swag.require(decoded.active)
+    Swag.require(decoded.name == "a <b> & \"c'")
+    Swag.require(Slice.equals(decoded.counts.toSlice(), [-1, 0, 4]))
+    Swag.require(decoded.pair.x == 3 and decoded.pair.y == -2)
 }
 
 // A reordered element, a mismatched end tag, an unknown entity, and a bad value all fail.
@@ -50,7 +50,7 @@ struct XmlPayload
         var errOutcome: Swag.Error
         catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errOutcome
         let err = errOutcome.value()
-        Swag.assert(err != null)
+        Swag.require(err != null)
     }
 }
 
@@ -61,7 +61,7 @@ struct XmlPayload
     var errOutcome: Swag.Error
     discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
     let syntax = expect cast(*SyntaxError, errOutcome.value())
-    Swag.assert(syntax.line == 5 and syntax.col == 3)
+    Swag.require(syntax.line == 5 and syntax.col == 3)
 }
 
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.
@@ -71,7 +71,7 @@ struct XmlPayload
     var decoder:      Serialization.Read.Xml
     var errorOutcome: Swag.Error
     catch decoder.startRead(invalidXml) as errorOutcome
-    Swag.assert(errorOutcome.value() is SyntaxError)
+    Swag.require(errorOutcome.value() is SyntaxError)
 }
 
 // Numeric dispatch keeps the value width and leaves the following tag unread.
@@ -80,9 +80,9 @@ func(T) xmlAssertNative(input: string, expected: T)
     var reader: Serialization.Read.Xml
     expect reader.startRead(input)
     let value = expect reader.readNative'T()
-    Swag.assert(value == expected)
-    Swag.assert(reader.stream.position() == input.count - 1)
-    Swag.assert(reader.stream.peekU8() == '<')
+    Swag.require(value == expected)
+    Swag.require(reader.stream.position() == input.count - 1)
+    Swag.require(reader.stream.peekU8() == '<')
 }
 
 #test

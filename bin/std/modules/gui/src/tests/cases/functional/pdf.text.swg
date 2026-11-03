@@ -6,66 +6,66 @@ using Core, Core.Math, Pdf
 // font file on the machine.
 #test
 {
-    Swag.assert(Math.isEqualEpsilon(StandardFont.Helvetica.glyphWidth('A'), 0.667, 0.0005))
-    Swag.assert(Math.isEqualEpsilon(StandardFont.HelveticaBold.glyphWidth('A'), 0.722, 0.0005))
-    Swag.assert(Math.isEqualEpsilon(StandardFont.TimesRoman.glyphWidth(' '), 0.25, 0.0005))
-    Swag.assert(Math.isEqualEpsilon(StandardFont.Courier.glyphWidth('W'), 0.6, 0.0005))
-    Swag.assert(StandardFont.Courier.glyphWidth('i') == StandardFont.Courier.glyphWidth('W'))
+    Swag.require(Math.isEqualEpsilon(StandardFont.Helvetica.glyphWidth('A'), 0.667, 0.0005))
+    Swag.require(Math.isEqualEpsilon(StandardFont.HelveticaBold.glyphWidth('A'), 0.722, 0.0005))
+    Swag.require(Math.isEqualEpsilon(StandardFont.TimesRoman.glyphWidth(' '), 0.25, 0.0005))
+    Swag.require(Math.isEqualEpsilon(StandardFont.Courier.glyphWidth('W'), 0.6, 0.0005))
+    Swag.require(StandardFont.Courier.glyphWidth('i') == StandardFont.Courier.glyphWidth('W'))
 
     // A composed Latin letter has the advance of the letter it is built on, and a character
     // outside the tables still measures as something plausible.
-    Swag.assert(StandardFont.Helvetica.glyphWidth('é') == StandardFont.Helvetica.glyphWidth('e'))
-    Swag.assert(StandardFont.TimesBold.glyphWidth('Ó') == StandardFont.TimesBold.glyphWidth('O'))
-    Swag.assert(StandardFont.Helvetica.glyphWidth('☺') > 0)
+    Swag.require(StandardFont.Helvetica.glyphWidth('é') == StandardFont.Helvetica.glyphWidth('e'))
+    Swag.require(StandardFont.TimesBold.glyphWidth('Ó') == StandardFont.TimesBold.glyphWidth('O'))
+    Swag.require(StandardFont.Helvetica.glyphWidth('☺') > 0)
 
     // "Hi" is 722 + 222 thousandths of the size in Helvetica.
-    Swag.assert(Math.isEqualEpsilon(StandardFont.Helvetica.textWidth("Hi", 100), 94.4, 0.01))
-    Swag.assert(StandardFont.Courier.textWidth("abcd", 10) == 24)
-    Swag.assert(StandardFont.Helvetica.textWidth("", 12) == 0)
+    Swag.require(Math.isEqualEpsilon(StandardFont.Helvetica.textWidth("Hi", 100), 94.4, 0.01))
+    Swag.require(StandardFont.Courier.textWidth("abcd", 10) == 24)
+    Swag.require(StandardFont.Helvetica.textWidth("", 12) == 0)
 }
 
 #test
 {
     let helvetica = StandardFont.fromBaseName("Helvetica")
-    Swag.assert(helvetica.found and helvetica.font == .Helvetica)
+    Swag.require(helvetica.found and helvetica.font == .Helvetica)
 
     // A subset prefix is not part of the name.
     let subset = StandardFont.fromBaseName("ABCDEF+Times-BoldItalic")
-    Swag.assert(subset.found and subset.font == .TimesBoldItalic)
+    Swag.require(subset.found and subset.font == .TimesBoldItalic)
 
     let arial = StandardFont.fromBaseName("Arial-BoldMT")
-    Swag.assert(arial.found and arial.font == .HelveticaBold)
+    Swag.require(arial.found and arial.font == .HelveticaBold)
 
     let courier = StandardFont.fromBaseName("CourierNewPS-ItalicMT")
-    Swag.assert(courier.found and courier.font == .CourierOblique)
+    Swag.require(courier.found and courier.font == .CourierOblique)
 
     let unknown = StandardFont.fromBaseName("Wingdings")
-    Swag.assert(not unknown.found)
+    Swag.require(not unknown.found)
 
     let all: [6] StandardFont = [.Helvetica, .HelveticaBold, .TimesRoman, .TimesBoldItalic, .Courier, .CourierBoldOblique]
     for font in all
     {
         let round = StandardFont.fromBaseName(font.baseFontName())
-        Swag.assert(round.found and round.font == font)
+        Swag.require(round.found and round.font == font)
     }
 }
 
 // The four base encodings map a byte to the character the format assigns it.
 #test
 {
-    Swag.assert(encodingRune(.WinAnsi, 'A') == 'A')
-    Swag.assert(encodingRune(.WinAnsi, 0xE9) == 'é')
-    Swag.assert(encodingRune(.WinAnsi, 0x80) == '€')
-    Swag.assert(encodingRune(.MacRoman, 0x8E) == 'é')
-    Swag.assert(encodingRune(.MacRoman, 0xD5) == '’')
-    Swag.assert(encodingRune(.Standard, 0x27) == '’')
-    Swag.assert(encodingRune(.Standard, 0xE1) == 'Æ')
+    Swag.require(encodingRune(.WinAnsi, 'A') == 'A')
+    Swag.require(encodingRune(.WinAnsi, 0xE9) == 'é')
+    Swag.require(encodingRune(.WinAnsi, 0x80) == '€')
+    Swag.require(encodingRune(.MacRoman, 0x8E) == 'é')
+    Swag.require(encodingRune(.MacRoman, 0xD5) == '’')
+    Swag.require(encodingRune(.Standard, 0x27) == '’')
+    Swag.require(encodingRune(.Standard, 0xE1) == 'Æ')
 
-    Swag.assert(glyphNameRune("eacute") == 'é')
-    Swag.assert(glyphNameRune("Euro") == '€')
-    Swag.assert(glyphNameRune("uni2713") == '✓')
-    Swag.assert(glyphNameRune("u01FF") == 'ǿ')
-    Swag.assert(glyphNameRune("not-a-glyph") == 0)
+    Swag.require(glyphNameRune("eacute") == 'é')
+    Swag.require(glyphNameRune("Euro") == '€')
+    Swag.require(glyphNameRune("uni2713") == '✓')
+    Swag.require(glyphNameRune("u01FF") == 'ǿ')
+    Swag.require(glyphNameRune("not-a-glyph") == 0)
 }
 
 // `Td`, `TD`, `T*`, and `TL` move the line matrix through it, so a rotated text matrix
@@ -78,15 +78,15 @@ using Core, Core.Math, Pdf
 
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
-    Swag.assert(page.items.count == 2)
+    Swag.require(page.items.count == 2)
 
     // The text matrix rotates by ninety degrees, so `Td 5 0` moves down the page and the
     // following line moves left by the leading.
     let first  = page.items[0].itemTransform()
     let second = page.items[1].itemTransform()
-    Swag.assert(Math.isEqualEpsilon(first.tx, 30, 0.01))
-    Swag.assert(Math.isEqualEpsilon(second.tx - first.tx, -12, 0.01))
-    Swag.assert(Math.isEqualEpsilon(second.ty, first.ty, 0.01))
+    Swag.require(Math.isEqualEpsilon(first.tx, 30, 0.01))
+    Swag.require(Math.isEqualEpsilon(second.tx - first.tx, -12, 0.01))
+    Swag.require(Math.isEqualEpsilon(second.ty, first.ty, 0.01))
 }
 
 // `/Widths` decides how far a shown string moves the position, and the entries of a `TJ`
@@ -99,18 +99,18 @@ using Core, Core.Math, Pdf
     let content  = "BT /F0 10 Tf 0 0 Td (AB) Tj (C) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
-    Swag.assert(page.items.count == 2)
+    Swag.require(page.items.count == 2)
 
     // "A" is one em wide and "B" half of one, so the second run starts 15 points further right.
-    Swag.assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
+    Swag.require(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
 
     let kerned = "BT /F0 10 Tf 0 0 Td [(A) -500 (B)] TJ ET"
     let second = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, kerned), objects.toSlice()).toSlice())
-    Swag.assert(second.pages[0].items.count == 2)
+    Swag.require(second.pages[0].items.count == 2)
 
     // One em for "A", then five extra points of kerning.
     let offset = second.pages[0].items[1].itemTransform().tx - second.pages[0].items[0].itemTransform().tx
-    Swag.assert(Math.isEqualEpsilon(offset, 15, 0.01))
+    Swag.require(Math.isEqualEpsilon(offset, 15, 0.01))
 }
 
 // Render mode 3 hides the marks but still advances, which is what an invisible text layer over
@@ -122,13 +122,13 @@ using Core, Core.Math, Pdf
 
     let content  = "BT /F0 10 Tf 3 Tr (hidden) Tj 0 Tr (shown) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
-    Swag.assert(pageText(document.pages[0]) == "hiddenshown")
-    Swag.assert(document.pages[0].items.count == 2)
-    Swag.assert(document.pages[0].items[0].invisibleText)
-    Swag.assert(not document.pages[0].items[1].invisibleText)
+    Swag.require(pageText(document.pages[0]) == "hiddenshown")
+    Swag.require(document.pages[0].items.count == 2)
+    Swag.require(document.pages[0].items[0].invisibleText)
+    Swag.require(not document.pages[0].items[1].invisibleText)
 
     // The hidden run still moved the position, so the visible one does not start at the origin.
-    Swag.assert(document.pages[0].items[1].itemTransform().tx > 20)
+    Swag.require(document.pages[0].items[1].itemTransform().tx > 20)
 }
 
 // Invisible OCR text remains searchable at the same offsets as the displayed page's index.
@@ -144,12 +144,12 @@ using Core, Core.Math, Pdf
 
     var reader = expect Reader.open(fileName)
     let text   = expect reader.loadPageText(0)
-    Swag.assert(text.contains(cast(string, "hidden")))
-    Swag.assert(text.contains(cast(string, "shown")))
-    Swag.assert(text.contains(cast(string, "clipped")))
+    Swag.require(text.contains(cast(string, "hidden")))
+    Swag.require(text.contains(cast(string, "shown")))
+    Swag.require(text.contains(cast(string, "clipped")))
     var page    = expect reader.loadPage(0)
     let indexed = TextIndex.build(&page)
-    Swag.assert(text == indexed.text)
+    Swag.require(text == indexed.text)
 }
 
 // A `/Differences` array renames single codes, and text extraction follows the new names.
@@ -161,7 +161,7 @@ using Core, Core.Math, Pdf
 
     let content  = "BT /F0 10 Tf (ABC) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
-    Swag.assert(pageText(document.pages[0]) == "é€C")
+    Swag.require(pageText(document.pages[0]) == "é€C")
 }
 
 // A `/ToUnicode` CMap outranks the encoding, in both its single and its range form.
@@ -187,7 +187,7 @@ endcmap
 
     let content  = "BT /F0 10 Tf (ABCD) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
-    Swag.assert(pageText(document.pages[0]) == "ABabc")
+    Swag.require(pageText(document.pages[0]) == "ABabc")
 }
 
 // A simple font keeps its one-byte codes whatever its `/ToUnicode` CMap declares.
@@ -215,8 +215,8 @@ endcmap
 
     let content  = "BT /F0 10 Tf (B) Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
-    Swag.assert(document.pages[0].fonts[0].codeBytes == 1)
-    Swag.assert(pageText(document.pages[0]) == "B")
+    Swag.require(document.pages[0].fonts[0].codeBytes == 1)
+    Swag.require(pageText(document.pages[0]) == "B")
 }
 
 // A composite font addresses glyphs with two-byte codes and takes its widths from `/W`.
@@ -241,20 +241,20 @@ endcmap
     let content  = "BT /F0 20 Tf <00030004> Tj <0003> Tj ET"
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     let page     = document.pages[0]
-    Swag.assert(page.items.count == 2)
-    Swag.assert(page.items[0].textValue() == "Hi")
-    Swag.assert(page.items[1].textValue() == "H")
-    Swag.assert(page.fonts[0].identityGlyphs)
-    Swag.assert(page.items[0].textCodes.count == 2 and
-                page.items[0].textCodes[0] == 3 and
-                page.items[0].textCodes[1] == 4)
-    Swag.assert(page.items[0].textAdvances.count == 2 and
-                page.items[0].textAdvances[0] == 10 and
-                page.items[0].textAdvances[1] == 5)
-    Swag.assert(page.fonts[0].glyphIndex(4) == {index: 4, found: true})
+    Swag.require(page.items.count == 2)
+    Swag.require(page.items[0].textValue() == "Hi")
+    Swag.require(page.items[1].textValue() == "H")
+    Swag.require(page.fonts[0].identityGlyphs)
+    Swag.require(page.items[0].textCodes.count == 2 and
+                 page.items[0].textCodes[0] == 3 and
+                 page.items[0].textCodes[1] == 4)
+    Swag.require(page.items[0].textAdvances.count == 2 and
+                 page.items[0].textAdvances[0] == 10 and
+                 page.items[0].textAdvances[1] == 5)
+    Swag.require(page.fonts[0].glyphIndex(4) == {index: 4, found: true})
 
     // The two glyphs are 500 and 250 thousandths wide at size twenty.
-    Swag.assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
+    Swag.require(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
 }
 
 // An explicit `/CIDToGIDMap` replaces the identity mapping for a TrueType descendant.
@@ -268,10 +268,10 @@ endcmap
 
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, ""), objects.toSlice()).toSlice())
     let font     = &document.pages[0].fonts[0]
-    Swag.assert(not font.identityGlyphs)
-    Swag.assert(font.glyphIndex(3) == {index: 7, found: true})
-    Swag.assert(font.glyphIndex(4) == {index: 8, found: true})
-    Swag.assert(not font.glyphIndex(5).found)
+    Swag.require(not font.identityGlyphs)
+    Swag.require(font.glyphIndex(3) == {index: 7, found: true})
+    Swag.require(font.glyphIndex(4) == {index: 8, found: true})
+    Swag.require(not font.glyphIndex(5).found)
 }
 
 // The writer keeps the face each run asks for, and a decoded document reports the standard
@@ -287,11 +287,11 @@ endcmap
 
     let bytes   = expect document.encode()
     let decoded = expect Document.decode(bytes.toSlice())
-    Swag.assert(decoded.pages[0].items.count == 3)
-    Swag.assert(decoded.pages[0].items[0].textFont() == .Helvetica)
-    Swag.assert(decoded.pages[0].items[1].textFont() == .TimesBold)
-    Swag.assert(decoded.pages[0].items[2].textFont() == .CourierOblique)
-    Swag.assert(pageText(decoded.pages[0]) == "RegularBold serifFixed")
+    Swag.require(decoded.pages[0].items.count == 3)
+    Swag.require(decoded.pages[0].items[0].textFont() == .Helvetica)
+    Swag.require(decoded.pages[0].items[1].textFont() == .TimesBold)
+    Swag.require(decoded.pages[0].items[2].textFont() == .CourierOblique)
+    Swag.require(pageText(decoded.pages[0]) == "RegularBold serifFixed")
 }
 
 // A face is emitted once however many runs use it, and a page with no text emits no font.
@@ -305,11 +305,11 @@ endcmap
 
     let bytes = expect document.encode()
     let text  = cast(string, bytes.toSlice())
-    Swag.assert(Utf8.indexOf(text, "/Times-Bold") != Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(text, "/Times-Bold", Utf8.indexOf(text, "/Times-Bold") + 1) == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(text, "/Times-Bold") != Swag.U64.Max)
+    Swag.require(Utf8.indexOf(text, "/Times-Bold", Utf8.indexOf(text, "/Times-Bold") + 1) == Swag.U64.Max)
 
     var empty = Document.create()
     empty.addPage(Page.create(100, 100))
     let emptyBytes = expect empty.encode()
-    Swag.assert(Utf8.indexOf(cast(string, emptyBytes.toSlice()), "/Font") == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(cast(string, emptyBytes.toSlice()), "/Font") == Swag.U64.Max)
 }

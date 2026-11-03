@@ -14,25 +14,25 @@ using Core, Pixel, Pdf
     {
         let path   = corpusPdfPath(name)
         var reader = expect Reader.open(path.toString())
-        Swag.assert(reader.fileName() == path.toString())
+        Swag.require(reader.fileName() == path.toString())
         for pageIndex in reader.pageCount()
         {
             var page  = expect reader.loadPage(pageIndex)
             let index = TextIndex.build(&page)
             let text  = expect reader.loadPageText(pageIndex)
-            Swag.assert(text == index.text)
+            Swag.require(text == index.text)
             if not text.isEmpty() do
                 indexed += 1
         }
     }
 
-    Swag.assert(indexed > 40)
+    Swag.require(indexed > 40)
     var reader = expect Reader.open(corpusPdfPath("pdfbox-jpeg-rgb.pdf"))
     var rangeErrorOutcome: Swag.Error
     var overflow: #decltype(expect reader.loadPageText(reader.pageCount()))
     catch { overflow = try reader.loadPageText(reader.pageCount()) } as rangeErrorOutcome
     let rangeError = rangeErrorOutcome.value()
-    Swag.assert(rangeError != null and overflow.isEmpty())
+    Swag.require(rangeError != null and overflow.isEmpty())
 }
 
 // PDF permits rendering-only TrueType subsets to omit standalone `name` and `post` metadata.
@@ -45,11 +45,11 @@ using Core, Pixel, Pdf
     for font in page.fonts where font.bytes.count == 11_148
     {
         let typeface = expect TypeFace.create("FKFJSD+DejaVuSans", font.bytes.toSlice())
-        Swag.assert(typeface.familyName() == "FKFJSD+DejaVuSans")
-        Swag.assert(font.identityGlyphs)
+        Swag.require(typeface.familyName() == "FKFJSD+DejaVuSans")
+        Swag.require(font.identityGlyphs)
         found = true
         break
     }
 
-    Swag.assert(found)
+    Swag.require(found)
 }

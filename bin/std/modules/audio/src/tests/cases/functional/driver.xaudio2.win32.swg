@@ -10,15 +10,15 @@ using Swag, Core, Win32
 // thread is already in has to be accepted — while the reference count stays with whoever opened it.
 #test
 {
-    Swag.assert(comApartmentIsUsable(S_OK))
-    Swag.assert(comApartmentIsUsable(S_FALSE))
-    Swag.assert(comApartmentIsUsable(RPC_E_CHANGED_MODE))
-    Swag.assert(not comApartmentIsUsable(E_INVALIDARG))
-    Swag.assert(not comApartmentIsUsable(E_OUTOFMEMORY))
+    Swag.require(comApartmentIsUsable(S_OK))
+    Swag.require(comApartmentIsUsable(S_FALSE))
+    Swag.require(comApartmentIsUsable(RPC_E_CHANGED_MODE))
+    Swag.require(not comApartmentIsUsable(E_INVALIDARG))
+    Swag.require(not comApartmentIsUsable(E_OUTOFMEMORY))
 
-    Swag.assert(comOwnsInitialization(S_OK))
-    Swag.assert(comOwnsInitialization(S_FALSE))
-    Swag.assert(not comOwnsInitialization(RPC_E_CHANGED_MODE))
+    Swag.require(comOwnsInitialization(S_OK))
+    Swag.require(comOwnsInitialization(S_FALSE))
+    Swag.require(not comOwnsInitialization(RPC_E_CHANGED_MODE))
 }
 
 // XAudio2 rejects a source buffer when any unused playback or loop field contains garbage.
@@ -28,13 +28,13 @@ using Swag, Core, Win32
     let context = cast(*void?, &sample)
     let buffer  = makeXAudio2Buffer(&sample, 1, context)
 
-    Swag.assert(buffer.flags == 0)
-    Swag.assert(buffer.audioBytes == 1)
-    Swag.assert(buffer.pAudioData == &sample)
-    Swag.assert(buffer.playBegin == 0)
-    Swag.assert(buffer.playLength == 0)
-    Swag.assert(buffer.loopBegin == 0)
-    Swag.assert(buffer.loopLength == 0)
-    Swag.assert(buffer.loopCount == 0)
-    Swag.assert(buffer.pContext == context)
+    Swag.require(buffer.flags == 0)
+    Swag.require(buffer.audioBytes == 1)
+    Swag.require(buffer.pAudioData == &sample)
+    Swag.require(buffer.playBegin == 0)
+    Swag.require(buffer.playLength == 0)
+    Swag.require(buffer.loopBegin == 0)
+    Swag.require(buffer.loopLength == 0)
+    Swag.require(buffer.loopCount == 0)
+    Swag.require(buffer.pContext == context)
 }

@@ -27,8 +27,8 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(64, 24, 1)
-    Swag.assert(countTextPixels(&image, 2, 28) > 20)
-    Swag.assert(countTextPixels(&image, 32, 52) > 20)
+    Swag.require(countTextPixels(&image, 2, 28) > 20)
+    Swag.require(countTextPixels(&image, 32, 52) > 20)
 
     var hasRed = false
     for y in image.height
@@ -40,7 +40,7 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
         }
     }
 
-    Swag.assert(hasRed)
+    Swag.require(hasRed)
 }
 
 // Returns the horizontal extent of the ink a text source produces.
@@ -77,17 +77,17 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     const Relative = "<svg width='200' height='32'><text x='4' y='24' font-size='18' fill='white' letter-spacing='0.5em'>ABC DEF</text></svg>"
 
     let plain = textInkWidth(Plain, options)
-    Swag.assert(plain > 0)
+    Swag.require(plain > 0)
 
     // Six units between each of the seven glyphs.
-    Swag.assert(textInkWidth(Spaced, options) == plain + 6 * 6)
+    Swag.require(textInkWidth(Spaced, options) == plain + 6 * 6)
 
     // One blank, widened by twenty.
-    Swag.assert(textInkWidth(Worded, options) == plain + 20)
+    Swag.require(textInkWidth(Worded, options) == plain + 20)
 
     // `normal` is the absence of extra spacing, and `em` resolves against the font size.
-    Swag.assert(textInkWidth(Normal, options) == plain)
-    Swag.assert(textInkWidth(Relative, options) == plain + 6 * 9)
+    Swag.require(textInkWidth(Normal, options) == plain)
+    Swag.require(textInkWidth(Relative, options) == plain + 6 * 9)
 }
 
 // A centred run is centred on the width its spacing produces, not on the width it would have had
@@ -101,7 +101,7 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     const Plain  = "<svg width='200' height='32'><text x='100' y='24' font-size='18' fill='white' text-anchor='middle'>ABC</text></svg>"
     const Spaced = "<svg width='200' height='32'><text x='100' y='24' font-size='18' fill='white' text-anchor='middle' letter-spacing='8'>ABC</text></svg>"
 
-    Swag.assert(textInkWidth(Spaced, options) == textInkWidth(Plain, options) + 2 * 8)
+    Swag.require(textInkWidth(Spaced, options) == textInkWidth(Plain, options) + 2 * 8)
 }
 
 // `font-family` selects one of the three configured typefaces: the serif and monospace names the
@@ -125,17 +125,17 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     var serifErrorOutcome: Swag.Error
     discard catch Svg.Drawing.parse(Serif, options) as serifErrorOutcome
     let serifError = serifErrorOutcome.value()
-    Swag.assert(serifError != null)
+    Swag.require(serifError != null)
 
-    Swag.assert(textInkWidth(Sans, options) > 0)
-    Swag.assert(textInkWidth(Unknown, options) > 0)
+    Swag.require(textInkWidth(Sans, options) > 0)
+    Swag.require(textInkWidth(Unknown, options) > 0)
 
     // An empty selection, and one naming a file the host does not have, fall back to the default
     // typeface rather than failing the document.
     options.serifFontFileName = ""
     options.monoFontFileName  = "no-such-font-file.ttf"
-    Swag.assert(textInkWidth(Serif, options) > 0)
-    Swag.assert(textInkWidth(Mono, options) > 0)
+    Swag.require(textInkWidth(Serif, options) > 0)
+    Swag.require(textInkWidth(Mono, options) > 0)
 }
 
 // A drawing that both writes text and strokes a shape still rasterizes onto a usable alpha
@@ -167,5 +167,5 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     }
 
     // The frame alone covers well over a hundred samples; an emptied alpha plane covers none.
-    Swag.assert(opaque > 100)
+    Swag.require(opaque > 100)
 }

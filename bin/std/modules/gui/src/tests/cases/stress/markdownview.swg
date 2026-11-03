@@ -23,81 +23,81 @@ using Swag, Core
     for 64 where view.isLoading() do
         host.fireTimers()
     let viewport = view.scroll.paddedClientRect()
-    Swag.assert(view.contentHeight >= viewport.height * 6)
+    Swag.require(view.contentHeight >= viewport.height * 6)
 
     // Withhold every loading timer while enough wheel-sized steps exhaust the reserve.
     for 80
     {
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height / 4)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     }
 
-    Swag.assert(view.waitingScroll and view.isLoading())
+    Swag.require(view.waitingScroll and view.isLoading())
     host.setReducedMotion(true)
     host.mouseWheel({360, 240}, -100)
-    Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+    Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     host.setReducedMotion(false)
     let held = view.scroll.scrollPosition().y
     for 64 where view.isLoading() do
         host.fireTimers()
     host.settleAnimations(view, 12)
-    Swag.assert(not view.waitingScroll and view.scroll.scrollPosition().y > held)
+    Swag.require(not view.waitingScroll and view.scroll.scrollPosition().y > held)
 
-    Swag.assert(view.revealFileOffset(source.length / 2, ""))
+    Swag.require(view.revealFileOffset(source.length / 2, ""))
     for 1_024 where view.hasPendingTarget do
         host.fireTimers()
-    Swag.assert(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
+    Swag.require(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
     view.scroll.setScrollPos(0, view.virtualOrigin + viewport.height * 7)
     for 8 where not view.pendingSeek do
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y - viewport.height / 4)
-    Swag.assert(view.pendingSeek and view.pendingSeekPreservesPosition)
+    Swag.require(view.pendingSeek and view.pendingSeekPreservesPosition)
     host.fireTimer(view.loadTimer)
-    Swag.assert(not view.retainedBlocks.isEmpty())
+    Swag.require(not view.retainedBlocks.isEmpty())
     view.beginSelection(unwrap view.retainedBlocks[0].inline, 0)
     view.selectAll()
-    Swag.assert(not view.isSelecting() and not view.hasSelection())
+    Swag.require(not view.isSelecting() and not view.hasSelection())
     let anchorOffset = view.replacementAnchorOffset
     let anchorY      = view.replacementAnchorY
     for 1_024 where not view.retainedBlocks.isEmpty()
     {
-        Swag.assert(view.retainedBlocks[0].wnd.isVisible())
-        Swag.assert(view.scroll.scrollPosition().y >= view.retainedOrigin)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.retainedHeight + 1)
+        Swag.require(view.retainedBlocks[0].wnd.isVisible())
+        Swag.require(view.scroll.scrollPosition().y >= view.retainedOrigin)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.retainedHeight + 1)
         host.fireTimer(view.loadTimer)
     }
 
-    Swag.assert(view.retainedBlocks.isEmpty())
+    Swag.require(view.retainedBlocks.isEmpty())
     var matched: bool
     for block in view.blocks where block.sourceOffset == anchorOffset
     {
-        Swag.assert(Math.abs(block.wnd.position.y - anchorY) <= 1)
-        Swag.assert(block.wnd.isVisible())
+        Swag.require(Math.abs(block.wnd.position.y - anchorY) <= 1)
+        Swag.require(block.wnd.isVisible())
         matched = true
     }
 
-    Swag.assert(matched)
+    Swag.require(matched)
 
     // A context window that reaches byte zero must retain the beginning. Dropping its first
     // chunk makes a reverse prefetch repeatedly reopen the same window without reaching Home.
-    Swag.assert(view.revealFileOffset(12 * 1024, ""))
-    Swag.assert(view.residentStart == 0)
+    Swag.require(view.revealFileOffset(12 * 1024, ""))
+    Swag.require(view.residentStart == 0)
     for 1_024 where view.isLoading() do
         host.fireTimers()
     for 80 do
         view.scroll.setScrollPos(0, view.scroll.scrollPosition().y + viewport.height / 4)
-    Swag.assert(view.waitingScroll)
+    Swag.require(view.waitingScroll)
 
     // A search supersedes a wheel gesture held at the loading boundary. Once its match is
     // visible, an old waiting destination must not pull the reader away from that match.
     let found = view.revealFileOffset(source.indexOf("Section 2"), "Section 2")
-    Swag.assert(found)
+    Swag.require(found)
     for 1_024 where view.isLoading() do
         host.fireTimers()
     host.finishAnimations()
     var searchRect: Math.Rectangle
     let hasSearchRect = view.searchMatchRect(&searchRect)
-    Swag.assert(hasSearchRect and not view.waitingScroll)
-    Swag.assert(searchRect.y >= 0 and searchRect.bottom() <= viewport.height)
+    Swag.require(hasSearchRect and not view.waitingScroll)
+    Swag.require(searchRect.y >= 0 and searchRect.bottom() <= viewport.height)
 }
 
 // Sequential wheel reading releases distant blocks while retaining a reverse-scroll reserve.
@@ -111,7 +111,7 @@ using Swag, Core
     var source: String
     for index in 16_000 do
         source += Format.toString("## Bounded section %\n\nA paragraph is evicted after the resident source budget.\n\n", index)
-    Swag.assert(source.length > 1024 * 1024)
+    Swag.require(source.length > 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -129,26 +129,26 @@ using Swag, Core
         view.scroll.setScrollPos(0, previous + viewport.height / 4)
         if view.loadTimer do
             host.fireTimer(view.loadTimer)
-        Swag.assert(view.scroll.scrollPosition().y >= previous)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
-        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
-        Swag.assert(view.blocks.count < 256)
+        Swag.require(view.scroll.scrollPosition().y >= previous)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+        Swag.require(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
+        Swag.require(view.blocks.count < 256)
     }
 
-    Swag.assert(view.residentStart > 0)
-    Swag.assert(view.hasUnloadedSource())
+    Swag.require(view.residentStart > 0)
+    Swag.require(view.hasUnloadedSource())
     let anchor  = view.blocks.back().wnd
     let anchorY = anchor.position.y
     view.retireDistantBlocks()
-    Swag.assert(anchor.position.y == anchorY)
+    Swag.require(anchor.position.y == anchorY)
 
     let firstStart = view.residentStart
     view.scroll.setScrollPos(0, view.virtualHeight * 0.75)
-    Swag.assert(view.pendingSeek)
+    Swag.require(view.pendingSeek)
     host.fireTimers()
-    Swag.assert(view.residentStart > firstStart)
-    Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
-    Swag.assert(view.blocks.count < 10_000)
+    Swag.require(view.residentStart > firstStart)
+    Swag.require(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
+    Swag.require(view.blocks.count < 10_000)
 }
 
 // A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
@@ -163,47 +163,47 @@ using Swag, Core
     var source: String
     for 40_000 do
         source += "## Streamed heading\n\nA paragraph stays on disk until navigation requests it.\n\n"
-    Swag.assert(source.length >= 2 * 1024 * 1024)
+    Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
     let view = Markdown.View.createFile(&host.root, fileName)
-    Swag.assert(view.loadTimer != null)
+    Swag.require(view.loadTimer != null)
     view.resize(720, 360)
     view.applyLayout()
     host.fireTimer(view.loadTimer)
 
-    Swag.assert(view.hasUnloadedSource())
-    Swag.assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
+    Swag.require(view.hasUnloadedSource())
+    Swag.require(view.loadedDocumentHeight() > view.documentStyle.topInset)
     view.setInitialFocus(view)
-    Swag.assert(view.hasFocus())
+    Swag.require(view.hasFocus())
     let expectedLine = view.theme().createDefaultFont(view.documentStyle.bodyFontSize).height * view.documentStyle.lineHeight
-    Swag.assert(view.scroll.verticalScrollStep == expectedLine)
+    Swag.require(view.scroll.verticalScrollStep == expectedLine)
     host.keyPress(Input.Key.Down)
     discard host.render(view)
-    Swag.assert(not view.hasPendingTarget and not view.waitingScroll)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
+    Swag.require(not view.hasPendingTarget and not view.waitingScroll)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - expectedLine) <= 1)
     host.keyPress(Input.Key.Up)
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
     host.keyPress(Input.Key.PageDown)
     discard host.render(view)
-    Swag.assert(not view.hasPendingTarget and not view.waitingScroll)
+    Swag.require(not view.hasPendingTarget and not view.waitingScroll)
     let pagePosition = view.scroll.scrollPosition().y
-    Swag.assert(pagePosition > expectedLine)
+    Swag.require(pagePosition > expectedLine)
     host.keyPress(Input.Key.PageUp)
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
 
     let before = view.scroll.scrollPosition()
     host.keyPress(Input.Key.End)
     discard host.render(view)
-    Swag.assert(not view.hasUnloadedSource())
-    Swag.assert(not view.jumpToEnd)
-    Swag.assert(view.scroll.scrollPosition().y > before.y)
+    Swag.require(not view.hasUnloadedSource())
+    Swag.require(not view.jumpToEnd)
+    Swag.require(view.scroll.scrollPosition().y > before.y)
     host.keyPress(Input.Key.Home)
     discard host.render(view)
-    Swag.assert(view.residentStart == 0)
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.residentStart == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
 }
 
 // A resident window opened near EOF retains blocks before its target and requests the preceding
@@ -220,7 +220,7 @@ using Swag, Core
     for index in 16_000 do
         source += Format.toString("## Section %\n\nThe resident window keeps useful context on both sides.\n\n", index)
     const RevealContextSize = 64 * 1024'u64
-    Swag.assert(source.length > RevealContextSize * 8)
+    Swag.require(source.length > RevealContextSize * 8)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -232,11 +232,11 @@ using Swag, Core
     // The ordinary first resident blocks establish the document's byte-to-height estimate before
     // the reader asks for the end, exactly as the visible application does.
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.virtualHeight > view.scroll.paddedClientRect().height)
+    Swag.require(view.virtualHeight > view.scroll.paddedClientRect().height)
 
     let requested = source.length - 1
     let revealed  = view.revealFileOffset(requested, "")
-    Swag.assert(revealed)
+    Swag.require(revealed)
     var steps = 0'u32
     while view.hasPendingTarget and steps < 512
     {
@@ -244,16 +244,16 @@ using Swag, Core
         steps += 1
     }
 
-    Swag.assert(not view.hasPendingTarget and not view.blocks.isEmpty())
-    Swag.assert(view.scroll.scrollPosition().y - view.virtualOrigin >= view.scroll.paddedClientRect().height * 6)
+    Swag.require(not view.hasPendingTarget and not view.blocks.isEmpty())
+    Swag.require(view.scroll.scrollPosition().y - view.virtualOrigin >= view.scroll.paddedClientRect().height * 6)
     let firstResidentStart = view.residentStart
     let viewport = view.scroll.paddedClientRect()
     let nearResidentStart  = view.virtualOrigin + viewport.height * 0.5
     view.scroll.setScrollPos(0, nearResidentStart)
 
     // The old resident content still covers the viewport when the reverse seek is requested.
-    Swag.assert(view.pendingSeek)
-    Swag.assert(view.scroll.scrollPosition().y + viewport.height > view.virtualOrigin)
+    Swag.require(view.pendingSeek)
+    Swag.require(view.scroll.scrollPosition().y + viewport.height > view.virtualOrigin)
     host.fireTimers()
 
     steps = 0
@@ -263,7 +263,7 @@ using Swag, Core
         steps += 1
     }
 
-    Swag.assert(not view.hasPendingTarget and view.residentStart < firstResidentStart)
+    Swag.require(not view.hasPendingTarget and view.residentStart < firstResidentStart)
     let position = view.scroll.scrollPosition().y
     var visibleBlock: bool
     for &block in view.blocks
@@ -272,7 +272,7 @@ using Swag, Core
             visibleBlock = true
     }
 
-    Swag.assert(visibleBlock)
+    Swag.require(visibleBlock)
 }
 
 // A scrollbar reversal supersedes a seek that is still materializing. The earlier target must
@@ -287,7 +287,7 @@ using Swag, Core
     var source: String
     for index in 16_000 do
         source += Format.toString("## Direction %\n\nA distinct paragraph makes every resident window observable.\n\n", index)
-    Swag.assert(source.length > 1024 * 1024)
+    Swag.require(source.length > 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -299,9 +299,9 @@ using Swag, Core
 
     // A seek abandoned before its timer fires cannot displace the resident first window later.
     view.scroll.setScrollPos(0, view.virtualHeight * 0.8)
-    Swag.assert(view.pendingSeek)
+    Swag.require(view.pendingSeek)
     view.scroll.setScrollPos(0, 0)
-    Swag.assert(not view.pendingSeek)
+    Swag.require(not view.pendingSeek)
 
     let high = view.virtualHeight * 0.8
 
@@ -309,21 +309,21 @@ using Swag, Core
     view.resize(720, 4_800)
     view.applyLayout()
     view.scroll.setScrollPos(0, high)
-    Swag.assert(view.pendingSeek and view.loadTimer != null)
+    Swag.require(view.pendingSeek and view.loadTimer != null)
     let staleOffset = view.pendingSeekOffset
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.hasPendingTarget)
+    Swag.require(view.hasPendingTarget)
 
     // Reverse before the high target has finished producing blocks. This is a real scrollbar
     // gesture, not a direct reveal call, and must replace the outstanding target immediately.
     let low = view.scroll.scrollableClientRect().height * 0.2
     view.scroll.setScrollPos(0, low)
-    Swag.assert(view.pendingSeek)
-    Swag.assert(view.pendingSeekOffset < staleOffset / 2)
+    Swag.require(view.pendingSeek)
+    Swag.require(view.pendingSeekOffset < staleOffset / 2)
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.hasPendingTarget)
-    Swag.assert(view.residentStart < staleOffset / 2)
-    Swag.assert(Math.abs(view.pendingTarget - low) <= 1, Format.toString("pending=%, requested=%, position=%", view.pendingTarget, low, view.scroll.scrollPosition().y).toString())
+    Swag.require(view.hasPendingTarget)
+    Swag.require(view.residentStart < staleOffset / 2)
+    Swag.require(Math.abs(view.pendingTarget - low) <= 1, Format.toString("pending=%, requested=%, position=%", view.pendingTarget, low, view.scroll.scrollPosition().y).toString())
 
     var steps = 0'u32
     while view.hasPendingTarget and steps < 1_024
@@ -332,7 +332,7 @@ using Swag, Core
         steps += 1
     }
 
-    Swag.assert(not view.hasPendingTarget)
-    Swag.assert(view.residentStart < staleOffset / 2)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - low) <= 1, Format.toString("position=%, target=%", view.scroll.scrollPosition().y, low).toString())
+    Swag.require(not view.hasPendingTarget)
+    Swag.require(view.residentStart < staleOffset / 2)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - low) <= 1, Format.toString("position=%, target=%", view.scroll.scrollPosition().y, low).toString())
 }

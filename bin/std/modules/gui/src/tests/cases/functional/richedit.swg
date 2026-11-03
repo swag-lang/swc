@@ -8,15 +8,15 @@ using Swag, Core
     var line: RichEditLine
     line.chars.add('x')
     line.styles.add(0)
-    Swag.assert(line.runeAt(0) == 'x')
+    Swag.require(line.runeAt(0) == 'x')
     line.setStyleAt(0, 7)
-    Swag.assert(line.styleAt(0) == 7)
-    Swag.assert(line.setLexerState(12))
-    Swag.assert(not line.setLexerState(12))
-    Swag.assert(line.lexerState() == 12)
+    Swag.require(line.styleAt(0) == 7)
+    Swag.require(line.setLexerState(12))
+    Swag.require(not line.setLexerState(12))
+    Swag.require(line.lexerState() == 12)
     line.dirtyStyle = false
     line.markStyleDirty()
-    Swag.assert(line.dirtyStyle)
+    Swag.require(line.dirtyStyle)
 }
 
 // The line-number gutter holds at least three digits, widens for longer numbers, and moves the
@@ -29,15 +29,15 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     ed.marginLeft = 4
     ed.setText("first\nsecond")
-    Swag.assert(ed.leftMargin() == 4)
+    Swag.require(ed.leftMargin() == 4)
 
     ed.setFlags(.LineNumbers)
     let advance = ed.xGlyphSize().x
-    Swag.assert(ed.leftMargin() == 4 + 6 * advance)
-    Swag.assert(ed.cursorDisplayPosition({1, 0}).x == ed.leftMargin())
+    Swag.require(ed.leftMargin() == 4 + 6 * advance)
+    Swag.require(ed.cursorDisplayPosition({1, 0}).x == ed.leftMargin())
 
     ed.setFirstLineNumber(99_999)
-    Swag.assert(ed.leftMargin() == 4 + 9 * advance)
+    Swag.require(ed.leftMargin() == 4 + 9 * advance)
 }
 
 // The built-in namespace keeps its own style while its member retains the semantic style.
@@ -52,22 +52,22 @@ using Swag, Core
     ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]\nunwrap nullable\nunwrapped")
     ed.lexAll()
 
-    Swag.assert(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({0, 4}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(ed.runeAt({0, 5}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(ed.runeAt({1, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({1, 5}).style == RichEditLexerSwag.Style.Builtin)
-    Swag.assert(ed.runeAt({2, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({2, 5}).style == RichEditLexerSwag.Style.Class)
-    Swag.assert(ed.runeAt({3, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({3, 5}).style == RichEditLexerSwag.Style.Function)
-    Swag.assert(ed.runeAt({4, 0}).style == RichEditLexerSwag.Style.Class)
-    Swag.assert(ed.runeAt({5, 0}).style == RichEditLexerSwag.Style.Preprocessor)
-    Swag.assert(ed.runeAt({5, 2}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({5, 6}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(ed.runeAt({5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
-    Swag.assert(ed.runeAt({6, 0}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(ed.runeAt({7, 0}).style == RichEditLexerSwag.Style.Default)
+    Swag.require(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(ed.runeAt({0, 4}).style == RichEditLexerSwag.Style.Default)
+    Swag.require(ed.runeAt({0, 5}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.require(ed.runeAt({1, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(ed.runeAt({1, 5}).style == RichEditLexerSwag.Style.Builtin)
+    Swag.require(ed.runeAt({2, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(ed.runeAt({2, 5}).style == RichEditLexerSwag.Style.Class)
+    Swag.require(ed.runeAt({3, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(ed.runeAt({3, 5}).style == RichEditLexerSwag.Style.Function)
+    Swag.require(ed.runeAt({4, 0}).style == RichEditLexerSwag.Style.Class)
+    Swag.require(ed.runeAt({5, 0}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.require(ed.runeAt({5, 2}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.require(ed.runeAt({5, 6}).style == RichEditLexerSwag.Style.Default)
+    Swag.require(ed.runeAt({5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.require(ed.runeAt({6, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.require(ed.runeAt({7, 0}).style == RichEditLexerSwag.Style.Default)
 }
 
 // The default shortcut table contains one command per key/modifier pair.
@@ -76,18 +76,18 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
-    Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
-    Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
+    Swag.require(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
+    Swag.require(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
 
     let mappingCount = ed.mapping.count
     ed.setDefaultMapping()
-    Swag.assert(ed.mapping.count == mappingCount)
+    Swag.require(ed.mapping.count == mappingCount)
 
     for i in ed.mapping.count
     {
         for j in i + 1 until ed.mapping.count
         {
-            Swag.assert(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
+            Swag.require(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
         }
     }
 }
@@ -114,16 +114,16 @@ using Swag, Core
 
         host.keyPress(Input.Key.Return)
         host.sendRune(Input.Key.Return, '\n')
-        Swag.assert(ed.text() == "\n")
+        Swag.require(ed.text() == "\n")
         host.keyPress(Input.Key.Tab)
-        Swag.assert(ed.text().count > 1)
-        Swag.assert(ed.focusTarget().hasFocus())
+        Swag.require(ed.text().count > 1)
+        Swag.require(ed.focusTarget().hasFocus())
         host.keyPress(Input.Key.Escape)
     }
 
     let modalResult = dlg.doModal()
-    Swag.assert(modalResult == Dialog.BtnCancel)
-    Swag.assert(checked)
+    Swag.require(modalResult == Dialog.BtnCancel)
+    Swag.require(checked)
 }
 
 // A control character that a chord typed, such as `Ctrl K`, is not text; a line break is.
@@ -136,9 +136,9 @@ using Swag, Core
 
     host.sendRune(Input.Key.K, '\x0B', .Control)
     host.sendRune(Input.Key.I, '\t', .Control)
-    Swag.assert(ed.text().isEmpty())
+    Swag.require(ed.text().isEmpty())
     host.sendRune(Input.Key.Return, '\n')
-    Swag.assert(ed.text() == "\n")
+    Swag.require(ed.text() == "\n")
 }
 
 // setText/text round-trips; addText appends; clear empties.
@@ -148,13 +148,13 @@ using Swag, Core
     host.setup(320, 220)
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Hello")
-    Swag.assert(ed.text() == "Hello")
+    Swag.require(ed.text() == "Hello")
 
     ed.addText(" World")
-    Swag.assert(ed.text() == "Hello World")
+    Swag.require(ed.text() == "Hello World")
 
     ed.clear()
-    Swag.assert(ed.text() == "")
+    Swag.require(ed.text() == "")
 }
 
 #test
@@ -172,11 +172,11 @@ using Swag, Core
     for 80 do
         ed.addText("one line\n")
     host.settleAnimations(ed)
-    Swag.assert(ed.scrollableClientRect().height > ed.paddedClientRect().height)
+    Swag.require(ed.scrollableClientRect().height > ed.paddedClientRect().height)
 
     ed.scrollWnd.setScrollPos(0, 40)
-    Swag.assert(ed.scrollPosition().y > 0)
-    Swag.assert(notified)
+    Swag.require(ed.scrollPosition().y > 0)
+    Swag.require(notified)
 }
 
 // A streaming document can expose its eventual height before all text is resident, and appending
@@ -192,23 +192,23 @@ using Swag, Core
     host.settleAnimations(ed)
 
     let loadedHeight = ed.loadedDocumentHeight()
-    Swag.assert(loadedHeight > 0)
+    Swag.require(loadedHeight > 0)
     ed.setEstimatedDocumentHeight(loadedHeight * 4)
     ed.setScrollPosition(Math.Point{0, loadedHeight * 2})
     let position = ed.scrollPosition()
-    Swag.assert(position.y > loadedHeight)
+    Swag.require(position.y > loadedHeight)
 
     // Rendering the not-yet-resident gap must stay safe and blank while the owner fetches more.
     host.settleAnimations(ed)
     for 10 do
         ed.addText("another line\n")
     host.settleAnimations(ed)
-    Swag.assert(ed.scrollPosition() == position)
-    Swag.assert(ed.scrollableClientRect().height >= loadedHeight * 4)
+    Swag.require(ed.scrollPosition() == position)
+    Swag.require(ed.scrollableClientRect().height >= loadedHeight * 4)
 
     ed.setEstimatedDocumentHeight(0)
     host.settleAnimations(ed)
-    Swag.assert(ed.scrollableClientRect().height == ed.loadedDocumentHeight())
+    Swag.require(ed.scrollableClientRect().height == ed.loadedDocumentHeight())
 }
 
 // selectAll selects the whole content.
@@ -219,7 +219,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
-    Swag.assert(ed.selectedText() == "Selectable")
+    Swag.require(ed.selectedText() == "Selectable")
 }
 
 // insertText at the cursor, with undo/redo.
@@ -234,13 +234,13 @@ using Swag, Core
     ed.pushUndo()
     ed.insertText("X")
     ed.popUndo()
-    Swag.assert(ed.text() == "Xabc")
+    Swag.require(ed.text() == "Xabc")
 
     ed.undo()
-    Swag.assert(ed.text() == "abc")
+    Swag.require(ed.text() == "abc")
 
     ed.redo()
-    Swag.assert(ed.text() == "Xabc")
+    Swag.require(ed.text() == "Xabc")
 }
 
 // The context menu reaches the same clipboard commands the keyboard does, and a read-only
@@ -255,18 +255,18 @@ using Swag, Core
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxSelectAll)
     ed.showContextMenu({60, 60})
     host.pump()
-    Swag.assert(ed.selectedText() == "First line")
+    Swag.require(ed.selectedText() == "First line")
 
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
     ed.showContextMenu({60, 60})
     host.pump()
-    Swag.assert(Clipboard.getString() == "First line")
+    Swag.require(Clipboard.getString() == "First line")
 
     // Cut through the menu edits the document, which a read-only editor must refuse to offer.
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCut)
     ed.showContextMenu({60, 60})
     host.pump()
-    Swag.assert(ed.text() == "")
+    Swag.require(ed.text() == "")
 
     ed.setText("Frozen")
     ed.setFlags(.ReadOnly)
@@ -274,8 +274,8 @@ using Swag, Core
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
     ed.showContextMenu({60, 60})
     host.pump()
-    Swag.assert(Clipboard.getString() == "Frozen")
-    Swag.assert(ed.text() == "Frozen")
+    Swag.require(Clipboard.getString() == "Frozen")
+    Swag.require(ed.text() == "Frozen")
 }
 
 // Wrapping uses the viewport left by the vertical scrollbar, and bounds even a long token.
@@ -295,23 +295,23 @@ using Swag, Core
     host.root.applyLayout()
     discard host.render(ed)
     discard host.render(ed)
-    Swag.assert(ed.scrollWnd.paddingZ > 0)
-    Swag.assert(ed.lines.count > 1)
+    Swag.require(ed.scrollWnd.paddingZ > 0)
+    Swag.require(ed.lines.count > 1)
     let right = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ - ed.marginRight
     for line, index in ed.lines
     {
         let position = ed.cursorDisplayPosition(RichEditCursor{index, line!.length()})
-        Swag.assert(position.x <= right + 1)
+        Swag.require(position.x <= right + 1)
     }
 
-    Swag.assert(ed.text() == text)
+    Swag.require(ed.text() == text)
     ed.addText(" tail")
     text += " tail"
     discard host.render(ed)
-    Swag.assert(ed.text() == text)
+    Swag.require(ed.text() == text)
     ed.setFlags(.ReadOnly)
     discard host.render(ed)
-    Swag.assert(ed.lines.count == 1 and ed.text() == text)
+    Swag.require(ed.lines.count == 1 and ed.text() == text)
 }
 
 // A document with no line answers the origin for any point instead of reading a missing line.
@@ -323,7 +323,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     ed.clear()
     let cursor = ed.cursorAt({20, 20})
-    Swag.assert(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
+    Swag.require(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
 }
 
 // Counts the lines a paint asks to be lexed.
@@ -358,13 +358,13 @@ impl IRichEditLexer for CountingLexer
     ed.setText(text.toString())
     host.root.applyLayout()
     discard host.render(ed)
-    Swag.assert(lexer.lexed > 0, "the first paint lexes the document it was given")
+    Swag.require(lexer.lexed > 0, "the first paint lexes the document it was given")
 
     lexer.lexed = 0
     ed.setPosition({0, 0, 300, 240})
     host.root.applyLayout()
     discard host.render(ed)
-    Swag.assert(lexer.lexed == 0, "a resize must not lex a single line")
+    Swag.require(lexer.lexed == 0, "a resize must not lex a single line")
 }
 
 // A wrapped document reflows once, when the border drag ends, instead of at every size the
@@ -386,17 +386,17 @@ impl IRichEditLexer for CountingLexer
     discard host.render(ed)
 
     let wrapped = ed.lines.count
-    Swag.assert(wrapped > 1)
+    Swag.require(wrapped > 1)
 
     host.surface.setSizing(true)
     ed.setPosition({0, 0, 200, 240})
     host.root.applyLayout()
     discard host.render(ed)
-    Swag.assert(ed.lines.count == wrapped, "a live border drag must not reflow the document")
+    Swag.require(ed.lines.count == wrapped, "a live border drag must not reflow the document")
 
     host.surface.setSizing(false)
     discard host.render(ed)
-    Swag.assert(ed.lines.count > wrapped, "the narrower viewport must reflow once the drag ends")
+    Swag.require(ed.lines.count > wrapped, "the narrower viewport must reflow once the drag ends")
 }
 
 // The caret reports each new place once, whether a call, a command, an edit or an undo moved it,
@@ -412,21 +412,21 @@ impl IRichEditLexer for CountingLexer
     ed.sigCaretMoved += func|&moves|(_) { moves += 1 }
 
     ed.setCursorPos({1, 3})
-    Swag.assert(moves == 1 and ed.cursorLogicalLineIndex() == 1 and ed.cursorLogicalCharPos() == 3)
+    Swag.require(moves == 1 and ed.cursorLogicalLineIndex() == 1 and ed.cursorLogicalCharPos() == 3)
     ed.setCursorPos({1, 3})
-    Swag.assert(moves == 1)
+    Swag.require(moves == 1)
 
     ed.clearSelection()
     ed.executeCommand(.CursorRight)
-    Swag.assert(moves == 2 and ed.cursorLogicalCharPos() == 4)
+    Swag.require(moves == 2 and ed.cursorLogicalCharPos() == 4)
 
     ed.pushUndo()
     ed.insertText("xy")
     ed.popUndo()
-    Swag.assert(moves == 3 and ed.cursorLogicalCharPos() == 6)
+    Swag.require(moves == 3 and ed.cursorLogicalCharPos() == 6)
 
     ed.undo()
-    Swag.assert(moves == 4 and ed.cursorLogicalCharPos() == 4)
+    Swag.require(moves == 4 and ed.cursorLogicalCharPos() == 4)
 }
 
 // The air kept past the caret widens a document whose lines overflow the view, and never makes a
@@ -439,9 +439,9 @@ impl IRichEditLexer for CountingLexer
     ed.setText("a short line")
     discard host.render(ed)
     let view = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ
-    Swag.assert(ed.scrollWnd.scrollSize.x <= view)
+    Swag.require(ed.scrollWnd.scrollSize.x <= view)
 
     ed.setText("0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789")
     discard host.render(ed)
-    Swag.assert(ed.scrollWnd.scrollSize.x > view)
+    Swag.require(ed.scrollWnd.scrollSize.x > view)
 }

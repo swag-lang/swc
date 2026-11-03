@@ -86,7 +86,7 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     no.setFocus()
     dlg.adaptSizeToMessage()
 
-    Swag.assert(no.hasVisibleFocus())
+    Swag.require(no.hasVisibleFocus())
     let image = renderDialog(&host, &dlg.dialog)
     Pixel.Testing.assertImageGolden(&image, Format.toString("dialogs.message.focus.%", suffix).toString())
 }

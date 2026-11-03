@@ -36,8 +36,8 @@ using Core, Ogl
         glActiveTexture(GL_TEXTURE5)
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &sampled)
         glActiveTexture(GL_TEXTURE0)
-        Swag.assert(attachment != 0 and attachment != sampled,
-                    "the clipping mask is both a render target and a shader input")
+        Swag.require(attachment != 0 and attachment != sampled,
+                     "the clipping mask is both a render target and a shader input")
 
         painter.begin()
         painter.endClippingRegion()
@@ -58,7 +58,7 @@ using Core, Ogl
     painter.end()
     gpu.draw(&painter)
     let result = gpu.readRenderTarget(&target, 0, 0, 96, 64)
-    Swag.assert(result.pixelColor(16, 16) == Color.fromArgb(Argb.Red))
-    Swag.assert(result.pixelColor(64, 48) == Color.fromArgb(Argb.Black))
-    Swag.assert(glGetError() == GL_NO_ERROR)
+    Swag.require(result.pixelColor(16, 16) == Color.fromArgb(Argb.Red))
+    Swag.require(result.pixelColor(64, 48) == Color.fromArgb(Argb.Black))
+    Swag.require(glGetError() == GL_NO_ERROR)
 }

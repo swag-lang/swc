@@ -59,7 +59,7 @@ impl IWnd for FileTileProbe
             }
 
             let animate = FileTile.paint(me, evt.paintContext.painter, rect, &content, options)
-            Swag.assert(animate == (index == 3))
+            Swag.require(animate == (index == 3))
         }
     }
 }

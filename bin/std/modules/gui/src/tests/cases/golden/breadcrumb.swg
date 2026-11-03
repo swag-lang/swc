@@ -38,9 +38,9 @@ private func assertBreadcrumbGolden(ancestors: bool)
         if captured do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.assert(menu.popupAnchorButton != null)
+        Swag.require(menu.popupAnchorButton != null)
         let anchor = menu.popupAnchorButton.surfaceRect()
-        Swag.assert(Math.abs(menu.surfaceRect().y + menu.getPopupBodyRect().y - anchor.bottom()) < 0.5)
+        Swag.require(Math.abs(menu.surfaceRect().y + menu.getPopupBodyRect().y - anchor.bottom()) < 0.5)
         let image = host.renderSettled()
         Pixel.Testing.assertImageGolden(&image, ancestors ? "breadcrumb.ancestors.paper" : "breadcrumb.children.encre")
         captured = true
@@ -51,7 +51,7 @@ private func assertBreadcrumbGolden(ancestors: bool)
     var point  = path.localToSurface(target.center())
     host.surface.surfaceToScreen(&point)
     host.click(point)
-    Swag.assert(captured)
+    Swag.require(captured)
 }
 
 // The child menu stays attached to its level at high DPI, in Encre.

@@ -6,15 +6,15 @@ using Core, Core.Math, Pixel.Clipper
 // A top-level contour has no owner; empty intermediate records are skipped when finding one.
 #test
 {
-    Swag.assert(Transform.parseFirstLeft(null) == null)
+    Swag.require(Transform.parseFirstLeft(null) == null)
     var point: OutPt
     var outer: OutRec
     outer.pts = &point
     var empty: OutRec
     empty.firstLeft = &outer
-    Swag.assert(Transform.parseFirstLeft(&empty) == &outer)
+    Swag.require(Transform.parseFirstLeft(&empty) == &outer)
     empty.firstLeft = null
-    Swag.assert(Transform.parseFirstLeft(&empty) == null)
+    Swag.require(Transform.parseFirstLeft(&empty) == null)
 }
 
 // How one operation is set up: the two fill rules and whether self-touching contours are split.
@@ -161,9 +161,9 @@ func assertBooleanAlgebra(subject, clip: *ClipperPaths, rules: Rules)
     let either    = solutionArea(runOp(subject, clip, .Xor, rules))
 
     let tolerance = 3e-5 * (areaSubject + areaClip) + 1.0
-    Swag.assert(Math.abs(merged + shared - areaSubject - areaClip) <= tolerance)
-    Swag.assert(Math.abs(remainder - (areaSubject - shared)) <= tolerance)
-    Swag.assert(Math.abs(either - (merged - shared)) <= tolerance)
+    Swag.require(Math.abs(merged + shared - areaSubject - areaClip) <= tolerance)
+    Swag.require(Math.abs(remainder - (areaSubject - shared)) <= tolerance)
+    Swag.require(Math.abs(either - (merged - shared)) <= tolerance)
 }
 
 // Checks that every operation over one pair of sets returns contours that bound regions which do
@@ -182,7 +182,7 @@ func assertSolutionsAreSimple(subject, clip: *ClipperPaths, rules: Rules)
     {
         var solution = runOp(subject, clip, op, rules)
         let area     = solutionArea(solution)
-        Swag.assert(Math.abs(selfArea(&solution, .NonZero, rules.strictSimple) - area) <= 1e-9 * area + 1.0)
+        Swag.require(Math.abs(selfArea(&solution, .NonZero, rules.strictSimple) - area) <= 1e-9 * area + 1.0)
     }
 }
 

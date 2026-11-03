@@ -15,8 +15,8 @@ using Swag
     let compressed   = expect zl.compress(original)
     var zl2: Compress.ZLib
     let decompressed = expect zl2.decompress(compressed.toSlice())
-    Swag.assert(decompressed.count == 4000)
-    Swag.assert(Slice.equals(decompressed.toSlice(), original))
+    Swag.require(decompressed.count == 4000)
+    Swag.require(Slice.equals(decompressed.toSlice(), original))
 }
 
 // An output limit is enforced while decoding, including within a repeated match, so callers can
@@ -37,8 +37,8 @@ using Swag
     var limitErrorOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
-    Swag.assert((limitError is Errors.UnsupportedFormatError))
-    Swag.assert(decoded.count <= 128)
+    Swag.require((limitError is Errors.UnsupportedFormatError))
+    Swag.require(decoded.count <= 128)
 }
 
 // Match distances and lengths around the 8/16-byte copy boundaries round-trip
@@ -113,8 +113,8 @@ func nextSeed(seed: *u32)->u32
 
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice())
-    Swag.assert(decoded.count == payload.count)
-    Swag.assert(Slice.equals(decoded.toSlice(), payload.toSlice()))
+    Swag.require(decoded.count == payload.count)
+    Swag.require(Slice.equals(decoded.toSlice(), payload.toSlice()))
 }
 
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
@@ -124,15 +124,15 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 
     var reader: Compress.ZLib
     let decoded = expect reader.decompress(compressed.toSlice())
-    Swag.assert(decoded.count == input.count)
-    Swag.assert(Slice.equals(decoded.toSlice(), input))
+    Swag.require(decoded.count == input.count)
+    Swag.require(Slice.equals(decoded.toSlice(), input))
 
     // Again with the decoded size known up front: that path pre-sizes the output,
     // so the block loop never grows it and takes different branches.
     var hinted: Compress.ZLib
     let sized = expect hinted.decompress(compressed.toSlice(), input.count)
-    Swag.assert(sized.count == input.count)
-    Swag.assert(Slice.equals(sized.toSlice(), input))
+    Swag.require(sized.count == input.count)
+    Swag.require(Slice.equals(sized.toSlice(), input))
 }
 
 // Every length in a window around the eight-byte step of the block loop, at every
@@ -213,7 +213,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var truncatedOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as truncatedOutcome
     let truncated = truncatedOutcome.value()
-    Swag.assert(truncated is Errors.InvalidFormatError)
+    Swag.require(truncated is Errors.InvalidFormatError)
 }
 
 // A stored block longer than the remaining input fails instead of reading past it.
@@ -226,7 +226,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var overlongOutcome: Swag.Error
     catch inflater.decompress(&decoded, stored) as overlongOutcome
     let overlong = overlongOutcome.value()
-    Swag.assert(overlong is Errors.InvalidFormatError)
+    Swag.require(overlong is Errors.InvalidFormatError)
 }
 
 // Distance symbols 30 and 31 are reserved; a fixed-Huffman stream that selects 30 fails.
@@ -237,8 +237,8 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var decoded:          Array'u8
     var errorOutcome:     Swag.Error
     catch inflater.decompress(&decoded, reservedDistance) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
-    Swag.assert(decoded.isEmpty())
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require(decoded.isEmpty())
 }
 
 // Literal/length symbols 286 and 287 are reserved even when the decoded length would be zero.
@@ -250,8 +250,8 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var decoded:        Array'u8
     var errorOutcome:   Swag.Error
     catch inflater.decompress(&decoded, reservedLength) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
-    Swag.assert(decoded.isEmpty())
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require(decoded.isEmpty())
 }
 
 #test
@@ -262,8 +262,8 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var decoded:        Array'u8
     var errorOutcome:   Swag.Error
     catch inflater.decompress(&decoded, reservedLength) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
-    Swag.assert(decoded.isEmpty())
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require(decoded.isEmpty())
 }
 
 // A dynamic block cannot announce more than 286 literal/length codes.
@@ -274,7 +274,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var decoded:      Array'u8
     var errorOutcome: Swag.Error
     catch inflater.decompress(&decoded, tooManyCodes) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
 // A stream may use no back-reference farther away than the window announced by its container.
@@ -293,5 +293,5 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var decoded:      Array'u8
     var errorOutcome: Swag.Error
     catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }

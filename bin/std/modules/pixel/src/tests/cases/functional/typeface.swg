@@ -11,7 +11,7 @@ private func checkTypeFaceCreation(name: string, bytes: const [..] u8) fail { di
     var loadErrorOutcome: Swag.Error
     catch checkTypeFaceCreation("pixel-test-truncated-font", truncated) as loadErrorOutcome
     let loadError = loadErrorOutcome.value()
-    Swag.assert(loadError != null)
+    Swag.require(loadError != null)
 }
 
 // A typeface remains usable after its caller releases the source bytes: TrueType.Face owns the
@@ -23,7 +23,7 @@ private func checkTypeFaceCreation(name: string, bytes: const [..] u8) fail { di
     bytes.fill(0)
     bytes.free()
 
-    Swag.assert((face.familyName()).count != 0)
+    Swag.require((face.familyName()).count != 0)
     let bitmap = expect face.renderGlyph('A', 16, false)
-    Swag.assert(bitmap.width != 0)
+    Swag.require(bitmap.width != 0)
 }

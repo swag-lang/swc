@@ -18,18 +18,18 @@ var BreadcrumbPressedCount: u32
     path.addItem("Documents")
     path.addItem("Current")
     path.layout()
-    Swag.assert(path.firstVisible > 0)
-    Swag.assert(path.items[path.firstVisible].bodyRect.x == path.overflowRect.right())
-    Swag.assert(path.items.back().arrowRect.right() <= path.clientRect().right())
+    Swag.require(path.firstVisible > 0)
+    Swag.require(path.items[path.firstVisible].bodyRect.x == path.overflowRect.right())
+    Swag.require(path.items.back().arrowRect.right() <= path.clientRect().right())
 
     path.resize(700, 34)
     path.layout()
-    Swag.assert(path.firstVisible == 0 and path.overflowRect.isEmpty())
+    Swag.require(path.firstVisible == 0 and path.overflowRect.isEmpty())
     path.resize(110, 34)
     path.layout()
-    Swag.assert(path.firstVisible == 3)
-    Swag.assert(path.items.back().bodyRect.width > 0)
-    Swag.assert(path.items.back().arrowRect.right() <= 110)
+    Swag.require(path.firstVisible == 3)
+    Swag.require(path.items.back().bodyRect.width > 0)
+    Swag.require(path.items.back().arrowRect.right() <= 110)
 
     BreadcrumbPressedIndex = Swag.U64.Max
     path.sigItemPressed    += &breadcrumbPressed
@@ -39,13 +39,13 @@ var BreadcrumbPressedCount: u32
         if opened do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.assert(menu.items.count == 3)
+        Swag.require(menu.items.count == 3)
         opened = true
         menu.setEndModal("1")
     }
 
     host.click(path.localToSurface(path.overflowRect.center()))
-    Swag.assert(opened and BreadcrumbPressedIndex == 1)
+    Swag.require(opened and BreadcrumbPressedIndex == 1)
 }
 
 func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
@@ -73,7 +73,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     BreadcrumbPressedIndex = Swag.U64.Max
     let body = breadcrumb.items.back().bodyRect
     host.click(breadcrumb.localToSurface(Math.Point{body.horzCenter(), body.vertCenter()} - breadcrumb.scrollPos))
-    Swag.assert(BreadcrumbPressedIndex == 2)
+    Swag.require(BreadcrumbPressedIndex == 2)
 }
 
 // Levels lay out left-to-right without overlap; a leaf level has no chevron.
@@ -88,21 +88,21 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     bc.setLayoutMetrics(8, 4, 5)
     bc.layout()
 
-    Swag.assert(bc.items.count == 3)
-    Swag.assert(bc.iconSize == 16)
-    Swag.assert(bc.itemAt(1).name == "Docs")
-    Swag.assert(bc.items[0].bodyRect.x == 0)
+    Swag.require(bc.items.count == 3)
+    Swag.require(bc.iconSize == 16)
+    Swag.require(bc.itemAt(1).name == "Docs")
+    Swag.require(bc.items[0].bodyRect.x == 0)
     let standardIconWidth = bc.items[0].bodyRect.width
     bc.iconSize = 0
     bc.layout()
-    Swag.assert(bc.items[0].bodyRect.width == standardIconWidth + 12)
-    Swag.assert(bc.items[0].arrowRect.width > 0)
-    Swag.assert(bc.items[1].bodyRect.x >= bc.items[0].arrowRect.right())
-    Swag.assert(bc.items[2].bodyRect.x >= bc.items[1].arrowRect.right())
-    Swag.assert(bc.items[2].arrowRect.width == 0)
+    Swag.require(bc.items[0].bodyRect.width == standardIconWidth + 12)
+    Swag.require(bc.items[0].arrowRect.width > 0)
+    Swag.require(bc.items[1].bodyRect.x >= bc.items[0].arrowRect.right())
+    Swag.require(bc.items[2].bodyRect.x >= bc.items[1].arrowRect.right())
+    Swag.require(bc.items[2].arrowRect.width == 0)
 
     bc.removeItemsFrom(2)
-    Swag.assert(bc.items.count == 2)
+    Swag.require(bc.items.count == 2)
 }
 
 // Clicking a level body navigates to that level; clicking a chevron with no menu content
@@ -122,13 +122,13 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 
     let r = bc.items[1].bodyRect
     host.click(Math.Point{r.horzCenter(), r.vertCenter()})
-    Swag.assert(BreadcrumbPressedCount == 1)
-    Swag.assert(BreadcrumbPressedIndex == 1)
+    Swag.require(BreadcrumbPressedCount == 1)
+    Swag.require(BreadcrumbPressedIndex == 1)
 
     // A chevron with no sigFillMenu produces an empty (destroyed) popup, so no navigation.
     let a = bc.items[0].arrowRect
     host.click(Math.Point{a.horzCenter(), a.vertCenter()})
-    Swag.assert(BreadcrumbPressedCount == 1)
+    Swag.require(BreadcrumbPressedCount == 1)
 }
 
 // A click past the last level reports the empty space, and never a level.
@@ -147,9 +147,9 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     bc.layout()
 
     host.click(Math.Point{bc.items.back().arrowRect.right() + 40, 16})
-    Swag.assert(emptyPresses == 1 and BreadcrumbPressedCount == 0)
+    Swag.require(emptyPresses == 1 and BreadcrumbPressedCount == 0)
 
     let r = bc.items[0].bodyRect
     host.click(Math.Point{r.horzCenter(), r.vertCenter()})
-    Swag.assert(emptyPresses == 1 and BreadcrumbPressedCount == 1)
+    Swag.require(emptyPresses == 1 and BreadcrumbPressedCount == 1)
 }

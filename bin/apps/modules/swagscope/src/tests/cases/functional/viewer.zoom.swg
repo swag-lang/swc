@@ -18,25 +18,25 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     let text       = assume cast(*PlainText.Panel, textResult.view)
     defer text.setZoom(100)
     var wheel = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
-    Swag.assert(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
+    Swag.require(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
     textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
-    Swag.assert(assume cast(*PlainText.Panel, textResult.view).zoomPercent == 125)
+    Swag.require(assume cast(*PlainText.Panel, textResult.view).zoomPercent == 125)
 
     var codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
     let code       = assume cast(*Code.Panel, codeResult.view)
     defer code.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
-    Swag.assert(code.hookOnChildEvent!(code.editor, &wheel) and code.zoomPercent == 125)
+    Swag.require(code.hookOnChildEvent!(code.editor, &wheel) and code.zoomPercent == 125)
     codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
-    Swag.assert(assume cast(*Code.Panel, codeResult.view).zoomPercent == 125)
+    Swag.require(assume cast(*Code.Panel, codeResult.view).zoomPercent == 125)
 
     var htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
     let html       = assume cast(*Html.Panel, htmlResult.view)
     defer html.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
-    Swag.assert(html.hookOnChildEvent!(html.view, &wheel) and html.zoomPercent == 125)
+    Swag.require(html.hookOnChildEvent!(html.view, &wheel) and html.zoomPercent == 125)
     htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
-    Swag.assert(assume cast(*Html.Panel, htmlResult.view).zoomPercent == 125)
+    Swag.require(assume cast(*Html.Panel, htmlResult.view).zoomPercent == 125)
 }
 
 #test
@@ -55,13 +55,13 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     var textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, services: services)
     let text       = assume cast(*PlainText.Panel, textResult.view)
     completeTextStatistics(&host, text)
-    Swag.assert(text.statistics.characters == 23)
-    Swag.assert(Utf8.contains(g_ReportedDetails.toSlice(), "23 characters"))
+    Swag.require(text.statistics.characters == 23)
+    Swag.require(Utf8.contains(g_ReportedDetails.toSlice(), "23 characters"))
 
     g_ReportedDetails.clear()
     let markdownResult = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, services: services)
     let zoomButton     = assume cast(*MarkdownText.ZoomButton, markdownResult.info!.children[0])
     completeViewerBackgroundLoad(&host, &zoomButton.statisticsLoad)
-    Swag.assert(zoomButton.statistics.characters == 23)
-    Swag.assert(g_ReportedDetails == "Markdown · UTF-8 · 2 lines · 4 words · 23 characters")
+    Swag.require(zoomButton.statistics.characters == 23)
+    Swag.require(g_ReportedDetails == "Markdown · UTF-8 · 2 lines · 4 words · 23 characters")
 }

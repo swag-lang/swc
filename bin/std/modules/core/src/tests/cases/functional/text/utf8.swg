@@ -57,33 +57,33 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
     var bytes: [4] u8
 
-    Swag.assert(Utf8.encodeRune(bytes, 'A'rune) == 1)
-    Swag.assert(bytes[0] == 0x41)
+    Swag.require(Utf8.encodeRune(bytes, 'A'rune) == 1)
+    Swag.require(bytes[0] == 0x41)
 
-    Swag.assert(Utf8.encodeRune(bytes, '\u00E9'rune) == 2)
-    Swag.assert(bytes[0] == 0xC3)
-    Swag.assert(bytes[1] == 0xA9)
+    Swag.require(Utf8.encodeRune(bytes, '\u00E9'rune) == 2)
+    Swag.require(bytes[0] == 0xC3)
+    Swag.require(bytes[1] == 0xA9)
 
-    Swag.assert(Utf8.encodeRune(bytes, '\u20AC'rune) == 3)
-    Swag.assert(bytes[0] == 0xE2)
-    Swag.assert(bytes[1] == 0x82)
-    Swag.assert(bytes[2] == 0xAC)
+    Swag.require(Utf8.encodeRune(bytes, '\u20AC'rune) == 3)
+    Swag.require(bytes[0] == 0xE2)
+    Swag.require(bytes[1] == 0x82)
+    Swag.require(bytes[2] == 0xAC)
 
-    Swag.assert(Utf8.encodeRune(bytes, '\U0001F642'rune) == 4)
-    Swag.assert(bytes[0] == 0xF0)
-    Swag.assert(bytes[1] == 0x9F)
-    Swag.assert(bytes[2] == 0x99)
-    Swag.assert(bytes[3] == 0x82)
+    Swag.require(Utf8.encodeRune(bytes, '\U0001F642'rune) == 4)
+    Swag.require(bytes[0] == 0xF0)
+    Swag.require(bytes[1] == 0x9F)
+    Swag.require(bytes[2] == 0x99)
+    Swag.require(bytes[3] == 0x82)
 
-    Swag.assert(Utf8.encodeRune(bytes, 0xD800'rune) == 3)
-    Swag.assert(bytes[0] == 0xEF)
-    Swag.assert(bytes[1] == 0xBF)
-    Swag.assert(bytes[2] == 0xBD)
+    Swag.require(Utf8.encodeRune(bytes, 0xD800'rune) == 3)
+    Swag.require(bytes[0] == 0xEF)
+    Swag.require(bytes[1] == 0xBF)
+    Swag.require(bytes[2] == 0xBD)
 
-    Swag.assert(Utf8.isValidRune(0))
-    Swag.assert(Utf8.isValidRune(Utf8.MaxRune))
-    Swag.assert(not Utf8.isValidRune(0xD800'rune))
-    Swag.assert(not Utf8.isValidRune(0x110000'rune))
+    Swag.require(Utf8.isValidRune(0))
+    Swag.require(Utf8.isValidRune(Utf8.MaxRune))
+    Swag.require(not Utf8.isValidRune(0xD800'rune))
+    Swag.require(not Utf8.isValidRune(0x110000'rune))
 }
 
 #test
@@ -94,21 +94,21 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 
     var dest: [16] u8
     var count = Utf8.fromUnicode(dest, runes)
-    Swag.assert(count == expected.count)
-    Swag.assert(Memory.compare(dest.buffer, expected.buffer, count) == 0)
-    Swag.assert(assertUtf8String(Utf8.fromUnicode(runes), expected))
+    Swag.require(count == expected.count)
+    Swag.require(Memory.compare(dest.buffer, expected.buffer, count) == 0)
+    Swag.require(assertUtf8String(Utf8.fromUnicode(runes), expected))
 
     count = Utf8.fromUtf16(dest, utf16)
-    Swag.assert(count == expected.count)
-    Swag.assert(Memory.compare(dest.buffer, expected.buffer, count) == 0)
-    Swag.assert(assertUtf8String(Utf8.fromUtf16(utf16), expected))
+    Swag.require(count == expected.count)
+    Swag.require(Memory.compare(dest.buffer, expected.buffer, count) == 0)
+    Swag.require(assertUtf8String(Utf8.fromUtf16(utf16), expected))
 
     let invalidUtf16: [1] u16 = [0xD800]
     count = Utf8.fromUtf16(dest, invalidUtf16)
-    Swag.assert(count == 3)
-    Swag.assert(dest[0] == 0xEF)
-    Swag.assert(dest[1] == 0xBF)
-    Swag.assert(dest[2] == 0xBD)
+    Swag.require(count == 3)
+    Swag.require(dest[0] == 0xEF)
+    Swag.require(dest[1] == 0xBF)
+    Swag.require(dest[2] == 0xBD)
 }
 
 // Homogeneous two- and three-byte runs exercise every packed BMP path in both source
@@ -137,8 +137,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
 
         for index in actual.count
         {
@@ -149,8 +149,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let utf16Slice = utf16[until length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 }
 
@@ -178,8 +178,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
 
         for index in actual.count
         {
@@ -190,8 +190,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let utf16Slice = utf16[until length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 }
 
@@ -223,8 +223,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let runeSlice     = runes[until length]
         var actualCount   = Utf8.fromUnicode(actual, runeSlice)
         var expectedCount = scalarUtf8FromUnicode(expected, runeSlice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
 
         for index in actual.count
         {
@@ -235,8 +235,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let utf16Slice = utf16[until 2 * length]
         actualCount   = Utf8.fromUtf16(actual, utf16Slice)
         expectedCount = scalarUtf8FromUtf16(expected, utf16Slice)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 }
 
@@ -264,8 +264,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 
         let actualCount   = Utf8.fromUtf16(actual, source)
         let expectedCount = scalarUtf8FromUtf16(expected, source)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
         source[interruption] = interruption % 2 ? 0xDE42 : 0xD83D
     }
 }
@@ -291,8 +291,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let src           = source[until idx]
         let actualCount   = Utf8.fromUtf16(actual, src)
         let expectedCount = scalarUtf8FromUtf16(expected, src)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 
     for index in 48
@@ -309,8 +309,8 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         let src           = source[until 64]
         let actualCount   = Utf8.fromUtf16(actual, src)
         let expectedCount = scalarUtf8FromUtf16(expected, src)
-        Swag.assert(actualCount == expectedCount)
-        Swag.assert(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+        Swag.require(actualCount == expectedCount)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 }
 
@@ -318,28 +318,28 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
     let text     = "A\u00E9\u20AC\U0001F642"
     var {c, eat} = Utf8.decodeRune(text)
-    Swag.assert(c == 'A'rune)
-    Swag.assert(eat == 1)
+    Swag.require(c == 'A'rune)
+    Swag.require(eat == 1)
 
     {c, eat} = Utf8.decodeRune(text[1 until text.count])
-    Swag.assert(c == '\u00E9'rune)
-    Swag.assert(eat == 2)
+    Swag.require(c == '\u00E9'rune)
+    Swag.require(eat == 2)
 
     {c, eat} = Utf8.decodeRune(text[3 until text.count])
-    Swag.assert(c == '\u20AC'rune)
-    Swag.assert(eat == 3)
+    Swag.require(c == '\u20AC'rune)
+    Swag.require(eat == 3)
 
     {c, eat} = Utf8.decodeRune(text[6 until text.count])
-    Swag.assert(c == '\U0001F642'rune)
-    Swag.assert(eat == 4)
+    Swag.require(c == '\U0001F642'rune)
+    Swag.require(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text)
-    Swag.assert(c == '\U0001F642'rune)
-    Swag.assert(eat == 4)
+    Swag.require(c == '\U0001F642'rune)
+    Swag.require(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text[0 until 6])
-    Swag.assert(c == '\u20AC'rune)
-    Swag.assert(eat == 3)
+    Swag.require(c == '\u20AC'rune)
+    Swag.require(eat == 3)
 }
 
 #test
@@ -349,134 +349,134 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     let overlong:     [2] u8 = [0xC0, 0xAF]
     let surrogate:    [3] u8 = [0xED, 0xA0, 0x80]
 
-    Swag.assert(not Utf8.isValid(invalidStart))
-    Swag.assert(not Utf8.isValid(truncated))
-    Swag.assert(not Utf8.isValid(overlong))
-    Swag.assert(not Utf8.isValid(surrogate))
+    Swag.require(not Utf8.isValid(invalidStart))
+    Swag.require(not Utf8.isValid(truncated))
+    Swag.require(not Utf8.isValid(overlong))
+    Swag.require(not Utf8.isValid(surrogate))
 
     var {c, eat} = Utf8.decodeRune(invalidStart)
-    Swag.assert(c == Utf8.RuneError)
-    Swag.assert(eat == 1)
+    Swag.require(c == Utf8.RuneError)
+    Swag.require(eat == 1)
 
     {c, eat} = Utf8.decodeRune(truncated)
-    Swag.assert(c == Utf8.RuneError)
-    Swag.assert(eat == 1)
+    Swag.require(c == Utf8.RuneError)
+    Swag.require(eat == 1)
 
     {c, eat} = Utf8.decodeLastRune(truncated)
-    Swag.assert(c == Utf8.RuneError)
-    Swag.assert(eat == 1)
+    Swag.require(c == Utf8.RuneError)
+    Swag.require(eat == 1)
 
-    Swag.assert(Utf8.countBytesAt(invalidStart) == 1)
-    Swag.assert(Utf8.countBytesAt(truncated) == 1)
-    Swag.assert(Utf8.countRunes(invalidStart) == 1)
+    Swag.require(Utf8.countBytesAt(invalidStart) == 1)
+    Swag.require(Utf8.countBytesAt(truncated) == 1)
+    Swag.require(Utf8.countRunes(invalidStart) == 1)
 }
 
 #test
 {
     let text = "A\u00E9\u20AC\U0001F642"
 
-    Swag.assert(Utf8.isValid(text))
-    Swag.assert(Utf8.countRunes(text) == 4)
-    Swag.assert(Utf8.countBytesAt(text) == 1)
-    Swag.assert(Utf8.countBytesAt(text[1 until text.count]) == 2)
-    Swag.assert(Utf8.countBytesAt(text[3 until text.count]) == 3)
-    Swag.assert(Utf8.countBytesAt(text[6 until text.count]) == 4)
+    Swag.require(Utf8.isValid(text))
+    Swag.require(Utf8.countRunes(text) == 4)
+    Swag.require(Utf8.countBytesAt(text) == 1)
+    Swag.require(Utf8.countBytesAt(text[1 until text.count]) == 2)
+    Swag.require(Utf8.countBytesAt(text[3 until text.count]) == 3)
+    Swag.require(Utf8.countBytesAt(text[6 until text.count]) == 4)
 
     var idx = Utf8.byteIndex(text, 0)
-    Swag.assert(idx.success)
-    Swag.assert(idx.index == 0)
+    Swag.require(idx.success)
+    Swag.require(idx.index == 0)
 
     idx = Utf8.byteIndex(text, 1)
-    Swag.assert(idx.success)
-    Swag.assert(idx.index == 1)
+    Swag.require(idx.success)
+    Swag.require(idx.index == 1)
 
     idx = Utf8.byteIndex(text, 2)
-    Swag.assert(idx.success)
-    Swag.assert(idx.index == 3)
+    Swag.require(idx.success)
+    Swag.require(idx.index == 3)
 
     idx = Utf8.byteIndex(text, 3)
-    Swag.assert(idx.success)
-    Swag.assert(idx.index == 6)
+    Swag.require(idx.success)
+    Swag.require(idx.index == 6)
 
     idx = Utf8.byteIndex(text, 4)
-    Swag.assert(not idx.success)
-    Swag.assert(idx.index == text.count)
+    Swag.require(not idx.success)
+    Swag.require(idx.index == text.count)
 }
 
 #test
 {
     let text = "Core Caf\u00E9 \U0001F642"
 
-    Swag.assert(Utf8.indexOf(text, "Core") == 0)
-    Swag.assert(Utf8.indexOf(text, "Caf") == 5)
-    Swag.assert(Utf8.indexOf(text, "\u00E9") == 8)
-    Swag.assert(Utf8.indexOf(text, "\U0001F642") == 11)
-    Swag.assert(Utf8.indexOf(text, '\u00E9'rune) == 8)
-    Swag.assert(Utf8.indexOf(text, "core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
-    Swag.assert(Utf8.indexOf(text, "\u00C9", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 8)
-    Swag.assert(Utf8.lastIndexOf(text, "\u00C9", Utf8.ComparisonType.Latin1NoCase) == 8)
-    Swag.assert(Utf8.indexOf(text, "missing") == Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(text, "missing", text.count) == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(text, "Core") == 0)
+    Swag.require(Utf8.indexOf(text, "Caf") == 5)
+    Swag.require(Utf8.indexOf(text, "\u00E9") == 8)
+    Swag.require(Utf8.indexOf(text, "\U0001F642") == 11)
+    Swag.require(Utf8.indexOf(text, '\u00E9'rune) == 8)
+    Swag.require(Utf8.indexOf(text, "core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
+    Swag.require(Utf8.indexOf(text, "\u00C9", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 8)
+    Swag.require(Utf8.lastIndexOf(text, "\u00C9", Utf8.ComparisonType.Latin1NoCase) == 8)
+    Swag.require(Utf8.indexOf(text, "missing") == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(text, "missing", text.count) == Swag.U64.Max)
 
     let byteNeedles: [2] u8 = ['f'u8, 'x'u8]
-    Swag.assert(Utf8.indexOfAny(text, byteNeedles) == 7)
-    Swag.assert(Utf8.indexOfAny(text, byteNeedles, 8) == Swag.U64.Max)
-    Swag.assert(Utf8.indexOfAny(text, byteNeedles, text.count) == Swag.U64.Max)
+    Swag.require(Utf8.indexOfAny(text, byteNeedles) == 7)
+    Swag.require(Utf8.indexOfAny(text, byteNeedles, 8) == Swag.U64.Max)
+    Swag.require(Utf8.indexOfAny(text, byteNeedles, text.count) == Swag.U64.Max)
 
     let runeNeedles: [2] rune = ['\u00E9'rune, '\U0001F642'rune]
-    Swag.assert(Utf8.indexOfAny(text, runeNeedles) == 8)
-    Swag.assert(Utf8.indexOfAny(text, runeNeedles, 9) == 11)
-    Swag.assert(Utf8.indexOfAny(text, runeNeedles, text.count) == Swag.U64.Max)
+    Swag.require(Utf8.indexOfAny(text, runeNeedles) == 8)
+    Swag.require(Utf8.indexOfAny(text, runeNeedles, 9) == 11)
+    Swag.require(Utf8.indexOfAny(text, runeNeedles, text.count) == Swag.U64.Max)
 }
 
 #test
 {
     let text = "one fish two fish"
 
-    Swag.assert(Utf8.contains(text, cast(string, "fish")))
-    Swag.assert(Utf8.contains(text, 'f'u8))
-    Swag.assert(Utf8.contains(text, 'o'rune))
-    Swag.assert(not Utf8.contains(text, cast(string, "bird")))
+    Swag.require(Utf8.contains(text, cast(string, "fish")))
+    Swag.require(Utf8.contains(text, 'f'u8))
+    Swag.require(Utf8.contains(text, 'o'rune))
+    Swag.require(not Utf8.contains(text, cast(string, "bird")))
 
-    Swag.assert(Utf8.lastIndexOf(text, "fish") == 13)
-    Swag.assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
-    Swag.assert(Utf8.lastIndexOf(text, 'i'rune) == 14)
+    Swag.require(Utf8.lastIndexOf(text, "fish") == 13)
+    Swag.require(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
+    Swag.require(Utf8.lastIndexOf(text, 'i'rune) == 14)
 
     let runeNeedles: [2] rune = ['o'rune, 't'rune]
-    Swag.assert(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
+    Swag.require(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
     let missingRuneNeedles: [2] rune = ['z'rune, '\u2603'rune]
-    Swag.assert(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOfAny(text, runeNeedles[until 0]) == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOfAny(text, runeNeedles[until 0]) == Swag.U64.Max)
 
     let byteNeedles: [2] u8 = ['h'u8, 'x'u8]
-    Swag.assert(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
+    Swag.require(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
     let missingByteNeedles: [2] u8 = ['z'u8, 'x'u8]
-    Swag.assert(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOfAny(text, byteNeedles[until 0]) == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOfAny(text, byteNeedles[until 0]) == Swag.U64.Max)
 
-    Swag.assert(Utf8.startsWith(text, "one"))
-    Swag.assert(Utf8.startsWith(text, "ONE", Utf8.ComparisonType.Latin1NoCase))
-    Swag.assert(not Utf8.startsWith(text, "fish"))
-    Swag.assert(Utf8.endsWith(text, "fish"))
-    Swag.assert(Utf8.endsWith(text, "FISH", Utf8.ComparisonType.Latin1NoCase))
-    Swag.assert(not Utf8.endsWith(text, "one"))
+    Swag.require(Utf8.startsWith(text, "one"))
+    Swag.require(Utf8.startsWith(text, "ONE", Utf8.ComparisonType.Latin1NoCase))
+    Swag.require(not Utf8.startsWith(text, "fish"))
+    Swag.require(Utf8.endsWith(text, "fish"))
+    Swag.require(Utf8.endsWith(text, "FISH", Utf8.ComparisonType.Latin1NoCase))
+    Swag.require(not Utf8.endsWith(text, "one"))
 }
 
 #test
 {
     let text = "\u00E9clair\U0001F642"
 
-    Swag.assert(Utf8.firstRune(text) == '\u00E9'rune)
-    Swag.assert(Utf8.lastRune(text) == '\U0001F642'rune)
-    Swag.assert(Utf8.firstRune("") == 0)
-    Swag.assert(Utf8.lastRune("") == 0)
+    Swag.require(Utf8.firstRune(text) == '\u00E9'rune)
+    Swag.require(Utf8.lastRune(text) == '\U0001F642'rune)
+    Swag.require(Utf8.firstRune("") == 0)
+    Swag.require(Utf8.lastRune("") == 0)
 
-    Swag.assert(Utf8.compare("abc", "abc") == 0)
-    Swag.assert(Utf8.compare("abc", "abd") == -1)
-    Swag.assert(Utf8.compare("abd", "abc") == 1)
-    Swag.assert(Utf8.compare("Ab\u00C9", "ab\u00E9", Utf8.ComparisonType.UnicodeNoCase) == 0)
+    Swag.require(Utf8.compare("abc", "abc") == 0)
+    Swag.require(Utf8.compare("abc", "abd") == -1)
+    Swag.require(Utf8.compare("abd", "abc") == 1)
+    Swag.require(Utf8.compare("Ab\u00C9", "ab\u00E9", Utf8.ComparisonType.UnicodeNoCase) == 0)
 
-    Swag.assert(assertUtf8String(Utf8.beautifyName("httpServerURL"), "Http Server URL"))
+    Swag.require(assertUtf8String(Utf8.beautifyName("httpServerURL"), "Http Server URL"))
 }
 
 #test
@@ -494,15 +494,15 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         byteIndexSum += byteIndex
     }
 
-    Swag.assert(runeSum == cast(u32, 'A'rune) + cast(u32, '\u00E9'rune) + cast(u32, '\U0001F642'rune))
-    Swag.assert(charIndexSum == 3)
-    Swag.assert(byteIndexSum == 4)
+    Swag.require(runeSum == cast(u32, 'A'rune) + cast(u32, '\u00E9'rune) + cast(u32, '\U0001F642'rune))
+    Swag.require(charIndexSum == 3)
+    Swag.require(byteIndexSum == 4)
 }
 
 #test
 {
-    Swag.assert(firstNonAsciiRune("ASCII") == 0)
-    Swag.assert(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'rune)
+    Swag.require(firstNonAsciiRune("ASCII") == 0)
+    Swag.require(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'rune)
 }
 
 // Rune counting crosses packed ASCII blocks without consuming the first byte
@@ -513,11 +513,11 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for &value in ascii do
         value[] = 'a'
     for length in 66 do
-        Swag.assert(Utf8.countRunes(ascii[until length]) == length)
+        Swag.require(Utf8.countRunes(ascii[until length]) == length)
 
-    Swag.assert(Utf8.countRunes("aaaaaaaaaaaaaaa\u00E9") == 16)
-    Swag.assert(Utf8.countRunes("aaaaaaaaaaaaaaaa\u00E9") == 17)
-    Swag.assert(Utf8.countRunes("aaaaaaaaaaaaaaaaa\U0001F642") == 18)
+    Swag.require(Utf8.countRunes("aaaaaaaaaaaaaaa\u00E9") == 16)
+    Swag.require(Utf8.countRunes("aaaaaaaaaaaaaaaa\u00E9") == 17)
+    Swag.require(Utf8.countRunes("aaaaaaaaaaaaaaaaa\U0001F642") == 18)
 }
 
 // Forward and backward ASCII searches preserve exact byte indices across SIMD
@@ -533,13 +533,13 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             value[] = 'a'
         values[position] = 'z'
         let text = Swag.makeString(values.buffer, values.count)
-        Swag.assert(Utf8.indexOfAny(values, ByteNeedles) == position)
-        Swag.assert(Utf8.indexOfAny(values, RuneNeedles) == position)
-        Swag.assert(Utf8.lastIndexOfAny(values, ByteNeedles) == position)
-        Swag.assert(Utf8.lastIndexOfAny(values, RuneNeedles) == position)
-        Swag.assert(Utf8.indexOfAny(values, ByteNeedles, position + 1) == Swag.U64.Max)
-        Swag.assert(Utf8.indexOf(text, 'z'rune) == position)
-        Swag.assert(Utf8.lastIndexOf(text, 'z'rune) == position)
+        Swag.require(Utf8.indexOfAny(values, ByteNeedles) == position)
+        Swag.require(Utf8.indexOfAny(values, RuneNeedles) == position)
+        Swag.require(Utf8.lastIndexOfAny(values, ByteNeedles) == position)
+        Swag.require(Utf8.lastIndexOfAny(values, RuneNeedles) == position)
+        Swag.require(Utf8.indexOfAny(values, ByteNeedles, position + 1) == Swag.U64.Max)
+        Swag.require(Utf8.indexOf(text, 'z'rune) == position)
+        Swag.require(Utf8.lastIndexOf(text, 'z'rune) == position)
     }
 
     for position in 94
@@ -550,19 +550,19 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
         values[position + 1] = 'y'
         values[position + 2] = 'z'
         let text = Swag.makeString(values.buffer, values.count)
-        Swag.assert(Utf8.indexOf(text, "xyz") == position)
-        Swag.assert(Utf8.lastIndexOf(text, "xyz") == position)
-        Swag.assert(Utf8.indexOf(text, "XyZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == position)
-        Swag.assert(Utf8.lastIndexOf(text, "XyZ", Utf8.ComparisonType.Latin1NoCase) == position)
+        Swag.require(Utf8.indexOf(text, "xyz") == position)
+        Swag.require(Utf8.lastIndexOf(text, "xyz") == position)
+        Swag.require(Utf8.indexOf(text, "XyZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == position)
+        Swag.require(Utf8.lastIndexOf(text, "XyZ", Utf8.ComparisonType.Latin1NoCase) == position)
     }
 
     for &value in values do
         value[] = 'a'
     let repeated = Swag.makeString(values.buffer, values.count)
-    Swag.assert(Utf8.indexOf(repeated, "azzz") == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOf(repeated, "azzz") == Swag.U64.Max)
-    Swag.assert(Utf8.indexOf(repeated, "AzZZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
-    Swag.assert(Utf8.lastIndexOf(repeated, "AzZZ", Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(repeated, "azzz") == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOf(repeated, "azzz") == Swag.U64.Max)
+    Swag.require(Utf8.indexOf(repeated, "AzZZ", comparisonType: Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
+    Swag.require(Utf8.lastIndexOf(repeated, "AzZZ", Utf8.ComparisonType.Latin1NoCase) == Swag.U64.Max)
 }
 
 // Byte-index lookup skips only complete ASCII blocks and stops before a
@@ -575,14 +575,14 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     for index in 81
     {
         let result = Utf8.byteIndex(ascii, index)
-        Swag.assert(result.index == index)
-        Swag.assert(result.success == (index < ascii.count))
+        Swag.require(result.index == index)
+        Swag.require(result.success == (index < ascii.count))
     }
 
     let mixed = "aaaaaaaaaaaaaaa\u00E9"
-    Swag.assert(Utf8.byteIndex(mixed, 15).index == 15)
+    Swag.require(Utf8.byteIndex(mixed, 15).index == 15)
     let end = Utf8.byteIndex(mixed, 16)
-    Swag.assert(end.index == mixed.count and not end.success)
+    Swag.require(end.index == mixed.count and not end.success)
 }
 
 // Latin-1 case folding must not reinterpret another character's continuation bytes.
@@ -595,19 +595,19 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
             prefix += "a"
         let first = Format.toString("%\u0100abcdefghijklmnopqrstuvwxyz", prefix.toString())
         let other = Format.toString("%\u0120abcdefghijklmnopqrstuvwxyz", prefix.toString())
-        Swag.assert(Utf8.compare(first.toString(), other.toString(), .Latin1NoCase) == -1)
-        Swag.assert(Utf8.compare(other.toString(), first.toString(), .Latin1NoCase) == 1)
-        Swag.assert(Utf8.compare(first.toString(), first.toString(), .Latin1NoCase) == 0)
-        Swag.assert(Utf8.indexOf(first.toString(), "\u0120", comparisonType: .Latin1NoCase) == Swag.U64.Max)
-        Swag.assert(Utf8.lastIndexOf(first.toString(), "\u0120", .Latin1NoCase) == Swag.U64.Max)
+        Swag.require(Utf8.compare(first.toString(), other.toString(), .Latin1NoCase) == -1)
+        Swag.require(Utf8.compare(other.toString(), first.toString(), .Latin1NoCase) == 1)
+        Swag.require(Utf8.compare(first.toString(), first.toString(), .Latin1NoCase) == 0)
+        Swag.require(Utf8.indexOf(first.toString(), "\u0120", comparisonType: .Latin1NoCase) == Swag.U64.Max)
+        Swag.require(Utf8.lastIndexOf(first.toString(), "\u0120", .Latin1NoCase) == Swag.U64.Max)
     }
 
-    Swag.assert(Utf8.compare("\u00C9", "\u00E9", .Latin1NoCase) == 0)
-    Swag.assert(Utf8.compare("\u0100", "\u0101", .Latin1NoCase) == -1)
-    Swag.assert(Utf8.compare("\u0100", "\u0101", .UnicodeNoCase) == 0)
-    Swag.assert(Utf8.compare("\u0080", "\u00A0", .Latin1NoCase) == -1)
-    Swag.assert(Utf8.compare("\U0001F600", "\U0001F620", .Latin1NoCase) == -1)
-    Swag.assert(Utf8.compare("\u00E9", "e\u0301", .Latin1NoCase) != 0)
-    Swag.assert(not Utf8.startsWith("\u0100xyz", "\u0120", .Latin1NoCase))
-    Swag.assert(not Utf8.endsWith("xyz\u0100", "\u0120", .Latin1NoCase))
+    Swag.require(Utf8.compare("\u00C9", "\u00E9", .Latin1NoCase) == 0)
+    Swag.require(Utf8.compare("\u0100", "\u0101", .Latin1NoCase) == -1)
+    Swag.require(Utf8.compare("\u0100", "\u0101", .UnicodeNoCase) == 0)
+    Swag.require(Utf8.compare("\u0080", "\u00A0", .Latin1NoCase) == -1)
+    Swag.require(Utf8.compare("\U0001F600", "\U0001F620", .Latin1NoCase) == -1)
+    Swag.require(Utf8.compare("\u00E9", "e\u0301", .Latin1NoCase) != 0)
+    Swag.require(not Utf8.startsWith("\u0100xyz", "\u0120", .Latin1NoCase))
+    Swag.require(not Utf8.endsWith("xyz\u0100", "\u0120", .Latin1NoCase))
 }

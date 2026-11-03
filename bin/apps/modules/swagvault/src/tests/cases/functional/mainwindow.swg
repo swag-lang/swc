@@ -26,9 +26,9 @@ using Swag, Core, Gui
         var firstErrorOutcome: Swag.Error
         catch window.operation.error.raise() as firstErrorOutcome
         let firstError = firstErrorOutcome.value()
-        Swag.assert(firstError != null and not isCanceledError(firstError))
+        Swag.require(firstError != null and not isCanceledError(firstError))
         firstMessage = caughtMessage(firstError)
-        Swag.assert(firstMessage == expectedFirst)
+        Swag.require(firstMessage == expectedFirst)
     }
 
     window.operation.error.reset()
@@ -42,19 +42,19 @@ using Swag, Core, Gui
         var canceledErrorOutcome: Swag.Error
         catch window.operation.error.raise() as canceledErrorOutcome
         let canceledError = canceledErrorOutcome.value()
-        Swag.assert(canceledError != null and isCanceledError(canceledError))
+        Swag.require(canceledError != null and isCanceledError(canceledError))
         let message = caughtMessage(canceledError)
-        Swag.assert(message == appStrings().msg_OperationStopped)
+        Swag.require(message == appStrings().msg_OperationStopped)
     }
 
-    Swag.assert(firstMessage == expectedFirst)
-    Swag.assert(not File.exists(path))
+    Swag.require(firstMessage == expectedFirst)
+    Swag.require(not File.exists(path))
 
     window.operation.error.reset()
     window.operation.kind = .Unmount
     window.operation.task.submit(func|window|() { window.runOperation() })
     window.operation.task.wait()
-    Swag.assert(window.operation.error.isEmpty())
+    Swag.require(window.operation.error.isEmpty())
     window.operation.kind = .None
 }
 
@@ -166,7 +166,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     if column.position.bottom() > room + 0.5
     {
         Console.println("page column does not fit: ends at ", column.position.bottom(), ", page holds ", room)
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -176,26 +176,26 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    Swag.assert(activeLanguage() == ReferenceLanguage)
-    Swag.assert(window.page == .List)
-    Swag.assert(window.list.title.text() == "Vaults")
-    Swag.assert(window.createButton.text() == "Create Encrypted Vault")
-    Swag.assert(window.language == ReferenceLanguage)
+    Swag.require(activeLanguage() == ReferenceLanguage)
+    Swag.require(window.page == .List)
+    Swag.require(window.list.title.text() == "Vaults")
+    Swag.require(window.createButton.text() == "Create Encrypted Vault")
+    Swag.require(window.language == ReferenceLanguage)
 
     // The appearance action keeps the choice and its persistence, and draws nothing: the theme,
     // the language and About are lens entries.
-    Swag.assert(window.appearanceButton.parent == &host.surfaceWnd)
-    Swag.assert(not window.appearanceButton.isLocallyVisible())
+    Swag.require(window.appearanceButton.parent == &host.surfaceWnd)
+    Swag.require(not window.appearanceButton.isLocallyVisible())
 
     window.themeIndex = cast(u32, AppearanceTheme.Dark)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.ground == ThemeColors.encrePalette().ground)
+    Swag.require(window.appearanceButton.appearanceTheme == .Dark and host.theme.colors.ground == ThemeColors.encrePalette().ground)
     window.themeIndex = cast(u32, AppearanceTheme.Light)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.ground == ThemeColors.papierPalette().ground)
+    Swag.require(window.appearanceButton.appearanceTheme == .Light and host.theme.colors.ground == ThemeColors.papierPalette().ground)
     window.themeIndex = cast(u32, AppearanceTheme.System)
     window.applyTheme()
-    Swag.assert(window.appearanceButton.appearanceTheme == .System and host.theme.colors.ground == ThemeColors.encrePalette().ground)
+    Swag.require(window.appearanceButton.appearanceTheme == .System and host.theme.colors.ground == ThemeColors.encrePalette().ground)
 }
 
 // Privacy is the default: no vault path reaches the state, and the list keeps only what is
@@ -205,26 +205,26 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    Swag.assert(window.privacyMode)
-    Swag.assert(not window.protectHiddenOnMount)
-    Swag.assert(window.privacyModeControl.isChecked())
+    Swag.require(window.privacyMode)
+    Swag.require(not window.protectHiddenOnMount)
+    Swag.require(window.privacyModeControl.isChecked())
 
     window.openVault("C:\\private\\unlisted")
-    Swag.assert(window.vaults.count == 1 and window.chosenPath == "C:\\private\\unlisted")
+    Swag.require(window.vaults.count == 1 and window.chosenPath == "C:\\private\\unlisted")
     window.startupVaults.add(StartupVault{"C:\\private\\startup", "mount-x", true, false})
     window.fileDlgState.currentFolder = "C:\\private\\browse-private"
     var state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), "unlisted"))
-    Swag.assert(not containsStateBytes(state.toSlice(), "startup"))
-    Swag.assert(not containsStateBytes(state.toSlice(), "browse-private"))
+    Swag.require(not containsStateBytes(state.toSlice(), "unlisted"))
+    Swag.require(not containsStateBytes(state.toSlice(), "startup"))
+    Swag.require(not containsStateBytes(state.toSlice(), "browse-private"))
 
     // Folded, a locked vault leaves the list at once.
     window.foldVault()
-    Swag.assert(window.vaults.isEmpty())
-    Swag.assert(window.list.rows.isEmpty())
+    Swag.require(window.vaults.isEmpty())
+    Swag.require(window.list.rows.isEmpty())
 
     window.clearPrivateState()
-    Swag.assert(window.startupVaults.isEmpty())
+    Swag.require(window.startupVaults.isEmpty())
 }
 
 // About is a lens entry, and reaches the standard application box.
@@ -233,13 +233,13 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    Swag.assert(not window.appearanceButton.sigAboutRequested.isEmpty())
+    Swag.require(not window.appearanceButton.sigAboutRequested.isEmpty())
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.showAbout()
     host.pump()
 
-    Swag.assert(host.autoHandled)
-    Swag.assert(host.openedSurfaceCount() == 0)
+    Swag.require(host.autoHandled)
+    Swag.require(host.openedSurfaceCount() == 0)
 }
 
 // Every page holds what it shows in every shipped language, at the window's smallest size and at
@@ -263,18 +263,18 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             window.showPage(.List, animate: false)
             Testing.assertContentFits(window)
             let card = &window.list.card
-            Swag.assert(card.panel.isLocallyVisible())
-            Swag.assert(card.form.position.bottom() <= card.options.position.y + 0.5)
-            Swag.assert(card.mount.position.bottom() <= card.panel.position.height + 0.5)
+            Swag.require(card.panel.isLocallyVisible())
+            Swag.require(card.form.position.bottom() <= card.options.position.y + 0.5)
+            Swag.require(card.mount.position.bottom() <= card.panel.position.height + 0.5)
             for child in card.options.children where child.isLocallyVisible() do
-                Swag.assert(card.options.position.x + child.position.right() <= card.mount.position.x + 0.5)
+                Swag.require(card.options.position.x + child.position.right() <= card.mount.position.x + 0.5)
 
             window.showPage(.Create, animate: false)
             Testing.assertContentFits(window)
             assertColumnFits(window, window.createPage, window.createPage.column)
             let create = window.createPage
-            Swag.assert(create.cancel.position.right() <= create.createAction.position.x)
-            Swag.assert(create.keyFiles.position.right() <= create.cancel.position.x)
+            Swag.require(create.cancel.position.right() <= create.createAction.position.x)
+            Swag.require(create.keyFiles.position.right() <= create.cancel.position.x)
 
             window.progressPage.begin("C:\\vaults\\one", appStrings().ui_Randomizing, appStrings().ui_RandomizeHelp, appStrings().ui_StopCreating)
             window.showPage(.Progress, animate: false)
@@ -301,12 +301,12 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.settleAnimations(window)
 
     window.showPage(.Create)
-    Swag.assert(window.createPath.hasFocus())
+    Swag.require(window.createPath.hasFocus())
     host.advanceAnimations(0.05)
-    Swag.assert(window.createPage.presentationOpacity > 0 and window.createPage.presentationOpacity < 1)
+    Swag.require(window.createPage.presentationOpacity > 0 and window.createPage.presentationOpacity < 1)
     host.app.animator.finishAll()
-    Swag.assert(window.createPage.presentationOpacity == 1)
-    Swag.assert(not window.list.scroll.isLocallyVisible())
+    Swag.require(window.createPage.presentationOpacity == 1)
+    Swag.require(not window.list.scroll.isLocallyVisible())
 }
 
 // A language switch re-labels the complete surface.
@@ -325,17 +325,17 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
 
-    Swag.assert(window.list.title.text() == "Coffres")
-    Swag.assert(row.unmount.text() == "Démonter")
-    Swag.assert(row.open.text() == "Ouvrir P:")
-    Swag.assert(window.createButton.text() == "Créer le coffre chiffré")
-    Swag.assert(window.mountButton.text() == "Monter")
-    Swag.assert(window.optionsPage.head.title.text() == "Vie privée")
-    Swag.assert(Utf8.startsWith(window.vaultIdentity("C:\\Users\\vault\\papiers.bin"), "monté sur P:"))
+    Swag.require(window.list.title.text() == "Coffres")
+    Swag.require(row.unmount.text() == "Démonter")
+    Swag.require(row.open.text() == "Ouvrir P:")
+    Swag.require(window.createButton.text() == "Créer le coffre chiffré")
+    Swag.require(window.mountButton.text() == "Monter")
+    Swag.require(window.optionsPage.head.title.text() == "Vie privée")
+    Swag.require(Utf8.startsWith(window.vaultIdentity("C:\\Users\\vault\\papiers.bin"), "monté sur P:"))
 
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
-    Swag.assert(row.unmount.text() == "Unmount")
+    Swag.require(row.unmount.text() == "Unmount")
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -346,17 +346,17 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     // The window opens on the reference language rather than on the account.
-    Swag.assert(window.appearanceButton.language == ReferenceLanguage)
+    Swag.require(window.appearanceButton.language == ReferenceLanguage)
 
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
     host.notify(.LanguageChanged)
-    Swag.assert(window.language == "fr")
-    Swag.assert(activeLanguage() == "fr")
-    Swag.assert(window.appearanceButton.language == "fr")
+    Swag.require(window.language == "fr")
+    Swag.require(activeLanguage() == "fr")
+    Swag.require(window.appearanceButton.language == "fr")
 
     expect window.appearanceButton.setAppearanceLanguage("", notify: true)
-    Swag.assert(window.language.isEmpty())
-    Swag.assert(activeLanguage() == systemLanguage())
+    Swag.require(window.language.isEmpty())
+    Swag.require(activeLanguage() == systemLanguage())
 }
 
 // With privacy mode off, the list remembers each vault with the drive and the read-only choice of
@@ -375,8 +375,8 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.operation.mountLabel = "D:"
     window.operation.readOnly   = true
     window.rememberMountedDrive()
-    Swag.assert(window.vaults.count == 1)
-    Swag.assert(window.vaults[0].drive == "D:" and window.vaults[0].readOnly)
+    Swag.require(window.vaults.count == 1)
+    Swag.require(window.vaults[0].drive == "D:" and window.vaults[0].readOnly)
 
     // Put unmistakable bytes in the password storage. Persistent state must never observe them.
     let secret = "not a setting"
@@ -385,27 +385,27 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     var state       = saveMainWindowState(window)
     let secretBytes = cast(const [..] u8, secret)
-    Swag.assert(not containsStateBytes(state.toSlice(), secretBytes))
+    Swag.require(not containsStateBytes(state.toSlice(), secretBytes))
 
     window.unlockKeyFiles.add("C:\\private\\access.key")
     state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), "access.key"))
+    Swag.require(not containsStateBytes(state.toSlice(), "access.key"))
 
     window.mountedDrives.drives.clear()
     window.vaults.clear()
     window.forgetAccess()
     loadMainWindowState(window, state.toSlice())
 
-    Swag.assert(window.vaults.count == 1)
-    Swag.assert(window.vaults[0].path == "C:\\vaults\\remembered")
-    Swag.assert(window.vaults[0].drive == "D:" and window.vaults[0].readOnly)
-    Swag.assert(window.mountPassword.isEmpty())
-    Swag.assert(window.unlockKeyFiles.isEmpty())
+    Swag.require(window.vaults.count == 1)
+    Swag.require(window.vaults[0].path == "C:\\vaults\\remembered")
+    Swag.require(window.vaults[0].drive == "D:" and window.vaults[0].readOnly)
+    Swag.require(window.mountPassword.isEmpty())
+    Swag.require(window.unlockKeyFiles.isEmpty())
 
     // Choosing it again starts from the choices of its last mount.
     window.chooseVault("C:\\vaults\\remembered")
-    Swag.assert(window.readOnly.isChecked())
-    Swag.assert(window.selectedMountPoint() == "D:")
+    Swag.require(window.readOnly.isChecked())
+    Swag.require(window.selectedMountPoint() == "D:")
 }
 
 // The last mount an earlier version saved joins the list once.
@@ -428,9 +428,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     let bytes = legacy.toString()
     loadMainWindowState(window, bytes.toSlice())
-    Swag.assert(window.vaults.count == 1 and
-                window.vaults[0].path == "C:\\vaults\\legacy" and
-                window.vaults[0].readOnly)
+    Swag.require(window.vaults.count == 1 and
+                 window.vaults[0].path == "C:\\vaults\\legacy" and
+                 window.vaults[0].readOnly)
 }
 
 // Automatic-unmount choices are explicit persistent policy, and the timeout is only actionable
@@ -440,10 +440,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    Swag.assert(window.unmountOnLock.isChecked())
-    Swag.assert(window.unmountOnSuspend.isChecked())
-    Swag.assert(not window.unmountOnIdle.isChecked())
-    Swag.assert(not window.idleTimeout.isEnabled())
+    Swag.require(window.unmountOnLock.isChecked())
+    Swag.require(window.unmountOnSuspend.isChecked())
+    Swag.require(not window.unmountOnIdle.isChecked())
+    Swag.require(not window.idleTimeout.isEnabled())
 
     window.unmountOnLock.toggle()
     window.unmountOnIdle.toggle()
@@ -455,15 +455,15 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.applyAutoUnmountControls()
     loadMainWindowState(window, state.toSlice())
 
-    Swag.assert(not window.autoUnmount.onSessionLock)
-    Swag.assert(window.autoUnmount.onSuspend)
-    Swag.assert(window.autoUnmount.onIdle)
-    Swag.assert(window.autoUnmount.idleMinutes == 30)
-    Swag.assert(window.idleTimeout.isEnabled())
+    Swag.require(not window.autoUnmount.onSessionLock)
+    Swag.require(window.autoUnmount.onSuspend)
+    Swag.require(window.autoUnmount.onIdle)
+    Swag.require(window.autoUnmount.idleMinutes == 30)
+    Swag.require(window.idleTimeout.isEnabled())
 
     // The switches are lens entries too, and the lens says which are on.
     discard window.runCommand(VaultCommands.UnmountOnSuspend)
-    Swag.assert(not window.autoUnmount.onSuspend)
+    Swag.require(not window.autoUnmount.onSuspend)
 }
 
 // A configured event closes protected drives only. An unprotected container has no key to wipe
@@ -480,17 +480,17 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.refreshVaults()
     window.handleAutoUnmount(.SessionLock)
 
-    Swag.assert(window.mountedDrives.drives.count == 1)
-    Swag.assert(window.mountedDrives.drives[0].path == "C:\\open")
-    Swag.assert(window.statusMessage == .AutoUnmounted)
+    Swag.require(window.mountedDrives.drives.count == 1)
+    Swag.require(window.mountedDrives.drives[0].path == "C:\\open")
+    Swag.require(window.statusMessage == .AutoUnmounted)
 
     // With privacy mode on, the closed vault leaves the list with its drive.
-    Swag.assert(window.vaults.count == 1 and window.list.rows.count == 1)
+    Swag.require(window.vaults.count == 1 and window.list.rows.count == 1)
 
     window.autoUnmount.onSessionLock = false
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0})
     window.handleAutoUnmount(.SessionLock)
-    Swag.assert(window.mountedDrives.drives.count == 2)
+    Swag.require(window.mountedDrives.drives.count == 2)
 }
 
 // The keyboard opens on the first thing there is to do, and walks the unfolded vault in the order
@@ -502,33 +502,33 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     useTestDestination(window)
 
     // An empty list opens on the way to a new vault.
-    Swag.assert(window.list.newVault.hasFocus())
+    Swag.require(window.list.newVault.hasFocus())
 
     window.openVault("C:\\vaults\\one")
-    Swag.assert(window.mountPassword.hasFocus())
-    Swag.assert(window.mountButton.isEnabled())
+    Swag.require(window.mountPassword.hasFocus())
+    Swag.require(window.mountButton.isEnabled())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.drive.hasFocus())
+    Swag.require(window.drive.hasFocus())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.list.card.keyFiles.hasFocus())
+    Swag.require(window.list.card.keyFiles.hasFocus())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.readOnly.hasFocus())
+    Swag.require(window.readOnly.hasFocus())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.mountButton.hasFocus())
+    Swag.require(window.mountButton.hasFocus())
 
     // Escape folds the vault, and the keyboard goes back to the list.
     window.readOnly.setFocus()
     host.keyPress(Input.Key.Escape)
-    Swag.assert(window.chosenPath.isEmpty())
-    Swag.assert(not window.list.card.panel.isLocallyVisible())
+    Swag.require(window.chosenPath.isEmpty())
+    Swag.require(not window.list.card.panel.isLocallyVisible())
 
     // The create page opens on its first field; Escape leads back to the list.
     window.showPage(.Create, animate: false)
-    Swag.assert(window.createPath.hasFocus())
+    Swag.require(window.createPath.hasFocus())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.browseCreate.hasFocus())
+    Swag.require(window.browseCreate.hasFocus())
     host.keyPress(Input.Key.Escape)
-    Swag.assert(window.page == .List)
+    Swag.require(window.page == .List)
 }
 
 // The file box is opened, backed out of, and left behind without the keyboard going missing.
@@ -541,9 +541,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let window = testSetupMainWindow(&host)
 
     window.showPage(.Create, animate: false)
-    Swag.assert(window.createPath.hasFocus())
+    Swag.require(window.createPath.hasFocus())
     host.keyPress(Input.Key.Tab)
-    Swag.assert(window.browseCreate.hasFocus())
+    Swag.require(window.browseCreate.hasFocus())
 
     // The box runs a nested loop, so the way out is armed before it opens. Escape has to reach
     // the cancel action of the box from the file list the box opens the keyboard on. A box that
@@ -572,14 +572,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     // A zero frame count means the browse action never opened the box; `forced` means the box
     // opened and Escape was not what closed it.
-    Swag.assert(frames != 0)
-    Swag.assert(not forced)
-    Swag.assert(host.openedSurfaceCount() == 0)
+    Swag.require(frames != 0)
+    Swag.require(not forced)
+    Swag.require(host.openedSurfaceCount() == 0)
 
     // Nothing was chosen, the page is still up, and the keyboard is back where it was.
-    Swag.assert((window.createPath.text()).count == 0)
-    Swag.assert(window.page == .Create)
-    Swag.assert(window.browseCreate.hasFocus())
+    Swag.require((window.createPath.text()).count == 0)
+    Swag.require(window.page == .Create)
+    Swag.require(window.browseCreate.hasFocus())
 }
 
 // The notice line is named, not written, so it says the same thing in the new language; with
@@ -590,16 +590,16 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let window = testSetupMainWindow(&host)
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
-    Swag.assert(window.statusText() == "Ready — create a vault or choose one to open.")
-    Swag.assert(not window.list.notice.isLocallyVisible())
+    Swag.require(window.statusText() == "Ready — create a vault or choose one to open.")
+    Swag.require(not window.list.notice.isLocallyVisible())
 
     window.statusDrive = "Z:"
     window.setStatus(.Mounted)
-    Swag.assert(Utf8.contains(window.statusText(), "Z:"))
-    Swag.assert(window.list.notice.isLocallyVisible())
+    Swag.require(Utf8.contains(window.statusText(), "Z:"))
+    Swag.require(window.list.notice.isLocallyVisible())
 
     expect g_App.setLanguage("fr")
-    Swag.assert(Utf8.startsWith(window.statusText(), "Lecteur chiffré monté sur Z:"))
+    Swag.require(Utf8.startsWith(window.statusText(), "Lecteur chiffré monté sur Z:"))
 }
 
 // A failure says its sentence in the active language, not the diagnostic the layer wrote.
@@ -621,25 +621,25 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     }
 
     // The English diagnostic never reaches the reader, in either language.
-    Swag.assert(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
-    Swag.assert(messageFor(.Corrupted) == "The container is damaged.")
-    Swag.assert(messageFor(.PasswordRequired) == "A password is required.")
-    Swag.assert(messageFor(.Canceled) == "The operation stopped.")
-    Swag.assert(messageFor(.General) == appStrings().msg_SystemError)
+    Swag.require(messageFor(.PasswordOrDamaged) == "The password or key files are incorrect, or the container is damaged.")
+    Swag.require(messageFor(.Corrupted) == "The container is damaged.")
+    Swag.require(messageFor(.PasswordRequired) == "A password is required.")
+    Swag.require(messageFor(.Canceled) == "The operation stopped.")
+    Swag.require(messageFor(.General) == appStrings().msg_SystemError)
 
     // Every way a container can refuse to open answers the same sentence: telling wrong access
     // from a damaged container is exactly what the format refuses to do.
-    Swag.assert(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
+    Swag.require(messageFor(.PasswordOrDamaged) != messageFor(.Corrupted))
 
     expect g_App.setLanguage("fr")
-    Swag.assert(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
-    Swag.assert(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
-    Swag.assert(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
-    Swag.assert(messageFor(.General) == appStrings().msg_SystemError)
+    Swag.require(messageFor(.PasswordOrDamaged) == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
+    Swag.require(messageFor(.PasswordRequired) == appStrings().msg_PasswordRequired)
+    Swag.require(messageFor(.DiskFull) == appStrings().msg_ErrDiskFull)
+    Swag.require(messageFor(.General) == appStrings().msg_SystemError)
 
     // A kind that means nothing to a reader reads as the generic damaged-container wording.
-    Swag.assert(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
-    Swag.assert(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
+    Swag.require(messageFor(.DirectoryNotEmpty) == appStrings().msg_ErrDamaged)
+    Swag.require(messageFor(.NotDirectory) == appStrings().msg_ErrDamaged)
 }
 
 // A form with no password in it is a form that can act: an empty password is a vault that
@@ -650,18 +650,18 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let window = testSetupMainWindow(&host)
     useTestDestination(window)
 
-    Swag.assert(not window.canCreate())
-    Swag.assert(not window.createButton.isEnabled())
+    Swag.require(not window.canCreate())
+    Swag.require(not window.createButton.isEnabled())
     window.createPath.setText("C:\\open")
-    Swag.assert(window.canCreate())
-    Swag.assert(window.createButton.isEnabled())
+    Swag.require(window.canCreate())
+    Swag.require(window.createButton.isEnabled())
 
     // A vault the list unfolds can be mounted and changed with nothing else typed.
-    Swag.assert(not window.canModifyVault())
+    Swag.require(not window.canModifyVault())
     window.openVault("C:\\open")
-    Swag.assert(window.canModifyVault())
-    Swag.assert(window.canMount())
-    Swag.assert(window.mountButton.isEnabled())
+    Swag.require(window.canModifyVault())
+    Swag.require(window.canMount())
+    Swag.require(window.mountButton.isEnabled())
 }
 
 // Every command of the window is an entry of the lens, and the vaults it knows answer it too.
@@ -680,39 +680,39 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
                   texts.ui_Mount, texts.ui_ReadOnly, texts.ui_ProtectHidden, texts.ui_ChangePassword,
                   texts.ui_ChangeKeyFiles, texts.ui_Resize, texts.ui_CreateHidden, texts.ui_Forget,
                   texts.ui_PrivacyMode, texts.ui_UnmountOnLock, texts.ui_UnmountOnSuspend, texts.ui_UnmountOnIdle] do
-        Swag.assert(lensHasEntry(window, title))
+        Swag.require(lensHasEntry(window, title))
     window.lens.close()
 
     // A mounted vault offers what applies to a drive instead.
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\vaults\\locked", "D:", "X:", true, false, false, 0, 0})
     window.refreshVaults()
     window.lens.open(">")
-    Swag.assert(lensHasEntry(window, texts.ui_Unmount))
-    Swag.assert(lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
-    Swag.assert(lensHasEntry(window, texts.ui_MountAtStartup))
-    Swag.assert(not lensHasEntry(window, texts.ui_Mount))
+    Swag.require(lensHasEntry(window, texts.ui_Unmount))
+    Swag.require(lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
+    Swag.require(lensHasEntry(window, texts.ui_MountAtStartup))
+    Swag.require(not lensHasEntry(window, texts.ui_Mount))
     window.lens.close()
 
     // At rest the lens keeps file actions first, then what the chosen vault can do under its name, and
     // another vault.
     window.lens.open()
-    Swag.assert(window.lens.results.sections[0]!.label == texts.lens_File and window.lens.results.sections[1]!.label == "locked")
-    Swag.assert(lensHasEntry(window, texts.ui_Unmount) and lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
-    Swag.assert(lensHasEntry(window, texts.ui_NewVault) and lensHasEntry(window, texts.ui_OpenFile))
-    Swag.assert(not lensHasEntry(window, texts.ui_MountAtStartup) and not lensHasEntry(window, texts.ui_Mount))
+    Swag.require(window.lens.results.sections[0]!.label == texts.lens_File and window.lens.results.sections[1]!.label == "locked")
+    Swag.require(lensHasEntry(window, texts.ui_Unmount) and lensHasEntry(window, Format.toString(texts.ui_OpenDrive, "X:")))
+    Swag.require(lensHasEntry(window, texts.ui_NewVault) and lensHasEntry(window, texts.ui_OpenFile))
+    Swag.require(not lensHasEntry(window, texts.ui_MountAtStartup) and not lensHasEntry(window, texts.ui_Mount))
     window.lens.close()
 
     // The vaults answer a query by name.
     window.addVault("C:\\vaults\\other.bin")
     window.lens.open("other")
-    Swag.assert(lensHasEntry(window, "other.bin"))
+    Swag.require(lensHasEntry(window, "other.bin"))
     window.lens.close()
 
     // Protecting the hidden volume is a choice of the next mount, said on the vault's line.
     window.chooseVault("C:\\vaults\\other.bin")
     discard window.runCommand(VaultCommands.ProtectHidden)
-    Swag.assert(window.protectHiddenOnMount)
-    Swag.assert(Utf8.contains(window.vaultIdentity("C:\\vaults\\other.bin"), texts.ui_StateProtected))
+    Swag.require(window.protectHiddenOnMount)
+    Swag.require(Utf8.contains(window.vaultIdentity("C:\\vaults\\other.bin"), texts.ui_StateProtected))
 }
 
 // Boxes contain only the change being made. Current password and key files stay on the unfolded
@@ -728,35 +728,35 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let change = FormDlg.create(&host.surface, options)
     let fields = buildPasswordChangeForm(change)
 
-    Swag.assert(change.form.rows.count == 2)
-    Swag.assert(change.form.rows[0].field == cast(*Wnd, fields.replacement))
-    Swag.assert(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
-    Swag.assert(change.form.rows[1].field == cast(*Wnd, fields.confirm))
+    Swag.require(change.form.rows.count == 2)
+    Swag.require(change.form.rows[0].field == cast(*Wnd, fields.replacement))
+    Swag.require(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
+    Swag.require(change.form.rows[1].field == cast(*Wnd, fields.confirm))
     openAndDismiss(&host, change)
 
     let resize       = FormDlg.create(&host.surface, options)
     let resizeFields = buildVaultResizeForm(resize)
 
-    Swag.assert(resize.form.rows.count == 2)
-    Swag.assert(resize.form.rows[0].field == cast(*Wnd, resizeFields.capacity))
-    Swag.assert(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
-    Swag.assert(resizeFields.capacity.text() == "256")
-    Swag.assert(resizeFields.unit.selectedIndex == 0)
-    Swag.assert(resizeFields.keepCapacity.isChecked())
-    Swag.assert(not resizeFields.capacity.isEnabled())
-    Swag.assert(not resizeFields.unit.isEnabled())
+    Swag.require(resize.form.rows.count == 2)
+    Swag.require(resize.form.rows[0].field == cast(*Wnd, resizeFields.capacity))
+    Swag.require(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
+    Swag.require(resizeFields.capacity.text() == "256")
+    Swag.require(resizeFields.unit.selectedIndex == 0)
+    Swag.require(resizeFields.keepCapacity.isChecked())
+    Swag.require(not resizeFields.capacity.isEnabled())
+    Swag.require(not resizeFields.unit.isEnabled())
     resizeFields.keepCapacity.toggle()
-    Swag.assert(resizeFields.capacity.isEnabled())
-    Swag.assert(resizeFields.unit.isEnabled())
+    Swag.require(resizeFields.capacity.isEnabled())
+    Swag.require(resizeFields.unit.isEnabled())
     openAndDismiss(&host, resize)
 
     var currentFiles: Array'String
     currentFiles.add("C:\\keys\\first.key")
     let keyFiles      = FormDlg.create(&host.surface, options)
     let keyFileFields = buildKeyFileChangeForm(keyFiles, currentFiles.toSlice())
-    Swag.assert(keyFiles.form.rows.count == 1)
-    Swag.assert(keyFiles.form.rows[0].field == cast(*Wnd, keyFileFields))
-    Swag.assert(keyFileFields.samePaths(currentFiles.toSlice()))
+    Swag.require(keyFiles.form.rows.count == 1)
+    Swag.require(keyFiles.form.rows[0].field == cast(*Wnd, keyFileFields))
+    Swag.require(keyFileFields.samePaths(currentFiles.toSlice()))
     openAndDismiss(&host, keyFiles)
 }
 
@@ -768,8 +768,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     let modalResult = dialog.doModal()
-    Swag.assert(modalResult == Dialog.BtnCancel)
-    Swag.assert(host.autoHandled)
+    Swag.require(modalResult == Dialog.BtnCancel)
+    Swag.require(host.autoHandled)
 }
 
 // Every change box ends up as tall as what it asks for, in every language.
@@ -791,7 +791,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         if needed > form.position.height + 0.5
         {
             Console.println("form does not end inside its box: needs ", needed, ", box holds ", form.position.height)
-            Swag.assert(false)
+            Swag.require(false)
         }
     }
 
@@ -835,29 +835,29 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
 
     fillPictureList(window)
-    Swag.assert(window.list.rows.count == 3)
+    Swag.require(window.list.rows.count == 3)
 
     let mounted = window.list.rows[0]
-    Swag.assert(mounted.open.isLocallyVisible() and mounted.unmount.isLocallyVisible())
-    Swag.assert(mounted.unmount.position.right() <= mounted.position.width - RowOutset + 0.5)
-    Swag.assert(not window.list.rows[1].open.isLocallyVisible())
-    Swag.assert(window.vaultIdentity("C:\\Users\\vault\\papiers.bin") == "mounted on P: · 2 GiB · read and write")
-    Swag.assert(Utf8.endsWith(window.vaultIdentity("E:\\archives-2025.bin"), "locked"))
+    Swag.require(mounted.open.isLocallyVisible() and mounted.unmount.isLocallyVisible())
+    Swag.require(mounted.unmount.position.right() <= mounted.position.width - RowOutset + 0.5)
+    Swag.require(not window.list.rows[1].open.isLocallyVisible())
+    Swag.require(window.vaultIdentity("C:\\Users\\vault\\papiers.bin") == "mounted on P: · 2 GiB · read and write")
+    Swag.require(Utf8.endsWith(window.vaultIdentity("E:\\archives-2025.bin"), "locked"))
 
     // The rows stand under the title, one under the other, in the order of the list.
-    Swag.assert(window.list.rows[0].position.y > window.list.title.position.bottom())
-    Swag.assert(window.list.rows[1].position.y >= window.list.rows[0].position.bottom())
+    Swag.require(window.list.rows[0].position.y > window.list.title.position.bottom())
+    Swag.require(window.list.rows[1].position.y >= window.list.rows[0].position.bottom())
 
     // Unfolding a locked vault lays the card over its row and the others recede.
     window.chooseVault("C:\\vault.bin")
-    Swag.assert(window.list.card.panel.isLocallyVisible())
-    Swag.assert(not window.list.rows[1].isLocallyVisible())
-    Swag.assert(window.list.card.panel.position.y == window.list.rows[1].position.y)
-    Swag.assert(window.list.rows[2].position.y >= window.list.card.panel.position.bottom())
+    Swag.require(window.list.card.panel.isLocallyVisible())
+    Swag.require(not window.list.rows[1].isLocallyVisible())
+    Swag.require(window.list.card.panel.position.y == window.list.rows[1].position.y)
+    Swag.require(window.list.rows[2].position.y >= window.list.card.panel.position.bottom())
 
     // Choosing the mounted one folds the card: a mounted vault has nothing to unlock.
     window.chooseVault("C:\\Users\\vault\\papiers.bin")
-    Swag.assert(not window.list.card.panel.isLocallyVisible())
+    Swag.require(not window.list.card.panel.isLocallyVisible())
 }
 
 // The card opens its height over the place of its vault while the rows below follow it, and
@@ -874,22 +874,22 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let list  = window.list
     let below = list.rows[2]
     window.chooseVault("C:\\vault.bin")
-    Swag.assert(window.mountPassword.hasFocus())
+    Swag.require(window.mountPassword.hasFocus())
     let open = list.card.measureHeight(list.rowWidth())
     host.advanceAnimations(0.05)
-    Swag.assert(list.openHeight > VaultRow.Height and list.openHeight < open)
-    Swag.assert(Math.abs(list.card.panel.position.height - list.openHeight) < 0.5)
-    Swag.assert(Math.abs(below.position.y - (list.card.panel.position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    Swag.require(list.openHeight > VaultRow.Height and list.openHeight < open)
+    Swag.require(Math.abs(list.card.panel.position.height - list.openHeight) < 0.5)
+    Swag.require(Math.abs(below.position.y - (list.card.panel.position.y + list.openHeight + VaultList.RowGap)) < 0.5)
     host.app.animator.finishAll()
-    Swag.assert(list.openHeight == open)
+    Swag.require(list.openHeight == open)
 
     window.foldVault()
     host.advanceAnimations(0.05)
-    Swag.assert(list.openHeight > VaultRow.Height and list.openHeight < open)
-    Swag.assert(Math.abs(below.position.y - (list.rows[1].position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    Swag.require(list.openHeight > VaultRow.Height and list.openHeight < open)
+    Swag.require(Math.abs(below.position.y - (list.rows[1].position.y + list.openHeight + VaultList.RowGap)) < 0.5)
     host.app.animator.finishAll()
-    Swag.assert(list.openPath.isEmpty())
-    Swag.assert(Math.abs(below.position.y - (list.rows[1].position.bottom() + VaultList.RowGap)) < 0.5)
+    Swag.require(list.openPath.isEmpty())
+    Swag.require(Math.abs(below.position.y - (list.rows[1].position.bottom() + VaultList.RowGap)) < 0.5)
 }
 
 // A protected startup vault unfolds in the list for its access, on the drive and the read-only
@@ -921,17 +921,17 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.startupQueue.add(StartupVault{second, "D:", true, false, false})
     window.startupQueue.add(StartupVault{third, "D:", true, false, false})
     window.pumpStartupQueue()
-    Swag.assert(window.operation.kind == .None)
-    Swag.assert(window.chosenLockedPath() == first.toString() and window.startupWaiting == first)
-    Swag.assert(window.readOnly.isChecked() and window.selectedMountPoint() == "D:")
-    Swag.assert(window.list.card.panel.isLocallyVisible())
+    Swag.require(window.operation.kind == .None)
+    Swag.require(window.chosenLockedPath() == first.toString() and window.startupWaiting == first)
+    Swag.require(window.readOnly.isChecked() and window.selectedMountPoint() == "D:")
+    Swag.require(window.list.card.panel.isLocallyVisible())
 
     window.foldVault()
-    Swag.assert(window.chosenLockedPath() == second.toString() and window.startupWaiting == second)
-    Swag.assert(not window.readOnly.isChecked())
+    Swag.require(window.chosenLockedPath() == second.toString() and window.startupWaiting == second)
+    Swag.require(not window.readOnly.isChecked())
 
     window.chooseVault(first)
-    Swag.assert(window.chosenLockedPath() == first.toString() and window.startupQueue.isEmpty())
+    Swag.require(window.chosenLockedPath() == first.toString() and window.startupQueue.isEmpty())
 }
 
 // Marking a mounted vault puts it in the list Swag Vault mounts at its next start, and unmarking
@@ -949,25 +949,25 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.chooseVault("C:\\one")
 
     discard window.runCommand(VaultCommands.AtStartup)
-    Swag.assert(window.startupVaults.count == 1)
-    Swag.assert(window.startupVaults[0].path == "C:\\one")
-    Swag.assert(window.startupVaults[0].drive == "mount-x")
-    Swag.assert(window.startupVaults[0].needsPassword)
-    Swag.assert(Utf8.endsWith(window.vaultIdentity("C:\\one"), appStrings().ui_StateAtStartup))
+    Swag.require(window.startupVaults.count == 1)
+    Swag.require(window.startupVaults[0].path == "C:\\one")
+    Swag.require(window.startupVaults[0].drive == "mount-x")
+    Swag.require(window.startupVaults[0].needsPassword)
+    Swag.require(Utf8.endsWith(window.vaultIdentity("C:\\one"), appStrings().ui_StateAtStartup))
 
     discard window.mountedDrives.detach(0)
-    Swag.assert(window.startupVaults.count == 1)
-    Swag.assert(Utf8.endsWith(window.vaultIdentity("C:\\one"), appStrings().ui_StateAtStartup))
+    Swag.require(window.startupVaults.count == 1)
+    Swag.require(Utf8.endsWith(window.vaultIdentity("C:\\one"), appStrings().ui_StateAtStartup))
 
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0})
     discard window.runCommand(VaultCommands.AtStartup)
-    Swag.assert(window.startupVaults.isEmpty())
+    Swag.require(window.startupVaults.isEmpty())
 
     // Forgetting a vault takes its mark with it.
     window.mountedDrives.drives.clear()
     window.startupVaults.add(StartupVault{"C:\\one", "mount-x", true, false})
     window.forgetVault("C:\\one")
-    Swag.assert(window.startupVaults.isEmpty() and window.vaults.isEmpty())
+    Swag.require(window.startupVaults.isEmpty() and window.vaults.isEmpty())
 }
 
 // A capacity is read back the way a reader wrote it, and refused when it says nothing.
@@ -976,18 +976,18 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     var host: Testing.HeadlessHost
     discard testSetupMainWindow(&host)
 
-    Swag.assert(capacityText(256 * 1024 * 1024) == "256 MiB")
-    Swag.assert(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
+    Swag.require(capacityText(256 * 1024 * 1024) == "256 MiB")
+    Swag.require(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
 
     // A size that is not a whole gibibyte stays in mebibytes rather than growing a decimal.
-    Swag.assert(capacityText(1536 * 1024 * 1024) == "1536 MiB")
+    Swag.require(capacityText(1536 * 1024 * 1024) == "1536 MiB")
 
-    Swag.assert(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
-    Swag.assert(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
-    Swag.assert(not parseCapacity("", 0).error.isEmpty())
-    Swag.assert(not parseCapacity("0", 0).error.isEmpty())
-    Swag.assert(not parseCapacity("12x", 0).error.isEmpty())
-    Swag.assert(not parseCapacity("18446744073709551615", 1).error.isEmpty())
+    Swag.require(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
+    Swag.require(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
+    Swag.require(not parseCapacity("", 0).error.isEmpty())
+    Swag.require(not parseCapacity("0", 0).error.isEmpty())
+    Swag.require(not parseCapacity("12x", 0).error.isEmpty())
+    Swag.require(not parseCapacity("18446744073709551615", 1).error.isEmpty())
 }
 
 // The creation dialog preserves the exact filename; a vault has no required extension.
@@ -1000,8 +1000,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.acceptModalFileDialog(path)
     window.chooseContainer(window.createPath, true)
 
-    Swag.assert(host.autoHandled)
-    Swag.assert(path == window.createPath.text())
+    Swag.require(host.autoHandled)
+    Swag.require(path == window.createPath.text())
 }
 
 // Opening a file puts its vault on the list, unfolded. Privacy keeps browse history off disk, but
@@ -1018,15 +1018,15 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.acceptModalFileDialog(path)
     window.openVaultFile()
 
-    Swag.assert(host.autoHandled)
-    Swag.assert(window.chosenPath == path and window.vaults.count == 1)
-    Swag.assert(window.list.card.panel.isLocallyVisible())
-    Swag.assert(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
+    Swag.require(host.autoHandled)
+    Swag.require(window.chosenPath == path and window.vaults.count == 1)
+    Swag.require(window.list.card.panel.isLocallyVisible())
+    Swag.require(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     window.openVaultFile()
-    Swag.assert(host.autoHandled)
-    Swag.assert(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
+    Swag.require(host.autoHandled)
+    Swag.require(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
 }
 
 // The key-file field can add an existing key file, generate a cryptographically random one, and
@@ -1043,22 +1043,22 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     host.acceptModalFileDialog(existing)
     field.add.sigPressed.call(cast(*Button, field.add))
-    Swag.assert(host.autoHandled)
-    Swag.assert(field.paths.count == 1)
-    Swag.assert(field.paths[0] == existing)
+    Swag.require(host.autoHandled)
+    Swag.require(field.paths.count == 1)
+    Swag.require(field.paths[0] == existing)
 
     let generated = Testing.tempFilePath("vault-key-random-", ".key")
     defer discard catch File.delete(generated)
     host.acceptModalFileDialog(generated)
     field.generate.sigPressed.call(cast(*Button, field.generate))
-    Swag.assert(host.autoHandled)
-    Swag.assert(field.paths.count == 2)
-    Swag.assert((expect File.info(generated)).size == 64)
+    Swag.require(host.autoHandled)
+    Swag.require(field.paths.count == 2)
+    Swag.require((expect File.info(generated)).size == 64)
 
     field.files.setSelectedIndex(0, notify: false)
     field.remove.sigPressed.call(cast(*Button, field.remove))
-    Swag.assert(field.paths.count == 1)
-    Swag.assert(field.paths[0] == generated)
+    Swag.require(field.paths.count == 1)
+    Swag.require(field.paths[0] == generated)
 }
 
 // A container dropped on the location field fills it, exactly as browsing to it would.
@@ -1068,11 +1068,11 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
 
     window.showPage(.Create, animate: false)
-    Swag.assert(host.dropFilesOnWnd(window.createPath, ["c:/vaults/private"]) == DropEffect.Copy)
-    Swag.assert(window.createPath.text() == "c:/vaults/private")
+    Swag.require(host.dropFilesOnWnd(window.createPath, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(window.createPath.text() == "c:/vaults/private")
 
     // Filling the field is what makes the action live, whether a dialog or a drop wrote it.
-    Swag.assert(window.createButton.isEnabled())
+    Swag.require(window.createButton.isEnabled())
 }
 
 // A container dropped anywhere else on the window joins the list, unfolded and ready for its access.
@@ -1082,11 +1082,11 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
 
     window.showPage(.Options, animate: false)
-    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
 
-    Swag.assert(window.page == .List)
-    Swag.assert(window.chosenPath == "c:/vaults/private")
-    Swag.assert(window.mountPassword.hasFocus())
+    Swag.require(window.page == .List)
+    Swag.require(window.chosenPath == "c:/vaults/private")
+    Swag.require(window.mountPassword.hasFocus())
 }
 
 // A filename extension never decides whether a dropped file is a container.
@@ -1095,13 +1095,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
 
-    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
-    Swag.assert(window.chosenPath == "c:/vaults/private.anything")
+    Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
+    Swag.require(window.chosenPath == "c:/vaults/private.anything")
 
     // Two files name no single vault to open.
     window.foldVault()
-    Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
-    Swag.assert(window.chosenPath.isEmpty() and window.vaults.isEmpty())
+    Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
+    Swag.require(window.chosenPath.isEmpty() and window.vaults.isEmpty())
 }
 
 // A saved startup choice asks for hidden access again; neither its bytes nor the protection of a
@@ -1116,12 +1116,12 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHiddenOnMount = true
     let state = saveMainWindowState(window)
-    Swag.assert(not containsStateBytes(state.toSlice(), "private hidden credentials"))
+    Swag.require(not containsStateBytes(state.toSlice(), "private hidden credentials"))
     window.startupVaults.clear()
     window.protectHiddenOnMount = false
     loadMainWindowState(window, state.toSlice())
-    Swag.assert(window.startupVaults.count == 1 and window.startupVaults[0].protectHidden)
-    Swag.assert(not window.protectHiddenOnMount)
+    Swag.require(window.startupVaults.count == 1 and window.startupVaults[0].protectHidden)
+    Swag.require(not window.protectHiddenOnMount)
 }
 
 // Common task vocabulary reaches the real command in either shipped language.
@@ -1135,10 +1135,10 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         expect g_App.setLanguage(french ? "fr" : ReferenceLanguage)
         host.notify(.LanguageChanged)
         window.lens.open(french ? "nouveau conteneur" : "new container")
-        Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+        Swag.require(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
         window.lens.close()
         window.lens.open(french ? "ouvrir conteneur" : "open container")
-        Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.OpenFile)
+        Swag.require(window.lens.chosenEntry()!.id == VaultCommands.OpenFile)
         window.lens.close()
     }
 }
@@ -1151,13 +1151,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     host.settleAnimations(window)
     host.click(window.list.newVault.surfaceRect().center())
     host.settleAnimations(window)
-    Swag.assert(window.page == .Create and window.createPage.path.isVisible())
+    Swag.require(window.page == .Create and window.createPage.path.isVisible())
     host.click(window.createPage.head.back.surfaceRect().center())
     host.settleAnimations(window)
-    Swag.assert(window.page == .List and window.list.openFile.isVisible())
+    Swag.require(window.page == .List and window.list.openFile.isVisible())
     window.openVault("C:\\vaults\\example")
     host.settleAnimations(window)
-    Swag.assert(window.list.card.panel.isVisible() and window.list.card.mount.isVisible())
+    Swag.require(window.list.card.panel.isVisible() and window.list.card.mount.isVisible())
     window.lens.open()
-    Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+    Swag.require(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
 }

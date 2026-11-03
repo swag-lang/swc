@@ -23,7 +23,7 @@ func callImportedReaderWithLocal(holder: *DepBorrowContainer)
 {
     var holder: DepBorrowContainer
     callImportedReaderWithLocal(&holder)
-    Swag.assert(holder.slot == null)
+    Swag.require(holder.slot == null)
 }
 
 // The body stores this argument even though its source annotation claims no retention.

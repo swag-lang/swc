@@ -19,13 +19,13 @@ impl IWnd for AncestorTestWnd {}
     let outer = Wnd.create'AncestorTestWnd(&host.root)
     let inner = Wnd.create'AncestorTestWnd(outer)
     let child = Wnd.create'Wnd(inner)
-    Swag.assert(child.ancestorByType'AncestorTestWnd() == inner)
-    Swag.assert(inner.ancestorByType'AncestorTestWnd() == outer)
-    Swag.assert(outer.ancestorByType'AncestorTestWnd() == null)
-    Swag.assert(child.ancestorByType'PushButton() == null)
+    Swag.require(child.ancestorByType'AncestorTestWnd() == inner)
+    Swag.require(inner.ancestorByType'AncestorTestWnd() == outer)
+    Swag.require(outer.ancestorByType'AncestorTestWnd() == null)
+    Swag.require(child.ancestorByType'PushButton() == null)
 
     child.setParent(outer)
-    Swag.assert(child.ancestorByType'AncestorTestWnd() == outer)
+    Swag.require(child.ancestorByType'AncestorTestWnd() == outer)
 }
 
 // An unhandled command state is empty in every field. Presenters use UpdatedFields as the sole
@@ -36,14 +36,14 @@ impl IWnd for AncestorTestWnd {}
     host.setup(80, 40)
 
     let state = host.root.sendComputeCommandStateEvent("Wnd.Unhandled")
-    Swag.assert(not state.accepted)
-    Swag.assert(state.updatedFields == .None)
-    Swag.assert(state.renderingHint == .None)
-    Swag.assert(not state.disabled and not state.checked and not state.hidden)
-    Swag.assert(state.name.isEmpty() and
-                state.longName.isEmpty() and
-                state.shortcut.isEmpty() and
-                state.toolTip.isEmpty())
+    Swag.require(not state.accepted)
+    Swag.require(state.updatedFields == .None)
+    Swag.require(state.renderingHint == .None)
+    Swag.require(not state.disabled and not state.checked and not state.hidden)
+    Swag.require(state.name.isEmpty() and
+                 state.longName.isEmpty() and
+                 state.shortcut.isEmpty() and
+                 state.toolTip.isEmpty())
 }
 
 // Parenting, child enumeration and lookup by id.
@@ -55,15 +55,15 @@ impl IWnd for AncestorTestWnd {}
     let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
     let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
 
-    Swag.assert(container.children.count == 2)
-    Swag.assert(a.parent == container)
-    Swag.assert(container.isAncestorOf(a))
-    Swag.assert(host.root.isAncestorOf(a))
-    Swag.assert(not a.isAncestorOf(container))
+    Swag.require(container.children.count == 2)
+    Swag.require(a.parent == container)
+    Swag.require(container.isAncestorOf(a))
+    Swag.require(host.root.isAncestorOf(a))
+    Swag.require(not a.isAncestorOf(container))
 
-    Swag.assert(container.childById("Wnd.A") == a)
-    Swag.assert(container.childById("Wnd.B") == b)
-    Swag.assert(container.childById("Wnd.None") == null)
+    Swag.require(container.childById("Wnd.A") == a)
+    Swag.require(container.childById("Wnd.B") == b)
+    Swag.require(container.childById("Wnd.None") == null)
 }
 
 // Detaching and reparenting update both sides and propagate the surface through the subtree.
@@ -76,15 +76,15 @@ impl IWnd for AncestorTestWnd {}
     let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
     let grandChild = Wnd.create'Wnd(child, null, {0, 0, 20, 20})
 
-    Swag.assert(left.detachChild(child))
-    Swag.assert(child.parent == null and child.surface == null)
-    Swag.assert(grandChild.surface == null)
-    Swag.assert(left.children.isEmpty())
+    Swag.require(left.detachChild(child))
+    Swag.require(child.parent == null and child.surface == null)
+    Swag.require(grandChild.surface == null)
+    Swag.require(left.children.isEmpty())
 
     child.setParent(right)
-    Swag.assert(child.parent == right and child.surface == right.surface)
-    Swag.assert(grandChild.surface == right.surface)
-    Swag.assert(right.children.count == 1 and right.children[0] == child)
+    Swag.require(child.parent == right and child.surface == right.surface)
+    Swag.require(grandChild.surface == right.surface)
+    Swag.require(right.children.count == 1 and right.children[0] == child)
 }
 
 // Hidden state and its propagation to children.
@@ -95,22 +95,22 @@ impl IWnd for AncestorTestWnd {}
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
-    Swag.assert(child.isVisible())
-    Swag.assert(child.isLocallyVisible())
+    Swag.require(child.isVisible())
+    Swag.require(child.isLocallyVisible())
 
     child.hide()
-    Swag.assert(not child.isVisible())
-    Swag.assert(child.isHidden())
-    Swag.assert(not child.isLocallyVisible())
+    Swag.require(not child.isVisible())
+    Swag.require(child.isHidden())
+    Swag.require(not child.isLocallyVisible())
 
     child.show()
-    Swag.assert(child.isVisible())
+    Swag.require(child.isVisible())
 
     // A hidden parent hides the child, but the child keeps its own visible state.
     container.hide()
-    Swag.assert(not child.isVisible())
-    Swag.assert(child.isLocallyVisible())
-    Swag.assert(child.isLocallyVisible())
+    Swag.require(not child.isVisible())
+    Swag.require(child.isLocallyVisible())
+    Swag.require(child.isLocallyVisible())
 }
 
 // Disabled state and its propagation to children.
@@ -121,23 +121,23 @@ impl IWnd for AncestorTestWnd {}
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
-    Swag.assert(child.isEnabled())
-    Swag.assert(child.isLocallyEnabled())
+    Swag.require(child.isEnabled())
+    Swag.require(child.isLocallyEnabled())
 
     child.disable()
-    Swag.assert(not child.isEnabled())
-    Swag.assert(child.isDisabled())
-    Swag.assert(not child.isLocallyEnabled())
+    Swag.require(not child.isEnabled())
+    Swag.require(child.isDisabled())
+    Swag.require(not child.isLocallyEnabled())
 
     child.enable()
-    Swag.assert(child.isEnabled())
-    Swag.assert(child.isLocallyEnabled())
+    Swag.require(child.isEnabled())
+    Swag.require(child.isLocallyEnabled())
 
     // A disabled parent disables the child, but the child keeps its own state.
     container.disable()
-    Swag.assert(not child.isEnabled())
-    Swag.assert(child.isLocallyEnabled())
-    Swag.assert(child.isLocallyEnabled())
+    Swag.require(not child.isEnabled())
+    Swag.require(child.isLocallyEnabled())
+    Swag.require(child.isLocallyEnabled())
 }
 
 // Move/resize and coordinate conversion through the parent chain.
@@ -149,21 +149,21 @@ impl IWnd for AncestorTestWnd {}
     let child     = Wnd.create'Wnd(container, null, {30, 40, 50, 50})
 
     // child is at container(10,20) + local(30,40) in surface space.
-    Swag.assert(child.localToSurface(Math.Point{0, 0}) == Math.Point{40, 60})
-    Swag.assert(child.surfaceToLocal({40, 60}) == Math.Point{0, 0})
-    Swag.assert(child.surfaceToLocal(child.localToSurface(Math.Point{7, 9})) == Math.Point{7, 9})
+    Swag.require(child.localToSurface(Math.Point{0, 0}) == Math.Point{40, 60})
+    Swag.require(child.surfaceToLocal({40, 60}) == Math.Point{0, 0})
+    Swag.require(child.surfaceToLocal(child.localToSurface(Math.Point{7, 9})) == Math.Point{7, 9})
 
     child.move(15, 25)
-    Swag.assert(child.position.x == 15)
-    Swag.assert(child.position.y == 25)
-    Swag.assert(child.localToSurface(Math.Point{0, 0}) == Math.Point{25, 45})
+    Swag.require(child.position.x == 15)
+    Swag.require(child.position.y == 25)
+    Swag.require(child.localToSurface(Math.Point{0, 0}) == Math.Point{25, 45})
 
     child.resize(80, 60)
-    Swag.assert(child.position.width == 80)
-    Swag.assert(child.position.height == 60)
+    Swag.require(child.position.width == 80)
+    Swag.require(child.position.height == 60)
 
     child.setPosition({0, 0, 100, 100})
-    Swag.assert(child.position == {0, 0, 100, 100})
+    Swag.require(child.position == {0, 0, 100, 100})
 }
 
 // Dock layout: Left/Right consume edges, Center fills the rest.
@@ -181,9 +181,9 @@ impl IWnd for AncestorTestWnd {}
     center.dockStyle = .Center
     container.applyLayout()
 
-    Swag.assert(left.position == {0, 0, 40, 100})
-    Swag.assert(right.position == {170, 0, 30, 100})
-    Swag.assert(center.position == {40, 0, 130, 100})
+    Swag.require(left.position == {0, 0, 40, 100})
+    Swag.require(right.position == {170, 0, 30, 100})
+    Swag.require(center.position == {40, 0, 130, 100})
 }
 
 // getWndAt descends the hierarchy and skips hidden/disabled by default.
@@ -195,19 +195,19 @@ impl IWnd for AncestorTestWnd {}
     let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
 
     // Surface point (40,40) -> container(10,10) -> child local (20,20): inside child.
-    Swag.assert(host.root.windowAt(40, 40, true) == child)
+    Swag.require(host.root.windowAt(40, 40, true) == child)
 
     // A point inside the container but outside the child resolves to the container.
-    Swag.assert(host.root.windowAt(160, 160, true) == container)
+    Swag.require(host.root.windowAt(160, 160, true) == container)
 
     child.hide()
-    Swag.assert(host.root.windowAt(40, 40, true) == container)
+    Swag.require(host.root.windowAt(40, 40, true) == container)
     child.show()
 
     // Disabled is skipped unless getDisabled is set.
     child.disable()
-    Swag.assert(host.root.windowAt(40, 40, false) == container)
-    Swag.assert(host.root.windowAt(40, 40, true) == child)
+    Swag.require(host.root.windowAt(40, 40, false) == container)
+    Swag.require(host.root.windowAt(40, 40, true) == child)
 }
 
 // Z-order: windowAt returns the topmost (last) sibling; sendToBack/bringToFront reorder.
@@ -220,15 +220,15 @@ impl IWnd for AncestorTestWnd {}
     let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
 
     // b was added last -> painted on top -> hit first.
-    Swag.assert(host.root.windowAt(50, 50, true) == b)
+    Swag.require(host.root.windowAt(50, 50, true) == b)
 
     a.bringToFront()
-    Swag.assert(container.children.back() == a)
-    Swag.assert(host.root.windowAt(50, 50, true) == a)
+    Swag.require(container.children.back() == a)
+    Swag.require(host.root.windowAt(50, 50, true) == a)
 
     b.sendToBack()
-    Swag.assert(container.children.front() == b)
-    Swag.assert(host.root.windowAt(50, 50, true) == a)
+    Swag.require(container.children.front() == b)
+    Swag.require(host.root.windowAt(50, 50, true) == a)
 }
 
 // destroy() detaches the window from its parent after the destroy pump.
@@ -238,11 +238,11 @@ impl IWnd for AncestorTestWnd {}
     host.setup(200, 200)
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
-    Swag.assert(container.children.count == 1)
+    Swag.require(container.children.count == 1)
 
     child.destroy()
     host.pump()
-    Swag.assert(container.children.isEmpty())
+    Swag.require(container.children.isEmpty())
 }
 
 // A no-scroll window and its descendants ignore its immediate parent's scroll offset.
@@ -256,23 +256,23 @@ impl IWnd for AncestorTestWnd {}
     scroller.scrollPos = {0, 70}
 
     let normal = Wnd.create'Wnd(scroller, null, {5, 100, 40, 30})
-    Swag.assert(normal.surfaceRect().y == 50)
+    Swag.require(normal.surfaceRect().y == 50)
 
     let fixed = Wnd.create'Wnd(scroller, null, {5, 30, 80, 60})
     fixed.wndFlags |= .NoScroll
-    Swag.assert(fixed.surfaceRect().y == 50)
-    Swag.assert(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
+    Swag.require(fixed.surfaceRect().y == 50)
+    Swag.require(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
 
     fixed.scrollPos = {0, 6}
     let nested = Wnd.create'Wnd(fixed, null, {2, 20, 20, 20})
-    Swag.assert(nested.surfaceRect().y == 64)
+    Swag.require(nested.surfaceRect().y == 64)
 
     host.root.scrollPos = {0, 9}
-    Swag.assert(normal.surfaceRect().y == 41)
-    Swag.assert(fixed.surfaceRect().y == 41)
-    Swag.assert(nested.surfaceRect().y == 55)
-    Swag.assert(nested.surfaceToLocal({17, 55}) == Math.Point{0, 0})
-    Swag.assert(host.root.windowAt(18, 56, true) == nested)
+    Swag.require(normal.surfaceRect().y == 41)
+    Swag.require(fixed.surfaceRect().y == 41)
+    Swag.require(nested.surfaceRect().y == 55)
+    Swag.require(nested.surfaceToLocal({17, 55}) == Math.Point{0, 0})
+    Swag.require(host.root.windowAt(18, 56, true) == nested)
 }
 
 // Deferred destruction immediately unregisters timers, so one progressive loader cannot receive
@@ -284,9 +284,9 @@ impl IWnd for AncestorTestWnd {}
 
     let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
-    Swag.assert(not timer.isPendingRemoval)
+    Swag.require(not timer.isPendingRemoval)
     wnd.destroy()
-    Swag.assert(timer.isPendingRemoval)
+    Swag.require(timer.isPendingRemoval)
 }
 
 // A window that still names its own timer after the retirement was flushed asks about a timer the
@@ -314,11 +314,11 @@ impl IWnd for AncestorTestWnd {}
     let wnd = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     var timer: *Timer? = wnd.addTimer(1'ms)
     wnd.stopTimer(&timer)
-    Swag.assert(timer == null)
+    Swag.require(timer == null)
     wnd.stopTimer(&timer)
 
     timer = wnd.addTimer(1'ms)
     wnd.destroy()
     wnd.stopTimer(&timer)
-    Swag.assert(timer == null)
+    Swag.require(timer == null)
 }

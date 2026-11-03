@@ -39,12 +39,12 @@ func orientRows(image: const *Image)->String
     {
         var image = orientSample()
         image.orient(orientation)
-        Swag.assert(orientRows(&image) == expected[orientation - 1])
+        Swag.require(orientRows(&image) == expected[orientation - 1])
     }
 
     var unknown = orientSample()
     unknown.orient(9)
-    Swag.assert(orientRows(&unknown) == "12/34/56")
+    Swag.require(orientRows(&unknown) == "12/34/56")
 }
 
 // The orientation is read from the EXIF record a decoder keeps, whatever prefix precedes its
@@ -65,11 +65,11 @@ func orientRows(image: const *Image)->String
         record.value.add(byte)
     var records: Array'ImageMetadata
     records.add(#move record)
-    Swag.assert(Exif.orientationOf(records.toSlice()) == 6)
+    Swag.require(Exif.orientationOf(records.toSlice()) == 6)
 
     records[0].value.clear()
     records[0].value.add(0x49'u8)
-    Swag.assert(Exif.orientationOf(records.toSlice()) == 1)
+    Swag.require(Exif.orientationOf(records.toSlice()) == 1)
     var none: Array'ImageMetadata
-    Swag.assert(Exif.orientationOf(none.toSlice()) == 1)
+    Swag.require(Exif.orientationOf(none.toSlice()) == 1)
 }

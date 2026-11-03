@@ -8,20 +8,20 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     faceScope.init(fileName)
     let face = unwrap faceScope.face
 
-    Swag.assert(not faceScope.bytes.isEmpty())
-    Swag.assert(face.glyphCount > 0)
-    Swag.assert(not face.familyName.isEmpty())
-    Swag.assert(not face.styleName.isEmpty())
-    Swag.assert((face.style & (.Bold | .Italic)) == expectedStyle)
+    Swag.require(not faceScope.bytes.isEmpty())
+    Swag.require(face.glyphCount > 0)
+    Swag.require(not face.familyName.isEmpty())
+    Swag.require(not face.styleName.isEmpty())
+    Swag.require((face.style & (.Bold | .Italic)) == expectedStyle)
 
     let glyphA = face.glyphIndex('A')
-    Swag.assert(glyphA > 0)
+    Swag.require(glyphA > 0)
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadGlyph(glyphA, .Render)
-    Swag.assert(face.glyph.bitmap.width > 0)
-    Swag.assert(face.glyph.bitmap.rows > 0)
-    Swag.assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
+    Swag.require(face.glyph.bitmap.width > 0)
+    Swag.require(face.glyph.bitmap.rows > 0)
+    Swag.require(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }
 
 #test
@@ -29,13 +29,13 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     var err3Outcome: Swag.Error
     catch checkFaceLoad(BrokenFontBytes) as err3Outcome
     let err3 = err3Outcome.value()
-    Swag.assert(err3 != null)
+    Swag.require(err3 != null)
 
     var empty:       Array'u8
     var err4Outcome: Swag.Error
     catch checkFaceLoad(empty.toSlice()) as err4Outcome
     let err4 = err4Outcome.value()
-    Swag.assert(err4 != null)
+    Swag.require(err4 != null)
 }
 
 #test
@@ -44,38 +44,38 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     faceScope.init()
     let face = unwrap faceScope.face
 
-    Swag.assert(not faceScope.bytes.isEmpty())
-    Swag.assert(face.glyphCount > 0)
-    Swag.assert(not face.familyName.isEmpty())
-    Swag.assert(not face.styleName.isEmpty())
-    Swag.assert(face.unitsPerEm > 0)
-    Swag.assert(face.ascender > 0)
-    Swag.assert(face.descender < 0)
-    Swag.assert(face.maxAdvanceWidth > 0)
+    Swag.require(not faceScope.bytes.isEmpty())
+    Swag.require(face.glyphCount > 0)
+    Swag.require(not face.familyName.isEmpty())
+    Swag.require(not face.styleName.isEmpty())
+    Swag.require(face.unitsPerEm > 0)
+    Swag.require(face.ascender > 0)
+    Swag.require(face.descender < 0)
+    Swag.require(face.maxAdvanceWidth > 0)
 
     discard expect face.setPixelSize(0, 16)
-    Swag.assert(face.size.metrics.xPpem == 16)
-    Swag.assert(face.size.metrics.yPpem == 16)
-    Swag.assert(face.size.metrics.ascender > 0)
-    Swag.assert(face.size.metrics.descender < 0)
-    Swag.assert(face.size.metrics.maxAdvance > 0)
+    Swag.require(face.size.metrics.xPpem == 16)
+    Swag.require(face.size.metrics.yPpem == 16)
+    Swag.require(face.size.metrics.ascender > 0)
+    Swag.require(face.size.metrics.descender < 0)
+    Swag.require(face.size.metrics.maxAdvance > 0)
 
     discard expect face.setPixelSize(24, 0)
-    Swag.assert(face.size.metrics.xPpem == 24)
-    Swag.assert(face.size.metrics.yPpem == 24)
+    Swag.require(face.size.metrics.xPpem == 24)
+    Swag.require(face.size.metrics.yPpem == 24)
 
     var err8Outcome: Swag.Error
     discard catch face.setPixelSize(0, 0) as err8Outcome
     let err8 = err8Outcome.value()
-    Swag.assert(err8 != null)
+    Swag.require(err8 != null)
 
     var err9Outcome: Swag.Error
     discard catch face.setPixelSize(Swag.U16.Max + 1, 16) as err9Outcome
     let err9 = err9Outcome.value()
-    Swag.assert(err9 != null)
+    Swag.require(err9 != null)
 
-    Swag.assert(face.hasChar('A'))
-    Swag.assert(not face.hasChar(0x10FFFF))
+    Swag.require(face.hasChar('A'))
+    Swag.require(not face.hasChar(0x10FFFF))
 }
 
 #test

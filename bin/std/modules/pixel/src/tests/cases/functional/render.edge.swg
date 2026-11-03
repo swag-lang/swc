@@ -34,7 +34,7 @@ using Swag, Core
         }
 
         let image = renderCpu(208, 152, &painter)
-        Swag.assert(image.pixelColor(198, 138) == Expected)
-        Swag.assert(image.pixelColor(199, 139) == Expected)
+        Swag.require(image.pixelColor(198, 138) == Expected)
+        Swag.require(image.pixelColor(199, 139) == Expected)
     }
 }

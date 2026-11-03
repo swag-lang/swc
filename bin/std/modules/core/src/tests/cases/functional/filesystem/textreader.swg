@@ -16,7 +16,7 @@ using Swag
     expect reader.open(fileName)
     defer reader.close()
     let content = expect reader.readToEnd()
-    Swag.assert(content == "core")
+    Swag.require(content == "core")
 }
 
 // Lines end with '\n', '\r\n', or the end of the file, and keep no end-of-line character.
@@ -29,11 +29,11 @@ using Swag
     discard expect File.writeAllBytes(fileName, payload)
 
     let lines = expect File.readAllLines(fileName)
-    Swag.assert(lines.count == 4)
-    Swag.assert(lines[0] == "alpha")
-    Swag.assert(lines[1] == "beta")
-    Swag.assert(lines[2] == "")
-    Swag.assert(lines[3] == "gamma")
+    Swag.require(lines.count == 4)
+    Swag.require(lines[0] == "alpha")
+    Swag.require(lines[1] == "beta")
+    Swag.require(lines[2] == "")
+    Swag.require(lines[3] == "gamma")
 }
 
 // Text written by writeAllText reads back unchanged, whole or line by line.
@@ -45,10 +45,10 @@ using Swag
     var content: String
     for 40 do
         content += "2x3x4\n"
-    Swag.assert(expect File.writeAllText(fileName, content) == 240)
+    Swag.require(expect File.writeAllText(fileName, content) == 240)
 
     let text = expect File.readAllText(fileName)
-    Swag.assert(text == content)
+    Swag.require(text == content)
 
     var lineCount = 0
     var totalSize = 0'u64
@@ -58,8 +58,8 @@ using Swag
         totalSize += line.length
     }
 
-    Swag.assert(lineCount == 40)
-    Swag.assert(totalSize == 200)
+    Swag.require(lineCount == 40)
+    Swag.require(totalSize == 200)
 }
 
 // Normalizing line endings turns '\r\n' into '\n' and terminates the last line.
@@ -70,7 +70,7 @@ using Swag
 
     discard expect File.writeAllText(fileName, "one\r\ntwo")
     let text = expect File.readAllText(fileName, normalizeEol: true)
-    Swag.assert(text == "one\ntwo\n")
+    Swag.require(text == "one\ntwo\n")
 }
 
 // A reader can be opened again once closed, on another file, and reads that file from its start.
@@ -86,14 +86,14 @@ using Swag
     var reader: File.TextReader
     var line:   String
     expect reader.open(first)
-    Swag.assert(expect reader.readLine(&line))
-    Swag.assert(line == "first")
+    Swag.require(expect reader.readLine(&line))
+    Swag.require(line == "first")
     reader.close()
 
     expect reader.open(second)
     defer reader.close()
-    Swag.assert(expect reader.readLine(&line))
-    Swag.assert(line == "second")
+    Swag.require(expect reader.readLine(&line))
+    Swag.require(line == "second")
 }
 
 // TextReader rejects malformed UTF-8 in a line and in an unterminated final line.
@@ -110,7 +110,7 @@ using Swag
     var line:      String
     var lineError: Swag.Error
     discard catch reader.readLine(&line) as lineError
-    Swag.assert(lineError.value() is Errors.InvalidFormatError)
+    Swag.require(lineError.value() is Errors.InvalidFormatError)
 
     reader.close()
     discard expect File.writeAllBytes(fileName, ['a'u8, 0xC3])
@@ -118,5 +118,5 @@ using Swag
 
     var textError: Swag.Error
     discard catch reader.readToEnd() as textError
-    Swag.assert(textError.value() is Errors.InvalidFormatError)
+    Swag.require(textError.value() is Errors.InvalidFormatError)
 }

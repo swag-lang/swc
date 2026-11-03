@@ -18,7 +18,7 @@ using Core, Gui, Pixel
     var media  = ScopeMediaOptions{onlineMovies: true, onlineMusic: true}
     let dialog = window.createGeneralOptionsDialog(&media)
     dialog.applyLayout()
-    Swag.assert(dialog.surface != null)
+    Swag.require(dialog.surface != null)
     var image = host.renderSurface(dialog.surface)
     Pixel.Testing.assertImageGolden(&image, "options.paper")
     dialog.surface.destroy()

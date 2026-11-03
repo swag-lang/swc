@@ -20,30 +20,30 @@ using Swag, Core, Pixel
 
     // Its body sits the floating inset from the edge, centred on the height of the window.
     let body = dock.bodySize()
-    Swag.assert(dock.position.x == metrics.floating_Inset)
-    Swag.assert(Math.abs(dock.position.y + body.y * 0.5 - 200) <= 1)
-    Swag.assert(body.x == metrics.toolDock_CellSize + 2 * metrics.toolDock_Padding)
-    Swag.assert(select.position.width == metrics.toolDock_CellSize and select.icon.sizeX == metrics.toolDock_Glyph)
+    Swag.require(dock.position.x == metrics.floating_Inset)
+    Swag.require(Math.abs(dock.position.y + body.y * 0.5 - 200) <= 1)
+    Swag.require(body.x == metrics.toolDock_CellSize + 2 * metrics.toolDock_Padding)
+    Swag.require(select.position.width == metrics.toolDock_CellSize and select.icon.sizeX == metrics.toolDock_Glyph)
 
     // The window is the body alone: its shadow falls outside it, wider below than above, and the
     // pointer right beside the body reaches the work instead of the dock.
     let reach = host.theme.floatingShadowReach()
-    Swag.assert(dock.position.width == body.x and dock.position.height == body.y)
-    Swag.assert(reach.w > reach.y and dock.invalidatePadding.w == -reach.w)
-    Swag.assert(host.mouseTargetAt({dock.position.horzCenter(), dock.position.bottom() + 4}) != &dock.wnd)
+    Swag.require(dock.position.width == body.x and dock.position.height == body.y)
+    Swag.require(reach.w > reach.y and dock.invalidatePadding.w == -reach.w)
+    Swag.require(host.mouseTargetAt({dock.position.horzCenter(), dock.position.bottom() + 4}) != &dock.wnd)
 
     // The first tool starts active; picking another moves the mark and reports it once.
-    Swag.assert(dock.activeTool() == select and changes == 0)
+    Swag.require(dock.activeTool() == select and changes == 0)
     host.clickWnd(shape)
-    Swag.assert(dock.activeTool() == shape and not select.isChecked)
-    Swag.assert(changes == 1)
+    Swag.require(dock.activeTool() == shape and not select.isChecked)
+    Swag.require(changes == 1)
 
     dock.setActiveTool(select)
-    Swag.assert(dock.activeTool() == select and changes == 1)
+    Swag.require(dock.activeTool() == select and changes == 1)
 
     // The dock follows the window, and takes no room from the work beside it.
     host.root.resize(480, 300)
-    Swag.assert(Math.abs(dock.position.y + body.y * 0.5 - 150) <= 1)
+    Swag.require(Math.abs(dock.position.y + body.y * 0.5 - 150) <= 1)
 }
 
 // The mini-bar stands above the selection, centred on it, and goes below it near the top edge.
@@ -58,34 +58,34 @@ using Swag, Core, Pixel
     discard bar.addButton(host.theme.icon(.Cut, 16), toolTip: "Cut")
     bar.addSeparator()
     discard bar.addTextButton("Group")
-    Swag.assert(not bar.isLocallyVisible())
+    Swag.require(not bar.isLocallyVisible())
 
     let size = bar.bodySize()
-    Swag.assert(size.y == metrics.miniBar_ButtonSize + 2 * metrics.miniBar_Padding)
+    Swag.require(size.y == metrics.miniBar_ButtonSize + 2 * metrics.miniBar_Padding)
 
     let selection = Math.Rectangle{200, 200, 80, 40}
     bar.showNear(selection)
-    Swag.assert(bar.isLocallyVisible())
-    Swag.assert(bar.position.y + size.y + metrics.miniBar_Distance == selection.y)
-    Swag.assert(Math.abs(bar.position.x + size.x * 0.5 - selection.horzCenter()) <= 1)
+    Swag.require(bar.isLocallyVisible())
+    Swag.require(bar.position.y + size.y + metrics.miniBar_Distance == selection.y)
+    Swag.require(Math.abs(bar.position.x + size.x * 0.5 - selection.horzCenter()) <= 1)
 
     let high = Math.Rectangle{200, 10, 80, 40}
     bar.showNear(high)
-    Swag.assert(bar.position.y == high.bottom() + metrics.miniBar_Distance)
+    Swag.require(bar.position.y == high.bottom() + metrics.miniBar_Distance)
 
     // With no room above or below, it stands beside the selection, level with its foot.
     let tall = Math.Rectangle{20, 10, 200, 380}
     bar.showNear(tall, below: true)
-    Swag.assert(bar.position.x == tall.right() + metrics.miniBar_Distance)
-    Swag.assert(bar.position.bottom() == tall.bottom() - metrics.miniBar_Distance)
+    Swag.require(bar.position.x == tall.right() + metrics.miniBar_Distance)
+    Swag.require(bar.position.bottom() == tall.bottom() - metrics.miniBar_Distance)
 
     // It keeps within the room it is given, clear of what floats beside the work.
     bar.showNear(selection, room: Math.Rectangle{250, 0, 230, 400})
-    Swag.assert(bar.position.x >= 250 + metrics.miniBar_Distance)
+    Swag.require(bar.position.x >= 250 + metrics.miniBar_Distance)
 
     // Its items stand in one row, inside the padding, the hairline in the gap of its group.
     let first = unwrap bar.items[0].wnd
-    Swag.assert(first.position.x == metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
+    Swag.require(first.position.x == metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
 }
 
 // The hint line sits centred, its bottom the hint inset above the bottom edge, as wide as what it writes.
@@ -102,13 +102,13 @@ using Swag, Core, Pixel
     }
 
     host.root.applyLayout()
-    Swag.assert(hint.position.bottom() == 400 - metrics.hintLine_Bottom)
-    Swag.assert(hint.position.width == hint.contentWidth())
-    Swag.assert(Math.abs(hint.position.horzCenter() - 240) <= 1)
+    Swag.require(hint.position.bottom() == 400 - metrics.hintLine_Bottom)
+    Swag.require(hint.position.width == hint.contentWidth())
+    Swag.require(Math.abs(hint.position.horzCenter() - 240) <= 1)
 
     hint.clearHints()
     hint.setReading(null)
-    Swag.assert(hint.contentWidth() == 0)
+    Swag.require(hint.contentWidth() == 0)
 }
 
 // A hint line with less room than it writes leaves its last hints out whole, rather than cutting
@@ -127,17 +127,17 @@ using Swag, Core, Pixel
 
     host.root.applyLayout()
     let whole = hint.position.width
-    Swag.assert(whole == hint.contentWidth())
+    Swag.require(whole == hint.contentWidth())
 
     // Room for the reading and the first hint only: the line is as wide as those two.
     hint.margin = {0, 0, 480 - (whole - 20), 0}
     host.root.applyLayout()
-    Swag.assert(hint.position.width < whole - 20)
+    Swag.require(hint.position.width < whole - 20)
     hint.clearHints()
     hint.addHint(strings().key_Space, "capture, open, library")
     let first = hint.contentWidth()
     host.root.applyLayout()
-    Swag.assert(hint.position.width == first)
+    Swag.require(hint.position.width == first)
 }
 
 // A leading and a trailing hint line stand on the edges the parent's padding measures, at the same
@@ -162,9 +162,9 @@ using Swag, Core, Pixel
     }
 
     host.root.applyLayout()
-    Swag.assert(keys.position.x == 40 and keys.position.width == keys.contentWidth())
-    Swag.assert(reading.position.right() == 480 - 60 and reading.position.width == reading.contentWidth())
-    Swag.assert(keys.position.bottom() == 400 - metrics.hintLine_Bottom and reading.position.y == keys.position.y)
+    Swag.require(keys.position.x == 40 and keys.position.width == keys.contentWidth())
+    Swag.require(reading.position.right() == 480 - 60 and reading.position.width == reading.contentWidth())
+    Swag.require(keys.position.bottom() == 400 - metrics.hintLine_Bottom and reading.position.y == keys.position.y)
 }
 
 // The sheet opens at the trailing edge, below the strip of the window, and its key toggles it.
@@ -182,30 +182,30 @@ using Swag, Core, Pixel
         .addReading("Encoding", "UTF-8")
     }
 
-    Swag.assert(not sheet.isLocallyVisible())
+    Swag.require(not sheet.isLocallyVisible())
     sheet.toggle()
-    Swag.assert(sheet.isLocallyVisible())
-    Swag.assert(sheet.position.right() == 640 - metrics.floating_Inset)
-    Swag.assert(sheet.position.y == metrics.floating_Inset)
-    Swag.assert(sheet.position.width == metrics.infoSheet_Width)
+    Swag.require(sheet.isLocallyVisible())
+    Swag.require(sheet.position.right() == 640 - metrics.floating_Inset)
+    Swag.require(sheet.position.y == metrics.floating_Inset)
+    Swag.require(sheet.position.width == metrics.infoSheet_Width)
 
     // Its height follows what it holds, and a primary action stands at its foot.
     let before = sheet.position.height
     let action = sheet.setAction("Open", "sheet.open")
-    Swag.assert(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
-    Swag.assert(action.position.bottom() == sheet.position.height - metrics.infoSheet_Padding)
+    Swag.require(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
+    Swag.require(action.position.bottom() == sheet.position.height - metrics.infoSheet_Padding)
 
     // A secondary action shares the foot with it, each on half of the line.
     let secondary = sheet.setSecondaryAction("Extract…", "sheet.extract")
-    Swag.assert(secondary.position.y == action.position.y and secondary.position.width == action.position.width)
-    Swag.assert(secondary.position.x > action.position.right())
-    Swag.assert(Utf8.contains(sheet.text(), "Open\nExtract…"))
+    Swag.require(secondary.position.y == action.position.y and secondary.position.width == action.position.width)
+    Swag.require(secondary.position.x > action.position.right())
+    Swag.require(Utf8.contains(sheet.text(), "Open\nExtract…"))
 
     sheet.toggle()
-    Swag.assert(not sheet.isLocallyVisible())
+    Swag.require(not sheet.isLocallyVisible())
 
     sheet.clear()
-    Swag.assert(sheet.blocks.isEmpty() and sheet.action == null and sheet.secondary == null)
+    Swag.require(sheet.blocks.isEmpty() and sheet.action == null and sheet.secondary == null)
 
     // A poster stands beside the title with the facts that follow it, the action right under them.
     var poster  = Image.create(40, 60, .RGB8)
@@ -218,10 +218,10 @@ using Swag, Core, Pixel
     sheet.addReading("Director", "Ridley Scott")
     let open = sheet.setAction("Open", "sheet.open")
     sheet.open()
-    Swag.assert(sheet.blocks[0].left > 0 and sheet.blocks[1].left == 0)
-    Swag.assert(open.position.bottom() < sheet.blocks[1].top)
+    Swag.require(sheet.blocks[0].left > 0 and sheet.blocks[1].left == 0)
+    Swag.require(open.position.bottom() < sheet.blocks[1].top)
     sheet.clear()
-    Swag.assert(not sheet.beside)
+    Swag.require(not sheet.beside)
 }
 
 // A sheet arrives from its edge and fades out, reachable at once on the way in and gone at
@@ -240,24 +240,24 @@ using Swag, Core, Pixel
     }
 
     sheet.open()
-    Swag.assert(sheet.isLocallyVisible())
-    Swag.assert(sheet.presentationOpacity == 0 and sheet.presentationOffset == Math.Point{metrics.motion_EdgeTravel, 0})
+    Swag.require(sheet.isLocallyVisible())
+    Swag.require(sheet.presentationOpacity == 0 and sheet.presentationOffset == Math.Point{metrics.motion_EdgeTravel, 0})
     host.app.animator.finishAll()
-    Swag.assert(sheet.presentationOpacity == 1 and sheet.presentationOffset == Math.Point{})
+    Swag.require(sheet.presentationOpacity == 1 and sheet.presentationOffset == Math.Point{})
 
     sheet.close()
-    Swag.assert(not sheet.isLocallyVisible() and sheet.paintsWhenHidden)
+    Swag.require(not sheet.isLocallyVisible() and sheet.paintsWhenHidden)
     host.app.animator.finishAll()
-    Swag.assert(not sheet.paintsWhenHidden and sheet.presentationOpacity == 1)
+    Swag.require(not sheet.paintsWhenHidden and sheet.presentationOpacity == 1)
 
     let bar = MiniBar.create(&host.root)
     discard bar.addTextButton("Crop")
     bar.showNear({200, 300, 120, 80})
-    Swag.assert(bar.isLocallyVisible() and bar.position.bottom() <= 300)
-    Swag.assert(bar.presentationOffset == Math.Point{0, metrics.motion_AnchorTravel})
+    Swag.require(bar.isLocallyVisible() and bar.position.bottom() <= 300)
+    Swag.require(bar.presentationOffset == Math.Point{0, metrics.motion_AnchorTravel})
     host.app.animator.finishAll()
     bar.showNear({240, 300, 120, 80})
-    Swag.assert(bar.presentationOffset == Math.Point{} and bar.presentationOpacity == 1)
+    Swag.require(bar.presentationOffset == Math.Point{} and bar.presentationOpacity == 1)
 }
 
 // The inspector stands at the trailing edge with its editors in one column, and folds to a tab.
@@ -276,25 +276,25 @@ using Swag, Core, Pixel
     host.root.applyLayout()
 
     let width = metrics.inspector_Width
-    Swag.assert(inspector.position.width == width)
-    Swag.assert(inspector.position.right() == 640 - metrics.floating_Inset)
-    Swag.assert(thickness.parent == &inspector.wnd and thickness.position.height == metrics.control_InspectorHeight)
-    Swag.assert(thickness.position.x == metrics.inspector_Padding + metrics.inspector_LabelWidth + metrics.inspector_LabelGap)
-    Swag.assert(thickness.position.right() == width - metrics.inspector_Padding)
-    Swag.assert(style.position.x == metrics.inspector_Padding)
-    Swag.assert(style.position.y == thickness.position.bottom() + metrics.inspector_RowGap)
+    Swag.require(inspector.position.width == width)
+    Swag.require(inspector.position.right() == 640 - metrics.floating_Inset)
+    Swag.require(thickness.parent == &inspector.wnd and thickness.position.height == metrics.control_InspectorHeight)
+    Swag.require(thickness.position.x == metrics.inspector_Padding + metrics.inspector_LabelWidth + metrics.inspector_LabelGap)
+    Swag.require(thickness.position.right() == width - metrics.inspector_Padding)
+    Swag.require(style.position.x == metrics.inspector_Padding)
+    Swag.require(style.position.y == thickness.position.bottom() + metrics.inspector_RowGap)
 
     var folds = 0
     inspector.sigFoldChanged += func|folds = &folds|(_) { folds[] += 1 }
     inspector.toggleFolded()
-    Swag.assert(inspector.folded and folds == 1)
-    Swag.assert(inspector.position.width < width and not thickness.isLocallyVisible())
+    Swag.require(inspector.folded and folds == 1)
+    Swag.require(inspector.position.width < width and not thickness.isLocallyVisible())
 
     host.clickWnd(inspector)
-    Swag.assert(not inspector.folded and folds == 2 and thickness.isLocallyVisible())
+    Swag.require(not inspector.folded and folds == 2 and thickness.isLocallyVisible())
 
     inspector.clear()
-    Swag.assert(inspector.rows.isEmpty())
+    Swag.require(inspector.rows.isEmpty())
 }
 
 // An inspector carrying generated settings stands the whole height of its parent and hands them
@@ -313,16 +313,16 @@ using Swag, Core, Pixel
     host.root.applyLayout()
 
     let pad = metrics.inspector_Padding
-    Swag.assert(content.parent == &inspector.wnd)
-    Swag.assert(inspector.position.bottom() == 480 - metrics.floating_Inset)
-    Swag.assert(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad)
-    Swag.assert(content.position.y == swatch.position.bottom() + metrics.inspector_RowGap)
-    Swag.assert(content.position.bottom() == inspector.position.height - pad)
+    Swag.require(content.parent == &inspector.wnd)
+    Swag.require(inspector.position.bottom() == 480 - metrics.floating_Inset)
+    Swag.require(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad)
+    Swag.require(content.position.y == swatch.position.bottom() + metrics.inspector_RowGap)
+    Swag.require(content.position.bottom() == inspector.position.height - pad)
 
     inspector.clear()
     host.root.applyLayout()
-    Swag.assert(inspector.rows.isEmpty() and not content.isPendingDestroy)
-    Swag.assert(content.position.y == pad + metrics.control_InspectorHeight + metrics.inspector_RowGap)
+    Swag.require(inspector.rows.isEmpty() and not content.isPendingDestroy)
+    Swag.require(content.position.y == pad + metrics.control_InspectorHeight + metrics.inspector_RowGap)
 }
 
 // A small negative top offset balances the top and bottom insets without crossing the parent's
@@ -341,12 +341,12 @@ using Swag, Core, Pixel
     inspector.topOffset = -8
     host.root.applyLayout()
 
-    Swag.assert(host.root.stripInset() > metrics.floating_Inset)
-    Swag.assert(inspector.position.y == host.root.stripInset() - 8)
+    Swag.require(host.root.stripInset() > metrics.floating_Inset)
+    Swag.require(inspector.position.y == host.root.stripInset() - 8)
     host.surface.flags = .None
     host.surfaceWnd.sendResizeEvent()
     host.root.applyLayout()
-    Swag.assert(inspector.position.y == metrics.floating_Inset)
+    Swag.require(inspector.position.y == metrics.floating_Inset)
 }
 
 // A mini-bar is filled again for each selection: clearing it destroys what it held.
@@ -362,11 +362,11 @@ using Swag, Core, Pixel
     let width = bar.bodySize().x
 
     // The bar writes no word beside a glyph, whatever the command of the button names.
-    Swag.assert(button.flags.has(.IconOnly))
+    Swag.require(button.flags.has(.IconOnly))
 
     bar.clear()
-    Swag.assert(bar.items.isEmpty() and button.isPendingDestroy)
-    Swag.assert(bar.bodySize().x < width)
+    Swag.require(bar.items.isEmpty() and button.isPendingDestroy)
+    Swag.require(bar.bodySize().x < width)
 }
 
 // A section label names its group in small spaced capitals and can be renamed.
@@ -376,11 +376,11 @@ using Swag, Core, Pixel
     floatingHost(&host, 320, 120, false)
 
     let label = SectionLabel.create(&host.root, "Color", {20, 20, 200, host.theme.metrics.inspector_SectionHeight})
-    Swag.assert(label.text == "Color")
+    Swag.require(label.text == "Color")
     label.setText("Stroke")
-    Swag.assert(label.text == "Stroke")
+    Swag.require(label.text == "Stroke")
     var image = host.render(&host.root)
-    Swag.assert(image.isValid())
+    Swag.require(image.isValid())
 }
 
 // A floating panel holds what the application puts in it inside its padding; floating, it casts
@@ -399,13 +399,13 @@ using Swag, Core, Pixel
 
     panel.applyLayout()
     let pad = host.theme.metrics.miniBar_Padding
-    Swag.assert(field.position.x == pad and field.position.width == 200 - 2 * pad)
-    Swag.assert(panel.radius() == host.theme.metrics.corner_Floating)
-    Swag.assert(panel.invalidatePadding.w == -reach.w)
-    Swag.assert(host.mouseTargetAt({panel.position.horzCenter(), panel.position.bottom() + 4}) != &panel.wnd)
+    Swag.require(field.position.x == pad and field.position.width == 200 - 2 * pad)
+    Swag.require(panel.radius() == host.theme.metrics.corner_Floating)
+    Swag.require(panel.invalidatePadding.w == -reach.w)
+    Swag.require(host.mouseTargetAt({panel.position.horzCenter(), panel.position.bottom() + 4}) != &panel.wnd)
 
     panel.setShadow(false)
-    Swag.assert(panel.invalidatePadding.w == 0 and not panel.wndFlags.has(.BeforeChildrenPaint))
+    Swag.require(panel.invalidatePadding.w == 0 and not panel.wndFlags.has(.BeforeChildrenPaint))
 }
 
 // A hint without a key is words alone: what the tool in hand does takes no keycap.
@@ -420,9 +420,9 @@ using Swag, Core, Pixel
     keyed.addHint("Space", "Drag to draw an arrow")
 
     let metrics = host.theme.metrics
-    Swag.assert(keyed.contentWidth() - words.contentWidth() >= metrics.hintLine_KeyGap)
+    Swag.require(keyed.contentWidth() - words.contentWidth() >= metrics.hintLine_KeyGap)
     var image = host.render(&host.root)
-    Swag.assert(image.isValid())
+    Swag.require(image.isValid())
 }
 
 // A dock cell can stand for a group of tools: it shows the one chosen last, and a tool of the
@@ -437,10 +437,10 @@ using Swag, Core, Pixel
     let shape = dock.addTool(host.theme.icon(.Plus, 18), "dock.rectangle", "Rectangle")
     dock.addToGroup(shape, host.theme.icon(.Link, 18), "dock.ellipse", "Ellipse")
     host.root.applyLayout()
-    Swag.assert(dock.tools.count == 2)
+    Swag.require(dock.tools.count == 2)
 
-    Swag.assert(dock.selectTool("dock.ellipse"))
-    Swag.assert(shape.id == "dock.ellipse" and shape.toolTip == "Ellipse" and shape.isChecked)
-    Swag.assert(dock.selectTool("dock.rectangle") and shape.id == "dock.rectangle")
-    Swag.assert(not dock.selectTool("dock.unknown"))
+    Swag.require(dock.selectTool("dock.ellipse"))
+    Swag.require(shape.id == "dock.ellipse" and shape.toolTip == "Ellipse" and shape.isChecked)
+    Swag.require(dock.selectTool("dock.rectangle") and shape.id == "dock.rectangle")
+    Swag.require(not dock.selectTool("dock.unknown"))
 }

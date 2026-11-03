@@ -34,8 +34,8 @@ func failDeep() fail
     var errOutcome: Swag.Error
     catch failWithMessage() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(Errors.message(err) == "the message text")
+    Swag.require(err != null)
+    Swag.require(Errors.message(err) == "the message text")
 }
 
 #test
@@ -43,7 +43,7 @@ func failDeep() fail
     var errOutcome: Swag.Error
     catch failWithoutMessage() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(Errors.message(err) == "BadParameterError")
+    Swag.require(Errors.message(err) == "BadParameterError")
 }
 
 #test
@@ -51,7 +51,7 @@ func failDeep() fail
     var errOutcome: Swag.Error
     catch failWithoutBase() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(Errors.message(err) == "InvalidVersion")
+    Swag.require(Errors.message(err) == "InvalidVersion")
 }
 
 #test
@@ -59,12 +59,12 @@ func failDeep() fail
     var errOutcome: Swag.Error
     catch failDeep() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(Errors.message(err) == "the deep text")
+    Swag.require(Errors.message(err) == "the deep text")
 }
 
 #test
 {
-    Swag.assert(Errors.message(null) == "")
+    Swag.require(Errors.message(null) == "")
 }
 
 #test
@@ -79,17 +79,17 @@ func failDeep() fail
     Swag.setContext(context)
     defer context.errorAllocator.release()
 
-    Swag.assert(Errors.mkString(null) == null)
-    Swag.assert(Errors.mkString("") == "")
+    Swag.require(Errors.mkString(null) == null)
+    Swag.require(Errors.mkString("") == "")
     var text       = String.from("a name collision")
     let persistent = Errors.mkString(text.toString())
     text.clear()
-    Swag.assert(persistent == "a name collision")
+    Swag.require(persistent == "a name collision")
 
     var errOutcome: Swag.Error
     catch failWithMessage() as errOutcome
     let err = errOutcome.value()
-    Swag.assert(Errors.message(err) == "the message text")
+    Swag.require(Errors.message(err) == "the message text")
 }
 
 // Message copies that are never raised still belong to the context and are reclaimed there.
@@ -119,8 +119,8 @@ func failDeep() fail
     let afterRelease = allocator.stats().countAlloc
     Swag.setContext(previous)
 
-    Swag.assert(valid)
-    Swag.assert(afterRelease == baseline)
+    Swag.require(valid)
+    Swag.require(afterRelease == baseline)
 }
 
 func failCopiedMessage(text: string) fail
@@ -144,7 +144,7 @@ func failCopiedMessage(text: string) fail
 
     let pending = Errors.mkString("a pending message survives an unrelated handled failure")
     catch failWithoutBase()
-    Swag.assert(pending == "a pending message survives an unrelated handled failure")
+    Swag.require(pending == "a pending message survives an unrelated handled failure")
 
     var outerOutcome: Swag.Error
     catch {
@@ -153,7 +153,7 @@ func failCopiedMessage(text: string) fail
 
     let outer = outerOutcome.value()
     context.errorAllocator.release()
-    Swag.assert(Errors.message(outer) == "a copied message survives rethrow and allocator release")
+    Swag.require(Errors.message(outer) == "a copied message survives rethrow and allocator release")
 }
 
 // The producer's handled frame has released its message arena before parallel publication.
@@ -167,7 +167,7 @@ func failCopiedMessage(text: string) fail
     } as errorOutcome
 
     let error = errorOutcome.value()
-    Swag.assert(Errors.message(error) == "the parallel error retains its producer's copied text")
+    Swag.require(Errors.message(error) == "the parallel error retains its producer's copied text")
 }
 
 var copiedThreadMessagesValid: Swag.AtomicFlag
@@ -219,8 +219,8 @@ func consumeThreadMessages(_: const *Threading.Thread)
 
     let afterThread = allocator.stats().countAlloc
     Swag.setContext(previous)
-    Swag.assert(copiedThreadMessagesValid.isRaised())
-    Swag.assert(afterThread == baseline)
+    Swag.require(copiedThreadMessagesValid.isRaised())
+    Swag.require(afterThread == baseline)
 }
 
 struct OwnedThreadError
@@ -284,6 +284,6 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
     }
 
     let afterOwner = allocator.stats().countAlloc
-    Swag.assert(valid)
-    Swag.assert(afterOwner == baseline)
+    Swag.require(valid)
+    Swag.require(afterOwner == baseline)
 }

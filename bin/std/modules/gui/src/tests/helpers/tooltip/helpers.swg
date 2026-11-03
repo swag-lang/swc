@@ -24,24 +24,24 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
     // No viewport, no editable field, and no stop the keyboard traversal could land on.
     for wnd in tree
     {
-        Swag.assert(not (wnd is ScrollWnd))
-        Swag.assert(not (wnd is RichEditCtrl))
-        Swag.assert(wnd.focusPolicy == .None)
+        Swag.require(not (wnd is ScrollWnd))
+        Swag.require(not (wnd is RichEditCtrl))
+        Swag.require(wnd.focusPolicy == .None)
     }
 
     // The text fits the box the tip committed, on both axes.
     let need = label.measure(Math.Point{label.position.width, 0}).preferred
-    Swag.assert(need.x <= label.position.width)
-    Swag.assert(need.y <= label.position.height)
+    Swag.require(need.x <= label.position.width)
+    Swag.require(need.y <= label.position.height)
 
     // Inside both caps: the one the theme sets, and the window that has to show it.
     let metrics = tip.themeMetrics()
     let parent  = unwrap tip.parent
-    Swag.assert(tip.position.width <= metrics.toolTip_MaxWidth)
-    Swag.assert(tip.position.height <= metrics.toolTip_MaxHeight)
-    Swag.assert(tip.position.x >= 0 and tip.position.y >= 0)
-    Swag.assert(tip.position.right() <= parent.position.width)
-    Swag.assert(tip.position.bottom() <= parent.position.height)
+    Swag.require(tip.position.width <= metrics.toolTip_MaxWidth)
+    Swag.require(tip.position.height <= metrics.toolTip_MaxHeight)
+    Swag.require(tip.position.x >= 0 and tip.position.y >= 0)
+    Swag.require(tip.position.right() <= parent.position.width)
+    Swag.require(tip.position.bottom() <= parent.position.height)
 }
 
 // Shows a tip immediately and returns the label it built.

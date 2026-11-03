@@ -17,22 +17,22 @@ using Swag, Core
     // Temporary color targets need no depth/stencil plane and must not survive an idle frame.
     gpu.begin(context)
     let first = gpu.acquireRenderTarget(1025, 513)
-    Swag.assert(first.colorBuffer.width >= 1025 and first.colorBuffer.width < 1089)
-    Swag.assert(first.colorBuffer.height >= 513 and first.colorBuffer.height < 577)
-    Swag.assert(first.depthStencil == InvalidRenderTargetSurfaceHandle)
+    Swag.require(first.colorBuffer.width >= 1025 and first.colorBuffer.width < 1089)
+    Swag.require(first.colorBuffer.height >= 513 and first.colorBuffer.height < 577)
+    Swag.require(first.depthStencil == InvalidRenderTargetSurfaceHandle)
     let texture = first.colorBuffer.handle
     gpu.releaseRenderTarget(first)
     gpu.end()
 
     gpu.begin(context)
     let again = gpu.acquireRenderTarget(1025, 513)
-    Swag.assert(again.colorBuffer.handle == texture)
+    Swag.require(again.colorBuffer.handle == texture)
     gpu.releaseRenderTarget(again)
     gpu.end()
 
     gpu.begin(context)
     gpu.end()
-    Swag.assert(Ogl.glIsTexture(cast(Ogl.GLuint, texture)) == Ogl.GL_FALSE)
+    Swag.require(Ogl.glIsTexture(cast(Ogl.GLuint, texture)) == Ogl.GL_FALSE)
 
     var cpu:       RenderCpu
     let reference: IRenderer = &cpu

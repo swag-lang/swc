@@ -7,7 +7,7 @@ func htmlViewerFixturePath()->String => Path.combine(scopeTestDataDirectory(), "
 
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
-    Swag.assert(result.isLoading != null)
+    Swag.require(result.isLoading != null)
     let isLoading = result.isLoading
 
     var attempts: u32
@@ -18,7 +18,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         attempts += 1
     }
 
-    Swag.assert(not result.isLoading())
+    Swag.require(not result.isLoading())
 }
 
 // The viewer remains a thin ABI adapter around the reusable GUI control.
@@ -31,45 +31,45 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null)
-    Swag.assert(result.commands == null and
-                result.info != null and
-                result.revealMatch != null and
-                result.searchBounds != null and
-                result.clearSearch != null and
-                result.isLoading != null)
-    Swag.assert(result.isLoading())
-    Swag.assert(Utf8.contains(result.details, "HTML"))
+    Swag.require(result.view != null)
+    Swag.require(result.commands == null and
+                 result.info != null and
+                 result.revealMatch != null and
+                 result.searchBounds != null and
+                 result.clearSearch != null and
+                 result.isLoading != null)
+    Swag.require(result.isLoading())
+    Swag.require(Utf8.contains(result.details, "HTML"))
     let view = assume cast(*Html.Panel, result.view)
     finishHtmlViewer(&host, &result)
-    Swag.assert(result.view != null and
-                result.revealMatch != null and
-                result.searchBounds != null and
-                result.clearSearch != null)
+    Swag.require(result.view != null and
+                 result.revealMatch != null and
+                 result.searchBounds != null and
+                 result.clearSearch != null)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.view, &zoomIn))
-    Swag.assert(view.zoomPercent == 125 and view.view.documentStyle.bodyFontSize == 20)
+    Swag.require(view.hookOnChildEvent!(view.view, &zoomIn))
+    Swag.require(view.zoomPercent == 125 and view.view.documentStyle.bodyFontSize == 20)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.view, &resetZoom) and view.zoomPercent == 100)
+    Swag.require(view.hookOnChildEvent(view.view, &resetZoom) and view.zoomPercent == 100)
 
     let source = expect File.readAllText(fileName)
     let offset = source.indexOf("immutable")
-    Swag.assert(offset != Swag.U64.Max)
+    Swag.require(offset != Swag.U64.Max)
     let match    = Viewer.SearchMatch{offset: offset, length: "immutable".count}
     let revealed = result.revealMatch(match, "immutable")
-    Swag.assert(revealed)
+    Swag.require(revealed)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds(match, &bounds) and not bounds.isEmpty())
+    Swag.require(result.searchBounds(match, &bounds) and not bounds.isEmpty())
 
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == Html.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
-    Swag.assert(view.zoomPercent == 100 and result.searchBounds(match, &bounds))
+    Swag.require(view.zoomLabel.toolTip == Html.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.require(view.zoomPercent == 100 and result.searchBounds(match, &bounds))
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(view.zoomLabel.toolTip == oldTip)
+    Swag.require(view.zoomLabel.toolTip == oldTip)
     result.clearSearch()
 }
 
@@ -85,15 +85,15 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     }
 
     var result = openTestViewer(Html.viewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: readings)
-    Swag.assert(result.view != null and result.info != null)
+    Swag.require(result.view != null and result.info != null)
     let view = assume cast(*Html.Panel, result.view)
-    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishHtmlViewer(&host, &result)
-    Swag.assert(result.info != null)
+    Swag.require(result.info != null)
     view.dockStyle = .Center
 
     host.root.applyLayout()
-    Swag.assert(result.info.parent == cast(*Wnd, readings) and result.info.position.width > 0)
+    Swag.require(result.info.parent == cast(*Wnd, readings) and result.info.position.width > 0)
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
 }
@@ -106,6 +106,6 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 
     let fileName = Gui.Testing.tempFilePath("scope-html-missing-", ".html")
     var result   = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(not result.failureReason.isEmpty())
+    Swag.require(result.view == null and result.commands == null)
+    Swag.require(not result.failureReason.isEmpty())
 }

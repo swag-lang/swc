@@ -11,16 +11,16 @@ func checkCaptureRaster(cell: s32, bytes: const [..] u8)
     let expected = drawing.rasterize(cols * cell, rows * cell, 4)
     var actual   = expect Image.decode(".png", bytes)
     actual.convertTo(.BGRA8)
-    Swag.assert(actual.width == expected.width and actual.height == expected.height)
-    Swag.assert(actual.byteCount == expected.byteCount)
+    Swag.require(actual.width == expected.width and actual.height == expected.height)
+    Swag.require(actual.byteCount == expected.byteCount)
     #static if #cfg != "release" do
-        Swag.assert(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
     else
     {
         for i in actual.byteCount
         {
             let tolerance = i % 4 == 3 ? 1 : 0
-            Swag.assert(Math.abs(cast(s32, actual.pixels[i]) - cast(s32, expected.pixels[i])) <= tolerance)
+            Swag.require(Math.abs(cast(s32, actual.pixels[i]) - cast(s32, expected.pixels[i])) <= tolerance)
         }
     }
 }

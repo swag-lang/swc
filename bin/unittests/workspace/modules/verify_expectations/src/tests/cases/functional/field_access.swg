@@ -9,8 +9,8 @@ using ExportApi
 #test
 {
     let value = makeDepDefaultAccessField(7)
-    Swag.assert(value.shownValue == 7)
-    Swag.assert(value.defaultValue == 8)     // swc-expected-error {{sema_err_field_internal}}
+    Swag.require(value.shownValue == 7)
+    Swag.require(value.defaultValue == 8)     // swc-expected-error {{sema_err_field_internal}}
 }
 
 #test

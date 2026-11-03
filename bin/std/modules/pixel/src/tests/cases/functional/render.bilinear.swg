@@ -54,7 +54,7 @@ func blend(first, second: Color, weight: u32)->Color
             let bottom   = blend(source.pixelColor(x0, y1), source.pixelColor(x1, y1), wx)
             let actual   = image.pixelColor(cast(s32, x), cast(s32, y))
             let expected = blend(top, bottom, wy)
-            Swag.assert(actual == expected, Format.toString("x=% y=% actual=% expected=%", x, y, actual.argb, expected.argb))
+            Swag.require(actual == expected, Format.toString("x=% y=% actual=% expected=%", x, y, actual.argb, expected.argb))
         }
     }
 }

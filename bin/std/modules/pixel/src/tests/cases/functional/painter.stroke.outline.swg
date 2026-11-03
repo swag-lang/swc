@@ -87,9 +87,9 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     let all  = outlineTestSpan(img, 60, whiteOnly: false)
     let core = outlineTestSpan(img, 60, whiteOnly: true)
 
-    Swag.assert(core.bottom - core.top == 7)
-    Swag.assert(core.top - all.top == 4)
-    Swag.assert(all.bottom - core.bottom == 4)
+    Swag.require(core.bottom - core.top == 7)
+    Swag.require(core.top - all.top == 4)
+    Swag.require(all.bottom - core.bottom == 4)
 }
 
 // A contour is the stroke pushed outward, so it leaves the stroke it surrounds exactly as it was.
@@ -107,13 +107,13 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
 
     let plainCore    = outlineTestSpan(plain, HeadX, whiteOnly: true)
     let borderedCore = outlineTestSpan(bordered, HeadX, whiteOnly: true)
-    Swag.assert(plainCore.top == borderedCore.top)
-    Swag.assert(plainCore.bottom == borderedCore.bottom)
+    Swag.require(plainCore.top == borderedCore.top)
+    Swag.require(plainCore.bottom == borderedCore.bottom)
 
     // And the head carries the contour the shaft carries.
     let borderedAll = outlineTestSpan(bordered, HeadX, whiteOnly: false)
-    Swag.assert(borderedCore.top - borderedAll.top == 4)
-    Swag.assert(borderedAll.bottom - borderedCore.bottom == 4)
+    Swag.require(borderedCore.top - borderedAll.top == 4)
+    Swag.require(borderedAll.bottom - borderedCore.bottom == 4)
 }
 
 // A contoured dashed stroke keeps the dash pattern of the stroke itself.
@@ -127,10 +127,10 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
 
     let plainRuns    = outlineTestRuns(plain, 60)
     let borderedRuns = outlineTestRuns(bordered, 60)
-    Swag.assert(plainRuns.count > 4)
-    Swag.assert(plainRuns.count == borderedRuns.count)
+    Swag.require(plainRuns.count > 4)
+    Swag.require(plainRuns.count == borderedRuns.count)
     for r, i in plainRuns do
-        Swag.assert(r == borderedRuns[i])
+        Swag.require(r == borderedRuns[i])
 }
 
 // An arc fan covers its own centre.
@@ -164,7 +164,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     for y in 58 to 62
     {
         for x in 38 to 42 do
-            Swag.assert(img.pixelColor(cast(s32, x), cast(s32, y)).r == 255)
+            Swag.require(img.pixelColor(cast(s32, x), cast(s32, y)).r == 255)
     }
 }
 
@@ -196,13 +196,13 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
         for i in cmd.drawTriangles.count
         {
             let pos = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
-            Swag.assert(pos.x >= 273 and pos.x <= 927)
-            Swag.assert(pos.y >= 475 and pos.y <= 525)
+            Swag.require(pos.x >= 273 and pos.x <= 927)
+            Swag.require(pos.y >= 475 and pos.y <= 525)
             vertices += 1
         }
     }
 
-    Swag.assert(vertices > 0)
+    Swag.require(vertices > 0)
 }
 
 // A cap stays inside the radius `capStyleRadius` promises, whatever direction its line runs in.
@@ -250,7 +250,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
                     let pos     = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
                     let inShaft = Math.Geometry.distanceFromPointToSegment(pos, Centre, end) <= Stroke * 0.5 + 1
                     let inCap   = pos.distanceTo(end) <= radius + 1
-                    Swag.assert(inShaft or inCap)
+                    Swag.require(inShaft or inCap)
                 }
             }
         }

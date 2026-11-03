@@ -10,9 +10,9 @@
     trace.pendingUs = 1000
     trace.beginFrame()
     trace.endFrame()
-    Swag.assert(trace.frames == 0 and trace.pendingUs >= 1000)
+    Swag.require(trace.frames == 0 and trace.pendingUs >= 1000)
     trace.beginFrame()
     trace.addSurface(1, 2, 3, 4, 5, 6, 7)
     trace.endFrame()
-    Swag.assert(trace.frames == 1 and trace.totalUs >= 1000 and trace.pendingUs == 0)
+    Swag.require(trace.frames == 1 and trace.totalUs >= 1000 and trace.pendingUs == 0)
 }

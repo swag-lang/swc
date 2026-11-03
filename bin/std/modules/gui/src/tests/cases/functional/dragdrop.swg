@@ -58,10 +58,10 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
     let effect  = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
 
-    Swag.assert(effect == .Copy)
-    Swag.assert(catcher.drops == 1)
-    Swag.assert(catcher.lastFiles.count == 1)
-    Swag.assert(catcher.lastFiles[0] == "c:/tmp/one.txt")
+    Swag.require(effect == .Copy)
+    Swag.require(catcher.drops == 1)
+    Swag.require(catcher.lastFiles.count == 1)
+    Swag.require(catcher.lastFiles[0] == "c:/tmp/one.txt")
 }
 
 // Entering and leaving are derived from the position, once each.
@@ -74,15 +74,15 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
     discard host.dragFilesOver({60, 60}, ["c:/tmp/one.txt"])
-    Swag.assert(catcher.enters == 1)
-    Swag.assert(catcher.overs == 2)
-    Swag.assert(catcher.leaves == 0)
+    Swag.require(catcher.enters == 1)
+    Swag.require(catcher.overs == 2)
+    Swag.require(catcher.leaves == 0)
 
     // Moving outside the window leaves it, and moving back enters it again.
     discard host.dragFilesOver({150, 150}, ["c:/tmp/one.txt"])
-    Swag.assert(catcher.leaves == 1)
+    Swag.require(catcher.leaves == 1)
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(catcher.enters == 2)
+    Swag.require(catcher.enters == 2)
 }
 
 // A cancelled gesture still tells the window it was left, so a highlight is never stuck on.
@@ -95,9 +95,9 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
     host.cancelDrag()
 
-    Swag.assert(catcher.enters == 1)
-    Swag.assert(catcher.leaves == 1)
-    Swag.assert(catcher.drops == 0)
+    Swag.require(catcher.enters == 1)
+    Swag.require(catcher.leaves == 1)
+    Swag.require(catcher.drops == 0)
 }
 
 // A drop is followed by a leave, whatever the target answered.
@@ -109,8 +109,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
     discard host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
 
-    Swag.assert(catcher.drops == 1)
-    Swag.assert(catcher.leaves == 1)
+    Swag.require(catcher.drops == 1)
+    Swag.require(catcher.leaves == 1)
 }
 
 // A window destroyed while a drag hovers it leaves nothing behind for the next move to follow.
@@ -121,15 +121,15 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
     let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
     discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(host.app.dragEnterWnd == cast(*Wnd?, catcher))
+    Swag.require(host.app.dragEnterWnd == cast(*Wnd?, catcher))
 
     catcher.destroy()
     host.pump()
-    Swag.assert(host.app.dragEnterWnd == null)
+    Swag.require(host.app.dragEnterWnd == null)
 
     // The gesture goes on over what is left, which is nothing that takes a drop.
     let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(effect == .None)
+    Swag.require(effect == .None)
 }
 
 // A window that declines lets the gesture bubble to its parent.
@@ -143,25 +143,25 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     inner.claim = false
 
     let effect = host.dropFiles({40, 40}, ["c:/tmp/one.txt"])
-    Swag.assert(effect == .Copy)
-    Swag.assert(inner.drops == 0)
-    Swag.assert(outer.drops == 1)
+    Swag.require(effect == .Copy)
+    Swag.require(inner.drops == 0)
+    Swag.require(outer.drops == 1)
 }
 
 // The target answers within what the source allows, and the modifiers pick among them.
 #test
 {
-    Swag.assert(pickDropEffect(DropEffect.Copy | .Move, .None) == .Copy)
-    Swag.assert(pickDropEffect(DropEffect.Copy | .Move, .Shift) == .Move)
-    Swag.assert(pickDropEffect(DropEffect.Copy | .Move, .Control) == .Copy)
-    Swag.assert(pickDropEffect(DropEffect.Copy | .Link, Input.KeyModifiers.Control | .Shift) == .Link)
+    Swag.require(pickDropEffect(DropEffect.Copy | .Move, .None) == .Copy)
+    Swag.require(pickDropEffect(DropEffect.Copy | .Move, .Shift) == .Move)
+    Swag.require(pickDropEffect(DropEffect.Copy | .Move, .Control) == .Copy)
+    Swag.require(pickDropEffect(DropEffect.Copy | .Link, Input.KeyModifiers.Control | .Shift) == .Link)
 
     // A modifier naming an effect the source refuses falls back to what it does offer.
-    Swag.assert(pickDropEffect(.Copy, .Shift) == .Copy)
+    Swag.require(pickDropEffect(.Copy, .Shift) == .Copy)
 
     // Nothing offered stays nothing, and a lone effect is taken with no modifier held.
-    Swag.assert(pickDropEffect(.None, .None) == .None)
-    Swag.assert(pickDropEffect(.Link, .None) == .Link)
+    Swag.require(pickDropEffect(.None, .None) == .None)
+    Swag.require(pickDropEffect(.Link, .None) == .Link)
 }
 
 // A payload a source builds reads back through the same accessors a target uses.
@@ -171,24 +171,24 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
 
     var data: DragData
-    Swag.assert(not data.hasFiles() and not data.hasText() and not data.hasImage())
+    Swag.require(not data.hasFiles() and not data.hasText() and not data.hasImage())
 
     data.addFile("c:/tmp/one.png")
     data.setText("beside it")
     var source = Testing.indexedImage(5, 3)
     data.setImage(source)
 
-    Swag.assert(data.singleFile() == "c:/tmp/one.png")
-    Swag.assert(data.text == "beside it")
-    Swag.assert(data.hasImage())
+    Swag.require(data.singleFile() == "c:/tmp/one.png")
+    Swag.require(data.text == "beside it")
+    Swag.require(data.hasImage())
 
     // A picture handed in is the one handed back, with no encode-decode round trip in between.
     let held = unwrap data.image()
-    Swag.assert(held.width == 5 and held.height == 3)
+    Swag.require(held.width == 5 and held.height == 3)
 
     data.clear()
-    Swag.assert(not data.hasFiles() and not data.hasText() and not data.hasImage())
-    Swag.assert(data.image() == null)
+    Swag.require(not data.hasFiles() and not data.hasText() and not data.hasImage())
+    Swag.require(data.image() == null)
 }
 
 // A file the payload carries itself is produced when it is read, and only then.
@@ -204,21 +204,21 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     })
 
     // Announcing the gesture costs nothing: the name is there and the bytes are not.
-    Swag.assert(data.hasContents())
-    Swag.assert(data.contents.count == 1)
-    Swag.assert(data.contents[0].name == "late.txt")
-    Swag.assert(not data.contents[0].isReady())
-    Swag.assert(runs == 0)
+    Swag.require(data.hasContents())
+    Swag.require(data.contents.count == 1)
+    Swag.require(data.contents[0].name == "late.txt")
+    Swag.require(not data.contents[0].isReady())
+    Swag.require(runs == 0)
 
     // The first read pays for it, and every later one is free.
-    Swag.assert(Testing.bytesAre(data.contentData(0), "produced"))
-    Swag.assert(runs == 1)
-    Swag.assert(Testing.bytesAre(data.contentData(0), "produced"))
-    Swag.assert(runs == 1)
-    Swag.assert(data.contents[0].isReady())
+    Swag.require(Testing.bytesAre(data.contentData(0), "produced"))
+    Swag.require(runs == 1)
+    Swag.require(Testing.bytesAre(data.contentData(0), "produced"))
+    Swag.require(runs == 1)
+    Swag.require(data.contents[0].isReady())
 
     data.clear()
-    Swag.assert(not data.hasContents())
+    Swag.require(not data.hasContents())
 }
 
 // A file whose content is already in hand needs no producer, and reads as ready straight away.
@@ -227,10 +227,10 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     var data: DragData
     data.addContent("now.bin", [1'u8, 2, 3])
 
-    Swag.assert(data.contents.count == 1)
-    Swag.assert(data.contents[0].isReady())
+    Swag.require(data.contents.count == 1)
+    Swag.require(data.contents[0].isReady())
 
-    Swag.assert(Slice.equals(data.contentData(0), [1'u8, 2, 3]))
+    Swag.require(Slice.equals(data.contentData(0), [1'u8, 2, 3]))
 }
 
 // A picture handed to a payload is not encoded until something asks for the encoded form.
@@ -240,19 +240,19 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     data.setImage(Testing.indexedImage(6, 4))
 
     // The payload knows it carries a picture without touching the encoder.
-    Swag.assert(data.hasImage())
-    Swag.assert(data.imageBytes.isEmpty())
+    Swag.require(data.hasImage())
+    Swag.require(data.imageBytes.isEmpty())
 
     let held = unwrap data.image()
-    Swag.assert(held.width == 6 and held.height == 4)
-    Swag.assert(data.imageBytes.isEmpty())
+    Swag.require(held.width == 6 and held.height == 4)
+    Swag.require(data.imageBytes.isEmpty())
 
     // Asking for the bytes is what pays, and it pays once.
-    Swag.assert(data.encodedImage().count != 0)
-    Swag.assert(data.imageEncoded)
+    Swag.require(data.encodedImage().count != 0)
+    Swag.require(data.imageEncoded)
 
     let size = data.imageBytes.count
-    Swag.assert(data.encodedImage().count == size)
+    Swag.require(data.encodedImage().count == size)
 }
 
 // A drag started with no desktop under it, or with nothing to carry, goes nowhere.
@@ -265,19 +265,19 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
     var empty: DragData
     var effect = catcher.startDrag(&empty)
-    Swag.assert(effect == .None)
+    Swag.require(effect == .None)
 
     var data: DragData
     data.setText("nowhere to go")
     effect = catcher.startDrag(&data)
-    Swag.assert(effect == .None)
+    Swag.require(effect == .None)
 
     // A payload carrying nothing but a file of its own is still something to drag, so this one
     // is refused for the missing desktop rather than for an empty payload.
     var carried: DragData
     carried.addContent("only.txt", cast(const [..] u8, "content"))
     effect = catcher.startDrag(&carried)
-    Swag.assert(effect == .None)
+    Swag.require(effect == .None)
 }
 
 // A drop on nothing is refused without reaching any window.
@@ -289,8 +289,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let catcher = makeCatcher(&host.root, {10, 10, 20, 20})
     let effect  = host.dropFiles({500, 500}, ["c:/tmp/one.txt"])
 
-    Swag.assert(effect == .None)
-    Swag.assert(catcher.drops == 0)
+    Swag.require(effect == .None)
+    Swag.require(catcher.drops == 0)
 }
 
 // An edit box takes dropped text where the pointer is, and emits its change notification.
@@ -312,12 +312,12 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     edit.setSelection(0, 0)
 
     let effect = host.dropText(Math.Point{rect.right() - 2, rect.center().y}, "B")
-    Swag.assert(effect == .Copy)
-    Swag.assert(edit.text() == "ACB")
-    Swag.assert(changed == 1)
+    Swag.require(effect == .Copy)
+    Swag.require(edit.text() == "ACB")
+    Swag.require(changed == 1)
 
     discard host.dropText(Math.Point{rect.x + 2, rect.center().y}, "Z")
-    Swag.assert(edit.text() == "ZACB")
+    Swag.require(edit.text() == "ZACB")
 }
 
 // A read-only edit box refuses every payload.
@@ -330,8 +330,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     edit.updateFlags(.ReadOnly)
 
     let effect = host.dropText(edit.surfaceRect().center(), "no")
-    Swag.assert(effect == .None)
-    Swag.assert(edit.text() == "keep")
+    Swag.require(effect == .None)
+    Swag.require(edit.text() == "keep")
 }
 
 // A file replaces the whole content, but only when the box asked for file drops.
@@ -344,18 +344,18 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let pt   = edit.surfaceRect().center()
 
     var effect = host.dropFiles(pt, ["c:/tmp/one.vault"])
-    Swag.assert(effect == .None)
-    Swag.assert(edit.text() == "")
+    Swag.require(effect == .None)
+    Swag.require(edit.text() == "")
 
     edit.updateFlags(.AcceptFileDrop)
     effect = host.dropFiles(pt, ["c:/tmp/one.vault"])
-    Swag.assert(effect == .Copy)
-    Swag.assert(edit.text() == "c:/tmp/one.vault")
+    Swag.require(effect == .Copy)
+    Swag.require(edit.text() == "c:/tmp/one.vault")
 
     // Several files name no single value, so the box has nothing to answer.
     effect = host.dropFiles(pt, ["c:/tmp/a.vault", "c:/tmp/b.vault"])
-    Swag.assert(effect == .None)
-    Swag.assert(edit.text() == "c:/tmp/one.vault")
+    Swag.require(effect == .None)
+    Swag.require(edit.text() == "c:/tmp/one.vault")
 }
 
 // An application parents its main window to the surface window, the way `SurfaceWnd.create`
@@ -369,9 +369,9 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let catcher = makeCatcher(&host.surfaceWnd, {10, 10, 100, 100})
     let effect  = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
 
-    Swag.assert(effect == .Copy)
-    Swag.assert(catcher.drops == 1)
-    Swag.assert(catcher.lastFiles.count == 1)
+    Swag.require(effect == .Copy)
+    Swag.require(catcher.drops == 1)
+    Swag.require(catcher.lastFiles.count == 1)
 }
 
 // A disabled window over the target does not swallow the gesture: the application walks up to the
@@ -387,6 +387,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     overlay.disable()
 
     let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
-    Swag.assert(effect == .Copy)
-    Swag.assert(catcher.drops == 1)
+    Swag.require(effect == .Copy)
+    Swag.require(catcher.drops == 1)
 }

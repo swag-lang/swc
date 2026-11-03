@@ -12,12 +12,12 @@ using Swag, Core, Pixel
     let dlg     = EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Enter the new name."})
     let metrics = dlg.themeMetrics()
 
-    Swag.assert(dlg.surface!.flags.has(.Sheet))
-    Swag.assert(Math.abs(dlg.label.margin.y - metrics.dialog_BtnPadding * 2) < 0.5)
+    Swag.require(dlg.surface!.flags.has(.Sheet))
+    Swag.require(Math.abs(dlg.label.margin.y - metrics.dialog_BtnPadding * 2) < 0.5)
     let contentHeight = dlg.edit!.position.height + dlg.label.position.height + dlg.label.margin.y
     var expected      = contentHeight + dlg.padding.y + metrics.dialog_Padding
     expected += dlg.buttonBar.position.height + dlg.buttonBar.margin.y + 2 * metrics.wnd_BorderSize + 2 * dlg.surface.shadowMargin()
-    Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 1.5)
+    Swag.require(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 1.5)
 }
 
 // A prompt is as tall as its help line, not as tall as the shell it opened in.
@@ -34,8 +34,8 @@ using Swag, Core, Pixel
     options.message = "Enter the new name. It has to be unique inside this folder, and it keeps the extension the file already carries, so a name typed without one is completed."
     let long = EditDlg.createSingleLine(&host.surface, options)
 
-    Swag.assert(long.surface!.position.height > short.surface!.position.height)
-    Swag.assert(long.label.itf.measureContent(Math.Point{long.label.position.width, 0}).y <= long.label.position.height + 0.5)
+    Swag.require(long.surface!.position.height > short.surface!.position.height)
+    Swag.require(long.label.itf.measureContent(Math.Point{long.label.position.width, 0}).y <= long.label.position.height + 0.5)
 
     short.surface.destroy()
     long.surface.destroy()
@@ -51,13 +51,13 @@ using Swag, Core, Pixel
     let options = EditDlgOptions{title: "Description", editorHeight: 150}
     let dlg     = EditDlg.createMultiLine(&host.surface, options)
 
-    Swag.assert(dlg.label.name.raw == strings().dlg_MultiLineHint)
-    Swag.assert(dlg.label.position.y >= dlg.richEdit!.position.bottom())
+    Swag.require(dlg.label.name.raw == strings().dlg_MultiLineHint)
+    Swag.require(dlg.label.position.y >= dlg.richEdit!.position.bottom())
     let contentHeight = dlg.richEdit.position.height + dlg.label.position.height + dlg.label.margin.y
     let outerHeight   = contentHeight + dlg.chromeHeight()
-    Swag.assert(Math.abs(dlg.richEdit.position.height - cast(f32, options.editorHeight)) < 0.5)
-    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
-    Swag.assert(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
+    Swag.require(Math.abs(dlg.richEdit.position.height - cast(f32, options.editorHeight)) < 0.5)
+    Swag.require(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
+    Swag.require(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
 }
 
 // The about box measures its header and message instead of retaining the old 300-unit shell.
@@ -79,15 +79,15 @@ using Swag, Core, Pixel
     var contentHeight = dlg.identityView.position.height
     contentHeight += dlg.labelMessage.measure(Math.Point{dlg.labelMessage.position.width, 0}).preferred.y
     contentHeight += metrics.dialog_BtnPadding * 2
-    Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(contentHeight + dlg.chromeHeight()) * dlg.surface.dpiScale) < 1.5)
+    Swag.require(Math.abs(dlg.surface!.position.height - Math.ceil(contentHeight + dlg.chromeHeight()) * dlg.surface.dpiScale) < 1.5)
 
     // No band frames the identity, and the box has no title line: the name names it.
-    Swag.assert(dlg.identityView.backgroundStyle == .Transparent)
-    Swag.assert(dlg.title.raw.isEmpty())
-    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
-    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIdentity))
-    Swag.assert(dlg.labelIdentity.position.y >= dlg.labelMessageTitle.position.bottom())
-    Swag.assert(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
+    Swag.require(dlg.identityView.backgroundStyle == .Transparent)
+    Swag.require(dlg.title.raw.isEmpty())
+    Swag.require(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
+    Swag.require(dlg.identityView.isAncestorOf(dlg.labelIdentity))
+    Swag.require(dlg.labelIdentity.position.y >= dlg.labelMessageTitle.position.bottom())
+    Swag.require(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
 }
 
 // The application form supplies the common version, build, source, copyright, and tile.
@@ -105,13 +105,13 @@ using Swag, Core, Pixel
         sourceUrl: "https://example.com/source",
         copyrightHolder: "Test Holder"})
 
-    Swag.assert(dlg.surface!.wnd.name.raw == "sTestBench")
-    Swag.assert(dlg.labelMessageTitle.text() == "sTestBench")
-    Swag.assert(Utf8.startsWith(dlg.labelIdentity.text(), "1.2.3"))
-    Swag.assert(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
-    Swag.assert(dlg.labelIcon.icon.isValid())
-    Swag.assert(dlg.labelIcon.icon.sizeY == dlg.themeMetrics().dialog_TileSize)
-    Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
+    Swag.require(dlg.surface!.wnd.name.raw == "sTestBench")
+    Swag.require(dlg.labelMessageTitle.text() == "sTestBench")
+    Swag.require(Utf8.startsWith(dlg.labelIdentity.text(), "1.2.3"))
+    Swag.require(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))
+    Swag.require(dlg.labelIcon.icon.isValid())
+    Swag.require(dlg.labelIcon.icon.sizeY == dlg.themeMetrics().dialog_TileSize)
+    Swag.require(dlg.identityView.isAncestorOf(dlg.labelIcon))
 }
 
 // A question is as wide as its actions need, and never narrower than the family's floor.
@@ -127,7 +127,7 @@ using Swag, Core, Pixel
     small.addButton("No", Dialog.BtnNo)
     small.addButton("Cancel", Dialog.BtnCancel, true)
     small.adaptSizeToMessage()
-    Swag.assert(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface.shadowMargin())) < 1)
+    Swag.require(Math.abs(small.surface!.size().x - (MessageDlg.MinMessageWidth + 2 * small.surface.shadowMargin())) < 1)
 
     // Long actions: the bar decides, and no invisible button is reserved beside them.
     let wide = MessageDlg.create(&host.surface, "Save changes?")
@@ -141,8 +141,8 @@ using Swag, Core, Pixel
     for btn in wide.buttons do
         expected += btn.position.width
     expected += cast(f32, (wide.buttons.count - 1)) * metrics.dialog_BtnPadding
-    Swag.assert(expected > MessageDlg.MinMessageWidth)
-    Swag.assert(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface.shadowMargin())) < 1)
+    Swag.require(expected > MessageDlg.MinMessageWidth)
+    Swag.require(Math.abs(wide.surface!.size().x - (expected + 2 * wide.surface.shadowMargin())) < 1)
 
     small.surface.destroy()
     wide.surface.destroy()
@@ -180,7 +180,7 @@ using Swag, Core, Pixel
         dlg.adaptSizeToMessage()
 
         let needed = dlg.label.itf.measureContent(Math.Point{dlg.label.position.width, 0}).y
-        Swag.assert(needed <= dlg.label.position.height + 0.5)
+        Swag.require(needed <= dlg.label.position.height + 0.5)
 
         dlg.surface.destroy()
         host.pump()
@@ -200,18 +200,18 @@ using Swag, Core, Pixel
     let dlg = MessageDlg.create(&host.surface, message.toString())
     dlg.addButton("Close", Dialog.BtnCancel, true)
     dlg.adaptSizeToMessage(400)
-    Swag.assert(dlg.surface!.size().y <= 400)
-    Swag.assert(dlg.messageScroll != null)
+    Swag.require(dlg.surface!.size().y <= 400)
+    Swag.require(dlg.messageScroll != null)
     let scroll = dlg.messageScroll
     let needed = dlg.label.itf.measureContent(Math.Point{dlg.label.position.width, 0}).y
-    Swag.assert(dlg.label.position.height >= needed)
-    Swag.assert(scroll.scrollSize.y > scroll.view.position.height)
+    Swag.require(dlg.label.position.height >= needed)
+    Swag.require(scroll.scrollSize.y > scroll.view.position.height)
     scroll.setFocus()
     host.keyPress(.End)
-    Swag.assert(scroll.scrollPosition().y > 0)
-    Swag.assert(Math.abs(dlg.label.surfaceRect().bottom() - scroll.view.surfaceRect().bottom()) <= 1)
+    Swag.require(scroll.scrollPosition().y > 0)
+    Swag.require(Math.abs(dlg.label.surfaceRect().bottom() - scroll.view.surfaceRect().bottom()) <= 1)
     host.keyPress(.Home)
-    Swag.assert(scroll.scrollPosition().y == 0)
+    Swag.require(scroll.scrollPosition().y == 0)
     dlg.surface.destroy()
     host.pump()
 }
@@ -236,13 +236,13 @@ using Swag, Core, Pixel
         copyrightHolder: "Test Holder"})
 
     let plainHeight = dlg.surface!.position.height
-    Swag.assert(dlg.sectionsScroll == null)
+    Swag.require(dlg.sectionsScroll == null)
 
     dlg.addSection("Formats", "One short line of supporting detail.")
-    Swag.assert(dlg.sectionsScroll != null)
+    Swag.require(dlg.sectionsScroll != null)
     let oneHeight = dlg.surface.position.height
-    Swag.assert(oneHeight > plainHeight)
-    Swag.assert(dlg.sectionsScroll.position.height < AboutDlg.MaxSectionsHeight)
+    Swag.require(oneHeight > plainHeight)
+    Swag.require(dlg.sectionsScroll.position.height < AboutDlg.MaxSectionsHeight)
 
     // A list long enough to have no end of its own.
     var long: String
@@ -251,7 +251,7 @@ using Swag, Core, Pixel
     dlg.addSection("Everything", long.toString())
 
     let scroll = dlg.sectionsScroll
-    Swag.assert(scroll.position.height <= AboutDlg.MaxSectionsHeight)
-    Swag.assert(scroll.scrollSize.y > scroll.position.height)
-    Swag.assert(dlg.surface.position.height > oneHeight)
+    Swag.require(scroll.position.height <= AboutDlg.MaxSectionsHeight)
+    Swag.require(scroll.scrollSize.y > scroll.position.height)
+    Swag.require(dlg.surface.position.height > oneHeight)
 }

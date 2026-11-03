@@ -28,8 +28,8 @@ using Swag, Core
     }
 
     main.lens.open("image")
-    Swag.assert(main.lens.isOpen() and not main.lens.rows.isEmpty())
-    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow)
+    Swag.require(main.lens.isOpen() and not main.lens.rows.isEmpty())
+    Swag.require(main.lens.rows.back().entry == Lens.PictureRow)
     host.finishAnimations()
 
     var image = host.render(main)
@@ -60,30 +60,30 @@ using Swag, Core
 
     main.lens.open("")
     let rows = main.lens.rows
-    Swag.assert(rows.count > 2 and rows.back().entry == Lens.PictureRow)
+    Swag.require(rows.count > 2 and rows.back().entry == Lens.PictureRow)
     let section = rows.back().section
-    Swag.assert(section.label == appStrings().lens_Recent and section.pictures.count == 2)
-    Swag.assert(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
+    Swag.require(section.label == appStrings().lens_Recent and section.pictures.count == 2)
+    Swag.require(section.link == appStrings().lens_LibraryLink and section.linkRun != null)
 
     // The keys reach the strip: down into it, then along it to the link and back.
     for rows.count do
         host.keyPress(.Down)
-    Swag.assert(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
+    Swag.require(main.lens.chosen == rows.count - 1 and main.lens.chosenPicture == 0)
     host.keyPress(.Right)
-    Swag.assert(main.lens.chosenPicture == 1)
+    Swag.require(main.lens.chosenPicture == 1)
     host.finishAnimations()
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "lens.recent.paper")
     host.keyPress(.Right)
     host.keyPress(.Right)
-    Swag.assert(main.lens.chosenPicture == 2)
+    Swag.require(main.lens.chosenPicture == 2)
     host.keyPress(.Left)
-    Swag.assert(main.lens.chosenPicture == 1)
+    Swag.require(main.lens.chosenPicture == 1)
     main.lens.close()
 
     // A query keeps the captures whose name it matches.
     main.lens.open("second")
-    Swag.assert(main.lens.rows.back().entry == Lens.PictureRow and main.lens.rows.back().section.pictures.count == 1)
+    Swag.require(main.lens.rows.back().entry == Lens.PictureRow and main.lens.rows.back().section.pictures.count == 1)
     main.lens.close()
     main.recentWnd.recentView.items.clear()
 }

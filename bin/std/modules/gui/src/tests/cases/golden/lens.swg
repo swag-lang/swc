@@ -21,11 +21,11 @@ using Swag, Core, Pixel
     let lens = lensSetup(&host)
     lens.addSource(.File, func(_) {})
     lens.open("center")
-    Swag.assert(lens.chosenEntry()!.checked)
+    Swag.require(lens.chosenEntry()!.checked)
     var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, light ? "lens.narrow.fr.paper" : "lens.narrow.fr.ink")
     host.click(lensFooterActionPosition(lens))
-    Swag.assert(lens.results.prefix == .Action and lens.results.query == "center")
+    Swag.require(lens.results.prefix == .Action and lens.results.query == "center")
 }
 
 // The lens over a document, with lines, a command family and the keys at its foot, in Papier.
@@ -135,9 +135,9 @@ using Swag, Core, Pixel
             section.addEntry(Format.toString("Result %", index + 1))
     })
     lens.open(">")
-    Swag.assert(lens.input.name.raw == strings().lens_Placeholder)
-    Swag.assert(lens.nextPage.isVisible() and lens.nextPage.isEnabled())
-    Swag.assert(lens.previousPage.isVisible() and not lens.previousPage.isEnabled())
+    Swag.require(lens.input.name.raw == strings().lens_Placeholder)
+    Swag.require(lens.nextPage.isVisible() and lens.nextPage.isEnabled())
+    Swag.require(lens.previousPage.isVisible() and not lens.previousPage.isEnabled())
     var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, light ? "lens.overflow.paper" : "lens.overflow.ink")
     for 10
@@ -147,17 +147,17 @@ using Swag, Core, Pixel
         host.clickWnd(lens.nextPage)
     }
 
-    Swag.assert(lens.scroll > 0 and lens.previousPage.isEnabled() and not lens.nextPage.isEnabled())
-    Swag.assert(host.app.keyboardFocusWnd == &lens.input.wnd)
+    Swag.require(lens.scroll > 0 and lens.previousPage.isEnabled() and not lens.nextPage.isEnabled())
+    Swag.require(host.app.keyboardFocusWnd == &lens.input.wnd)
     host.clickWnd(lens.previousPage)
-    Swag.assert(lens.nextPage.isEnabled())
+    Swag.require(lens.nextPage.isEnabled())
     host.root.resize(800, 2400)
     lens.itf.onLayout()
-    Swag.assert(lens.scroll == 0 and not lens.nextPage.isVisible())
+    Swag.require(lens.scroll == 0 and not lens.nextPage.isVisible())
     host.root.resize(480, 560)
     lens.itf.onLayout()
     lens.setQuery(">save")
-    Swag.assert(lens.scroll == 0 and not lens.nextPage.isVisible())
+    Swag.require(lens.scroll == 0 and not lens.nextPage.isVisible())
 
     // The reset sits immediately before the available source links and keeps the typed words.
     let metrics     = lens.themeMetrics()
@@ -170,5 +170,5 @@ using Swag, Core, Pixel
     var reset       = Math.Point{right - actionWidth - lineWidth - 2 * metrics.hintLine_GroupGap - allWidth * 0.5, action.y}
     lens.surface!.surfaceToScreen(&reset)
     host.click(reset)
-    Swag.assert(lens.query() == "save" and lens.results.prefix == .None)
+    Swag.require(lens.query() == "save" and lens.results.prefix == .None)
 }

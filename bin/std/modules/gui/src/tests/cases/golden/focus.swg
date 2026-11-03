@@ -19,18 +19,18 @@ using Swag, Core, Pixel
 
     // Tab is what turns the ring on, so this goes through the real navigation.
     host.keyPress(.Tab)
-    Swag.assert(button.hasVisibleFocus())
+    Swag.require(button.hasVisibleFocus())
 
     let ringed = host.render()
-    Swag.assert(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
+    Swag.require(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton")
 
     // A press takes the ring away again without taking the focus. The image is not compared
     // against the idle one: the pointer is over the button now, which is a state of its own.
     host.clickWnd(button)
-    Swag.assert(button.hasFocus() and not button.hasVisibleFocus())
+    Swag.require(button.hasFocus() and not button.hasVisibleFocus())
     let pressed = host.render()
-    Swag.assert(not Slice.equals(pressed.pixels.toSlice(), ringed.pixels.toSlice()))
+    Swag.require(not Slice.equals(pressed.pixels.toSlice(), ringed.pixels.toSlice()))
 }
 
 // What an action bar looks like when the keyboard has moved off the action the box named.
@@ -57,9 +57,9 @@ using Swag, Core, Pixel
 
     // The fill crosses the bar as an animation, so the image is taken once it has arrived.
     host.keyPress(.Right)
-    Swag.assert(cancel.hasFocus())
+    Swag.require(cancel.hasFocus())
     let onOther = host.renderSettled()
-    Swag.assert(not Slice.equals(onOther.pixels.toSlice(), onDefault.pixels.toSlice()))
+    Swag.require(not Slice.equals(onOther.pixels.toSlice(), onDefault.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&onOther, "focus.default.follows.keyboard")
 }
 
@@ -77,10 +77,10 @@ using Swag, Core, Pixel
     let idle   = host.render()
 
     host.keyPress(.Tab)
-    Swag.assert(button.hasVisibleFocus())
+    Swag.require(button.hasVisibleFocus())
 
     let ringed = host.render()
-    Swag.assert(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
+    Swag.require(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton.default")
 }
 
@@ -99,7 +99,7 @@ using Swag, Core, Pixel
     toggle.setChecked(true)
 
     host.keyPress(.Tab)
-    Swag.assert(toggle.hasVisibleFocus())
+    Swag.require(toggle.hasVisibleFocus())
 
     let ringed = host.renderSettled()
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.toggle.on")

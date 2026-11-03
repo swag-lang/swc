@@ -44,11 +44,11 @@ func checkDifference(expected, actual: const *Image)
     {
         let reference = referenceDifference(expected, actual, tolerance)
         let result    = Testing.compareImages(expected, actual, {maxChannelDelta: tolerance})
-        Swag.assert(result.sameSize == reference.sameSize)
-        Swag.assert(result.differentPixels == reference.differentPixels)
-        Swag.assert(result.maxChannelDelta == reference.maxChannelDelta)
-        Swag.assert(result.firstX == reference.firstX and result.firstY == reference.firstY)
-        Swag.assert(result.firstExpected == reference.firstExpected and result.firstActual == reference.firstActual)
+        Swag.require(result.sameSize == reference.sameSize)
+        Swag.require(result.differentPixels == reference.differentPixels)
+        Swag.require(result.maxChannelDelta == reference.maxChannelDelta)
+        Swag.require(result.firstX == reference.firstX and result.firstY == reference.firstY)
+        Swag.require(result.firstExpected == reference.firstExpected and result.firstActual == reference.firstActual)
     }
 }
 

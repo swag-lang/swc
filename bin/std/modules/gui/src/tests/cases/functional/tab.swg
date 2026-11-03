@@ -23,27 +23,27 @@ var TabHeadlessSelChangedCount: u32
         host.settleAnimations()
 
         let colors = tab.themeColors()
-        Swag.assert(colors.tabItem_FlatSelected == colors.arc)
-        Swag.assert(colors.tabItem_FlatSelected.contrastRatio(colors.dlg_Bk) >= 3.5)
-        Swag.assert(colors.tabItem_FlatHot.a == 0)
+        Swag.require(colors.tabItem_FlatSelected == colors.arc)
+        Swag.require(colors.tabItem_FlatSelected.contrastRatio(colors.dlg_Bk) >= 3.5)
+        Swag.require(colors.tabItem_FlatHot.a == 0)
 
         tab.setSelectedIndex(3)
         host.advanceAnimations(tab.themeMetrics().motion_QuickSeconds * 0.5)
         let halfway = host.render()
         let rail    = tab.selectionRail
         let y       = cast(u32, rail.y + rail.height / 2)
-        Swag.assert(rail.height == tab.themeMetrics().tabItem_RailSize)
-        Swag.assert(rail.x > 8 and rail.x < 248)
-        Swag.assert(halfway.pixelColor(cast(u32, rail.x + rail.width / 2), y) == colors.tabItem_FlatSelected)
-        Swag.assert(halfway.pixelColor(4, y) == colors.tabBar_FlatLine)
-        Swag.assert(halfway.pixelColor(316, y) == colors.tabBar_FlatLine)
+        Swag.require(rail.height == tab.themeMetrics().tabItem_RailSize)
+        Swag.require(rail.x > 8 and rail.x < 248)
+        Swag.require(halfway.pixelColor(cast(u32, rail.x + rail.width / 2), y) == colors.tabItem_FlatSelected)
+        Swag.require(halfway.pixelColor(4, y) == colors.tabBar_FlatLine)
+        Swag.require(halfway.pixelColor(316, y) == colors.tabBar_FlatLine)
 
         host.finishAnimations()
         host.moveMouse(Math.Point{40, tab.barHeight / 2})
         let hovered = host.renderSettled()
-        Swag.assert(hovered.pixelColor(40, y) == colors.tabBar_FlatLine)
+        Swag.require(hovered.pixelColor(40, y) == colors.tabBar_FlatLine)
         let chosen = unwrap tab.items[3]
-        Swag.assert(hovered.pixelColor(cast(u32, chosen.pos + chosen.width / 2), y) == colors.tabItem_FlatSelected)
+        Swag.require(hovered.pixelColor(cast(u32, chosen.pos + chosen.width / 2), y) == colors.tabItem_FlatSelected)
     }
 }
 
@@ -60,23 +60,23 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A")
     tab.addItem("B")
     tab.addItem("C")
-    Swag.assert(tab.items.count == 3)
-    Swag.assert(tab.selectedIndex == 0)
+    Swag.require(tab.items.count == 3)
+    Swag.require(tab.selectedIndex == 0)
 
     tab.setSelectedIndex(2)
-    Swag.assert(tab.selectedIndex == 2)
-    Swag.assert(TabHeadlessSelChangedCount == 1)
-    Swag.assert(tab.selectedItem()!.name.raw == "C")
+    Swag.require(tab.selectedIndex == 2)
+    Swag.require(TabHeadlessSelChangedCount == 1)
+    Swag.require(tab.selectedItem()!.name.raw == "C")
 
     // Selecting the current tab is a no-op.
     tab.setSelectedIndex(2)
-    Swag.assert(TabHeadlessSelChangedCount == 1)
+    Swag.require(TabHeadlessSelChangedCount == 1)
 
     host.focus(tab)
     host.keyPress(Input.Key.Left)
-    Swag.assert(tab.selectedIndex == 1 and TabHeadlessSelChangedCount == 2)
+    Swag.require(tab.selectedIndex == 1 and TabHeadlessSelChangedCount == 2)
     host.keyPress(Input.Key.Home)
-    Swag.assert(tab.selectedIndex == 0 and TabHeadlessSelChangedCount == 3)
+    Swag.require(tab.selectedIndex == 0 and TabHeadlessSelChangedCount == 3)
 }
 
 // Tab views are shown/hidden according to the selection.
@@ -91,12 +91,12 @@ var TabHeadlessSelChangedCount: u32
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)
 
-    Swag.assert(not viewA.wndFlags.has(.Hidden))
-    Swag.assert(viewB.wndFlags.has(.Hidden))
+    Swag.require(not viewA.wndFlags.has(.Hidden))
+    Swag.require(viewB.wndFlags.has(.Hidden))
 
     tab.setSelectedIndex(1)
-    Swag.assert(viewA.wndFlags.has(.Hidden))
-    Swag.assert(not viewB.wndFlags.has(.Hidden))
+    Swag.require(viewA.wndFlags.has(.Hidden))
+    Swag.require(not viewB.wndFlags.has(.Hidden))
 }
 
 // Opt-in page transitions keep the outgoing page painted under the incoming fade while preserving
@@ -122,30 +122,30 @@ var TabHeadlessSelChangedCount: u32
     let before      = host.render()
     let beforeColor = before.pixelColor(160, 120)
     let emptyColor  = host.theme.colors.dlg_Bk
-    Swag.assert(beforeColor.argb != emptyColor.argb)
+    Swag.require(beforeColor.argb != emptyColor.argb)
 
     tab.setSelectedIndex(1)
-    Swag.assert(viewA.wndFlags.has(.Hidden) and not viewB.wndFlags.has(.Hidden))
-    Swag.assert(viewA.paintsWhenHidden)
-    Swag.assert(viewA.presentationOpacity == 1)
-    Swag.assert(viewB.presentationOpacity == 0)
-    Swag.assert(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
+    Swag.require(viewA.wndFlags.has(.Hidden) and not viewB.wndFlags.has(.Hidden))
+    Swag.require(viewA.paintsWhenHidden)
+    Swag.require(viewA.presentationOpacity == 1)
+    Swag.require(viewB.presentationOpacity == 0)
+    Swag.require(viewB.presentationOffset.x == tab.themeMetrics().motion_PageOffset)
     let start = host.render()
-    Swag.assert(start.pixelColor(160, 120).argb == beforeColor.argb)
+    Swag.require(start.pixelColor(160, 120).argb == beforeColor.argb)
     let logicalPosition = viewB.position
 
     host.advanceAnimations(tab.themeMetrics().motion_PageSeconds * 0.5)
-    Swag.assert(viewA.presentationOpacity > 0 and viewA.presentationOpacity < 1)
-    Swag.assert(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
-    Swag.assert(viewB.position == logicalPosition)
+    Swag.require(viewA.presentationOpacity > 0 and viewA.presentationOpacity < 1)
+    Swag.require(viewB.presentationOpacity > 0 and viewB.presentationOpacity < 1)
+    Swag.require(viewB.position == logicalPosition)
     let halfway = host.render()
-    Swag.assert(halfway.pixelColor(160, 120).argb != emptyColor.argb)
+    Swag.require(halfway.pixelColor(160, 120).argb != emptyColor.argb)
     host.finishAnimations()
-    Swag.assert(not viewA.paintsWhenHidden)
-    Swag.assert(viewA.presentationOpacity == 1)
-    Swag.assert(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
+    Swag.require(not viewA.paintsWhenHidden)
+    Swag.require(viewA.presentationOpacity == 1)
+    Swag.require(viewB.presentationOpacity == 1 and viewB.presentationOffset == Math.Point{})
     let finished = host.render()
-    Swag.assert(finished.pixelColor(160, 120).argb != beforeColor.argb)
+    Swag.require(finished.pixelColor(160, 120).argb != beforeColor.argb)
 }
 
 // Removing tabs destroys owned pages, preserves the selected item identity, and clears safely.
@@ -166,16 +166,16 @@ var TabHeadlessSelChangedCount: u32
 
     tab.setSelectedIndex(2)
     tab.removeItemAt(0)
-    Swag.assert(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
-    Swag.assert(TabHeadlessSelChangedCount == 1)
+    Swag.require(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
+    Swag.require(TabHeadlessSelChangedCount == 1)
 
     tab.removeItemAt(1)
-    Swag.assert(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
-    Swag.assert(TabHeadlessSelChangedCount == 2)
+    Swag.require(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
+    Swag.require(TabHeadlessSelChangedCount == 2)
 
     tab.clear()
-    Swag.assert(tab.items.isEmpty() and tab.selectedItem() == null and tab.selectedIndex == Swag.U32.Max)
-    Swag.assert(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
+    Swag.require(tab.items.isEmpty() and tab.selectedItem() == null and tab.selectedIndex == Swag.U32.Max)
+    Swag.require(viewA.isPendingDestroy and viewB.isPendingDestroy and viewC.isPendingDestroy)
     host.pump()
 }
 
@@ -193,8 +193,8 @@ var TabHeadlessSelChangedCount: u32
     {
         tab.setForm(form)
         let hint = wnd.measure({300, 0})
-        Swag.assert(hint.preferred.y == tab.barHeight + 14)
-        Swag.assert(hint.preferred.x >= tab.minimumItemWidth * 2 + 10)
+        Swag.require(hint.preferred.y == tab.barHeight + 14)
+        Swag.require(hint.preferred.x >= tab.minimumItemWidth * 2 + 10)
     }
 }
 
@@ -213,9 +213,9 @@ var TabHeadlessSelChangedCount: u32
     let bare = tab.items[0]!.width
     tab.setItemCount(0, "248")
     host.pump()
-    Swag.assert(tab.items[0]!.count == "248" and tab.items[0]!.width > bare)
+    Swag.require(tab.items[0]!.count == "248" and tab.items[0]!.width > bare)
 
     tab.setItemCount(0, null)
     host.pump()
-    Swag.assert(tab.items[0]!.count.isEmpty() and tab.items[0]!.width == bare)
+    Swag.require(tab.items[0]!.count.isEmpty() and tab.items[0]!.width == bare)
 }

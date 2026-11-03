@@ -9,7 +9,7 @@ using Swag, Core
     let face = unwrap faceScope.face
 
     let glyphIndex = face.glyphIndex(0x00E9)
-    Swag.assert(glyphIndex > 0)
+    Swag.require(glyphIndex > 0)
 
     let faceData     = getFaceData(face)
     let glyf         = expect getTableSlice(faceData, TAG_GLYF, 0x10)
@@ -17,14 +17,14 @@ using Swag, Core
     let glyphEnd     = faceData.glyphLocations[glyphIndex + 1]
     let glyphData    = expect getSlice(glyf, glyphStart, glyphEnd - glyphStart)
     let contourCount = expect readS16(glyphData, 0)
-    Swag.assert(contourCount < 0)
+    Swag.require(contourCount < 0)
 
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar(0x00E9)
-    Swag.assert(face.glyph.index == glyphIndex)
-    Swag.assert(face.glyph.outline.pointCount > 0)
-    Swag.assert(face.glyph.outline.contourCount > 0)
+    Swag.require(face.glyph.index == glyphIndex)
+    Swag.require(face.glyph.outline.pointCount > 0)
+    Swag.require(face.glyph.outline.contourCount > 0)
 
     discard expect face.renderGlyph()
-    Swag.assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
+    Swag.require(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }

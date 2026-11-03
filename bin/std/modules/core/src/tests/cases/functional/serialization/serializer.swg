@@ -35,11 +35,11 @@ func(T) roundTripSerializedField(value: T)->T fail
 #test
 {
     let number = expect roundTripSerializedField(42'u32)
-    Swag.assert(number == 42)
+    Swag.require(number == 42)
 
     let payload = expect roundTripSerializedField(SerializerPayload{number: 7, active: true})
-    Swag.assert(payload.number == 7)
-    Swag.assert(payload.active)
+    Swag.require(payload.number == 7)
+    Swag.require(payload.active)
 }
 
 #test
@@ -71,5 +71,5 @@ func(T) roundTripSerializedField(value: T)->T fail
     expect serializer.endSection()
     expect serializer.end()
 
-    Swag.assert(first == 17 and second == -9)
+    Swag.require(first == 17 and second == -9)
 }

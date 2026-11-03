@@ -28,15 +28,15 @@ func assertCrc32(buffer: const [..] u8, seed: u32 = 0)
     let expected = crc32Reference(buffer, seed)
 
     if not seed do
-        Swag.assert(Hash.Crc32.compute(buffer) == expected)
+        Swag.require(Hash.Crc32.compute(buffer) == expected)
 
     var crc: Hash.Crc32
     crc.reset(seed)
     crc.update(buffer)
-    Swag.assert(crc.value() == expected)
+    Swag.require(crc.value() == expected)
 
     crc.update("")
-    Swag.assert(crc.value() == expected)
+    Swag.require(crc.value() == expected)
 }
 
 func fillCrc32Pattern(buffer: [..] u8)
@@ -51,8 +51,8 @@ func fillCrc32Pattern(buffer: [..] u8)
 
 #test
 {
-    Swag.assert(Hash.Crc32.compute("") == 0'u32)
-    Swag.assert(Hash.Crc32.compute("123456789") == 0xCBF43926'u32)
+    Swag.require(Hash.Crc32.compute("") == 0'u32)
+    Swag.require(Hash.Crc32.compute("123456789") == 0xCBF43926'u32)
 
     assertCrc32("")
     assertCrc32("a")
@@ -63,7 +63,7 @@ func fillCrc32Pattern(buffer: [..] u8)
     crc.reset(0x12345678)
     crc.update("dirty")
     crc.reset()
-    Swag.assert(crc.value() == 0'u32)
+    Swag.require(crc.value() == 0'u32)
 
     var data: [257] u8
     fillCrc32Pattern(data)
@@ -87,7 +87,7 @@ func fillCrc32Pattern(buffer: [..] u8)
     split.update(data[1 until 64])
     split.update(data[64 until 129])
     split.update(data[129 until 257])
-    Swag.assert(split.value() == Hash.Crc32.compute(data))
+    Swag.require(split.value() == Hash.Crc32.compute(data))
 
     assertCrc32(data[until 257], 0x12345678)
 
@@ -95,5 +95,5 @@ func fillCrc32Pattern(buffer: [..] u8)
     seeded.reset(0x12345678)
     seeded.update(data[until 128])
     seeded.update(data[128 until 257])
-    Swag.assert(seeded.value() == crc32Reference(data, 0x12345678))
+    Swag.require(seeded.value() == crc32Reference(data, 0x12345678))
 }

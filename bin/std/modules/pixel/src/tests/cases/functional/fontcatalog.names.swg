@@ -65,7 +65,7 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
         }
     }
 
-    Swag.assert(foundNames and foundWeight)
+    Swag.require(foundNames and foundWeight)
     let path = makeTempImagePath(".ttf")
     discard expect File.writeAllBytes(path, bytes.toSlice())
     return path
@@ -85,13 +85,13 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
     for path in [semibold, unrelated, light, regular] do
         discard expect catalog.addFile(path.toString())
     let names = catalog.familyNames()
-    Swag.assert(names.count == 2 and names[0] == "Another Family" and names[1] == "Catalog Sans")
-    Swag.assert((unwrap catalog.findFace("catalog sans")).path == regular)
-    Swag.assert((unwrap catalog.findFace("Catalog Sans", .Light)).path == light)
-    Swag.assert((unwrap catalog.findFace("Catalog Sans", .SemiBold)).path == semibold)
-    Swag.assert((unwrap catalog.findFace("Catalog Sans", .Bold)).path == semibold)
+    Swag.require(names.count == 2 and names[0] == "Another Family" and names[1] == "Catalog Sans")
+    Swag.require((unwrap catalog.findFace("catalog sans")).path == regular)
+    Swag.require((unwrap catalog.findFace("Catalog Sans", .Light)).path == light)
+    Swag.require((unwrap catalog.findFace("Catalog Sans", .SemiBold)).path == semibold)
+    Swag.require((unwrap catalog.findFace("Catalog Sans", .Bold)).path == semibold)
     let legacy = unwrap catalog.findFace("Catalog Sans Light")
-    Swag.assert(legacy.path == light and legacy.metadata.typographicStyleName == "Light")
-    Swag.assert((unwrap catalog.findFace("Catalog Sans SemiBold")).path == semibold)
-    Swag.assert((unwrap catalog.findFace("Another Family", .Bold)).path == unrelated)
+    Swag.require(legacy.path == light and legacy.metadata.typographicStyleName == "Light")
+    Swag.require((unwrap catalog.findFace("Catalog Sans SemiBold")).path == semibold)
+    Swag.require((unwrap catalog.findFace("Another Family", .Bold)).path == unrelated)
 }

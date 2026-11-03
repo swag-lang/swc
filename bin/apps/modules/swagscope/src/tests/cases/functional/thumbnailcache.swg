@@ -15,9 +15,9 @@ using Core, Pixel, Gui
     discard expect File.writeAllText(other, "keep")
     let now = Time.Timestamp.utcNow().ticks
     expect ThumbnailCache.prune(root, now)
-    Swag.assert(File.exists(cached) and File.exists(other))
+    Swag.require(File.exists(cached) and File.exists(other))
     expect ThumbnailCache.prune(root, now + 121 * Time.TicksPerDay)
-    Swag.assert(not File.exists(cached) and File.exists(other))
+    Swag.require(not File.exists(cached) and File.exists(other))
 }
 
 // Cache identity follows both the source and application, and separates archive members.
@@ -31,26 +31,26 @@ using Core, Pixel, Gui
     discard expect File.writeAllText(app, "app")
     let key = expect ThumbnailCache.key(source, executable: app)
     defer catch File.delete(key)
-    Swag.assert(key == (expect ThumbnailCache.key(source, executable: app)))
-    Swag.assert(key != (expect ThumbnailCache.key(source, "member", app)))
+    Swag.require(key == (expect ThumbnailCache.key(source, executable: app)))
+    Swag.require(key != (expect ThumbnailCache.key(source, "member", app)))
 
     var image = Image.create(32, 24, .RGB8)
     image.fill(Color.fromRgb(255, 0, 0))
     expect ThumbnailCache.write(key, &image)
     let cached = ThumbnailCache.read(key)
-    Swag.assert(cached.width == 32 and
-                cached.height == 24 and
-                cached.pixelColor(0, 0) == Color.fromRgb(255, 0, 0))
+    Swag.require(cached.width == 32 and
+                 cached.height == 24 and
+                 cached.pixelColor(0, 0) == Color.fromRgb(255, 0, 0))
     discard expect File.writeAllText(key, "damaged cache")
-    Swag.assert(not ThumbnailCache.read(key).isValid())
+    Swag.require(not ThumbnailCache.read(key).isValid())
     expect ThumbnailCache.write(key, &image)
-    Swag.assert(ThumbnailCache.read(key).isValid())
+    Swag.require(ThumbnailCache.read(key).isValid())
 
     discard expect File.writeAllText(source, "changed source")
     let changed = expect ThumbnailCache.key(source, executable: app)
-    Swag.assert(changed != key and not ThumbnailCache.read(changed).isValid())
+    Swag.require(changed != key and not ThumbnailCache.read(changed).isValid())
     discard expect File.writeAllText(app, "changed application")
-    Swag.assert(changed != (expect ThumbnailCache.key(source, executable: app)))
+    Swag.require(changed != (expect ThumbnailCache.key(source, executable: app)))
 }
 
 // A local codec failure still leaves the online artwork pass eligible.
@@ -70,8 +70,8 @@ using Core, Pixel, Gui
     preview.start(&host.surfaceWnd)
     preview.wait()
     host.pump()
-    Swag.assert(not preview.image.isValid() and not preview.error.isEmpty())
-    Swag.assert(preview.needsOnline)
+    Swag.require(not preview.image.isValid() and not preview.error.isEmpty())
+    Swag.require(preview.needsOnline)
 }
 
 // A cached preview survives a fresh operation and avoids launching the renderer process.
@@ -94,8 +94,8 @@ using Core, Pixel, Gui
         preview.start(&host.surfaceWnd)
         preview.wait()
         host.pump()
-        Swag.assert(preview.image.isValid() and preview.error.isEmpty())
-        Swag.assert(not preview.service.process.isRunning())
+        Swag.require(preview.image.isValid() and preview.error.isEmpty())
+        Swag.require(not preview.service.process.isRunning())
     }
 }
 
@@ -123,8 +123,8 @@ using Core, Pixel, Gui
     preview.start(&host.surfaceWnd)
     preview.wait()
     host.pump()
-    Swag.assert(preview.image.isValid() and preview.needsOnline)
-    Swag.assert(not preview.service.process.isRunning())
+    Swag.require(preview.image.isValid() and preview.needsOnline)
+    Swag.require(not preview.service.process.isRunning())
 
     stampMovieCache(&frame)
     expect ThumbnailCache.write(key, &frame)
@@ -134,7 +134,7 @@ using Core, Pixel, Gui
     visited.start(&host.surfaceWnd)
     visited.wait()
     host.pump()
-    Swag.assert(visited.image.isValid() and not visited.needsOnline)
+    Swag.require(visited.image.isValid() and not visited.needsOnline)
 }
 
 #test
@@ -145,14 +145,14 @@ using Core, Pixel, Gui
     let song  = Path.combine(folder, "01.flac")
     let cover = Path.combine(folder, "cover.jpg")
     discard expect File.writeAllText(song, "fixture")
-    Swag.assert(localAlbumArtwork(song).isEmpty())
+    Swag.require(localAlbumArtwork(song).isEmpty())
     discard expect File.writeAllText(cover, "artwork fixture")
-    Swag.assert(localAlbumArtwork(song) == cover)
+    Swag.require(localAlbumArtwork(song) == cover)
     let key = expect ThumbnailCache.key(folder)
     defer catch File.delete(key)
     var placeholder = Image.create(1, 1, .RGBA8)
     expect ThumbnailCache.write(key, &placeholder)
-    Swag.assert(ThumbnailCache.read(key).isValid())
+    Swag.require(ThumbnailCache.read(key).isValid())
 }
 
 // A later album folder is identified only when its tile enters the viewport.
@@ -172,5 +172,5 @@ using Core, Pixel, Gui
     preview.start(&host.surfaceWnd)
     preview.wait()
     host.pump()
-    Swag.assert(preview.mediaFile == song and preview.image.isValid() and preview.image.width == 1)
+    Swag.require(preview.mediaFile == song and preview.image.isValid() and preview.image.width == 1)
 }

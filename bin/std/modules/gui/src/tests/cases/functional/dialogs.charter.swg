@@ -19,25 +19,25 @@ func assertDialogCharter(dlg: *Dialog)
     let gap     = metrics.dialog_BtnPadding * 2
 
     // The charter's measures, where every box takes them from.
-    Swag.assert(pad == 28 and gap == 16)
-    Swag.assert(metrics.control_DialogHeight == 34)
-    Swag.assert(MessageDlg.MinMessageWidth == 440)
+    Swag.require(pad == 28 and gap == 16)
+    Swag.require(metrics.control_DialogHeight == 34)
+    Swag.require(MessageDlg.MinMessageWidth == 440)
 
     // A floating sheet: the floating corner and shadow, its outline, and no strip or close cross.
-    Swag.assert(srf.flags.has(.Sheet) and srf.flags.has(.Border))
-    Swag.assert(not srf.flags.has(.SmallCaption) and
-                not srf.flags.has(.LargeCaption) and
-                not srf.flags.has(.CloseButton))
-    Swag.assert(srf.cornerRadius() == metrics.corner_Floating)
-    Swag.assert(srf.shadowMargin() == dlg.theme().floatingShadowMargin())
-    Swag.assert(srf.wnd.stripHeight() == 0)
+    Swag.require(srf.flags.has(.Sheet) and srf.flags.has(.Border))
+    Swag.require(not srf.flags.has(.SmallCaption) and
+                 not srf.flags.has(.LargeCaption) and
+                 not srf.flags.has(.CloseButton))
+    Swag.require(srf.cornerRadius() == metrics.corner_Floating)
+    Swag.require(srf.shadowMargin() == dlg.theme().floatingShadowMargin())
+    Swag.require(srf.wnd.stripHeight() == 0)
 
     // One inset on every side; the title, when there is one, opens the body above the content.
-    Swag.assert(dlg.padding.x == pad and dlg.padding.z == pad and dlg.padding.w == pad)
+    Swag.require(dlg.padding.x == pad and dlg.padding.z == pad and dlg.padding.w == pad)
     if dlg.title.raw.isEmpty() do
-        Swag.assert(dlg.padding.y == pad)
+        Swag.require(dlg.padding.y == pad)
     else do
-        Swag.assert(dlg.padding.y > pad + gap)
+        Swag.require(dlg.padding.y > pad + gap)
     let body = unwrap dlg.contentView
 
     // The title line remains a native caption hit target even when the content view fills the
@@ -47,52 +47,52 @@ func assertDialogCharter(dlg: *Dialog)
         var titlePoint = srf.wnd.view.surfaceRect().topLeft()
         titlePoint.x += pad + 100
         titlePoint.y += pad + 5
-        Swag.assert(srf.wnd.hitTestCaption(titlePoint))
-        Swag.assert(not srf.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
+        Swag.require(srf.wnd.hitTestCaption(titlePoint))
+        Swag.require(not srf.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
     }
 
     // The actions end the body: one gap above them, on the body's own ground, as tall as the
     // dialog height and never narrower than a button.
-    Swag.assert(bar.backgroundStyle == .Transparent)
-    Swag.assert(bar.margin.y == gap)
-    Swag.assert(Math.abs(bar.position.bottom() - (dlg.position.height - pad)) < 0.5)
-    Swag.assert(Math.abs(bar.position.right() - (dlg.position.width - pad)) < 0.5)
-    Swag.assert(not dlg.buttons.isEmpty())
+    Swag.require(bar.backgroundStyle == .Transparent)
+    Swag.require(bar.margin.y == gap)
+    Swag.require(Math.abs(bar.position.bottom() - (dlg.position.height - pad)) < 0.5)
+    Swag.require(Math.abs(bar.position.right() - (dlg.position.width - pad)) < 0.5)
+    Swag.require(not dlg.buttons.isEmpty())
     for btn in dlg.buttons
     {
-        Swag.assert(Math.abs(btn.position.height - metrics.control_DialogHeight) < 0.5)
-        Swag.assert(btn.position.width >= metrics.btnPush_Width - 0.5)
+        Swag.require(Math.abs(btn.position.height - metrics.control_DialogHeight) < 0.5)
+        Swag.require(btn.position.width >= metrics.btnPush_Width - 0.5)
     }
 
     // One primary action per box, and it stands rightmost, against the inset.
     var primary: *PushButton?
     for btn in dlg.buttons where btn.form == .Default
     {
-        Swag.assert(primary == null)
+        Swag.require(primary == null)
         primary = btn
     }
 
-    Swag.assert(primary != null)
+    Swag.require(primary != null)
     for btn in dlg.buttons do
-        Swag.assert(btn.position.right() <= primary.position.right())
-    Swag.assert(Math.abs(primary.position.right() - bar.position.width) < 0.5)
+        Swag.require(btn.position.right() <= primary.position.right())
+    Swag.require(Math.abs(primary.position.right() - bar.position.width) < 0.5)
 
     // Two actions are parted by one gap and by nothing else; the row reads in the order of the bar.
     for i in 1 until bar.children.count
     {
         let left  = bar.children[i - 1]
         let right = bar.children[i]
-        Swag.assert(Math.abs(right.position.x - left.position.right() - metrics.dialog_BtnPadding) < 0.5)
+        Swag.require(Math.abs(right.position.x - left.position.right() - metrics.dialog_BtnPadding) < 0.5)
     }
 
     // The body stands between the title and the actions, on the inset, and nothing of it falls
     // under the actions.
-    Swag.assert(body.position.x == pad and body.position.y == dlg.padding.y)
-    Swag.assert(Math.abs(body.position.right() - (dlg.position.width - pad)) < 0.5)
-    Swag.assert(body.position.bottom() <= bar.position.y - gap + 0.5)
+    Swag.require(body.position.x == pad and body.position.y == dlg.padding.y)
+    Swag.require(Math.abs(body.position.right() - (dlg.position.width - pad)) < 0.5)
+    Swag.require(body.position.bottom() <= bar.position.y - gap + 0.5)
 
     // A box opens at least as wide as the family's floor.
-    Swag.assert(dlg.position.width >= MessageDlg.MinMessageWidth - 2 * metrics.wnd_BorderSize - 0.5)
+    Swag.require(dlg.position.width >= MessageDlg.MinMessageWidth - 2 * metrics.wnd_BorderSize - 0.5)
 }
 
 // Every predefined dialog is the same composition around a different content.
@@ -111,13 +111,13 @@ func assertDialogCharter(dlg: *Dialog)
     question.addButton("Ignore", Dialog.BtnCancel)
     question.adaptSizeToMessage()
     assertDialogCharter(&question.dialog)
-    Swag.assert(question.buttons[0].position.x > question.buttons[1].position.x)
+    Swag.require(question.buttons[0].position.x > question.buttons[1].position.x)
 
     let editOptions = EditDlgOptions{title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", confirmButtonText: "Go"}
     let editOne     = EditDlg.createSingleLine(&host.surface, editOptions)
     assertDialogCharter(&editOne.dialog)
-    Swag.assert(editOne.edit!.position.height == host.theme.metrics.control_DialogHeight)
-    Swag.assert(editOne.label.position.y >= editOne.edit.position.bottom())
+    Swag.require(editOne.edit!.position.height == host.theme.metrics.control_DialogHeight)
+    Swag.require(editOne.label.position.y >= editOne.edit.position.bottom())
 
     let editMany = EditDlg.createMultiLine(&host.surface, editOptions)
     assertDialogCharter(&editMany.dialog)
@@ -134,7 +134,7 @@ func assertDialogCharter(dlg: *Dialog)
         surfaceIcon: {},
         contentIcon: {}})
     assertDialogCharter(&about.dialog)
-    Swag.assert(about.title.raw.isEmpty())
+    Swag.require(about.title.raw.isEmpty())
 
     let file = FileDlg.create(&host.surface, {mode: .SelectFile})
     assertDialogCharter(&file.dialog)
@@ -160,8 +160,8 @@ func assertDialogCharter(dlg: *Dialog)
     dlg.surface!.wnd.view.applyLayout()
 
     let surface = dlg.surface
-    Swag.assert(surface.wnd.hitTestCaption(body.surfaceRect().center()))
-    Swag.assert(not surface.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
+    Swag.require(surface.wnd.hitTestCaption(body.surfaceRect().center()))
+    Swag.require(not surface.wnd.hitTestCaption(dlg.buttons[0].surfaceRect().center()))
 
     surface.destroy()
     host.pump()
@@ -179,9 +179,9 @@ func assertDialogCharter(dlg: *Dialog)
     dlg.adaptSizeToMessage()
     assertDialogCharter(&dlg.dialog)
 
-    Swag.assert(dlg.failure)
-    Swag.assert(dlg.detailLabel != null and dlg.detailLabel.text() == "Error code: 0x80070017")
-    Swag.assert(dlg.detailLabel.position.y >= dlg.label.position.bottom())
+    Swag.require(dlg.failure)
+    Swag.require(dlg.detailLabel != null and dlg.detailLabel.text() == "Error code: 0x80070017")
+    Swag.require(dlg.detailLabel.position.y >= dlg.label.position.bottom())
 
     dlg.surface!.destroy()
     host.pump()
@@ -203,8 +203,8 @@ func assertDialogCharter(dlg: *Dialog)
     dlg.fitHeightToContent(120)
 
     let slot = unwrap filter.parent
-    Swag.assert(slot.position.x == host.theme.metrics.dialog_Padding)
-    Swag.assert(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+    Swag.require(slot.position.x == host.theme.metrics.dialog_Padding)
+    Swag.require(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
 
     // A long leading control yields to the actions, then recovers its preferred width.
     for width in [420.0, 800.0, 520.0]
@@ -216,15 +216,15 @@ func assertDialogCharter(dlg: *Dialog)
         var first = dlg.position.width
         for button in dlg.buttons do
             first = Math.min(first, dlg.buttonBar.position.x + button.position.x)
-        Swag.assert(slot.position.right() <= first - dlg.themeMetrics().dialog_BtnPadding)
-        Swag.assert(filter.position.width == slot.position.width)
+        Swag.require(slot.position.right() <= first - dlg.themeMetrics().dialog_BtnPadding)
+        Swag.require(filter.position.width == slot.position.width)
         if width == 800 do
-            Swag.assert(filter.position.width == 400)
+            Swag.require(filter.position.width == 400)
     }
 
     // The control follows the action row when the box changes height.
     dlg.fitHeightToContent(220)
-    Swag.assert(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
+    Swag.require(Math.abs(slot.position.vertCenter() - dlg.buttonBar.position.vertCenter()) < 0.5)
 
     dlg.surface!.destroy()
     host.pump()
@@ -241,8 +241,8 @@ func assertDialogCharter(dlg: *Dialog)
 
     let list = fb.listCtrl
     let row  = unwrap fb.pathField.parent
-    Swag.assert(Math.abs(list.position.x - row.position.x) < 0.5)
-    Swag.assert(Math.abs(list.position.right() - row.position.right()) < 0.5)
+    Swag.require(Math.abs(list.position.x - row.position.x) < 0.5)
+    Swag.require(Math.abs(list.position.right() - row.position.right()) < 0.5)
 }
 
 // The file box's two questions open on their own: Replace answers its destructive action, and New
@@ -257,12 +257,12 @@ func assertDialogCharter(dlg: *Dialog)
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
     host.clickModalButtonWhenShown(Dialog.BtnYes)
-    Swag.assert(FileDlg.askReplace(&host.surface, Path.combine(folder.toString(), "capture.png").toString()))
-    Swag.assert(host.autoHandled)
+    Swag.require(FileDlg.askReplace(&host.surface, Path.combine(folder.toString(), "capture.png").toString()))
+    Swag.require(host.autoHandled)
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     let name = FileDlg.askNewFolderName(&host.surface, folder.toString(), "Temp")
-    Swag.assert(host.autoHandled and name == strings().fileDlg_NewFolderDefault)
-    Swag.assert(not Directory.exists(Path.combine(folder.toString(), name.toString()).toString()))
+    Swag.require(host.autoHandled and name == strings().fileDlg_NewFolderDefault)
+    Swag.require(not Directory.exists(Path.combine(folder.toString(), name.toString()).toString()))
     host.pump()
 }

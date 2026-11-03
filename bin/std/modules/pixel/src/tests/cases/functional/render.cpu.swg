@@ -121,9 +121,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
         let image = renderCpu(8, 4, &painter)
         let value = image.pixelColor(4, 2)
-        Swag.assert(value.r == Expected[index].r and
-                    value.g == Expected[index].g and
-                    value.b == Expected[index].b)
+        Swag.require(value.r == Expected[index].r and
+                     value.g == Expected[index].g and
+                     value.b == Expected[index].b)
     }
 }
 
@@ -194,8 +194,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     let image    = renderCpu(12, 12, &painter)
     let diagonal = image.pixelColor(5, 5)
     let regular  = image.pixelColor(5, 4)
-    Swag.assert(diagonal == regular)
-    Swag.assert(diagonal.r >= 127 and diagonal.r <= 129)
+    Swag.require(diagonal == regular)
+    Swag.require(diagonal.r >= 127 and diagonal.r <= 129)
 }
 
 // The separable modes follow the standard per-channel blend functions, then apply source-over
@@ -337,7 +337,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     for y in 3's32
     {
         for x in 4's32 do
-            Swag.assert(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
+            Swag.require(image.pixelColor(x + 2, y + 2) == source.pixelColor(x + 1, y))
     }
 
     assertPixel(image, 1, 2, Argb.Zero)
@@ -430,8 +430,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = render.readRenderTarget(&target, 0, 0, 32, 32)
     let hit   = image.pixelColor(16, 16)
-    Swag.assert(hit.r == 255 and hit.g > 200 and hit.a == 255)
-    Swag.assert(image.pixelColor(16, 2).a == 0)
+    Swag.require(hit.r == 255 and hit.g > 200 and hit.a == 255)
+    Swag.require(image.pixelColor(16, 2).a == 0)
 }
 
 // Alpha replay preserves translucent coverage rather than multiplying it by itself.
@@ -453,7 +453,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.end()
     render.draw(&painter)
     let image = render.readRenderTarget(&target, 0, 0, 8, 8)
-    Swag.assert(image.pixelColor(4, 4).a == 128)
+    Swag.require(image.pixelColor(4, 4).a == 128)
 }
 
 // The built-in blur program is interpreted directly by the CPU backend.
@@ -485,9 +485,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 9, 9)
-    Swag.assert(image.pixelColor(4, 4).a > 0)
-    Swag.assert(image.pixelColor(3, 4).a > 0)
-    Swag.assert(image.pixelColor(4, 3).a == 0)
+    Swag.require(image.pixelColor(4, 4).a > 0)
+    Swag.require(image.pixelColor(3, 4).a > 0)
+    Swag.require(image.pixelColor(4, 3).a == 0)
 }
 
 // Clear obeys the command-stream scissor and channel mask, as glClear does.
@@ -547,8 +547,8 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     assertPixel(image, 1, 2, Argb.Zero)
     let left  = image.pixelColor(2, 2)
     let right = image.pixelColor(9, 2)
-    Swag.assert(left.r > left.b)
-    Swag.assert(right.b > right.r)
+    Swag.require(left.r > left.b)
+    Swag.require(right.b > right.r)
 }
 
 // The built-in resolve shader averages each supersampling block and returns straight alpha.
@@ -597,7 +597,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
     let image = render.readRenderTarget(&target, 0, 0, 2, 2)
     let gray  = image.pixelColor(0, 0)
-    Swag.assert(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
+    Swag.require(gray.r >= 127 and gray.r <= 128 and gray.g == gray.r and gray.b == gray.r and gray.a == 255)
     assertPixel(image, 1, 0, Argb.Blue)
 }
 
@@ -641,7 +641,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     for y in Height
     {
         for x in Narrow do
-            Swag.assert(serial.pixelColor(x, y) == banded.pixelColor(x, y))
+            Swag.require(serial.pixelColor(x, y) == banded.pixelColor(x, y))
     }
 }
 
@@ -698,13 +698,13 @@ func circlePathList(anticlockwise: bool)->LinePathList
         {
             let clockwise     = images[0].pixelColor(x, y)
             let anticlockwise = images[1].pixelColor(x, y)
-            Swag.assert(Math.abs(cast(s32, clockwise.r) - cast(s32, anticlockwise.r)) <= 1)
+            Swag.require(Math.abs(cast(s32, clockwise.r) - cast(s32, anticlockwise.r)) <= 1)
             if anticlockwise.r > 20 and anticlockwise.r < 235 do
                 soft += 1
         }
     }
 
-    Swag.assert(soft >= 2)
+    Swag.require(soft >= 2)
 }
 
 // Captured device-space f32 coordinates freeze the one-ulp asymmetry independently of
@@ -766,11 +766,11 @@ private func checkSharedEdge(mode: s32)
     for coordinate in 17 until last
     {
         let actual = image.pixelColor(coordinate, coordinate)
-        Swag.assert(actual == Expected, "the shared diagonal must receive one half-alpha blend")
+        Swag.require(actual == Expected, "the shared diagonal must receive one half-alpha blend")
     }
 
-    Swag.assert(image.pixelColor(20, 21) == Expected)
-    Swag.assert(image.pixelColor(21, 20) == Expected)
+    Swag.require(image.pixelColor(20, 21) == Expected)
+    Swag.require(image.pixelColor(21, 20) == Expected)
 }
 
 // Both triangles use four-pixel coverage spans at the disputed pixel.
@@ -806,7 +806,7 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
         116, 19, 116, 116, 127, 19, 127, 127, 138, 19, 138, 138,
         105, 3, 105, 105, 116, 3, 116, 116, 126, 3, 126, 126]
     let atlas = &font.cache.atlases[0]
-    Swag.assert(atlas.width == 1024 and atlas.height == 256 and atlas.bytesPerPixel == 4)
+    Swag.require(atlas.width == 1024 and atlas.height == 256 and atlas.bytesPerPixel == 4)
     Memory.clear(atlas.data.storage(), atlas.data.count)
     for y in 3
     {
@@ -829,5 +829,5 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
     painter.end()
 
     let image = renderCpu(160, 320, &painter)
-    Swag.assert(image.pixelColor(96, 271).a == 110)
+    Swag.require(image.pixelColor(96, 271).a == 110)
 }

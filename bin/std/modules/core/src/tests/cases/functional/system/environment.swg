@@ -7,18 +7,18 @@ using Swag
 #test
 {
     let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    Swag.assert(not tempDir.isEmpty())
-    Swag.assert(Path.isRooted(tempDir.toString()))
-    Swag.assert(Directory.exists(tempDir.toString()))
+    Swag.require(not tempDir.isEmpty())
+    Swag.require(Path.isRooted(tempDir.toString()))
+    Swag.require(Directory.exists(tempDir.toString()))
 
     let downloadsDir = Env.realSpecialDirectory(.Downloads)
-    Swag.assert(not downloadsDir.isEmpty())
-    Swag.assert(Path.isRooted(downloadsDir.toString()))
-    Swag.assert(Directory.exists(downloadsDir.toString()))
+    Swag.require(not downloadsDir.isEmpty())
+    Swag.require(Path.isRooted(downloadsDir.toString()))
+    Swag.require(Directory.exists(downloadsDir.toString()))
 
     let sandboxDownloads = Env.getSpecialDirectory(.Downloads)
-    Swag.assert(Path.isRooted(sandboxDownloads.toString()))
-    Swag.assert(Directory.exists(sandboxDownloads.toString()))
+    Swag.require(Path.isRooted(sandboxDownloads.toString()))
+    Swag.require(Directory.exists(sandboxDownloads.toString()))
 }
 
 // A '#test' is a program run, whether it executes in the JIT pass of 'swc test' or in the
@@ -28,28 +28,28 @@ using Swag
 // nothing can be driven from the command line.
 #test
 {
-    Swag.assert(Env.arguments().count != 0)
-    Swag.assert(Env.hasArgument("swag.test"))
-    Swag.assert(Env.executablePath().count != 0)
+    Swag.require(Env.arguments().count != 0)
+    Swag.require(Env.hasArgument("swag.test"))
+    Swag.require(Env.executablePath().count != 0)
 }
 
 // Only absolute web addresses reach the system handler; a document link naming a local file, a
 // program, or another scheme is refused before anything is launched.
 #test
 {
-    Swag.assert(Env.isWebUrl("https://www.swag-lang.org/"))
-    Swag.assert(Env.isWebUrl("HTTP://example.com/a?b=c#d"))
-    Swag.assert(Env.isWebUrl("mailto:someone@example.com"))
+    Swag.require(Env.isWebUrl("https://www.swag-lang.org/"))
+    Swag.require(Env.isWebUrl("HTTP://example.com/a?b=c#d"))
+    Swag.require(Env.isWebUrl("mailto:someone@example.com"))
 
-    Swag.assert(not Env.isWebUrl(""))
-    Swag.assert(not Env.isWebUrl("file:///C:/Windows/System32/calc.exe"))
-    Swag.assert(not Env.isWebUrl("calc.exe"))
-    Swag.assert(not Env.isWebUrl("../tools/run.bat"))
-    Swag.assert(not Env.isWebUrl("ms-settings:"))
-    Swag.assert(not Env.isWebUrl("javascript:alert(1)"))
-    Swag.assert(not Env.isWebUrl("https://example.com/a b"))
-    Swag.assert(not Env.isWebUrl("https://example.com/\n"))
+    Swag.require(not Env.isWebUrl(""))
+    Swag.require(not Env.isWebUrl("file:///C:/Windows/System32/calc.exe"))
+    Swag.require(not Env.isWebUrl("calc.exe"))
+    Swag.require(not Env.isWebUrl("../tools/run.bat"))
+    Swag.require(not Env.isWebUrl("ms-settings:"))
+    Swag.require(not Env.isWebUrl("javascript:alert(1)"))
+    Swag.require(not Env.isWebUrl("https://example.com/a b"))
+    Swag.require(not Env.isWebUrl("https://example.com/\n"))
 
-    Swag.assert(not Env.openUrl("file:///C:/Windows/System32/calc.exe"))
-    Swag.assert(not Env.openUrl("calc.exe"))
+    Swag.require(not Env.openUrl("file:///C:/Windows/System32/calc.exe"))
+    Swag.require(not Env.openUrl("calc.exe"))
 }

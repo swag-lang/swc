@@ -5,14 +5,14 @@ using Swag
 
 func assertMouseButton(button: Input.MouseButton, index: u32)
 {
-    Swag.assert(cast(u32, button) == index)
+    Swag.require(cast(u32, button) == index)
 }
 
 #test
 {
     using Input.MouseButton
 
-    Swag.assert(Input.MouseButton.count == 5)
+    Swag.require(Input.MouseButton.count == 5)
 
     assertMouseButton(Left, 0)
     assertMouseButton(Middle, 1)

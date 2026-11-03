@@ -17,36 +17,36 @@ func createSandboxTestJunction(link, target: string)->bool
 // and that difference is the whole value of the check.
 #test
 {
-    Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox"))
-    Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/a.txt"))
-    Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/deep/a.txt"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/a.txt"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/deep/a.txt"))
 
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandboxed/a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/other/a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "D:/tmp/sandbox/a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandboxed/a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/other/a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "D:/tmp/sandbox/a.txt"))
 }
 
 // Separator style and case are normalized away: a caller must not be able to escape by
 // spelling the same location differently.
 #test
 {
-    Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:\\tmp\\sandbox\\a.txt"))
-    Swag.assert(Env.isInsideDirectory("C:\\tmp\\sandbox", "C:/tmp/sandbox/a.txt"))
-    Swag.assert(Env.isInsideDirectory("C:/TMP/Sandbox", "c:/tmp/sandbox/a.txt"))
-    Swag.assert(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/./a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/../a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/.. /a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/name. /a.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/NUL.txt"))
-    Swag.assert(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/COM1.log"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:\\tmp\\sandbox\\a.txt"))
+    Swag.require(Env.isInsideDirectory("C:\\tmp\\sandbox", "C:/tmp/sandbox/a.txt"))
+    Swag.require(Env.isInsideDirectory("C:/TMP/Sandbox", "c:/tmp/sandbox/a.txt"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/./a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/../a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/.. /a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/name. /a.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/NUL.txt"))
+    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/COM1.log"))
 }
 
 // An empty root contains nothing. Answering true would turn a failure to configure the
 // sandbox into a wide-open one.
 #test
 {
-    Swag.assert(not Env.isInsideDirectory("", "C:/tmp/a.txt"))
+    Swag.require(not Env.isInsideDirectory("", "C:/tmp/a.txt"))
 }
 
 // The guard is transparent when no sandbox is armed, and refuses everything outside it when
@@ -56,12 +56,12 @@ func createSandboxTestJunction(link, target: string)->bool
     if not Env.isSandboxed()
     {
         expect Env.guardWrite("C:/tmp/anywhere.txt")
-        Swag.assert(Env.isInsideSandbox("C:/tmp/anywhere.txt"))
+        Swag.require(Env.isInsideSandbox("C:/tmp/anywhere.txt"))
         return
     }
 
     let root = Env.sandboxRoot()
-    Swag.assert(root.count != 0)
+    Swag.require(root.count != 0)
 
     let inside = Path.combine(root, "guarded.txt")
     expect Env.guardWrite(inside.toString())
@@ -69,8 +69,8 @@ func createSandboxTestJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(not Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
+    Swag.require(err != null)
+    Swag.require(not Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
 }
 
 // The corpus is the one place outside the sandbox a run may write. 'swc test' grants the module
@@ -81,17 +81,17 @@ func createSandboxTestJunction(link, target: string)->bool
         return
 
     let corpus = Env.corpusRoot()
-    Swag.assert(corpus.count != 0)
-    Swag.assert(Env.isInsideCorpus(corpus))
+    Swag.require(corpus.count != 0)
+    Swag.require(Env.isInsideCorpus(corpus))
 
     let inside = Path.combine(corpus, "corpus-write.txt")
     expect Env.guardWrite(inside.toString())
 
-    Swag.assert(not Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
+    Swag.require(not Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
     var errOutcome: Swag.Error
     catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }
 
 // An empty root is a launcher mistake, and answering it with a grant would turn a corpus that
@@ -101,7 +101,7 @@ func createSandboxTestJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     catch Env.grantCorpus("") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 }
 
 // Granting the same root again is the no-op a hook running twice needs; a different one is
@@ -117,8 +117,8 @@ func createSandboxTestJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(Env.corpusRoot() == corpus)
+    Swag.require(err != null)
+    Swag.require(Env.corpusRoot() == corpus)
 }
 
 // Every well-known directory answers inside the sandbox, and two different kinds stay
@@ -133,11 +133,11 @@ func createSandboxTestJunction(link, target: string)->bool
     let tempDir = Env.getSpecialDirectory(.Temp)
     let root    = Env.sandboxRoot()
 
-    Swag.assert(Env.isInsideDirectory(root, docs.toString()))
-    Swag.assert(Env.isInsideDirectory(root, appData.toString()))
-    Swag.assert(Env.isInsideDirectory(root, tempDir.toString()))
-    Swag.assert(docs != appData)
-    Swag.assert(Directory.exists(docs))
+    Swag.require(Env.isInsideDirectory(root, docs.toString()))
+    Swag.require(Env.isInsideDirectory(root, appData.toString()))
+    Swag.require(Env.isInsideDirectory(root, tempDir.toString()))
+    Swag.require(docs != appData)
+    Swag.require(Directory.exists(docs))
 }
 
 // The private root is computed from the machine's temporary directory, never from the sandbox's
@@ -151,7 +151,7 @@ func createSandboxTestJunction(link, target: string)->bool
 
     let standIn = Env.getSpecialDirectory(.Temp)
     let root    = Env.defaultSandboxRoot()
-    Swag.assert(not Env.isInsideDirectory(standIn.toString(), root.toString()))
+    Swag.require(not Env.isInsideDirectory(standIn.toString(), root.toString()))
 }
 
 // A leftover root is removed whole, files and sub-directories included, and a name nothing owns
@@ -172,7 +172,7 @@ func createSandboxTestJunction(link, target: string)->bool
     discard expect File.writeAllBytes(stale.toString(), payload)
 
     expect Env.clearLeftoverDefaultRoot(root.toString())
-    Swag.assert(not Directory.exists(root.toString()))
+    Swag.require(not Directory.exists(root.toString()))
 
     expect Env.clearLeftoverDefaultRoot(root.toString())
 }
@@ -193,11 +193,11 @@ func createSandboxTestJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     catch Env.clearLeftoverDefaultRoot(root.toString()) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 
     held.close()
     expect Env.clearLeftoverDefaultRoot(root.toString())
-    Swag.assert(not Directory.exists(root.toString()))
+    Swag.require(not Directory.exists(root.toString()))
 }
 
 // A fallback sibling stays beside the name it replaces — same parent, the plain name as its
@@ -209,7 +209,7 @@ func createSandboxTestJunction(link, target: string)->bool
 
     var expected = String.from(base.toString())
     expected += "-2"
-    Swag.assert(alt.toString() == expected.toString())
+    Swag.require(alt.toString() == expected.toString())
 }
 
 // A real write lands in the sandbox and a real write outside is refused, through the public
@@ -224,13 +224,13 @@ func createSandboxTestJunction(link, target: string)->bool
 
     let payload: [4] u8 = [1, 2, 3, 4]
     discard expect File.writeAllBytes(path.toString(), payload)
-    Swag.assert(File.exists(path.toString()))
+    Swag.require(File.exists(path.toString()))
 
     var errOutcome: Swag.Error
     discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
+    Swag.require(err != null)
+    Swag.require(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
 }
 
 // A directory junction cannot redirect an allowed sandbox write into the granted corpus.
@@ -249,23 +249,23 @@ func createSandboxTestJunction(link, target: string)->bool
     defer discard catch Directory.delete(target.toString(), recurse: true)
     discard expect File.writeAllText(targetFile.toString(), "keep")
 
-    Swag.assert(createSandboxTestJunction(link.toString(), target.toString()))
+    Swag.require(createSandboxTestJunction(link.toString(), target.toString()))
 
     var errorOutcome: Swag.Error
     discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as errorOutcome
-    Swag.assert(errorOutcome.value() is Errors.SandboxError)
-    Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
+    Swag.require(errorOutcome.value() is Errors.SandboxError)
+    Swag.require(expect File.readAllText(targetFile.toString()) == "keep")
 
     // Removing the link itself is safe; traversing it to remove a child is still refused.
     let targetChild = Path.combine(target.toString(), "child")
     expect Directory.create(targetChild.toString())
     var deleteOutcome: Swag.Error
     catch Directory.delete(Path.combine(link.toString(), "child"), recurse: true) as deleteOutcome
-    Swag.assert(deleteOutcome.value() is Errors.SandboxError)
-    Swag.assert(Directory.exists(targetChild.toString()))
+    Swag.require(deleteOutcome.value() is Errors.SandboxError)
+    Swag.require(Directory.exists(targetChild.toString()))
 
     expect Directory.delete(link.toString(), recurse: true)
-    Swag.assert(not Directory.exists(link.toString()))
-    Swag.assert(Directory.exists(targetChild.toString()))
-    Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
+    Swag.require(not Directory.exists(link.toString()))
+    Swag.require(Directory.exists(targetChild.toString()))
+    Swag.require(expect File.readAllText(targetFile.toString()) == "keep")
 }

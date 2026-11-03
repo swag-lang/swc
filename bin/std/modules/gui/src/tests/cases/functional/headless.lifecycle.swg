@@ -33,12 +33,12 @@ using Swag, Core
             {
                 host.shutdown()
                 host.shutdown()
-                Swag.assert(destroyed == 1)
-                Swag.assert(host.app.surfaces.isEmpty())
+                Swag.require(destroyed == 1)
+                Swag.require(host.app.surfaces.isEmpty())
             }
         }
 
-        Swag.assert(destroyed == 1)
+        Swag.require(destroyed == 1)
     }
 }
 
@@ -62,7 +62,7 @@ using Swag, Core
 
     var destroyed = 0'u32
     leaveHost(&destroyed)
-    Swag.assert(destroyed == 1)
+    Swag.require(destroyed == 1)
 }
 
 // Replacing the standalone root does not leave the application's view or its floating siblings alive.
@@ -95,11 +95,11 @@ using Swag, Core
             {
                 host.shutdown()
                 host.shutdown()
-                Swag.assert(destroyed == 4 and host.surfaceWnd.isPendingDestroy)
+                Swag.require(destroyed == 4 and host.surfaceWnd.isPendingDestroy)
             }
         }
 
-        Swag.assert(destroyed == 4)
+        Swag.require(destroyed == 4)
     }
 }
 
@@ -110,8 +110,8 @@ using Swag, Core
     host.setup(640, 480)
     discard EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Name"})
     discard EditDlg.createMultiLine(&host.surface, {title: "Description"})
-    Swag.assert(host.openedSurfaceCount() == 2)
+    Swag.require(host.openedSurfaceCount() == 2)
     host.shutdown()
-    Swag.assert(host.app.surfaces.isEmpty())
+    Swag.require(host.app.surfaces.isEmpty())
     host.shutdown()
 }

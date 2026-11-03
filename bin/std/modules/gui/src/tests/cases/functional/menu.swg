@@ -16,7 +16,7 @@ using Swag, Core
         menu.addItem("Documents", target)
     }
 
-    Swag.assert(menu.items[0]!.id == expected)
+    Swag.require(menu.items[0]!.id == expected)
 }
 
 // An automatically destroyed popup retires its surface-sibling submenus before their owner.
@@ -46,7 +46,7 @@ using Swag, Core
     discard popup.doModal(button, autoDestroy: true)
     host.app.sigFrame.clear()
     host.pump()
-    Swag.assert(destroyed == 3)
+    Swag.require(destroyed == 3)
     button.destroy()
     host.pump()
 }
@@ -71,30 +71,30 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     host.setup(320, 200)
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addItem("New", Menu_New)
-    Swag.assert(bar.items.count == 1)
-    Swag.assert(bar.items[0]!.name.raw == "New")
-    Swag.assert(bar.items[0]!.id == Menu_New)
+    Swag.require(bar.items.count == 1)
+    Swag.require(bar.items[0]!.name.raw == "New")
+    Swag.require(bar.items[0]!.id == Menu_New)
 
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     sub.addSeparator()
     sub.addItem("Quit", Menu_Quit, disabled: true)
 
-    Swag.assert(sub.items.count == 3)
+    Swag.require(sub.items.count == 3)
     sub.computeLayoutPopup()
-    Swag.assert(sub.themeMetrics().menuPopup_IconSize == 16)
-    Swag.assert(sub.themeMetrics().menuPopup_ItemHeight == 30)
-    Swag.assert(sub.items[0]!.size + sub.themeMetrics().menuPopup_SpaceLines >= sub.themeMetrics().menuPopup_ItemHeight)
-    Swag.assert(not sub.items[0]!.separator)
-    Swag.assert(sub.items[1]!.separator)
-    Swag.assert(sub.items[2]!.disabled)
-    Swag.assert(sub.items[2]!.name.raw == "Quit")
-    Swag.assert(sub.itemAt(2).id == Menu_Quit)
+    Swag.require(sub.themeMetrics().menuPopup_IconSize == 16)
+    Swag.require(sub.themeMetrics().menuPopup_ItemHeight == 30)
+    Swag.require(sub.items[0]!.size + sub.themeMetrics().menuPopup_SpaceLines >= sub.themeMetrics().menuPopup_ItemHeight)
+    Swag.require(not sub.items[0]!.separator)
+    Swag.require(sub.items[1]!.separator)
+    Swag.require(sub.items[2]!.disabled)
+    Swag.require(sub.items[2]!.name.raw == "Quit")
+    Swag.require(sub.itemAt(2).id == Menu_Quit)
 
     sub.removeItemAt(1)
-    Swag.assert(sub.items.count == 2)
+    Swag.require(sub.items.count == 2)
     sub.clear()
-    Swag.assert(sub.items.isEmpty())
+    Swag.require(sub.items.isEmpty())
 }
 
 // An entry built from a resolver re-reads its label on every layout; one built from a
@@ -110,18 +110,18 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     bar.addItem(&menuResolvedLabel, Menu_Open)
 
     // The resolver already answers once, so the item is usable before any layout.
-    Swag.assert(bar.items[1]!.name.raw == "Open")
+    Swag.require(bar.items[1]!.name.raw == "Open")
 
     MenuResolvedLabel = "Ouvrir"
     bar.computeLayoutBar()
-    Swag.assert(bar.items[1]!.name.raw == "Ouvrir")
-    Swag.assert(bar.items[0]!.name.raw == "New")
+    Swag.require(bar.items[1]!.name.raw == "Ouvrir")
+    Swag.require(bar.items[0]!.name.raw == "New")
 
     // A longer label widens its own entry and pushes the next one along.
     let widened = bar.items[1]!.size
     MenuResolvedLabel = "Ouvrir un fichier"
     bar.computeLayoutBar()
-    Swag.assert(bar.items[1]!.size > widened)
+    Swag.require(bar.items[1]!.size > widened)
 }
 
 // A submenu carries a resolver the same way, and a language change asks the bar to
@@ -137,8 +137,8 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
 
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addPopup(&menuResolvedLabel, sub)
-    Swag.assert(bar.items[0]!.name.raw == "File")
-    Swag.assert(bar.items[0]!.popup == sub)
+    Swag.require(bar.items[0]!.name.raw == "File")
+    Swag.require(bar.items[0]!.popup == sub)
 
     bar.computeLayoutBar()
     bar.dirtyLayout = false
@@ -147,10 +147,10 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     var evt = NotifyEvent{}
     evt.kind = .LanguageChanged
     bar.sendEvent(&evt)
-    Swag.assert(bar.dirtyLayout)
+    Swag.require(bar.dirtyLayout)
 
     bar.computeLayoutBar()
-    Swag.assert(bar.items[0]!.name.raw == "Fichier")
+    Swag.require(bar.items[0]!.name.raw == "Fichier")
 }
 
 // A bar entry reserves what its label really occupies at the density it is drawn at.
@@ -180,12 +180,12 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     }
 
     let drawn = measure("Affichage", rsf, bar.deviceScale())
-    Swag.assert(bar.deviceScale() == 1.5)
-    Swag.assert(bar.items[0]!.size >= drawn)
+    Swag.require(bar.deviceScale() == 1.5)
+    Swag.require(bar.items[0]!.size >= drawn)
 
     // The scale is what decides: measuring at one under-counts every glyph advance, which
     // is exactly the width the entry used to be short of.
-    Swag.assert(measure("Affichage", rsf, 1.0) <= drawn)
+    Swag.require(measure("Affichage", rsf, 1.0) <= drawn)
 }
 
 // Headless tests can drive modal popup menus through the normal mouse pipeline.
@@ -206,20 +206,20 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         frames[] += 1
         if not didClick[]
         {
-            Swag.assert(host.capturedPopupMenu() == popup)
+            Swag.require(host.capturedPopupMenu() == popup)
             let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
-            Swag.assert(menuItemClicked)
+            Swag.require(menuItemClicked)
             didClick[] = true
         }
     }
 
     let result = popup.doModal({40, 40}, autoDestroy: true)
 
-    Swag.assert(result == Menu_Open)
-    Swag.assert(MenuSelectedCount == 1)
-    Swag.assert(frameCount == 1)
-    Swag.assert(didClick)
-    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.require(result == Menu_Open)
+    Swag.require(MenuSelectedCount == 1)
+    Swag.require(frameCount == 1)
+    Swag.require(didClick)
+    Swag.require(host.app.mouseCaptureWnd == null)
 
     host.pump()
 }
@@ -240,14 +240,14 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
 
         let before   = host.commandCount
         let selected = popup.doModal({40, 40}, autoDestroy: true)
-        Swag.assert(selected == expected)
-        Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
-        Swag.assert(host.commandCount == before)
+        Swag.require(selected == expected)
+        Swag.require(host.autoHandled and host.autoFailure.isEmpty())
+        Swag.require(host.commandCount == before)
 
         id[0] = 'X'
         host.pump()
-        Swag.assert(host.commandCount == before + 1)
-        Swag.assert(host.lastCommand == expected)
+        Swag.require(host.commandCount == before + 1)
+        Swag.require(host.lastCommand == expected)
     }
 }
 
@@ -267,9 +267,9 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     let metrics     = popup.themeMetrics()
     let shadowWidth = 2 * metrics.menuPopup_ShadowSize
     let chromeWidth = metrics.menuPopup_IconSize + metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.chevron_Size + popup.padding.x + popup.padding.z + shadowWidth
-    Swag.assert(metrics.chevron_Size == 12)
-    Swag.assert(metrics.menuPopup_WindowMargin == 8)
-    Swag.assert(popup.position.width - chromeWidth + 0.01 >= item.name.boundRect.width)
+    Swag.require(metrics.chevron_Size == 12)
+    Swag.require(metrics.menuPopup_WindowMargin == 8)
+    Swag.require(popup.position.width - chromeWidth + 0.01 >= item.name.boundRect.width)
 }
 
 // Headless popup menus can drive nested submenus through hover/timer behavior.
@@ -282,7 +282,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     sub.addItem("Open", Menu_Open)
     popup.addPopup("More", sub)
     popup.setSubmenuDirection(.Right)
-    Swag.assert(popup.submenuDirection == .Right)
+    Swag.require(popup.submenuDirection == .Right)
 
     var didOpen:     bool
     var didClick:    bool
@@ -297,25 +297,25 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         if not opened[]
         {
             let submenuOpened = host.openPopupSubMenu("More")
-            Swag.assert(submenuOpened)
-            Swag.assert(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
+            Swag.require(submenuOpened)
+            Swag.require(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
             opened[] = true
         }
         elif not clicked[]
         {
             let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
-            Swag.assert(menuItemClicked)
+            Swag.require(menuItemClicked)
             clicked[] = true
         }
     }
 
     let result = popup.doModal({40, 40}, autoDestroy: true)
 
-    Swag.assert(result == Menu_Open)
-    Swag.assert(didOpen)
-    Swag.assert(didClick)
-    Swag.assert(hidTogether)
-    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.require(result == Menu_Open)
+    Swag.require(didOpen)
+    Swag.require(didClick)
+    Swag.require(hidTogether)
+    Swag.require(host.app.mouseCaptureWnd == null)
 
     host.pump()
 }
@@ -338,17 +338,17 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             return
 
         let margin = popup.themeMetrics().menuPopup_WindowMargin
-        Swag.assert(popup.position.x >= margin)
-        Swag.assert(popup.position.right() <= host.root.position.width - margin)
-        Swag.assert(Math.abs(popup.position.x + popup.anchorPosition - anchor.x) < 0.5)
+        Swag.require(popup.position.x >= margin)
+        Swag.require(popup.position.right() <= host.root.position.width - margin)
+        Swag.require(Math.abs(popup.position.x + popup.anchorPosition - anchor.x) < 0.5)
         let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
-        Swag.assert(menuItemClicked)
+        Swag.require(menuItemClicked)
         checked[] = true
     }
 
     let modalResult = popup.doModal(anchor, .AnchorTopCenter, autoDestroy: true)
-    Swag.assert(modalResult == Menu_Open)
-    Swag.assert(checked)
+    Swag.require(modalResult == Menu_Open)
+    Swag.require(checked)
     host.pump()
 }
 
@@ -366,16 +366,16 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         if not dismissed[]
         {
             let menuDismissed = host.dismissPopupMenu()
-            Swag.assert(menuDismissed)
+            Swag.require(menuDismissed)
             dismissed[] = true
         }
     }
 
     let result = popup.doModal({40, 40}, autoDestroy: true)
 
-    Swag.assert(result == null)
-    Swag.assert(didDismiss)
-    Swag.assert(host.app.mouseCaptureWnd == null)
+    Swag.require(result == null)
+    Swag.require(didDismiss)
+    Swag.require(host.app.mouseCaptureWnd == null)
 
     host.pump()
 }
@@ -397,15 +397,15 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         if checked[] do
             return
         let margin = popup.themeMetrics().menuPopup_WindowMargin
-        Swag.assert(popup.position.x >= margin and popup.position.y >= margin)
-        Swag.assert(popup.position.right() <= host.root.position.width - margin)
+        Swag.require(popup.position.x >= margin and popup.position.y >= margin)
+        Swag.require(popup.position.right() <= host.root.position.width - margin)
         let menuDismissed = host.dismissPopupMenu()
-        Swag.assert(menuDismissed)
+        Swag.require(menuDismissed)
         checked[] = true
     }
 
     discard popup.doModal({310, 18}, .AnchorBottomCenter, autoDestroy: true)
-    Swag.assert(checked)
+    Swag.require(checked)
     host.pump()
 }
 
@@ -426,17 +426,17 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         if checked[] do
             return
         let submenuOpened = host.openPopupSubMenu("More choices")
-        Swag.assert(submenuOpened)
-        Swag.assert(sub.position.x >= popup.themeMetrics().menuPopup_WindowMargin)
-        Swag.assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
+        Swag.require(submenuOpened)
+        Swag.require(sub.position.x >= popup.themeMetrics().menuPopup_WindowMargin)
+        Swag.require(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
         let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
-        Swag.assert(menuItemClicked)
+        Swag.require(menuItemClicked)
         checked[] = true
     }
 
     let modalResult = popup.doModal({315, 50}, .AnchorTopCenter, autoDestroy: true)
-    Swag.assert(modalResult == Menu_Open)
-    Swag.assert(checked)
+    Swag.require(modalResult == Menu_Open)
+    Swag.require(checked)
     host.pump()
 }
 
@@ -451,7 +451,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     sub.addItem("Open", Menu_Open)
     popup.addPopup("More choices", sub)
     popup.setSubmenuDirection(.Left)
-    Swag.assert(popup.submenuDirection == .Left)
+    Swag.require(popup.submenuDirection == .Left)
 
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, sub, checked = &checked|(_)
@@ -459,16 +459,16 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
         if checked[] do
             return
         let submenuOpened = host.openPopupSubMenu("More choices")
-        Swag.assert(submenuOpened)
-        Swag.assert(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
+        Swag.require(submenuOpened)
+        Swag.require(sub.position.right() <= popup.position.x + 2 * popup.themeMetrics().menuPopup_ShadowSize)
         let menuItemClicked = host.clickPopupMenuItem(Menu_Open)
-        Swag.assert(menuItemClicked)
+        Swag.require(menuItemClicked)
         checked[] = true
     }
 
     let modalResult = popup.doModal({280, 50}, autoDestroy: true)
-    Swag.assert(modalResult == Menu_Open)
-    Swag.assert(checked)
+    Swag.require(modalResult == Menu_Open)
+    Swag.require(checked)
     host.pump()
 }
 
@@ -486,7 +486,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     popup.addItem("Quit", Menu_Quit)
 
     // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
-    Swag.assert(popup.items.count == 4)
+    Swag.require(popup.items.count == 4)
 
     let hiddenIt = unwrap popup.items[1]
     let quitIt   = unwrap popup.items[3]
@@ -499,7 +499,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     hiddenIt.size = quitIt.size
 
     let pointOnQuit = Math.Point{popup.position.width * 0.5, quitIt.pos + quitIt.size * 0.5}
-    Swag.assert(popup.hitTestPopup(pointOnQuit) == 3)
+    Swag.require(popup.hitTestPopup(pointOnQuit) == 3)
 }
 
 // A popup item links a submenu back to its owner.
@@ -514,10 +514,10 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
 
-    Swag.assert(bar.items.count == 2)
-    Swag.assert(bar.items[1]!.name.raw == "File")
-    Swag.assert(bar.items[1]!.popup == sub)
-    Swag.assert(sub.ownerMenu == bar)
+    Swag.require(bar.items.count == 2)
+    Swag.require(bar.items[1]!.name.raw == "File")
+    Swag.require(bar.items[1]!.popup == sub)
+    Swag.require(sub.ownerMenu == bar)
 }
 
 // Opening a menu-bar popup on press must not be cancelled by the release
@@ -538,13 +538,13 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
 
     host.mouseDown(Math.Point{itemX, itemY})
 
-    Swag.assert(bar.subVisible == sub)
-    Swag.assert(sub.ignoreNextRelease)
+    Swag.require(bar.subVisible == sub)
+    Swag.require(sub.ignoreNextRelease)
 
     host.mouseUp({0, 0})
 
-    Swag.assert(bar.subVisible == sub)
-    Swag.assert(not sub.ignoreNextRelease)
+    Swag.require(bar.subVisible == sub)
+    Swag.require(not sub.ignoreNextRelease)
 }
 
 // A menu-bar popup carries the opened bar item inside its own themed area.
@@ -562,11 +562,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     bar.hotIdx = 0
     bar.showHotPopup()
 
-    Swag.assert(bar.subVisible == sub)
-    Swag.assert(sub.popupBarItemIdx == 0)
-    Swag.assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
-    Swag.assert(sub.position.y == -metrics.menuPopup_ShadowSize)
-    Swag.assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
+    Swag.require(bar.subVisible == sub)
+    Swag.require(sub.popupBarItemIdx == 0)
+    Swag.require(sub.popupBarItemSurfaceRect.height == bar.position.height)
+    Swag.require(sub.position.y == -metrics.menuPopup_ShadowSize)
+    Swag.require(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }
 
 // A menu opened from the end of a line stands with its top-right corner on the anchor, and an
@@ -581,7 +581,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     popup.addSeparator()
     let destroy = popup.addItem("Clear All…", Menu_Quit)
     destroy.critical = true
-    Swag.assert(destroy.critical and not popup.items[0]!.critical)
+    Swag.require(destroy.critical and not popup.items[0]!.critical)
 
     var placed: bool
     host.app.sigFrame += func|host = &host, popup, placed = &placed|(_)
@@ -590,12 +590,12 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             return
         let shadow = popup.themeMetrics().menuPopup_ShadowSize
         let body   = popup.surfaceRect()
-        Swag.assert(Math.abs(body.right() - shadow - 400) <= 1 and Math.abs(body.y + shadow - 40) <= 1)
-        Swag.assert(host.dismissPopupMenu())
+        Swag.require(Math.abs(body.right() - shadow - 400) <= 1 and Math.abs(body.y + shadow - 40) <= 1)
+        Swag.require(host.dismissPopupMenu())
         placed[] = true
     }
 
     discard popup.doModal({400, 40}, .TopRight, autoDestroy: true)
-    Swag.assert(placed)
+    Swag.require(placed)
     host.pump()
 }

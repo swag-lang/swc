@@ -8,17 +8,17 @@ using Core, Pixel
 // Asserts that `rect` equals the given coordinates within `eps`.
 func assertRect(rect: Math.Rectangle, x, y, width, height: f32, eps: f32 = 0.001)
 {
-    Swag.assert(Math.abs(rect.x - x) < eps)
-    Swag.assert(Math.abs(rect.y - y) < eps)
-    Swag.assert(Math.abs(rect.width - width) < eps)
-    Swag.assert(Math.abs(rect.height - height) < eps)
+    Swag.require(Math.abs(rect.x - x) < eps)
+    Swag.require(Math.abs(rect.y - y) < eps)
+    Swag.require(Math.abs(rect.width - width) < eps)
+    Swag.require(Math.abs(rect.height - height) < eps)
 }
 
 // Asserts that `pt` equals the given coordinates within `eps`.
 func assertPoint(pt: Math.Vector2, x, y: f32, eps: f32 = 0.001)
 {
-    Swag.assert(Math.abs(pt.x - x) < eps)
-    Swag.assert(Math.abs(pt.y - y) < eps)
+    Swag.require(Math.abs(pt.x - x) < eps)
+    Swag.require(Math.abs(pt.y - y) < eps)
 }
 
 // True when this window has said its content may be cut: a label that ends an overflowing
@@ -74,7 +74,7 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
                             root.position.width,
                             "x",
                             root.position.height)
-            Swag.assert(false)
+            Swag.require(false)
         }
     }
 

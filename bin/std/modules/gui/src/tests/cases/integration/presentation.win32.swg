@@ -13,22 +13,22 @@ using Core, Pixel, Win32
     var icon = Image.create(16, 16, .RGBA8)
     icon.clear()
     app.setAppIcon(#move icon)
-    Swag.assert(not app.appGlyph(16).isValid())
+    Swag.require(not app.appGlyph(16).isValid())
     let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-async-presentation-test")
-    Swag.assert(app.appGlyph(16).isValid())
+    Swag.require(app.appGlyph(16).isValid())
     let button = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
     surface.show()
-    Swag.assert(surface.presentationWidth == surface.rc.width)
-    Swag.assert(not surface.readback.isPending())
-    Swag.assert(not surface.presentationTarget.colorBuffer.isValid())
+    Swag.require(surface.presentationWidth == surface.rc.width)
+    Swag.require(not surface.readback.isPending())
+    Swag.require(not surface.presentationTarget.colorBuffer.isValid())
 
     app.rendererOgl.resetScratchCounters()
     surface.invalidate()
     surface.paint()
-    Swag.assert(surface.readback.isPending())
+    Swag.require(surface.readback.isPending())
 
     // Border scratch stays on the perimeter, even when the whole window is repainted.
-    Swag.assert(app.rendererOgl.scratchClearedPixels < cast(u64, surface.rc.width) * cast(u64, surface.rc.height) / 2)
+    Swag.require(app.rendererOgl.scratchClearedPixels < cast(u64, surface.rc.width) * cast(u64, surface.rc.height) / 2)
     surface.invalidate()
     var dispatched: bool
     surface.wnd.view.hookOnEvent = func|&dispatched|(_, evt)->bool
@@ -44,7 +44,7 @@ using Core, Pixel, Win32
 
     surface.wnd.view.postCommandEvent("presentation.probe")
     app.sendPostedEvents()
-    Swag.assert(dispatched and surface.isDirty and surface.readback.isPending())
+    Swag.require(dispatched and surface.isDirty and surface.readback.isPending())
 
     var watch: Time.Stopwatch
     watch.start()
@@ -54,24 +54,24 @@ using Core, Pixel, Win32
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(not surface.readback.isPending() and not surface.asynchronousPresentationFailed)
-    Swag.assert(surface.isDirty)
+    Swag.require(not surface.readback.isPending() and not surface.asynchronousPresentationFailed)
+    Swag.require(surface.isDirty)
     surface.paint()
-    Swag.assert(surface.readback.isPending())
+    Swag.require(surface.readback.isPending())
     surface.setPosition({60, 50, 420, 280})
-    Swag.assert(not surface.readback.isPending())
-    Swag.assert(surface.presentationWidth == surface.rc.width and surface.presentationHeight == surface.rc.height)
-    Swag.assert(surface.position == {60, 50, 420, 280})
+    Swag.require(not surface.readback.isPending())
+    Swag.require(surface.presentationWidth == surface.rc.width and surface.presentationHeight == surface.rc.height)
+    Swag.require(surface.position == {60, 50, 420, 280})
 
     let expected = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
     let pixels   = Swag.makeSlice(cast(const [*] u8, unwrap surface.presentationPixels), expected.byteCount)
-    Swag.assert(Slice.equals(pixels, expected.pixels.toSlice()))
+    Swag.require(Slice.equals(pixels, expected.pixels.toSlice()))
 
     button.disable()
     surface.paint()
-    Swag.assert(surface.readback.isPending())
-    Swag.assert(surface.presentationDirtyRect.width < cast(f32, surface.rc.width))
-    Swag.assert(surface.presentationDirtyRect.height < cast(f32, surface.rc.height))
+    Swag.require(surface.readback.isPending())
+    Swag.require(surface.presentationDirtyRect.width < cast(f32, surface.rc.width))
+    Swag.require(surface.presentationDirtyRect.height < cast(f32, surface.rc.height))
     watch.restart()
     while surface.readback.isPending() and watch.elapsedMilliseconds() < 2000
     {
@@ -79,25 +79,25 @@ using Core, Pixel, Win32
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(not surface.readback.isPending() and not surface.asynchronousPresentationFailed)
+    Swag.require(not surface.readback.isPending() and not surface.asynchronousPresentationFailed)
     let partial = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    Swag.assert(Slice.equals(pixels, partial.pixels.toSlice()))
-    Swag.assert(not surface.isDirty)
+    Swag.require(Slice.equals(pixels, partial.pixels.toSlice()))
+    Swag.require(not surface.isDirty)
     var bounds: RECT
     let positioned = GetWindowRect(surface.win32Handle(), &bounds)
-    Swag.assert(positioned)
-    Swag.assert(bounds.left == 60 and bounds.top == 50 and bounds.right == 480 and bounds.bottom == 330)
+    Swag.require(positioned)
+    Swag.require(bounds.left == 60 and bounds.top == 50 and bounds.right == 480 and bounds.bottom == 330)
 
     button.enable()
     surface.paint()
-    Swag.assert(surface.readback.isPending())
+    Swag.require(surface.readback.isPending())
     surface.showNormalAt(#copy surface.position)
-    Swag.assert(not surface.readback.isPending())
+    Swag.require(not surface.readback.isPending())
     let placed = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    Swag.assert(Slice.equals(pixels, placed.pixels.toSlice()))
+    Swag.require(Slice.equals(pixels, placed.pixels.toSlice()))
 
     let verified = expect Testing.verifyNativePresentation(surface)
-    Swag.assert(verified)
+    Swag.require(verified)
 
     // A green loading state must not conceal corrupted pixels in the published bitmap.
     let bitmap = cast([*] u8, surface.presentationPixels)
@@ -106,5 +106,5 @@ using Core, Pixel, Win32
     var corruption: Swag.Error
     discard catch Testing.verifyNativePresentation(surface) as corruption
     bitmap[0] = saved
-    Swag.assert(corruption.value() != null)
+    Swag.require(corruption.value() != null)
 }

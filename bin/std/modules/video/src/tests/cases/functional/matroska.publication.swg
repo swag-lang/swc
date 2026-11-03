@@ -14,12 +14,12 @@ using Core, Audio
     Matroska.selectSoundWindow(&index, 480_000_000_000)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 480_000_000_000, 540_000_000_000)
     let sought = Atomic.get(&index.currentSeekSound)
-    Swag.assert(sought != 0)
+    Swag.require(sought != 0)
 
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 0, 60_000_000_000)
-    Swag.assert(Atomic.get(&index.currentSeekSound) == sought)
-    Swag.assert(Atomic.get(&index.seekSoundEnd) == 540_000_000_000)
-    Swag.assert(index.seekSounds.count == 1)
+    Swag.require(Atomic.get(&index.currentSeekSound) == sought)
+    Swag.require(Atomic.get(&index.seekSoundEnd) == 540_000_000_000)
+    Swag.require(index.seekSounds.count == 1)
 }
 
 // Once the full index is playable, a late bounded window must not hide the rest of the film.
@@ -31,8 +31,8 @@ using Core, Audio
     Matroska.selectSoundWindow(&index, 0)
     Matroska.publishFullSound(&index, &tracks, &subtitles)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 0, 60_000_000_000)
-    Swag.assert(Atomic.get(&index.currentSeekSound) == 0)
-    Swag.assert(index.seekSounds.isEmpty())
+    Swag.require(Atomic.get(&index.currentSeekSound) == 0)
+    Swag.require(index.seekSounds.isEmpty())
 }
 
 // A foreground seek keeps its bounded window while the full scanner is paused. Completing
@@ -46,8 +46,8 @@ using Core, Audio
     Matroska.selectSoundWindow(&index, 480_000_000_000)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 480_000_000_000, 540_000_000_000)
     let sought = Atomic.get(&index.currentSeekSound)
-    Swag.assert(sought != 0)
+    Swag.require(sought != 0)
     Matroska.publishFullSound(&index, &tracks, &subtitles)
-    Swag.assert(Atomic.get(&index.currentSeekSound) == sought)
-    Swag.assert(Atomic.get(&index.soundStage) == 1)
+    Swag.require(Atomic.get(&index.currentSeekSound) == sought)
+    Swag.require(Atomic.get(&index.soundStage) == 1)
 }

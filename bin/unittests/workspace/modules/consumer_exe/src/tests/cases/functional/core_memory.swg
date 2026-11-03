@@ -21,9 +21,9 @@ impl AllocatedObject
     objectDrops = 0
     let type: typeinfo = AllocatedObject
     let storage        = Memory.new(type)
-    Swag.assert(cast(*AllocatedObject, storage).value == 37)
+    Swag.require(cast(*AllocatedObject, storage).value == 37)
     Memory.delete(storage, type)
-    Swag.assert(objectDrops == 1)
+    Swag.require(objectDrops == 1)
 }
 
 // Generic construction imports the allocation body and runs the consumer's hooks.
@@ -31,12 +31,12 @@ impl AllocatedObject
 {
     objectDrops = 0
     let object = Memory.new'AllocatedObject()
-    Swag.assert(object.value == 37)
+    Swag.require(object.value == 37)
     Memory.delete(object)
-    Swag.assert(objectDrops == 1)
+    Swag.require(objectDrops == 1)
 
     let objects = Memory.new'AllocatedObject(3)
-    for i in 3 do Swag.assert(objects[i].value == 37)
+    for i in 3 do Swag.require(objects[i].value == 37)
     Memory.delete(objects, 3)
-    Swag.assert(objectDrops == 4)
+    Swag.require(objectDrops == 4)
 }

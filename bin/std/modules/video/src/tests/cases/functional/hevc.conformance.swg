@@ -224,9 +224,9 @@ func checkConformance(name: string, pictures: u32)
     var run: ConformanceRun
     expect run.run(videoFixturePath(name).toString())
 
-    Swag.assert(run.pictureCount == pictures)
-    Swag.assert(run.hashCount == pictures)
-    Swag.assert(run.firstMismatch() < 0)
+    Swag.require(run.pictureCount == pictures)
+    Swag.require(run.hashCount == pictures)
+    Swag.require(run.firstMismatch() < 0)
 }
 
 // Every intra prediction mode, at every transform size, in an intra-only stream.

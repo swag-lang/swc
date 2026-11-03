@@ -41,12 +41,12 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     expect sink.patch(sizeField, FirstPatch)
     for value, index in FirstPatch do
         expected[sizeField + index] = value
-    Swag.assert(sink.position() == 14)
+    Swag.require(sink.position() == 14)
 
     let payload = sinkLargePayload()
     expect sink.write(payload.toSlice())
     expected.add(payload.toSlice())
-    Swag.assert(sink.position() == expected.count)
+    Swag.require(sink.position() == expected.count)
 
     // The patch now lands in what the file already holds, and appending resumes after it.
     const SecondPatch: [4] u8 = [1, 2, 3, 4]
@@ -55,14 +55,14 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
         expected[sizeField + index] = value
     expect sink.writeText("END")
     expected.add(cast(const [..] u8, "END"))
-    Swag.assert(sink.position() == expected.count)
+    Swag.require(sink.position() == expected.count)
 
     // A patch cannot reach past what was written, and an empty one changes nothing.
     const Overrun: [3] u8 = [0, 0, 0]
     var pastEndOutcome: Swag.Error
     discard catch sink.patch(expected.count - 2, Overrun) as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
-    Swag.assert(pastEnd is BadParameterError)
+    Swag.require(pastEnd is BadParameterError)
     var none: Array'u8
     expect sink.patch(expected.count, none.toSlice())
     return expected
@@ -82,13 +82,13 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     defer discard catch File.delete(fileName)
 
     var sink = expect ByteSink.createFile(fileName.toString())
-    Swag.assert(sink.path() == fileName.toString())
+    Swag.require(sink.path() == fileName.toString())
     let expected = writeSinkStream(&sink)
     expect sink.close()
     expect sink.close()
 
     let actual = expect File.readAllBytes(fileName)
-    Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
+    Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
 
 // A memory sink appends after whatever its buffer already holds, and its offsets stay relative
@@ -99,14 +99,14 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     buffer.addBytes(cast(const [..] u8, "prefix"))
 
     var sink = ByteSink.createMemory(&buffer)
-    Swag.assert(not (sink.path()).count)
+    Swag.require(not (sink.path()).count)
     let expected = writeSinkStream(&sink)
     expect sink.close()
 
     let actual = buffer.toArray()
-    Swag.assert(actual.count == 6 + expected.count)
-    Swag.assert(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8, "prefix")))
-    Swag.assert(Slice.equals(actual.toSlice()[6 until actual.count], expected.toSlice()))
+    Swag.require(actual.count == 6 + expected.count)
+    Swag.require(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8, "prefix")))
+    Swag.require(Slice.equals(actual.toSlice()[6 until actual.count], expected.toSlice()))
 }
 
 // An unrepresentable position fails before the memory sink changes its buffer or cursor.
@@ -120,9 +120,9 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
 
     var overflowOutcome: Swag.Error
     discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA'u8, 0xBB]) as overflowOutcome
-    Swag.assert(overflowOutcome.value() is OverflowError)
-    Swag.assert(sink.position() == Swag.U64.Max - 1)
-    Swag.assert(buffer.toString() == "prefix")
+    Swag.require(overflowOutcome.value() is OverflowError)
+    Swag.require(sink.position() == Swag.U64.Max - 1)
+    Swag.require(buffer.toString() == "prefix")
 }
 
 // A struct is written as it is laid out, and a flush hands the window to the file without
@@ -141,12 +141,12 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     var sink = expect ByteSink.createFile(fileName.toString())
     expect sink.writeNative(Header{7, 9})
     expect sink.flush()
-    Swag.assert(sink.position() == 2)
+    Swag.require(sink.position() == 2)
     expect sink.writeByte(3)
     expect sink.close()
 
     let actual = expect File.readAllBytes(fileName)
-    Swag.assert(Slice.equals(actual.toSlice(), [7'u8, 9, 3]))
+    Swag.require(Slice.equals(actual.toSlice(), [7'u8, 9, 3]))
 }
 
 // A memory sink appends even when the caller previously moved its buffer cursor backwards.
@@ -164,6 +164,6 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     expect sink.patch(1, cast(const [..] u8, "XY"))
     expect sink.writeByte('!'u8)
     expect sink.close()
-    Swag.assert(buffer.toString() == "prefix keptdXYa!")
-    Swag.assert(sink.position() == 5)
+    Swag.require(buffer.toString() == "prefix keptdXYa!")
+    Swag.require(sink.position() == 5)
 }

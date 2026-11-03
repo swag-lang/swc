@@ -1,6 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global if #os == Swag.TargetOs.Windows
 #global private
+
 using Core, Gui, Pixel
 
 #[Swag.TestTag("integration.application.stress")]
@@ -39,13 +40,13 @@ using Core, Gui, Pixel
 
     explorer.scroll.setScrollPos(0, last)
     expect library.waitForLibrary(window, "reach end of film library", films)
-    Swag.assert(explorer.cached.count == 128)
+    Swag.require(explorer.cached.count == 128)
     explorer.scroll.setScrollPos(0, 0)
     expect library.waitForLibrary(window, "reload evicted film previews", films)
-    Swag.assert(explorer.cached.count == 128)
+    Swag.require(explorer.cached.count == 128)
 
     explorer.grid.select(explorer.shown.count - 1)
     expect library.waitForLibrary(window, "scroll to last film", films)
-    Swag.assert(explorer.grid.visibleRange().first > 0)
-    Swag.assert(explorer.selected == explorer.shown[explorer.shown.count - 1])
+    Swag.require(explorer.grid.visibleRange().first > 0)
+    Swag.require(explorer.selected == explorer.shown[explorer.shown.count - 1])
 }

@@ -33,25 +33,25 @@ using Swag, Core
         var image = host.render(view)
         if not index do
             Pixel.Testing.assertImageGolden(&image, "markdownview.scrollbar")
-        Swag.assert(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
-        Swag.assert(Math.abs(view.scroll.scrollPosition().y - destination) <= 1)
-        Swag.assert(view.residentStart <= offset and offset - view.residentStart < 256)
-        Swag.assert(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
-        Swag.assert(view.blocks.count < 64)
+        Swag.require(not view.hasPendingTarget and view.retainedBlocks.isEmpty())
+        Swag.require(Math.abs(view.scroll.scrollPosition().y - destination) <= 1)
+        Swag.require(view.residentStart <= offset and offset - view.residentStart < 256)
+        Swag.require(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+        Swag.require(view.blocks.count < 64)
         let position = view.scroll.scrollPosition()
         for 64 where view.isLoading() do
             host.fireTimers()
-        Swag.assert(view.scroll.scrollPosition() == position)
-        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+        Swag.require(view.scroll.scrollPosition() == position)
+        Swag.require(view.bytesRead - view.residentStart <= 256 * 1024)
     }
 
     // The bottom stop needs preceding blocks too, otherwise only the last paragraph appears
     // below an empty viewport. It must settle with the actual end visible.
     view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
     discard host.render(view)
-    Swag.assert(not view.jumpToEnd and not view.hasPendingTarget and view.retainedBlocks.isEmpty())
-    Swag.assert(not view.hasUnloadedSource())
-    Swag.assert(view.scroll.scrollPosition().y >= view.virtualOrigin)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y + viewport.height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
+    Swag.require(not view.jumpToEnd and not view.hasPendingTarget and view.retainedBlocks.isEmpty())
+    Swag.require(not view.hasUnloadedSource())
+    Swag.require(view.scroll.scrollPosition().y >= view.virtualOrigin)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y + viewport.height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
 }

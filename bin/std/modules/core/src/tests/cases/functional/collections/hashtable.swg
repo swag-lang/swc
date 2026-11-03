@@ -63,9 +63,9 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 #test
 {
     var table: HashTable'(s32, s32)
-    Swag.assert(table.isEmpty())
-    Swag.assert(not table.contains(1))
-    Swag.assert(table.tryFind(1) == null)
+    Swag.require(table.isEmpty())
+    Swag.require(not table.contains(1))
+    Swag.require(table.tryFind(1) == null)
 
     table.add(1, 10)
     table[1] = 11
@@ -73,12 +73,12 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
     assertHashTableBorrowTypes(&table)
 
-    Swag.assert(table.count == 2)
-    Swag.assert(table.contains(1))
-    Swag.assert(table.contains(3))
-    Swag.assert(table.getOrDefault(9, 99) == 99)
-    Swag.assert(table[1] == 11)
-    Swag.assert(table[3] == 30)
+    Swag.require(table.count == 2)
+    Swag.require(table.contains(1))
+    Swag.require(table.contains(3))
+    Swag.require(table.getOrDefault(9, 99) == 99)
+    Swag.require(table[1] == 11)
+    Swag.require(table[3] == 30)
 }
 
 #test
@@ -94,9 +94,9 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     let entryTwo = table.find(2)
     entryTwo.value += 2
 
-    Swag.assert(table.count == 2)
-    Swag.assert(table[2] == 22)
-    Swag.assert(table[4] == 40)
+    Swag.require(table.count == 2)
+    Swag.require(table[2] == 22)
+    Swag.require(table[4] == 40)
 }
 
 #test
@@ -117,8 +117,8 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
         sumValues += value
     }
 
-    Swag.assert(sumKeys == 10)
-    Swag.assert(sumValues == 103)
+    Swag.require(sumKeys == 10)
+    Swag.require(sumValues == 103)
 }
 
 #test
@@ -129,7 +129,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(3, 30)
     table.add(4, 40)
 
-    Swag.assert(assertReverseIntTableIteration(table))
+    Swag.require(assertReverseIntTableIteration(table))
 }
 
 #test
@@ -140,18 +140,18 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table.add(3, 30)
 
     table.remove(2)
-    Swag.assert(not table.contains(2))
-    Swag.assert(table.count == 2)
+    Swag.require(not table.contains(2))
+    Swag.require(table.count == 2)
 
     table.add(2, 200)
     table.add(2, 999, false)
-    Swag.assert(table.count == 3)
-    Swag.assert(table[2] == 200)
+    Swag.require(table.count == 3)
+    Swag.require(table[2] == 200)
 
     table.clear()
-    Swag.assert(table.isEmpty())
-    Swag.assert(not table.contains(1))
-    Swag.assert(not table.contains(2))
+    Swag.require(table.isEmpty())
+    Swag.require(not table.contains(1))
+    Swag.require(not table.contains(2))
 }
 
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
@@ -166,7 +166,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     original.add("alpha", 1)
 
     let entry = unwrap original.tryFind("alpha")
-    Swag.assert(entry.value == 1)
+    Swag.require(entry.value == 1)
 }
 
 #test
@@ -180,7 +180,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var original: HashTable'(string, String)
     original.add("alpha", "one")
 
-    Swag.assert(assertTableStringValue(original, "alpha", "one"))
+    Swag.require(assertTableStringValue(original, "alpha", "one"))
 }
 
 #test
@@ -189,9 +189,9 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     original.add("alpha", "one")
     original.add("beta", "two")
 
-    Swag.assert(assertTableStringValue(original, "alpha", "one"))
-    Swag.assert(assertTableStringValue(original, "beta", "two"))
-    Swag.assert(original.tryFind("gamma") == null)
+    Swag.require(assertTableStringValue(original, "alpha", "one"))
+    Swag.require(assertTableStringValue(original, "beta", "two"))
+    Swag.require(original.tryFind("gamma") == null)
 }
 
 #test
@@ -204,13 +204,13 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     copy["alpha"] = "uno"
     copy.findOrAdd("gamma").value = "three"
 
-    Swag.assert(assertTableStringValue(original, "alpha", "one"))
-    Swag.assert(assertTableStringValue(original, "beta", "two"))
-    Swag.assert(original.tryFind("gamma") == null)
+    Swag.require(assertTableStringValue(original, "alpha", "one"))
+    Swag.require(assertTableStringValue(original, "beta", "two"))
+    Swag.require(original.tryFind("gamma") == null)
 
-    Swag.assert(assertTableStringValue(copy, "alpha", "uno"))
-    Swag.assert(assertTableStringValue(copy, "beta", "two"))
-    Swag.assert(assertTableStringValue(copy, "gamma", "three"))
+    Swag.require(assertTableStringValue(copy, "alpha", "uno"))
+    Swag.require(assertTableStringValue(copy, "beta", "two"))
+    Swag.require(assertTableStringValue(copy, "gamma", "three"))
 }
 
 #test
@@ -223,11 +223,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var copy = original
     copy.add("alpha", "uno")
 
-    Swag.assert(original.tryFind("alpha") == null)
-    Swag.assert(assertTableStringValue(original, "beta", "two"))
+    Swag.require(original.tryFind("alpha") == null)
+    Swag.require(assertTableStringValue(original, "beta", "two"))
 
-    Swag.assert(assertTableStringValue(copy, "alpha", "uno"))
-    Swag.assert(assertTableStringValue(copy, "beta", "two"))
+    Swag.require(assertTableStringValue(copy, "alpha", "uno"))
+    Swag.require(assertTableStringValue(copy, "beta", "two"))
 }
 
 #test
@@ -238,11 +238,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
     table.opSet([struct { k: s32, v: s32 }{k: 3, v: 30}])
 
-    Swag.assert(table.count == 1)
-    Swag.assert(not table.contains(1))
-    Swag.assert(not table.contains(2))
-    Swag.assert(table.contains(3))
-    Swag.assert(table[3] == 30)
+    Swag.require(table.count == 1)
+    Swag.require(not table.contains(1))
+    Swag.require(not table.contains(2))
+    Swag.require(table.contains(3))
+    Swag.require(table[3] == 30)
 }
 
 #test
@@ -254,21 +254,21 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     table.add(42, 420)
     table.add(74, 740)
 
-    Swag.assert(table.capacity >= 33)
-    Swag.assert(table.contains(10))
-    Swag.assert(table.contains(42))
-    Swag.assert(table.contains(74))
-    Swag.assert(table[10] == 100)
-    Swag.assert(table[42] == 420)
-    Swag.assert(table[74] == 740)
+    Swag.require(table.capacity >= 33)
+    Swag.require(table.contains(10))
+    Swag.require(table.contains(42))
+    Swag.require(table.contains(74))
+    Swag.require(table[10] == 100)
+    Swag.require(table[42] == 420)
+    Swag.require(table[74] == 740)
 }
 
 #test
 {
     var table: HashTable'(s32, s32)
     let result = Swag.catchPanic(func|&table|() { table.reserve(Swag.U64.Max) })
-    Swag.assert(result.raised)
-    Swag.assert(result.message() == "HashTable capacity exceeds addressable memory")
+    Swag.require(result.raised)
+    Swag.require(result.message() == "HashTable capacity exceeds addressable memory")
 }
 
 #test
@@ -284,8 +284,8 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     let failed = Swag.catchPanic(func|&table, oldCapacity|() { table.reserve(oldCapacity + 1) })
     table.allocator = oldAllocator
 
-    Swag.assert(failed.raised)
-    Swag.assert(table.capacity == oldCapacity and table.count == 1 and table[42] == 420)
+    Swag.require(failed.raised)
+    Swag.require(table.capacity == oldCapacity and table.count == 1 and table[42] == 420)
 }
 
 #test
@@ -312,12 +312,12 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     })
     table.allocator = oldAllocator
 
-    Swag.assert(not updateFailed.raised and
-                not preserveFailed.raised and
-                not findFailed.raised and
-                not borrowedFindFailed.raised and
-                not borrowedUpdateFailed.raised)
-    Swag.assert(table.capacity == oldCapacity and table.count == 16 and table[7] == 108)
+    Swag.require(not updateFailed.raised and
+                 not preserveFailed.raised and
+                 not findFailed.raised and
+                 not borrowedFindFailed.raised and
+                 not borrowedUpdateFailed.raised)
+    Swag.require(table.capacity == oldCapacity and table.count == 16 and table[7] == 108)
 }
 
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries
@@ -332,9 +332,9 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
         discard h.addBorrowed(&key, &h.find("seed").value)
     }
 
-    Swag.assert(h.count == 201)
+    Swag.require(h.count == 201)
     for _, v in h do
-        Swag.assert(v[] == "a value long enough to live outside the inline storage")
+        Swag.require(v[] == "a value long enough to live outside the inline storage")
 
     var keys: HashTable'(String, s32)
     discard keys.add("first key that is long enough to allocate", 1)
@@ -344,5 +344,5 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
         discard keys.findOrAddBorrowed(&keys.find("first key that is long enough to allocate").key)
     }
 
-    Swag.assert(keys.count == 101 and keys.getOrDefault("first key that is long enough to allocate", 0) == 1)
+    Swag.require(keys.count == 101 and keys.getOrDefault("first key that is long enough to allocate", 0) == 1)
 }

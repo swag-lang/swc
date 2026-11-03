@@ -35,7 +35,7 @@ using Core, Gui, Pixel
         explorer.setArtworkSource(.Local)
         expect library.waitForLibrary(window, "local video frames", films)
         for &entry in explorer.entries where entry.texture.isValid() do
-            Swag.assert(entry.texture.width > entry.texture.height)
+            Swag.require(entry.texture.width > entry.texture.height)
         explorer.setArtworkSource(.Online)
         expect library.waitForLibrary(window, "cached online posters", films)
         expect library.verifyPosters(window)
@@ -46,7 +46,7 @@ using Core, Gui, Pixel
 
     explorer.setMode(.Details)
     expect library.waitForLibrary(window, "details", films)
-    Swag.assert(explorer.list.isLocallyVisible())
+    Swag.require(explorer.list.isLocallyVisible())
     explorer.setMode(.Large)
     explorer.forceBoard(true, .Posters)
     expect library.waitForLibrary(window, "posters", films)
@@ -62,7 +62,7 @@ using Core, Gui, Pixel
            window.activeChoiceIndex >= window.instances.count do
             return false
         let instance = &window.instances[window.activeChoiceIndex]
-        Swag.assert(instance.failureReason.isEmpty())
+        Swag.require(instance.failureReason.isEmpty())
         return not instance.isLoading or not instance.isLoading()
     }
 

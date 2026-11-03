@@ -16,7 +16,7 @@ func picturedViewer(fileName: string, light: bool, golden: string, width = 960, 
         {
             view.imageView.setPaused(true)
             view.imageView.setFrameIndex(0)
-            Swag.assert(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
+            Swag.require(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
         }
     }
 
@@ -34,7 +34,7 @@ func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light:
     }
 
     completeQueuedViewerFile(host, window)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == key)
+    Swag.require(window.choices[window.activeChoiceIndex].key == key)
     return window
 }
 
@@ -79,22 +79,22 @@ func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlo
     var labels: Array'String
     for tab in view.structure.tabs do
         labels.add(tab.label)
-    Swag.assert(view.structure.formatName == "PNG" and labels.count == 6)
-    Swag.assert(labels[0] == "Signature" and
-                labels[1] == "IHDR" and
-                labels[4] == "IDAT × 9" and
-                labels[5] == "IEND")
+    Swag.require(view.structure.formatName == "PNG" and labels.count == 6)
+    Swag.require(labels[0] == "Signature" and
+                 labels[1] == "IHDR" and
+                 labels[4] == "IDAT × 9" and
+                 labels[5] == "IEND")
 
     view.grid.selectRange(0x10, 13)
-    Swag.assert(view.tabs.active == 1)
+    Swag.require(view.tabs.active == 1)
     with let inspector = view.inspectorView
     {
-        Swag.assert(.headline == "5 000" and .caption == "u32 BE at 0x00000010")
-        Swag.assert(.fields.count == 8 and .fields[0].label == "Width" and .fields[0].strong)
-        Swag.assert(.fields[3].value == "6 · RGBA")
+        Swag.require(.headline == "5 000" and .caption == "u32 BE at 0x00000010")
+        Swag.require(.fields.count == 8 and .fields[0].label == "Width" and .fields[0].strong)
+        Swag.require(.fields[3].value == "6 · RGBA")
     }
 
-    Swag.assert(view.details == "0x10 – 0x1C · 13 bytes selected")
+    Swag.require(view.details == "0x10 – 0x1C · 13 bytes selected")
     photographViewer(&host, window, "pictured.hex", picturedGoldenOptions(8))
 }
 
@@ -105,23 +105,23 @@ func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlo
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, picturedFixture("viewer.console.exe"), false)
-    Swag.assert(window.choices[window.activeChoiceIndex].key == "binary")
+    Swag.require(window.choices[window.activeChoiceIndex].key == "binary")
     let view = assume cast(*Viewers.Binary.Panel, window.currentView)
 
     with let overview = &view.doc.report.overview
     {
-        Swag.assert(.identity.count >= 3 and .identity[0] == "PE32+" and .identity[1] == "x64")
-        Swag.assert(.sections.count != 0 and .sections[0].name == ".text")
-        Swag.assert(.strings != 0)
-        Swag.assert(.libraries.count != 0)
-        Swag.assert(.imports != 0)
+        Swag.require(.identity.count >= 3 and .identity[0] == "PE32+" and .identity[1] == "x64")
+        Swag.require(.sections.count != 0 and .sections[0].name == ".text")
+        Swag.require(.strings != 0)
+        Swag.require(.libraries.count != 0)
+        Swag.require(.imports != 0)
     }
 
-    Swag.assert(view.page.isLocallyVisible() and not view.list.isLocallyVisible())
+    Swag.require(view.page.isLocallyVisible() and not view.list.isLocallyVisible())
     photographViewer(&host, window, "pictured.binary.page")
 
     view.showPage(false)
-    Swag.assert(view.list.isLocallyVisible() and not view.page.isLocallyVisible())
+    Swag.require(view.list.isLocallyVisible() and not view.page.isLocallyVisible())
 }
 
 // The return action sits after the application glyph and stays centred across viewers.
@@ -129,7 +129,7 @@ func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlo
 #[Swag.TestTag("golden")]
 #test
 {
-    Swag.assert(Sound.acquireEngine(.NoSound))
+    Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
     let files = [picturedFixture("comprehensive.txt"),
@@ -153,8 +153,8 @@ func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlo
         var host: Testing.HeadlessHost
         let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
         let window = framedViewerWindow(&host, file.toString(), light, 1280, height)
-        Swag.assert(window.choices.count != 0 and window.activeChoiceIndex < window.choices.count,
-                    "return strip fixture must open in a document viewer")
+        Swag.require(window.choices.count != 0 and window.activeChoiceIndex < window.choices.count,
+                     "return strip fixture must open in a document viewer")
         if window.choices[window.activeChoiceIndex].key == "video"
         {
             let view = assume cast(*Film.Panel, window.currentView)
@@ -176,9 +176,9 @@ func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlo
         let metrics = host.theme.metrics
         let client  = host.surfaceWnd.clientRect()
         button.show(true)
-        Swag.assert(button.isLocallyVisible())
-        Swag.assert(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
-        Swag.assert(button.position.x > client.x and button.position.x < client.horzCenter())
+        Swag.require(button.isLocallyVisible())
+        Swag.require(Math.abs(button.position.vertCenter() - metrics.wnd_StripHeight * 0.5) < 0.5)
+        Swag.require(button.position.x > client.x and button.position.x < client.horzCenter())
 
         var image = host.renderSettled(&host.surfaceWnd)
         image.crop({0, 0, image.width, cast(s32, metrics.wnd_StripHeight)})

@@ -65,7 +65,7 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     values.insertBefore(tail, 3)
 
     let expected: [4] s32 = [1, 2, 3, 4]
-    Swag.assert(assertIntList(&values, expected))
+    Swag.require(assertIntList(&values, expected))
 }
 
 #test
@@ -75,17 +75,17 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     let middle = values.addBack(2)
     discard values.addBack(3)
 
-    Swag.assert(values.count == 3)
+    Swag.require(values.count == 3)
     values.remove(middle)
-    Swag.assert(values.count == 2)
-    Swag.assert(values.head == first)
-    Swag.assert(values.head!.next == values.tail)
+    Swag.require(values.count == 2)
+    Swag.require(values.head == first)
+    Swag.require(values.head!.next == values.tail)
 
     values.remove(first)
-    Swag.assert(values.count == 1)
+    Swag.require(values.count == 1)
     values.remove(unwrap values.tail)
-    Swag.assert(values.isEmpty())
-    Swag.assert(values.head == null and values.tail == null)
+    Swag.require(values.isEmpty())
+    Swag.require(values.head == null and values.tail == null)
 }
 
 #test
@@ -105,7 +105,7 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
         code = code * 10 + value
     }
 
-    Swag.assert(code == 1234)
+    Swag.require(code == 1234)
 }
 
 #test
@@ -125,7 +125,7 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
         code = code * 10 + value
     }
 
-    Swag.assert(code == 4321)
+    Swag.require(code == 4321)
 }
 
 #test
@@ -143,7 +143,7 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     }
 
     let expected: [3] s32 = [11, 12, 13]
-    Swag.assert(assertIntList(&values, expected))
+    Swag.require(assertIntList(&values, expected))
 }
 
 #test
@@ -157,11 +157,11 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
         value.value += 10
 
     let head = unwrap values.head
-    Swag.assert(head.value.value == 11)
-    Swag.assert(head.next!.value.value == 12)
-    Swag.assert(values.tail!.value.value == 13)
-    Swag.assert(visitStructList(&values) == 123)
-    Swag.assert(visitStructListReverse(&values) == 142)
+    Swag.require(head.value.value == 11)
+    Swag.require(head.next!.value.value == 12)
+    Swag.require(values.tail!.value.value == 13)
+    Swag.require(visitStructList(&values) == 123)
+    Swag.require(visitStructListReverse(&values) == 142)
 }
 
 #test
@@ -176,8 +176,8 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
 
     let originalExpected: [3] s32 = [1, 2, 3]
     let copyExpected:     [4] s32 = [1, 2, 3, 4]
-    Swag.assert(assertIntList(&original, originalExpected))
-    Swag.assert(assertIntList(&copy, copyExpected))
+    Swag.require(assertIntList(&original, originalExpected))
+    Swag.require(assertIntList(&copy, copyExpected))
 }
 
 #test
@@ -190,8 +190,8 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     moved = #move source
 
     let expected: [2] s32 = [7, 8]
-    Swag.assert(source.isEmpty())
-    Swag.assert(source.head == null)
-    Swag.assert(source.tail == null)
-    Swag.assert(assertIntList(&moved, expected))
+    Swag.require(source.isEmpty())
+    Swag.require(source.head == null)
+    Swag.require(source.tail == null)
+    Swag.require(assertIntList(&moved, expected))
 }

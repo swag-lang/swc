@@ -31,37 +31,37 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     host.setup(1100, 640)
 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
-    Swag.assert(view.rowLines.count == view.doc.report.rows.count)
-    Swag.assert(not view.list.iconMarginFirstCol)
-    Swag.assert(Utf8.contains(view.details.toSlice(), "PE32+"))
+    Swag.require(view.rowLines.count == view.doc.report.rows.count)
+    Swag.require(not view.list.iconMarginFirstCol)
+    Swag.require(Utf8.contains(view.details.toSlice(), "PE32+"))
 
     // The groups the report opened are visible; the ones it did not are folded away.
     let opened = view.list.lineCount()
-    Swag.assert(opened > 4 and opened < cast(u32, view.doc.report.rows.count))
+    Swag.require(opened > 4 and opened < cast(u32, view.doc.report.rows.count))
 
     let expandState = view.sendComputeCommandStateEvent(Binary.Action.ExpandAll)
-    Swag.assert(expandState.name == Binary.texts().ui_MenuExpand)
-    Swag.assert(expandState.shortcut == "Ctrl E")
-    Swag.assert(not expandState.updatedFields.has(.Checked))
+    Swag.require(expandState.name == Binary.texts().ui_MenuExpand)
+    Swag.require(expandState.shortcut == "Ctrl E")
+    Swag.require(not expandState.updatedFields.has(.Checked))
     let collapseState = view.sendComputeCommandStateEvent(Binary.Action.CollapseAll)
-    Swag.assert(collapseState.shortcut == "Ctrl Shift E")
-    Swag.assert(not collapseState.updatedFields.has(.Checked))
+    Swag.require(collapseState.shortcut == "Ctrl Shift E")
+    Swag.require(not collapseState.updatedFields.has(.Checked))
 
     view.sendCommandEvent(Binary.Action.ExpandAll)
-    Swag.assert(view.list.lineCount() == cast(u32, view.doc.report.rows.count))
+    Swag.require(view.list.lineCount() == cast(u32, view.doc.report.rows.count))
     view.sendCommandEvent(Binary.Action.CollapseAll)
-    Swag.assert(view.list.lineCount() < opened)
+    Swag.require(view.list.lineCount() < opened)
 
     // An offset inside the code section reveals the section that owns those bytes, opening whatever
     // was folded over it.
     var revealed = view.revealOffset(FixtureTextAt + 0x40)
-    Swag.assert(revealed)
+    Swag.require(revealed)
     let selected = view.list.selectedLine()
-    Swag.assert(selected != null)
-    Swag.assert(binaryCellText(selected, .Field) == ".text")
+    Swag.require(selected != null)
+    Swag.require(binaryCellText(selected, .Field) == ".text")
 
     revealed = view.revealOffset(FixtureSize + 64)
-    Swag.assert(not revealed)
+    Swag.require(not revealed)
     var image = host.render(view)
     assertScopeImageGolden(&image, "viewer.binary.document")
     Testing.assertContentFits(view)
@@ -96,13 +96,13 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
 
     // Nothing floats over the report until it is asked for: the find bar by its key, the
     // viewer's commands by the pointer.
-    Swag.assert(window.currentActions == null)
-    Swag.assert(not window.searchBar.isLocallyVisible() and not window.viewerBar.isLocallyVisible())
+    Swag.require(window.currentActions == null)
+    Swag.require(not window.searchBar.isLocallyVisible() and not window.viewerBar.isLocallyVisible())
     window.showSearch()
     window.revealViewerBar()
-    Swag.assert(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
-    Swag.assert(window.currentCommands != null and window.viewerBar.isLocallyVisible())
-    Swag.assert(window.viewerBar.position.height == ViewerWindow.BarHeight)
+    Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
+    Swag.require(window.currentCommands != null and window.viewerBar.isLocallyVisible())
+    Swag.require(window.viewerBar.position.height == ViewerWindow.BarHeight)
 
     host.settleAnimations(window.searchBar, 4)
     var image = host.render(window)

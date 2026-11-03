@@ -14,9 +14,9 @@ using Swag, Core
     let drawing = expect Svg.Drawing.parse(svg.toString())
     let image   = drawing.rasterize(32, 16, 1)
     let middle  = image.pixelColor(16, 8)
-    Swag.assert(middle.r > 64 and middle.r < 192)
-    Swag.assert(middle.b > 64 and middle.b < 192)
-    Swag.assert(middle.a == 255)
+    Swag.require(middle.r > 64 and middle.r < 192)
+    Swag.require(middle.b > 64 and middle.b < 192)
+    Swag.require(middle.a == 255)
 }
 
 // A mirroring transform flips the picture in place. Reduced to its axis scales, it would land the
@@ -34,11 +34,11 @@ using Swag, Core
 
     let left  = image.pixelColor(2, 8)
     let right = image.pixelColor(29, 8)
-    Swag.assert(left.b > 200 and left.r < 56)
-    Swag.assert(right.r > 200 and right.b < 56)
+    Swag.require(left.b > 200 and left.r < 56)
+    Swag.require(right.r > 200 and right.b < 56)
 
-    Swag.assert(image.pixelColor(60, 8).g > 200)
-    Swag.assert(image.pixelColor(36, 8).a == 0)
+    Swag.require(image.pixelColor(60, 8).g > 200)
+    Swag.require(image.pixelColor(36, 8).a == 0)
 }
 
 // Relative raster references are decoded through Pixel only inside the configured resource root.
@@ -52,9 +52,9 @@ using Swag, Core
 
     let drawing = expect Svg.Drawing.parse(Source, options)
     let image   = drawing.rasterize(40, 40, 1)
-    Swag.assert(image.pixelColor(2, 2).a == 0)
-    Swag.assert(image.pixelColor(20, 20).a > 0)
-    Swag.assert(image.pixelColor(35, 35).a > 0)
+    Swag.require(image.pixelColor(2, 2).a == 0)
+    Swag.require(image.pixelColor(20, 20).a > 0)
+    Swag.require(image.pixelColor(35, 35).a > 0)
 }
 
 // Data images need no filesystem authority, while a relative reference without a root is rejected.
@@ -64,13 +64,13 @@ using Swag, Core
     const Source   = #stringof("<svg width='4' height='4'><image width='4' height='4' href='data:image/png;base64,", Embedded, "'/></svg>")
     let drawing = expect Svg.Drawing.parse(Source)
     let image   = drawing.rasterize(4, 4, 1)
-    Swag.assert(image.pixelColor(2, 2).a > 0)
+    Swag.require(image.pixelColor(2, 2).a > 0)
 
     const External = "<svg width='4' height='4'><image width='4' height='4' href='basi2c08.png'/></svg>"
     var errOutcome: Swag.Error
     discard catch Svg.Drawing.parse(External) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
+    Swag.require(err != null)
 
     var options: Svg.ParseOptions
     options.externalResourceRoot = unwrap Path.directoryName(getTestDataPath("basi2c08.png").toString())
@@ -78,5 +78,5 @@ using Swag, Core
     var escapeErrOutcome: Swag.Error
     discard catch Svg.Drawing.parse(Escape, options) as escapeErrOutcome
     let escapeErr = escapeErrOutcome.value()
-    Swag.assert(escapeErr != null)
+    Swag.require(escapeErr != null)
 }

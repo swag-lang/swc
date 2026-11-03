@@ -16,47 +16,47 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
 
 #test
 {
-    Swag.assert(Format.countPercent("") == 0)
-    Swag.assert(Format.countPercent("%%") == 0)
-    Swag.assert(Format.countPercent("%/%%/%{X}") == 2)
+    Swag.require(Format.countPercent("") == 0)
+    Swag.require(Format.countPercent("%%") == 0)
+    Swag.require(Format.countPercent("%/%%/%{X}") == 2)
 }
 
 #test
 {
     let mixed = Format.toString("%% % %{X} %{D03}", "core", 255, 7)
-    Swag.assert(assertFormatString(mixed, "% core FF 007"))
+    Swag.require(assertFormatString(mixed, "% core FF 007"))
 
     var replaced: String = "seed"
     Format.replaceString(&replaced, "%{02}:%{02}", 3, 9)
-    Swag.assert(assertFormatString(replaced, "03:09"))
+    Swag.require(assertFormatString(replaced, "03:09"))
 }
 
 #test
 {
     let padded = Format.toString("%{04}", 7)
-    Swag.assert(assertFormatString(padded, "0007"))
+    Swag.require(assertFormatString(padded, "0007"))
 
     let forcedPositive = Format.toString("%{+04}", 7)
-    Swag.assert(assertFormatString(forcedPositive, "+007"))
+    Swag.require(assertFormatString(forcedPositive, "+007"))
 
     let forcedNegative = Format.toString("%{+04}", -7)
-    Swag.assert(assertFormatString(forcedNegative, "-007"))
+    Swag.require(assertFormatString(forcedNegative, "-007"))
 }
 
 #test
 {
     var dest: String
     Format.replaceString(&dest, "fresh %", "value")
-    Swag.assert(assertFormatString(dest, "fresh value"))
-    Swag.assert(dest.storage()[dest.count] == 0)
+    Swag.require(assertFormatString(dest, "fresh value"))
+    Swag.require(dest.storage()[dest.count] == 0)
 }
 
 #test
 {
     var dest: String = "small"
     Format.replaceString(&dest, "a replacement larger than inline storage: %", 42)
-    Swag.assert(assertFormatString(dest, "a replacement larger than inline storage: 42"))
-    Swag.assert(dest.storage()[dest.count] == 0)
+    Swag.require(assertFormatString(dest, "a replacement larger than inline storage: 42"))
+    Swag.require(dest.storage()[dest.count] == 0)
 }
 
 #test
@@ -64,7 +64,7 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     var dest: String = "original"
     let borrowed     = dest.toString()
     Format.replaceString(&dest, "[%] %", borrowed, borrowed)
-    Swag.assert(assertFormatString(dest, "[original] original"))
+    Swag.require(assertFormatString(dest, "[original] original"))
 }
 
 #test
@@ -72,13 +72,13 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     var dest: String = "abcdefghijklmnopqrstuvwxyz"
     let storage      = dest.buffer
     Format.replaceString(&dest, "%", "short")
-    Swag.assert(assertFormatString(dest, "short"))
-    Swag.assert(dest.buffer == storage)
-    Swag.assert(dest.storage()[dest.count] == 0)
+    Swag.require(assertFormatString(dest, "short"))
+    Swag.require(dest.buffer == storage)
+    Swag.require(dest.storage()[dest.count] == 0)
     Format.replaceString(&dest, "")
-    Swag.assert(dest.isEmpty())
-    Swag.assert(dest.buffer == storage)
-    Swag.assert(dest.storage()[0] == 0)
+    Swag.require(dest.isEmpty())
+    Swag.require(dest.buffer == storage)
+    Swag.require(dest.storage()[0] == 0)
 }
 
 #test
@@ -95,59 +95,59 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     StrConv.convertAny(&direct, " ", fmt, null)
     StrConv.convertAny(&direct, cast(rune, 'A'), fmt, null)
 
-    Swag.assert(assertFormatString(direct.toString(), "literal variable true A"))
+    Swag.require(assertFormatString(direct.toString(), "literal variable true A"))
 }
 
 #test
 {
     let value = String.from("referenced")
-    Swag.assert(assertFormatString(formatReferencedString(value), "referenced"))
+    Swag.require(assertFormatString(formatReferencedString(value), "referenced"))
 }
 
 // '%{#n}' targets an explicit 0-based argument, so translations can reorder arguments.
 #test
 {
     let swapped = Format.toString("%{#1} then %{#0}", "first", "second")
-    Swag.assert(assertFormatString(swapped, "second then first"))
+    Swag.require(assertFormatString(swapped, "second then first"))
 
     let repeated = Format.toString("%{#0} and %{#0} again", "twice")
-    Swag.assert(assertFormatString(repeated, "twice and twice again"))
+    Swag.require(assertFormatString(repeated, "twice and twice again"))
 
     // An indexed placeholder carries a conversion format after ':' and leaves the
     // running position of plain '%' placeholders untouched.
     let mixed = Format.toString("% %{#2:X} %", "a", "b", 255)
-    Swag.assert(assertFormatString(mixed, "a FF b"))
+    Swag.require(assertFormatString(mixed, "a FF b"))
 }
 
 // 'byteSize' scales through the 1024-based units and keeps three significant digits.
 #test
 {
-    Swag.assert(Format.byteSize(0) == "0 B")
-    Swag.assert(Format.byteSize(312) == "312 B")
-    Swag.assert(Format.byteSize(1023) == "1023 B")
-    Swag.assert(Format.byteSize(1024) == "1.00 KB")
-    Swag.assert(Format.byteSize(4200) == "4.10 KB")
-    Swag.assert(Format.byteSize(1024 * 1024) == "1.00 MB")
-    Swag.assert(Format.byteSize(14_050_000) == "13.4 MB")
-    Swag.assert(Format.byteSize(650 * 1024 * 1024) == "650 MB")
-    Swag.assert(Format.byteSize(1024'u64 * 1024 * 1024 * 1024) == "1.00 TB")
+    Swag.require(Format.byteSize(0) == "0 B")
+    Swag.require(Format.byteSize(312) == "312 B")
+    Swag.require(Format.byteSize(1023) == "1023 B")
+    Swag.require(Format.byteSize(1024) == "1.00 KB")
+    Swag.require(Format.byteSize(4200) == "4.10 KB")
+    Swag.require(Format.byteSize(1024 * 1024) == "1.00 MB")
+    Swag.require(Format.byteSize(14_050_000) == "13.4 MB")
+    Swag.require(Format.byteSize(650 * 1024 * 1024) == "650 MB")
+    Swag.require(Format.byteSize(1024'u64 * 1024 * 1024 * 1024) == "1.00 TB")
 }
 
 #test
 {
-    Swag.assert(StrConv.toDisplaySize(0) == "0 bytes")
-    Swag.assert(StrConv.toDisplaySize(1) == "1 byte")
-    Swag.assert(StrConv.toDisplaySize(1023) == "1023 bytes")
-    Swag.assert(StrConv.toDisplaySize(1536) == "1 KB")
+    Swag.require(StrConv.toDisplaySize(0) == "0 bytes")
+    Swag.require(StrConv.toDisplaySize(1) == "1 byte")
+    Swag.require(StrConv.toDisplaySize(1023) == "1023 bytes")
+    Swag.require(StrConv.toDisplaySize(1536) == "1 KB")
 }
 
 // A character literal formats as the character, and a decimal literal as the double nearest to it.
 #test
 {
-    Swag.assert(Format.toString("%", 'A') == "A")
-    Swag.assert(Format.toString("% %", 'é', '😀') == "é 😀")
-    Swag.assert(Format.toString("%{f2}", 1.005) == "1.00")
-    Swag.assert(Format.toString("%", 0.00012) == "0.00012")
+    Swag.require(Format.toString("%", 'A') == "A")
+    Swag.require(Format.toString("% %", 'é', '😀') == "é 😀")
+    Swag.require(Format.toString("%{f2}", 1.005) == "1.00")
+    Swag.require(Format.toString("%", 0.00012) == "0.00012")
 }
 
 // Format views need no terminator, including at a final placeholder or escaped percent.
@@ -155,10 +155,10 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
 {
     let storage = "text %% % trailing"
     let view    = storage[until 9]
-    Swag.assert(Format.toString(view, 42) == "text % 42")
-    Swag.assert(Format.toString("plain text") == "plain text")
-    Swag.assert(Format.toString("%%") == "%")
-    Swag.assert(Format.toString("%% tail") == "% tail")
-    Swag.assert(Format.toString("%", 42) == "42")
-    Swag.assert(Format.toString("%{#1} % tail", "first", "second") == "second first tail")
+    Swag.require(Format.toString(view, 42) == "text % 42")
+    Swag.require(Format.toString("plain text") == "plain text")
+    Swag.require(Format.toString("%%") == "%")
+    Swag.require(Format.toString("%% tail") == "% tail")
+    Swag.require(Format.toString("%", 42) == "42")
+    Swag.require(Format.toString("%{#1} % tail", "first", "second") == "second first tail")
 }

@@ -21,18 +21,18 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     var stream: Compress.BitStream
     stream.reset(input)
 
-    Swag.assert(stream.size() == 3)
-    Swag.assert(stream.currentPointer() == start)
-    Swag.assert(stream.bytePosition() == 0)
+    Swag.require(stream.size() == 3)
+    Swag.require(stream.currentPointer() == start)
+    Swag.require(stream.bytePosition() == 0)
 
-    Swag.assert(stream.peekBits(4) == 0xA)
-    Swag.assert(stream.readBits(4) == 0xA)
-    Swag.assert(stream.peekBitsUnchecked(4) == 0xC)
-    Swag.assert(stream.readBitsUnchecked(4) == 0xC)
-    Swag.assert(stream.readBits(8) == 0x74)
-    Swag.assert(stream.readBits(8) == 0x05)
-    Swag.assert(stream.currentPointer() == start + 3)
-    Swag.assert(stream.isEof())
+    Swag.require(stream.peekBits(4) == 0xA)
+    Swag.require(stream.readBits(4) == 0xA)
+    Swag.require(stream.peekBitsUnchecked(4) == 0xC)
+    Swag.require(stream.readBitsUnchecked(4) == 0xC)
+    Swag.require(stream.readBits(8) == 0x74)
+    Swag.require(stream.readBits(8) == 0x05)
+    Swag.require(stream.currentPointer() == start + 3)
+    Swag.require(stream.isEof())
 }
 
 #test
@@ -42,13 +42,13 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     stream.reset(input)
 
     let checked = Swag.catchPanic(func|&stream|() { callBitStreamPeek32(&stream) })
-    Swag.assert(checked.raised)
-    Swag.assert(checked.message() == "bit width exceeds 32 bits")
+    Swag.require(checked.raised)
+    Swag.require(checked.message() == "bit width exceeds 32 bits")
 
     stream.refill()
     let unchecked = Swag.catchPanic(func|&stream|() { callBitStreamPeekUnchecked32(&stream) })
-    Swag.assert(unchecked.raised)
-    Swag.assert(unchecked.message() == "bit width exceeds 32 bits")
+    Swag.require(unchecked.raised)
+    Swag.require(unchecked.message() == "bit width exceeds 32 bits")
 }
 
 #test
@@ -82,7 +82,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 
         if got != exp do
             Console.println("BITSTREAM DIVERGE bitPos=", bitPos, " w=", w, " got=", got, " exp=", exp)
-        Swag.assert(got == exp)
+        Swag.require(got == exp)
         bitPos += w
     }
 }
@@ -94,9 +94,9 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     var stream: Compress.BitStream
     stream.reset(input)
 
-    Swag.assert(stream.readBits(3) == 6)
+    Swag.require(stream.readBits(3) == 6)
     stream.discardToNextByte()
-    Swag.assert(stream.readBits(8) == 0xAB)
+    Swag.require(stream.readBits(8) == 0xAB)
 }
 
 #test
@@ -108,8 +108,8 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     stream.curByte = Swag.U64.Max - 3
     stream.refill()
 
-    Swag.assert(stream.isEof())
-    Swag.assert(stream.bytePosition() == Swag.U64.Max - 3)
+    Swag.require(stream.isEof())
+    Swag.require(stream.bytePosition() == Swag.U64.Max - 3)
 }
 
 #test
@@ -121,12 +121,12 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     stream.reset(input)
     stream.refill(8)
 
-    Swag.assert(stream.readBitsUnchecked(8) == 0xAA)
+    Swag.require(stream.readBitsUnchecked(8) == 0xAA)
     stream.revert()
 
-    Swag.assert(stream.currentPointer() == start + 1)
-    Swag.assert(stream.readBits(8) == 0xBB)
-    Swag.assert(stream.readBits(8) == 0xCC)
+    Swag.require(stream.currentPointer() == start + 1)
+    Swag.require(stream.readBits(8) == 0xBB)
+    Swag.require(stream.readBits(8) == 0xCC)
 }
 
 #test
@@ -140,9 +140,9 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     var bytes:    [3] u8
     stream.readBytes(3, &bytes[0])
 
-    Swag.assert(Slice.equals(bytes, expected))
-    Swag.assert(stream.readBits(8) == 0x40)
-    Swag.assert(stream.readBits(8) == 0x50)
+    Swag.require(Slice.equals(bytes, expected))
+    Swag.require(stream.readBits(8) == 0x40)
+    Swag.require(stream.readBits(8) == 0x50)
 }
 
 #test
@@ -154,7 +154,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     let expectedDirect: [4] u8 = [0x10, 0x20, 0x30, 0x40]
     var direct:         [4] u8
     littleEndianView.read32(&direct[0])
-    Swag.assert(Slice.equals(direct, expectedDirect))
+    Swag.require(Slice.equals(direct, expectedDirect))
 
     var bigEndianView: Compress.BitStream
     bigEndianView.reset(input)
@@ -162,7 +162,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     bigEndianView.read32Be(&converted[0])
 
     #static if BIG_ENDIAN do
-        Swag.assert(Slice.equals(converted, expectedDirect))
+        Swag.require(Slice.equals(converted, expectedDirect))
     else do
-        Swag.assert(Slice.equals(converted, [0x40, 0x30, 0x20, 0x10]))
+        Swag.require(Slice.equals(converted, [0x40, 0x30, 0x20, 0x10]))
 }

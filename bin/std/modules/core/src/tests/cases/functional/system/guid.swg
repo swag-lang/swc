@@ -6,47 +6,47 @@ using Swag
 #test
 {
     var guid: Guid64
-    Swag.assert(guid.isNull())
+    Swag.require(guid.isNull())
 
-    Swag.assert(Guid64.tryParse("0123456789ABCDEF", &guid))
-    Swag.assert(not guid.isNull())
-    Swag.assert(guid.value == 0x0123456789ABCDEF'u64)
-    Swag.assert(guid.toString() == "0123456789ABCDEF")
-    Swag.assert((expect Guid64.parse("0123456789ABCDEF")) == guid)
-    Swag.assert((expect Guid64.parse("0x0123456789ABCDEF")) == guid)
-    Swag.assert(not Guid64.tryParse("A1zz", &guid))
-    Swag.assert(not Guid64.tryParse("0123456789ABCDE", &guid))
-    Swag.assert(not Guid64.tryParse("0123456789ABCDEG", &guid))
-    Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8, &guid.value), #sizeof(u64))))
+    Swag.require(Guid64.tryParse("0123456789ABCDEF", &guid))
+    Swag.require(not guid.isNull())
+    Swag.require(guid.value == 0x0123456789ABCDEF'u64)
+    Swag.require(guid.toString() == "0123456789ABCDEF")
+    Swag.require((expect Guid64.parse("0123456789ABCDEF")) == guid)
+    Swag.require((expect Guid64.parse("0x0123456789ABCDEF")) == guid)
+    Swag.require(not Guid64.tryParse("A1zz", &guid))
+    Swag.require(not Guid64.tryParse("0123456789ABCDE", &guid))
+    Swag.require(not Guid64.tryParse("0123456789ABCDEG", &guid))
+    Swag.require(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(cast(const [*] u8, &guid.value), #sizeof(u64))))
 
     guid.clear()
-    Swag.assert(guid.isNull())
+    Swag.require(guid.isNull())
 }
 
 #test
 {
     var guid: Guid128
-    Swag.assert(Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfe", &guid))
+    Swag.require(Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfe", &guid))
 
-    Swag.assert(guid.toString() == "01234567-89ab-cdef-1032-547698badcfe")
-    Swag.assert((expect Guid128.parse("01234567-89AB-CDEF-1032-547698BADCFE")) == guid)
-    Swag.assert(not Guid128.tryParse("0123456789ab-cdef-1032-547698badcfe", &guid))
-    Swag.assert(not Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfz", &guid))
-    Swag.assert(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(&guid.bytes[0], 16)))
+    Swag.require(guid.toString() == "01234567-89ab-cdef-1032-547698badcfe")
+    Swag.require((expect Guid128.parse("01234567-89AB-CDEF-1032-547698BADCFE")) == guid)
+    Swag.require(not Guid128.tryParse("0123456789ab-cdef-1032-547698badcfe", &guid))
+    Swag.require(not Guid128.tryParse("01234567-89ab-cdef-1032-547698badcfz", &guid))
+    Swag.require(Hash.hash32(guid) == Hash.Crc32.compute(Swag.makeSlice(&guid.bytes[0], 16)))
 
     var copy = guid
-    Swag.assert(copy == guid)
+    Swag.require(copy == guid)
 
     copy.clear()
-    Swag.assert(copy != guid)
-    Swag.assert(copy.isNull())
+    Swag.require(copy != guid)
+    Swag.require(copy.isNull())
 }
 
 #test
 {
     let guid = Guid128.random()
-    Swag.assert((guid.bytes[6] & 0xF0) == 0x40)
-    Swag.assert((guid.bytes[8] & 0xC0) == 0x80)
+    Swag.require((guid.bytes[6] & 0xF0) == 0x40)
+    Swag.require((guid.bytes[8] & 0xC0) == 0x80)
 }
 
 struct GuidRace
@@ -88,6 +88,6 @@ func guidRaceWorker(thread: const *Threading.Thread)
     for i in race.drawn.count
     {
         for j in i + 1 until race.drawn.count do
-            Swag.assert(race.drawn[i] != race.drawn[j])
+            Swag.require(race.drawn[i] != race.drawn[j])
     }
 }

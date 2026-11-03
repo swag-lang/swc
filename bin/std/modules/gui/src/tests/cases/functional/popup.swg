@@ -35,19 +35,19 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     combo.addItem("Two", PopupHeadless_Item2)
     combo.addItem("Three")
 
-    Swag.assert(combo.popup == null)
+    Swag.require(combo.popup == null)
 
     host.click({100, 33})
-    Swag.assert(combo.popup != null)
+    Swag.require(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
     let popup = combo.popup
     popup.sigClosed!(popup, 1)
     host.pump()
-    Swag.assert(combo.popup == null)
-    Swag.assert(combo.selectedIndex == 1)
-    Swag.assert(PopupHeadlessChangedCount == 1)
-    Swag.assert(host.lastCommand == PopupHeadless_Item2)
+    Swag.require(combo.popup == null)
+    Swag.require(combo.selectedIndex == 1)
+    Swag.require(PopupHeadlessChangedCount == 1)
+    Swag.require(host.lastCommand == PopupHeadless_Item2)
 
     host.app.setMouseCaptureRaw(null)
 }
@@ -62,14 +62,14 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     combo.addItem("Two")
 
     host.click({100, 33})
-    Swag.assert(combo.popup != null)
+    Swag.require(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
     let popup = combo.popup
     popup.sigClosed!(popup, Swag.U32.Max)
     host.pump()
-    Swag.assert(combo.popup == null)
-    Swag.assert(combo.selectedIndex == Swag.U32.Max)
+    Swag.require(combo.popup == null)
+    Swag.require(combo.selectedIndex == Swag.U32.Max)
 
     host.app.setMouseCaptureRaw(null)
 }
@@ -80,21 +80,21 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     var host: Testing.HeadlessHost
     host.setup(240, 200)
     let popup = PopupListCtrl.create(&host.root)
-    Swag.assert(popup.itemHeight == 24)
-    Swag.assert(popup.iconSize == 16)
+    Swag.require(popup.itemHeight == 24)
+    Swag.require(popup.iconSize == 16)
     popup.addItem("A")
     popup.addSeparator()
     popup.addItem("B")
 
-    Swag.assert(popup.items.count == 3)
-    Swag.assert(not popup.items[0]!.isSeparator)
-    Swag.assert(popup.items[1]!.isSeparator)
-    Swag.assert(popup.selectedIndex == Swag.U32.Max)
+    Swag.require(popup.items.count == 3)
+    Swag.require(not popup.items[0]!.isSeparator)
+    Swag.require(popup.items[1]!.isSeparator)
+    Swag.require(popup.selectedIndex == Swag.U32.Max)
 
     popup.itemHeight      = 30
     popup.separatorHeight = 8
     popup.show(20, 20, 100)
-    Swag.assert(popup.scrollWnd.scrollSize.y == 68)
+    Swag.require(popup.scrollWnd.scrollSize.y == 68)
     host.app.setMouseCaptureRaw(null)
 
     popup.destroy()
@@ -118,7 +118,7 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     popup.show(20, 20, 100)
 
     let view = assume cast (*PopupListView, popup.scrollWnd.view)
-    Swag.assert(view.hotIdx == 1)
+    Swag.require(view.hotIdx == 1)
     host.app.setMouseCaptureRaw(null)
     popup.destroy()
     host.pump()
@@ -131,11 +131,11 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     marked.show(20, 20, 100)
 
     let markedView = assume cast (*PopupListView, marked.scrollWnd.view)
-    Swag.assert(markedView.hotIdx == Swag.U32.Max)
+    Swag.require(markedView.hotIdx == Swag.U32.Max)
 
     // The keyboard still starts from the selection, so the first step up lands before it.
     marked.moveHighlight(-1)
-    Swag.assert(markedView.hotIdx == 0)
+    Swag.require(markedView.hotIdx == 0)
 
     host.app.setMouseCaptureRaw(null)
     marked.destroy()
@@ -158,8 +158,8 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     popup.show(20, 20, 100)
     discard host.render()
 
-    Swag.assert(PopupListContentPaintCount == 1)
-    Swag.assert(PopupListContentPaintFlags.has(.Checked))
+    Swag.require(PopupListContentPaintCount == 1)
+    Swag.require(PopupListContentPaintFlags.has(.Checked))
 
     host.app.setMouseCaptureRaw(null)
     popup.destroy()

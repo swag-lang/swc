@@ -13,7 +13,7 @@ using Core, Pixel, Gui, Audio, Viewers
     let wav = previewWav()
     expect File.writeAllBytes(fileName, wav.toSlice())
 
-    Swag.assert(Sound.acquireEngine(.NoSound))
+    Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
     var host: Testing.HeadlessHost

@@ -18,13 +18,13 @@ func assertBuilderString(value: String, expected: string)->bool
     builder.appendString("abc")
     builder.zeroTerminate()
 
-    Swag.assert(builder.count() == 3)
-    Swag.assert(assertBuilderString(builder.toString(), "abc"))
+    Swag.require(builder.count() == 3)
+    Swag.require(assertBuilderString(builder.toString(), "abc"))
 
     builder.zeroTerminate()
-    Swag.assert(builder.count() == 3)
+    Swag.require(builder.count() == 3)
 
     builder.appendString("def")
-    Swag.assert(builder.count() == 6)
-    Swag.assert(assertBuilderString(builder.moveToString(), "abcdef"))
+    Swag.require(builder.count() == 6)
+    Swag.require(assertBuilderString(builder.moveToString(), "abcdef"))
 }

@@ -44,9 +44,11 @@ using Core, Gui, Pixel
             errorPresented = true
             break
         }
+
         Threading.Thread.sleep(10'ms)
     }
-    Swag.assert(errorPresented, "the broken image never reached the native error surface")
+
+    Swag.require(errorPresented, "the broken image never reached the native error surface")
 
     var document = scopeTestDataPath("markdown.images.md", #curlocation)
     Path.normalize(&document)
@@ -72,15 +74,21 @@ using Core, Gui, Pixel
             documentPresented = true
             break
         }
+
         Threading.Thread.sleep(10'ms)
     }
+
     if not documentPresented
     {
-        Console.println("current=", window.currentFile, " pending=", window.pendingFile,
-                        " choices=", window.activeChoiceIndex, "/", window.instances.count)
+        Console.println("current=", window.currentFile, " pending=", window.pendingFile, " choices=", window.activeChoiceIndex, "/", window.instances.count)
         for &instance, index in window.instances do
-            Console.println("viewer=", window.choices[index].key, " failure=", instance.failureReason,
-                            " loading=", instance.isLoading != null and instance.isLoading())
+            Console.println("viewer=",
+                            window.choices[index].key,
+                            " failure=",
+                            instance.failureReason,
+                            " loading=",
+                            instance.isLoading != null and instance.isLoading())
     }
-    Swag.assert(documentPresented, "the valid document did not recover in the native window")
+
+    Swag.require(documentPresented, "the valid document did not recover in the native window")
 }

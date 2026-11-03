@@ -96,20 +96,20 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
-    Swag.assert(isRangeInBounds(4, 0, 4))
-    Swag.assert(isRangeInBounds(4, 4, 0))
-    Swag.assert(not isRangeInBounds(4, 5, 0))
-    Swag.assert(not isRangeInBounds(4, Swag.U64.Max, 1))
-    Swag.assert(not isRangeInBounds(4, 1, Swag.U64.Max))
+    Swag.require(isRangeInBounds(4, 0, 4))
+    Swag.require(isRangeInBounds(4, 4, 0))
+    Swag.require(not isRangeInBounds(4, 5, 0))
+    Swag.require(not isRangeInBounds(4, Swag.U64.Max, 1))
+    Swag.require(not isRangeInBounds(4, 1, Swag.U64.Max))
 }
 
 #test
 {
     var values: Array's32
-    Swag.assert(values.isEmpty())
+    Swag.require(values.isEmpty())
 
     values.reserve(2)
-    Swag.assert(values.capacity >= 2)
+    Swag.require(values.capacity >= 2)
 
     values.add(10)
     values.add(20)
@@ -120,34 +120,34 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     extra[0] = 40
 
     let tail = values.emplaceInitAddress(2)
-    Swag.assert(tail[0] == 0)
-    Swag.assert(tail[1] == 0)
+    Swag.require(tail[0] == 0)
+    Swag.require(tail[1] == 0)
     tail[0] = 50
     tail[1] = 60
 
     let expectedFilled: [6] s32 = [10, 20, 30, 40, 50, 60]
-    Swag.assert(Slice.equals(values.toSlice(), expectedFilled))
-    Swag.assert(values.contains(20))
-    Swag.assert(not values.contains(99))
-    Swag.assert(values.front() == 10)
-    Swag.assert(values.back() == 60)
+    Swag.require(Slice.equals(values.toSlice(), expectedFilled))
+    Swag.require(values.contains(20))
+    Swag.require(not values.contains(99))
+    Swag.require(values.front() == 10)
+    Swag.require(values.back() == 60)
 
-    Swag.assert(values.popBack() == 60)
+    Swag.require(values.popBack() == 60)
     values.removeBack()
     let expectedAfterPop: [4] s32 = [10, 20, 30, 40]
-    Swag.assert(Slice.equals(values.toSlice(), expectedAfterPop))
+    Swag.require(Slice.equals(values.toSlice(), expectedAfterPop))
 
     values.clear()
-    Swag.assert(values.isEmpty())
-    Swag.assert(values.count == 0)
+    Swag.require(values.isEmpty())
+    Swag.require(values.count == 0)
 }
 
 #test
 {
     var values: Array's32
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
-    Swag.assert(result.raised)
-    Swag.assert(result.message() == "Array capacity exceeds addressable memory")
+    Swag.require(result.raised)
+    Swag.require(result.message() == "Array capacity exceeds addressable memory")
 }
 
 // The collection protocol follows the language rule for scalar bindings: copy the value.
@@ -164,7 +164,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
         sum += value
     }
 
-    Swag.assert(sum == 60)
+    Swag.require(sum == 60)
 }
 
 #test
@@ -174,9 +174,9 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.add(seed)
 
     let asSlice = cast([..] s32, values)
-    Swag.assert(asSlice.count == 4)
-    Swag.assert(asSlice[0] == 4)
-    Swag.assert(asSlice[3] == 2)
+    Swag.require(asSlice.count == 4)
+    Swag.require(asSlice[0] == 4)
+    Swag.require(asSlice[3] == 2)
 
     let first = values.ptr1(0)
     first[] = 9
@@ -190,14 +190,14 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
         let rejectedColumnOverflow   = arrayPtr2Rejects(&values, 1, Swag.U64.Max / 2 + 1, 2)
         let rejectedColumnOutsideRow = arrayPtr2Rejects(&values, 2, 0, 2)
         let rejectedZeroWidth        = arrayPtr2Rejects(&values, 0, 0, 0)
-        Swag.assert(rejectedRowOverflow and
-                    rejectedColumnOverflow and
-                    rejectedColumnOutsideRow and
-                    rejectedZeroWidth)
+        Swag.require(rejectedRowOverflow and
+                     rejectedColumnOverflow and
+                     rejectedColumnOutsideRow and
+                     rejectedZeroWidth)
     }
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
-    Swag.assert(Slice.equals(values.toSlice(), expectedGrid))
+    Swag.require(Slice.equals(values.toSlice(), expectedGrid))
 
     var weightedSum: s32 = 0
     for value, ordinal in values
@@ -205,7 +205,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
         weightedSum += value * cast(s32, (ordinal + 1))
     }
 
-    Swag.assert(weightedSum == 48)
+    Swag.require(weightedSum == 48)
 
     for &value, ordinal in values
     {
@@ -213,20 +213,20 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     }
 
     let expectedVisited: [4] s32 = [9, 0, 1, 4]
-    Swag.assert(Slice.equals(values.toSlice(), expectedVisited))
+    Swag.require(Slice.equals(values.toSlice(), expectedVisited))
 
     let middle = values[1 to 2]
-    Swag.assert(middle.count == 2)
-    Swag.assert(middle[0] == 0)
-    Swag.assert(middle[1] == 1)
+    Swag.require(middle.count == 2)
+    Swag.require(middle[0] == 0)
+    Swag.require(middle[1] == 1)
 
     values.sort()
     let expectedSorted: [4] s32 = [0, 1, 4, 9]
-    Swag.assert(Slice.equals(values.toSlice(), expectedSorted))
+    Swag.require(Slice.equals(values.toSlice(), expectedSorted))
 
     values.sortReverse()
     let expectedReverse: [4] s32 = [9, 4, 1, 0]
-    Swag.assert(Slice.equals(values.toSlice(), expectedReverse))
+    Swag.require(Slice.equals(values.toSlice(), expectedReverse))
 }
 
 #test
@@ -241,27 +241,27 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.insertAt(values.count, 9)
 
     let expectedInserted: [7] s32 = [0, 1, 7, 8, 2, 3, 9]
-    Swag.assert(Slice.equals(values.toSlice(), expectedInserted))
+    Swag.require(Slice.equals(values.toSlice(), expectedInserted))
 
     values.removeAtOrdered(2, 2)
     let expectedOrderedRemove: [5] s32 = [0, 1, 2, 3, 9]
-    Swag.assert(Slice.equals(values.toSlice(), expectedOrderedRemove))
+    Swag.require(Slice.equals(values.toSlice(), expectedOrderedRemove))
 
     values.removeAt(1)
     let expectedUnorderedRemove: [4] s32 = [0, 9, 2, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expectedUnorderedRemove))
+    Swag.require(Slice.equals(values.toSlice(), expectedUnorderedRemove))
 
     values.removeOrdered(2)
     let expectedRemoveOrderedValue: [3] s32 = [0, 9, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expectedRemoveOrderedValue))
+    Swag.require(Slice.equals(values.toSlice(), expectedRemoveOrderedValue))
 
     values.remove(9)
     let expectedRemoveValue: [2] s32 = [0, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expectedRemoveValue))
+    Swag.require(Slice.equals(values.toSlice(), expectedRemoveValue))
 
     values.swap(0, 1)
     let expectedSwap: [2] s32 = [3, 0]
-    Swag.assert(Slice.equals(values.toSlice(), expectedSwap))
+    Swag.require(Slice.equals(values.toSlice(), expectedSwap))
 }
 
 #test
@@ -273,7 +273,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.remove(2, 2)
 
     let expected: [4] s32 = [0, 1, 4, 5]
-    Swag.assert(Slice.equals(values.toSlice(), expected))
+    Swag.require(Slice.equals(values.toSlice(), expected))
 }
 
 // An empty array owns no block, and 'storage' still answers an address the caller can hold.
@@ -282,46 +282,46 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 #test
 {
     var empty: Array's32
-    Swag.assert(empty.isEmpty())
-    Swag.assert(empty.buffer == null)
+    Swag.require(empty.isEmpty())
+    Swag.require(empty.buffer == null)
 
     let raw = empty.storage()
-    Swag.assert(raw != null)
+    Swag.require(raw != null)
 
     var walked = 0
     for index in empty.count do
         walked += raw[index]
-    Swag.assert(walked == 0)
+    Swag.require(walked == 0)
 
     // Once the array owns a block, 'storage' answers that block.
     empty.add(7)
-    Swag.assert(empty.storage() == empty.buffer)
-    Swag.assert(empty.storage()[0] == 7)
+    Swag.require(empty.storage() == empty.buffer)
+    Swag.require(empty.storage()[0] == 7)
 }
 
 #test
 {
     var values: Array's32
-    Swag.assert(values.isEmpty())
-    Swag.assert(values.buffer == null)
+    Swag.require(values.isEmpty())
+    Swag.require(values.buffer == null)
 
     let seed: [4] s32 = [5, 1, 9, 3]
     values.add(seed)
 
-    Swag.assert(values.count == 4)
+    Swag.require(values.count == 4)
     let raw = cast(const [*] s32, values.storage())
-    Swag.assert(raw[0] == 5)
-    Swag.assert(raw[3] == 3)
+    Swag.require(raw[0] == 5)
+    Swag.require(raw[3] == 3)
 
     values[1] = 7
     values[1] += 2
     values[2] -= 4
     let expectedAssigned: [4] s32 = [5, 9, 5, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expectedAssigned))
+    Swag.require(Slice.equals(values.toSlice(), expectedAssigned))
 
     var none: [..] s32? = null
     values.add(none)
-    Swag.assert(Slice.equals(values.toSlice(), expectedAssigned))
+    Swag.require(Slice.equals(values.toSlice(), expectedAssigned))
 
     var movedFront: s32 = 4
     var movedBack:  s32 = 8
@@ -329,12 +329,12 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.add(#move movedBack)
 
     let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
-    Swag.assert(Slice.equals(values.toSlice(), expectedMoved))
+    Swag.require(Slice.equals(values.toSlice(), expectedMoved))
 
     values.sort(func||(a, b) => b <=> a)
 
     let expectedSortedByCallback: [6] s32 = [9, 8, 5, 5, 4, 3]
-    Swag.assert(Slice.equals(values.toSlice(), expectedSortedByCallback))
+    Swag.require(Slice.equals(values.toSlice(), expectedSortedByCallback))
 }
 
 #test
@@ -343,7 +343,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     var values: Array's32
     values = seed
-    Swag.assert(Slice.equals(values.toSlice(), seed))
+    Swag.require(Slice.equals(values.toSlice(), seed))
 
     var copy: Array's32 = values
     let frontPtr        = copy.frontPtr()
@@ -353,20 +353,20 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
     let expectedCopy:     [3] s32 = [9, 2, 7]
-    Swag.assert(Slice.equals(values.toSlice(), expectedOriginal))
-    Swag.assert(Slice.equals(copy.toSlice(), expectedCopy))
+    Swag.require(Slice.equals(values.toSlice(), expectedOriginal))
+    Swag.require(Slice.equals(copy.toSlice(), expectedCopy))
 
     copy.fill(4)
     let expectedFilled: [3] s32 = [4, 4, 4]
-    Swag.assert(Slice.equals(copy.toSlice(), expectedFilled))
+    Swag.require(Slice.equals(copy.toSlice(), expectedFilled))
 
     copy.resize(1)
     let expectedShrunk: [1] s32 = [4]
-    Swag.assert(Slice.equals(copy.toSlice(), expectedShrunk))
+    Swag.require(Slice.equals(copy.toSlice(), expectedShrunk))
 
     copy.growResize(4)
     let expectedRegrown: [4] s32 = [4, 0, 0, 0]
-    Swag.assert(Slice.equals(copy.toSlice(), expectedRegrown))
+    Swag.require(Slice.equals(copy.toSlice(), expectedRegrown))
 }
 
 #test
@@ -379,10 +379,10 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     for &value in values do
         value.value += 10
 
-    Swag.assert(values[0].value == 11)
-    Swag.assert(values[1].value == 12)
-    Swag.assert(values[2].value == 13)
-    Swag.assert(visitStructArrayReverse(&values) == 28)
+    Swag.require(values[0].value == 11)
+    Swag.require(values[1].value == 12)
+    Swag.require(values[2].value == 13)
+    Swag.require(visitStructArrayReverse(&values) == 28)
 }
 
 #test
@@ -395,18 +395,18 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     values.emplaceAt(1, inserted)
 
     let expectedEmplaced: [5] s32 = [1, 2, 3, 4, 5]
-    Swag.assert(Slice.equals(values.toSlice(), expectedEmplaced))
+    Swag.require(Slice.equals(values.toSlice(), expectedEmplaced))
 
     values.growResize(7)
-    Swag.assert(values[5] == 0)
-    Swag.assert(values[6] == 0)
+    Swag.require(values[5] == 0)
+    Swag.require(values[6] == 0)
 
     values.reserve(14)
     let snapshot = values.toSlice()
     values.add(snapshot)
 
     let expectedSelfAppend: [14] s32 = [1, 2, 3, 4, 5, 0, 0, 1, 2, 3, 4, 5, 0, 0]
-    Swag.assert(Slice.equals(values.toSlice(), expectedSelfAppend))
+    Swag.require(Slice.equals(values.toSlice(), expectedSelfAppend))
 }
 
 #test
@@ -422,7 +422,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
             reverseIndex = index
     }
 
-    Swag.assert(reverseIndex == 2)
+    Swag.require(reverseIndex == 2)
 }
 
 #test
@@ -438,7 +438,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -448,7 +448,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     let expected: [1] string =
         ["11111111111111111111111111111111"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -464,7 +464,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -482,7 +482,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -499,7 +499,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     let expected: [6] string =
         ["11111111111111111111111111111111", "22222222222222222222222222222222", "33333333333333333333333333333333",
          "44444444444444444444444444444444", "22222222222222222222222222222222", "33333333333333333333333333333333"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
@@ -516,17 +516,17 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     let expected: [6] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
          "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
-    Swag.assert(sameStrings(values.toSlice(), expected))
+    Swag.require(sameStrings(values.toSlice(), expected))
 }
 
 #test
 {
     var values = Array'u8.createBuffer(6)
-    Swag.assert(values.count == 6)
-    Swag.assert(values.capacity >= 6)
+    Swag.require(values.count == 6)
+    Swag.require(values.capacity >= 6)
 
     for i in values.count do
-        Swag.assert(values[i] == 0)
+        Swag.require(values[i] == 0)
 
     values.fill(7)
     let frontPtr = values.frontPtr()
@@ -534,17 +534,17 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     frontPtr[] = 1
     backPtr[]  = 9
 
-    Swag.assert(values.front() == 1)
-    Swag.assert(values.back() == 9)
+    Swag.require(values.front() == 1)
+    Swag.require(values.back() == 9)
 
     values.reserve(0)
-    Swag.assert(values.isEmpty())
-    Swag.assert(values.count == 0)
-    Swag.assert(values.capacity == 0)
+    Swag.require(values.isEmpty())
+    Swag.require(values.count == 0)
+    Swag.require(values.capacity == 0)
 
     values.add(5)
-    Swag.assert(values.count == 1)
-    Swag.assert(values[0] == 5)
+    Swag.require(values.count == 1)
+    Swag.require(values[0] == 5)
 }
 
 #test
@@ -563,12 +563,12 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
         values.remove(1, 3)
 
-        Swag.assert(values.count == 2)
-        Swag.assert(values[0].value == 1)
-        Swag.assert(values[1].value == 5)
+        Swag.require(values.count == 2)
+        Swag.require(values[0].value == 1)
+        Swag.require(values[1].value == 5)
     }
 
-    Swag.assert(ArrayDropCount == 5)
+    Swag.require(ArrayDropCount == 5)
 }
 
 #test
@@ -586,15 +586,15 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
         seed[4].value = 5
         values.remove(1, 3)
 
-        Swag.assert(values.count == 2)
-        Swag.assert(values[0].value == 1)
-        Swag.assert(values[1].value == 5)
+        Swag.require(values.count == 2)
+        Swag.require(values[0].value == 1)
+        Swag.require(values[1].value == 5)
 
         values.clear()
         values.free()
     }
 
-    Swag.assert(ArrayDropCount == 5)
+    Swag.require(ArrayDropCount == 5)
 }
 
 // Copying an array reallocates its buffer from null while its capacity still
@@ -624,9 +624,9 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
     var copy = source
     defer copy.free()
-    Swag.assert(copy.count == 21)
+    Swag.require(copy.count == 21)
     for i in 21 do
-        Swag.assert(copy[i] == cast(u16, (i + 1)))
+        Swag.require(copy[i] == cast(u16, (i + 1)))
 }
 
 var ArrayEmplaceDrops: s32
@@ -659,10 +659,10 @@ impl ArrayEmplaceOwned
             values.add({1})
             var inserted: [2] ArrayEmplaceOwned = [ArrayEmplaceOwned{2}, ArrayEmplaceOwned{3}]
             values.emplaceAt(index, inserted)
-            Swag.assert(values.count == 3)
-            Swag.assert(inserted[0].value == 0 and inserted[1].value == 0)
+            Swag.require(values.count == 3)
+            Swag.require(inserted[0].value == 0 and inserted[1].value == 0)
         }
 
-        Swag.assert(ArrayEmplaceDrops == 3)
+        Swag.require(ArrayEmplaceDrops == 3)
     }
 }

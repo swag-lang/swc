@@ -8,23 +8,23 @@ var opaqueSparseGlobal: StaticApi.OpaqueSparseDefault
 {
     #assert(#sizeof(StaticApi.OpaqueSparseDefault) == 17456)
     #assert(#alignof(StaticApi.OpaqueSparseDefault) == 16)
-    Swag.assert(OPAQUE_SPARSE_CONSTANT.isDefault())
-    Swag.assert(opaqueSparseGlobal.isDefault())
+    Swag.require(OPAQUE_SPARSE_CONSTANT.isDefault())
+    Swag.require(opaqueSparseGlobal.isDefault())
 }
 
 #test
 {
     var value: StaticApi.OpaqueSparseDefault
     let literal = StaticApi.OpaqueSparseDefault{}
-    Swag.assert(value.isDefault())
-    Swag.assert(literal.isDefault())
+    Swag.require(value.isDefault())
+    Swag.require(literal.isDefault())
     value.change()
-    Swag.assert(not value.isDefault())
+    Swag.require(not value.isDefault())
     value = {}
-    Swag.assert(value.isDefault())
+    Swag.require(value.isDefault())
     value.change()
     Swag.init(&value)
-    Swag.assert(value.isDefault())
+    Swag.require(value.isDefault())
 }
 
 #test
@@ -32,6 +32,6 @@ var opaqueSparseGlobal: StaticApi.OpaqueSparseDefault
     var values: [2] StaticApi.OpaqueSparseDefault
     values[0].change()
     Swag.init(&values)
-    Swag.assert(values[0].isDefault())
-    Swag.assert(values[1].isDefault())
+    Swag.require(values[0].isDefault())
+    Swag.require(values[1].isDefault())
 }

@@ -7,10 +7,10 @@
     var source: Array'String
     source.add(String.from("Before clearing"))
     source.clear()
-    Swag.assert(source.isEmpty() and source.buffer != null)
+    Swag.require(source.isEmpty() and source.buffer != null)
     var copy = source
-    Swag.assert(copy.isEmpty())
+    Swag.require(copy.isEmpty())
     copy.add(String.from("Copy"))
     source.add(String.from("Source"))
-    Swag.assert(copy[0] == "Copy" and source[0] == "Source" and copy.buffer != source.buffer)
+    Swag.require(copy[0] == "Copy" and source[0] == "Source" and copy.buffer != source.buffer)
 }

@@ -5,14 +5,14 @@ using Swag
 
 func assertGamepadButton(button: Input.GamepadButton, index: u32)
 {
-    Swag.assert(cast(u32, button) == index)
+    Swag.require(cast(u32, button) == index)
 }
 
 #test
 {
     using Input.GamepadButton
 
-    Swag.assert(Input.GamepadButton.count == 25)
+    Swag.require(Input.GamepadButton.count == 25)
 
     assertGamepadButton(A, 0)
     assertGamepadButton(B, 1)

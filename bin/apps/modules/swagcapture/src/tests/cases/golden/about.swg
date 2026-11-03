@@ -24,7 +24,7 @@ using Swag, Core, Pixel
     let dialog = Gui.AboutDlg.createApplication(&host.surface, about)
 
     dialog.applyLayout()
-    Swag.assert(dialog.labelMessage.dockStyle == .None)
+    Swag.require(dialog.labelMessage.dockStyle == .None)
     let surface = unwrap dialog.surface
     var image   = host.renderSurface(surface)
     Pixel.Testing.assertImageGolden(&image, "about")

@@ -35,21 +35,21 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var reader = expect Reader.open(videoFixturePath("cogliati-turning-pages.avi"))
-    Swag.assert(reader.width() == 160 and reader.height() == 120)
-    Swag.assert(reader.frameCount() == 233)
-    Swag.assert(reader.audioTrackCount() == 1)
+    Swag.require(reader.width() == 160 and reader.height() == 120)
+    Swag.require(reader.frameCount() == 233)
+    Swag.require(reader.audioTrackCount() == 1)
 
     let sound = unwrap reader.audioTrack(0)
-    Swag.assert(sound.sampleEncoding() == .Pcm8 and sound.sampleRateHz() == 11_024 and sound.numChannels() == 1)
-    Swag.assert(sound.sampleFrameCount() == 171_240 and sound.payloadSize() == 171_240 and sound.isPacketStream())
+    Swag.require(sound.sampleEncoding() == .Pcm8 and sound.sampleRateHz() == 11_024 and sound.numChannels() == 1)
+    Swag.require(sound.sampleFrameCount() == 171_240 and sound.payloadSize() == 171_240 and sound.isPacketStream())
     let crossing = expect sound.readPayload(11_020, 8)
-    Swag.assert(Slice.equals(crossing.toSlice(), [127'u8, 127, 127, 126, 126, 125, 125, 125]))
+    Swag.require(Slice.equals(crossing.toSlice(), [127'u8, 127, 127, 126, 126, 125, 125, 125]))
 
     // The camera states its rate as 1000000/66666 rather than 15/1, and the decoder keeps what
     // the file says instead of rounding it to the rate the camera meant.
-    Swag.assert(reader.frameRate() == expect FrameRate.create(1_000_000, 66_666))
-    Swag.assert(Math.isEqualEpsilon(reader.frameRate().framesPerSecond(), 15.0, 0.001))
-    Swag.assert(Math.isEqualEpsilon(reader.durationInSeconds(), 15.53, 0.01))
+    Swag.require(reader.frameRate() == expect FrameRate.create(1_000_000, 66_666))
+    Swag.require(Math.isEqualEpsilon(reader.frameRate().framesPerSecond(), 15.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 15.53, 0.01))
 
     // The interleaved sound chunks are not pictures, and counting them as frames would be the
     // easiest mistake to make here.
@@ -76,16 +76,16 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     let storage = frame.pixels.buffer
     for index in 8'u64 do
         expect reader.decodeFrameInto(&frame, index * 29)
-    Swag.assert(frame.pixels.buffer == storage)
+    Swag.require(frame.pixels.buffer == storage)
 }
 
 // Motion JPEG written by ffmpeg.
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg-420.avi"))
-    Swag.assert(reader.width() == 64 and reader.height() == 48)
-    Swag.assert(reader.frameCount() == 10)
-    Swag.assert(reader.frameRate() == expect FrameRate.create(25, 1))
+    Swag.require(reader.width() == 64 and reader.height() == 48)
+    Swag.require(reader.frameCount() == 10)
+    Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
 
     var frame: Image
     const Sampled: [3] u64 = [0, 1, 9]
@@ -104,8 +104,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     for file in Files
     {
         var reader = expect Reader.open(videoFixturePath(file))
-        Swag.assert(reader.width() == 64 and reader.height() == 48)
-        Swag.assert(reader.frameCount() == 10)
+        Swag.require(reader.width() == 64 and reader.height() == 48)
+        Swag.require(reader.frameCount() == 10)
 
         var frame: Image
         const Sampled: [3] u64 = [0, 1, 9]
@@ -121,8 +121,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg-ntsc.avi"))
-    Swag.assert(reader.frameRate() == expect FrameRate.create(30_000, 1_001))
-    Swag.assert(reader.frameRate().framesPerSecond() > 29.97 and reader.frameRate().framesPerSecond() < 29.971)
+    Swag.require(reader.frameRate() == expect FrameRate.create(30_000, 1_001))
+    Swag.require(reader.frameRate().framesPerSecond() > 29.97 and reader.frameRate().framesPerSecond() < 29.971)
     videoAssertFixtureFrame(expect reader.decodeFrame(9), 9, tolerance: 4)
 }
 
@@ -131,7 +131,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var deep = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgra.avi"))
-    Swag.assert(deep.width() == 32 and deep.height() == 24 and deep.frameCount() == 6)
+    Swag.require(deep.width() == 32 and deep.height() == 24 and deep.frameCount() == 6)
     videoAssertFixtureFrame(expect deep.decodeFrame(5), 5, tolerance: 0)
 
     var flat = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
@@ -139,7 +139,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     // 33 pixels of 24 bits fill 99 bytes, and a bitmap row is padded to 100.
     var odd = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-odd.avi"))
-    Swag.assert(odd.width() == 33 and odd.height() == 25 and odd.frameCount() == 3)
+    Swag.require(odd.width() == 33 and odd.height() == 25 and odd.frameCount() == 3)
     for index in 3'u64 do
         videoAssertFixtureFrame(expect odd.decodeFrame(index), index, tolerance: 0)
 }
@@ -153,8 +153,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     for file in Files
     {
         var reader = expect Reader.open(videoFixturePath(file))
-        Swag.assert(reader.width() == 32 and reader.height() == 24)
-        Swag.assert(reader.frameCount() == 6)
+        Swag.require(reader.width() == 32 and reader.height() == 24)
+        Swag.require(reader.frameCount() == 6)
         videoAssertFixtureFrame(expect reader.decodeFrame(0), 0, tolerance: 0)
         videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
         videoAssertFixtureFrame(expect reader.decodeFrame(3), 3, tolerance: 0)
@@ -166,7 +166,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var reader = expect Reader.open(videoFixturePath("edited-dropped-frames.avi"))
-    Swag.assert(reader.frameCount() == 6)
+    Swag.require(reader.frameCount() == 6)
 
     // Frames 3 and 4 were emptied, so both show the picture of frame 2. Reading them out of
     // order proves the answer does not depend on what was decoded before.
@@ -187,12 +187,12 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     let bytes  = expect clip.encodeToBytes("clip.avi")
     var reader = expect Reader.openMemory("clip.avi", bytes.toSlice())
-    Swag.assert(reader.width() == Size and reader.height() == Size)
-    Swag.assert(reader.frameRate() == rate)
-    Swag.assert(reader.frameCount() == 2)
-    Swag.assert(reader.audioTrackCount() == 0)
-    Swag.assert(reader.streamFormat().extensions == ".avi")
-    Swag.assert(Math.isEqualEpsilon(reader.durationInSeconds(), 2.0 / 30.0, 0.0001))
+    Swag.require(reader.width() == Size and reader.height() == Size)
+    Swag.require(reader.frameRate() == rate)
+    Swag.require(reader.frameCount() == 2)
+    Swag.require(reader.audioTrackCount() == 0)
+    Swag.require(reader.streamFormat().extensions == ".avi")
+    Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 2.0 / 30.0, 0.0001))
 
     // Reading the second frame first proves the index, not the order frames were written in.
     videoAssertGray((expect reader.decodeFrame(1)).pixelColor(16, 16), 200, tolerance: 6)
@@ -215,10 +215,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     let coarse = expect clip.encodeToBytes("coarse.avi", low)
     let fine   = expect clip.encodeToBytes("fine.avi", high)
-    Swag.assert(coarse.count < fine.count)
+    Swag.require(coarse.count < fine.count)
 
     var reader = expect Reader.openMemory("coarse.avi", coarse.toSlice())
-    Swag.assert(reader.frameCount() == 4)
+    Swag.require(reader.frameCount() == 4)
     videoAssertGray((expect reader.decodeFrame(3)).pixelColor(32, 24), 160, tolerance: 10)
 }
 
@@ -233,27 +233,27 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     let bytes = expect clip.encodeToBytes("totals.avi")
     let raw   = bytes.toSlice()
-    Swag.assert(aviHasId(raw, 0, "RIFF") and aviHasId(raw, 8, "AVI "))
-    Swag.assert(aviHasId(raw, 12, "LIST") and aviHasId(raw, 20, "hdrl"))
-    Swag.assert(aviHasId(raw, 24, "avih") and aviHasId(raw, 100, "strh") and aviHasId(raw, 164, "strf"))
-    Swag.assert(aviHasId(raw, 212, "LIST") and aviHasId(raw, 220, "movi") and aviHasId(raw, 224, "00dc"))
+    Swag.require(aviHasId(raw, 0, "RIFF") and aviHasId(raw, 8, "AVI "))
+    Swag.require(aviHasId(raw, 12, "LIST") and aviHasId(raw, 20, "hdrl"))
+    Swag.require(aviHasId(raw, 24, "avih") and aviHasId(raw, 100, "strh") and aviHasId(raw, 164, "strf"))
+    Swag.require(aviHasId(raw, 212, "LIST") and aviHasId(raw, 220, "movi") and aviHasId(raw, 224, "00dc"))
 
     // Everything the header could only know once the last frame landed.
-    Swag.assert(aviReadU32(raw, 4) == cast(u32, bytes.count) - 8)
-    Swag.assert(aviReadU32(raw, 48) == 3)       // Frame count of the file header.
-    Swag.assert(aviReadU32(raw, 64) == 8)       // Frame width of the file header.
-    Swag.assert(aviReadU32(raw, 68) == 4)       // Frame height of the file header.
-    Swag.assert(aviReadU32(raw, 128) == 1)      // Rate denominator of the stream header.
-    Swag.assert(aviReadU32(raw, 132) == 24)     // Rate numerator of the stream header.
-    Swag.assert(aviReadU32(raw, 140) == 3)      // Frame count of the stream header.
+    Swag.require(aviReadU32(raw, 4) == cast(u32, bytes.count) - 8)
+    Swag.require(aviReadU32(raw, 48) == 3)       // Frame count of the file header.
+    Swag.require(aviReadU32(raw, 64) == 8)       // Frame width of the file header.
+    Swag.require(aviReadU32(raw, 68) == 4)       // Frame height of the file header.
+    Swag.require(aviReadU32(raw, 128) == 1)      // Rate denominator of the stream header.
+    Swag.require(aviReadU32(raw, 132) == 24)     // Rate numerator of the stream header.
+    Swag.require(aviReadU32(raw, 140) == 3)      // Frame count of the stream header.
 
     // The size of the frame list is what places the index right after the last frame.
     let indexStart = 220 + cast(u64, aviReadU32(raw, 216))
-    Swag.assert(aviHasId(raw, indexStart, "idx1"))
-    Swag.assert(aviReadU32(raw, indexStart + 4) == 3 * 16)
-    Swag.assert(aviHasId(raw, indexStart + 8, "00dc"))
-    Swag.assert(aviReadU32(raw, indexStart + 16) == 4)
-    Swag.assert(indexStart + 8 + 3 * 16 == bytes.count)
+    Swag.require(aviHasId(raw, indexStart, "idx1"))
+    Swag.require(aviReadU32(raw, indexStart + 4) == 3 * 16)
+    Swag.require(aviHasId(raw, indexStart + 8, "00dc"))
+    Swag.require(aviReadU32(raw, indexStart + 16) == 4)
+    Swag.require(indexStart + 8 + 3 * 16 == bytes.count)
 }
 
 // A stream written to a file reads back through the file-backed sink, which is the path where
@@ -271,8 +271,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     expect clip.save(fileName)
 
     var reader = expect Reader.open(fileName)
-    Swag.assert(reader.sourcePath() == fileName.toString())
-    Swag.assert(reader.frameCount() == 3 and reader.width() == 8 and reader.height() == 8)
+    Swag.require(reader.sourcePath() == fileName.toString())
+    Swag.require(reader.frameCount() == 3 and reader.width() == 8 and reader.height() == 8)
 
     var frame: Image
     expect reader.decodeFrameInto(&frame, 2)
@@ -282,10 +282,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     let storage = frame.pixels.buffer
     expect reader.decodeFrameInto(&frame, 0)
     videoAssertGray(frame.pixelColor(4, 4), 32, tolerance: 10)
-    Swag.assert(frame.pixels.buffer == storage)
+    Swag.require(frame.pixels.buffer == storage)
 
     reader.close()
-    Swag.assert(not reader.isOpen())
+    Swag.require(not reader.isOpen())
 }
 
 #test
@@ -296,15 +296,15 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var notAviOutcome: Swag.Error
     discard catch Reader.openMemory("bad.avi", "RIFFsizeWAVEfmt ") as notAviOutcome
     let notAvi = notAviOutcome.value()
-    Swag.assert((notRiff is InvalidFormatError))
-    Swag.assert((notAvi is InvalidFormatError))
+    Swag.require((notRiff is InvalidFormatError))
+    Swag.require((notAvi is InvalidFormatError))
 
     // A container this module reads, truncated to its headers, has no frame to decode.
     var whole = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
     var truncatedOutcome: Swag.Error
     discard catch Reader.openMemory("short.avi", whole.toSlice()[0 until 2048]) as truncatedOutcome
     let truncated = truncatedOutcome.value()
-    Swag.assert(truncated != null)
+    Swag.require(truncated != null)
 }
 
 // Returns the little-endian 32-bit value the container stores at `offset`.

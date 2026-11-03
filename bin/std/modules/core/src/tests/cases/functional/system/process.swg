@@ -7,8 +7,8 @@ using Swag
 #test
 {
     let executable = expect Env.Process.currentExecutablePath()
-    Swag.assert(Path.isRooted(executable))
-    Swag.assert(File.exists(executable))
+    Swag.require(Path.isRooted(executable))
+    Swag.require(File.exists(executable))
 }
 
 // Returns the path of a system executable this test drives.
@@ -18,10 +18,10 @@ using Swag
 func systemExecutablePath(name: string)->String
 {
     let fontsDir = Env.realSpecialDirectory(Env.SpecialDirectory.Font)
-    Swag.assert(not fontsDir.isEmpty())
+    Swag.require(not fontsDir.isEmpty())
 
     let windowsDir = Path.directoryName(fontsDir.toString())
-    Swag.assert(windowsDir != null)
+    Swag.require(windowsDir != null)
 
     let systemDir = Path.combine(windowsDir, "System32")
     return Path.combine(systemDir.toString(), name)
@@ -32,7 +32,7 @@ func systemExecutablePath(name: string)->String
     // A path containing a space has to survive the command line, so the shell is started from
     // a copy of itself placed under one.
     let sourceExe = systemExecutablePath("cmd.exe")
-    Swag.assert(File.exists(sourceExe.toString()))
+    Swag.require(File.exists(sourceExe.toString()))
 
     var targetExe = CoreTests.makeFilesystemTestPath("process_copy")
     targetExe += " with spaces.exe"
@@ -44,11 +44,11 @@ func systemExecutablePath(name: string)->String
     }
 
     discard expect File.duplicate(targetExe.toString(), sourceExe.toString())
-    Swag.assert(File.exists(targetExe.toString()))
+    Swag.require(File.exists(targetExe.toString()))
 
     let process = expect Env.runProcess(targetExe.toString(), "/c exit 7")
-    Swag.assert(process.exitCode() == 7)
-    Swag.assert(not process.isRunning())
+    Swag.require(process.exitCode() == 7)
+    Swag.require(not process.isRunning())
 }
 
 #test
@@ -56,13 +56,13 @@ func systemExecutablePath(name: string)->String
     let shell = systemExecutablePath("cmd.exe")
 
     let process = expect Env.runProcess(shell.toString(), "/c echo to-standard-output& echo to-standard-error 1>&2")
-    Swag.assert(process.exitCode() == 0)
+    Swag.require(process.exitCode() == 0)
 
     let output = String.from(process.standardOutput())
     let errors = String.from(process.standardError())
-    Swag.assert(output.contains("to-standard-output"))
-    Swag.assert(errors.contains("to-standard-error"))
-    Swag.assert(not output.contains("to-standard-error"))
+    Swag.require(output.contains("to-standard-output"))
+    Swag.require(errors.contains("to-standard-error"))
+    Swag.require(not output.contains("to-standard-error"))
 }
 
 #test
@@ -72,7 +72,7 @@ func systemExecutablePath(name: string)->String
 
     var info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c cd", workingDirectory: directory.toString(), standardOutput: .Pipe}
     let process = expect Env.runProcess(info)
-    Swag.assert(process.exitCode() == 0)
+    Swag.require(process.exitCode() == 0)
 
     // The shell reports the directory it actually started in, spelled the native way and
     // without the separator a well-known directory can end on.
@@ -84,7 +84,7 @@ func systemExecutablePath(name: string)->String
     if expected.endsWith("/") do
         expected.removeBack()
 
-    Swag.assert(Utf8.compare(reported.toSlice(), expected.toSlice(), .Latin1NoCase) == 0)
+    Swag.require(Utf8.compare(reported.toSlice(), expected.toSlice(), .Latin1NoCase) == 0)
 }
 
 #test
@@ -92,27 +92,27 @@ func systemExecutablePath(name: string)->String
     let shell = systemExecutablePath("cmd.exe")
 
     var environment = Env.currentEnvironment()
-    Swag.assert(environment.count() != 0)
+    Swag.require(environment.count() != 0)
 
     environment.set("SWAG_PROCESS_TEST", "captured-value")
-    Swag.assert(environment.value("SWAG_PROCESS_TEST") == "captured-value")
+    Swag.require(environment.value("SWAG_PROCESS_TEST") == "captured-value")
 
     // Windows matches variable names without regard to case, so a lookup finds it either way.
-    Swag.assert(environment.value("swag_process_test") == "captured-value")
+    Swag.require(environment.value("swag_process_test") == "captured-value")
 
     var info          = Env.StartInfo{fileName: shell.toString(), arguments: "/c echo %SWAG_PROCESS_TEST%", environment: &environment, standardOutput: .Pipe}
     let granted       = expect Env.runProcess(info)
     let grantedOutput = String.from(granted.standardOutput())
-    Swag.assert(grantedOutput.contains("captured-value"))
+    Swag.require(grantedOutput.contains("captured-value"))
 
     // An unset variable is left as written by the shell, which is how the child reports that
     // the override really disappeared instead of merely turning empty.
     environment.remove("SWAG_PROCESS_TEST")
-    Swag.assert(environment.value("SWAG_PROCESS_TEST") == null)
+    Swag.require(environment.value("SWAG_PROCESS_TEST") == null)
 
     let revoked       = expect Env.runProcess(info)
     let revokedOutput = String.from(revoked.standardOutput())
-    Swag.assert(revokedOutput.contains("%SWAG_PROCESS_TEST%"))
+    Swag.require(revokedOutput.contains("%SWAG_PROCESS_TEST%"))
 }
 
 #test
@@ -126,11 +126,11 @@ func systemExecutablePath(name: string)->String
     process.closeStandardInput()
 
     let exitCode = expect process.waitForExit()
-    Swag.assert(exitCode == 0)
+    Swag.require(exitCode == 0)
 
     var sorted = String.from(process.standardOutput())
     sorted.trim()
-    Swag.assert(sorted.startsWith("first"))
+    Swag.require(sorted.startsWith("first"))
 }
 
 #test
@@ -140,42 +140,42 @@ func systemExecutablePath(name: string)->String
 
     var info    = Env.StartInfo{fileName: waiter.toString(), arguments: "-n 20 127.0.0.1", standardOutput: .Discard}
     var process = expect Env.startProcess(info)
-    Swag.assert(process.isRunning())
-    Swag.assert(process.processId != 0)
+    Swag.require(process.isRunning())
+    Swag.require(process.processId != 0)
 
     let exitedEarly = expect process.tryWaitForExit(50'ms)
-    Swag.assert(not exitedEarly)
+    Swag.require(not exitedEarly)
 
     expect process.kill(9)
     let exitCode = expect process.waitForExit()
-    Swag.assert(exitCode == 9)
-    Swag.assert(not process.isRunning())
+    Swag.require(exitCode == 9)
+    Swag.require(not process.isRunning())
 
     // A discarded stream is not captured, so nothing reaches this side.
-    Swag.assert((process.standardOutput()).count == 0)
+    Swag.require((process.standardOutput()).count == 0)
 }
 
 #test
 {
     // A value the grammar can pass through untouched keeps its exact spelling.
-    Swag.assert(Env.quoteArgument("plain").toString() == "plain")
-    Swag.assert(Env.quoteArgument("").toString() == "\"\"")
-    Swag.assert(Env.quoteArgument("with space").toString() == "\"with space\"")
-    Swag.assert(Env.quoteArgument("say \"hi\"").toString() == "\"say \\\"hi\\\"\"")
-    Swag.assert(Env.quoteArgument("c:\\dir\\").toString() == "c:\\dir\\")
+    Swag.require(Env.quoteArgument("plain").toString() == "plain")
+    Swag.require(Env.quoteArgument("").toString() == "\"\"")
+    Swag.require(Env.quoteArgument("with space").toString() == "\"with space\"")
+    Swag.require(Env.quoteArgument("say \"hi\"").toString() == "\"say \\\"hi\\\"\"")
+    Swag.require(Env.quoteArgument("c:\\dir\\").toString() == "c:\\dir\\")
 
     // A trailing backslash inside a wrapped value has to be doubled, or it would escape the
     // closing quote and swallow the argument that follows.
-    Swag.assert(Env.quoteArgument("c:\\my dir\\").toString() == "\"c:\\my dir\\\\\"")
-    Swag.assert(Env.joinArguments(["a", "b c", ""]).toString() == "a \"b c\" \"\"")
+    Swag.require(Env.quoteArgument("c:\\my dir\\").toString() == "\"c:\\my dir\\\\\"")
+    Swag.require(Env.joinArguments(["a", "b c", ""]).toString() == "a \"b c\" \"\"")
 }
 
 #test
 {
     // A variable the process really has, read one at a time.
     let path = Env.variable("Path")
-    Swag.assert(not path.isEmpty())
-    Swag.assert(Env.variable("SWAG_NO_SUCH_VARIABLE_HERE").isEmpty())
+    Swag.require(not path.isEmpty())
+    Swag.require(Env.variable("SWAG_NO_SUCH_VARIABLE_HERE").isEmpty())
 }
 
 #test
@@ -192,14 +192,14 @@ func systemExecutablePath(name: string)->String
         measureResources: true}
 
     let process = expect Env.runProcess(info)
-    Swag.assert(process.exitCode() == 0)
+    Swag.require(process.exitCode() == 0)
 
     let used = process.resources()
-    Swag.assert(used.processCount >= 1)
-    Swag.assert(used.peakMemory != 0)
-    Swag.assert(used.peakProcessMemory != 0)
-    Swag.assert(used.peakMemory >= used.peakProcessMemory)
-    Swag.assert(used.userTime.seconds + used.kernelTime.seconds > 0)
+    Swag.require(used.processCount >= 1)
+    Swag.require(used.peakMemory != 0)
+    Swag.require(used.peakProcessMemory != 0)
+    Swag.require(used.peakMemory >= used.peakProcessMemory)
+    Swag.require(used.userTime.seconds + used.kernelTime.seconds > 0)
 }
 
 #test
@@ -209,8 +209,8 @@ func systemExecutablePath(name: string)->String
 
     let process = expect Env.runProcess(shell.toString(), "/c exit 0")
     let used    = process.resources()
-    Swag.assert(used.peakMemory == 0)
-    Swag.assert(used.processCount == 0)
+    Swag.require(used.peakMemory == 0)
+    Swag.require(used.processCount == 0)
 }
 
 #test
@@ -220,7 +220,7 @@ func systemExecutablePath(name: string)->String
 
     var info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c exit 3", affinityMask: 1}
     let process = expect Env.runProcess(info)
-    Swag.assert(process.exitCode() == 3)
+    Swag.require(process.exitCode() == 3)
 }
 
 #test
@@ -235,10 +235,10 @@ func systemExecutablePath(name: string)->String
     let info      = Env.StartInfo{fileName: shell.toString(), arguments: arguments.toString(), affinityMask: 0x8000000000000000}
     var outcome: Swag.Error
     discard catch Env.runProcess(info) as outcome
-    Swag.assert(outcome.value() != null)
+    Swag.require(outcome.value() != null)
 
     Threading.Thread.sleep(Time.Duration.fromMilliseconds(200))
-    Swag.assert(not File.exists(marker.toString()))
+    Swag.require(not File.exists(marker.toString()))
 }
 
 // A child refused a console of its own still runs, and both of its streams still arrive.
@@ -252,10 +252,10 @@ func systemExecutablePath(name: string)->String
 
     let info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c echo quiet-output& echo quiet-error 1>&2", standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
     let process = expect Env.runProcess(info)
-    Swag.assert(process.exitCode() == 0)
+    Swag.require(process.exitCode() == 0)
 
     let output = String.from(process.standardOutput())
     let errors = String.from(process.standardError())
-    Swag.assert(output.contains("quiet-output"))
-    Swag.assert(errors.contains("quiet-error"))
+    Swag.require(output.contains("quiet-output"))
+    Swag.require(errors.contains("quiet-error"))
 }

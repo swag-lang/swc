@@ -28,10 +28,10 @@ func buildSerializationPlan(type: typeinfo) fail
     var errorOutcome: Swag.Error
     catch buildSerializationPlan(DuplicatePlanKeys) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is Errors.SerializationError)
+    Swag.require(error is Errors.SerializationError)
     let message = Errors.message(error)
-    Swag.assert(Utf8.contains(message, unwrap #typeof(DuplicatePlanKeys).fullname))
-    Swag.assert(Utf8.endsWith(message, "fields [[first]] and [[second]] use key [[shared]]"))
+    Swag.require(Utf8.contains(message, unwrap #typeof(DuplicatePlanKeys).fullname))
+    Swag.require(Utf8.endsWith(message, "fields [[first]] and [[second]] use key [[shared]]"))
 }
 
 #test
@@ -39,6 +39,6 @@ func buildSerializationPlan(type: typeinfo) fail
     var errorOutcome: Swag.Error
     catch buildSerializationPlan(EmptyPlanKey) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is Errors.SerializationError)
-    Swag.assert(Errors.message(error) == "serialized field needs a non-empty key")
+    Swag.require(error is Errors.SerializationError)
+    Swag.require(Errors.message(error) == "serialized field needs a non-empty key")
 }

@@ -5,8 +5,8 @@ using Swag, Core
 // QOI is registered for loading and saving and is therefore offered by image consumers.
 #test
 {
-    Swag.assert(Image.canLoad("sample.qoi"))
-    Swag.assert(Image.canSave("sample.qoi"))
+    Swag.require(Image.canLoad("sample.qoi"))
+    Swag.require(Image.canSave("sample.qoi"))
 }
 
 // Decode every QOI chunk family and map the file's top-down rows to Image storage.
@@ -25,12 +25,12 @@ using Swag, Core
         0, 0, 0, 0, 0, 0, 0, 1]
 
     let image = expect Image.decode("chunks.qoi", Bytes, {})
-    Swag.assert(image.width == 3 and image.height == 2)
-    Swag.assert(image.pixelFormat == .RGBA8)
+    Swag.require(image.width == 3 and image.height == 2)
+    Swag.require(image.pixelFormat == .RGBA8)
 
     let expected: [24] u8 = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4,
                              10, 20, 30, 255, 11, 19, 30, 255, 15, 24, 36, 255]
-    Swag.assert(Memory.compare(image.pixels.storage(), expected.buffer, expected.count) == 0)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.buffer, expected.count) == 0)
 }
 
 // Round-trip every existing packed channel order without changing logical colors.
@@ -65,11 +65,11 @@ using Swag, Core
 
         let encoded = expect source.encode("memory.qoi")
         let decoded = expect Image.decode("memory.qoi", nnBytes(encoded.toSlice()), {})
-        Swag.assert(decoded.width == source.width and decoded.height == source.height)
+        Swag.require(decoded.width == source.width and decoded.height == source.height)
         for y in source.height
         {
             for x in source.width do
-                Swag.assert(decoded.pixelColor(x, y).argb == source.pixelColor(x, y).argb)
+                Swag.require(decoded.pixelColor(x, y).argb == source.pixelColor(x, y).argb)
         }
     }
 }
@@ -81,9 +81,9 @@ using Swag, Core
     var options: DecodeOptions
     options.decodePixels = false
     let image = expect Image.decode("metadata.qoi", Bytes, options)
-    Swag.assert(image.width == 1 and image.height == 1)
-    Swag.assert(image.pixelFormat == .RGB8)
-    Swag.assert(not image.isValid())
+    Swag.require(image.width == 1 and image.height == 1)
+    Swag.require(image.pixelFormat == .RGB8)
+    Swag.require(not image.isValid())
 }
 
 // Malformed headers, truncated chunks, oversized runs, and missing end markers fail cleanly.
@@ -96,26 +96,26 @@ using Swag, Core
     var signatureErrorOutcome: Swag.Error
     catch { image = try Image.decode("bad.qoi", bytes, {}) } as signatureErrorOutcome
     let signatureError = signatureErrorOutcome.value()
-    Swag.assert(signatureError != null)
+    Swag.require(signatureError != null)
 
     bytes     = Valid
     bytes[12] = 2
     var channelErrorOutcome: Swag.Error
     catch { image = try Image.decode("bad.qoi", bytes, {}) } as channelErrorOutcome
     let channelError = channelErrorOutcome.value()
-    Swag.assert(channelError != null)
+    Swag.require(channelError != null)
 
     bytes     = Valid
     bytes[14] = 0xC1
     var runErrorOutcome: Swag.Error
     catch { image = try Image.decode("bad.qoi", bytes, {}) } as runErrorOutcome
     let runError = runErrorOutcome.value()
-    Swag.assert(runError != null)
+    Swag.require(runError != null)
 
     bytes     = Valid
     bytes[22] = 0
     var markerErrorOutcome: Swag.Error
     catch { image = try Image.decode("bad.qoi", bytes, {}) } as markerErrorOutcome
     let markerError = markerErrorOutcome.value()
-    Swag.assert(markerError != null)
+    Swag.require(markerError != null)
 }

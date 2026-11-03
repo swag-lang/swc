@@ -12,16 +12,16 @@ using Core, Pixel, Gui
     let light  = true
     var host: Testing.HeadlessHost
     let window = homeWindow(&host, light)
-    Swag.assert(window.home.isLocallyVisible() and window.home.rows.count == 6)
-    Swag.assert(ViewerHome.openedText(window.home.rows[0].opened, HomeNow) == "17:42")
-    Swag.assert(ViewerHome.openedText(window.home.rows[3].opened, HomeNow) == appStrings().home_Yesterday)
+    Swag.require(window.home.isLocallyVisible() and window.home.rows.count == 6)
+    Swag.require(ViewerHome.openedText(window.home.rows[0].opened, HomeNow) == "17:42")
+    Swag.require(ViewerHome.openedText(window.home.rows[3].opened, HomeNow) == appStrings().home_Yesterday)
     var rest = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&rest, "home.paper")
 
     host.moveMouse(window.home.localToSurface(window.home.rowRect(1).center()))
-    Swag.assert(window.home.hovered == 1 and window.home.pointerIn)
+    Swag.require(window.home.hovered == 1 and window.home.pointerIn)
     window.home.invalidate()
     var hover = host.render(window)
-    Swag.assert(window.home.hovered == 1 and window.home.pointerIn)
+    Swag.require(window.home.hovered == 1 and window.home.pointerIn)
     Pixel.Testing.assertImageGolden(&hover, "home.hover.paper")
 }

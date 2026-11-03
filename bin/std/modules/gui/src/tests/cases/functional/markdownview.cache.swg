@@ -19,7 +19,7 @@ using Swag, Core, Pixel
     let inline = unwrap view.blocks[0].inline
 
     let first = host.render(view)
-    Swag.assert(inline.renderLayer.contentTarget != null)
+    Swag.require(inline.renderLayer.contentTarget != null)
     var hasInk: bool
     for pixel in first.pixels where pixel != first.pixels[0]
     {
@@ -27,11 +27,11 @@ using Swag, Core, Pixel
         break
     }
 
-    Swag.assert(hasInk)
+    Swag.require(hasInk)
     let second   = host.render(view)
     let commands = host.surface.painter.commandBuffer.count
-    Swag.assert(Slice.equals(first.pixels.toSlice(), second.pixels.toSlice()))
-    Swag.assert(commands < 80)
+    Swag.require(Slice.equals(first.pixels.toSlice(), second.pixels.toSlice()))
+    Swag.require(commands < 80)
 }
 
 // Scrolling retains one screen behind the reader, then releases older block textures.
@@ -49,13 +49,13 @@ using Swag, Core, Pixel
     view.applyLayout()
     discard host.render(view)
     let first = unwrap view.blocks[1].inline
-    Swag.assert(first.renderLayer.contentTarget != null)
+    Swag.require(first.renderLayer.contentTarget != null)
 
     let target = view.blocks[80].wnd.position.y
     view.scroll.setScrollPos(0, target)
-    Swag.assert(first.renderLayer.contentTarget == null)
+    Swag.require(first.renderLayer.contentTarget == null)
     discard host.render(view)
-    Swag.assert(view.blocks[81].inline!.renderLayer.contentTarget != null)
+    Swag.require(view.blocks[81].inline!.renderLayer.contentTarget != null)
 }
 
 // Repainting static document blocks reuses their rasters instead of submitting every glyph.
@@ -79,36 +79,36 @@ using Swag, Core, Pixel
             let view = Markdown.View.createText(&host.root, source)
             view.resize(640, 480)
             view.applyLayout()
-            Swag.assert(view.blocks.count == 1)
+            Swag.require(view.blocks.count == 1)
             let inline = unwrap view.blocks[0].inline
 
             let first    = host.render(view)
             let vertices = host.surface.paintVertices
-            Swag.assert(inline.renderLayer.contentTarget != null)
+            Swag.require(inline.renderLayer.contentTarget != null)
             let target = inline.renderLayer.contentTarget
             let cached = host.render(view)
-            Swag.assert(inline.renderLayer.contentTarget == target)
-            Swag.assert(host.surface.paintVertices < vertices)
-            Swag.assert(Slice.equals(first.pixels.toSlice(), cached.pixels.toSlice()))
+            Swag.require(inline.renderLayer.contentTarget == target)
+            Swag.require(host.surface.paintVertices < vertices)
+            Swag.require(Slice.equals(first.pixels.toSlice(), cached.pixels.toSlice()))
 
             view.selectAll()
-            Swag.assert(inline.renderLayer.contentTarget == null)
+            Swag.require(inline.renderLayer.contentTarget == null)
             let selected       = host.render(view)
             let selectedCached = host.render(view)
-            Swag.assert(not Slice.equals(first.pixels.toSlice(), selected.pixels.toSlice()))
-            Swag.assert(Slice.equals(selected.pixels.toSlice(), selectedCached.pixels.toSlice()))
+            Swag.require(not Slice.equals(first.pixels.toSlice(), selected.pixels.toSlice()))
+            Swag.require(Slice.equals(selected.pixels.toSlice(), selectedCached.pixels.toSlice()))
             view.clearSelection()
-            Swag.assert(inline.renderLayer.contentTarget == null)
+            Swag.require(inline.renderLayer.contentTarget == null)
             discard host.render(view)
             let highlighted = inline.highlightText("entry")
             if highlighted
             {
-                Swag.assert(inline.renderLayer.contentTarget == null)
+                Swag.require(inline.renderLayer.contentTarget == null)
                 let search       = host.render(view)
                 let searchCached = host.render(view)
-                Swag.assert(Slice.equals(search.pixels.toSlice(), searchCached.pixels.toSlice()))
+                Swag.require(Slice.equals(search.pixels.toSlice(), searchCached.pixels.toSlice()))
                 inline.clearSearchHighlight()
-                Swag.assert(inline.renderLayer.contentTarget == null)
+                Swag.require(inline.renderLayer.contentTarget == null)
             }
 
             view.destroy()
@@ -131,20 +131,20 @@ using Swag, Core, Pixel
     discard host.render(view)
     let list   = unwrap view.blocks[1].inline
     let target = list.renderLayer.contentTarget
-    Swag.assert(target != null)
+    Swag.require(target != null)
     view.scroll.setScrollPos(0, 16)
     discard host.render(view)
-    Swag.assert(list.renderLayer.contentTarget == target)
+    Swag.require(list.renderLayer.contentTarget == target)
     view.scroll.setScrollPos(0, 1600)
-    Swag.assert(list.renderLayer.contentTarget == null)
+    Swag.require(list.renderLayer.contentTarget == null)
     view.scroll.setScrollPos(0, 0)
     discard host.render(view)
-    Swag.assert(list.renderLayer.contentTarget != null)
+    Swag.require(list.renderLayer.contentTarget != null)
     var style = view.documentStyle
     style.bodyFontSize += 2
     view.setDocumentStyle(style)
-    Swag.assert(list.renderLayer.contentTarget == null)
+    Swag.require(list.renderLayer.contentTarget == null)
     let resized       = host.render(view)
     let resizedCached = host.render(view)
-    Swag.assert(Slice.equals(resized.pixels.toSlice(), resizedCached.pixels.toSlice()))
+    Swag.require(Slice.equals(resized.pixels.toSlice(), resizedCached.pixels.toSlice()))
 }

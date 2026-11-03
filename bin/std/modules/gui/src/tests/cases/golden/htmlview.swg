@@ -16,9 +16,9 @@ using Core, Pixel
     view.rebuild()
 
     let text = view.document.textContent(0)
-    Swag.assert(Utf8.contains(text.toString(), "Heading level one"))
-    Swag.assert(Utf8.contains(text.toString(), "The distant html verification marker"))
-    Swag.assert(not Utf8.contains(text.toString(), "must not render"))
+    Swag.require(Utf8.contains(text.toString(), "Heading level one"))
+    Swag.require(Utf8.contains(text.toString(), "The distant html verification marker"))
+    Swag.require(not Utf8.contains(text.toString(), "must not render"))
 
     // A hidden container is parsed and then left out of the box tree entirely.
     for index in view.layout.boxes.count
@@ -26,11 +26,11 @@ using Core, Pixel
         let node = view.layout.constBox(cast(u32, index)).node
         if node == HtmlNoNode do
             continue
-        Swag.assert(view.document.constNode(node).tag != .Script)
-        Swag.assert(view.document.constNode(node).tag != .Template)
+        Swag.require(view.document.constNode(node).tag != .Script)
+        Swag.require(view.document.constNode(node).tag != .Template)
     }
 
-    Swag.assert(view.layout.documentHeight > 680)
+    Swag.require(view.layout.documentHeight > 680)
 
     var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.document")
@@ -60,7 +60,7 @@ using Core, Pixel
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
 
     var image = host.render(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.pixel-api")
@@ -109,7 +109,7 @@ using Core, Pixel
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
     var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.tables")
 }
@@ -134,7 +134,7 @@ using Core, Pixel
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
     var image = host.renderSettled(view)
     Pixel.Testing.assertImageGolden(&image, "htmlview.flex-grid")
 }

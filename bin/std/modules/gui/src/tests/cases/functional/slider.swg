@@ -43,17 +43,17 @@ func sliderHeadlessReset()
     slider.sigEndChange   += &sliderHeadlessEnd
 
     slider.setValue(50)
-    Swag.assert(Math.abs(slider.value() - 50) < 0.01)
-    Swag.assert(Math.abs(slider.lowerRatio - 0.5) < 0.01)
-    Swag.assert(SliderHeadlessChangedCount == 1)
-    Swag.assert(SliderHeadlessStartCount == 1)
-    Swag.assert(SliderHeadlessEndCount == 1)
+    Swag.require(Math.abs(slider.value() - 50) < 0.01)
+    Swag.require(Math.abs(slider.lowerRatio - 0.5) < 0.01)
+    Swag.require(SliderHeadlessChangedCount == 1)
+    Swag.require(SliderHeadlessStartCount == 1)
+    Swag.require(SliderHeadlessEndCount == 1)
 
     slider.setValue(200)
-    Swag.assert(Math.abs(slider.value() - 100) < 0.01)
+    Swag.require(Math.abs(slider.value() - 100) < 0.01)
 
     slider.setValue(-50)
-    Swag.assert(Math.abs(slider.value() - 0) < 0.01)
+    Swag.require(Math.abs(slider.value() - 0) < 0.01)
 }
 
 // Steps snap the value to the nearest multiple.
@@ -67,10 +67,10 @@ func sliderHeadlessReset()
     slider.setBounds(0, 10, 1)
 
     slider.setValue(3.4)
-    Swag.assert(Math.abs(slider.value() - 3) < 0.01)
+    Swag.require(Math.abs(slider.value() - 3) < 0.01)
 
     slider.setValue(3.6)
-    Swag.assert(Math.abs(slider.value() - 4) < 0.01)
+    Swag.require(Math.abs(slider.value() - 4) < 0.01)
 }
 
 // A step that does not divide the range still clamps the upper endpoint exactly.
@@ -82,10 +82,10 @@ func sliderHeadlessReset()
     slider.setBounds(0, 10, 6)
     slider.setValue(10)
 
-    Swag.assert(Math.abs(slider.value() - 10) < 0.01)
-    Swag.assert(Math.abs(slider.minimum() - 0) < 0.01)
-    Swag.assert(Math.abs(slider.maximum() - 10) < 0.01)
-    Swag.assert(Math.abs(slider.step() - 6) < 0.01)
+    Swag.require(Math.abs(slider.value() - 10) < 0.01)
+    Swag.require(Math.abs(slider.minimum() - 0) < 0.01)
+    Swag.require(Math.abs(slider.maximum() - 10) < 0.01)
+    Swag.require(Math.abs(slider.step() - 6) < 0.01)
 }
 
 // A step may span the whole range when the control represents exactly two values.
@@ -97,9 +97,9 @@ func sliderHeadlessReset()
     slider.setBounds(0, 1, 1)
 
     slider.setValue(0.4)
-    Swag.assert(Math.abs(slider.value()) < 0.01)
+    Swag.require(Math.abs(slider.value()) < 0.01)
     slider.setValue(0.6)
-    Swag.assert(Math.abs(slider.value() - 1) < 0.01)
+    Swag.require(Math.abs(slider.value() - 1) < 0.01)
 }
 
 // A mouse press jumps the value to the click position and dragging updates it.
@@ -115,21 +115,21 @@ func sliderHeadlessReset()
     slider.sigEndChange   += &sliderHeadlessEnd
 
     host.mouseDown({210, 35})
-    Swag.assert(slider.isMoving)
-    Swag.assert(host.app.mouseCaptureWnd == slider)
-    Swag.assert(SliderHeadlessStartCount == 1)
+    Swag.require(slider.isMoving)
+    Swag.require(host.app.mouseCaptureWnd == slider)
+    Swag.require(SliderHeadlessStartCount == 1)
     let valRight = slider.value()
-    Swag.assert(valRight > 50)
+    Swag.require(valRight > 50)
 
     host.moveMouse({40, 35})
     let valLeft = slider.value()
-    Swag.assert(valLeft < 50)
-    Swag.assert(valLeft < valRight)
+    Swag.require(valLeft < 50)
+    Swag.require(valLeft < valRight)
 
     host.mouseUp({40, 35})
-    Swag.assert(not slider.isMoving)
-    Swag.assert(host.app.mouseCaptureWnd == null)
-    Swag.assert(SliderHeadlessEndCount == 1)
+    Swag.require(not slider.isMoving)
+    Swag.require(host.app.mouseCaptureWnd == null)
+    Swag.require(SliderHeadlessEndCount == 1)
 }
 
 // A range slider keeps two ordered values.
@@ -143,20 +143,20 @@ func sliderHeadlessReset()
     slider.setBounds(0, 100)
     slider.setRange(20, 80)
 
-    Swag.assert(Math.abs(slider.lowerValue() - 20) < 0.01)
-    Swag.assert(Math.abs(slider.upperValue() - 80) < 0.01)
-    Swag.assert(slider.lowerRatio <= slider.upperRatio)
+    Swag.require(Math.abs(slider.lowerValue() - 20) < 0.01)
+    Swag.require(Math.abs(slider.upperValue() - 80) < 0.01)
+    Swag.require(slider.lowerRatio <= slider.upperRatio)
 
     sliderHeadlessReset()
     slider.sigStartChange += &sliderHeadlessStart
     slider.sigChanged     += &sliderHeadlessChanged
     slider.sigEndChange   += &sliderHeadlessEnd
     slider.setRange(-20, 120)
-    Swag.assert(Math.abs(slider.lowerValue() - 0) < 0.01)
-    Swag.assert(Math.abs(slider.upperValue() - 100) < 0.01)
-    Swag.assert(SliderHeadlessStartCount == 1)
-    Swag.assert(SliderHeadlessChangedCount == 1)
-    Swag.assert(SliderHeadlessEndCount == 1)
+    Swag.require(Math.abs(slider.lowerValue() - 0) < 0.01)
+    Swag.require(Math.abs(slider.upperValue() - 100) < 0.01)
+    Swag.require(SliderHeadlessStartCount == 1)
+    Swag.require(SliderHeadlessChangedCount == 1)
+    Swag.require(SliderHeadlessEndCount == 1)
 }
 
 // Keyboard control: arrows step the value, Home/End jump to the bounds.
@@ -174,21 +174,21 @@ func sliderHeadlessReset()
 
     // Default step is 5% of the range = 5 units.
     host.keyPress(Input.Key.Right)
-    Swag.assert(Math.abs(slider.value() - 55) < 0.01)
+    Swag.require(Math.abs(slider.value() - 55) < 0.01)
     host.keyPress(Input.Key.Left)
-    Swag.assert(Math.abs(slider.value() - 50) < 0.01)
-    Swag.assert(SliderHeadlessChangedCount == 2)
+    Swag.require(Math.abs(slider.value() - 50) < 0.01)
+    Swag.require(SliderHeadlessChangedCount == 2)
 
     host.keyPress(Input.Key.Home)
-    Swag.assert(Math.abs(slider.value() - 0) < 0.01)
+    Swag.require(Math.abs(slider.value() - 0) < 0.01)
     host.keyPress(Input.Key.End)
-    Swag.assert(Math.abs(slider.value() - 100) < 0.01)
+    Swag.require(Math.abs(slider.value() - 100) < 0.01)
 
     // Up/Down mirror Right/Left.
     host.keyPress(Input.Key.Down)
-    Swag.assert(Math.abs(slider.value() - 95) < 0.01)
+    Swag.require(Math.abs(slider.value() - 95) < 0.01)
     host.keyPress(Input.Key.Up)
-    Swag.assert(Math.abs(slider.value() - 100) < 0.01)
+    Swag.require(Math.abs(slider.value() - 100) < 0.01)
 }
 
 // Keyboard stepping snaps to integer steps when configured.
@@ -204,7 +204,7 @@ func sliderHeadlessReset()
     host.focus(slider)
 
     host.keyPress(Input.Key.Right)
-    Swag.assert(Math.abs(slider.value() - 6) < 0.01)
+    Swag.require(Math.abs(slider.value() - 6) < 0.01)
     host.keyPress(Input.Key.Left)
-    Swag.assert(Math.abs(slider.value() - 5) < 0.01)
+    Swag.require(Math.abs(slider.value() - 5) < 0.01)
 }

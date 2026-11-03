@@ -22,14 +22,14 @@ private func opusDecodeAll(sound: const *SoundFile)->Array's16 fail
 private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 {
     var sound = expect SoundFile.load(audioGetTestDataPath(Format.toString("%.opus", name).toString()).toString())
-    Swag.assert(sound.sampleEncoding() == .Opus)
-    Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == channels)
-    Swag.assert(sound.isPacketStream() and not sound.isDataPreloaded())
+    Swag.require(sound.sampleEncoding() == .Opus)
+    Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == channels)
+    Swag.require(sound.isPacketStream() and not sound.isDataPreloaded())
 
     let decoded = expect opusDecodeAll(&sound)
     let wanted  = expect File.readAllBytes(audioGetTestDataPath(Format.toString("%.pcm", name).toString()).toString())
-    Swag.assert(decoded.count == sound.sampleFrameCount() * channels)
-    Swag.assert(decoded.count * #sizeof(s16) == wanted.count)
+    Swag.require(decoded.count == sound.sampleFrameCount() * channels)
+    Swag.require(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt = cast(const [*] s16, wanted.storage())
     var energy   = 0.0'f64
@@ -49,7 +49,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     if rms > tolerance do
         Swag.print("opus ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, " at ", worstAt, "\n")
-    Swag.assert(rms <= tolerance)
+    Swag.require(rms <= tolerance)
 }
 
 // Stereo tones in 20 ms CELT frames: the transform layer, its allocation, spreading, and stereo
@@ -84,13 +84,13 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 #test
 {
     var sound = expect SoundFile.load(audioGetTestDataPath("opus-stereo-48000.opus").toString())
-    Swag.assert(sound.sampleFrameCount() == 48_000)
-    Swag.assert(sound.leadingTrim == 312)
-    Swag.assert(sound.speakerChannelMask() == 0x0003)
+    Swag.require(sound.sampleFrameCount() == 48_000)
+    Swag.require(sound.leadingTrim == 312)
+    Swag.require(sound.speakerChannelMask() == 0x0003)
     var total = 0'u64
     for index in sound.packetCount() do
         total += (expect sound.packet(index)).sampleFrameCount
-    Swag.assert(total == 48_000 + 312)
+    Swag.require(total == 48_000 + 312)
 }
 
 // A voice restarts on the run before the target and discards up to it, so the samples heard after
@@ -109,10 +109,10 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     const Target = 30_000'u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
-    Swag.assert(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
+    Swag.require(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, decoded.buffer)
     for index in 32 * 2 do
-        Swag.assert(samples[index] == wanted[Target * 2 + index])
+        Swag.require(samples[index] == wanted[Target * 2 + index])
 }
 
 // A stream whose header announces a channel mapping the decoder does not implement fails on its
@@ -128,7 +128,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 
     // The mapping family lives at byte 18 of OpusHead, which the first page carries after its
     // 28-byte header; the page checksum must follow the change for the reader to reach it.
-    Swag.assert(bytes[28 + 18] == 0)
+    Swag.require(bytes[28 + 18] == 0)
     bytes[28 + 18] = 1
     let firstPage = expect Ogg.readPageHeader(bytes.toSlice(), 0)
     let table     = Ogg.buildChecksumTable()
@@ -139,5 +139,5 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     var errOutcome: Swag.Error
     discard catch SoundFile.load(path.toString()) as errOutcome
     let err = errOutcome.value()
-    Swag.assert((err is Errors.UnsupportedFormatError))
+    Swag.require((err is Errors.UnsupportedFormatError))
 }

@@ -18,17 +18,17 @@ func lifecycleTestLoad(fileName: string)->s32 fail
     load.task.wait()
     var value: s32
     let failure = load.finish(&value)
-    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, "worker-owned failure"))
-    Swag.assert(not load.started)
+    Swag.require(failure == failureShape(appStrings().ui_FailureFormat, "worker-owned failure"))
+    Swag.require(not load.started)
 
     load.start("success", &lifecycleTestLoad)
     load.task.wait()
     let success = load.finish(&value)
-    Swag.assert(success.isEmpty() and value == 42)
+    Swag.require(success.isEmpty() and value == 42)
 
     load.start("replacement failure", &lifecycleTestLoad)
     load.task.wait()
     let replacement = load.finish(&value)
-    Swag.assert(replacement == failureShape(appStrings().ui_FailureFormat, "replacement failure"))
-    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, "worker-owned failure"))
+    Swag.require(replacement == failureShape(appStrings().ui_FailureFormat, "replacement failure"))
+    Swag.require(failure == failureShape(appStrings().ui_FailureFormat, "worker-owned failure"))
 }

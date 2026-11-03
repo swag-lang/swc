@@ -7,5 +7,5 @@ using Core, Gui, Pixel
 #test
 {
     let file = Path.combine(testSourceRoot(#curlocation), "datas", "pacman_beginning.wav")
-    Swag.assert(localSoundDuration(file) >= 4)
+    Swag.require(localSoundDuration(file) >= 4)
 }

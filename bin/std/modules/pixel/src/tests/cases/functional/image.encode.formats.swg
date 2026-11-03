@@ -14,14 +14,14 @@ using Swag, Core
         var bmpErrorOutcome: Swag.Error
         discard catch image.encode("image.bmp") as bmpErrorOutcome
         let bmpError = bmpErrorOutcome.value()
-        Swag.assert(bmpError != null)
+        Swag.require(bmpError != null)
         var tgaErrorOutcome: Swag.Error
         discard catch image.encode("image.tga") as tgaErrorOutcome
         let tgaError = tgaErrorOutcome.value()
-        Swag.assert(tgaError != null)
+        Swag.require(tgaError != null)
         var rleErrorOutcome: Swag.Error
         discard catch image.encode("image.tga", Tga.EncodeOptions{rle: true}) as rleErrorOutcome
         let rleError = rleErrorOutcome.value()
-        Swag.assert(rleError != null)
+        Swag.require(rleError != null)
     }
 }

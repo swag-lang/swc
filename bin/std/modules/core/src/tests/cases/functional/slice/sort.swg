@@ -8,16 +8,16 @@ using Swag
     let backing: [1] s32 = [42]
     let empty = backing[until 0]
 
-    Swag.assert(Slice.isSorted(empty))
-    Swag.assert(Slice.isSorted(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
+    Swag.require(Slice.isSorted(empty))
+    Swag.require(Slice.isSorted(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 #test
 {
     let values: [1] s32 = [7]
 
-    Swag.assert(Slice.isSorted(values))
-    Swag.assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
+    Swag.require(Slice.isSorted(values))
+    Swag.require(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 #test
@@ -26,9 +26,9 @@ using Swag
     let unsorted:   [5] s32 = [1, 3, 2, 4, 5]
     let descending: [5] s32 = [9, 7, 4, 4, 1]
 
-    Swag.assert(Slice.isSorted(sorted))
-    Swag.assert(not Slice.isSorted(unsorted))
-    Swag.assert(Slice.isSorted(descending, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
+    Swag.require(Slice.isSorted(sorted))
+    Swag.require(not Slice.isSorted(unsorted))
+    Swag.require(Slice.isSorted(descending, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 #test
@@ -37,13 +37,13 @@ using Swag
     Slice.sort(values)
 
     let expected: [5] s32 = [1, 2, 3, 4, 5]
-    Swag.assert(Slice.equals(values, expected))
-    Swag.assert(Slice.isSorted(values))
+    Swag.require(Slice.equals(values, expected))
+    Swag.require(Slice.isSorted(values))
 
     Slice.reverse(values)
     let reversed: [5] s32 = [5, 4, 3, 2, 1]
-    Swag.assert(Slice.equals(values, reversed))
-    Swag.assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
+    Swag.require(Slice.equals(values, reversed))
+    Swag.require(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 #test
@@ -52,8 +52,8 @@ using Swag
     Slice.sort(values, descending: true)
 
     let expected: [12] s32 = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    Swag.assert(Slice.equals(values, expected))
-    Swag.assert(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
+    Swag.require(Slice.equals(values, expected))
+    Swag.require(Slice.isSorted(values, func(lhs, rhs: s32)->s32 => rhs <=> lhs))
 }
 
 // Number of comparisons Slice.sort needs for 'values', which the sort must leave ordered.
@@ -66,7 +66,7 @@ func countedSortCompares(values: [..] s32)->u64
         return x <=> y
     })
 
-    Swag.assert(Slice.isSorted(values))
+    Swag.require(Slice.isSorted(values))
     return compares
 }
 
@@ -87,7 +87,7 @@ func countedSortCompares(values: [..] s32)->u64
         equal.add(7)
     }
 
-    Swag.assert(countedSortCompares(ascending.toSlice()) < MaxCompares)
-    Swag.assert(countedSortCompares(reversed.toSlice()) < MaxCompares)
-    Swag.assert(countedSortCompares(equal.toSlice()) < MaxCompares)
+    Swag.require(countedSortCompares(ascending.toSlice()) < MaxCompares)
+    Swag.require(countedSortCompares(reversed.toSlice()) < MaxCompares)
+    Swag.require(countedSortCompares(equal.toSlice()) < MaxCompares)
 }

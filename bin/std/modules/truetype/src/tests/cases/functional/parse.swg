@@ -5,24 +5,24 @@ using Swag, Core
 #test
 {
     let valueU16 = expect readU16(ReaderBytes, 0)
-    Swag.assert(valueU16 == 0x1234)
+    Swag.require(valueU16 == 0x1234)
 
     let valueS16 = expect readS16(ReaderBytes, 2)
-    Swag.assert(valueS16 == -128)
+    Swag.require(valueS16 == -128)
 
     let valueU32 = expect readU32(ReaderBytes, 0)
-    Swag.assert(valueU32 == 0x1234FF80)
+    Swag.require(valueU32 == 0x1234FF80)
 
     let valueS32 = expect readS32(ReaderS32Bytes, 0)
-    Swag.assert(valueS32 == -128)
+    Swag.require(valueS32 == -128)
 
     let valueF2Dot14 = expect readF2Dot14(FixedPointBytes, 0)
-    Swag.assert(Math.abs(valueF2Dot14 - 0.5) < 0.0001)
+    Swag.require(Math.abs(valueF2Dot14 - 0.5) < 0.0001)
 
     var err6Outcome: Swag.Error
     discard catch assertRange(ReaderBytes, 0, 16) as err6Outcome
     let err6 = err6Outcome.value()
-    Swag.assert(err6 != null)
+    Swag.require(err6 != null)
 }
 
 #test
@@ -30,11 +30,11 @@ using Swag, Core
     var err7Outcome: Swag.Error
     catch checkFaceLoad(BrokenFontBytes) as err7Outcome
     let err7 = err7Outcome.value()
-    Swag.assert(err7 != null)
+    Swag.require(err7 != null)
 
     var empty:       Array'u8
     var err8Outcome: Swag.Error
     catch checkFaceLoad(empty.toSlice()) as err8Outcome
     let err8 = err8Outcome.value()
-    Swag.assert(err8 != null)
+    Swag.require(err8 != null)
 }

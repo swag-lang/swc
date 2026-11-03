@@ -79,8 +79,8 @@ func linearSecond()->AnimationOptions
                                               linearSecond(),
                                               &animationCompleted)
     host.finishAnimations()
-    Swag.assert(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
-    Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
+    Swag.require(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
+    Swag.require(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
 }
 
 // Typed parallel tracks sample deterministically at 0, 50, and 100 percent.
@@ -102,21 +102,21 @@ func linearSecond()->AnimationOptions
     group.setCompletion(&animationCompleted)
     let handle = host.app.animator.start(#move group)
 
-    Swag.assert(handle.isValid() and host.app.animator.isActive(handle))
-    Swag.assert(AnimationTestF32 == 0 and AnimationTestPoint == Math.Point{})
+    Swag.require(handle.isValid() and host.app.animator.isActive(handle))
+    Swag.require(AnimationTestF32 == 0 and AnimationTestPoint == Math.Point{})
 
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 5, 0.001))
-    Swag.assert(AnimationTestPoint == Math.Point{5, 10})
-    Swag.assert(AnimationTestVector == Math.Vector4{1, 2, 3, 4})
-    Swag.assert(AnimationTestRectangle == {5, 10, 15, 20})
-    Swag.assert(Math.isEqualEpsilon(AnimationTestColor.x, 0.5, 0.01))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 5, 0.001))
+    Swag.require(AnimationTestPoint == Math.Point{5, 10})
+    Swag.require(AnimationTestVector == Math.Vector4{1, 2, 3, 4})
+    Swag.require(AnimationTestRectangle == {5, 10, 15, 20})
+    Swag.require(Math.isEqualEpsilon(AnimationTestColor.x, 0.5, 0.01))
 
     host.advanceAnimations(0.5)
-    Swag.assert(AnimationTestF32 == 10 and AnimationTestPoint == Math.Point{10, 20})
-    Swag.assert(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
-    Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
-    Swag.assert(host.app.frameEvents.isEmpty())
+    Swag.require(AnimationTestF32 == 10 and AnimationTestPoint == Math.Point{10, 20})
+    Swag.require(not host.app.animator.isActive(handle) and host.app.animator.activeCount() == 0)
+    Swag.require(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
+    Swag.require(host.app.frameEvents.isEmpty())
     discard host.render()
 }
 
@@ -134,18 +134,18 @@ func linearSecond()->AnimationOptions
     options.easing   = .EaseIn
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.easing"), 0, 8, &animationSetF32, options)
     host.advanceAnimations(0.25)
-    Swag.assert(AnimationTestF32 == 0)
+    Swag.require(AnimationTestF32 == 0)
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 1, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 1, 0.001))
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 8)
+    Swag.require(AnimationTestF32 == 8)
 
     options.delay     = {}
     options.direction = .Reverse
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.reverse"), 2, 10, &animationSetF32, options)
-    Swag.assert(AnimationTestF32 == 10)
+    Swag.require(AnimationTestF32 == 10)
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 2)
+    Swag.require(AnimationTestF32 == 2)
 }
 
 // Retargeting begins at the on-screen value rather than the new authored source.
@@ -160,12 +160,12 @@ func linearSecond()->AnimationOptions
     let options = linearSecond()
     discard host.app.animator.animateF32(target, channel, 0, 100, &animationSetF32, options)
     host.advanceAnimations(0.25)
-    Swag.assert(AnimationTestF32 == 25)
+    Swag.require(AnimationTestF32 == 25)
 
     discard host.app.animator.animateF32(target, channel, 0, 200, &animationSetF32, options)
-    Swag.assert(AnimationTestF32 == 25)
+    Swag.require(AnimationTestF32 == 25)
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 112.5, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 112.5, 0.001))
 }
 
 // Parallel and sequence groups have distinct advancement contracts.
@@ -185,11 +185,11 @@ func linearSecond()->AnimationOptions
     sequence.addF32(second, AnimationChannel.from("test.sequence.second"), 0, 20, &animationSetF32B, options)
     discard host.app.animator.start(#move sequence)
     host.advanceAnimations(1)
-    Swag.assert(AnimationTestF32 == 10 and AnimationTestF32B == 0)
+    Swag.require(AnimationTestF32 == 10 and AnimationTestF32B == 0)
     host.advanceAnimations(0.5)
-    Swag.assert(AnimationTestF32B == 10)
+    Swag.require(AnimationTestF32B == 10)
     host.finishAnimations()
-    Swag.assert(AnimationTestF32B == 20)
+    Swag.require(AnimationTestF32B == 20)
 
     AnimationTestF32, AnimationTestF32B = -1
     sequence = AnimationGroup.sequence()
@@ -197,7 +197,7 @@ func linearSecond()->AnimationOptions
     sequence.addF32(second, AnimationChannel.from("test.sequence.overflow.second"), 0, 20, &animationSetF32B, options)
     discard host.app.animator.start(#move sequence)
     host.advanceAnimations(1.5)
-    Swag.assert(AnimationTestF32 == 10 and AnimationTestF32B == 10)
+    Swag.require(AnimationTestF32 == 10 and AnimationTestF32B == 10)
 }
 
 // Hiding or destroying a target cancels its tracks and reports cancellation once.
@@ -211,14 +211,14 @@ func linearSecond()->AnimationOptions
     let target = Wnd.create'Wnd(&host.root)
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.lifetime"), 0, 10, &animationSetF32, linearSecond(), &animationCompleted)
     target.hide()
-    Swag.assert(not host.app.animator.isActive(handle))
-    Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
+    Swag.require(not host.app.animator.isActive(handle))
+    Swag.require(AnimationTestCompleted == 1 and AnimationTestResult == .Cancelled)
 
     target.show()
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.destroy"), 0, 10, &animationSetF32, linearSecond(), &animationCompleted)
     target.destroy()
-    Swag.assert(host.app.animator.activeCount() == 0)
-    Swag.assert(AnimationTestCompleted == 2 and AnimationTestResult == .Cancelled)
+    Swag.require(host.app.animator.activeCount() == 0)
+    Swag.require(AnimationTestCompleted == 2 and AnimationTestResult == .Cancelled)
 }
 
 // Reduced motion completes decoration immediately but leaves essential feedback on the clock.
@@ -229,12 +229,12 @@ func linearSecond()->AnimationOptions
     let target = Wnd.create'Wnd(&host.root)
 
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.reduced"), 0, 10, &animationSetF32, linearSecond())
-    Swag.assert(AnimationTestF32 == 10 and host.app.animator.activeCount() == 0)
+    Swag.require(AnimationTestF32 == 10 and host.app.animator.activeCount() == 0)
 
     var options = linearSecond()
     options.motion = .Essential
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.essential"), 0, 10, &animationSetF32, options)
-    Swag.assert(host.app.animator.isActive(handle) and AnimationTestF32 == 0)
+    Swag.require(host.app.animator.isActive(handle) and AnimationTestF32 == 0)
     host.finishAnimations()
 }
 
@@ -251,15 +251,15 @@ func linearSecond()->AnimationOptions
     blend.apply(target, Argb.White)
     host.advanceAnimations(0.05)
     let interrupted = blend.cur()
-    Swag.assert(interrupted != Color.fromArgb(Argb.Black) and interrupted != Color.fromArgb(Argb.White))
+    Swag.require(interrupted != Color.fromArgb(Argb.Black) and interrupted != Color.fromArgb(Argb.White))
 
     target.hide()
-    Swag.assert(host.app.animator.activeCount() == 0)
+    Swag.require(host.app.animator.activeCount() == 0)
     target.show()
     blend.apply(target, Argb.White)
-    Swag.assert(host.app.animator.activeCount() == 1)
+    Swag.require(host.app.animator.activeCount() == 1)
     host.finishAnimations()
-    Swag.assert(blend.cur() == Color.fromArgb(Argb.White))
+    Swag.require(blend.cur() == Color.fromArgb(Argb.White))
 }
 
 // Theme and DPI changes do not detach a live track from its target or reset its progress.
@@ -276,10 +276,10 @@ func linearSecond()->AnimationOptions
     let before = AnimationTestPoint
     host.surface.setDpiScaleRaw(1.75)
     host.notify(.ThemeChanged)
-    Swag.assert(host.app.animator.isActive(target, channel))
-    Swag.assert(AnimationTestPoint == before)
+    Swag.require(host.app.animator.isActive(target, channel))
+    Swag.require(AnimationTestPoint == before)
     host.advanceAnimations(0.7)
-    Swag.assert(AnimationTestPoint == Math.Point{100, 50})
+    Swag.require(AnimationTestPoint == Math.Point{100, 50})
 }
 
 // Every curve starts at zero and lands on one; only the named ones leave the interval.
@@ -288,30 +288,30 @@ func linearSecond()->AnimationOptions
     for curve in [AnimationEasing.Linear, .EaseIn, .EaseOut, .EaseInOut, .EaseInBack, .EaseOutBack, .EaseInOutBack, .EaseOutElastic, .EaseOutBounce]
     {
         var easing = curve
-        Swag.assert(Math.isEqualEpsilon(easing.evaluate(0), 0, 0.001))
-        Swag.assert(Math.isEqualEpsilon(easing.evaluate(1), 1, 0.001))
+        Swag.require(Math.isEqualEpsilon(easing.evaluate(0), 0, 0.001))
+        Swag.require(Math.isEqualEpsilon(easing.evaluate(1), 1, 0.001))
 
         // Progress outside the interval is clamped, never extrapolated.
-        Swag.assert(easing.evaluate(-3) == easing.evaluate(0))
-        Swag.assert(easing.evaluate(4) == easing.evaluate(1))
+        Swag.require(easing.evaluate(-3) == easing.evaluate(0))
+        Swag.require(easing.evaluate(4) == easing.evaluate(1))
     }
 
     var linear = AnimationEasing.Linear
-    Swag.assert(Math.isEqualEpsilon(linear.evaluate(0.25), 0.25, 0.001))
+    Swag.require(Math.isEqualEpsilon(linear.evaluate(0.25), 0.25, 0.001))
 
     // An overshooting curve is chosen for exactly that: it leaves the interval and comes back.
     var back = AnimationEasing.EaseOutBack
-    Swag.assert(back.evaluate(0.7) > 1)
+    Swag.require(back.evaluate(0.7) > 1)
 
     var anticipate = AnimationEasing.EaseInBack
-    Swag.assert(anticipate.evaluate(0.3) < 0)
+    Swag.require(anticipate.evaluate(0.3) < 0)
 
     // A bounce lands and rebounds without ever passing its endpoint.
     var bounce = AnimationEasing.EaseOutBounce
     for step in 21
     {
         let value = bounce.evaluate(cast(f32, step) / 20)
-        Swag.assert(value >= 0 and value <= 1.001)
+        Swag.require(value >= 0 and value <= 1.001)
     }
 }
 
@@ -337,13 +337,13 @@ func linearSecond()->AnimationOptions
     options.curve    = &curve
 
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.curve"), 0, 100, &animationSetF32, options)
-    Swag.assert(AnimationTestF32 == 0)
+    Swag.require(AnimationTestF32 == 0)
     host.advanceAnimations(0.25)
-    Swag.assert(AnimationTestF32 == 0)
+    Swag.require(AnimationTestF32 == 0)
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 50, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 50, 0.001))
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 100)
+    Swag.require(AnimationTestF32 == 100)
 }
 
 // A repeating track replays its curve and holds the endpoint of its last play.
@@ -360,18 +360,18 @@ func linearSecond()->AnimationOptions
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.repeat"), 0, 10, &animationSetF32, options, &animationCompleted)
 
     host.advanceAnimations(0.5)
-    Swag.assert(AnimationTestF32 == 5)
+    Swag.require(AnimationTestF32 == 5)
 
     // Each play restarts the curve instead of continuing past its end value.
     host.advanceAnimations(1)
-    Swag.assert(AnimationTestF32 == 5 and host.app.animator.isActive(handle))
+    Swag.require(AnimationTestF32 == 5 and host.app.animator.isActive(handle))
     host.advanceAnimations(1)
-    Swag.assert(AnimationTestF32 == 5)
+    Swag.require(AnimationTestF32 == 5)
 
     host.advanceAnimations(0.5)
-    Swag.assert(AnimationTestF32 == 10)
-    Swag.assert(not host.app.animator.isActive(handle))
-    Swag.assert(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
+    Swag.require(AnimationTestF32 == 10)
+    Swag.require(not host.app.animator.isActive(handle))
+    Swag.require(AnimationTestCompleted == 1 and AnimationTestResult == .Completed)
 }
 
 // A ping-pong track runs its odd plays backwards and settles where it started.
@@ -388,14 +388,14 @@ func linearSecond()->AnimationOptions
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.pingpong"), 0, 10, &animationSetF32, options)
 
     host.advanceAnimations(0.75)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 7.5, 0.001))
     host.advanceAnimations(0.5)
-    Swag.assert(Math.isEqualEpsilon(AnimationTestF32, 2.5, 0.001))
+    Swag.require(Math.isEqualEpsilon(AnimationTestF32, 2.5, 0.001))
 
     host.advanceAnimations(0.25)
-    Swag.assert(AnimationTestF32 == 0 and not host.app.animator.isActive(handle))
+    Swag.require(AnimationTestF32 == 0 and not host.app.animator.isActive(handle))
 }
 
 // An endless track never completes on its own, and finishes on its resting value.
@@ -411,17 +411,17 @@ func linearSecond()->AnimationOptions
     let forward = host.app.animator.animateF32(target, AnimationChannel.from("test.endless"), 0, 10, &animationSetF32, options)
 
     host.advanceAnimations(6.5)
-    Swag.assert(AnimationTestF32 == 5 and host.app.animator.isActive(forward))
+    Swag.require(AnimationTestF32 == 5 and host.app.animator.isActive(forward))
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 10 and not host.app.animator.isActive(forward))
+    Swag.require(AnimationTestF32 == 10 and not host.app.animator.isActive(forward))
 
     // A ping-pong loop rests at the value it keeps returning to, which is where it began.
     options.autoReverse = true
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.endless.pingpong"), 2, 8, &animationSetF32, options)
     host.advanceAnimations(3.5)
-    Swag.assert(AnimationTestF32 == 5)
+    Swag.require(AnimationTestF32 == 5)
     host.finishAnimations()
-    Swag.assert(AnimationTestF32 == 2)
+    Swag.require(AnimationTestF32 == 2)
 }
 
 // Reduced motion collapses a decorative loop instead of leaving it running forever.
@@ -435,13 +435,13 @@ func linearSecond()->AnimationOptions
     options.repeatCount = 0
     options.autoReverse = true
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.reduced.loop"), 3, 9, &animationSetF32, options)
-    Swag.assert(AnimationTestF32 == 3 and host.app.animator.activeCount() == 0)
+    Swag.require(AnimationTestF32 == 3 and host.app.animator.activeCount() == 0)
 
     // An essential loop still reports, because reduced motion is about decoration.
     options.motion = .Essential
     let handle = host.app.animator.animateF32(target, AnimationChannel.from("test.reduced.essential"), 3, 9, &animationSetF32, options)
     host.advanceAnimations(0.5)
-    Swag.assert(AnimationTestF32 == 6 and host.app.animator.isActive(handle))
+    Swag.require(AnimationTestF32 == 6 and host.app.animator.isActive(handle))
     host.finishAnimations()
 }
 
@@ -453,30 +453,30 @@ func linearSecond()->AnimationOptions
     host.setReducedMotion(false)
 
     let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
-    Swag.assert(target.presentationRect() == {40, 20, 100, 50})
+    Swag.require(target.presentationRect() == {40, 20, 100, 50})
 
     target.setPresentationScale({0.5, 0.5})
-    Swag.assert(target.presentationRect() == {65, 32.5, 50, 25})
-    Swag.assert(target.position == {40, 20, 100, 50})
+    Swag.require(target.presentationRect() == {65, 32.5, 50, 25})
+    Swag.require(target.position == {40, 20, 100, 50})
 
     // A corner pivot keeps that corner still.
     target.setPresentationPivot({})
-    Swag.assert(target.presentationRect() == {40, 20, 50, 25})
+    Swag.require(target.presentationRect() == {40, 20, 50, 25})
 
     target.setPresentationOffset({10, -4})
-    Swag.assert(target.presentationRect() == {50, 16, 50, 25})
+    Swag.require(target.presentationRect() == {50, 16, 50, 25})
 
     target.resetPresentation()
-    Swag.assert(target.presentationRect() == {40, 20, 100, 50})
-    Swag.assert(target.presentationScale == Math.Point{1, 1} and target.presentationPivot == Math.Point{0.5, 0.5})
+    Swag.require(target.presentationRect() == {40, 20, 100, 50})
+    Swag.require(target.presentationScale == Math.Point{1, 1} and target.presentationPivot == Math.Point{0.5, 0.5})
 
     // The same state, driven through the scheduler.
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale(Math.Point{value, value}) }, linearSecond())
     host.advanceAnimations(0.5)
-    Swag.assert(target.presentationScale == Math.Point{1.5, 1.5})
-    Swag.assert(target.presentationRect() == {15, 7.5, 150, 75})
+    Swag.require(target.presentationScale == Math.Point{1.5, 1.5})
+    Swag.require(target.presentationRect() == {15, 7.5, 150, 75})
     host.finishAnimations()
-    Swag.assert(target.presentationScale == Math.Point{2, 2})
+    Swag.require(target.presentationScale == Math.Point{2, 2})
     discard host.render()
 }
 
@@ -526,10 +526,10 @@ func linearSecond()->AnimationOptions
                                                    func|&color, &colorEnd|(_, value) { color = value; colorEnd = {} },
                                                    options)
 
-    Swag.assert(pointEnd == {} and vectorEnd == {} and rectEnd == {} and colorEnd == {})
+    Swag.require(pointEnd == {} and vectorEnd == {} and rectEnd == {} and colorEnd == {})
     host.finishAnimations()
-    Swag.assert(point == Math.Point{3, 4})
-    Swag.assert(vector == Math.Vector4{5, 6, 7, 8})
-    Swag.assert(rect == {5, 6, 7, 8})
-    Swag.assert(color == Color.fromArgb(Argb.White))
+    Swag.require(point == Math.Point{3, 4})
+    Swag.require(vector == Math.Vector4{5, 6, 7, 8})
+    Swag.require(rect == {5, 6, 7, 8})
+    Swag.require(color == Color.fromArgb(Argb.White))
 }

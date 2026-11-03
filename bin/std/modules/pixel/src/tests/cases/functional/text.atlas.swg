@@ -8,17 +8,17 @@ using Swag, Core
     var atlas: GlyphAtlas
     atlas.markDirty(2, 5, 3, 4)
     atlas.markDirty(9, 1, 2, 6)
-    Swag.assert(atlas.dirty)
-    Swag.assert(atlas.dirtyMinX == 2 and atlas.dirtyMinY == 1)
-    Swag.assert(atlas.dirtyMaxX == 11 and atlas.dirtyMaxY == 9)
+    Swag.require(atlas.dirty)
+    Swag.require(atlas.dirtyMinX == 2 and atlas.dirtyMinY == 1)
+    Swag.require(atlas.dirtyMaxX == 11 and atlas.dirtyMaxY == 9)
 
     atlas.dirty = false
     atlas.markDirty(20, 30, 0, 4)
     atlas.markDirty(20, 30, 4, 0)
-    Swag.assert(not atlas.dirty)
+    Swag.require(not atlas.dirty)
     atlas.markDirty(20, 30, 4, 5)
-    Swag.assert(atlas.dirtyMinX == 20 and atlas.dirtyMinY == 30)
-    Swag.assert(atlas.dirtyMaxX == 24 and atlas.dirtyMaxY == 35)
+    Swag.require(atlas.dirtyMinX == 20 and atlas.dirtyMinY == 30)
+    Swag.require(atlas.dirtyMaxX == 24 and atlas.dirtyMaxY == 35)
 }
 
 // Reconstruct the atlas exactly as an incremental texture upload does. This checks row stride,
@@ -36,14 +36,14 @@ private func testAtlasUpload(mode: FontRenderMode)
     font.cache.dirty = false
 
     discard font.getGlyphDesc('B')
-    Swag.assert(atlas.dirty and font.cache.dirty)
+    Swag.require(atlas.dirty and font.cache.dirty)
     let changedPixels = (atlas.dirtyMaxX - atlas.dirtyMinX) * (atlas.dirtyMaxY - atlas.dirtyMinY)
-    Swag.assert(changedPixels * 4 < atlas.width / atlas.bytesPerPixel * atlas.height)
+    Swag.require(changedPixels * 4 < atlas.width / atlas.bytesPerPixel * atlas.height)
 
     // Force the next glyph to start a shelf without filling the entire page with test text.
     atlas.curX = cast(s32, atlas.width)
     discard font.getGlyphDesc('g')
-    Swag.assert(font.cache.atlases.count == 1)
+    Swag.require(font.cache.atlases.count == 1)
     let rowBytes = (atlas.dirtyMaxX - atlas.dirtyMinX) * atlas.bytesPerPixel
     for y in atlas.dirtyMinY until atlas.dirtyMaxY
     {
@@ -52,12 +52,12 @@ private func testAtlasUpload(mode: FontRenderMode)
     }
 
     for value, index in uploaded do
-        Swag.assert(value == atlas.data[index])
+        Swag.require(value == atlas.data[index])
 
     atlas.dirty      = false
     font.cache.dirty = false
     discard font.getGlyphDesc('B')
-    Swag.assert(not atlas.dirty and not font.cache.dirty)
+    Swag.require(not atlas.dirty and not font.cache.dirty)
 }
 
 #test { testAtlasUpload(.Bitmap) }

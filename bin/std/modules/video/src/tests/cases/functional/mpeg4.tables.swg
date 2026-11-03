@@ -37,33 +37,33 @@ func mpeg4WalkTree(tree: const [..] s16, length: u32, code: u32)->s32
 // what the decoder walks. This is what keeps the second from drifting from the first.
 func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u16, tree: const [..] s16)
 {
-    Swag.assert(lengths.count == codes.count)
+    Swag.require(lengths.count == codes.count)
 
     var kraft = 0.0'f64
     for entry in lengths.count
     {
         let length = cast(u32, lengths[entry])
-        Swag.assert(length > 0 and length <= 24)
-        Swag.assert(cast(u32, codes[entry]) < (1'u32 << length))
+        Swag.require(length > 0 and length <= 24)
+        Swag.require(cast(u32, codes[entry]) < (1'u32 << length))
         kraft += Math.pow(0.5'f64, cast(f64, length))
 
         let reached = mpeg4WalkTree(tree, length, cast(u32, codes[entry]))
         if reached != cast(s32, entry) do
             Swag.print("mpeg4 table ", name, ": entry ", entry, " decodes to ", reached, "\n")
-        Swag.assert(reached == cast(s32, entry))
+        Swag.require(reached == cast(s32, entry))
     }
 
     // These codes are not complete: the format leaves bit patterns undefined, and a decoder that
     // meets one has met a corrupt stream. What must hold is that none of them overlaps.
-    Swag.assert(kraft <= 1.0'f64 + 1e-9)
+    Swag.require(kraft <= 1.0'f64 + 1e-9)
 
     for slot in tree.count
     {
         let value = tree[slot]
         if value > 0 do
-            Swag.assert(cast(u64, value) * 2 + 1 < tree.count and cast(u64, value) * 2 > slot)
+            Swag.require(cast(u64, value) * 2 + 1 < tree.count and cast(u64, value) * 2 > slot)
         elif value < 0 do
-            Swag.assert(cast(u64, (-value - 1)) < lengths.count)
+            Swag.require(cast(u64, (-value - 1)) < lengths.count)
     }
 }
 
@@ -84,8 +84,8 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
 // tree and its own code must not be a prefix of anything that is.
 #test
 {
-    Swag.assert(mpeg4WalkTree(Mpeg4.TcoefIntraTree, Mpeg4.TcoefEscapeLen, Mpeg4.TcoefEscapeCod) < 0)
-    Swag.assert(mpeg4WalkTree(Mpeg4.TcoefInterTree, Mpeg4.TcoefEscapeLen, Mpeg4.TcoefEscapeCod) < 0)
+    Swag.require(mpeg4WalkTree(Mpeg4.TcoefIntraTree, Mpeg4.TcoefEscapeLen, Mpeg4.TcoefEscapeCod) < 0)
+    Swag.require(mpeg4WalkTree(Mpeg4.TcoefInterTree, Mpeg4.TcoefEscapeLen, Mpeg4.TcoefEscapeCod) < 0)
 
     for table in 2'u32
     {
@@ -95,9 +95,9 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         {
             let length = cast(u32, lengths[entry])
             if length < Mpeg4.TcoefEscapeLen do
-                Swag.assert((Mpeg4.TcoefEscapeCod >> (Mpeg4.TcoefEscapeLen - length)) != cast(u32, codes[entry]))
+                Swag.require((Mpeg4.TcoefEscapeCod >> (Mpeg4.TcoefEscapeLen - length)) != cast(u32, codes[entry]))
             else do
-                Swag.assert((cast(u32, codes[entry]) >> (length - Mpeg4.TcoefEscapeLen)) != Mpeg4.TcoefEscapeCod)
+                Swag.require((cast(u32, codes[entry]) >> (length - Mpeg4.TcoefEscapeLen)) != Mpeg4.TcoefEscapeCod)
         }
     }
 }
@@ -105,7 +105,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
 // Each coefficient table names 102 distinct events, and no two share a run, a level, and a last.
 #test
 {
-    Swag.assert(Mpeg4.TcoefIntraLen.count == 102 and Mpeg4.TcoefInterLen.count == 102)
+    Swag.require(Mpeg4.TcoefIntraLen.count == 102 and Mpeg4.TcoefInterLen.count == 102)
     for table in 2'u32
     {
         let last:  const [..] u8  = table ? Mpeg4.TcoefInterLast : Mpeg4.TcoefIntraLast
@@ -113,9 +113,9 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         let level: const [..] u16 = table ? Mpeg4.TcoefInterLevel : Mpeg4.TcoefIntraLevel
         for a in 102'u64
         {
-            Swag.assert(last[a] <= 1 and run[a] < 64 and level[a] > 0)
+            Swag.require(last[a] <= 1 and run[a] < 64 and level[a] > 0)
             for b in a + 1 until 102'u64 do
-                Swag.assert(last[a] != last[b] or run[a] != run[b] or level[a] != level[b])
+                Swag.require(last[a] != last[b] or run[a] != run[b] or level[a] != level[b])
         }
     }
 }
@@ -123,15 +123,15 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
 // The motion vector table covers minus thirty-two to thirty-two in half samples, with no hole.
 #test
 {
-    Swag.assert(Mpeg4.MvdDelta.count == 65)
+    Swag.require(Mpeg4.MvdDelta.count == 65)
     var seen: [65] bool
     for index in 65'u64 do
         seen[index] = false
     for index in Mpeg4.MvdDelta.count
     {
         let delta = Mpeg4.MvdDelta[index]
-        Swag.assert(delta >= -32 and delta <= 32)
-        Swag.assert(not seen[cast(u64, (delta + 32))])
+        Swag.require(delta >= -32 and delta <= 32)
+        Swag.require(not seen[cast(u64, (delta + 32))])
         seen[cast(u64, (delta + 32))] = true
     }
 }
@@ -143,32 +143,32 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     {
         let scan: const [..] u8 = order == 0 ? Mpeg4.ScanZigzag
                                   : (order == 1 ? Mpeg4.ScanAlternateHorizontal : Mpeg4.ScanAlternateVertical)
-        Swag.assert(scan.count == 64)
+        Swag.require(scan.count == 64)
         var seen: [64] bool
         for index in 64'u64 do
             seen[index] = false
         for index in 64'u64
         {
-            Swag.assert(scan[index] < 64)
-            Swag.assert(not seen[cast(u64, scan[index])])
+            Swag.require(scan[index] < 64)
+            Swag.require(not seen[cast(u64, scan[index])])
             seen[cast(u64, scan[index])] = true
         }
     }
 
     // The zigzag begins the way every discrete cosine format's does.
-    Swag.assert(Mpeg4.ScanZigzag[0] == 0 and Mpeg4.ScanZigzag[1] == 1 and Mpeg4.ScanZigzag[2] == 8)
+    Swag.require(Mpeg4.ScanZigzag[0] == 0 and Mpeg4.ScanZigzag[1] == 1 and Mpeg4.ScanZigzag[2] == 8)
 }
 
 // The default quantiser weights are the ones clause 6.3.3 prints.
 #test
 {
-    Swag.assert(Mpeg4.DefaultIntraMatrix.count == 64 and Mpeg4.DefaultInterMatrix.count == 64)
-    Swag.assert(Mpeg4.DefaultIntraMatrix[0] == 8 and Mpeg4.DefaultIntraMatrix[63] == 45)
-    Swag.assert(Mpeg4.DefaultInterMatrix[0] == 16 and Mpeg4.DefaultInterMatrix[63] == 33)
+    Swag.require(Mpeg4.DefaultIntraMatrix.count == 64 and Mpeg4.DefaultInterMatrix.count == 64)
+    Swag.require(Mpeg4.DefaultIntraMatrix[0] == 8 and Mpeg4.DefaultIntraMatrix[63] == 45)
+    Swag.require(Mpeg4.DefaultInterMatrix[0] == 16 and Mpeg4.DefaultInterMatrix[63] == 33)
     for index in 64'u64
     {
-        Swag.assert(Mpeg4.DefaultIntraMatrix[index] > 0)
-        Swag.assert(Mpeg4.DefaultInterMatrix[index] > 0)
+        Swag.require(Mpeg4.DefaultIntraMatrix[index] > 0)
+        Swag.require(Mpeg4.DefaultInterMatrix[index] > 0)
     }
 }
 
@@ -183,19 +183,19 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     // Table B.19: the intra levels, by run, for a coefficient that does not end its block.
     const IntraLevelMax: [15] u32 = [27, 10, 5, 4, 3, 3, 3, 3, 2, 2, 1, 1, 1, 1, 1]
     for run in 15'u32 do
-        Swag.assert(Mpeg4.levelMax(false, 0, run) == IntraLevelMax[cast(u64, run)])
+        Swag.require(Mpeg4.levelMax(false, 0, run) == IntraLevelMax[cast(u64, run)])
 
     // Table B.20: the same for an inter block, which codes longer runs and smaller levels.
     const InterLevelMax: [3] u32 = [12, 6, 4]
     for run in 3'u32 do
-        Swag.assert(Mpeg4.levelMax(true, 0, run) == InterLevelMax[cast(u64, run)])
+        Swag.require(Mpeg4.levelMax(true, 0, run) == InterLevelMax[cast(u64, run)])
 
     // Table B.21 and B.22: the runs, by level.
-    Swag.assert(Mpeg4.runMax(false, 0, 1) == 14)
-    Swag.assert(Mpeg4.runMax(true, 0, 1) == 26)
-    Swag.assert(Mpeg4.runMax(true, 1, 1) == 40)
+    Swag.require(Mpeg4.runMax(false, 0, 1) == 14)
+    Swag.require(Mpeg4.runMax(true, 0, 1) == 26)
+    Swag.require(Mpeg4.runMax(true, 1, 1) == 40)
 
     // A key the table does not hold has no maximum, and the decoder must not widen against one.
-    Swag.assert(Mpeg4.levelMax(false, 0, 40) == 0)
-    Swag.assert(Mpeg4.levelMax(true, 1, 63) == 0)
+    Swag.require(Mpeg4.levelMax(false, 0, 40) == 0)
+    Swag.require(Mpeg4.levelMax(true, 1, 63) == 0)
 }

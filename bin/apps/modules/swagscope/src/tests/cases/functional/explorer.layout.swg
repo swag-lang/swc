@@ -21,12 +21,12 @@ using Core, Gui, Pixel
     let line      = unwrap explorer.tools.parent
     let fullRight = line.clientRect().right()
     explorer.showInformation()
-    Swag.assert(explorer.padding.z > 0 and line.clientRect().right() < fullRight)
+    Swag.require(explorer.padding.z > 0 and line.clientRect().right() < fullRight)
     window.closeInformation()
-    Swag.assert(explorer.padding.z == 0 and not window.infoSheet.isLocallyVisible())
-    Swag.assert(Math.abs(explorer.tools.position.right() - line.clientRect().right()) < 0.5)
+    Swag.require(explorer.padding.z == 0 and not window.infoSheet.isLocallyVisible())
+    Swag.require(Math.abs(explorer.tools.position.right() - line.clientRect().right()) < 0.5)
 
     window.resize(680, 420)
     window.applyLayout()
-    Swag.assert(Math.abs(explorer.tools.position.right() - line.clientRect().right()) < 0.5)
+    Swag.require(Math.abs(explorer.tools.position.right() - line.clientRect().right()) < 0.5)
 }

@@ -21,7 +21,7 @@ func ktx2Roundtrip(source: Image)->Image
             source.pixels.storage()[i] = cast(u8, ((i * 37 + 11) & 0xFF))
         let decoded = ktx2Roundtrip(source)
         assertImage(decoded, source.width, source.height, format)
-        Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+        Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
     }
 }
 
@@ -46,7 +46,7 @@ func ktx2Roundtrip(source: Image)->Image
 
     let decoded = expect Image.decode("zlib.ktx2", nnBytes(rebuilt.toSlice()))
     assertImage(decoded, 32, 32, .RGBA8)
-    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test
@@ -57,14 +57,14 @@ func ktx2Roundtrip(source: Image)->Image
     var options: DecodeOptions
     options.decodePixels = false
     let header = expect Image.decode("probe.ktx2", nnBytes(encoded.toSlice()), options)
-    Swag.assert(header.width == 3 and
-                header.height == 2 and
-                header.pixelFormat == .RGB16 and
-                not header.isValid())
+    Swag.require(header.width == 3 and
+                 header.height == 2 and
+                 header.pixelFormat == .RGB16 and
+                 not header.isValid())
 
     const Invalid: [12] u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     var errorOutcome: Swag.Error
     discard catch Image.decode("bad.ktx2", Invalid) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error != null)
+    Swag.require(error != null)
 }

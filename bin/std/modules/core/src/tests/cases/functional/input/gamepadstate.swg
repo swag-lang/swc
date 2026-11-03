@@ -19,8 +19,8 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton, i)
-        Swag.assert(not state.pressed[button])
-        Swag.assert(state.position[button] == Math.Point.Zero)
+        Swag.require(not state.pressed[button])
+        Swag.require(state.position[button] == Math.Point.Zero)
     }
 }
 
@@ -38,35 +38,35 @@ using Swag
     raw.rightTrigger = 230
     state.update(raw)
 
-    Swag.assert(state.pressed[A])
-    Swag.assert(state.pressed[DPadLeft])
-    Swag.assert(state.pressed[RightShoulder])
-    Swag.assert(not state.pressed[B])
-    Swag.assert(state.position[LeftStick] == Math.Point{-1, 1})
-    Swag.assert(state.pressed[LeftThumbstickLeft])
-    Swag.assert(state.pressed[LeftThumbstickUp])
-    Swag.assert(not state.pressed[RightThumbstickRight])
-    Swag.assert(state.pressed[LeftTrigger])
-    Swag.assert(state.pressed[RightTrigger])
+    Swag.require(state.pressed[A])
+    Swag.require(state.pressed[DPadLeft])
+    Swag.require(state.pressed[RightShoulder])
+    Swag.require(not state.pressed[B])
+    Swag.require(state.position[LeftStick] == Math.Point{-1, 1})
+    Swag.require(state.pressed[LeftThumbstickLeft])
+    Swag.require(state.pressed[LeftThumbstickUp])
+    Swag.require(not state.pressed[RightThumbstickRight])
+    Swag.require(state.pressed[LeftTrigger])
+    Swag.require(state.pressed[RightTrigger])
 
     raw.leftStickX   = cast(s16, (0.95 * 32767))
     raw.leftStickY   = 0
     raw.leftTrigger  = cast(u8, (0.95 * 255))
     raw.rightTrigger = 0
     state.update(raw)
-    Swag.assert(state.pressed[LeftThumbstickRight])
-    Swag.assert(state.pressed[LeftTrigger])
-    Swag.assert(not state.pressed[RightTrigger])
+    Swag.require(state.pressed[LeftThumbstickRight])
+    Swag.require(state.pressed[LeftTrigger])
+    Swag.require(not state.pressed[RightTrigger])
 
     raw.leftStickX  = cast(s16, (0.8 * 32767))
     raw.leftTrigger = cast(u8, (0.8 * 255))
     state.update(raw)
-    Swag.assert(state.pressed[LeftThumbstickRight])
-    Swag.assert(state.pressed[LeftTrigger])
+    Swag.require(state.pressed[LeftThumbstickRight])
+    Swag.require(state.pressed[LeftTrigger])
 
     raw.leftStickX  = cast(s16, (0.6 * 32767))
     raw.leftTrigger = cast(u8, (0.6 * 255))
     state.update(raw)
-    Swag.assert(not state.pressed[LeftThumbstickRight])
-    Swag.assert(not state.pressed[LeftTrigger])
+    Swag.require(not state.pressed[LeftThumbstickRight])
+    Swag.require(not state.pressed[LeftTrigger])
 }

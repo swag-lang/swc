@@ -34,7 +34,7 @@ func testAssertSchema(type: typeinfo, expected: string) fail
         Console.print("  actual:   ", actual, "\n")
     }
 
-    Swag.assert(actual == expected)
+    Swag.require(actual == expected)
 }
 
 #test

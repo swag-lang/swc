@@ -5,17 +5,17 @@ using Core, Pixel, Gui, Viewers
 
 #test
 {
-    Swag.assert(Viewer.isByteRangeInBounds(4, 0, 4))
-    Swag.assert(Viewer.isByteRangeInBounds(4, 4, 0))
-    Swag.assert(not Viewer.isByteRangeInBounds(4, Swag.U64.Max, 1))
-    Swag.assert(not Viewer.isByteRangeInBounds(4, 1, Swag.U64.Max))
+    Swag.require(Viewer.isByteRangeInBounds(4, 0, 4))
+    Swag.require(Viewer.isByteRangeInBounds(4, 4, 0))
+    Swag.require(not Viewer.isByteRangeInBounds(4, Swag.U64.Max, 1))
+    Swag.require(not Viewer.isByteRangeInBounds(4, 1, Swag.U64.Max))
 }
 
 // Quantities align on the right; a word, or a cell with no digit at all, keeps the column textual.
 #test
 {
-    Swag.assert(Table.isNumericCell("148") and Table.isNumericCell("-3.5") and Table.isNumericCell("1,234 %"))
-    Swag.assert(not Table.isNumericCell("") and not Table.isNumericCell("-") and not Table.isNumericCell("v2"))
+    Swag.require(Table.isNumericCell("148") and Table.isNumericCell("-3.5") and Table.isNumericCell("1,234 %"))
+    Swag.require(not Table.isNumericCell("") and not Table.isNumericCell("-") and not Table.isNumericCell("v2"))
 }
 
 #test
@@ -24,19 +24,19 @@ using Core, Pixel, Gui, Viewers
 
     const Source = "name;note;value\r\nalpha;\"two; parts\";1\r\nbeta;\"two\"\" quotes\";2\r\ngamma;\"two\r\nlines\";3\r\n"
     let delimiter = Table.detectDelimiter("sample.csv", Source)
-    Swag.assert(delimiter == ';')
+    Swag.require(delimiter == ';')
 
     let document = expect Table.parseDocument(Source, delimiter)
-    Swag.assert(document.columns.count == 3 and document.rows.count == 3)
-    Swag.assert(document.columns[0] == "name" and document.columns[2] == "value")
-    Swag.assert(document.rows[0].cells[1] == "two; parts")
-    Swag.assert(document.rows[1].cells[1] == "two\" quotes")
-    Swag.assert(document.rows[2].cells[1] == "two\nlines")
-    Swag.assert(Table.detectDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
+    Swag.require(document.columns.count == 3 and document.rows.count == 3)
+    Swag.require(document.columns[0] == "name" and document.columns[2] == "value")
+    Swag.require(document.rows[0].cells[1] == "two; parts")
+    Swag.require(document.rows[1].cells[1] == "two\" quotes")
+    Swag.require(document.rows[2].cells[1] == "two\nlines")
+    Swag.require(Table.detectDelimiter("sample.tsv", "a,b\tc\n1,2\t3") == '\t')
 
     // The summary names the delimiter the file actually uses, not a comma for every other one.
-    Swag.assert(Table.delimiterKind(',') == "CSV" and Table.delimiterKind('\t') == "TSV")
-    Swag.assert(Table.delimiterKind(';') == Table.texts().ui_SemicolonKind and Table.delimiterKind('|') == Table.texts().ui_PipeKind)
+    Swag.require(Table.delimiterKind(',') == "CSV" and Table.delimiterKind('\t') == "TSV")
+    Swag.require(Table.delimiterKind(';') == Table.texts().ui_SemicolonKind and Table.delimiterKind('|') == Table.texts().ui_PipeKind)
 }
 
 #test
@@ -44,15 +44,15 @@ using Core, Pixel, Gui, Viewers
     Table.registerTexts(&g_App)
 
     let document = expect Table.parseDocument(";second\n1;2;3\n", ';')
-    Swag.assert(document.columns.count == 3 and document.rows.count == 1)
-    Swag.assert(document.columns[0] == "Column 1" and
-                document.columns[1] == "second" and
-                document.columns[2] == "Column 3")
+    Swag.require(document.columns.count == 3 and document.rows.count == 1)
+    Swag.require(document.columns[0] == "Column 1" and
+                 document.columns[1] == "second" and
+                 document.columns[2] == "Column 3")
 
     var quoteErrorOutcome: Swag.Error
     discard catch Table.parseDocument("name,value\n\"unfinished", ',') as quoteErrorOutcome
     let quoteError = quoteErrorOutcome.value()
-    Swag.assert(quoteError != null)
+    Swag.require(quoteError != null)
 }
 
 #test
@@ -65,33 +65,33 @@ using Core, Pixel, Gui, Viewers
     host.setup(760, 480)
 
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and
-                result.commands == null and
-                result.collectMatches != null and
-                result.revealMatch != null and
-                result.searchBounds != null and
-                result.clearSearch != null)
+    Swag.require(result.view != null and
+                 result.commands == null and
+                 result.collectMatches != null and
+                 result.revealMatch != null and
+                 result.searchBounds != null and
+                 result.clearSearch != null)
     let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
+    Swag.require(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
-    Swag.assert(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
+    Swag.require(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "humid", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "humid")
-    Swag.assert(revealed)
-    Swag.assert(view.searchRow == 2 and
-                view.searchColumn == 2 and
-                view.searchOffset == 0 and
-                view.searchLength == 5)
+    Swag.require(revealed)
+    Swag.require(view.searchRow == 2 and
+                 view.searchColumn == 2 and
+                 view.searchOffset == 0 and
+                 view.searchLength == 5)
     var bounds: Math.Rectangle
-    Swag.assert(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
+    Swag.require(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
     view.searchOffset = Swag.U64.Max
     view.searchLength = 1
-    Swag.assert(not result.searchBounds(matches[0], &bounds))
+    Swag.require(not result.searchBounds(matches[0], &bounds))
     result.clearSearch()
-    Swag.assert(not result.searchBounds(matches[0], &bounds))
+    Swag.require(not result.searchBounds(matches[0], &bounds))
 }
 
 // A header click sorts the rows without moving them in the document: quantities as numbers, words
@@ -105,39 +105,39 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     host.setup(760, 480)
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.collectMatches != null and result.revealMatch != null)
+    Swag.require(result.collectMatches != null and result.revealMatch != null)
     let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(view.numeric[1] and not view.numeric[0])
+    Swag.require(view.numeric[1] and not view.numeric[0])
 
     view.sortBy(1)
-    Swag.assert(view.order[0] == 3 and view.order[1] == 2 and view.order[2] == 0 and view.order[3] == 1)
+    Swag.require(view.order[0] == 3 and view.order[1] == 2 and view.order[2] == 0 and view.order[3] == 1)
     var line: ListLine
     view.fillLine(&line, 0)
-    Swag.assert(line.itemAt(0).name.raw == "File1")
+    Swag.require(line.itemAt(0).name.raw == "File1")
 
     view.sortBy(1)
-    Swag.assert(view.descending and view.order[0] == 0 and view.order[2] == 3 and view.order[3] == 1)
+    Swag.require(view.descending and view.order[0] == 0 and view.order[2] == 3 and view.order[3] == 1)
 
     view.sortBy(0)
-    Swag.assert(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
+    Swag.require(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "file10", &matches)
-    Swag.assert(matches.count == 1 and result.revealMatch(matches[0], "file10"))
-    Swag.assert(view.list.focusIndex == view.lineOfRow(0) and view.lineOfRow(0) == 3)
+    Swag.require(matches.count == 1 and result.revealMatch(matches[0], "file10"))
+    Swag.require(view.list.focusIndex == view.lineOfRow(0) and view.lineOfRow(0) == 3)
 
     view.list.unselectAll()
     view.list.setFocusedIndex(0)
-    Swag.assert(view.selectionText() == "File1\t-4.5\n")
+    Swag.require(view.selectionText() == "File1\t-4.5\n")
     view.list.selectLine(1)
     view.list.selectLine(2)
-    Swag.assert(view.selectionText() == "file2\t35\nfile9\t\n")
+    Swag.require(view.selectionText() == "file2\t35\nfile9\t\n")
 
     var quantity: f64
-    Swag.assert(Table.quantityOf("1,5", &quantity) and quantity == 1.5)
-    Swag.assert(Table.quantityOf("1,234.5", &quantity) and quantity == 1234.5)
-    Swag.assert(Table.quantityOf("12 %", &quantity) and quantity == 12)
+    Swag.require(Table.quantityOf("1,5", &quantity) and quantity == 1.5)
+    Swag.require(Table.quantityOf("1,234.5", &quantity) and quantity == 1234.5)
+    Swag.require(Table.quantityOf("12 %", &quantity) and quantity == 12)
 }
 
 #test
@@ -151,17 +151,17 @@ using Core, Pixel, Gui, Viewers
         giant += "z"
 
     let leading = Table.cellPreviewRange(giant)
-    Swag.assert(leading.start == 0 and leading.end <= Table.CellPreviewBytes)
+    Swag.require(leading.start == 0 and leading.end <= Table.CellPreviewBytes)
 
     let focused = Table.cellPreviewRange(giant, 8 * 1024)
-    Swag.assert(focused.start > 0 and focused.end - focused.start <= Table.CellPreviewBytes)
-    Swag.assert(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
+    Swag.require(focused.start > 0 and focused.end - focused.start <= Table.CellPreviewBytes)
+    Swag.require(focused.start <= 8 * 1024 and focused.end >= 8 * 1024 + ("needle").count)
 
     var unicode = String.from("x")
     for 400 do
         unicode += "\U0001F642"
     let unicodeRange = Table.cellPreviewRange(unicode)
-    Swag.assert(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
+    Swag.require(Utf8.isValid(unicode.toSlice()[unicodeRange.start until unicodeRange.end]))
 
     var view: Table.Panel
     view.document.columns.add("payload")
@@ -172,7 +172,7 @@ using Core, Pixel, Gui, Viewers
     var line: ListLine
     view.fillLine(&line, 0)
     let displayed = line.itemAt(0).name.raw.toString()
-    Swag.assert(displayed.count <= Table.CellPreviewBytes)
+    Swag.require(displayed.count <= Table.CellPreviewBytes)
 }
 
 // Generated headings follow the language; authored labels and selected rows remain intact.
@@ -193,14 +193,14 @@ using Core, Pixel, Gui, Viewers
     let oldHeading = String.from(view.list.header.items[0]!.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.list.header.items[0]!.name.raw == Format.toString(Table.texts().ui_Column, 1))
-    Swag.assert(view.list.header.items[0]!.name.raw != oldHeading)
-    Swag.assert(view.list.header.items[1]!.name.raw == "Column 2")
-    Swag.assert(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
-    Swag.assert(Utf8.contains(details, Table.texts().ui_Row))
-    Swag.assert(Utf8.startsWith(details, Table.texts().ui_SemicolonKind) and not Utf8.contains(details, "CSV"))
-    Swag.assert(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
+    Swag.require(view.list.header.items[0]!.name.raw == Format.toString(Table.texts().ui_Column, 1))
+    Swag.require(view.list.header.items[0]!.name.raw != oldHeading)
+    Swag.require(view.list.header.items[1]!.name.raw == "Column 2")
+    Swag.require(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
+    Swag.require(Utf8.contains(details, Table.texts().ui_Row))
+    Swag.require(Utf8.startsWith(details, Table.texts().ui_SemicolonKind) and not Utf8.contains(details, "CSV"))
+    Swag.require(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(view.list.header.items[0]!.name.raw == oldHeading and view.list.isLineSelected(0))
+    Swag.require(view.list.header.items[0]!.name.raw == oldHeading and view.list.isLineSelected(0))
 }

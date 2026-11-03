@@ -19,7 +19,7 @@ impl OffsetOwnedEvent
     {
         if let count = .drops
         {
-            Swag.assert(.prefix == 42)
+            Swag.require(.prefix == 42)
             count[] += 1
         }
     }
@@ -60,22 +60,22 @@ impl OffsetOwnedEvent
 
             // Keep the source alive and mutate it, so a missed copy fails deterministically.
             id[0] = 'X'
-            Swag.assert(host.commandCount == before)
+            Swag.require(host.commandCount == before)
             host.pumpPostedEvents()
-            Swag.assert(host.commandCount == before + 1)
-            Swag.assert(host.lastCommand == expected)
+            Swag.require(host.commandCount == before + 1)
+            Swag.require(host.lastCommand == expected)
         }
     }
 
     let before = host.commandCount
     host.root.postCommandEvent(null)
     host.pumpPostedEvents()
-    Swag.assert(host.commandCount == before)
+    Swag.require(host.commandCount == before)
 
     host.root.postCommandEvent("")
     host.pumpPostedEvents()
-    Swag.assert(host.commandCount == before + 1)
-    Swag.assert(host.lastCommand == "")
+    Swag.require(host.commandCount == before + 1)
+    Swag.require(host.lastCommand == "")
 }
 
 // A handler can copy a posted command before dispatch releases the original allocation.
@@ -102,27 +102,27 @@ impl OffsetOwnedEvent
         host.root.postCommandEvent(id.toString())
         id[0] = 'X'
         host.pumpPostedEvents()
-        Swag.assert(retained.id == expected)
+        Swag.require(retained.id == expected)
 
         var copied = retained
-        Swag.assert(copied.id == expected)
-        Swag.assert(copied.id.buffer != retained.id.buffer)
+        Swag.require(copied.id == expected)
+        Swag.require(copied.id.buffer != retained.id.buffer)
         var moved = #move copied
-        Swag.assert(moved.id == expected)
+        Swag.require(moved.id == expected)
 
         // Posting a copy snapshots a view that already belongs to that same event.
         let reposted = Event.create'CommandEvent()
         reposted[] = moved
         host.root.postEvent(reposted)
         host.pumpPostedEvents()
-        Swag.assert(retained.id == expected)
+        Swag.require(retained.id == expected)
 
         // Replacing the public view does not make it refer to the old owned identifier again.
         retained.id = "Event.Reassigned"
         var reassigned = retained
-        Swag.assert(reassigned.id == "Event.Reassigned")
+        Swag.require(reassigned.id == "Event.Reassigned")
         var movedReassigned = #move reassigned
-        Swag.assert(movedReassigned.id == "Event.Reassigned")
+        Swag.require(movedReassigned.id == "Event.Reassigned")
     }
 }
 
@@ -137,12 +137,12 @@ impl OffsetOwnedEvent
     var evt    = CommandEvent{id: id.toString()}
     var copied = evt
     id[0] = 'X'
-    Swag.assert(copied.id == "Xvent.Borrowed")
+    Swag.require(copied.id == "Xvent.Borrowed")
 
     host.root.sendEvent(&copied)
     id[0] = 'Y'
-    Swag.assert(host.commandCount == 1)
-    Swag.assert(host.lastCommand == "Xvent.Borrowed")
+    Swag.require(host.commandCount == 1)
+    Swag.require(host.lastCommand == "Xvent.Borrowed")
 }
 
 // Closing on a command retains the observed identifier after synchronous delivery too.
@@ -155,8 +155,8 @@ impl OffsetOwnedEvent
     var id = String.from("Event.Close")
     host.root.sendCommandEvent(id.toString())
     id[0] = 'X'
-    Swag.assert(host.closed and host.commandCount == 1)
-    Swag.assert(host.lastCommand == "Event.Close")
+    Swag.require(host.closed and host.commandCount == 1)
+    Swag.require(host.lastCommand == "Event.Close")
 }
 
 // Queue ownership uses the complete allocation even when Event is not its first field.
@@ -169,11 +169,11 @@ impl OffsetOwnedEvent
     let evt = Event.create'OffsetOwnedEvent()
     evt.drops = &drops
     let base: *Event = evt
-    Swag.assert(cast(*void, base) != cast(*void, evt))
-    Swag.assert((catch cast(*OffsetOwnedEvent?, base)) == evt)
+    Swag.require(cast(*void, base) != cast(*void, evt))
+    Swag.require((catch cast(*OffsetOwnedEvent?, base)) == evt)
     host.root.postEvent(evt)
     host.pumpPostedEvents()
-    Swag.assert(drops == 1)
+    Swag.require(drops == 1)
 }
 
 // A heap command-state event reports its dynamic type and keeps every field a query fills.
@@ -182,9 +182,9 @@ impl OffsetOwnedEvent
     let evt = Event.create'CommandStateEvent()
     defer Memory.delete(evt)
     let view: IEvent = evt
-    Swag.assert(Swag.kindOf(view) == #typeof(CommandStateEvent))
-    Swag.assert((catch cast(*CommandStateEvent?, view)) == evt)
-    Swag.assert(not evt.accepted)
+    Swag.require(Swag.kindOf(view) == #typeof(CommandStateEvent))
+    Swag.require((catch cast(*CommandStateEvent?, view)) == evt)
+    Swag.require(not evt.accepted)
 
     evt.kind          = .Apply
     evt.id            = Dialog.BtnOk
@@ -193,14 +193,14 @@ impl OffsetOwnedEvent
     evt.disabled      = true
     evt.name          = "Ok"
 
-    Swag.assert(evt.kind == .Apply)
-    Swag.assert(evt.id == "Dialog.BtnOk")
-    Swag.assert(evt.updatedFields.has(.Disabled))
-    Swag.assert(evt.updatedFields.has(.Name))
-    Swag.assert(not evt.updatedFields.has(.Shortcut))
-    Swag.assert(evt.renderingHint.has(.ExclusiveGroup))
-    Swag.assert(evt.disabled)
-    Swag.assert(evt.name == "Ok")
+    Swag.require(evt.kind == .Apply)
+    Swag.require(evt.id == "Dialog.BtnOk")
+    Swag.require(evt.updatedFields.has(.Disabled))
+    Swag.require(evt.updatedFields.has(.Name))
+    Swag.require(not evt.updatedFields.has(.Shortcut))
+    Swag.require(evt.renderingHint.has(.ExclusiveGroup))
+    Swag.require(evt.disabled)
+    Swag.require(evt.name == "Ok")
 }
 
 // A mouse event keeps its kind, position, motion, and modifiers.
@@ -212,10 +212,10 @@ impl OffsetOwnedEvent
     mouseEvt.delta      = {-3, 4}
     mouseEvt.modifiers  = Input.KeyModifiers.Control | .Shift
 
-    Swag.assert(mouseEvt.kind == .Move)
-    Swag.assert(mouseEvt.surfacePos == Math.Point{10, 20})
-    Swag.assert(mouseEvt.delta == Math.Point{-3, 4})
-    Swag.assert(mouseEvt.modifiers == .CtrlShift)
+    Swag.require(mouseEvt.kind == .Move)
+    Swag.require(mouseEvt.surfacePos == Math.Point{10, 20})
+    Swag.require(mouseEvt.delta == Math.Point{-3, 4})
+    Swag.require(mouseEvt.modifiers == .CtrlShift)
 }
 
 // Heap command, resize, and move events report their dynamic type and keep their payload.
@@ -224,43 +224,43 @@ impl OffsetOwnedEvent
     let cmd = Event.create'CommandEvent()
     defer Memory.delete(cmd)
     cmd.id = Dialog.BtnCancel
-    Swag.assert(Swag.kindOf(cast(IEvent, cmd)) == #typeof(CommandEvent))
-    Swag.assert(cmd.id == "Dialog.BtnCancel")
-    Swag.assert(cmd.source == null)
+    Swag.require(Swag.kindOf(cast(IEvent, cmd)) == #typeof(CommandEvent))
+    Swag.require(cmd.id == "Dialog.BtnCancel")
+    Swag.require(cmd.source == null)
 
     let resize = Event.create'ResizeEvent()
     defer Memory.delete(resize)
     resize.oldSize = {640, 480}
-    Swag.assert(Swag.kindOf(cast(IEvent, resize)) == #typeof(ResizeEvent))
-    Swag.assert(resize.oldSize == Math.Point{640, 480})
+    Swag.require(Swag.kindOf(cast(IEvent, resize)) == #typeof(ResizeEvent))
+    Swag.require(resize.oldSize == Math.Point{640, 480})
 
     let move = Event.create'MoveEvent()
     defer Memory.delete(move)
     move.oldPos = {12, 34}
-    Swag.assert(Swag.kindOf(cast(IEvent, move)) == #typeof(MoveEvent))
-    Swag.assert(move.oldPos == Math.Point{12, 34})
+    Swag.require(Swag.kindOf(cast(IEvent, move)) == #typeof(MoveEvent))
+    Swag.require(move.oldPos == Math.Point{12, 34})
 }
 
 // Paint, focus, state, and notification events start from their defaults and keep the kind they are given.
 #test
 {
     var paint: PaintEvent
-    Swag.assert(paint.kind == .Content)
+    Swag.require(paint.kind == .Content)
 
     var focus: FocusEvent
-    Swag.assert(focus.canChangeFocus)
+    Swag.require(focus.canChangeFocus)
     focus.kind = .CanLose
     focus.canChangeFocus = false
-    Swag.assert(focus.kind == .CanLose)
-    Swag.assert(not focus.canChangeFocus)
+    Swag.require(focus.kind == .CanLose)
+    Swag.require(not focus.canChangeFocus)
 
     var state: StateEvent
     state.kind = .Hide
-    Swag.assert(state.kind == .Hide)
+    Swag.require(state.kind == .Hide)
 
     var notify: NotifyEvent
     notify.kind = .ThemeChanged
-    Swag.assert(notify.kind == .ThemeChanged)
+    Swag.require(notify.kind == .ThemeChanged)
 }
 
 // Key, system-user, and system-command events keep what their sender wrote.
@@ -270,25 +270,25 @@ impl OffsetOwnedEvent
     key.kind      = .Character
     key.character = 'x'
     key.modifiers = .Alt
-    Swag.assert(key.kind == .Character)
-    Swag.assert(key.character == 'x')
-    Swag.assert(key.modifiers == .Alt)
+    Swag.require(key.kind == .Character)
+    Swag.require(key.character == 'x')
+    Swag.require(key.modifiers == .Alt)
 
     var sysUser: SysUserEvent
     sysUser.kind      = .CustomMessage
     sysUser.messageId = 42
     sysUser.param     = 22
-    Swag.assert(sysUser.kind == .CustomMessage)
-    Swag.assert(sysUser.messageId == 42)
-    Swag.assert(sysUser.param == 22)
+    Swag.require(sysUser.kind == .CustomMessage)
+    Swag.require(sysUser.messageId == 42)
+    Swag.require(sysUser.param == 22)
 
     sysUser.kind       = .TrayIcon
     sysUser.trayAction = .ContextMenu
-    Swag.assert(sysUser.trayAction == .ContextMenu)
+    Swag.require(sysUser.trayAction == .ContextMenu)
 
     var sysCommand: SysCommandEvent
     sysCommand.kind = .Restore
-    Swag.assert(sysCommand.kind == .Restore)
+    Swag.require(sysCommand.kind == .Restore)
 }
 
 var g_TaskEventsSeen: u32
@@ -345,15 +345,15 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     var task: Swag.Task'u32
     task.submit(func()->u32 => 3, watcher.taskNotifier(&task))
     task.wait()
-    Swag.assert(g_TaskEventsSeen == 0)
+    Swag.require(g_TaskEventsSeen == 0)
 
     host.pumpPostedEvents()
-    Swag.assert(g_TaskEventsSeen == 1 and watcher.lastTask == &task)
+    Swag.require(g_TaskEventsSeen == 1 and watcher.lastTask == &task)
     let value = expect task.take()
-    Swag.assert(value == 3)
+    Swag.require(value == 3)
 
     host.pumpPostedEvents()
-    Swag.assert(g_TaskEventsSeen == 1)
+    Swag.require(g_TaskEventsSeen == 1)
 }
 
 // A notification runs just before its task reads as done. An event the window receives can
@@ -382,9 +382,9 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     release.submit(func|&gate|() { raiseGateLater(&gate, 20) })
 
     host.pumpPostedEvents()
-    Swag.assert(g_TaskEventsSeen == 1 and g_DoneWhenSeen)
+    Swag.require(g_TaskEventsSeen == 1 and g_DoneWhenSeen)
     let value = expect task.take()
-    Swag.assert(value == 2)
+    Swag.require(value == 2)
 }
 
 // An event about a submission the window already collected arrives without waiting for the task's
@@ -417,11 +417,11 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     release.submit(func|&gate|() { raiseGateLater(&gate, 2000) })
 
     host.pumpPostedEvents()
-    Swag.assert(g_TaskEventsSeen == 1 and not g_DoneWhenSeen)
+    Swag.require(g_TaskEventsSeen == 1 and not g_DoneWhenSeen)
     discard gate.raise()
     release.cancel()
     let value = expect task.take()
-    Swag.assert(value == 2)
+    Swag.require(value == 2)
 }
 
 // A window whose destruction completed before the event is delivered never receives it.
@@ -439,5 +439,5 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     watcher.destroy()
     host.pumpDestroyEvents()
     host.pumpPostedEvents()
-    Swag.assert(g_TaskEventsSeen == 0)
+    Swag.require(g_TaskEventsSeen == 0)
 }

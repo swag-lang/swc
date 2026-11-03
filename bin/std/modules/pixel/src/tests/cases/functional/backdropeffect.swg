@@ -15,7 +15,7 @@ using Core
     var targets = 0
     for command in painter.commandBuffer where Swag.kindOf(command.op) == .ReleaseRenderTarget do
         targets += 1
-    Swag.assert(targets == 2)
+    Swag.require(targets == 2)
     renderer.draw(&painter)
     renderer.end()
 }
@@ -61,8 +61,8 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
             assertPixel(image, cast(s32, 42 * scale), cast(s32, 30 * scale), Argb.Red)
             assertPixel(image, cast(s32, 2 * scale), cast(s32, 20 * scale), Argb.Black)
             let softened = image.pixelColor(cast(s32, 34 * scale), cast(s32, 20 * scale))
-            Swag.assert(softened.r > 20 and softened.r < 235, Format.toString("algorithm=% scale=% red=%", algorithm, scale, softened.r))
-            Swag.assert(softened.a == 255)
+            Swag.require(softened.r > 20 and softened.r < 235, Format.toString("algorithm=% scale=% red=%", algorithm, scale, softened.r))
+            Swag.require(softened.a == 255)
         }
     }
 }
@@ -91,10 +91,10 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
             for x in image.width
             {
                 let color = image.pixelColor(x, y)
-                Swag.assert(Math.abs(cast(s32, color.r) - 96) <= 2, Format.toString("algorithm=% x=% y=% red=%", algorithm, x, y, color.r))
-                Swag.assert(Math.abs(cast(s32, color.g) - 128) <= 2)
-                Swag.assert(Math.abs(cast(s32, color.b) - 160) <= 2)
-                Swag.assert(color.a == 255)
+                Swag.require(Math.abs(cast(s32, color.r) - 96) <= 2, Format.toString("algorithm=% x=% y=% red=%", algorithm, x, y, color.r))
+                Swag.require(Math.abs(cast(s32, color.g) - 128) <= 2)
+                Swag.require(Math.abs(cast(s32, color.b) - 160) <= 2)
+                Swag.require(color.a == 255)
             }
         }
     }
@@ -119,7 +119,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     renderer.end()
     let image = cpu.surfaceImage()
     let gray  = image.pixelColor(1, 1)
-    Swag.assert(gray.r == gray.g and gray.g == gray.b and gray.r > 50 and gray.r < 56)
+    Swag.require(gray.r == gray.g and gray.g == gray.b and gray.r > 50 and gray.r < 56)
     assertPixel(image, 5, 1, Argb.Blue)
     assertPixel(image, 9, 1, Argb.Red)
 }
@@ -148,8 +148,8 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     renderer.end()
     let image  = cpu.surfaceImage()
     let inside = image.pixelColor(8, 8)
-    Swag.assert(inside.a == 71 and inside.r >= 99 and inside.r <= 101)
-    Swag.assert(inside.b >= 136 and inside.b <= 138)
+    Swag.require(inside.a == 71 and inside.r >= 99 and inside.r <= 101)
+    Swag.require(inside.b >= 136 and inside.b <= 138)
     assertPixel(image, 1, 1, Color.fromArgb(71'u8, 200'u8, 40'u8, 20'u8))
     assertPixel(image, 22, 14, Argb.Green)
 }

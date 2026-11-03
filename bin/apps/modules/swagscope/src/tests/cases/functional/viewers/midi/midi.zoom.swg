@@ -15,28 +15,28 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     host.root.applyLayout()
     roll.refreshLayout()
     let fittedRowHeight = roll.rowHeight
-    Swag.assert(roll.pitchLabel(60) == "C4")
-    Swag.assert(roll.pitchZoom == 1 and roll.scroll.scrollSize.y <= roll.clientRect().height + 1)
+    Swag.require(roll.pitchLabel(60) == "C4")
+    Swag.require(roll.pitchZoom == 1 and roll.scroll.scrollSize.y <= roll.clientRect().height + 1)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     roll.sendEvent(&zoomIn)
-    Swag.assert(roll.pitchZoom == 1.25 and roll.rowHeight > fittedRowHeight)
-    Swag.assert(roll.scroll.scrollSize.y > roll.clientRect().height)
+    Swag.require(roll.pitchZoom == 1.25 and roll.rowHeight > fittedRowHeight)
+    Swag.require(roll.scroll.scrollSize.y > roll.clientRect().height)
 
     host.mouseWheel(roll.surfaceRect().center(), 120, .Control)
-    Swag.assert(roll.pitchZoom == 1.5625)
+    Swag.require(roll.pitchZoom == 1.5625)
     var pageDown = KeyEvent{kind: .Pressed, key: .PageDown}
     roll.sendEvent(&pageDown)
     let pageDownPosition = roll.scroll.scrollPosition().y
-    Swag.assert(pageDown.accepted and pageDownPosition > 0)
+    Swag.require(pageDown.accepted and pageDownPosition > 0)
     var pageUp = KeyEvent{kind: .Pressed, key: .PageUp}
     roll.sendEvent(&pageUp)
-    Swag.assert(pageUp.accepted and roll.scroll.scrollPosition().y == 0)
+    Swag.require(pageUp.accepted and roll.scroll.scrollPosition().y == 0)
 
     roll.applyPitchZoom(0)
-    Swag.assert(roll.pitchZoom == 0.5)
+    Swag.require(roll.pitchZoom == 0.5)
     roll.zoomToFit()
-    Swag.assert(roll.pitchZoom == 1 and roll.scroll.scrollPosition().y == 0)
+    Swag.require(roll.pitchZoom == 1 and roll.scroll.scrollPosition().y == 0)
 }
 
 #test
@@ -51,23 +51,23 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     var session = openTestViewer(Midi.viewerPlugin(), &host.root, midiZoomFixturePath())
     let viewer  = assume cast(*Midi.Panel, session.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    Swag.assert(viewer.roll.pitchLabel(60) == "C4" and viewer.roll.keyboardWidth == 72)
-    Swag.assert(viewer.zoomLabel.toolTip.contains("Page Up/Down"))
+    Swag.require(viewer.roll.pitchLabel(60) == "C4" and viewer.roll.keyboardWidth == 72)
+    Swag.require(viewer.zoomLabel.toolTip.contains("Page Up/Down"))
 
     viewer.setPitchLabelMode(.MidiNumber)
-    Swag.assert(viewer.roll.pitchLabelMode == .MidiNumber and viewer.roll.pitchLabel(60) == "60")
-    Swag.assert(Midi.g_ViewerSettings.pitchLabelMode == .MidiNumber)
+    Swag.require(viewer.roll.pitchLabelMode == .MidiNumber and viewer.roll.pitchLabel(60) == "60")
+    Swag.require(Midi.g_ViewerSettings.pitchLabelMode == .MidiNumber)
     host.activateOptionRowWhenShown(Midi.texts().ui_KeyboardWidth)
     host.thenActivateOptionRow(Midi.texts().ui_KeyboardCompact)
     viewer.showOptions()
-    Swag.assert(viewer.roll.keyboardWidth == 56)
+    Swag.require(viewer.roll.keyboardWidth == 56)
     viewer.setKeyboardWidthMode(2)
-    Swag.assert(viewer.roll.keyboardWidth == 112 and Midi.g_ViewerSettings.keyboardWidthMode == 2)
+    Swag.require(viewer.roll.keyboardWidth == 112 and Midi.g_ViewerSettings.keyboardWidthMode == 2)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
-    Swag.assert(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large")
-    Swag.assert(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
+    Swag.require(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large")
+    Swag.require(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
     expect host.app.setLanguage(ReferenceLanguage)
 }

@@ -107,7 +107,7 @@ func referenceIntra4x4(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopRight: boo
         }
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -181,7 +181,7 @@ func referenceIntra16x16(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         }
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -295,7 +295,7 @@ func referenceIntraChroma(mode: u32, dst: [*] u8, hasLeft, hasTop: bool)
         }
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -519,7 +519,7 @@ func referenceIntra8x8(mode: u32, dst: [*] u8, hasLeft, hasTop, hasTopLeft, hasT
         }
 
     default:
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -553,7 +553,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                     initializeIntraBuffers(expected.buffer, actual.buffer)
                     referenceIntra4x4(mode, expected.buffer + 33, hasLeft, hasTop, hasTopRight)
                     H264.intraPredict4x4(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, true, hasTopRight)
-                    Swag.assert(Slice.equals(expected, actual))
+                    Swag.require(Slice.equals(expected, actual))
                 }
             }
         }
@@ -568,7 +568,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                 initializeIntraBuffers(expected.buffer, actual.buffer)
                 referenceIntra16x16(mode, expected.buffer + 33, hasLeft, hasTop)
                 H264.intraPredict16x16(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop)
-                Swag.assert(Slice.equals(expected, actual))
+                Swag.require(Slice.equals(expected, actual))
             }
         }
     }
@@ -583,7 +583,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                 initializeIntraBuffers(expected.buffer, actual.buffer)
                 referenceIntraChroma(mode, expected.buffer + 33, hasLeft, hasTop)
                 H264.intraPredictChroma(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop)
-                Swag.assert(Slice.equals(expected, actual))
+                Swag.require(Slice.equals(expected, actual))
             }
         }
     }
@@ -601,7 +601,7 @@ func initializeIntraBuffers(expected, actual: [*] u8)
                         initializeIntraBuffers(expected.buffer, actual.buffer)
                         referenceIntra8x8(mode, expected.buffer + 33, hasLeft, hasTop, hasTopLeft, hasTopRight)
                         H264.intraPredict8x8(mode, actual.buffer + 33, IntraTestStride, hasLeft, hasTop, hasTopLeft, hasTopRight)
-                        Swag.assert(Slice.equals(expected, actual))
+                        Swag.require(Slice.equals(expected, actual))
                     }
                 }
             }

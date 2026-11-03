@@ -18,5 +18,5 @@ var g_ErasedConsumerView: ErasedConsumerView
     animator.start(&g_ErasedConsumerView, func(view, value) { view.total += value })
     animator.step(4)
     animator.step(3)
-    Swag.assert(g_ErasedConsumerView.total == 7)
+    Swag.require(g_ErasedConsumerView.total == 7)
 }

@@ -32,64 +32,64 @@ internal func createPdfFixture()->String
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands == null and result.info != null)
+    Swag.require(result.view != null and result.commands == null and result.info != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
-    Swag.assert(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")
+    Swag.require(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
+    Swag.require(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")
     view.resize(640, 420)
     view.applyLayout()
 
     let pdf = view.pdfView
-    Swag.assert(pdf.pageCount() == 2 and pdf.pageIndex == 0)
-    Swag.assert(pdf.zoomMode == .FitPage and pdf.pageLayout == .Continuous)
+    Swag.require(pdf.pageCount() == 2 and pdf.pageIndex == 0)
+    Swag.require(pdf.zoomMode == .FitPage and pdf.pageLayout == .Continuous)
 
     // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
     // shown size exactly, with the rasterization following the widget internally.
     pdf.actualSize()
-    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
     let shown = pdf.effectiveZoom()
     pdf.setZoom(shown * 4)
-    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
+    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
 
     let beforeZoomOut = pdf.effectiveZoom()
     var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract}
     view.sendEvent(&zoomOut)
-    Swag.assert(pdf.effectiveZoom() < beforeZoomOut)
+    Swag.require(pdf.effectiveZoom() < beforeZoomOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     view.sendEvent(&actual)
-    Swag.assert(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
 
     pdf.zoomToFit()
-    Swag.assert(pdf.zoomMode == .FitPage)
+    Swag.require(pdf.zoomMode == .FitPage)
 
     // Fitting the width is the reading scale of a continuous document, and the shortcut the
     // viewer binds for it.
     var fitWidth = KeyEvent{kind: .Pressed, key: .W}
     view.sendEvent(&fitWidth)
-    Swag.assert(pdf.zoomMode == .FitWidth)
+    Swag.require(pdf.zoomMode == .FitWidth)
     pdf.zoomToFit()
 
-    Swag.assert(not view.previousButton.isEnabled() and view.nextButton.isEnabled())
+    Swag.require(not view.previousButton.isEnabled() and view.nextButton.isEnabled())
     pdf.showPage(1)
-    Swag.assert(pdf.pageIndex == 1)
-    Swag.assert(view.previousButton.isEnabled() and not view.nextButton.isEnabled())
+    Swag.require(pdf.pageIndex == 1)
+    Swag.require(view.previousButton.isEnabled() and not view.nextButton.isEnabled())
 
     let oldTip  = String.from(view.pageLabel.toolTip)
     let oldZoom = pdf.effectiveZoom()
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.pageLabel.toolTip == PdfDocument.texts().ui_GoToPage and view.pageLabel.toolTip != oldTip)
-    Swag.assert(view.previousButton.toolTip == PdfDocument.texts().ui_Previous and view.nextButton.toolTip == PdfDocument.texts().ui_Next)
-    Swag.assert(view.zoomLabel.toolTip == PdfDocument.texts().ui_ZoomMenu)
-    Swag.assert(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
+    Swag.require(view.pageLabel.toolTip == PdfDocument.texts().ui_GoToPage and view.pageLabel.toolTip != oldTip)
+    Swag.require(view.previousButton.toolTip == PdfDocument.texts().ui_Previous and view.nextButton.toolTip == PdfDocument.texts().ui_Next)
+    Swag.require(view.zoomLabel.toolTip == PdfDocument.texts().ui_ZoomMenu)
+    Swag.require(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(view.pageLabel.toolTip == oldTip)
-    Swag.assert(view.goToTypedPage("1") and pdf.pageIndex == 0)
-    Swag.assert(not view.goToTypedPage("0") and not view.goToTypedPage("3") and not view.goToTypedPage("page"))
+    Swag.require(view.pageLabel.toolTip == oldTip)
+    Swag.require(view.goToTypedPage("1") and pdf.pageIndex == 0)
+    Swag.require(not view.goToTypedPage("0") and not view.goToTypedPage("3") and not view.goToTypedPage("page"))
     Testing.assertContentFits(view)
 }
 
@@ -102,10 +102,10 @@ internal func createPdfFixture()->String
     var host: HeadlessHost
     host.setup(640, 420)
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands == null)
+    Swag.require(result.view != null and result.commands == null)
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    Swag.assert(not view.failureReason.isEmpty())
+    Swag.require(not view.failureReason.isEmpty())
 }
 
 // The viewer owns the search: PDF text lives compressed in the file, so only the viewer can
@@ -119,10 +119,10 @@ internal func createPdfFixture()->String
     host.setup(640, 450)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.collectMatches != null and
-                result.revealMatch != null and
-                result.searchBounds != null and
-                result.clearSearch != null)
+    Swag.require(result.collectMatches != null and
+                 result.revealMatch != null and
+                 result.searchBounds != null and
+                 result.clearSearch != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
@@ -132,9 +132,9 @@ internal func createPdfFixture()->String
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "second", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "second")
-    Swag.assert(revealed)
-    Swag.assert(view.pdfView.pageIndex == 1)
-    Swag.assert(view.pdfView.selectedText() == "Second")
+    Swag.require(revealed)
+    Swag.require(view.pdfView.pageIndex == 1)
+    Swag.require(view.pdfView.selectedText() == "Second")
 
     // The page carrying the match is decoded on a worker, and the geometry of a match answers
     // once that page has landed, which is when the host's own poll picks the marker up.
@@ -148,10 +148,10 @@ internal func createPdfFixture()->String
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(not bounds.isEmpty())
+    Swag.require(not bounds.isEmpty())
     result.clearSearch()
-    Swag.assert(view.pdfView.selectedText().isEmpty())
+    Swag.require(view.pdfView.selectedText().isEmpty())
     matches.clear()
     collectViewerMatches(result.collectMatches, "absent", &matches)
-    Swag.assert(matches.isEmpty())
+    Swag.require(matches.isEmpty())
 }

@@ -26,16 +26,16 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     }
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
-    Swag.assert(result.view != null and result.info != null)
+    Swag.require(result.view != null and result.info != null)
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     host.root.applyLayout()
     layout.computeLayout()
 
-    Swag.assert(result.info.position.width == 2 * themeActionButtonSize(view.themeMetrics()) + 76 + 96 + 16)
-    Swag.assert(view.previousButton.position.right() <= view.pageLabel.position.x)
-    Swag.assert(view.pageLabel.position.right() <= view.nextButton.position.x)
-    Swag.assert(view.nextButton.position.right() <= view.zoomLabel.position.x)
+    Swag.require(result.info.position.width == 2 * themeActionButtonSize(view.themeMetrics()) + 76 + 96 + 16)
+    Swag.require(view.previousButton.position.right() <= view.pageLabel.position.x)
+    Swag.require(view.pageLabel.position.right() <= view.nextButton.position.x)
+    Swag.require(view.nextButton.position.right() <= view.zoomLabel.position.x)
 
     var image = host.render(&host.root)
     assertScopeImageGolden(&image, "viewer.pdf.info-bar")
@@ -82,8 +82,8 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.settleAnimations(window, 4)
 
     let margin = unwrap view.margin
-    Swag.assert(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
-    Swag.assert(margin.position.right() <= view.pdfView.pageColumn().x)
+    Swag.require(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
+    Swag.require(margin.position.right() <= view.pdfView.pageColumn().x)
     var image = host.render(window)
     assertScopeImageGolden(&image, "viewer.pdf.page.paper")
 }

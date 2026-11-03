@@ -48,7 +48,7 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     var host: Testing.HeadlessHost
     let window = homeWindow(&host, false)
     let button = window.home.clearButton
-    Swag.assert(button.isLocallyVisible() and button.arrowPosition == .RightDownward)
+    Swag.require(button.isLocallyVisible() and button.arrowPosition == .RightDownward)
     var clear = button.surfaceRect().center()
     host.surface.surfaceToScreen(&clear)
 
@@ -59,35 +59,35 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
         if not menu do
             return
         sawMenu[] = true
-        Swag.assert(home.clearButton.isLocallyVisible())
+        Swag.require(home.clearButton.isLocallyVisible())
         var point = menu.surfaceRect().center()
         host.surface.surfaceToScreen(&point)
         host.moveMouse(point)
-        Swag.assert(not home.pointerIn and home.clearButton.isLocallyVisible())
+        Swag.require(not home.pointerIn and home.clearButton.isLocallyVisible())
     }
 
     host.clickPopupMenuItemWhenShown("scope.home.clear.all")
     host.thenClickModalButton(Dialog.BtnNo)
     host.mouseDown(clear)
-    Swag.assert(button.mouseCapture() == button)
-    Swag.assert(host.capturedPopupMenu() == null)
+    Swag.require(button.mouseCapture() == button)
+    Swag.require(host.capturedPopupMenu() == null)
     host.mouseUp(clear)
-    Swag.assert(sawMenu and host.autoHandled and window.recent.count == 6)
-    Swag.assert(button.isLocallyVisible() and button.mouseCapture() == null)
+    Swag.require(sawMenu and host.autoHandled and window.recent.count == 6)
+    Swag.require(button.isLocallyVisible() and button.mouseCapture() == null)
 
     // Releasing outside the command cancels this click.
     host.mouseDown(clear)
     host.moveMouse({0, 0})
     host.mouseUp({0, 0})
-    Swag.assert(button.mouseCapture() == null and host.capturedPopupMenu() == null)
-    Swag.assert(window.recent.count == 6)
+    Swag.require(button.mouseCapture() == null and host.capturedPopupMenu() == null)
+    Swag.require(window.recent.count == 6)
 
     host.clickPopupMenuItemWhenShown("scope.home.clear.all")
     host.thenClickModalButton(Dialog.BtnYes)
     button.setFocus()
     host.keyPress(.Return)
-    Swag.assert(host.autoHandled and window.recent.isEmpty() and window.home.rows.isEmpty())
-    Swag.assert(not button.isLocallyVisible())
+    Swag.require(host.autoHandled and window.recent.isEmpty() and window.home.rows.isEmpty())
+    Swag.require(not button.isLocallyVisible())
 }
 
 // A row opens its file; its cross and Delete take it out of the history, and the clears take
@@ -99,26 +99,26 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
 
     let second = String.from(window.home.rows[1].file)
     window.home.removeRow(1)
-    Swag.assert(window.recent.count == 5 and
-                window.recentOpened.count == 5 and
-                not window.recent.contains(second))
-    Swag.assert(window.home.rows.count == 5)
+    Swag.require(window.recent.count == 5 and
+                 window.recentOpened.count == 5 and
+                 not window.recent.contains(second))
+    Swag.require(window.home.rows.count == 5)
 
     window.home.setFocus()
     window.home.chosen = 0
     host.keyPress(.Delete)
-    Swag.assert(window.recent.count == 4 and window.home.rows.count == 4)
+    Swag.require(window.recent.count == 4 and window.home.rows.count == 4)
 
     window.recent.add(homeFixture("gone-for-good.txt"))
     window.recentOpened.add(HomeNow)
-    Swag.assert(window.missingRecentCount() == 1)
+    Swag.require(window.missingRecentCount() == 1)
     window.removeMissingRecent()
-    Swag.assert(window.recent.count == 4 and window.missingRecentCount() == 0)
+    Swag.require(window.recent.count == 4 and window.missingRecentCount() == 0)
 
     // The fixtures were opened in the year 2025 of the fixed clock; the real one is later.
-    Swag.assert(window.olderRecentCount() == 4)
+    Swag.require(window.olderRecentCount() == 4)
     window.removeOlderRecent()
-    Swag.assert(window.recent.isEmpty() and window.recentOpened.isEmpty() and window.home.rows.isEmpty())
+    Swag.require(window.recent.isEmpty() and window.recentOpened.isEmpty() and window.home.rows.isEmpty())
 }
 
 // Opening a missing home row offers to forget that exact history entry and leaves the home
@@ -133,21 +133,21 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     window.recent.add(missing)
     window.recentOpened.add(HomeNow)
     window.home.refresh()
-    Swag.assert(not File.exists(missing))
+    Swag.require(not File.exists(missing))
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
     window.queueFile(missing.toString(), offerForgetMissing: true)
-    Swag.assert(window.home.isLocallyVisible() and window.home.message.isEmpty())
+    Swag.require(window.home.isLocallyVisible() and window.home.message.isEmpty())
     completeViewerWindowClassification(&host, window)
-    Swag.assert(host.autoHandled and window.home.isLocallyVisible())
-    Swag.assert(window.home.message.isEmpty() and window.recent.contains(missing))
+    Swag.require(host.autoHandled and window.home.isLocallyVisible())
+    Swag.require(window.home.message.isEmpty() and window.recent.contains(missing))
 
     host.clickModalButtonWhenShown(Dialog.BtnYes)
     window.queueFile(missing.toString(), offerForgetMissing: true)
-    Swag.assert(window.home.isLocallyVisible() and window.home.message.isEmpty())
+    Swag.require(window.home.isLocallyVisible() and window.home.message.isEmpty())
     completeViewerWindowClassification(&host, window)
-    Swag.assert(host.autoHandled and window.home.isLocallyVisible())
-    Swag.assert(window.home.message.isEmpty() and not window.recent.contains(missing))
+    Swag.require(host.autoHandled and window.home.isLocallyVisible())
+    Swag.require(window.home.message.isEmpty() and not window.recent.contains(missing))
 }
 
 // A recent row stays visible while classification runs, then gives way to the file when it opens.
@@ -158,7 +158,7 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     let file   = String.from(window.home.rows[0].file)
 
     window.queueFile(file.toString(), offerForgetMissing: true)
-    Swag.assert(window.home.isLocallyVisible())
+    Swag.require(window.home.isLocallyVisible())
     completeViewerWindowClassification(&host, window)
-    Swag.assert(not window.home.isLocallyVisible() and not window.currentFile.isEmpty())
+    Swag.require(not window.home.isLocallyVisible() and not window.currentFile.isEmpty())
 }

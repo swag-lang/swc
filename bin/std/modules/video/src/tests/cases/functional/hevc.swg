@@ -7,9 +7,9 @@ using Core, Core.Errors, Pixel
 // reconstruction path applies the bit-depth scale exactly once after this derivation.
 #test
 {
-    Swag.assert(Hevc.deriveChromaOffset(0, 3, 1) == -64)
-    Swag.assert(Hevc.deriveChromaOffset(300, 3, 1) == 127)
-    Swag.assert(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
+    Swag.require(Hevc.deriveChromaOffset(0, 3, 1) == -64)
+    Swag.require(Hevc.deriveChromaOffset(300, 3, 1) == 127)
+    Swag.require(Hevc.deriveChromaOffset(-300, 1, 1) == -128)
 }
 
 // The same access units, muxed two ways, decode to the same pictures.
@@ -46,13 +46,13 @@ using Core, Core.Errors, Pixel
     while expectedSync > 0 and decoder.video.hevc.syncFlags[expectedSync] == 0 do
         expectedSync -= 1
     decoder.video.hevc.seekTo(47)
-    Swag.assert(expectedSync > 0 and decoder.video.hevc.nextDecode == expectedSync)
+    Swag.require(expectedSync > 0 and decoder.video.hevc.nextDecode == expectedSync)
 
     let reference = expect File.readAllBytes(videoFixturePath("ffmpeg-hevc-main.yuv").toString())
     var frame: Image
     expect idecoder.decodeFrame(&source, &frame)
     videoAssertReferenceFrame(frame, reference.toSlice(), 47, 96, 64)
-    Swag.assert(decoder.video.hevc.skippedNonReference > 0)
+    Swag.require(decoder.video.hevc.skippedNonReference > 0)
 }
 
 // A player that falls behind may advance by several display ranks. That is a forward decode, not
@@ -75,7 +75,7 @@ using Core, Core.Errors, Pixel
         index += 3
     }
 
-    Swag.assert(decoder.video.hevc.pending.count <= 4)
+    Swag.require(decoder.video.hevc.pending.count <= 4)
 }
 
 // The reader reports the track geometry from the decoder configuration record, before any access
@@ -83,9 +83,9 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-hevc-main.mp4"))
-    Swag.assert(reader.width() == 96 and reader.height() == 64)
-    Swag.assert(reader.frameCount() == 60)
-    Swag.assert(reader.hasPlanarFrames())
+    Swag.require(reader.width() == 96 and reader.height() == 64)
+    Swag.require(reader.frameCount() == 60)
+    Swag.require(reader.hasPlanarFrames())
 }
 
 // Identity weights at integer positions go directly from the reference pictures to the result.
@@ -159,13 +159,13 @@ using Core, Core.Errors, Pixel
 
         var picture: PlanarFrame
         current.writePlanar(&picture)
-        Swag.assert(picture.matrix == .Bt709 and not picture.studioRange)
+        Swag.require(picture.matrix == .Bt709 and not picture.studioRange)
         for y in 32's32
         {
             for x in 32's32
             {
                 let reconstructed = (x + y + 100 + 2 * x + y + 1) >> 1
-                Swag.assert(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
+                Swag.require(picture.luma[cast(u64, y) * cast(u64, picture.strideLuma) + cast(u64, x)] == cast(u8, ((reconstructed + 2) >> 2)))
             }
         }
 
@@ -176,8 +176,8 @@ using Core, Core.Errors, Pixel
                 let blue  = (20 + x + y + 60 + 2 * x + y + 1) >> 1
                 let red   = (40 + x + y + 80 + 2 * x + y + 1) >> 1
                 let index = cast(u64, y) * cast(u64, picture.strideChroma) + cast(u64, x)
-                Swag.assert(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
-                Swag.assert(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
+                Swag.require(picture.chromaB[index] == cast(u8, ((blue + 2) >> 2)))
+                Swag.require(picture.chromaR[index] == cast(u8, ((red + 2) >> 2)))
             }
         }
     }
@@ -205,15 +205,15 @@ using Core, Core.Errors, Pixel
             for y in 32's32
             {
                 for x in 32's32 do
-                    Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (x + y))))
+                    Swag.require(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (x + y))))
             }
 
             for y in 16's32
             {
                 for x in 16's32
                 {
-                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + x + y))))
-                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + x + y))))
+                    Swag.require(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + x + y))))
+                    Swag.require(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + x + y))))
                 }
             }
         }
@@ -231,15 +231,15 @@ using Core, Core.Errors, Pixel
             for y in 32's32
             {
                 for x in 32's32 do
-                    Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
+                    Swag.require(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * y)))
             }
 
             for y in 16's32
             {
                 for x in 16's32
                 {
-                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + y))))
-                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + y))))
+                    Swag.require(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + y))))
+                    Swag.require(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + y))))
                 }
             }
         }
@@ -256,7 +256,7 @@ using Core, Core.Errors, Pixel
                     for x in cast(s32, blockWidth)
                     {
                         let sourceX = motionX == 0 ? x : 0
-                        Swag.assert(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (sourceX + y))))
+                        Swag.require(current.lumaAtMutable(x, y)[0] == cast(u16, (2 * (sourceX + y))))
                     }
                 }
 
@@ -265,8 +265,8 @@ using Core, Core.Errors, Pixel
                     for x in cast(s32, (blockWidth / 2))
                     {
                         let sourceX = motionX == 0 ? x : 0
-                        Swag.assert(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + sourceX + y))))
-                        Swag.assert(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + sourceX + y))))
+                        Swag.require(current.chromaAtMutable(0, x, y)[0] == cast(u16, (2 * (20 + sourceX + y))))
+                        Swag.require(current.chromaAtMutable(1, x, y)[0] == cast(u16, (2 * (40 + sourceX + y))))
                     }
                 }
             }
@@ -285,15 +285,15 @@ using Core, Core.Errors, Pixel
             for y in cast(s32, blockWidth)
             {
                 for x in cast(s32, blockWidth) do
-                    Swag.assert(current.lumaAtMutable(x, y)[0] == 0)
+                    Swag.require(current.lumaAtMutable(x, y)[0] == 0)
             }
 
             for y in cast(s32, (blockWidth / 2))
             {
                 for x in cast(s32, (blockWidth / 2))
                 {
-                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == 40)
-                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == 80)
+                    Swag.require(current.chromaAtMutable(0, x, y)[0] == 40)
+                    Swag.require(current.chromaAtMutable(1, x, y)[0] == 80)
                 }
             }
         }
@@ -361,15 +361,15 @@ using Core, Core.Errors, Pixel
             for y in cast(s32, height)
             {
                 for x in 64's32 do
-                    Swag.assert(current.lumaAtMutable(x, y)[0] == 98)
+                    Swag.require(current.lumaAtMutable(x, y)[0] == 98)
             }
 
             for y in cast(s32, (height / 2))
             {
                 for x in 32's32
                 {
-                    Swag.assert(current.chromaAtMutable(0, x, y)[0] == 48)
-                    Swag.assert(current.chromaAtMutable(1, x, y)[0] == 72)
+                    Swag.require(current.chromaAtMutable(0, x, y)[0] == 48)
+                    Swag.require(current.chromaAtMutable(1, x, y)[0] == 72)
                 }
             }
         }
@@ -404,13 +404,13 @@ using Core, Core.Errors, Pixel
                 let weight       = index + 1
                 let expectedTop  = ((64 - weight) * corner + weight * top + 32) >> 6
                 let expectedLeft = ((64 - weight) * corner + weight * left + 32) >> 6
-                Swag.assert(reference.top(index) == cast(u16, expectedTop))
-                Swag.assert(reference.left(index) == cast(u16, expectedLeft))
+                Swag.require(reference.top(index) == cast(u16, expectedTop))
+                Swag.require(reference.left(index) == cast(u16, expectedLeft))
             }
 
-            Swag.assert(reference.corner() == cast(u16, corner))
-            Swag.assert(reference.top(63) == cast(u16, top))
-            Swag.assert(reference.left(63) == cast(u16, left))
+            Swag.require(reference.corner() == cast(u16, corner))
+            Swag.require(reference.top(63) == cast(u16, top))
+            Swag.require(reference.left(63) == cast(u16, left))
         }
     }
 }
@@ -444,14 +444,14 @@ using Core, Core.Errors, Pixel
                 }
 
                 decoder.filterReference(&reference, size, log2Size, 0, 0, bitDepth)
-                Swag.assert(reference.samples[0] == original[0])
+                Swag.require(reference.samples[0] == original[0])
                 for index in 1 until reference.count - 1
                 {
                     let value = cast(u32, original[index - 1]) + 2 * cast(u32, original[index]) + cast(u32, original[index + 1]) + 2
-                    Swag.assert(reference.samples[index] == cast(u16, (value >> 2)))
+                    Swag.require(reference.samples[index] == cast(u16, (value >> 2)))
                 }
 
-                Swag.assert(reference.samples[reference.count - 1] == original[reference.count - 1])
+                Swag.require(reference.samples[reference.count - 1] == original[reference.count - 1])
             }
         }
     }
@@ -519,12 +519,12 @@ using Core, Core.Errors, Pixel
                 {
                     let group     = (index / step) * step
                     let available = yLuma > 0 and xLuma + cast(s32, group) * scale < 64
-                    Swag.assert(reference.available[2 * size + 1 + index] == available)
+                    Swag.require(reference.available[2 * size + 1 + index] == available)
                     if available
                     {
                         let sampleX = x + cast(s32, index)
                         let sample  = component == 0 ? frame.lumaAtMutable(sampleX, y - 1)[0] : frame.chromaAtMutable(component - 1, sampleX, y - 1)[0]
-                        Swag.assert(reference.top(index) == sample)
+                        Swag.require(reference.top(index) == sample)
                     }
                 }
 
@@ -532,12 +532,12 @@ using Core, Core.Errors, Pixel
                 {
                     let group     = (index / step) * step
                     let available = xLuma > 0 and yLuma + cast(s32, group) * scale < 64
-                    Swag.assert(reference.available[2 * size - 1 - index] == available)
+                    Swag.require(reference.available[2 * size - 1 - index] == available)
                     if available
                     {
                         let sampleY = y + cast(s32, index)
                         let sample  = component == 0 ? frame.lumaAtMutable(x - 1, sampleY)[0] : frame.chromaAtMutable(component - 1, x - 1, sampleY)[0]
-                        Swag.assert(reference.left(index) == sample)
+                        Swag.require(reference.left(index) == sample)
                     }
                 }
 
@@ -552,7 +552,7 @@ using Core, Core.Errors, Pixel
                         decoder.residual[index] = -0x5A5A5A5A
                     decoder.intraPredict(x, y, xLuma, yLuma, log2Size, component, mode)
                     for index in size * size do
-                        Swag.assert(decoder.predSamples[index] == expected[index])
+                        Swag.require(decoder.predSamples[index] == expected[index])
                 }
             }
         }
@@ -583,14 +583,14 @@ using Core, Core.Errors, Pixel
                     main[index] = 0x5A5A
                 let count = extended ? 2 * size : size
                 Hevc.prepareAngularMain(&reference, &main[0], size, vertical, extended)
-                Swag.assert(main[0] == reference.corner())
+                Swag.require(main[0] == reference.corner())
                 for index in count
                 {
                     let expected = vertical ? reference.top(index) : reference.left(index)
-                    Swag.assert(main[index + 1] == expected)
+                    Swag.require(main[index + 1] == expected)
                 }
 
-                Swag.assert(main[count + 1] == 0x5A5A)
+                Swag.require(main[count + 1] == 0x5A5A)
             }
         }
     }
@@ -630,7 +630,7 @@ using Core, Core.Errors, Pixel
                         decoder.residual[index] = -0x5A5A5A5A
                     decoder.predictAngular(&reference, size, component, mode, bitDepth)
                     for index in size * size do
-                        Swag.assert(decoder.predSamples[index] == expected[index])
+                        Swag.require(decoder.predSamples[index] == expected[index])
                 }
             }
         }
@@ -670,11 +670,11 @@ using Core, Core.Errors, Pixel
                         let first    = cast(u32, main[base])
                         let second   = cast(u32, main[base + 1])
                         let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
-                        Swag.assert(output[row * size + x] == cast(u16, expected))
+                        Swag.require(output[row * size + x] == cast(u16, expected))
                     }
                 }
 
-                Swag.assert(output[size * size] == 0x5A5A)
+                Swag.require(output[size * size] == 0x5A5A)
                 if angle == 0 do
                     Hevc.predictAngularHorizontalZero(&main[64], &output[0], size)
                 elif size == 4 do
@@ -692,11 +692,11 @@ using Core, Core.Errors, Pixel
                         let first    = cast(u32, main[base])
                         let second   = cast(u32, main[base + 1])
                         let expected = ((32 - cast(u32, blend)) * first + cast(u32, blend) * second + 16) >> 5
-                        Swag.assert(output[y * size + column] == cast(u16, expected))
+                        Swag.require(output[y * size + column] == cast(u16, expected))
                     }
                 }
 
-                Swag.assert(output[size * size] == 0x5A5A)
+                Swag.require(output[size * size] == 0x5A5A)
             }
         }
     }
@@ -739,10 +739,10 @@ using Core, Core.Errors, Pixel
                 for x in size
                 {
                     let expected = Math.clamp(left + ((cast(s32, reference.top(x)) - corner) >> 1), 0, maximum)
-                    Swag.assert(output[x] == cast(u16, expected))
+                    Swag.require(output[x] == cast(u16, expected))
                 }
 
-                Swag.assert(output[size] == 0x5A5A)
+                Swag.require(output[size] == 0x5A5A)
                 for index in size * size + 1 do
                     output[index] = 0x5A5A
                 Hevc.blendAngularLeftEdge(&reference, &output[0], size, maximum)
@@ -750,12 +750,12 @@ using Core, Core.Errors, Pixel
                 for y in size
                 {
                     let expected = Math.clamp(top + ((cast(s32, reference.left(y)) - corner) >> 1), 0, maximum)
-                    Swag.assert(output[y * size] == cast(u16, expected))
+                    Swag.require(output[y * size] == cast(u16, expected))
                     for x in 1 until size do
-                        Swag.assert(output[y * size + x] == 0x5A5A)
+                        Swag.require(output[y * size + x] == 0x5A5A)
                 }
 
-                Swag.assert(output[size * size] == 0x5A5A)
+                Swag.require(output[size * size] == 0x5A5A)
             }
         }
     }
@@ -809,11 +809,11 @@ using Core, Core.Errors, Pixel
                                     expected = (cast(u32, reference.left(y)) + 3 * dc + 2) >> 2
                             }
 
-                            Swag.assert(decoder.predSamples[y * size + x] == cast(u16, expected))
+                            Swag.require(decoder.predSamples[y * size + x] == cast(u16, expected))
                         }
                     }
 
-                    Swag.assert(decoder.predSamples[size * size] == 0x5A5A)
+                    Swag.require(decoder.predSamples[size * size] == 0x5A5A)
                 }
             }
         }
@@ -859,11 +859,11 @@ using Core, Core.Errors, Pixel
                     for x in size
                     {
                         let value = (size - 1 - x) * left + (x + 1) * right + (size - 1 - y) * cast(u32, reference.top(x)) + (y + 1) * bottom + size
-                        Swag.assert(destination[y * size + x] == cast(u16, (value >> (log2Size + 1))))
+                        Swag.require(destination[y * size + x] == cast(u16, (value >> (log2Size + 1))))
                     }
                 }
 
-                Swag.assert(destination[size * size] == 0x5A5A)
+                Swag.require(destination[size * size] == 0x5A5A)
             }
         }
     }
@@ -906,9 +906,9 @@ using Core, Core.Errors, Pixel
             block.bypass = true
             decoder.reconstructResidual(&block)
             for index in count do
-                Swag.assert(decoder.residual[index] == cast(s32, decoder.coefficients[index]))
+                Swag.require(decoder.residual[index] == cast(s32, decoder.coefficients[index]))
             if count < 1024 do
-                Swag.assert(decoder.residual[count] == 0x35353535)
+                Swag.require(decoder.residual[count] == 0x35353535)
 
             block.bypass        = false
             block.transformSkip = true
@@ -918,11 +918,11 @@ using Core, Core.Errors, Pixel
             for index in count
             {
                 let value = ((cast(s32, decoder.coefficients[index]) << tsShift) + (1 << (bdShift - 1))) >> bdShift
-                Swag.assert(decoder.residual[index] == value)
+                Swag.require(decoder.residual[index] == value)
             }
 
             if count < 1024 do
-                Swag.assert(decoder.residual[count] == 0x35353535)
+                Swag.require(decoder.residual[count] == 0x35353535)
         }
     }
 }
@@ -989,7 +989,7 @@ using Core, Core.Errors, Pixel
                 for y in 6'u64
                 {
                     for x in 6'u64 do
-                        Swag.assert(origin[y * stride + x] == expected[y, x])
+                        Swag.require(origin[y * stride + x] == expected[y, x])
                 }
 
                 for y in 4'u64
@@ -1002,14 +1002,14 @@ using Core, Core.Errors, Pixel
                 for y in 6'u64
                 {
                     for x in 6'u64 do
-                        Swag.assert(origin[y * stride + x] == expected[y, x])
+                        Swag.require(origin[y * stride + x] == expected[y, x])
                 }
 
                 decoder.addResidual(&block, false)
                 for y in 4'u64
                 {
                     for x in 4'u64 do
-                        Swag.assert(origin[(y + 1) * stride + x + 1] == decoder.predSamples[y * 4 + x])
+                        Swag.require(origin[(y + 1) * stride + x + 1] == decoder.predSamples[y * 4 + x])
                 }
             }
         }
@@ -1050,7 +1050,7 @@ using Core, Core.Errors, Pixel
                 }
 
                 Hevc.filterChromaPair(&samples[2 * Stride + 1], cast(s64, Stride), tc, maximum)
-                Swag.assert(samples == expected)
+                Swag.require(samples == expected)
             }
         }
     }
@@ -1090,7 +1090,7 @@ using Core, Core.Errors, Pixel
                 }
 
                 Hevc.filterChromaVerticalPair(&samples[2], cast(s64, Stride), tc, maximum)
-                Swag.assert(samples == expected)
+                Swag.require(samples == expected)
             }
         }
     }
@@ -1172,7 +1172,7 @@ using Core, Core.Errors, Pixel
                             }
 
                             decoder.filterLumaVerticalQuad(&samples[5], cast(s64, Stride), strong, filterP, filterQ, tc, maximum)
-                            Swag.assert(samples == expected)
+                            Swag.require(samples == expected)
                         }
                     }
                 }
@@ -1189,7 +1189,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var reader = expect Reader.open(videoFixturePath("edited-open-group-start.mkv"))
-    Swag.assert(reader.width() == 96 and reader.height() == 64)
+    Swag.require(reader.width() == 96 and reader.height() == 64)
 
     let reference = expect File.readAllBytes(videoFixturePath("edited-open-group-start.yuv").toString())
     let bytes     = reference.toSlice()
@@ -1203,7 +1203,7 @@ using Core, Core.Errors, Pixel
         for y in 64'u64
         {
             for x in 96'u64 do
-                Swag.assert(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
+                Swag.require(frame.luma[y * cast(u64, frame.strideLuma) + x] == bytes[rank * frameSize + y * 96 + x])
         }
     }
 
@@ -1213,6 +1213,6 @@ using Core, Core.Errors, Pixel
     for y in 64'u64
     {
         for x in 96'u64 do
-            Swag.assert(early.luma[y * cast(u64, early.strideLuma) + x] == bytes[y * 96 + x])
+            Swag.require(early.luma[y * cast(u64, early.strideLuma) + x] == bytes[y * 96 + x])
     }
 }

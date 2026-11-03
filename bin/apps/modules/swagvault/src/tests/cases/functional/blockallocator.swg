@@ -14,18 +14,18 @@ using Core
 
     let first  = expect allocator.allocateRun(48)
     let second = expect allocator.allocateRun(48)
-    Swag.assert(first.first == 0 and first.count == 48)
-    Swag.assert(second.first == 48 and second.count == 16)
-    Swag.assert(allocator.freeBlockCount() == 0)
+    Swag.require(first.first == 0 and first.count == 48)
+    Swag.require(second.first == 48 and second.count == 16)
+    Swag.require(allocator.freeBlockCount() == 0)
     var fullErrorOutcome: Swag.Error
     discard catch allocator.allocate() as fullErrorOutcome
     let fullError = fullErrorOutcome.value()
-    Swag.assert(fullError != null)
+    Swag.require(fullError != null)
 
     allocator.releaseRun(first.first, first.count)
     allocator.releaseRun(second.first, second.count)
-    Swag.assert(allocator.freeBlockCount() == BlockCount)
-    Swag.assert(allocator.free.count == 1 and allocator.free[0].count == BlockCount)
+    Swag.require(allocator.freeBlockCount() == BlockCount)
+    Swag.require(allocator.free.count == 1 and allocator.free[0].count == BlockCount)
 }
 
 // A small low-address hole left by an old metadata page does not split a large transfer while a
@@ -38,5 +38,5 @@ using Core
     let occupied = expect allocator.allocateRun(4)
     allocator.release(occupied.first)
     let data = expect allocator.allocateRun(8)
-    Swag.assert(data.first == 4 and data.count == 8)
+    Swag.require(data.first == 4 and data.count == 8)
 }

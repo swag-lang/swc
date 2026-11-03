@@ -40,8 +40,8 @@ func assertVideoTimelineEndpoints(light: bool, golden: string)
     start.setValueWithoutGesture(0)
     end.setValueWithoutGesture(100)
     let room = start.clientRect()
-    Swag.assert(start.positionOf(0) - room.x >= 7.99)
-    Swag.assert(room.right() - end.positionOf(100) >= 7.99)
+    Swag.require(start.positionOf(0) - room.x >= 7.99)
+    Swag.require(room.right() - end.positionOf(100) >= 7.99)
     host.root.applyLayout()
 
     var image = host.render(&host.root)
@@ -85,7 +85,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
-    Swag.assert(Sound.acquireEngine(.NoSound))
+    Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
     var host: Testing.HeadlessHost
@@ -93,7 +93,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
 
     // The film writes its title in the top veil, so the strip leaves it out.
-    Swag.assert(host.surfaceWnd.titleHidden)
+    Swag.require(host.surfaceWnd.titleHidden)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
     pinVideoFrame(view, 5)
@@ -117,7 +117,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     window.returnExplorerCaptionButton.show()
     let titleRoom  = view.topVeil.titleRoom()
     let titleStart = view.topVeil.localToSurface(Math.Point{titleRoom.x, titleRoom.y})
-    Swag.assert(titleStart.x > window.returnExplorerCaptionButton.surfaceRect().right())
+    Swag.require(titleStart.x > window.returnExplorerCaptionButton.surfaceRect().right())
     var returning = host.renderSettled(&host.surfaceWnd)
     assertVideoRendererGolden(&returning, "viewer.video.return.ink")
 }
@@ -150,7 +150,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
-    Swag.assert(Sound.acquireEngine(.NoSound))
+    Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
     var host: Testing.HeadlessHost
@@ -169,7 +169,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     }
 
     var result = openTestViewer(Film.viewerPlugin(), &host.root, videoMatroskaFixturePath(), commandParent: commands)
-    Swag.assert(result.view != null)
+    Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
@@ -190,16 +190,16 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
         if rendered[] == 0
         {
-            Swag.assert(sheet.page.rows.count == 4)
-            Swag.assert(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
+            Swag.require(sheet.page.rows.count == 4)
+            Swag.require(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
             var first = host.render()
             assertVideoRendererGolden(&first, "viewer.video.options")
-            Swag.assert(sheet.activateRow(Film.texts().ui_OptionAudio))
+            Swag.require(sheet.activateRow(Film.texts().ui_OptionAudio))
             host.finishAnimations()
         }
         else
         {
-            Swag.assert(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
+            Swag.require(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
             var tracks = host.render()
             assertVideoRendererGolden(&tracks, "viewer.video.options.audio")
             sheet.close()
@@ -210,5 +210,5 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
     view.showOptions()
     host.app.sigFrame.clear()
-    Swag.assert(rendered == 2)
+    Swag.require(rendered == 2)
 }

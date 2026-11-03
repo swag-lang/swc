@@ -5,8 +5,8 @@ using Swag, Core
 #test
 {
     let identity = Matrix.Identity
-    Swag.assert(identity.xx == 65536 and identity.xy == 0)
-    Swag.assert(identity.yx == 0 and identity.yy == 65536)
+    Swag.require(identity.xx == 65536 and identity.xy == 0)
+    Swag.require(identity.yx == 0 and identity.yy == 65536)
 }
 
 #test
@@ -18,10 +18,10 @@ using Swag, Core
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 3, 1)
 
     let commands = buildOutlineCommands(&outline)
-    Swag.assert(commands.count == 3)
-    Swag.assert(commands[0].op is .MoveTo)
-    Swag.assert(commands[1].op is .ConicTo)
-    Swag.assert(commands[2].op is .LineTo)
+    Swag.require(commands.count == 3)
+    Swag.require(commands[0].op is .MoveTo)
+    Swag.require(commands[1].op is .ConicTo)
+    Swag.require(commands[2].op is .LineTo)
 }
 
 #test
@@ -32,9 +32,9 @@ using Swag, Core
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadChar('A')
-    Swag.assert(face.glyph.outline.contourCount > 0)
-    Swag.assert(face.glyph.outline.pointCount > 0)
-    Swag.assert(face.glyph.advance.x > 0)
+    Swag.require(face.glyph.outline.contourCount > 0)
+    Swag.require(face.glyph.outline.pointCount > 0)
+    Swag.require(face.glyph.advance.x > 0)
 
     var counter: OutlineCounter
     let commands = face.glyph.outline.decompose()
@@ -49,14 +49,14 @@ using Swag, Core
         }
     }
 
-    Swag.assert(counter.moves > 0)
-    Swag.assert(counter.lines + counter.conics > 0)
+    Swag.require(counter.moves > 0)
+    Swag.require(counter.lines + counter.conics > 0)
 
     let bounds0 = getOutlineBounds(&face.glyph.outline)
     face.glyph.outline.translate(64, 0)
     let bounds1 = getOutlineBounds(&face.glyph.outline)
-    Swag.assert(bounds1.xMin == bounds0.xMin + 64)
-    Swag.assert(bounds1.xMax == bounds0.xMax + 64)
+    Swag.require(bounds1.xMin == bounds0.xMin + 64)
+    Swag.require(bounds1.xMax == bounds0.xMax + 64)
 
     discard expect face.loadChar('A')
     let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
@@ -65,24 +65,24 @@ using Swag, Core
     let beforeTransformY = transformPts[transformIdx].y
     let scaleY           = Matrix{xx: 65536, yy: 131072}
     face.glyph.outline.transform(scaleY)
-    Swag.assert(transformPts[transformIdx].x == beforeTransformX)
-    Swag.assert(transformPts[transformIdx].y == beforeTransformY * 2)
+    Swag.require(transformPts[transformIdx].x == beforeTransformX)
+    Swag.require(transformPts[transformIdx].y == beforeTransformY * 2)
 
     discard expect face.loadChar('A')
     let bounds2 = getOutlineBounds(&face.glyph.outline)
     discard expect face.glyph.outline.embolden(64)
     let bounds3 = getOutlineBounds(&face.glyph.outline)
-    Swag.assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
+    Swag.require(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
 
     // Emboldening a glyph with a counter ('o') must add ink: the outer contour
     // grows while the inner hole shrinks. A per-contour winding bug would instead
     // grow the hole, so the total filled area would not increase.
     discard expect face.loadChar('o')
-    Swag.assert(face.glyph.outline.contourCount >= 2)
+    Swag.require(face.glyph.outline.contourCount >= 2)
     let inkBefore = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
     discard expect face.glyph.outline.embolden(128)
     let inkAfter = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
-    Swag.assert(inkAfter > inkBefore)
+    Swag.require(inkAfter > inkBefore)
 
     discard expect face.loadChar('A')
     let sampleIdx = findPointWithNonZeroY(&face.glyph.outline)
@@ -92,7 +92,7 @@ using Swag, Core
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y
     face.glyph.oblique()
-    Swag.assert(samplePts[sampleIdx].x == sampleBeforeX + cast(s32, Math.round(sampleBeforeY * 0.21256)))
+    Swag.require(samplePts[sampleIdx].x == sampleBeforeX + cast(s32, Math.round(sampleBeforeY * 0.21256)))
 }
 
 // A 3/64-pixel embolden of this captured contour lies on a half-integer boundary.
@@ -108,8 +108,8 @@ using Swag, Core
     let expected: [12] Vector = [Vector{272, 301}, Vector{148, 475}, Vector{50, 475}, Vector{227, 239}, Vector{45, -2}, Vector{144, -2}, Vector{273, 177}, Vector{403, -2}, Vector{501, -2}, Vector{319, 239}, Vector{496, 475}, Vector{397, 475}]
     for point, index in expected
     {
-        Swag.assert(points[index].x == point.x)
-        Swag.assert(points[index].y == point.y)
+        Swag.require(points[index].x == point.x)
+        Swag.require(points[index].y == point.y)
     }
 }
 
@@ -126,8 +126,8 @@ using Swag, Core
     let expected: [17] Vector = [Vector{21, -2}, Vector{258, 654}, Vector{357, 654}, Vector{597, -2}, Vector{507, -2}, Vector{442, 181}, Vector{175, 181}, Vector{112, -2}, Vector{202, 257}, Vector{415, 257}, Vector{369, 386}, Vector{357, 420}, Vector{327, 515}, Vector{307, 580}, Vector{288, 513}, Vector{257, 417}, Vector{246, 386}]
     for point, index in expected
     {
-        Swag.assert(points[index].x == point.x)
-        Swag.assert(points[index].y == point.y)
+        Swag.require(points[index].x == point.x)
+        Swag.require(points[index].y == point.y)
     }
 }
 
@@ -144,8 +144,8 @@ using Swag, Core
     let expected: [13] Vector = [Vector{277, 0}, Vector{18, 700}, Vector{219, 700}, Vector{336, 336}, Vector{351, 289}, Vector{375, 194}, Vector{386, 147}, Vector{397, 194}, Vector{420, 289}, Vector{435, 336}, Vector{551, 700}, Vector{749, 700}, Vector{490, -1}]
     for point, index in expected
     {
-        Swag.assert(points[index].x == point.x)
-        Swag.assert(points[index].y == point.y)
+        Swag.require(points[index].x == point.x)
+        Swag.require(points[index].y == point.y)
     }
 }
 
@@ -159,6 +159,6 @@ using Swag, Core
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 6, 2)
     discard expect outline.embolden(5)
 
-    Swag.assert(points[1].x == 57 and points[1].y == 1)
-    Swag.assert(points[4].x == 51 and points[4].y == 1)
+    Swag.require(points[1].x == 57 and points[1].y == 1)
+    Swag.require(points[4].x == 51 and points[4].y == 1)
 }

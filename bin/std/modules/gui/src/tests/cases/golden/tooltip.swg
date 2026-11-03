@@ -16,7 +16,7 @@ using Swag, Core, Pixel
     let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
 
-    Swag.assert(lbl.maxLines == 0)
+    Swag.require(lbl.maxLines == 0)
 
     let rendered = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&rendered, "tooltip.history-fractional")

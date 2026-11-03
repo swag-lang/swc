@@ -10,25 +10,25 @@ using Core
     discard expect File.writeAllBytes(path.toString(), bytes.toSlice())
     defer discard catch File.delete(path.toString())
     var catalog: FontCatalog
-    Swag.assert((expect catalog.addFile(path.toString())) == 2)
-    Swag.assert((expect catalog.addFile(path.toString())) == 0)
-    Swag.assert(catalog.toSlice().count == 2)
+    Swag.require((expect catalog.addFile(path.toString())) == 2)
+    Swag.require((expect catalog.addFile(path.toString())) == 0)
+    Swag.require(catalog.toSlice().count == 2)
     let families = catalog.familyNames()
-    Swag.assert(families.count == 1 and families[0] == "Segoe UI")
+    Swag.require(families.count == 1 and families[0] == "Segoe UI")
     let regular = unwrap catalog.findFace("segoe ui")
     let bold    = unwrap catalog.findFace("Segoe UI", .Bold)
-    Swag.assert(regular.faceIndex == 0 and bold.faceIndex == 1)
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .Italic)).faceIndex == 0)
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .BoldItalic)).faceIndex == 1)
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .Light)).faceIndex == 0)
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .SemiBold)).faceIndex == 1)
-    Swag.assert(catalog.findFace("Missing family") == null)
+    Swag.require(regular.faceIndex == 0 and bold.faceIndex == 1)
+    Swag.require((unwrap catalog.findFace("Segoe UI", .Italic)).faceIndex == 0)
+    Swag.require((unwrap catalog.findFace("Segoe UI", .BoldItalic)).faceIndex == 1)
+    Swag.require((unwrap catalog.findFace("Segoe UI", .Light)).faceIndex == 0)
+    Swag.require((unwrap catalog.findFace("Segoe UI", .SemiBold)).faceIndex == 1)
+    Swag.require(catalog.findFace("Missing family") == null)
     let loaded = expect bold.load()
-    Swag.assert(loaded.isBold())
-    Swag.assert((expect loaded.renderGlyph('A', 16)).width != 0)
+    Swag.require(loaded.isBold())
+    Swag.require((expect loaded.renderGlyph('A', 16)).width != 0)
     catalog.clear()
-    Swag.assert(catalog.toSlice().count == 0 and catalog.findFace("Segoe UI") == null)
-    Swag.assert(families[0] == "Segoe UI")
+    Swag.require(catalog.toSlice().count == 0 and catalog.findFace("Segoe UI") == null)
+    Swag.require(families[0] == "Segoe UI")
 }
 
 // A broken later collection face must not leave the earlier face in the catalog.
@@ -44,10 +44,10 @@ using Core
     discard expect catalog.addFile(getTestDataPath("segoeui.ttf"))
     var outcome: Swag.Error
     discard catch catalog.addFile(path.toString()) as outcome
-    Swag.assert(outcome.value() != null and catalog.toSlice().count == 1)
+    Swag.require(outcome.value() != null and catalog.toSlice().count == 1)
     outcome = {}
     discard catch catalog.addFile(makeTempImagePath(".missing")) as outcome
-    Swag.assert(outcome.value() != null and catalog.toSlice().count == 1)
+    Swag.require(outcome.value() != null and catalog.toSlice().count == 1)
 }
 
 // Enumeration order cannot decide which duplicate family/style wins.
@@ -67,11 +67,11 @@ using Core
     discard expect backward.addFile(first.toString())
     let a = unwrap forward.findFace("Segoe UI")
     let b = unwrap backward.findFace("Segoe UI")
-    Swag.assert(a.path == b.path)
+    Swag.require(a.path == b.path)
     let names      = forward.familyNames()
     let otherNames = backward.familyNames()
-    Swag.assert(names.count == 1 and otherNames.count == 1 and names[0] == otherNames[0])
-    Swag.assert(forward.toSlice().count == 2)
+    Swag.require(names.count == 1 and otherNames.count == 1 and names[0] == otherNames[0])
+    Swag.require(forward.toSlice().count == 2)
 }
 
 // Exercise selection through real metadata, including style tables that disagree with the name.
@@ -111,7 +111,7 @@ using Core
             }
         }
 
-        Swag.assert(foundStyle)
+        Swag.require(foundStyle)
         let path = makeTempImagePath(".ttf")
         discard expect File.writeAllBytes(path.toString(), bytes.toSlice())
         return path
@@ -128,10 +128,10 @@ using Core
     var catalog: FontCatalog
     for path in paths do
         discard expect catalog.addFile(path.toString())
-    Swag.assert((unwrap catalog.findFace("Segoe UI")).path == paths[0])
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .Bold)).path == paths[5])
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .Italic)).path == paths[2])
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .BoldItalic)).path == paths[2])
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .SemiBold)).path == paths[3])
-    Swag.assert((unwrap catalog.findFace("Segoe UI", .Light)).path == paths[4])
+    Swag.require((unwrap catalog.findFace("Segoe UI")).path == paths[0])
+    Swag.require((unwrap catalog.findFace("Segoe UI", .Bold)).path == paths[5])
+    Swag.require((unwrap catalog.findFace("Segoe UI", .Italic)).path == paths[2])
+    Swag.require((unwrap catalog.findFace("Segoe UI", .BoldItalic)).path == paths[2])
+    Swag.require((unwrap catalog.findFace("Segoe UI", .SemiBold)).path == paths[3])
+    Swag.require((unwrap catalog.findFace("Segoe UI", .Light)).path == paths[4])
 }

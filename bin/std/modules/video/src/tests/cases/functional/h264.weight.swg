@@ -43,7 +43,7 @@ func assertWeightUni(src: [*] u8, width, height, logDenom, weight, offset: s32)
 
     referenceWeightUni(expected.buffer, src, width, height, logDenom, weight, offset)
     H264.weightUni(actual.buffer, WeightStride, src, 16, width, height, logDenom, weight, offset)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight1, offset0, offset1: s32)
@@ -58,7 +58,7 @@ func assertWeightBi(src0, src1: [*] u8, width, height, logDenom, weight0, weight
 
     referenceWeightBi(expected.buffer, src0, src1, width, height, logDenom, weight0, weight1, offset0, offset1)
     H264.weightBi(actual.buffer, WeightStride, src0, src1, 16, width, height, logDenom, weight0, weight1, offset0, offset1)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 #test

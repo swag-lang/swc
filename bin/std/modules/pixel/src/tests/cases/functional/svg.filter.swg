@@ -15,7 +15,7 @@ using Swag, Core
     let before  = image.pixelColor(3, 10)
     let center  = image.pixelColor(13, 10)
     let feather = image.pixelColor(18, 10)
-    Swag.assert(before.a < 16)
-    Swag.assert(center.r > 80 and center.a > 80)
-    Swag.assert(feather.a > 0 and feather.a < center.a)
+    Swag.require(before.a < 16)
+    Swag.require(center.r > 80 and center.a > 80)
+    Swag.require(feather.a > 0 and feather.a < center.a)
 }

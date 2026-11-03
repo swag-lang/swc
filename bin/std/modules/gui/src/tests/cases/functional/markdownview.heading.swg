@@ -23,7 +23,7 @@ using Swag, Core
     for 64 where view.isLoading() do
         host.fireTimers()
 
-    Swag.assert(view.revealHeading(closingOffset))
+    Swag.require(view.revealHeading(closingOffset))
     for 1_024 where view.isLoading() do
         host.fireTimers()
     discard host.render(view)
@@ -31,8 +31,8 @@ using Swag, Core
     let viewport = view.scroll.paddedClientRect()
     let position = view.scroll.scrollPosition().y
     let end      = view.contentHeight + view.documentStyle.bottomInset - viewport.height
-    Swag.assert(not view.hasUnloadedSource() and view.retainedBlocks.isEmpty())
-    Swag.assert(Math.abs(position - end) <= 1, Format.toString("position=%, end=%, origin=%, height=%", position, end, view.virtualOrigin, view.virtualHeight).toString())
-    Swag.assert(view.blocks[0].wnd.position.y - position <= view.documentStyle.topInset + 1,
-                Format.toString("first=%, position=%, inset=%", view.blocks[0].wnd.position.y, position, view.documentStyle.topInset).toString())
+    Swag.require(not view.hasUnloadedSource() and view.retainedBlocks.isEmpty())
+    Swag.require(Math.abs(position - end) <= 1, Format.toString("position=%, end=%, origin=%, height=%", position, end, view.virtualOrigin, view.virtualHeight).toString())
+    Swag.require(view.blocks[0].wnd.position.y - position <= view.documentStyle.topInset + 1,
+                 Format.toString("first=%, position=%, inset=%", view.blocks[0].wnd.position.y, position, view.documentStyle.topInset).toString())
 }

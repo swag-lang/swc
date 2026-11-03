@@ -18,9 +18,9 @@ using Core, Pixel
     let font   = view.documentFont(.Paragraph, style.bodyFontSize)
     let shaped = Painter.shapeRun("abandonnée", font)
     let width  = Painter.measureStringSnapped(&shaped, deviceScale: inline.deviceScale())
-    Swag.assert(Math.isEqualEpsilon(inline.atoms[0].position.width, width, 0.001))
-    Swag.assert(inline.atoms[1].isSpace and inline.atoms[2].text == "comme")
-    Swag.assert(Math.isEqualEpsilon(inline.atoms[2].position.x, inline.atoms[0].position.width + inline.atoms[1].position.width, 0.001))
+    Swag.require(Math.isEqualEpsilon(inline.atoms[0].position.width, width, 0.001))
+    Swag.require(inline.atoms[1].isSpace and inline.atoms[2].text == "comme")
+    Swag.require(Math.isEqualEpsilon(inline.atoms[2].position.x, inline.atoms[0].position.width + inline.atoms[1].position.width, 0.001))
 }
 
 // Fallback extents belong to the atom's line box, while a cached text batch retains the
@@ -39,17 +39,17 @@ using Core, Pixel
     let font    = view.documentFont(.Paragraph, style.bodyFontSize)
     let shaped  = Painter.shapeRun("A\u2192\u65E5\u672C\u8A9E", font)
     let metrics = shaped.lineMetrics()
-    Swag.assert(inline.atoms[0].ascent == metrics.ascent)
-    Swag.assert(inline.atoms[0].descent == metrics.descent)
-    Swag.assert(inline.atoms[0].position.height == metrics.height)
-    Swag.assert(inline.lines[0].height >= metrics.height)
+    Swag.require(inline.atoms[0].ascent == metrics.ascent)
+    Swag.require(inline.atoms[0].descent == metrics.descent)
+    Swag.require(inline.atoms[0].position.height == metrics.height)
+    Swag.require(inline.lines[0].height >= metrics.height)
     discard host.render(view)
-    Swag.assert(not inline.textBatches.isEmpty())
+    Swag.require(not inline.textBatches.isEmpty())
     let batch = &inline.textBatches[0]
     let expectedBaseline = inline.atoms[0].position.y + inline.atoms[0].ascent
-    Swag.assert(Math.isEqualEpsilon(batch.origin.y + font.ascent, expectedBaseline, 0.001))
+    Swag.require(Math.isEqualEpsilon(batch.origin.y + font.ascent, expectedBaseline, 0.001))
     for glyph in batch.shaped.glyphs do
-        Swag.assert(glyph.glyphIndex != 0)
+        Swag.require(glyph.glyphIndex != 0)
 }
 
 // Typeface overrides affect measured text and survive a zoom; empty slots resume the GUI font.
@@ -66,15 +66,15 @@ using Core, Pixel
     view.setDocumentStyle(style)
     discard inline.layout(600)
     let mono = inline.atoms[0].position.width
-    Swag.assert(mono > original)
+    Swag.require(mono > original)
     style.bodyFontSize *= 2
     view.setDocumentStyle(style)
     discard inline.layout(600)
-    Swag.assert(inline.atoms[0].position.width > mono * 1.8)
+    Swag.require(inline.atoms[0].position.width > mono * 1.8)
     view.setDocumentStyle(Markdown.Style.theme())
     discard inline.layout(600)
-    Swag.assert(inline.atoms[0].position.width == original)
-    Swag.assert(Markdown.renderInline("word&nbsp;!") == "word\u00A0!")
+    Swag.require(inline.atoms[0].position.width == original)
+    Swag.require(Markdown.renderInline("word&nbsp;!") == "word\u00A0!")
 }
 
 // Styling boundaries are not word boundaries, even when only the punctuation would overflow.
@@ -92,9 +92,9 @@ using Core, Pixel
         let width = inline.atoms[end - 1].position.right() - 1
         inline.layoutWidth = 0
         discard inline.layout(width)
-        Swag.assert(inline.lines.count >= 2)
-        Swag.assert(inline.lines[0].last == 2)
-        Swag.assert(inline.lines[1].first == 2 and inline.lines[1].last >= end)
+        Swag.require(inline.lines.count >= 2)
+        Swag.require(inline.lines[0].last == 2)
+        Swag.require(inline.lines[1].first == 2 and inline.lines[1].last >= end)
         view.destroy()
     }
 }
@@ -107,8 +107,8 @@ using Core, Pixel
     let view   = Markdown.View.createText(&host.root, "abcdefghijklmnopqrstuvwx, tail")
     let inline = unwrap view.blocks[0].inline
     discard inline.layout(90)
-    Swag.assert(inline.atoms[0].text == "abcdefghijklmnopqrstuvwx,")
-    Swag.assert(inline.text() == "abcdefghijklmnopqrstuvwx, tail")
+    Swag.require(inline.atoms[0].text == "abcdefghijklmnopqrstuvwx,")
+    Swag.require(inline.text() == "abcdefghijklmnopqrstuvwx, tail")
 }
 
 // A blank-separated caption inside an HTML figure remains Markdown. Raw preformatted text and
@@ -117,22 +117,22 @@ using Core, Pixel
 {
     let source = "<div align=\"center\">\n\n<img src=\"one.svg\" width=\"49%\"> <img src=\"two.svg\" width=\"49%\">\n\n> *FIG. 5 — **The center.** Two images, one caption.*\n\n</div>\n\nAfter."
     let blocks = Markdown.parseBlocks(source)
-    Swag.assert(blocks.count == 3)
-    Swag.assert(blocks[0].kind == .Html and Utf8.contains(blocks[0].text.toString(), "width=\"49%\""))
-    Swag.assert(Utf8.endsWith(blocks[0].text.toString(), "</div>"))
-    Swag.assert(blocks[1].kind == .Quote)
-    Swag.assert(blocks[1].text == "<i>FIG. 5 — <b>The center.</b> Two images, one caption.</i>")
-    Swag.assert(blocks[2].text == "After.")
-    Swag.assert(blocks[0].sourceOffset < blocks[1].sourceOffset and blocks[1].sourceOffset < blocks[2].sourceOffset)
+    Swag.require(blocks.count == 3)
+    Swag.require(blocks[0].kind == .Html and Utf8.contains(blocks[0].text.toString(), "width=\"49%\""))
+    Swag.require(Utf8.endsWith(blocks[0].text.toString(), "</div>"))
+    Swag.require(blocks[1].kind == .Quote)
+    Swag.require(blocks[1].text == "<i>FIG. 5 — <b>The center.</b> Two images, one caption.</i>")
+    Swag.require(blocks[2].text == "After.")
+    Swag.require(blocks[0].sourceOffset < blocks[1].sourceOffset and blocks[1].sourceOffset < blocks[2].sourceOffset)
 
     let raw = Markdown.parseBlocks("<div><pre>\n\n> *literal*\n\n</pre><!--\n\n> *hidden*\n--></div>")
-    Swag.assert(raw.count == 1 and raw[0].kind == .Html)
-    Swag.assert(Utf8.contains(raw[0].text.toString(), "> *literal*"))
+    Swag.require(raw.count == 1 and raw[0].kind == .Html)
+    Swag.require(Utf8.contains(raw[0].text.toString(), "> *literal*"))
     let hidden = Markdown.parseBlocks("<div hidden>\n\n> *Hidden caption*\n\n</div>")
-    Swag.assert(hidden.count == 1 and hidden[0].kind == .Html)
+    Swag.require(hidden.count == 1 and hidden[0].kind == .Html)
     let reference = Markdown.parseBlocks("[target]: https://example.com\n\n<div>\n\n> *A [link][target].*\n\n</div>")
-    Swag.assert(reference.count == 2 and reference[1].kind == .Quote)
-    Swag.assert(Utf8.contains(reference[1].text.toString(), "<a>link</a><t>https://example.com</t>"))
+    Swag.require(reference.count == 2 and reference[1].kind == .Quote)
+    Swag.require(Utf8.contains(reference[1].text.toString(), "<a>link</a><t>https://example.com</t>"))
 }
 
 // HTML created after a document theme was selected must resolve its inherited text color again.
@@ -152,5 +152,5 @@ using Core, Pixel
     view.layoutDocument()
     let html = unwrap view.blocks[0].html
     for style in html.layout.styles do
-        Swag.assert(style.color.argb == 0xFF333333)
+        Swag.require(style.color.argb == 0xFF333333)
 }

@@ -260,10 +260,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 // The decoder and encoder registries recognise .tif and .tiff files.
 #test
 {
-    Swag.assert(Image.canLoad("in.tif"))
-    Swag.assert(Image.canLoad("in.tiff"))
-    Swag.assert(Image.canSave("out.tif"))
-    Swag.assert(Image.canSave("out.tiff"))
+    Swag.require(Image.canLoad("in.tif"))
+    Swag.require(Image.canLoad("in.tiff"))
+    Swag.require(Image.canSave("out.tif"))
+    Swag.require(Image.canSave("out.tiff"))
 }
 
 // Decode a little-endian 2x1 uncompressed RGB image.
@@ -279,16 +279,16 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.width == 2)
-    Swag.assert(img.height == 1)
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 10'u8)
-    Swag.assert(img.pixels.buffer[1] == 20'u8)
-    Swag.assert(img.pixels.buffer[2] == 30'u8)
-    Swag.assert(img.pixels.buffer[3] == 40'u8)
-    Swag.assert(img.pixels.buffer[4] == 50'u8)
-    Swag.assert(img.pixels.buffer[5] == 60'u8)
+    Swag.require(img.width == 2)
+    Swag.require(img.height == 1)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 10'u8)
+    Swag.require(img.pixels.buffer[1] == 20'u8)
+    Swag.require(img.pixels.buffer[2] == 30'u8)
+    Swag.require(img.pixels.buffer[3] == 40'u8)
+    Swag.require(img.pixels.buffer[4] == 50'u8)
+    Swag.require(img.pixels.buffer[5] == 60'u8)
 }
 
 // Decode a big-endian (MM) image and confirm it matches the little-endian path.
@@ -304,11 +304,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(false, 2, 1, 3, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 11'u8)
-    Swag.assert(img.pixels.buffer[3] == 44'u8)
-    Swag.assert(img.pixels.buffer[5] == 66'u8)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 11'u8)
+    Swag.require(img.pixels.buffer[3] == 44'u8)
+    Swag.require(img.pixels.buffer[5] == 66'u8)
 }
 
 // Decode an 8-bit grayscale (BlackIsZero) image into replicated BGR8 channels.
@@ -321,13 +321,13 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 3, 1, 1, 1, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 5'u8)
-    Swag.assert(img.pixels.buffer[1] == 5'u8)
-    Swag.assert(img.pixels.buffer[2] == 5'u8)
-    Swag.assert(img.pixels.buffer[3] == 10'u8)
-    Swag.assert(img.pixels.buffer[6] == 15'u8)
+    Swag.require(img.pixelFormat == .BGR8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 5'u8)
+    Swag.require(img.pixels.buffer[1] == 5'u8)
+    Swag.require(img.pixels.buffer[2] == 5'u8)
+    Swag.require(img.pixels.buffer[3] == 10'u8)
+    Swag.require(img.pixels.buffer[6] == 15'u8)
 }
 
 // Decode WhiteIsZero grayscale: sample values are inverted.
@@ -339,9 +339,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 2, 1, 1, 0, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 250'u8)
-    Swag.assert(img.pixels.buffer[3] == 5'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 250'u8)
+    Swag.require(img.pixels.buffer[3] == 5'u8)
 }
 
 // Decode a palette (color-mapped) image via its 16-bit color map.
@@ -361,14 +361,14 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 2, 1, 1, 3, 1, 1, 8, nnBytes(pix.toSlice()), pal.toSlice(), false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 10'u8)
-    Swag.assert(img.pixels.buffer[1] == 20'u8)
-    Swag.assert(img.pixels.buffer[2] == 30'u8)
-    Swag.assert(img.pixels.buffer[3] == 40'u8)
-    Swag.assert(img.pixels.buffer[4] == 50'u8)
-    Swag.assert(img.pixels.buffer[5] == 60'u8)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 10'u8)
+    Swag.require(img.pixels.buffer[1] == 20'u8)
+    Swag.require(img.pixels.buffer[2] == 30'u8)
+    Swag.require(img.pixels.buffer[3] == 40'u8)
+    Swag.require(img.pixels.buffer[4] == 50'u8)
+    Swag.require(img.pixels.buffer[5] == 60'u8)
 }
 
 // Decode an RGBA image (extra alpha sample) into RGBA8.
@@ -382,12 +382,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, true)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixelFormat == .RGBA8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 1'u8)
-    Swag.assert(img.pixels.buffer[1] == 2'u8)
-    Swag.assert(img.pixels.buffer[2] == 3'u8)
-    Swag.assert(img.pixels.buffer[3] == 4'u8)
+    Swag.require(img.pixelFormat == .RGBA8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 1'u8)
+    Swag.require(img.pixels.buffer[1] == 2'u8)
+    Swag.require(img.pixels.buffer[2] == 3'u8)
+    Swag.require(img.pixels.buffer[3] == 4'u8)
 }
 
 // Decode a PackBits-compressed RGB image (literal run).
@@ -410,11 +410,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 4, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 10'u8)
-    Swag.assert(img.pixels.buffer[5] == 60'u8)
-    Swag.assert(img.pixels.buffer[9] == 100'u8)
-    Swag.assert(img.pixels.buffer[11] == 120'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 10'u8)
+    Swag.require(img.pixels.buffer[5] == 60'u8)
+    Swag.require(img.pixels.buffer[9] == 100'u8)
+    Swag.require(img.pixels.buffer[11] == 120'u8)
 }
 
 // Decode a PackBits repeat run.
@@ -426,10 +426,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 1, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 0xAB'u8)
-    Swag.assert(img.pixels.buffer[1] == 0xAB'u8)
-    Swag.assert(img.pixels.buffer[2] == 0xAB'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 0xAB'u8)
+    Swag.require(img.pixels.buffer[1] == 0xAB'u8)
+    Swag.require(img.pixels.buffer[2] == 0xAB'u8)
 }
 
 // Decode a multi-strip image and verify the top-down to bottom-up flip.
@@ -451,15 +451,15 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 1, 4, 3, 2, 1, 2, 8, nnBytes(pix.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.width == 1)
-    Swag.assert(img.height == 4)
+    Swag.require(img.width == 1)
+    Swag.require(img.height == 4)
 
     // Internal buffer is bottom-up: row 0 holds the file's bottom row.
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 40'u8)
-    Swag.assert(img.pixels.buffer[3] == 30'u8)
-    Swag.assert(img.pixels.buffer[6] == 20'u8)
-    Swag.assert(img.pixels.buffer[9] == 10'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 40'u8)
+    Swag.require(img.pixels.buffer[3] == 30'u8)
+    Swag.require(img.pixels.buffer[6] == 20'u8)
+    Swag.require(img.pixels.buffer[9] == 10'u8)
 }
 
 // Decode metadata only: dimensions are populated but pixels are not allocated.
@@ -475,10 +475,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var opt: DecodeOptions
     opt.decodePixels = false
     let img = expect decodeTiff(nnBytes(buf.toSlice()), opt)
-    Swag.assert(img.width == 1)
-    Swag.assert(img.height == 1)
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(not img.isValid())
+    Swag.require(img.width == 1)
+    Swag.require(img.height == 1)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(not img.isValid())
 }
 
 // Error: bad byte-order signature.
@@ -495,7 +495,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var img: #decltype(expect decodeTiff(nnBytes(cb.toSlice())))
     catch { img = try decodeTiff(nnBytes(cb.toSlice())) } as err11Outcome
     let err11 = err11Outcome.value()
-    Swag.assert(err11 != null)
+    Swag.require(err11 != null)
 }
 
 // Decode a hand-built MSB-first LZW stream.
@@ -512,13 +512,13 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 10'u8)
-    Swag.assert(img.pixels.buffer[1] == 20'u8)
-    Swag.assert(img.pixels.buffer[2] == 30'u8)
-    Swag.assert(img.pixels.buffer[3] == 40'u8)
-    Swag.assert(img.pixels.buffer[4] == 50'u8)
-    Swag.assert(img.pixels.buffer[5] == 60'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 10'u8)
+    Swag.require(img.pixels.buffer[1] == 20'u8)
+    Swag.require(img.pixels.buffer[2] == 30'u8)
+    Swag.require(img.pixels.buffer[3] == 40'u8)
+    Swag.require(img.pixels.buffer[4] == 50'u8)
+    Swag.require(img.pixels.buffer[5] == 60'u8)
 }
 
 // Decode horizontal differencing (Predictor=2) after LZW expansion.
@@ -535,13 +535,13 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false, 2)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 10'u8)
-    Swag.assert(img.pixels.buffer[1] == 20'u8)
-    Swag.assert(img.pixels.buffer[2] == 30'u8)
-    Swag.assert(img.pixels.buffer[3] == 15'u8)
-    Swag.assert(img.pixels.buffer[4] == 25'u8)
-    Swag.assert(img.pixels.buffer[5] == 35'u8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 10'u8)
+    Swag.require(img.pixels.buffer[1] == 20'u8)
+    Swag.require(img.pixels.buffer[2] == 30'u8)
+    Swag.require(img.pixels.buffer[3] == 15'u8)
+    Swag.require(img.pixels.buffer[4] == 25'u8)
+    Swag.require(img.pixels.buffer[5] == 35'u8)
 }
 
 // Decode the LZW KwKwK case, where a code refers to the dictionary entry that
@@ -562,7 +562,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildTiff(true, 6, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
     for i in img.pixels.count do
-        Swag.assert(img.pixels.storage()[i] == 65'u8)
+        Swag.require(img.pixels.storage()[i] == 65'u8)
 }
 
 // Exercise independent literal streams across every TIFF LZW code-width edge.
@@ -582,9 +582,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
         {
             let expected = raw[cast(u64, (63 - y)) * 64 + x]
             let offset   = cast(u64, (y * 64 + x)) * 3
-            Swag.assert(pixels[offset] == expected)
-            Swag.assert(pixels[offset + 1] == expected)
-            Swag.assert(pixels[offset + 2] == expected)
+            Swag.require(pixels[offset] == expected)
+            Swag.require(pixels[offset + 1] == expected)
+            Swag.require(pixels[offset + 2] == expected)
         }
     }
 }
@@ -601,7 +601,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var img: #decltype(expect decodeTiff(nnBytes(buf.toSlice())))
     catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as err13Outcome
     let err13 = err13Outcome.value()
-    Swag.assert(err13 != null)
+    Swag.require(err13 != null)
 }
 
 // Error: unsupported bit depth (16-bit).
@@ -616,7 +616,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var img: #decltype(expect decodeTiff(nnBytes(buf.toSlice())))
     catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as err14Outcome
     let err14 = err14Outcome.value()
-    Swag.assert(err14 != null)
+    Swag.require(err14 != null)
 }
 
 // Encoder writes a little-endian header.
@@ -628,10 +628,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb = expect src.encode("memory.tiff")
     cb.makeLinear()
     let bytes = nnBytes(cb.toSlice())
-    Swag.assert(bytes.buffer[0] == 0x49'u8)
-    Swag.assert(bytes.buffer[1] == 0x49'u8)
-    Swag.assert(bytes.buffer[2] == 42'u8)
-    Swag.assert(bytes.buffer[3] == 0'u8)
+    Swag.require(bytes.buffer[0] == 0x49'u8)
+    Swag.require(bytes.buffer[1] == 0x49'u8)
+    Swag.require(bytes.buffer[2] == 42'u8)
+    Swag.require(bytes.buffer[3] == 0'u8)
 }
 
 // Encode an RGB8 image and round-trip it through the decoder unchanged.
@@ -647,14 +647,14 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
-    Swag.assert(img.width == 2)
-    Swag.assert(img.height == 2)
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 11'u8)
-    Swag.assert(img.pixels.buffer[1] == 22'u8)
-    Swag.assert(img.pixels.buffer[2] == 33'u8)
-    Swag.assert(img.pixels.buffer[9] == 99'u8)
+    Swag.require(img.width == 2)
+    Swag.require(img.height == 2)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 11'u8)
+    Swag.require(img.pixels.buffer[1] == 22'u8)
+    Swag.require(img.pixels.buffer[2] == 33'u8)
+    Swag.require(img.pixels.buffer[9] == 99'u8)
 }
 
 // Encode an RGBA8 image: alpha survives the round-trip.
@@ -669,12 +669,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
-    Swag.assert(img.pixelFormat == .RGBA8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 1'u8)
-    Swag.assert(img.pixels.buffer[1] == 2'u8)
-    Swag.assert(img.pixels.buffer[2] == 3'u8)
-    Swag.assert(img.pixels.buffer[3] == 200'u8)
+    Swag.require(img.pixelFormat == .RGBA8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 1'u8)
+    Swag.require(img.pixels.buffer[1] == 2'u8)
+    Swag.require(img.pixels.buffer[2] == 3'u8)
+    Swag.require(img.pixels.buffer[3] == 200'u8)
 }
 
 // Encode a BGR8 image: channels are swapped to RGB on disk and decode as RGB8.
@@ -688,11 +688,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.tiff")
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 30'u8)
-    Swag.assert(img.pixels.buffer[1] == 20'u8)
-    Swag.assert(img.pixels.buffer[2] == 10'u8)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 30'u8)
+    Swag.require(img.pixels.buffer[1] == 20'u8)
+    Swag.require(img.pixels.buffer[2] == 10'u8)
 }
 
 // Full registry round-trip through Image.save / Image.load on a temp file.
@@ -709,13 +709,13 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     expect src.save(path.toString())
     let img = expect Image.load(path.toString())
-    Swag.assert(img.width == 3)
-    Swag.assert(img.height == 2)
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 123'u8)
-    Swag.assert(img.pixels.buffer[1] == 45'u8)
-    Swag.assert(img.pixels.buffer[2] == 67'u8)
+    Swag.require(img.width == 3)
+    Swag.require(img.height == 2)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 123'u8)
+    Swag.require(img.pixels.buffer[1] == 45'u8)
+    Swag.require(img.pixels.buffer[2] == 67'u8)
 }
 
 // Encode PackBits-compressed RGBA rows and round-trip them exactly. Repeated
@@ -741,13 +741,13 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     options.compression = .PackBits
 
     let packed = expect src.encode("memory.tiff", options)
-    Swag.assert((packed.toSlice()).count < (uncompressed.toSlice()).count)
+    Swag.require((packed.toSlice()).count < (uncompressed.toSlice()).count)
 
     let img = expect decodeTiff(nnBytes(packed.toSlice()))
-    Swag.assert(img.pixelFormat == .RGBA8)
-    Swag.assert(img.width == src.width)
-    Swag.assert(img.height == src.height)
-    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
+    Swag.require(img.pixelFormat == .RGBA8)
+    Swag.require(img.width == src.width)
+    Swag.require(img.height == src.height)
+    Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 // PackBits also preserves BGR input after conversion to TIFF's RGB component order.
@@ -768,11 +768,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     let cb  = expect src.encode("memory.tiff", options)
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
-    Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(img.pixels.buffer != null)
-    Swag.assert(img.pixels.buffer[0] == 1'u8)
-    Swag.assert(img.pixels.buffer[1] == 2'u8)
-    Swag.assert(img.pixels.buffer[2] == 3'u8)
+    Swag.require(img.pixelFormat == .RGB8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 1'u8)
+    Swag.require(img.pixels.buffer[1] == 2'u8)
+    Swag.require(img.pixels.buffer[2] == 3'u8)
 }
 
 // LZW encoding uses horizontal differencing and survives dictionary growth,
@@ -796,8 +796,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     cb.makeLinear()
 
     let img = expect decodeTiff(nnBytes(cb.toSlice()))
-    Swag.assert(img.pixelFormat == .RGBA8)
-    Swag.assert(img.width == src.width)
-    Swag.assert(img.height == src.height)
-    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
+    Swag.require(img.pixelFormat == .RGBA8)
+    Swag.require(img.width == src.width)
+    Swag.require(img.height == src.height)
+    Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }

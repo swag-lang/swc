@@ -34,33 +34,33 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
 {
     // The reference: an unrotated bar across the middle.
     let plain = inkBounds("<svg viewBox='0 0 100 100'><rect x='20' y='40' width='60' height='20' fill='#000'/></svg>")
-    Swag.assert(plain.minX == 20 and plain.minY == 40 and plain.maxX == 79 and plain.maxY == 59)
+    Swag.require(plain.minX == 20 and plain.minY == 40 and plain.maxX == 79 and plain.maxY == 59)
 
     // A quarter turn about the middle stands it up.
     let turned = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(90 50 50)'><rect x='20' y='40' width='60' height='20' fill='#000'/></g></svg>")
-    Swag.assert(turned.minX == 40 and turned.minY == 20 and turned.maxX == 59 and turned.maxY == 79)
+    Swag.require(turned.minX == 40 and turned.minY == 20 and turned.maxX == 59 and turned.maxY == 79)
 
     // The same turn written as a matrix.
     let matrix = inkBounds("<svg viewBox='0 0 100 100'><g transform='matrix(0,1,-1,0,100,0)'><rect x='20' y='40' width='60' height='20' fill='#000'/></g></svg>")
-    Swag.assert(matrix.minX == turned.minX and matrix.minY == turned.minY)
-    Swag.assert(matrix.maxX == turned.maxX and matrix.maxY == turned.maxY)
+    Swag.require(matrix.minX == turned.minX and matrix.minY == turned.minY)
+    Swag.require(matrix.maxX == turned.maxX and matrix.maxY == turned.maxY)
 
     // Half a turn keeps the bounds and covers the same area.
     let half = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(45 50 50)'><rect x='20' y='40' width='60' height='20' fill='#000'/></g></svg>")
-    Swag.assert(Math.abs(half.minX - 22) <= 1 and Math.abs(half.maxX - 77) <= 1)
-    Swag.assert(Math.abs(half.minY - 22) <= 1 and Math.abs(half.maxY - 77) <= 1)
+    Swag.require(Math.abs(half.minX - 22) <= 1 and Math.abs(half.maxX - 77) <= 1)
+    Swag.require(Math.abs(half.minY - 22) <= 1 and Math.abs(half.maxY - 77) <= 1)
 
     // A skew leans the bar without moving its rows.
     let skewed = inkBounds("<svg viewBox='0 0 100 100'><g transform='skewX(20)'><rect x='20' y='40' width='40' height='20' fill='#000'/></g></svg>")
-    Swag.assert(skewed.minY == 40 and skewed.maxY == 59)
-    Swag.assert(skewed.minX > 20 and skewed.maxX > 60)
+    Swag.require(skewed.minY == 40 and skewed.maxY == 59)
+    Swag.require(skewed.minX > 20 and skewed.maxX > 60)
 
     // Nested transforms compose: the inner turn happens in the space the outer one placed.
     let nested = inkBounds("""\
                            <svg viewBox='0 0 100 100'><g transform='translate(50,50)'><g transform='rotate(45)'>\
                            <rect x='-20' y='-5' width='40' height='10' fill='#000'/></g></g></svg>""")
-    Swag.assert(Math.abs(nested.minX - 32) <= 1 and Math.abs(nested.maxX - 67) <= 1)
-    Swag.assert(Math.abs(nested.minY - 32) <= 1 and Math.abs(nested.maxY - 67) <= 1)
+    Swag.require(Math.abs(nested.minX - 32) <= 1 and Math.abs(nested.maxX - 67) <= 1)
+    Swag.require(Math.abs(nested.minY - 32) <= 1 and Math.abs(nested.maxY - 67) <= 1)
 }
 
 // An ellipse and a rounded rectangle under a turning transform become the curves they stand for,
@@ -70,17 +70,17 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     // A flat ellipse turned by thirty degrees is wider than it is tall, and taller than the
     // untransformed one: an axis-aligned stand-in would keep the original bounds.
     let turned = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(30 50 50)'><ellipse cx='50' cy='50' rx='40' ry='10' fill='#000'/></g></svg>")
-    Swag.assert(Math.abs(turned.minX - 15) <= 1 and Math.abs(turned.maxX - 84) <= 1)
-    Swag.assert(Math.abs(turned.minY - 28) <= 1 and Math.abs(turned.maxY - 71) <= 1)
+    Swag.require(Math.abs(turned.minX - 15) <= 1 and Math.abs(turned.maxX - 84) <= 1)
+    Swag.require(Math.abs(turned.minY - 28) <= 1 and Math.abs(turned.maxY - 71) <= 1)
 
     // A rounded rectangle keeps its area under a quarter turn, including its corners. The curves
     // are written out rather than reduced to an axis-aligned stand-in. Because the source and
     // rotated forms use different primitives, their areas agree within a few pixels, not exactly.
     let plain   = inkBounds("<svg viewBox='0 0 100 100'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></svg>")
     let rotated = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(90 50 50)'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></g></svg>")
-    Swag.assert(rotated.minX == 30 and rotated.maxX == 69)
-    Swag.assert(rotated.minY == 20 and rotated.maxY == 79)
-    Swag.assert(Math.abs(rotated.area - plain.area) <= 16)
+    Swag.require(rotated.minX == 30 and rotated.maxX == 69)
+    Swag.require(rotated.minY == 20 and rotated.maxY == 79)
+    Swag.require(Math.abs(rotated.area - plain.area) <= 16)
 }
 
 // An arc states its own x-axis rotation, which turns the ellipse it is an arc of.
@@ -89,18 +89,18 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     // Without rotation the chord is the ellipse's own major axis, so the arc is a cap exactly
     // two radii wide and one radius tall.
     let upright = inkBounds("<svg viewBox='0 0 100 100'><path d='M20,50 A30,10 0 1 1 80,50 Z' fill='#000'/></svg>")
-    Swag.assert(upright.minX == 20 and upright.maxX == 79)
-    Swag.assert(upright.minY == 40 and upright.maxY == 49)
+    Swag.require(upright.minX == 20 and upright.maxX == 79)
+    Swag.require(upright.minY == 40 and upright.maxY == 49)
 
     // A quarter turn puts the short radius across the chord, which no longer spans it: the
     // radii grow to reach and the cap becomes a tall one.
     let quarter = inkBounds("<svg viewBox='0 0 100 100'><path d='M20,50 A30,10 90 1 1 80,50 Z' fill='#000'/></svg>")
-    Swag.assert(quarter.minX == 20 and quarter.maxX == 79)
-    Swag.assert(quarter.maxY == 49 and quarter.minY < 10)
-    Swag.assert(quarter.area > upright.area * 4)
+    Swag.require(quarter.minX == 20 and quarter.maxX == 79)
+    Swag.require(quarter.maxY == 49 and quarter.minY < 10)
+    Swag.require(quarter.area > upright.area * 4)
 
     // A leaning ellipse is neither of the two.
     let leaning = inkBounds("<svg viewBox='0 0 100 100'><path d='M20,50 A30,10 45 1 1 80,50 Z' fill='#000'/></svg>")
-    Swag.assert(leaning.area > upright.area and leaning.area < quarter.area)
-    Swag.assert(leaning.minX < upright.minX)
+    Swag.require(leaning.area > upright.area and leaning.area < quarter.area)
+    Swag.require(leaning.minX < upright.minX)
 }

@@ -5,11 +5,11 @@ using Swag
 
 func assertSha1Digest(digest: Hash.Sha1.Digest, e0, e1, e2, e3, e4: u32)
 {
-    Swag.assert(digest[0] == e0)
-    Swag.assert(digest[1] == e1)
-    Swag.assert(digest[2] == e2)
-    Swag.assert(digest[3] == e3)
-    Swag.assert(digest[4] == e4)
+    Swag.require(digest[0] == e0)
+    Swag.require(digest[1] == e1)
+    Swag.require(digest[2] == e2)
+    Swag.require(digest[3] == e3)
+    Swag.require(digest[4] == e4)
 }
 
 func assertSha1(buffer: const [..] u8, e0, e1, e2, e3, e4: u32)

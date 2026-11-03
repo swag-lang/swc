@@ -9,47 +9,47 @@ func checkVoiceCreation(file: const *SoundFile) fail { (try Voice.create(file)).
 func audioStartNoSoundEngine()
 {
     discard expect createNoSoundEngine()
-    Swag.assert(g_Driver.kind == .NoSound)
+    Swag.require(g_Driver.kind == .NoSound)
 }
 
 #test
 {
-    Swag.assert(not isEngineCreated())
+    Swag.require(not isEngineCreated())
     var errNoEngineOutcome: Swag.Error
     discard catch outputVolume() as errNoEngineOutcome
     let errNoEngine = errNoEngineOutcome.value()
-    Swag.assert((errNoEngine is Errors.BadParameterError))
+    Swag.require((errNoEngine is Errors.BadParameterError))
 
     discard expect createEngine(.NoSound)
-    Swag.assert(isEngineCreated())
-    Swag.assert(activeDriverKind() == .NoSound)
+    Swag.require(isEngineCreated())
+    Swag.require(activeDriverKind() == .NoSound)
 
     var errDuplicateOutcome: Swag.Error
     discard catch createEngine(.NoSound) as errDuplicateOutcome
     let errDuplicate = errDuplicateOutcome.value()
-    Swag.assert((errDuplicate is Errors.BadParameterError))
+    Swag.require((errDuplicate is Errors.BadParameterError))
 
     var errChannelsOutcome: Swag.Error
     catch checkBusCreation(0) as errChannelsOutcome
     let errChannels = errChannelsOutcome.value()
-    Swag.assert((errChannels is Errors.BadParameterError))
+    Swag.require((errChannels is Errors.BadParameterError))
 
     var emptyFile:      SoundFile
     var errFileOutcome: Swag.Error
     catch checkVoiceCreation(&emptyFile) as errFileOutcome
     let errFile = errFileOutcome.value()
-    Swag.assert((errFile is Errors.BadParameterError))
+    Swag.require((errFile is Errors.BadParameterError))
 
     destroyEngine()
-    Swag.assert(not isEngineCreated())
-    Swag.assert(activeDriverKind() == .Default)
+    Swag.require(not isEngineCreated())
+    Swag.require(activeDriverKind() == .Default)
     destroyEngine()     // Repeated shutdown is a no-op.
 }
 
 #test
 {
     discard expect createEngine(.NoSound)
-    Swag.assert(g_Driver.kind == .NoSound)
+    Swag.require(g_Driver.kind == .NoSound)
     defer destroyEngine()
 
     audioAssertFloat(expect outputVolume(), 1)
@@ -74,15 +74,15 @@ func audioStartNoSoundEngine()
 
     let rootHandle  = cast(*NoSoundBus, unwrap root.handle)
     let childHandle = cast(*NoSoundBus, unwrap child.handle)
-    Swag.assert(rootHandle.numChannels == 2)
-    Swag.assert(rootHandle.parent == null)
-    Swag.assert(childHandle.numChannels == 1)
-    Swag.assert(childHandle.parent == root)
-    Swag.assert(root.channelCount == 2)
-    Swag.assert(root.parent == null)
-    Swag.assert(child.channelCount == 1)
-    Swag.assert(child.parent == root)
-    Swag.assert(g_Driver.buses.count == 2)
+    Swag.require(rootHandle.numChannels == 2)
+    Swag.require(rootHandle.parent == null)
+    Swag.require(childHandle.numChannels == 1)
+    Swag.require(childHandle.parent == root)
+    Swag.require(root.channelCount == 2)
+    Swag.require(root.parent == null)
+    Swag.require(child.channelCount == 1)
+    Swag.require(child.parent == root)
+    Swag.require(g_Driver.buses.count == 2)
 
     discard expect child.setVolume(1.5)
     audioAssertFloat(expect child.volume(), 1)
@@ -93,11 +93,11 @@ func audioStartNoSoundEngine()
     var err12Outcome:  Swag.Error
     catch checkBusCreation(1, &invalidParent) as err12Outcome
     let err12 = err12Outcome.value()
-    Swag.assert((err12 is Errors.BadParameterError))
+    Swag.require((err12 is Errors.BadParameterError))
 
     child.destroy()
     root.destroy()
-    Swag.assert(g_Driver.buses.isEmpty())
+    Swag.require(g_Driver.buses.isEmpty())
 }
 
 #test
@@ -109,8 +109,8 @@ func audioStartNoSoundEngine()
     let voice = expect Voice.create(&file)
     #assert(#typeof(voice) == *Voice)
     let handle = cast(*NoSoundVoice, unwrap voice.handle)
-    Swag.assert(voice.requestedEncoding == .Pcm16)
-    Swag.assert(not voice.isPlaying())
+    Swag.require(voice.requestedEncoding == .Pcm16)
+    Swag.require(not voice.isPlaying())
 
     discard expect voice.setVolume(1.5)
     audioAssertFloat(expect voice.volume(), 1)
@@ -125,41 +125,41 @@ func audioStartNoSoundEngine()
     var errInvalidRatioOutcome: Swag.Error
     discard catch voice.setFrequencyRatio(0) as errInvalidRatioOutcome
     let errInvalidRatio = errInvalidRatioOutcome.value()
-    Swag.assert((errInvalidRatio is Errors.BadParameterError))
+    Swag.require((errInvalidRatio is Errors.BadParameterError))
 
     let safeBus0 = expect Bus.create(2)
 
     let safeBus1 = expect Bus.create(2, safeBus0)
     discard expect voice.setRouting([safeBus0, safeBus1])
-    Swag.assert(handle.busCount == 2)
-    Swag.assert(handle.buses[0] == safeBus0)
-    Swag.assert(handle.buses[1] == safeBus1)
+    Swag.require(handle.busCount == 2)
+    Swag.require(handle.buses[0] == safeBus0)
+    Swag.require(handle.buses[1] == safeBus1)
 
     discard expect voice.play()
-    Swag.assert(voice.isPlaying())
-    Swag.assert(handle.isPlaying)
+    Swag.require(voice.isPlaying())
+    Swag.require(handle.isPlaying)
 
     discard expect voice.pause()
-    Swag.assert(not voice.isPlaying())
-    Swag.assert(not handle.isPlaying)
+    Swag.require(not voice.isPlaying())
+    Swag.require(not handle.isPlaying)
 
     discard expect voice.play(.Loop)
     for 4
     {
         discard expect voice.pause()
-        Swag.assert(not voice.isPlaying() and not handle.isPlaying)
+        Swag.require(not voice.isPlaying() and not handle.isPlaying)
         discard expect voice.play(.Loop)
-        Swag.assert(voice.isPlaying() and handle.isPlaying)
+        Swag.require(voice.isPlaying() and handle.isPlaying)
     }
 
     let shouldKeepUpdating = expect voice.updateNoSound()
-    Swag.assert(shouldKeepUpdating)
-    Swag.assert(handle.isPlaying)
+    Swag.require(shouldKeepUpdating)
+    Swag.require(handle.isPlaying)
 
     discard expect voice.stop()
-    Swag.assert(not voice.isPlaying())
-    Swag.assert(not handle.isPlaying)
-    Swag.assert(voice.streamCurSeek == 0)
+    Swag.require(not voice.isPlaying())
+    Swag.require(not handle.isPlaying)
+    Swag.require(voice.streamCurSeek == 0)
 
     voice.destroy()
 }
@@ -187,7 +187,7 @@ func audioStartNoSoundEngine()
 
     context.allocator = originalAllocator
     destroyEngine()
-    Swag.assert(not isEngineCreated())
+    Swag.require(not isEngineCreated())
 }
 
 // A full stop closes a lazily opened streaming file and rewinds the source.
@@ -200,11 +200,11 @@ func audioStartNoSoundEngine()
     let voice = expect Voice.create(&file)
     discard expect voice.play()
     discard expect voice.updateNoSound()
-    Swag.assert(voice.stream.isOpen())
+    Swag.require(voice.stream.isOpen())
 
     discard expect voice.stop()
-    Swag.assert(not voice.stream.isOpen())
-    Swag.assert(voice.streamCurSeek == 0)
+    Swag.require(not voice.stream.isOpen())
+    Swag.require(voice.streamCurSeek == 0)
     voice.destroy()
 }
 
@@ -219,9 +219,9 @@ func audioStartNoSoundEngine()
 
     discard expect voice.play()
     let shouldKeepUpdating = expect voice.updateNoSound()
-    Swag.assert(not shouldKeepUpdating)
-    Swag.assert(not handle.isPlaying)
-    Swag.assert(voice.streamCurSeek == file.dataSize)
+    Swag.require(not shouldKeepUpdating)
+    Swag.require(not handle.isPlaying)
+    Swag.require(voice.streamCurSeek == file.dataSize)
 
     voice.destroy()
 }

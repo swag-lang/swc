@@ -28,10 +28,10 @@ using Core
     }
 
     view.retireDistantBlocks()
-    Swag.assert(view.residentStart > 0)
+    Swag.require(view.residentStart > 0)
     let first  = view.blocks[0].wnd.position
     let scroll = view.scroll.scrollPosition()
     view.layoutDocument(preservePosition: true)
-    Swag.assert(view.blocks[0].wnd.position == first)
-    Swag.assert(view.scroll.scrollPosition() == scroll)
+    Swag.require(view.blocks[0].wnd.position == first)
+    Swag.require(view.scroll.scrollPosition() == scroll)
 }

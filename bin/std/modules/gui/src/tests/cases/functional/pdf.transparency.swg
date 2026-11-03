@@ -51,10 +51,10 @@ private func markedPixels(frame: const *Image)->u64
 
     var reader = expect Reader.open(fileName.toString())
     var page   = expect reader.loadPage(0)
-    Swag.assert(page.items.count == 2)
+    Swag.require(page.items.count == 2)
     let index = TextIndex.build(&page)
-    Swag.assert(index.text == "Masked words")
-    Swag.assert((expect reader.loadPageText(0)) == index.text)
+    Swag.require(index.text == "Masked words")
+    Swag.require((expect reader.loadPageText(0)) == index.text)
 }
 
 // Constant alpha modulates the fill and the stroke independently.
@@ -65,8 +65,8 @@ private func markedPixels(frame: const *Image)->u64
 
     let document = transparencyDocument("/ExtGState << /GS0 5 0 R >>", "/GS0 gs 1 0 0 rg 0 0 1 RG 0 0 50 50 re B", objects.toSlice())
     let item     = onlyItem(document.pages[0], .Path)
-    Swag.assert(item.itemFillColor() == Color.fromArgb(64, 255, 0, 0))
-    Swag.assert(item.itemStrokeColor() == Color.fromArgb(128, 0, 0, 255))
+    Swag.require(item.itemFillColor() == Color.fromArgb(64, 255, 0, 0))
+    Swag.require(item.itemStrokeColor() == Color.fromArgb(128, 0, 0, 255))
 }
 
 // `/BM` selects a blend mode by name, from an array of alternatives, and never by a name this
@@ -82,12 +82,12 @@ private func markedPixels(frame: const *Image)->u64
     let content   = "/GS0 gs 0 0 5 5 re f /GS1 gs 0 0 5 5 re f /GS2 gs 0 0 5 5 re f"
     let document  = transparencyDocument(resources, content, objects.toSlice())
     let page      = &document.pages[0]
-    Swag.assert(page.items.count == 3)
-    Swag.assert(page.items[0].blend == .Multiply)
-    Swag.assert(page.items[1].blend == .Screen)
+    Swag.require(page.items.count == 3)
+    Swag.require(page.items[0].blend == .Multiply)
+    Swag.require(page.items[1].blend == .Screen)
 
     // An unknown name leaves the mode in force rather than resetting the page to normal.
-    Swag.assert(page.items[2].blend == .Screen)
+    Swag.require(page.items[2].blend == .Screen)
 }
 
 // A luminosity soft mask becomes the coverage a filled path is painted through.
@@ -96,19 +96,19 @@ private func markedPixels(frame: const *Image)->u64
     let objects  = luminosityMaskObjects()
     let document = transparencyDocument("/ExtGState << /GS0 5 0 R >>", "/GS0 gs 0 g 0 0 100 100 re f", objects.toSlice())
     let item     = onlyItem(document.pages[0], .Path)
-    Swag.assert(item.hasMask)
+    Swag.require(item.hasMask)
 
     // The coverage covers exactly the mark's own page-space box, so it is anchored there rather
     // than stretched over whatever shape samples it.
-    Swag.assert(item.maskRect == {0, 0, 100, 100})
-    Swag.assert(item.maskImage.width == 200 and item.maskImage.height == 200)
+    Swag.require(item.maskRect == {0, 0, 100, 100})
+    Swag.require(item.maskImage.width == 200 and item.maskImage.height == 200)
 
     // The group's white quarter is the lower left in PDF coordinates, which a page states from
     // its top-left corner: covered below and to the left, clear above and to the right.
-    Swag.assert(item.maskImage.pixelColor(20, 180).a == 255)
-    Swag.assert(item.maskImage.pixelColor(20, 20).a == 0)
-    Swag.assert(item.maskImage.pixelColor(180, 180).a == 0)
-    Swag.assert(item.maskImage.pixelColor(180, 20).a == 0)
+    Swag.require(item.maskImage.pixelColor(20, 180).a == 255)
+    Swag.require(item.maskImage.pixelColor(20, 20).a == 0)
+    Swag.require(item.maskImage.pixelColor(180, 180).a == 0)
+    Swag.require(item.maskImage.pixelColor(180, 20).a == 0)
 }
 
 // An image takes its coverage in its own alpha channel rather than through a second texture.
@@ -120,12 +120,12 @@ private func markedPixels(frame: const *Image)->u64
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Im0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs q 100 0 0 100 0 0 cm /Im0 Do Q", objects.toSlice())
     let item      = onlyItem(document.pages[0], .Image)
-    Swag.assert(not item.hasMask)
+    Swag.require(not item.hasMask)
 
     let image = unwrap item.imageValue()
-    Swag.assert(image.pixelFormat == .RGBA8)
-    Swag.assert(image.pixelColor(0, 1).a == 255)
-    Swag.assert(image.pixelColor(1, 0).a == 0)
+    Swag.require(image.pixelFormat == .RGBA8)
+    Swag.require(image.pixelColor(0, 1).a == 255)
+    Swag.require(image.pixelColor(1, 0).a == 0)
 }
 
 // A graphics state inside a transparency group cannot clear the mask the group is behind.
@@ -142,12 +142,12 @@ private func markedPixels(frame: const *Image)->u64
     let resources = "/ExtGState << /GS0 5 0 R /GS1 7 0 R >> /XObject << /Fm0 8 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())
     let item      = onlyItem(document.pages[0], .Path)
-    Swag.assert(item.hasMask)
-    Swag.assert(item.maskImage.pixelColor(20, 180).a == 255)
-    Swag.assert(item.maskImage.pixelColor(180, 20).a == 0)
+    Swag.require(item.hasMask)
+    Swag.require(item.maskImage.pixelColor(20, 180).a == 255)
+    Swag.require(item.maskImage.pixelColor(180, 20).a == 0)
 
     // The group's own constant alpha still applies to the marks it contains.
-    Swag.assert(item.itemFillColor().a == 128)
+    Swag.require(item.itemFillColor().a == 128)
 }
 
 // A group's own transparency multiplies the one in force around it.
@@ -160,7 +160,7 @@ private func markedPixels(frame: const *Image)->u64
 
     let resources = "/ExtGState << /GS0 5 0 R /GS1 6 0 R >> /XObject << /Fm0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())
-    Swag.assert(onlyItem(document.pages[0], .Path).itemFillColor().a == 64)
+    Swag.require(onlyItem(document.pages[0], .Path).itemFillColor().a == 64)
 }
 
 // `/SMask /None` clears a mask that was in force.
@@ -171,7 +171,7 @@ private func markedPixels(frame: const *Image)->u64
 
     let resources = "/ExtGState << /GS0 5 0 R /GS1 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /GS1 gs 0 0 100 100 re f", objects.toSlice())
-    Swag.assert(not onlyItem(document.pages[0], .Path).hasMask)
+    Swag.require(not onlyItem(document.pages[0], .Path).hasMask)
 }
 
 // A mask stays registered with the marks it covers whatever transform the view paints under.
@@ -203,9 +203,9 @@ private func markedPixels(frame: const *Image)->u64
     view.setZoom(2)
     settlePdfView(&host, view)
     let doubledFrame = host.render()
-    Swag.assert(not view.reportedPaintError)
-    Swag.assert(Math.isEqualEpsilon(cast(f32, markedPixels(&singleFrame)), 2500.0, 400.0))
-    Swag.assert(Math.isEqualEpsilon(cast(f32, markedPixels(&doubledFrame)), 10_000.0, 1_000.0))
+    Swag.require(not view.reportedPaintError)
+    Swag.require(Math.isEqualEpsilon(cast(f32, markedPixels(&singleFrame)), 2500.0, 400.0))
+    Swag.require(Math.isEqualEpsilon(cast(f32, markedPixels(&doubledFrame)), 10_000.0, 1_000.0))
 }
 
 // A form with no transparency group passes the mask down to the marks it holds, and a mask
@@ -218,7 +218,7 @@ private func markedPixels(frame: const *Image)->u64
     let resources = "/ExtGState << /GS0 5 0 R >> /XObject << /Fm0 7 0 R >>"
     let document  = transparencyDocument(resources, "/GS0 gs /Fm0 Do", objects.toSlice())
     let item      = onlyItem(document.pages[0], .Path)
-    Swag.assert(item.hasMask)
-    Swag.assert(item.maskImage.pixelColor(20, 180).a == 255)
-    Swag.assert(item.maskImage.pixelColor(180, 20).a == 0)
+    Swag.require(item.hasMask)
+    Swag.require(item.maskImage.pixelColor(20, 180).a == 255)
+    Swag.require(item.maskImage.pixelColor(180, 20).a == 0)
 }

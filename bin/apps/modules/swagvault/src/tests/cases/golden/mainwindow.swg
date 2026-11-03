@@ -103,7 +103,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     useTestDestination(window)
     window.openVault("C:\\vaults\\example")
     window.lens.open()
-    Swag.assert(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
+    Swag.require(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
     host.settleAnimations(window)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "surface.lens.paper")

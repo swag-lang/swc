@@ -14,18 +14,18 @@ using Swag, Core, Pixel
     let short   = PushButton.create(&host.root, "OK")
     let long    = PushButton.create(&host.root, "Create an encrypted container right now")
 
-    Swag.assert(short.measure({}).preferred.x == metrics.btnPush_Width)
-    Swag.assert(long.measure({}).preferred.x > metrics.btnPush_Width)
+    Swag.require(short.measure({}).preferred.x == metrics.btnPush_Width)
+    Swag.require(long.measure({}).preferred.x > metrics.btnPush_Width)
 
     // A width the caller stated is never second-guessed.
     let pinned = PushButton.create(&host.root, "Create an encrypted container right now", {0, 0, 90, 30})
-    Swag.assert(pinned.measure({}).preferred.x == 90)
+    Swag.require(pinned.measure({}).preferred.x == 90)
 
     // Re-labelling is enough: the button follows the new caption on the next measure.
     let wide = long.measure({}).preferred.x
     long.setText("OK")
-    Swag.assert(long.measure({}).preferred.x == metrics.btnPush_Width)
-    Swag.assert(wide > metrics.btnPush_Width)
+    Swag.require(long.measure({}).preferred.x == metrics.btnPush_Width)
+    Swag.require(wide > metrics.btnPush_Width)
 }
 
 // Wrapped text answers for the width it is offered, so a paragraph reports the height it
@@ -40,12 +40,12 @@ using Swag, Core, Pixel
     let label = Label.create(&host.root, Sentence, {}, null, .WordWrap | .AutoHeight)
     let wide  = label.measure({500, 0}).preferred
     let tight = label.measure({160, 0}).preferred
-    Swag.assert(tight.y > wide.y)
-    Swag.assert(wide.y > 0)
+    Swag.require(tight.y > wide.y)
+    Swag.require(wide.y > 0)
 
     // Without the wrap flag the text stays on one line whatever it is offered.
     let single = Label.create(&host.root, Sentence, {}, null, .AutoHeight)
-    Swag.assert(single.measure({160, 0}).preferred.y == single.measure({500, 0}).preferred.y)
+    Swag.require(single.measure({160, 0}).preferred.y == single.measure({500, 0}).preferred.y)
 }
 
 // A combo box is as wide as its widest entry, not as wide as the selected one.
@@ -59,8 +59,8 @@ using Swag, Core, Pixel
     let narrow = combo.measure({}).preferred.x
     combo.addItem("a language with a very long name indeed")
     let wide = combo.measure({}).preferred.x
-    Swag.assert(wide > narrow)
-    Swag.assert(narrow == host.root.themeMetrics().comboBox_Width)
+    Swag.require(wide > narrow)
+    Swag.require(narrow == host.root.themeMetrics().comboBox_Width)
 }
 
 // An unsized label invalidates its cached measurement when its wording changes. This is the
@@ -75,13 +75,13 @@ using Swag, Core, Pixel
     let size = Label.create(row, "", {0, 0, 0, 32})
     size.margin.x = 8
     row.computeLayout()
-    Swag.assert(name.position.width == 0 and size.position.width == 0)
+    Swag.require(name.position.width == 0 and size.position.width == 0)
 
     name.setText("recording.mp4")
     size.setText("24 MB")
     row.computeLayout()
 
-    Swag.assert(name.position.width > 0 and size.position.width > 0)
+    Swag.require(name.position.width > 0 and size.position.width > 0)
 }
 
 // A band docked without a height is as tall as the stack it holds, and follows it when
@@ -101,13 +101,13 @@ using Swag, Core, Pixel
     second.dockStyle = .Top
 
     host.root.applyLayout()
-    Swag.assert(band.position.height == 44)
+    Swag.require(band.position.height == 44)
 
     // A third row raises the band; nothing had to be told a number.
     let third = Label.create(band, "A third line", {0, 0, 0, 20})
     third.dockStyle = .Top
     host.root.applyLayout()
-    Swag.assert(band.position.height == 68)
+    Swag.require(band.position.height == 68)
 }
 
 // A language switch moves the sizes, not only the words: this is the whole promise of
@@ -131,8 +131,8 @@ using Swag, Core, Pixel
     remove.setText(strings().prop_ResetDefault)
     row.computeLayout()
 
-    Swag.assert(remove.text() == "Rétablir la valeur par défaut")
-    Swag.assert(remove.position.width > englishRemove)
+    Swag.require(remove.text() == "Rétablir la valeur par défaut")
+    Swag.require(remove.position.width > englishRemove)
 
     // Nothing ends up narrower than what it has to show, in either language.
     Testing.assertContentFits(&host.root)
@@ -141,7 +141,7 @@ using Swag, Core, Pixel
     remove.setText(strings().prop_ResetDefault)
     row.computeLayout()
     Testing.assertContentFits(&host.root)
-    Swag.assert(remove.position.width == englishRemove)
+    Swag.require(remove.position.width == englishRemove)
 }
 
 // A form gives its help text the height its wording needs, keeping the option as a floor.
@@ -157,8 +157,8 @@ using Swag, Core, Pixel
 
     let oneLine   = form.rows[0].help!.position.height
     let manyLines = form.rows[1].help!.position.height
-    Swag.assert(oneLine >= 16)
-    Swag.assert(manyLines > oneLine)
+    Swag.require(oneLine >= 16)
+    Swag.require(manyLines > oneLine)
 }
 
 // A label allowed to end in an ellipsis has said it settles for less than its text, so the row
@@ -176,7 +176,7 @@ using Swag, Core, Pixel
 
     // The overflow is real: the label asks for more than the row gives it.
     let wanted = label.itf.measureContent(Math.Point{label.position.width, label.position.height})
-    Swag.assert(wanted.x > row.position.width)
+    Swag.require(wanted.x > row.position.width)
 
     // And it is not a fault, because that label ends in an ellipsis.
     Testing.assertContentFits(&host.root)

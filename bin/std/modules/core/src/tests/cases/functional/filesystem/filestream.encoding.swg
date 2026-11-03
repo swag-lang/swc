@@ -21,18 +21,18 @@
 
         // Five requested bytes are rounded to two complete UTF-16 units.
         let first = expect stream.readTextChunk(5, encoding)
-        Swag.assert(first == "A")
-        Swag.assert(expect stream.position() == 2)
+        Swag.require(first == "A")
+        Swag.require(expect stream.position() == 2)
 
         let pair = expect stream.readTextChunk(5, encoding)
-        Swag.assert(pair == "\U0001F600")
-        Swag.assert(expect stream.position() == 6)
+        Swag.require(pair == "\U0001F600")
+        Swag.require(expect stream.position() == 6)
 
         let last = expect stream.readTextChunk(5, encoding)
-        Swag.assert(last == "B")
-        Swag.assert(expect stream.position() == bytes.count)
+        Swag.require(last == "B")
+        Swag.require(expect stream.position() == bytes.count)
         let end = expect stream.readTextChunk(5, encoding)
-        Swag.assert(end.isEmpty())
+        Swag.require(end.isEmpty())
     }
 }
 
@@ -58,10 +58,10 @@
             discard expect File.writeAllBytes(fileName, bytes.toSlice())
             var stream = expect File.openRead(fileName)
 
-            Swag.assert(expect stream.readTextChunk(4, encoding) == "A")
-            Swag.assert(expect stream.readTextChunk(4, encoding) == "\uFFFD")
-            Swag.assert(expect stream.position() == bytes.count)
-            Swag.assert(expect stream.readTextChunk(4, encoding).isEmpty())
+            Swag.require(expect stream.readTextChunk(4, encoding) == "A")
+            Swag.require(expect stream.readTextChunk(4, encoding) == "\uFFFD")
+            Swag.require(expect stream.position() == bytes.count)
+            Swag.require(expect stream.readTextChunk(4, encoding).isEmpty())
             stream.close()
         }
     }

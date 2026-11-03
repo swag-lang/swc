@@ -55,14 +55,14 @@ func renderViewChild(dpiScale: f32)->Image
     integratedPanel.backgroundStyle = .Panel
 
     let image = host.render()
-    Swag.assert(pixelAt(&image, 10, 10) == host.theme.colors.ground.argb)
-    Swag.assert(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
-    Swag.assert(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
-    Swag.assert(pixelAt(&image, 70, 10) == host.theme.colors.informationBar_Bk.argb)
-    Swag.assert(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
-    Swag.assert(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
-    Swag.assert(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
-    Swag.assert(pixelAt(&image, 140, 0) == host.theme.colors.raised.argb)
+    Swag.require(pixelAt(&image, 10, 10) == host.theme.colors.ground.argb)
+    Swag.require(pixelAt(&image, 30, 10) == host.theme.colors.view_Bk.argb)
+    Swag.require(pixelAt(&image, 50, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.require(pixelAt(&image, 70, 10) == host.theme.colors.informationBar_Bk.argb)
+    Swag.require(pixelAt(&image, 90, 10) == host.theme.colors.commandBar_Bk.argb)
+    Swag.require(pixelAt(&image, 110, 10) == host.theme.colors.toolBar_Bk.argb)
+    Swag.require(pixelAt(&image, 130, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.require(pixelAt(&image, 140, 0) == host.theme.colors.raised.argb)
     var antialiasedCorner: bool
     for y in 0 until 7
     {
@@ -74,9 +74,9 @@ func renderViewChild(dpiScale: f32)->Image
         }
     }
 
-    Swag.assert(antialiasedCorner)
-    Swag.assert(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
-    Swag.assert(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
+    Swag.require(antialiasedCorner)
+    Swag.require(pixelAt(&image, 150, 10) == host.theme.colors.wnd_Bk.argb)
+    Swag.require(pixelAt(&image, 170, 10) == host.theme.colors.view_Bk.argb)
 }
 
 // A device scale of 2 renders the same logical tree into a doubled physical target:
@@ -86,11 +86,11 @@ func renderViewChild(dpiScale: f32)->Image
     var host: Testing.HeadlessHost
     host.setup(96, 64, dpiScale: 2)
 
-    Swag.assert(host.surface.dpiScale == 2)
-    Swag.assert(host.surface.size().x == 96 and host.surface.size().y == 64)
+    Swag.require(host.surface.dpiScale == 2)
+    Swag.require(host.surface.size().x == 96 and host.surface.size().y == 64)
 
     let background = host.render()
-    Swag.assert(background.width == 192 and background.height == 128)
+    Swag.require(background.width == 192 and background.height == 128)
 
     // A view-background child at logical (16, 8, 32, 24) must cover the physical
     // rectangle (32, 16, 64, 48).
@@ -100,15 +100,15 @@ func renderViewChild(dpiScale: f32)->Image
 
     let inside  = pixelAt(&framed, 48, 28)
     let outside = pixelAt(&framed, 24, 28)
-    Swag.assert(inside != outside)
+    Swag.require(inside != outside)
 
     // The edges sit on the device grid: just outside the left edge (x = 32) still
     // shows the parent background, just inside shows the child, and likewise around
     // the right edge (x = 96).
-    Swag.assert(pixelAt(&framed, 30, 28) == outside)
-    Swag.assert(pixelAt(&framed, 34, 28) == inside)
-    Swag.assert(pixelAt(&framed, 94, 28) == inside)
-    Swag.assert(pixelAt(&framed, 98, 28) == outside)
+    Swag.require(pixelAt(&framed, 30, 28) == outside)
+    Swag.require(pixelAt(&framed, 34, 28) == inside)
+    Swag.require(pixelAt(&framed, 94, 28) == inside)
+    Swag.require(pixelAt(&framed, 98, 28) == outside)
 }
 
 // The identical logical tree rendered at scale 1 and scale 2 must agree: the scaled
@@ -119,7 +119,7 @@ func renderViewChild(dpiScale: f32)->Image
     let image2 = renderViewChild(2)
 
     // Compare well inside each region, away from antialiased edges.
-    Swag.assert(pixelAt(&image1, 24, 20) == pixelAt(&image2, 48, 40))
-    Swag.assert(pixelAt(&image1, 8, 8) == pixelAt(&image2, 16, 16))
-    Swag.assert(pixelAt(&image1, 90, 60) == pixelAt(&image2, 180, 120))
+    Swag.require(pixelAt(&image1, 24, 20) == pixelAt(&image2, 48, 40))
+    Swag.require(pixelAt(&image1, 8, 8) == pixelAt(&image2, 16, 16))
+    Swag.require(pixelAt(&image1, 90, 60) == pixelAt(&image2, 180, 120))
 }

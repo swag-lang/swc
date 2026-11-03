@@ -103,5 +103,5 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
 
 #test
 {
-    Swag.assert(testCoreAliasLifecycleRuntimeFlags())
+    Swag.require(testCoreAliasLifecycleRuntimeFlags())
 }

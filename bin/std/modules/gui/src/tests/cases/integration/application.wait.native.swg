@@ -25,19 +25,19 @@
             }
         }
 
-        Swag.assert(settled)
+        Swag.require(settled)
         let frames = app.frameTrace.frames
         for 16 do
             app.runFrame()
-        Swag.assert(app.frameTrace.frames == frames)
+        Swag.require(app.frameTrace.frames == frames)
     }
 
     // The fence stays pending until polled, even if the GPU has already finished the copy.
     app.renderer.setCurrentContext(surface.rc)
-    Swag.assert(surface.readback.submit(&surface.rt, 0, 0, 1, 1))
-    Swag.assert(app.nativeFrameWaitMicroseconds(0) == 1000)
+    Swag.require(surface.readback.submit(&surface.rt, 0, 0, 1, 1))
+    Swag.require(app.nativeFrameWaitMicroseconds(0) == 1000)
     surface.invalidate()
-    Swag.assert(app.nativeFrameWaitMicroseconds(0) == 1000)
+    Swag.require(app.nativeFrameWaitMicroseconds(0) == 1000)
     surface.readback.cancel()
-    Swag.assert(app.nativeFrameWaitMicroseconds(0) == 0)
+    Swag.require(app.nativeFrameWaitMicroseconds(0) == 0)
 }

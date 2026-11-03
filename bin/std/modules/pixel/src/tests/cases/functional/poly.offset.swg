@@ -18,12 +18,12 @@ func assertOffsetCleanPreservesPathIdentity()
 
     paths.flatten(.Normal)
     paths.offset(2)
-    Swag.assert(paths.paths.count == 2)
+    Swag.require(paths.paths.count == 2)
 
-    Swag.assert(paths.paths[0].serial == 10)
-    Swag.assert(paths.paths[1].serial == 20)
-    Swag.assert(not paths.paths[0].polygon.points.isEmpty())
-    Swag.assert(not paths.paths[1].polygon.points.isEmpty())
+    Swag.require(paths.paths[0].serial == 10)
+    Swag.require(paths.paths[1].serial == 20)
+    Swag.require(not paths.paths[0].polygon.points.isEmpty())
+    Swag.require(not paths.paths[1].polygon.points.isEmpty())
 }
 
 #test
@@ -89,14 +89,14 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
         let cornerTerm = cast(f64, Sides) * delta * delta * Math.tan(ConstF64.Pi / cast(f64, Sides))
 
         let round = offsetArea(contour, delta, .Round)
-        Swag.assert(round.contours == 1)
+        Swag.require(round.contours == 1)
         let expectedRound = area + perimeter * delta + ConstF64.Pi * delta * delta
-        Swag.assert(Math.abs(round.area - expectedRound) <= 1e-4 * expectedRound)
+        Swag.require(Math.abs(round.area - expectedRound) <= 1e-4 * expectedRound)
 
         let miter = offsetArea(contour, delta, .Miter)
-        Swag.assert(miter.contours == 1)
+        Swag.require(miter.contours == 1)
         let expectedMiter = area + perimeter * delta + cornerTerm
-        Swag.assert(Math.abs(miter.area - expectedMiter) <= 1e-4 * expectedMiter)
+        Swag.require(Math.abs(miter.area - expectedMiter) <= 1e-4 * expectedMiter)
 
         // Shrinking stays inside the inradius, so the result remains one convex region. A convex corner
         // has no inner arc, regardless of join type: its edges meet, so the corner term is the
@@ -105,8 +105,8 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
         for joinType in [JoinType.Round, .Miter, .Square]
         {
             let shrunk = offsetArea(contour, -delta, joinType)
-            Swag.assert(shrunk.contours == 1)
-            Swag.assert(Math.abs(shrunk.area - expectedShrunk) <= 1e-4 * expectedShrunk)
+            Swag.require(shrunk.contours == 1)
+            Swag.require(Math.abs(shrunk.area - expectedShrunk) <= 1e-4 * expectedShrunk)
         }
     }
 }
@@ -126,5 +126,5 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 
     var solution: ClipperPaths
     off.execute(&solution, 500)
-    Swag.assert(solution.isEmpty())
+    Swag.require(solution.isEmpty())
 }

@@ -10,12 +10,12 @@ using Win32
     let pages = cast([*] u8, unwrap VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE))
     defer discard VirtualFree(pages, 0, MEM_RELEASE)
     let committed = VirtualAlloc(pages, 4096, MEM_COMMIT, PAGE_READWRITE)
-    Swag.assert(committed != null)
+    Swag.require(committed != null)
 
     let value = cast(*String, (pages + 4096 - #sizeof(String)))
     defer value.opDrop()
     value.opSet("small")
     let text = "this assignment grows beyond the inline buffer at the end of the committed page"
     value.opSet(text)
-    Swag.assert(value.toString() == text)
+    Swag.require(value.toString() == text)
 }

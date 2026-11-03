@@ -35,16 +35,16 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     let password = dlg.form.addPasswordField("PASSWORD")
     dlg.form.computeLayout()
 
-    Swag.assert(user.text() == "alice")
-    Swag.assert(password.position.y > user.position.y)
-    Swag.assert(dlg.buttons.count == 2)
-    Swag.assert(dlg.buttons[0].id == Dialog.BtnOk)
-    Swag.assert(dlg.buttons[1].id == Dialog.BtnCancel)
-    Swag.assert(dlg.contentView == dlg.form.parent)
-    Swag.assert(dlg.buttonBar.mode == .HorizontalEnd)
-    Swag.assert(dlg.buttonBar.spacing == dlg.themeMetrics().dialog_BtnPadding)
-    Swag.assert(dlg.padding.x == dlg.themeMetrics().dialog_Padding)
-    Swag.assert(dlg.contentView!.position.x == dlg.themeMetrics().dialog_Padding)
+    Swag.require(user.text() == "alice")
+    Swag.require(password.position.y > user.position.y)
+    Swag.require(dlg.buttons.count == 2)
+    Swag.require(dlg.buttons[0].id == Dialog.BtnOk)
+    Swag.require(dlg.buttons[1].id == Dialog.BtnCancel)
+    Swag.require(dlg.contentView == dlg.form.parent)
+    Swag.require(dlg.buttonBar.mode == .HorizontalEnd)
+    Swag.require(dlg.buttonBar.spacing == dlg.themeMetrics().dialog_BtnPadding)
+    Swag.require(dlg.padding.x == dlg.themeMetrics().dialog_Padding)
+    Swag.require(dlg.contentView!.position.x == dlg.themeMetrics().dialog_Padding)
 
     var didClose: bool
     host.app.sigFrame += func|host = &host, didClose = &didClose|(_)
@@ -52,14 +52,14 @@ func compositeColorChanged(_: *ColorPickerCtrl)
         if not didClose[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnCancel)
-            Swag.assert(modalButtonClicked)
+            Swag.require(modalButtonClicked)
             didClose[] = true
         }
     }
 
     let modalResult = dlg.doModal()
-    Swag.assert(modalResult == Dialog.BtnCancel)
-    Swag.assert(didClose)
+    Swag.require(modalResult == Dialog.BtnCancel)
+    Swag.require(didClose)
 }
 
 // EditCtrl pairs a label with an editbox.
@@ -68,16 +68,16 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     var host: Testing.HeadlessHost
     host.setup(260, 60)
     let ctrl = EditCtrl.create(&host.root, "Name", "Bob", {0, 0, 240, 26})
-    Swag.assert(ctrl.label.text() == "Name")
-    Swag.assert(ctrl.edit.text() == "Bob")
-    Swag.assert(ctrl.label.position.width == ctrl.labelWidth)
+    Swag.require(ctrl.label.text() == "Name")
+    Swag.require(ctrl.edit.text() == "Bob")
+    Swag.require(ctrl.label.position.width == ctrl.labelWidth)
 
     ctrl.edit.setText("Alice")
-    Swag.assert(ctrl.edit.text() == "Alice")
+    Swag.require(ctrl.edit.text() == "Alice")
 
     ctrl.setLayoutMetrics(50, 0, 7)
-    Swag.assert(ctrl.labelWidth == 50 and ctrl.editWidth == 0 and ctrl.spacing == 7)
-    Swag.assert(ctrl.edit.position.width == 183)
+    Swag.require(ctrl.labelWidth == 50 and ctrl.editWidth == 0 and ctrl.spacing == 7)
+    Swag.require(ctrl.edit.position.width == 183)
 }
 
 // Headless modal helpers can fill an EditCtrl by label before validating.
@@ -94,19 +94,19 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     {
         if not didSet[]
         {
-            Swag.assert(host.setModalEditText("Name", "Alice"))
-            Swag.assert(ctrl.edit.text() == "Alice")
+            Swag.require(host.setModalEditText("Name", "Alice"))
+            Swag.require(ctrl.edit.text() == "Alice")
             let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
-            Swag.assert(modalButtonClicked)
+            Swag.require(modalButtonClicked)
             didSet[] = true
         }
     }
 
     let result = dlg.doModal()
 
-    Swag.assert(result == Dialog.BtnOk)
-    Swag.assert(didSet)
-    Swag.assert(ctrl.edit.text() == "Alice")
+    Swag.require(result == Dialog.BtnOk)
+    Swag.require(didSet)
+    Swag.require(ctrl.edit.text() == "Alice")
 }
 
 // SliderCtrl drives an embedded slider and mirrors the value into its editbox.
@@ -120,14 +120,14 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     ctrl.sigChanged += &compositeSliderChanged
     ctrl.setLayoutMetrics(50, 55, 6)
     ctrl.setAutomaticValueWidth(false)
-    Swag.assert(ctrl.labelWidth == 50 and ctrl.valueWidth == 55 and ctrl.spacing == 6)
-    Swag.assert(not ctrl.autoValueWidth)
+    Swag.require(ctrl.labelWidth == 50 and ctrl.valueWidth == 55 and ctrl.spacing == 6)
+    Swag.require(not ctrl.autoValueWidth)
     ctrl.setFloatBounds(0, 100)
 
     ctrl.setValue(50)
-    Swag.assert(Math.abs(ctrl.value() - 50) < 0.01)
-    Swag.assert(ctrl.edit.text() == "50.00")
-    Swag.assert(CompositeSliderChangedCount == 1)
+    Swag.require(Math.abs(ctrl.value() - 50) < 0.01)
+    Swag.require(ctrl.edit.text() == "50.00")
+    Swag.require(CompositeSliderChangedCount == 1)
 }
 
 // SliderCtrl integer range formats the value box without decimals.
@@ -139,8 +139,8 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     ctrl.setUnsignedBounds(0, 100)
 
     ctrl.setValue(40)
-    Swag.assert(Math.abs(ctrl.value() - 40) < 0.01)
-    Swag.assert(ctrl.edit.text() == "40")
+    Swag.require(Math.abs(ctrl.value() - 40) < 0.01)
+    Swag.require(ctrl.edit.text() == "40")
 }
 
 // A typed reading commits on Enter, cancels on Escape, and rejects invalid input on blur.
@@ -157,17 +157,17 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     ctrl.edit.setFocus()
     ctrl.edit.setText("72")
     host.keyPress(.Return)
-    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+    Swag.require(Math.abs(ctrl.value() - 72) < 0.01)
 
     ctrl.edit.setFocus()
     ctrl.edit.setText("18")
     host.keyPress(.Escape)
-    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+    Swag.require(Math.abs(ctrl.value() - 72) < 0.01)
 
     ctrl.edit.setFocus()
     ctrl.edit.setText("invalid")
     ctrl.setFocus()
-    Swag.assert(Math.abs(ctrl.value() - 72) < 0.01)
+    Swag.require(Math.abs(ctrl.value() - 72) < 0.01)
 }
 
 // ComboCtrl pairs a label with a combobox.
@@ -176,18 +176,18 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     var host: Testing.HeadlessHost
     host.setup(260, 60)
     let ctrl = ComboCtrl.create(&host.root, "Mode", {0, 0, 240, 26})
-    Swag.assert(ctrl.label.text() == "Mode")
+    Swag.require(ctrl.label.text() == "Mode")
 
     ctrl.combo.addItem("One")
     ctrl.combo.addItem("Two")
     ctrl.combo.setSelectedIndex(1)
     host.pump()
-    Swag.assert(ctrl.combo.selectedIndex == 1)
-    Swag.assert(ctrl.combo.selectedItem()!.name.raw == "Two")
+    Swag.require(ctrl.combo.selectedIndex == 1)
+    Swag.require(ctrl.combo.selectedItem()!.name.raw == "Two")
 
     ctrl.setLayoutMetrics(45, 0, 5)
-    Swag.assert(ctrl.labelWidth == 45 and ctrl.comboWidth == 0)
-    Swag.assert(ctrl.combo.position.width == 190)
+    Swag.require(ctrl.labelWidth == 45 and ctrl.comboWidth == 0)
+    Swag.require(ctrl.combo.position.width == 190)
 }
 
 // InfoBar exposes semantic state and emits one dismissal signal before destruction.
@@ -199,17 +199,17 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 
     let bar = InfoBar.create(&host.root, "Saved", .Information, flags: .Bottom)
     bar.sigDismissed += &compositeInfoDismissed
-    Swag.assert(bar.kind == .Information)
-    Swag.assert(bar.flags.has(.Bottom))
-    Swag.assert(bar.label.text() == "Saved")
+    Swag.require(bar.kind == .Information)
+    Swag.require(bar.flags.has(.Bottom))
+    Swag.require(bar.label.text() == "Saved")
 
     bar.setText("Updated")
     bar.setKind(.Message)
-    Swag.assert(bar.label.text() == "Updated")
-    Swag.assert(bar.kind == .Message)
+    Swag.require(bar.label.text() == "Updated")
+    Swag.require(bar.kind == .Message)
 
     bar.dismiss()
-    Swag.assert(CompositeInfoDismissedCount == 1)
+    Swag.require(CompositeInfoDismissedCount == 1)
 }
 
 // A dismissed notice leaves the way it came: it says so at once, closes its height, then goes.
@@ -223,15 +223,15 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     let bar = InfoBar.create(&host.root, "Saved", .Information)
     bar.sigDismissed += &compositeInfoDismissed
     host.finishAnimations()
-    Swag.assert(bar.position.height == 40)
+    Swag.require(bar.position.height == 40)
 
     bar.dismiss()
     bar.dismiss()
-    Swag.assert(CompositeInfoDismissedCount == 1)
-    Swag.assert(not bar.isPendingDestroy)
+    Swag.require(CompositeInfoDismissedCount == 1)
+    Swag.require(not bar.isPendingDestroy)
 
     host.finishAnimations()
-    Swag.assert(bar.isPendingDestroy)
+    Swag.require(bar.isPendingDestroy)
 }
 
 // The information bar keeps its message clear of the dismiss button.
@@ -247,9 +247,9 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     host.root.applyLayout()
     discard host.render()
 
-    Swag.assert(bar.label.flags.has(.Ellipsis))
-    Swag.assert(bar.label.name.boundRect.width > 0)
-    Swag.assert(bar.label.name.boundRect.right() <= bar.closeButton.position.x)
+    Swag.require(bar.label.flags.has(.Ellipsis))
+    Swag.require(bar.label.name.boundRect.width > 0)
+    Swag.require(bar.label.name.boundRect.right() <= bar.closeButton.position.x)
 }
 
 // ColorPickerCtrl exposes stable state and emits at most one signal per programmatic change.
@@ -263,27 +263,27 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     picker.sigColorChanged += &compositeColorChanged
 
     picker.setColor(Argb.Red)
-    Swag.assert(picker.originalColor == Argb.Red)
-    Swag.assert(picker.selectedColor == Argb.Red)
-    Swag.assert(CompositeColorChangedCount == 1)
+    Swag.require(picker.originalColor == Argb.Red)
+    Swag.require(picker.selectedColor == Argb.Red)
+    Swag.require(CompositeColorChangedCount == 1)
 
     picker.setOriginalColor(Argb.Green)
     picker.setMode(.RedGreen)
-    Swag.assert(picker.originalColor == Argb.Green)
-    Swag.assert(picker.mode == .RedGreen)
-    Swag.assert(picker.pickBox.mode == .RedGreen)
-    Swag.assert(picker.pickBar.mode == .BlueHorizontal)
-    Swag.assert(CompositeColorChangedCount == 1)
+    Swag.require(picker.originalColor == Argb.Green)
+    Swag.require(picker.mode == .RedGreen)
+    Swag.require(picker.pickBox.mode == .RedGreen)
+    Swag.require(picker.pickBar.mode == .BlueHorizontal)
+    Swag.require(CompositeColorChangedCount == 1)
 
     picker.setColor(Argb.Red)
-    Swag.assert(CompositeColorChangedCount == 1)
+    Swag.require(CompositeColorChangedCount == 1)
 
     picker.setColor(Argb.Blue, notify: false)
-    Swag.assert(picker.selectedColor == Argb.Blue)
-    Swag.assert(CompositeColorChangedCount == 1)
+    Swag.require(picker.selectedColor == Argb.Blue)
+    Swag.require(CompositeColorChangedCount == 1)
 
     picker.setColorPreservingAlpha(Color.fromArgb(0x80402010))
-    Swag.assert(picker.selectedColor.a == 255)
-    Swag.assert(picker.selectedColor.r == 0x40)
-    Swag.assert(CompositeColorChangedCount == 2)
+    Swag.require(picker.selectedColor.a == 255)
+    Swag.require(picker.selectedColor.r == 0x40)
+    Swag.require(CompositeColorChangedCount == 2)
 }

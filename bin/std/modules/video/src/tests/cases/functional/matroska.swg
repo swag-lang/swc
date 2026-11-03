@@ -12,7 +12,7 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
         attempts += 1
     }
 
-    Swag.assert(reader.audioTrackCount() == count)
+    Swag.require(reader.audioTrackCount() == count)
 }
 
 func waitForMatroskaSubtitles(reader: *Reader, count: u32)
@@ -24,7 +24,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         attempts += 1
     }
 
-    Swag.assert(reader.subtitleTrackCount() == count)
+    Swag.require(reader.subtitleTrackCount() == count)
 }
 
 // A DTS track's first core header supplies the exact 5.1 speaker mask that Matroska's channel
@@ -33,8 +33,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     const Header16: [16] u8 = [0xFE, 0x7F, 0x01, 0x80, 0x3C, 0xFC, 0xB2, 0x7D, 0x00, 0x77, 0x38, 0x05, 0x09, 0x00, 0x7B, 0xEF]
     const Header14: [16] u8 = [0x1F, 0xFF, 0xE8, 0x00, 0x07, 0xF0, 0x3C, 0x7D, 0x30, 0x9D, 0x30, 0x00, 0x14, 0xE0, 0x00, 0x09]
-    Swag.assert((expect Matroska.dtsSpeakerMask(Header16)) == 0x3F)
-    Swag.assert((expect Matroska.dtsSpeakerMask(Header14)) == 0x3F)
+    Swag.require((expect Matroska.dtsSpeakerMask(Header16)) == 0x3F)
+    Swag.require((expect Matroska.dtsSpeakerMask(Header14)) == 0x3F)
 }
 
 // Indexed duration and track timing make a file-backed stream seekable before its complete frame
@@ -42,13 +42,13 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    Swag.assert(reader.frameCount() == 0 and reader.durationInSeconds() > 0)
+    Swag.require(reader.frameCount() == 0 and reader.durationInSeconds() > 0)
     let target = reader.frameAtTime(0.4)
-    Swag.assert(target == 10)
+    Swag.require(target == 10)
 
     var frame: Image
     expect reader.decodeFrameInto(&frame, target)
-    Swag.assert(frame.width == 64 and frame.height == 48)
+    Swag.require(frame.width == 64 and frame.height == 48)
 }
 
 // Matroska retains the AVC access units of the source MP4 byte for byte. Decoding both containers
@@ -60,10 +60,10 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var mp4      = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
     var indexed: Image
     expect matroska.decodeFrameInto(&indexed, 0)
-    Swag.assert(matroska.streamFormat().extensions == ".mkv")
-    Swag.assert(matroska.width() == 64 and matroska.height() == 48)
-    Swag.assert(matroska.frameCount() == 0 and matroska.frameRate() == expect FrameRate.create(25, 1))
-    Swag.assert(matroska.hasPlanarFrames())
+    Swag.require(matroska.streamFormat().extensions == ".mkv")
+    Swag.require(matroska.width() == 64 and matroska.height() == 48)
+    Swag.require(matroska.frameCount() == 0 and matroska.frameRate() == expect FrameRate.create(25, 1))
+    Swag.require(matroska.hasPlanarFrames())
 
     const Frames: [5] u64 = [19, 0, 7, 12, 3]
     var actual, expected: Image
@@ -71,15 +71,15 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect matroska.decodeFrameInto(&actual, index)
         expect mp4.decodeFrameInto(&expected, index)
-        Swag.assert(actual.width == expected.width and
-                    actual.height == expected.height and
-                    actual.pixelFormat == expected.pixelFormat)
-        Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
-        Swag.assert(Math.isEqualEpsilon(matroska.frameTimestamp(index), mp4.frameTimestamp(index), 0.000001))
+        Swag.require(actual.width == expected.width and
+                     actual.height == expected.height and
+                     actual.pixelFormat == expected.pixelFormat)
+        Swag.require(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+        Swag.require(Math.isEqualEpsilon(matroska.frameTimestamp(index), mp4.frameTimestamp(index), 0.000001))
     }
 
-    Swag.assert(matroska.frameCount() == 20)
-    Swag.assert(matroska.frameAtTime(0.3) == 7)
+    Swag.require(matroska.frameCount() == 20)
+    Swag.require(matroska.frameAtTime(0.3) == 7)
 }
 
 // Every supported AAC track is exposed independently, with the default track first. The fixture
@@ -91,16 +91,16 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     waitForMatroskaAudio(&reader, 2)
     let primary   = unwrap reader.audioTrack(0)
     let alternate = unwrap reader.audioTrack(1)
-    Swag.assert(primary.sampleEncoding() == .AacLc and alternate.sampleEncoding() == .AacLc)
-    Swag.assert(primary.displayName() == "Primary" and alternate.displayName() == "Alternate")
-    Swag.assert(primary.language() == "und" and alternate.language() == "und")
-    Swag.assert(primary.sampleRateHz() == 44_100 and alternate.sampleRateHz() == 44_100)
-    Swag.assert(primary.numChannels() == 2 and alternate.numChannels() == 2)
-    Swag.assert(primary.packetCount() != 0 and primary.packetCount() == alternate.packetCount())
-    Swag.assert(not primary.isDataPreloaded() and not alternate.isDataPreloaded())
+    Swag.require(primary.sampleEncoding() == .AacLc and alternate.sampleEncoding() == .AacLc)
+    Swag.require(primary.displayName() == "Primary" and alternate.displayName() == "Alternate")
+    Swag.require(primary.language() == "und" and alternate.language() == "und")
+    Swag.require(primary.sampleRateHz() == 44_100 and alternate.sampleRateHz() == 44_100)
+    Swag.require(primary.numChannels() == 2 and alternate.numChannels() == 2)
+    Swag.require(primary.packetCount() != 0 and primary.packetCount() == alternate.packetCount())
+    Swag.require(not primary.isDataPreloaded() and not alternate.isDataPreloaded())
     let primaryBytes   = expect primary.readPayload(0, primary.payloadSize())
     let alternateBytes = expect alternate.readPayload(0, alternate.payloadSize())
-    Swag.assert(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
+    Swag.require(Slice.equals(primaryBytes.toSlice(), alternateBytes.toSlice()))
 }
 
 // Text subtitle blocks retain their language, display name, cue duration, and overlapping
@@ -110,11 +110,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-subtitle.mkv"))
     waitForMatroskaSubtitles(&reader, 1)
     let track = unwrap reader.subtitleTrack(0)
-    Swag.assert(track.name == "French" and track.language == "fra" and track.format == .MatroskaText)
-    Swag.assert(track.cues.count == 3)
-    Swag.assert(track.presentationAt(0.75).text == "First caption.")
-    Swag.assert(track.presentationAt(1.75).text == "First caption.\nOverlapping caption.")
-    Swag.assert(track.presentationAt(62.5).text == "Last line.")
+    Swag.require(track.name == "French" and track.language == "fra" and track.format == .MatroskaText)
+    Swag.require(track.cues.count == 3)
+    Swag.require(track.presentationAt(0.75).text == "First caption.")
+    Swag.require(track.presentationAt(1.75).text == "First caption.\nOverlapping caption.")
+    Swag.require(track.presentationAt(62.5).text == "Last line.")
 }
 
 // Matroska maps every native multichannel packet codec to std/audio without copying payloads.
@@ -129,12 +129,12 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
         waitForMatroskaAudio(&reader, 1)
-        Swag.assert(reader.audioTrackCount() == 1)
+        Swag.require(reader.audioTrackCount() == 1)
         let sound = unwrap reader.audioTrack(0)
-        Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
-        Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
-        Swag.assert(sound.speakerChannelMask() == 0x3F and not sound.isDataPreloaded())
-        Swag.assert((expect sound.packet(0)).sampleFrameCount == PacketFrames[fileIndex])
+        Swag.require(sound.sampleEncoding() == Encodings[fileIndex])
+        Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
+        Swag.require(sound.speakerChannelMask() == 0x3F and not sound.isDataPreloaded())
+        Swag.require((expect sound.packet(0)).sampleFrameCount == PacketFrames[fileIndex])
     }
 }
 
@@ -148,8 +148,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     waitForMatroskaAudio(&delayed, 2)
     let plainSound   = unwrap plain.audioTrack(0)
     let delayedSound = unwrap delayed.audioTrack(0)
-    Swag.assert(delayedSound.packetCount() == plainSound.packetCount())
-    Swag.assert(delayedSound.sampleFrameCount() + 1024 == plainSound.sampleFrameCount())
+    Swag.require(delayedSound.packetCount() == plainSound.packetCount())
+    Swag.require(delayedSound.sampleFrameCount() + 1024 == plainSound.sampleFrameCount())
 }
 
 // A long container catches cue-offset, timestamp accumulation, and distant-seek defects that the
@@ -163,19 +163,19 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     // Before any media window exists, resynchronization still resolves through the container's
     // cues. Returning the requested non-sync frame here makes a slow player decode the whole GOP
     // under its loading overlay instead of jumping to one independently decodable picture.
-    Swag.assert(longStream.syncFrameAt(1) == 12)
-    Swag.assert(longStream.syncFrameAt(20) == 20)
-    Swag.assert(longStream.syncFrameAt(21) == 32)
-    Swag.assert(longStream.syncFrameAt(12_007) == 12_012)
-    Swag.assert(longStream.syncFrameAt(14_999) == 15_000)
+    Swag.require(longStream.syncFrameAt(1) == 12)
+    Swag.require(longStream.syncFrameAt(20) == 20)
+    Swag.require(longStream.syncFrameAt(21) == 32)
+    Swag.require(longStream.syncFrameAt(12_007) == 12_012)
+    Swag.require(longStream.syncFrameAt(14_999) == 15_000)
 
     var indexed: Image
     expect longStream.decodeFrameInto(&indexed, 12_007)
-    Swag.assert(longStream.frameCount() == 0)
-    Swag.assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
+    Swag.require(longStream.frameCount() == 0)
+    Swag.require(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
     let seekSound = unwrap longStream.audioTrack(0)
-    Swag.assert(seekSound.timelineStartSeconds() == 0 or seekSound.timelineStartSeconds() < 480.28)
-    Swag.assert(480.28 - seekSound.timelineStartSeconds() < seekSound.durationInSeconds())
+    Swag.require(seekSound.timelineStartSeconds() == 0 or seekSound.timelineStartSeconds() < 480.28)
+    Swag.require(480.28 - seekSound.timelineStartSeconds() < seekSound.durationInSeconds())
 
     // The frame immediately after a distant seek also proves that seek-only decode bounding is
     // removed as soon as the requested picture has been returned.
@@ -185,11 +185,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect longStream.decodeFrameInto(&actual, index)
         expect reference.decodeFrameInto(&expected, index % reference.frameCount())
-        Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
-        Swag.assert(Math.isEqualEpsilon(longStream.frameTimestamp(index), cast(f64, index) / 25.0, 0.000001))
+        Swag.require(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+        Swag.require(Math.isEqualEpsilon(longStream.frameTimestamp(index), cast(f64, index) / 25.0, 0.000001))
     }
 
-    Swag.assert(longStream.frameAtTime(599.96) == 14_999)
+    Swag.require(longStream.frameAtTime(599.96) == 14_999)
 }
 
 // The complete audio-only pass must not require picture samples after disabling picture indexing.
@@ -202,7 +202,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     waitForMatroskaAudio(&reader, 2)
-    Swag.assert(reader.audioTrack(0) != null)
+    Swag.require(reader.audioTrack(0) != null)
 
     var attempts: u32
     var hasCompleteAudio = false
@@ -216,8 +216,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         attempts += 1
     }
 
-    Swag.assert(hasCompleteAudio)
-    Swag.assert(Math.isEqualEpsilon(reader.audioTrack(0)!.durationInSeconds(), 599.641, 0.05))
+    Swag.require(hasCompleteAudio)
+    Swag.require(Math.isEqualEpsilon(reader.audioTrack(0)!.durationInSeconds(), 599.641, 0.05))
 }
 
 // Memory-backed Matroska uses the borrowed bytes for video and does not manufacture file cursors
@@ -226,9 +226,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     let bytes  = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
     var reader = expect Reader.openMemory("clip.mkv", bytes.toSlice())
-    Swag.assert(reader.frameCount() == 20 and reader.audioTrackCount() == 0)
+    Swag.require(reader.frameCount() == 20 and reader.audioTrackCount() == 0)
     let frame = expect reader.decodeFrame(10)
-    Swag.assert(frame.width == 64 and frame.height == 48)
+    Swag.require(frame.width == 64 and frame.height == 48)
 }
 
 // A reader opened for its pictures alone reaches distant pictures through the cues without
@@ -251,33 +251,33 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         expect idecoder.seekFrame(&source, index)
         expect idecoder.decodeFrame(&source, &actual)
         expect reference.decodeFrameInto(&expected, index % reference.frameCount())
-        Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+        Swag.require(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
     }
 
     let fileIndex = unwrap decoder.fileIndex
-    Swag.assert(not fileIndex.soundWorker.isStarted() and not fileIndex.windowWorker.isStarted())
-    Swag.assert(fileIndex.seekSounds.isEmpty())
+    Swag.require(not fileIndex.soundWorker.isStarted() and not fileIndex.windowWorker.isStarted())
+    Swag.require(fileIndex.seekSounds.isEmpty())
 
     var file = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"), pictureOnly: true)
-    Swag.assert(file.audioTrackCount() == 0 and file.subtitleTrackCount() == 0)
+    Swag.require(file.audioTrackCount() == 0 and file.subtitleTrackCount() == 0)
 
     let bytes  = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-subtitle.mkv").toString())
     var memory = expect Reader.openMemory("clip.mkv", bytes.toSlice(), pictureOnly: true)
-    Swag.assert(memory.subtitleTrackCount() == 0 and memory.decoder != null)
+    Swag.require(memory.subtitleTrackCount() == 0 and memory.decoder != null)
 }
 
 // The registry claims Matroska alone, and malformed or unrelated EBML input remains a format
 // error rather than being decoded from a coincidental extension.
 #test
 {
-    Swag.assert(Reader.canOpen("clip.mkv"))
-    Swag.assert(not Reader.canOpen("clip.webm"))
+    Swag.require(Reader.canOpen("clip.mkv"))
+    Swag.require(not Reader.canOpen("clip.webm"))
 
     const Truncated: [5] u8 = [0x1A, 0x45, 0xDF, 0xA3, 0x80]
     var truncatedOutcome: Swag.Error
     discard catch Reader.openMemory("broken.mkv", Truncated) as truncatedOutcome
     let truncated = truncatedOutcome.value()
-    Swag.assert((truncated is InvalidFormatError))
+    Swag.require((truncated is InvalidFormatError))
 }
 
 // An unsupported picture codec is rejected as soon as the track metadata names it. The damaged
@@ -290,18 +290,18 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     const UnknownId = "V_MPEG4/ISO/XYZ"
     #assert(AvcId.count == UnknownId.count)
     let codecOffset = Utf8.indexOf(bytes.toSlice(), AvcId)
-    Swag.assert(codecOffset != Swag.U64.Max)
+    Swag.require(codecOffset != Swag.U64.Max)
     Memory.copy(bytes.storage() + codecOffset, UnknownId.buffer, UnknownId.count)
 
     const ClusterId: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
     let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterId)
-    Swag.assert(clusterOffset != Swag.U64.Max)
+    Swag.require(clusterOffset != Swag.U64.Max)
     bytes[clusterOffset] = 0
 
     var unsupportedOutcome: Swag.Error
     discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupportedOutcome
     let unsupported = unsupportedOutcome.value()
-    Swag.assert((unsupported is UnsupportedFormatError))
+    Swag.require((unsupported is UnsupportedFormatError))
 }
 
 // A file-backed reader returns after metadata even when the first media cluster is malformed.
@@ -311,7 +311,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
     const ClusterId: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
     let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterId)
-    Swag.assert(clusterOffset != Swag.U64.Max)
+    Swag.require(clusterOffset != Swag.U64.Max)
     bytes[clusterOffset] = 0
 
     let fileName = videoTempPath("matroska-deferred-index", "mkv")
@@ -319,11 +319,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var reader = expect Reader.open(fileName)
-    Swag.assert(reader.frameCount() == 0)
+    Swag.require(reader.frameCount() == 0)
     var clusterErrorOutcome: Swag.Error
     discard catch reader.decodeFrame(0) as clusterErrorOutcome
     let clusterError = clusterErrorOutcome.value()
-    Swag.assert((clusterError is InvalidFormatError))
+    Swag.require((clusterError is InvalidFormatError))
 }
 
 // Cancellation can come from a viewer thread while a file-backed reader is about to build its
@@ -335,7 +335,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var cancelledOutcome: Swag.Error
     discard catch reader.decodeFrame(0) as cancelledOutcome
     let cancelled = cancelledOutcome.value()
-    Swag.assert((cancelled is BadParameterError))
+    Swag.require((cancelled is BadParameterError))
 }
 
 // A string element states its length, and a writer that reserved room for a longer value fills the
@@ -346,8 +346,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     let padded: [8] u8 = ['V', '_', 'X', 0, 0, 0, 0, 0]
     var cursor         = Matroska.Cursor.open(padded[0 until 8])
     let value          = expect cursor.readString({0, 0, 8, false})
-    Swag.assert(value.toString() == "V_X")
-    Swag.assert((value.toString()).count == 3)
+    Swag.require(value.toString() == "V_X")
+    Swag.require((value.toString()).count == 3)
 }
 
 // A value that fills its element is kept whole.
@@ -356,7 +356,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     let exact: [3] u8 = ['V', '_', 'X']
     var cursor        = Matroska.Cursor.open(exact[0 until 3])
     let value         = expect cursor.readString({0, 0, 3, false})
-    Swag.assert(value.toString() == "V_X")
+    Swag.require(value.toString() == "V_X")
 }
 
 // A write that stopped part way leaves reserved space behind, filled with nothing. The first byte
@@ -366,7 +366,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("edited-truncated-tail.mkv"))
-    Swag.assert(reader.width() == 64 and reader.height() == 48)
+    Swag.require(reader.width() == 64 and reader.height() == 48)
 
     var whole = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     var cut:    Image
@@ -375,8 +375,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect reader.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
-        Swag.assert(cut.width == entire.width and cut.height == entire.height)
-        Swag.assert(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
+        Swag.require(cut.width == entire.width and cut.height == entire.height)
+        Swag.require(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
     }
 }
 
@@ -395,7 +395,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
                bytes[cues + 2] == 0xBB and
                bytes[cues + 3] == 0x6B) do
         cues -= 1
-    Swag.assert(cues != 0)
+    Swag.require(cues != 0)
     Memory.set(&bytes[cues], 0, 4)
     let path = videoTempPath("cueless", "mkv")
     defer catch File.delete(path)
@@ -406,12 +406,12 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     for fraction in [0.8, 0.5]
     {
         let target = cueless.frameAtTime(cueless.durationInSeconds() * fraction)
-        Swag.assert(cueless.syncFrameAt(target) == target)
+        Swag.require(cueless.syncFrameAt(target) == target)
         let frame    = indexed.syncFrameAt(target)
         let expected = expect indexed.decodeFrame(frame)
         let actual   = expect cueless.decodeFrame(frame)
-        Swag.assert(actual.width == expected.width and actual.height == expected.height)
-        Swag.assert(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
+        Swag.require(actual.width == expected.width and actual.height == expected.height)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
     }
 }
 
@@ -442,13 +442,13 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
             frame += 1
         }
 
-        Swag.assert(found)
+        Swag.require(found)
     }
 
     // A frame seek after a key picture rebuilds its own window.
     let after = expect keyed.decodeFrame(10)
     let first = expect frames.decodeFrame(10)
-    Swag.assert(Memory.compare(after.pixels.storage(), first.pixels.storage(), after.pixels.count) == 0)
+    Swag.require(Memory.compare(after.pixels.storage(), first.pixels.storage(), after.pixels.count) == 0)
 
     var bytes = expect File.readAllBytes(source)
     var cues  = bytes.count - 4
@@ -464,7 +464,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     discard expect File.writeAllBytes(path, bytes.toSlice())
     var cueless = expect Reader.open(path, pictureOnly: true)
     let picture = expect cueless.decodeKeyPicture(cueless.durationInSeconds() * 0.5)
-    Swag.assert(picture.width == keyed.width() and picture.height == keyed.height())
+    Swag.require(picture.width == keyed.width() and picture.height == keyed.height())
 }
 
 // A writer that knows every frame of a track begins with the same bytes may state them once and
@@ -474,7 +474,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var stripped = expect Reader.open(videoFixturePath("edited-header-stripped.mkv"))
     var whole    = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
-    Swag.assert(stripped.width() == whole.width() and stripped.height() == whole.height())
+    Swag.require(stripped.width() == whole.width() and stripped.height() == whole.height())
 
     var cut:    Image
     var entire: Image
@@ -482,7 +482,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         expect stripped.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
-        Swag.assert(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
+        Swag.require(Memory.compare(cut.pixels.storage(), entire.pixels.storage(), cut.pixels.count) == 0)
     }
 }
 
@@ -490,8 +490,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
-    Swag.assert(reader.displayWidth() == reader.width())
-    Swag.assert(reader.displayHeight() == reader.height())
+    Swag.require(reader.displayWidth() == reader.width())
+    Swag.require(reader.displayHeight() == reader.height())
     reader.close()
 }
 
@@ -510,11 +510,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
         waitForMatroskaAudio(&reader, 1)
-        Swag.assert(reader.audioTrackCount() == 1)
+        Swag.require(reader.audioTrackCount() == 1)
         let sound = unwrap reader.audioTrack(0)
-        Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
-        Swag.assert(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
-        Swag.assert(not sound.isDataPreloaded() and sound.packetCount() > 40)
+        Swag.require(sound.sampleEncoding() == Encodings[fileIndex])
+        Swag.require(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
+        Swag.require(not sound.isDataPreloaded() and sound.packetCount() > 40)
 
         var decoded: Array's16
         expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
@@ -526,12 +526,12 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         let wanted   = expect File.readAllBytes(videoFixturePath(Pcm[fileIndex]))
         let wantedAt = cast(const [*] s16, wanted.storage())
         let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
-        Swag.assert(decoded.count == sound.sampleFrameCount() * 2)
-        Swag.assert(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)
+        Swag.require(decoded.count == sound.sampleFrameCount() * 2)
+        Swag.require(compared >= 44_000 * 2 and decoded.count <= wanted.count / #sizeof(s16) + 2 * 1_024)
 
         // The references are libopus's and libvorbis's; this module's decoders sit within one
         // least significant bit of them, as the audio module's own tests establish.
         for index in compared do
-            Swag.assert(Math.abs(cast(s32, decoded[index]) - cast(s32, wantedAt[index])) <= 1)
+            Swag.require(Math.abs(cast(s32, decoded[index]) - cast(s32, wantedAt[index])) <= 1)
     }
 }

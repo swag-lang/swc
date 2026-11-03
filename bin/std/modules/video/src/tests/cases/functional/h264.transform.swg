@@ -25,7 +25,7 @@ func assertIdct4x4Case(seed: u64)
 
     H264.addIdct4x4Scalar(expected.buffer + 4, Stride, block.buffer)
     H264.addIdct4x4(actual.buffer + 4, Stride, block.buffer)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 
     // The flat DC add on the same samples, over the whole range of the rounded value.
     var dc = cast(s32, (cast(s64, ((seed * 8191 + 17) & 0x3FFF)) - 0x2000))
@@ -33,7 +33,7 @@ func assertIdct4x4Case(seed: u64)
         dc *= 4096
     H264.addDc4x4Scalar(expected.buffer + 4, Stride, dc)
     H264.addDc4x4(actual.buffer + 4, Stride, dc)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 // The four-block flat add against four scalar 4x4 adds on an 8x8 block, one of the values
@@ -65,7 +65,7 @@ func assertDc8x8QuadCase(seed: u64)
     H264.addDc4x4Scalar(expected.buffer + 4 + 4 * Stride, Stride, dcs[2])
     H264.addDc4x4Scalar(expected.buffer + 8 + 4 * Stride, Stride, dcs[3])
     H264.addDc8x8Quad(actual.buffer + 4, Stride, dcs[0], dcs[1], dcs[2], dcs[3])
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 // The packed inverse 8x8 transform against its scalar form, same conventions.
@@ -91,7 +91,7 @@ func assertIdct8x8Case(seed: u64)
 
     H264.addIdct8x8Scalar(expected.buffer + 4, Stride, block.buffer)
     H264.addIdct8x8(actual.buffer + 4, Stride, block.buffer)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, actual.count) == 0)
 }
 
 // The packed Hadamard transform must match the scalar 32-bit reference over the full input
@@ -109,7 +109,7 @@ func assertHadamard4x4Case(seed: u64)
 
     H264.hadamard4x4Scalar(expected.buffer)
     H264.hadamard4x4(actual.buffer)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
 }
 
 #test
@@ -126,5 +126,5 @@ func assertHadamard4x4Case(seed: u64)
     var actual = expected
     H264.hadamard4x4Scalar(expected.buffer)
     H264.hadamard4x4(actual.buffer)
-    Swag.assert(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
+    Swag.require(Memory.compare(expected.buffer, actual.buffer, #sizeof(actual)) == 0)
 }

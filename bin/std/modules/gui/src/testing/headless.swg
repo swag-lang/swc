@@ -110,7 +110,7 @@ impl HeadlessHost
         discard catch applyLanguage(&.app.resources, ReferenceLanguage)
 
         let backend = Env.variable("SWAG_TEST_RENDERER")
-        Swag.assert(backend == "" or backend == "cpu" or backend == "gpu", "SWAG_TEST_RENDERER accepts cpu or gpu")
+        Swag.require(backend == "" or backend == "cpu" or backend == "gpu", "SWAG_TEST_RENDERER accepts cpu or gpu")
         if backend != "cpu"
         {
             .gpuRenderer.setOffscreen()
@@ -560,7 +560,7 @@ impl HeadlessHost
     // Appends a step that activates the row worded `label` of the option sheet, such as a row of the page the previous step opened.
     mtd thenActivateOptionRow(label: string, step: s32 = 0)
     {
-        Swag.assert(.autoArmed)
+        Swag.require(.autoArmed)
         let stage = .addAutoStage(.OptionRow, label: label)
         stage.step = step
     }
@@ -570,21 +570,21 @@ impl HeadlessHost
     // A nested overwrite confirmation after accepting a file dialog is the typical case.
     mtd thenClickModalButton(button: WndId)
     {
-        Swag.assert(.autoArmed)
+        Swag.require(.autoArmed)
         discard .addAutoStage(.ModalButton, button)
     }
 
     // Appends a step that clicks item `id` of the captured popup menu, such as an item of the submenu the previous step opened.
     mtd thenClickPopupMenuItem(id: WndId)
     {
-        Swag.assert(.autoArmed)
+        Swag.require(.autoArmed)
         discard .addAutoStage(.PopupItem, id)
     }
 
     // Appends a step that opens the submenu labelled `label` of the captured popup menu.
     mtd thenOpenPopupSubMenu(label: string)
     {
-        Swag.assert(.autoArmed)
+        Swag.require(.autoArmed)
         discard .addAutoStage(.PopupSubMenu, label: label)
     }
 
@@ -593,7 +593,7 @@ impl HeadlessHost
     // Call it once per edit box to fill.
     mtd withModalEdit(label, text: string)
     {
-        Swag.assert(.autoArmed and not .autoStages.isEmpty())
+        Swag.require(.autoArmed and not .autoStages.isEmpty())
         let stage = .autoStages.storage() + .autoStages.count - 1
         let edit  = cast(*AutoEdit, stage.edits.emplaceInitAddress())
         edit.label = label
@@ -700,7 +700,7 @@ impl HeadlessHost
     // Advances the finite-animation clock by an exact interval and drains resulting work.
     mtd advanceAnimations(deltaSeconds: f32)
     {
-        Swag.assert(deltaSeconds >= 0)
+        Swag.require(deltaSeconds >= 0)
         .app.animator.advance(deltaSeconds)
         .pump()
     }
@@ -899,7 +899,7 @@ impl HeadlessHost
     // Clicks the center of a window.
     mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
-        Swag.assert(wnd != null)
+        Swag.require(wnd != null)
 
         var pt = wnd.surfaceRect().center()
         wnd.surface!.surfaceToScreen(&pt)
@@ -1201,7 +1201,7 @@ impl HeadlessHost
     // parent exactly as a real drop does.
     mtd dropFilesOnWnd(wnd: *Wnd, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
     {
-        Swag.assert(wnd != null)
+        Swag.require(wnd != null)
 
         .dragData.clear()
         for f in files do

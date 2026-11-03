@@ -11,27 +11,27 @@ using Swag, Core
     host.setup(2048, 64)
 
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.rt.colorBuffer.width == 2048)
+    Swag.require(host.surface.rt.colorBuffer.width == 2048)
 
     host.surface.setPosition({0, 0, 2049, 64})
     host.surface.paintWnd(&host.root)
     let capacity = host.surface.rt.colorBuffer.width
-    Swag.assert(capacity >= 2049 and capacity < 2049 + 256)
+    Swag.require(capacity >= 2049 and capacity < 2049 + 256)
     let handle = host.surface.rt.handle
 
     host.surface.setPosition({0, 0, 2050, 64})
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.rt.handle == handle)
+    Swag.require(host.surface.rt.handle == handle)
 
     host.surface.setPosition({0, 0, 512, 257})
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.rt.colorBuffer.width == capacity)
-    Swag.assert(host.surface.rt.colorBuffer.height >= 257 and host.surface.rt.colorBuffer.height < 257 + 256)
+    Swag.require(host.surface.rt.colorBuffer.width == capacity)
+    Swag.require(host.surface.rt.colorBuffer.height >= 257 and host.surface.rt.colorBuffer.height < 257 + 256)
     let tallerHandle = host.surface.rt.handle
 
     host.surface.setPosition({0, 0, 2049, 257})
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.rt.handle == tallerHandle)
+    Swag.require(host.surface.rt.handle == tallerHandle)
 }
 
 // Painting the final geometry consumes the pending dirty region before returning.
@@ -46,7 +46,7 @@ using Swag, Core
 
     host.surface.invalidate()
     host.surface.paint()
-    Swag.assert(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
+    Swag.require(not host.surface.isDirty, "a synchronous paint leaves nothing pending")
 }
 
 // A frame prepared before the native geometry changes has the same pixels as a normal repaint at
@@ -57,9 +57,9 @@ using Swag, Core
     host.setup(256, 128)
 
     host.surface.setPosition({0, 0, 384, 224})
-    Swag.assert(host.surface.prepareResizeFrame(&host.root))
+    Swag.require(host.surface.prepareResizeFrame(&host.root))
     let prepared = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
-    Swag.assert(not host.surface.isDirty)
+    Swag.require(not host.surface.isDirty)
 
     host.surface.presentPreparedFrame()
     let direct = host.render()

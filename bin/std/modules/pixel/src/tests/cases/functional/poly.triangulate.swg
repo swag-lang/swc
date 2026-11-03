@@ -36,23 +36,23 @@ func triCount(pts: [..] Vector2)->u64
     open.add({0, 3})
     open.recompute()
 
-    Swag.assert(Math.isEqualEpsilon(open.area, 6, 0.001))
-    Swag.assert(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
-    Swag.assert(open.minBounds == Math.Vector2{0, 0})
-    Swag.assert(open.maxBounds == Math.Vector2{4, 3})
-    Swag.assert(open.isClockwise)
-    Swag.assert(open.isConvex)
-    Swag.assert(open.isSimple)
+    Swag.require(Math.isEqualEpsilon(open.area, 6, 0.001))
+    Swag.require(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
+    Swag.require(open.minBounds == Math.Vector2{0, 0})
+    Swag.require(open.maxBounds == Math.Vector2{4, 3})
+    Swag.require(open.isClockwise)
+    Swag.require(open.isConvex)
+    Swag.require(open.isSimple)
 
     var explicitlyClosed = open
     let closingPoint     = explicitlyClosed.points[0]
     explicitlyClosed.add(closingPoint)
     explicitlyClosed.recompute()
 
-    Swag.assert(Math.isEqualEpsilon(explicitlyClosed.area, open.area, 0.001))
-    Swag.assert(Math.isEqualEpsilon(explicitlyClosed.perimeter, open.perimeter, 0.001))
-    Swag.assert(explicitlyClosed.minBounds == open.minBounds)
-    Swag.assert(explicitlyClosed.maxBounds == open.maxBounds)
+    Swag.require(Math.isEqualEpsilon(explicitlyClosed.area, open.area, 0.001))
+    Swag.require(Math.isEqualEpsilon(explicitlyClosed.perimeter, open.perimeter, 0.001))
+    Swag.require(explicitlyClosed.minBounds == open.minBounds)
+    Swag.require(explicitlyClosed.maxBounds == open.maxBounds)
 }
 
 // Degenerate contours remain well-defined and never inherit stale cached bounds.
@@ -61,15 +61,15 @@ func triCount(pts: [..] Vector2)->u64
     var poly: Pixel.Polygon
     poly.add({7, 9})
     poly.recompute()
-    Swag.assert(poly.area == 0)
-    Swag.assert(poly.perimeter == 0)
-    Swag.assert(poly.minBounds == Math.Vector2{7, 9})
-    Swag.assert(poly.maxBounds == Math.Vector2{7, 9})
+    Swag.require(poly.area == 0)
+    Swag.require(poly.perimeter == 0)
+    Swag.require(poly.minBounds == Math.Vector2{7, 9})
+    Swag.require(poly.maxBounds == Math.Vector2{7, 9})
 
     poly.clear()
     poly.recompute()
-    Swag.assert(poly.minBounds == Math.Vector2{})
-    Swag.assert(poly.maxBounds == Math.Vector2{})
+    Swag.require(poly.minBounds == Math.Vector2{})
+    Swag.require(poly.maxBounds == Math.Vector2{})
 }
 
 // Regular convex N-gon centered at (cx,cy).
@@ -91,7 +91,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
     for n in 3 until 13
     {
         let poly = makeNgon(100, 100, 60, n)
-        Swag.assert(triCount(poly[to]) == cast(u64, (n - 2)))
+        Swag.require(triCount(poly[to]) == cast(u64, (n - 2)))
     }
 }
 
@@ -101,8 +101,8 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
     var tri  = [Math.Vector2{0, 0}, Math.Vector2{100, 0}, Math.Vector2{50, 100}]
     var quad = [Math.Vector2{0, 0}, Math.Vector2{100, 0}, Math.Vector2{100, 100}, Math.Vector2{0, 100}]
 
-    Swag.assert(triCount(tri) == 1)
-    Swag.assert(triCount(quad) == 2)
+    Swag.require(triCount(tri) == 1)
+    Swag.require(triCount(quad) == 2)
 }
 
 // Concave polygons: still N-2 triangles for a simple ring.
@@ -110,13 +110,13 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
 {
     // Concave dart (4 vertices)
     var dart = [Math.Vector2{0, 0}, Math.Vector2{50, 30}, Math.Vector2{100, 0}, Math.Vector2{50, 100}]
-    Swag.assert(triCount(dart) == 2)
+    Swag.require(triCount(dart) == 2)
 
     // L-shape (6 vertices)
     var lshape = [
         Math.Vector2{0, 0}, Math.Vector2{60, 0}, Math.Vector2{60, 20},
         Math.Vector2{20, 20}, Math.Vector2{20, 60}, Math.Vector2{0, 60}]
-    Swag.assert(triCount(lshape) == 4)
+    Swag.require(triCount(lshape) == 4)
 
     // Plus / cross (12 vertices). Coordinates are deliberately irregular: a
     // perfectly axis-aligned cross makes several vertices share an x/y during the
@@ -126,7 +126,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
         Math.Vector2{21, 1}, Math.Vector2{41, 2}, Math.Vector2{43, 21}, Math.Vector2{61, 23},
         Math.Vector2{62, 41}, Math.Vector2{43, 43}, Math.Vector2{41, 61}, Math.Vector2{22, 62},
         Math.Vector2{21, 43}, Math.Vector2{2, 41}, Math.Vector2{1, 22}, Math.Vector2{19, 19}]
-    Swag.assert(triCount(plus) == 10)
+    Swag.require(triCount(plus) == 10)
 }
 
 // Star polygons (non-convex, many concavities) with 3..10 branches.
@@ -146,7 +146,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
         }
 
         // A 2b-vertex simple star ring -> 2b-2 triangles.
-        Swag.assert(triCount(pts[to]) == cast(u64, (total - 2)))
+        Swag.require(triCount(pts[to]) == cast(u64, (total - 2)))
     }
 }
 
@@ -170,9 +170,9 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     fresh.triangulate()
     let expected = fresh.takeResult()
 
-    Swag.assert(recycled.vertices.count == expected.vertices.count)
+    Swag.require(recycled.vertices.count == expected.vertices.count)
     for index in recycled.vertices.count do
-        Swag.assert(recycled.vertices[index] == expected.vertices[index])
+        Swag.require(recycled.vertices[index] == expected.vertices[index])
 }
 
 // One tessellator serves every fill of a frame, and it recycles its points, edges and triangles
@@ -239,6 +239,6 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     tess.addPolyLine(ringAt(0, 200, 30, 12))
     tess.triangulate()
     let result = tess.takeResult()
-    Swag.assert(result.triangleCount() != 0)
+    Swag.require(result.triangleCount() != 0)
     tess.clear()
 }

@@ -34,7 +34,7 @@ func completeHexViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         steps += 1
     }
 
-    Swag.assert(window.searchTimer == null)
+    Swag.require(window.searchTimer == null)
 }
 
 func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
@@ -58,7 +58,7 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.P
     var hexIndex = Swag.U32.Max
     for choice, index in window.choices where choice.key == "hex" do
         hexIndex = cast(u32, index)
-    Swag.assert(hexIndex != Swag.U32.Max)
+    Swag.require(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(host, window)
     return assume cast(*Hex.Panel, window.currentView)
@@ -67,7 +67,7 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.P
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
     completeViewerBackgroundLoad(host, &view.analysis)
-    Swag.assert(not view.analysis.isPending())
+    Swag.require(not view.analysis.isPending())
 }
 
 // The host keeps a viewer-specific pattern intact across scanner chunks, publishes every exact
@@ -104,20 +104,20 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.showSearch()
     window.searchBox.setText("DE AD ?E EF")
     completeHexViewerSearch(&host, window)
-    Swag.assert(window.searchMatches.count == 2 and
-                window.searchMatches[0].offset == first and
-                window.searchMatches[1].offset == second)
-    Swag.assert(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits.count == 2)
-    Swag.assert(view.grid.matchStart == first and view.grid.matchLength == 4)
-    Swag.assert(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)
-    Swag.assert(not window.searchOptionsButton.isLocallyVisible())
+    Swag.require(window.searchMatches.count == 2 and
+                 window.searchMatches[0].offset == first and
+                 window.searchMatches[1].offset == second)
+    Swag.require(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits.count == 2)
+    Swag.require(view.grid.matchStart == first and view.grid.matchLength == 4)
+    Swag.require(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)
+    Swag.require(not window.searchOptionsButton.isLocallyVisible())
 
     view.setValueWidth(2)
     view.setFormat(1)
-    Swag.assert(view.grid.grouping == .Unsigned32)
+    Swag.require(view.grid.grouping == .Unsigned32)
     window.searchBox.setText("value: 4022250974")
     completeHexViewerSearch(&host, window)
-    Swag.assert(window.searchMatches.count == 2 and window.searchMatches[0].offset == first)
+    Swag.require(window.searchMatches.count == 2 and window.searchMatches[0].offset == first)
 
     window.layoutFileInfo()
     window.resize(960, 680)
@@ -127,24 +127,24 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     assertScopeImageGolden(&image, "viewer.hex.search-inspector")
 
     window.searchBox.setText("4G")
-    Swag.assert(window.searchComplete)
-    Swag.assert(window.searchMatches.isEmpty())
-    Swag.assert(window.searchCountLabel.text() == "!")
-    Swag.assert(window.searchCountLabel.toolTip == Hex.texts().ui_SearchPatternError and not window.searchBox.isValid())
+    Swag.require(window.searchComplete)
+    Swag.require(window.searchMatches.isEmpty())
+    Swag.require(window.searchCountLabel.text() == "!")
+    Swag.require(window.searchCountLabel.toolTip == Hex.texts().ui_SearchPatternError and not window.searchBox.isValid())
 
     // The inspector reads the value under the caret the way the grid shows it, then the same
     // bytes in the other common readings.
     view.grid.moveCaret(first, false)
     with let inspector = view.inspectorView
     {
-        Swag.assert(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
-        Swag.assert(.readings.count == 5 and .readings[0].value == "222")
-        Swag.assert(.readings[2].label == "s32" and .readings[2].value == "-272 716 322")
-        Swag.assert(.readings[3].label == "u32 BE" and .readings[3].value == "3 735 928 559")
-        Swag.assert(.fields.isEmpty())
+        Swag.require(.headline == "2 917 007 360" and .caption == "u32 LE at 0x0003FFFC")
+        Swag.require(.readings.count == 5 and .readings[0].value == "222")
+        Swag.require(.readings[2].label == "s32" and .readings[2].value == "-272 716 322")
+        Swag.require(.readings[3].label == "u32 BE" and .readings[3].value == "3 735 928 559")
+        Swag.require(.fields.isEmpty())
     }
 
-    Swag.assert(Utf8.contains(view.details.toSlice(), "0x0003FFFE"))
+    Swag.require(Utf8.contains(view.details.toSlice(), "0x0003FFFE"))
 }
 
 // The analysis panel turns an unfamiliar file into exact byte evidence, and every inferred string
@@ -167,23 +167,23 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
     let view = selectHexViewer(&host, window)
-    Swag.assert(window.currentInfo != null and window.currentInfo.parent == window.readingLine)
-    Swag.assert(not view.analysisButton.isLocallyVisible())
+    Swag.require(window.currentInfo != null and window.currentInfo.parent == window.readingLine)
+    Swag.require(not view.analysisButton.isLocallyVisible())
     let toggle = window.sendComputeCommandStateEvent(ViewerCommands.SidePanel)
-    Swag.assert(toggle.name == view.analysisButton.toolTip and not toggle.hidden and not toggle.checked)
+    Swag.require(toggle.name == view.analysisButton.toolTip and not toggle.hidden and not toggle.checked)
 
     view.analysisButton.setChecked(true)
     view.analysisButton.sigCheckedChanged.call(view.analysisButton)
     completeHexViewerAnalysis(&host, view)
 
-    Swag.assert(view.analysisView.isLocallyVisible() and view.analysisView.result.scanned == view.grid.doc.fileSize)
-    Swag.assert(view.analysisView.result.entropy > 0 and view.analysisView.histogram.total == view.grid.doc.fileSize)
-    Swag.assert(view.analysisView.stringsList.virtualCount == view.analysisView.result.strings.count)
-    Swag.assert(view.analysisView.result.strings.count >= 2)
+    Swag.require(view.analysisView.isLocallyVisible() and view.analysisView.result.scanned == view.grid.doc.fileSize)
+    Swag.require(view.analysisView.result.entropy > 0 and view.analysisView.histogram.total == view.grid.doc.fileSize)
+    Swag.require(view.analysisView.stringsList.virtualCount == view.analysisView.result.strings.count)
+    Swag.require(view.analysisView.result.strings.count >= 2)
 
     let first = &view.analysisView.result.strings[0]
     view.analysisView.stringsList.selectLine(0)
-    Swag.assert(view.grid.selectionStart() == first.offset and view.grid.selectionLength() == first.length)
+    Swag.require(view.grid.selectionStart() == first.offset and view.grid.selectionLength() == first.length)
 
     // Re-running analysis derives its range from the live grid selection. It does not replay the
     // stale whole-file range that originally populated the panel.
@@ -191,9 +191,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let selectedLength = view.grid.selectionLength()
     view.analysisView.analyzeButton.sigPressed.call(cast(*Button, view.analysisView.analyzeButton))
     completeHexViewerAnalysis(&host, view)
-    Swag.assert(view.analysisView.selection and view.analysisView.result.range.offset == selectedStart)
-    Swag.assert(view.analysisView.result.range.length == selectedLength)
-    Swag.assert(not view.analysisView.stringsList.header.flags.has(.Separators))
+    Swag.require(view.analysisView.selection and view.analysisView.result.range.offset == selectedStart)
+    Swag.require(view.analysisView.result.range.length == selectedLength)
+    Swag.require(not view.analysisView.stringsList.header.flags.has(.Separators))
 
     window.layoutFileInfo()
     window.resize(1_100, 700)
@@ -210,8 +210,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     view.analysisButton.setChecked(true)
     view.analysisButton.sigCheckedChanged.call(view.analysisButton)
     completeHexViewerAnalysis(&host, view)
-    Swag.assert(view.analysisView.selection and view.analysisView.result.range.offset == selectionStart)
-    Swag.assert(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)
+    Swag.require(view.analysisView.selection and view.analysisView.result.range.offset == selectionStart)
+    Swag.require(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)
 }
 
 // The typed command group stays bounded and keeps byte order beside the representation controls.
@@ -225,10 +225,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.setup(900, 600)
 
     let view = hexTestViewer(&host, fileName, 900, 560)
-    Swag.assert(view.commands.position.width <= 640)
-    Swag.assert(view.optionsButton.parent == view.commands)
-    Swag.assert(not view.bigEndian and view.rowWidthIndex == 0)
-    Swag.assert(view.details == "0x00000000")
+    Swag.require(view.commands.position.width <= 640)
+    Swag.require(view.optionsButton.parent == view.commands)
+    Swag.require(not view.bigEndian and view.rowWidthIndex == 0)
+    Swag.require(view.details == "0x00000000")
     Testing.assertContentFits(view)
 
     // At the band a window of the host's minimum size leaves, the bytes still hold the clear
@@ -236,9 +236,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     view.resize(640, 320)
     view.applyLayout()
     view.grid.refreshLayout()
-    Swag.assert(view.grid.clientRect().width > 640 * 0.6)
-    Swag.assert(view.grid.bytesPerRow >= Hex.MinBytesPerRow)
-    Swag.assert(view.grid.contentWidth() <= view.grid.clientRect().width)
+    Swag.require(view.grid.clientRect().width > 640 * 0.6)
+    Swag.require(view.grid.bytesPerRow >= Hex.MinBytesPerRow)
+    Swag.require(view.grid.contentWidth() <= view.grid.clientRect().width)
     var image = host.renderSettled(view.commands)
     image.crop(view.commands.surfaceRect())
     assertScopeImageGolden(&image, "viewer.hex.command-bar")

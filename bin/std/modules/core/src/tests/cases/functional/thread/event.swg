@@ -22,7 +22,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     let signaled = event.signalStatus()
     let waited   = event.waitStatus()
     let reset    = event.resetStatus()
-    Swag.assert(signaled.isSuccess() and waited.isSuccess() and reset.isSuccess())
+    Swag.require(signaled.isSuccess() and waited.isSuccess() and reset.isSuccess())
     expect signaled.raise()
     expect reset.raise()
     expect event.signalStatus().raise()
@@ -118,13 +118,13 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     context.panic = previous.panic
 
-    Swag.assert(not signal.isSuccess() and not reset.isSuccess() and not wait.isSuccess())
-    Swag.assert(beforeReport == baseline and hooksBeforeReport == 0)
-    Swag.assert(validCodes, "event status must preserve the native failure codes")
-    Swag.assert(afterSignalCatch == baseline and
-                afterResetCatch == baseline and
-                afterWaitCatch == baseline and
-                afterNoDetailCatch == baseline,
-                "caught event failures must release their storage")
-    Swag.assert(eventStatusPanicCount == 0 and not eventStatusObservedBorrow)
+    Swag.require(not signal.isSuccess() and not reset.isSuccess() and not wait.isSuccess())
+    Swag.require(beforeReport == baseline and hooksBeforeReport == 0)
+    Swag.require(validCodes, "event status must preserve the native failure codes")
+    Swag.require(afterSignalCatch == baseline and
+                 afterResetCatch == baseline and
+                 afterWaitCatch == baseline and
+                 afterNoDetailCatch == baseline,
+                 "caught event failures must release their storage")
+    Swag.require(eventStatusPanicCount == 0 and not eventStatusObservedBorrow)
 }

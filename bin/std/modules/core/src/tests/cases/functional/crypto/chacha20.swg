@@ -45,7 +45,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         0xCB, 0xD0, 0x83, 0xE8, 0xA2, 0x50, 0x3C, 0x4E]
 
     let block = expect Crypto.chacha20Block(key, 1, nonce)
-    Swag.assert(Slice.equals(block, expected))
+    Swag.require(Slice.equals(block, expected))
 }
 
 // Encryption is the key stream folded into the input, and folding it twice gives the input back.
@@ -63,7 +63,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     let original = data
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    Swag.assert(not Slice.equals(data, original))
+    Swag.require(not Slice.equals(data, original))
 
     // Each block of the result is the matching key-stream block folded into the input, so the
     // counter advances by exactly one block and never repeats one.
@@ -73,11 +73,11 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         let start = index * Crypto.ChaCha20BlockSize
         let count = Math.min(Count - start, Crypto.ChaCha20BlockSize)
         for i in count do
-            Swag.assert(data[start + i] == original[start + i] ^ block[i])
+            Swag.require(data[start + i] == original[start + i] ^ block[i])
     }
 
     expect Crypto.chacha20Xor(key, nonce, data, data, 1)
-    Swag.assert(Slice.equals(data, original))
+    Swag.require(Slice.equals(data, original))
 }
 
 // Four-block batches, their neighboring tails, and exact in-place operation match the public
@@ -103,18 +103,18 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
         scalarChaCha20Xor(key, nonce, source[until length], expected[until length], 7)
         expect Crypto.chacha20Xor(key, nonce, source[until length], actual[until length], 7)
-        Swag.assert(Slice.equals(actual, expected))
+        Swag.require(Slice.equals(actual, expected))
 
         Memory.copy(actual.buffer, source.buffer, source.count)
         expect Crypto.chacha20Xor(key, nonce, actual[until length], actual[until length], 7)
-        Swag.assert(Slice.equals(actual[until length], expected[until length]))
+        Swag.require(Slice.equals(actual[until length], expected[until length]))
         for i in length until actual.count do
-            Swag.assert(actual[i] == source[i])
+            Swag.require(actual[i] == source[i])
     }
 
     scalarChaCha20Xor(key, nonce, source[until 256], expected[until 256], Swag.U32.Max - 3)
     expect Crypto.chacha20Xor(key, nonce, source[until 256], actual[until 256], Swag.U32.Max - 3)
-    Swag.assert(Slice.equals(actual[until 256], expected[until 256]))
+    Swag.require(Slice.equals(actual[until 256], expected[until 256]))
 }
 
 // Native partitions match the single-block definition, including unaligned buffers, tails,
@@ -147,14 +147,14 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         let first     = Swag.U32.Max - cast(u32, (blocks - 1))
         scalarChaCha20Xor(key, nonce, input, reference, first)
         expect Crypto.chacha20Xor(key, nonce, input, output, first)
-        Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
+        Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
 
         Memory.copy(actual.storage(), source.storage(), source.count)
         expect Crypto.chacha20Xor(key, nonce, output, output, first)
-        Swag.assert(Slice.equals(output, reference))
-        Swag.assert(actual[0] == source[0])
+        Swag.require(Slice.equals(output, reference))
+        Swag.require(actual[0] == source[0])
         for index in length + 1 until actual.count do
-            Swag.assert(actual[index] == source[index])
+            Swag.require(actual[index] == source[index])
     }
 
     // Reject the whole request before submitting work when the last block would wrap.
@@ -163,9 +163,9 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var overflowErrorOutcome: Swag.Error
     discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowErrorOutcome
     let overflowError = overflowErrorOutcome.value()
-    Swag.assert((overflowError is Errors.OverflowError))
+    Swag.require((overflowError is Errors.OverflowError))
     for index in actual.count do
-        Swag.assert(actual[index] == 0xA5)
+        Swag.require(actual[index] == 0xA5)
 
     // A caller may already be distributing records through the same pool. Nested joins
     // must complete, and each invocation keeps its own destination and stream scratch.
@@ -179,7 +179,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         var encrypted: Array'u8
         encrypted.resize(input.count)
         expect Crypto.chacha20Xor(keyPtr[], noncePtr[], input, encrypted.toSlice(), first)
-        Swag.assert(Slice.equals(encrypted.toSlice(), reference))
+        Swag.require(Slice.equals(encrypted.toSlice(), reference))
     }
 }
 
@@ -197,7 +197,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var overflowErrorOutcome: Swag.Error
     discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as overflowErrorOutcome
     let overflowError = overflowErrorOutcome.value()
-    Swag.assert((overflowError is Errors.OverflowError))
+    Swag.require((overflowError is Errors.OverflowError))
 }
 
 // A wrong key, nonce, or destination length is a caller mistake, reported before anything is
@@ -211,20 +211,20 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     var keyErrorOutcome: Swag.Error
     discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as keyErrorOutcome
     let keyError = keyErrorOutcome.value()
-    Swag.assert((keyError is Errors.BadParameterError))
+    Swag.require((keyError is Errors.BadParameterError))
     var nonceErrorOutcome: Swag.Error
     discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as nonceErrorOutcome
     let nonceError = nonceErrorOutcome.value()
-    Swag.assert((nonceError is Errors.BadParameterError))
+    Swag.require((nonceError is Errors.BadParameterError))
 
     var shorter: [8] u8
     var sizeErrorOutcome: Swag.Error
     discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as sizeErrorOutcome
     let sizeError = sizeErrorOutcome.value()
-    Swag.assert((sizeError is Errors.BadParameterError))
+    Swag.require((sizeError is Errors.BadParameterError))
 
     // An empty message is not an error and touches nothing.
     var untouched: [1] u8 = [0x42]
     expect Crypto.chacha20Xor(key, nonce, untouched[until 0], untouched[until 0])
-    Swag.assert(untouched[0] == 0x42)
+    Swag.require(untouched[0] == 0x42)
 }

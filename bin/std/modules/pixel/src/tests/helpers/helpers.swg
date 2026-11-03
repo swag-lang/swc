@@ -33,7 +33,7 @@ func expectedChromaSample(plane: const [*] u8, stride: u64, planeWidth, planeHei
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
     let path = Path.combine(testSourceRoot(loc), "datas", fileName)
-    Swag.assert(File.exists(path))
+    Swag.require(File.exists(path))
     return path
 }
 
@@ -58,25 +58,25 @@ func nnBytes(bytes: const [..] u8?)->const [..] u8 => unwrap bytes
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
     let expectedSize = cast(u64, (width * height * cast(s32, (pf.bitsPerPixel() >> 3))))
-    Swag.assert(buffer.count == expectedSize)
+    Swag.require(buffer.count == expectedSize)
     return Image.create(width, height, pf, buffer)
 }
 
 func assertImage(img: Image, width, height: s32, pf: PixelFormat)
 {
-    Swag.assert(img.isValid())
-    Swag.assert(img.width == width)
-    Swag.assert(img.height == height)
-    Swag.assert(img.pixelFormat == pf)
+    Swag.require(img.isValid())
+    Swag.require(img.width == width)
+    Swag.require(img.height == height)
+    Swag.require(img.pixelFormat == pf)
 }
 
 func assertPixel(img: Image, x, y: s32, expected: Color)
 {
     let got = img.pixelColor(x, y)
-    Swag.assert(got.r == expected.r)
-    Swag.assert(got.g == expected.g)
-    Swag.assert(got.b == expected.b)
-    Swag.assert(got.a == expected.a)
+    Swag.require(got.r == expected.r)
+    Swag.require(got.g == expected.g)
+    Swag.require(got.b == expected.b)
+    Swag.require(got.a == expected.a)
 }
 
 func assertPixel(img: Image, x, y: s32, argb: u32)
@@ -133,7 +133,7 @@ func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
         let image    = drawing.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
         let expected = reference.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
         for value, index in image.pixels do
-            Swag.assert(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
+            Swag.require(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
     }
 }
 
@@ -179,7 +179,7 @@ func makeTypeFaceCollection()->Array'u8
             }
         }
 
-        Swag.assert(foundHead)
+        Swag.require(foundHead)
     }
 
     return bytes
@@ -213,7 +213,7 @@ func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
         }
     }
 
-    Swag.assert(directory != 0)
+    Swag.require(directory != 0)
 
     let offset = bytes.count
     var writer = ByteStream.openWrite(&bytes)
@@ -234,7 +234,7 @@ func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
     {
         let code  = codes[index]
         let glyph = original.face.glyphIndex(code == '\U0001F680'rune ? 'V'rune : code)
-        Swag.assert(glyph != 0)
+        Swag.require(glyph != 0)
         writer.writeBigEndian(cast(u32, code))
         writer.writeBigEndian(cast(u32, code))
         writer.writeBigEndian(glyph)
@@ -248,7 +248,7 @@ func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
     {
         // Make a short primary line box: fallback ink must still fit, and drawing a fallback
         // face explicitly needs a different top coordinate to retain the primary baseline.
-        Swag.assert(horizontalMetrics != 0)
+        Swag.require(horizontalMetrics != 0)
         writer.setPosition(horizontalMetrics + 4)
         writer.writeBigEndian(800'u16)
         writer.writeBigEndian(0xFF9C'u16)     // Signed descender: -100 font units.
@@ -274,6 +274,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside cases or helpers")
     return ""
 }

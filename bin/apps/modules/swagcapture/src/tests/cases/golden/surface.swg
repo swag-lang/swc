@@ -35,18 +35,18 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
             return
 
         let menu = host.capturedPopupMenu()
-        Swag.assert(menu != null)
-        Swag.assert(not button.icon.isValid())
-        Swag.assert(menu.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
+        Swag.require(menu != null)
+        Swag.require(not button.icon.isValid())
+        Swag.require(menu.themeMetrics().menuPopup_IconSize == themeRowIconSize(main.themeMetrics()))
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, golden)
         let menuDismissed = host.dismissPopupMenu()
-        Swag.assert(menuDismissed)
+        Swag.require(menuDismissed)
         captured[] = true
     }
 
     button.sigPressed.call(cast(*Button, button))
-    Swag.assert(captured)
+    Swag.require(captured)
     host.pump()
 }
 
@@ -63,7 +63,7 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
         host.finishAnimations()
         if link
         {
-            Swag.assert(sheet.activateRow(link))
+            Swag.require(sheet.activateRow(link))
             host.finishAnimations()
         }
 
@@ -75,7 +75,7 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
 
     button.sigPressed.call(cast(*Button, button))
     host.app.sigFrame.clear()
-    Swag.assert(captured)
+    Swag.require(captured)
     host.pump()
 }
 
@@ -144,15 +144,15 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     {
         if captured[] do
             return
-        Swag.assert(host.capturedPopupMenu() != null)
+        Swag.require(host.capturedPopupMenu() != null)
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, dark ? "edit.selection-menu" : "edit.selection-menu.paper")
-        Swag.assert(host.dismissPopupMenu())
+        Swag.require(host.dismissPopupMenu())
         captured[] = true
     }
 
     host.clickWnd(button)
-    Swag.assert(captured)
+    Swag.require(captured)
 }
 
 // An arrow: the inspector with its line ends as glyph rows in Papier.
@@ -201,13 +201,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
     // Shapes and a text have no preset in common: the row of presets leaves. The head counts
     // each kind, one or several.
-    Swag.assert(not main.quickWnd.isVisible())
-    Swag.assert(main.inspector.title == "2 ellipses · 1 text")
+    Swag.require(not main.quickWnd.isVisible())
+    Swag.require(main.inspector.title == "2 ellipses · 1 text")
 
-    Swag.assert(MainWnd.countWords("% étape|% étapes", 1) == "1 étape" and MainWnd.countWords("% étape|% étapes", 3) == "3 étapes")
+    Swag.require(MainWnd.countWords("% étape|% étapes", 1) == "1 étape" and MainWnd.countWords("% étape|% étapes", 3) == "3 étapes")
 
     // The layers list every object, the selected ones chosen; a row chooses its object alone.
-    Swag.assert(capture.selection.count == 3)
+    Swag.require(capture.selection.count == 3)
 
     // A third kind is named too when the words fit before the actions of the head.
     discard testAddArrow(capture, 20, 200, 120, 220)
@@ -215,8 +215,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     capture.selectionHasChanged()
     main.updateState()
     let kinds = MainWnd.describeKinds(capture)
-    Swag.assert(kinds == "2 ellipses · 1 text · 1 arrow")
-    Swag.assert(main.inspector.title == (main.titleFits(kinds) ? kinds.toString() : "4 objects"))
+    Swag.require(kinds == "2 ellipses · 1 text · 1 arrow")
+    Swag.require(main.inspector.title == (main.titleFits(kinds) ? kinds.toString() : "4 objects"))
 }
 
 // A step marker: its shapes and its number on the mini-bar, in Encre.
@@ -245,12 +245,12 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     {
         if item.wnd is Stepper as stepper
         {
-            Swag.assert(stepper.value == 3)
+            Swag.require(stepper.value == 3)
             found = true
         }
     }
 
-    Swag.assert(found)
+    Swag.require(found)
 }
 
 // A mask: its kinds as a list with their glyphs, the pixelation chosen, in Encre.
@@ -296,7 +296,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
     var swatches: Array'(*IconButton)
     testCollectSwatches(main.propWnd.topLayout, &swatches)
-    Swag.assert(not swatches.isEmpty())
+    Swag.require(not swatches.isEmpty())
     swatches[0].sigPopupRequested.call(swatches[0])
     host.finishAnimations()
 
@@ -321,8 +321,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     // One bar: the ten tools, the colour, the three destinations, Copy and the cross.
-    Swag.assert(editor.bar.isLocallyVisible())
-    Swag.assert(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
+    Swag.require(editor.bar.isLocallyVisible())
+    Swag.require(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
 }
@@ -355,7 +355,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     main.applyLayout()
     main.editWnd.editView.beginTextEdit(callout)
     host.finishAnimations()
-    Swag.assert(main.editWnd.editView.isEditingText() and callout.editingText)
+    Swag.require(main.editWnd.editView.isEditingText() and callout.editingText)
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.callout")
@@ -363,9 +363,9 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     // Ending keeps the words as one step of the history.
     main.editWnd.editView.textLines[0].setText("New panels")
     main.editWnd.editView.endTextEdit()
-    Swag.assert(callout.text == "New panels" and not callout.editingText)
+    Swag.require(callout.text == "New panels" and not callout.editingText)
     capture.undo()
-    Swag.assert(callout.text == "New panel")
+    Swag.require(callout.text == "New panel")
 }
 
 // A turned text of two lines set against the left edge, its words typed in place: the text
@@ -399,7 +399,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     main.applyLayout()
     main.editWnd.editView.beginTextEdit(text)
     host.finishAnimations()
-    Swag.assert(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
+    Swag.require(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
@@ -453,9 +453,9 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     main.applyLayout()
 
     // The page stands on the ground of the window, its header clear of the strip.
-    Swag.assert(main.libWnd.backgroundStyle == .Window)
-    Swag.assert(main.libWnd.captureHost.backgroundStyle == .Transparent)
-    Swag.assert(main.libWnd.header.surfaceRect().y >= main.libWnd.surfaceRect().y + main.libWnd.stripInset())
+    Swag.require(main.libWnd.backgroundStyle == .Window)
+    Swag.require(main.libWnd.captureHost.backgroundStyle == .Transparent)
+    Swag.require(main.libWnd.header.surfaceRect().y >= main.libWnd.surfaceRect().y + main.libWnd.stripInset())
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "library.surface")
@@ -493,16 +493,16 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
             steps += 1
     }
 
-    Swag.assert(ratingRow != Swag.U64.Max)
+    Swag.require(ratingRow != Swag.U64.Max)
     for steps do
         host.keyPress(.Down)
-    Swag.assert(main.lens.chosen == ratingRow)
+    Swag.require(main.lens.chosen == ratingRow)
     host.finishAnimations()
 
     var rating: *Lens.Section?
     for section in main.lens.results.sections where section and section.label == appStrings().act_Rating do
         rating = section
-    Swag.assert(rating and rating.entries[3].paint != null)
+    Swag.require(rating and rating.entries[3].paint != null)
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "library.lens.rating")
@@ -615,7 +615,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         quick.setDefault()
         quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
         quick.updateQuickStyles(forceRebuild: true)
-        Swag.assert(quick.layout.children.count > 1)
+        Swag.require(quick.layout.children.count > 1)
         if mode == .Shape do
             hoverCell = quick.rowCells()[0]
         Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)

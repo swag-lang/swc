@@ -44,26 +44,26 @@ func sameImage(a, b: Image)->bool
 
         let r90  = img.rotated(.Clockwise90)
         let r270 = img.rotated(.Clockwise270)
-        Swag.assert(r90.width == 2 and r90.height == 3)
+        Swag.require(r90.width == 2 and r90.height == 3)
 
         // Clockwise: the top-left pixel moves to the top-right corner.
-        Swag.assert(r90.pixelColor(1, 0) == img.pixelColor(0, 0))
+        Swag.require(r90.pixelColor(1, 0) == img.pixelColor(0, 0))
 
-        Swag.assert(r270.pixelColor(0, 2) == img.pixelColor(0, 0))
+        Swag.require(r270.pixelColor(0, 2) == img.pixelColor(0, 0))
 
-        Swag.assert(sameImage(r90.rotated(.Clockwise270), img))
-        Swag.assert(sameImage(img.rotated(.HalfTurn).rotated(.HalfTurn), img))
-        Swag.assert(sameImage(img.mirrored().mirrored(), img))
-        Swag.assert(sameImage(img.flipped().flipped(), img))
-        Swag.assert(img.mirrored().pixelColor(0, 0) == img.pixelColor(2, 0))
-        Swag.assert(img.flipped().pixelColor(0, 0) == img.pixelColor(0, 1))
+        Swag.require(sameImage(r90.rotated(.Clockwise270), img))
+        Swag.require(sameImage(img.rotated(.HalfTurn).rotated(.HalfTurn), img))
+        Swag.require(sameImage(img.mirrored().mirrored(), img))
+        Swag.require(sameImage(img.flipped().flipped(), img))
+        Swag.require(img.mirrored().pixelColor(0, 0) == img.pixelColor(2, 0))
+        Swag.require(img.flipped().pixelColor(0, 0) == img.pixelColor(0, 1))
 
         let crop = img.cropped(1, 1, 2, 1)
-        Swag.assert(crop.width == 2 and crop.height == 1)
-        Swag.assert(crop.pixelColor(0, 0) == img.pixelColor(1, 1))
+        Swag.require(crop.width == 2 and crop.height == 1)
+        Swag.require(crop.pixelColor(0, 0) == img.pixelColor(1, 1))
 
         let wide = img.convertedTo(.RGBAF32).convertedTo(pf)
-        Swag.assert(sameImage(wide, img))
+        Swag.require(sameImage(wide, img))
     }
 }
 
@@ -72,17 +72,17 @@ func sameImage(a, b: Image)->bool
 {
     let one  = Image.create(1, 1, .RGBA8)
     let same = one.resized(1, 1, .Bilinear)
-    Swag.assert(same.width == 1 and same.height == 1)
+    Swag.require(same.width == 1 and same.height == 1)
 
     let img = transformImage(.RGBA8)
     let big = img.resized(6, 4, .Nearest)
-    Swag.assert(big.pixelColor(0, 0) == img.pixelColor(0, 0) and big.pixelColor(5, 3) == img.pixelColor(2, 1))
+    Swag.require(big.pixelColor(0, 0) == img.pixelColor(0, 0) and big.pixelColor(5, 3) == img.pixelColor(2, 1))
 
     let whole = img.cropped(0, 0, 3, 2)
-    Swag.assert(sameImage(whole, img))
+    Swag.require(sameImage(whole, img))
 
     let grown = img.expanded(1, 2, 3, 4, Color.fromArgb(Argb.Red))
-    Swag.assert(grown.width == 7 and grown.height == 8)
-    Swag.assert(grown.pixelColor(1, 2) == img.pixelColor(0, 0))
-    Swag.assert(grown.pixelColor(0, 0) == Color.fromArgb(Argb.Red))
+    Swag.require(grown.width == 7 and grown.height == 8)
+    Swag.require(grown.pixelColor(1, 2) == img.pixelColor(0, 0))
+    Swag.require(grown.pixelColor(0, 0) == Color.fromArgb(Argb.Red))
 }

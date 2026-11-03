@@ -11,16 +11,16 @@ using Swag, Core, Pixel
     host.setup(96, 64)
 
     let background = host.render()
-    Swag.assert(background.isValid())
-    Swag.assert(background.width == 96 and background.height == 64)
-    Swag.assert(background.pixelFormat == .BGRA8)
+    Swag.require(background.isValid())
+    Swag.require(background.width == 96 and background.height == 64)
+    Swag.require(background.pixelFormat == .BGRA8)
 
     let button  = PushButton.create(&host.root, "", {20, 16, 56, 32})
     let enabled = host.render()
-    Swag.assert(not Slice.equals(enabled.pixels.toSlice(), background.pixels.toSlice()))
+    Swag.require(not Slice.equals(enabled.pixels.toSlice(), background.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&enabled, "widget.cpu.pushbutton")
 
     button.disable()
     let disabled = host.render()
-    Swag.assert(not Slice.equals(disabled.pixels.toSlice(), enabled.pixels.toSlice()))
+    Swag.require(not Slice.equals(disabled.pixels.toSlice(), enabled.pixels.toSlice()))
 }

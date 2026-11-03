@@ -73,10 +73,10 @@ using Swag, Core
     let bottomRight = big.pixelColor(126, 94)
     let bottomLeft  = big.pixelColor(1, 94)
 
-    Swag.assert(topLeft.a == 255)     // fill must write opaque alpha everywhere
-    Swag.assert(bottomRight.a == 255)
-    Swag.assert(topLeft.argb != bottomRight.argb)     // a real 2D gradient, not a flat fill
-    Swag.assert(topLeft.r != topLeft.g or bottomRight.r != bottomRight.g or bottomLeft.r != bottomLeft.g)
+    Swag.require(topLeft.a == 255)     // fill must write opaque alpha everywhere
+    Swag.require(bottomRight.a == 255)
+    Swag.require(topLeft.argb != bottomRight.argb)     // a real 2D gradient, not a flat fill
+    Swag.require(topLeft.r != topLeft.g or bottomRight.r != bottomRight.g or bottomLeft.r != bottomLeft.g)
 }
 
 // Same large-image coverage for an HSL plane mode, to compare with the RGB modes.
@@ -85,7 +85,7 @@ using Swag, Core
     var big = Image.create(128, 96, .RGBA8)
     big.fillHsl(.HueSaturation, Color.fromHsl(0.0, 1.0, 0.5))
     assertImage(big, 128, 96, .RGBA8)
-    Swag.assert(big.pixelColor(1, 1).a == 255)
-    Swag.assert(big.pixelColor(126, 94).a == 255)
-    Swag.assert(big.pixelColor(1, 1).argb != big.pixelColor(126, 94).argb)
+    Swag.require(big.pixelColor(1, 1).a == 255)
+    Swag.require(big.pixelColor(126, 94).a == 255)
+    Swag.require(big.pixelColor(1, 1).argb != big.pixelColor(126, 94).argb)
 }

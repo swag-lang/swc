@@ -15,10 +15,10 @@ using Swag, Core
     let textRectBefore = textItf.boundRect()
 
     var textPaint = QuickStylePaintForm.create(textItf)
-    Swag.assert(textPaint.itf.buffer != textItf.buffer)
-    Swag.assert(f.main.mdlFormText.text == "Keep me")
-    Swag.assert(textItf.boundRect() == textRectBefore)
-    Swag.assert(assume cast(*FormText, unwrap textPaint.itf).text == "Aa")
+    Swag.require(textPaint.itf.buffer != textItf.buffer)
+    Swag.require(f.main.mdlFormText.text == "Keep me")
+    Swag.require(textItf.boundRect() == textRectBefore)
+    Swag.require(assume cast(*FormText, unwrap textPaint.itf).text == "Aa")
     textPaint.release()
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -28,10 +28,10 @@ using Swag, Core
     let pointBefore = f.main.mdlFormPolygon.points[0]
 
     var polyPaint = QuickStylePaintForm.create(polyItf)
-    Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
-    Swag.assert(f.main.mdlFormPolygon.points.count == 3)
-    Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 5)     // A regular pentagon.
+    Swag.require(polyPaint.itf.buffer != polyItf.buffer)
+    Swag.require(f.main.mdlFormPolygon.points.count == 3)
+    Swag.require(f.main.mdlFormPolygon.points[0] == pointBefore)
+    Swag.require(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 5)     // A regular pentagon.
     polyPaint.release()
 }
 
@@ -102,14 +102,14 @@ using Swag, Core
 
         var image = f.gui.render(button)
         let ink   = inkBounds(&image)
-        Swag.assert(ink.width > 4 and ink.height > 4)
-        Swag.assert(Math.abs(ink.horzCenter() - QuickCellWidth * 0.5) <= 2)
-        Swag.assert(Math.abs(ink.vertCenter() - QuickCellHeight * 0.5) <= 2)
+        Swag.require(ink.width > 4 and ink.height > 4)
+        Swag.require(Math.abs(ink.horzCenter() - QuickCellWidth * 0.5) <= 2)
+        Swag.require(Math.abs(ink.vertCenter() - QuickCellHeight * 0.5) <= 2)
 
         // The words keep the margin of the cell: the air is what separates one preset from the
         // next.
-        Swag.assert(ink.width <= QuickCellWidth - 2 * QuickCellMargin)
-        Swag.assert(ink.height <= QuickCellHeight - 2 * QuickCellMargin)
+        Swag.require(ink.width <= QuickCellWidth - 2 * QuickCellMargin)
+        Swag.require(ink.height <= QuickCellHeight - 2 * QuickCellMargin)
     }
 }
 
@@ -155,23 +155,23 @@ using Swag, Core
             return
 
         let menuDismissed = host.dismissPopupMenu()
-        Swag.assert(menuDismissed)
+        Swag.require(menuDismissed)
         dismissed[] = true
     }
 
     f.gui.clickWnd(f.main.quickWnd.layout.children[0], Input.MouseButton.Right)
     f.gui.pump()
 
-    Swag.assert(didDismiss)
-    Swag.assert(f.main.propWnd.position == propRectBefore)
-    Swag.assert(f.main.propWnd.grid.position == gridPosBefore)
-    Swag.assert(f.main.propWnd.grid.items.count == gridItemCountBefore)
-    Swag.assert(f.main.quickWnd.position == quickSizeBefore)
-    Swag.assert(f.main.propWnd.topLayout.position == topLayoutPosBefore)
-    Swag.assert(sliderBefore.position == sliderCtrlPosBefore)
-    Swag.assert(sliderBefore.slider.position == sliderTrackPosBefore)
-    Swag.assert(sliderBefore.edit.position == sliderEditPosBefore)
-    Swag.assert(f.main.propWnd.topLayout.children.count == propChildCountBefore)
+    Swag.require(didDismiss)
+    Swag.require(f.main.propWnd.position == propRectBefore)
+    Swag.require(f.main.propWnd.grid.position == gridPosBefore)
+    Swag.require(f.main.propWnd.grid.items.count == gridItemCountBefore)
+    Swag.require(f.main.quickWnd.position == quickSizeBefore)
+    Swag.require(f.main.propWnd.topLayout.position == topLayoutPosBefore)
+    Swag.require(sliderBefore.position == sliderCtrlPosBefore)
+    Swag.require(sliderBefore.slider.position == sliderTrackPosBefore)
+    Swag.require(sliderBefore.edit.position == sliderEditPosBefore)
+    Swag.require(f.main.propWnd.topLayout.children.count == propChildCountBefore)
 }
 
 // Default quick styles cover every visible Swag Capture tool family with subkind tagging.
@@ -183,44 +183,44 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     quick.setDefault()
 
-    Swag.assert(quick.qsArrow.forms.count > 0)
-    Swag.assert(quick.qsLine.forms.count > 0)
-    Swag.assert(quick.qsShape.forms.count > 0)
-    Swag.assert(quick.qsImage.forms.count > 0)
-    Swag.assert(quick.qsStep.forms.count > 0)
-    Swag.assert(quick.qsPolygon.forms.count > 0)
-    Swag.assert(quick.qsText.forms.count > 0)
-    Swag.assert(quick.qsDraw.forms.count > 0)
-    Swag.assert(quick.qsHighlight.forms.count > 0)
-    Swag.assert(quick.qsPixSel.forms.count > 0)
+    Swag.require(quick.qsArrow.forms.count > 0)
+    Swag.require(quick.qsLine.forms.count > 0)
+    Swag.require(quick.qsShape.forms.count > 0)
+    Swag.require(quick.qsImage.forms.count > 0)
+    Swag.require(quick.qsStep.forms.count > 0)
+    Swag.require(quick.qsPolygon.forms.count > 0)
+    Swag.require(quick.qsText.forms.count > 0)
+    Swag.require(quick.qsDraw.forms.count > 0)
+    Swag.require(quick.qsHighlight.forms.count > 0)
+    Swag.require(quick.qsPixSel.forms.count > 0)
 
     for it in quick.qsHighlight.forms
     {
         let base: *BaseForm = it
-        Swag.assert(base.subKind == .Highlight)
-        Swag.assert(base.alpha < 100)
+        Swag.require(base.subKind == .Highlight)
+        Swag.require(base.alpha < 100)
     }
 
     for it in quick.qsPixSel.forms
     {
         let base: *BaseForm = it
-        Swag.assert(base.subKind == .PixSel)
-        Swag.assert(not base.paintShadow)
+        Swag.require(base.subKind == .PixSel)
+        Swag.require(not base.paintShadow)
     }
 
     // Every image-form kind must be present in the default image styles.
     var imageKinds: Array'FormImageKind
     for it in quick.qsImage.forms
     {
-        Swag.assert(Swag.kindOf(it) == FormImage)
+        Swag.require(Swag.kindOf(it) == FormImage)
         imageKinds.add(assume cast(*FormImage, it).kind)
     }
 
-    Swag.assert(imageKinds.contains(FormImageKind.Image))
-    Swag.assert(imageKinds.contains(FormImageKind.Zoom))
-    Swag.assert(imageKinds.contains(FormImageKind.Blur))
-    Swag.assert(imageKinds.contains(FormImageKind.Pixelate))
-    Swag.assert(imageKinds.contains(FormImageKind.Capture))
+    Swag.require(imageKinds.contains(FormImageKind.Image))
+    Swag.require(imageKinds.contains(FormImageKind.Zoom))
+    Swag.require(imageKinds.contains(FormImageKind.Blur))
+    Swag.require(imageKinds.contains(FormImageKind.Pixelate))
+    Swag.require(imageKinds.contains(FormImageKind.Capture))
 
     quick.destroy()
     f.gui.pump()
@@ -262,12 +262,12 @@ using Swag, Core
     f.main.editMode = .Image
     quick.setDefault()
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert(blurTip(quick) == Format.toString(appStrings().ui_QuickStyleTip, appStrings().prop_KindBlur))
+    Swag.require(blurTip(quick) == Format.toString(appStrings().ui_QuickStyleTip, appStrings().prop_KindBlur))
 
     expect f.gui.app.setLanguage("fr")
     f.gui.notify(.LanguageChanged)
     f.gui.pump()
-    Swag.assert(blurTip(quick).startsWith("Flou · clic droit"))
+    Swag.require(blurTip(quick).startsWith("Flou · clic droit"))
 
     quick.destroy()
     f.gui.pump()
@@ -290,18 +290,18 @@ using Swag, Core
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert(quick.qsShape.forms.count == defaultCount + 1)
-    Swag.assert(quick.currentStyle == &quick.qsShape)
+    Swag.require(quick.qsShape.forms.count == defaultCount + 1)
+    Swag.require(quick.currentStyle == &quick.qsShape)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionQuickStyle.Reset)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(quick.currentStyle == &quick.qsShape)
-    Swag.assert(quick.qsShape.forms.count == defaultCount)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(quick.currentStyle == &quick.qsShape)
+    Swag.require(quick.qsShape.forms.count == defaultCount)
 
     quick.destroy()
     f.gui.pump()
@@ -325,16 +325,16 @@ using Swag, Core
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert(quick.qsShape.forms.count == defaultCount + 1)
+    Swag.require(quick.qsShape.forms.count == defaultCount + 1)
 
     f.gui.clickPopupMenuItemWhenShown(ActionQuickStyle.Reset)
     f.gui.thenClickModalButton(Dialog.BtnYes)
 
     f.gui.clickWnd(quick.layout.children[0], Input.MouseButton.Right)
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(quick.qsShape.forms.count == defaultCount)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(quick.qsShape.forms.count == defaultCount)
 
     quick.destroy()
     f.gui.pump()
@@ -352,11 +352,11 @@ using Swag, Core
     quickStyle.forms.add(shape)
 
     quickStyle.sanitize()
-    Swag.assert(quickStyle.forms.count == 1)
-    Swag.assert(Swag.kindOf(quickStyle.forms[0]) == FormShape)
+    Swag.require(quickStyle.forms.count == 1)
+    Swag.require(Swag.kindOf(quickStyle.forms[0]) == FormShape)
 
     quickStyle.clear()
-    Swag.assert(quickStyle.forms.count == 0)
+    Swag.require(quickStyle.forms.count == 0)
 }
 
 // The row shows the live style first when it is unsaved, and keeps it with a separate "+".
@@ -372,7 +372,7 @@ using Swag, Core
     f.main.mdlFormArrow.borderColor = Argb.Magenta
     quick.setPosition(Math.Rectangle{0, 0, 3 * QuickChipWidth, QuickChipHeight})
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert(quick.qsArrow.forms.count > 5)
+    Swag.require(quick.qsArrow.forms.count > 5)
 
     var shown, hidden       = 0
     var moreShown, addShown = false
@@ -389,23 +389,23 @@ using Swag, Core
             hidden += 1
     }
 
-    Swag.assert(shown == 4 and hidden > 0 and moreShown and addShown)
+    Swag.require(shown == 4 and hidden > 0 and moreShown and addShown)
     let cells = quick.rowCells()
-    Swag.assert(cells[0].isTransient and cells[1].isModel)
-    Swag.assert(cells.back().position.y == QuickChipHeight)
-    Swag.assert(quick.position.height == 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap)
+    Swag.require(cells[0].isTransient and cells[1].isModel)
+    Swag.require(cells.back().position.y == QuickChipHeight)
+    Swag.require(quick.position.height == 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
     // The popover holds every preset and "+".
     let more = unwrap quick.moreButton
     quick.openAllPresets(more)
     let body = unwrap quick.allPresets
-    Swag.assert(body.children.count == quick.qsArrow.forms.count + 2)
+    Swag.require(body.children.count == quick.qsArrow.forms.count + 2)
 
     // A preset chosen there comes to the front, and the popover closes.
     let last = quick.qsArrow.forms.back()
     quick.applyPreset(last, fromPopover: true)
-    Swag.assert(quick.qsArrow.forms[0].buffer == last.buffer)
-    Swag.assert(quick.allPresets == null)
+    Swag.require(quick.qsArrow.forms[0].buffer == last.buffer)
+    Swag.require(quick.allPresets == null)
 }
 
 // A quick style keeps its optional name for editing, without taking a caption line under the row.
@@ -421,23 +421,23 @@ using Swag, Core
     quick.updateQuickStyles(forceRebuild: true)
 
     let style = &quick.qsArrow
-    Swag.assert(style.nameOf(0).isEmpty())
-    Swag.assert(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
+    Swag.require(style.nameOf(0).isEmpty())
+    Swag.require(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
 
     style.setName(2, "Orange mark")
-    Swag.assert(style.nameOf(2) == "Orange mark")
-    Swag.assert(style.countUse(2) == 0)
-    Swag.assert(style.nameOf(0) == "Orange mark" and style.uses[0] == 1)
+    Swag.require(style.nameOf(2) == "Orange mark")
+    Swag.require(style.countUse(2) == 0)
+    Swag.require(style.nameOf(0) == "Orange mark" and style.uses[0] == 1)
 
     // The style can be named without adding a label beneath the presets.
     quick.applyPreset(style.forms[0])
-    Swag.assert(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
+    Swag.require(quick.position.height == quick.layout.position.height + quick.themeMetrics().inspector_RowGap)
 
     // Removing a style removes its name with it.
     let count = style.names.count
     let first = style.forms[0]
     style.remove(first)
-    Swag.assert(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
+    Swag.require(style.names.count == count - 1 and style.nameOf(0) != "Orange mark")
 }
 
 // A selection whose properties are not saved is the first quick-style cell, followed by the
@@ -459,23 +459,23 @@ using Swag, Core
     quick.updateQuickStyles(forceRebuild: true)
 
     var cells = quick.rowCells()
-    Swag.assert(cells[0].isTransient and cells[0].isChecked)
-    Swag.assert(cells[1].isModel and cells[1].position.x == QuickChipWidth)
-    Swag.assert(quick.canAddCurrentStyle())
-    Swag.assert(cells.back().isMore)
-    Swag.assert(cells.back().position.y == QuickChipHeight)
+    Swag.require(cells[0].isTransient and cells[0].isChecked)
+    Swag.require(cells[1].isModel and cells[1].position.x == QuickChipWidth)
+    Swag.require(quick.canAddCurrentStyle())
+    Swag.require(cells.back().isMore)
+    Swag.require(cells.back().position.y == QuickChipHeight)
 
     quick.openAllPresets(unwrap quick.moreButton)
     let popover = unwrap quick.allPresets
-    Swag.assert(popover.children.count == quick.qsShape.forms.count + 2)
-    Swag.assert((assume cast(*QuickButton, popover.children.back())).isModel)
+    Swag.require(popover.children.count == quick.qsShape.forms.count + 2)
+    Swag.require((assume cast(*QuickButton, popover.children.back())).isModel)
 
     quick.addCurrentStyle()
     cells = quick.rowCells()
-    Swag.assert(not quick.canAddCurrentStyle())
+    Swag.require(not quick.canAddCurrentStyle())
     for cell in cells do
-        Swag.assert(not cell.isTransient and not cell.isModel)
-    Swag.assert(quick.qsShape.forms.back().borderColor == Argb.Magenta)
+        Swag.require(not cell.isTransient and not cell.isModel)
+    Swag.require(quick.qsShape.forms.back().borderColor == Argb.Magenta)
 }
 
 // The row is ordered by use: a preset applied more than those before it moves ahead of them, when
@@ -497,36 +497,36 @@ using Swag, Core
     let style = &quick.qsArrow
     let third = style.forms[2]
     quick.applyPreset(third)
-    Swag.assert(style.forms[0].buffer == third.buffer and style.uses[0] == 1)
-    Swag.assert((unwrap quick.rowCells()[2].formItf).buffer == third.buffer)
-    Swag.assert(quick.rowCells()[2].isChecked)
+    Swag.require(style.forms[0].buffer == third.buffer and style.uses[0] == 1)
+    Swag.require((unwrap quick.rowCells()[2].formItf).buffer == third.buffer)
+    Swag.require(quick.rowCells()[2].isChecked)
     quick.updateQuickStyles(forceRebuild: true)
-    Swag.assert((unwrap quick.rowCells()[0].formItf).buffer == third.buffer)
+    Swag.require((unwrap quick.rowCells()[0].formItf).buffer == third.buffer)
     let second = style.forms[1]
     quick.applyPreset(second)
     quick.applyPreset(second)
-    Swag.assert(style.forms[0].buffer == second.buffer and style.uses[0] == 2 and style.uses[1] == 1)
+    Swag.require(style.forms[0].buffer == second.buffer and style.uses[0] == 2 and style.uses[1] == 1)
 
     // Down on the chip opens the popover with the keys on the preset in force.
     let more = unwrap quick.moreButton
     more.setFocus()
     f.gui.keyPress(.Down)
     let popover = assume cast(*PresetPopover, unwrap quick.allPresets)
-    Swag.assert(popover.chosen == 0)
+    Swag.require(popover.chosen == 0)
     f.gui.keyPress(.Right)
     f.gui.keyPress(.Down)
-    Swag.assert(popover.chosen == 1 + QuickPopoverColumns)
+    Swag.require(popover.chosen == 1 + QuickPopoverColumns)
 
     // Enter applies the cell the keys stand on, and the popover closes.
     let chosen = style.forms[popover.chosen]
     f.gui.keyPress(.Return)
-    Swag.assert(quick.allPresets == null)
-    Swag.assert(style.indexOf(chosen) < style.forms.count and style.uses[style.indexOf(chosen)] == 1)
+    Swag.require(quick.allPresets == null)
+    Swag.require(style.indexOf(chosen) < style.forms.count and style.uses[style.indexOf(chosen)] == 1)
 
     // Escape closes it without applying anything.
     quick.openAllPresets(quick.moreButton)
     f.gui.keyPress(.Escape)
-    Swag.assert(quick.allPresets == null)
+    Swag.require(quick.allPresets == null)
 }
 
 // The row of presets is one stop of Tab: the keys enter it on the preset in force, Left and Right
@@ -545,33 +545,33 @@ using Swag, Core
     quick.fitChips()
 
     let stops = Gui.FocusOrder.collect(quick).stops
-    Swag.assert(stops.count == 1 and stops[0] == quick.layout)
+    Swag.require(stops.count == 1 and stops[0] == quick.layout)
 
     let style = &quick.qsArrow
     quick.applyPreset(style.forms[0])
     quick.layout.setFocus()
-    Swag.assert(quick.keyCell == quick.rowStart() and quick.rowCells()[quick.keyCell].keyChosen)
+    Swag.require(quick.keyCell == quick.rowStart() and quick.rowCells()[quick.keyCell].keyChosen)
     let start = quick.keyCell
 
     f.gui.keyPress(.Right)
-    Swag.assert(quick.keyCell == start + 1 and not quick.rowCells()[start].keyChosen)
+    Swag.require(quick.keyCell == start + 1 and not quick.rowCells()[start].keyChosen)
     f.gui.keyPress(.Left)
-    Swag.assert(quick.keyCell == start)
+    Swag.require(quick.keyCell == start)
 
     // Enter applies the preset the keys stand on; the keys follow it to its new place.
     f.gui.keyPress(.Right)
     let chosen = unwrap quick.rowCells()[quick.keyCell].formItf
     f.gui.keyPress(.Return)
     let applied = quick.rowCells()[quick.keyCell]
-    Swag.assert(applied.isChecked and (unwrap applied.formItf).buffer == chosen.buffer and applied.keyChosen)
+    Swag.require(applied.isChecked and (unwrap applied.formItf).buffer == chosen.buffer and applied.keyChosen)
 
     // Enter on "•••" opens every preset; Escape gives the keys back to the row.
     quick.chooseRowCell(1)
     f.gui.keyPress(.Down)
-    Swag.assert(quick.rowCells()[quick.keyCell].isMore and quick.rowCells()[quick.keyCell].position.y == QuickChipHeight)
+    Swag.require(quick.rowCells()[quick.keyCell].isMore and quick.rowCells()[quick.keyCell].position.y == QuickChipHeight)
     f.gui.keyPress(.Return)
-    Swag.assert(quick.allPresets != null)
+    Swag.require(quick.allPresets != null)
     f.gui.keyPress(.Escape)
-    Swag.assert(quick.allPresets == null)
-    Swag.assert(quick.layout.hasFocus() and quick.rowCells()[quick.keyCell].isMore)
+    Swag.require(quick.allPresets == null)
+    Swag.require(quick.layout.hasFocus() and quick.rowCells()[quick.keyCell].isMore)
 }

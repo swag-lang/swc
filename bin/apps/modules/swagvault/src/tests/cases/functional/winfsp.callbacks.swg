@@ -35,23 +35,23 @@ func statusForError(kind: ErrorKind)->s32
 
 #test
 {
-    Swag.assert(WinFsp.statusBits(cast #bit (s32, 0x80070430'u32)) == 0x80070430)
-    Swag.assert(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
-    Swag.assert(statusForError(.SparseContainer) == WinFsp.StatusInvalidParameter)
-    Swag.assert(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
-    Swag.assert(statusForError(.AlreadyExists) == WinFsp.StatusObjectNameCollision)
-    Swag.assert(statusForError(.AccessDenied) == WinFsp.StatusAccessDenied)
-    Swag.assert(statusForError(.NotDirectory) == WinFsp.StatusNotADirectory)
-    Swag.assert(statusForError(.IsDirectory) == WinFsp.StatusFileIsDirectory)
-    Swag.assert(statusForError(.DirectoryNotEmpty) == WinFsp.StatusDirectoryNotEmpty)
-    Swag.assert(statusForError(.DiskFull) == WinFsp.StatusDiskFull)
-    Swag.assert(statusForError(.Corrupted) == WinFsp.StatusIoDeviceError)
-    Swag.assert(WinFsp.statusFromError(null, WinFsp.StatusAccessDenied) == WinFsp.StatusAccessDenied)
+    Swag.require(WinFsp.statusBits(cast #bit (s32, 0x80070430'u32)) == 0x80070430)
+    Swag.require(statusForError(.InvalidInput) == WinFsp.StatusInvalidParameter)
+    Swag.require(statusForError(.SparseContainer) == WinFsp.StatusInvalidParameter)
+    Swag.require(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
+    Swag.require(statusForError(.AlreadyExists) == WinFsp.StatusObjectNameCollision)
+    Swag.require(statusForError(.AccessDenied) == WinFsp.StatusAccessDenied)
+    Swag.require(statusForError(.NotDirectory) == WinFsp.StatusNotADirectory)
+    Swag.require(statusForError(.IsDirectory) == WinFsp.StatusFileIsDirectory)
+    Swag.require(statusForError(.DirectoryNotEmpty) == WinFsp.StatusDirectoryNotEmpty)
+    Swag.require(statusForError(.DiskFull) == WinFsp.StatusDiskFull)
+    Swag.require(statusForError(.Corrupted) == WinFsp.StatusIoDeviceError)
+    Swag.require(WinFsp.statusFromError(null, WinFsp.StatusAccessDenied) == WinFsp.StatusAccessDenied)
 }
 
 #test
 {
-    Swag.assert(WinFsp.volumeSerialNumber(0x0123_4567_89AB_CDEF) == 0x89AB_CDEF)
+    Swag.require(WinFsp.volumeSerialNumber(0x0123_4567_89AB_CDEF) == 0x89AB_CDEF)
 
     let temp = Env.getSpecialDirectory(.Temp)
     let path = Path.combine(temp, Format.toString("vault_callbacks_%.bin", Guid64.random()))
@@ -64,148 +64,148 @@ func statusForError(kind: ErrorKind)->s32
     var total, free: u64
     var label:       [64] u8
     var callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], cast(u32, #sizeof(label)))
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(total == volume.totalBytes())
-    Swag.assert(free == volume.freeBytes())
-    Swag.assert(WinFsp.cString(&label[0]) == "Swag Vault")
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(total == volume.totalBytes())
+    Swag.require(free == volume.freeBytes())
+    Swag.require(WinFsp.cString(&label[0]) == "Swag Vault")
     callbackStatus = WinFsp.callbackSetVolumeLabel(context, ("Private").buffer)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var directoryId, fileId, secondFileId, thirdFileId: u64
     var info: WinFsp.FileInfo
     let sequenceBeforeCreate = volume.sequence
     callbackStatus = WinFsp.callbackCreate(context, ("\\docs").buffer, 1, FileAttributeDirectory, 0, null, 0, &directoryId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(info.fileAttributes & FileAttributeDirectory)
-    Swag.assert(volume.sequence == sequenceBeforeCreate and volume.hasPendingChanges())
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(info.fileAttributes & FileAttributeDirectory)
+    Swag.require(volume.sequence == sequenceBeforeCreate and volume.hasPendingChanges())
     WinFsp.callbackCleanup(context, directoryId, 0)
-    Swag.assert(volume.sequence == sequenceBeforeCreate + 1 and not volume.hasPendingChanges())
+    Swag.require(volume.sequence == sequenceBeforeCreate + 1 and not volume.hasPendingChanges())
 
     let security: [4] u8 = [10, 20, 30, 40]
     callbackStatus = WinFsp.callbackCreate(context, ("\\docs\\data.bin").buffer, 0, FileAttributeNormal, 0, &security[0], #sizeof(security), &fileId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(info.indexNumber == fileId and info.fileSize == 0)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(info.indexNumber == fileId and info.fileSize == 0)
     callbackStatus = WinFsp.callbackCreate(context, ("\\docs\\second.bin").buffer, 0, FileAttributeNormal, 0, null, 0, &secondFileId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
     callbackStatus = WinFsp.callbackCreate(context, ("\\docs\\third.bin").buffer, 0, FileAttributeNormal, 0, null, 0, &thirdFileId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var lookupId: u64
     callbackStatus = WinFsp.callbackLookup(context, ("\\DOCS\\DATA.BIN").buffer, &lookupId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(lookupId == fileId)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(lookupId == fileId)
     callbackStatus = WinFsp.callbackLookup(context, ("\\missing").buffer, &lookupId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusObjectNameNotFound)
+    Swag.require(callbackStatus == WinFsp.StatusObjectNameNotFound)
 
     var source: [5000] u8
     for _, i in source do
         source[i] = cast(u8, ((i * 13 + 5) & 0xFF))
     var transferred: u32
     callbackStatus = WinFsp.callbackWrite(context, fileId, &source[0], 0, #sizeof(source), 0, 0, &transferred, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(transferred == #sizeof(source) and info.fileSize == #sizeof(source))
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(transferred == #sizeof(source) and info.fileSize == #sizeof(source))
     callbackStatus = WinFsp.callbackFlush(context, fileId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var destination: [5000] u8
     callbackStatus = WinFsp.callbackRead(context, fileId, &destination[0], 0, #sizeof(destination), &transferred)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(transferred == #sizeof(destination))
-    Swag.assert(Swag.memcmp(&source[0], &destination[0], #sizeof(source)) == 0)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(transferred == #sizeof(destination))
+    Swag.require(Swag.memcmp(&source[0], &destination[0], #sizeof(source)) == 0)
 
     callbackStatus = WinFsp.callbackSetFileSize(context, fileId, 9000, 0, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(info.fileSize == 9000)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(info.fileSize == 9000)
     callbackStatus = WinFsp.callbackSetBasicInfo(context, fileId, FileAttributeArchive, 11, 12, 13, 14, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(info.creationTime == 11 and
-                info.lastAccessTime == 12 and
-                info.lastWriteTime == 13 and
-                info.changeTime == 14)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(info.creationTime == 11 and
+                 info.lastAccessTime == 12 and
+                 info.lastWriteTime == 13 and
+                 info.changeTime == 14)
     callbackStatus = WinFsp.callbackFlush(context, fileId, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var zeroTail: [32] u8
     callbackStatus = WinFsp.callbackRead(context, fileId, &zeroTail[0], 7000, #sizeof(zeroTail), &transferred)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
     for byte in zeroTail do
-        Swag.assert(byte == 0)
+        Swag.require(byte == 0)
 
     var securitySize = 0'u32
     callbackStatus = WinFsp.callbackGetSecurity(context, fileId, null, &securitySize)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(securitySize == #sizeof(security))
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(securitySize == #sizeof(security))
     var shortSecurity: [2] u8
     securitySize   = #sizeof(shortSecurity)
     callbackStatus = WinFsp.callbackGetSecurity(context, fileId, &shortSecurity[0], &securitySize)
-    Swag.assert(callbackStatus == WinFsp.StatusBufferOverflow)
+    Swag.require(callbackStatus == WinFsp.StatusBufferOverflow)
     var readSecurity: [4] u8
     securitySize   = #sizeof(readSecurity)
     callbackStatus = WinFsp.callbackGetSecurity(context, fileId, &readSecurity[0], &securitySize)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(Swag.memcmp(&security[0], &readSecurity[0], #sizeof(security)) == 0)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(Swag.memcmp(&security[0], &readSecurity[0], #sizeof(security)) == 0)
 
     let replacementSecurity: [3] u8 = [7, 8, 9]
     callbackStatus = WinFsp.callbackSetSecurity(context, fileId, &replacementSecurity[0], #sizeof(replacementSecurity))
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var rootCapture: DirectoryCapture
     var complete:    u8
     callbackStatus = WinFsp.callbackReadDirectory(context, 1, null, &captureDirectoryEntry, &rootCapture, &complete)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(complete == 1 and captured(&rootCapture, "docs"))
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(complete == 1 and captured(&rootCapture, "docs"))
 
     var childCapture: DirectoryCapture
     complete       = 0
     callbackStatus = WinFsp.callbackReadDirectory(context, directoryId, null, &captureDirectoryEntry, &childCapture, &complete)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(complete == 1 and
-                captured(&childCapture, ".") and
-                captured(&childCapture, "..") and
-                captured(&childCapture, "data.bin"))
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(complete == 1 and
+                 captured(&childCapture, ".") and
+                 captured(&childCapture, "..") and
+                 captured(&childCapture, "data.bin"))
     callbackStatus = WinFsp.callbackGetDirInfoByName(context, directoryId, ("DATA.BIN").buffer, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
 
     var firstPage: DirectoryCapture
     firstPage.limit = 3
     complete        = 0
     callbackStatus  = WinFsp.callbackReadDirectory(context, directoryId, null, &captureDirectoryEntry, &firstPage, &complete)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(not complete and firstPage.names.count == 3 and firstPage.names[2] == "data.bin")
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(not complete and firstPage.names.count == 3 and firstPage.names[2] == "data.bin")
 
     var secondPage: DirectoryCapture
     complete       = 0
     callbackStatus = WinFsp.callbackReadDirectory(context, directoryId, ("data.bin").buffer, &captureDirectoryEntry, &secondPage, &complete)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(complete and
-                secondPage.names.count == 2 and
-                secondPage.names[0] == "second.bin" and
-                secondPage.names[1] == "third.bin")
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(complete and
+                 secondPage.names.count == 2 and
+                 secondPage.names[0] == "second.bin" and
+                 secondPage.names[1] == "third.bin")
 
     callbackStatus = WinFsp.callbackCanDelete(context, directoryId)
-    Swag.assert(callbackStatus == WinFsp.StatusDirectoryNotEmpty)
+    Swag.require(callbackStatus == WinFsp.StatusDirectoryNotEmpty)
     callbackStatus = WinFsp.callbackCanDelete(context, 1)
-    Swag.assert(callbackStatus == WinFsp.StatusAccessDenied)
+    Swag.require(callbackStatus == WinFsp.StatusAccessDenied)
     callbackStatus = WinFsp.callbackRead(context, directoryId, &destination[0], 0, 1, &transferred)
-    Swag.assert(callbackStatus == WinFsp.StatusFileIsDirectory)
+    Swag.require(callbackStatus == WinFsp.StatusFileIsDirectory)
     callbackStatus = WinFsp.callbackSetFileSize(context, directoryId, 1, 0, &info)
-    Swag.assert(callbackStatus == WinFsp.StatusFileIsDirectory)
+    Swag.require(callbackStatus == WinFsp.StatusFileIsDirectory)
     callbackStatus = WinFsp.callbackReadDirectory(context, fileId, null, &captureDirectoryEntry, &childCapture, &complete)
-    Swag.assert(callbackStatus == WinFsp.StatusNotADirectory)
+    Swag.require(callbackStatus == WinFsp.StatusNotADirectory)
 
     callbackStatus = WinFsp.callbackRename(context, fileId, ("\\docs\\data.bin").buffer, ("\\docs\\renamed.bin").buffer, 0)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
     WinFsp.callbackCleanup(context, fileId, WinFsp.CleanupDelete)
     WinFsp.callbackCleanup(context, secondFileId, WinFsp.CleanupDelete)
     WinFsp.callbackCleanup(context, thirdFileId, WinFsp.CleanupDelete)
     callbackStatus = WinFsp.callbackCanDelete(context, directoryId)
-    Swag.assert(callbackStatus == WinFsp.StatusSuccess)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess)
     WinFsp.callbackCleanup(context, directoryId, WinFsp.CleanupDelete)
     volume.close()
 
     var reopened = expect Volume.open(path, password)
-    Swag.assert(reopened.label == "Private")
-    Swag.assert(reopened.resolve("\\docs") == null)
+    Swag.require(reopened.label == "Private")
+    Swag.require(reopened.resolve("\\docs") == null)
     reopened.close()
 }
 
@@ -215,11 +215,11 @@ func statusForError(kind: ErrorKind)->s32
     // nobody to accept a Windows consent dialog, so a test that regressed into
     // mounting would hang rather than fail. The guardian refuses outright in
     // this build, and the mounting harness is not even compiled into it.
-    Swag.assert(not WinFsp.canRequestElevation())
+    Swag.require(not WinFsp.canRequestElevation())
     var elevationRefusedOutcome: Swag.Error
     discard catch WinFsp.ensurePortableGuardian() as elevationRefusedOutcome
     let elevationRefused = elevationRefusedOutcome.value()
-    Swag.assert(elevationRefused != null)
+    Swag.require(elevationRefused != null)
 }
 
 #test
@@ -241,7 +241,7 @@ func statusForError(kind: ErrorKind)->s32
         ids[i] = expect volume.createNode(source, false, FileAttributeNormal, security)
         let bytes: [1] u8 = [cast(u8, (i + 1))]
         let bytesWritten  = expect volume.writeNode(ids[i], 0, bytes, false, false)
-        Swag.assert(bytesWritten == 1)
+        Swag.require(bytesWritten == 1)
     }
 
     expect volume.commit()
@@ -261,12 +261,12 @@ func statusForError(kind: ErrorKind)->s32
         defer context.errorAllocator.release()
 
         let callbackStatus = WinFsp.callbackRename(&volume, ids[i], source.buffer, ("\\vid1\\CLIP (1).MP4").buffer, 0)
-        Swag.assert(callbackStatus == WinFsp.StatusObjectNameCollision)
-        Swag.assert(volume.resolve(source)!.id == ids[i])
-        Swag.assert(volume.resolve("\\vid1\\clip (1).mp4")!.id == occupied)
+        Swag.require(callbackStatus == WinFsp.StatusObjectNameCollision)
+        Swag.require(volume.resolve(source)!.id == ids[i])
+        Swag.require(volume.resolve("\\vid1\\clip (1).mp4")!.id == occupied)
         let callbackStatus2 = WinFsp.callbackRename(&volume, ids[i], source.buffer, destination.buffer, 0)
-        Swag.assert(callbackStatus2 == WinFsp.StatusSuccess)
-        Swag.assert(volume.resolve(source) == null and volume.resolve(destination)!.id == ids[i])
+        Swag.require(callbackStatus2 == WinFsp.StatusSuccess)
+        Swag.require(volume.resolve(source) == null and volume.resolve(destination)!.id == ids[i])
         WinFsp.callbackCleanup(&volume, ids[i], 0)
     }
 
@@ -276,9 +276,9 @@ func statusForError(kind: ErrorKind)->s32
     {
         let destination = Format.toString("\\vid1\\clip (%).mp4", i + 2)
         let node        = reopened.resolve(destination)
-        Swag.assert(node != null and node.id == ids[i])
+        Swag.require(node != null and node.id == ids[i])
         var bytes: [1] u8
         let bytesRead = expect reopened.readNode(ids[i], 0, bytes)
-        Swag.assert(bytesRead == 1 and bytes[0] == i + 1)
+        Swag.require(bytesRead == 1 and bytes[0] == i + 1)
     }
 }

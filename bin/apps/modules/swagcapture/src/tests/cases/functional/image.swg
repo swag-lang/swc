@@ -19,14 +19,14 @@ using Swag, Core
     let before02 = f.capture.backImg.pixelColor(0, 2)
 
     f.main.sendCommandEvent(ActionImage.MirrorImage)
-    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before30.argb)
+    Swag.require(f.capture.backImg.pixelColor(0, 0).argb == before30.argb)
     f.capture.undo()
-    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
+    Swag.require(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 
     f.main.sendCommandEvent(ActionImage.FlipImage)
-    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
+    Swag.require(f.capture.backImg.pixelColor(0, 0).argb == before02.argb)
     f.capture.undo()
-    Swag.assert(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
+    Swag.require(f.capture.backImg.pixelColor(0, 0).argb == before00.argb)
 }
 
 // Rotation and explicit resize update both the image and the capture dimensions
@@ -41,30 +41,30 @@ using Swag, Core
     f.capture.backImg = Gui.Testing.indexedImage(30, 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageRight)
-    Swag.assert(f.capture.backImg.width == 20)
-    Swag.assert(f.capture.backImg.height == 30)
-    Swag.assert(f.capture.width == 20)
-    Swag.assert(f.capture.height == 30)
-    Swag.assert(f.capture.canUndo())
+    Swag.require(f.capture.backImg.width == 20)
+    Swag.require(f.capture.backImg.height == 30)
+    Swag.require(f.capture.width == 20)
+    Swag.require(f.capture.height == 30)
+    Swag.require(f.capture.canUndo())
 
     f.capture.undo()
-    Swag.assert(f.capture.backImg.width == 30)
-    Swag.assert(f.capture.backImg.height == 20)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.backImg.width == 30)
+    Swag.require(f.capture.backImg.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageLeft)
-    Swag.assert(f.capture.backImg.width == 20)
-    Swag.assert(f.capture.backImg.height == 30)
-    Swag.assert(f.capture.width == 20)
-    Swag.assert(f.capture.height == 30)
-    Swag.assert(f.capture.canUndo())
+    Swag.require(f.capture.backImg.width == 20)
+    Swag.require(f.capture.backImg.height == 30)
+    Swag.require(f.capture.width == 20)
+    Swag.require(f.capture.height == 30)
+    Swag.require(f.capture.canUndo())
 
     f.capture.undo()
-    Swag.assert(f.capture.backImg.width == 30)
-    Swag.assert(f.capture.backImg.height == 20)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.backImg.width == 30)
+    Swag.require(f.capture.backImg.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 
     g_KeepRatio = false
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
@@ -74,17 +74,17 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ResizeImage)
     f.gui.pump()
 
-    Swag.assert(f.gui.autoHandled)
-    Swag.assert(f.capture.backImg.width == 40)
-    Swag.assert(f.capture.backImg.height == 28)
-    Swag.assert(f.capture.width == 40)
-    Swag.assert(f.capture.height == 28)
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.capture.backImg.width == 40)
+    Swag.require(f.capture.backImg.height == 28)
+    Swag.require(f.capture.width == 40)
+    Swag.require(f.capture.height == 28)
 
     f.capture.undo()
-    Swag.assert(f.capture.backImg.width == 30)
-    Swag.assert(f.capture.backImg.height == 20)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.backImg.width == 30)
+    Swag.require(f.capture.backImg.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 }
 
 // Dialog-backed image actions can now run through a real headless modal surface.
@@ -110,7 +110,7 @@ using Swag, Core
         if not didClick[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
-            Swag.assert(modalButtonClicked)
+            Swag.require(modalButtonClicked)
             didClick[] = true
         }
     }
@@ -118,18 +118,18 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ExpandCapture)
     f.gui.pump()
 
-    Swag.assert(f.gui.openedSurfaceCount() == 0)
-    Swag.assert(modalFrames == 1)
-    Swag.assert(didClick)
-    Swag.assert(f.capture.width == 42)
-    Swag.assert(f.capture.height == 27)
-    Swag.assert(f.capture.backImagePos.x == 0)
-    Swag.assert(f.capture.backImagePos.y == 0)
-    Swag.assert(f.capture.canUndo())
+    Swag.require(f.gui.openedSurfaceCount() == 0)
+    Swag.require(modalFrames == 1)
+    Swag.require(didClick)
+    Swag.require(f.capture.width == 42)
+    Swag.require(f.capture.height == 27)
+    Swag.require(f.capture.backImagePos.x == 0)
+    Swag.require(f.capture.backImagePos.y == 0)
+    Swag.require(f.capture.canUndo())
 
     f.capture.undo()
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 }
 
 // An expansion grows away from a near anchor, evenly around a centered one, and toward a far one.
@@ -138,9 +138,9 @@ using Swag, Core
     let near   = anchorSplit(10, 0)
     let center = anchorSplit(10, 1)
     let far    = anchorSplit(10, 2)
-    Swag.assert(near.before == 0 and near.after == 10)
-    Swag.assert(center.before == 5 and center.after == 5)
-    Swag.assert(far.before == 10 and far.after == 0)
+    Swag.require(near.before == 0 and near.after == 10)
+    Swag.require(center.before == 5 and center.after == 5)
+    Swag.require(far.before == 10 and far.after == 0)
 }
 
 // Expand Image uses the same modal resize dialog but only grows the backing
@@ -163,7 +163,7 @@ using Swag, Core
         if not didClick[]
         {
             let modalButtonClicked = host.clickModalButton(Dialog.BtnOk)
-            Swag.assert(modalButtonClicked)
+            Swag.require(modalButtonClicked)
             didClick[] = true
         }
     }
@@ -171,18 +171,18 @@ using Swag, Core
     f.main.sendCommandEvent(ActionImage.ExpandImage)
     f.gui.pump()
 
-    Swag.assert(didClick)
-    Swag.assert(f.capture.backImg.width == 42)
-    Swag.assert(f.capture.backImg.height == 27)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
-    Swag.assert(f.capture.canUndo())
+    Swag.require(didClick)
+    Swag.require(f.capture.backImg.width == 42)
+    Swag.require(f.capture.backImg.height == 27)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
+    Swag.require(f.capture.canUndo())
 
     f.capture.undo()
-    Swag.assert(f.capture.backImg.width == 30)
-    Swag.assert(f.capture.backImg.height == 20)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.backImg.width == 30)
+    Swag.require(f.capture.backImg.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 }
 
 // Trim Capture finds the opaque pixels of the image: the canvas shrinks to the box they cover, and
@@ -199,12 +199,12 @@ using Swag, Core
     f.capture.backImagePos = {-10, 30}
 
     f.main.sendCommandEvent(ActionImage.TrimCapture)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 20)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 20)
 
     f.capture.undo()
-    Swag.assert(f.capture.width == 100)
-    Swag.assert(f.capture.height == 80)
+    Swag.require(f.capture.width == 100)
+    Swag.require(f.capture.height == 80)
 }
 
 // Trim Capture can be exercised entirely in memory: it crops to visible content,
@@ -223,19 +223,19 @@ using Swag, Core
     discard testAddShape(f.capture, 150, 150, 20, 20)
 
     f.main.sendCommandEvent(ActionImage.TrimCapture)
-    Swag.assert(f.capture.forms.count == 1)
-    Swag.assert(f.capture.forms[0].buffer == inside)
-    Swag.assert(f.capture.width == 30)
-    Swag.assert(f.capture.height == 25)
+    Swag.require(f.capture.forms.count == 1)
+    Swag.require(f.capture.forms[0].buffer == inside)
+    Swag.require(f.capture.width == 30)
+    Swag.require(f.capture.height == 25)
     Gui.Testing.assertRect(inside.IForm.boundRect(), 0, 0, 30, 25)
-    Swag.assert(f.capture.backImg.width == 30)
-    Swag.assert(f.capture.backImg.height == 25)
+    Swag.require(f.capture.backImg.width == 30)
+    Swag.require(f.capture.backImg.height == 25)
 
     f.capture.undo()
-    Swag.assert(f.capture.forms.count == 2)
-    Swag.assert(f.capture.width == 100)
-    Swag.assert(f.capture.height == 80)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.width == 100)
+    Swag.require(f.capture.height == 80)
     Gui.Testing.assertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
-    Swag.assert(f.capture.backImg.width == 100)
-    Swag.assert(f.capture.backImg.height == 80)
+    Swag.require(f.capture.backImg.width == 100)
+    Swag.require(f.capture.backImg.height == 80)
 }

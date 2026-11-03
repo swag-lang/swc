@@ -32,16 +32,16 @@ using Core, Gui, Pixel
         {
             let before = resting.pixelColor(left + cast(s32, x), top + cast(s32, y)).argb != restingGround
             let after  = selected.pixelColor(left + cast(s32, x), top + cast(s32, y)).argb != selectedGround
-            Swag.assert(before == after)
+            Swag.require(before == after)
             if before do
                 ink += 1
         }
     }
 
-    Swag.assert(ink > 0)
-    Swag.assert(explorer.grid.nameTimer != null)
+    Swag.require(ink > 0)
+    Swag.require(explorer.grid.nameTimer != null)
     explorer.grid.select(1)
-    Swag.assert(explorer.grid.nameTimer == null)
+    Swag.require(explorer.grid.nameTimer == null)
 }
 
 // Catalogue titles can be much shorter than their file names, and should not keep an idle timer.
@@ -58,18 +58,18 @@ using Core, Gui, Pixel
     window.applyLayout()
 
     let grid = explorer.grid
-    Swag.assert(grid.nameTimer == null)
+    Swag.require(grid.nameTimer == null)
     grid.board   = .Posters
     grid.posters = true
     explorer.entries[0].movie.title = "Short title"
     grid.select(0)
-    Swag.assert(grid.nameTimer == null)
+    Swag.require(grid.nameTimer == null)
 
     explorer.entries[0].movie.title = "A catalogue title that is far too long to fit inside this poster tile"
     grid.select(0)
-    Swag.assert(grid.nameTimer != null)
+    Swag.require(grid.nameTimer != null)
 
     grid.rows = true
     grid.select(1)
-    Swag.assert(grid.nameTimer == null)
+    Swag.require(grid.nameTimer == null)
 }

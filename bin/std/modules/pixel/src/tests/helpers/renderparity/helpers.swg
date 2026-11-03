@@ -333,10 +333,10 @@ func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 {
     const Tolerance = 3
     let got = image.pixelColor(x, y)
-    Swag.assert(Math.abs(cast(s32, got.a) - cast(s32, expected.a)) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32, got.r) - cast(s32, expected.r)) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32, got.g) - cast(s32, expected.g)) <= Tolerance)
-    Swag.assert(Math.abs(cast(s32, got.b) - cast(s32, expected.b)) <= Tolerance)
+    Swag.require(Math.abs(cast(s32, got.a) - cast(s32, expected.a)) <= Tolerance)
+    Swag.require(Math.abs(cast(s32, got.r) - cast(s32, expected.r)) <= Tolerance)
+    Swag.require(Math.abs(cast(s32, got.g) - cast(s32, expected.g)) <= Tolerance)
+    Swag.require(Math.abs(cast(s32, got.b) - cast(s32, expected.b)) <= Tolerance)
 }
 
 // The rasterized document keeps its authored colors and coverage, and leaves the pixels it
@@ -425,9 +425,9 @@ func assertPlanarCornersUpright(image: const *Image, view: const *YuvPlanarView)
         let chromaAt = cast(u64, (y >> 1)) * view.chromaStride + cast(u64, (x >> 1))
         let expected = expectedPlanarColor(view.luma[cast(u64, y) * view.lumaStride + cast(u64, x)], view.chromaB[chromaAt], view.chromaR[chromaAt], view.matrix, view.studioRange)
         let actual   = image.pixelColor(x, y)
-        Swag.assert(Math.abs(cast(s32, actual.r) - cast(s32, expected.r)) <= 1)
-        Swag.assert(Math.abs(cast(s32, actual.g) - cast(s32, expected.g)) <= 1)
-        Swag.assert(Math.abs(cast(s32, actual.b) - cast(s32, expected.b)) <= 1)
+        Swag.require(Math.abs(cast(s32, actual.r) - cast(s32, expected.r)) <= 1)
+        Swag.require(Math.abs(cast(s32, actual.g) - cast(s32, expected.g)) <= 1)
+        Swag.require(Math.abs(cast(s32, actual.b) - cast(s32, expected.b)) <= 1)
     }
 }
 

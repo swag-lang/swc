@@ -11,8 +11,8 @@ using Core, RuntimeCtxDll
     gPatchedContext.user2 = cast(u64, Swag.getContext())
     Swag.setContext(gPatchedContext)
 
-    Swag.assert(ctxSharedReadContext() == 42)
-    Swag.assert(ctxSharedContextMarker() == Swag.getContext().user2)
+    Swag.require(ctxSharedReadContext() == 42)
+    Swag.require(ctxSharedContextMarker() == Swag.getContext().user2)
 }
 
 // The deliverable itself: an executable that links its dependencies in ships alone. A shared
@@ -21,8 +21,8 @@ using Core, RuntimeCtxDll
 #test
 {
     let artifactDir = Path.directoryName(Env.executablePath())
-    Swag.assert(artifactDir != null)
+    Swag.require(artifactDir != null)
 
     let libraries = expect Directory.enumerateFiles(artifactDir, ".dll")
-    Swag.assert(libraries.count == 0)
+    Swag.require(libraries.count == 0)
 }

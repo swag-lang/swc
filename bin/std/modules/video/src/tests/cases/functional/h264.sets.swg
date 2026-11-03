@@ -17,15 +17,15 @@ using Core
 
     var subsampled: H264.Sps
     expect subsampled.parse(Sps420)
-    Swag.assert(subsampled.chromaShift() == 1 and not subsampled.is444())
-    Swag.assert(subsampled.mbWidth == 6 and subsampled.mbHeight == 4)
-    Swag.assert(subsampled.cropBottom == 6)
-    Swag.assert(subsampled.width() == 96 and subsampled.height() == 58)
+    Swag.require(subsampled.chromaShift() == 1 and not subsampled.is444())
+    Swag.require(subsampled.mbWidth == 6 and subsampled.mbHeight == 4)
+    Swag.require(subsampled.cropBottom == 6)
+    Swag.require(subsampled.width() == 96 and subsampled.height() == 58)
 
     var full: H264.Sps
     expect full.parse(Sps444)
-    Swag.assert(full.chromaShift() == 0 and full.is444())
-    Swag.assert(full.mbWidth == 6 and full.mbHeight == 4)
-    Swag.assert(full.cropBottom == 6)
-    Swag.assert(full.width() == 96 and full.height() == 58)
+    Swag.require(full.chromaShift() == 0 and full.is444())
+    Swag.require(full.mbWidth == 6 and full.mbHeight == 4)
+    Swag.require(full.cropBottom == 6)
+    Swag.require(full.width() == 96 and full.height() == 58)
 }

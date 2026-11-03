@@ -40,17 +40,17 @@ func raiseCryptoBatchTestError(marker: u32) fail
     var failureOutcome: Swag.Error
     catch retained.raise() as failureOutcome
     let failure = failureOutcome.value()
-    Swag.assert(failure is CryptoBatchTestError)
+    Swag.require(failure is CryptoBatchTestError)
     if failure is CryptoBatchTestError as typed
     {
-        Swag.assert(typed.marker == 17)
-        Swag.assert(typed.message == "batch failure 17")
+        Swag.require(typed.marker == 17)
+        Swag.require(typed.message == "batch failure 17")
     }
 
     var emptyOutcome: Swag.Error
     catch batch.error.raise() as emptyOutcome
     let empty = emptyOutcome.value()
-    Swag.assert(empty == null)
+    Swag.require(empty == null)
 }
 
 func testPassword()->const [..] u8  => "correct horse battery staple"
@@ -93,7 +93,7 @@ func headerDigest(path: string, slot: u64)->[32] u8
     var bytes: Array'u8
     bytes.resize(HeaderSlotSize)
     let readComplete = expect file.readExactAt(HeaderAreaOffset + slot * HeaderSlotSize, bytes.toSlice())
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
     let result = testDigestBytes(Hash.Sha256.compute(bytes.toSlice()))
     Core.Crypto.secureClear(bytes.toSlice())
     return result
@@ -105,7 +105,7 @@ func flipByteAt(path: string, offset: u64)
     defer file.close()
     var byte: [1] u8
     let readComplete = expect file.readExactAt(offset, byte)
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
     byte[0] ^= 0x5A
     expect file.writeAllAt(offset, byte)
     expect file.flush()
@@ -122,7 +122,7 @@ func snapshotContainer(destination, source: string)
     var bytes: Array'u8
     bytes.resize(expect reader.size())
     let readComplete = expect reader.readExactAt(0, bytes.toSlice())
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
     expect File.writeAllBytes(destination, bytes.toSlice())
 }
 
@@ -153,29 +153,29 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
 
     let bytesWritten = expect volume.writeNode(fileId, 0, source.toSlice(), false, false)
-    Swag.assert(bytesWritten == source.count)
+    Swag.require(bytesWritten == source.count)
     expect volume.commit()
-    Swag.assert(volume.nodeById(fileId)!.blocks.count == 1)
-    Swag.assert(volume.nodeById(fileId)!.blocks[0].count == DataBlockCount)
+    Swag.require(volume.nodeById(fileId)!.blocks.count == 1)
+    Swag.require(volume.nodeById(fileId)!.blocks[0].count == DataBlockCount)
 
     let checkpoint = volume.checkpointAt
     let sequence   = volume.sequence
     expect volume.renameNode(fileId, "\\renamed.bin", false)
-    Swag.assert(volume.checkpointAt == checkpoint)
-    Swag.assert(volume.sequence == sequence + 1)
+    Swag.require(volume.checkpointAt == checkpoint)
+    Swag.require(volume.sequence == sequence + 1)
     volume.close()
 
     var reopened = expect Volume.open(path, testPassword())
     let node     = reopened.resolve("\\renamed.bin")
-    Swag.assert(node != null and node.blocks.count == 1)
+    Swag.require(node != null and node.blocks.count == 1)
     var first: [BlockSize] u8
     var last:  [BlockSize] u8
     let bytesRead = expect reopened.readNode(node.id, 0, first)
-    Swag.assert(bytesRead == BlockSize)
+    Swag.require(bytesRead == BlockSize)
     let bytesRead2 = expect reopened.readNode(node.id, (DataBlockCount - 1) * BlockSize, last)
-    Swag.assert(bytesRead2 == BlockSize)
-    Swag.assert(Slice.equals(first, source[until BlockSize]))
-    Swag.assert(Slice.equals(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
+    Swag.require(bytesRead2 == BlockSize)
+    Swag.require(Slice.equals(first, source[until BlockSize]))
+    Swag.require(Slice.equals(last, source[(DataBlockCount - 1) * BlockSize until DataBlockCount * BlockSize]))
     reopened.close()
 }
 
@@ -197,17 +197,17 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     for index in RunCount
     {
         let bytesWritten = expect volume.writeNode(fileId, index * 2 * BlockSize, block, false, false)
-        Swag.assert(bytesWritten == BlockSize)
+        Swag.require(bytesWritten == BlockSize)
     }
 
     expect volume.commit()
-    Swag.assert(volume.nodeById(fileId)!.blocks.count == RunCount)
+    Swag.require(volume.nodeById(fileId)!.blocks.count == RunCount)
 
     let checkpoint = volume.checkpointAt
     let sequence   = volume.sequence
     expect volume.renameNode(fileId, "\\destination\\moved.bin", false)
-    Swag.assert(volume.checkpointAt == checkpoint)
-    Swag.assert(volume.sequence == sequence + 1)
+    Swag.require(volume.checkpointAt == checkpoint)
+    Swag.require(volume.sequence == sequence + 1)
 
     // Copy the still-mounted image to model a process stopping before close consolidates it.
     snapshotContainer(salvaged, path)
@@ -215,11 +215,11 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var recovered = expect Volume.open(salvaged, testPassword())
     let moved     = recovered.resolve("\\destination\\moved.bin")
-    Swag.assert(moved != null and moved.blocks.count == RunCount)
+    Swag.require(moved != null and moved.blocks.count == RunCount)
     var readBack: [BlockSize] u8
     let bytesRead = expect recovered.readNode(moved.id, (RunCount - 1) * 2 * BlockSize, readBack)
-    Swag.assert(bytesRead == BlockSize)
-    Swag.assert(Slice.equals(block, readBack))
+    Swag.require(bytesRead == BlockSize)
+    Swag.require(Slice.equals(block, readBack))
     recovered.close()
 }
 
@@ -230,79 +230,79 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     let security: [6] u8 = [1, 4, 9, 16, 25, 36]
     var volume = expect Volume.create(path, testPassword(), MinimumSize)
-    Swag.assert(volume.containerSize == MinimumSize)
-    Swag.assert(volume.physicalSize > volume.containerSize)
-    Swag.assert(not (expect File.attributes(path)).has(.SparseFile))
+    Swag.require(volume.containerSize == MinimumSize)
+    Swag.require(volume.physicalSize > volume.containerSize)
+    Swag.require(not (expect File.attributes(path)).has(.SparseFile))
     var storedLocator: [Crypto.RecordLocatorSize] u8
     let readComplete = expect volume.file.readExactAt(HeaderAreaOffset + volume.activeSlot * HeaderSlotSize, storedLocator)
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
     var expectedLocator = expect Crypto.recordLocator(volume.keys.locator, HeaderLocatorKind, volume.activeSlot)
-    Swag.assert(Core.Crypto.constantTimeEqual(storedLocator[until HeaderLocatorCheckSize], expectedLocator[until HeaderLocatorCheckSize]))
+    Swag.require(Core.Crypto.constantTimeEqual(storedLocator[until HeaderLocatorCheckSize], expectedLocator[until HeaderLocatorCheckSize]))
     let encodedSize     = Crypto.load32(&storedLocator[HeaderLocatorCheckSize])
     let locatorMask     = Crypto.load32(&expectedLocator[HeaderLocatorCheckSize])
     let storedPlainSize = encodedSize ^ locatorMask
-    Swag.assert(storedPlainSize and storedPlainSize <= HeaderPlainSize)
+    Swag.require(storedPlainSize and storedPlainSize <= HeaderPlainSize)
     Core.Crypto.secureClear(expectedLocator)
 
     let root = volume.resolve("\\")
-    Swag.assert(root != null)
-    Swag.assert(root.creationTime != 0)
+    Swag.require(root != null)
+    Swag.require(root.creationTime != 0)
     let rootTimestamp = Time.Timestamp.fromTicks(root.creationTime + VolumeTimestampEpoch)
-    Swag.assert(rootTimestamp.toDateTime().isValid())
+    Swag.require(rootTimestamp.toDateTime().isValid())
 
     let directoryId = expect volume.createNode("\\documents", true, FileAttributeDirectory, emptyBytes())
     let fileId      = expect volume.createNode("\\documents\\sample.bin", false, FileAttributeNormal, security)
-    Swag.assert(directoryId != fileId)
-    Swag.assert(volume.resolve("\\DOCUMENTS\\SAMPLE.BIN") != null)
+    Swag.require(directoryId != fileId)
+    Swag.require(volume.resolve("\\DOCUMENTS\\SAMPLE.BIN") != null)
 
     var source: [7000] u8
     for _, i in source do
         source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
     let bytesWritten = expect volume.writeNode(fileId, 0, source, false, false)
-    Swag.assert(bytesWritten == #sizeof(source))
+    Swag.require(bytesWritten == #sizeof(source))
     expect volume.commit()
 
     var readBack: [7000] u8
     let bytesRead = expect volume.readNode(fileId, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(source, readBack))
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(source, readBack))
     var beyondEnd: [16] u8
     let bytesRead2 = expect volume.readNode(fileId, #sizeof(source), beyondEnd)
-    Swag.assert(bytesRead2 == 0)
+    Swag.require(bytesRead2 == 0)
 
     expect volume.renameNode(fileId, "\\documents\\renamed.bin", false)
-    Swag.assert(volume.resolve("\\documents\\sample.bin") == null)
-    Swag.assert(volume.resolve("\\documents\\renamed.bin") != null)
+    Swag.require(volume.resolve("\\documents\\sample.bin") == null)
+    Swag.require(volume.resolve("\\documents\\renamed.bin") != null)
     let physicalSize = volume.physicalSize
     volume.close()
 
     var raw = expect File.open(path, .Open, .ReadWrite, .Read)
-    Swag.assert(expect raw.size() == physicalSize)
+    Swag.require(expect raw.size() == physicalSize)
     raw.close()
 
     let beforeFirst  = headerDigest(path, 0)
     let beforeSecond = headerDigest(path, 1)
-    Swag.assert(rejectsPassword(path, wrongPassword()))
+    Swag.require(rejectsPassword(path, wrongPassword()))
     let afterFirst  = headerDigest(path, 0)
     let afterSecond = headerDigest(path, 1)
-    Swag.assert(Slice.equals(beforeFirst, afterFirst))
-    Swag.assert(Slice.equals(beforeSecond, afterSecond))
+    Swag.require(Slice.equals(beforeFirst, afterFirst))
+    Swag.require(Slice.equals(beforeSecond, afterSecond))
 
     var reopened = expect Volume.open(path, testPassword())
     let node     = reopened.resolve("\\documents\\renamed.bin")
-    Swag.assert(node != null)
-    Swag.assert(node.size == #sizeof(source))
-    Swag.assert(Slice.equals(node.security.toSlice(), security))
+    Swag.require(node != null)
+    Swag.require(node.size == #sizeof(source))
+    Swag.require(Slice.equals(node.security.toSlice(), security))
     var reopenedData: [7000] u8
     let bytesRead3 = expect reopened.readNode(node.id, 0, reopenedData)
-    Swag.assert(bytesRead3 == #sizeof(reopenedData))
-    Swag.assert(Slice.equals(source, reopenedData))
+    Swag.require(bytesRead3 == #sizeof(reopenedData))
+    Swag.require(Slice.equals(source, reopenedData))
     expect reopened.deleteNode(node.id)
     expect reopened.deleteNode(directoryId)
     reopened.close()
 
     var finalOpen = expect Volume.open(path, testPassword())
-    Swag.assert(finalOpen.resolve("\\documents") == null)
+    Swag.require(finalOpen.resolve("\\documents") == null)
     finalOpen.close()
 }
 
@@ -317,53 +317,53 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     let first: [3] u8 = [1, 2, 3]
     let bytesWritten  = expect volume.writeNode(fileId, 10, first, false, false)
-    Swag.assert(bytesWritten == 3)
+    Swag.require(bytesWritten == 3)
     expect volume.resizeNode(fileId, 2 * BlockSize + 5)
 
     let appended: [3] u8 = [9, 8, 7]
     let bytesWritten2    = expect volume.writeNode(fileId, 0, appended, true, false)
-    Swag.assert(bytesWritten2 == 3)
+    Swag.require(bytesWritten2 == 3)
     let sizeBeforeConstraint = volume.nodeById(fileId)!.size
     let constrained: [4] u8  = [4, 5, 6, 7]
     let bytesWritten3        = expect volume.writeNode(fileId, sizeBeforeConstraint - 2, constrained, false, true)
-    Swag.assert(bytesWritten3 == 2)
-    Swag.assert(volume.nodeById(fileId)!.size == sizeBeforeConstraint)
+    Swag.require(bytesWritten3 == 2)
+    Swag.require(volume.nodeById(fileId)!.size == sizeBeforeConstraint)
 
     var hole: [32] u8
     let bytesRead = expect volume.readNode(fileId, BlockSize, hole)
-    Swag.assert(bytesRead == #sizeof(hole))
+    Swag.require(bytesRead == #sizeof(hole))
     for byte in hole do
-        Swag.assert(byte == 0)
+        Swag.require(byte == 0)
 
     var tail: [4] u8
     let bytesRead2 = expect volume.readNode(fileId, sizeBeforeConstraint - 4, tail)
-    Swag.assert(bytesRead2 == 4)
-    Swag.assert(tail[0] == 0 and tail[1] == 9 and tail[2] == 4 and tail[3] == 5)
+    Swag.require(bytesRead2 == 4)
+    Swag.require(tail[0] == 0 and tail[1] == 9 and tail[2] == 4 and tail[3] == 5)
 
     expect volume.resizeNode(fileId, 12)
     expect volume.resizeNode(fileId, 20)
     expect volume.commit()
-    Swag.assert(volume.freeBlockCount() == freeBaseline - 1)
+    Swag.require(volume.freeBlockCount() == freeBaseline - 1)
 
     var grown: [20] u8
     let bytesRead3 = expect volume.readNode(fileId, 0, grown)
-    Swag.assert(bytesRead3 == #sizeof(grown))
+    Swag.require(bytesRead3 == #sizeof(grown))
     for i in 10 do
-        Swag.assert(grown[i] == 0)
-    Swag.assert(grown[10] == 1 and grown[11] == 2)
+        Swag.require(grown[i] == 0)
+    Swag.require(grown[10] == 1 and grown[11] == 2)
     for i in 12 until 20 do
-        Swag.assert(grown[i] == 0)
+        Swag.require(grown[i] == 0)
 
     volume.close()
     var reopened     = expect Volume.open(path, testPassword())
     let reopenedNode = unwrap reopened.resolve("\\sparse.bin")
-    Swag.assert(reopenedNode.size == 20)
+    Swag.require(reopenedNode.size == 20)
     var persisted: [20] u8
     let bytesRead4 = expect reopened.readNode(reopenedNode.id, 0, persisted)
-    Swag.assert(bytesRead4 == #sizeof(persisted))
-    Swag.assert(Slice.equals(grown, persisted))
+    Swag.require(bytesRead4 == #sizeof(persisted))
+    Swag.require(Slice.equals(grown, persisted))
     expect reopened.deleteNode(reopenedNode.id)
-    Swag.assert(reopened.freeBlockCount() == freeBaseline)
+    Swag.require(reopened.freeBlockCount() == freeBaseline)
     reopened.close()
 }
 
@@ -380,68 +380,68 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var duplicateErrorOutcome: Swag.Error
     discard catch volume.createNode("\\FOLDER", true, 0, emptyBytes()) as duplicateErrorOutcome
     let duplicateError = duplicateErrorOutcome.value()
-    Swag.assert(duplicateError != null)
+    Swag.require(duplicateError != null)
     var parentErrorOutcome: Swag.Error
     discard catch volume.createNode("\\missing\\file", false, 0, emptyBytes()) as parentErrorOutcome
     let parentError = parentErrorOutcome.value()
-    Swag.assert(parentError != null)
+    Swag.require(parentError != null)
     var nameErrorOutcome: Swag.Error
     discard catch volume.createNode("\\.", false, 0, emptyBytes()) as nameErrorOutcome
     let nameError = nameErrorOutcome.value()
-    Swag.assert(nameError != null)
+    Swag.require(nameError != null)
     var notDirectoryErrorOutcome: Swag.Error
     discard catch volume.createNode("\\readonly.bin\\child", false, 0, emptyBytes()) as notDirectoryErrorOutcome
     let notDirectoryError = notDirectoryErrorOutcome.value()
-    Swag.assert(notDirectoryError != null)
+    Swag.require(notDirectoryError != null)
 
     let data:   [1] u8 = [7]
     var output: [1] u8
     var readOnlyErrorOutcome: Swag.Error
     discard catch volume.writeNode(readOnlyId, 0, data, false, false) as readOnlyErrorOutcome
     let readOnlyError = readOnlyErrorOutcome.value()
-    Swag.assert(readOnlyError != null)
+    Swag.require(readOnlyError != null)
     var readDirectoryErrorOutcome: Swag.Error
     discard catch volume.readNode(folderId, 0, output) as readDirectoryErrorOutcome
     let readDirectoryError = readDirectoryErrorOutcome.value()
-    Swag.assert(readDirectoryError != null)
+    Swag.require(readDirectoryError != null)
     var writeDirectoryErrorOutcome: Swag.Error
     discard catch volume.writeNode(folderId, 0, data, false, false) as writeDirectoryErrorOutcome
     let writeDirectoryError = writeDirectoryErrorOutcome.value()
-    Swag.assert(writeDirectoryError != null)
+    Swag.require(writeDirectoryError != null)
     var resizeDirectoryErrorOutcome: Swag.Error
     discard catch volume.resizeNode(folderId, 1) as resizeDirectoryErrorOutcome
     let resizeDirectoryError = resizeDirectoryErrorOutcome.value()
-    Swag.assert(resizeDirectoryError != null)
+    Swag.require(resizeDirectoryError != null)
     var nonEmptyErrorOutcome: Swag.Error
     discard catch volume.deleteNode(folderId) as nonEmptyErrorOutcome
     let nonEmptyError = nonEmptyErrorOutcome.value()
-    Swag.assert(nonEmptyError != null)
+    Swag.require(nonEmptyError != null)
     var rootDeleteErrorOutcome: Swag.Error
     discard catch volume.deleteNode(1) as rootDeleteErrorOutcome
     let rootDeleteError = rootDeleteErrorOutcome.value()
-    Swag.assert(rootDeleteError != null)
+    Swag.require(rootDeleteError != null)
     var rootRenameErrorOutcome: Swag.Error
     discard catch volume.renameNode(1, "\\root", false) as rootRenameErrorOutcome
     let rootRenameError = rootRenameErrorOutcome.value()
-    Swag.assert(rootRenameError != null)
+    Swag.require(rootRenameError != null)
     var cycleErrorOutcome: Swag.Error
     discard catch volume.renameNode(folderId, "\\folder\\nested\\moved", false) as cycleErrorOutcome
     let cycleError = cycleErrorOutcome.value()
-    Swag.assert(cycleError != null)
+    Swag.require(cycleError != null)
 
     let firstId  = expect volume.createNode("\\first.bin", false, 0, emptyBytes())
     let secondId = expect volume.createNode("\\second.bin", false, 0, emptyBytes())
     var collisionErrorOutcome: Swag.Error
     discard catch volume.renameNode(firstId, "\\second.bin", false) as collisionErrorOutcome
     let collisionError = collisionErrorOutcome.value()
-    Swag.assert(collisionError != null)
+    Swag.require(collisionError != null)
     expect volume.renameNode(firstId, "\\second.bin", true)
-    Swag.assert(volume.nodeById(secondId) == null)
-    Swag.assert(volume.resolve("\\second.bin")!.id == firstId)
+    Swag.require(volume.nodeById(secondId) == null)
+    Swag.require(volume.resolve("\\second.bin")!.id == firstId)
     var typeErrorOutcome: Swag.Error
     discard catch volume.renameNode(firstId, "\\folder", true) as typeErrorOutcome
     let typeError = typeErrorOutcome.value()
-    Swag.assert(typeError != null)
+    Swag.require(typeError != null)
 
     expect volume.deleteNode(nestedId)
     expect volume.deleteNode(folderId)
@@ -460,18 +460,18 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume   = expect Volume.create(path, testPassword(), MinimumSize)
     let folderId = expect volume.createNode("\\folder", true, FileAttributeDirectory, emptyBytes())
     let fileId   = expect volume.createNode("\\folder/file.bin", false, FileAttributeNormal, emptyBytes())
-    Swag.assert(volume.nodeById(fileId)!.parentId == folderId)
-    Swag.assert(volume.nodeById(fileId)!.name == "file.bin")
-    Swag.assert(volume.resolve("\\folder\\file.bin")!.id == fileId)
-    Swag.assert(volume.resolve("/folder/file.bin")!.id == fileId)
-    Swag.assert(volume.resolve("\\folder/file.bin")!.id == fileId)
+    Swag.require(volume.nodeById(fileId)!.parentId == folderId)
+    Swag.require(volume.nodeById(fileId)!.name == "file.bin")
+    Swag.require(volume.resolve("\\folder\\file.bin")!.id == fileId)
+    Swag.require(volume.resolve("/folder/file.bin")!.id == fileId)
+    Swag.require(volume.resolve("\\folder/file.bin")!.id == fileId)
 
     let nestedId = expect volume.createNode("/folder/nested", true, FileAttributeDirectory, emptyBytes())
     expect volume.renameNode(fileId, "\\folder/nested/moved.bin", false)
-    Swag.assert(volume.nodeById(fileId)!.parentId == nestedId)
-    Swag.assert(volume.nodeById(fileId)!.name == "moved.bin")
-    Swag.assert(volume.resolve("\\folder\\nested\\moved.bin")!.id == fileId)
-    Swag.assert(volume.resolve("\\folder\\file.bin") == null)
+    Swag.require(volume.nodeById(fileId)!.parentId == nestedId)
+    Swag.require(volume.nodeById(fileId)!.name == "moved.bin")
+    Swag.require(volume.resolve("\\folder\\nested\\moved.bin")!.id == fileId)
+    Swag.require(volume.resolve("\\folder\\file.bin") == null)
     volume.close()
 }
 
@@ -485,8 +485,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     catch { smallAttempt = try Volume.create(path, testPassword(), MinimumSize - 1) } as sizeErrorOutcome
     let sizeError = sizeErrorOutcome.value()
     smallAttempt.close()
-    Swag.assert(sizeError != null)
-    Swag.assert(not File.exists(path))
+    Swag.require(sizeError != null)
+    Swag.require(not File.exists(path))
 
     var original = expect Volume.create(path, testPassword(), MinimumSize)
     original.close()
@@ -495,18 +495,18 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     catch { duplicate = try Volume.create(path, testPassword(), MinimumSize) } as duplicateErrorOutcome
     let duplicateError = duplicateErrorOutcome.value()
     duplicate.close()
-    Swag.assert(duplicateError != null)
-    Swag.assert(File.exists(path))
+    Swag.require(duplicateError != null)
+    Swag.require(File.exists(path))
 
     var openEmptyErrorOutcome: Swag.Error
     discard catch Volume.open(path, emptyBytes()) as openEmptyErrorOutcome
     let openEmptyError = openEmptyErrorOutcome.value()
-    Swag.assert(openEmptyError != null)
+    Swag.require(openEmptyError != null)
     let missingPath = testContainerPath("missing")
     var missingErrorOutcome: Swag.Error
     discard catch Volume.open(missingPath, testPassword()) as missingErrorOutcome
     let missingError = missingErrorOutcome.value()
-    Swag.assert(missingError != null)
+    Swag.require(missingError != null)
 
     var reopened = expect Volume.open(path, testPassword())
     reopened.close()
@@ -516,7 +516,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var shortFile = expect File.open(shortPath, .CreateNew, .ReadWrite, .Read)
     expect shortFile.resize(128)
     shortFile.close()
-    Swag.assert(rejectsPassword(shortPath, testPassword()))
+    Swag.require(rejectsPassword(shortPath, testPassword()))
 }
 
 #test
@@ -533,7 +533,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // records written after that checkpoint bring the volume back up to date.
     flipHeaderByte(path, activeSlot)
     var fallback = expect Volume.open(path, testPassword())
-    Swag.assert(fallback.resolve("\\latest") != null)
+    Swag.require(fallback.resolve("\\latest") != null)
     fallback.close()
 
     // Recovering consolidated what the journal held into the slot that was damaged, so the
@@ -541,7 +541,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // no checkpoint to fall back to.
     flipHeaderByte(path, activeSlot)
     flipHeaderByte(path, 1 - activeSlot)
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
 }
 
 #test
@@ -553,30 +553,30 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var volume      = expect Volume.create(path, testPassword(), MinimumSize)
     let afterCreate = volume.sequence
-    Swag.assert(volume.checkpointAt == afterCreate)
+    Swag.require(volume.checkpointAt == afterCreate)
 
     discard expect volume.createNode("\\one", true, FileAttributeDirectory, emptyBytes())
     discard expect volume.createNode("\\two", true, FileAttributeDirectory, emptyBytes())
-    Swag.assert(volume.sequence == afterCreate + 2)
-    Swag.assert(volume.checkpointAt == afterCreate)
+    Swag.require(volume.sequence == afterCreate + 2)
+    Swag.require(volume.checkpointAt == afterCreate)
 
     // Filling the journal forces a checkpoint rather than overwriting a record
     // that has not been consolidated yet.
     for i in JournalCapacity do
         discard expect volume.createNode(Format.toString("\\filler_%", i), true, FileAttributeDirectory, emptyBytes())
-    Swag.assert(volume.checkpointAt > afterCreate)
-    Swag.assert(volume.sequence - volume.checkpointAt < JournalCapacity)
+    Swag.require(volume.checkpointAt > afterCreate)
+    Swag.require(volume.sequence - volume.checkpointAt < JournalCapacity)
     volume.close()
 
     var reopened = expect Volume.open(path, testPassword())
-    Swag.assert(reopened.resolve("\\one") != null)
-    Swag.assert(reopened.resolve("\\two") != null)
+    Swag.require(reopened.resolve("\\one") != null)
+    Swag.require(reopened.resolve("\\two") != null)
     for i in JournalCapacity do
-        Swag.assert(reopened.resolve(Format.toString("\\filler_%", i)) != null)
+        Swag.require(reopened.resolve(Format.toString("\\filler_%", i)) != null)
 
     // Closing consolidated everything, so nothing is left to replay.
-    Swag.assert(reopened.sequence == reopened.checkpointAt)
-    Swag.assert(reopened.journalRecordsRead == 1)
+    Swag.require(reopened.sequence == reopened.checkpointAt)
+    Swag.require(reopened.journalRecordsRead == 1)
     reopened.close()
 }
 
@@ -597,33 +597,33 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let fileId           = expect volume.createNode("\\survivor.bin", false, FileAttributeNormal, emptyBytes())
     let payload: [40] u8 = [3]
     let bytesWritten     = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten == #sizeof(payload))
+    Swag.require(bytesWritten == #sizeof(payload))
     expect volume.commit()
     discard expect volume.createNode("\\also_here", true, FileAttributeDirectory, emptyBytes())
 
     // No checkpoint has happened since creation: everything above lives only in
     // the journal.
-    Swag.assert(volume.checkpointAt == checkpointBefore)
-    Swag.assert(volume.sequence > checkpointBefore)
+    Swag.require(volume.checkpointAt == checkpointBefore)
+    Swag.require(volume.sequence > checkpointBefore)
     snapshotContainer(salvaged, path)
     volume.close()
 
     var recovered = expect Volume.open(salvaged, testPassword())
     let node      = recovered.resolve("\\survivor.bin")
-    Swag.assert(node != null)
-    Swag.assert(node.size == #sizeof(payload))
+    Swag.require(node != null)
+    Swag.require(node.size == #sizeof(payload))
     var readBack: [40] u8
     let bytesRead = expect recovered.readNode(node.id, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(payload, readBack))
-    Swag.assert(recovered.resolve("\\also_here") != null)
-    Swag.assert(recovered.journalRecordsRead == recovered.sequence - recovered.checkpointAt + 1)
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(payload, readBack))
+    Swag.require(recovered.resolve("\\also_here") != null)
+    Swag.require(recovered.journalRecordsRead == recovered.sequence - recovered.checkpointAt + 1)
     recovered.close()
 
     // The salvaged container is now consolidated and still opens normally.
     var again = expect Volume.open(salvaged, testPassword())
-    Swag.assert(again.sequence == again.checkpointAt)
-    Swag.assert(again.resolve("\\survivor.bin") != null)
+    Swag.require(again.sequence == again.checkpointAt)
+    Swag.require(again.resolve("\\survivor.bin") != null)
     again.close()
 }
 
@@ -648,9 +648,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     flipByteAt(salvaged, JournalAreaOffset + (firstSequence % JournalCapacity) * JournalRecordSize + HeaderRecordPrefixSize)
 
     var recovered = expect Volume.open(salvaged, testPassword())
-    Swag.assert(recovered.resolve("\\first") == null)
-    Swag.assert(recovered.resolve("\\second") == null)
-    Swag.assert(recovered.journalRecordsRead == 1)
+    Swag.require(recovered.resolve("\\first") == null)
+    Swag.require(recovered.resolve("\\second") == null)
+    Swag.require(recovered.journalRecordsRead == 1)
     recovered.close()
 }
 
@@ -672,8 +672,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     volume.close()
 
     var reopened = expect Volume.open(path, testPassword())
-    Swag.assert(reopened.sequence == reopened.checkpointAt)
-    Swag.assert(reopened.journalRecordsRead == 1)
+    Swag.require(reopened.sequence == reopened.checkpointAt)
+    Swag.require(reopened.journalRecordsRead == 1)
     reopened.close()
 }
 
@@ -692,7 +692,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     volume.dirty = false
     volume.close()
 
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
 }
 
 #test
@@ -711,13 +711,13 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
         discard expect volume.createNode(Format.toString("\\entry_%.bin", i), false, FileAttributeNormal, emptyBytes())
     volume.close()
 
-    Swag.assert(volume.metadataSize > HeaderPlainSize)
-    Swag.assert(volume.metadataPages.count > 1)
+    Swag.require(volume.metadataSize > HeaderPlainSize)
+    Swag.require(volume.metadataPages.count > 1)
 
     var reopened = expect Volume.open(path, testPassword())
-    Swag.assert(reopened.nodes.count == FileCount + 1)
+    Swag.require(reopened.nodes.count == FileCount + 1)
     for i in FileCount do
-        Swag.assert(reopened.resolve(Format.toString("\\entry_%.bin", i)) != null)
+        Swag.require(reopened.resolve(Format.toString("\\entry_%.bin", i)) != null)
 
     // Deleting everything gives the metadata pages back too.
     for i in FileCount
@@ -729,8 +729,8 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     reopened.close()
 
     var emptied = expect Volume.open(path, testPassword())
-    Swag.assert(emptied.nodes.count == 1)
-    Swag.assert(emptied.metadataPages.count == 1)
+    Swag.require(emptied.nodes.count == 1)
+    Swag.require(emptied.metadataPages.count == 1)
     emptied.close()
 }
 
@@ -745,53 +745,53 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume           = expect Volume.create(path, testPassword(), MinimumSize)
     let fileId           = expect volume.createNode("\\secret.bin", false, FileAttributeNormal, emptyBytes())
     let bytesWritten     = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten == #sizeof(payload))
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(bytesWritten == #sizeof(payload))
+    Swag.require(volume.keySlotCount() == 1)
 
     expect volume.changePassword(testPassword(), secondPassword())
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(volume.keySlotCount() == 1)
     volume.close()
 
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
     var reopened  = expect Volume.open(path, secondPassword())
     var readBack: [64] u8
     let node      = unwrap reopened.resolve("\\secret.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(payload, readBack))
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(payload, readBack))
 
     // A second password opens the same container, and removing one leaves the
     // other working.
     discard expect reopened.addPassword(thirdPassword())
-    Swag.assert(reopened.keySlotCount() == 2)
+    Swag.require(reopened.keySlotCount() == 2)
     reopened.close()
 
     var viaThird = expect Volume.open(path, thirdPassword())
-    Swag.assert(viaThird.keySlotCount() == 2)
-    Swag.assert(viaThird.resolve("\\secret.bin") != null)
+    Swag.require(viaThird.keySlotCount() == 2)
+    Swag.require(viaThird.resolve("\\secret.bin") != null)
     expect viaThird.removePassword(secondPassword())
-    Swag.assert(viaThird.keySlotCount() == 1)
+    Swag.require(viaThird.keySlotCount() == 1)
     viaThird.close()
 
-    Swag.assert(rejectsPassword(path, secondPassword()))
+    Swag.require(rejectsPassword(path, secondPassword()))
     var last = expect Volume.open(path, thirdPassword())
-    Swag.assert(last.resolve("\\secret.bin") != null)
+    Swag.require(last.resolve("\\secret.bin") != null)
 
     // The last remaining password cannot be removed: a container no password
     // opens is unrecoverable.
     var lastErrorOutcome: Swag.Error
     discard catch last.removePassword(thirdPassword()) as lastErrorOutcome
     let lastError = lastErrorOutcome.value()
-    Swag.assert(lastError != null)
+    Swag.require(lastError != null)
 
     var duplicateErrorOutcome: Swag.Error
     discard catch last.addPassword(thirdPassword()) as duplicateErrorOutcome
     let duplicateError = duplicateErrorOutcome.value()
-    Swag.assert(duplicateError != null)
+    Swag.require(duplicateError != null)
     var wrongCurrentErrorOutcome: Swag.Error
     discard catch last.changePassword(secondPassword(), testPassword()) as wrongCurrentErrorOutcome
     let wrongCurrentError = wrongCurrentErrorOutcome.value()
-    Swag.assert(wrongCurrentError != null)
+    Swag.require(wrongCurrentError != null)
     last.close()
 }
 
@@ -802,20 +802,20 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("slotnoise")
     defer discard catch File.delete(path)
 
-    Swag.assert(keySlotIndex(0) == 0)
-    Swag.assert(keySlotIndex(1) == 1)
-    Swag.assert(keySlotIndex(2) == 2)
-    Swag.assert(keySlotIndex(3) == 3)
+    Swag.require(keySlotIndex(0) == 0)
+    Swag.require(keySlotIndex(1) == 1)
+    Swag.require(keySlotIndex(2) == 2)
+    Swag.require(keySlotIndex(3) == 3)
 
     var volume      = expect Volume.create(path, testPassword(), MinimumSize)
     let initialMask = volume.keySlotMask
-    Swag.assert(initialMask != 0 and (initialMask & (initialMask - 1)) == 0)
+    Swag.require(initialMask != 0 and (initialMask & (initialMask - 1)) == 0)
     volume.close()
 
     var file         = expect File.open(path, .Open, .ReadWrite, .Read)
     var area: [KeySlotAreaSize] u8
     let readComplete = expect file.readExactAt(KeySlotAreaOffset, area)
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
     file.close()
 
     // A used slot and an unused one are both noise: no run of repeated bytes
@@ -827,7 +827,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
             runs += 1
     }
 
-    Swag.assert(runs < KeySlotAreaSize / 8)
+    Swag.require(runs < KeySlotAreaSize / 8)
 
     // Damaging the only slot makes the container unopenable, which is what shows
     // the master key really is wrapped there and nowhere else.
@@ -835,7 +835,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     while (initialMask & keySlotBit(occupiedIndex)) == 0 do
         occupiedIndex += 1
     flipByteAt(path, keySlotPayloadOffset(occupiedIndex))
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
 }
 
 #test
@@ -845,12 +845,12 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(path)
 
     var progress: VolumeProgress
-    Swag.assert(progress.ratio() == 0)
-    Swag.assert(not progress.isCanceled())
+    Swag.require(progress.ratio() == 0)
+    Swag.require(not progress.isCanceled())
 
     var volume = expect Volume.create(path, testPassword(), MinimumSize, &progress)
     volume.close()
-    Swag.assert(progress.ratio() == 1)
+    Swag.require(progress.ratio() == 1)
 }
 
 #test
@@ -862,24 +862,24 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var progress: VolumeProgress
     progress.cancel()
-    Swag.assert(progress.isCanceled())
+    Swag.require(progress.isCanceled())
 
     var cancelErrorOutcome: Swag.Error
     var stopped: #decltype(expect Volume.create(path, testPassword(), MinimumSize, &progress))
     catch { stopped = try Volume.create(path, testPassword(), MinimumSize, &progress) } as cancelErrorOutcome
     let cancelError = cancelErrorOutcome.value()
     stopped.close()
-    Swag.assert(cancelError != null)
-    Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
-    Swag.assert(not File.exists(path))
+    Swag.require(cancelError != null)
+    Swag.require(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
+    Swag.require(not File.exists(path))
 
     // Arming the tracker for the next operation clears the cancellation the stopped one left.
     progress.begin(0)
-    Swag.assert(not progress.isCanceled())
+    Swag.require(not progress.isCanceled())
 
     var created = expect Volume.create(path, testPassword(), MinimumSize, &progress)
     created.close()
-    Swag.assert(File.exists(path))
+    Swag.require(File.exists(path))
 }
 
 #test
@@ -890,7 +890,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer discard catch File.delete(path)
 
     let size = 2'u64 * 1024 * 1024
-    Swag.assert(size > MinimumSize)
+    Swag.require(size > MinimumSize)
     var volume = expect Volume.create(path, testPassword(), size)
     volume.close()
 
@@ -900,7 +900,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     defer file.close()
     var window: [8192] u8
     let readComplete = expect file.readExactAt(RandomizeChunkSize - 4096, window)
-    Swag.assert(readComplete)
+    Swag.require(readComplete)
 
     var runs = 0'u64
     var counts: [256] u64
@@ -911,9 +911,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
             runs += 1
     }
 
-    Swag.assert(runs < window.count / 8)
+    Swag.require(runs < window.count / 8)
     for count in counts do
-        Swag.assert(count > 0)
+        Swag.require(count > 0)
 }
 
 #test
@@ -928,42 +928,42 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume           = expect Volume.create(path, emptyBytes(), MinimumSize)
     let fileId           = expect volume.createNode("\\open.bin", false, FileAttributeNormal, emptyBytes())
     let bytesWritten     = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten == #sizeof(payload))
-    Swag.assert(volume.keySlotCount() == 1)
+    Swag.require(bytesWritten == #sizeof(payload))
+    Swag.require(volume.keySlotCount() == 1)
     volume.close()
 
     // It opens without one, and refuses a password all the same: an unprotected container is
     // not one that takes anything.
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
     var reopened  = expect Volume.open(path, emptyBytes())
     var readBack: [32] u8
     let node      = unwrap reopened.resolve("\\open.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(payload, readBack))
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(payload, readBack))
 
     // Protecting it afterwards is one key-slot write, and it reads back exactly the same.
     expect reopened.changePassword(emptyBytes(), testPassword())
     reopened.close()
 
-    Swag.assert(rejectsPassword(path, emptyBytes()))
+    Swag.require(rejectsPassword(path, emptyBytes()))
     var protected = expect Volume.open(path, testPassword())
-    Swag.assert(protected.resolve("\\open.bin") != null)
+    Swag.require(protected.resolve("\\open.bin") != null)
 
     // A second way in still has to be a password: an unprotected slot beside a protected one
     // would undo the protection without saying so.
     var emptyAddErrorOutcome: Swag.Error
     discard catch protected.addPassword(emptyBytes()) as emptyAddErrorOutcome
     let emptyAddError = emptyAddErrorOutcome.value()
-    Swag.assert(emptyAddError != null)
+    Swag.require(emptyAddError != null)
 
     // Taking the protection back off is the same call the other way round.
     expect protected.changePassword(testPassword(), emptyBytes())
     protected.close()
 
-    Swag.assert(rejectsPassword(path, testPassword()))
+    Swag.require(rejectsPassword(path, testPassword()))
     var open = expect Volume.open(path, emptyBytes())
-    Swag.assert(open.resolve("\\open.bin") != null)
+    Swag.require(open.resolve("\\open.bin") != null)
     open.close()
 }
 
@@ -978,7 +978,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var volume           = expect Volume.create(path, testPassword(), MinimumSize)
     let fileId           = expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
     let bytesWritten     = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten == #sizeof(payload))
+    Swag.require(bytesWritten == #sizeof(payload))
 
     let originalBlocks = volume.blockCount
     let originalFree   = volume.freeBlockCount()
@@ -988,38 +988,38 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var sameErrorOutcome: Swag.Error
     discard catch volume.grow(MinimumSize) as sameErrorOutcome
     let sameError = sameErrorOutcome.value()
-    Swag.assert(sameError != null)
+    Swag.require(sameError != null)
     var smallerErrorOutcome: Swag.Error
     discard catch volume.grow(MinimumSize - 1) as smallerErrorOutcome
     let smallerError = smallerErrorOutcome.value()
-    Swag.assert(smallerError != null)
+    Swag.require(smallerError != null)
 
     let grownSize = MinimumSize + 64 * BlockRecordSize
     expect volume.grow(grownSize)
-    Swag.assert(volume.containerSize == grownSize)
-    Swag.assert(volume.blockCount == originalBlocks + 64)
-    Swag.assert(volume.freeBlockCount() == originalFree + 64)
+    Swag.require(volume.containerSize == grownSize)
+    Swag.require(volume.blockCount == originalBlocks + 64)
+    Swag.require(volume.freeBlockCount() == originalFree + 64)
     let grownPhysical = volume.physicalSize
     volume.close()
 
-    Swag.assert(expect File.info(path).size == grownPhysical)
+    Swag.require(expect File.info(path).size == grownPhysical)
 
     // The new geometry survives the round trip, and the added blocks are usable: the free list
     // is derived from what the node table references, so a block that was never published
     // would simply never be handed out.
     var reopened = expect Volume.open(path, testPassword())
-    Swag.assert(reopened.containerSize == grownSize)
-    Swag.assert(reopened.blockCount == originalBlocks + 64)
+    Swag.require(reopened.containerSize == grownSize)
+    Swag.require(reopened.blockCount == originalBlocks + 64)
 
     var readBack: [64] u8
     let node      = unwrap reopened.resolve("\\kept.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(payload, readBack))
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(payload, readBack))
 
     let addedId       = expect reopened.createNode("\\added.bin", false, FileAttributeNormal, emptyBytes())
     let bytesWritten2 = expect reopened.writeNode(addedId, 0, payload, false, false)
-    Swag.assert(bytesWritten2 == #sizeof(payload))
+    Swag.require(bytesWritten2 == #sizeof(payload))
     reopened.close()
 }
 
@@ -1042,15 +1042,15 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var cancelErrorOutcome: Swag.Error
     discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelErrorOutcome
     let cancelError = cancelErrorOutcome.value()
-    Swag.assert(cancelError != null)
-    Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
-    Swag.assert(stopped.containerSize == MinimumSize)
+    Swag.require(cancelError != null)
+    Swag.require(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
+    Swag.require(stopped.containerSize == MinimumSize)
     stopped.close()
 
-    Swag.assert(expect File.info(path).size == previousPhysical)
+    Swag.require(expect File.info(path).size == previousPhysical)
     var reopened = expect Volume.open(path, testPassword())
-    Swag.assert(reopened.containerSize == MinimumSize)
-    Swag.assert(reopened.resolve("\\kept.bin") != null)
+    Swag.require(reopened.containerSize == MinimumSize)
+    Swag.require(reopened.resolve("\\kept.bin") != null)
     reopened.close()
 }
 
@@ -1067,32 +1067,32 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var filler: Array'u8
     filler.resize(MinimumBlocks * BlockSize)
     let bytesWritten = expect volume.writeNode(fillerId, 0, filler.toSlice(), false, false)
-    Swag.assert(bytesWritten == filler.count)
+    Swag.require(bytesWritten == filler.count)
     expect volume.commit()
     let fileId = expect volume.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
     var payload: [2 * BlockSize] u8
     for &value, index in payload do
         value[] = cast(u8, (index % 251))
     let bytesWritten2 = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten2 == #sizeof(payload))
+    Swag.require(bytesWritten2 == #sizeof(payload))
     expect volume.deleteNode(fillerId)
 
     // Allocation starts at the high end, so this file really occupies the part being removed.
     let before = unwrap volume.nodeById(fileId)
-    Swag.assert(before.blocks.count and before.blocks[0].physical >= (MinimumSize - DataOffset) / BlockRecordSize)
+    Swag.require(before.blocks.count and before.blocks[0].physical >= (MinimumSize - DataOffset) / BlockRecordSize)
 
     expect volume.resize(MinimumSize)
-    Swag.assert(volume.containerSize == MinimumSize)
-    Swag.assert(volume.blockCount == (MinimumSize - DataOffset) / BlockRecordSize)
+    Swag.require(volume.containerSize == MinimumSize)
+    Swag.require(volume.blockCount == (MinimumSize - DataOffset) / BlockRecordSize)
     let shrunkPhysical = volume.physicalSize
     volume.close()
-    Swag.assert(expect File.info(path).size == shrunkPhysical)
+    Swag.require(expect File.info(path).size == shrunkPhysical)
 
     var reopened  = expect Volume.open(path, testPassword())
     var readBack: [2 * BlockSize] u8
     let bytesRead = expect reopened.readNode(reopened.resolve("\\kept.bin")!.id, 0, readBack)
-    Swag.assert(bytesRead == #sizeof(readBack))
-    Swag.assert(Slice.equals(payload, readBack))
+    Swag.require(bytesRead == #sizeof(readBack))
+    Swag.require(Slice.equals(payload, readBack))
     reopened.close()
 
     // This is the recoverable state left by a process that stopped after publishing the smaller
@@ -1101,9 +1101,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     expect tail.resize(shrunkPhysical + RandomizeChunkSize)
     tail.close()
     var recovered = expect Volume.open(path, testPassword())
-    Swag.assert(recovered.containerSize == MinimumSize)
+    Swag.require(recovered.containerSize == MinimumSize)
     recovered.close()
-    Swag.assert(expect File.info(path).size == shrunkPhysical)
+    Swag.require(expect File.info(path).size == shrunkPhysical)
 }
 
 #test
@@ -1119,12 +1119,12 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var filler: Array'u8
     filler.resize(MinimumBlocks * BlockSize)
     let bytesWritten = expect volume.writeNode(fillerId, 0, filler.toSlice(), false, false)
-    Swag.assert(bytesWritten == filler.count)
+    Swag.require(bytesWritten == filler.count)
     expect volume.commit()
     let fileId        = expect volume.createNode("\\tail.bin", false, FileAttributeNormal, emptyBytes())
     var payload: [BlockSize] u8 = [7]
     let bytesWritten2 = expect volume.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten2 == BlockSize)
+    Swag.require(bytesWritten2 == BlockSize)
     expect volume.deleteNode(fillerId)
 
     var progress: VolumeProgress
@@ -1133,10 +1133,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var cancelErrorOutcome: Swag.Error
     discard catch volume.resize(MinimumSize, &progress) as cancelErrorOutcome
     let cancelError = cancelErrorOutcome.value()
-    Swag.assert(cancelError != null and assume cast(Swagvault.Error, cancelError).kind == .Canceled)
-    Swag.assert(volume.containerSize == InitialSize)
+    Swag.require(cancelError != null and assume cast(Swagvault.Error, cancelError).kind == .Canceled)
+    Swag.require(volume.containerSize == InitialSize)
     volume.close()
-    Swag.assert(expect File.info(path).size == previousPhysical)
+    Swag.require(expect File.info(path).size == previousPhysical)
 }
 
 // An existing volume can refresh its camouflage repeatedly. Its logical capacity and payload
@@ -1150,24 +1150,24 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let fileId       = expect built.createNode("\\kept.bin", false, FileAttributeNormal, emptyBytes())
     var payload: [BlockSize] u8 = [73]
     let bytesWritten = expect built.writeNode(fileId, 0, payload, false, false)
-    Swag.assert(bytesWritten == BlockSize)
+    Swag.require(bytesWritten == BlockSize)
     expect built.checkpoint()
     built.close()
 
     var volume = expect Volume.open(path, testPassword())
-    Swag.assert(volume.containerSize == MinimumSize)
+    Swag.require(volume.containerSize == MinimumSize)
     let originalPhysical = volume.physicalSize
     expect volume.reapplyCamouflage()
     let firstPhysical = volume.physicalSize
-    Swag.assert(firstPhysical > MinimumSize)
-    Swag.assert(firstPhysical != originalPhysical)
+    Swag.require(firstPhysical > MinimumSize)
+    Swag.require(firstPhysical != originalPhysical)
     expect volume.reapplyCamouflage()
-    Swag.assert(volume.physicalSize > MinimumSize)
-    Swag.assert(volume.physicalSize != firstPhysical)
+    Swag.require(volume.physicalSize > MinimumSize)
+    Swag.require(volume.physicalSize != firstPhysical)
     var readBack: [BlockSize] u8
     let bytesRead = expect volume.readNode(volume.resolve("\\kept.bin")!.id, 0, readBack)
-    Swag.assert(bytesRead == BlockSize)
-    Swag.assert(Slice.equals(payload, readBack))
+    Swag.require(bytesRead == BlockSize)
+    Swag.require(Slice.equals(payload, readBack))
     volume.close()
 }
 
@@ -1186,24 +1186,24 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let fileId         = expect built.createNode("\\note.txt", false, FileAttributeNormal, emptyBytes())
     let stored: [4] u8 = [7, 8, 9, 10]
     let bytesWritten   = expect built.writeNode(fileId, 0, stored, false, false)
-    Swag.assert(bytesWritten == 4)
+    Swag.require(bytesWritten == 4)
     expect built.commit()
     built.close()
 
     var volume = expect Volume.open(path, testPassword(), readOnly: true)
     defer volume.close()
-    Swag.assert(volume.readOnly)
-    Swag.assert(not volume.dirty and not volume.hasPendingChanges())
+    Swag.require(volume.readOnly)
+    Swag.require(not volume.dirty and not volume.hasPendingChanges())
     let originalKeySlots = volume.keySlotMask
 
     // Reading is untouched: a read-only mount is a mount, not a refusal to open.
     let node = volume.resolve("\\note.txt")
-    Swag.assert(node != null)
+    Swag.require(node != null)
     let nodeId    = node.id
     var readBack: [4] u8
     let bytesRead = expect volume.readNode(nodeId, 0, readBack)
-    Swag.assert(bytesRead == 4)
-    Swag.assert(Slice.equals(readBack, stored))
+    Swag.require(bytesRead == 4)
+    Swag.require(Slice.equals(readBack, stored))
 
     // Every way in reports the same kind, whether it would have written a byte, a name, or a
     // key slot.
@@ -1222,46 +1222,46 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var writeErrorOutcome: Swag.Error
     discard catch volume.writeNode(nodeId, 0, stored, false, false) as writeErrorOutcome
     let writeError = writeErrorOutcome.value()
-    Swag.assert(refuses(writeError))
+    Swag.require(refuses(writeError))
     var createErrorOutcome: Swag.Error
     discard catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes()) as createErrorOutcome
     let createError = createErrorOutcome.value()
-    Swag.assert(refuses(createError))
+    Swag.require(refuses(createError))
     var renameErrorOutcome: Swag.Error
     catch volume.renameNode(nodeId, "\\other.txt", false) as renameErrorOutcome
     let renameError = renameErrorOutcome.value()
-    Swag.assert(refuses(renameError))
+    Swag.require(refuses(renameError))
     var resizeErrorOutcome: Swag.Error
     catch volume.resizeNode(nodeId, 0) as resizeErrorOutcome
     let resizeError = resizeErrorOutcome.value()
-    Swag.assert(refuses(resizeError))
+    Swag.require(refuses(resizeError))
     var deleteErrorOutcome: Swag.Error
     catch volume.deleteNode(nodeId) as deleteErrorOutcome
     let deleteError = deleteErrorOutcome.value()
-    Swag.assert(refuses(deleteError))
+    Swag.require(refuses(deleteError))
     var commitErrorOutcome: Swag.Error
     catch volume.commit() as commitErrorOutcome
     let commitError = commitErrorOutcome.value()
-    Swag.assert(refuses(commitError))
+    Swag.require(refuses(commitError))
     var checkpointErrorOutcome: Swag.Error
     catch volume.checkpoint() as checkpointErrorOutcome
     let checkpointError = checkpointErrorOutcome.value()
-    Swag.assert(refuses(checkpointError))
+    Swag.require(refuses(checkpointError))
     var passwordErrorOutcome: Swag.Error
     catch volume.changePassword(testPassword(), secondPassword()) as passwordErrorOutcome
     let passwordError = passwordErrorOutcome.value()
-    Swag.assert(refuses(passwordError))
+    Swag.require(refuses(passwordError))
     var addPasswordErrorOutcome: Swag.Error
     discard catch volume.addPassword(secondPassword()) as addPasswordErrorOutcome
     let addPasswordError = addPasswordErrorOutcome.value()
-    Swag.assert(refuses(addPasswordError))
+    Swag.require(refuses(addPasswordError))
     var removePasswordErrorOutcome: Swag.Error
     catch volume.removePassword(testPassword()) as removePasswordErrorOutcome
     let removePasswordError = removePasswordErrorOutcome.value()
-    Swag.assert(refuses(removePasswordError))
+    Swag.require(refuses(removePasswordError))
 
     // And nothing was staged either: a read-only mount that quietly marked the container dirty
     // would try to write it back the moment it closed.
-    Swag.assert(not volume.dirty and not volume.hasPendingChanges())
-    Swag.assert(volume.keySlotMask == originalKeySlots)
+    Swag.require(not volume.dirty and not volume.hasPendingChanges())
+    Swag.require(volume.keySlotMask == originalKeySlots)
 }

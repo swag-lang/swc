@@ -16,7 +16,7 @@ func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
         attempts += 1
     }
 
-    Swag.assert(not view.isLoading())
+    Swag.require(not view.isLoading())
 }
 
 // Builds the binary viewer test surface after its background load completes.

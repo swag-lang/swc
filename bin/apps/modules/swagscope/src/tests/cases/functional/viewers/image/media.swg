@@ -22,14 +22,14 @@ using Core, Pixel, Gui, Viewers
     var found = false
     for row in data.rows where row.name == "Make" and row.value == "Camera" do
         found = true
-    Swag.assert(found)
+    Swag.require(found)
 
     var file       = expect File.MappedFile.open(fileName)
     let region     = expect file.mapAll()
     let pixelsOnly = expect Image.decode(fileName, region.bytes(), {decodeMetadata: false})
-    Swag.assert(pixelsOnly.isValid() and pixelsOnly.metadata.isEmpty())
+    Swag.require(pixelsOnly.isValid() and pixelsOnly.metadata.isEmpty())
     source.metadata[0].value = "\0II"
     var malformed: MediaInfoData
     malformed.addImageMetadata(source.metadata.toSlice())
-    Swag.assert(malformed.rows.count == 2 and malformed.rows[1].field == .Unavailable)
+    Swag.require(malformed.rows.count == 2 and malformed.rows[1].field == .Unavailable)
 }

@@ -22,17 +22,17 @@ func circularHeadlessChanged(_: *Circular)
     circ.sigChanged += &circularHeadlessChanged
 
     circ.setValue(50)
-    Swag.assert(Math.abs(circ.value() - 50) < 0.01)
-    Swag.assert(Math.abs(circ.lowerRatio - 0.5) < 0.01)
-    Swag.assert(CircularHeadlessChangedCount == 1)
+    Swag.require(Math.abs(circ.value() - 50) < 0.01)
+    Swag.require(Math.abs(circ.lowerRatio - 0.5) < 0.01)
+    Swag.require(CircularHeadlessChangedCount == 1)
 
     circ.setValue(25)
-    Swag.assert(Math.abs(circ.value() - 25) < 0.01)
-    Swag.assert(CircularHeadlessChangedCount == 2)
+    Swag.require(Math.abs(circ.value() - 25) < 0.01)
+    Swag.require(CircularHeadlessChangedCount == 2)
 
     // Same value again does not re-emit.
     circ.setValue(25)
-    Swag.assert(CircularHeadlessChangedCount == 2)
+    Swag.require(CircularHeadlessChangedCount == 2)
 }
 
 // A partial arc applies its start angle exactly once when positioning markers.
@@ -45,8 +45,8 @@ func circularHeadlessChanged(_: *Circular)
     circ.updateGeometry()
 
     let start = circ.positionAtAngle(circ.valueToAngle(0))
-    Swag.assert(start.x > circ.centerX)
-    Swag.assert(Math.abs(start.y - circ.centerY) < 0.01)
+    Swag.require(start.x > circ.centerX)
+    Swag.require(Math.abs(start.y - circ.centerY) < 0.01)
 }
 
 // A range circular keeps two ordered values.
@@ -61,7 +61,7 @@ func circularHeadlessChanged(_: *Circular)
     circ.setLowerValue(30)
     circ.setUpperValue(70)
 
-    Swag.assert(Math.abs(circ.lowerValue() - 30) < 0.01)
-    Swag.assert(Math.abs(circ.upperValue() - 70) < 0.01)
-    Swag.assert(circ.lowerRatio <= circ.upperRatio)
+    Swag.require(Math.abs(circ.lowerValue() - 30) < 0.01)
+    Swag.require(Math.abs(circ.upperValue() - 70) < 0.01)
+    Swag.require(circ.lowerRatio <= circ.upperRatio)
 }

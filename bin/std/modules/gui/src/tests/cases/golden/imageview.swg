@@ -26,8 +26,8 @@ using Swag, Core, Pixel
     view.rotateClockwise()
     view.mirrorHorizontally()
 
-    Swag.assert(view.image.width == 3 and view.image.height == 2)
-    Swag.assert(view.rotationQuarterTurns == 3 and view.isMirrored)
+    Swag.require(view.image.width == 3 and view.image.height == 2)
+    Swag.require(view.rotationQuarterTurns == 3 and view.isMirrored)
     var rendered = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&rendered, "imageview.transform")
 }

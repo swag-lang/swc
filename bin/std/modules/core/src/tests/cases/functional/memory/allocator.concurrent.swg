@@ -29,7 +29,7 @@ func pageCommitWorker(thread: const *Threading.Thread)
             var request: AllocatorRequest
             request.size = size
             shared.allocator.alloc(&request)
-            Swag.assert(request.address != null)
+            Swag.require(request.address != null)
             let bytes = cast([*] u8, request.address)
             bytes[0]        = cast(u8, i)
             bytes[size - 1] = cast(u8, (round & 255))
@@ -75,8 +75,8 @@ func pageCommitWorker(thread: const *Threading.Thread)
     {
         allocator.trim()
         let snapshot = allocator.stats()
-        Swag.assert(snapshot.countAlloc + snapshot.countFree <= snapshot.countPage * 4096)
-        Swag.assert(snapshot.sizeAlloc + snapshot.sizeCached <= snapshot.countPage * 512 * 1024)
+        Swag.require(snapshot.countAlloc + snapshot.countFree <= snapshot.countPage * 4096)
+        Swag.require(snapshot.sizeAlloc + snapshot.sizeCached <= snapshot.countPage * 512 * 1024)
         Threading.Thread.yield()
     }
 
@@ -85,8 +85,8 @@ func pageCommitWorker(thread: const *Threading.Thread)
 
     allocator.trim()
     let stats = allocator.stats()
-    Swag.assert(shared.errors == 0)
-    Swag.assert(stats.countAlloc == 0)
-    Swag.assert(stats.countPage == 0)
-    Swag.assert(stats.countSegment == 0)
+    Swag.require(shared.errors == 0)
+    Swag.require(stats.countAlloc == 0)
+    Swag.require(stats.countPage == 0)
+    Swag.require(stats.countSegment == 0)
 }

@@ -9,11 +9,11 @@ func assertViewerNativeBounds(surface: *Surface)
 {
     var bounds: RECT
     let measured = GetWindowRect(surface.win32Handle(), &bounds)
-    Swag.assert(measured)
-    Swag.assert(bounds.left == cast(s32, surface.position.x) and
-                bounds.top == cast(s32, surface.position.y) and
-                bounds.right == cast(s32, surface.position.right()) and
-                bounds.bottom == cast(s32, surface.position.bottom()))
+    Swag.require(measured)
+    Swag.require(bounds.left == cast(s32, surface.position.x) and
+                 bounds.top == cast(s32, surface.position.y) and
+                 bounds.right == cast(s32, surface.position.right()) and
+                 bounds.bottom == cast(s32, surface.position.bottom()))
 }
 
 // Optional capture pacing belongs to the observer, never to the placement implementation.
@@ -58,9 +58,9 @@ func observeViewerPlacement(app: *Application)
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(not expect cast(*Markdown.View, window.currentView).isLoading())
+    Swag.require(not expect cast(*Markdown.View, window.currentView).isLoading())
     let normal = surface.position
-    Swag.assert(not surface.isMaximized)
+    Swag.require(not surface.isMaximized)
     observeViewerPlacement(&app)
 
     for fromMaximized in [false, true, false, true, false, true]
@@ -75,24 +75,24 @@ func observeViewerPlacement(app: *Application)
         watch.restart()
         window.sendCommandEvent(ViewerCommands.FullScreen)
         Console.println("Full-screen entry (us): ", watch.elapsedMicroseconds())
-        Swag.assert(window.fullScreen and not surface.isMaximized)
-        Swag.assert(surface.position == Env.monitorForRectangle(normal).physicalBounds)
-        Swag.assert(IsWindowVisible(surface.win32Handle()))
+        Swag.require(window.fullScreen and not surface.isMaximized)
+        Swag.require(surface.position == Env.monitorForRectangle(normal).physicalBounds)
+        Swag.require(IsWindowVisible(surface.win32Handle()))
         observeViewerPlacement(&app)
         assertViewerNativeBounds(surface)
-        Swag.assert(window.currentView!.padding.y == 0 and window.documentHost.padding.y == 0)
+        Swag.require(window.currentView!.padding.y == 0 and window.documentHost.padding.y == 0)
 
         watch.restart()
         window.sendCommandEvent(ViewerCommands.FullScreen)
         Console.println("Full-screen exit (us): ", watch.elapsedMicroseconds())
-        Swag.assert(not window.fullScreen and surface.isMaximized == fromMaximized)
-        Swag.assert(surface.position == previous)
-        Swag.assert(IsWindowVisible(surface.win32Handle()))
+        Swag.require(not window.fullScreen and surface.isMaximized == fromMaximized)
+        Swag.require(surface.position == previous)
+        Swag.require(IsWindowVisible(surface.win32Handle()))
         observeViewerPlacement(&app)
         assertViewerNativeBounds(surface)
-        Swag.assert(window.currentView.padding.y == window.stripInset())
+        Swag.require(window.currentView.padding.y == window.stripInset())
         surface.showNormal()
-        Swag.assert(surface.position == normal)
+        Swag.require(surface.position == normal)
         observeViewerPlacement(&app)
     }
 }

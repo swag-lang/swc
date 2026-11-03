@@ -32,6 +32,6 @@ using Swag, Core
         f.main.editMode = .Shape
         f.main.updateState()
         f.gui.runFrames(1)
-        Swag.assert(countWindows(f.main) == baseline)
+        Swag.require(countWindows(f.main) == baseline)
     }
 }

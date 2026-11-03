@@ -10,11 +10,11 @@ using Core, Gui, Pixel
     defer catch Directory.delete(folder, recurse: true)
     let token = "aaa.bbb.cccccccccccccccc"
     let key   = "0123456789abcdef0123456789abcdef"
-    Swag.assert(validTMDBToken(token) and validTMDBKey(key))
+    Swag.require(validTMDBToken(token) and validTMDBKey(key))
     expect saveTMDBCredentials(folder, token, key, false)
-    Swag.assert(tmdbStoredCredential("tmdb.token", folder) == token)
-    Swag.assert(tmdbStoredCredential("tmdb.key", folder) == key)
+    Swag.require(tmdbStoredCredential("tmdb.token", folder) == token)
+    Swag.require(tmdbStoredCredential("tmdb.key", folder) == key)
     expect saveTMDBCredentials(folder, "", "", true)
-    Swag.assert(tmdbStoredCredential("tmdb.token", folder).isEmpty())
-    Swag.assert(tmdbStoredCredential("tmdb.key", folder).isEmpty())
+    Swag.require(tmdbStoredCredential("tmdb.token", folder).isEmpty())
+    Swag.require(tmdbStoredCredential("tmdb.key", folder).isEmpty())
 }

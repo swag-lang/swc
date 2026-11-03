@@ -52,13 +52,13 @@ impl IWnd for SettledPaintWnd
         view.paints  = 0
         view.animate = animated
         let image = host.renderSettled()
-        Swag.assert(image.pixelColor(20, 16) == (animated ? Argb.White : Argb.Black))
-        Swag.assert(view.paints == (animated ? 2 : 1), Format.toString("animated=% paints=% dirty=%", animated, view.paints, host.surface.isDirty).toString())
-        Swag.assert(host.app.animator.activeCount() == 0)
+        Swag.require(image.pixelColor(20, 16) == (animated ? Argb.White : Argb.Black))
+        Swag.require(view.paints == (animated ? 2 : 1), Format.toString("animated=% paints=% dirty=%", animated, view.paints, host.surface.isDirty).toString())
+        Swag.require(host.app.animator.activeCount() == 0)
 
         // A later explicit render still repaints: callers may be testing repaint/cache behavior.
         discard host.render()
-        Swag.assert(view.paints == (animated ? 3 : 2))
+        Swag.require(view.paints == (animated ? 3 : 2))
     }
 }
 
@@ -71,12 +71,12 @@ impl IWnd for SettledPaintWnd
     app.setRenderer(&cpu)
 
     let surface = expect app.createSurface(0, 0, 160, 96)
-    Swag.assert(not app.renderer.needsNativeWindow())
-    Swag.assert(not surface.hWnd)
+    Swag.require(not app.renderer.needsNativeWindow())
+    Swag.require(not surface.hWnd)
 
     surface.show()
     let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    Swag.assert(image.isValid() and image.width == surface.rc.width and image.height == surface.rc.height)
+    Swag.require(image.isValid() and image.width == surface.rc.width and image.height == surface.rc.height)
 }
 
 // A repaint is normally one control wide, and the tree it sits in is a whole window. A window
@@ -102,8 +102,8 @@ impl IWnd for SettledPaintWnd
     // The whole surface: every button is painted.
     host.surface.invalidate()
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.paintedWnds == Columns * Rows)
-    Swag.assert(host.surface.skippedWnds == 0)
+    Swag.require(host.surface.paintedWnds == Columns * Rows)
+    Swag.require(host.surface.skippedWnds == 0)
 
     // One button's rectangle, from a surface that is not already dirty: a widget that asks for
     // its own repaint while painting would otherwise widen the region this measures. The other
@@ -112,8 +112,8 @@ impl IWnd for SettledPaintWnd
     host.surface.isDirty = false
     host.surface.invalidateRect({4, 4, 70, 38})
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.paintedWnds + host.surface.skippedWnds == Columns * Rows)
-    Swag.assert(host.surface.paintedWnds < 12)
+    Swag.require(host.surface.paintedWnds + host.surface.skippedWnds == Columns * Rows)
+    Swag.require(host.surface.paintedWnds < 12)
 }
 
 // Rejecting a window on a tighter rectangle than the one it dirties would leave the difference
@@ -130,10 +130,10 @@ impl IWnd for SettledPaintWnd
     host.surface.isDirty = false
     host.surface.invalidateRect(button.paintExtent(button.surfaceRect()))
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.paintedWnds == 1 and host.surface.skippedWnds == 0)
+    Swag.require(host.surface.paintedWnds == 1 and host.surface.skippedWnds == 0)
 
     host.surface.isDirty = false
     host.surface.invalidateRect({0, 0, 8, 8})
     host.surface.paintWnd(&host.root)
-    Swag.assert(host.surface.paintedWnds == 0 and host.surface.skippedWnds == 1)
+    Swag.require(host.surface.paintedWnds == 0 and host.surface.skippedWnds == 1)
 }

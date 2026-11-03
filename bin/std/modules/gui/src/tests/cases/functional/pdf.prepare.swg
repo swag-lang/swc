@@ -13,5 +13,5 @@ using Core, Pixel, Pdf
     page.prepare(0)
     page.prepare(-1)
     let image = expect page.render({scale: 0.5, maxDimension: 8192})
-    Swag.assert(image.isValid())
+    Swag.require(image.isValid())
 }

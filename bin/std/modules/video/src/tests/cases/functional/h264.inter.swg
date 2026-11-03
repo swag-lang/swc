@@ -31,7 +31,7 @@ using Core
                 {
                     let index    = 1 + row * Stride + column
                     let expected = column < cast(u64, width) ? cast(u8, ((cast(u32, a[index]) + cast(u32, b[index]) + 1) >> 1)) : caseIndex == 0 ? 0xA5'u8 : caseIndex == 1 ? a[index] : b[index]
-                    Swag.assert(destination[index] == expected)
+                    Swag.require(destination[index] == expected)
                 }
             }
         }
@@ -143,9 +143,9 @@ impl InterReference
                     {
                         let got = predicted[cast(u64, (row * 16 + column))]
                         if column >= width do
-                            Swag.assert(got == 0x5A)
+                            Swag.require(got == 0x5A)
                         else do
-                            Swag.assert(got == reference.predict(x + column, y + row, fracX, fracY))
+                            Swag.require(got == reference.predict(x + column, y + row, fracX, fracY))
                     }
                 }
             }
@@ -213,7 +213,7 @@ impl ChromaReference
                             let got = predicted[cast(u64, (row * 16 + column))]
                             if column >= width
                             {
-                                Swag.assert(got == 0x5A)
+                                Swag.require(got == 0x5A)
                                 continue
                             }
 
@@ -221,7 +221,7 @@ impl ChromaReference
                             let py    = y + row
                             let value = (8 - fracX) * (8 - fracY) * reference.sample(px, py) + fracX * (8 - fracY) * reference.sample(px + 1, py) +
                                         (8 - fracX) * fracY * reference.sample(px, py + 1) + fracX * fracY * reference.sample(px + 1, py + 1)
-                            Swag.assert(got == cast(u8, ((value + 32) >> 6)))
+                            Swag.require(got == cast(u8, ((value + 32) >> 6)))
                         }
                     }
                 }
@@ -261,7 +261,7 @@ impl ChromaReference
                     {
                         let got      = predicted[cast(u64, (1 + row * 21 + column))]
                         let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A'u8
-                        Swag.assert(got == expected)
+                        Swag.require(got == expected)
                     }
                 }
             }
@@ -310,8 +310,8 @@ impl ChromaReference
                 H264.mcChroma(expectedB.buffer, 16, &frame, 0, x, y, fracX, fracY, width, height)
                 H264.mcChroma(expectedR.buffer, 16, &frame, 1, x, y, fracX, fracY, width, height)
                 H264.mcChromaPair(pairB.buffer, pairR.buffer, 16, &frame, x, y, fracX, fracY, width, height)
-                Swag.assert(Memory.compare(expectedB.buffer, pairB.buffer, pairB.count) == 0)
-                Swag.assert(Memory.compare(expectedR.buffer, pairR.buffer, pairR.count) == 0)
+                Swag.require(Memory.compare(expectedB.buffer, pairB.buffer, pairB.count) == 0)
+                Swag.require(Memory.compare(expectedR.buffer, pairR.buffer, pairR.count) == 0)
             }
         }
     }

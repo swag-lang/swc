@@ -8,9 +8,9 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     let absent = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
     for face in absent do
-        Swag.assert(face == null)
+        Swag.require(face == null)
     let absentAgain = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501"])
-    Swag.assert(absent == absentAgain)
+    Swag.require(absent == absentAgain)
 
     let installed = FontFamily.enumerateSystemFonts()
     if not installed.isEmpty()
@@ -18,7 +18,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         let name     = installed[0].name.toString()
         let direct   = MarkdownText.systemFaces([name])
         let fallback = MarkdownText.systemFaces(["Swag Scope unavailable font family 794501", name])
-        Swag.assert(direct == fallback)
+        Swag.require(direct == fallback)
     }
 }
 
@@ -32,12 +32,12 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     completeQueuedViewerFile(&host, window)
 
     let actions = unwrap window.currentActions
-    Swag.assert(actions.parent == window.readingLine and actions.isLocallyVisible())
-    Swag.assert(window.currentCommands == null)
+    Swag.require(actions.parent == window.readingLine and actions.isLocallyVisible())
+    Swag.require(window.currentCommands == null)
     window.revealViewerBar()
-    Swag.assert(not window.viewerBar.isLocallyVisible())
+    Swag.require(not window.viewerBar.isLocallyVisible())
     let options = assume cast(*IconButton, actions.children[0])
-    Swag.assert(options.arrowPosition == .RightDownward)
+    Swag.require(options.arrowPosition == .RightDownward)
 }
 
 internal func markdownFixturePath()->String       => scopeTestDataPath("comprehensive.md")
@@ -59,37 +59,37 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     let firstZoom     = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
     let firstMarkdown = assume cast(*Markdown.View, first.view)
     assertViewerInfoButton(firstZoom)
-    Swag.assert(first.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(first.info.preferredSize.x == Viewer.ZoomSlotWidth)
 
     var options: OptionSheet.Page
     MarkdownText.describeOptions(&options, firstMarkdown, firstZoom)
-    Swag.assert(options.rows[0].value == MarkdownText.texts().ui_Wide and options.rows[1].value == "Night")
+    Swag.require(options.rows[0].value == MarkdownText.texts().ui_Wide and options.rows[1].value == "Night")
 
     host.activateOptionRowWhenShown(MarkdownText.texts().ui_Width)
     host.thenActivateOptionRow(MarkdownText.texts().ui_Narrow)
     host.thenActivateOptionRow(MarkdownText.texts().ui_Theme)
     host.thenActivateOptionRow("Whitey")
     MarkdownText.showOptions(firstOptions, firstMarkdown, firstZoom)
-    Swag.assert(host.autoHandled and firstMarkdown.hasFocus())
-    Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
+    Swag.require(host.autoHandled and firstMarkdown.hasFocus())
+    Swag.require(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
 
     var second = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
     var secondOptions: OptionSheet.Page
     MarkdownText.describeOptions(&secondOptions, assume cast(*Markdown.View, second.view), assume cast(*MarkdownText.ZoomButton, second.info!.children[0]))
-    Swag.assert(secondOptions.rows[0].value == MarkdownText.texts().ui_Narrow and secondOptions.rows[1].value == "Whitey")
+    Swag.require(secondOptions.rows[0].value == MarkdownText.texts().ui_Narrow and secondOptions.rows[1].value == "Whitey")
 
     let oldWidth = String.from(MarkdownText.texts().ui_Narrow)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     var translated: OptionSheet.Page
     MarkdownText.describeOptions(&translated, firstMarkdown, firstZoom)
-    Swag.assert(translated.rows[0].value == MarkdownText.texts().ui_Narrow and translated.rows[0].value.raw != oldWidth)
-    Swag.assert(firstOptions.toolTip == "Options")
-    Swag.assert(firstZoom.toolTip == MarkdownText.texts().ui_ZoomMenu)
-    Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
+    Swag.require(translated.rows[0].value == MarkdownText.texts().ui_Narrow and translated.rows[0].value.raw != oldWidth)
+    Swag.require(firstOptions.toolTip == "Options")
+    Swag.require(firstZoom.toolTip == MarkdownText.texts().ui_ZoomMenu)
+    Swag.require(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(oldWidth == MarkdownText.texts().ui_Narrow)
+    Swag.require(oldWidth == MarkdownText.texts().ui_Narrow)
 }
 
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.
@@ -100,8 +100,8 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
 
     let fileName = Gui.Testing.tempFilePath("scope-markdown-missing-", ".md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view == null and result.commands == null)
-    Swag.assert(not result.failureReason.isEmpty())
+    Swag.require(result.view == null and result.commands == null)
+    Swag.require(not result.failureReason.isEmpty())
 }
 
 #test
@@ -122,28 +122,28 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
 
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)
     let wnd    = result.view
-    Swag.assert(wnd != null)
-    Swag.assert(result.actions != null)
-    Swag.assert(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
-    Swag.assert(result.isLoading != null and result.isLoading())
-    Swag.assert(Utf8.contains(result.details, "Markdown"))
+    Swag.require(wnd != null)
+    Swag.require(result.actions != null)
+    Swag.require(result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.require(result.isLoading != null and result.isLoading())
+    Swag.require(Utf8.contains(result.details, "Markdown"))
     let commands = result.actions
     commands.applyLayout()
 
     // Pointer use of the document options must return focus to the Markdown canvas once the sheet
     // closes, leaving navigation keys attached to the document.
     let optionsButton = assume cast(*IconButton, commands.children[0])
-    Swag.assert(assume cast(*Markdown.View, wnd).hasFocus())
+    Swag.require(assume cast(*Markdown.View, wnd).hasFocus())
     host.activateOptionRowWhenShown(MarkdownText.texts().ui_Width)
     host.clickWnd(optionsButton)
-    Swag.assert(host.autoHandled)
-    Swag.assert(assume cast(*Markdown.View, wnd).hasFocus() and not optionsButton.hasFocus())
+    Swag.require(host.autoHandled)
+    Swag.require(assume cast(*Markdown.View, wnd).hasFocus() and not optionsButton.hasFocus())
 
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading() do
         host.fireTimers()
-    Swag.assert(not result.isLoading())
-    Swag.assert(assume cast(*Markdown.View, wnd).hasUnloadedSource())
+    Swag.require(not result.isLoading())
+    Swag.require(assume cast(*Markdown.View, wnd).hasUnloadedSource())
 }
 
 // Reveals a marker beyond the initial resident window of a multi-megabyte Markdown document while
@@ -156,7 +156,7 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     let fixture       = expect File.readAllText(markdownFixturePath())
     let query         = "distant markdown verification marker"
     let fixtureOffset = Utf8.indexOf(fixture, query)
-    Swag.assert(fixtureOffset != Swag.U64.Max)
+    Swag.require(fixtureOffset != Swag.U64.Max)
     var source: String
     for 32_000 do
         source += "## Streamed section\n\nA paragraph remains outside the resident window.\n\n"
@@ -164,7 +164,7 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     source += fixture
     for 8_000 do
         source += "A trailing paragraph keeps the document large.\n\n"
-    Swag.assert(source.length >= 2 * 1024 * 1024)
+    Swag.require(source.length >= 2 * 1024 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -176,7 +176,7 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     }
 
     let revealed = view.revealFileOffset(offset, query)
-    Swag.assert(revealed)
+    Swag.require(revealed)
 
     var found:  bool
     var bounds: Math.Rectangle
@@ -186,16 +186,16 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
         found = view.searchMatchRect(&bounds)
     }
 
-    Swag.assert(found and not bounds.isEmpty())
-    Swag.assert(view.hasUnloadedSource())
-    Swag.assert(view.loadedDocumentHeight() > view.documentStyle.topInset)
+    Swag.require(found and not bounds.isEmpty())
+    Swag.require(view.hasUnloadedSource())
+    Swag.require(view.loadedDocumentHeight() > view.documentStyle.topInset)
     let revealedBounds = bounds
     for 64 do
         host.fireTimers()
-    Swag.assert(view.searchMatchRect(&bounds))
-    Swag.assert(Math.abs(bounds.y - revealedBounds.y) < 1)
+    Swag.require(view.searchMatchRect(&bounds))
+    Swag.require(Math.abs(bounds.y - revealedBounds.y) < 1)
     view.clearSearchHighlight()
-    Swag.assert(not view.searchMatchRect(&bounds))
+    Swag.require(not view.searchMatchRect(&bounds))
 }
 
 // Exercises every shipped appearance headlessly, including page color, typography, reading
@@ -214,19 +214,19 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
         MarkdownText.applyViewerStyle(view, themeIndex, 1)
         view.applyLayout()
         view.computeStyle()
-        Swag.assert(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
-        Swag.assert(view.documentStyle.lineHeight >= 1.5)
+        Swag.require(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
+        Swag.require(view.documentStyle.lineHeight >= 1.5)
         if themeIndex == 5
         {
-            Swag.assert(view.documentStyle.headingAlignment == .Center)
-            Swag.assert(view.documentStyle.headingFontStyles[0] == .Regular)
-            Swag.assert(view.documentStyle.headingFontStyles[1] == .Regular)
-            Swag.assert(view.documentStyle.headingFontStyles[2] == .Italic)
+            Swag.require(view.documentStyle.headingAlignment == .Center)
+            Swag.require(view.documentStyle.headingFontStyles[0] == .Regular)
+            Swag.require(view.documentStyle.headingFontStyles[1] == .Regular)
+            Swag.require(view.documentStyle.headingFontStyles[2] == .Italic)
         }
 
         Testing.assertContentFits(view)
         var image = host.render(view)
-        Swag.assert(image.isValid())
+        Swag.require(image.isValid())
         view.destroy()
     }
 }

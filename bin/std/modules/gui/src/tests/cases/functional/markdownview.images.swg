@@ -26,7 +26,7 @@ using Swag, Core, Pixel
     discard host.render(view)
     let inline = unwrap view.blocks[0].inline
     let html   = unwrap view.blocks[1].html
-    Swag.assert(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
+    Swag.require(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
     let inlinePixels = cast(u64, inline.images.entries[0].image.pixels.buffer)
     let htmlPixels   = cast(u64, html.images.entries[0].image.pixels.buffer)
 
@@ -38,12 +38,12 @@ using Swag, Core, Pixel
     host.fireTimer(view.loadTimer)
     for 64 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(view.retainedBlocks.isEmpty())
+    Swag.require(view.retainedBlocks.isEmpty())
     let newInline = unwrap view.blocks[0].inline
     let newHtml   = unwrap view.blocks[1].html
-    Swag.assert(newInline.images.entries[0].uploaded and newHtml.images.entries[0].uploaded)
-    Swag.assert(cast(u64, newInline.images.entries[0].image.pixels.buffer) == inlinePixels)
-    Swag.assert(cast(u64, newHtml.images.entries[0].image.pixels.buffer) == htmlPixels)
+    Swag.require(newInline.images.entries[0].uploaded and newHtml.images.entries[0].uploaded)
+    Swag.require(cast(u64, newInline.images.entries[0].image.pixels.buffer) == inlinePixels)
+    Swag.require(cast(u64, newHtml.images.entries[0].image.pixels.buffer) == htmlPixels)
 }
 
 // An embedded HTML canvas keeps its own scroll fixed, but still follows the outer Markdown
@@ -69,21 +69,21 @@ using Swag, Core, Pixel
     view.applyLayout()
     let html = unwrap view.blocks[20].html
     view.scroll.setScrollPos(0, html.position.y - 40)
-    Swag.assert(view.scroll.scrollPosition().y > 240)
-    Swag.assert(html.canvas.surfaceRect().y == html.surfaceRect().y)
+    Swag.require(view.scroll.scrollPosition().y > 240)
+    Swag.require(html.canvas.surfaceRect().y == html.surfaceRect().y)
 
     // JIT submissions run on the caller, so a gated body would block before submit returns.
     // Its first frame still paints the loading state; the next frame publishes the image.
     if Swag.jit()
     {
         discard host.render(view)
-        Swag.assert(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
-        Swag.assert(host.surface.isDirty)
+        Swag.require(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
+        Swag.require(host.surface.isDirty)
         for parsing in html.images.parsing do
             parsing.task.wait()
         host.surface.paintWnd(view)
-        Swag.assert(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
-        Swag.assert(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
+        Swag.require(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
+        Swag.require(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
         return
     }
 
@@ -106,21 +106,21 @@ using Swag, Core, Pixel
 
     started.acquire()
     discard host.render(view)
-    Swag.assert(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
+    Swag.require(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
 
     // The surface loop consumes only the region the loading image invalidated.
     for 4
     {
-        Swag.assert(host.surface.isDirty)
+        Swag.require(host.surface.isDirty)
         let phase = html.images.loadingPhase
         host.surface.paintWnd(view)
-        Swag.assert(html.images.loadingPhase != phase)
+        Swag.require(html.images.loadingPhase != phase)
     }
 
     gate.release()
     parsing.task.wait()
     host.surface.paintWnd(view)
-    Swag.assert(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
+    Swag.require(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
 }
 
 // Parsing survives entry-array growth and prepares no software bitmap. Paint uses the
@@ -137,28 +137,28 @@ using Swag, Core, Pixel
     cache.asynchronous = true
 
     let pending = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(pending == null and not cache.parsing.isEmpty() and not cache.entries[0].uploaded)
+    Swag.require(pending == null and not cache.parsing.isEmpty() and not cache.entries[0].uploaded)
     for index in 64 do
         discard cache.fetch(Format.toString("missing-image-%.png", index).toString())
     cache.parsing[0].task.wait()
-    Swag.assert(cache.parsing[0].drawing.shapeCount() == 1 and not cache.entries[0].image.isValid())
+    Swag.require(cache.parsing[0].drawing.shapeCount() == 1 and not cache.entries[0].image.isValid())
     let ready = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(ready != null and cache.parsing.isEmpty() and cache.entries[0].uploaded)
-    Swag.assert(cache.entries[0].image.width == 120)
+    Swag.require(ready != null and cache.parsing.isEmpty() and cache.entries[0].uploaded)
+    Swag.require(cache.entries[0].image.width == 120)
 
     let larger = cache.texture(host.app.renderer, fileName.toString(), 240, 120)
-    Swag.assert(larger != null and cache.parsing.isEmpty() and cache.entries[0].image.width == 240)
+    Swag.require(larger != null and cache.parsing.isEmpty() and cache.entries[0].image.width == 240)
     let pixels  = cast(u64, cache.entries[0].image.pixels.buffer)
     let smaller = cache.texture(host.app.renderer, fileName.toString(), 60, 30)
-    Swag.assert(smaller != null and cache.parsing.isEmpty())
-    Swag.assert(cast(u64, cache.entries[0].image.pixels.buffer) == pixels)
+    Swag.require(smaller != null and cache.parsing.isEmpty())
+    Swag.require(cast(u64, cache.entries[0].image.pixels.buffer) == pixels)
 
     cache.clear()
     discard cache.texture(host.app.renderer, fileName.toString(), 480, 240)
     cache.clear()
-    Swag.assert(cache.parsing.isEmpty() and cache.entries.isEmpty() and cache.index.isEmpty())
+    Swag.require(cache.parsing.isEmpty() and cache.entries.isEmpty() and cache.index.isEmpty())
     discard cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(not cache.parsing.isEmpty())
+    Swag.require(not cache.parsing.isEmpty())
 }
 
 // A gallery publishes a light image while an earlier photograph is still decoding.
@@ -215,15 +215,15 @@ using Swag, Core, Pixel
     for 4 do
         started.acquire()
     let duplicate = cache.texture(host.app.renderer, sources[0].toString(), 120, 60)
-    Swag.assert(duplicate == null and cache.parsing.count == 4)
+    Swag.require(duplicate == null and cache.parsing.count == 4)
     let saturated = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)
-    Swag.assert(saturated == null and cache.parsing.count == 4)
+    Swag.require(saturated == null and cache.parsing.count == 4)
     fastGate.release()
     cache.parsing[1].task.wait()
     let ready = cache.texture(host.app.renderer, sources[1].toString(), 120, 60)
-    Swag.assert(ready != null and cache.parsing.count == 3 and not cache.entries[0].uploaded)
+    Swag.require(ready != null and cache.parsing.count == 3 and not cache.entries[0].uploaded)
     let next = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)
-    Swag.assert(next == null and cache.parsing.count == 4)
+    Swag.require(next == null and cache.parsing.count == 4)
 }
 
 // File preparation publishes dimensions without decoding SVG contents. A later read failure
@@ -249,16 +249,16 @@ using Swag, Core, Pixel
         view.imageTask.wait()
     }
 
-    Swag.assert(view.blocks.count == 1)
+    Swag.require(view.blocks.count == 1)
     let cache = &view.blocks[0].inline!.images
-    Swag.assert(cache.entries[0].needsParsing and cache.entries[0].loaded)
-    Swag.assert(cache.entries[0].drawing.shapeCount() == 0)
+    Swag.require(cache.entries[0].needsParsing and cache.entries[0].loaded)
+    Swag.require(cache.entries[0].drawing.shapeCount() == 0)
     expect File.delete(imagePath)
     discard host.render(view)
-    Swag.assert(not cache.parsing.isEmpty())
+    Swag.require(not cache.parsing.isEmpty())
     cache.parsing[0].task.wait()
     discard host.render(view)
-    Swag.assert(cache.parsing.isEmpty() and not cache.entries[0].loaded)
+    Swag.require(cache.parsing.isEmpty() and not cache.entries[0].loaded)
     discard host.render(view)
-    Swag.assert(cache.parsing.isEmpty() and cache.entries.count == 1)
+    Swag.require(cache.parsing.isEmpty() and cache.entries.count == 1)
 }

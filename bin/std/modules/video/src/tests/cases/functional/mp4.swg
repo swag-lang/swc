@@ -39,10 +39,10 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg.mp4"))
-    Swag.assert(reader.width() == 64 and reader.height() == 48)
-    Swag.assert(reader.frameCount() == 10)
-    Swag.assert(reader.frameRate() == expect FrameRate.create(12_800, 512))
-    Swag.assert(Math.isEqualEpsilon(reader.durationInSeconds(), 0.4, 0.0001))
+    Swag.require(reader.width() == 64 and reader.height() == 48)
+    Swag.require(reader.frameCount() == 10)
+    Swag.require(reader.frameRate() == expect FrameRate.create(12_800, 512))
+    Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 0.4, 0.0001))
 
     const Frames: [3] u64 = [9, 0, 5]
     var frame: Image
@@ -67,9 +67,9 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     options.quality = 85
     let bytes  = expect clip.encodeToBytes("clip.mp4", options)
     var reader = expect Reader.openMemory("clip.mp4", bytes.toSlice())
-    Swag.assert(reader.width() == Size and reader.height() == Size)
-    Swag.assert(reader.frameRate() == rate and reader.frameCount() == 3)
-    Swag.assert(reader.streamFormat().extensions == ".mp4;.m4v;.mov")
+    Swag.require(reader.width() == Size and reader.height() == Size)
+    Swag.require(reader.frameRate() == rate and reader.frameCount() == 3)
+    Swag.require(reader.streamFormat().extensions == ".mp4;.m4v;.mov")
     videoAssertGray((expect reader.decodeFrame(2)).pixelColor(16, 16), 220, tolerance: 8)
     videoAssertGray((expect reader.decodeFrame(0)).pixelColor(16, 16), 40, tolerance: 8)
 
@@ -78,13 +78,13 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     let raw       = bytes.toSlice()
     let mediaData = mp4FindTag(raw, "mdat") - 4
     let movie     = mp4FindTag(raw, "moov") - 4
-    Swag.assert(mp4FindTag(raw, "ftyp") == 4)
-    Swag.assert(mp4ReadU32(raw, mediaData) == 1)
-    Swag.assert(mp4ReadU64(raw, mediaData + 8) == movie - mediaData)
-    Swag.assert(mp4FindTag(raw, "stsd") < bytes.count and
-                mp4FindTag(raw, "mp4v") < bytes.count and
-                mp4FindTag(raw, "esds") < bytes.count)
-    Swag.assert(mp4FindTag(raw, "stsz") < bytes.count and mp4FindTag(raw, "co64") < bytes.count)
+    Swag.require(mp4FindTag(raw, "ftyp") == 4)
+    Swag.require(mp4ReadU32(raw, mediaData) == 1)
+    Swag.require(mp4ReadU64(raw, mediaData + 8) == movie - mediaData)
+    Swag.require(mp4FindTag(raw, "stsd") < bytes.count and
+                 mp4FindTag(raw, "mp4v") < bytes.count and
+                 mp4FindTag(raw, "esds") < bytes.count)
+    Swag.require(mp4FindTag(raw, "stsz") < bytes.count and mp4FindTag(raw, "co64") < bytes.count)
 }
 
 // The public MP4 options select the JPEG quality of every sample.
@@ -101,7 +101,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     high.quality = 100
     let coarse = expect clip.encodeToBytes("coarse.mp4", low)
     let fine   = expect clip.encodeToBytes("fine.mp4", high)
-    Swag.assert(coarse.count < fine.count)
+    Swag.require(coarse.count < fine.count)
 }
 
 // File-backed patching produces the same seekable stream as memory-backed patching.
@@ -117,7 +117,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     expect clip.save(fileName)
 
     var reader = expect Reader.open(fileName)
-    Swag.assert(reader.sourcePath() == fileName.toString())
+    Swag.require(reader.sourcePath() == fileName.toString())
     videoAssertGray((expect reader.decodeFrame(1)).pixelColor(8, 8), 192, tolerance: 8)
 }
 
@@ -129,20 +129,20 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     var truncatedOutcome: Swag.Error
     discard catch Reader.openMemory("short.mp4", fixture.toSlice()[0 until 96]) as truncatedOutcome
     let truncated = truncatedOutcome.value()
-    Swag.assert((truncated is InvalidFormatError))
+    Swag.require((truncated is InvalidFormatError))
 
     var unsupported = fixture
     let descriptor  = mp4FindTag(unsupported.toSlice(), "esds")
     var objectType  = descriptor + 4
     while objectType < unsupported.count and unsupported[objectType] != 0x6C do
         objectType += 1
-    Swag.assert(objectType < unsupported.count)
+    Swag.require(objectType < unsupported.count)
     unsupported[objectType] = 0x21
 
     var codecOutcome: Swag.Error
     discard catch Reader.openMemory("h264.mp4", unsupported.toSlice()) as codecOutcome
     let codec = codecOutcome.value()
-    Swag.assert((codec is UnsupportedFormatError))
+    Swag.require((codec is UnsupportedFormatError))
 }
 
 // A file-backed MP4 exposes its AAC-LC access units as a streamed std/audio track and keeps
@@ -150,13 +150,13 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
 #test
 {
     var reader = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
-    Swag.assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
+    Swag.require(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
     let sound = unwrap reader.audioTrack(0)
-    Swag.assert(sound.sampleEncoding() == .AacLc)
-    Swag.assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
-    Swag.assert(sound.packetCount() >= 18 and not sound.isDataPreloaded())
-    Swag.assert(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
-    Swag.assert(reader.frameAtTime(0.219) == 5)
+    Swag.require(sound.sampleEncoding() == .AacLc)
+    Swag.require(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
+    Swag.require(sound.packetCount() >= 18 and not sound.isDataPreloaded())
+    Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(5), 0.2, 0.000001))
+    Swag.require(reader.frameAtTime(0.219) == 5)
 }
 
 // A sample table states presentation durations, and a writer is free to spread them so a track's
@@ -165,14 +165,14 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
 #test
 {
     var reader = expect Reader.open(videoFixturePath("glint-aac-drift.mp4"))
-    Swag.assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
+    Swag.require(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
 
     let drifted = unwrap reader.audioTrack(0)
-    Swag.assert(drifted.sampleEncoding() == .AacLc)
-    Swag.assert(drifted.sampleRateHz() == 44_100 and drifted.numChannels() == 2)
+    Swag.require(drifted.sampleEncoding() == .AacLc)
+    Swag.require(drifted.sampleRateHz() == 44_100 and drifted.numChannels() == 2)
 
     var steady = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
     let even   = unwrap steady.audioTrack(0)
-    Swag.assert(drifted.packetCount() == even.packetCount())
-    Swag.assert(drifted.sampleFrameCount() == even.sampleFrameCount())
+    Swag.require(drifted.packetCount() == even.packetCount())
+    Swag.require(drifted.sampleFrameCount() == even.sampleFrameCount())
 }

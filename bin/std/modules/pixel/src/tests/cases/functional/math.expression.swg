@@ -18,12 +18,12 @@ private func assertMathSyntaxError(source: string, contains: string, seek: u64)
     var errOutcome: Swag.Error
     discard catch MathExpression.parse(source) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert((err is Errors.SyntaxError))
+    Swag.require(err != null)
+    Swag.require((err is Errors.SyntaxError))
     let syntax = assume cast (*Errors.SyntaxError, err)
-    Swag.assert(syntax.seek == seek)
-    Swag.assert(syntax.message != null)
-    Swag.assert(Utf8.indexOf(syntax.message, contains) != Swag.U64.Max)
+    Swag.require(syntax.seek == seek)
+    Swag.require(syntax.message != null)
+    Swag.require(Utf8.indexOf(syntax.message, contains) != Swag.U64.Max)
 }
 
 private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rightKind: MathPathKind)
@@ -31,25 +31,25 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var expression = expect MathExpression.parse(source)
     discard expression.measure(font)
     let delimiters = expression.root.children[0]
-    Swag.assert(delimiters.kind == .Delimited)
-    Swag.assert(delimiters.paths.count == 2)
-    Swag.assert(delimiters.paths[0].kind == leftKind)
-    Swag.assert(delimiters.paths[1].kind == rightKind)
-    Swag.assert(delimiters.paths[0].rect.height > cast(f32, font.size))
-    Swag.assert(delimiters.paths[1].rect.height == delimiters.paths[0].rect.height)
+    Swag.require(delimiters.kind == .Delimited)
+    Swag.require(delimiters.paths.count == 2)
+    Swag.require(delimiters.paths[0].kind == leftKind)
+    Swag.require(delimiters.paths[1].kind == rightKind)
+    Swag.require(delimiters.paths[0].rect.height > cast(f32, font.size))
+    Swag.require(delimiters.paths[1].rect.height == delimiters.paths[0].rect.height)
 }
 
 #test
 {
     var expression = expect MathExpression.parse(#raw "x^2 + y_1 = \alpha")
 
-    Swag.assert(expression.sourceText() == #raw "x^2 + y_1 = \alpha")
-    Swag.assert(expression.nodeCount() >= 10)
-    Swag.assert(expression.root.kind == .Row)
-    Swag.assert(expression.root.children.count == 5)
-    Swag.assert(expression.root.children[0].kind == .Scripts)
-    Swag.assert(expression.root.children[2].kind == .Scripts)
-    Swag.assert(expression.root.children[4].text == "\u03B1")
+    Swag.require(expression.sourceText() == #raw "x^2 + y_1 = \alpha")
+    Swag.require(expression.nodeCount() >= 10)
+    Swag.require(expression.root.kind == .Row)
+    Swag.require(expression.root.children.count == 5)
+    Swag.require(expression.root.children[0].kind == .Scripts)
+    Swag.require(expression.root.children[2].kind == .Scripts)
+    Swag.require(expression.root.children[4].text == "\u03B1")
 }
 
 #test
@@ -77,11 +77,11 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
     let plainMetrics    = plain.measure(font)
     let scriptedMetrics = scripted.measure(font)
-    Swag.assert(plainMetrics.width > 0)
-    Swag.assert(plainMetrics.height() > 0)
-    Swag.assert(scriptedMetrics.width > plainMetrics.width)
-    Swag.assert(scriptedMetrics.ascent > plainMetrics.ascent)
-    Swag.assert(scriptedMetrics.descent > plainMetrics.descent)
+    Swag.require(plainMetrics.width > 0)
+    Swag.require(plainMetrics.height() > 0)
+    Swag.require(scriptedMetrics.width > plainMetrics.width)
+    Swag.require(scriptedMetrics.ascent > plainMetrics.ascent)
+    Swag.require(scriptedMetrics.descent > plainMetrics.descent)
 }
 
 #test
@@ -92,24 +92,24 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     discard original.measure(font)
     var copied = original
 
-    Swag.assert(copied.root != original.root)
-    Swag.assert(copied.nodes[0] != original.nodes[0])
-    Swag.assert(copied.nodeCount() == original.nodeCount())
-    Swag.assert(copied.sourceText() == original.sourceText())
+    Swag.require(copied.root != original.root)
+    Swag.require(copied.nodes[0] != original.nodes[0])
+    Swag.require(copied.nodeCount() == original.nodeCount())
+    Swag.require(copied.sourceText() == original.sourceText())
     var originalPathCount, copiedPathCount = 0'u64
     for nodeRef in original.nodes do
         originalPathCount += nodeRef!.paths.count
     for nodeRef in copied.nodes do
         copiedPathCount += nodeRef!.paths.count
-    Swag.assert(originalPathCount == 1)
-    Swag.assert(copiedPathCount == 0)
+    Swag.require(originalPathCount == 1)
+    Swag.require(copiedPathCount == 0)
     let originalMetrics = original.measure(font)
     let copiedMetrics   = copied.measure(font)
-    Swag.assert(Math.isEqualEpsilon(originalMetrics.width, copiedMetrics.width, 0.001))
-    Swag.assert(Math.isEqualEpsilon(originalMetrics.height(), copiedMetrics.height(), 0.001))
+    Swag.require(Math.isEqualEpsilon(originalMetrics.width, copiedMetrics.width, 0.001))
+    Swag.require(Math.isEqualEpsilon(originalMetrics.height(), copiedMetrics.height(), 0.001))
     for nodeRef in copied.nodes do
         copiedPathCount += nodeRef!.paths.count
-    Swag.assert(copiedPathCount == 1)
+    Swag.require(copiedPathCount == 1)
 }
 
 #test
@@ -123,12 +123,12 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let simpleMetrics   = simple.measure(font)
     let fractionMetrics = fraction.measure(font)
     let binomialMetrics = binomial.measure(font)
-    Swag.assert(fractionMetrics.height() > simpleMetrics.height() * 1.5)
-    Swag.assert(fraction.root.children[0].kind == .Fraction)
-    Swag.assert(fraction.root.children[0].rules.count == 1)
-    Swag.assert(binomialMetrics.height() > simpleMetrics.height())
-    Swag.assert(binomial.root.children[0].kind == .Delimited)
-    Swag.assert(binomial.root.children[0].children[0].rules.isEmpty())
+    Swag.require(fractionMetrics.height() > simpleMetrics.height() * 1.5)
+    Swag.require(fraction.root.children[0].kind == .Fraction)
+    Swag.require(fraction.root.children[0].rules.count == 1)
+    Swag.require(binomialMetrics.height() > simpleMetrics.height())
+    Swag.require(binomial.root.children[0].kind == .Delimited)
+    Swag.require(binomial.root.children[0].children[0].rules.isEmpty())
 }
 
 #test
@@ -140,12 +140,12 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
     let squareMetrics  = square.measure(font)
     let indexedMetrics = indexed.measure(font)
-    Swag.assert(square.root.children[0].kind == .Radical)
-    Swag.assert(square.root.children[0].rules.isEmpty())
-    Swag.assert(square.root.children[0].paths.count == 1)
-    Swag.assert(square.root.children[0].paths[0].kind == .Radical)
-    Swag.assert(indexed.root.children[0].children.count == 2)
-    Swag.assert(indexedMetrics.ascent >= squareMetrics.ascent)
+    Swag.require(square.root.children[0].kind == .Radical)
+    Swag.require(square.root.children[0].rules.isEmpty())
+    Swag.require(square.root.children[0].paths.count == 1)
+    Swag.require(square.root.children[0].paths[0].kind == .Radical)
+    Swag.require(indexed.root.children[0].children.count == 2)
+    Swag.require(indexedMetrics.ascent >= squareMetrics.ascent)
 }
 
 #test
@@ -158,13 +158,13 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let fixedMetrics    = fixed.measure(font)
     let stretchyMetrics = stretchy.measure(font)
     let delimiters      = stretchy.root.children[0]
-    Swag.assert(delimiters.kind == .Delimited)
-    Swag.assert(delimiters.draws.isEmpty())
-    Swag.assert(delimiters.paths.count == 2)
-    Swag.assert(delimiters.paths[0].kind == .LeftParenthesis)
-    Swag.assert(delimiters.paths[1].kind == .RightParenthesis)
-    Swag.assert(stretchyMetrics.height() > fixedMetrics.height())
-    Swag.assert(delimiters.paths[0].rect.height > cast(f32, font.size))
+    Swag.require(delimiters.kind == .Delimited)
+    Swag.require(delimiters.draws.isEmpty())
+    Swag.require(delimiters.paths.count == 2)
+    Swag.require(delimiters.paths[0].kind == .LeftParenthesis)
+    Swag.require(delimiters.paths[1].kind == .RightParenthesis)
+    Swag.require(stretchyMetrics.height() > fixedMetrics.height())
+    Swag.require(delimiters.paths[0].rect.height > cast(f32, font.size))
 }
 
 #test
@@ -191,14 +191,14 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let displayMetrics  = display.measure(font, {style: .Display})
     let textMetrics     = text.measure(font, {style: .Text})
     let integralMetrics = integral.measure(font, {style: .Display})
-    Swag.assert(displayMetrics.height() > textMetrics.height())
-    Swag.assert(textMetrics.width > displayMetrics.width * 0.75)
-    Swag.assert(integralMetrics.width > 0)
+    Swag.require(displayMetrics.height() > textMetrics.height())
+    Swag.require(textMetrics.width > displayMetrics.width * 0.75)
+    Swag.require(integralMetrics.width > 0)
 
     let sumScripts = display.root.children[0]
     let intScripts = integral.root.children[0]
-    Swag.assert(sumScripts.offsets[1].x < sumScripts.children[0].metrics.width)
-    Swag.assert(intScripts.offsets[1].x >= intScripts.children[0].metrics.width)
+    Swag.require(sumScripts.offsets[1].x < sumScripts.children[0].metrics.width)
+    Swag.require(intScripts.offsets[1].x >= intScripts.children[0].metrics.width)
 }
 
 #test
@@ -216,10 +216,10 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let relationWidth = relation.measure(font).width
     let spacedWidth   = spaced.measure(font).width
     let negativeWidth = negative.measure(font).width
-    Swag.assert(binaryWidth > tightWidth)
-    Swag.assert(relationWidth > binaryWidth)
-    Swag.assert(spacedWidth > tightWidth + cast(f32, font.size) * 0.9)
-    Swag.assert(negativeWidth < tightWidth)
+    Swag.require(binaryWidth > tightWidth)
+    Swag.require(relationWidth > binaryWidth)
+    Swag.require(spacedWidth > tightWidth + cast(f32, font.size) * 0.9)
+    Swag.require(negativeWidth < tightWidth)
 }
 
 #test
@@ -234,16 +234,16 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let parenMetrics  = parenthesized.measure(font)
     let casesMetrics  = cases.measure(font)
     let matrixNode    = matrix.root.children[0]
-    Swag.assert(matrixNode.kind == .Matrix)
-    Swag.assert(matrixNode.rowLengths.count == 2)
-    Swag.assert(matrixNode.rowLengths[0] == 2)
-    Swag.assert(matrixNode.children.count == 4)
-    Swag.assert(matrixMetrics.width > 0 and matrixMetrics.height() > font.height)
-    Swag.assert(parenMetrics.width > matrixMetrics.width)
-    Swag.assert(casesMetrics.height() > font.height)
-    Swag.assert(parenthesized.root.children[0].paths.count == 2)
-    Swag.assert(cases.root.children[0].paths.count == 1)
-    Swag.assert(cases.root.children[0].paths[0].kind == .LeftBrace)
+    Swag.require(matrixNode.kind == .Matrix)
+    Swag.require(matrixNode.rowLengths.count == 2)
+    Swag.require(matrixNode.rowLengths[0] == 2)
+    Swag.require(matrixNode.children.count == 4)
+    Swag.require(matrixMetrics.width > 0 and matrixMetrics.height() > font.height)
+    Swag.require(parenMetrics.width > matrixMetrics.width)
+    Swag.require(casesMetrics.height() > font.height)
+    Swag.require(parenthesized.root.children[0].paths.count == 2)
+    Swag.require(cases.root.children[0].paths.count == 1)
+    Swag.require(cases.root.children[0].paths[0].kind == .LeftBrace)
 }
 
 #test
@@ -266,8 +266,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var accents      = expect MathExpression.parse(#raw "\hat{x}+\tilde{y}+\vec{v}+\dot{x}+\ddot{x}+\bar{q}+\overline{AB}+\underline{z}")
     let plainMetrics = plain.measure(font)
     let metrics      = accents.measure(font)
-    Swag.assert(metrics.width > 0)
-    Swag.assert(metrics.ascent > plainMetrics.ascent)
+    Swag.require(metrics.width > 0)
+    Swag.require(metrics.ascent > plainMetrics.ascent)
 
     var ruleCount, pathCount = 0'u64
     var sawHat, sawTilde, sawVector: bool
@@ -290,9 +290,9 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         }
     }
 
-    Swag.assert(ruleCount == 3)
-    Swag.assert(pathCount == 3)
-    Swag.assert(sawHat and sawTilde and sawVector)
+    Swag.require(ruleCount == 3)
+    Swag.require(pathCount == 3)
+    Swag.require(sawHat and sawTilde and sawVector)
 }
 
 #test
@@ -301,7 +301,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let font    = makeMathTestFont(&cache)
     var styled  = expect MathExpression.parse(#raw "\mathrm{d}x+\mathit{ABC}+\mathbf{x}+\boldsymbol{\alpha}+\text{for all }x")
     let metrics = styled.measure(font)
-    Swag.assert(metrics.width > 0)
+    Swag.require(metrics.width > 0)
 
     var sawRoman, sawItalic, sawBold, sawBoldItalic: bool
     for nodeRef in styled.nodes
@@ -319,7 +319,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
             sawBoldItalic = true
     }
 
-    Swag.assert(sawRoman and sawItalic and sawBold and sawBoldItalic)
+    Swag.require(sawRoman and sawItalic and sawBold and sawBoldItalic)
 }
 
 #test
@@ -347,9 +347,9 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let metrics = painter.drawMath(20, 30, &expression, font, Argb.MidnightBlue)
     painter.end()
 
-    Swag.assert(metrics.width > 0 and metrics.height() > 0)
-    Swag.assert(not painter.vertexBuffer.isEmpty())
-    Swag.assert(not painter.commandBuffer.isEmpty())
+    Swag.require(metrics.width > 0 and metrics.height() > 0)
+    Swag.require(not painter.vertexBuffer.isEmpty())
+    Swag.require(not painter.commandBuffer.isEmpty())
 }
 
 #test
@@ -377,7 +377,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         var expression     = expect MathExpression.parse(source)
         let oldVertexCount = painter.vertexBuffer.count
         painter.drawMath(0, cast(f32, idx) * 48, &expression, font, Argb.Black)
-        Swag.assert(painter.vertexBuffer.count > oldVertexCount)
+        Swag.require(painter.vertexBuffer.count > oldVertexCount)
     }
 
     painter.end()
@@ -395,7 +395,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     let err = errOutcome.value()
     painter.end()
 
-    Swag.assert(err == null)
-    Swag.assert(metrics.width > 0)
-    Swag.assert(metrics.height() > font.height)
+    Swag.require(err == null)
+    Swag.require(metrics.width > 0)
+    Swag.require(metrics.height() > font.height)
 }

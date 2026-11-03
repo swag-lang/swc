@@ -19,14 +19,14 @@ using Swag, Core
     view.resize(720, 1000)
     view.applyLayout()
     host.fireTimer(view.loadTimer)
-    Swag.assert(not view.blocks.isEmpty() and view.loadedDocumentHeight() < 1000)
+    Swag.require(not view.blocks.isEmpty() and view.loadedDocumentHeight() < 1000)
     host.mouseWheel({360, 240}, -1)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == 0 and view.waitingScroll)
+    Swag.require(view.scroll.scrollPosition().y == 0 and view.waitingScroll)
     for 64 where view.waitingScroll do
         host.fireTimer(view.loadTimer)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y > 0 and not view.waitingScroll)
+    Swag.require(view.scroll.scrollPosition().y > 0 and not view.waitingScroll)
 }
 
 // Wheel input before the first streaming tick must survive the initially empty scroll extent.
@@ -47,19 +47,19 @@ using Swag, Core
         let view = Markdown.View.createFile(&host.root, fileName)
         view.resize(720, 1000)
         view.applyLayout()
-        Swag.assert(view.blocks.isEmpty() and view.isLoading())
+        Swag.require(view.blocks.isEmpty() and view.isLoading())
 
         let step = view.scroll.verticalScrollStep * 3
         for 3 do
             host.mouseWheel({360, 240}, -1)
-        Swag.assert(view.scroll.scrollPosition().y == 0)
+        Swag.require(view.scroll.scrollPosition().y == 0)
 
         // Do not wait for the prefetch reserve to finish before expecting the first movement.
         for 64 where view.scroll.scrollTarget().y == 0 and view.isLoading() do
             host.fireTimer(view.loadTimer)
         host.finishAnimations()
-        Swag.assert(Math.abs(view.scroll.scrollPosition().y - step * 3) <= 1)
-        Swag.assert(view.hasUnloadedSource())
+        Swag.require(Math.abs(view.scroll.scrollPosition().y - step * 3) <= 1)
+        Swag.require(view.hasUnloadedSource())
     }
 }
 
@@ -83,8 +83,8 @@ using Swag, Core
     for 64 where view.isLoading() do
         host.fireTimer(view.loadTimer)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y == 0 and not view.waitingScroll)
+    Swag.require(view.scroll.scrollPosition().y == 0 and not view.waitingScroll)
     host.mouseWheel({360, 240}, -1)
     host.finishAnimations()
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - view.scroll.verticalScrollStep * 3) <= 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - view.scroll.verticalScrollStep * 3) <= 1)
 }

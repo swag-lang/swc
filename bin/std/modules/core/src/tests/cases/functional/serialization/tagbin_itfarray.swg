@@ -98,14 +98,14 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, holder)
     buffer.makeLinear()
-    Swag.assert(buffer.toString().contains("core.test.tagbin-array-thing"))
+    Swag.require(buffer.toString().contains("core.test.tagbin-array-thing"))
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
     let loaded = expect decoder.readAll'TagBinArrayHolder(unwrap buffer.toSlice())
     defer releaseTagBinArrayHolder(loaded)
 
-    Swag.assert(loaded.things.count == 3)
+    Swag.require(loaded.things.count == 3)
     for it, i in loaded.things do
-        Swag.assert(it.value() == cast(s32, (10 + i)))
+        Swag.require(it.value() == cast(s32, (10 + i)))
 }
 
 // A dynamic object cannot fall back to its Swag type name.
@@ -122,8 +122,8 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var errOutcome: Swag.Error
     catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(Utf8.contains(Errors.message(err), "Serialization.TypeKey"))
+    Swag.require(err != null)
+    Swag.require(Utf8.contains(Errors.message(err), "Serialization.TypeKey"))
 }
 
 // A key shared by two concrete types is ambiguous and cannot reach the wire.
@@ -141,6 +141,6 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var errOutcome: Swag.Error
     catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(Utf8.contains(Errors.message(err), "does not resolve to one registered type"))
+    Swag.require(err != null)
+    Swag.require(Utf8.contains(Errors.message(err), "does not resolve to one registered type"))
 }

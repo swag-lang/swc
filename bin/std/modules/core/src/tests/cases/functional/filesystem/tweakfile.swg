@@ -25,10 +25,10 @@ struct TweakBeta
     tweak.registerFolder'TweakBeta(&beta)
 
     discard expect tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n")
-    Swag.assert(alpha.foo == 1)
-    Swag.assert(alpha.bar == 1)
-    Swag.assert(beta.bar == 2)
-    Swag.assert(beta.foo == 2)
+    Swag.require(alpha.foo == 1)
+    Swag.require(alpha.bar == 1)
+    Swag.require(beta.bar == 2)
+    Swag.require(beta.foo == 2)
 }
 
 #test
@@ -47,8 +47,8 @@ struct TweakBeta
     var err2Outcome: Swag.Error
     discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2Outcome
     let err2 = err2Outcome.value()
-    Swag.assert(err2 != null)
-    Swag.assert(err2 is Errors.SyntaxError)
+    Swag.require(err2 != null)
+    Swag.require(err2 is Errors.SyntaxError)
 }
 
 // A reference cycle that does not pass through the first reference is reported too.
@@ -68,7 +68,7 @@ struct TweakBeta
     var errOutcome: Swag.Error
     discard catch tweak.parse("/TweakLoop\nfirst $second\nsecond $third\nthird $second\n") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err is Errors.SyntaxError)
+    Swag.require(err is Errors.SyntaxError)
 }
 
 namespace TweakDeep
@@ -99,9 +99,9 @@ namespace TweakDeep
     tweak.registerFolder'TweakDeep.Palette(&palette)
 
     discard expect tweak.parse("/Sheet\nwidth 44\nheight 27.5\n/Palette\nmain 3\n")
-    Swag.assert(sheet.width == 44)
-    Swag.assert(sheet.height == 27.5)
-    Swag.assert(palette.main == 3)
+    Swag.require(sheet.width == 44)
+    Swag.require(sheet.height == 27.5)
+    Swag.require(palette.main == 3)
 }
 
 // Captured parser failures retain the domain message and one-based input line.
@@ -128,11 +128,11 @@ namespace TweakDeep
         var errorOutcome: Swag.Error
         discard catch tweak.parse(invalid.source) as errorOutcome
         let error = errorOutcome.value()
-        Swag.assert(error is Errors.SyntaxError)
-        Swag.assert(Errors.message(error) == invalid.message)
+        Swag.require(error is Errors.SyntaxError)
+        Swag.require(Errors.message(error) == invalid.message)
         let syntax = assume cast(const *Errors.SyntaxError, error)
-        Swag.assert(syntax.line == 2)
-        Swag.assert(alpha.foo == 0 and alpha.bar == 0)
+        Swag.require(syntax.line == 2)
+        Swag.require(alpha.foo == 0 and alpha.bar == 0)
     }
 }
 
@@ -149,10 +149,10 @@ namespace TweakDeep
     var errorOutcome: Swag.Error
     discard catch tweak.parse("/TweakAlpha\nfoo 1\n/Missing\nbar 2\n") as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is Errors.SyntaxError)
-    Swag.assert(Errors.message(error) == "unknown folder [[Missing]]")
+    Swag.require(error is Errors.SyntaxError)
+    Swag.require(Errors.message(error) == "unknown folder [[Missing]]")
     let syntax = assume cast(const *Errors.SyntaxError, error)
-    Swag.assert(syntax.line == 3)
-    Swag.assert(alpha.foo == 1 and alpha.bar == 0)
-    Swag.assert(beta.foo == 0 and beta.bar == 0)
+    Swag.require(syntax.line == 3)
+    Swag.require(alpha.foo == 1 and alpha.bar == 0)
+    Swag.require(beta.foo == 0 and beta.bar == 0)
 }

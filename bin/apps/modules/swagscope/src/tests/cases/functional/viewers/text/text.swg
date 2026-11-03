@@ -17,7 +17,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
             return
     }
 
-    Swag.assert(false, "text statistics did not settle")
+    Swag.require(false, "text statistics did not settle")
 }
 
 // Lines are counted in the units of their encoding: a byte 0x0A inside a wider character is not a
@@ -32,14 +32,14 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     expect File.writeAllBytes(fileName, bytes)
 
     var lines: Viewer.LineCounter
-    Swag.assert(lines.lineAt(fileName, 0, .Utf16Le, 2) == 1)
-    Swag.assert(lines.lineAt(fileName, 10, .Utf16Le, 2) == 2)
-    Swag.assert(lines.lineAt(fileName, 14, .Utf16Le, 2) == 3)
-    Swag.assert(lines.lineAt(fileName, 6, .Utf16Le, 2) == 1)
+    Swag.require(lines.lineAt(fileName, 0, .Utf16Le, 2) == 1)
+    Swag.require(lines.lineAt(fileName, 10, .Utf16Le, 2) == 2)
+    Swag.require(lines.lineAt(fileName, 14, .Utf16Le, 2) == 3)
+    Swag.require(lines.lineAt(fileName, 6, .Utf16Le, 2) == 1)
 
     // Read as UTF-32 BE from the start, the same bytes hold no line feed at all.
     lines.reset()
-    Swag.assert(lines.lineAt(fileName, 16, .Utf32Be) == 1)
+    Swag.require(lines.lineAt(fileName, 16, .Utf32Be) == 1)
 }
 
 // Basic text numbers its lines on demand, and the choice follows the reader to the next file.
@@ -49,20 +49,20 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     host.setup(800, 520)
     var result = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: &host.root)
     let view   = assume cast(*PlainText.Panel, result.view)
-    Swag.assert(not view.editor.flags.has(.LineNumbers))
+    Swag.require(not view.editor.flags.has(.LineNumbers))
 
     view.toggleLineNumbers()
     defer if view.lineNumbers do
         view.toggleLineNumbers()
-    Swag.assert(view.editor.flags.has(.LineNumbers))
+    Swag.require(view.editor.flags.has(.LineNumbers))
 
     // The options show both switches in the state the panel is in.
     var options: OptionSheet.Page
     view.describeOptions(&options)
-    Swag.assert(options.rows[0].kind == .Toggle and options.rows[0].checked == view.wrapping)
-    Swag.assert(options.rows[1].label == PlainText.texts().ui_Numbers and options.rows[1].checked)
+    Swag.require(options.rows[0].kind == .Toggle and options.rows[0].checked == view.wrapping)
+    Swag.require(options.rows[1].label == PlainText.texts().ui_Numbers and options.rows[1].checked)
     view.toggleWrap()
-    Swag.assert(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
+    Swag.require(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
     view.toggleWrap()
 }
 
@@ -76,60 +76,60 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let fileName = textViewerFixturePath()
     var result   = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null and result.info != null)
-    Swag.assert(result.revealMatch != null and
-                result.searchBounds != null and
-                result.clearSearch != null and
-                result.isLoading != null and
-                result.retire != null)
+    Swag.require(result.view != null and result.commands != null and result.info != null)
+    Swag.require(result.revealMatch != null and
+                 result.searchBounds != null and
+                 result.clearSearch != null and
+                 result.isLoading != null and
+                 result.retire != null)
 
     let view = assume cast(*PlainText.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
     finishTextStatistics(&host, view)
     let lineDetails = Format.toString(PlainText.texts().ui_Lines, view.statistics.lines)
-    Swag.assert(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
+    Swag.require(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
 
     var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent!(view.editor, &toggleWrap) and not view.wrapping)
+    Swag.require(view.hookOnChildEvent!(view.editor, &toggleWrap) and not view.wrapping)
 
     // Ctrl+Shift+W is not the wrap shortcut, whether the editor or the panel receives it.
     var shiftedChild = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
-    Swag.assert(not view.hookOnChildEvent(view.editor, &shiftedChild) and not view.wrapping)
+    Swag.require(not view.hookOnChildEvent(view.editor, &shiftedChild) and not view.wrapping)
     var shiftedPanel = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
     view.sendEvent(&shiftedPanel)
-    Swag.assert(not shiftedPanel.accepted and not view.wrapping)
+    Swag.require(not shiftedPanel.accepted and not view.wrapping)
     var panelWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
     view.sendEvent(&panelWrap)
-    Swag.assert(panelWrap.accepted and view.wrapping)
+    Swag.require(panelWrap.accepted and view.wrapping)
     view.sendEvent(&panelWrap)
-    Swag.assert(not view.wrapping)
+    Swag.require(not view.wrapping)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &zoomIn) and view.zoomPercent == 125)
+    Swag.require(view.hookOnChildEvent(view.editor, &zoomIn) and view.zoomPercent == 125)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &resetZoom) and view.zoomPercent == 100)
+    Swag.require(view.hookOnChildEvent(view.editor, &resetZoom) and view.zoomPercent == 100)
     view.applyEncoding(.Utf16Le)
     let changedDetails = view.detailsText()
     let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)
-    Swag.assert(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE", currentLine))
+    Swag.require(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE", currentLine))
 
     // The encoding is chosen among the options, from a page that checks the one in force.
     host.activateOptionRowWhenShown(PlainText.texts().ui_Encoding)
     host.thenActivateOptionRow("UTF-8")
     view.showOptions()
-    Swag.assert(host.autoHandled and view.encoding == .Utf8)
+    Swag.require(host.autoHandled and view.encoding == .Utf8)
     host.activateOptionRowWhenShown(PlainText.texts().ui_Wrap)
     view.showOptions()
-    Swag.assert(view.wrapping)
+    Swag.require(view.wrapping)
     view.toggleWrap()
 
     let oldEncoding = String.from(PlainText.texts().ui_Encoding)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.optionsButton.toolTip == "Options")
-    Swag.assert(oldEncoding != PlainText.texts().ui_Encoding)
-    Swag.assert(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
+    Swag.require(view.optionsButton.toolTip == "Options")
+    Swag.require(oldEncoding != PlainText.texts().ui_Encoding)
+    Swag.require(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
 }
 
 // Encoding changes are requests, even if an earlier worker already finished. Only the last
@@ -152,37 +152,37 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
         .applyLayout()
     }
 
-    Swag.assert(view.read.started and view.editor.text().isEmpty())
+    Swag.require(view.read.started and view.editor.text().isEmpty())
     view.applyEncoding(.Windows1252)
     view.applyEncoding(.Utf8)
     completeTextReads(&host, view)
     finishTextStatistics(&host, view)
-    Swag.assert(view.statistics.lines == 40_000)
+    Swag.require(view.statistics.lines == 40_000)
     let previousText = String.from(view.editor.text())
 
     view.applyEncoding(.Utf16Le)
-    Swag.assert(view.pendingSeek and view.editor.text() == previousText)
+    Swag.require(view.pendingSeek and view.editor.text() == previousText)
     view.loadNextChunk()
-    Swag.assert(view.read.started)
+    Swag.require(view.read.started)
     view.read.task.wait()
     view.applyEncoding(.Utf32Be)
     view.applyEncoding(.Windows1252)
-    Swag.assert(view.read.wasCancelled())
+    Swag.require(view.read.wasCancelled())
     discard host.render(view)
-    Swag.assert(view.editor.text() == previousText)
+    Swag.require(view.editor.text() == previousText)
     completeTextReads(&host, view)
-    Swag.assert(view.encoding == .Windows1252 and view.read.encoding == .Windows1252)
-    Swag.assert(Utf8.startsWith(view.editor.text(), "Plain text stays responsive"))
+    Swag.require(view.encoding == .Windows1252 and view.read.encoding == .Windows1252)
+    Swag.require(Utf8.startsWith(view.editor.text(), "Plain text stays responsive"))
     finishTextStatistics(&host, view)
-    Swag.assert(view.statistics.lines == 40_000)
-    Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+    Swag.require(view.statistics.lines == 40_000)
+    Swag.require(view.bytesRead - view.residentStart <= 256 * 1024)
 
     // Retirement cancels a queued read without waiting or publishing its result.
     discard view.revealOffset(source.length / 2, "")
     view.loadNextChunk()
-    Swag.assert(view.read.started)
+    Swag.require(view.read.started)
     discard view.retire()
-    Swag.assert(view.read.wasCancelled())
+    Swag.require(view.read.wasCancelled())
     view.read.task.wait()
 }
 
@@ -196,7 +196,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*PlainText.Panel, session.view)
-    Swag.assert(view.revealOffset(15, "needle"))
-    Swag.assert(not view.read.started and not view.pendingSeek)
-    Swag.assert(view.editor.selectedText() == "needle")
+    Swag.require(view.revealOffset(15, "needle"))
+    Swag.require(not view.read.started and not view.pendingSeek)
+    Swag.require(view.editor.selectedText() == "needle")
 }

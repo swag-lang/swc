@@ -32,13 +32,13 @@ using Core, Gui, Viewers
         writeReloadFile(fileName, source)
         for 8 where window.pendingFile.isEmpty() do
             pollFileWatch(&host, window)
-        Swag.assert(not window.pendingFile.isEmpty())
+        Swag.require(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
         for 64 where window.readingState.restoring do
             host.fireTimer(window.fileWatchTimer)
-        Swag.assert(window.choices[window.activeChoiceIndex].key == key)
-        Swag.assert(not window.readingState.restoring and window.currentView != null)
-        Swag.assert(window.fileWatch.current.size == source.length)
+        Swag.require(window.choices[window.activeChoiceIndex].key == key)
+        Swag.require(not window.readingState.restoring and window.currentView != null)
+        Swag.require(window.fileWatch.current.size == source.length)
 
         // Editors also save by renaming a new file over the original path.
         let replacement = Testing.tempFilePath("scope-replacement-", extension)
@@ -47,9 +47,9 @@ using Core, Gui, Viewers
         expect File.move(fileName, replacement)
         for 8 where window.pendingFile.isEmpty() do
             pollFileWatch(&host, window)
-        Swag.assert(not window.pendingFile.isEmpty())
+        Swag.require(not window.pendingFile.isEmpty())
         completeQueuedViewerFile(&host, window)
-        Swag.assert(window.fileWatch.current.size == 19)
+        Swag.require(window.fileWatch.current.size == 19)
     }
 }
 
@@ -82,17 +82,17 @@ using Core, Gui, Viewers
     var page     = Pdf.Page.create(320, 220)
     document.addPage(#move page)
     expect document.save(fileName)
-    Swag.assert(view.pageCount() == 2)
+    Swag.require(view.pageCount() == 2)
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(not window.pendingFile.isEmpty())
+    Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring do
         host.fireTimer(window.fileWatchTimer)
     let replacement = assume cast(*PdfDocument.Panel, window.currentView).pdfView
-    Swag.assert(replacement.pageCount() == 3 and replacement.pageIndex == 1)
-    Swag.assert(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
-    Swag.assert(replacement.pageLayout == .Single)
+    Swag.require(replacement.pageCount() == 3 and replacement.pageIndex == 1)
+    Swag.require(replacement.zoom == 1.5 and replacement.zoomMode == zoomMode)
+    Swag.require(replacement.pageLayout == .Single)
 }
 
 // A much shorter replacement must settle instead of repeatedly restoring an unreachable viewport.
@@ -116,7 +116,7 @@ using Core, Gui, Viewers
     discard host.render(view)
     for 128 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(originalScroll.scrollPosition().y > 10_000)
+    Swag.require(originalScroll.scrollPosition().y > 10_000)
 
     source.clear()
     for index in 400 do
@@ -124,7 +124,7 @@ using Core, Gui, Viewers
     writeReloadFile(fileName, source)
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
-    Swag.assert(not window.pendingFile.isEmpty())
+    Swag.require(not window.pendingFile.isEmpty())
     completeViewerWindowClassification(&host, window)
     for 128
     {
@@ -134,7 +134,7 @@ using Core, Gui, Viewers
     }
 
     let replacement = assume cast(*Markdown.View, window.currentView)
-    Swag.assert(not window.readingState.restoring and not replacement.isLoading())
+    Swag.require(not window.readingState.restoring and not replacement.isLoading())
     let scroll   = assume cast(*ScrollWnd, replacement.children[0])
     let position = scroll.scrollPosition()
     for 32
@@ -142,8 +142,8 @@ using Core, Gui, Viewers
         host.fireTimers()
         host.fireTimer(window.fileWatchTimer)
         host.finishAnimations()
-        Swag.assert(window.pendingFile.isEmpty() and not window.readingState.restoring)
-        Swag.assert(scroll.scrollPosition() == position and not replacement.isLoading())
+        Swag.require(window.pendingFile.isEmpty() and not window.readingState.restoring)
+        Swag.require(scroll.scrollPosition() == position and not replacement.isLoading())
     }
 }
 
@@ -154,10 +154,10 @@ using Core, Gui, Viewers
     a.size = 12
     var b = a
     b.lastWriteTime.year = 2026
-    Swag.assert(not ViewerFileWatch.sameFile(a, b))
+    Swag.require(not ViewerFileWatch.sameFile(a, b))
     b = a
     b.creationTime.year = 2026
-    Swag.assert(not ViewerFileWatch.sameFile(a, b))
+    Swag.require(not ViewerFileWatch.sameFile(a, b))
 }
 
 // Manual reload uses the same state transfer for a transformed, panned image.
@@ -182,20 +182,20 @@ using Core, Gui, Viewers
     completeQueuedViewerFile(&host, window)
     host.fireTimer(window.fileWatchTimer)
     let replacement = assume cast(*Picture.Panel, window.currentView).imageView
-    Swag.assert(not replacement.isFitted and replacement.zoom == 2)
-    Swag.assert(replacement.rotationQuarterTurns == 1 and replacement.isMirrored)
-    Swag.assert(replacement.panOffset == pan)
+    Swag.require(not replacement.isFitted and replacement.zoom == 2)
+    Swag.require(replacement.rotationQuarterTurns == 1 and replacement.isMirrored)
+    Swag.require(replacement.panOffset == pan)
 }
 
 // Counting follows decoded scalars, source lines, and Unicode whitespace across chunk boundaries.
 #test
 {
     var counter: TextStatisticsCounter
-    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
+    Swag.require(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
     counter.append("\uFEFF")
-    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
+    Swag.require(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
     counter.append("one two\r")
     counter.append("\nthree\u00a0four\nlast")
     let result = counter.finish()
-    Swag.assert(result.lines == 3 and result.words == 5 and result.characters == 24)
+    Swag.require(result.lines == 3 and result.words == 5 and result.characters == 24)
 }

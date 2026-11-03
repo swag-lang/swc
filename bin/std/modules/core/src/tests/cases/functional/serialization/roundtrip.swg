@@ -78,7 +78,7 @@ func sameRoundTrip(a, b: RoundTripOuter)->bool
         var decoder: Serialization.Decoder'Serialization.Read.Json
         let decoded = expect decoder.readAll'RoundTripOuter(json.toSlice())
         defer Memory.delete(decoded)
-        Swag.assert(sameRoundTrip(source, decoded[]))
+        Swag.require(sameRoundTrip(source, decoded[]))
     }
 }
 
@@ -94,5 +94,5 @@ func sameRoundTrip(a, b: RoundTripOuter)->bool
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
     let decoded = expect decoder.readAll'RoundTripOuter(bytes.toSlice())
     defer Memory.delete(decoded)
-    Swag.assert(sameRoundTrip(source, decoded[]))
+    Swag.require(sameRoundTrip(source, decoded[]))
 }

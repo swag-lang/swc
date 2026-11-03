@@ -29,27 +29,27 @@ using Core, Pixel, Gui, Viewers
 
     view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.8})
     view.loadNextChunk()
-    Swag.assert(view.read.started)
+    Swag.require(view.read.started)
     view.editor.setScrollPosition({0, 0})
-    Swag.assert(not view.pendingSeek and view.read.wasCancelled())
+    Swag.require(not view.pendingSeek and view.read.wasCancelled())
     completeTextReads(&host, view)
-    Swag.assert(view.residentStart == 0)
+    Swag.require(view.residentStart == 0)
 
     for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
     {
         let previousStart = view.residentStart
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
         view.loadNextChunk()
-        Swag.assert(view.read.started)
+        Swag.require(view.read.started)
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
         let requested = view.pendingSeekOffset
-        Swag.assert(view.pendingSeek and view.read.wasCancelled())
+        Swag.require(view.pendingSeek and view.read.wasCancelled())
         discard host.render(view)
-        Swag.assert(view.residentStart == previousStart)
+        Swag.require(view.residentStart == previousStart)
         completeTextReads(&host, view)
-        Swag.assert(not view.pendingSeek)
-        Swag.assert(view.residentStart <= requested and view.bytesRead >= requested)
-        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+        Swag.require(not view.pendingSeek)
+        Swag.require(view.residentStart <= requested and view.bytesRead >= requested)
+        Swag.require(view.bytesRead - view.residentStart <= 256 * 1024)
     }
 }
 
@@ -74,7 +74,7 @@ using Core, Pixel, Gui, Viewers
 
     discard host.render(view)
     view.updateEstimatedHeight()
-    Swag.assert(view.revealOffset(source.length / 2, ""))
+    Swag.require(view.revealOffset(source.length / 2, ""))
     discard host.render(view)
     view.updateEstimatedHeight()
     let viewport = view.editor.paddedClientRect()
@@ -88,9 +88,9 @@ using Core, Pixel, Gui, Viewers
         let previousStart = view.residentStart
         for 20 where not view.pendingSeek do
             view.editor.setScrollPosition(Math.Point{0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
-        Swag.assert(view.pendingSeek)
-        Swag.assert(view.editor.scrollPosition().y >= start + viewport.height * 3)
-        Swag.assert(view.editor.scrollPosition().y + viewport.height <= end - viewport.height * 3)
+        Swag.require(view.pendingSeek)
+        Swag.require(view.editor.scrollPosition().y >= start + viewport.height * 3)
+        Swag.require(view.editor.scrollPosition().y + viewport.height <= end - viewport.height * 3)
 
         // Continue without servicing the prefetch timer, through the previous resident edge.
         for 28
@@ -103,12 +103,12 @@ using Core, Pixel, Gui, Viewers
                 view.updateEstimatedHeight()
             }
 
-            Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1, Format.toString("forward=%, position=%, origin=%, height=%", forward, view.editor.scrollPosition().y, view.residentOffsetY, view.editor.loadedDocumentHeight()))
-            Swag.assert(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
+            Swag.require(view.editor.scrollPosition().y >= view.residentOffsetY - 1, Format.toString("forward=%, position=%, origin=%, height=%", forward, view.editor.scrollPosition().y, view.residentOffsetY, view.editor.loadedDocumentHeight()))
+            Swag.require(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
         }
 
-        Swag.assert(view.residentStart != previousStart)
-        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
+        Swag.require(view.residentStart != previousStart)
+        Swag.require(view.bytesRead - view.residentStart <= 256 * 1024 + 16 * 1024)
     }
 
     for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
@@ -116,9 +116,9 @@ using Core, Pixel, Gui, Viewers
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
         view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
         discard host.render(view)
-        Swag.assert(not view.pendingSeek)
-        Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1)
-        Swag.assert(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
-        Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024)
+        Swag.require(not view.pendingSeek)
+        Swag.require(view.editor.scrollPosition().y >= view.residentOffsetY - 1)
+        Swag.require(view.editor.scrollPosition().y + viewport.height <= view.residentOffsetY + view.editor.loadedDocumentHeight() + 1)
+        Swag.require(view.bytesRead - view.residentStart <= 256 * 1024)
     }
 }

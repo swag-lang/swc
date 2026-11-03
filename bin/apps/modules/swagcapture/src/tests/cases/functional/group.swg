@@ -15,51 +15,51 @@ using Swag, Core
     let c = testAddShape(f.capture, 40, 0, 10, 10)
 
     f.capture.selection.add(0)
-    Swag.assert(not f.capture.canGroup())
+    Swag.require(not f.capture.canGroup())
     f.capture.selection.add(1)
-    Swag.assert(f.capture.canGroup())
-    Swag.assert(not f.capture.canUngroup())
+    Swag.require(f.capture.canGroup())
+    Swag.require(not f.capture.canUngroup())
 
     f.capture.pushUndo(f.capture.newUndo(.Group))
-    Swag.assert(a.groups.count == 1)
-    Swag.assert(b.groups.count == 1)
-    Swag.assert(a.groups[0] == b.groups[0])
-    Swag.assert(c.groups.count == 0)
-    Swag.assert(f.capture.canUngroup())
+    Swag.require(a.groups.count == 1)
+    Swag.require(b.groups.count == 1)
+    Swag.require(a.groups[0] == b.groups[0])
+    Swag.require(c.groups.count == 0)
+    Swag.require(f.capture.canUngroup())
     let gid = a.groups[0]
 
     // Selecting a single member expands to every member of its group.
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.expandSelectionToGroups()
-    Swag.assert(f.capture.selection.count == 2)
-    Swag.assert(f.capture.selection.contains(0))
-    Swag.assert(f.capture.selection.contains(1))
+    Swag.require(f.capture.selection.count == 2)
+    Swag.require(f.capture.selection.contains(0))
+    Swag.require(f.capture.selection.contains(1))
 
     // A loose form stays alone.
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.expandSelectionToGroups()
-    Swag.assert(f.capture.selection.count == 1)
+    Swag.require(f.capture.selection.count == 1)
 
     f.capture.undo()
-    Swag.assert(a.groups.count == 0)
-    Swag.assert(b.groups.count == 0)
+    Swag.require(a.groups.count == 0)
+    Swag.require(b.groups.count == 0)
 
     // Redo reuses the same minted id instead of allocating a new one.
     f.capture.redo()
-    Swag.assert(a.groups[0] == gid)
-    Swag.assert(b.groups[0] == gid)
+    Swag.require(a.groups[0] == gid)
+    Swag.require(b.groups[0] == gid)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.selection.add(1)
     f.capture.pushUndo(f.capture.newUndo(.Ungroup))
-    Swag.assert(a.groups.count == 0)
-    Swag.assert(b.groups.count == 0)
+    Swag.require(a.groups.count == 0)
+    Swag.require(b.groups.count == 0)
     f.capture.undo()
-    Swag.assert(a.groups[0] == gid)
-    Swag.assert(b.groups[0] == gid)
+    Swag.require(a.groups[0] == gid)
+    Swag.require(b.groups[0] == gid)
 }
 
 // Nested groups: wrapping an existing group prepends a new outer id; ungrouping pops
@@ -86,36 +86,36 @@ using Swag, Core
     f.capture.pushUndo(f.capture.newUndo(.Group))
     let outer = a.groups[0]
 
-    Swag.assert(outer != inner)
-    Swag.assert(a.groups.count == 2)
-    Swag.assert(a.groups[0] == outer)
-    Swag.assert(a.groups[1] == inner)
-    Swag.assert(b.groups.count == 2)
-    Swag.assert(c.groups.count == 1)
-    Swag.assert(c.groups[0] == outer)
+    Swag.require(outer != inner)
+    Swag.require(a.groups.count == 2)
+    Swag.require(a.groups[0] == outer)
+    Swag.require(a.groups[1] == inner)
+    Swag.require(b.groups.count == 2)
+    Swag.require(c.groups.count == 1)
+    Swag.require(c.groups[0] == outer)
 
     // Any member selects the whole outer group.
     f.capture.selection.clear()
     f.capture.selection.add(2)
     f.capture.expandSelectionToGroups()
-    Swag.assert(f.capture.selection.count == 3)
+    Swag.require(f.capture.selection.count == 3)
 
     // Ungroup collapses the outer level, keeping the inner A+B group intact.
     f.capture.pushUndo(f.capture.newUndo(.Ungroup))
-    Swag.assert(a.groups.count == 1)
-    Swag.assert(a.groups[0] == inner)
-    Swag.assert(b.groups[0] == inner)
-    Swag.assert(c.groups.count == 0)
+    Swag.require(a.groups.count == 1)
+    Swag.require(a.groups[0] == inner)
+    Swag.require(b.groups[0] == inner)
+    Swag.require(c.groups.count == 0)
 
     f.capture.selection.clear()
     f.capture.selection.add(0)
     f.capture.expandSelectionToGroups()
-    Swag.assert(f.capture.selection.count == 2)
-    Swag.assert(f.capture.selection.contains(1))
+    Swag.require(f.capture.selection.count == 2)
+    Swag.require(f.capture.selection.contains(1))
 
     f.capture.undo()
-    Swag.assert(a.groups.count == 2)
-    Swag.assert(c.groups.count == 1)
+    Swag.require(a.groups.count == 2)
+    Swag.require(c.groups.count == 1)
 }
 
 // Grouping survives a save/load round-trip, together with the id allocator.
@@ -145,17 +145,17 @@ using Swag, Core
     expect f.capture.save()
     let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
-    Swag.assert(loaded.forms.count == 3)
-    Swag.assert(loaded.nextGroupId == nextId)
+    Swag.require(loaded.forms.count == 3)
+    Swag.require(loaded.nextGroupId == nextId)
 
     let la: *BaseForm = loaded.forms[0]
     let lb: *BaseForm = loaded.forms[1]
     let lc: *BaseForm = loaded.forms[2]
-    Swag.assert(la.groups.count == 1)
-    Swag.assert(la.groups[0] == gid)
-    Swag.assert(lb.groups.count == 1)
-    Swag.assert(lb.groups[0] == gid)
-    Swag.assert(lc.groups.count == 0)
+    Swag.require(la.groups.count == 1)
+    Swag.require(la.groups[0] == gid)
+    Swag.require(lb.groups.count == 1)
+    Swag.require(lb.groups[0] == gid)
+    Swag.require(lc.groups.count == 0)
 }
 
 // Pasting a grouped selection keeps the copies grouped together but under a fresh id,
@@ -180,12 +180,12 @@ using Swag, Core
     f.capture.selection.clear()
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
-    Swag.assert(f.capture.forms.count == 4)
+    Swag.require(f.capture.forms.count == 4)
     let pa: *BaseForm = f.capture.forms[2]
     let pb: *BaseForm = f.capture.forms[3]
-    Swag.assert(pa.groups.count == 1)
-    Swag.assert(pb.groups.count == 1)
-    Swag.assert(pa.groups[0] == pb.groups[0])
-    Swag.assert(pa.groups[0] != origGid)
-    Swag.assert(a.groups[0] == origGid)
+    Swag.require(pa.groups.count == 1)
+    Swag.require(pb.groups.count == 1)
+    Swag.require(pa.groups[0] == pb.groups[0])
+    Swag.require(pa.groups[0] != origGid)
+    Swag.require(a.groups[0] == origGid)
 }

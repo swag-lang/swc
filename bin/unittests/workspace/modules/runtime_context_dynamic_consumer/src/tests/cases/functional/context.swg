@@ -23,5 +23,5 @@ func readFreshThreadContext(parameter: *void?)->u32
     let thread      = expect Win32.CreateThread(null, 0, &readFreshThreadContext, &initialized, 0, &threadId)
     defer Win32.CloseHandle(thread)
     discard expect Win32.WaitForSingleObject(thread, Win32.INFINITE)
-    Swag.assert(initialized)
+    Swag.require(initialized)
 }

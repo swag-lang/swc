@@ -23,21 +23,21 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30}, CheckButtonHeadless_Command)
     check.sigChanged += &checkButtonHeadlessChanged
 
-    Swag.assert(not check.isChecked())
-    Swag.assert(check.state == .Unchecked)
+    Swag.require(not check.isChecked())
+    Swag.require(check.state == .Unchecked)
 
     host.click({40, 35})
-    Swag.assert(check.isChecked())
-    Swag.assert(check.state == .Checked)
-    Swag.assert(CheckButtonHeadlessChangedCount == 1)
-    Swag.assert(host.commandCount == 1)
-    Swag.assert(host.lastCommand == CheckButtonHeadless_Command)
+    Swag.require(check.isChecked())
+    Swag.require(check.state == .Checked)
+    Swag.require(CheckButtonHeadlessChangedCount == 1)
+    Swag.require(host.commandCount == 1)
+    Swag.require(host.lastCommand == CheckButtonHeadless_Command)
 
     host.click({40, 35})
-    Swag.assert(not check.isChecked())
-    Swag.assert(check.state == .Unchecked)
-    Swag.assert(CheckButtonHeadlessChangedCount == 2)
-    Swag.assert(host.commandCount == 2)
+    Swag.require(not check.isChecked())
+    Swag.require(check.state == .Unchecked)
+    Swag.require(CheckButtonHeadlessChangedCount == 2)
+    Swag.require(host.commandCount == 2)
 }
 
 // The TriState flag adds the Indeterminate state to the standard toggle cycle.
@@ -52,20 +52,20 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     check.updateFlags(.TriState)
 
     host.click({40, 35})
-    Swag.assert(check.state == .Checked)
-    Swag.assert(check.isChecked())
+    Swag.require(check.state == .Checked)
+    Swag.require(check.isChecked())
 
     host.click({40, 35})
-    Swag.assert(check.state == .Indeterminate)
-    Swag.assert(check.isIndeterminate())
+    Swag.require(check.state == .Indeterminate)
+    Swag.require(check.isIndeterminate())
 
     host.click({40, 35})
-    Swag.assert(check.state == .Unchecked)
+    Swag.require(check.state == .Unchecked)
 
     // Programmatic changes are silent and repaint without simulating input.
     check.setState(.Indeterminate)
-    Swag.assert(check.isIndeterminate())
-    Swag.assert(CheckButtonHeadlessChangedCount == 0)
+    Swag.require(check.isIndeterminate())
+    Swag.require(CheckButtonHeadlessChangedCount == 0)
 }
 
 // Space and Enter toggle the focused check button.
@@ -80,12 +80,12 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     host.focus(check)
 
     host.keyPress(Input.Key.Space)
-    Swag.assert(check.isChecked())
-    Swag.assert(CheckButtonHeadlessChangedCount == 1)
+    Swag.require(check.isChecked())
+    Swag.require(CheckButtonHeadlessChangedCount == 1)
 
     host.keyPress(Input.Key.Return)
-    Swag.assert(not check.isChecked())
-    Swag.assert(CheckButtonHeadlessChangedCount == 2)
+    Swag.require(not check.isChecked())
+    Swag.require(CheckButtonHeadlessChangedCount == 2)
 }
 
 // A disabled checkbutton ignores clicks.
@@ -101,9 +101,9 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     check.disable()
 
     host.click({40, 35})
-    Swag.assert(not check.isChecked())
-    Swag.assert(CheckButtonHeadlessChangedCount == 0)
-    Swag.assert(host.commandCount == 0)
+    Swag.require(not check.isChecked())
+    Swag.require(CheckButtonHeadlessChangedCount == 0)
+    Swag.require(host.commandCount == 0)
 }
 
 // A box fills and empties over a quick beat, and a radio dot leaves the option the choice left.
@@ -115,21 +115,21 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 
     let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30})
     check.toggle()
-    Swag.assert(check.isChecked() and check.markPresence < 1)
+    Swag.require(check.isChecked() and check.markPresence < 1)
     host.finishAnimations()
-    Swag.assert(check.markPresence == 1)
+    Swag.require(check.markPresence == 1)
     check.setState(.Unchecked)
     host.finishAnimations()
-    Swag.assert(check.markPresence == 0)
+    Swag.require(check.markPresence == 0)
 
     let first  = RadioButton.create(&host.root, "First", {20, 60, 120, 30})
     let second = RadioButton.create(&host.root, "Second", {20, 100, 120, 30})
     first.groupId, second.groupId = "CheckButtonHeadless.Group"
     first.setChecked(true)
     host.finishAnimations()
-    Swag.assert(first.markPresence == 1)
+    Swag.require(first.markPresence == 1)
     second.selectFromUser()
-    Swag.assert(first.markPresence == 1 and second.markPresence == 0)
+    Swag.require(first.markPresence == 1 and second.markPresence == 0)
     host.finishAnimations()
-    Swag.assert(first.markPresence == 0 and second.markPresence == 1)
+    Swag.require(first.markPresence == 0 and second.markPresence == 1)
 }

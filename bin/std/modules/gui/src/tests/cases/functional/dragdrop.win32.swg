@@ -32,7 +32,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
 
     var effect = DROPEFFECT_COPY
     let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
-    Swag.assert(dragEnterResult == S_OK)
+    Swag.require(dragEnterResult == S_OK)
     return &host.surface.dropTarget.data
 }
 
@@ -49,7 +49,7 @@ internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObjec
 
     var effect     = DROPEFFECT_COPY
     let dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
-    Swag.assert(dropResult == S_OK)
+    Swag.require(dropResult == S_OK)
 }
 
 // Copies `text` into a movable block, which is what a `TYMED_HGLOBAL` medium transfers.
@@ -288,17 +288,17 @@ impl IWnd for PlatformCatcher
 
     var effect = DROPEFFECT_COPY
     let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
-    Swag.assert(dragEnterResult == S_OK)
-    Swag.assert(effect == DROPEFFECT_COPY)
+    Swag.require(dragEnterResult == S_OK)
+    Swag.require(effect == DROPEFFECT_COPY)
 
     effect = DROPEFFECT_COPY
     let dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
-    Swag.assert(dropResult == S_OK)
-    Swag.assert(effect == DROPEFFECT_COPY)
+    Swag.require(dropResult == S_OK)
+    Swag.require(effect == DROPEFFECT_COPY)
 
-    Swag.assert(catcher.drops == 1)
-    Swag.assert(catcher.files.count == 1)
-    Swag.assert(catcher.files[0] == "c:/tmp/dropped.txt")
+    Swag.require(catcher.drops == 1)
+    Swag.require(catcher.files.count == 1)
+    Swag.require(catcher.files[0] == "c:/tmp/dropped.txt")
 }
 
 // A list of files survives the DROPFILES block, in order.
@@ -314,12 +314,12 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    Swag.assert(payload.files.count == 2)
-    Swag.assert(payload.files[0] == "c:/tmp/first.png")
-    Swag.assert(payload.files[1] == "c:/tmp/second name with spaces.png")
-    Swag.assert(payload.singleFile() == null)
-    Swag.assert(not payload.hasText())
-    Swag.assert(not payload.hasImage())
+    Swag.require(payload.files.count == 2)
+    Swag.require(payload.files[0] == "c:/tmp/first.png")
+    Swag.require(payload.files[1] == "c:/tmp/second name with spaces.png")
+    Swag.require(payload.singleFile() == null)
+    Swag.require(not payload.hasText())
+    Swag.require(not payload.hasImage())
 }
 
 // One file alone is what a field naming a document reads through `singleFile`.
@@ -333,7 +333,7 @@ impl IWnd for PlatformCatcher
 
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
-    Swag.assert(payload.singleFile() == "c:/tmp/only.txt")
+    Swag.require(payload.singleFile() == "c:/tmp/only.txt")
 }
 
 // Text survives the UTF-16 medium, including what does not fit in one byte.
@@ -348,8 +348,8 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    Swag.assert(payload.text == "drag héllo → wörld")
-    Swag.assert(not payload.hasFiles())
+    Swag.require(payload.text == "drag héllo → wörld")
+    Swag.require(not payload.hasFiles())
 }
 
 // A picture survives the PNG medium, pixel for pixel.
@@ -366,12 +366,12 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    Swag.assert(payload.hasImage())
+    Swag.require(payload.hasImage())
     let decoded = unwrap payload.image()
-    Swag.assert(decoded.width == 7)
-    Swag.assert(decoded.height == 5)
-    Swag.assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
-    Swag.assert(decoded.pixelColor(6, 4).argb == source.pixelColor(6, 4).argb)
+    Swag.require(decoded.width == 7)
+    Swag.require(decoded.height == 5)
+    Swag.require(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
+    Swag.require(decoded.pixelColor(6, 4).argb == source.pixelColor(6, 4).argb)
 }
 
 // Files and a picture together: a folder takes the file, an editor takes the bitmap, and the
@@ -390,8 +390,8 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
-    Swag.assert(payload.singleFile() == "c:/tmp/shot.png")
-    Swag.assert(payload.hasImage())
+    Swag.require(payload.singleFile() == "c:/tmp/shot.png")
+    Swag.require(payload.hasImage())
 }
 
 // The source enumerates what it offers, most specific first, and stops cleanly.
@@ -409,44 +409,44 @@ impl IWnd for PlatformCatcher
 
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
-    Swag.assert(enumFormatEtcResult == S_OK)
+    Swag.require(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
     var nextResult = formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
-    Swag.assert(nextResult == S_FALSE)
-    Swag.assert(fetched == 3)
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, CF_HDROP))
-    Swag.assert(entries[1].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
-    Swag.assert(entries[2].cfFormat == cast(CLIPFORMAT, CF_TEXT))
-    Swag.assert(entries[0].tymed == TYMED_HGLOBAL)
-    Swag.assert(entries[0].dwAspect == DVASPECT_CONTENT)
+    Swag.require(nextResult == S_FALSE)
+    Swag.require(fetched == 3)
+    Swag.require(entries[0].cfFormat == cast(CLIPFORMAT, CF_HDROP))
+    Swag.require(entries[1].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
+    Swag.require(entries[2].cfFormat == cast(CLIPFORMAT, CF_TEXT))
+    Swag.require(entries[0].tymed == TYMED_HGLOBAL)
+    Swag.require(entries[0].dwAspect == DVASPECT_CONTENT)
 
     // Rewinding starts the walk again, and a clone keeps its own place in it.
     let resetResult = formats.lpVtbl.Reset(formats)
-    Swag.assert(resetResult == S_OK)
+    Swag.require(resetResult == S_OK)
     var skipResult = formats.lpVtbl.Skip(formats, 1)
-    Swag.assert(skipResult == S_OK)
+    Swag.require(skipResult == S_OK)
 
     var rawClone: LPVOID
     let cloneResult = formats.lpVtbl.Clone(formats, &rawClone)
-    Swag.assert(cloneResult == S_OK)
+    Swag.require(cloneResult == S_OK)
     let clone = cast(*IEnumFORMATETC, cast(*void, unwrap rawClone))
     defer discard clone.lpVtbl.Release(clone)
 
     nextResult = clone.lpVtbl.Next(clone, 1, &entries[0], &fetched)
-    Swag.assert(nextResult == S_OK)
-    Swag.assert(fetched == 1)
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
+    Swag.require(nextResult == S_OK)
+    Swag.require(fetched == 1)
+    Swag.require(entries[0].cfFormat == cast(CLIPFORMAT, CF_UNICODETEXT))
 
     // Asking past the end is a clean stop, not a failure.
     skipResult = formats.lpVtbl.Skip(formats, 99)
-    Swag.assert(skipResult == S_FALSE)
+    Swag.require(skipResult == S_FALSE)
     nextResult = formats.lpVtbl.Next(formats, 1, &entries[0], &fetched)
-    Swag.assert(nextResult == S_FALSE)
-    Swag.assert(fetched == 0)
+    Swag.require(nextResult == S_FALSE)
+    Swag.require(fetched == 0)
 }
 
 // A format nobody offered is refused rather than answered with an empty medium.
@@ -467,17 +467,17 @@ impl IWnd for PlatformCatcher
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
     var queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
-    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
+    Swag.require(queryGetDataResult == DV_E_FORMATETC)
 
     var med: STGMEDIUM
     let getDataResult = source.lpVtbl.GetData(source, &fmt, &med)
-    Swag.assert(getDataResult == DV_E_FORMATETC)
+    Swag.require(getDataResult == DV_E_FORMATETC)
 
     // A format it does offer, but through a medium it cannot produce, is refused too.
     fmt.cfFormat       = cast(CLIPFORMAT, CF_UNICODETEXT)
     fmt.tymed          = TYMED_ISTREAM
     queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
-    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
+    Swag.require(queryGetDataResult == DV_E_FORMATETC)
 }
 
 // The interfaces answer the identity questions COM asks of every object.
@@ -492,19 +492,19 @@ impl IWnd for PlatformCatcher
     var out: LPVOID
     var iid = IID_IDropTarget
     var queryInterfaceResult = target.lpVtbl.QueryInterface(target, &iid, &out)
-    Swag.assert(queryInterfaceResult == S_OK)
-    Swag.assert(cast(*void?, out) == cast(*void?, target))
+    Swag.require(queryInterfaceResult == S_OK)
+    Swag.require(cast(*void?, out) == cast(*void?, target))
 
     // An interface the object does not implement is refused, and clears the output.
     var otherIid = IID_IDataObject
     queryInterfaceResult = target.lpVtbl.QueryInterface(target, &otherIid, &out)
-    Swag.assert(queryInterfaceResult == E_NOINTERFACE)
-    Swag.assert(out == null)
+    Swag.require(queryInterfaceResult == E_NOINTERFACE)
+    Swag.require(out == null)
 
     // The count the surface owns survives a balanced pair.
     let before        = target.lpVtbl.AddRef(target)
     let releaseResult = target.lpVtbl.Release(target)
-    Swag.assert(releaseResult == before - 1)
+    Swag.require(releaseResult == before - 1)
 
     var data: DragData
     data.setText("x")
@@ -513,24 +513,24 @@ impl IWnd for PlatformCatcher
 
     var srcIid = IID_IDataObject
     queryInterfaceResult = source.lpVtbl.QueryInterface(source, &srcIid, &out)
-    Swag.assert(queryInterfaceResult == S_OK)
+    Swag.require(queryInterfaceResult == S_OK)
     queryInterfaceResult = source.lpVtbl.QueryInterface(source, &iid, &out)
-    Swag.assert(queryInterfaceResult == E_NOINTERFACE)
+    Swag.require(queryInterfaceResult == E_NOINTERFACE)
 
     let dropSrc   = cast(*IDropSource, cast(*void, &session.dropSrc))
     var srcSrcIid = IID_IDropSource
     queryInterfaceResult = dropSrc.lpVtbl.QueryInterface(dropSrc, &srcSrcIid, &out)
-    Swag.assert(queryInterfaceResult == S_OK)
+    Swag.require(queryInterfaceResult == S_OK)
 
     // Escape gives up, letting the button go drops, holding it keeps the gesture running.
     var queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, TRUE, MK_LBUTTON)
-    Swag.assert(queryContinueDragResult == DRAGDROP_S_CANCEL)
+    Swag.require(queryContinueDragResult == DRAGDROP_S_CANCEL)
     queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, 0)
-    Swag.assert(queryContinueDragResult == DRAGDROP_S_DROP)
+    Swag.require(queryContinueDragResult == DRAGDROP_S_DROP)
     queryContinueDragResult = dropSrc.lpVtbl.QueryContinueDrag(dropSrc, FALSE, MK_LBUTTON)
-    Swag.assert(queryContinueDragResult == S_OK)
+    Swag.require(queryContinueDragResult == S_OK)
     let giveFeedbackResult = dropSrc.lpVtbl.GiveFeedback(dropSrc, DROPEFFECT_COPY)
-    Swag.assert(giveFeedbackResult == DRAGDROP_S_USEDEFAULTCURSORS)
+    Swag.require(giveFeedbackResult == DRAGDROP_S_USEDEFAULTCURSORS)
 }
 
 // A drag that leaves without dropping is reported the same way a cancelled one is.
@@ -550,11 +550,11 @@ impl IWnd for PlatformCatcher
 
     var effect = DROPEFFECT_COPY
     discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
-    Swag.assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
+    Swag.require(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
     let dragLeaveResult = target.lpVtbl.DragLeave(target)
-    Swag.assert(dragLeaveResult == S_OK)
-    Swag.assert(host.surface.dropTarget.data.files.isEmpty())
+    Swag.require(dragLeaveResult == S_OK)
+    Swag.require(host.surface.dropTarget.data.files.isEmpty())
 }
 
 // A file with no path travels by name while the gesture hovers, and by content once it lands.
@@ -585,21 +585,21 @@ impl IWnd for PlatformCatcher
 
     // Hovering announces the names and asks for nothing else, so the producer has not run.
     let hovering = testRoundTrip(&host, source)
-    Swag.assert(hovering.contents.count == 2)
-    Swag.assert(hovering.contents[0].name == "report.txt")
-    Swag.assert(hovering.contents[1].name == "late.bin")
-    Swag.assert(hovering.contentData(0).count == 0)
-    Swag.assert(produced == 0)
+    Swag.require(hovering.contents.count == 2)
+    Swag.require(hovering.contents[0].name == "report.txt")
+    Swag.require(hovering.contents[1].name == "late.bin")
+    Swag.require(hovering.contentData(0).count == 0)
+    Swag.require(produced == 0)
 
     // The release is what pays for the content, and each file keeps its own. The payload is read
     // from inside the event, because the platform clears it as soon as the drop is delivered.
     testRoundTripDrop(&host, source)
-    Swag.assert(produced == 1)
-    Swag.assert(catcher.names.count == 2)
-    Swag.assert(catcher.names[0] == "report.txt")
-    Swag.assert(catcher.names[1] == "late.bin")
-    Swag.assert(Testing.bytesAre(catcher.blobs[0].toSlice(), "already here"))
-    Swag.assert(Testing.bytesAre(catcher.blobs[1].toSlice(), "made on demand"))
+    Swag.require(produced == 1)
+    Swag.require(catcher.names.count == 2)
+    Swag.require(catcher.names[0] == "report.txt")
+    Swag.require(catcher.names[1] == "late.bin")
+    Swag.require(Testing.bytesAre(catcher.blobs[0].toSlice(), "already here"))
+    Swag.require(Testing.bytesAre(catcher.blobs[1].toSlice(), "made on demand"))
 }
 
 // A physical path wins over a duplicate deferred-content offer. Shell data objects can publish
@@ -623,8 +623,8 @@ impl IWnd for PlatformCatcher
 
     var session: DragSession
     testRoundTripDrop(&host, testDragSource(&session, &data))
-    Swag.assert(produced == 0)
-    Swag.assert(catcher.names.isEmpty())
+    Swag.require(produced == 0)
+    Swag.require(catcher.names.isEmpty())
 }
 
 // The source enumerates a file with no path as a descriptor plus one entry per file, and names
@@ -643,30 +643,30 @@ impl IWnd for PlatformCatcher
 
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
-    Swag.assert(enumFormatEtcResult == S_OK)
+    Swag.require(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
     let nextResult = formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
-    Swag.assert(nextResult == S_FALSE)
-    Swag.assert(fetched == 3)
+    Swag.require(nextResult == S_FALSE)
+    Swag.require(fetched == 3)
 
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)))
-    Swag.assert(entries[0].lindex == -1)
+    Swag.require(entries[0].cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)))
+    Swag.require(entries[0].lindex == -1)
 
     let contents = cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer))
-    Swag.assert(entries[1].cfFormat == contents and entries[1].lindex == 0)
-    Swag.assert(entries[2].cfFormat == contents and entries[2].lindex == 1)
-    Swag.assert(entries[1].tymed & TYMED_ISTREAM)
+    Swag.require(entries[1].cfFormat == contents and entries[1].lindex == 0)
+    Swag.require(entries[2].cfFormat == contents and entries[2].lindex == 1)
+    Swag.require(entries[1].tymed & TYMED_ISTREAM)
 
     // One item of a multi-item format is named exactly, so asking past the last one is refused
     // rather than answered with the first.
     var fmt = entries[2]
     fmt.lindex = 2
     let queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
-    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
+    Swag.require(queryGetDataResult == DV_E_FORMATETC)
 }
 
 // A format published solely as a stream reads as what it carries, not as nothing on offer.
@@ -689,7 +689,7 @@ impl IWnd for PlatformCatcher
     streamOnly.setup(&session.dataObj)
 
     let payload = testRoundTrip(&host, cast(*IDataObject, cast(*void, &streamOnly)))
-    Swag.assert(payload.text == "carried by a stream")
+    Swag.require(payload.text == "carried by a stream")
 }
 
 // A format set on the source object is handed back to whoever asks for it.
@@ -715,47 +715,47 @@ impl IWnd for PlatformCatcher
     fmt.lindex   = -1
     fmt.tymed    = TYMED_HGLOBAL
     var queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
-    Swag.assert(queryGetDataResult == DV_E_FORMATETC)
+    Swag.require(queryGetDataResult == DV_E_FORMATETC)
 
     var med: STGMEDIUM
     med.tymed   = TYMED_HGLOBAL
     med.hGlobal = testGlobalBlock("private bits")
     var setDataResult = source.lpVtbl.SetData(source, &fmt, &med, TRUE)
-    Swag.assert(setDataResult == S_OK)
+    Swag.require(setDataResult == S_OK)
 
     // It now reads back through the same two questions every other format answers.
     queryGetDataResult = source.lpVtbl.QueryGetData(source, &fmt)
-    Swag.assert(queryGetDataResult == S_OK)
+    Swag.require(queryGetDataResult == S_OK)
 
     var out: STGMEDIUM
     let getDataResult = source.lpVtbl.GetData(source, &fmt, &out)
-    Swag.assert(getDataResult == S_OK)
-    Swag.assert(out.tymed == TYMED_HGLOBAL)
+    Swag.require(getDataResult == S_OK)
+    Swag.require(out.tymed == TYMED_HGLOBAL)
     defer ReleaseStgMedium(&out)
     let alreadyUnlocked = GlobalUnlock(out.hGlobal)
     let unlockError     = GetLastError()
-    Swag.assert(not alreadyUnlocked and unlockError == 158)
+    Swag.require(not alreadyUnlocked and unlockError == 158)
 
     let buf = cast([*] u8, unwrap GlobalLock(out.hGlobal))
-    Swag.assert(Swag.makeString(buf, 12) == "private bits")
+    Swag.require(Swag.makeString(buf, 12) == "private bits")
     discard GlobalUnlock(out.hGlobal)
 
     // And it is part of what the object enumerates, beside what it produces itself.
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
-    Swag.assert(enumFormatEtcResult == S_OK)
+    Swag.require(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
     var fetched: ULONG
     discard formats.lpVtbl.Next(formats, 8, &entries[0], &fetched)
-    Swag.assert(fetched == 3)
-    Swag.assert(entries[2].cfFormat == format)
+    Swag.require(fetched == 3)
+    Swag.require(entries[2].cfFormat == format)
 
     // Lending a medium instead of handing it over is refused rather than half-supported.
     setDataResult = source.lpVtbl.SetData(source, &fmt, &med, FALSE)
-    Swag.assert(setDataResult == E_NOTIMPL)
+    Swag.require(setDataResult == E_NOTIMPL)
 }
 
 // OLE receives movable blocks with no outstanding lock, for every generated format.
@@ -773,7 +773,7 @@ impl IWnd for PlatformCatcher
     let source = testDragSource(&session, &data)
     var raw:     LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
-    Swag.assert(enumFormatEtcResult == S_OK)
+    Swag.require(enumFormatEtcResult == S_OK)
     let formats = cast(*IEnumFORMATETC, unwrap raw)
     defer discard formats.lpVtbl.Release(formats)
 
@@ -787,18 +787,18 @@ impl IWnd for PlatformCatcher
             fmt.lindex = 0
         var medium: STGMEDIUM
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
-        Swag.assert(getDataResult == S_OK)
+        Swag.require(getDataResult == S_OK)
         defer ReleaseStgMedium(&medium)
-        Swag.assert(medium.tymed == TYMED_HGLOBAL)
+        Swag.require(medium.tymed == TYMED_HGLOBAL)
 
         // ERROR_NOT_LOCKED proves the producer balanced its GlobalLock before transfer.
         let unlocked = GlobalUnlock(medium.hGlobal)
         let error    = GetLastError()
-        Swag.assert(not unlocked and error == 158)
+        Swag.require(not unlocked and error == 158)
         checked += 1
     }
 
-    Swag.assert(checked >= 6)
+    Swag.require(checked >= 6)
 }
 
 // DIB consumers need aligned BGR rows even when the original image uses RGB storage.
@@ -827,16 +827,16 @@ impl IWnd for PlatformCatcher
         fmt.tymed    = TYMED_HGLOBAL
         var medium: STGMEDIUM
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
-        Swag.assert(getDataResult == S_OK)
+        Swag.require(getDataResult == S_OK)
         defer ReleaseStgMedium(&medium)
         let bytes = cast([*] u8, unwrap GlobalLock(medium.hGlobal))
         defer discard GlobalUnlock(medium.hGlobal)
         let decoded = expect Pixel.Image.decode("drag.bmp", Swag.makeSlice(bytes, GlobalSize(medium.hGlobal)))
-        Swag.assert(decoded.width == image.width and decoded.height == image.height)
+        Swag.require(decoded.width == image.width and decoded.height == image.height)
         for y in image.height
         {
             for x in image.width do
-                Swag.assert(decoded.pixelColor(x, y) == image.pixelColor(x, y))
+                Swag.require(decoded.pixelColor(x, y) == image.pixelColor(x, y))
         }
     }
 }
@@ -847,17 +847,17 @@ impl IWnd for PlatformCatcher
     let unterminatedWide = [65'u8, 0, 66, 0]
     let oddWide          = [65'u8, 0, 0]
     let terminatedWide   = [65'u8, 0, 0, 0, 66, 0]
-    Swag.assert(NativeText.decodeUnicode(unterminatedWide).isEmpty())
-    Swag.assert(NativeText.decodeUnicode(oddWide).isEmpty())
-    Swag.assert(NativeText.decodeUnicode(terminatedWide) == "A")
+    Swag.require(NativeText.decodeUnicode(unterminatedWide).isEmpty())
+    Swag.require(NativeText.decodeUnicode(oddWide).isEmpty())
+    Swag.require(NativeText.decodeUnicode(terminatedWide) == "A")
     let unterminatedAnsi = [65'u8, 66]
-    Swag.assert(NativeText.decodeAnsi(unterminatedAnsi).isEmpty())
+    Swag.require(NativeText.decodeAnsi(unterminatedAnsi).isEmpty())
 
     // Windows-1252 is explicit here, so the assertion is independent of the host locale.
     let ansi = NativeText.encodeAnsi("café", 1252)
-    Swag.assert(ansi.count == 5 and ansi[3] == 0xE9 and ansi[4] == 0)
-    Swag.assert(NativeText.decodeAnsi(ansi.toSlice(), 1252) == "café")
+    Swag.require(ansi.count == 5 and ansi[3] == 0xE9 and ansi[4] == 0)
+    Swag.require(NativeText.decodeAnsi(ansi.toSlice(), 1252) == "café")
     let empty = NativeText.encodeAnsi("")
-    Swag.assert(empty.count == 1 and empty[0] == 0)
-    Swag.assert(NativeText.decodeAnsi(empty.toSlice()).isEmpty())
+    Swag.require(empty.count == 1 and empty[0] == 0)
+    Swag.require(NativeText.decodeAnsi(empty.toSlice()).isEmpty())
 }

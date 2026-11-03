@@ -9,12 +9,12 @@ using Swag
 #test
 {
     #static if #gettag("Swag.Endian", string, "little") == "big" do
-        Swag.assert(BIG_ENDIAN)
+        Swag.require(BIG_ENDIAN)
     else do
-        Swag.assert(not BIG_ENDIAN)
+        Swag.require(not BIG_ENDIAN)
 
     #static if #os == Swag.TargetOs.Windows do
-        Swag.assert(WINDOWS)
+        Swag.require(WINDOWS)
     else do
-        Swag.assert(not WINDOWS)
+        Swag.require(not WINDOWS)
 }

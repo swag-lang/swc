@@ -16,11 +16,11 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 
     let expected = drawing.rasterize(width, height, samples)
     let actual   = decodeThemeRaster(bytes)
-    Swag.assert(actual.width == expected.width and actual.height == expected.height)
-    Swag.assert(actual.byteCount == expected.byteCount)
-    Swag.assert(actual.pixelFormat == expected.pixelFormat and actual.alphaMode == expected.alphaMode)
+    Swag.require(actual.width == expected.width and actual.height == expected.height)
+    Swag.require(actual.byteCount == expected.byteCount)
+    Swag.require(actual.pixelFormat == expected.pixelFormat and actual.alphaMode == expected.alphaMode)
     #static if #cfg != "release" do
-        Swag.assert(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
     else
     {
         // DevMode generates the assets, matching the GUI goldens. Release floating-point
@@ -28,7 +28,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
         for i in actual.byteCount
         {
             let tolerance = i % 4 == 3 ? 1 : 0
-            Swag.assert(Math.abs(cast(s32, actual.pixels[i]) - cast(s32, expected.pixels[i])) <= tolerance)
+            Swag.require(Math.abs(cast(s32, actual.pixels[i]) - cast(s32, expected.pixels[i])) <= tolerance)
         }
     }
 }
@@ -38,7 +38,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     const Source = #include("../../../theme/icons.svg")
     for size in [16, 20, 24, 28, 32, 40, 48] do
         checkThemeRaster(Source, unwrap themeIconRaster(size), size, 24, 8192)
-    Swag.assert(themeIconRaster(37) == null)
+    Swag.require(themeIconRaster(37) == null)
 }
 
 #test
@@ -46,7 +46,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     const Source = #include("../../../theme/widgets.svg")
     for scale in [1, 2] do
         checkThemeRaster(Source, unwrap themeWidgetRaster(scale), scale, 1, 4096)
-    Swag.assert(themeWidgetRaster(3) == null)
+    Swag.require(themeWidgetRaster(3) == null)
 }
 
 // The live stock cache uses the embedded sizes and still rasterizes unusual requests.
@@ -57,27 +57,27 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     let atlas   = unwrap host.theme.res.icons.atlas
     let baked   = atlas.image(32)
     let decoded = decodeThemeRaster(unwrap themeIconRaster(32))
-    Swag.assert(baked.byteCount == decoded.byteCount)
-    Swag.assert(Memory.compare(baked.pixels.storage(), decoded.pixels.storage(), baked.byteCount) == 0)
+    Swag.require(baked.byteCount == decoded.byteCount)
+    Swag.require(Memory.compare(baked.pixels.storage(), decoded.pixels.storage(), baked.byteCount) == 0)
     let unusual = atlas.image(37)
-    Swag.assert(unusual.width == 8 * 37 and unusual.height == 11 * 37)
+    Swag.require(unusual.width == 8 * 37 and unusual.height == 11 * 37)
 
     var custom: IconAtlas
     custom.embedded = true
     const Source = #include("../../../theme/icons.svg")
     custom.pendingSource = Swag.makeString(Source.buffer, Source.count)
-    Swag.assert(custom.image(32).width == 8 * 32)
+    Swag.require(custom.image(32).width == 8 * 32)
     expect custom.setup("<svg width='24' height='24'><rect width='24' height='24' fill='red'/></svg>")
     let red = custom.image(32)
-    Swag.assert(red.width == 32 and red.height == 32)
-    Swag.assert(red.pixelColor(16, 16).argb == 0xFFFF0000)
+    Swag.require(red.width == 32 and red.height == 32)
+    Swag.require(red.pixelColor(16, 16).argb == 0xFFFF0000)
 
     var supplied: IconAtlas
     supplied.embedded      = true
     supplied.pendingSource = Swag.makeString(Source.buffer, Source.count)
     expect supplied.setRaster(32, decoded)
-    Swag.assert(supplied.image(32).byteCount == decoded.byteCount)
+    Swag.require(supplied.image(32).byteCount == decoded.byteCount)
 
     host.theme.ensureAtlasScale(host.app.renderer, 3)
-    Swag.assert(host.theme.res.imgWidgets.width == 352 * 3 and host.theme.res.imgWidgets.height == 352 * 3)
+    Swag.require(host.theme.res.imgWidgets.width == 352 * 3 and host.theme.res.imgWidgets.height == 352 * 3)
 }

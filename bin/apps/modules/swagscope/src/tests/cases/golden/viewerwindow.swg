@@ -38,7 +38,7 @@ func completeLensExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.pump()
     }
 
-    Swag.assert(false, "exploration did not settle")
+    Swag.require(false, "exploration did not settle")
 }
 
 // A golden can look plausibly rounded at fit-to-window scale while a square child has actually
@@ -56,8 +56,8 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     if outside == inside do
         return
 
-    Swag.assert(image.pixelColor(left, top).argb == outside)
-    Swag.assert(image.pixelColor(left + radius, top + radius).argb == inside)
+    Swag.require(image.pixelColor(left, top).argb == outside)
+    Swag.require(image.pixelColor(left + radius, top + radius).argb == inside)
 
     var antialiasedCorner: bool
     for y in 0 until radius
@@ -70,7 +70,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         }
     }
 
-    Swag.assert(antialiasedCorner)
+    Swag.require(antialiasedCorner)
 }
 
 // Pins the file panel: two named sections share the left edge, the row naming the open file is
@@ -110,7 +110,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.applyLayout()
     host.settleAnimations(window, 4)
 
-    Swag.assert(window.folderList.lineCount() == 4)
+    Swag.require(window.folderList.lineCount() == 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "panel")
     Testing.assertContentFits(window)
@@ -150,11 +150,11 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
 
-    Swag.assert(view.iconLabel.icon.isValid())
-    Swag.assert(view.iconLabel.iconColor == view.themeColors().critical)
-    Swag.assert(view.summaryLabel.text() == appStrings().ui_ViewerError)
-    Swag.assert(view.reasonLabel.text() == "PNG chunk CRC does not match its payload")
-    Swag.assert(Math.abs(view.iconLabel.position.center().x - view.position.center().x) <= 1)
+    Swag.require(view.iconLabel.icon.isValid())
+    Swag.require(view.iconLabel.iconColor == view.themeColors().critical)
+    Swag.require(view.summaryLabel.text() == appStrings().ui_ViewerError)
+    Swag.require(view.reasonLabel.text() == "PNG chunk CRC does not match its payload")
+    Swag.require(Math.abs(view.iconLabel.position.center().x - view.position.center().x) <= 1)
     Testing.assertContentFits(view)
 
     var image = host.render(&host.root)
@@ -202,26 +202,26 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
-    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    Swag.require(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
 
     // The mark waits before it appears: a wait that has just begun shows nothing, and the one
     // that has lasted the delay shows the mark, faded in over the preserved document.
     window.instances[0].needsLoadingOverlay = func()->bool => true
     reportViewerLoadingChanged(loading)
-    Swag.assert(not window.loadingOverlay.isLocallyVisible() and
-                window.loadingWantedSince != 0 and
-                window.loadingTimer != null)
+    Swag.require(not window.loadingOverlay.isLocallyVisible() and
+                 window.loadingWantedSince != 0 and
+                 window.loadingTimer != null)
     expireViewerLoadingDelay(window)
-    Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingShownSince != 0)
+    Swag.require(window.loadingOverlay.isLocallyVisible() and window.loadingShownSince != 0)
     host.app.animator.finishAll()
-    Swag.assert(window.loadingOverlay.position == loading.position)
-    Swag.assert(window.loadingOverlay.backgroundStyle == .Transparent)
-    Swag.assert(window.loadingOverlay.wndFlags.has(.Disabled))
-    Swag.assert(window.documentPanel.children.back() == window.loadingOverlay)
-    Swag.assert(window.loadingOverlay.spinner.position.width == ViewerLoadingOverlay.SpinnerSize and window.loadingOverlay.spinner.position.height == ViewerLoadingOverlay.SpinnerSize)
+    Swag.require(window.loadingOverlay.position == loading.position)
+    Swag.require(window.loadingOverlay.backgroundStyle == .Transparent)
+    Swag.require(window.loadingOverlay.wndFlags.has(.Disabled))
+    Swag.require(window.documentPanel.children.back() == window.loadingOverlay)
+    Swag.require(window.loadingOverlay.spinner.position.width == ViewerLoadingOverlay.SpinnerSize and window.loadingOverlay.spinner.position.height == ViewerLoadingOverlay.SpinnerSize)
     let spinnerCenter = window.loadingOverlay.spinner.position.center()
     let overlayCenter = window.loadingOverlay.clientRect().center()
-    Swag.assert(Math.abs(spinnerCenter.x - overlayCenter.x) <= 0.5 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 0.5)
+    Swag.require(Math.abs(spinnerCenter.x - overlayCenter.x) <= 0.5 and Math.abs(spinnerCenter.y - overlayCenter.y) <= 0.5)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "loading")
 
@@ -232,7 +232,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.outgoingView = outgoing
     window.currentView  = outgoing
     reportViewerLoadingChanged(loading)
-    Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == outgoing.position)
+    Swag.require(window.loadingOverlay.isLocallyVisible() and window.loadingOverlay.position == outgoing.position)
     window.outgoingView = null
     window.currentView  = loading
     outgoing.destroy()
@@ -243,17 +243,17 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.loadingShownSince = Time.monotonicMicroseconds()
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
-    Swag.assert(window.loadingOverlay.isLocallyVisible() and
-                window.loadingWantedSince == 0 and
-                window.loadingTimer != null)
+    Swag.require(window.loadingOverlay.isLocallyVisible() and
+                 window.loadingWantedSince == 0 and
+                 window.loadingTimer != null)
     expireViewerLoadingLinger(window)
-    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
-    Swag.assert(window.activateChoice(1))
-    Swag.assert(loading.retired and loading.isPendingDestroy)
-    Swag.assert(window.instances[0].view == null)
-    Swag.assert(window.currentView != null and window.currentView != loading)
-    Swag.assert(window.instances[1].view == window.currentView)
-    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
+    Swag.require(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
+    Swag.require(window.activateChoice(1))
+    Swag.require(loading.retired and loading.isPendingDestroy)
+    Swag.require(window.instances[0].view == null)
+    Swag.require(window.currentView != null and window.currentView != loading)
+    Swag.require(window.instances[1].view == window.currentView)
+    Swag.require(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
 }
 
 // Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file and
@@ -306,13 +306,13 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.applyLayout()
     host.settleAnimations(window, 4)
 
-    Swag.assert(not window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
-    Swag.assert(window.readingLine.isLocallyVisible() and not window.home.isLocallyVisible())
-    Swag.assert(not window.hintLine.isLocallyVisible())
-    Swag.assert(window.currentView!.parent == window.documentPanel)
-    Swag.assert(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())
-    Swag.assert(window.currentCommands.backgroundStyle == .Transparent)
-    Swag.assert(window.searchBox.isEnabled() and not window.searchBar.isLocallyVisible())
+    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.OpenDefault).hidden)
+    Swag.require(window.readingLine.isLocallyVisible() and not window.home.isLocallyVisible())
+    Swag.require(not window.hintLine.isLocallyVisible())
+    Swag.require(window.currentView!.parent == window.documentPanel)
+    Swag.require(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())
+    Swag.require(window.currentCommands.backgroundStyle == .Transparent)
+    Swag.require(window.searchBox.isEnabled() and not window.searchBar.isLocallyVisible())
     var image = host.render(window)
     assertViewerPanelCorner(&image, window.documentPanel)
     Pixel.Testing.assertImageGolden(&image, "viewer.dark")
@@ -368,26 +368,26 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     let file    = unwrap fileSection
     let view    = unwrap viewSection
     let outline = window.currentSidePanelButton!.toolTip
-    Swag.assert(window.lens.query() == "")
-    Swag.assert(file.entries.count == 3)
-    Swag.assert(file.entries[0].title == appStrings().cmd_Open)
-    Swag.assert(file.entries[1].title == appStrings().cmd_Explore)
-    Swag.assert(file.entries[2].title == appStrings().ui_CloseFile)
-    Swag.assert(view.entries[0].title == outline)
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Open))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
-    Swag.assert(lensEntryOnFirstPage(window, outline))
-    Swag.assert(window.lens.results.sections[0]!.label == appStrings().lens_File)
-    Swag.assert(window.lens.results.sections[1]!.label == appStrings().lens_View)
-    Swag.assert(window.lens.chosenEntry()!.title == appStrings().cmd_Open)
+    Swag.require(window.lens.query() == "")
+    Swag.require(file.entries.count == 3)
+    Swag.require(file.entries[0].title == appStrings().cmd_Open)
+    Swag.require(file.entries[1].title == appStrings().cmd_Explore)
+    Swag.require(file.entries[2].title == appStrings().ui_CloseFile)
+    Swag.require(view.entries[0].title == outline)
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_Open))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
+    Swag.require(lensEntryOnFirstPage(window, outline))
+    Swag.require(window.lens.results.sections[0]!.label == appStrings().lens_File)
+    Swag.require(window.lens.results.sections[1]!.label == appStrings().lens_View)
+    Swag.require(window.lens.chosenEntry()!.title == appStrings().cmd_Open)
 
     window.resize(800, 600)
     window.applyLayout()
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Open))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
-    Swag.assert(lensEntryOnFirstPage(window, outline))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_Open))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_Explore))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().ui_CloseFile))
+    Swag.require(lensEntryOnFirstPage(window, outline))
     window.resize(960, 680)
     window.applyLayout()
 
@@ -419,11 +419,11 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     window.exploreFolder()
     let explorer = unwrap window.explorer
     completeLensExplorer(&host, explorer)
-    Swag.assert(explorer.entries.count == 1)
+    Swag.require(explorer.entries.count == 1)
     var selected = Swag.U64.Max
     for &entry, index in explorer.entries where entry.name == Path.fileName(fileName) do
         selected = index
-    Swag.assert(selected != Swag.U64.Max)
+    Swag.require(selected != Swag.U64.Max)
     explorer.selected = selected
     window.lens.open()
     host.finishAnimations()
@@ -436,19 +436,19 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         fileSection = section
     let folder = unwrap folderSection
     let file   = unwrap fileSection
-    Swag.assert(window.lens.query() == "")
-    Swag.assert(lensHasEntry(window, appStrings().explore_Up))
-    Swag.assert(lensHasEntry(window, appStrings().explore_Refresh))
-    Swag.assert(lensHasEntry(window, appStrings().cmd_EditLocation))
-    Swag.assert(lensHasEntry(window, appStrings().cmd_OpenChosen))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().explore_Up))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().explore_Refresh))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_EditLocation))
-    Swag.assert(lensEntryOnFirstPage(window, appStrings().cmd_OpenChosen))
-    Swag.assert(window.lens.results.sections[0]!.label == appStrings().lens_Folder)
-    Swag.assert(file.entries.count == 2 and file.entries[0].title == appStrings().cmd_Open)
-    Swag.assert(file.entries[1].title == appStrings().ui_CloseFile)
-    Swag.assert(folder.entries.count >= 4)
+    Swag.require(window.lens.query() == "")
+    Swag.require(lensHasEntry(window, appStrings().explore_Up))
+    Swag.require(lensHasEntry(window, appStrings().explore_Refresh))
+    Swag.require(lensHasEntry(window, appStrings().cmd_EditLocation))
+    Swag.require(lensHasEntry(window, appStrings().cmd_OpenChosen))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().explore_Up))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().explore_Refresh))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_EditLocation))
+    Swag.require(lensEntryOnFirstPage(window, appStrings().cmd_OpenChosen))
+    Swag.require(window.lens.results.sections[0]!.label == appStrings().lens_Folder)
+    Swag.require(file.entries.count == 2 and file.entries[0].title == appStrings().cmd_Open)
+    Swag.require(file.entries[1].title == appStrings().ui_CloseFile)
+    Swag.require(folder.entries.count >= 4)
 
     var image = host.render(window)
     image.crop(window.lens.body())

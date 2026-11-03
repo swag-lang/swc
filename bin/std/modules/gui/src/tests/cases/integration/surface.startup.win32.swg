@@ -68,28 +68,28 @@ impl IWnd for StartupProbeWnd
         surface.setView(view)
         view.maximize = maximize
         surface.show()
-        Swag.assert(view.initializations == 1 and view.shows == 1)
-        Swag.assert(view.paintsDuringInit == 0, "initial placement must not paint an intermediate frame")
-        Swag.assert(not view.visibleDuringInit, "initial placement must keep the native window hidden")
-        Swag.assert(not view.firstPaintVisible, "the first complete frame must precede visibility")
-        Swag.assert(not view.showsWithoutFrame and not view.showsWhileHidden)
-        Swag.assert(surface.isMaximized == maximize)
+        Swag.require(view.initializations == 1 and view.shows == 1)
+        Swag.require(view.paintsDuringInit == 0, "initial placement must not paint an intermediate frame")
+        Swag.require(not view.visibleDuringInit, "initial placement must keep the native window hidden")
+        Swag.require(not view.firstPaintVisible, "the first complete frame must precede visibility")
+        Swag.require(not view.showsWithoutFrame and not view.showsWhileHidden)
+        Swag.require(surface.isMaximized == maximize)
         var placement: WINDOWPLACEMENT
         placement.length = #sizeof(placement)
-        Swag.assert(GetWindowPlacement(surface.win32Handle(), &placement))
-        Swag.assert(placement.showCmd == (maximize ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL))
+        Swag.require(GetWindowPlacement(surface.win32Handle(), &placement))
+        Swag.require(placement.showCmd == (maximize ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL))
         var client: RECT
-        Swag.assert(GetClientRect(surface.win32Handle(), &client))
-        Swag.assert(surface.rc.width == client.right and surface.rc.height == client.bottom)
+        Swag.require(GetClientRect(surface.win32Handle(), &client))
+        Swag.require(surface.rc.width == client.right and surface.rc.height == client.bottom)
 
         // Activation may invalidate focus decoration after the first complete frame.
-        Swag.assert(surface.rt.colorBuffer.width >= client.right and surface.rt.colorBuffer.height >= client.bottom)
+        Swag.require(surface.rt.colorBuffer.width >= client.right and surface.rt.colorBuffer.height >= client.bottom)
         surface.hide()
         surface.show()
-        Swag.assert(view.initializations == 1 and view.shows == 2)
-        Swag.assert(GetWindowPlacement(surface.win32Handle(), &placement))
-        Swag.assert(placement.showCmd == (maximize ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL))
+        Swag.require(view.initializations == 1 and view.shows == 2)
+        Swag.require(GetWindowPlacement(surface.win32Handle(), &placement))
+        Swag.require(placement.showCmd == (maximize ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL))
         surface.showNormal()
-        Swag.assert(surface.position == Math.Rectangle{70, 60, 480, 300})
+        Swag.require(surface.position == Math.Rectangle{70, 60, 480, 300})
     }
 }

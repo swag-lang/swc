@@ -2,8 +2,8 @@
 
 #test
 {
-    Swag.assert(#hastag("Swag.AllocatorSafety") == #gettag("test.allocatorSafety", bool, #cfg == "devmode"))
-    Swag.assert(#hastag("Swag.AllocatorDiagnostics") == #gettag("test.allocatorDiagnostics", bool, #cfg == "devmode"))
+    Swag.require(#hastag("Swag.AllocatorSafety") == #gettag("test.allocatorSafety", bool, #cfg == "devmode"))
+    Swag.require(#hastag("Swag.AllocatorDiagnostics") == #gettag("test.allocatorDiagnostics", bool, #cfg == "devmode"))
 
     var allocator: Swag.Allocator
     allocator.setup()
@@ -13,8 +13,8 @@
     {
         var request = Swag.AllocatorRequest{size: size}
         itf.alloc(&request)
-        Swag.assert(request.address != null)
+        Swag.require(request.address != null)
         itf.free(&request)
     }
-    Swag.assert(allocator.stats().countAlloc == 0)
+    Swag.require(allocator.stats().countAlloc == 0)
 }

@@ -20,30 +20,30 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
 {
     var set: OrderedSet's32
     set.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
-    Swag.assert(set.add(4))
-    Swag.assert(set.add(1))
-    Swag.assert(set.add(3))
-    Swag.assert(not set.add(3))
-    Swag.assert(set.add(2))
+    Swag.require(set.add(4))
+    Swag.require(set.add(1))
+    Swag.require(set.add(3))
+    Swag.require(not set.add(3))
+    Swag.require(set.add(2))
 
     assertOrderedSetKeysAreReadOnly(&set)
 
     var code = 0
     for key in set do
         code = code * 10 + key
-    Swag.assert(code == 1234)
+    Swag.require(code == 1234)
 
     var reverse = 0
     for key in set.reversed() do
         reverse = reverse * 10 + key
-    Swag.assert(reverse == 4321)
+    Swag.require(reverse == 4321)
 
-    Swag.assert(set.lowerBound(2) == 1)
-    Swag.assert(set.upperBound(2) == 2)
+    Swag.require(set.lowerBound(2) == 1)
+    Swag.require(set.upperBound(2) == 2)
     let middle = set.range(2, 4)
-    Swag.assert(middle.count == 2 and middle[0] == 2 and middle[1] == 3)
-    Swag.assert(set.remove(2) and not set.remove(2))
-    Swag.assert(not set.contains(2) and set.count == 3)
+    Swag.require(middle.count == 2 and middle[0] == 2 and middle[1] == 3)
+    Swag.require(set.remove(2) and not set.remove(2))
+    Swag.require(not set.contains(2) and set.count == 3)
 }
 
 #test
@@ -57,11 +57,11 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     var result: String
     for key in set do
         result += key[]
-    Swag.assert(result == "gammabetaalpha")
+    Swag.require(result == "gammabetaalpha")
 
     var copy = set
     discard copy.remove("beta")
-    Swag.assert(set.count == 3 and copy.count == 2)
+    Swag.require(set.count == 3 and copy.count == 2)
 }
 
 // Reserving less storage preserves the elements and their existing capacity.
@@ -71,6 +71,6 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     set.add(42)
     let capacity = set.capacity()
     set.reserve(0)
-    Swag.assert(set.count == 1 and set.capacity() == capacity)
-    Swag.assert(set.contains(42))
+    Swag.require(set.count == 1 and set.capacity() == capacity)
+    Swag.require(set.contains(42))
 }

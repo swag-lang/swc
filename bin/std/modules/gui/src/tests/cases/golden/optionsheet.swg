@@ -56,13 +56,13 @@ func assertSheetGolden(shot: SheetShot)
                  host.finishAnimations()
                  for label in [shot.first, shot.second] where label
                  {
-                     Swag.assert(sheet.activateRow(label))
+                     Swag.require(sheet.activateRow(label))
                      if shot.halfway and label == (shot.second orelse shot.first)
                      {
                          host.advanceAnimations(sheet.themeMetrics().motion_PanelSeconds * 0.5)
-                         Swag.assert(sheet.bodyHeight == Math.round(sheet.bodyHeight))
-                         Swag.assert(sheet.position.x == Math.round(sheet.position.x))
-                         Swag.assert(sheet.position.y == Math.round(sheet.position.y))
+                         Swag.require(sheet.bodyHeight == Math.round(sheet.bodyHeight))
+                         Swag.require(sheet.position.x == Math.round(sheet.position.x))
+                         Swag.require(sheet.position.y == Math.round(sheet.position.y))
                      }
                      else
                      {
@@ -79,7 +79,7 @@ func assertSheetGolden(shot: SheetShot)
                  if shot.header
                  {
                      host.keyPress(.Home)
-                     Swag.assert(sheet.focusRow == -1)
+                     Swag.require(sheet.focusRow == -1)
                      host.finishAnimations()
                  }
 

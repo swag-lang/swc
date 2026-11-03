@@ -10,11 +10,11 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton, i)
-        Swag.assert(not pad.isButtonPressed(button))
-        Swag.assert(pad.isButtonReleased(button))
-        Swag.assert(not pad.isButtonJustPressed(button))
-        Swag.assert(not pad.isButtonJustReleased(button))
-        Swag.assert(pad.position(button) == Math.Point.Zero)
+        Swag.require(not pad.isButtonPressed(button))
+        Swag.require(pad.isButtonReleased(button))
+        Swag.require(not pad.isButtonJustPressed(button))
+        Swag.require(not pad.isButtonJustReleased(button))
+        Swag.require(pad.position(button) == Math.Point.Zero)
     }
 }
 
@@ -29,23 +29,23 @@ using Swag
 
         pad.setControlStates(button, false, true, Math.Point.Zero, pos)
 
-        Swag.assert(pad.isButtonPressed(button))
-        Swag.assert(not pad.isButtonReleased(button))
-        Swag.assert(pad.isButtonJustPressed(button))
-        Swag.assert(not pad.isButtonJustReleased(button))
-        Swag.assert(pad.position(button) == pos)
+        Swag.require(pad.isButtonPressed(button))
+        Swag.require(not pad.isButtonReleased(button))
+        Swag.require(pad.isButtonJustPressed(button))
+        Swag.require(not pad.isButtonJustReleased(button))
+        Swag.require(pad.position(button) == pos)
 
         pad.setControlStates(button, true, true, Math.Point.Zero, pos)
-        Swag.assert(pad.isButtonPressed(button))
-        Swag.assert(not pad.isButtonReleased(button))
-        Swag.assert(not pad.isButtonJustPressed(button))
-        Swag.assert(not pad.isButtonJustReleased(button))
+        Swag.require(pad.isButtonPressed(button))
+        Swag.require(not pad.isButtonReleased(button))
+        Swag.require(not pad.isButtonJustPressed(button))
+        Swag.require(not pad.isButtonJustReleased(button))
 
         pad.setControlStates(button, true, false, Math.Point.Zero, pos)
-        Swag.assert(not pad.isButtonPressed(button))
-        Swag.assert(pad.isButtonReleased(button))
-        Swag.assert(not pad.isButtonJustPressed(button))
-        Swag.assert(pad.isButtonJustReleased(button))
+        Swag.require(not pad.isButtonPressed(button))
+        Swag.require(pad.isButtonReleased(button))
+        Swag.require(not pad.isButtonJustPressed(button))
+        Swag.require(pad.isButtonJustReleased(button))
     }
 }
 
@@ -64,9 +64,9 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton, i)
-        Swag.assert(not pad.previousState.pressed[button])
-        Swag.assert(not pad.currentState.pressed[button])
-        Swag.assert(pad.previousState.position[button] == Math.Point.Zero)
-        Swag.assert(pad.currentState.position[button] == Math.Point.Zero)
+        Swag.require(not pad.previousState.pressed[button])
+        Swag.require(not pad.currentState.pressed[button])
+        Swag.require(pad.previousState.position[button] == Math.Point.Zero)
+        Swag.require(pad.currentState.position[button] == Math.Point.Zero)
     }
 }

@@ -24,12 +24,12 @@ using Swag, Core
             program = cmd.defaultShader.id
         if cmd.op is .DrawTriangles
         {
-            Swag.assert(program == (draws == 0 ? DefaultShaderId.Simple : DefaultShaderId.Default))
+            Swag.require(program == (draws == 0 ? DefaultShaderId.Simple : DefaultShaderId.Default))
             draws += 1
         }
     }
 
-    Swag.assert(draws >= 2)
+    Swag.require(draws >= 2)
 }
 
 // Rotation, blending, and explicit effect programs are not ordinary copies.
@@ -56,7 +56,7 @@ using Swag, Core
         painter.drawTexture({0, 0, 64, 32}, texture)
         painter.end()
         for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
-            Swag.assert(cmd.defaultShader.id != .Simple)
+            Swag.require(cmd.defaultShader.id != .Simple)
     }
 }
 
@@ -74,11 +74,11 @@ using Swag, Core
     var programs = 0'u32
     for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
     {
-        Swag.assert(cmd.defaultShader.id == .Simple)
+        Swag.require(cmd.defaultShader.id == .Simple)
         programs += 1
     }
 
-    Swag.assert(programs == 1)
+    Swag.require(programs == 1)
     painter.begin()
     painter.setBlendingMode(.Copy)
     painter.drawTexture({0, 0, 64, 32}, texture)
@@ -86,7 +86,7 @@ using Swag, Core
     programs = 0
     for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
         programs += 1
-    Swag.assert(programs == 2)
+    Swag.require(programs == 2)
 }
 
 // Brush uniforms belong to a program: a program change must rebind even a solid brush.
@@ -106,10 +106,10 @@ using Swag, Core
         if changed and cmd.op is .ResetTexture0 do
             rebound = true
         if changed and cmd.op is .DrawTriangles do
-            Swag.assert(rebound)
+            Swag.require(rebound)
     }
 
-    Swag.assert(changed and rebound)
+    Swag.require(changed and rebound)
 }
 
 // Copy must replace the destination even when every source texel is transparent.
@@ -132,6 +132,6 @@ using Swag, Core
     painter.end()
     renderer.draw(&painter)
     let image = cpu.surfaceImage()
-    Swag.assert(image.pixelColor(3, 3) == Color.fromArgb(0'u8, 255'u8, 0'u8, 0'u8))
-    Swag.assert(image.pixelColor(1, 3) == Color.fromArgb(Argb.Blue))
+    Swag.require(image.pixelColor(3, 3) == Color.fromArgb(0'u8, 255'u8, 0'u8, 0'u8))
+    Swag.require(image.pixelColor(1, 3) == Color.fromArgb(Argb.Blue))
 }

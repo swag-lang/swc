@@ -9,7 +9,6 @@ func testAddMonitorAt(main: *MainWnd, rect: Math.Rectangle)
     main.monitors.add({bounds: rect, workArea: rect, scaleFactor: 1, physicalBounds: rect, physicalWorkArea: rect})
 }
 
-
 // Returns the module's test root for test cases stored under cases/<type>.
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
@@ -21,7 +20,7 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases")
+    Swag.require(false, "test source is outside cases")
     return ""
 }
 
@@ -116,7 +115,7 @@ impl HeadlessFixture
 // `Library.newFileName`, and outside a sandbox those land in the user's own library.
 func testUseScratchLibrary()
 {
-    Swag.assert(Env.isSandboxed())
+    Swag.require(Env.isSandboxed())
     g_Library.rootFolder.clear()
     g_Library.defaultFolder.clear()
     discard catch Library.init()

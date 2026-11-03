@@ -15,7 +15,7 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     var errorOutcome: Swag.Error
     discard catch Crypto.argon2id(password, salt, "", associatedData, {memoryKib: 8, iterations: 1, parallelism: 1}, destination) as errorOutcome
     let error = errorOutcome.value()
-    Swag.assert(error is Errors.BadParameterError)
+    Swag.require(error is Errors.BadParameterError)
 }
 
 #test
@@ -30,7 +30,7 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     expectLengthRejected(password, oversized, "", destination)
     expectLengthRejected(password, salt, oversized, destination)
     expectLengthRejected(password, salt, "", oversized)
-    Swag.assert(source[0] == 0)
+    Swag.require(source[0] == 0)
 }
 
 #test
@@ -50,7 +50,7 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
         0x08, 0xC0, 0x37, 0xA3, 0x4A, 0x8B, 0x53, 0xC9,
         0xD0, 0x1E, 0xF0, 0x45, 0x2D, 0x75, 0xB6, 0x5E,
         0xB5, 0x25, 0x20, 0xE9, 0x6B, 0x01, 0xE6, 0x59]
-    Swag.assert(Crypto.constantTimeEqual(tag, expected))
+    Swag.require(Crypto.constantTimeEqual(tag, expected))
 }
 
 #test
@@ -64,28 +64,28 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
 
     var repeated: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 1}, repeated)
-    Swag.assert(Crypto.constantTimeEqual(baseline, repeated))
+    Swag.require(Crypto.constantTimeEqual(baseline, repeated))
 
     var moreMemory: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 64, iterations: 2, parallelism: 1}, moreMemory)
-    Swag.assert(not Crypto.constantTimeEqual(baseline, moreMemory))
+    Swag.require(not Crypto.constantTimeEqual(baseline, moreMemory))
 
     var morePasses: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 3, parallelism: 1}, morePasses)
-    Swag.assert(not Crypto.constantTimeEqual(baseline, morePasses))
+    Swag.require(not Crypto.constantTimeEqual(baseline, morePasses))
 
     var moreLanes: [32] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 2}, moreLanes)
-    Swag.assert(not Crypto.constantTimeEqual(baseline, moreLanes))
+    Swag.require(not Crypto.constantTimeEqual(baseline, moreLanes))
 
     var otherPassword: [32] u8
     expect Crypto.argon2id("passphrasf", salt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 1}, otherPassword)
-    Swag.assert(not Crypto.constantTimeEqual(baseline, otherPassword))
+    Swag.require(not Crypto.constantTimeEqual(baseline, otherPassword))
 
     let otherSalt = filledBytes(16, 0x2B)
     var otherSaltTag: [32] u8
     expect Crypto.argon2id("passphrase", otherSalt.toSlice(), {memoryKib: 32, iterations: 2, parallelism: 1}, otherSaltTag)
-    Swag.assert(not Crypto.constantTimeEqual(baseline, otherSaltTag))
+    Swag.require(not Crypto.constantTimeEqual(baseline, otherSaltTag))
 }
 
 #test
@@ -99,11 +99,11 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     var long:  [100] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, short)
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, long)
-    Swag.assert(not Crypto.constantTimeEqual(short, long[0 until 16]))
+    Swag.require(not Crypto.constantTimeEqual(short, long[0 until 16]))
 
     var repeatedLong: [100] u8
     expect Crypto.argon2id("passphrase", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, repeatedLong)
-    Swag.assert(Crypto.constantTimeEqual(long, repeatedLong))
+    Swag.require(Crypto.constantTimeEqual(long, repeatedLong))
 }
 
 #test
@@ -116,29 +116,29 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     var noPassOutcome: Swag.Error
     discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 0, parallelism: 1}, tag) as noPassOutcome
     let noPass = noPassOutcome.value()
-    Swag.assert(noPass != null)
+    Swag.require(noPass != null)
 
     var noLaneOutcome: Swag.Error
     discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 0}, tag) as noLaneOutcome
     let noLane = noLaneOutcome.value()
-    Swag.assert(noLane != null)
+    Swag.require(noLane != null)
 
     var tooLittleMemoryOutcome: Swag.Error
     discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 4, iterations: 1, parallelism: 1}, tag) as tooLittleMemoryOutcome
     let tooLittleMemory = tooLittleMemoryOutcome.value()
-    Swag.assert(tooLittleMemory != null)
+    Swag.require(tooLittleMemory != null)
 
     let shortSalt = filledBytes(Crypto.Argon2MinSaltSize - 1, 0x11)
     var shortSaltErrorOutcome: Swag.Error
     discard catch Crypto.argon2id("password", shortSalt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, tag) as shortSaltErrorOutcome
     let shortSaltError = shortSaltErrorOutcome.value()
-    Swag.assert(shortSaltError != null)
+    Swag.require(shortSaltError != null)
 
     var shortTag: [Crypto.Argon2MinTagSize - 1] u8
     var shortTagErrorOutcome: Swag.Error
     discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, shortTag) as shortTagErrorOutcome
     let shortTagError = shortTagErrorOutcome.value()
-    Swag.assert(shortTagError != null)
+    Swag.require(shortTagError != null)
 }
 
 #test
@@ -162,7 +162,7 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     {
         var tag: [32] u8
         expect Crypto.argon2id("parallel passphrase", "parallel salt!!!", {memoryKib: memory[index], iterations: 3, parallelism: lanes[index]}, tag)
-        Swag.assert(Crypto.constantTimeEqual(tag, expected[index]))
+        Swag.require(Crypto.constantTimeEqual(tag, expected[index]))
     }
 
     // Derivations may themselves be children of CPU tasks. Each call owns its
@@ -171,5 +171,5 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     parallel for |&tags| index in 3 do
         expect Crypto.argon2id("parallel passphrase", "parallel salt!!!", {memoryKib: 1549, iterations: 3, parallelism: 3}, tags[index])
     for tag in tags do
-        Swag.assert(Crypto.constantTimeEqual(tag, expected[5]))
+        Swag.require(Crypto.constantTimeEqual(tag, expected[5]))
 }

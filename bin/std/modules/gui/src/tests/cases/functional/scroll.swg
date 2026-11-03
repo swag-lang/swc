@@ -22,7 +22,7 @@ impl IWnd for ResponsiveScrollView
         .resizing += 1
         defer .resizing -= 1
         .visits += 1
-        Swag.assert(.resizing == 1 and .visits < 8)
+        Swag.require(.resizing == 1 and .visits < 8)
         if .horizontal do
             scroll.setScrollSize(.position.height, 0)
         else do
@@ -39,15 +39,15 @@ impl IWnd for ResponsiveScrollView
     scroll.updateFlags(.DisableHorizontal)
     let view = scroll.createView'ResponsiveScrollView()
     scroll.setScrollSize(0, 200)
-    Swag.assert(view.position.width == 200 - host.theme.metrics.scrollBar_Size)
-    Swag.assert(scroll.scrollSize.y == view.position.width and scroll.showBarV)
+    Swag.require(view.position.width == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.require(scroll.scrollSize.y == view.position.width and scroll.showBarV)
     scroll.setScrollPos(0, 100)
-    Swag.assert(scroll.scrollPosition() == Math.Point{} and scroll.showBarV)
+    Swag.require(scroll.scrollPosition() == Math.Point{} and scroll.showBarV)
 
     view.visits = 0
     scroll.resize(200, 220)
-    Swag.assert(view.position.width == 200 and not scroll.showBarV)
-    Swag.assert(scroll.scrollSize.y == 200)
+    Swag.require(view.position.width == 200 and not scroll.showBarV)
+    Swag.require(scroll.scrollSize.y == 200)
 }
 
 // The horizontal axis has the same feedback when its bar shortens the responsive view.
@@ -59,15 +59,15 @@ impl IWnd for ResponsiveScrollView
     let view   = scroll.createView'ResponsiveScrollView()
     view.horizontal = true
     scroll.setScrollSize(200, 0)
-    Swag.assert(view.position.height == 200 - host.theme.metrics.scrollBar_Size)
-    Swag.assert(scroll.scrollSize.x == view.position.height and scroll.showBarH)
+    Swag.require(view.position.height == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.require(scroll.scrollSize.x == view.position.height and scroll.showBarH)
     scroll.setScrollPos(100, 0)
-    Swag.assert(scroll.scrollPosition() == Math.Point{} and scroll.showBarH)
+    Swag.require(scroll.scrollPosition() == Math.Point{} and scroll.showBarH)
 
     view.visits = 0
     scroll.resize(220, 200)
-    Swag.assert(view.position.height == 200 and not scroll.showBarH)
-    Swag.assert(scroll.scrollSize.x == 200)
+    Swag.require(view.position.height == 200 and not scroll.showBarH)
+    Swag.require(scroll.scrollSize.x == 200)
 }
 
 // A hover hint exposes existing scrollbars without moving content or changing its viewport.
@@ -81,11 +81,11 @@ impl IWnd for ResponsiveScrollView
     let viewport = scroll.view.position
     let position = scroll.scrollPosition()
     scroll.revealScrollBars()
-    Swag.assert(scroll.barPresence == 1)
-    Swag.assert(scroll.view.position == viewport and scroll.scrollPosition() == position)
+    Swag.require(scroll.barPresence == 1)
+    Swag.require(scroll.view.position == viewport and scroll.scrollPosition() == position)
     host.fireTimers()
     host.finishAnimations()
-    Swag.assert(scroll.barPresence == 0)
+    Swag.require(scroll.barPresence == 0)
 }
 
 // Repeated wheel destinations preserve speed instead of kicking a fresh ease-out each time.
@@ -104,20 +104,20 @@ impl IWnd for ResponsiveScrollView
     let current      = scroll.scrollPosition()
     let previousStep = current - before
     scroll.smoothScrollTo({20000, 20000})
-    Swag.assert(scroll.scrollPosition() == current)
+    Swag.require(scroll.scrollPosition() == current)
     host.advanceAnimations(0.001)
     let nextStep = scroll.scrollPosition() - current
-    Swag.assert(Math.abs(nextStep.x - previousStep.x) <= 2)
-    Swag.assert(Math.abs(nextStep.y - previousStep.y) <= 2)
+    Swag.require(Math.abs(nextStep.x - previousStep.x) <= 2)
+    Swag.require(Math.abs(nextStep.y - previousStep.y) <= 2)
     let beforeGrowth = scroll.scrollPosition()
     scroll.setScrollSize(120000, 120000)
-    Swag.assert(scroll.scrollTarget() == Math.Point{20000, 20000})
+    Swag.require(scroll.scrollTarget() == Math.Point{20000, 20000})
     host.advanceAnimations(0.001)
     let growthStep = scroll.scrollPosition() - beforeGrowth
-    Swag.assert(Math.abs(growthStep.x - nextStep.x) <= 2)
-    Swag.assert(Math.abs(growthStep.y - nextStep.y) <= 2)
+    Swag.require(Math.abs(growthStep.x - nextStep.x) <= 2)
+    Swag.require(Math.abs(growthStep.y - nextStep.y) <= 2)
     host.finishAnimations()
-    Swag.assert(scroll.scrollPosition() == Math.Point{20000, 20000})
+    Swag.require(scroll.scrollPosition() == Math.Point{20000, 20000})
 
     // Reversal must not carry forward momentum past the point where the request changed.
     scroll.smoothScrollTo({30000, 30000})
@@ -125,18 +125,18 @@ impl IWnd for ResponsiveScrollView
     let reversal = scroll.scrollPosition()
     scroll.smoothScrollTo({0, 0})
     host.advanceAnimations(0.01)
-    Swag.assert(scroll.scrollPosition().x < reversal.x and scroll.scrollPosition().y < reversal.y)
+    Swag.require(scroll.scrollPosition().x < reversal.x and scroll.scrollPosition().y < reversal.y)
     host.finishAnimations()
-    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0})
 
     scroll.smoothScrollTo({10000, 10000})
     host.advanceAnimations(0.04)
     scroll.setScrollPos({123, 456})
     host.finishAnimations()
-    Swag.assert(scroll.scrollPosition() == Math.Point{123, 456})
+    Swag.require(scroll.scrollPosition() == Math.Point{123, 456})
     host.setReducedMotion(true)
     scroll.smoothScrollTo({789, 987})
-    Swag.assert(scroll.scrollPosition() == Math.Point{789, 987})
+    Swag.require(scroll.scrollPosition() == Math.Point{789, 987})
 }
 
 var ScrollHeadlessPosCount:  u32
@@ -168,21 +168,21 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     scroll.sigScrollSizeChanged     += &scrollHeadlessSize
 
     scroll.setScrollSize(1000, 1000)
-    Swag.assert(ScrollHeadlessSizeCount == 1)
-    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.require(ScrollHeadlessSizeCount == 1)
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0})
 
     let vc = scroll.view.clientRect()
 
     // Negative clamps to zero (no change → no signal).
     scroll.setScrollPos(-100, -100)
-    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0})
 
     // Beyond the end clamps to scrollSize - visible size.
     scroll.setScrollPos(99999, 99999)
     let sp = scroll.scrollPosition()
-    Swag.assert(sp.x == 1000 - vc.width)
-    Swag.assert(sp.y == 1000 - vc.height)
-    Swag.assert(ScrollHeadlessPosCount >= 1)
+    Swag.require(sp.x == 1000 - vc.width)
+    Swag.require(sp.y == 1000 - vc.height)
+    Swag.require(ScrollHeadlessPosCount >= 1)
 }
 
 // Content smaller than the view cannot be scrolled.
@@ -195,7 +195,7 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     scroll.setScrollSize(50, 50)
 
     scroll.setScrollPos(100, 100)
-    Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0})
 }
 
 // Focus reveals a nested control through both viewports, and can return to the first control.
@@ -214,20 +214,20 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     host.pump()
 
     first.setFocus()
-    Swag.assert(outer.scrollPosition() == Math.Point{0, 0})
+    Swag.require(outer.scrollPosition() == Math.Point{0, 0})
     last.setFocus()
-    Swag.assert(host.app.keyboardFocusWnd == last)
-    Swag.assert(inner.scrollPosition().x > 0 and inner.scrollPosition().y > 0)
-    Swag.assert(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
-    Swag.assert(inner.view.surfaceRect().contains(last.surfaceRect()))
-    Swag.assert(outer.view.surfaceRect().contains(last.surfaceRect()))
+    Swag.require(host.app.keyboardFocusWnd == last)
+    Swag.require(inner.scrollPosition().x > 0 and inner.scrollPosition().y > 0)
+    Swag.require(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
+    Swag.require(inner.view.surfaceRect().contains(last.surfaceRect()))
+    Swag.require(outer.view.surfaceRect().contains(last.surfaceRect()))
 
     let position = outer.scrollPosition()
     last.setFocus()
-    Swag.assert(outer.scrollPosition() == position)
+    Swag.require(outer.scrollPosition() == position)
     first.setFocus()
-    Swag.assert(outer.scrollPosition() == Math.Point{0, 0})
-    Swag.assert(outer.view.surfaceRect().contains(first.surfaceRect()))
+    Swag.require(outer.scrollPosition() == Math.Point{0, 0})
+    Swag.require(outer.view.surfaceRect().contains(first.surfaceRect()))
 }
 
 // A viewport type built by composition over a `ScrollWnd`.
@@ -251,9 +251,9 @@ struct ScrollHeadlessViewport
     host.pump()
 
     last.setFocus()
-    Swag.assert(host.app.keyboardFocusWnd == last)
-    Swag.assert(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
-    Swag.assert(outer.view.surfaceRect().contains(last.surfaceRect()))
+    Swag.require(host.app.keyboardFocusWnd == last)
+    Swag.require(outer.scrollPosition().x > 0 and outer.scrollPosition().y > 0)
+    Swag.require(outer.view.surfaceRect().contains(last.surfaceRect()))
 }
 
 // The bars rest invisible: a scroll shows them, and they fade once the view has been still.
@@ -266,13 +266,13 @@ struct ScrollHeadlessViewport
     scroll.createView'Wnd()
     scroll.setScrollSize(1000, 1000)
     host.finishAnimations()
-    Swag.assert(scroll.barPresence == 0)
+    Swag.require(scroll.barPresence == 0)
 
     scroll.setScrollPos({0, 100})
     host.finishAnimations()
-    Swag.assert(scroll.barPresence == 1)
+    Swag.require(scroll.barPresence == 1)
 
     host.fireTimers()
     host.finishAnimations()
-    Swag.assert(scroll.barPresence == 0)
+    Swag.require(scroll.barPresence == 0)
 }

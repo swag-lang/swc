@@ -71,20 +71,20 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     let onlyHash64 = HashTestTypes.OnlyHash64{value: 5}
     let bothHash   = HashTestTypes.BothHash{value: 7}
 
-    Swag.assert(Hash.hash32(TEXT) == Hash.hashBytes32(TEXT))
-    Swag.assert(Hash.hash64(TEXT) == Hash.murmur3(TEXT.buffer, TEXT.count, 0))
+    Swag.require(Hash.hash32(TEXT) == Hash.hashBytes32(TEXT))
+    Swag.require(Hash.hash64(TEXT) == Hash.murmur3(TEXT.buffer, TEXT.count, 0))
 
-    Swag.assert(Hash.hash32(onlyHash32) == EXPECTED_ONLY_HASH32_32)
-    Swag.assert(Hash.hash64(onlyHash32) == EXPECTED_ONLY_HASH32_64)
+    Swag.require(Hash.hash32(onlyHash32) == EXPECTED_ONLY_HASH32_32)
+    Swag.require(Hash.hash64(onlyHash32) == EXPECTED_ONLY_HASH32_64)
 
-    Swag.assert(Hash.hash32(onlyHash64) == EXPECTED_ONLY_HASH64_32)
-    Swag.assert(Hash.hash64(onlyHash64) == EXPECTED_ONLY_HASH64_64)
+    Swag.require(Hash.hash32(onlyHash64) == EXPECTED_ONLY_HASH64_32)
+    Swag.require(Hash.hash64(onlyHash64) == EXPECTED_ONLY_HASH64_64)
 
-    Swag.assert(Hash.hash32(bothHash) == EXPECTED_BOTH_HASH32)
-    Swag.assert(Hash.hash64(bothHash) == EXPECTED_BOTH_HASH64)
+    Swag.require(Hash.hash32(bothHash) == EXPECTED_BOTH_HASH32)
+    Swag.require(Hash.hash64(bothHash) == EXPECTED_BOTH_HASH64)
 
-    Swag.assert(Hash.hash32(false) != Hash.hash32(true))
-    Swag.assert(Hash.hash64(false) != Hash.hash64(true))
+    Swag.require(Hash.hash32(false) != Hash.hash32(true))
+    Swag.require(Hash.hash64(false) != Hash.hash64(true))
 }
 
 #assert(Hash.hashBytes32("abc") == Hash.hashBytes32("abc"))
@@ -111,20 +111,20 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
         let hashed = Hash.hashBytes32(view)
 
         // Same bytes, same hash
-        Swag.assert(Hash.hashBytes32(view) == hashed)
+        Swag.require(Hash.hashBytes32(view) == hashed)
 
         // Bytes beyond 'length' must not take part: same prefix in a differently
         // filled buffer has to produce the same value
         var padded: [80] u8
         Memory.set(&padded[0], 0xAA'u8, 80)
         Memory.copy(&padded[0], &source[0], length)
-        Swag.assert(Hash.hashBytes32(padded[until length]) == hashed)
+        Swag.require(Hash.hashBytes32(padded[until length]) == hashed)
 
         // Flipping the last byte has to change the hash
         if length
         {
             padded[length - 1] ^= 0xFF
-            Swag.assert(Hash.hashBytes32(padded[until length]) != hashed)
+            Swag.require(Hash.hashBytes32(padded[until length]) != hashed)
         }
 
         seen[slot] = hashed
@@ -136,7 +136,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
         for j in Lengths.count
         {
             if j > i do
-                Swag.assert(seen[i] != seen[j])
+                Swag.require(seen[i] != seen[j])
         }
     }
 }

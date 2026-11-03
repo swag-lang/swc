@@ -20,16 +20,16 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
 // Both constant storage and mutable global storage must contain the provider's defaults.
 #test
 {
-    Swag.assert(OPAQUE_SCALAR_CONSTANT.isDefault())
-    Swag.assert(OPAQUE_TEXT_CONSTANT.isDefault())
-    Swag.assert(OPAQUE_NESTED_CONSTANT.isDefault())
-    Swag.assert(OPAQUE_ARRAY_CONSTANT[0].isDefault())
-    Swag.assert(OPAQUE_ARRAY_CONSTANT[1].isDefault())
-    Swag.assert(opaqueScalarGlobal.isDefault())
-    Swag.assert(opaqueTextGlobal.isDefault())
-    Swag.assert(opaqueNestedGlobal.isDefault())
-    Swag.assert(opaqueArrayGlobal[0].isDefault())
-    Swag.assert(opaqueArrayGlobal[1].isDefault())
+    Swag.require(OPAQUE_SCALAR_CONSTANT.isDefault())
+    Swag.require(OPAQUE_TEXT_CONSTANT.isDefault())
+    Swag.require(OPAQUE_NESTED_CONSTANT.isDefault())
+    Swag.require(OPAQUE_ARRAY_CONSTANT[0].isDefault())
+    Swag.require(OPAQUE_ARRAY_CONSTANT[1].isDefault())
+    Swag.require(opaqueScalarGlobal.isDefault())
+    Swag.require(opaqueTextGlobal.isDefault())
+    Swag.require(opaqueNestedGlobal.isDefault())
+    Swag.require(opaqueArrayGlobal[0].isDefault())
+    Swag.require(opaqueArrayGlobal[1].isDefault())
 }
 
 // Implicit locals and explicit empty construction use the same imported initializer.
@@ -39,17 +39,17 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     var text:   StaticApi.OpaqueDefaultText
     var nested: StaticApi.OpaqueDefaultNested
     var array:  [2] StaticApi.OpaqueDefaultText
-    Swag.assert(scalar.isDefault())
-    Swag.assert(text.isDefault())
-    Swag.assert(nested.isDefault())
-    Swag.assert(array[0].isDefault())
-    Swag.assert(array[1].isDefault())
+    Swag.require(scalar.isDefault())
+    Swag.require(text.isDefault())
+    Swag.require(nested.isDefault())
+    Swag.require(array[0].isDefault())
+    Swag.require(array[1].isDefault())
     let scalarLiteral = StaticApi.OpaqueDefaultScalar{}
     let textLiteral   = StaticApi.OpaqueDefaultText{}
     let nestedLiteral = StaticApi.OpaqueDefaultNested{}
-    Swag.assert(scalarLiteral.isDefault())
-    Swag.assert(textLiteral.isDefault())
-    Swag.assert(nestedLiteral.isDefault())
+    Swag.require(scalarLiteral.isDefault())
+    Swag.require(textLiteral.isDefault())
+    Swag.require(nestedLiteral.isDefault())
 }
 
 // Reset by assignment and the initialization intrinsic must preserve nested relocations too.
@@ -64,15 +64,15 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     scalar = {}
     text   = {}
     nested = {}
-    Swag.assert(scalar.isDefault())
-    Swag.assert(text.isDefault())
-    Swag.assert(nested.isDefault())
+    Swag.require(scalar.isDefault())
+    Swag.require(text.isDefault())
+    Swag.require(nested.isDefault())
     text.change()
     nested.change()
     Swag.init(&text)
     Swag.init(&nested)
-    Swag.assert(text.isDefault())
-    Swag.assert(nested.isDefault())
+    Swag.require(text.isDefault())
+    Swag.require(nested.isDefault())
 }
 
 // Provider-private addresses are initialized by the exported thunk and retain their identity.
@@ -82,11 +82,11 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     let literal = StaticApi.OpaqueDefaultPointer{}
     var nested: StaticApi.OpaqueDefaultPointerNested
     var array:  [2] StaticApi.OpaqueDefaultPointer
-    Swag.assert(value.isDefault())
-    Swag.assert(literal.isDefault())
-    Swag.assert(nested.isDefault())
-    Swag.assert(array[0].isDefault())
-    Swag.assert(array[1].isDefault())
+    Swag.require(value.isDefault())
+    Swag.require(literal.isDefault())
+    Swag.require(nested.isDefault())
+    Swag.require(array[0].isDefault())
+    Swag.require(array[1].isDefault())
     value.change()
     nested.change()
     array[0].change()
@@ -94,23 +94,23 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     value  = {}
     nested = {}
     Swag.init(&array)
-    Swag.assert(value.isDefault())
-    Swag.assert(nested.isDefault())
-    Swag.assert(array[0].isDefault())
-    Swag.assert(array[1].isDefault())
+    Swag.require(value.isDefault())
+    Swag.require(nested.isDefault())
+    Swag.require(array[0].isDefault())
+    Swag.require(array[1].isDefault())
     value.change()
     nested.change()
     Swag.init(&value)
     Swag.init(&nested)
-    Swag.assert(value.isDefault())
-    Swag.assert(nested.isDefault())
+    Swag.require(value.isDefault())
+    Swag.require(nested.isDefault())
 }
 
 // A full initializer remains usable even when the opaque type has no implicit default.
 #test
 {
     let value = cast(StaticApi.OpaqueRequiredDefault, "ready")
-    Swag.assert(value.isReady())
+    Swag.require(value.isReady())
 }
 
 // Empty element construction and omitted array elements keep the provider's address identity.
@@ -119,28 +119,28 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     let implicit: StaticApi.OpaqueDefaultPointer
     var values:   [2] StaticApi.OpaqueDefaultPointer    = [StaticApi.OpaqueDefaultPointer{}]
     var matrix:   [2, 2] StaticApi.OpaqueDefaultPointer = [[{}]]
-    Swag.assert(implicit.isDefault())
-    Swag.assert(values[0].isDefault())
-    Swag.assert(values[1].isDefault())
-    Swag.assert(matrix[0, 0].isDefault())
-    Swag.assert(matrix[0, 1].isDefault())
-    Swag.assert(matrix[1, 0].isDefault())
-    Swag.assert(matrix[1, 1].isDefault())
+    Swag.require(implicit.isDefault())
+    Swag.require(values[0].isDefault())
+    Swag.require(values[1].isDefault())
+    Swag.require(matrix[0, 0].isDefault())
+    Swag.require(matrix[0, 1].isDefault())
+    Swag.require(matrix[1, 0].isDefault())
+    Swag.require(matrix[1, 1].isDefault())
     var fullMatrix: [2, 2] StaticApi.OpaqueDefaultPointer = [[{}, {}], [{}, {}]]
-    Swag.assert(fullMatrix[0, 0].isDefault())
-    Swag.assert(fullMatrix[0, 1].isDefault())
-    Swag.assert(fullMatrix[1, 0].isDefault())
-    Swag.assert(fullMatrix[1, 1].isDefault())
+    Swag.require(fullMatrix[0, 0].isDefault())
+    Swag.require(fullMatrix[0, 1].isDefault())
+    Swag.require(fullMatrix[1, 0].isDefault())
+    Swag.require(fullMatrix[1, 1].isDefault())
 }
 
 // Union fields overlap; the provider initializes the final field without a linear layout.
 #test
 {
     var value: RuntimeDefaultUnion
-    Swag.assert(value.value.isDefault())
+    Swag.require(value.value.isDefault())
     value.value.change()
     Swag.init(&value)
-    Swag.assert(value.value.isDefault())
+    Swag.require(value.value.isDefault())
 }
 
 // Supplied values stay unchanged while missing rows and elements receive their own defaults.
@@ -150,10 +150,10 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
     changed.change()
     var values: [2] StaticApi.OpaqueDefaultPointer    = [changed]
     var matrix: [2, 2] StaticApi.OpaqueDefaultPointer = [[changed]]
-    Swag.assert(not values[0].isDefault())
-    Swag.assert(values[1].isDefault())
-    Swag.assert(not matrix[0, 0].isDefault())
-    Swag.assert(matrix[0, 1].isDefault())
-    Swag.assert(matrix[1, 0].isDefault())
-    Swag.assert(matrix[1, 1].isDefault())
+    Swag.require(not values[0].isDefault())
+    Swag.require(values[1].isDefault())
+    Swag.require(not matrix[0, 0].isDefault())
+    Swag.require(matrix[0, 1].isDefault())
+    Swag.require(matrix[1, 0].isDefault())
+    Swag.require(matrix[1, 1].isDefault())
 }

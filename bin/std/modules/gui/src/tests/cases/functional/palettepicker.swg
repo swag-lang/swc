@@ -17,16 +17,16 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
     var host: Testing.HeadlessHost
     host.setup(240, 120)
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
-    Swag.assert(picker.colors.isEmpty())
-    Swag.assert(picker.selectedIndex == Swag.S32.Max)
+    Swag.require(picker.colors.isEmpty())
+    Swag.require(picker.selectedIndex == Swag.S32.Max)
 
     picker.addColor(Argb.Red)
     picker.addColor(Argb.Blue)
-    Swag.assert(picker.colors.count == 2)
-    Swag.assert(picker.colors[0] == Argb.Red)
+    Swag.require(picker.colors.count == 2)
+    Swag.require(picker.colors[0] == Argb.Red)
 
     picker.addHueRamp(8, 1, 0.5)
-    Swag.assert(picker.colors.count == 10)
+    Swag.require(picker.colors.count == 10)
 }
 
 // Mouse and keyboard selection share one index, color, and notification contract.
@@ -45,19 +45,19 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
 
     // Hit testing is valid before the first paint.
     host.click({22, 22})
-    Swag.assert(picker.selectedIndex == 0)
-    Swag.assert(picker.selectedColor == Argb.Red)
-    Swag.assert(PalettePickerHeadlessChangedCount == 1)
+    Swag.require(picker.selectedIndex == 0)
+    Swag.require(picker.selectedColor == Argb.Red)
+    Swag.require(PalettePickerHeadlessChangedCount == 1)
 
     host.focus(picker)
     host.keyPress(Input.Key.Right)
-    Swag.assert(picker.selectedIndex == 1)
-    Swag.assert(picker.selectedColor == Argb.Green)
+    Swag.require(picker.selectedIndex == 1)
+    Swag.require(picker.selectedColor == Argb.Green)
     host.keyPress(Input.Key.End)
-    Swag.assert(picker.selectedIndex == 2)
-    Swag.assert(PalettePickerHeadlessChangedCount == 3)
+    Swag.require(picker.selectedIndex == 2)
+    Swag.require(PalettePickerHeadlessChangedCount == 3)
 
     picker.clearSelection(notify: false)
-    Swag.assert(picker.selectedIndex == Swag.S32.Max)
-    Swag.assert(PalettePickerHeadlessChangedCount == 3)
+    Swag.require(picker.selectedIndex == Swag.S32.Max)
+    Swag.require(PalettePickerHeadlessChangedCount == 3)
 }

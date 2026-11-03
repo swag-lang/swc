@@ -120,8 +120,8 @@ func sharedLockUnlocksAfterContinue()->bool
 
 #test
 {
-    Swag.assert(scopedLockUnlocksAfterContinue())
-    Swag.assert(scopedLockUnlocksAfterBreak())
-    Swag.assert(scopedLockUnlocksAfterReturn())
-    Swag.assert(sharedLockUnlocksAfterContinue())
+    Swag.require(scopedLockUnlocksAfterContinue())
+    Swag.require(scopedLockUnlocksAfterBreak())
+    Swag.require(scopedLockUnlocksAfterReturn())
+    Swag.require(sharedLockUnlocksAfterContinue())
 }

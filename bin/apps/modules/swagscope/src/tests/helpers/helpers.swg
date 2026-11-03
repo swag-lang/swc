@@ -94,8 +94,8 @@ impl MediaLibraryFixture
             let key      = ThumbnailCache.key(entry.path, settings: settings)
             let expected = ThumbnailCache.read(key).convertedTo(.RGBA8)
             let pixels   = window.app().renderer.readTexturePixels(entry.texture, .RGBA8)
-            Swag.assert(entry.texture.width == 37 and entry.texture.height == 53)
-            Swag.assert(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
+            Swag.require(entry.texture.width == 37 and entry.texture.height == 53)
+            Swag.require(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
         }
     }
 
@@ -180,7 +180,6 @@ impl MediaLibraryFixture
     }
 }
 
-
 // Locates shared fixtures for categorized viewer tests.
 func scopeTestDataDirectory(loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(testSourceRoot(loc), "datas")
 
@@ -212,9 +211,9 @@ func assertVideoRendererGolden(image: const *Pixel.Image, name: string, options:
 // Verifies that an information-band control keeps its breathing room outside its own frame.
 func assertViewerInfoButton(button: *IconButton, width = Viewer.ZoomButtonWidth)
 {
-    Swag.assert(button.position.width == width)
-    Swag.assert(button.margin.x >= Viewer.ZoomButtonInset)
-    Swag.assert(button.margin.z == Viewer.ZoomButtonInset)
+    Swag.require(button.position.width == width)
+    Swag.require(button.margin.x >= Viewer.ZoomButtonInset)
+    Swag.require(button.margin.z == Viewer.ZoomButtonInset)
 }
 
 // The foot of a viewer test, as the window builds it: a band the commands stand on, and the line
@@ -296,7 +295,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
         if view.read.started
         {
             view.read.task.wait()
-            Swag.assert(not view.read.failed, view.read.error)
+            Swag.require(not view.read.failed, view.read.error)
             view.loadNextChunk()
         }
     }
@@ -318,13 +317,13 @@ func(T) completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *T)
 {
     load.task.wait()
     host.pump()
-    Swag.assert(not load.isPending())
+    Swag.require(not load.isPending())
 }
 
 // Ages the current wait past the delay the activity mark waits for, and lets the window decide again.
 func expireViewerLoadingDelay(window: *ViewerWindow)
 {
-    Swag.assert(window.loadingWantedSince != 0)
+    Swag.require(window.loadingWantedSince != 0)
     window.loadingWantedSince = 1
     window.updateLoadingIndicator()
 }
@@ -358,7 +357,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         steps += 1
     }
 
-    Swag.assert(window.pendingFile.isEmpty())
+    Swag.require(window.pendingFile.isEmpty())
 }
 
 // Lets the text viewer's count end and its result reach the viewer, including a count it
@@ -373,7 +372,7 @@ func completeTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
             return
     }
 
-    Swag.assert(false, "text statistics did not settle")
+    Swag.require(false, "text statistics did not settle")
 }
 
 // Completes file classification, then the selected viewer's own loading, and lets the activity mark go.
@@ -420,7 +419,7 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         steps += 1
     }
 
-    Swag.assert(steps < 4_096)
+    Swag.require(steps < 4_096)
     expireViewerLoadingLinger(window)
 }
 
@@ -435,10 +434,10 @@ func pinVideoFrame(view: *Film.Panel, index: u64)
         attempts += 1
     }
 
-    Swag.assert(view.openFinished and view.hasFrame and not view.awaitingFrame)
+    Swag.require(view.openFinished and view.hasFrame and not view.awaitingFrame)
     if view.playing do
         view.togglePlayback()
-    Swag.assert(view.showFrame(index))
+    Swag.require(view.showFrame(index))
 
     attempts = 0
     while view.awaitingFrame and attempts < 5_000
@@ -448,11 +447,11 @@ func pinVideoFrame(view: *Film.Panel, index: u64)
         attempts += 1
     }
 
-    Swag.assert(not view.awaitingFrame and view.frameIndex == index)
+    Swag.require(not view.awaitingFrame and view.frameIndex == index)
     view.elapsed = index == 0 ? 0 : view.frameSeconds(index)
     view.refreshTime()
     view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
-    Swag.assert(not view.playing and view.frameIndex == index)
+    Swag.require(not view.playing and view.frameIndex == index)
 }
 
 // Completes queued text reads at the GUI publication boundary, including superseded requests.
@@ -469,7 +468,7 @@ func completeTextReads(host: *Testing.HeadlessHost, view: *PlainText.Panel)
             return
     }
 
-    Swag.assert(false, "text loading did not settle")
+    Swag.require(false, "text loading did not settle")
 }
 
 // One file of a stored ZIP archive that a test writes.
@@ -603,6 +602,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside cases or helpers")
     return ""
 }

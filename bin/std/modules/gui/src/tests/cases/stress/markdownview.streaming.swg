@@ -35,7 +35,7 @@ using Swag, Core
         if index % 4 >= 2 do
             host.advanceAnimations(0.04)
         discard host.render(view)
-        Swag.assert(not view.waitingScroll and not view.hasPendingTarget and view.retainedBlocks.isEmpty(), Format.toString("gesture=% waiting=% pending=% retained=%", index, view.waitingScroll, view.hasPendingTarget, view.retainedBlocks.count).toString())
+        Swag.require(not view.waitingScroll and not view.hasPendingTarget and view.retainedBlocks.isEmpty(), Format.toString("gesture=% waiting=% pending=% retained=%", index, view.waitingScroll, view.hasPendingTarget, view.retainedBlocks.count).toString())
 
         // A glide held at a resident boundary resumes after that paint, with its own endpoint.
         for 2
@@ -44,9 +44,9 @@ using Swag, Core
             discard host.render(view)
         }
 
-        Swag.assert(Math.abs(view.scroll.scrollPosition().y - position + delta * view.scroll.verticalScrollStep * 3) <= 1)
-        Swag.assert(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
-        Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
+        Swag.require(Math.abs(view.scroll.scrollPosition().y - position + delta * view.scroll.verticalScrollStep * 3) <= 1)
+        Swag.require(view.scroll.scrollPosition().y >= view.virtualOrigin - 1)
+        Swag.require(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     }
 }
 
@@ -73,17 +73,17 @@ using Swag, Core
         host.fireTimers()
 
     host.moveMouse({360, 240})
-    Swag.assert(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
+    Swag.require(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
     view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
     discard host.render(view)
     for 1_024 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(host.app.mouseEnterWnd == null)
+    Swag.require(host.app.mouseEnterWnd == null)
     let end = view.scroll.scrollPosition().y
-    Swag.assert(end > 0)
+    Swag.require(end > 0)
     host.app.sendMouseWheelEvent(&host.surface, {360, 240}, 1)
 
-    Swag.assert(view.scroll.scrollPosition().y < end)
+    Swag.require(view.scroll.scrollPosition().y < end)
 }
 
 // Every document key uses the scrollbar's next-paint loading path, including reversals before
@@ -114,11 +114,11 @@ using Swag, Core
     {
         host.keyPress(.End, modifiers)
         discard host.render(view)
-        Swag.assert(not view.hasUnloadedSource() and not view.jumpToEnd and not view.hasPendingTarget)
-        Swag.assert(Math.abs(view.scroll.scrollPosition().y + viewport.height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
+        Swag.require(not view.hasUnloadedSource() and not view.jumpToEnd and not view.hasPendingTarget)
+        Swag.require(Math.abs(view.scroll.scrollPosition().y + viewport.height - view.contentHeight - view.documentStyle.bottomInset) <= 1)
         host.keyPress(.Home, modifiers)
         discard host.render(view)
-        Swag.assert(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
+        Swag.require(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
     }
 
     for key, index in [Input.Key.Down, .Up, .PageDown, .PageUp, .Space, .Space]
@@ -128,8 +128,8 @@ using Swag, Core
         discard host.render(view)
         let distance  = index < 2 ? line : page
         let direction = index % 2 == 0 ? 1 : -1
-        Swag.assert(Math.abs(view.scroll.scrollPosition().y - before - distance * direction) <= 1)
-        Swag.assert(not view.waitingScroll and not view.hasPendingTarget)
+        Swag.require(Math.abs(view.scroll.scrollPosition().y - before - distance * direction) <= 1)
+        Swag.require(not view.waitingScroll and not view.hasPendingTarget)
     }
 
     host.keyPress(.End)
@@ -137,5 +137,5 @@ using Swag, Core
     discard host.render(view)
     for 64 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
+    Swag.require(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
 }

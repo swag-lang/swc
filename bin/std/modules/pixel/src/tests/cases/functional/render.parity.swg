@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
 #test
@@ -20,10 +21,11 @@ using Swag, Core
     // The half-transparent circle over the rounded rect resolves to a blend of the two,
     // opaque because the rect below it is.
     let blended = image.pixelColor(38, 24)
-    Swag.assert(blended.a == 255)
-    Swag.assert(blended.r > 0x2E and blended.r < 0xEF)
-    Swag.assert(blended.b > 0x6F and blended.b < 0xDE)
+    Swag.require(blended.a == 255)
+    Swag.require(blended.r > 0x2E and blended.r < 0xEF)
+    Swag.require(blended.b > 0x6F and blended.b < 0xDE)
 }
+
 #test
 {
     var expected = Image.create(2, 1, .BGRA8)
@@ -37,6 +39,7 @@ using Swag, Core
     pixels[2] = 255
     Testing.assertImagesNear(&expected, &actual, "render.parity.tolerance.outlier", {maxDifferentPixels: 1})
 }
+
 #test
 {
     var storage: Array'u8
@@ -44,18 +47,20 @@ using Swag, Core
     let image   = renderCpu(&renderPlanarParityScene)
     assertPlanarCornersUpright(&image, &picture)
 }
+
 #test
 {
     let expected = renderCpu(&renderClipRegionParityScene)
     let blue     = Color.fromArgb(Argb.DodgerBlue)
     let white    = Color.fromArgb(Argb.White)
-    Swag.assert(expected.pixelColor(144, 64) == blue)
-    Swag.assert(expected.pixelColor(48, 64) != blue and expected.pixelColor(48, 64) != white)
-    Swag.assert(expected.pixelColor(96, 8) == white)
+    Swag.require(expected.pixelColor(144, 64) == blue)
+    Swag.require(expected.pixelColor(48, 64) != blue and expected.pixelColor(48, 64) != white)
+    Swag.require(expected.pixelColor(96, 8) == white)
 
     // The circle's edge, where it runs diagonally, is a ramp rather than a staircase.
-    Swag.assert(hasSoftEdge(&expected, 172, 36, blue))
+    Swag.require(hasSoftEdge(&expected, 172, 36, blue))
 }
+
 #test
 {
     let expected = renderCpu(&renderOpaqueBackdropParityScene)
@@ -64,11 +69,12 @@ using Swag, Core
         let x       = cast(s32, idx) * 12 + 6
         let scratch = expected.pixelColor(x, 12)
         let opaque  = expected.pixelColor(x, 36)
-        Swag.assert(Math.abs(cast(s32, scratch.r) - cast(s32, opaque.r)) <= 1)
-        Swag.assert(Math.abs(cast(s32, scratch.g) - cast(s32, opaque.g)) <= 1)
-        Swag.assert(Math.abs(cast(s32, scratch.b) - cast(s32, opaque.b)) <= 1)
+        Swag.require(Math.abs(cast(s32, scratch.r) - cast(s32, opaque.r)) <= 1)
+        Swag.require(Math.abs(cast(s32, scratch.g) - cast(s32, opaque.g)) <= 1)
+        Swag.require(Math.abs(cast(s32, scratch.b) - cast(s32, opaque.b)) <= 1)
     }
 }
+
 #test
 {
     var cpu:      RenderCpu
@@ -104,14 +110,14 @@ using Swag, Core
             let color = image.pixelColor(x, y)
             if color.a == 0 do
                 continue
-            Swag.assert(color.r == effect.glowColor.r and
-                        color.g == effect.glowColor.g and
-                        color.b == effect.glowColor.b)
-            Swag.assert(color.a <= effect.glowColor.a)
+            Swag.require(color.r == effect.glowColor.r and
+                         color.g == effect.glowColor.g and
+                         color.b == effect.glowColor.b)
+            Swag.require(color.a <= effect.glowColor.a)
             if color.a < effect.glowColor.a do
                 fractional += 1
         }
     }
 
-    Swag.assert(fractional != 0)
+    Swag.require(fractional != 0)
 }

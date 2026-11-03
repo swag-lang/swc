@@ -20,7 +20,7 @@ private func simdTailSeed(width, height: s32, pf: PixelFormat)->Array'u8
 
 private func simdTailAssertBytes(image: const *Image, expected: const *Array'u8, stage: string, pf: PixelFormat, width: s32)
 {
-    Swag.assert(image.byteCount == expected.count)
+    Swag.require(image.byteCount == expected.count)
     if Memory.compare(image.pixels.storage(), expected.storage(), expected.count) != 0
     {
         for index in expected.count
@@ -32,7 +32,7 @@ private func simdTailAssertBytes(image: const *Image, expected: const *Array'u8,
             }
         }
 
-        Swag.assert(false)
+        Swag.require(false)
     }
 }
 
@@ -222,7 +222,7 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
             else do
                 PackedPixel.swapRedBlue32Row(source.storage() + 1, actual.storage() + 3, pixelCount)
             for i in actual.count do
-                Swag.assert(actual[i] == expected[i])
+                Swag.require(actual[i] == expected[i])
         }
     }
 }

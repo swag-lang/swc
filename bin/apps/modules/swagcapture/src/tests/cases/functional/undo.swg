@@ -19,22 +19,22 @@ using Swag, Core
     f.capture.selection.add(0)
 
     f.capture.pushUndo(f.capture.newUndo(.RestoreOrg))
-    Swag.assert(f.capture.forms.count == 0)
-    Swag.assert(f.capture.selection.count == 0)
-    Swag.assert(f.capture.width == 123)
-    Swag.assert(f.capture.height == 77)
-    Swag.assert(f.capture.backImg.width == 123)
+    Swag.require(f.capture.forms.count == 0)
+    Swag.require(f.capture.selection.count == 0)
+    Swag.require(f.capture.width == 123)
+    Swag.require(f.capture.height == 77)
+    Swag.require(f.capture.backImg.width == 123)
 
     f.capture.undo()
-    Swag.assert(f.capture.forms.count == 2)
-    Swag.assert(f.capture.forms[0].buffer == a)
-    Swag.assert(f.capture.width == 400)
-    Swag.assert(f.capture.height == 300)
-    Swag.assert(f.capture.backImg.width == 400)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.forms[0].buffer == a)
+    Swag.require(f.capture.width == 400)
+    Swag.require(f.capture.height == 300)
+    Swag.require(f.capture.backImg.width == 400)
 
     f.capture.redo()
-    Swag.assert(f.capture.forms.count == 0)
-    Swag.assert(f.capture.width == 123)
+    Swag.require(f.capture.forms.count == 0)
+    Swag.require(f.capture.width == 123)
 
     f.capture.undo()
 }
@@ -52,21 +52,21 @@ using Swag, Core
     f.capture.selection.add(0)
 
     f.capture.pushUndo(f.capture.newUndo(.Flatten))
-    Swag.assert(f.capture.forms.count == 1)
-    Swag.assert(f.capture.forms[0].buffer == text)
-    Swag.assert(f.capture.selection.count == 0)
-    Swag.assert(f.capture.backImg.isValid())
-    Swag.assert(f.capture.backImg.width == 400)
-    Swag.assert(f.capture.backImg.height == 300)
+    Swag.require(f.capture.forms.count == 1)
+    Swag.require(f.capture.forms[0].buffer == text)
+    Swag.require(f.capture.selection.count == 0)
+    Swag.require(f.capture.backImg.isValid())
+    Swag.require(f.capture.backImg.width == 400)
+    Swag.require(f.capture.backImg.height == 300)
 
     f.capture.undo()
-    Swag.assert(f.capture.forms.count == 2)
-    Swag.assert(f.capture.forms[0].buffer == shape)
-    Swag.assert(f.capture.forms[1].buffer == text)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.forms[0].buffer == shape)
+    Swag.require(f.capture.forms[1].buffer == text)
 
     f.capture.redo()
-    Swag.assert(f.capture.forms.count == 1)
-    Swag.assert(f.capture.forms[0].buffer == text)
+    Swag.require(f.capture.forms.count == 1)
+    Swag.require(f.capture.forms[0].buffer == text)
 }
 
 // FlattenAll renders every non-pixel-selection form into the background and clears
@@ -81,17 +81,17 @@ using Swag, Core
     discard testAddText(f.capture, 70, 10, 30, 20)
 
     f.capture.pushUndo(f.capture.newUndo(.FlattenAll))
-    Swag.assert(f.capture.forms.count == 0)
-    Swag.assert(f.capture.selection.count == 0)
-    Swag.assert(f.capture.backImg.isValid())
-    Swag.assert(f.capture.backImg.width == 400)
-    Swag.assert(f.capture.backImg.height == 300)
+    Swag.require(f.capture.forms.count == 0)
+    Swag.require(f.capture.selection.count == 0)
+    Swag.require(f.capture.backImg.isValid())
+    Swag.require(f.capture.backImg.width == 400)
+    Swag.require(f.capture.backImg.height == 300)
 
     f.capture.undo()
-    Swag.assert(f.capture.forms.count == 2)
+    Swag.require(f.capture.forms.count == 2)
 
     f.capture.redo()
-    Swag.assert(f.capture.forms.count == 0)
+    Swag.require(f.capture.forms.count == 0)
 }
 
 // SetImage replaces the background image and position, and restores both on undo.
@@ -104,18 +104,18 @@ using Swag, Core
     u.newImg      = Image.create(50, 40, .BGRA8)
     u.newImagePos = {5, 7}
     f.capture.pushUndo(u)
-    Swag.assert(f.capture.backImg.width == 50)
-    Swag.assert(f.capture.backImg.height == 40)
-    Swag.assert(f.capture.backImagePos.x == 5)
-    Swag.assert(f.capture.backImagePos.y == 7)
+    Swag.require(f.capture.backImg.width == 50)
+    Swag.require(f.capture.backImg.height == 40)
+    Swag.require(f.capture.backImagePos.x == 5)
+    Swag.require(f.capture.backImagePos.y == 7)
 
     f.capture.undo()
-    Swag.assert(f.capture.backImg.width == 400)
-    Swag.assert(f.capture.backImagePos.x == 0)
+    Swag.require(f.capture.backImg.width == 400)
+    Swag.require(f.capture.backImagePos.x == 0)
 
     f.capture.redo()
-    Swag.assert(f.capture.backImg.width == 50)
-    Swag.assert(f.capture.backImagePos.x == 5)
+    Swag.require(f.capture.backImg.width == 50)
+    Swag.require(f.capture.backImagePos.x == 5)
 }
 
 // SetImageInside sets the inside image of the selected image forms and restores the
@@ -132,14 +132,14 @@ using Swag, Core
     var u = f.capture.newUndo(.SetImageInside)
     u.newImg = Image.create(20, 30, .BGRA8)
     f.capture.pushUndo(u)
-    Swag.assert(imgForm.image.width == 20)
-    Swag.assert(imgForm.image.height == 30)
+    Swag.require(imgForm.image.width == 20)
+    Swag.require(imgForm.image.height == 30)
 
     f.capture.undo()
-    Swag.assert(imgForm.image.width == 10)
+    Swag.require(imgForm.image.width == 10)
 
     f.capture.redo()
-    Swag.assert(imgForm.image.width == 20)
+    Swag.require(imgForm.image.width == 20)
 }
 
 // SetTypedValue writes a field bit pattern through reflection on every accepted form
@@ -161,16 +161,16 @@ using Swag, Core
     u.valU32 = cast #bit (u32, angle)
     u.valRef = unwrap Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
     f.capture.pushUndo(u)
-    Swag.assert(shape.rotate == 90)
-    Swag.assert(text.rotate == 90)
+    Swag.require(shape.rotate == 90)
+    Swag.require(text.rotate == 90)
 
     f.capture.undo()
-    Swag.assert(shape.rotate == 33)
-    Swag.assert(text.rotate == 15)
+    Swag.require(shape.rotate == 33)
+    Swag.require(text.rotate == 15)
 
     f.capture.redo()
-    Swag.assert(shape.rotate == 90)
-    Swag.assert(text.rotate == 90)
+    Swag.require(shape.rotate == 90)
+    Swag.require(text.rotate == 90)
 }
 
 // Regression: the per-kind undo storage is compacted (init skips forms the command does
@@ -193,9 +193,9 @@ using Swag, Core
     var setText = f.capture.newUndo(.SetText)
     setText.text = "after"
     f.capture.pushUndo(setText)
-    Swag.assert(text.text == "after")
+    Swag.require(text.text == "after")
     f.capture.undo()
-    Swag.assert(text.text == "before")
+    Swag.require(text.text == "before")
 
     // SetTypedValue restricted to FormText over [shape, text]
     shape.rotate = 33
@@ -206,11 +206,11 @@ using Swag, Core
     setVal.valRef  = unwrap Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
     setVal.mdlType = FormText
     f.capture.pushUndo(setVal)
-    Swag.assert(shape.rotate == 33)
-    Swag.assert(text.rotate == 90)
+    Swag.require(shape.rotate == 33)
+    Swag.require(text.rotate == 90)
     f.capture.undo()
-    Swag.assert(shape.rotate == 33)
-    Swag.assert(text.rotate == 15)
+    Swag.require(shape.rotate == 33)
+    Swag.require(text.rotate == 15)
 
     // SetFormFromModel restricted to FormShape over [text, shape]: the model values
     // land on the shape only, and undo restores the shape only.
@@ -225,9 +225,9 @@ using Swag, Core
     style.mdlType  = FormShape
     style.mdlValue = model
     f.capture.pushUndo(style)
-    Swag.assert(shape.borderSize == 9)
+    Swag.require(shape.borderSize == 9)
     f.capture.undo()
-    Swag.assert(shape.borderSize == 3)
+    Swag.require(shape.borderSize == 3)
 }
 
 // Regression: undoing an alignment must restore point-based forms too. The restore
@@ -244,17 +244,17 @@ using Swag, Core
     f.capture.selection.add(1)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignLeft))
-    Swag.assert(line.xa == 10)
-    Swag.assert(line.xb == 60)
+    Swag.require(line.xa == 10)
+    Swag.require(line.xb == 60)
 
     f.capture.undo()
-    Swag.assert(line.xa == 100)
-    Swag.assert(line.xb == 150)
+    Swag.require(line.xa == 100)
+    Swag.require(line.xb == 150)
 
     f.capture.pushUndo(f.capture.newUndo(.AlignTop))
-    Swag.assert(line.ya == 50)
+    Swag.require(line.ya == 50)
     f.capture.undo()
-    Swag.assert(line.ya == 120)
+    Swag.require(line.ya == 120)
 }
 
 // Regression: SetImageInside over a mixed [shape, image] selection restores the saved
@@ -273,13 +273,13 @@ using Swag, Core
     var u = f.capture.newUndo(.SetImageInside)
     u.newImg = Image.create(20, 30, .BGRA8)
     f.capture.pushUndo(u)
-    Swag.assert(imgForm.image.width == 20)
+    Swag.require(imgForm.image.width == 20)
 
     f.capture.undo()
-    Swag.assert(imgForm.image.width == 10)
+    Swag.require(imgForm.image.width == 10)
 
     f.capture.redo()
-    Swag.assert(imgForm.image.width == 20)
+    Swag.require(imgForm.image.width == 20)
 }
 
 // Geometry signature of one form, used by the metamorphic undo test below: the
@@ -342,26 +342,26 @@ func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
 // legitimately restore it differently from where the random walk left it.
 func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
 {
-    Swag.assert(capture.width == snap.width)
-    Swag.assert(capture.height == snap.height)
-    Swag.assert(Math.abs(capture.backImagePos.x - snap.imagePos.x) < 0.01)
-    Swag.assert(Math.abs(capture.backImagePos.y - snap.imagePos.y) < 0.01)
-    Swag.assert(capture.forms.count == snap.forms.count)
+    Swag.require(capture.width == snap.width)
+    Swag.require(capture.height == snap.height)
+    Swag.require(Math.abs(capture.backImagePos.x - snap.imagePos.x) < 0.01)
+    Swag.require(Math.abs(capture.backImagePos.y - snap.imagePos.y) < 0.01)
+    Swag.require(capture.forms.count == snap.forms.count)
 
     for it, idx in capture.forms
     {
         var cur = testUndoFuzzFormOf(it)
-        Swag.assert(cur.kind == snap.forms[idx].kind)
-        Swag.assert(Math.abs(cur.rect.x - snap.forms[idx].rect.x) < 0.01)
-        Swag.assert(Math.abs(cur.rect.y - snap.forms[idx].rect.y) < 0.01)
-        Swag.assert(Math.abs(cur.rect.width - snap.forms[idx].rect.width) < 0.01)
-        Swag.assert(Math.abs(cur.rect.height - snap.forms[idx].rect.height) < 0.01)
-        Swag.assert(Math.abs(cur.rotate - snap.forms[idx].rotate) < 0.01)
-        Swag.assert(cur.points.count == snap.forms[idx].points.count)
+        Swag.require(cur.kind == snap.forms[idx].kind)
+        Swag.require(Math.abs(cur.rect.x - snap.forms[idx].rect.x) < 0.01)
+        Swag.require(Math.abs(cur.rect.y - snap.forms[idx].rect.y) < 0.01)
+        Swag.require(Math.abs(cur.rect.width - snap.forms[idx].rect.width) < 0.01)
+        Swag.require(Math.abs(cur.rect.height - snap.forms[idx].rect.height) < 0.01)
+        Swag.require(Math.abs(cur.rotate - snap.forms[idx].rotate) < 0.01)
+        Swag.require(cur.points.count == snap.forms[idx].points.count)
         for pt, pidx in cur.points
         {
-            Swag.assert(Math.abs(pt.x - snap.forms[idx].points[pidx].x) < 0.01)
-            Swag.assert(Math.abs(pt.y - snap.forms[idx].points[pidx].y) < 0.01)
+            Swag.require(Math.abs(pt.x - snap.forms[idx].points[pidx].x) < 0.01)
+            Swag.require(Math.abs(pt.y - snap.forms[idx].points[pidx].y) < 0.01)
         }
     }
 }
@@ -404,7 +404,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     discard testAddPolygon(f.capture, points.toSlice())
     discard testAddDraw(f.capture, points.toSlice())
 
-    Swag.assert(not f.capture.canUndo())
+    Swag.require(not f.capture.canUndo())
     var snapInitial = testUndoFuzzSnapshot(f.capture)
 
     var rng: Random.Generator
@@ -555,17 +555,17 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
         }
     }
 
-    Swag.assert(f.capture.canUndo())
+    Swag.require(f.capture.canUndo())
     var snapFinal = testUndoFuzzSnapshot(f.capture)
 
     while f.capture.canUndo() do
         f.capture.undo()
-    Swag.assert(not f.capture.canUndo())
+    Swag.require(not f.capture.canUndo())
     testUndoFuzzAssertState(f.capture, &snapInitial)
 
     while f.capture.canRedo() do
         f.capture.redo()
-    Swag.assert(not f.capture.canRedo())
+    Swag.require(not f.capture.canRedo())
     testUndoFuzzAssertState(f.capture, &snapFinal)
 
     while f.capture.canUndo() do

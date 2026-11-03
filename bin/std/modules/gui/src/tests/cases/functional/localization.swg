@@ -49,16 +49,16 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     }
 
     host.notify(.LanguageChanged)
-    Swag.assert(rootNotifications == 1)
-    Swag.assert(childNotifications == 1)
+    Swag.require(rootNotifications == 1)
+    Swag.require(childNotifications == 1)
 }
 
 // The reference wording is the declared one, and 'en' is always active at start.
 #test
 {
-    Swag.assert(strings().dlg_Ok == "OK")
-    Swag.assert(strings().dlg_Cancel == "Cancel")
-    Swag.assert(activeLanguage() == "en")
+    Swag.require(strings().dlg_Ok == "OK")
+    Swag.require(strings().dlg_Cancel == "Cancel")
+    Swag.require(activeLanguage() == "en")
 }
 
 // A language switch retargets every registered table, keeps omitted keys, decodes
@@ -74,19 +74,19 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     defer discard catch applyLanguage(&res, "en")
 
     expect applyLanguage(&res, "fr")
-    Swag.assert(activeLanguage() == "fr")
-    Swag.assert(g_TestStrings.hello == "Bonjour")
-    Swag.assert(g_TestStrings.stay == "Stay")
-    Swag.assert(g_TestStrings.quoted == "  Salut")
+    Swag.require(activeLanguage() == "fr")
+    Swag.require(g_TestStrings.hello == "Bonjour")
+    Swag.require(g_TestStrings.stay == "Stay")
+    Swag.require(g_TestStrings.quoted == "  Salut")
 
     // The GUI table follows the same switch through its embedded translation.
-    Swag.assert(strings().dlg_Cancel == "Annuler")
-    Swag.assert(strings().dlg_ConfirmTitle == "Veuillez confirmer")
+    Swag.require(strings().dlg_Cancel == "Annuler")
+    Swag.require(strings().dlg_ConfirmTitle == "Veuillez confirmer")
 
     expect applyLanguage(&res, "en")
-    Swag.assert(activeLanguage() == "en")
-    Swag.assert(g_TestStrings.hello == "Hello")
-    Swag.assert(strings().dlg_Cancel == "Cancel")
+    Swag.require(activeLanguage() == "en")
+    Swag.require(g_TestStrings.hello == "Hello")
+    Swag.require(strings().dlg_Cancel == "Cancel")
 }
 
 // A table registered after the switch takes the active language on the spot. This is the whole
@@ -100,14 +100,14 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     defer discard catch applyLanguage(&res, "en")
 
     expect applyLanguage(&res, "fr")
-    Swag.assert(g_LateStrings.hello == "Hello")
+    Swag.require(g_LateStrings.hello == "Hello")
 
     registerStrings'LateStrings(&g_LateStrings, "latetable")
-    Swag.assert(g_LateStrings.hello == "Bonjour")
+    Swag.require(g_LateStrings.hello == "Bonjour")
 
     // And it follows every later switch like any other table.
     expect applyLanguage(&res, "en")
-    Swag.assert(g_LateStrings.hello == "Hello")
+    Swag.require(g_LateStrings.hello == "Hello")
 }
 
 // An unregistered tag fails without touching the tables.
@@ -119,10 +119,10 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var errOutcome: Swag.Error
     discard catch applyLanguage(&res, "xx") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(err is Core.Errors.BadParameterError)
-    Swag.assert(activeLanguage() == "en")
-    Swag.assert(strings().dlg_Ok == "OK")
+    Swag.require(err != null)
+    Swag.require(err is Core.Errors.BadParameterError)
+    Swag.require(activeLanguage() == "en")
+    Swag.require(strings().dlg_Ok == "OK")
 }
 
 // A registered tag with no language file for any table fails the same way.
@@ -135,10 +135,10 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var errOutcome: Swag.Error
     discard catch applyLanguage(&res, "xx") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(err is Core.Errors.FileNotFoundError)
-    Swag.assert(activeLanguage() == "en")
-    Swag.assert(strings().dlg_Ok == "OK")
+    Swag.require(err != null)
+    Swag.require(err is Core.Errors.FileNotFoundError)
+    Swag.require(activeLanguage() == "en")
+    Swag.require(strings().dlg_Ok == "OK")
 }
 
 // The reference language always comes first, and the module registers what it ships.
@@ -148,19 +148,19 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     registerDefaultStrings(&res)
 
     let all = languages()
-    Swag.assert(all.count >= 2)
-    Swag.assert(all[0].tag == ReferenceLanguage)
-    Swag.assert(all[0].builtin)
-    Swag.assert(all[0].nativeName == "English")
+    Swag.require(all.count >= 2)
+    Swag.require(all[0].tag == ReferenceLanguage)
+    Swag.require(all[0].builtin)
+    Swag.require(all[0].nativeName == "English")
 
     let french = findLanguage("fr")
-    Swag.assert(french != null)
-    Swag.assert(french.nativeName == "Français")
-    Swag.assert(not french.builtin)
-    Swag.assert(findLanguage("zz") == null)
+    Swag.require(french != null)
+    Swag.require(french.nativeName == "Français")
+    Swag.require(not french.builtin)
+    Swag.require(findLanguage("zz") == null)
 
     // The account language decides, and an unshipped one falls back to the reference.
-    Swag.assert(findLanguage(systemLanguage()) != null)
+    Swag.require(findLanguage(systemLanguage()) != null)
 }
 
 // Validation rejects an unknown key and a malformed line, with the faulty line number.
@@ -171,15 +171,15 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var errOutcome: Swag.Error
     discard catch validateStrings'TestStrings("helo Bonjour\n") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(err is Core.Errors.SyntaxError)
-    Swag.assert(assume cast (const *Core.Errors.SyntaxError, err).line == 1)
+    Swag.require(err != null)
+    Swag.require(err is Core.Errors.SyntaxError)
+    Swag.require(assume cast (const *Core.Errors.SyntaxError, err).line == 1)
 
     var err2Outcome: Swag.Error
     discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2Outcome
     let err2 = err2Outcome.value()
-    Swag.assert(err2 != null)
-    Swag.assert(assume cast (const *Core.Errors.SyntaxError, err2).line == 2)
+    Swag.require(err2 != null)
+    Swag.require(assume cast (const *Core.Errors.SyntaxError, err2).line == 2)
 }
 
 // A theme sheet drives colors, metrics, and atlas rects, with '$' references.
@@ -189,19 +189,19 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     let sheet = "/ThemeColors\nbtnPush_Bk 0xFF102030\n/ThemeMetrics\nbtnPush_Height 44\n/ThemeImageRects\nbtnPush_Normal {{1 29 27 27} 5}\nbtnPush_Hot $btnPush_Normal\n"
     expect theme.applySheet(sheet)
 
-    Swag.assert(theme.colors.btnPush_Bk.argb == 0xFF102030)
-    Swag.assert(theme.metrics.btnPush_Height == 44)
-    Swag.assert(theme.rects.btnPush_Normal.rect.y == 29)
-    Swag.assert(theme.rects.btnPush_Normal.corner == 5)
-    Swag.assert(theme.rects.btnPush_Hot.rect.x == 1)
-    Swag.assert(theme.rects.btnPush_Hot.corner == 5)
+    Swag.require(theme.colors.btnPush_Bk.argb == 0xFF102030)
+    Swag.require(theme.metrics.btnPush_Height == 44)
+    Swag.require(theme.rects.btnPush_Normal.rect.y == 29)
+    Swag.require(theme.rects.btnPush_Normal.corner == 5)
+    Swag.require(theme.rects.btnPush_Hot.rect.x == 1)
+    Swag.require(theme.rects.btnPush_Hot.corner == 5)
 
     // An unknown key is a sheet error carrying its line.
     var errOutcome: Swag.Error
     discard catch theme.applySheet("/ThemeColors\nnotAColor 0xFF000000\n") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(err is Core.Errors.SyntaxError)
+    Swag.require(err != null)
+    Swag.require(err is Core.Errors.SyntaxError)
 }
 
 // A sheet resource resolves through a bundle, embedded content included.
@@ -214,11 +214,11 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 
     var theme: Theme
     expect theme.loadSheet(&res, "themes/custom.tweak")
-    Swag.assert(theme.metrics.btnPush_Width == 123)
+    Swag.require(theme.metrics.btnPush_Width == 123)
 
     var errOutcome: Swag.Error
     discard catch theme.loadSheet(&res, "themes/missing.tweak") as errOutcome
     let err = errOutcome.value()
-    Swag.assert(err != null)
-    Swag.assert(err is Core.Errors.FileNotFoundError)
+    Swag.require(err != null)
+    Swag.require(err is Core.Errors.FileNotFoundError)
 }

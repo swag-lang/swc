@@ -13,13 +13,13 @@ using Swag, Core
     var plain: String = "data:image/png;base64,"
     plain += Base64.encode(bytes.toSlice())
     let decoded = expect Image.fromDataUri(plain.toString())
-    Swag.assert(decoded.width == 4 and decoded.height == 3)
-    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+    Swag.require(decoded.width == 4 and decoded.height == 3)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 
     var withParameter: String = "data:image/png;name=figure;base64,"
     withParameter += Base64.encode(bytes.toSlice())
     let parameterized = expect Image.fromDataUri(withParameter.toString())
-    Swag.assert(parameterized.width == 4 and parameterized.height == 3)
+    Swag.require(parameterized.width == 4 and parameterized.height == 3)
 }
 
 // `image/jpeg` names the decoder registered under `jpg`, which is how every generator spells
@@ -33,7 +33,7 @@ using Swag, Core
     var uri: String = "data:image/jpeg;base64,"
     uri += Base64.encode(bytes.toSlice())
     let decoded = expect Image.fromDataUri(uri.toString())
-    Swag.assert(decoded.width == 8 and decoded.height == 8)
+    Swag.require(decoded.width == 8 and decoded.height == 8)
 }
 
 // A reference that is not an inline image reports a failure the caller can degrade on, never a
@@ -43,20 +43,20 @@ using Swag, Core
     var notImageOutcome: Swag.Error
     discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as notImageOutcome
     let notImage = notImageOutcome.value()
-    Swag.assert(notImage != null)
+    Swag.require(notImage != null)
 
     var notBase64Outcome: Swag.Error
     discard catch Image.fromDataUri("data:image/png,plain") as notBase64Outcome
     let notBase64 = notBase64Outcome.value()
-    Swag.assert(notBase64 != null)
+    Swag.require(notBase64 != null)
 
     var noCodecOutcome: Swag.Error
     discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as noCodecOutcome
     let noCodec = noCodecOutcome.value()
-    Swag.assert(noCodec != null)
+    Swag.require(noCodec != null)
 
     var badPayloadOutcome: Swag.Error
     discard catch Image.fromDataUri("data:image/png;base64,!!!") as badPayloadOutcome
     let badPayload = badPayloadOutcome.value()
-    Swag.assert(badPayload != null)
+    Swag.require(badPayload != null)
 }

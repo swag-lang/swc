@@ -12,20 +12,20 @@ using Swag, Core, Pixel
     host.setup(160, 68)
 
     let metrics = &host.theme.metrics
-    Swag.assert(metrics.btnIcon_Padding == metrics.btnIcon_SpacingTextH)
-    Swag.assert(metrics.btnIcon_SpacingArrowH == metrics.btnIcon_SpacingTextH)
+    Swag.require(metrics.btnIcon_Padding == metrics.btnIcon_SpacingTextH)
+    Swag.require(metrics.btnIcon_SpacingArrowH == metrics.btnIcon_SpacingTextH)
 
     let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), {20, 16, 120, 36}, flags: .CenterContent)
     btn.setArrowPosition(.RightDownward)
     let iconOnly = btn.itf.measureContent({160, 68})
-    Swag.assert(iconOnly.x == 2 * metrics.btnIcon_Padding + 18 + metrics.btnIcon_SpacingArrowH + metrics.btnIcon_ArrowSize)
-    Swag.assert(iconOnly.y == 2 * metrics.btnIcon_Padding + 18)
+    Swag.require(iconOnly.x == 2 * metrics.btnIcon_Padding + 18 + metrics.btnIcon_SpacingArrowH + metrics.btnIcon_ArrowSize)
+    Swag.require(iconOnly.y == 2 * metrics.btnIcon_Padding + 18)
 
     btn.setText("View")
     btn.setTextPosition(.Right)
     let withText = btn.itf.measureContent({160, 68})
-    Swag.assert(withText.x > iconOnly.x + metrics.btnIcon_SpacingTextH)
-    Swag.assert(withText.y == iconOnly.y)
+    Swag.require(withText.x > iconOnly.x + metrics.btnIcon_SpacingTextH)
+    Swag.require(withText.y == iconOnly.y)
 
     var image = host.renderSettled(&host.root)
     Pixel.Testing.assertImageGolden(&image, "iconbutton.menu-arrow")

@@ -35,8 +35,8 @@ func timerTestCallback(_: *Time.Timer)
         Threading.Thread.sleep(10'ms)
     }
 
-    Swag.assert(Atomic.get(&g_timerFired) != 0)
-    Swag.assert(g_timerMarker == TimerTestMarker)
+    Swag.require(Atomic.get(&g_timerFired) != 0)
+    Swag.require(g_timerMarker == TimerTestMarker)
 
     timer.release()
 }
@@ -92,7 +92,7 @@ func timerOwnedContextCallback(_: *Time.Timer)
 
     timer.release()
 
-    Swag.assert(g_timerOwnedFired.load() >= 4)
-    Swag.assert(g_timerOwnedBad.load() == 0)
-    Swag.assert(Errors.message(creatorError) == "the creator retains its own copied error message")
+    Swag.require(g_timerOwnedFired.load() >= 4)
+    Swag.require(g_timerOwnedBad.load() == 0)
+    Swag.require(Errors.message(creatorError) == "the creator retains its own copied error message")
 }

@@ -24,8 +24,8 @@ using Core, Gui, Pixel
     explorer.selected = 1
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     explorer.chooseMusic()
-    Swag.assert(host.autoHandled and musicChoiceId(window.musicChoices.toSlice(), &explorer.entries[1]) == id)
-    Swag.assert(explorer.generation > generation)
+    Swag.require(host.autoHandled and musicChoiceId(window.musicChoices.toSlice(), &explorer.entries[1]) == id)
+    Swag.require(explorer.generation > generation)
 }
 
 // The online media commands stay in the lens before any entry has been selected.
@@ -43,8 +43,8 @@ using Core, Gui, Pixel
     explorer.show()
     window.applyLayout()
     let music = window.sendComputeCommandStateEvent(ViewerCommands.OnlineMusic)
-    Swag.assert(not music.hidden and music.updatedFields.has(.Checked) and not music.checked)
-    Swag.assert(window.sendComputeCommandStateEvent(ViewerCommands.ChooseMusic).disabled)
+    Swag.require(not music.hidden and music.updatedFields.has(.Checked) and not music.checked)
+    Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ChooseMusic).disabled)
 }
 
 // Long provider text leaves room for the listing in each shipped palette.
@@ -79,9 +79,9 @@ using Core, Gui, Pixel
         explorer.showInformation()
         window.applyLayout()
         discard host.render(window)
-        Swag.assert(window.infoSheet.isVisible())
-        Swag.assert(window.infoSheet.position.bottom() <= window.clientRect().bottom())
-        Swag.assert(explorer.grid.clientRect().height > 150)
+        Swag.require(window.infoSheet.isVisible())
+        Swag.require(window.infoSheet.position.bottom() <= window.clientRect().bottom())
+        Swag.require(explorer.grid.clientRect().height > 150)
     }
 }
 
@@ -103,11 +103,11 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.grid.select(0)
     let sheet = window.infoSheet
-    Swag.assert(Utf8.contains(sheet.text(), "Director\nA director"))
-    Swag.assert(not Utf8.contains(sheet.text(), "IMDb rating"))
+    Swag.require(Utf8.contains(sheet.text(), "Director\nA director"))
+    Swag.require(not Utf8.contains(sheet.text(), "IMDb rating"))
     explorer.grid.select(1)
-    Swag.assert(not Utf8.contains(sheet.text(), "A director"))
-    Swag.assert(Utf8.contains(sheet.text(), "notes.txt"))
+    Swag.require(not Utf8.contains(sheet.text(), "A director"))
+    Swag.require(Utf8.contains(sheet.text(), "notes.txt"))
     sheet.close()
-    Swag.assert(not sheet.isLocallyVisible())
+    Swag.require(not sheet.isLocallyVisible())
 }

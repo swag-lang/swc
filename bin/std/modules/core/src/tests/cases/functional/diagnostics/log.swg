@@ -12,7 +12,7 @@ impl ILogWriter for MemoryLogWriter
     mtd impl print(text: string)
     {
         me.count += 1
-        Swag.assert(text == me.expected.toString(), Format.toString("Expected '%', got '%'", me.expected.toString(), text))
+        Swag.require(text == me.expected.toString(), Format.toString("Expected '%', got '%'", me.expected.toString(), text))
     }
 }
 
@@ -54,9 +54,9 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
 #test
 {
-    let loc = currentLocation()
+    let loc      = currentLocation()
     let expected = makeExpectedShortLine("CORE", loc, "hello")
-    var writer = MemoryLogWriter{expected: expected}
+    var writer   = MemoryLogWriter{expected: expected}
 
     var log = Log.create()
     log.setPrefix("CORE")
@@ -64,17 +64,17 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     log.addWriter(writer)
     log.print("hello", loc)
 
-    Swag.assert(writer.count == 1)
-    Swag.assert(log.prefix() == "CORE")
-    Swag.assert(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
+    Swag.require(writer.count == 1)
+    Swag.require(log.prefix() == "CORE")
+    Swag.require(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
 }
 
 #test
 {
-    let loc = currentLocation()
+    let loc      = currentLocation()
     let expected = makeExpectedFullLoc(loc, "world")
-    var writerA = MemoryLogWriter{expected: expected}
-    var writerB = MemoryLogWriter{expected: expected}
+    var writerA  = MemoryLogWriter{expected: expected}
+    var writerB  = MemoryLogWriter{expected: expected}
 
     var log = Log.create()
     log.setFlags(LogFlags.LongFileName | LogFlags.FullLoc)
@@ -82,8 +82,8 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
     log.addWriter(writerB)
     log.print("world", loc)
 
-    Swag.assert(writerA.count == 1)
-    Swag.assert(writerB.count == 1)
+    Swag.require(writerA.count == 1)
+    Swag.require(writerB.count == 1)
 }
 
 #test
@@ -106,6 +106,6 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
     log.print("second", secondLoc)
 
-    Swag.assert(removedWriter.count == 0)
-    Swag.assert(writer.count == 1)
+    Swag.require(removedWriter.count == 0)
+    Swag.require(writer.count == 1)
 }

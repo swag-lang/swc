@@ -6,34 +6,34 @@ using Swag
 #test
 {
     var stopwatch: Time.Stopwatch
-    Swag.assert(not stopwatch.isRunning())
-    Swag.assert(stopwatch.elapsedTicks() == 0)
+    Swag.require(not stopwatch.isRunning())
+    Swag.require(stopwatch.elapsedTicks() == 0)
 
     stopwatch.start()
-    Swag.assert(stopwatch.isRunning())
+    Swag.require(stopwatch.isRunning())
     Threading.Thread.sleep(2'ms)
-    Swag.assert(stopwatch.elapsedTicks() > 0)
-    Swag.assert(stopwatch.elapsedMicroseconds() > 0)
+    Swag.require(stopwatch.elapsedTicks() > 0)
+    Swag.require(stopwatch.elapsedMicroseconds() > 0)
 
     stopwatch.stop()
-    Swag.assert(not stopwatch.isRunning())
+    Swag.require(not stopwatch.isRunning())
     let stoppedTicks = stopwatch.elapsedTicks()
     Threading.Thread.sleep(1'ms)
-    Swag.assert(stopwatch.elapsedTicks() == stoppedTicks)
+    Swag.require(stopwatch.elapsedTicks() == stoppedTicks)
 
     stopwatch.restart()
-    Swag.assert(stopwatch.isRunning())
+    Swag.require(stopwatch.isRunning())
     stopwatch.reset()
-    Swag.assert(not stopwatch.isRunning())
-    Swag.assert(stopwatch.elapsedTicks() == 0)
+    Swag.require(not stopwatch.isRunning())
+    Swag.require(stopwatch.elapsedTicks() == 0)
 }
 
 #test
 {
     var timing: Time.FrameTiming
-    Swag.assert(not timing.isPaused)
+    Swag.require(not timing.isPaused)
     timing.pause()
-    Swag.assert(timing.isPaused)
+    Swag.require(timing.isPaused)
     timing.resume()
-    Swag.assert(not timing.isPaused)
+    Swag.require(not timing.isPaused)
 }

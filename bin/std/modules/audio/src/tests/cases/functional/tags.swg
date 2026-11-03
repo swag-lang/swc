@@ -88,9 +88,9 @@ func appendLittle32(block: *Array'u8, value: u64)
     discard expect File.writeAllBytes(fileName, file.toSlice())
 
     let tags = SoundTags.read(fileName)
-    Swag.assert(tags.title == "Gymnopédie No. 1" and tags.artist == "Satie" and tags.year == "1888")
-    Swag.assert(tags.album == "Trois Gymnopédies")
-    Swag.assert(tags.albumArtist == "Various Artists")
+    Swag.require(tags.title == "Gymnopédie No. 1" and tags.artist == "Satie" and tags.year == "1888")
+    Swag.require(tags.album == "Trois Gymnopédies")
+    Swag.require(tags.albumArtist == "Various Artists")
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.
@@ -132,15 +132,15 @@ func appendLittle32(block: *Array'u8, value: u64)
     discard expect File.writeAllBytes(fileName, file.toSlice())
 
     let tags = SoundTags.read(fileName)
-    Swag.assert(tags.title == "Clair de lune" and tags.artist == "Debussy")
-    Swag.assert(tags.album == "Suite bergamasque" and tags.year == "1905")
-    Swag.assert(tags.albumArtist == "Various Artists")
+    Swag.require(tags.title == "Clair de lune" and tags.artist == "Debussy")
+    Swag.require(tags.album == "Suite bergamasque" and tags.year == "1905")
+    Swag.require(tags.albumArtist == "Various Artists")
 }
 
 // A file without tags, or one this reader does not know, simply names nothing.
 #test
 {
-    Swag.assert(SoundTags.read("this-file-does-not-exist.mp3").isEmpty())
+    Swag.require(SoundTags.read("this-file-does-not-exist.mp3").isEmpty())
     let albumOnly = SoundTags{albumArtist: "Various Artists"}
-    Swag.assert(not albumOnly.isEmpty())
+    Swag.require(not albumOnly.isEmpty())
 }

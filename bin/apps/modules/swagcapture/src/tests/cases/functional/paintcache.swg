@@ -96,13 +96,13 @@ func testPopulate(capture: *Capture)
 
     f.editView.setZoom(2)
     let captureRect = f.editView.getCaptureRect()
-    Swag.assert(captureRect.x >= 0 and
-                captureRect.y >= 0 and
-                captureRect.right() <= f.editView.position.width and
-                captureRect.bottom() <= f.editView.position.height)
+    Swag.require(captureRect.x >= 0 and
+                 captureRect.y >= 0 and
+                 captureRect.right() <= f.editView.position.width and
+                 captureRect.bottom() <= f.editView.position.height)
     for 12 do
         discard f.gui.render(f.main)
-    Swag.assert(not f.capture.cacheNeedsRefine)
+    Swag.require(not f.capture.cacheNeedsRefine)
 
     var settled = f.gui.render(f.main)
     f.capture.invalidateAllFormCaches()

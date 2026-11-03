@@ -14,15 +14,15 @@ using Core, Pixel, Gui, Viewers
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let failure = operation.finish()
-    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
-    Swag.assert(not File.exists(destination))
+    Swag.require(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
+    Swag.require(not File.exists(destination))
 
     entry.method = 100
     operation.start("unused.zip", &entry, destination)
     operation.task.wait()
     let replacement = operation.finish()
-    Swag.assert(replacement == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 100)))
-    Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
+    Swag.require(replacement == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 100)))
+    Swag.require(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
 }
 
 struct ZipFixtureEntry
@@ -159,21 +159,21 @@ func writeZipFixture()->String
     let childFolder = list.createLine("z-empty", parentLine: rootFolder)
 
     list.sort(0, persistent: true)
-    Swag.assert(list.lineAt(0) == rootFolder)
+    Swag.require(list.lineAt(0) == rootFolder)
     list.expand(rootFolder)
-    Swag.assert(list.lineAt(1) == childFolder)
-    Swag.assert(list.lineAt(2) == childFile)
-    Swag.assert(list.lineAt(3) == rootFile)
+    Swag.require(list.lineAt(1) == childFolder)
+    Swag.require(list.lineAt(2) == childFile)
+    Swag.require(list.lineAt(3) == rootFile)
 
     list.sort(0, descending: true)
-    Swag.assert(list.lineAt(0) == rootFolder and list.lineAt(1) == childFolder)
+    Swag.require(list.lineAt(0) == rootFolder and list.lineAt(1) == childFolder)
 }
 
 // Legacy ZIP names use CP437 when the UTF-8 flag is absent.
 #test
 {
     const EncodedName: [8] u8 = ['c', 'a', 'f', 0x82, '.', 't', 'x', 't']
-    Swag.assert(Archive.Zip.text(EncodedName, false) == "café.txt")
+    Swag.require(Archive.Zip.text(EncodedName, false) == "café.txt")
 }
 
 // ZIP discovery reads the real hierarchy and both stored and Deflate entries round-trip through
@@ -184,9 +184,9 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
 
     let archive = expect Archive.Zip.load(archiveFile)
-    Swag.assert(archive.entries.count == 2)
-    Swag.assert(archive.entries[0].path == "data/sample.json")
-    Swag.assert(archive.entries[1].path == "docs/readme.txt")
+    Swag.require(archive.entries.count == 2)
+    Swag.require(archive.entries[0].path == "data/sample.json")
+    Swag.require(archive.entries[1].path == "docs/readme.txt")
 
     for &entry in archive.entries
     {
@@ -196,9 +196,9 @@ func writeZipFixture()->String
         expect Archive.Zip.extractEntry(archiveFile, entry, output)
         let decoded = expect File.readAllBytes(output)
         if entry.path == "data/sample.json" do
-            Swag.assert(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
+            Swag.require(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
         else do
-            Swag.assert(cast(string, decoded.toSlice()) == "Archive preview through the text viewer.\n")
+            Swag.require(cast(string, decoded.toSlice()) == "Archive preview through the text viewer.\n")
     }
 }
 
@@ -214,7 +214,7 @@ func writeZipFixture()->String
     var archiveErrorOutcome: Swag.Error
     discard catch Archive.Zip.load(archiveFile) as archiveErrorOutcome
     let archiveError = archiveErrorOutcome.value()
-    Swag.assert(archiveError is Errors.UnsupportedFormatError)
+    Swag.require(archiveError is Errors.UnsupportedFormatError)
 }
 
 // A changed payload cannot cross the archive boundary under a stale central-directory checksum.
@@ -232,7 +232,7 @@ func writeZipFixture()->String
     var extractErrorOutcome: Swag.Error
     catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as extractErrorOutcome
     let extractError = extractErrorOutcome.value()
-    Swag.assert(extractError is Errors.InvalidFormatError)
+    Swag.require(extractError is Errors.InvalidFormatError)
 }
 
 // Extraction refuses an occupied destination and leaves its bytes untouched.
@@ -247,6 +247,6 @@ func writeZipFixture()->String
 
     var extractErrorOutcome: Swag.Error
     catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as extractErrorOutcome
-    Swag.assert(extractErrorOutcome.value() is Swag.SystemError)
-    Swag.assert((expect File.readAllText(output)) == "keep existing file")
+    Swag.require(extractErrorOutcome.value() is Swag.SystemError)
+    Swag.require((expect File.readAllText(output)) == "keep existing file")
 }

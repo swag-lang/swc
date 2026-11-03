@@ -16,25 +16,25 @@ func audioPcmPacketSound()->SoundFile fail
 #test
 {
     var file = expect audioPcmPacketSound()
-    Swag.assert(file.sampleEncoding() == .Pcm16 and file.sampleFrameCount() == 2 and file.payloadSize() == 8)
-    Swag.assert(file.isPacketStream() and file.packetCount() == 2 and not file.isDataPreloaded())
+    Swag.require(file.sampleEncoding() == .Pcm16 and file.sampleFrameCount() == 2 and file.payloadSize() == 8)
+    Swag.require(file.isPacketStream() and file.packetCount() == 2 and not file.isDataPreloaded())
 
     let payload = expect file.readPayload(0, 8)
-    Swag.assert(Slice.equals(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
+    Swag.require(Slice.equals(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
 
     var voice: Voice
     voice.file = &file
     voice.requestedEncoding = .Pcm16
     let decoded = expect voice.readBuffer()
     audioAssertBufferBytes(decoded.buffer, decoded.size, payload.toSlice())
-    Swag.assert(voice.streamCurSeek == file.payloadSize())
+    Swag.require(voice.streamCurSeek == file.payloadSize())
 
     let first = expect file.packet(0)
     let malformed:        [1] SoundPacket = [SoundPacket{first.sourceOffset, 3, 1}]
     var chunkSizeOutcome: Swag.Error
     discard catch SoundFile.openPcmPacketStream(file.sourcePath(), .Pcm16, 44_100, 2, malformed) as chunkSizeOutcome
     let chunkSize = chunkSizeOutcome.value()
-    Swag.assert((chunkSize is Errors.InvalidFormatError))
+    Swag.require((chunkSize is Errors.InvalidFormatError))
 }
 
 #test
@@ -48,7 +48,7 @@ func audioPcmPacketSound()->SoundFile fail
     discard expect voice.seekSampleFrame(1)
     let decoded = expect voice.readBuffer()
     audioAssertBufferBytes(decoded.buffer, decoded.size, [0x00'u8, 0x80, 0xFF, 0xFF])
-    Swag.assert(voice.streamCurSeek == file.payloadSize())
+    Swag.require(voice.streamCurSeek == file.payloadSize())
 }
 
 #test
@@ -60,15 +60,15 @@ func audioPcmPacketSound()->SoundFile fail
 
     let {buffer: buffer0, size: size0} = expect voice.readBuffer()
     audioAssertBufferBytes(buffer0, size0, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
-    Swag.assert(voice.streamCurSeek == file.dataSize)
+    Swag.require(voice.streamCurSeek == file.dataSize)
 
     let {size: size1} = expect voice.readBuffer()
-    Swag.assert(size1 == 0)
+    Swag.require(size1 == 0)
 
     voice.playFlags = .Loop
     let {buffer: buffer2, size: size2} = expect voice.readBuffer()
     audioAssertBufferBytes(buffer2, size2, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
-    Swag.assert(voice.streamCurSeek == file.dataSize)
+    Swag.require(voice.streamCurSeek == file.dataSize)
 }
 
 #test
@@ -80,12 +80,12 @@ func audioPcmPacketSound()->SoundFile fail
 
     var decoded: [6] u8
     let size = expect voice.decodeData(&decoded[0], decoded.count)
-    Swag.assert(size == decoded.count)
-    Swag.assert(voice.streamCurSeek == file.dataSize)
+    Swag.require(size == decoded.count)
+    Swag.require(voice.streamCurSeek == file.dataSize)
     audioAssertSamples(decoded, [-32768's16, 0's16, 32512's16])
 
     let empty = expect voice.decodeData(&decoded[0], decoded.count)
-    Swag.assert(empty == 0)
+    Swag.require(empty == 0)
 }
 
 #test
@@ -97,19 +97,19 @@ func audioPcmPacketSound()->SoundFile fail
 
     var buffer: [4] u8
     let size0 = expect voice.decodeData(&buffer[0], buffer.count)
-    Swag.assert(size0 == 4)
-    Swag.assert(Slice.equals(buffer, [0x00, 0x80, 0xFF, 0xFF]))
-    Swag.assert(voice.streamCurSeek == 4)
+    Swag.require(size0 == 4)
+    Swag.require(Slice.equals(buffer, [0x00, 0x80, 0xFF, 0xFF]))
+    Swag.require(voice.streamCurSeek == 4)
 
     let size1 = expect voice.decodeData(&buffer[0], buffer.count)
-    Swag.assert(size1 == 4)
-    Swag.assert(Slice.equals(buffer, [0x00, 0x00, 0xFF, 0x7F]))
-    Swag.assert(voice.streamCurSeek == 8)
+    Swag.require(size1 == 4)
+    Swag.require(Slice.equals(buffer, [0x00, 0x00, 0xFF, 0x7F]))
+    Swag.require(voice.streamCurSeek == 8)
 
     let size2 = expect voice.decodeData(&buffer[0], buffer.count)
-    Swag.assert(size2 == 0)
+    Swag.require(size2 == 0)
 
     voice.closeBuffer()
-    Swag.assert(voice.streamCurSeek == 0)
-    Swag.assert(not voice.stream.isOpen())
+    Swag.require(voice.streamCurSeek == 0)
+    Swag.require(not voice.stream.isOpen())
 }

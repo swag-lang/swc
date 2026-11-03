@@ -11,38 +11,38 @@ const PackedFormats: [18] PixelFormat = [
 #test
 {
     let png = ImageFormat{"PNG", ".png"}
-    Swag.assert(png.matches("capture.png"))
-    Swag.assert(png.matches("C:/a folder/CAPTURE.PNG"))
-    Swag.assert(not png.matches("capture.jpg"))
-    Swag.assert(not png.matches("png"))
-    Swag.assert(not png.matches("capture"))
-    Swag.assert(not png.matches(""))
+    Swag.require(png.matches("capture.png"))
+    Swag.require(png.matches("C:/a folder/CAPTURE.PNG"))
+    Swag.require(not png.matches("capture.jpg"))
+    Swag.require(not png.matches("png"))
+    Swag.require(not png.matches("capture"))
+    Swag.require(not png.matches(""))
 
     let jpeg = ImageFormat{"JPEG", ".jpg;.jpeg"}
-    Swag.assert(jpeg.matches("photo.jpg"))
-    Swag.assert(jpeg.matches("photo.jpeg"))
-    Swag.assert(not jpeg.matches("photo.jpe"))
+    Swag.require(jpeg.matches("photo.jpg"))
+    Swag.require(jpeg.matches("photo.jpeg"))
+    Swag.require(not jpeg.matches("photo.jpe"))
 }
 
 // Every packed format publishes exact storage geometry and alpha/sample traits.
 #test
 {
-    Swag.assert(cast(u8, PixelFormat.BGR8) == 0 and cast(u8, PixelFormat.BGRA8) == 1)
-    Swag.assert(cast(u8, PixelFormat.RGB8) == 2 and cast(u8, PixelFormat.RGBA8) == 3)
-    Swag.assert(cast(u8, PixelFormat.Yuv420) == 4)
+    Swag.require(cast(u8, PixelFormat.BGR8) == 0 and cast(u8, PixelFormat.BGRA8) == 1)
+    Swag.require(cast(u8, PixelFormat.RGB8) == 2 and cast(u8, PixelFormat.RGBA8) == 3)
+    Swag.require(cast(u8, PixelFormat.Yuv420) == 4)
 
     const Bits:     [18] u8   = [8, 16, 16, 32, 16, 32, 32, 64, 24, 32, 24, 32, 48, 64, 48, 64, 96, 128]
     const Channels: [18] u8   = [1, 2, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
     const Alpha:    [18] bool = [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
     for format, index in PackedFormats
     {
-        Swag.assert(format.isPacked())
-        Swag.assert(format.bitsPerPixel() == Bits[index])
-        Swag.assert(format.channels() == Channels[index])
-        Swag.assert(format.hasAlpha() == Alpha[index])
+        Swag.require(format.isPacked())
+        Swag.require(format.bitsPerPixel() == Bits[index])
+        Swag.require(format.channels() == Channels[index])
+        Swag.require(format.hasAlpha() == Alpha[index])
     }
 
-    Swag.assert(not PixelFormat.Yuv420.isPacked())
+    Swag.require(not PixelFormat.Yuv420.isPacked())
 }
 
 // Conversion preserves logical 8-bit colors through integer, half, full-float, and grayscale storage.
@@ -67,15 +67,15 @@ const PackedFormats: [18] PixelFormat = [
         {
             let expected = source.pixelColor(x, 0)
             let actual   = restored.pixelColor(x, 0)
-            Swag.assert(actual.r == expected.r and actual.g == expected.g and actual.b == expected.b)
-            Swag.assert(actual.a == (format.hasAlpha() ? expected.a : 255))
+            Swag.require(actual.r == expected.r and actual.g == expected.g and actual.b == expected.b)
+            Swag.require(actual.a == (format.hasAlpha() ? expected.a : 255))
         }
     }
 
     let gray = source.convertedTo(.GrayAlpha8)
-    Swag.assert(gray.pixelFormat == .GrayAlpha8 and gray.bytesPerPixel == 2)
-    Swag.assert(gray.pixelColor(0, 0).a == 77)
-    Swag.assert(gray.pixelColor(0, 0).r == gray.pixelColor(0, 0).g and gray.pixelColor(0, 0).g == gray.pixelColor(0, 0).b)
+    Swag.require(gray.pixelFormat == .GrayAlpha8 and gray.bytesPerPixel == 2)
+    Swag.require(gray.pixelColor(0, 0).a == 77)
+    Swag.require(gray.pixelColor(0, 0).r == gray.pixelColor(0, 0).g and gray.pixelColor(0, 0).g == gray.pixelColor(0, 0).b)
 }
 
 // Binary16 conversion keeps normal, subnormal, signed-zero, infinity, and NaN classes.
@@ -84,13 +84,13 @@ const PackedFormats: [18] PixelFormat = [
     for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
     {
         let restored = halfToFloat(floatToHalf(value))
-        Swag.assert(cast #bit (u32, restored) == cast #bit (u32, value))
+        Swag.require(cast #bit (u32, restored) == cast #bit (u32, value))
     }
 
     let positiveInfinity = cast #bit (f32, 0x7F800000'u32)
     let nan = cast #bit (f32, 0x7FC01234'u32)
-    Swag.assert(cast #bit (u32, halfToFloat(floatToHalf(positiveInfinity))) == 0x7F800000)
-    Swag.assert(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
+    Swag.require(cast #bit (u32, halfToFloat(floatToHalf(positiveInfinity))) == 0x7F800000)
+    Swag.require(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
 }
 
 // Alpha association is explicit and converts stored samples while preserving logical color.
@@ -99,23 +99,23 @@ const PackedFormats: [18] PixelFormat = [
     const Bytes: [4] u8 = [200, 100, 50, 128]
     let straight      = Image.create(1, 1, .RGBA8, Bytes)
     let premultiplied = straight.convertedAlphaTo(.Premultiplied)
-    Swag.assert(straight.alphaMode == .Straight)
-    Swag.assert(premultiplied.alphaMode == .Premultiplied)
-    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[0]) - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[1]) - 50) <= 1)
-    Swag.assert(Math.abs(cast(s32, premultiplied.pixels.storage()[2]) - 25) <= 1)
+    Swag.require(straight.alphaMode == .Straight)
+    Swag.require(premultiplied.alphaMode == .Premultiplied)
+    Swag.require(Math.abs(cast(s32, premultiplied.pixels.storage()[0]) - 100) <= 1)
+    Swag.require(Math.abs(cast(s32, premultiplied.pixels.storage()[1]) - 50) <= 1)
+    Swag.require(Math.abs(cast(s32, premultiplied.pixels.storage()[2]) - 25) <= 1)
     let logical = premultiplied.pixelColor(0, 0)
-    Swag.assert(Math.abs(cast(s32, logical.r) - 200) <= 1)
-    Swag.assert(Math.abs(cast(s32, logical.g) - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32, logical.b) - 50) <= 1)
-    Swag.assert(logical.a == 128)
+    Swag.require(Math.abs(cast(s32, logical.r) - 200) <= 1)
+    Swag.require(Math.abs(cast(s32, logical.g) - 100) <= 1)
+    Swag.require(Math.abs(cast(s32, logical.b) - 50) <= 1)
+    Swag.require(logical.a == 128)
 
     let restored = premultiplied.convertedAlphaTo(.Straight)
-    Swag.assert(restored.alphaMode == .Straight)
-    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[0]) - 200) <= 1)
-    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[1]) - 100) <= 1)
-    Swag.assert(Math.abs(cast(s32, restored.pixels.storage()[2]) - 50) <= 1)
-    Swag.assert(restored.pixels.storage()[3] == 128)
+    Swag.require(restored.alphaMode == .Straight)
+    Swag.require(Math.abs(cast(s32, restored.pixels.storage()[0]) - 200) <= 1)
+    Swag.require(Math.abs(cast(s32, restored.pixels.storage()[1]) - 100) <= 1)
+    Swag.require(Math.abs(cast(s32, restored.pixels.storage()[2]) - 50) <= 1)
+    Swag.require(restored.pixels.storage()[3] == 128)
 }
 
 // Every registered encoder and decoder declares a usable format, and the declared
@@ -124,26 +124,26 @@ const PackedFormats: [18] PixelFormat = [
 #test
 {
     let encodable = Image.encodableFormats()
-    Swag.assert(encodable.count >= 12)
+    Swag.require(encodable.count >= 12)
     for &format in encodable
     {
-        Swag.assert(format.name.count != 0)
+        Swag.require(format.name.count != 0)
         for ext in Tokenize.split(format.extensions, ';'rune)
         {
-            Swag.assert(Utf8.startsWith(ext, "."))
-            Swag.assert(Image.canSave(Format.toString("image%", ext)))
+            Swag.require(Utf8.startsWith(ext, "."))
+            Swag.require(Image.canSave(Format.toString("image%", ext)))
         }
     }
 
     let decodable = Image.decodableFormats()
-    Swag.assert(decodable.count >= 13)
+    Swag.require(decodable.count >= 13)
     for &format in decodable
     {
-        Swag.assert(format.name.count != 0)
+        Swag.require(format.name.count != 0)
         for ext in Tokenize.split(format.extensions, ';'rune)
         {
-            Swag.assert(Utf8.startsWith(ext, "."))
-            Swag.assert(Image.canLoad(Format.toString("image%", ext)))
+            Swag.require(Utf8.startsWith(ext, "."))
+            Swag.require(Image.canLoad(Format.toString("image%", ext)))
         }
     }
 }
@@ -152,21 +152,21 @@ const PackedFormats: [18] PixelFormat = [
 // and the matching encode/decode entry points fail rather than picking an arbitrary codec.
 #test
 {
-    Swag.assert(not Image.canSave("capture.unknown"))
-    Swag.assert(not Image.canLoad("capture.unknown"))
-    Swag.assert(not Image.canSave("capture"))
+    Swag.require(not Image.canSave("capture.unknown"))
+    Swag.require(not Image.canLoad("capture.unknown"))
+    Swag.require(not Image.canSave("capture"))
 
     var img = Image.create(2, 2, .RGBA8)
     img.clear()
     var errEncodeOutcome: Swag.Error
     discard catch img.encode("capture.unknown") as errEncodeOutcome
     let errEncode = errEncodeOutcome.value()
-    Swag.assert(errEncode != null)
+    Swag.require(errEncode != null)
 
     var errDecodeOutcome: Swag.Error
     discard catch Image.decode("capture.unknown", img.pixels.toSlice()) as errDecodeOutcome
     let errDecode = errDecodeOutcome.value()
-    Swag.assert(errDecode != null)
+    Swag.require(errDecode != null)
 }
 
 // Packed formats participate in the same geometric transforms without assuming a
@@ -182,9 +182,9 @@ const PackedFormats: [18] PixelFormat = [
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()
         let turned   = source.rotated(.Clockwise90).rotated(.Clockwise270)
-        Swag.assert(Memory.compare(source.pixels.storage(), mirrored.pixels.storage(), source.byteCount) == 0)
-        Swag.assert(Memory.compare(source.pixels.storage(), flipped.pixels.storage(), source.byteCount) == 0)
-        Swag.assert(Memory.compare(source.pixels.storage(), turned.pixels.storage(), source.byteCount) == 0)
+        Swag.require(Memory.compare(source.pixels.storage(), mirrored.pixels.storage(), source.byteCount) == 0)
+        Swag.require(Memory.compare(source.pixels.storage(), flipped.pixels.storage(), source.byteCount) == 0)
+        Swag.require(Memory.compare(source.pixels.storage(), turned.pixels.storage(), source.byteCount) == 0)
 
         let nearest = source.resized(7, 5, .Nearest)
         let smooth  = source.resized(3, 3, .Bilinear)
@@ -211,7 +211,7 @@ const PackedFormats: [18] PixelFormat = [
             let converted = source.convertedTo(destinationFormat)
             assertImage(converted, 3, 2, destinationFormat)
             let expectedAlphaMode = sourceFormat.hasAlpha() and destinationFormat.hasAlpha() ? AlphaMode.Premultiplied : AlphaMode.Straight
-            Swag.assert(converted.alphaMode == expectedAlphaMode)
+            Swag.require(converted.alphaMode == expectedAlphaMode)
         }
     }
 }
@@ -244,9 +244,9 @@ const PackedFormats: [18] PixelFormat = [
             image.fade(Color.fromArgb(100, 30, 60, 90), 0.3)
             image.keyOutGround(Color.fromRgb(0, 0, 0), Color.fromRgb(255, 255, 255))
             image.setAlpha(96)
-            Swag.assert(image.alphaMode == .Premultiplied)
+            Swag.require(image.alphaMode == .Premultiplied)
             image.setTransparentColor(Color.fromRgb(12, 34, 56))
-            Swag.assert(image.alphaMode == .Straight)
+            Swag.require(image.alphaMode == .Straight)
         }
     }
 }

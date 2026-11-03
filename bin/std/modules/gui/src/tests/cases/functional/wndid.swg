@@ -13,8 +13,8 @@ struct GuiWndIdTestScope
 // A command identifier is its qualified name, whether a test scope or the module declares it.
 #test
 {
-    Swag.assert(GuiWndIdTestScope.Run == "GuiWndIdTestScope.Run")
-    Swag.assert(GuiWndIdTestScope.Cancel == "GuiWndIdTestScope.Cancel")
-    Swag.assert(Dialog.BtnOk == "Dialog.BtnOk")
-    Swag.assert(Dialog.BtnCancel == "Dialog.BtnCancel")
+    Swag.require(GuiWndIdTestScope.Run == "GuiWndIdTestScope.Run")
+    Swag.require(GuiWndIdTestScope.Cancel == "GuiWndIdTestScope.Cancel")
+    Swag.require(Dialog.BtnOk == "Dialog.BtnOk")
+    Swag.require(Dialog.BtnCancel == "Dialog.BtnCancel")
 }

@@ -13,11 +13,11 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 {
     let face  = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     let glyph = expect face.buildRuneOutline('A', 32)
-    Swag.assert(glyph.outline.count() != 0)
-    Swag.assert(glyph.advance > 0)
+    Swag.require(glyph.outline.count() != 0)
+    Swag.require(glyph.advance > 0)
 
     let text = expect face.buildStringOutline("AB", 32)
-    Swag.assert(text.count() >= glyph.outline.count())
+    Swag.require(text.count() >= glyph.outline.count())
 }
 
 #test
@@ -27,53 +27,53 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     let text   = "A\u00E9"
     var shaped = Painter.shapeRun(text, font)
 
-    Swag.assert(shaped.font == font)
-    Swag.assert(shaped.glyphs.count == 2)
-    Swag.assert(shaped.glyphs[0].cluster == 0)
-    Swag.assert(shaped.glyphs[1].cluster == 1)
-    Swag.assert(shaped.glyphs[0].glyphIndex == font.glyphIndex('A'))
-    Swag.assert(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9'rune))
-    Swag.assert(shaped.metrics.width > 0)
-    Swag.assert(shaped.hasInk)
-    Swag.assert(shaped.inkBounds.width > 0)
-    Swag.assert(shaped.inkBounds.height > 0)
-    Swag.assert(shaped.inkBounds.x <= shaped.metrics.width)
+    Swag.require(shaped.font == font)
+    Swag.require(shaped.glyphs.count == 2)
+    Swag.require(shaped.glyphs[0].cluster == 0)
+    Swag.require(shaped.glyphs[1].cluster == 1)
+    Swag.require(shaped.glyphs[0].glyphIndex == font.glyphIndex('A'))
+    Swag.require(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9'rune))
+    Swag.require(shaped.metrics.width > 0)
+    Swag.require(shaped.hasInk)
+    Swag.require(shaped.inkBounds.width > 0)
+    Swag.require(shaped.inkBounds.height > 0)
+    Swag.require(shaped.inkBounds.x <= shaped.metrics.width)
 
     let glyphA = font.getGlyphDescByIndex(font.glyphIndex('A'))
-    Swag.assert(shaped.glyphs[0].desc == glyphA)
-    Swag.assert(font.getGlyphDesc('A') == glyphA)
+    Swag.require(shaped.glyphs[0].desc == glyphA)
+    Swag.require(font.getGlyphDesc('A') == glyphA)
 
     let measured = Painter.measureString(text, font)
-    Swag.assert(Math.isEqualEpsilon(measured.width, shaped.metrics.width, 0.001))
-    Swag.assert(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
+    Swag.require(Math.isEqualEpsilon(measured.width, shaped.metrics.width, 0.001))
+    Swag.require(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
 
     let normalABC         = Painter.shapeRun("ABC", font)
     let spacedABC         = Painter.shapeRun("ABC", font, 4, 1.5'f32)
     let measuredSpacedABC = Painter.measureString("ABC", font, 4, 1.5'f32)
-    Swag.assert(spacedABC.metrics.width > normalABC.metrics.width + 2.9)
-    Swag.assert(Math.isEqualEpsilon(measuredSpacedABC.width, spacedABC.metrics.width, 0.001))
-    Swag.assert(spacedABC.letterSpacing == 1.5'f32)
+    Swag.require(spacedABC.metrics.width > normalABC.metrics.width + 2.9)
+    Swag.require(Math.isEqualEpsilon(measuredSpacedABC.width, spacedABC.metrics.width, 0.001))
+    Swag.require(spacedABC.letterSpacing == 1.5'f32)
 
     let spaces = Painter.shapeRun("    ", font)
     let tab    = Painter.shapeRun("\t", font)
-    Swag.assert(tab.glyphs.count == 1)
-    Swag.assert(tab.glyphs[0].isTab)
-    Swag.assert(not tab.hasInk)
-    Swag.assert(Math.isEqualEpsilon(tab.metrics.width, spaces.metrics.width, 0.001))
+    Swag.require(tab.glyphs.count == 1)
+    Swag.require(tab.glyphs[0].isTab)
+    Swag.require(not tab.hasInk)
+    Swag.require(Math.isEqualEpsilon(tab.metrics.width, spaces.metrics.width, 0.001))
 
     var tab8 = Painter.shapeRun("\t", font, 8)
-    Swag.assert(tab8.metrics.width > tab.metrics.width)
+    Swag.require(tab8.metrics.width > tab.metrics.width)
 
     let msdfFont = font.owner.createFont(font.cache.typeFace, 32, .Msdf)
     let reshaped = Painter.shapeRunForFont(&shaped, msdfFont)
-    Swag.assert(reshaped.font == msdfFont)
-    Swag.assert(reshaped.glyphs.count == shaped.glyphs.count)
-    Swag.assert(reshaped.glyphs[0].glyphIndex == shaped.glyphs[0].glyphIndex)
-    Swag.assert(reshaped.glyphs[1].cluster == shaped.glyphs[1].cluster)
+    Swag.require(reshaped.font == msdfFont)
+    Swag.require(reshaped.glyphs.count == shaped.glyphs.count)
+    Swag.require(reshaped.glyphs[0].glyphIndex == shaped.glyphs[0].glyphIndex)
+    Swag.require(reshaped.glyphs[1].cluster == shaped.glyphs[1].cluster)
 
     let reshapedTab = Painter.shapeRunForFont(&tab8, msdfFont)
-    Swag.assert(reshapedTab.tabSize == 8)
-    Swag.assert(reshapedTab.glyphs[0].isTab)
+    Swag.require(reshapedTab.tabSize == 8)
+    Swag.require(reshapedTab.glyphs[0].isTab)
 
     let largeFont = font.owner.createFont(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
@@ -84,8 +84,8 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     richText.compute()
     Painter.computeLayout({0, 0, 300, 300}, &richText, format)
-    Swag.assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
-    Swag.assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
+    Swag.require(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
+    Swag.require(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
 
     var paragraphText:   RichString = "A\nB\nC"
     var paragraphFormat: RichStringFormat
@@ -97,7 +97,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     paragraphText.compute()
     Painter.computeLayout({0, 0, 300, 300}, &paragraphText, paragraphFormat)
-    Swag.assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32, paragraphFormat.lineGap) + cast(f32, paragraphFormat.paragraphGap))
+    Swag.require(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32, paragraphFormat.lineGap) + cast(f32, paragraphFormat.paragraphGap))
 
     var visibleChunks = 0
     for &chunk in paragraphText.chunks
@@ -106,15 +106,15 @@ func makeShapingTestFont(cache: *FontCache)->*Font
             visibleChunks += 1
     }
 
-    Swag.assert(visibleChunks == 2)
-    Swag.assert(not paragraphText.chunks[paragraphText.chunks.count - 1].visible)
+    Swag.require(visibleChunks == 2)
+    Swag.require(not paragraphText.chunks[paragraphText.chunks.count - 1].visible)
 
     var forced: RichString = "<b>A</b>"
     forced.compute()
     forced.chunks.clear()
     forced.compute(true)
-    Swag.assert(not forced.chunks.isEmpty())
-    Swag.assert(forced.chunks[0].fontStyle == .Bold)
+    Swag.require(not forced.chunks.isEmpty())
+    Swag.require(forced.chunks[0].fontStyle == .Bold)
 
     var lineBreaks: RichString = "A\r\nB\rC\nD"
     lineBreaks.compute()
@@ -128,26 +128,26 @@ func makeShapingTestFont(cache: *FontCache)->*Font
             spaceCount += 1
     }
 
-    Swag.assert(eolCount == 3)
-    Swag.assert(spaceCount == 0)
+    Swag.require(eolCount == 3)
+    Swag.require(spaceCount == 0)
 
     var styledUrl: RichString = "<url>A<b>B</b><p1>C</p></url>D"
     styledUrl.compute()
-    Swag.assert(styledUrl.hasUrl)
-    Swag.assert(styledUrl.chunks.count == 4)
-    Swag.assert(styledUrl.chunks[0].isUrl)
-    Swag.assert(styledUrl.chunks[1].isUrl)
-    Swag.assert(styledUrl.chunks[1].fontStyle == .Bold)
-    Swag.assert(styledUrl.chunks[2].isUrl)
-    Swag.assert(styledUrl.chunks[2].colorIdx == 1)
-    Swag.assert(not styledUrl.chunks[3].isUrl)
+    Swag.require(styledUrl.hasUrl)
+    Swag.require(styledUrl.chunks.count == 4)
+    Swag.require(styledUrl.chunks[0].isUrl)
+    Swag.require(styledUrl.chunks[1].isUrl)
+    Swag.require(styledUrl.chunks[1].fontStyle == .Bold)
+    Swag.require(styledUrl.chunks[2].isUrl)
+    Swag.require(styledUrl.chunks[2].colorIdx == 1)
+    Swag.require(not styledUrl.chunks[3].isUrl)
 
     var urlFormat: RichStringFormat
     urlFormat.font.regular = font
     urlFormat.font.bold    = largeFont
     Painter.computeLayout({0, 0, 300, 100}, &styledUrl, urlFormat)
     let hotChunk = styledUrl.getUrlChunkAt(Math.Point{styledUrl.chunks[1].pos.x + styledUrl.chunks[1].boundRect.width * 0.5, styledUrl.chunks[1].pos.y + styledUrl.chunks[1].boundRect.height * 0.5})
-    Swag.assert(hotChunk != null)
+    Swag.require(hotChunk != null)
 }
 
 // A run too wide to break keeps the line it opens, instead of being taken for a trailing space.
@@ -176,14 +176,14 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     for &c in text.chunks where c.slice.count > 20 do
         longChunk = c
 
-    Swag.assert(longChunk != null)
-    Swag.assert(longChunk.visible)
+    Swag.require(longChunk != null)
+    Swag.require(longChunk.visible)
 
     // Every word survives the wrap, not only the one that could not break.
     var visibleWords = 0
     for &c in text.chunks where c.visible and not c.isSpace and not c.isEol do
         visibleWords += 1
-    Swag.assert(visibleWords == 3)
+    Swag.require(visibleWords == 3)
 }
 
 // A line wider than its rectangle is cut and finished with an ellipsis.
@@ -207,28 +207,28 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     var text: RichString = long
     text.compute()
-    Swag.assert(text.chunks.count == 1)
+    Swag.require(text.chunks.count == 1)
 
     let room = full * 0.4
     Painter.computeLayout(Math.Rectangle{0, 0, room, 200}, &text, format)
-    Swag.assert(text.boundRect.width <= room)
-    Swag.assert(text.chunks[0].shaped.glyphs.count < long.count)
+    Swag.require(text.boundRect.width <= room)
+    Swag.require(text.chunks[0].shaped.glyphs.count < long.count)
 
     // The mark is the last thing drawn, and the text it was cut from is left intact so the next
     // layout starts from the whole run again.
     let glyphs = text.chunks[0].shaped.glyphs
-    Swag.assert(glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune))
-    Swag.assert(text.chunks[0].slice == long)
+    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune))
+    Swag.require(text.chunks[0].slice == long)
 
     // The same run in a rectangle that holds it keeps every glyph and gains no mark.
     Painter.computeLayout(Math.Rectangle{0, 0, full + 10, 200}, &text, format)
-    Swag.assert(text.chunks[0].shaped.glyphs.count == long.count)
+    Swag.require(text.chunks[0].shaped.glyphs.count == long.count)
 
     // Without the flag the line still overflows, which is what the flag exists to change.
     var plainFormat = format
     plainFormat.flags.remove(.Ellipsis)
     Painter.computeLayout(Math.Rectangle{0, 0, room, 200}, &text, plainFormat)
-    Swag.assert(text.boundRect.width > room)
+    Swag.require(text.boundRect.width > room)
 }
 
 // The line a budget stops on is marked too, so a text cut from below reports it.
@@ -253,18 +253,18 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Painter.computeLayout({0, 0, 400, 200}, &text, format)
 
     let kept = text.chunks[0]
-    Swag.assert(kept.slice == "alpha")
-    Swag.assert(kept.shaped.glyphs.count == ("alpha").count + 1)
+    Swag.require(kept.slice == "alpha")
+    Swag.require(kept.shaped.glyphs.count == ("alpha").count + 1)
 
     let glyphs = kept.shaped.glyphs
-    Swag.assert(glyphs.back().glyphIndex == font.glyphIndex('…'rune))
-    Swag.assert(not text.chunks[text.chunks.count - 1].visible)
+    Swag.require(glyphs.back().glyphIndex == font.glyphIndex('…'rune))
+    Swag.require(not text.chunks[text.chunks.count - 1].visible)
 
     // A budget the text stays under leaves every line alone.
     format.maxLines = 2
     Painter.computeLayout({0, 0, 400, 200}, &text, format)
-    Swag.assert(text.chunks[0].shaped.glyphs.count == ("alpha").count)
-    Swag.assert(text.chunks[text.chunks.count - 1].visible)
+    Swag.require(text.chunks[0].shaped.glyphs.count == ("alpha").count)
+    Swag.require(text.chunks[text.chunks.count - 1].visible)
 }
 
 // One plain line drawn at a known width — a name, a path — keeps all its words when they fit, and
@@ -276,16 +276,16 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     let text  = "alpha beta gamma"
     let whole = Painter.measureString(text, font).width
-    Swag.assert(Painter.elideString(text, font, whole + 1) == text)
+    Swag.require(Painter.elideString(text, font, whole + 1) == text)
 
     let room  = Painter.measureString("alpha beta", font).width
     let short = Painter.elideString(text, font, room)
-    Swag.assert(Utf8.endsWith(short, "…"))
-    Swag.assert(not Utf8.endsWith(short, " …"))
-    Swag.assert(Painter.measureStringSnapped(short, font) <= room)
+    Swag.require(Utf8.endsWith(short, "…"))
+    Swag.require(not Utf8.endsWith(short, " …"))
+    Swag.require(Painter.measureStringSnapped(short, font) <= room)
 
     // A room too narrow for even the mark leaves the mark alone, never a word cut by it.
-    Swag.assert(Painter.elideString(text, font, 1) == "…")
+    Swag.require(Painter.elideString(text, font, 1) == "…")
 }
 
 // A style boundary is not a place to break a line.
@@ -321,13 +321,13 @@ func makeShapingTestFont(cache: *FontCache)->*Font
         }
     }
 
-    Swag.assert(alphaChunk != null and betaChunk != null and dotChunk != null)
-    Swag.assert(alphaChunk.visible and betaChunk.visible and dotChunk.visible)
+    Swag.require(alphaChunk != null and betaChunk != null and dotChunk != null)
+    Swag.require(alphaChunk.visible and betaChunk.visible and dotChunk.visible)
 
     // The period stays on the line of the run it closes, and that run left the first line.
-    Swag.assert(dotChunk.pos.y == betaChunk.pos.y)
-    Swag.assert(dotChunk.pos.x > betaChunk.pos.x)
-    Swag.assert(betaChunk.pos.y > alphaChunk.pos.y)
+    Swag.require(dotChunk.pos.y == betaChunk.pos.y)
+    Swag.require(dotChunk.pos.x > betaChunk.pos.x)
+    Swag.require(betaChunk.pos.y > alphaChunk.pos.y)
 }
 
 // A no-break space keeps its neighbours in one chunk, so a wrap can never fall on it, while an
@@ -340,6 +340,6 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     for &chunk in text.chunks where chunk.isSpace do
         spaceCount += 1
 
-    Swag.assert(spaceCount == 1)
-    Swag.assert(text.chunks.count == 3)
+    Swag.require(spaceCount == 1)
+    Swag.require(text.chunks.count == 3)
 }

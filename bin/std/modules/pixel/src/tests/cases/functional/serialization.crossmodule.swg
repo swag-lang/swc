@@ -14,9 +14,9 @@ using Swag, Core
 // bytes and misaligned the whole stream).
 #test
 {
-    Swag.assert(Reflection.hasAttribute(#typeof(Math.Vector2), Serialization.Final))
+    Swag.require(Reflection.hasAttribute(#typeof(Math.Vector2), Serialization.Final))
 
     let {raw, sizeof} = Serialization.isPodFinal(#typeof(Math.Vector2))
-    Swag.assert(raw)
-    Swag.assert(sizeof == #sizeof(Math.Vector2))
+    Swag.require(raw)
+    Swag.require(sizeof == #sizeof(Math.Vector2))
 }

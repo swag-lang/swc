@@ -69,11 +69,11 @@ func assertPropertyViewMenuAnchor(light: bool)
         let anchor = ctrl.viewButton.surfaceRect()
         let body   = popup.getPopupBodyRect()
         let origin = popup.surfaceRect()
-        Swag.assert(popup.popupAnchorButton == ctrl.viewButton)
-        Swag.assert(popup.popupBarItemSurfaceRect == anchor)
-        Swag.assert(origin.y + body.y == anchor.bottom())
-        Swag.assert(origin.x + body.x <= anchor.x)
-        Swag.assert(origin.x + body.right() >= anchor.right())
+        Swag.require(popup.popupAnchorButton == ctrl.viewButton)
+        Swag.require(popup.popupBarItemSurfaceRect == anchor)
+        Swag.require(origin.y + body.y == anchor.bottom())
+        Swag.require(origin.x + body.x <= anchor.x)
+        Swag.require(origin.x + body.right() >= anchor.right())
         let image = host.render()
         Pixel.Testing.assertImageGolden(&image, light ? "properties.menu.light" : "properties.menu.dark")
         checked[] = true
@@ -81,7 +81,7 @@ func assertPropertyViewMenuAnchor(light: bool)
     }
 
     ctrl.viewButton.sigPressed.call(ctrl.viewButton)
-    Swag.assert(checked and ctrl.properties.modifiedOnly)
+    Swag.require(checked and ctrl.properties.modifiedOnly)
     host.pump()
 }
 
@@ -123,13 +123,10 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
 
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Grid, "properties.grid", false) }
-
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Condensed, "properties.condensed", true) }
-
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.List, "properties.list", false) }
-
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Panel, "properties.panel", true) }
 
@@ -169,7 +166,7 @@ func assertPropertiesCtrlGolden(light: bool)
     }
 
     ctrl.viewButton.sigPressed.call(ctrl.viewButton)
-    Swag.assert(checked and ctrl.properties.kind == .Panel)
+    Swag.require(checked and ctrl.properties.kind == .Panel)
     host.pump()
 }
 

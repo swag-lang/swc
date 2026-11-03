@@ -40,7 +40,7 @@ func renderSpinner(dpiScale: f32)->Image
 
     let size = host.root.themeMetrics().spinner_Size
     let spin = Spinner.create(&host.root, {8, 8})
-    Swag.assert(spin.position.width == size and spin.position.height == size)
+    Swag.require(spin.position.width == size and spin.position.height == size)
 }
 
 // Painting advances the cycle and wraps it, so a spinner left on screen never stops and never
@@ -53,7 +53,7 @@ func renderSpinner(dpiScale: f32)->Image
     let spin = Spinner.create(&host.root, {16, 16, 32, 32})
     spin.animationPhase = 0.95
     discard host.render()
-    Swag.assert(spin.animationPhase >= 0 and spin.animationPhase < 1)
+    Swag.require(spin.animationPhase >= 0 and spin.animationPhase < 1)
 }
 
 // A paint covers every loop turn the surface spent waiting to repaint, not only the last one: a
@@ -70,8 +70,8 @@ func renderSpinner(dpiScale: f32)->Image
 
     host.surface.unpaintedSeconds = 0.2
     discard host.render()
-    Swag.assert(host.surface.paintDeltaSeconds == 0.1 and host.surface.unpaintedSeconds == 0)
-    Swag.assert(Math.abs(spin.animationPhase - 0.1 * host.root.themeMetrics().spinner_Speed) < 0.0001)
+    Swag.require(host.surface.paintDeltaSeconds == 0.1 and host.surface.unpaintedSeconds == 0)
+    Swag.require(Math.abs(spin.animationPhase - 0.1 * host.root.themeMetrics().spinner_Speed) < 0.0001)
 }
 
 // The ring is drawn, never sampled from an atlas: rendering the same logical spinner at twice the
@@ -84,9 +84,9 @@ func renderSpinner(dpiScale: f32)->Image
     let ink1   = inkCount(&image1)
     let ink2   = inkCount(&image2)
 
-    Swag.assert(ink1 > 0)
-    Swag.assert(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
+    Swag.require(ink1 > 0)
+    Swag.require(image2.width == 2 * image1.width and image2.height == 2 * image1.height)
 
     let ratio = cast(f32, ink2) / cast(f32, ink1)
-    Swag.assert(ratio > 2.5 and ratio < 4.5)
+    Swag.require(ratio > 2.5 and ratio < 4.5)
 }

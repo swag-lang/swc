@@ -39,7 +39,7 @@ func swagSampleSource()->String
     host.setup(640, 360)
     let view = Code.Panel.create(&host.root, fileName)
     view.setZoom(150)
-    Swag.assert(view.zoomPercent == 150)
+    Swag.require(view.zoomPercent == 150)
     view.setZoom(100)
     view.resize(640, 360)
     view.applyLayout()
@@ -48,7 +48,7 @@ func swagSampleSource()->String
     // RichEdit stores logical line breaks as LF, which is what the document was written with.
     let content  = view.editor.textAndStyles()
     let expected = source.toRuneArray()
-    Swag.assert(Utf8.fromUnicode(content.text.toSlice()) == Utf8.fromUnicode(expected.toSlice()))
+    Swag.require(Utf8.fromUnicode(content.text.toSlice()) == Utf8.fromUnicode(expected.toSlice()))
     var colored: bool
     for style in content.styles where style != 0
     {
@@ -56,7 +56,7 @@ func swagSampleSource()->String
         break
     }
 
-    Swag.assert(colored)
+    Swag.require(colored)
 
     var image = host.renderSettled(view)
     assertScopeImageGolden(&image, "viewer.code.document")
@@ -92,8 +92,8 @@ func swagSampleSource()->String
         if i == 1
         {
             let first = unwrap window.lens.results.sections[0]
-            Swag.assert(first.label == appStrings().lens_InFile and first.count >= 1)
-            Swag.assert(Utf8.contains(first.entries[0].title.toString(), "doubled") and first.entries[0].lead.length)
+            Swag.require(first.label == appStrings().lens_InFile and first.count >= 1)
+            Swag.require(Utf8.contains(first.entries[0].title.toString(), "doubled") and first.entries[0].lead.length)
         }
 
         var image = host.render(window)
@@ -106,7 +106,7 @@ func swagSampleSource()->String
     window.lens.open(":3")
     host.finishAnimations()
     let goTo = unwrap window.lens.results.sections[0]
-    Swag.assert(goTo.label == appStrings().lens_InFile and goTo.entries[0].title == Format.toString(appStrings().lens_GoToLine, 3))
+    Swag.require(goTo.label == appStrings().lens_InFile and goTo.entries[0].title == Format.toString(appStrings().lens_GoToLine, 3))
     window.lens.close()
     host.finishAnimations()
 }

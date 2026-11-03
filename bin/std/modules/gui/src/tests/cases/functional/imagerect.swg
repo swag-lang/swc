@@ -9,9 +9,9 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(160, 160)
     let img = ImageRect.create(&host.root, {20, 20, 120, 120})
-    Swag.assert(img != null)
-    Swag.assert(host.wndAt({40, 40}) == img)
-    Swag.assert(not img.movie.isValid())
+    Swag.require(img != null)
+    Swag.require(host.wndAt({40, 40}) == img)
+    Swag.require(not img.movie.isValid())
 }
 
 // Sprite-sheet geometry, exact-duration advancement, seeking, and pausing.
@@ -24,35 +24,35 @@ using Swag, Core
     defer host.app.renderer.removeTexture(&texture)
     let atlas = ImageList.create(texture, frameWidth: 2, frameHeight: 2)
 
-    Swag.assert(atlas.isValid())
-    Swag.assert(atlas.columnCount() == 2)
-    Swag.assert(atlas.rowCount() == 1)
-    Swag.assert(atlas.frameCount == 2)
+    Swag.require(atlas.isValid())
+    Swag.require(atlas.columnCount() == 2)
+    Swag.require(atlas.rowCount() == 1)
+    Swag.require(atlas.frameCount == 2)
 
     var movie: Movie
     movie.setSpriteSheet(atlas)
-    Swag.assert(movie.isValid())
-    Swag.assert(movie.frameIndex == 0)
+    Swag.require(movie.isValid())
+    Swag.require(movie.frameIndex == 0)
     var advanced = movie.update(movie.frameDurationSeconds)
-    Swag.assert(advanced)
-    Swag.assert(movie.frameIndex == 1)
+    Swag.require(advanced)
+    Swag.require(movie.frameIndex == 1)
 
     movie.setPaused(true)
     advanced = movie.update(movie.frameDurationSeconds)
-    Swag.assert(not advanced)
-    Swag.assert(movie.frameIndex == 1)
+    Swag.require(not advanced)
+    Swag.require(movie.frameIndex == 1)
 
     movie.setPaused(false)
     movie.setFrameIndex(-10)
-    Swag.assert(movie.frameIndex == 0)
+    Swag.require(movie.frameIndex == 0)
     movie.setFrameIndex(10)
-    Swag.assert(movie.frameIndex == 1)
+    Swag.require(movie.frameIndex == 1)
 
     movie.clear()
-    Swag.assert(not movie.isValid())
-    Swag.assert(movie.frameCount == 0)
-    Swag.assert(movie.cachesFrames)
-    Swag.assert(movie.loops)
+    Swag.require(not movie.isValid())
+    Swag.require(movie.frameCount == 0)
+    Swag.require(movie.cachesFrames)
+    Swag.require(movie.loops)
 }
 
 // ImageRect owns textures uploaded from Image values and releases them on clear.
@@ -62,13 +62,13 @@ using Swag, Core
     host.setup(160, 160)
     let view = ImageRect.create(&host.root, {20, 20, 120, 120})
     view.setImage(Pixel.Image.create(2, 2, .RGBA8))
-    Swag.assert(view.movie.isValid())
-    Swag.assert(view.movie.isPaused)
-    Swag.assert(view.uploadedTexture.isValid())
+    Swag.require(view.movie.isValid())
+    Swag.require(view.movie.isPaused)
+    Swag.require(view.uploadedTexture.isValid())
 
     view.clear()
-    Swag.assert(not view.movie.isValid())
-    Swag.assert(not view.uploadedTexture.isValid())
+    Swag.require(not view.movie.isValid())
+    Swag.require(not view.uploadedTexture.isValid())
 }
 
 // Image-list content is either a paused image or a playing sprite sheet, by explicit API choice.
@@ -83,12 +83,12 @@ using Swag, Core
     let view  = ImageRect.create(&host.root, {20, 20, 120, 120})
 
     view.setImageList(atlas)
-    Swag.assert(view.movie.frameCount == 2)
-    Swag.assert(view.movie.frameIndex == 0)
-    Swag.assert(view.movie.isPaused)
+    Swag.require(view.movie.frameCount == 2)
+    Swag.require(view.movie.frameIndex == 0)
+    Swag.require(view.movie.isPaused)
 
     view.setSpriteSheet(atlas)
-    Swag.assert(not view.movie.isPaused)
+    Swag.require(not view.movie.isPaused)
     view.setFrameIndex(50)
-    Swag.assert(view.movie.frameIndex == 1)
+    Swag.require(view.movie.frameIndex == 1)
 }

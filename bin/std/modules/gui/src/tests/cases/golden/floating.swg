@@ -112,20 +112,20 @@ using Swag, Core, Pixel
     var undone = 0
     toast.sigAction += func|&undone|(_) { undone += 1 }
     toast.show("Removed from the history", "design.silence.md", .Done, "Undo")
-    Swag.assert(toast.isLocallyVisible())
-    Swag.assert(Math.abs(toast.position.horzCenter() - 450) <= 1)
-    Swag.assert(toast.position.bottom() == 400 - metrics.toast_Bottom and toast.position.height == metrics.toast_Height)
+    Swag.require(toast.isLocallyVisible())
+    Swag.require(Math.abs(toast.position.horzCenter() - 450) <= 1)
+    Swag.require(toast.position.bottom() == 400 - metrics.toast_Bottom and toast.position.height == metrics.toast_Height)
 
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, light ? "toast.paper" : "toast.ink")
 
     // The timer takes it away; the action is answered once and takes it away too.
     host.fireTimers()
-    Swag.assert(not toast.isLocallyVisible())
+    Swag.require(not toast.isLocallyVisible())
     toast.show("Saved", "capture-2026-10-28.png", .Done, "Show")
     let action = toast.surfaceRect()
     host.moveMouse({action.x + toast.actionRect.horzCenter(), action.vertCenter()})
-    Swag.assert(toast.hotAction and toast.timer == null)
+    Swag.require(toast.hotAction and toast.timer == null)
     host.click({action.x + toast.actionRect.horzCenter(), action.vertCenter()})
-    Swag.assert(undone == 1 and not toast.isLocallyVisible())
+    Swag.require(undone == 1 and not toast.isLocallyVisible())
 }

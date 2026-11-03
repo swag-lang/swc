@@ -29,20 +29,20 @@ impl IWnd for ResizeLayoutWnd
     {
         child.resize(80.2, 40.2)
         host.pump()
-        Swag.assert(child.layouts == baseline)
+        Swag.require(child.layouts == baseline)
     }
 
     child.resize(100, 50)
     host.pump()
-    Swag.assert(child.layouts > baseline)
-    Swag.assert(child.preferredSize == Math.Point{100, 50})
+    Swag.require(child.layouts > baseline)
+    Swag.require(child.preferredSize == Math.Point{100, 50})
     let resized = child.layouts
 
     // A container can arrange a different size without changing what the child prefers.
     child.resize(120, 60, computeLayout: false)
-    Swag.assert(child.preferredSize == Math.Point{100, 50})
+    Swag.require(child.preferredSize == Math.Point{100, 50})
     child.resize(120, 60)
     host.pump()
-    Swag.assert(child.layouts > resized)
-    Swag.assert(child.preferredSize == Math.Point{120, 60})
+    Swag.require(child.layouts > resized)
+    Swag.require(child.preferredSize == Math.Point{120, 60})
 }

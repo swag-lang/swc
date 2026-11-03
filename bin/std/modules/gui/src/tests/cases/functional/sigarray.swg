@@ -13,13 +13,13 @@ var SigArrayTestTrace: String
     SigArrayTestTotal = 0
     signal += func() { SigArrayTestTotal += 1 }
     signal.call()
-    Swag.assert(SigArrayTestTotal == 1)
+    Swag.require(SigArrayTestTotal == 1)
     signal.disable()
     signal.call()
-    Swag.assert(SigArrayTestTotal == 1)
+    Swag.require(SigArrayTestTotal == 1)
     signal.enable()
     signal.call()
-    Swag.assert(SigArrayTestTotal == 2)
+    Swag.require(SigArrayTestTotal == 2)
 }
 
 func sigArrayTestAdd(_: *s32)
@@ -42,36 +42,36 @@ func sigArrayTestAppendA(value: *s32)
 #test
 {
     var signal: SigArray'func||(*s32)
-    Swag.assert(signal.isEmpty())
+    Swag.require(signal.isEmpty())
 
     signal += &sigArrayTestAdd
     signal += func(_: *s32) { SigArrayTestTotal += 10 }
-    Swag.assert(not signal.isEmpty())
-    Swag.assert(signal.count() == 2)
+    Swag.require(not signal.isEmpty())
+    Swag.require(signal.count() == 2)
 
     var value = 3
     SigArrayTestTotal = 0
     signal.call(&value)
-    Swag.assert(SigArrayTestTotal == 11)
+    Swag.require(SigArrayTestTotal == 11)
 
     signal.disable()
     signal.disable()
-    Swag.assert(signal.isDisabled())
+    Swag.require(signal.isDisabled())
     signal.call(&value)
-    Swag.assert(SigArrayTestTotal == 11)
+    Swag.require(SigArrayTestTotal == 11)
 
     signal.enable()
-    Swag.assert(signal.isDisabled())
+    Swag.require(signal.isDisabled())
 
     signal.enable()
-    Swag.assert(not signal.isDisabled())
+    Swag.require(not signal.isDisabled())
     value = 4
     signal.call(&value)
-    Swag.assert(SigArrayTestTotal == 22)
+    Swag.require(SigArrayTestTotal == 22)
 
     signal.clear()
-    Swag.assert(signal.isEmpty())
-    Swag.assert(not signal.isDisabled())
+    Swag.require(signal.isEmpty())
+    Swag.require(not signal.isDisabled())
 }
 
 // A callback with several parameters receives every argument.
@@ -87,7 +87,7 @@ func sigArrayTestAppendA(value: *s32)
     var value = 5
     SigArrayTestTotal = 0
     signal.call(&value, 3)
-    Swag.assert(SigArrayTestTotal == 33)
+    Swag.require(SigArrayTestTotal == 33)
 }
 
 // Callbacks run in registration order, each one seeing what the previous one wrote.
@@ -111,6 +111,6 @@ func sigArrayTestAppendA(value: *s32)
     SigArrayTestTrace.clear()
     signal.call(&value)
 
-    Swag.assert(value == 13)
-    Swag.assert(SigArrayTestTrace == "ABC")
+    Swag.require(value == 13)
+    Swag.require(SigArrayTestTrace == "ABC")
 }

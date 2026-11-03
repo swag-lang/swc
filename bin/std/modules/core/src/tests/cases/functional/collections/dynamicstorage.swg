@@ -15,9 +15,9 @@ struct CollectionDynamicChild
     var child: CollectionDynamicChild
     var base:  CollectionDynamicBase
     Reflection.assign(&base, &child.base, CollectionDynamicBase)
-    Swag.assert(not (&base is CollectionDynamicChild))
+    Swag.require(not (&base is CollectionDynamicChild))
     Reflection.assign(&child.base, &base, CollectionDynamicBase)
-    Swag.assert((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
+    Swag.require((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
 }
 
 #test
@@ -25,8 +25,8 @@ struct CollectionDynamicChild
     var child: CollectionDynamicChild
     child.value = 42
     Reflection.reset(&child.base, CollectionDynamicBase)
-    Swag.assert(child.value == 17)
-    Swag.assert((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
+    Swag.require(child.value == 17)
+    Swag.require((catch cast(*CollectionDynamicChild?, &child.base)) == &child)
 }
 
 #test
@@ -36,8 +36,8 @@ struct CollectionDynamicChild
     defer Memory.delete(storage, type)
     let value = cast(*CollectionDynamicChild, storage)
     let base: *CollectionDynamicBase = value
-    Swag.assert((catch cast(*CollectionDynamicChild?, base)) == value)
-    Swag.assert(base.value == 17)
+    Swag.require((catch cast(*CollectionDynamicChild?, base)) == value)
+    Swag.require(base.value == 17)
 }
 
 #[Swag.DynCast]
@@ -47,7 +47,7 @@ impl CollectionSwapBase
 {
     mtd opDrop()
     {
-        Swag.assert(cast(*CollectionSwapBase?, me) == me)
+        Swag.require(cast(*CollectionSwapBase?, me) == me)
     }
 }
 
@@ -60,9 +60,9 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     left.value  = 17
     right.value = 42
     swap(&left.base, &right.base)
-    Swag.assert(left.value == 42 and right.value == 17)
-    Swag.assert((catch cast(*CollectionSwapChild?, &left.base)) == &left)
-    Swag.assert((catch cast(*CollectionSwapChild?, &right.base)) == &right)
+    Swag.require(left.value == 42 and right.value == 17)
+    Swag.require((catch cast(*CollectionSwapChild?, &left.base)) == &left)
+    Swag.require((catch cast(*CollectionSwapChild?, &right.base)) == &right)
 }
 
 // A base view and an independent value have different identities but equal keys.
@@ -70,13 +70,13 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
 {
     var base:  CollectionDynamicBase
     var child: CollectionDynamicChild
-    Swag.assert(Hash.hash32(base) == Hash.hash32(child.base))
-    Swag.assert(Hash.hash64(base) == Hash.hash64(child.base))
+    Swag.require(Hash.hash32(base) == Hash.hash32(child.base))
+    Swag.require(Hash.hash64(base) == Hash.hash64(child.base))
     var values: HashTable'(CollectionDynamicBase, u32)
     values.add(child.base, 42)
-    Swag.assert(values.find(base).value == 42)
+    Swag.require(values.find(base).value == 42)
     values.reserve(64)
-    Swag.assert(values.find(child.base).value == 42)
+    Swag.require(values.find(child.base).value == 42)
 }
 
 #test
@@ -84,11 +84,11 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     var child:  CollectionDynamicChild
     var values: HashTable'(u32, CollectionDynamicBase)
     values.add(1, child.base)
-    Swag.assert(not (&values.find(1).value is CollectionDynamicChild))
+    Swag.require(not (&values.find(1).value is CollectionDynamicChild))
     values.reserve(64)
-    Swag.assert(not (&values.find(1).value is CollectionDynamicChild))
+    Swag.require(not (&values.find(1).value is CollectionDynamicChild))
     var copied = values
-    Swag.assert(not (&copied.find(1).value is CollectionDynamicChild))
+    Swag.require(not (&copied.find(1).value is CollectionDynamicChild))
 }
 
 #test
@@ -104,18 +104,18 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     values.add(baseView)
     values.insertAt(0, baseView)
     values.reserve(64)
-    Swag.assert(values.count == 2)
+    Swag.require(values.count == 2)
     for &value in values
     {
-        Swag.assert(value.value == 17)
-        Swag.assert(not (value is CollectionDynamicChild))
+        Swag.require(value.value == 17)
+        Swag.require(not (value is CollectionDynamicChild))
     }
 
     var copied = values
     values.removeAt(0)
-    Swag.assert(copied.count == 2)
-    Swag.assert(not (&values[0] is CollectionDynamicChild))
-    Swag.assert(not (&copied[0] is CollectionDynamicChild))
+    Swag.require(copied.count == 2)
+    Swag.require(not (&values[0] is CollectionDynamicChild))
+    Swag.require(not (&copied[0] is CollectionDynamicChild))
 }
 
 #test
@@ -125,13 +125,13 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     var values: StaticArray'(CollectionDynamicBase, 4)
     values.add(baseView)
     values.insertAt(0, baseView)
-    Swag.assert(values.count == 2)
+    Swag.require(values.count == 2)
     for &value in values
     {
-        Swag.assert(value.value == 17)
-        Swag.assert(not (value is CollectionDynamicChild))
+        Swag.require(value.value == 17)
+        Swag.require(not (value is CollectionDynamicChild))
     }
 
     values.removeAt(0)
-    Swag.assert(not (&values[0] is CollectionDynamicChild))
+    Swag.require(not (&values[0] is CollectionDynamicChild))
 }

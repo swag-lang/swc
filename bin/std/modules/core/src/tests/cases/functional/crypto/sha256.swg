@@ -5,14 +5,14 @@ using Swag
 
 func assertSha256Digest(digest: Hash.Sha256.Digest, e0, e1, e2, e3, e4, e5, e6, e7: u32)
 {
-    Swag.assert(digest[0] == e0)
-    Swag.assert(digest[1] == e1)
-    Swag.assert(digest[2] == e2)
-    Swag.assert(digest[3] == e3)
-    Swag.assert(digest[4] == e4)
-    Swag.assert(digest[5] == e5)
-    Swag.assert(digest[6] == e6)
-    Swag.assert(digest[7] == e7)
+    Swag.require(digest[0] == e0)
+    Swag.require(digest[1] == e1)
+    Swag.require(digest[2] == e2)
+    Swag.require(digest[3] == e3)
+    Swag.require(digest[4] == e4)
+    Swag.require(digest[5] == e5)
+    Swag.require(digest[6] == e6)
+    Swag.require(digest[7] == e7)
 }
 
 func assertSha256(buffer: const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)

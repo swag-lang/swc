@@ -12,8 +12,8 @@ using Core
 {
     let buffer = cast([*] u8, Memory.alloc(16))
     buffer[0] = 1
-    Memory.free(buffer, 16)         // swc-expected-note {{sanity_note_pointer_released_here}}
-    Swag.assert(buffer[0] == 1)     // swc-expected-error {{sanity_err_use_after_free}}
+    Memory.free(buffer, 16)          // swc-expected-note {{sanity_note_pointer_released_here}}
+    Swag.require(buffer[0] == 1)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -30,8 +30,8 @@ using Core
 {
     let buffer = cast([*] u8, Memory.alloc(16))
     let same   = buffer
-    Memory.free(buffer, 16)       // swc-expected-note {{sanity_note_pointer_released_here}}
-    Swag.assert(same[0] == 0)     // swc-expected-error {{sanity_err_use_after_free}}
+    Memory.free(buffer, 16)        // swc-expected-note {{sanity_note_pointer_released_here}}
+    Swag.require(same[0] == 0)     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Allocating, using and releasing once is what correct code looks like.
@@ -42,7 +42,7 @@ using Core
     buffer[0] = 7
     let value = buffer[0]
     Memory.free(buffer, 16)
-    Swag.assert(value == 7)
+    Swag.require(value == 7)
 }
 
 // Control: the same fault with the release helper written here, so a silence above can
@@ -62,6 +62,6 @@ func localFree(ptr: *void, size: u64)
 {
     let buffer = cast([*] u8, Memory.alloc(16))
     buffer[0] = 3
-    localFree(buffer, 16)           // swc-expected-note {{sanity_note_pointer_released_here}}
-    Swag.assert(buffer[0] == 3)     // swc-expected-error {{sanity_err_use_after_free}}
+    localFree(buffer, 16)            // swc-expected-note {{sanity_note_pointer_released_here}}
+    Swag.require(buffer[0] == 3)     // swc-expected-error {{sanity_err_use_after_free}}
 }

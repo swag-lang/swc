@@ -28,7 +28,7 @@ func checkThreadContext() fail
     expect thread.init(&probeContext, probe)
     expect thread.start()
     thread.wait()
-    Swag.assert(probe.isolated)
+    Swag.require(probe.isolated)
 }
 
 #test

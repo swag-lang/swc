@@ -46,5 +46,5 @@ impl Vec
     v.push("two")
     v.insertMoved(0, "x")
     let b = unwrap v.buffer
-    Swag.assert(b[0] == "x" and b[1] == "one" and b[2] == "two")
+    Swag.require(b[0] == "x" and b[1] == "one" and b[2] == "two")
 }

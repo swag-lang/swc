@@ -10,14 +10,14 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let fileName = midiViewerFixturePath()
 
     let document = expect Midi.loadDocument(fileName)
-    Swag.assert(document.format == 0 and document.division == 480)
-    Swag.assert(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
-    Swag.assert(document.notes.count == 7 and document.tracks[0].noteCount == 7)
-    Swag.assert(document.minKey == 60 and document.maxKey == 72)
-    Swag.assert(document.tempos.count == 1 and document.bpm() == 120)
-    Swag.assert(document.timeSignatures.count == 1 and document.meterText() == "4/4")
-    Swag.assert(document.keySignatures.count == 1 and document.keyText() == "C major")
-    Swag.assert(Math.abs(document.durationSeconds - 2.25) < 0.001)
+    Swag.require(document.format == 0 and document.division == 480)
+    Swag.require(document.tracks.count == 1 and document.tracks[0].name == "Piano Roll")
+    Swag.require(document.notes.count == 7 and document.tracks[0].noteCount == 7)
+    Swag.require(document.minKey == 60 and document.maxKey == 72)
+    Swag.require(document.tempos.count == 1 and document.bpm() == 120)
+    Swag.require(document.timeSignatures.count == 1 and document.meterText() == "4/4")
+    Swag.require(document.keySignatures.count == 1 and document.keyText() == "C major")
+    Swag.require(Math.abs(document.durationSeconds - 2.25) < 0.001)
 }
 
 // The empty-score fallback must not replace the highest pitch of an actual score.
@@ -34,15 +34,15 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
         defer discard catch File.delete(fileName)
         expect File.writeAllBytes(fileName, bytes.toSlice())
         var document = expect Midi.loadDocument(fileName)
-        Swag.assert(document.notes.count == 1 and document.minKey == key and document.maxKey == key)
+        Swag.require(document.notes.count == 1 and document.minKey == key and document.maxKey == key)
 
         var host: Testing.HeadlessHost
         host.setup(640, 360)
         let roll = Midi.RollView.create(&host.root, #move document)
         roll.refreshLayout()
-        Swag.assert(roll.lowKey <= key and roll.highKey >= key and roll.highKey >= roll.lowKey)
+        Swag.require(roll.lowKey <= key and roll.highKey >= key and roll.highKey >= roll.lowKey)
         let image = host.render(&host.root)
-        Swag.assert(image.isValid())
+        Swag.require(image.isValid())
     }
 }
 
@@ -60,33 +60,33 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let foot     = createTestViewerFoot(&host.root)
     let fileName = midiViewerFixturePath()
     var result   = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: foot.commands, infoParent: foot.readings)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands != null)
 
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    Swag.assert(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
-    Swag.assert(Utf8.contains(viewer.details.toSlice(), "7 notes"))
+    Swag.require(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle = .Center
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
     var tracks: OptionSheet.Page
     options.rows[0].buildLink(&tracks)
-    Swag.assert(options.rows[0].value == Midi.texts().ui_AllTracks and tracks.rows.count == 2)
+    Swag.require(options.rows[0].value == Midi.texts().ui_AllTracks and tracks.rows.count == 2)
 
     host.activateOptionRowWhenShown(Midi.texts().ui_Track)
     host.thenActivateOptionRow(tracks.rows[1].label.raw)
     viewer.showOptions()
-    Swag.assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
+    Swag.require(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
     viewer.roll.setTrack(Swag.U32.Max)
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
-    Swag.assert(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
+    Swag.require(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
     standTestCommands(foot, viewer.commands)
     viewer.roll.refreshLayout()
-    Swag.assert(viewer.roll.mode == .Tracks and viewer.roll.lanes.count == 1)
+    Swag.require(viewer.roll.mode == .Tracks and viewer.roll.lanes.count == 1)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
@@ -95,8 +95,8 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     standTestCommands(foot, viewer.commands)
     var translated: OptionSheet.Page
     viewer.describeOptions(&translated)
-    Swag.assert(translated.rows[0].value == "Toutes les pistes")
-    Swag.assert(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
+    Swag.require(translated.rows[0].value == "Toutes les pistes")
+    Swag.require(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
     Testing.assertContentFits(viewer.commands)
 }
 
@@ -109,8 +109,8 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands != null)
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    Swag.assert(not viewer.failureReason.isEmpty())
+    Swag.require(not viewer.failureReason.isEmpty())
 }

@@ -17,7 +17,7 @@ using Core, Pixel, Gui, Viewers
     host.setup(900, 560)
 
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.assert(result.view != null)
+    Swag.require(result.view != null)
     let view = assume cast(*Table.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     view.dockStyle = .Center

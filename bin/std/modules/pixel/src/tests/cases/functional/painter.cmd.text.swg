@@ -19,8 +19,8 @@ private var g_CapturedHeadingGlyph: GlyphDesc = {uv: Math.Rectangle{0, 0, 0.1640
     painter.drawShapedRun(0, 0, &run, font, {})
     painter.end()
 
-    Swag.assert(painter.vertexBuffer.count == 6)
-    Swag.assert(cast #bit (u32, painter.vertexBuffer[0].pos.x) == 0xC0ACCCCC)
-    Swag.assert(cast #bit (u32, painter.vertexBuffer[1].pos.x) == 0x4201999A)
-    Swag.assert(cast #bit (u32, painter.vertexBuffer[5].pos.x) == 0x4201999A)
+    Swag.require(painter.vertexBuffer.count == 6)
+    Swag.require(cast #bit (u32, painter.vertexBuffer[0].pos.x) == 0xC0ACCCCC)
+    Swag.require(cast #bit (u32, painter.vertexBuffer[1].pos.x) == 0x4201999A)
+    Swag.require(cast #bit (u32, painter.vertexBuffer[5].pos.x) == 0x4201999A)
 }

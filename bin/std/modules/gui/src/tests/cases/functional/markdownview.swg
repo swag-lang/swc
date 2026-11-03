@@ -18,16 +18,16 @@ using Swag, Core
     view.scroll.setScrollPos(0, anchor.position.y + anchor.position.height / 4)
     view.resize(1280, 720)
     view.applyLayout()
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
     let width    = anchor.position.width
     let position = view.scroll.scrollPosition()
     view.resize(1440, 900)
     view.applyLayout()
-    Swag.assert(anchor.position.width == width and view.scroll.scrollPosition() == position)
-    Swag.assert(Math.abs(anchor.position.horzCenter() - view.scroll.paddedClientRect().width / 2) <= 1)
+    Swag.require(anchor.position.width == width and view.scroll.scrollPosition() == position)
+    Swag.require(Math.abs(anchor.position.horzCenter() - view.scroll.paddedClientRect().width / 2) <= 1)
     view.resize(640, 480)
     view.applyLayout()
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
 }
 
 // Reflow keeps the same block and relative position visible when typography or width changes.
@@ -48,13 +48,13 @@ using Swag, Core
     style.heading2FontSize = 42
     style.maxContentWidth  = 400
     view.setDocumentStyle(style)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
     style.maxContentWidth = 640
     view.setDocumentStyle(style)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - anchor.position.y - anchor.position.height / 4) < 1)
     view.scroll.setScrollPos(0, 0)
     view.setDocumentStyle(Markdown.Style.theme())
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
 
     // Without a host zoom handler, a modified wheel retains ordinary document scrolling.
     host.setReducedMotion(true)
@@ -62,7 +62,7 @@ using Swag, Core
     let modifiedPosition = view.scroll.scrollPosition()
     view.scroll.setScrollPos(0, 0)
     host.mouseWheel({360, 240}, -1)
-    Swag.assert(modifiedPosition.y > 0 and view.scroll.scrollPosition() == modifiedPosition)
+    Swag.require(modifiedPosition.y > 0 and view.scroll.scrollPosition() == modifiedPosition)
 }
 
 // A prose page submits text by line, keeping wheel repaint work independent of its word count.
@@ -86,10 +86,10 @@ using Swag, Core
     }
 
     var image = host.render(view)
-    Swag.assert(image.isValid() and commands > 0 and commands < 300)
+    Swag.require(image.isValid() and commands > 0 and commands < 300)
     view.setPosition(0.5, 0.5, 720, 900)
     image = host.render(view)
-    Swag.assert(image.isValid() and commands > 0 and commands < 300)
+    Swag.require(image.isValid() and commands > 0 and commands < 300)
 }
 
 // Blank lines inside a paired HTML container must not expose its comments or closing tags.
@@ -97,14 +97,14 @@ using Swag, Core
 {
     let source = "Before.\n<!-- opening\n\ncomment -->\n<div align=\"center\">\n\n<img src=\"one.svg\" width=\"49%\"> <img src=\"two.svg\" width=\"49%\">\n\n</div>\n\nAfter."
     let blocks = Markdown.parseBlocks(source)
-    Swag.assert(blocks.count == 3)
-    Swag.assert(blocks[0].kind == .Paragraph and blocks[0].text == "Before.")
-    Swag.assert(blocks[1].kind == .Html and Utf8.contains(blocks[1].text.toString(), "</div>"))
-    Swag.assert(blocks[2].kind == .Paragraph and blocks[2].text == "After.")
-    Swag.assert(Markdown.renderInline("Before <!-- hidden -->after.") == "Before after.")
-    Swag.assert(Markdown.renderInline("`<!-- visible -->`") == "<c><<!-- visible --></c>")
+    Swag.require(blocks.count == 3)
+    Swag.require(blocks[0].kind == .Paragraph and blocks[0].text == "Before.")
+    Swag.require(blocks[1].kind == .Html and Utf8.contains(blocks[1].text.toString(), "</div>"))
+    Swag.require(blocks[2].kind == .Paragraph and blocks[2].text == "After.")
+    Swag.require(Markdown.renderInline("Before <!-- hidden -->after.") == "Before after.")
+    Swag.require(Markdown.renderInline("`<!-- visible -->`") == "<c><<!-- visible --></c>")
     let afterComment = Markdown.parseBlocks("<!-- hidden -->\n**Visible**\n\n</div>\n\nAfter.")
-    Swag.assert(afterComment.count == 2 and afterComment[0].text == "<b>Visible</b>")
+    Swag.require(afterComment.count == 2 and afterComment[0].text == "<b>Visible</b>")
 }
 
 // A chapter after several stream reads keeps Markdown parsing after a split horizontal rule.
@@ -135,7 +135,7 @@ using Swag, Core
     var hasCaption: bool
     for &block in parsed where block.kind == .Quote do
         hasCaption = Utf8.contains(block.text.toString(), "FIG. 10 — <b>Bourges au centre.")
-    Swag.assert(hasCaption)
+    Swag.require(hasCaption)
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -146,11 +146,11 @@ using Swag, Core
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
 
-    Swag.assert(view.failureReason.isEmpty() and not view.hasUnloadedSource())
-    Swag.assert(view.findText("530 — Le premier chant"))
-    Swag.assert(view.findText("FIG. 10 — Bourges au centre."))
-    Swag.assert(view.findText("Tendre l'oreille"))
-    Swag.assert(not view.findText("# 530") and not view.findText("> *FIG."))
+    Swag.require(view.failureReason.isEmpty() and not view.hasUnloadedSource())
+    Swag.require(view.findText("530 — Le premier chant"))
+    Swag.require(view.findText("FIG. 10 — Bourges au centre."))
+    Swag.require(view.findText("Tendre l'oreille"))
+    Swag.require(not view.findText("# 530") and not view.findText("> *FIG."))
 }
 
 // The document image cache accepts local vectors as well as raster images.
@@ -163,15 +163,15 @@ using Swag, Core
     var cache: HtmlImageCache
     cache.basePath = unwrap Path.directoryName(fileName.toString())
     let entry = cache.fetch(unwrap Path.fileName(fileName.toString()))
-    Swag.assert(entry != null and entry.loaded)
-    Swag.assert(entry.naturalSize == Math.Vector2{40, 20} and not entry.image.isValid())
+    Swag.require(entry != null and entry.loaded)
+    Swag.require(entry.naturalSize == Math.Vector2{40, 20} and not entry.image.isValid())
     var host: Testing.HeadlessHost
     host.setup(80, 40)
     defer cache.release()
     let texture = cache.texture(host.app.renderer, unwrap Path.fileName(fileName.toString()), 40, 20)
-    Swag.assert(texture != null)
-    Swag.assert(cache.entries[0].image.width == 40 and cache.entries[0].image.height == 20)
-    Swag.assert(cache.entries[0].image.pixelColor(20, 10).argb == 0xFF285078)
+    Swag.require(texture != null)
+    Swag.require(cache.entries[0].image.width == 40 and cache.entries[0].image.height == 20)
+    Swag.require(cache.entries[0].image.pixelColor(20, 10).argb == 0xFF285078)
 }
 
 // A standalone SVG uses its declared image dimensions, not the size of its internal view box.
@@ -188,27 +188,27 @@ using Swag, Core
     view.resize(1000, 700)
     view.applyLayout()
     let atom = &view.blocks[0].inline!.atoms[0]
-    Swag.assert(atom.imageLoaded and atom.position.width == 464 and atom.position.height == 464)
+    Swag.require(atom.imageLoaded and atom.position.width == 464 and atom.position.height == 464)
     view.resize(360, 700)
     view.applyLayout()
-    Swag.assert(atom.position.width < 464 and atom.position.width == atom.position.height)
+    Swag.require(atom.position.width < 464 and atom.position.width == atom.position.height)
     view.resize(1000, 700)
     view.applyLayout()
-    Swag.assert(atom.position.width == 464 and atom.position.height == 464)
+    Swag.require(atom.position.width == 464 and atom.position.height == 464)
 
     var centered = view.documentStyle
     centered.imageAlignment = .Center
     view.setDocumentStyle(centered)
     let inline       = unwrap view.blocks[0].inline
     let centeredAtom = &inline.atoms[0]
-    Swag.assert(Math.abs(centeredAtom.position.x - (inline.position.width - 464) * 0.5) < 1)
-    Swag.assert(centeredAtom.position.width == 464 and centeredAtom.position.height == 464)
+    Swag.require(Math.abs(centeredAtom.position.x - (inline.position.width - 464) * 0.5) < 1)
+    Swag.require(centeredAtom.position.width == 464 and centeredAtom.position.height == 464)
     view.destroy()
 
     let mixed = Markdown.View.createText(&host.root, Format.toString("![Figure](<%>) Caption.", fileName).toString(), centered)
     mixed.resize(1000, 700)
     mixed.applyLayout()
-    Swag.assert(mixed.blocks[0].inline!.atoms[0].position.x == 0)
+    Swag.require(mixed.blocks[0].inline!.atoms[0].position.x == 0)
 }
 
 // Local, embedded, reference and inline-HTML images share layout, search, and cache ownership.
@@ -234,37 +234,37 @@ using Swag, Core
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 5)
+    Swag.require(not view.hasUnloadedSource() and view.blocks.count == 5)
     for index in 3 do
-        Swag.assert(view.blocks[index].inline!.atoms[0].imageLoaded)
-    Swag.assert(view.blocks[2].inline!.images.entries.count == 1)
-    Swag.assert(view.blocks[3].inline!.images.entries.isEmpty())
-    Swag.assert(view.blocks[3].inline!.text() == "[Image: Remote]")
-    Swag.assert(not view.blocks[4].inline!.atoms[0].imageLoaded)
-    Swag.assert(view.findText("Local figure"))
-    Swag.assert(view.blocks[0].inline!.text() == "Local figure")
+        Swag.require(view.blocks[index].inline!.atoms[0].imageLoaded)
+    Swag.require(view.blocks[2].inline!.images.entries.count == 1)
+    Swag.require(view.blocks[3].inline!.images.entries.isEmpty())
+    Swag.require(view.blocks[3].inline!.text() == "[Image: Remote]")
+    Swag.require(not view.blocks[4].inline!.atoms[0].imageLoaded)
+    Swag.require(view.findText("Local figure"))
+    Swag.require(view.blocks[0].inline!.text() == "Local figure")
     view.clearSearchHighlight()
 
     view.resize(280, 900)
     view.applyLayout()
     view.layoutDocument()
     let narrow = view.blocks[0].inline!.atoms[0].position
-    Swag.assert(narrow.width <= view.blocks[0].wnd.position.width and narrow.width < 480)
-    Swag.assert(Math.abs(narrow.width / narrow.height - 4) < 0.01)
+    Swag.require(narrow.width <= view.blocks[0].wnd.position.width and narrow.width < 480)
+    Swag.require(Math.abs(narrow.width / narrow.height - 4) < 0.01)
     view.resize(640, 900)
     view.applyLayout()
     view.layoutDocument()
-    Swag.assert(view.blocks[0].inline!.atoms[0].position.width == 480)
+    Swag.require(view.blocks[0].inline!.atoms[0].position.width == 480)
     discard host.render(view)
-    Swag.assert(view.blocks[0].inline!.images.entries[0].uploaded)
+    Swag.require(view.blocks[0].inline!.images.entries[0].uploaded)
     view.destroy()
 
     let memory = Markdown.View.createText(&host.root, Format.toString("![Absolute](<%>) ![Embedded](%)", imagePath, Embedded).toString())
     memory.resize(640, 900)
     memory.applyLayout()
-    Swag.assert(memory.blocks[0].inline!.images.entries.count == 2)
+    Swag.require(memory.blocks[0].inline!.images.entries.count == 2)
     for entry in memory.blocks[0].inline!.images.entries do
-        Swag.assert(entry.loaded)
+        Swag.require(entry.loaded)
 }
 
 // A streamed figure is decoded before publication. Removing its source after preparation must
@@ -287,17 +287,17 @@ using Swag, Core
         view.resize(640, 480)
         view.applyLayout()
         let pending = view.preparePending()
-        Swag.assert(pending)
+        Swag.require(pending)
         discard view.prepareImages()
         view.imageTask.wait()
-        Swag.assert(view.blocks.isEmpty())
+        Swag.require(view.blocks.isEmpty())
         expect File.delete(imagePath)
         view.streamStep()
-        Swag.assert(view.blocks.count == 1 and view.blocks[0].wnd.position.height > 0)
+        Swag.require(view.blocks.count == 1 and view.blocks[0].wnd.position.height > 0)
         let cache = embedded ? &view.blocks[0].html!.images : &view.blocks[0].inline!.images
-        Swag.assert(cache.entries.count == 1 and cache.entries[0].loaded)
-        Swag.assert(cache.entries[0].naturalSize == Math.Vector2{120, 60})
-        Swag.assert(not cache.entries[0].uploaded)
+        Swag.require(cache.entries.count == 1 and cache.entries[0].loaded)
+        Swag.require(cache.entries[0].naturalSize == Math.Vector2{120, 60})
+        Swag.require(not cache.entries[0].uploaded)
     }
 }
 
@@ -318,15 +318,15 @@ using Swag, Core
     view.resize(640, 480)
     view.applyLayout()
     let pending = view.preparePending()
-    Swag.assert(pending)
+    Swag.require(pending)
     discard view.prepareImages()
     let revealed = view.revealFileOffset(0, "")
-    Swag.assert(revealed and not view.imageTask.isPending())
+    Swag.require(revealed and not view.imageTask.isPending())
     discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"240\" height=\"80\"/>")
     host.app.deterministicStreaming = true
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.blocks.count == 1)
-    Swag.assert(view.blocks[0].inline!.images.entries[0].naturalSize == Math.Vector2{240, 80})
+    Swag.require(view.blocks.count == 1)
+    Swag.require(view.blocks[0].inline!.images.entries[0].naturalSize == Math.Vector2{240, 80})
 }
 
 // Streaming must retain a container whose opening comment and blank lines straddle a read.
@@ -346,10 +346,10 @@ using Swag, Core
     view.applyLayout()
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 2)
-    Swag.assert(view.blocks[0].html != null)
-    Swag.assert(view.findText("Visible spread") and view.findText("After."))
-    Swag.assert(not view.findText("hidden note") and not view.findText("</div>"))
+    Swag.require(not view.hasUnloadedSource() and view.blocks.count == 2)
+    Swag.require(view.blocks[0].html != null)
+    Swag.require(view.findText("Visible spread") and view.findText("After."))
+    Swag.require(not view.findText("hidden note") and not view.findText("</div>"))
 }
 
 func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation), "datas/markdown.comprehensive.md")
@@ -361,8 +361,8 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     let source = expect File.readAllText(markdownFixturePath())
     let blocks = Markdown.parseBlocks(source.toString())
 
-    Swag.assert(blocks.count >= 10)
-    Swag.assert(blocks[0].kind == .Metadata)
+    Swag.require(blocks.count >= 10)
+    Swag.require(blocks[0].kind == .Metadata)
     var hasTable: bool
     var hasMath:  bool
     var hasCode:  bool
@@ -373,31 +373,31 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
         hasCode  = hasCode or block.kind == .Code
     }
 
-    Swag.assert(hasTable and hasMath and hasCode)
+    Swag.require(hasTable and hasMath and hasCode)
 }
 
 // Three-star delimiters distinguish thematic breaks from bold-italic spans.
 #test
 {
-    Swag.assert(Markdown.renderInline("***important***") == "<b><i>important</i></b>")
-    Swag.assert(Markdown.renderInline("___important___") == "<b><i>important</i></b>")
+    Swag.require(Markdown.renderInline("***important***") == "<b><i>important</i></b>")
+    Swag.require(Markdown.renderInline("___important___") == "<b><i>important</i></b>")
 
     let rules = Markdown.parseBlocks("***\n\n* * *\n\n___")
-    Swag.assert(rules.count == 3)
+    Swag.require(rules.count == 3)
     for &rule in rules do
-        Swag.assert(rule.kind == .Rule)
+        Swag.require(rule.kind == .Rule)
 }
 
 // Nested emphasis consumes the complete delimiter run, including inside block quotes.
 #test
 {
-    Swag.assert(Markdown.renderInline("**bold and *italic***") == "<b>bold and <i>italic</i></b>")
-    Swag.assert(Markdown.renderInline("*italic and **bold***") == "<i>italic and <b>bold</b></i>")
+    Swag.require(Markdown.renderInline("**bold and *italic***") == "<b>bold and <i>italic</i></b>")
+    Swag.require(Markdown.renderInline("*italic and **bold***") == "<i>italic and <b>bold</b></i>")
 
     let blocks = Markdown.parseBlocks("> **bold and *italic***\n> *italic and **bold***")
-    Swag.assert(blocks.count == 1)
-    Swag.assert(blocks[0].kind == .Quote)
-    Swag.assert(blocks[0].text == "<b>bold and <i>italic</i></b>\n<i>italic and <b>bold</b></i>")
+    Swag.require(blocks.count == 1)
+    Swag.require(blocks[0].kind == .Quote)
+    Swag.require(blocks[0].text == "<b>bold and <i>italic</i></b>\n<i>italic and <b>bold</b></i>")
 }
 
 // Extended block syntax remains stable at the renderer boundary.
@@ -406,17 +406,17 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     let source = "---\ntitle: Quality\n---\n\n# Heading\n\n[TOC]\n\n> [!WARNING]\n> Check **this**.\n\nA [reference][guide], a footnote[^one], H~2~O and x^2^.\n\n[guide]: https://example.com/guide\n[^one]: Footnote text.\n\n\\[\n\\frac{a}{b}\n\\]\n"
     let blocks = Markdown.parseBlocks(source)
 
-    Swag.assert(blocks.count == 7)
-    Swag.assert(blocks[0].kind == .Metadata)
-    Swag.assert(blocks[1].kind == .Heading1)
-    Swag.assert(blocks[2].kind == .TableOfContents)
-    Swag.assert(blocks[3].kind == .AlertWarning)
-    Swag.assert(blocks[4].kind == .Paragraph)
-    Swag.assert(blocks[5].kind == .Footnote)
-    Swag.assert(blocks[6].kind == .Math)
-    Swag.assert(Utf8.contains(blocks[4].text.toString(), "<a>reference</a><t>https://example.com/guide</t>"))
-    Swag.assert(Utf8.contains(blocks[4].text.toString(), "<sub>2</sub>"))
-    Swag.assert(Utf8.contains(blocks[4].text.toString(), "<sup>2</sup>"))
+    Swag.require(blocks.count == 7)
+    Swag.require(blocks[0].kind == .Metadata)
+    Swag.require(blocks[1].kind == .Heading1)
+    Swag.require(blocks[2].kind == .TableOfContents)
+    Swag.require(blocks[3].kind == .AlertWarning)
+    Swag.require(blocks[4].kind == .Paragraph)
+    Swag.require(blocks[5].kind == .Footnote)
+    Swag.require(blocks[6].kind == .Math)
+    Swag.require(Utf8.contains(blocks[4].text.toString(), "<a>reference</a><t>https://example.com/guide</t>"))
+    Swag.require(Utf8.contains(blocks[4].text.toString(), "<sub>2</sub>"))
+    Swag.require(Utf8.contains(blocks[4].text.toString(), "<sup>2</sup>"))
 }
 
 // Soft-wrapped list items stay in their list, while nested blocks remain independently laid out
@@ -426,26 +426,26 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     let source = "- Found while: a condition was evaluated over a\n  Core.String.\n- Evidence: the failure was observed at\n  src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74.\n\n  ```swag\n  if box.count do\n      return 1\n  ```\n\n  A following paragraph still belongs beneath the evidence.\n- Next step: trace the condition."
     let blocks = Markdown.parseBlocks(source)
 
-    Swag.assert(blocks.count == 4)
-    Swag.assert(blocks[0].kind == .List)
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "a Core.String."))
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "at src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74."))
-    Swag.assert(blocks[1].kind == .Code)
-    Swag.assert(blocks[2].kind == .Paragraph)
-    Swag.assert(blocks[3].kind == .List)
+    Swag.require(blocks.count == 4)
+    Swag.require(blocks[0].kind == .List)
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "a Core.String."))
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "at src/Compiler/CodeGen/Ast/CodeGen.If.cpp:74."))
+    Swag.require(blocks[1].kind == .Code)
+    Swag.require(blocks[2].kind == .Paragraph)
+    Swag.require(blocks[3].kind == .List)
 
     let tasks = Markdown.parseBlocks("- [x] Complete\n- [ ] Pending")
-    Swag.assert(tasks.count == 1)
-    Swag.assert(Utf8.contains(tasks[0].text.toString(), "<lc>*</lc>"))
-    Swag.assert(Utf8.contains(tasks[0].text.toString(), "<lu>*</lu>"))
+    Swag.require(tasks.count == 1)
+    Swag.require(Utf8.contains(tasks[0].text.toString(), "<lc>*</lc>"))
+    Swag.require(Utf8.contains(tasks[0].text.toString(), "<lu>*</lu>"))
 }
 
 // A literal '<' survives the markup protocol losslessly, in text, code spans and entities alike.
 #test
 {
-    Swag.assert(Markdown.renderInline("a < b > c") == "a << b > c")
-    Swag.assert(Markdown.renderInline("`a < b`") == "<c>a << b</c>")
-    Swag.assert(Markdown.renderInline("2 &lt; 3 &gt; 1") == "2 << 3 > 1")
+    Swag.require(Markdown.renderInline("a < b > c") == "a << b > c")
+    Swag.require(Markdown.renderInline("`a < b`") == "<c>a << b</c>")
+    Swag.require(Markdown.renderInline("2 &lt; 3 &gt; 1") == "2 << 3 > 1")
 
     var host: Testing.HeadlessHost
     host.setup(640, 240)
@@ -458,50 +458,50 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     var rebuilt: String
     for &atom in view.blocks[0].inline!.atoms where not atom.isSpace and not atom.isBreak do
         rebuilt += atom.text
-    Swag.assert(rebuilt == "a<b")
-    Swag.assert(view.findText("a < b"))
+    Swag.require(rebuilt == "a<b")
+    Swag.require(view.findText("a < b"))
 }
 
 // Link destinations keep their exact URL: titles are dropped, parentheses balance, and the angle
 // form carries spaces — in the inline form and in a reference definition alike.
 #test
 {
-    Swag.assert(Markdown.renderInline("[x](https://e.com/guide \"Title\")") == "<a>x</a><t>https://e.com/guide</t>")
-    Swag.assert(Markdown.renderInline("[x](https://e.com/a(b)c)") == "<a>x</a><t>https://e.com/a(b)c</t>")
-    Swag.assert(Markdown.renderInline("[x](<https://e.com/a b>)") == "<a>x</a><t>https://e.com/a b</t>")
+    Swag.require(Markdown.renderInline("[x](https://e.com/guide \"Title\")") == "<a>x</a><t>https://e.com/guide</t>")
+    Swag.require(Markdown.renderInline("[x](https://e.com/a(b)c)") == "<a>x</a><t>https://e.com/a(b)c</t>")
+    Swag.require(Markdown.renderInline("[x](<https://e.com/a b>)") == "<a>x</a><t>https://e.com/a b</t>")
 
     let blocks = Markdown.parseBlocks("A [reference][guide].\n\n[guide]: https://e.com/guide \"Guide title\"")
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "<a>reference</a><t>https://e.com/guide</t>"))
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "<a>reference</a><t>https://e.com/guide</t>"))
 }
 
 // A longer code span quotes literal backticks, and a longer fence displays a shorter one.
 #test
 {
-    Swag.assert(Markdown.renderInline("``a `tick` b``") == "<c>a `tick` b</c>")
+    Swag.require(Markdown.renderInline("``a `tick` b``") == "<c>a `tick` b</c>")
 
     let blocks = Markdown.parseBlocks("````\n```\ncode\n```\n````")
-    Swag.assert(blocks.count == 1)
-    Swag.assert(blocks[0].kind == .Code)
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "```"))
+    Swag.require(blocks.count == 1)
+    Swag.require(blocks[0].kind == .Code)
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "```"))
 }
 
 // A trailing backslash is a hard break, and '<br>' breaks a line even inside a table cell.
 #test
 {
     let blocks = Markdown.parseBlocks("line one\\\nline two")
-    Swag.assert(blocks.count == 1)
-    Swag.assert(blocks[0].text == "line one\nline two")
-    Swag.assert(Markdown.renderInline("cell<br>break") == "cell\nbreak")
+    Swag.require(blocks.count == 1)
+    Swag.require(blocks[0].text == "line one\nline two")
+    Swag.require(Markdown.renderInline("cell<br>break") == "cell\nbreak")
 }
 
 // Inline HTML is tokenized by the HTML parser before its semantics join Markdown rich text.
 #test
 {
-    Swag.assert(Markdown.renderInline("Press <kbd>Ctrl</kbd> and <strong>go</strong>.") == "Press <c>Ctrl</c> and <b>go</b>.")
-    Swag.assert(Markdown.renderInline("**Use <span>HTML</span> inside emphasis**") == "<b>Use HTML inside emphasis</b>")
-    Swag.assert(Markdown.renderInline("<a href=\"https://example.com\">Example</a>") == "<a>Example</a><t>https://example.com</t>")
-    Swag.assert(Markdown.renderInline("<span>&amp;lt; &lt;tag&gt;</span>") == "&lt; <<tag>")
-    Swag.assert(Markdown.renderInline("<span>*&lt;tag&gt;*</span>") == "<i><<tag></i>")
+    Swag.require(Markdown.renderInline("Press <kbd>Ctrl</kbd> and <strong>go</strong>.") == "Press <c>Ctrl</c> and <b>go</b>.")
+    Swag.require(Markdown.renderInline("**Use <span>HTML</span> inside emphasis**") == "<b>Use HTML inside emphasis</b>")
+    Swag.require(Markdown.renderInline("<a href=\"https://example.com\">Example</a>") == "<a>Example</a><t>https://example.com</t>")
+    Swag.require(Markdown.renderInline("<span>&amp;lt; &lt;tag&gt;</span>") == "&lt; <<tag>")
+    Swag.require(Markdown.renderInline("<span>*&lt;tag&gt;*</span>") == "<i><<tag></i>")
 }
 
 // Raw HTML blocks use the HTML document engine, including the centered image pattern used by
@@ -510,10 +510,10 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 {
     let source = "<p align=\"center\">\n    <img src=\"web/imgs/swag_icon.png\" width=\"120\" height=\"120\" alt=\"Swag\">\n</p>\n\n<h1 align=\"center\">Swag</h1>\n\nAfter."
     let blocks = Markdown.parseBlocks(source)
-    Swag.assert(blocks.count == 3)
-    Swag.assert(blocks[0].kind == .Html)
-    Swag.assert(blocks[1].kind == .Html)
-    Swag.assert(blocks[2].kind == .Paragraph)
+    Swag.require(blocks.count == 3)
+    Swag.require(blocks[0].kind == .Html)
+    Swag.require(blocks[1].kind == .Html)
+    Swag.require(blocks[2].kind == .Paragraph)
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
@@ -523,8 +523,8 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.blocks.count == 3)
-    Swag.assert(view.blocks[0].html != null and view.blocks[1].html != null)
+    Swag.require(view.blocks.count == 3)
+    Swag.require(view.blocks[0].html != null and view.blocks[1].html != null)
     var hasImage: bool
     var imageNode = HtmlNoNode
     var paragraph = HtmlNoNode
@@ -536,12 +536,12 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .P do
         paragraph = cast(u32, index)
-    Swag.assert(hasImage)
-    Swag.assert(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(paragraph).textAlign == .Center)
-    Swag.assert(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(imageNode).width == HtmlLength.pixels(120))
-    Swag.assert(view.blocks[0].html!.layout.styleOfNode(imageNode).height == HtmlLength.pixels(120))
-    Swag.assert(view.blocks[1].html!.document.textContent(0) == "Swag")
-    Swag.assert(view.blocks[0].wnd.position.height > 0 and view.blocks[1].wnd.position.height > 0)
+    Swag.require(hasImage)
+    Swag.require(paragraph != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(paragraph).textAlign == .Center)
+    Swag.require(imageNode != HtmlNoNode and view.blocks[0].html!.layout.styleOfNode(imageNode).width == HtmlLength.pixels(120))
+    Swag.require(view.blocks[0].html!.layout.styleOfNode(imageNode).height == HtmlLength.pixels(120))
+    Swag.require(view.blocks[1].html!.document.textContent(0) == "Swag")
+    Swag.require(view.blocks[0].wnd.position.height > 0 and view.blocks[1].wnd.position.height > 0)
     Testing.assertContentFits(view)
 }
 
@@ -559,11 +559,11 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.resize(640, 240)
     view.applyLayout()
 
-    Swag.assert(view.blocks[0].html != null)
+    Swag.require(view.blocks[0].html != null)
     let point = view.blocks[0].html!.canvas.surfaceRect().center()
     host.mouseWheel(point, -1)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition().y > 0)
+    Swag.require(view.scroll.scrollPosition().y > 0)
 }
 
 // Wheel notches accumulate into a three-line glide, reverse immediately, and honor reduced motion.
@@ -580,24 +580,24 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.applyLayout()
     let step = view.scroll.verticalScrollStep * 3
     host.mouseWheel({320, 120}, -1)
-    Swag.assert(view.scroll.scrollPosition().y == 0)
-    Swag.assert(Math.abs(view.scroll.scrollTarget().y - step) <= 1)
+    Swag.require(view.scroll.scrollPosition().y == 0)
+    Swag.require(Math.abs(view.scroll.scrollTarget().y - step) <= 1)
     host.advanceAnimations(0.04)
     let intermediate = view.scroll.scrollPosition().y
-    Swag.assert(intermediate > 0 and intermediate < step)
+    Swag.require(intermediate > 0 and intermediate < step)
     host.mouseWheel({320, 120}, -1)
-    Swag.assert(Math.abs(view.scroll.scrollTarget().y - step * 2) <= 1)
+    Swag.require(Math.abs(view.scroll.scrollTarget().y - step * 2) <= 1)
     host.mouseWheel({320, 120}, 1)
-    Swag.assert(view.scroll.scrollTarget().y < intermediate)
+    Swag.require(view.scroll.scrollTarget().y < intermediate)
     host.finishAnimations()
-    Swag.assert(view.scroll.scrollPosition() == view.scroll.scrollTarget())
+    Swag.require(view.scroll.scrollPosition() == view.scroll.scrollTarget())
 
     view.scroll.setScrollPos(0, 0)
     host.setReducedMotion(true)
     host.mouseWheel({320, 120}, -1)
-    Swag.assert(Math.abs(view.scroll.scrollPosition().y - step) <= 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - step) <= 1)
     host.mouseWheel({320, 120}, 100)
-    Swag.assert(view.scroll.scrollPosition().y == 0)
+    Swag.require(view.scroll.scrollPosition().y == 0)
 }
 
 // HTML fragments loaded from a Markdown file resolve local images beside that Markdown file.
@@ -625,36 +625,36 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
 
-    Swag.assert(not view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
-    Swag.assert(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
+    Swag.require(not view.hasUnloadedSource() and view.blocks.count == 1 and view.blocks[0].html != null)
+    Swag.require(view.blocks[0].html!.images.entries.count == 1 and view.blocks[0].html!.images.entries[0].loaded)
     var imageNode = HtmlNoNode
     for node, index in view.blocks[0].html!.document.nodes where node.tag == .Img do
         imageNode = cast(u32, index)
-    Swag.assert(imageNode != HtmlNoNode)
-    Swag.assert(view.blocks[0].html!.layout.styleOfNode(imageNode).width.kind == .Percent and view.blocks[0].html!.layout.styleOfNode(imageNode).width.value == 0.8)
+    Swag.require(imageNode != HtmlNoNode)
+    Swag.require(view.blocks[0].html!.layout.styleOfNode(imageNode).width.kind == .Percent and view.blocks[0].html!.layout.styleOfNode(imageNode).width.value == 0.8)
 }
 
 // Ordered markers renumber from the first written value, per nesting level.
 #test
 {
     let blocks = Markdown.parseBlocks("1. a\n1. b\n1. c")
-    Swag.assert(blocks.count == 1)
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "<lm>1.</lm>"))
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "<lm>2.</lm>"))
-    Swag.assert(Utf8.contains(blocks[0].text.toString(), "<lm>3.</lm>"))
+    Swag.require(blocks.count == 1)
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "<lm>1.</lm>"))
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "<lm>2.</lm>"))
+    Swag.require(Utf8.contains(blocks[0].text.toString(), "<lm>3.</lm>"))
 
     let nested = Markdown.parseBlocks("3. a\n   1. x\n   1. y\n4. b")
-    Swag.assert(Utf8.contains(nested[0].text.toString(), "<lm>3.</lm>"))
-    Swag.assert(Utf8.contains(nested[0].text.toString(), "<lm>1.</lm>"))
-    Swag.assert(Utf8.contains(nested[0].text.toString(), "<lm>2.</lm>"))
-    Swag.assert(Utf8.contains(nested[0].text.toString(), "<lm>4.</lm>"))
+    Swag.require(Utf8.contains(nested[0].text.toString(), "<lm>3.</lm>"))
+    Swag.require(Utf8.contains(nested[0].text.toString(), "<lm>1.</lm>"))
+    Swag.require(Utf8.contains(nested[0].text.toString(), "<lm>2.</lm>"))
+    Swag.require(Utf8.contains(nested[0].text.toString(), "<lm>4.</lm>"))
 }
 
 // Underscore emphasis never closes inside a word.
 #test
 {
-    Swag.assert(Markdown.renderInline("_foo_bar_") == "<i>foo_bar</i>")
-    Swag.assert(Markdown.renderInline("snake_case_name") == "snake_case_name")
+    Swag.require(Markdown.renderInline("_foo_bar_") == "<i>foo_bar</i>")
+    Swag.require(Markdown.renderInline("snake_case_name") == "snake_case_name")
 }
 
 // Code blocks preserve the author's indentation; only the space a wrap leaves behind is dropped.
@@ -668,7 +668,7 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.blocks.count == 1)
+    Swag.require(view.blocks.count == 1)
     var zeroX = -1'f32
     var fourX = -1'f32
     for &atom in view.blocks[0].inline!.atoms where atom.visible
@@ -679,7 +679,7 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
             fourX = atom.position.x
     }
 
-    Swag.assert(zeroX >= 0 and fourX > zeroX)
+    Swag.require(zeroX >= 0 and fourX > zeroX)
 }
 
 // Returns the right edge of the last ink of every laid-out line of the first block.
@@ -732,20 +732,20 @@ func paragraphLineEdges(view: *Markdown.View)->Array'f32
 
     let raggedEdges = paragraphLineEdges(ragged)
     let flushEdges  = paragraphLineEdges(flush)
-    Swag.assert(raggedEdges.count == flushEdges.count and flushEdges.count >= 3)
+    Swag.require(raggedEdges.count == flushEdges.count and flushEdges.count >= 3)
 
     // Justification moves no word to another line: the wrap is decided before the stretch.
-    Swag.assert(ragged.blocks[0].inline!.layoutHeight == flush.blocks[0].inline!.layoutHeight)
+    Swag.require(ragged.blocks[0].inline!.layoutHeight == flush.blocks[0].inline!.layoutHeight)
 
     let last = flushEdges.count - 1
     for index in last
     {
-        Swag.assert(flushEdges[index] > raggedEdges[index])
-        Swag.assert(Math.abs(flushEdges[index] - flushEdges[0]) < 0.5)
+        Swag.require(flushEdges[index] > raggedEdges[index])
+        Swag.require(Math.abs(flushEdges[index] - flushEdges[0]) < 0.5)
     }
 
-    Swag.assert(flushEdges[last] == raggedEdges[last])
-    Swag.assert(flushEdges[last] < flushEdges[0] - 1)
+    Swag.require(flushEdges[last] == raggedEdges[last])
+    Swag.require(flushEdges[last] < flushEdges[0] - 1)
 }
 
 // Returns the laid-out rectangle of one word of one block, in that block's own coordinates.
@@ -768,16 +768,16 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(not view.hasSelection())
+    Swag.require(not view.hasSelection())
     view.selectAll()
-    Swag.assert(view.hasSelection())
-    Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
-    Swag.assert(view.copySelection())
-    Swag.assert(Clipboard.getString() == "alpha beta\ngamma delta")
+    Swag.require(view.hasSelection())
+    Swag.require(view.selectedText() == "alpha beta\ngamma delta")
+    Swag.require(view.copySelection())
+    Swag.require(Clipboard.getString() == "alpha beta\ngamma delta")
 
     view.clearSelection()
-    Swag.assert(not view.hasSelection())
-    Swag.assert(not view.copySelection())
+    Swag.require(not view.hasSelection())
+    Swag.require(not view.copySelection())
 }
 
 // A drag selects what it crosses, blocks included, and stops on the byte it was released on
@@ -798,29 +798,29 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let alpha = markdownAtomRect(view, 0, "alpha")
     let beta  = markdownAtomRect(view, 0, "beta")
     let delta = markdownAtomRect(view, 1, "delta")
-    Swag.assert(alpha.width > 0 and beta.width > 0 and delta.width > 0)
+    Swag.require(alpha.width > 0 and beta.width > 0 and delta.width > 0)
 
     let first  = unwrap view.blocks[0].inline
     let second = unwrap view.blocks[1].inline
     host.drag(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}), second.localToSurface(Math.Point{delta.right(), delta.vertCenter()}))
-    Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
+    Swag.require(view.selectedText() == "alpha beta\ngamma delta")
 
     // The reading measure changes what the words sit on, not what was selected.
     var narrower = view.documentStyle
     narrower.maxContentWidth = 320
     view.setDocumentStyle(narrower)
-    Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
+    Swag.require(view.selectedText() == "alpha beta\ngamma delta")
 
     // A drag from the end of one word to the end of the next takes the space between them.
     host.drag(first.localToSurface(Math.Point{alpha.right(), alpha.vertCenter()}), first.localToSurface(Math.Point{markdownAtomRect(view, 0, "beta").right(), beta.vertCenter()}))
-    Swag.assert(view.selectedText() == " beta")
+    Swag.require(view.selectedText() == " beta")
 
     host.doubleClick(first.localToSurface(Math.Point{alpha.horzCenter(), alpha.vertCenter()}))
-    Swag.assert(view.selectedText() == "alpha")
+    Swag.require(view.selectedText() == "alpha")
 
     // Pressing somewhere else drops it, the way every document viewer reads.
     host.click(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}))
-    Swag.assert(not view.hasSelection())
+    Swag.require(not view.hasSelection())
 }
 
 // A table copies as a table: one line per row, one tab between cells.
@@ -835,9 +835,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.blocks.count == 1 and view.blocks[0].table != null)
+    Swag.require(view.blocks.count == 1 and view.blocks[0].table != null)
     view.selectAll()
-    Swag.assert(view.selectedText() == "A\tB\nx\ty")
+    Swag.require(view.selectedText() == "A\tB\nx\ty")
 }
 
 // A block a selection runs across, but that owns no text of its own, is taken whole: a formula
@@ -855,15 +855,15 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     view.selectAll()
     let text = view.selectedText()
-    Swag.assert(Utf8.contains(text.toString(), "Markdown viewer fixture"))
-    Swag.assert(Utf8.contains(text.toString(), "\\frac{x}{2}"))
-    Swag.assert(Utf8.contains(text.toString(), "\\int_0^1 x^2"))
-    Swag.assert(Utf8.contains(text.toString(), "Independent scrolling"))
-    Swag.assert(Utf8.contains(text.toString(), "func answer()->u32 => 42"))
+    Swag.require(Utf8.contains(text.toString(), "Markdown viewer fixture"))
+    Swag.require(Utf8.contains(text.toString(), "\\frac{x}{2}"))
+    Swag.require(Utf8.contains(text.toString(), "\\int_0^1 x^2"))
+    Swag.require(Utf8.contains(text.toString(), "Independent scrolling"))
+    Swag.require(Utf8.contains(text.toString(), "func answer()->u32 => 42"))
 
     // Nothing of the marked-up source reaches the clipboard: what comes out is what is read.
-    Swag.assert(not Utf8.contains(text.toString(), "<b>"))
-    Swag.assert(not Utf8.contains(text.toString(), "**bold**"))
+    Swag.require(not Utf8.contains(text.toString(), "<b>"))
+    Swag.require(not Utf8.contains(text.toString(), "**bold**"))
 }
 
 // The selection is one band per line, not one per word.
@@ -888,9 +888,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.selectAll()
 
     let inline = unwrap view.blocks[0].inline
-    Swag.assert(inline.lines.count >= 3)
+    Swag.require(inline.lines.count >= 3)
     for index in inline.lines.count - 1 do
-        Swag.assert(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
+        Swag.require(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
 
     var image = host.renderSettled(&host.root)
 
@@ -899,9 +899,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let column = inline.localToSurface(Math.Point{inline.atoms[0].position.x + 2, 0})
     let above  = inline.localToSurface(Math.Point{0, inline.lines[0].top + inline.lines[0].height - 3})
     let below  = inline.localToSurface(Math.Point{0, inline.lines[1].top + 3})
-    Swag.assert(below.y > above.y)
+    Swag.require(below.y > above.y)
     for y in cast(s32, above.y) to cast(s32, below.y) do
-        Swag.assert(image.pixelColor(cast(s32, column.x), y) != ground)
+        Swag.require(image.pixelColor(cast(s32, column.x), y) != ground)
 }
 
 // The context menu and the keyboard reach the same two commands.
@@ -919,24 +919,24 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     host.clickPopupMenuItemWhenShown(Markdown.View.CtxSelectAll)
     view.showContextMenu({50, 50})
     host.pump()
-    Swag.assert(view.selectedText() == "menu content")
+    Swag.require(view.selectedText() == "menu content")
 
     host.clickPopupMenuItemWhenShown(Markdown.View.CtxCopy)
     view.showContextMenu({50, 50})
     host.pump()
-    Swag.assert(Clipboard.getString() == "menu content")
+    Swag.require(Clipboard.getString() == "menu content")
 
     view.clearSelection()
     view.setFocus()
     host.keyPress(.A, .Control)
-    Swag.assert(view.selectedText() == "menu content")
+    Swag.require(view.selectedText() == "menu content")
 
     expect Clipboard.resetFake()
     host.keyPress(.C, .Control)
-    Swag.assert(Clipboard.getString() == "menu content")
+    Swag.require(Clipboard.getString() == "menu content")
 
     host.keyPress(.Escape)
-    Swag.assert(not view.hasSelection())
+    Swag.require(not view.hasSelection())
 }
 
 // One find result marks one exact text range, even when its atom also carries another word.
@@ -950,13 +950,13 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.findText("alpha"))
+    Swag.require(view.findText("alpha"))
     let inline = unwrap view.blocks[0].inline
-    Swag.assert(inline.searchStart == 0 and inline.searchEnd == 5)
+    Swag.require(inline.searchStart == 0 and inline.searchEnd == 5)
     var bounds: Math.Rectangle
-    Swag.assert(view.searchMatchRect(&bounds) and bounds.width > 0 and bounds.width < inline.position.width)
-    Swag.assert(inline.highlightText("alpha", 1))
-    Swag.assert(inline.searchStart == 11 and inline.searchEnd == 16)
+    Swag.require(view.searchMatchRect(&bounds) and bounds.width > 0 and bounds.width < inline.position.width)
+    Swag.require(inline.highlightText("alpha", 1))
+    Swag.require(inline.searchStart == 11 and inline.searchEnd == 16)
 }
 
 // A file-offset reveal selects the requested repeated word rather than the first copy retained in
@@ -974,13 +974,13 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.resize(640, 240)
     view.applyLayout()
     let revealed = view.revealFileOffset(11, "alpha")
-    Swag.assert(revealed)
+    Swag.require(revealed)
 
     var bounds: Math.Rectangle
     for 128 where not view.searchMatchRect(&bounds) do
         host.fireTimers()
-    Swag.assert(view.searchMatchRect(&bounds))
-    Swag.assert(view.blocks[0].inline!.searchStart == 11 and view.blocks[0].inline!.searchEnd == 16)
+    Swag.require(view.searchMatchRect(&bounds))
+    Swag.require(view.blocks[0].inline!.searchStart == 11 and view.blocks[0].inline!.searchEnd == 16)
 }
 
 // Repeated distant reveals replace every pending scroll/search target; a later occurrence cannot
@@ -1014,38 +1014,38 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     {
         let previousScroll = view.scroll.scrollPosition()
         let targetRevealed = view.revealFileOffset(target, Query)
-        Swag.assert(targetRevealed)
+        Swag.require(targetRevealed)
         if target != offsets[0]
         {
             // A search reveal waits for its rendered occurrence instead of exposing the byte-based
             // estimate that guides progressive loading.
-            Swag.assert(Math.abs(view.scroll.scrollPosition().y - previousScroll.y) < 1)
+            Swag.require(Math.abs(view.scroll.scrollPosition().y - previousScroll.y) < 1)
         }
 
         if target == offsets[2] do
-            Swag.assert(view.pendingSearchOccurrence == 0)
+            Swag.require(view.pendingSearchOccurrence == 0)
         var bounds: Math.Rectangle
         for 2_048 where not view.searchMatchRect(&bounds) do
             host.fireTimers()
-        Swag.assert(view.pendingSearch.isEmpty())
-        Swag.assert(view.searchBlockIndex < view.blocks.count)
-        Swag.assert(view.searchMatchRect(&bounds))
-        Swag.assert(view.residentStart <= target and target < view.bytesRead)
-        Swag.assert(not view.pendingSeek and not view.hasPendingTarget and view.pendingSearch.isEmpty())
+        Swag.require(view.pendingSearch.isEmpty())
+        Swag.require(view.searchBlockIndex < view.blocks.count)
+        Swag.require(view.searchMatchRect(&bounds))
+        Swag.require(view.residentStart <= target and target < view.bytesRead)
+        Swag.require(not view.pendingSeek and not view.hasPendingTarget and view.pendingSearch.isEmpty())
         let resident = view.residentStart
         for 32 do
             host.fireTimers()
-        Swag.assert(view.residentStart == resident and view.searchMatchRect(&bounds))
+        Swag.require(view.residentStart == resident and view.searchMatchRect(&bounds))
     }
 
     let previousRevealed = view.revealFileOffset(offsets[1], Query)
-    Swag.assert(previousRevealed)
+    Swag.require(previousRevealed)
     var previousBounds: Math.Rectangle
     for 2_048 where not view.searchMatchRect(&previousBounds) do
         host.fireTimers()
-    Swag.assert(view.searchMatchRect(&previousBounds) and
-                view.residentStart <= offsets[1] and
-                offsets[1] < view.bytesRead)
+    Swag.require(view.searchMatchRect(&previousBounds) and
+                 view.residentStart <= offsets[1] and
+                 offsets[1] < view.bytesRead)
 }
 
 // Table columns size from their content instead of splitting the width evenly.
@@ -1060,10 +1060,10 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.blocks.count == 1)
+    Swag.require(view.blocks.count == 1)
     let table = unwrap view.blocks[0].table
-    Swag.assert(table.columnCount == 2)
-    Swag.assert(table.columnWidths[1] > table.columnWidths[0] * 2)
+    Swag.require(table.columnCount == 2)
+    Swag.require(table.columnWidths[1] > table.columnWidths[0] * 2)
 }
 
 // Inline mathematics is parsed by Pixel instead of being approximated with Unicode text.
@@ -1077,12 +1077,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.blocks.count == 1)
-    Swag.assert(view.blocks[0].inline != null)
+    Swag.require(view.blocks.count == 1)
+    Swag.require(view.blocks[0].inline != null)
     var mathAtoms = 0'u32
     for &atom in view.blocks[0].inline!.atoms where atom.isMath do
         mathAtoms += 1
-    Swag.assert(mathAtoms == 1)
+    Swag.require(mathAtoms == 1)
     Testing.assertContentFits(view)
 }
 
@@ -1097,11 +1097,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.applyLayout()
     view.layoutDocument()
 
-    Swag.assert(view.findText("split search"))
+    Swag.require(view.findText("split search"))
     var hits = 0'u32
     for &atom in view.blocks[0].inline!.atoms where atom.searchHit do
         hits += 1
-    Swag.assert(hits >= 2)
+    Swag.require(hits >= 2)
 }
 
 // An ordinary document stops reporting active work when enough content is resident, even though
@@ -1114,7 +1114,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var source: String
     for index in 256 do
         source += Format.toString("## README section %\n\nA paragraph remains available for progressive wheel navigation.\n\n", index)
-    Swag.assert(source.length > 8 * 1024)
+    Swag.require(source.length > 8 * 1024)
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -1126,12 +1126,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for 64 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(not view.isLoading() and view.hasUnloadedSource())
+    Swag.require(not view.isLoading() and view.hasUnloadedSource())
 
     for 16 do
         host.mouseWheel({360, 180}, -1)
     host.finishAnimations()
-    Swag.assert(view.isLoading())
+    Swag.require(view.isLoading())
 
     var steps = 0'u32
     while view.isLoading() and steps < 4_000
@@ -1140,9 +1140,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         steps += 1
     }
 
-    Swag.assert(not view.isLoading())
-    Swag.assert(view.hasUnloadedSource())
-    Swag.assert(view.scroll.scrollPosition().y > 0)
+    Swag.require(not view.isLoading())
+    Swag.require(view.hasUnloadedSource())
+    Swag.require(view.scroll.scrollPosition().y > 0)
 }
 
 // HTML fragments loaded by successive Page Down keys must not steal focus and reveal themselves
@@ -1159,7 +1159,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
         source += "<div>\n\n<p>A streamed HTML fragment.</p>\n\n</div>\n\n"
     }
 
-    Swag.assert(source.length > 8 * 1024)
+    Swag.require(source.length > 8 * 1024)
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -1170,7 +1170,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.setFocus()
     for 64 where view.isLoading() do
         host.fireTimers()
-    Swag.assert(view.hasUnloadedSource())
+    Swag.require(view.hasUnloadedSource())
     let initialBytes = view.bytesRead
     var seenHtml: HashSet'u64
     for block in view.blocks where block.html != null do
@@ -1184,15 +1184,15 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
             host.fireTimers()
         for block in view.blocks where block.html != null do
             seenHtml.add(block.sourceOffset)
-        Swag.assert(view.hasFocus())
+        Swag.require(view.hasFocus())
         let after = view.scroll.scrollPosition().y
-        Swag.assert(after >= before)
+        Swag.require(after >= before)
         if after == before and not view.hasUnloadedSource() do
             break
     }
 
-    Swag.assert(not view.hasUnloadedSource() and view.bytesRead > initialBytes)
-    Swag.assert(seenHtml.count == 16)
+    Swag.require(not view.hasUnloadedSource() and view.bytesRead > initialBytes)
+    Swag.require(seenHtml.count == 16)
 }
 
 // Each manually fired streaming timer consumes the same block budget in a headless host.
@@ -1210,11 +1210,11 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 1000)
     view.applyLayout()
-    Swag.assert(view.blocks.isEmpty())
+    Swag.require(view.blocks.isEmpty())
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.blocks.count == 8)
+    Swag.require(view.blocks.count == 8)
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.blocks.count == 16)
+    Swag.require(view.blocks.count == 16)
 }
 
 // Streaming publishes one extent per batch and keeps existing prose and HTML at their laid-out
@@ -1269,18 +1269,18 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let target = view.scroll.scrollTarget()
     let count  = view.blocks.count
     host.fireTimer(view.loadTimer)
-    Swag.assert(view.blocks.count > count)
-    Swag.assert(resizes == 0 and extents <= 1)
-    Swag.assert(first.position == firstPosition and html.position == htmlPosition)
-    Swag.assert(view.scroll.scrollTarget() == target)
+    Swag.require(view.blocks.count > count)
+    Swag.require(resizes == 0 and extents <= 1)
+    Swag.require(first.position == firstPosition and html.position == htmlPosition)
+    Swag.require(view.scroll.scrollTarget() == target)
 
     view.resize(720, 900)
     view.applyLayout()
-    Swag.assert(resizes == 0)
+    Swag.require(resizes == 0)
     view.resize(560, 900)
     view.applyLayout()
-    Swag.assert(resizes > 0 and first.position.width < firstPosition.width)
-    Swag.assert(html.position.width == first.position.width)
+    Swag.require(resizes > 0 and first.position.width < firstPosition.width)
+    Swag.require(html.position.width == first.position.width)
 }
 
 // Parsed and queued alerts resolve their title in the live language without reopening the file.
@@ -1293,7 +1293,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let text = Markdown.View.createText(&host.root, "> [!WARNING]\n> Retain this body.")
     text.resize(720, 1000)
     let textInline = unwrap text.blocks[0].inline
-    Swag.assert(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
+    Swag.require(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
 
     let fileName = Testing.tempFilePath("markdown-language-", ".md")
     defer discard catch File.delete(fileName)
@@ -1305,31 +1305,31 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     file.resize(720, 1000)
     file.applyLayout()
     host.fireTimer(file.loadTimer)
-    Swag.assert(file.blocks.count == 8)
+    Swag.require(file.blocks.count == 8)
     let firstInline  = unwrap file.blocks[0].inline
     let englishTitle = String.from(strings().markdown_AlertWarning)
 
     expect applyLanguage(&host.app.resources, "fr")
     host.notify(.LanguageChanged)
-    Swag.assert(strings().markdown_AlertWarning != englishTitle.toString())
-    Swag.assert(text.blocks[0].inline == textInline)
-    Swag.assert(file.blocks[0].inline == firstInline)
-    Swag.assert(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
-    Swag.assert(Utf8.contains(firstInline.text().toString(), strings().markdown_AlertWarning))
+    Swag.require(strings().markdown_AlertWarning != englishTitle.toString())
+    Swag.require(text.blocks[0].inline == textInline)
+    Swag.require(file.blocks[0].inline == firstInline)
+    Swag.require(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
+    Swag.require(Utf8.contains(firstInline.text().toString(), strings().markdown_AlertWarning))
 
     // These blocks were already parsed in English, but had not been materialized yet.
     file.streamStep()
-    Swag.assert(file.blocks.count == 16)
+    Swag.require(file.blocks.count == 16)
     for &block in file.blocks
     {
         let displayed = block.inline!.text()
-        Swag.assert(Utf8.contains(displayed.toString(), strings().markdown_AlertWarning))
-        Swag.assert(Utf8.contains(displayed.toString(), "Retain this body."))
+        Swag.require(Utf8.contains(displayed.toString(), strings().markdown_AlertWarning))
+        Swag.require(Utf8.contains(displayed.toString(), "Retain this body."))
     }
 
     expect applyLanguage(&host.app.resources, ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(Utf8.contains(firstInline.text().toString(), englishTitle.toString()))
+    Swag.require(Utf8.contains(firstInline.text().toString(), englishTitle.toString()))
 }
 
 // A file-open failure stays inspectable even when no observer was connected during construction.
@@ -1340,10 +1340,10 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_markdown_%.md", Guid64.random()).toString())
     let view = Markdown.View.createFile(&host.root, path)
-    Swag.assert(not view.failureReason.isEmpty())
+    Swag.require(not view.failureReason.isEmpty())
     for 64 where view.hasUnloadedSource() do
         host.fireTimers()
-    Swag.assert(not view.hasUnloadedSource())
+    Swag.require(not view.hasUnloadedSource())
 }
 
 // A decoder failure found by the progressive reader is signaled after construction.
@@ -1366,6 +1366,6 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     for 64 where reported.isEmpty() do
         host.fireTimers()
-    Swag.assert(not reported.isEmpty())
-    Swag.assert(reported == view.failureReason)
+    Swag.require(not reported.isEmpty())
+    Swag.require(reported == view.failureReason)
 }

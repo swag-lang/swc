@@ -5,7 +5,7 @@ using StaticApi
 
 #test
 {
-    Swag.assert(opaqueLifecycleSourceControl() == 1)
+    Swag.require(opaqueLifecycleSourceControl() == 1)
 }
 
 // An imported value owns cleanup even when only a hidden member declares it.
@@ -16,9 +16,9 @@ using StaticApi
     {
         var value: OpaqueLifecycleOwner
         value.arm()
-        Swag.assert(value.isArmed())
+        Swag.require(value.isArmed())
     }
-    Swag.assert(opaqueLifecycleDrops() == 1)
+    Swag.require(opaqueLifecycleDrops() == 1)
 }
 
 #test
@@ -29,11 +29,11 @@ using StaticApi
         var first: OpaqueLifecycleOwner
         first.arm()
         var second = first
-        Swag.assert(first.isArmed())
-        Swag.assert(second.isArmed())
-        Swag.assert(opaqueLifecycleCopies() == 1)
+        Swag.require(first.isArmed())
+        Swag.require(second.isArmed())
+        Swag.require(opaqueLifecycleCopies() == 1)
     }
-    Swag.assert(opaqueLifecycleDrops() == 2)
+    Swag.require(opaqueLifecycleDrops() == 2)
 }
 
 // An explicit public call remains direct; automatic cleanup runs the complete operation.
@@ -45,11 +45,11 @@ using StaticApi
         var value: OpaqueLifecycleOrdered
         value.arm()
         value.opDrop()
-        Swag.assert(opaqueLifecycleTrace() == 3)
-        Swag.assert(opaqueLifecycleDrops() == 0)
+        Swag.require(opaqueLifecycleTrace() == 3)
+        Swag.require(opaqueLifecycleDrops() == 0)
     }
-    Swag.assert(opaqueLifecycleTrace() == 3321)
-    Swag.assert(opaqueLifecycleDrops() == 2)
+    Swag.require(opaqueLifecycleTrace() == 3321)
+    Swag.require(opaqueLifecycleDrops() == 2)
 }
 
 // Members repair their copies before the outer operation, without a second traversal.
@@ -61,12 +61,12 @@ using StaticApi
         var first: OpaqueLifecycleOrdered
         first.arm()
         var second = first
-        Swag.assert(first.isArmed())
-        Swag.assert(second.isArmed())
-        Swag.assert(opaqueLifecycleTrace() == 124)
-        Swag.assert(opaqueLifecycleCopies() == 2)
+        Swag.require(first.isArmed())
+        Swag.require(second.isArmed())
+        Swag.require(opaqueLifecycleTrace() == 124)
+        Swag.require(opaqueLifecycleCopies() == 2)
     }
-    Swag.assert(opaqueLifecycleDrops() == 4)
+    Swag.require(opaqueLifecycleDrops() == 4)
 }
 
 #test
@@ -77,12 +77,12 @@ using StaticApi
         var first: OpaqueLifecycleOrdered
         first.arm()
         var second = #move first
-        Swag.assert(not first.isArmed())
-        Swag.assert(second.isArmed())
-        Swag.assert(opaqueLifecycleTrace() == 125)
-        Swag.assert(opaqueLifecycleMoves() == 2)
+        Swag.require(not first.isArmed())
+        Swag.require(second.isArmed())
+        Swag.require(opaqueLifecycleTrace() == 125)
+        Swag.require(opaqueLifecycleMoves() == 2)
     }
-    Swag.assert(opaqueLifecycleDrops() == 2)
+    Swag.require(opaqueLifecycleDrops() == 2)
 }
 
 // NoCopy inherited from a hidden member still permits a transfer.
@@ -91,7 +91,7 @@ using StaticApi
     var first: OpaqueLifecycleNoCopy
     first.arm()
     let second = #move first
-    Swag.assert(second.isArmed())
+    Swag.require(second.isArmed())
 }
 
 #test
@@ -103,7 +103,7 @@ using StaticApi
         values[0].arm()
         values[1].arm()
     }
-    Swag.assert(opaqueLifecycleDrops() == 2)
+    Swag.require(opaqueLifecycleDrops() == 2)
 }
 
 // Reflection uses the same complete provider callbacks and keeps its init callback.
@@ -111,18 +111,18 @@ using StaticApi
 {
     opaqueLifecycleReset()
     let info = cast(const *Swag.TypeInfoStruct, #typeof(OpaqueLifecycleOwner))
-    Swag.assert(info.opInit != null)
-    Swag.assert(info.opDrop != null)
-    Swag.assert(info.opPostCopy != null)
-    Swag.assert(info.opPostMove != null)
+    Swag.require(info.opInit != null)
+    Swag.require(info.opDrop != null)
+    Swag.require(info.opPostCopy != null)
+    Swag.require(info.opPostMove != null)
     var value: OpaqueLifecycleOwner
     value.arm()
     let drop = info.opDrop
     drop(&value)
-    Swag.assert(opaqueLifecycleDrops() == 1)
+    Swag.require(opaqueLifecycleDrops() == 1)
     let initialize = info.opInit
     initialize(&value)
-    Swag.assert(not value.isArmed())
+    Swag.require(not value.isArmed())
 }
 
 func rejectOpaqueInheritedNoCopy()
@@ -130,7 +130,7 @@ func rejectOpaqueInheritedNoCopy()
     var first: OpaqueLifecycleNoCopy
     first.arm()
     let second = first     // swc-expected-error {{sema_err_cannot_copy_nocopy}}
-    Swag.assert(first.isArmed())
+    Swag.require(first.isArmed())
 }
 
 // The only call made by this function is the imported, hidden automatic cleanup.

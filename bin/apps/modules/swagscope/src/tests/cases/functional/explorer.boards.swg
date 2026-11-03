@@ -14,7 +14,7 @@ func settleBoardListing(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.pump()
     }
 
-    Swag.assert(false, "exploration did not settle")
+    Swag.require(false, "exploration did not settle")
 }
 
 // Builds the real window in the shipped frame, at the size of the pictures, its explorer showing
@@ -87,16 +87,16 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
         {
             window.sendCommandEvent(command)
             let state = window.sendComputeCommandStateEvent(command)
-            Swag.assert(state.checked and not state.hidden and not state.disabled)
-            Swag.assert(explorer.forced == (index != 0))
+            Swag.require(state.checked and not state.hidden and not state.disabled)
+            Swag.require(explorer.forced == (index != 0))
             if index do
-                Swag.assert(cast(u64, explorer.forcedBoard) == index - 1)
+                Swag.require(cast(u64, explorer.forcedBoard) == index - 1)
             if index == 2 do
-                Swag.assert(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
+                Swag.require(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
             if index == 3 do
-                Swag.assert(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
+                Swag.require(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
             if index == 4 do
-                Swag.assert(state.name == appStrings().board_Mosaic and explorer.grid.board == .Mosaic)
+                Swag.require(state.name == appStrings().board_Mosaic and explorer.grid.board == .Mosaic)
             window.lens.open(state.name)
             var found = false
             for section in window.lens.results.sections
@@ -105,7 +105,7 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
                     found = true
             }
 
-            Swag.assert(found)
+            Swag.require(found)
             window.lens.close()
         }
 
@@ -113,19 +113,19 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
         {
             window.sendCommandEvent(command)
             let state = window.sendComputeCommandStateEvent(command)
-            Swag.assert(state.checked and not state.hidden and not state.disabled)
-            Swag.assert(cast(u64, explorer.artworkSource) == index)
+            Swag.require(state.checked and not state.hidden and not state.disabled)
+            Swag.require(cast(u64, explorer.artworkSource) == index)
         }
 
         for command, index in ViewerCommands.Modes
         {
             window.sendCommandEvent(command)
-            Swag.assert(cast(u64, explorer.mode) == index)
-            Swag.assert(window.sendComputeCommandStateEvent(command).checked)
+            Swag.require(cast(u64, explorer.mode) == index)
+            Swag.require(window.sendComputeCommandStateEvent(command).checked)
             for board in ViewerCommands.Boards
             {
                 let state = window.sendComputeCommandStateEvent(board)
-                Swag.assert(state.hidden == (index < cast(u64, ExplorerMode.Small)))
+                Swag.require(state.hidden == (index < cast(u64, ExplorerMode.Small)))
             }
         }
 
@@ -136,17 +136,17 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
         explorer.forceBoard(true, .Grid)
         explorer.setArtworkSource(.Local)
         let localSettings = expect ThumbnailSettings.decode(explorer.previewSettings)
-        Swag.assert(explorer.grid.board == .Grid and explorer.previewAspect == ExplorerFilmPreviewAspect)
-        Swag.assert(localSettings.onlineMovies and localSettings.onlineMusic and localSettings.localArtworkOnly)
+        Swag.require(explorer.grid.board == .Grid and explorer.previewAspect == ExplorerFilmPreviewAspect)
+        Swag.require(localSettings.onlineMovies and localSettings.onlineMusic and localSettings.localArtworkOnly)
         explorer.setArtworkSource(.Online)
         let onlineSettings = expect ThumbnailSettings.decode(explorer.previewSettings)
-        Swag.assert(not onlineSettings.localArtworkOnly)
+        Swag.require(not onlineSettings.localArtworkOnly)
         let folder = unwrap Path.directoryName(#curlocation.fileName)
         let audio  = Path.combine(folder, "song.flac")
         let video  = Path.combine(folder, "datas", "rv40-legacy-clock.mkv")
-        Swag.assert(onlinePreviewWanted(audio, &onlineSettings) and onlinePreviewWanted(video, &onlineSettings))
+        Swag.require(onlinePreviewWanted(audio, &onlineSettings) and onlinePreviewWanted(video, &onlineSettings))
         onlineSettings.localArtworkOnly = true
-        Swag.assert(not onlinePreviewWanted(audio, &onlineSettings) and not onlinePreviewWanted(video, &onlineSettings))
+        Swag.require(not onlinePreviewWanted(audio, &onlineSettings) and not onlinePreviewWanted(video, &onlineSettings))
     }
 }
 
@@ -165,17 +165,17 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
     }
 
     var listing = expect ExplorerListing.load(root)
-    Swag.assert(listing.entries.count == 2)
+    Swag.require(listing.entries.count == 2)
     for &entry in listing.entries do
-        Swag.assert(entry.directory and not entry.albumTrack.isEmpty() and entry.music.title == entry.name)
+        Swag.require(entry.directory and not entry.albumTrack.isEmpty() and entry.music.title == entry.name)
 
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, false, films: false)
     let explorer = unwrap window.explorer
     explorer.entries = #move listing.entries
     showBoard(&host, window, "Music", "Albums")
-    Swag.assert(explorer.grid.board == .Covers)
-    Swag.assert(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Albums, 2)))
+    Swag.require(explorer.grid.board == .Covers)
+    Swag.require(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Albums, 2)))
 }
 
 // The listing reads what a cell shows of a file: the size of a picture from its head, the pages of
@@ -190,11 +190,11 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
     var font    = ExplorerEntry{name: "segoeui.ttf", path: Path.combine(folder, "segoeui.ttf")}
     var archive = ExplorerEntry{name: "viewer.archive.zip", path: Path.combine(folder, "viewer.archive.zip")}
     var other   = ExplorerEntry{name: "notes.bin", path: Path.combine(folder, "notes.bin")}
-    Swag.assert(probeEntry(&archive) and archive.members >= 2)
-    Swag.assert(probeEntry(&picture) and picture.width > 0 and picture.height > 0)
-    Swag.assert(probeEntry(&pdf) and pdf.pages >= 1)
-    Swag.assert(probeEntry(&code) and code.lines > 1 and not code.excerpt.isEmpty())
-    Swag.assert(probeEntry(&notes) and notes.sections >= 1)
-    Swag.assert(probeEntry(&font) and Utf8.contains(font.face.toString(), "Segoe"))
-    Swag.assert(not probeEntry(&other))
+    Swag.require(probeEntry(&archive) and archive.members >= 2)
+    Swag.require(probeEntry(&picture) and picture.width > 0 and picture.height > 0)
+    Swag.require(probeEntry(&pdf) and pdf.pages >= 1)
+    Swag.require(probeEntry(&code) and code.lines > 1 and not code.excerpt.isEmpty())
+    Swag.require(probeEntry(&notes) and notes.sections >= 1)
+    Swag.require(probeEntry(&font) and Utf8.contains(font.face.toString(), "Segoe"))
+    Swag.require(not probeEntry(&other))
 }

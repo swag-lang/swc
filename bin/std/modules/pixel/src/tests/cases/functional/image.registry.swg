@@ -41,7 +41,7 @@ impl RegistryEncoder
 {
     mtd opDrop()
     {
-        Swag.assert(.marker == 0xABCD)
+        Swag.require(.marker == 0xABCD)
         registryEncoderDrops += 1
     }
 }
@@ -68,7 +68,7 @@ impl RegistryDecoder
 {
     mtd opDrop()
     {
-        Swag.assert(.marker == 0x1234)
+        Swag.require(.marker == 0x1234)
         registryDecoderDrops += 1
     }
 }
@@ -115,10 +115,10 @@ internal impl Image
             var result:     #decltype(expect Image.decode("image.registrytest", cast(const [..] u8, bytes)))
             catch { result = try Image.decode("image.registrytest", cast(const [..] u8, bytes)) } as errOutcome
             let err = errOutcome.value()
-            Swag.assert((err != null) == failing)
+            Swag.require((err != null) == failing)
             if not failing do
-                Swag.assert(result.width == 1 and result.height == 1)
-            Swag.assert(registryDecoderDrops == (failing ? 1 : 2))
+                Swag.require(result.width == 1 and result.height == 1)
+            Swag.require(registryDecoderDrops == (failing ? 1 : 2))
         }
         else
         {
@@ -128,15 +128,15 @@ internal impl Image
             var result:     #decltype(expect image.encode("image.registrytest", options))
             catch { result = try image.encode("image.registrytest", options) } as errOutcome
             let err = errOutcome.value()
-            Swag.assert((err != null) == failing)
+            Swag.require((err != null) == failing)
             if not failing do
-                Swag.assert(result.toString() == "encoded")
-            Swag.assert(registryEncoderDrops == 1)
+                Swag.require(result.toString() == "encoded")
+            Swag.require(registryEncoderDrops == 1)
         }
 
-        Swag.assert(encoders.buffer != encoderStorage)
-        Swag.assert(decoders.buffer != decoderStorage)
-        Swag.assert(encoders.count == 33 and decoders.count == 33)
+        Swag.require(encoders.buffer != encoderStorage)
+        Swag.require(decoders.buffer != decoderStorage)
+        Swag.require(encoders.count == 33 and decoders.count == 33)
     }
 }
 
@@ -150,7 +150,7 @@ internal impl Image
     Image.checkRegistryCallback(false, true)
     Image.checkRegistryCallback(true, false)
     Image.checkRegistryCallback(true, true)
-    Swag.assert(registryAllocator.stats().countAlloc == 0)
+    Swag.require(registryAllocator.stats().countAlloc == 0)
     let backing: IAllocator = &registryAllocator
     var request: AllocatorRequest
     backing.freeAll(&request)

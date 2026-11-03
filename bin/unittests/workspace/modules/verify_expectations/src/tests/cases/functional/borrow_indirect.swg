@@ -24,7 +24,7 @@ func returnImportedIndirectValue()->DepBorrowIndirectValue
         var source = 42
         depBorrowIndirectCopyScalar(&destination, &source)
     }
-    Swag.assert(destination == 42)
+    Swag.require(destination == 42)
 }
 
 // A copied pointer field keeps its own lifetime, independent of the local carrier.
@@ -32,9 +32,9 @@ func returnImportedIndirectValue()->DepBorrowIndirectValue
 {
     var destination: DepBorrowIndirectValue
     fillImportedIndirectValue(&destination)
-    Swag.assert(destination.item![] == 37)
+    Swag.require(destination.item![] == 37)
     let returned = returnImportedIndirectValue()
-    Swag.assert(returned.item![] == 37)
+    Swag.require(returned.item![] == 37)
 }
 
 #test
@@ -44,7 +44,7 @@ func returnImportedIndirectValue()->DepBorrowIndirectValue
         var source = DepBorrowIndirectValue{depBorrowIndirectGlobal()}
         depBorrowIndirectStore(&source)
     }
-    Swag.assert(depBorrowIndirectStoredValue() == 37)
+    Swag.require(depBorrowIndirectStoredValue() == 37)
 }
 
 func rejectImportedIndirectCopy(destination: *DepBorrowIndirectValue)

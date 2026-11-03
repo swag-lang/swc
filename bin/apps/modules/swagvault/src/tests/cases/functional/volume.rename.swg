@@ -14,13 +14,13 @@ using Core
     let destination = expect volume.createNode("/source/child/target", true, 0, "")
     var error: Swag.Error
     catch volume.renameNode(source, "/source/child/target", true) as error
-    Swag.assert(error.value() is Error)
+    Swag.require(error.value() is Error)
     let preserved = volume.resolve("/source/child/target")
-    Swag.assert(preserved != null and preserved.id == destination)
+    Swag.require(preserved != null and preserved.id == destination)
     expect volume.commit()
     volume.close()
     volume = expect Volume.open(path, "rename cycle password")
     let reopened = volume.resolve("/source/child/target")
-    Swag.assert(reopened != null and reopened.id == destination)
+    Swag.require(reopened != null and reopened.id == destination)
     volume.close()
 }

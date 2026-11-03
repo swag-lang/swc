@@ -40,8 +40,8 @@ private func referenceCoeffToken(bits: *BitReader, table: u64)->u64
                     actual.init(data[0 until length])
                     let reference = referenceCoeffToken(&expected, table)
                     let result    = H264.matchCoeffToken(&actual, table)
-                    Swag.assert(result == reference)
-                    Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+                    Swag.require(result == reference)
+                    Swag.require(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
                 }
             }
         }
@@ -69,8 +69,8 @@ private func referenceCoeffToken(bits: *BitReader, table: u64)->u64
                 actual.skip(position)
                 let reference = referenceCoeffToken(&expected, table)
                 let result    = H264.matchCoeffToken(&actual, table)
-                Swag.assert(result == reference)
-                Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+                Swag.require(result == reference)
+                Swag.require(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
             }
         }
     }
@@ -100,11 +100,11 @@ private func assertMoreData(data: const [..] u8)
         bits.skip(cast(u32, position))
         let expected = referenceMoreData(&bits)
         let actual   = bits.moreData()
-        Swag.assert(actual == expected)
-        Swag.assert(bits.bitPos == position and not bits.overran)
+        Swag.require(actual == expected)
+        Swag.require(bits.bitPos == position and not bits.overran)
         bits.overran = true
-        Swag.assert(not bits.moreData())
-        Swag.assert(bits.bitPos == position and bits.overran)
+        Swag.require(not bits.moreData())
+        Swag.require(bits.bitPos == position and bits.overran)
     }
 }
 
@@ -160,8 +160,8 @@ private func assertExpGolomb(data: const [..] u8)
         actual.skip(cast(u32, position))
         let value = referenceUe(&expected)
         let read  = actual.ue()
-        Swag.assert(read == value)
-        Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+        Swag.require(read == value)
+        Swag.require(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
     }
 }
 
@@ -201,8 +201,8 @@ private func assertBitReads(data: const [..] u8)
         for 16 do
             peekValue = (peekValue << 1) | peekReference.bit()
         let peek = peekReader.peek16()
-        Swag.assert(peek == peekValue)
-        Swag.assert(peekReader.bitPos == position and not peekReader.overran)
+        Swag.require(peek == peekValue)
+        Swag.require(peekReader.bitPos == position and not peekReader.overran)
 
         for count in 33'u32
         {
@@ -217,8 +217,8 @@ private func assertBitReads(data: const [..] u8)
             for count do
                 value = (value << 1) | expected.bit()
             let read = actual.read(count)
-            Swag.assert(read == value)
-            Swag.assert(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
+            Swag.require(read == value)
+            Swag.require(actual.bitPos == expected.bitPos and actual.overran == expected.overran)
         }
     }
 }
@@ -263,8 +263,8 @@ func assertRbspUnescape(data: const [..] u8)
     let expected = referenceUnescapeRbsp(data)
     var actual: Array'u8
     unescapeRbsp(&actual, data)
-    Swag.assert(actual.count == expected.count)
-    Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
+    Swag.require(actual.count == expected.count)
+    Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
 
 // Compare boundary offsets and output against a scalar unescaper.
@@ -302,8 +302,8 @@ private func assertRbspBounds(data: const [..] u8, bounds: const [..] u64)
     var actual: Array'u8
     var actualPositions: Array'u64
     unescapeRbspWithBounds(&actual, data, bounds, &actualPositions)
-    Swag.assert(Slice.equals(actual.toSlice(), expected.toSlice()))
-    Swag.assert(Slice.equals(actualPositions.toSlice(), positions.toSlice()))
+    Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
+    Swag.require(Slice.equals(actualPositions.toSlice(), positions.toSlice()))
 }
 
 // Exercise copied blocks, duplicate boundaries, escapes, and zero runs across block edges.

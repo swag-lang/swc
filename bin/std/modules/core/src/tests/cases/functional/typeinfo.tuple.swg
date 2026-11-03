@@ -189,10 +189,10 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 {
     let recordType = #typeof({first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}})
     let tupleType  = #typeof((CoreTupleLifecycleProbe{}, CoreTupleLifecycleProbe{}))
-    Swag.assert(Reflection.isRecord(recordType) and not Reflection.isTuple(recordType))
-    Swag.assert(Reflection.isTuple(tupleType) and not Reflection.isRecord(tupleType))
-    Swag.assert(testCoreTupleRuntimeLifecycle(recordType, .Record))
-    Swag.assert(testCoreTupleRuntimeLifecycle(tupleType, .Tuple))
-    Swag.assert(testCoreTupleArrayRuntimeLifecycle())
-    Swag.assert(testCoreTupleAliasRuntimeLifecycle())
+    Swag.require(Reflection.isRecord(recordType) and not Reflection.isTuple(recordType))
+    Swag.require(Reflection.isTuple(tupleType) and not Reflection.isRecord(tupleType))
+    Swag.require(testCoreTupleRuntimeLifecycle(recordType, .Record))
+    Swag.require(testCoreTupleRuntimeLifecycle(tupleType, .Tuple))
+    Swag.require(testCoreTupleArrayRuntimeLifecycle())
+    Swag.require(testCoreTupleAliasRuntimeLifecycle())
 }

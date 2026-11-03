@@ -9,22 +9,22 @@ using Swag, Core
     var g: GizmoRect
     g.rect = {10, 20, 100, 50}
 
-    Swag.assert(Math.abs(g.computeRotate({60, -10}) - 0) < 0.001)
-    Swag.assert(Math.abs(g.computeRotate({110, 45}) - 90) < 0.001)
-    Swag.assert(Math.abs(g.computeRotate({60, 100}) - 180) < 0.001)
-    Swag.assert(Math.abs(g.computeRotate({10, 45}) - 270) < 0.001)
+    Swag.require(Math.abs(g.computeRotate({60, -10}) - 0) < 0.001)
+    Swag.require(Math.abs(g.computeRotate({110, 45}) - 90) < 0.001)
+    Swag.require(Math.abs(g.computeRotate({60, 100}) - 180) < 0.001)
+    Swag.require(Math.abs(g.computeRotate({10, 45}) - 270) < 0.001)
 
-    Swag.assert(g.toLocal({110, 45}) == Math.Point{110, 45})
+    Swag.require(g.toLocal({110, 45}) == Math.Point{110, 45})
 
     g.rotateEnabled = true
     g.rotateValue   = 90
     let local = g.toLocal({110, 45})
-    Swag.assert(Math.abs(local.x - 60) < 0.001)
-    Swag.assert(Math.abs(local.y + 5) < 0.001)
+    Swag.require(Math.abs(local.x - 60) < 0.001)
+    Swag.require(Math.abs(local.y + 5) < 0.001)
 
     let rotated = GizmoRect.rotateVec({10, 0}, Math.toRadians(90.0'f32))
-    Swag.assert(Math.abs(rotated.x) < 0.001)
-    Swag.assert(Math.abs(rotated.y - 10) < 0.001)
+    Swag.require(Math.abs(rotated.x) < 0.001)
+    Swag.require(Math.abs(rotated.y - 10) < 0.001)
 }
 
 // Each handle moves its own edges, a corner keeps the ratio along its diagonal, and no drag
@@ -41,25 +41,25 @@ using Swag, Core
 
     var g = start()
     g.resizeFrom(AnchorEdges[0], {10, 5}, false)
-    Swag.assert(g.movingRect == {110, 105, 40, 35})
+    Swag.require(g.movingRect == {110, 105, 40, 35})
 
     g = start()
     g.resizeFrom(AnchorEdges[4], {10, 5}, false)
-    Swag.assert(g.movingRect == {100, 100, 60, 40})
+    Swag.require(g.movingRect == {100, 100, 60, 40})
 
     g = start()
     g.resizeFrom(AnchorEdges[7], {10, 4}, true)
-    Swag.assert(g.movingRect == {100, 100, 60, 50})
+    Swag.require(g.movingRect == {100, 100, 60, 50})
 
     g = start()
     g.resizeFrom(AnchorEdges[2], {10, 4}, true)
-    Swag.assert(g.movingRect == {100, 90, 60, 50})
+    Swag.require(g.movingRect == {100, 90, 60, 50})
 
     g = start()
     g.resizeFrom(AnchorEdges[1], {0, 100}, false)
-    Swag.assert(g.movingRect == {100, 138, 50, 2})
+    Swag.require(g.movingRect == {100, 138, 50, 2})
 
     g = start()
     g.resizeFrom(.Zero, {10, 10}, true)
-    Swag.assert(g.movingRect == g.startRect)
+    Swag.require(g.movingRect == g.startRect)
 }

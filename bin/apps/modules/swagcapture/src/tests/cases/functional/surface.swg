@@ -54,7 +54,7 @@ using Swag, Core
 
     let revision = host.app.dirtyTheme
     restore(main, unwrap buffer.toSlice())
-    Swag.assert(host.app.dirtyTheme == revision and languageChanges == 0)
+    Swag.require(host.app.dirtyTheme == revision and languageChanges == 0)
 
     main.editorOptions.theme    = .Light
     main.editorOptions.language = .French
@@ -63,9 +63,9 @@ using Swag, Core
     languageChanges = 0
     let changedRevision = host.app.dirtyTheme
     restore(main, unwrap buffer.toSlice())
-    Swag.assert(host.app.dirtyTheme == changedRevision + 1 and languageChanges == 1)
-    Swag.assert(main.appearanceButton.appearanceTheme == .Dark)
-    Swag.assert(Application.language() == "en")
+    Swag.require(host.app.dirtyTheme == changedRevision + 1 and languageChanges == 1)
+    Swag.require(main.appearanceButton.appearanceTheme == .Dark)
+    Swag.require(Application.language() == "en")
 }
 
 // Builds the shipped window on the surface root, including every application pane.
@@ -137,20 +137,20 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         main.updateState()
         host.finishAnimations()
         main.applyLayout()
-        Swag.assert(main.taskBar.children.count == 4)
+        Swag.require(main.taskBar.children.count == 4)
         var right = 0'f32
         for child in main.taskBar.children
         {
-            Swag.assert(child.position.x >= right)
-            Swag.assert(child.position.width >= Math.floor(child.itf.measureContent({}).x))
-            Swag.assert(child.position.right() <= main.taskBar.clientRect().right())
+            Swag.require(child.position.x >= right)
+            Swag.require(child.position.width >= Math.floor(child.itf.measureContent({}).x))
+            Swag.require(child.position.right() <= main.taskBar.clientRect().right())
             right = child.position.right()
         }
     }
 
     host.click(main.taskBar.children[1].surfaceRect().center())
     host.pump()
-    Swag.assert(main.libraryMode)
+    Swag.require(main.libraryMode)
 }
 
 // The named command door shares the caption with the native window buttons.
@@ -164,7 +164,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         g_Main = null
     }
 
-    Swag.assert(not main.appearanceButton.isLocallyVisible())
+    Swag.require(not main.appearanceButton.isLocallyVisible())
 
     // Every command the old menus held is a lens entry, which `>` lists; at rest the lens offers
     // the context only.
@@ -184,7 +184,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         let state = main.sendComputeCommandStateEvent(id)
         if state.updatedFields.has(.Hidden) and state.hidden do
             continue
-        Swag.assert(titles.contains(state.name), state.name)
+        Swag.require(titles.contains(state.name), state.name)
     }
 }
 
@@ -205,10 +205,10 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     host.clickPopupMenuItemWhenShown(ActionCopyPaste.Duplicate)
     host.clickWnd(unwrap main.miniBar.items.back().wnd)
     host.pump()
-    Swag.assert(capture.forms.count == 2 and capture.selection.count == 1)
+    Swag.require(capture.forms.count == 2 and capture.selection.count == 1)
     main.editWnd.editView.setFocus()
     host.keyPress(.Z, .Control)
-    Swag.assert(capture.forms.count == 1)
+    Swag.require(capture.forms.count == 1)
 }
 
 // Changing pages keeps the hidden editor's property controls and avoids a page-sized fade.
@@ -228,17 +228,17 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let text     = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
     g_Library.loaded = true
     main.swapLibraryMode()
-    Swag.assert(main.libraryMode and main.libWnd.presentationOpacity == 1)
-    Swag.assert(main.propWnd.topLayout.children[0] == controls)
+    Swag.require(main.libraryMode and main.libWnd.presentationOpacity == 1)
+    Swag.require(main.propWnd.topLayout.children[0] == controls)
     text.fontSize = 36
     main.swapLibraryMode()
-    Swag.assert(not main.libraryMode and main.editArea.presentationOpacity == 1)
+    Swag.require(not main.libraryMode and main.editArea.presentationOpacity == 1)
     var fontSize: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
         fontSize = item
-    Swag.assert(fontSize != null and fontSize.sliderBox.value() == 36)
+    Swag.require(fontSize != null and fontSize.sliderBox.value() == 36)
     host.finishAnimations()
-    Swag.assert(main.editArea.presentationOffset == Math.Point{})
+    Swag.require(main.editArea.presentationOffset == Math.Point{})
 }
 
 // Enter applies a typed size through both editors; Escape keeps the document unchanged.
@@ -263,31 +263,31 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
             size = edit
     }
 
-    Swag.assert(size != null)
+    Swag.require(size != null)
     size.setFocus()
     size.setText("72")
     host.keyPress(.Return)
-    Swag.assert(text.fontSize == 72)
+    Swag.require(text.fontSize == 72)
     host.runFrames(1)
 
     size.setFocus()
     size.setText("999999")
     host.keyPress(.Return)
-    Swag.assert(text.fontSize == 72)
+    Swag.require(text.fontSize == 72)
 
     discard host.render(main)
     var fontSize: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
         fontSize = item
-    Swag.assert(fontSize != null)
+    Swag.require(fontSize != null)
     scope
     {
         let edit = fontSize.sliderBox.edit
         edit.setFocus()
         edit.setText("36")
         host.keyPress(.Return)
-        Swag.assert(Math.abs(text.fontSize - 36) < 0.01)
-        Swag.assert(size.text() == "36" and size.isValid())
+        Swag.require(Math.abs(text.fontSize - 36) < 0.01)
+        Swag.require(size.text() == "36" and size.isValid())
         var edited = host.render(main)
         capture.invalidateAllFormCaches()
         var fresh = host.render(main)
@@ -295,21 +295,21 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         edit.setFocus()
         edit.setText("24")
         host.keyPress(.Escape)
-        Swag.assert(Math.abs(text.fontSize - 36) < 0.01)
+        Swag.require(Math.abs(text.fontSize - 36) < 0.01)
     }
 
     host.keyPress(.Z, .Control)
     host.runFrames(1)
-    Swag.assert(text.fontSize == 72 and size.text() == "72")
+    Swag.require(text.fontSize == 72 and size.text() == "72")
     host.keyPress(.Y, .Control)
     host.runFrames(1)
-    Swag.assert(text.fontSize == 36 and size.text() == "36")
+    Swag.require(text.fontSize == 36 and size.text() == "36")
     size.setFocus()
     size.setText("80")
     main.updateMiniBar()
-    Swag.assert(text.fontSize == 36 and size.text() == "80")
+    Swag.require(text.fontSize == 36 and size.text() == "80")
     host.keyPress(.Escape)
-    Swag.assert(text.fontSize == 36 and size.text() == "36")
+    Swag.require(text.fontSize == 36 and size.text() == "36")
 }
 
 // Choosing a font names the same family in the document, inspector and mini-bar.
@@ -333,34 +333,34 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
             face = combo
     }
 
-    Swag.assert(face != null)
+    Swag.require(face != null)
     discard host.render(main)
     host.pump()
     var font: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         font = item
-    Swag.assert(font != null and font.comboBox.items.count > 2)
+    Swag.require(font != null and font.comboBox.items.count > 2)
     let first: String = font.comboBox.items[2]!.name.raw
     font.comboBox.setSelectedIndex(2)
-    Swag.assert(text.fontName == first)
-    Swag.assert(face.selectedItem()!.name.raw == first)
+    Swag.require(text.fontName == first)
+    Swag.require(face.selectedItem()!.name.raw == first)
 
     let last: String = font.comboBox.items.back()!.name.raw
     font.comboBox.setSelectedIndex(cast(u32, font.comboBox.items.count - 1))
-    Swag.assert(text.fontName == last and face.selectedItem()!.name.raw == last)
+    Swag.require(text.fontName == last and face.selectedItem()!.name.raw == last)
     main.editWnd.editView.setFocus()
     host.keyPress(.Z, .Control)
     host.runFrames(1)
-    Swag.assert(text.fontName == first and face.selectedItem()!.name.raw == first)
+    Swag.require(text.fontName == first and face.selectedItem()!.name.raw == first)
     host.keyPress(.Y, .Control)
     host.runFrames(1)
-    Swag.assert(text.fontName == last and face.selectedItem()!.name.raw == last)
+    Swag.require(text.fontName == last and face.selectedItem()!.name.raw == last)
 
     face.setSelectedIndex(0)
     host.runFrames(1)
-    Swag.assert(text.fontName.isEmpty() and face.selectedIndex == 0)
+    Swag.require(text.fontName.isEmpty() and face.selectedIndex == 0)
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
-        Swag.assert(item.comboBox.selectedIndex == 0)
+        Swag.require(item.comboBox.selectedIndex == 0)
 }
 
 // The ground around the picture moves the window while a tool that draws is in hand: the
@@ -380,7 +380,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let view    = main.editWnd.editView
     let capture = unwrap main.getCapture()
     main.editMode = .Shape
-    Swag.assert(host.surfaceWnd.groundHitTest != null)
+    Swag.require(host.surfaceWnd.groundHitTest != null)
 
     // The picture is placed by its first paint.
     discard host.render(main)
@@ -390,19 +390,19 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let middle  = Math.Point{origin.x + picture.horzCenter() - view.scrollPos.x, origin.y + picture.vertCenter() - view.scrollPos.y}
     let ground  = Math.Point{middle.x + picture.width * 0.5 + 40, middle.y}
     let edge    = Math.Point{middle.x + picture.width * 0.5 + 4, middle.y}
-    Swag.assert(view.isWindowGround(ground))
-    Swag.assert(not view.isWindowGround(middle))
-    Swag.assert(not view.isWindowGround(edge))
-    Swag.assert(not view.isWindowGround(main.dock.surfaceRect().center()))
-    Swag.assert(not view.isWindowGround(main.inspector.surfaceRect().center()))
+    Swag.require(view.isWindowGround(ground))
+    Swag.require(not view.isWindowGround(middle))
+    Swag.require(not view.isWindowGround(edge))
+    Swag.require(not view.isWindowGround(main.dock.surfaceRect().center()))
+    Swag.require(not view.isWindowGround(main.inspector.surfaceRect().center()))
 
     // A form standing off the picture is work, not ground.
     let zoom = picture.width / capture.width
     discard testAddShape(capture, capture.width + 30 / zoom, capture.height * 0.5 - 10 / zoom, 20 / zoom, 20 / zoom)
-    Swag.assert(not view.isWindowGround(ground))
+    Swag.require(not view.isWindowGround(ground))
 
     main.editMode = .Selection
-    Swag.assert(not view.isWindowGround(Math.Point{ground.x, ground.y + 60}))
+    Swag.require(not view.isWindowGround(Math.Point{ground.x, ground.y + 60}))
 }
 
 // The window is named after the capture on screen, by the name the library gives it, and after
@@ -421,17 +421,17 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let capture = unwrap main.getCapture()
     capture.title = "Password"
     main.updateState()
-    Swag.assert(host.surfaceWnd.name.raw == "Password")
+    Swag.require(host.surfaceWnd.name.raw == "Password")
 
     capture.title.clear()
     capture.sourceApplication = "Notepad"
     main.updateState()
-    Swag.assert(host.surfaceWnd.name.raw == "Notepad")
+    Swag.require(host.surfaceWnd.name.raw == "Notepad")
 
     testEmptyTrash()
     g_Library.loaded = true
     main.swapLibraryMode()
-    Swag.assert(host.surfaceWnd.name.raw == ProductName)
+    Swag.require(host.surfaceWnd.name.raw == ProductName)
 }
 
 // Builds the in-place editor over a quiet desktop of the size of the host, with the zone grabbed
@@ -504,15 +504,15 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
         capture.height       = cast(s32, zone.height)
         host.runFrames(1)
         let bar = editor.bar.position
-        Swag.assert(bar.x >= 12 and bar.right() <= 1012)
-        Swag.assert(bar.y >= 12 and bar.bottom() <= 628)
+        Swag.require(bar.x >= 12 and bar.right() <= 1012)
+        Swag.require(bar.y >= 12 and bar.bottom() <= 628)
         if zone.height < 640 do
-            Swag.assert(bar.bottom() <= zone.y or bar.y >= zone.bottom())
+            Swag.require(bar.bottom() <= zone.y or bar.y >= zone.bottom())
     }
 
     editor.resize(800, 600)
     host.runFrames(1)
-    Swag.assert(editor.bar.position.right() <= 788 and editor.bar.position.bottom() <= 588)
+    Swag.require(editor.bar.position.right() <= 788 and editor.bar.position.bottom() <= 588)
 
     // A virtual desktop can extend past the captured monitor. Keep its bar on that
     // monitor even when centring on the capture would cross the display boundary.
@@ -520,7 +520,7 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     capture.width, capture.height = 100
     capture.backImagePos = {-580, -180}
     host.runFrames(1)
-    Swag.assert(editor.bar.position.right() <= 688)
+    Swag.require(editor.bar.position.right() <= 688)
 }
 
 // Repeated painted document replacement exercises the ownership boundary between Capture,
@@ -545,7 +545,7 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
         f.editView.setCapture(capture)
         f.editView.setZoom(1)
         var rendered = f.gui.render(f.editView)
-        Swag.assert(rendered.isValid())
+        Swag.require(rendered.isValid())
     }
 }
 
@@ -578,45 +578,45 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
     var view    = testBeginInlineText(&host, main, 0)
-    Swag.assert(view.isEditingText() and text.editingText)
-    Swag.assert(view.textLines.count == 1 and view.inlineText() == "Theme")
+    Swag.require(view.isEditingText() and text.editingText)
+    Swag.require(view.textLines.count == 1 and view.inlineText() == "Theme")
 
     // Enter breaks the line at the caret, which stands after the words.
     let first = view.textLines[0]
-    Swag.assert(view.textLineKey(first, .Return, .None))
-    Swag.assert(view.isEditingText() and view.textLines.count == 2)
+    Swag.require(view.textLineKey(first, .Return, .None))
+    Swag.require(view.isEditingText() and view.textLines.count == 2)
     view.textLines[1].setText("Notes")
-    Swag.assert(view.inlineText() == "Theme\nNotes")
+    Swag.require(view.inlineText() == "Theme\nNotes")
 
     // Ctrl+Enter keeps them, as one step of the history.
-    Swag.assert(view.textLineKey(view.textLines[1], .Return, .Control))
-    Swag.assert(not view.isEditingText() and not text.editingText)
-    Swag.assert(text.text == "Theme\nNotes")
+    Swag.require(view.textLineKey(view.textLines[1], .Return, .Control))
+    Swag.require(not view.isEditingText() and not text.editingText)
+    Swag.require(text.text == "Theme\nNotes")
     capture.undo()
-    Swag.assert(text.text == "Theme")
+    Swag.require(text.text == "Theme")
     capture.redo()
-    Swag.assert(text.text == "Theme\nNotes")
+    Swag.require(text.text == "Theme\nNotes")
 
     // Escape lets the words go: nothing changes, nothing is added to the history.
     view = testBeginInlineText(&host, main, 0)
     view.textLines[0].setText("Gone")
-    Swag.assert(view.textLineKey(view.textLines[0], .Escape, .None))
-    Swag.assert(not view.isEditingText() and text.text == "Theme\nNotes")
+    Swag.require(view.textLineKey(view.textLines[0], .Escape, .None))
+    Swag.require(not view.isEditingText() and text.text == "Theme\nNotes")
     capture.undo()
-    Swag.assert(text.text == "Theme")
+    Swag.require(text.text == "Theme")
     capture.redo()
 
     // Backspace at the start of a line joins it to the line above.
     view = testBeginInlineText(&host, main, 0)
     let second = view.textLines[1]
     second.setSelection(0, 0)
-    Swag.assert(view.textLineKey(second, .Back, .None))
-    Swag.assert(view.textLines.count == 1 and view.inlineText() == "ThemeNotes")
+    Swag.require(view.textLineKey(second, .Back, .None))
+    Swag.require(view.textLines.count == 1 and view.inlineText() == "ThemeNotes")
 
     // Selecting another form keeps the words, like a click elsewhere.
     capture.selection.clear()
     capture.selectionHasChanged()
-    Swag.assert(not view.isEditingText() and text.text == "ThemeNotes")
+    Swag.require(not view.isEditingText() and text.text == "ThemeNotes")
 }
 
 // The label of a step is typed in place too, and Enter keeps it.
@@ -636,20 +636,20 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     step.index = 3
 
     let view = testBeginInlineText(&host, main, 0)
-    Swag.assert(view.isEditingText() and step.editingText and view.inlineText() == "3")
+    Swag.require(view.isEditingText() and step.editingText and view.inlineText() == "3")
     view.textLines[0].setText("7")
-    Swag.assert(view.textLineKey(view.textLines[0], .Return, .None))
-    Swag.assert(not view.isEditingText() and step.index == 7)
+    Swag.require(view.textLineKey(view.textLines[0], .Return, .None))
+    Swag.require(not view.isEditingText() and step.index == 7)
     capture.undo()
-    Swag.assert(step.index == 3)
+    Swag.require(step.index == 3)
 
     // A step that counts in letters takes a letter.
     step.typeIndex = .LetterUp
     discard testBeginInlineText(&host, main, 0)
-    Swag.assert(view.inlineText() == "C")
+    Swag.require(view.inlineText() == "C")
     view.textLines[0].setText("e")
     view.endTextEdit()
-    Swag.assert(step.index == 5)
+    Swag.require(step.index == 5)
 }
 
 // A rotated form straightens while its words are typed, over a quick change of state, and turns
@@ -674,23 +674,23 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let view  = testBeginInlineText(&host, main, 0)
     let quick = main.themeMetrics().motion_QuickSeconds
     host.advanceAnimations(quick * 0.5)
-    Swag.assert(text.rotate > 0 and text.rotate < 30)
+    Swag.require(text.rotate > 0 and text.rotate < 30)
     host.finishAnimations()
-    Swag.assert(Math.isZeroEpsilon(text.rotate))
+    Swag.require(Math.isZeroEpsilon(text.rotate))
 
     // Kept or let go, it turns back to its angle.
     view.endTextEdit(keep: false)
     host.advanceAnimations(quick * 0.5)
-    Swag.assert(text.rotate > 0 and text.rotate < 30)
+    Swag.require(text.rotate > 0 and text.rotate < 30)
     host.finishAnimations()
-    Swag.assert(Math.abs(text.rotate - 30) < 0.01)
+    Swag.require(Math.abs(text.rotate - 30) < 0.01)
 
     discard testBeginInlineText(&host, main, 0)
     host.finishAnimations()
     view.textLines[0].setText("Turned")
     view.endTextEdit()
     host.finishAnimations()
-    Swag.assert(Math.abs(text.rotate - 30) < 0.01 and text.text == "Turned")
+    Swag.require(Math.abs(text.rotate - 30) < 0.01 and text.text == "Turned")
 }
 
 // The fields stand where the alignment of the form puts its words: against the left edge, about
@@ -726,10 +726,10 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     var rect  = view.textSpec.rect * view.zoom
     rect.offset(place.x - view.scrollPos.x, place.y - view.scrollPos.y)
     let words = Painter.measureStringSnapped(text.text, unwrap view.textFont.regular)
-    Swag.assert(Math.abs(lefts[0] - rect.x) <= 1)
-    Swag.assert(Math.abs(lefts[1] + words * 0.5 - rect.horzCenter()) <= 1)
-    Swag.assert(Math.abs(lefts[2] + words - rect.right()) <= 1)
-    Swag.assert(rights[0] - lefts[0] == rights[2] - lefts[2])
+    Swag.require(Math.abs(lefts[0] - rect.x) <= 1)
+    Swag.require(Math.abs(lefts[1] + words * 0.5 - rect.horzCenter()) <= 1)
+    Swag.require(Math.abs(lefts[2] + words - rect.right()) <= 1)
+    Swag.require(rights[0] - lefts[0] == rights[2] - lefts[2])
 }
 
 // Capture, library and output actions stay at the door, including with no recent captures and
@@ -755,16 +755,16 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         main.updateState()
         main.lens.open()
         let sections = &main.lens.results.sections
-        Swag.assert(sections[0]!.entries.count == 4)
-        Swag.assert(sections[0]!.entries[0].id == ActionCapture.Area)
-        Swag.assert(sections[0]!.entries[1].id == ActionCapture.LastArea)
-        Swag.assert(sections[0]!.entries[2].id == ActionFile.OpenImage)
-        Swag.assert(sections[0]!.entries[3].id == ActionGlobal.ShowLibrary)
-        Swag.assert(sections[1]!.entries.count == 2)
-        Swag.assert(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
-        Swag.assert(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
+        Swag.require(sections[0]!.entries.count == 4)
+        Swag.require(sections[0]!.entries[0].id == ActionCapture.Area)
+        Swag.require(sections[0]!.entries[1].id == ActionCapture.LastArea)
+        Swag.require(sections[0]!.entries[2].id == ActionFile.OpenImage)
+        Swag.require(sections[0]!.entries[3].id == ActionGlobal.ShowLibrary)
+        Swag.require(sections[1]!.entries.count == 2)
+        Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
+        Swag.require(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
         if selected do
-            Swag.assert(not sections[2]!.entries.isEmpty())
+            Swag.require(not sections[2]!.entries.isEmpty())
         main.lens.close()
     }
 }
@@ -799,10 +799,10 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         }
     }
 
-    Swag.assert(across.count == 3 and down.count == 3)
+    Swag.require(across.count == 3 and down.count == 3)
     host.clickWnd(down[2])
-    Swag.assert(text.alignVert == .RightBottom and text.alignHorz == .Center)
-    Swag.assert(down[2].isChecked and not down[1].isChecked and across[1].isChecked)
+    Swag.require(text.alignVert == .RightBottom and text.alignHorz == .Center)
+    Swag.require(down[2].isChecked and not down[1].isChecked and across[1].isChecked)
 }
 
 // The keys of the editor: the arrows nudge the selection a pixel, ten with Shift; Delete deletes,
@@ -819,41 +819,41 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         g_Main = null
     }
 
-    Swag.assert(main.keyShortcut(.None, .Left) == ActionMoveSel.Left1)
-    Swag.assert(main.keyShortcut(.Shift, .Left) == ActionMoveSel.Left)
-    Swag.assert(main.keyShortcut(.None, .Delete) == ActionSelection.DeleteSelection)
-    Swag.assert(main.keyShortcut(.Control, .D) == ActionCopyPaste.Duplicate)
-    Swag.assert(main.keyShortcut(.Control, .G) == ActionGroup.Group)
-    Swag.assert(main.keyShortcut(.None, .Oem6) == ActionAlign.MoveForward)
-    Swag.assert(main.keyShortcut(.None, .Oem4) == ActionAlign.MoveBackward)
-    Swag.assert(main.keyShortcut(.Control, .Oem6) == ActionAlign.SendToFront)
-    Swag.assert(main.keyShortcut(.None, .Escape) == ActionSelection.DeSelectAll)
-    Swag.assert(main.keyShortcutName(ActionCopyPaste.Duplicate) == "Ctrl D")
+    Swag.require(main.keyShortcut(.None, .Left) == ActionMoveSel.Left1)
+    Swag.require(main.keyShortcut(.Shift, .Left) == ActionMoveSel.Left)
+    Swag.require(main.keyShortcut(.None, .Delete) == ActionSelection.DeleteSelection)
+    Swag.require(main.keyShortcut(.Control, .D) == ActionCopyPaste.Duplicate)
+    Swag.require(main.keyShortcut(.Control, .G) == ActionGroup.Group)
+    Swag.require(main.keyShortcut(.None, .Oem6) == ActionAlign.MoveForward)
+    Swag.require(main.keyShortcut(.None, .Oem4) == ActionAlign.MoveBackward)
+    Swag.require(main.keyShortcut(.Control, .Oem6) == ActionAlign.SendToFront)
+    Swag.require(main.keyShortcut(.None, .Escape) == ActionSelection.DeSelectAll)
+    Swag.require(main.keyShortcutName(ActionCopyPaste.Duplicate) == "Ctrl D")
 
     // Every tool answers its letter, grouped or not.
-    Swag.assert(main.keyShortcut(.None, .V) == ActionToolMode.Selection)
-    Swag.assert(main.keyShortcut(.None, .L) == ActionToolMode.Line)
-    Swag.assert(main.keyShortcut(.None, .X) == ActionToolMode.PixSel)
-    Swag.assert(Input.formatKeyShortcut(.Control, .Oem6) == "Ctrl ]")
+    Swag.require(main.keyShortcut(.None, .V) == ActionToolMode.Selection)
+    Swag.require(main.keyShortcut(.None, .L) == ActionToolMode.Line)
+    Swag.require(main.keyShortcut(.None, .X) == ActionToolMode.PixSel)
+    Swag.require(Input.formatKeyShortcut(.Control, .Oem6) == "Ctrl ]")
 
     // Tab walks the inspector from its quick styles down to its settings, where the arrows go
     // from row to row, and the mini-bar along its controls, in the order the eye reads them.
     let rows = Gui.FocusOrder.collect(main.inspector).stops
-    Swag.assert(rows.count > 1 and rows.back() == main.propWnd.grid)
+    Swag.require(rows.count > 1 and rows.back() == main.propWnd.grid)
     for i in 1 until rows.count do
-        Swag.assert(rows[i].surfaceRect().y >= rows[i - 1].surfaceRect().y)
+        Swag.require(rows[i].surfaceRect().y >= rows[i - 1].surfaceRect().y)
     let bar = Gui.FocusOrder.collect(main.miniBar).stops
-    Swag.assert(bar.count > 1)
+    Swag.require(bar.count > 1)
     for i in 1 until bar.count do
-        Swag.assert(bar[i].surfaceRect().x > bar[i - 1].surfaceRect().x)
+        Swag.require(bar[i].surfaceRect().x > bar[i - 1].surfaceRect().x)
 
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
     let x       = text.x
     main.sendCommandEvent(ActionMoveSel.Right1)
-    Swag.assert(text.x == x + 1)
+    Swag.require(text.x == x + 1)
     main.sendCommandEvent(ActionMoveSel.Right)
-    Swag.assert(text.x == x + 1 + NudgeFar)
+    Swag.require(text.x == x + 1 + NudgeFar)
 
     main.fillHintLine()
     var taught = 0
@@ -861,12 +861,12 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
                                           hint.text == appStrings().hint_Duplicate or
                                           hint.text == appStrings().hint_TypeWords do
         taught += 1
-    Swag.assert(taught == 3)
+    Swag.require(taught == 3)
 
     main.sendCommandEvent(ActionSelection.DeSelectAll)
     main.fillHintLine()
     for hint in main.hintLine.hints do
-        Swag.assert(hint.text != appStrings().hint_Nudge)
+        Swag.require(hint.text != appStrings().hint_Nudge)
 }
 
 // The size and zoom readings open the existing image and camera commands.
@@ -881,21 +881,21 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         g_Main = null
     }
 
-    Swag.assert(main.sizeReading.text() == "400 × 240")
-    Swag.assert(main.zoomReading.text() == "100 %")
+    Swag.require(main.sizeReading.text() == "400 × 240")
+    Swag.require(main.zoomReading.text() == "100 %")
 
     // The zoom menu runs the existing fit command and refreshes the displayed percentage.
     main.editWnd.editView.setZoom(0.5)
-    Swag.assert(main.zoomReading.text() == "50 %")
+    Swag.require(main.zoomReading.text() == "50 %")
     host.clickPopupMenuItemWhenShown(ActionZoom.ZoomFit)
     host.clickWnd(main.zoomReading)
-    Swag.assert(main.editWnd.editView.zoom > 0.5)
+    Swag.require(main.editWnd.editView.zoom > 0.5)
 
     // Choosing Resize Image from the size menu reaches its dialog; cancel keeps the canvas.
     host.clickPopupMenuItemWhenShown(ActionImage.ResizeImage)
     host.thenClickModalButton(Dialog.BtnCancel)
     host.clickWnd(main.sizeReading)
-    Swag.assert(main.getCapture()!.width == 400 and main.getCapture()!.height == 240)
+    Swag.require(main.getCapture()!.width == 400 and main.getCapture()!.height == 240)
 }
 
 // One selected object is named by the tool that draws it: a pixel selection and a highlighter
@@ -916,7 +916,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     capture.selection.add(0)
     capture.selectionHasChanged()
     main.updateState()
-    Swag.assert(main.inspector.title == appStrings().act_PixSel)
+    Swag.require(main.inspector.title == appStrings().act_PixSel)
 }
 
 // Common task vocabulary reaches the real command in either shipped language.
@@ -937,13 +937,13 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         expect g_App.setLanguage(french ? "fr" : ReferenceLanguage)
         host.notify(.LanguageChanged)
         window.lens.open(french ? "copie ecran" : "screenshot")
-        Swag.assert(window.lens.chosenEntry()!.id == ActionCapture.Area)
+        Swag.require(window.lens.chosenEntry()!.id == ActionCapture.Area)
         window.lens.close()
         window.lens.open(french ? "historique" : "history")
-        Swag.assert(window.lens.chosenEntry()!.id == ActionGlobal.ShowLibrary)
+        Swag.require(window.lens.chosenEntry()!.id == ActionGlobal.ShowLibrary)
         window.lens.close()
         window.lens.open(french ? "exporter image" : "export image")
-        Swag.assert(window.lens.chosenEntry()!.id == ActionFile.SaveAsImage)
+        Swag.require(window.lens.chosenEntry()!.id == ActionFile.SaveAsImage)
         window.lens.close()
     }
 }

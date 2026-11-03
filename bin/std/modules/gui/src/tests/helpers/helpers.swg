@@ -52,7 +52,7 @@ func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
         count  += 1
     }
 
-    Swag.assert(count == 1)
+    Swag.require(count == 1)
     return unwrap result
 }
 
@@ -114,6 +114,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside cases or helpers")
     return ""
 }

@@ -12,10 +12,10 @@ private func sleep(milliseconds: u32)
     Swag.setWorkerCount(4)
     Swag.startWorkers()
     let scheduler = Swag.schedulerInstance()
-    Swag.assert(SchedulerDll.schedulerAddress() == cast(u64, scheduler))
+    Swag.require(SchedulerDll.schedulerAddress() == cast(u64, scheduler))
     let limit = scheduler.threadLimit
     if limit != 0 do
-        Swag.assert(Swag.workerCount() <= limit)
+        Swag.require(Swag.workerCount() <= limit)
     var started: Swag.AtomicFlag
     var parked = false
     var task:    Swag.Task
@@ -32,13 +32,13 @@ private func sleep(milliseconds: u32)
             sleep(1)
         }
         task.wait()
-        Swag.assert(started.isRaised() and parked and task.isDone())
+        Swag.require(started.isRaised() and parked and task.isDone())
         if limit != 0 do
-            Swag.assert(Swag.workerCount() <= limit)
-        Swag.assert(scheduler.joining.load() == 0)
+            Swag.require(Swag.workerCount() <= limit)
+        Swag.require(scheduler.joining.load() == 0)
         scheduler.mutex.lock()
         let backgroundRunning = scheduler.backgroundRunning
         scheduler.mutex.unlock()
-        Swag.assert(backgroundRunning == 0)
+        Swag.require(backgroundRunning == 0)
     }
 }

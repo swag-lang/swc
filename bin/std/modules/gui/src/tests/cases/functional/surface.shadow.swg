@@ -31,12 +31,12 @@ using Swag, Core, Pixel
             host.app.frameTrace.batches = 0
             host.surface.invalidateRect({50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
-            Swag.assert(host.app.frameTrace.batches == withBorder)
+            Swag.require(host.app.frameTrace.batches == withBorder)
 
             var simpleCopy: bool
             for command in host.surface.painter.commandBuffer where command.op is .SetDefaultShader and command.defaultShader.id == .Simple do
                 simpleCopy = true
-            Swag.assert(simpleCopy)
+            Swag.require(simpleCopy)
         }
     }
 }
@@ -63,12 +63,12 @@ using Swag, Core, Pixel
             {
                 let px = x + cast(s32, (body.x * scale))
                 let py = y + cast(s32, (body.y * scale))
-                Swag.assert(maximized.pixelColor(px, py).argb == restored.pixelColor(px, py).argb)
-                Swag.assert(maximized.pixelColor(px, py).a == 255)
+                Swag.require(maximized.pixelColor(px, py).argb == restored.pixelColor(px, py).argb)
+                Swag.require(maximized.pixelColor(px, py).a == 255)
             }
         }
 
-        Swag.assert(maximized.pixelColor(0, 0).argb == 0)
+        Swag.require(maximized.pixelColor(0, 0).argb == 0)
         host.surface.invalidateRect({50, 50, 10, 10})
         host.surface.paintWnd(&host.root)
         let partial = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)

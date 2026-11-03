@@ -23,7 +23,7 @@ const RatingGlyphSize = 12.0
 
 // The grid of the library: thumbnails with their name and a mono line of facts under them.
 const LibraryCellGap  = 32.0     // Air between two cells of a row.
-const LibraryRowGap   = 24.0     // Air between two rows of cells.
+const LibraryRowGap   = 12.0     // Air between two rows of cells.
 const LibraryCellRing = 4.0      // Room kept around the grid for the ring of a chosen thumbnail.
 
 // How often the visible set is rebuilt while the previews are still streaming in. Each

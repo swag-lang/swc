@@ -155,6 +155,26 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(captured)
 }
 
+// The selection tool leaves the canvas clear until an object is chosen, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.editMode = .Selection
+    main.updateState()
+    Swag.require(not main.inspector.isLocallyVisible())
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "edit.selection.empty")
+}
+
 // An arrow: the inspector with its line ends as glyph rows in Papier.
 #[Swag.TestTag("golden")]
 #test

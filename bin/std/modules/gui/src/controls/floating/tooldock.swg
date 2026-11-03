@@ -99,16 +99,17 @@ impl IWnd for ToolDock
     mtd impl onAfterPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        let ink     = .themeColors().faintText
+        let colors  = .themeColors()
+        let inset   = .themeMetrics().toolDock_Padding * 0.75
         painter.setParams(.Antialiased)
         for &group in .groups
         {
             let r    = group.cell.position
-            let x1   = r.right() - 3
-            let y1   = r.bottom() - 3
-            let s    = ToolDockMarkSize * 0.55
+            let x1   = r.right() - inset
+            let y1   = r.bottom() - inset
+            let s    = ToolDockMarkSize * 0.45
             var mark = [Math.Vector2{x1, y1 - s}, Math.Vector2{x1, y1}, Math.Vector2{x1 - s, y1}]
-            painter.fillPolygon(mark, Brush.createSolid(ink))
+            painter.fillPolygon(mark, Brush.createSolid(group.cell.isChecked ? colors.btnIcon_CheckedIcon : colors.faintText))
         }
     }
 }
@@ -143,7 +144,7 @@ impl ToolDock
         with let tool = IconButton.create(me, glyph, {0, 0, metrics.toolDock_CellSize, metrics.toolDock_CellSize}, id, .Radio | .IconOnly)
         {
             .setForm(.RoundedRectangle)
-            .setCheckIndicator(.Frame)
+            .setCheckIndicator(.Full)
             .toolTip = toolTip orelse ""
             .sigCheckedChanged += func|dock = me|(button)
             {

@@ -95,6 +95,7 @@ impl LibraryWnd
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
+            .margin.w        = me.themeMetrics().hintLine_Bottom + me.themeMetrics().hintLine_Height
         }
 
         with .view = Wnd.create'LibraryView(me.captureHost)

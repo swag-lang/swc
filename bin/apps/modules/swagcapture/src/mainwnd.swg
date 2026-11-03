@@ -578,9 +578,22 @@ impl MainWnd
         // becomes visible again, not while its whole subtree is hidden.
         if .libraryMode do
             return
-        .updateInspectorTitle()
+
+        // The selection tool has no model to edit until an object is chosen. Leave the canvas
+        // clear instead of showing the Shape model as though it belonged to the selection.
+        let capture       = .getCapture()
+        let showInspector = .editMode != .Selection or (capture and not capture.selection.isEmpty())
+        if .inspector != null and .inspector.isLocallyVisible() != showInspector
+        {
+            .inspector.show(showInspector)
+            let view = .editWnd.editView
+            view.setZoom(view.zoom)
+        }
+
+        if showInspector do
+            .updateInspectorTitle()
         .fillHintLine()
-        if .propWnd != null do
+        if .propWnd != null and showInspector do
             .propWnd.selectionHasChanged()
         if .quickWnd != null do
             .quickWnd.updateQuickStyles()

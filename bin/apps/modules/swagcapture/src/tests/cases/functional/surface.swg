@@ -125,6 +125,40 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     return main
 }
 
+// The selection tool only opens the inspector when an object has properties to inspect.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    main.editMode = .Selection
+    main.updateState()
+    Swag.require(not main.inspector.isLocallyVisible())
+    Swag.require(not main.quickWnd.isVisible())
+
+    discard testAddShape(capture, 20, 20, 80, 60)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    Swag.require(main.inspector.isLocallyVisible())
+    Swag.require(main.inspector.title == appStrings().act_Shape)
+
+    capture.selection.clear()
+    capture.selectionHasChanged()
+    Swag.require(not main.inspector.isLocallyVisible())
+
+    main.editMode = .Arrow
+    main.updateState()
+    Swag.require(main.inspector.isLocallyVisible())
+    Swag.require(main.inspector.title == appStrings().act_Arrow)
+}
+
 // Frequent actions fit at the minimum width in both languages, and Library works by pointer.
 #test
 {

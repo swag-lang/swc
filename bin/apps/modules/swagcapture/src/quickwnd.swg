@@ -1,17 +1,16 @@
 // A preset is a small picture of the shape it draws, in its own colours, painted by the painter
-// of the canvas: a cell of the raised ground, the preset in force ringed in Arc.
+// of the canvas. Its IconButton supplies the same chosen ground and ring as the tool dock.
 //
 // Five presets and the chip after them fill the width of the inspector, so the cell keeps the
 // proportions of the pictures' 44 by 36 at a smaller size.
 const QuickCellWidth  = 38.0     // Width of the cell of a preset.
 const QuickCellHeight = 31.0     // Height of the cell of a preset.
 const QuickCellCorner = 6.0      // Corner of the cell.
-const QuickRingGap    = 1.5      // Air between the cell and the ring of the preset in force.
-const QuickRingWidth  = 1.5      // Weight of that ring.
+const QuickRingGap    = 1.5      // Air between a preset cell and the keyboard focus ring.
+const QuickRingWidth  = 1.5      // Weight of the keyboard focus ring.
 const QuickCellMargin = 5.0      // Least air between a sample and the edge of its cell.
 
-// A chip holds its cell and the room of the ring around it, so two cells stand twice that room
-// apart, and the ring is never cut by the chip.
+// A chip holds its cell and the room for the button's selection or keyboard focus ring.
 const QuickChipInset  = QuickRingGap + QuickRingWidth
 const QuickChipWidth  = QuickCellWidth + 2 * QuickChipInset
 const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
@@ -31,14 +30,6 @@ const QuickVisibleRows    = 2            // Rows of presets the inspector shows 
 
 // The glyph of the chip that keeps the selected shape as a new preset.
 const AddGlyphSize = 14.0
-
-// Clears the ground the theme gives a button, in every state, on a chip that paints its own cell.
-func clearChipGround(button: *IconButton)
-{
-    for key in ["btnIcon_Bk", "btnIcon_HotBk", "btnIcon_PressedBk", "btnIcon_CheckedBk", "btnIcon_CheckedHotBk", "btnIcon_CheckedPressedBk",
-                "btnIcon_CheckedMark", "btnIcon_CheckedHotMark", "btnIcon_CheckedPressedMark", "btnIcon_CheckedRing"] do
-        button.style.addStyleSheetColors(Format.toString("% 0x00000000", key))
-}
 
 // The preset forms one tool offers in the quick-style bar, and the name the reader gave each.
 struct QuickStyle
@@ -1135,7 +1126,10 @@ impl QuickWnd
             return {true, first}
         }
 
-        return {true, .main.editMode == .Selection ? .main.getEditMode() : .main.editMode}
+        if .main.editMode == .Selection do
+            return {false, .Selection}
+
+        return {true, .main.editMode}
     }
 
     // Checks the quick style button that matches the model of the active tool.
@@ -1281,20 +1275,13 @@ impl QuickWnd
         return result
     }
 
-    // Paints a preset: its cell on the raised ground, the picture of the shape it draws in its
-    // own colours, and the Arc ring when it is the preset in force.
-    func paintPreset(painter: *Painter, btnp: *QuickButton, hot = false)
+    // Paints the sample inside the icon button's shared hover and selection treatment.
+    func paintPreset(painter: *Painter, btnp: *QuickButton)
     {
         let colors = btnp.themeColors()
         let cell   = presetCell(btnp)
 
         painter.setParams(.Antialiased)
-
-        if hot
-        {
-            let corner = btnp.themeRects().btnIcon_RoundSquareBk.radius
-            painter.fillRoundRect(btnp.clientRect(), corner, corner, btnp.isChecked ? colors.btnIcon_CheckedHotBk : colors.btnIcon_HotBk)
-        }
 
         // A light preset on a light ground stands on a slightly deeper cell, so its words or its
         // stroke still read. Not ringed: a ring around a cell is what marks the preset in force.
@@ -1308,7 +1295,7 @@ impl QuickWnd
         if itf is FormImage as image where image.subKind == .None
         {
             paintMaskPattern(painter, cell, image.kind, colors)
-            paintPresetRing(painter, btnp, cell)
+            paintPresetKeyboardRing(painter, btnp, cell)
             return
         }
 
@@ -1322,20 +1309,18 @@ impl QuickWnd
         painter.popTransform()
         painter.popClippingRect()
 
-        paintPresetRing(painter, btnp, cell)
+        paintPresetKeyboardRing(painter, btnp, cell)
     }
 
-    // Rings the cell of the preset in force in Arc, at a gap.
-    func paintPresetRing(painter: *Painter, btnp: *QuickButton, cell: Math.Rectangle)
+    // The popover's keyboard choice uses the focus ink; checked state comes from IconButton.
+    func paintPresetKeyboardRing(painter: *Painter, btnp: *QuickButton, cell: Math.Rectangle)
     {
-        // The cell the keys stand on is ringed in the focus ink, the preset in force in Arc.
-        if not btnp.isChecked and not btnp.keyChosen do
+        if not btnp.keyChosen do
             return
         var ring = cell
         ring.inflate(QuickRingGap + QuickRingWidth * 0.5)
         let r      = QuickCellCorner + QuickRingGap + QuickRingWidth * 0.5
-        let colors = btnp.themeColors()
-        painter.drawRoundRect(ring, r, r, btnp.isChecked ? colors.arc : colors.focusRing, btnp.isChecked ? QuickRingWidth : 1.5)
+        painter.drawRoundRect(ring, r, r, btnp.themeColors().focusRing, QuickRingWidth)
     }
 
     // Returns the ink a preset is mostly seen in: the fill of words and of a step, the stroke of
@@ -1398,20 +1383,14 @@ impl QuickWnd
 
     // Paints the save chip, a hairline cell and its "+", or the chip opening every preset and
     // its "•••".
-    func paintAddPreset(painter: *Painter, btnp: *QuickButton, more = false, hot = false)
+    func paintAddPreset(painter: *Painter, btnp: *QuickButton, more = false)
     {
         let colors  = btnp.themeColors()
         let metrics = btnp.themeMetrics()
         let cell    = presetCell(btnp)
         painter.setParams(.Antialiased)
-        if hot
-        {
-            let corner = btnp.themeRects().btnIcon_RoundSquareBk.radius
-            painter.fillRoundRect(btnp.clientRect(), corner, corner, colors.btnIcon_HotBk)
-        }
-
         painter.drawRoundRect(cell, QuickCellCorner, QuickCellCorner, colors.line, metrics.separator_HairlineSize)
-        paintPresetRing(painter, btnp, cell)
+        paintPresetKeyboardRing(painter, btnp, cell)
         var icon = btnp.theme().icon(more ? ThemeIcons.More : ThemeIcons.Plus, AddGlyphSize)
         icon.paint(painter, Math.round(cell.horzCenter() - AddGlyphSize * 0.5), Math.round(cell.vertCenter() - AddGlyphSize * 0.5), colors.softText)
     }
@@ -1427,11 +1406,7 @@ impl QuickWnd
             .setForm(.RoundedRectangle)
             .backgroundStyle = .Transparent
 
-            // The picked preset is the cell that is lit, not the cell with a bar under it: a
-            // rule in the accent below a sample drawn in the user's own colors reads as one
-            // more thing painted in the cell rather than as the state of the cell.
-            .setCheckIndicator(.None)
-            clearChipGround(button)
+            .setCheckIndicator(.Full)
             .formItf     = form
             .quickWnd    = me
             .isTransient = isTransient
@@ -1441,7 +1416,7 @@ impl QuickWnd
                 name = me.currentStyle.nameOf(me.currentStyle.indexOf(form))
             .toolTip = isTransient ? "" : (name.isEmpty() ? appStrings().tip_QuickStyleActions : Format.toString(appStrings().ui_QuickStyleTip, name))
 
-            .iconPainter     = func(button, bc, _, flags) { paintPreset(bc.painter, assume cast(*QuickButton, button), flags.has(.Hot)) }
+            .iconPainter     = func(button, bc, _, _) { paintPreset(bc.painter, assume cast(*QuickButton, button)) }
             .sigRightPressed += func(button) { button.quickWnd.btnPopup(button.isTransient ? null : button, button.surfaceRect().center()) }
         }
 
@@ -1505,12 +1480,11 @@ impl QuickWnd
             .quickWnd = me
             .toolTip  = appStrings().tip_AllQuickStyles
             .setForm(.RoundedRectangle)
-            .setCheckIndicator(.None)
+            .setCheckIndicator(.Full)
             .setArrowPosition(.None)
             .backgroundStyle = .Transparent
             .focusPolicy     = .Inner
-            clearChipGround(btn)
-            .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true, hot: flags.has(.Hot)) }
+            .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), more: true) }
         }
 
         btn.sigPopupRequested += func|quick = me|(button)
@@ -1730,11 +1704,10 @@ impl QuickWnd
             .formItf = form
             .toolTip = appStrings().tip_AddQuickStyle
             .setForm(.RoundedRectangle)
-            .setCheckIndicator(.None)
+            .setCheckIndicator(.Full)
             .backgroundStyle = .Transparent
             .focusPolicy     = .Inner
-            clearChipGround(btn)
-            .iconPainter = func(button, bc, _, flags) { paintAddPreset(bc.painter, assume cast(*QuickButton, button), hot: flags.has(.Hot)) }
+            .iconPainter = func(button, bc, _, _) { paintAddPreset(bc.painter, assume cast(*QuickButton, button)) }
         }
 
         btn.sigPressed += func|quickWnd = me|(_) { quickWnd.addCurrentStyle() }

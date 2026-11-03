@@ -1834,10 +1834,10 @@ impl QuickWnd
             fixed += 1
         if model do
             fixed += 1
-        // A lone chip or pair makes the second row look unfinished. Keep one full row and put
-        // the remaining saved styles behind its last "more" chip when the fixed cells leave room.
+        // A lone chip makes the second row look unfinished. Keep one full row and put the
+        // remaining saved styles behind its last "more" chip when the fixed cells leave room.
         let total      = presets.count + fixed
-        let sparseTail = total > perRow and total <= perRow + 2 and perRow > fixed + 1
+        let sparseTail = total == perRow + 1 and perRow > fixed + 1
         let capacity   = sparseTail ? perRow : perRow * QuickVisibleRows
         let all   = presets.count + fixed <= capacity
         let shown = all ? presets.count : (capacity > fixed ? capacity - fixed - 1 : 0)

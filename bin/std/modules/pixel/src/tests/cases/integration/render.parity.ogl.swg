@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
+#global if #command == Swag.CompilerCommand.Test and (#os == Swag.TargetOs.Windows or #os == Swag.TargetOs.Linux)
 #global private
 
 using Core

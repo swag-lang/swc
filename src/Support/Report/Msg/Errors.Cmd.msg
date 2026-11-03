@@ -24,6 +24,7 @@ SWC_DIAG_DEF(cmd_err_rsp_file_cycle, Error, "response file cycle detected at '{p
 SWC_DIAG_DEF(cmd_err_rsp_file_depth, Error, "response file nesting too deep at '{path}'")
 SWC_DIAG_DEF(cmd_err_rsp_file_unterminated, Error, "unterminated quoted token in response file '{path}'")
 SWC_DIAG_DEF(cmd_err_workspace_module_requires_workspace, Error, "argument '{arg}' needs '--workspace'")
+SWC_DIAG_DEF(cmd_err_rebuild_module_requires_workspace_module, Error, "argument '--rebuild-module' needs '--workspace-module'")
 SWC_DIAG_DEF(cmd_err_tag_missing_name, Error, "compiler tag '{arg}' has no name")
 SWC_DIAG_DEF(cmd_err_tag_missing_value, Error, "compiler tag '{arg}' has no value")
 SWC_DIAG_DEF(cmd_err_tag_untyped_value_invalid, Error, "compiler tag '{arg}' has no explicit type; its value needs to be 'true', 'false', or an s32 integer")

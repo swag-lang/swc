@@ -1083,6 +1083,79 @@ func directProcessId()->u32
 SWC_TEST_END()
 #endif
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_RebuildModulePreservesCurrentDependencies)
+{
+    ApiPublicationTestDirectory directory("WorkspaceRebuildModule");
+    const fs::path              workspace = directory.path();
+    const fs::path              modules   = workspace / "modules";
+    const char*                 extension = hostTargetOs() == Runtime::TargetOs::Windows ? ".dll" : ".so";
+    const fs::path              provider  = workspace / ".output" / "provider" / "shared-library" / "devmode" / "x86_64" / std::format("provider{}", extension);
+    const fs::path              consumer  = workspace / ".output" / "consumer" / "shared-library" / "devmode" / "x86_64" / std::format("consumer{}", extension);
+
+    constexpr std::string_view providerSetup = R"(#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    constexpr std::string_view consumerSetup = R"(#import("provider")
+#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Consumer"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "value.swg", "#global public\nfunc value()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "value.swg", "#global public\nfunc value()->s32 => Provider.value()\n"));
+
+    auto build = [&](const std::string_view rebuildOption) -> Result {
+        std::vector<Utf8> arguments = {"build", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        if (!rebuildOption.empty())
+            arguments.emplace_back(rebuildOption);
+        std::string           output;
+        Os::ProcessRunOptions options;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        options.timeoutMs      = 30000;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) == Os::ProcessRunResult::Ok && exitCode == 0)
+            return Result::Continue;
+        std::println(stderr, "workspace rebuild {} failed:\n{}", rebuildOption, output);
+        return Result::Error;
+    };
+
+    SWC_RESULT(build({}));
+    std::error_code ec;
+    const auto      providerBefore = fs::last_write_time(provider, ec);
+    if (ec)
+        return Result::Error;
+    const auto consumerBefore = fs::last_write_time(consumer, ec);
+    if (ec)
+        return Result::Error;
+
+    SWC_RESULT(build("--rebuild-module"));
+    const auto providerAfterModule = fs::last_write_time(provider, ec);
+    if (ec || providerAfterModule != providerBefore)
+        return Result::Error;
+    const auto consumerAfterModule = fs::last_write_time(consumer, ec);
+    if (ec || consumerAfterModule <= consumerBefore)
+        return Result::Error;
+
+    SWC_RESULT(build("--rebuild"));
+    const auto providerAfterAll = fs::last_write_time(provider, ec);
+    if (ec || providerAfterAll <= providerAfterModule)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #ifdef _WIN32
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
 {

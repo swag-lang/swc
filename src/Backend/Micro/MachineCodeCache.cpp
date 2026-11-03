@@ -718,7 +718,7 @@ void MachineCodeCache::write(const MachineCode& code) const
         return;
     const auto checksum = sha256Parts({bytes.span(), std::as_bytes(std::span{key_.data(), key_.size()})});
     std::memcpy(bytes.data() + K_CHECKSUM_OFFSET, checksum.data(), checksum.size());
-    CompilerCacheStore::get(ctx_->cmdLine().rebuild).write(key_, std::move(bytes));
+    CompilerCacheStore::get(ctx_->cmdLine().rebuild && !ctx_->cmdLine().rebuildModule).write(key_, std::move(bytes));
 }
 
 SWC_END_NAMESPACE();

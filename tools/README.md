@@ -76,6 +76,8 @@ is local to the launcher and its children. Application helper processes inherit 
 count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
+For a selected workspace module, `--rebuild-module` forces only that module and reuses
+current dependencies. `--rebuild` forces the module and its dependency closure.
 
 ### Limit runtime threads
 
@@ -211,7 +213,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
 | `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
-| `goldens.bat accept` | Promote every pending `.actual.txt` and `.actual.png` under `bin/` |
+| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
 | `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
@@ -226,6 +228,9 @@ open a new terminal after running it.
 
 `tools/devmode.bat` builds the DevMode compiler. `tools/release.bat` is an owner-only full-machine
 build entry point.
+The C++ project uses eight compilation jobs by default; `tools/devmode.bat` keeps code-generation
+threads at one per compiler process. Both compiler build scripts accept `SWC_COMPILE_JOBS` for a
+different native job count.
 
 DevMode keeps assertions, compiler validators, race checks, allocator checks and C++ tests.
 Fields maintained only for debugger inspection are disabled by default in both compiler builds.

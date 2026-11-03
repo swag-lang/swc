@@ -136,12 +136,22 @@ being compiled by it.
   committed peak about 4–5% higher under fixed dependencies, and a roughly 2.5x `doc_std`
   slowdown with no proven load cause. Pinned (performance-core affinity) results must stay
   separate from ordinary unpinned builds.
+- A three-worker `std/gui --rebuild` with compiler 0.1.1175 took 93 s and 85 s for GUI alone;
+  the latter used 305 CPU seconds. Two otherwise matching runs with `--optimizer-stats` took
+  14 s and 12 s for GUI (86 CPU seconds in the latter). That option changes the cache and
+  instrumentation path, so these are diagnostic observations rather than comparable speed
+  measurements. Pixel took 11–18 s across the same runs. With `--rebuild-module` and current
+  dependencies, two Release-compiler GUI rebuilds took 15.7 s and 16.2 s for GUI alone; a
+  pair of Pixel rebuilds took 27.2 s and 21.3 s. These are unpinned observations, not a
+  historical comparison.
 - Next: add opt-in module-only workloads to the recorded compilation instrument and retain
   both preflight admission and system CPU deltas across the timed process. Distinguish warm
-  dependencies, whole dependency rebuilds, pinned controls, and ordinary builds in the results.
-  Repeat the GUI control under steady load and isolate each retained compiler change to explain
-  the peak-memory difference, and investigate the `doc_std` slowdown under steady load, before
-  setting a regression budget.
+  dependencies (`--rebuild-module`), whole dependency rebuilds, pinned controls, and ordinary
+  builds in the results.
+  Repeat the GUI control under steady load, including the `--optimizer-stats` path, and isolate
+  the compiler work behind its large CPU-time difference. Isolate each retained compiler change
+  to explain the peak-memory difference, and investigate the `doc_std` slowdown under steady load,
+  before setting a regression budget.
 - Done when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
   timings and memory peaks, and a sample disturbed after admission is identified in the record.
 - Related: compiler.optimization.029

@@ -1,6 +1,7 @@
 """Shared Windows/Linux commands behind the repository's workspace and test launchers.
 
-Usage: tool.py <tests|unittests|std|apps|examples|reference> [dm] [action|suite] [module] [swc options]
+Usage: tool.py <tests|unittests|std|apps|examples|reference|goldens> [dm] [action|suite] [module] [swc options]
+Use `tool.py goldens accept` to promote reviewed pending snapshots without a compiler.
 Set SWC_COMPILER or SWC_DEVMODE_COMPILER to select an externally built compiler.
 """
 
@@ -187,13 +188,28 @@ def execute(stages, environment):
     return 0
 
 
+def accept_goldens(bin_root):
+    """Promote reviewed pending text and image snapshots using the same rule on both hosts."""
+    accepted = 0
+    for actual in sorted(bin_root.rglob('*')):
+        if not actual.is_file() or not actual.name.endswith(('.actual.txt', '.actual.png')):
+            continue
+        golden = actual.with_name(actual.name.removesuffix(actual.suffix).removesuffix('.actual') + actual.suffix)
+        actual.replace(golden)
+        accepted += 1
+        print(f'accepted {actual.name}')
+    if not accepted:
+        print('no pending snapshot to accept')
+    return 0
+
+
 def main(arguments=None):
     arguments = list(sys.argv[1:] if arguments is None else arguments)
     if not arguments or arguments[0] in ('-h', '--help'):
         print(__doc__)
         return 0
     tool = arguments.pop(0).lower()
-    if tool not in ('tests', 'unittests', *WORKSPACES):
+    if tool not in ('tests', 'unittests', 'goldens', *WORKSPACES):
         raise ValueError(f'unknown tool {tool!r}')
     devmode = bool(arguments and arguments[0].lower() == 'dm')
     if devmode:
@@ -204,6 +220,10 @@ def main(arguments=None):
         return 0
     root = Path(__file__).resolve().parent.parent
     bin_root = root / 'bin'
+    if tool == 'goldens':
+        if arguments != ['accept']:
+            raise ValueError('use goldens accept to promote reviewed snapshots')
+        return accept_goldens(bin_root)
     windows = sys.platform == 'win32'
     default = bin_root / (('swc.dm' if devmode else 'swc') + ('.exe' if windows else ''))
     compiler = Path(os.environ.get('SWC_DEVMODE_COMPILER' if devmode else 'SWC_COMPILER', str(default))).absolute()

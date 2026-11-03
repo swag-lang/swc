@@ -49,10 +49,10 @@
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
         <SwcOutputDir>bin/</SwcOutputDir>
-        <!-- Bound parallel compilation to /MP3 so a build leaves CPU headroom for the rest of the
-             machine. Override with the SWC_COMPILE_JOBS environment variable or -p:SwcCompileJobs=N. -->
+        <!-- Use eight native compiler jobs by default. Override with SWC_COMPILE_JOBS or
+             -p:SwcCompileJobs=N when the available CPU or memory calls for another count. -->
         <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">$(SWC_COMPILE_JOBS)</SwcCompileJobs>
-        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">3</SwcCompileJobs>
+        <SwcCompileJobs Condition="'$(SwcCompileJobs)' == ''">8</SwcCompileJobs>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>

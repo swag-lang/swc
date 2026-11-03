@@ -176,7 +176,10 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
-        "Recompile every selected module even when all generated outputs are up to date, and rebuild the standard-library modules a script imports");
+        "Recompile selected modules and their dependencies even when their outputs are up to date");
+    add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--rebuild-module", nullptr,
+        &cmdLine_->rebuildModule,
+        "Recompile only the module named by '--workspace-module'; rebuild stale dependencies as usual");
 
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,

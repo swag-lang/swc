@@ -273,7 +273,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(found)
 }
 
-// A mask: its kinds as a list with their glyphs, the pixelation chosen, in Encre.
+// A mask over varied screenshot pixels: its pixelation, edge, and kind choices in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -286,7 +286,15 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    let mask = testAddImage(unwrap main.getCapture(), 60, 80, 280, 40)
+    let capture = unwrap main.getCapture()
+    capture.backImg.fillGradient(Color.fromArgb(0xFFF2E9DF), Color.fromArgb(0xFF4E79B4),
+                                 Color.fromArgb(0xFFD5745A), Color.fromArgb(0xFF2A436D))
+    capture.backImg.visitPixels()
+    {
+        if x >= 80 and x < 320 and y >= 98 and y < 146 and x % 28 < 18 and y % 16 < 6 do
+            cast(*u32, pix)[] = Color.fromArgb(0xFF233049).argb
+    }
+    let mask = testAddImage(capture, 60, 80, 280, 40)
     mask.kind = .Pixelate
     testAssertEditGolden(&host, main, [0], "edit.mask")
 }

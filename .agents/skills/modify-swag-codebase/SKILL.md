@@ -284,15 +284,20 @@ layout. A new module copies it without deciding anything:
         <area>/...
         testing/               PUBLIC test-support API, shipped and documented like the rest
         tests/                 Test-only sources; never shipped
-            <name>.test.swg    The '#test' bodies
-            helpers.swg        Helpers shared by this suite
             datas/             Immutable input fixtures
             goldens/           Recorded expectations, '.txt' and '.png'
+            scripts/           Categorized test sources
+                functional/    Ordinary behavior tests
+                golden/        Maintained text and image comparisons
+                integration/   Native, driver, hardware and external contracts
+                smoke/         Application journeys
+                helpers/       Shared test-only source helpers
 ```
 
 - **`src/tests/` is the only test root.** Do not nest a `unittests/` folder inside it, and do not
-  put tests directly under `src/`. A module with many test areas may mirror `src/` one level deep
-  (`src/tests/collections/array.test.swg`); anything flatter than that stays flat.
+  put tests directly under `src/`. Put each test under `src/tests/scripts/<type>/`, using
+  `functional`, `golden`, `integration`, or `smoke`. Preserve an area folder below its type when
+  that helps organize a large module.
 - **`*.test.swg` is the only name for a file holding `#test` bodies**, and each opens with
   `#global if #command == Swag.CompilerCommand.Test`. Every source below `src/` is compiled, so a
   test file without that guard is built into the shipped module.
@@ -321,8 +326,8 @@ layout. A new module copies it without deciding anything:
   organization. Move shared setup to the guarded `helpers.swg` at the relevant test root rather
   than duplicating setup or widening production APIs only to support the split. Update source
   filters and documented commands with every rename.
-- **`helpers.swg` is the only name for test-only shared code**, under the same guard. One per test
-  folder is enough; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
+- **`helpers.swg` is the only name for shared test setup**. Keep shared path helpers under
+  `src/tests/scripts/helpers/`; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
 - **`src/testing/` holds test support that is part of the module's public API** — the `Testing`
   namespace consumers import, such as `Gui.Testing` and `Pixel.Testing`. It carries no `#command`
   guard, ships in every configuration, and is documented like any other family. Keeping it out of
@@ -338,7 +343,7 @@ layout. A new module copies it without deciding anything:
   `datas/html/` or `datas/svg-wpt/`; use descriptive file-name prefixes when grouping helps.
 - Keep generated expectations in `goldens/`. A source document, image, font, archive, or other
   input remains test data even when a golden image is produced from it.
-- Resolve fixture paths from `#curlocation.fileName` so focused module tests work from every
+- Resolve fixture paths from `testSourceRoot()` so categorized module tests work from every
   worktree and current directory.
 - **A test reads fixtures only from its own module's `datas/`.** Reaching across modules or
   workspaces with `../..` couples two suites' file layouts and makes a rename in one break the

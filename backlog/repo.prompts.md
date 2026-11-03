@@ -230,13 +230,10 @@ Once the ladder is green (a newly exposed code failure takes priority again at a
      and verify that it is inside the intended workspace before removal. Never run a broad clean.
      If automatic review rejects a deletion, stop retrying that target through alternate commands;
      report its exact path and the rejection, then continue independent work.
-  5. LAST: `tools\vault.bat dm` (UAC elevation, bundled WinFsp). Nothing else may
-     run after it except inspecting its result; a defect it exposes is fixed and the affected
-     steps rerun before retrying it.
 
 THE CAMPAIGN ENDS ONLY WHEN
 
-The ladder, formatting, generation, and Vault are green for the final code; no defect
+The ladder, formatting, and generation are green for the final code; no defect
 found during the campaign remains open or relabeled; the backlog is truthful; and every change is
 committed on `master` with a clean working tree. A genuine external blocker is reported precisely
 and means the reset is incomplete, not green.

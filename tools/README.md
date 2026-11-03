@@ -277,7 +277,7 @@ sources or rebuild a smaller test binary.
 ### Application smoke scenarios
 
 `apps.bat smoke` is the bounded startup check of the shipped executable. User journeys belong
-in `<application>/src/tests/<plan>.smoke.test.swg`, guarded by `#command ==
+in `<application>/src/tests/scripts/smoke/<plan>.smoke.test.swg`, guarded by `#command ==
 Swag.CompilerCommand.Test` and tagged `integration.application.smoke`. They use the ordinary
 test runner; integration tags keep them out of default headless tests. See
 [the scenario contract](application-scenarios.md) for fixtures, checkpoints, and coverage limits.

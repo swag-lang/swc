@@ -1,0 +1,120 @@
+#global if #command == Swag.CompilerCommand.Test
+
+using Swag, Core
+
+// Builds classic PDF files from their parts.
+//
+// The reader locates objects by scanning, so a fixture needs no cross-reference table; that
+// keeps a test case readable as the object graph it is really about.
+
+// Appends one plain object, numbered `number`.
+func addObject(bytes: *Array'u8, number: u32, body: string)
+{
+    bytes.add(cast(const [..] u8, Format.toString("% 0 obj\n", number).toString()))
+    bytes.add(cast(const [..] u8, body))
+    bytes.add(cast(const [..] u8, "\nendobj\n"))
+}
+
+// Appends one stream object whose `/Length` is computed from the payload.
+func addStreamObject(bytes: *Array'u8, number: u32, dictionary: string, stream: const [..] u8)
+{
+    bytes.add(cast(const [..] u8, Format.toString("% 0 obj\n<< % /Length % >>\nstream\n", number, dictionary, stream.count).toString()))
+    bytes.add(stream)
+    bytes.add(cast(const [..] u8, "\nendstream\nendobj\n"))
+}
+
+// Builds a one-page document around `content`.
+//
+// Objects 1 to 4 are the catalog, the page tree, the page, and the content stream, so a test
+// numbers its own objects from 5 up and names them from `resources`.
+func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] u8, mediaBox = "[0 0 200 100]")->Array'u8
+{
+    var result: #returntype
+    result.add(cast(const [..] u8, "%PDF-1.7\n"))
+    addObject(&result, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&result, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
+    addObject(&result, 3, Format.toString("<< /Type /Page /Parent 2 0 R /MediaBox % /Resources << % >> /Contents 4 0 R >>", mediaBox, resources).toString())
+    addStreamObject(&result, 4, "", content)
+    result.add(extra)
+    result.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
+    return result
+}
+
+// Returns the one item of `kind` a fixture page is expected to hold.
+func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
+{
+    var result: const *Pdf.Item?
+    var count = 0'u64
+    for item in page.items where item.kind == kind
+    {
+        result = item
+        count  += 1
+    }
+
+    Swag.assert(count == 1)
+    return unwrap result
+}
+
+// Concatenates the UTF-8 of every text item, in paint order.
+func pageText(page: const *Pdf.Page)->String
+{
+    var result: #returntype
+    for item in page.items where item.kind == .Text do
+        result += item.textValue()
+    return result
+}
+
+// Renders until every page the viewport shows has been decoded and published.
+//
+// Pages are decoded on a worker, so what one frame shows depends on what has landed by then. A
+// test asks for the settled state instead of the first frame, which is also what a reader sees.
+func settlePdfView(host: *Gui.Testing.HeadlessHost, view: *Gui.PdfView)
+{
+    for 4000
+    {
+        discard host.render()
+        host.fireTimers()
+
+        var ready = not view.cache.isLoading() and not view.preparing
+        let range = view.visibleRange()
+        for index in range.first to range.last where not view.cache.isResident(index) do
+            ready = false
+        if ready do
+            return
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.panic("PDF pages never finished decoding", #curlocation)
+}
+
+// Returns the rectangle one page occupies in the view's canvas, which is what a pointer aims at.
+func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
+{
+    let rect   = view.pageRect(index)
+    let origin = view.documentOrigin()
+    return Math.Rectangle{origin.x + rect.x, origin.y + rect.y, rect.width, rect.height}
+}
+
+// Returns the path of one real-document fixture.
+//
+// Resolving it from the source location keeps a focused run working from every worktree and
+// current directory.
+func corpusPdfPath(name: string)->String => Path.combine(testSourceRoot(#curlocation), Format.toString("datas/%", name).toString())
+
+
+// Returns the module's test root for tests stored under scripts/<type>.
+#global internal
+
+func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
+{
+    var directory = Path.directoryName(loc.fileName)
+    while directory != null
+    {
+        if Path.fileName(directory) == "scripts" do
+            return unwrap Path.directoryName(directory)
+        directory = Path.directoryName(directory)
+    }
+
+    Swag.assert(false, "test source is outside scripts")
+    return ""
+}

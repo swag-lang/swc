@@ -23,7 +23,8 @@ const QuickStrokeZoom     = 0.28'f32     // The scale a line or an arrow is pain
 const QuickTextHeight     = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
 const QuickMaskWidth      = 21.0         // Width of the pattern of a mask preset.
 const QuickMaskHeight     = 14.0         // Height of the pattern of a mask preset.
-const QuickLightDepth     = 0.09'f32     // How much deeper the cell of a light preset is, on a light ground.
+const QuickLightDepth     = 0.09'f32     // Slightly deeper ground under light ink on Papier.
+const QuickNeutralDepth   = 0.3'f32      // Contrast ground for black or white ink on a ground of the same value.
 const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5            // Presets in a row of that popover.
 const QuickVisibleRows    = 2            // Rows of presets the inspector shows before its popover.
@@ -1283,13 +1284,17 @@ impl QuickWnd
 
         painter.setParams(.Antialiased)
 
-        // A light preset on a light ground stands on a slightly deeper cell, so its words or its
-        // stroke still read. Not ringed: a ring around a cell is what marks the preset in force.
-        let itf   = unwrap btnp.formItf
-        let light = luminance(colors.raised) > 0.6 and
-                    luminance(presetInk(itf)) > 0.75 and
-                    not (itf is FormImage)
-        painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, light ? Color.lerpRgb(colors.raised, colors.text, QuickLightDepth) : colors.raised)
+        // Black and white samples need a middle-value ground when the palette shares their value.
+        // The sample ink itself stays unchanged, and only the chosen preset receives a ring.
+        let itf        = unwrap btnp.formItf
+        let groundLum  = luminance(colors.raised)
+        let inkLum     = luminance(presetInk(itf))
+        let isSwatch   = itf.subKind != .Highlight and not (itf is FormImage)
+        let light      = isSwatch and groundLum > 0.6 and inkLum > 0.75
+        let sameValue  = isSwatch and (groundLum > 0.6 and inkLum > 0.9 or groundLum < 0.4 and inkLum < 0.12)
+        let depth      = sameValue ? QuickNeutralDepth : (light ? QuickLightDepth : 0'f32)
+        let ground     = Color.lerpRgb(colors.raised, colors.text, depth)
+        painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, ground)
 
         // A mask shows what it does to what it covers.
         if itf is FormImage as image where image.subKind == .None

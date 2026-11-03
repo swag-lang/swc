@@ -58,7 +58,7 @@ module's roadmap.
 
 ### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
-- Evidence: `volume.test.swg` mutates completed files (corrupted journal records, alternating
+- Evidence: `volume.swg` mutates completed files (corrupted journal records, alternating
   headers, misplaced sequences); no test interrupts an actual write.
 - Next: add deterministic partial-write injection and process termination during checkpoint
   persistence.
@@ -67,7 +67,7 @@ module's roadmap.
 
 ### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
-- Evidence: `nodeindex.test.swg` exercises 100,000 in-memory nodes and `volume.test.swg` crosses
+- Evidence: `nodeindex.swg` exercises 100,000 in-memory nodes and `volume.swg` crosses
   metadata paging with 300 nodes; nothing runs a durable container at that scale.
 - Next: add a bounded end-to-end run at 100,000 files covering creation, reopen, lookup,
   enumeration, checkpointing, deletion and memory usage.

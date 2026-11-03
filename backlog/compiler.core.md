@@ -744,7 +744,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.103 — Avoid rebuilding production dependencies for test-only edits
 
-- Evidence: changing an assertion in GUI's guarded `src/tests/scripts/golden/headless.render.test.swg`
+- Evidence: changing an assertion in GUI's guarded `src/tests/cases/golden/headless.render.swg`
   makes `swc test --workspace bin/std --workspace-module gui` rebuild `gui.dll` before
   rebuilding `gui.test.exe`, even though the changed file is disabled outside `Test`.
   Repeated focused edits pay about twelve seconds for that production-module stage alone.

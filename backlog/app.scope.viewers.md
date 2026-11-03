@@ -24,7 +24,7 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 
 - Evidence: all seventeen viewers have focused tests and a viewer-specific golden. Text covers
   queued encoding changes, cancellation and CRLF search offsets; shared document outlines have
-  their own [integration suite](../bin/apps/modules/swagscope/src/tests/scripts/functional/viewer.outline.test.swg).
+  their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
   These tests still do not declare a common matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
   selection-to-first-content latency under rapid adjacent-file browsing.

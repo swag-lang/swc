@@ -200,13 +200,13 @@ across modules uses the workspace suite.
 - In an application, run the test file that owns the behavior. Add `build` for module setup,
   packaging, resources, or link changes. Add `smoke` for startup, main-loop, or
   packaged-runtime changes. A local model or widget edit does not require all three.
-- Select application journeys by `--test-tag integration.application.smoke`, optionally narrowed
-  by their `<plan>.smoke.test.swg` file. These are ordinary `#test` functions running the native
-  application lifecycle, separate from the compiler's bounded startup `smoke` command. Name and
+- Select application journeys by `--test-tag integration.application.journey`, optionally narrowed
+  by their `cases/integration/<plan>.swg` file. These are ordinary `#test` functions running
+  the native application lifecycle, separate from the workspace's bounded startup `smoke` command. Name and
   select the plan, not the control where the first action happens. On Windows, use
-  `tools/test-desktop.ps1` when the plan does not need the visible desktop. Keep ordinary,
-  `.golden.test.swg`, `.smoke.test.swg` and `.integration.test.swg` families in separate files as
-  specified by `modify-swag-codebase`; names do not replace execution tags or load admission.
+  `tools/test-desktop.ps1` when the plan does not need the visible desktop. Keep functional,
+  golden, integration and stress tests in their respective `cases/<type>/` directories; filenames
+  end in `.swg` without a type suffix. Tags select execution and do not replace load admission.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete
   reference for syntax changes, shared reference infrastructure, or cross-page declarations.
@@ -220,9 +220,9 @@ compiles the whole owning module and executes only `#test` functions whose sourc
 Repeat it to select a union:
 
 ```text
-tools/std.bat dm test gui --test-file htmlview.test.swg
-tools/std.bat dm test gui --test-file htmlview.test.swg --test-file markdownview.test.swg
-tools/apps.bat test swagscope --test-file viewer.video.test.swg
+tools/std.bat dm test gui --test-file htmlview.swg
+tools/std.bat dm test gui --test-file htmlview.swg --test-file markdownview.swg
+tools/apps.bat test swagscope --test-file viewer.video.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -233,14 +233,14 @@ Check the reported input and test counts so an empty selection cannot serve as v
 
 Prefer a named application test file over all GUI tests:
 
-- HTML parser/layout/rendering: `gui`'s `htmlview.test.swg`, then Swag Scope's
-  `viewer.html.test.swg` as the concrete file-viewer consumer; do not run the rest of GUI.
-- Markdown parser/layout/rendering: `gui`'s `markdownview.test.swg`, then
-  `viewer.markdown.test.swg` as the concrete viewer consumer.
-- Video codecs/streaming: the matching `video` file (`avi.test.swg`, `y4m.test.swg`, or
-  `streaming.test.swg`), then Swag Scope's `viewer.video.test.swg` as the concrete player.
-- Dialog composition: `dialogs.charter.test.swg`, `dialogs.layout.test.swg`, and the exact dialog
-  test such as `messagedlg.test.swg`; use `gui9` only for the required visual inspection.
+- HTML parser/layout/rendering: `gui`'s `htmlview.swg`, then Swag Scope's
+  `viewer.html.swg` as the concrete file-viewer consumer; do not run the rest of GUI.
+- Markdown parser/layout/rendering: `gui`'s `markdownview.swg`, then
+  `viewer.markdown.swg` as the concrete viewer consumer.
+- Video codecs/streaming: the matching `video` file (`avi.swg`, `y4m.swg`, or
+  `streaming.swg`), then Swag Scope's `viewer.video.swg` as the concrete player.
+- Dialog composition: `dialogs.charter.swg`, `dialogs.layout.swg`, and the exact dialog
+  test such as `messagedlg.swg`; use `gui9` only for the required visual inspection.
 
 These are examples of the rule, not a closed routing table. Follow the call path to the nearest
 consumer that activates the changed behavior.

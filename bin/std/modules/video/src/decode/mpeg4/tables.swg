@@ -19,7 +19,7 @@
 // the length and the value of every code word, in the order the standard lists them - and
 // `<Name>Tree` is the same information as a binary tree, which is what the decoder walks. A
 // positive slot of a tree is a child node, a negative slot is minus one more than the entry it
-// reaches, and a zero slot is a bit pattern the table does not define. `mpeg4.tables.test.swg`
+// reaches, and a zero slot is a bit pattern the table does not define. `mpeg4.tables.swg`
 // walks every normative code word through its tree and requires them to agree.
 
 // Table B.6, `mcbpc` of an intra plane. Type five is the stuffing code, which carries nothing.

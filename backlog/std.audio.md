@@ -40,7 +40,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 ### std.audio.002 — MP3 synthesis has not been measured or factored
 
 - Intent: Layer III decodes at every sampling frequency of the three versions, within the
-  reference-error limits in `mp3.test.swg`. Its transform and filter-bank cost has not been measured.
+  reference-error limits in `mp3.swg`. Its transform and filter-bank cost has not been measured.
 - What is slow by construction, and was written that way on purpose: the inverse transform is the
   normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
   that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in

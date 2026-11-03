@@ -8,7 +8,7 @@ being compiled by it.
 ### repo.tooling.012 — Extend application scenarios beyond Explorer
 
 - Evidence: bounded startup smokes do not perform user journeys. The explicit
-  `integration.application.smoke` boundary and private-desktop launcher are described in
+  `integration.application.journey` boundary and private-desktop launcher are described in
   `tools/application-scenarios.md`; Capture and Vault have no scenarios under that tag.
 - Next: add independent, sub-40-second `#test` journeys in each application's `src/tests`:
   Capture imports a real picture, annotates, undoes/redoes, exports and reopens the result;
@@ -103,7 +103,7 @@ being compiled by it.
 
 ### repo.tooling.003 — Matroska timing and display-size cases lack reproducible fixtures
 
-- Evidence: `bin/std/modules/video/src/tests/scripts/functional/matroska.test.swg` covers the absent-display-size
+- Evidence: `bin/std/modules/video/src/tests/cases/functional/matroska.swg` covers the absent-display-size
   fallback. It covers neither a track whose `DefaultDuration` misstates its rate (the frame
   rate must come from timestamps) nor a display size that differs from the stored size. Both
   behaviors are verified only on private films. No EBML fixture producer is checked in. PyAV

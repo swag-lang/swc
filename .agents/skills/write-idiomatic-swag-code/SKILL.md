@@ -111,7 +111,7 @@ visual order, connect cross-part behavior, establish derived state, and return.
 - Concatenate the words of one symbol or indivisible concept, as in `filebrowserctrl.swg` and
   `gridlayoutctrl.swg`.
 - Use dots to separate the named parts of a coherent file family, such as `gif.palette.swg`,
-  `app.operations.swg`, and `image.filter.grayscale.test.swg`. Platform, test, initialization,
+  `app.operations.swg`, and `image.filter.grayscale.swg`. Platform, test, initialization,
   backend, role, and feature parts all use the same notation; `.test`, `.init`, and `.win32` are
   common parts, not the only valid ones. Follow the surrounding family when it is more specific.
 - Let the immediate directory carry its own context. Do not repeat its name as the prefix of a
@@ -684,7 +684,7 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Keep required side effects outside `Swag.assert`: ordinary release builds and explicit safety
   overrides can omit the entire assertion, including its condition. The `test` command enables
   assertions by default even in release. Execute actions, allocations, mutations, and asynchronous flushes
-  first, then assert their saved results (for example, `files.test.swg` in Swag Capture).
+  first, then assert their saved results (for example, `files.swg` in Swag Capture).
 - Prefix `expect` or `catch` with `discard` when a non-`void` result is intentionally ignored;
   failure handling does not make an unused return value implicit.
 - `expect` returns the successful value or panics in every configuration. Use it directly for

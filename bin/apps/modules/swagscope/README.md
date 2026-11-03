@@ -333,7 +333,7 @@ plugin can open. The key is never translated or reused because remembered viewer
 it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
-Keep every viewer's tests under `src/tests/scripts/`, separated by type; preserve viewer-specific
+Keep every viewer's tests under `src/tests/cases/`, separated by type; preserve viewer-specific
 grouping in an area folder such as `functional/viewers/<viewer>`. Shared fixtures live in
 `src/tests/datas`, and image goldens in `src/tests/goldens`. Viewer plans use
 `assertScopeImageGolden` to compare that shared image corpus. External fixtures record their source URLs, license, and hashes in
@@ -341,7 +341,7 @@ grouping in an area folder such as `functional/viewers/<viewer>`. Shared fixture
 Run a focused test with:
 
 ```text
-tools/apps.bat dm test swagscope --test-file <plan>.test.swg
+tools/apps.bat dm test swagscope --test-file <plan>.swg
 ```
 
 `tools/apps.bat dm build swagscope` builds one executable containing all viewers and lets
@@ -352,8 +352,9 @@ the workspace publisher place its standard-module runtime dependencies beside it
 and select that plugin explicitly. This optional review waits for presentable content and returns
 a nonzero exit code when a fixture is missing or a plugin cannot open it.
 
-Realistic user journeys are dedicated `#test` functions tagged `integration.application.smoke`.
-`src/tests/scripts/smoke/browsemedialibrary.smoke.test.swg` exercises a temporary mixed-format media library,
-including preview-cache eviction, through the native window, workers and presentation path. It is excluded from default headless tests. Run it on a private
-Windows desktop with `tools/test-desktop.ps1 -DevMode -Module swagscope`; see the
+Realistic user journeys are dedicated `#test` functions tagged `integration.application.journey`.
+`src/tests/cases/integration/browsemedialibrary.swg` exercises a temporary mixed-format media library,
+through the native window, workers and presentation path. Large preview-cache eviction coverage lives in
+`src/tests/cases/stress/previewcache.swg`. Both are excluded from default headless tests. Run the
+journey on a private Windows desktop with `tools/test-desktop.ps1 -DevMode -Module swagscope`; see the
 [shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

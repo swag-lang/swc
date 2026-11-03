@@ -25,7 +25,7 @@ try {
 #test { Swag.print("tag-probe:slow\n") }
 #[Swag.TestTag("integration.probe")]
 #test { Swag.print("tag-probe:integration\n") }
-'@ | Set-Content -LiteralPath (Join-Path $source 'selection.test.swg')
+'@ | Set-Content -LiteralPath (Join-Path $source 'selection.swg')
     $cases = @(
         @{ Filters = @(); Expected = @('plain', 'golden', 'slow') },
         @{ Filters = @('!golden'); Expected = @('plain', 'slow') },

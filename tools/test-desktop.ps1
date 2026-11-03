@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Runs native GUI scenarios on a private Windows desktop without switching the user's desktop.
+Runs native application integration tests on a private Windows desktop without switching the user's desktop.
 .EXAMPLE
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope
 #>
@@ -12,15 +12,15 @@ param(
     [switch] $DevMode,
     [ValidateSet('devmode', 'release')][string] $Configuration = 'devmode',
     [ValidatePattern('^[a-zA-Z0-9_.-]*$')][string] $TestFile = '',
-    [ValidatePattern('^integration\.[a-z.]+$')][string] $TestTag = 'integration.application.smoke',
+    [ValidatePattern('^integration\.[a-z.]+$')][string] $TestTag = 'integration.application.journey',
     [ValidateRange(1, 300)][int] $RunTimeout = 60
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
 if ($Action -eq 'test') {
-    $testRoot = Join-Path $repository "bin/$Workspace/modules/$Module/src"
+    $testRoot = Join-Path $repository "bin/$Workspace/modules/$Module/src/tests/cases"
     $tagPattern = 'Swag\.TestTag\("' + [regex]::Escape($TestTag) + '"\)'
-    $selected = @(Get-ChildItem -LiteralPath $testRoot -Recurse -Filter '*.test.swg' |
+    $selected = @(Get-ChildItem -LiteralPath $testRoot -Recurse -Filter '*.swg' |
         Where-Object { (!$TestFile -or $_.FullName.Contains($TestFile)) -and
             (Select-String -LiteralPath $_.FullName -Pattern $tagPattern -Quiet) })
     if ($selected.Count -eq 0) { throw "No test file selects tag '$TestTag' and file filter '$TestFile' in $Module" }

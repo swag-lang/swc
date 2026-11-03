@@ -174,7 +174,7 @@ while the common helper retains the frame, state and caption treatment.
 The charter's Shared components section and the pictures describe what each component looks
 like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
 `controls/floating`, are shown together on the Components page of `gui10`, and are covered by
-`lens.test.swg` and `floating.test.swg`:
+`lens.swg` and `floating.swg`:
 
 | Component | Type | The application calls |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ language before calling a feature done**, at the window's declared minimum size.
   `Testing.assertContentFits`, which fails when a window is arranged smaller than its content.
 - **Assert the containment the generic check cannot see**, such as a block overflowing its
   parent, and run it over every entry of `Gui.languages()`. Swag Vault's `assertColumnFits` in
-  `src/tests/scripts/functional/mainwindow.test.swg` is the worked example.
+  `src/tests/cases/functional/mainwindow.swg` is the worked example.
 - **Shorten the text before changing the layout.** If the wording is already as short as it can
   honestly be, fix the measurement rather than adding room.
 - **Translate as you write.** A key added to the reference table but missing from
@@ -439,7 +439,7 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 ## Keep The Workspace Shippable
 
 - Keep every standard application in the `bin/apps` workspace, as
-  `bin/apps/modules/<application>` with `module.swg`, `src/`, `src/tests/scripts/` and a
+  `bin/apps/modules/<application>` with `module.swg`, `src/`, `src/tests/cases/` and a
   root-level `datas/` for icons and other immutable resources. Test fixtures go in
   `src/tests/datas/`. Lay out tests as described in
   [modify-swag-codebase](../modify-swag-codebase/SKILL.md).
@@ -461,10 +461,10 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 
 Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed behaviour:
 
-Keep test families separate using the filenames in
+Keep test families separate using their category directories in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md#lay-out-a-modules-tests-the-same-way-every-time).
-Application smoke scenarios belong in `src/tests/scripts/smoke/<plan>.smoke.test.swg`, named for the user journey across
-the application, with the tag `integration.application.smoke`. A control or the first screen is
+Application journeys belong in `src/tests/cases/integration/<plan>.swg`, named for the user journey across
+the application, with the tag `integration.application.journey`. A control or the first screen is
 not the owner of a journey that also opens documents, returns, saves or restores state. Keep the
 plan's setup, actions, readiness deadlines and observable checkpoints readable in the `#test`;
 do not grow a scenario state machine in production startup code. Each new production regression
@@ -474,10 +474,10 @@ The shared contract and private-desktop command are in
 [tools/application-scenarios.md](../../../tools/application-scenarios.md).
 Ordinary focused tests, scenario tests and the shipped executable's bounded startup smoke prove
 different contracts; none replaces the other two. Keep maintained snapshots in
-`<subject>.golden.test.swg`, with the `golden` tag.
+`golden/<subject>.swg`, with the `golden` tag.
 
 1. While iterating, run the owning test file:
-   `tools/apps.bat test <application> --test-file <name>.test.swg`.
+   `tools/apps.bat test <application> --test-file <name>.swg`.
 2. Run the application's routine functional selection only when shared application state or
    several test families changed:
 

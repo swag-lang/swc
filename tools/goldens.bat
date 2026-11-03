@@ -39,8 +39,8 @@ exit /b 0
 
 :testModule
 rem An empty workspace is normal; the compiler rightly rejects an unmatched test filter.
-rem Module tests live in *.test.swg; reference prose can also quote a golden tag.
-findstr /s /m /r /c:"TestTag.*golden" "%~2\src\*.test.swg" >nul
+rem Module tests live in *.swg; reference prose can also quote a golden tag.
+findstr /s /m /r /c:"TestTag.*golden" "%~2\src\tests\cases\*.swg" >nul
 if errorlevel 2 (
     set "result=1"
     exit /b 0

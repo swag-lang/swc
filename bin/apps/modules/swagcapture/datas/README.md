@@ -9,7 +9,7 @@ Regenerate and verify from the repository root:
 
 ```text
 bin/swc.dm.exe run -f bin/apps/modules/swagcapture/tools/rasterize.icons.swgs --num-cores 3
-tools/apps.bat dm test swagcapture --test-file icons.rasters.test.swg
+tools/apps.bat dm test swagcapture --test-file icons.rasters.swg
 ```
 
 Generation is manual asset maintenance; application builds include the PNG files directly.

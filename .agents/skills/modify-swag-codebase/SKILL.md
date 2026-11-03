@@ -276,48 +276,49 @@ layout. A new module copies it without deciding anything:
         tests/                 Test-only sources; never shipped
             datas/             Immutable input fixtures
             goldens/           Recorded expectations, '.txt' and '.png'
-            scripts/           Categorized test sources
+            cases/             Categorized test sources
                 functional/    Ordinary behavior tests
                 golden/        Maintained text and image comparisons
                 integration/   Native, driver, hardware and external contracts
-                smoke/         Application journeys
-                helpers/       Shared test-only source helpers
+                stress/        Large-volume, scale and lifecycle checks
+            helpers/           Shared test-only source helpers
 ```
 
 - **`src/tests/` is the only test root.** Do not nest a `unittests/` folder inside it, and do not
-  put tests directly under `src/`. Put each test under `src/tests/scripts/<type>/`, using
-  `functional`, `golden`, `integration`, or `smoke`. Preserve an area folder below its type when
-  that helps organize a large module.
-- **`*.test.swg` is the only name for a file holding `#test` bodies**, and each opens with
-  `#global if #command == Swag.CompilerCommand.Test`. Every source below `src/` is compiled, so a
-  test file without that guard is built into the shipped module.
-- **Separate test natures into dedicated files.** Keep `.test.swg` last and put the family
-  immediately before it:
+  put tests directly under `src/`. Put each test under `src/tests/cases/<type>/`, using
+  `functional`, `golden`, `integration`, or `stress`. Preserve an area folder below its type when
+  that helps organize a large module. A smoke test is a bounded startup check run by the workspace
+  smoke command, not a directory for user journeys.
+- **Every source under `src/tests/cases/` is a test case source**, and begins with
+  `#global if #command == Swag.CompilerCommand.Test`. Its category directory identifies the test
+  type; its filename names the subject and ends in `.swg`. Shared helpers live in `src/tests/helpers/`.
+  Every source below `src/` is compiled, so a case without that guard is built into the shipped module.
+- **Separate test natures into dedicated files.** The directory carries the test type, so the
+  filename describes only the subject and optional platform qualifiers, ending in `.swg`:
 
   | File | Contract |
   | --- | --- |
-  | `<subject>.test.swg` | Ordinary functional, model, decoder, command or layout assertions |
-  | `<subject>.golden.test.swg` | Tests that generate or compare maintained text/image goldens |
-  | `<plan>.smoke.test.swg` | Application-wide user journeys, named for the test plan |
-  | `<contract>.integration.test.swg` | Explicit external-system, native-host, driver or hardware contracts |
+  | `functional/<subject>.swg` | Ordinary functional, model, decoder, command or layout assertions |
+  | `golden/<subject>.swg` | Tests that generate or compare maintained text/image goldens |
+  | `integration/<plan>.swg` | Application-wide user journeys and explicit external contracts |
+  | `stress/<subject>.swg` | Large-volume, scale and lifecycle checks |
 
-  A smoke plan is named `browsemedialibrary.smoke.test.swg`, not `explorer.smoke.test.swg`
-  merely because it starts in Explorer: opening a viewer and returning belong to the same
-  journey. State the user's task and checkpoints in the test. Use multiple `#test` bodies only
-  for independent cases of that same plan. Keep persistent golden comparisons in golden files;
-  smoke/integration tests may compare live pixels or save diagnostic captures without becoming
-  golden tests. Do not mix ordinary and golden `#test` bodies in one file, or stack family
-  suffixes to disguise mixed responsibilities. Platform qualifiers precede the family, as in
-  `presentation.win32.integration.test.swg`.
-  Filenames describe ownership; tags select execution. Keep `golden` on golden tests and an
-  explicit `integration.*` tag on smoke and external integration tests. A rename alone does not
+  Name an application journey for its full user task, such as `integration/browsemedialibrary.swg`,
+  not `functional/explorer.swg` merely because it starts in Explorer: opening a viewer and
+  returning belong to the same journey. State the user's task and checkpoints in the test. Use
+  multiple `#test` bodies only for independent cases of the same plan. Keep persistent golden
+  comparisons in golden files; integration tests may compare live pixels or save diagnostic
+  captures without becoming golden tests. Do not mix test types in one file. Platform qualifiers
+  remain part of the subject, as in `integration/presentation.win32.swg`.
+  Filenames describe the subject; directories classify the test and tags select execution. Keep
+  `golden` on golden tests and an explicit `integration.*` tag on integration tests. A rename alone does not
   make a native test safe for the default campaign.
   Apply this layout to new files and split an existing mixed file when changing its test
   organization. Move shared setup to the guarded `helpers.swg` at the relevant test root rather
   than duplicating setup or widening production APIs only to support the split. Update source
   filters and documented commands with every rename.
-- **`helpers.swg` is the only name for shared test setup**. Keep shared path helpers under
-  `src/tests/scripts/helpers/`; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
+- **`helpers.swg` is the only name for shared test setup**. Keep shared helpers under
+  `src/tests/helpers/`; do not invent `*.testutils.swg` or a parallel `fixtures/` tree.
 - **`src/testing/` holds test support that is part of the module's public API** — the `Testing`
   namespace consumers import, such as `Gui.Testing` and `Pixel.Testing`. It carries no `#command`
   guard, ships in every configuration, and is documented like any other family. Keeping it out of

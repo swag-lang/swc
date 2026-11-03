@@ -57,12 +57,12 @@ public static class ApplicationCompilerProbe
 
     $runner = Join-Path $scratch 'tools\_tool.bat'
     $env:SWAG_RUNTIME_THREADS = $null
-    & $runner std dm test '"gui"' --test-file headless.render.test.swg | Out-Null
+    & $runner std dm test '"gui"' --test-file headless.render.swg | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Quoted standard module was rejected.' }
     $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
     if ($call[0] -ne '3' -or $call[$call.IndexOf('--workspace-module') + 1] -ne 'gui' -or
         $call -notcontains '--no-test-jit' -or $call[$call.IndexOf('--artifact-kind') + 1] -ne 'executable' -or
-        $call[$call.IndexOf('--test-file') + 1] -ne 'headless.render.test.swg') {
+        $call[$call.IndexOf('--test-file') + 1] -ne 'headless.render.swg') {
         throw 'Standard tests lost their native defaults, module, filter, or runtime ceiling.'
     }
 

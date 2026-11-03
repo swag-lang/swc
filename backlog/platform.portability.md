@@ -359,7 +359,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.013 — Paths have no target-independent lexical conformance suite
 
-- Evidence: `core/src/tests/scripts/functional/filesystem/path.test.swg` already tests lexical Windows path behavior
+- Evidence: `core/src/tests/cases/functional/filesystem/path.swg` already tests lexical Windows path behavior
   without touching the filesystem.
 - Next: extend that coverage to independent target-policy tables for Windows and Unix: root forms,
   case policy, trailing separators, dot segments, invalid names, and normalization. A host must be
@@ -663,7 +663,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: image handle conversions and `Surface.win32Handle` already live in Windows
   adapter files. Their native signatures are intentional optional interoperability.
   `Input.VirtualKey`, however, is still declared in neutral `key.swg` and exercised in
-  neutral `key.test.swg`; the conversion functions themselves live in `keyboard.win32.swg`.
+  neutral `key.swg`; the conversion functions themselves live in `keyboard.win32.swg`.
 - Next: keep that alias and its tests with the optional keyboard adapter. Common declarations
   and consumers should need only `Input.Key` and normalized events.
 - Done when: a neutral input compilation contains no virtual-key declaration or native

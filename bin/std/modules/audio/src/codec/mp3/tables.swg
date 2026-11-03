@@ -17,7 +17,7 @@
 // The Huffman tables are stated twice. `Huff<n>Len` and `Huff<n>Cod` are the normative form of
 // Table B.7: the length and the value of the code word of every `(x, y)` pair, in `x`-major
 // order, which is what a reader compares against the standard. `Huff<n>Tree` is the same
-// information as a binary tree, which is what the decoder walks; `huffman.tables.test.swg` walks
+// information as a binary tree, which is what the decoder walks; `huffman.tables.swg` walks
 // every code of the normative form through the tree and requires them to agree, so the derived
 // form cannot drift from the stated one.
 

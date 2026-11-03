@@ -308,8 +308,8 @@ longer joined to the button or placed by its rules. `RightUpward` opens the menu
 button. The shared menu fits itself against the window edges, so the caller adds no offsets. A
 context menu requested by the pointer stays at the pointer.
 
-[`menu.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/golden/menu.test.swg) protects the joined
-outline. [`properties.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/golden/properties.test.swg)
+[`menu.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/menu.swg) protects the joined
+outline. [`properties.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/properties.swg)
 checks the property editor's real trigger in both themes. When you add a new trigger, test the
 path that opens it.
 

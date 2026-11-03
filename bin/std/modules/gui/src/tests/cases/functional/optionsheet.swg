@@ -1,7 +1,20 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// Returns the surface point at the middle of the row worded `label` on the page on screen.
+func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
+{
+    let index = sheet.findRow(label)
+    Swag.assert(index != Swag.U32.Max)
+    let list = sheet.listRect(sheet.depth())
+    let y    = list.y + sheet.rowTop(&sheet.page, cast(s32, index)) - sheet.levels.back().scroll
+    let rect = sheet.rowRect(list, y, sheet.rowHeight(&sheet.page.rows[index]))
+    return sheet.localToSurface(Math.Point{rect.horzCenter(), rect.vertCenter()})
+}
+
+// The first page names every setting with the value in force, and a link opens its choices.
 #test
 {
     var host: Testing.HeadlessHost
@@ -27,6 +40,9 @@ using Swag, Core, Pixel
         Swag.assert(sheet.focusRow == 1)
     })
 }
+
+// A choice on a page of choices applies at once, shows its check, then goes back to a first
+// page that already shows the new value, with the focus on the setting it came from.
 #test
 {
     var host: Testing.HeadlessHost
@@ -51,6 +67,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.focusRow == 1)
     })
 }
+
+// Staying keeps the page of choices open; closing ends the sheet after the check was shown.
 #test
 {
     var host: Testing.HeadlessHost
@@ -86,6 +104,8 @@ using Swag, Core, Pixel
              },
              afterChoice: .Close)
 }
+
+// A page that mixes choices with other rows stays open after a choice, whatever the policy.
 #test
 {
     var host: Testing.HeadlessHost
@@ -106,6 +126,9 @@ using Swag, Core, Pixel
              },
              afterChoice: .Close)
 }
+
+// The keyboard walks the rows and the header around the page, opens a link with Right and
+// comes back with Left to the row it left from; Escape steps back, then closes.
 #test
 {
     var host: Testing.HeadlessHost
@@ -156,6 +179,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.isClosed())
     })
 }
+
+// The header is a way back for the pointer and the keyboard alike, and Backspace takes it too.
 #test
 {
     var host: Testing.HeadlessHost
@@ -188,6 +213,9 @@ using Swag, Core, Pixel
         Swag.assert(sheet.isClosed())
     })
 }
+
+// A stepper steps in place, ten steps at a time with Shift, and stops where it says it cannot
+// go further. The reset appears with a delay and, once run, hands its focus to the row above.
 #test
 {
     var host: Testing.HeadlessHost
@@ -234,6 +262,8 @@ using Swag, Core, Pixel
         Swag.assert(model.delay == 0)
     })
 }
+
+// A toggle switches in place, from the keyboard and the pointer; a disabled one does nothing.
 #test
 {
     var host: Testing.HeadlessHost
@@ -257,6 +287,8 @@ using Swag, Core, Pixel
         Swag.assert(not model.wrap)
     })
 }
+
+// The pointer opens a link and picks a value; a press outside the sheet closes it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -285,6 +317,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.isClosed())
     })
 }
+
+// The body follows the height of the page on screen, and a page change lets input settle it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -314,6 +348,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.body.bottom() == sheet.tab.y)
     })
 }
+
+// With reduced motion, a page changes and the body resizes in one step.
 #test
 {
     var host: Testing.HeadlessHost
@@ -329,6 +365,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.bodyHeight == sheet.contentHeight(&sheet.page, 2))
     })
 }
+
+// A checked choice at the end of a page that fits keeps its original position after the sheet grows.
 #test
 {
     var host: Testing.HeadlessHost
@@ -345,6 +383,8 @@ using Swag, Core, Pixel
         Swag.assert(sheet.levels.back().scroll == 0)
     })
 }
+
+// A page that must scroll positions its checked last choice for the destination height immediately.
 #test
 {
     var host: Testing.HeadlessHost
@@ -368,6 +408,8 @@ using Swag, Core, Pixel
              },
              buttonRect: {300, 8, 40, 36})
 }
+
+// The anchored arrival fades without moving the joined button.
 #test
 {
     var host: Testing.HeadlessHost
@@ -382,6 +424,9 @@ using Swag, Core, Pixel
         host.finishAnimations()
     })
 }
+
+// A sheet whose button sits high in the window hangs below it; one that cannot hold its rows
+// scrolls them, and keeps the focused row in view.
 #test
 {
     var host: Testing.HeadlessHost
@@ -408,6 +453,9 @@ using Swag, Core, Pixel
              },
              buttonRect: {300, 8, 40, 36})
 }
+
+// A bottom sheet rises over a veil across the bottom edge, and a side panel covers the trailing
+// edge at full height; a press on the veil closes either.
 #test
 {
     var host: Testing.HeadlessHost
@@ -442,6 +490,8 @@ using Swag, Core, Pixel
              },
              placement: .SidePanel)
 }
+
+// A sheet describes itself again when the language changes under it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -455,6 +505,62 @@ using Swag, Core, Pixel
         Swag.assert(sheet.page.rows[0].value == "2x")
     })
 }
+
+// A window answering the state of five commands, the way an application's actions do.
+struct SheetCommandTarget
+{
+    using wnd: Wnd
+    mode:      u32
+    flag:      bool
+    runs:      u32
+}
+
+const SheetModeIds = ["Test.Sheet.ModeA", "Test.Sheet.ModeB"]
+
+impl IWnd for SheetCommandTarget
+{
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        switch evt.id
+        {
+        case "Test.Sheet.ModeA", "Test.Sheet.ModeB":
+            let mode = evt.id == SheetModeIds[0] ? 0'u32 : 1
+            evt.updatedFields.add(.Name | .Checked | .RenderingHint)
+            evt.name          = mode ? "Mode B" : "Mode A"
+            evt.checked       = .mode == mode
+            evt.renderingHint = .ExclusiveGroup
+
+        case "Test.Sheet.Flag":
+            evt.updatedFields.add(.Name | .LongName | .Checked)
+            evt.name     = "Flag"
+            evt.longName = "Show the flag"
+            evt.checked  = .flag
+
+        case "Test.Sheet.Run":
+            evt.updatedFields.add(.Name)
+            evt.name = "Run"
+
+        case "Test.Sheet.Hidden":
+            evt.updatedFields.add(.Name | .Hidden)
+            evt.name   = "Hidden"
+            evt.hidden = true
+        }
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        switch evt.id
+        {
+        case "Test.Sheet.ModeA": .mode = 0
+        case "Test.Sheet.ModeB": .mode = 1
+        case "Test.Sheet.Flag":  .flag = not .flag
+        case "Test.Sheet.Run":   .runs += 1
+        }
+    }
+}
+
+// Rows bound to commands take their wording and kind from the command state, and run the command
+// on the target when activated; a link over an exclusive group is valued by the command in force.
 #test
 {
     var host: Testing.HeadlessHost

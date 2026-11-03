@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+// A wheel notch immediately after a distant jump must not wait for background prefetch.
+// Both directions keep a complete viewport and respond on the next paint.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -46,6 +49,9 @@ using Swag, Core
         Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     }
 }
+
+// Reaching the streamed end replaces the block under a stationary pointer. The following wheel
+// notch must resolve its new target without requiring an intervening mouse move.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -79,6 +85,9 @@ using Swag, Core
 
     Swag.assert(view.scroll.scrollPosition().y < end)
 }
+
+// Every document key uses the scrollbar's next-paint loading path, including reversals before
+// the pending destination is painted. No loading timer is needed to expose a simple text page.
 #[Swag.TestTag("stress")]
 #test
 {

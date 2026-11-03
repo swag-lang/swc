@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// The first paint shows a ring in each image box. Completion replaces it without reflow,
+// for both Markdown images and embedded HTML, in every shipped palette and at high DPI.
 #[Swag.TestTag("golden")]
 #test
 {

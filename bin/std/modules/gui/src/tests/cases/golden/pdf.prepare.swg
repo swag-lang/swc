@@ -59,6 +59,3 @@ func heaviestPage(name: string)->{ reader: Reader, index: u64 }
     // gains from it rather than exactly.
     Pixel.Testing.assertImagesNear(&expected, &actual, "pdf.prepare.finer", {maxChannelDelta: 255, maxDifferentPixels: 4000})
 }
-
-// A page with nothing but text has no vector geometry to prepare, and preparing an invalid scale
-// is refused rather than half-applied.

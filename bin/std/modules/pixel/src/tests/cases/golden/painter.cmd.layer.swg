@@ -2,9 +2,6 @@
 
 using Swag, Core
 
-// Resizing a retained shadowed layer must match scaling its whole composite, including
-// margins and offsets. Compare images so a misplaced coloured body cannot hide in a shadow.
-
 // Command-stream goldens for off-screen layers.
 //
 // A layer is the most command-heavy thing the painter does: it acquires render targets, redirects
@@ -82,8 +79,6 @@ using Swag, Core
     painter.end()
     Testing.assertGolden(&painter, "layer.draw")
 }
-
-// An opaque retained layer can replace destination colors without a second alpha blend.
 
 // A shadow adds the separable blur passes and a second composite. This is the only golden that
 // exercises the built-in blur program and its parameters.

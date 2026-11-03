@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Pixel
 
+// A small invalidation reconstructs the same backdrop as a full paint, without cumulative blur.
 #test
 {
     var host: Testing.HeadlessHost
@@ -21,6 +23,8 @@ using Core, Pixel
     host.settleAnimations()
     Swag.assert(not host.root.hasBackdrop())
 }
+
+// The material samples the parent before the lens's own opacity layer is recorded.
 #test
 {
     var host: Testing.HeadlessHost

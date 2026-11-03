@@ -2,32 +2,6 @@
 
 using Swag, Core
 
-func makeTrianglePath()->LinePath
-{
-    var result: #returntype
-    result.start(0, 0)
-    result.lineTo(10, 0)
-    result.lineTo(5, 8)
-    result.close()
-    return result
-}
-
-// A document declares its view box and writes straight segments as line commands.
-
-// Whole coordinates lose their fraction and fractions lose their trailing zeros.
-
-// A ground is painted before every shape, and a title names the document.
-
-// Without a title the document declares itself decorative.
-
-// The even-odd rule and a translucent color are carried by the shape.
-
-// Bézier segments keep their own commands instead of being flattened.
-
-// Every contour of a list joins the same shape element.
-
-// An empty document still writes a well-formed root element.
-
 // Painting a document on screen goes through the stroker, not the rasterizer, and asks it to
 // measure a stroke's coverage from its centre line. A drawing is mostly stroke, so this is the
 // path that decides both what a vector document costs and what it looks like.

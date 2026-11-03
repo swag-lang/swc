@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+// Reading a short file in one chunk does not mean that all its blocks have been laid out.
+// End must reach its last block even when only the first background batch is ready.
 #test
 {
     let fileName = Testing.tempFilePath("markdown-short-end-", ".md")

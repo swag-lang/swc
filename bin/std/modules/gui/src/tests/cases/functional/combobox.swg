@@ -1,7 +1,26 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+const ComboHeadless_Item1 = "ComboHeadless.Item1"
+
+const ComboHeadless_Item2 = "ComboHeadless.Item2"
+
+const ComboHeadless_Item3 = "ComboHeadless.Item3"
+
+var ComboHeadlessChangedCount: u32
+
+var ComboHeadlessLastIdx:      u32
+
+func comboHeadlessChanged(_: *ComboBox, idx: u32)
+{
+    ComboHeadlessChangedCount += 1
+    ComboHeadlessLastIdx      = idx
+}
+
+// A live palette switch resolves every painted combo part immediately. Interaction inside one
+// palette may animate, but the old palette must never remain visible while the surface changes.
 #test
 {
     var host: Testing.HeadlessHost
@@ -29,6 +48,8 @@ using Swag, Core
     Swag.assert(combo.aniText.cur() == Color.fromVector4(combo.aniText.destVec4))
     Swag.assert(host.app.animator.activeCount() == 0)
 }
+
+// Removing items preserves order, adjusts later selections, and clears a removed selection.
 #test
 {
     var host: Testing.HeadlessHost
@@ -49,6 +70,8 @@ using Swag, Core
     Swag.assert(combo.items.count == 1 and combo.selectedIndex == Swag.U32.Max)
     Swag.assert(combo.selectedItem() == null and (combo.editBox.text()).count == 0)
 }
+
+// Selecting an item emits sigChanged + a command carrying the item id.
 #test
 {
     var host: Testing.HeadlessHost
@@ -89,6 +112,8 @@ using Swag, Core
     Swag.assert(ComboHeadlessLastIdx == Swag.U32.Max)
     Swag.assert(host.commandCount == 1)
 }
+
+// clear() empties the item list and resets all selection state silently.
 #test
 {
     var host: Testing.HeadlessHost
@@ -104,6 +129,8 @@ using Swag, Core
     Swag.assert(combo.selectedIndex == Swag.U32.Max)
     Swag.assert(combo.selectedItem() == null)
 }
+
+// An edit combo embeds an editbox that mirrors the selected item text.
 #test
 {
     var host: Testing.HeadlessHost
@@ -117,6 +144,9 @@ using Swag, Core
     host.pump()
     Swag.assert(combo.editBox.text() == "Beta")
 }
+
+// Keyboard control: arrows move the selection (clamped at the ends, skipping
+// separators); Home/End jump to the first/last item.
 #test
 {
     var host: Testing.HeadlessHost
@@ -154,6 +184,8 @@ using Swag, Core
     host.keyPress(Input.Key.End)
     Swag.assert(combo.selectedIndex == 3)
 }
+
+// Enter opens the drop-down popup, Escape closes it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -172,6 +204,9 @@ using Swag, Core
     Swag.assert(combo.popup == null)
     host.app.setMouseCaptureRaw(null)
 }
+
+// A combo opened with the pointer returns keyboard focus to the control that owned it once the
+// popup closes, so an invisible pointer focus cannot trap subsequent navigation keys.
 #test
 {
     var host: Testing.HeadlessHost
@@ -205,6 +240,9 @@ using Swag, Core
     host.mouseUp(comboPoint)
     host.app.setMouseCaptureRaw(null)
 }
+
+// A combo reached from keyboard traversal keeps its visible focus after keyboard interaction,
+// preserving normal accessible combo-box navigation without creating an invisible focus owner.
 #test
 {
     var host: Testing.HeadlessHost
@@ -223,6 +261,9 @@ using Swag, Core
     Swag.assert(combo.hasFocus() and combo.hasVisibleFocus())
     host.app.setMouseCaptureRaw(null)
 }
+
+// A segmented combo shows its entries side by side: a click on one chooses it and opens nothing,
+// and the arrows move the choice.
 #test
 {
     var host: Gui.Testing.HeadlessHost

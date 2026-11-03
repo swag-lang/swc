@@ -1,6 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
 
+// Resizing a retained shadowed layer must match scaling its whole composite, including
+// margins and offsets. Compare images so a misplaced coloured body cannot hide in a shadow.
 #test
 {
     func renderScaledLayer(transformed: bool)->Image
@@ -36,6 +39,8 @@ using Swag, Core
     var actual   = renderScaledLayer(false)
     Testing.assertImagesNear(&expected, &actual, "layer.scaled-shadow", {maxChannelDelta: 2})
 }
+
+// An opaque retained layer can replace destination colors without a second alpha blend.
 #test
 {
     var cpu:   RenderCpu

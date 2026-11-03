@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Pixel, Pdf
 
+// A page with nothing but text has no vector geometry to prepare, and preparing an invalid scale
+// is refused rather than half-applied.
 #test
 {
     var reader = expect Reader.open(corpusPdfPath("llvm-polly-raghesh-masters-thesis.pdf"))

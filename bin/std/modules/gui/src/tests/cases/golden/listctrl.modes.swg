@@ -118,7 +118,3 @@ func buildListModes(host: *Testing.HeadlessHost)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "listctrl.modes.paper")
 }
-
-// The ground of the row under the pointer comes in over a beat, and the one it left goes out.
-
-// Files carry the quiet hue of their kind; folders carry the mark of a place.

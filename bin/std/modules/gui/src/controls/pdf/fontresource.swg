@@ -328,13 +328,13 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     readSimpleWidths(parser, &result, metrics)
 
     let descriptor = parser.dict(metrics, "FontDescriptor")
+    readDescriptorTraits(parser, &result, descriptor)
     if descriptor != InvalidNode
     {
         let missing = parser.dict(descriptor, "MissingWidth")
         if missing != InvalidNode do
             result.defaultWidth = cast(f32, parser.number(missing)) / 1000.0
 
-        readDescriptorTraits(parser, &result, descriptor)
         try readFontProgram(parser, &result, descriptor)
     }
 

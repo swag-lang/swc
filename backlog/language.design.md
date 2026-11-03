@@ -700,21 +700,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: the reference states what `"\xFF"` holds, a fixture pins it, and no source under
   `bin/` relies on the other reading.
 
-### language.design.042 — Compiler suites and the reference still state verdicts with `Swag.assert`
-
-- Evidence: `Swag.require` and `Swag.check` are the test verdicts: no `Swag.Safety` setting removes
-  them, and a failed check lets its test go on. Module tests, test helpers and the `Testing`
-  libraries under `bin/std`, `bin/apps` and the workspace suite use `Swag.require`; only
-  `core/.../diagnostics/assert.swg`, which tests the assertion itself, keeps `Swag.assert`. About
-  17,800 calls remain in the compiler suites under `bin/unittests`, 1,100 in the language
-  reference and 230 in the examples. Many compiler-suite cases pin the assertion itself: its
-  safety setting, narrowing, argument evaluation and `sema_err_assert_failed`.
-- Next: decide, per suite, which calls are verdicts and which pin the assertion, rewrite the
-  verdicts to `Swag.require`, and choose whether reference examples teach `Swag.require` in
-  `#test` bodies; then warn on a `Swag.assert` written directly in a `#test` body.
-- Done when: every `Swag.assert` left in a `#test` body under `bin/` tests the assertion itself,
-  and a sema fixture pins the warning.
-
 ---
 
 ## Generic contracts and execution semantics

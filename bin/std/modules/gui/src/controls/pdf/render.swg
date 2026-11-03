@@ -108,10 +108,8 @@ internal struct RenderFontCache
 {
     embedded:           Array'(*TypeFace?)     // Per page font index, once resolution was attempted.
     embeddedResolved:   Array'bool
-    substitute:         Array'(*TypeFace?)     // Substitute face per page font index.
+    substitute:         Array'(*TypeFace?)     // Page fonts, followed by the standard faces for authored text.
     substituteResolved: Array'bool
-    fallback:           *TypeFace?     // Substitute face for text with no font resource.
-    fallbackResolved:   bool
 }
 
 internal impl RenderFontCache
@@ -120,8 +118,8 @@ internal impl RenderFontCache
     {
         .embedded.resize(count)
         .embeddedResolved.resize(count)
-        .substitute.resize(count)
-        .substituteResolved.resize(count)
+        .substitute.resize(count + StandardFont.count)
+        .substituteResolved.resize(count + StandardFont.count)
     }
 
     // Forgets every resolution, then sizes the cache for a page's font table.
@@ -134,8 +132,6 @@ internal impl RenderFontCache
         .embeddedResolved.clear()
         .substitute.clear()
         .substituteResolved.clear()
-        .fallback         = null
-        .fallbackResolved = false
         .prepare(count)
     }
 
@@ -157,19 +153,8 @@ internal impl RenderFontCache
     }
 
     // Returns the face standing in for a font whose program cannot be drawn.
-    mtd substituteFace(fallbackFontFile: string, index: u32, resource: const *FontResource?)->*TypeFace fail
+    mtd substituteFace(fallbackFontFile: string, index: u32, resource: const *FontResource)->*TypeFace fail
     {
-        if not resource or index >= .substitute.count
-        {
-            if not .fallbackResolved
-            {
-                .fallback         = try substituteTypeface(fallbackFontFile, null)
-                .fallbackResolved = true
-            }
-
-            return unwrap .fallback
-        }
-
         if not .substituteResolved[index]
         {
             .substitute[index]         = try substituteTypeface(fallbackFontFile, resource)
@@ -240,30 +225,44 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 // advance the PDF declared for it instead: one character usually, several when the code
 // stands for a ligature the substitute spells out, and their widths are scaled to fill
 // exactly that advance.
-private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource?, font: *Font)
+private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource, font: *Font)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
-    if not resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
-    {
-        painter.drawString(0, baselineOffset(item, font), item.text.toString(), font, item.fillColor)
-        return
-    }
+    // Authored or edited runs have no encoded codes yet. Their standard PDF metrics must
+    // already govern the preview, just as they will after encoding and decoding the page.
+    let standardRun = item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
+    var characters: Array'rune
+    if standardRun do
+        characters = item.text.toRuneArray()
+    let count = standardRun ? characters.count : item.textCodes.count
 
     // What each code contributed, so the run can be fitted once its full width is known.
     var groups: Array'SubstitutedGroup
     var shaped: ShapedRun
     shaped.font = info.drawFont
-    shaped.glyphs.reserve(item.textCodes.count)
-    groups.reserve(item.textCodes.count)
+    shaped.glyphs.reserve(count)
+    groups.reserve(count)
 
     var declaredTotal = 0.0'f32
     var naturalTotal  = 0.0'f32
-    for code, index in item.textCodes
+    for index in count
     {
-        let text = resource.codeText(code)
+        var text: String
+        var declared: f32
+        if standardRun
+        {
+            text.append(characters[index])
+            declared = item.standardFont.glyphWidth(characters[index]) * item.fontSize
+        }
+        else
+        {
+            text     = resource.codeText(item.textCodes[index])
+            declared = item.textAdvances[index]
+        }
+
         var group: SubstitutedGroup
         group.first    = shaped.glyphs.count
-        group.declared = item.textAdvances[index] / info.scale
+        group.declared = declared / info.scale
 
         Utf8.visitRunes(text.toString())
         {
@@ -331,9 +330,21 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
 private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, fallbackFontFile: string) fail
 {
     let fontSize = cast(u32, Math.max(1, Math.round(item.fontSize)))
-    let resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
+    var resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
+    var index = item.fontIndex
+    var standard: FontResource
+    if not resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
+    {
+        let face = cast(u32, item.standardFont)
+        standard.serif      = face / 4 == 1
+        standard.fixedPitch = face / 4 == 2
+        standard.bold       = (face & 1) != 0
+        standard.italic     = (face & 2) != 0
+        resource = &standard
+        index = cast(u32, page.fonts.count) + face
+    }
 
-    if resource
+    if not resource.bytes.isEmpty()
     {
         let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded
@@ -344,7 +355,7 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         }
     }
 
-    let substitute = try fonts.substituteFace(fallbackFontFile, item.fontIndex, resource)
+    let substitute = try fonts.substituteFace(fallbackFontFile, index, resource)
     drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize))
 }
 

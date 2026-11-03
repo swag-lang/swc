@@ -17,7 +17,7 @@ function Invoke-Apps([string[]] $Arguments, [string] $Workers, [string] $Runtime
         if ($workerArguments.Count -ne 1 -or $workerArguments[0] -ne "--run-arg=--compiler-workers=$Workers") {
             throw "Child workers: expected '$Workers', received '$workerArguments'."
         }
-        if (!($call | Where-Object { $_ -eq "--run-arg=--compiler=$scratch\tools\..\bin\swc.dm.exe" })) {
+        if (!($call | Where-Object { $_ -eq "--run-arg=--compiler=$scratch\bin\swc.dm.exe" })) {
             throw 'Child compiler does not match the selected checkout compiler.'
         }
     } elseif ($workerArguments.Count) { throw 'Worker arguments reached an unrelated application command.' }
@@ -26,6 +26,7 @@ function Invoke-Apps([string[]] $Arguments, [string] $Workers, [string] $Runtime
 try {
     $null = New-Item -ItemType Directory -Path (Join-Path $scratch 'tools'), (Join-Path $scratch 'bin') -Force
     Copy-Item -LiteralPath $Tool -Destination (Join-Path $scratch 'tools\_tool.bat')
+    Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $Tool) 'tool.py') -Destination (Join-Path $scratch 'tools\tool.py')
     $env:SWC_RUNNER_TEST_LOG = Join-Path $scratch 'call.txt'
     $env:SWAG_RUNTIME_THREADS = $null
     Add-Type -OutputAssembly (Join-Path $scratch 'bin\swc.dm.exe') -OutputType ConsoleApplication -TypeDefinition @'

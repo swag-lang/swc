@@ -15,6 +15,32 @@ For application iteration, use the default `bin\swc.exe` by omitting `dm` or `-D
 `swc.dm.exe` for debugging compiler problems. `-bc` and `-Configuration` select the compiled
 program configuration independently.
 
+## Shared Windows and Linux launchers
+
+Workspace commands and test selection live in `tool.py` and require Python 3.9 or newer.
+The Windows `tests.bat`, `unittests.bat`, and `_tool.bat` entry points delegate to it through
+`python` on PATH. Their existing arguments remain valid; `std.bat`, `apps.bat`, `examples.bat`
+and `reference.bat` keep using `_tool.bat`. On Linux, call the same engine with `python3`:
+
+```sh
+python3 tools/tool.py unittests dm sema
+python3 tools/tool.py std test core
+python3 tools/tool.py apps test swagcapture
+python3 tools/tool.py examples test gui1
+python3 tools/tool.py tests dm
+```
+
+The default compiler is the checkout's `bin/swc[.exe]` or `bin/swc.dm[.exe]` with `dm`.
+`SWC_COMPILER` and `SWC_DEVMODE_COMPILER` can select an external installation with its runtime.
+These direct commands use normal workspace outputs and caches. Tests default to three compiler
+workers; explicit compiler options retain precedence. Runtime and child-compiler worker defaults
+are capped at three, and an existing `SWAG_RUNTIME_THREADS` is preserved.
+The complete `tests` campaign includes C++ tests with `dm`, then every compiler input suite,
+workspace fixtures, standard modules, examples, applications and reference tests. It stops on
+failure and preserves the failing exit status. Dynamic-library fixtures use the host extension;
+WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
+the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
+
 ## Workspaces
 
 ```text

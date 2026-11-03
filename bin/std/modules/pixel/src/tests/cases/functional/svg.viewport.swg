@@ -86,7 +86,13 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 // where most of the document is outside it and at one where none of it is.
 #test
 {
-    var drawing = expect Svg.Drawing.parse(ViewportSource)
+    // Viewport clipping uses the checked-in face, independent of installed system fonts.
+    let fontPath = getTestDataPath("segoeui.ttf")
+    var options: Svg.ParseOptions
+    options.fontFileName      = fontPath.toString()
+    options.serifFontFileName = ""
+    options.monoFontFileName  = ""
+    var drawing = expect Svg.Drawing.parse(ViewportSource, options)
 
     const Width  = 200's32
     const Height = 260's32
@@ -165,7 +171,13 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
 // drawing painted once whole still paints the same afterwards.
 #test
 {
-    var drawing = expect Svg.Drawing.parse(ViewportSource)
+    // Viewport clipping uses the checked-in face, independent of installed system fonts.
+    let fontPath = getTestDataPath("segoeui.ttf")
+    var options: Svg.ParseOptions
+    options.fontFileName      = fontPath.toString()
+    options.serifFontFileName = ""
+    options.monoFontFileName  = ""
+    var drawing = expect Svg.Drawing.parse(ViewportSource, options)
 
     const Width  = 200's32
     const Height = 260's32

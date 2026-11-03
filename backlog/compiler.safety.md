@@ -43,6 +43,21 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.031 — Preserve inline-string views across interface calls
+
+- Evidence: `Core.Log.print` produced fourteen zero bytes when it passed a local `String`'s
+  `toString()` view through a local `string` variable to `ILogWriter.print`. The local owner remained
+  in scope, and calling `w.print(rendered.toString())` directly fixed the log test. Longer,
+  heap-backed messages did not reproduce the failure. This suggests a gap in preserving a short
+  inline string's storage across the borrowed view and dynamic call; the exact compiler phase is
+  not yet established.
+- Next: add a compiler regression for a local short `String`, a separate borrowed view, and an
+  interface callback; trace borrow/liveness analysis and generated code, then ensure an actual
+  escaping view still receives its existing diagnostic.
+- Done when: the compiler either keeps the inline string valid through the callback or rejects the
+  invalid lifetime before code generation, with positive and negative regressions covering both
+  cases.
+
 ### compiler.safety.030 — Measure the runtime cost of value-borrow guards
 
 - Evidence: `bin/unittests/native/functions/value_borrow_cost.swg` compares identical

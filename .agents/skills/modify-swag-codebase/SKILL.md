@@ -103,11 +103,15 @@ When building `swc` with MSVC, bound native compilation at each parallelism laye
   concurrency. Preserve any existing `CL` options when adding it. This only limits those compiler
   phases, not every thread or process in the build.
 - MSBuild `/m:P` and C++ `/MP:C` are separate limits. When several projects compile concurrently,
-  their process limits can multiply. Keep the effective number of concurrent C++ compilations at
-  three or fewer; do not set both levels to three by default.
-- For the current one-project `swc.sln`, use `/m:1` with `/p:SwcCompileJobs=3` and ensure
-  `CL` includes `/cgthreads1`. If a build includes multiple C++ projects, choose `/m` and
-  `SwcCompileJobs` values whose product does not exceed three.
+  their process limits can multiply. For an admitted build with average CPU at most 35%, at least
+  12 GiB of free physical memory, and at least 8 GiB of commit headroom, allow up to eight
+  concurrent C++ compilations. Otherwise use at most three. Recheck load before each build;
+  these are starting conditions, not permission to overlap another command without admission.
+- For the current one-project `swc.sln`, use `/m:1` with `/p:SwcCompileJobs=8` when the higher
+  headroom threshold holds, or `/p:SwcCompileJobs=3` otherwise. Keep `CL` at `/cgthreads1`.
+  The project defaults to eight jobs; set `SWC_COMPILE_JOBS=3` for its invocation when
+  only the lower admission threshold holds. If a build includes multiple C++ projects, choose
+  `/m` and `SwcCompileJobs` values whose product stays within the admitted job count.
 
 Never invoke `tools/release.bat`. It is an owner-only interactive entry point. Release disables
 whole-program optimization and LTCG to keep iteration practical. An agent builds it only when the

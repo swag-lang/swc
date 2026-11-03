@@ -360,7 +360,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
-    if (cmdLine.rebuild)
+    if (cmdLine.rebuild && !cmdLine.rebuildModule)
         CompilerCacheStore::invalidateAll();
     if (cmdLine.optimizerStats)
         optimizerStats_ = std::make_unique<MicroOptimizerStats>();

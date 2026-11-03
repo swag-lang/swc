@@ -135,7 +135,10 @@ sufficiently large unchanged native leaf functions without external references r
 their cached object members instead of repeating microcode optimization and encoding.
 Debug executables and results obtained by executing imported code at compile time
 remain strict invalidation boundaries. Use '--rebuild' to recompile every selected
-module without consuming these cached compilation results.
+module and its dependencies without consuming these cached compilation results.
+With '--workspace-module NAME', use '--rebuild-module' to force just that module;
+dependencies are still checked and rebuilt if stale. The two rebuild options cannot
+be combined.
 
 # Cleaning
 

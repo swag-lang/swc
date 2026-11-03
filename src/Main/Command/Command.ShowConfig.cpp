@@ -58,6 +58,7 @@ namespace
         addInfoEntry(entries, "Warnings disabled", Utf8Helper::join(cmdLine.warnDisabled, "|"));
         addBoolEntry(entries, "Silent", cmdLine.silent);
         addBoolEntry(entries, "Rebuild", cmdLine.rebuild);
+        addBoolEntry(entries, "Rebuild module", cmdLine.rebuildModule);
         addBoolEntry(entries, "Dry run", cmdLine.dryRun);
         addBoolEntry(entries, "Show config", cmdLine.showConfig);
         addBoolEntry(entries, "Verbose verify", cmdLine.verboseVerify);

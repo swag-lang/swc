@@ -3024,6 +3024,8 @@ Result CompilerInstance::prepareDependencyPlan(TaskContext& ctx, DependencyPlan&
 
         stdCmdLine.workspaceModuleFilter.clear();
         stdCmdLine.workspaceModuleSelection = std::move(stdModules);
+        stdCmdLine.rebuild                  = cmdLine().rebuild && !cmdLine().rebuildModule;
+        stdCmdLine.rebuildModule            = false;
 
         stdCmdLine.moduleFilePath.clear();
         stdCmdLine.modulePath.clear();
@@ -3369,6 +3371,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
             moduleBuild.filteredOut = false;
 
         CommandLine setupCmdLine = cmdLine();
+        setupCmdLine.rebuild = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
         setupCmdLine.workspacePath.clear();
         setupCmdLine.modulePath     = moduleBuild.moduleDir;
         setupCmdLine.moduleFilePath = moduleBuild.moduleFile;
@@ -3703,6 +3706,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     outCompiled = false;
 
     CommandLine moduleCmdLine = cmdLine();
+    moduleCmdLine.rebuild = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
     if (moduleRun.buildNativeDependency)
         moduleCmdLine.command = CommandKind::Build;
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
@@ -4347,7 +4351,7 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     if (fingerprint.empty())
         return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
 
-    if (!cmdLine().rebuild)
+    if (!setupCmdLine.rebuild)
     {
         ModuleSetupSnapshot cached;
         cached.inputsReadTime = fs::file_time_type::clock::now();

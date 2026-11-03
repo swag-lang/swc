@@ -1163,6 +1163,18 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         return Result::Error;
     }
 
+    if (cmdLine_->rebuildModule)
+    {
+        if (cmdLine_->rebuild)
+            return reportConflictingArgument(ctx, "--rebuild-module", "--rebuild");
+        if (cmdLine_->workspaceModuleFilter.empty())
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_rebuild_module_requires_workspace_module);
+            diag.report(ctx);
+            return Result::Error;
+        }
+    }
+
     if (!cmdLine_->workspacePath.empty())
     {
         if (!cmdLine_->moduleFilePath.empty())

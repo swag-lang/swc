@@ -76,6 +76,8 @@ is local to the launcher and its children. Application helper processes inherit 
 count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
+For a selected workspace module, `--rebuild-module` forces only that module and reuses
+current dependencies. `--rebuild` forces the module and its dependency closure.
 
 ### Limit runtime threads
 
@@ -226,6 +228,9 @@ open a new terminal after running it.
 
 `tools/devmode.bat` builds the DevMode compiler. `tools/release.bat` is an owner-only full-machine
 build entry point.
+The C++ project uses eight compilation jobs by default; `tools/devmode.bat` keeps code-generation
+threads at one per compiler process. Both compiler build scripts accept `SWC_COMPILE_JOBS` for a
+different native job count.
 
 DevMode keeps assertions, compiler validators, race checks, allocator checks and C++ tests.
 Fields maintained only for debugger inspection are disabled by default in both compiler builds.

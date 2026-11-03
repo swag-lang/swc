@@ -30,7 +30,7 @@ from.
 - Evidence: sheets, slides, and drawing pages have a compact selector and cross-surface search.
   Matches already retain the sheet/row/column or slide index needed to reveal them.
   `DocumentOutline` also presents text headings through `bindHtml`, sheet names and slide/page
-  names; `viewer.outline.test.swg` covers navigation in these families. Long presentations still
+  names; `viewer.outline.swg` covers navigation in these families. Long presentations still
   have no thumbnails, and search results do not share richer heading/object identities with the
   navigator.
 - Next: derive one document navigator from headings, bookmarks, sheets, ranges, slides, pages,

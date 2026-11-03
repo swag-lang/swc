@@ -4,20 +4,21 @@ Use complementary test families. A passing startup smoke is not a completed user
 
 | Boundary | What it establishes | Where it lives |
 | --- | --- | --- |
-| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/scripts/functional/`, with an optional area folder |
-| Golden tests | Maintained text/image references | `src/tests/scripts/golden/`, with snapshots in `src/tests/goldens/`, tag `golden` |
-| Application scenarios | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/scripts/smoke/<plan>.smoke.test.swg`, tag `integration.application.smoke` |
-| External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/scripts/integration/<contract>.integration.test.swg`, explicit `integration.*` tag |
+| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/cases/functional/`, with an optional area folder |
+| Golden tests | Maintained text/image references | `src/tests/cases/golden/`, with snapshots in `src/tests/goldens/`, tag `golden` |
+| Application journeys | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/cases/integration/<plan>.swg`, tag `integration.application.journey` |
+| External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/cases/integration/<contract>.swg`, explicit `integration.*` tag |
+| Stress tests | Large-volume, scale, concurrency and lifecycle limits | `src/tests/cases/stress/<subject>.swg`, `stress` or a scoped `*.stress` tag |
 | Startup smoke | The shipped executable and published resources start and stop within a budget | `tools/apps.bat [dm] smoke <application>` |
 
-The scenario tag is an opt-in selection of ordinary `#test` functions, not another test language
-or a second assertion framework. Keep the test-only guard and keep scenarios out of `#main`.
-Keep each family in dedicated files, with `.test.swg` last. Name a smoke file for the complete
-user plan, such as `browsemedialibrary.smoke.test.swg`; the first control or screen does not own
-the journey. Do not mix ordinary and golden tests in one file. Keep every module test under
-`src/tests/scripts/`; preserve viewer-specific grouping with an area folder such as
-`src/tests/scripts/functional/viewers/<viewer>/`. Put shared test helpers under
-`src/tests/scripts/helpers/`, not in production APIs.
+Integration tags opt in ordinary `#test` functions; they are not another test language or assertion
+framework. Keep the test-only guard and keep journeys out of `#main`. The directory supplies the
+test type, and filenames name the subject and end in `.swg`. Name a journey for the complete
+user plan, such as `cases/integration/browsemedialibrary.swg`; the first control or screen does
+not own the journey. Do not mix test types in one file. Keep every module test under
+`src/tests/cases/`; preserve viewer-specific grouping with an area folder such as
+`src/tests/cases/functional/viewers/<viewer>/`. Put shared test helpers under `src/tests/helpers/`,
+not in production APIs. A smoke test is the bounded application startup check, not a user journey.
 Run the real application window and its normal event loop; do not replace filesystem enumeration,
 background workers, decoders or the renderer with fakes in a test intended to cover that path.
 Include production initialization such as the application icon and resource registration; redirect
@@ -61,14 +62,12 @@ and a supported non-default DPI. Do not describe an unimplemented dimension as c
 
 ## Current executable coverage
 
-Swag Scope's `browsemedialibrary.smoke.test.swg` creates 160 local entries in temporary Films and
-Pictures folders from four real video fixtures (MJPEG, H.264, Matroska and legacy RV40) and four
-image fixtures (PNG, WebP, GIF and TIFF). It scrolls through the film library to fill and evict the
-128-texture preview cache, returns to reload evicted previews, changes details/poster modes,
-filters, opens a film, returns to the folder, replaces a pending navigation, refreshes Pictures,
-resizes to odd dimensions and back, and changes theme. Visible thumbnails and native presentation
-are checkpoints. This is local, offline coverage; online artwork, network shares, monitor DPI
-changes and visible-compositor behavior are not covered by this journey.
+Swag Scope's `stress/previewcache.swg` creates 160 local entries in a temporary Films folder
+from real video fixtures and exercises eviction and reload across the 128-texture preview cache.
+The separate `integration/browsemedialibrary.swg` follows the user journey through filtering,
+viewer open/return, refresh, resize and theme changes, with visible thumbnails and native presentation
+as checkpoints. These tests use local fixtures; online artwork, network shares, monitor DPI changes
+and visible-compositor behavior are not covered.
 
 Run it with the private-desktop launcher documented in [README.md](README.md). Logs identify each
 stage. Keep the compiler, program configuration, fixture identities, renderer and failing stage

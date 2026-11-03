@@ -58,7 +58,7 @@ new module rather than growth inside `core`.
 ### std.core.013 — No BLAKE2s implementation
 
 - Evidence: `Hash.Blake2b` already implements incremental and one-shot keyed and unkeyed
-  hashing, with variable digest lengths and tests in `src/tests/scripts/functional/crypto/blake2b.test.swg`. There
+  hashing, with variable digest lengths and tests in `src/tests/cases/functional/crypto/blake2b.swg`. There
   is no BLAKE2s.
 - Next: add BLAKE2s with the same operation family and published vectors; BLAKE3 remains
   independent.

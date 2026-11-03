@@ -69,7 +69,7 @@ python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py parser --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py cpp --compiler /absolute/build/devmode/swc.dm
 python3 tools/linux-tests.py dynamic-library --compiler /absolute/build/devmode/swc.dm
-python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core --test-file environment.locale.linux.test.swg
+python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core --test-file environment.locale.linux.swg
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --execution native
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
@@ -101,7 +101,7 @@ executable. It uses private XDG directories and needs GIO, `gio`, `/usr/bin/env`
 
 ```sh
 python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core \
-  --execution native --test-file environment.registration.linux.integration.test.swg \
+  --execution native --test-file environment.registration.linux.swg \
   --test-tag integration.desktop.registration
 ```
 
@@ -114,7 +114,7 @@ address, then run:
 
 ```sh
 python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core \
-  --execution native --test-file environment.chooser.linux.integration.test.swg \
+  --execution native --test-file environment.chooser.linux.swg \
   --test-tag integration.desktop.chooser
 ```
 
@@ -173,7 +173,7 @@ Examples:
 
 ```text
 tools\examples.bat run gui2
-tools\apps.bat test swagcapture --test-file files.test.swg
+tools\apps.bat test swagcapture --test-file files.swg
 tools\std.bat dm test gui --test-tag golden
 tools\scripts.bat snake
 ```
@@ -201,7 +201,7 @@ Set `SWAG_RUNTIME_THREADS` before launching a compiled program or its test execu
 
 ```powershell
 $env:SWAG_RUNTIME_THREADS = '2'
-tools\apps.bat test swagcapture --test-file files.test.swg
+tools\apps.bat test swagcapture --test-file files.swg
 # An already built test executable honors the same variable when launched from its prepared directory.
 .\app.test.exe
 Remove-Item Env:SWAG_RUNTIME_THREADS
@@ -274,18 +274,18 @@ and do not enable `integration.*`. File filters still intersect the tag selectio
 affect execution and reuse the same native test artifact; they do not remove implementation
 sources or rebuild a smaller test binary.
 
-### Application smoke scenarios
+### Application integration journeys
 
 `apps.bat smoke` is the bounded startup check of the shipped executable. User journeys belong
-in `<application>/src/tests/scripts/smoke/<plan>.smoke.test.swg`, guarded by `#command ==
-Swag.CompilerCommand.Test` and tagged `integration.application.smoke`. They use the ordinary
+in `<application>/src/tests/cases/integration/<plan>.swg`, guarded by `#command ==
+Swag.CompilerCommand.Test` and tagged `integration.application.journey`. They use the ordinary
 test runner; integration tags keep them out of default headless tests. See
 [the scenario contract](application-scenarios.md) for fixtures, checkpoints, and coverage limits.
 
 On Windows, run a scenario without taking focus or showing test windows on the user's desktop:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -TestFile browsemedialibrary.smoke.test.swg
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -TestFile browsemedialibrary.swg
 ```
 
 The launcher creates a private desktop without switching to it, invokes `apps.bat test`, and
@@ -334,7 +334,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
 
-The golden campaign discovers tags in module test files (`*.test.swg`) and skips workspaces
+The golden campaign discovers `golden` tags in module case sources under `src/tests/cases/` and skips workspaces
 that declare no golden tests; quoted tags in reference prose do not select a workspace. Its argument
 forwarding, and failure propagation can be checked without a compiler or desktop:
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/goldens.ps1`.

@@ -77,7 +77,7 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 - Evidence: `HtmlImageCache.fetch` in `controls/html/image.swg` parses local `.svg` files through
   `Svg.Drawing`, preserves their natural layout size, and rasterizes visible vectors at their
   displayed size with a 4,096-pixel dimension bound and an 8-megapixel area bound.
-  `htmlview.test.swg` verifies intrinsic dimensions and CSS overrides. Inline `<svg>` remains in
+  `htmlview.swg` verifies intrinsic dimensions and CSS overrides. Inline `<svg>` remains in
   `HtmlDocument.isSkippedTag`, and data URIs still go through the raster-only `Image.fromDataUri`.
 - Next: route bounded embedded SVG bytes through the existing SVG engine and define how an inline
   subtree preserves its namespace, dimensions, styles, and offline resource policy.

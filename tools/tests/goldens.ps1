@@ -30,19 +30,19 @@ try {
     foreach ($workspace in @('std', 'examples', 'apps', 'reference')) {
         $module = Join-Path $scratch "bin\$workspace\modules\fixture\src"
         $null = New-Item -ItemType Directory -Path $module -Force
-        Set-Content -LiteralPath (Join-Path $module 'fixture.test.swg') -Value '#test {}' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $module 'fixture.swg') -Value '#test {}' -Encoding Ascii
         Set-Content -LiteralPath (Join-Path $module 'documentation.swg') -Value '/** #[Swag.TestTag("golden")] */' -Encoding Ascii
         Write-Runner $workspace
     }
     Assert-Campaign 0 @()
 
     foreach ($workspace in @('std', 'apps')) {
-        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.test.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     }
     Assert-Campaign 0 @('std/fixture', 'apps/fixture')
 
     foreach ($workspace in @('examples', 'reference')) {
-        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.test.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
+        Set-Content -LiteralPath (Join-Path $scratch "bin\$workspace\modules\fixture\src\fixture.swg") -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     }
     Assert-Campaign 0 @('std/fixture', 'examples/fixture', 'apps/fixture', 'reference/fixture')
 
@@ -51,7 +51,7 @@ try {
 
     $nested = Join-Path $scratch 'bin\std\modules\followup\src\nested'
     $null = New-Item -ItemType Directory -Path $nested -Force
-    Set-Content -LiteralPath (Join-Path $nested 'followup.test.swg') -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
+    Set-Content -LiteralPath (Join-Path $nested 'followup.swg') -Value '#[Swag.TestTag("golden")]' -Encoding Ascii
     Write-Runner 'std' 7
     Write-Runner 'examples'
     Assert-Campaign 1 @('std/fixture', 'std/followup', 'examples/fixture', 'apps/fixture', 'reference/fixture')

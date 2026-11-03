@@ -69,7 +69,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 - Evidence: packed bit expansion, encoder filter/scoring kernels, decoder Up/Average/Paeth
   and Sub for 1/2/3/4/6/8-byte pixels exist (`defilterSubRow` in `decode/png/filter.swg`);
-  `image.png.test.swg` compares Sub against scalar recurrence across strides 1 through 8.
+  `image.png.swg` compares Sub against scalar recurrence across strides 1 through 8.
   Gray and palette conversion have thresholded packed-word paths. Native 16-bit samples
   without transparency keys are byte-swapped eight at a time, and grayscale keys
   are compared eight at a time; RGB keys are compared two pixels at a time. Earlier rejections of other packed

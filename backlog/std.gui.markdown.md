@@ -19,7 +19,7 @@ The engine lives beside its widget inside `gui`; application-level zoom stays in
 
 - Evidence: `Markdown.parseHeadings` returns headings with distinct source byte offsets, and
   `Markdown.View.revealHeading` navigates to one in a streamed document. Swag Scope uses these
-  APIs for its outline; `documentoutline.test.swg` covers heading parsing and navigation beyond
+  APIs for its outline; `documentoutline.swg` covers heading parsing and navigation beyond
   the initial resident window.
 - Remaining: `[TOC]` is still emitted as unlinked text, a `#fragment` link leaves through
   `sigLinkActivated`, and a footnote reference has no local jump target. Programmatic heading

@@ -677,7 +677,7 @@ in its module backlog; a general request for better names is not a missing langu
 - Evidence: with `func f(path: const [..] string = ...)`, neither `[]` nor `{}` nor `null` is
   accepted as the default, and a call `f([])` is rejected with "array literal has no element to
   infer from; provide explicit type context elsewhere" although the parameter names the type. The
-  option-sheet golden helper in `bin/std/modules/gui/src/tests/scripts/golden/optionsheet.test.swg` had to take two
+  option-sheet golden helper in `bin/std/modules/gui/src/tests/cases/golden/optionsheet.swg` had to take two
   optional labels instead of one path slice.
 - Next: decide the spelling of the empty slice (`[]` typed by its destination, like a brace literal
   typed by its target struct), accept it for parameters, defaults, returns and typed
@@ -691,7 +691,7 @@ in its module backlog; a general request for better names is not a missing langu
   its two UTF-8 bytes (`"\x89PNG"` has five bytes, the first `0xC2`). Code written as if it were
   one byte was silently wrong: Swag Scope's binary viewer named no gzip, XZ, Zstandard, 7-Zip, OLE,
   PNG, JPEG, Matroska or Java class file by its signature until the signatures became `[N] u8`
-  constants. `bin/std/modules/gui/src/tests/scripts/functional/pdf.transparency.test.swg` still writes image samples
+  constants. `bin/std/modules/gui/src/tests/cases/functional/pdf.transparency.swg` still writes image samples
   as `"\xFF\xFF\xFF\xFF"`, and `bin/unittests/native/flow/switch.swg` writes `"caf\xC3\xA9"`, both
   in the byte reading. The reference only shows `"\x26"`.
 - Next: choose one rule — reject `\x80`–`\xFF` in a string literal (pointing to `\u00HH` or a byte

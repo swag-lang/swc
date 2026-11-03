@@ -41,7 +41,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Constraint: an inlined scalar free keeps the `SanityRelease` boundary on `request.address`
   and the caller's diagnostic location. Guard it with
   `bin/unittests/sanity/inline_allocator_free.swg`,
-  `bin/unittests/sanity/use_after_free_parameter_location.swg`, `lifecycle_summary.test.swg`,
+  `bin/unittests/sanity/use_after_free_parameter_location.swg`, `lifecycle_summary.swg`,
   and the custom-allocator and diagnostic-mode tests.
 - Measurement: use rotating before/after runs, identical-binary controls, and repeated
   concurrent workloads. Attribute code/data placement separately when application timings

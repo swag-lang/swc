@@ -9,8 +9,8 @@ Regenerate after changing the SVG or rasterizer, from the repository root:
 
 ```text
 bin/swc.dm.exe run -f bin/std/modules/gui/tools/rasterize-theme.swgs --num-cores 6
-tools/std.bat dm test gui --test-file theme.rasters.test.swg --test-file theme.resources.test.swg
-tools/std.bat dm test gui -bc release --test-file theme.rasters.test.swg
+tools/std.bat dm test gui --test-file theme.rasters.swg --test-file theme.resources.swg
+tools/std.bat dm test gui -bc release --test-file theme.rasters.swg
 ```
 
 This is an asset-maintenance operation, not a compilation step. Normal builds include the

@@ -140,7 +140,7 @@ dialogs, then each application, then the written rules.
 - Evidence, left when the campaign closed:
   - The tool letters (`V R P A L T C D H N M X F`) were registered on the main window and
     answered in the library, changing the editor's tool unseen; the tool commands are now
-    disabled while the library is on screen (`global.test.swg`).
+    disabled while the library is on screen (`global.swg`).
   - The full gui suite runs 5 to 7 minutes, past a `--run-timeout 300`; it needs about 420.
 - Next: decide with the charter owner between five smaller presets and four of the pictures'
   size.

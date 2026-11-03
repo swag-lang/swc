@@ -32,7 +32,7 @@ ships; history lives in Git, not here.
 
 - Evidence: on a straight `RGBA8` image, `setChannel(.RGB, .Color, 0xFF)` returns without
   changing a pixel (a keyed-out `0xFFF7F900` stays `0xFFF7F900`); only the BGR8/BGRA8 storage path
-  writes. `image.simd.tail.test.swg` pins that: it expects the `setChannel` bytes to change for
+  writes. `image.simd.tail.swg` pins that: it expects the `setChannel` bytes to change for
   BGR8 and BGRA8 only. The other formats go through `transformLogicalPixels`; why the write is lost
   there is not established (the closure also shadows the method's own `value` parameter).
   `Application.loadAppIconCuts` whitens the window glyph with `visitPixels` instead.
@@ -80,7 +80,7 @@ ships; history lives in Git, not here.
 - Next: build the input. The ordering failure needs three or more edges meeting so closely that
   no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
   produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
-- Done when: a test in `poly.clipper.test.swg` reaches the branch and pins the empty
+- Done when: a test in `poly.clipper.swg` reaches the branch and pins the empty
   solution, or the branch is shown to be unreachable and says so.
 - Related: std.pixel.011
 
@@ -102,7 +102,7 @@ ships; history lives in Git, not here.
   Profile CPU sampling, color modulation, coverage and blending separately. Packing all four
   bilinear channels into U32 SIMD preserved the reference pixels but did not demonstrate a frame
   gain under shared-machine load; inspect its final instructions and use matched load before
-  revisiting it. Preserve the two 16.16 quantization steps covered by `render.bilinear.test.swg`.
+  revisiting it. Preserve the two 16.16 quantization steps covered by `render.bilinear.swg`.
 - Done when: the safe cases have a measured program-selection policy, transparent-texel and
   clip-mask regressions cover its boundaries, and native CPU/GPU comparisons preserve output.
 

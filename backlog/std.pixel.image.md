@@ -65,7 +65,7 @@ ships; history lives in Git, not here.
 ### std.pixel.image.036 — Decoding has no cumulative resource budget
 
 - Evidence: `DecodeOptions` now bounds encoded bytes, frame count, pixels per image/canvas, and
-  bytes per pixel buffer. `image.imagereader.test.swg` protects these limits, including cyclic TIFF
+  bytes per pixel buffer. `image.imagereader.swg` protects these limits, including cyclic TIFF
   indexes and oversized DDS arrays. Those ceilings do not account for the aggregate live storage
   of encoded bytes, indexes, metadata, animation canvases, saved disposal frames, and decoder
   scratch buffers; no shared budget follows that storage through a decode.

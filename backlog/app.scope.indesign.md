@@ -42,7 +42,7 @@ visible reading workflow, never merely by whether a JPEG preview decoded.
 - Evidence: the viewer never fetches a network URL, enforces image byte/pixel budgets, and retries a
   same-folder basename when an InDesign absolute link is stale. `Viewers.InDesign.Idml.fileUriPath` rejects remote
   authorities, decoded UNC separators, malformed escapes and invalid path names, covered by
-  `viewer.indesign.test.swg`. A valid direct `file:` URI may still
+  `viewer.indesign.swg`. A valid direct `file:` URI may still
   cause the renderer to inspect an arbitrary readable local image.
 - Next: define a document-root capability policy with an explicit user command for broader local
   resolution and privacy-redacted diagnostics. Extend the existing URI tests with document-root

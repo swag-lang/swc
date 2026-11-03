@@ -21,7 +21,7 @@ struct Coefficient
 // The standard prints this as Table B.19 for intra blocks and B.20 for inter ones, but it is not
 // separate information: it is the largest level the coefficient table itself holds for that run,
 // and the tables here reproduce all four of those tabulations exactly. Deriving it is therefore
-// four fewer tables to be right about, and `mpeg4.tables.test.swg` proves the derivation.
+// four fewer tables to be right about, and `mpeg4.tables.swg` proves the derivation.
 func levelMax(inter: bool, last: u32, run: u32)->u32
 {
     let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast

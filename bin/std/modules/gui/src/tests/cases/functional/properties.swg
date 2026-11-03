@@ -1,0 +1,1770 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+using Swag, Core
+
+#[Swag.TestTag("properties.font")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    var data: PropHeadlessFontData
+    let prop = Properties.create(&host.root, {0, 0, 300, 180}, .Panel)
+    prop.addStruct(data)
+    let item  = unwrap findFieldItem(prop, #nameof(PropHeadlessFontData.face))
+    let combo = item.comboBox
+    Swag.assert(combo != null and combo.items.count > 2)
+    for index in [2'u32, cast(u32, combo.items.count - 1)]
+    {
+        let name: String = combo.items[index]!.name.raw
+        combo.setSelectedIndex(index)
+        Swag.assert(data.face == name)
+        prop.refresh()
+        Swag.assert(combo.selectedIndex == index)
+    }
+
+    combo.setSelectedIndex(0)
+    Swag.assert(data.face.isEmpty())
+    prop.refresh()
+    Swag.assert(combo.selectedIndex == 0)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    // 1 implicit section item + 3 fields.
+    Swag.assert(prop.items.count == 4)
+    Swag.assert(prop.items[0]!.flags.has(.Section))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.setEditorWidth(280)
+    prop.setUsingFieldsLast(true)
+    prop.setRevertButtonsVisible(false)
+    prop.addStruct(data)
+
+    Swag.assert(prop.editorWidth == 280)
+    Swag.assert(prop.usingFieldsLast)
+    Swag.assert(not prop.revertButtonsVisible)
+    Swag.assert(prop.items.count == 4)
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem != null)
+    prop.setFilter("no matching property")
+    Swag.assert(not prop.items[1]!.line.isVisible())
+
+    prop.clear()
+    Swag.assert(prop.items.isEmpty())
+    Swag.assert(not prop.selItem)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 180)
+    var data: PropHeadlessHiddenData
+    let prop = Properties.create(&host.root, {0, 0, 240, 160})
+    prop.addStruct(data)
+
+    Swag.assert(prop.items.count == 2)
+    Swag.assert(prop.items[1]!.typeValue.name == #nameof(PropHeadlessHiddenData.visible))
+    Swag.assert(data.persistedOnly == 2)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1240, 820)
+    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+
+    var data: PropHeadlessGroupedData
+    let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
+    ctrl.dockStyle = .Left
+    ctrl.margin.z  = 24
+    ctrl.properties.setEditorWidth(300)
+    ctrl.properties.setNameColumnWidth(150)
+    ctrl.addStruct(data, "Settings")
+    ctrl.splitter.setPaneSize(0, 160)
+    let paneIt = unwrap ctrl.splitter.items[0]
+    paneIt.preserveSize = true
+
+    let preview = Wnd.create'FrameWnd(page, {})
+    preview.dockStyle = .Center
+
+    page.applyLayout()
+
+    Swag.assert(ctrl.position == {0, 0, 560, 666})
+    Swag.assert(ctrl.splitter.position.width > 0)
+    Swag.assert(ctrl.splitter.position.height > 0)
+    Swag.assert(ctrl.properties.position.width > 0)
+    Swag.assert(ctrl.properties.position.height > 0)
+    Swag.assert(ctrl.properties.edView.position.width > 0)
+    Swag.assert(ctrl.properties.edView.position.height > 0)
+    Swag.assert(ctrl.properties.items.count == 6)
+    Swag.assert(ctrl.properties.items[0]!.line.isVisible())
+    Swag.assert(ctrl.properties.items[1]!.line.isVisible())
+    Swag.assert(ctrl.properties.items[1]!.line.position.height == ctrl.properties.gridLineHeight)
+    Swag.assert(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])     // section row is skipped
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+
+    host.keyPress(Input.Key.Down)
+    Swag.assert(prop.selItem == prop.items[2])
+    host.keyPress(Input.Key.Down)
+    Swag.assert(prop.selItem == prop.items[3])
+    host.keyPress(Input.Key.Down)     // clamp at the last row
+    Swag.assert(prop.selItem == prop.items[3])
+    host.keyPress(Input.Key.Up)
+    Swag.assert(prop.selItem == prop.items[2])
+
+    host.keyPress(Input.Key.Home)
+    Swag.assert(prop.selItem == prop.items[1])
+    host.keyPress(Input.Key.End)
+    Swag.assert(prop.selItem == prop.items[3])
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    prop.focusNavigation()     // selItem = count row
+    host.keyPress(Input.Key.Return)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
+
+    host.keyPress(Input.Key.Escape)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+}
+#test
+{
+    for kind in [PropertiesKind.Grid, PropertiesKind.List, PropertiesKind.Condensed, PropertiesKind.Panel]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(420, 420)
+        var data: PropHeadlessCancelData
+        data.text = "before"
+        let prop = Properties.create(&host.root, {0, 0, 400, 400}, kind)
+        prop.addStruct(data)
+        Swag.assert(prop.items.count == 4)
+
+        var changes: u32
+        prop.sigValueChanged += func|changes = &changes|(_, _)
+        {
+            changes[] += 1
+        }
+
+        for index in 1 until prop.items.count
+        {
+            let item = unwrap prop.items[index]
+            let edit = item.sliderBox != null ? item.sliderBox.edit : item.editBox
+            edit.setFocus()
+            edit.selectAll()
+            host.sendRune(Input.Key.A, '9')
+            Swag.assert(edit.text() == "9")
+            host.keyPress(Input.Key.Escape)
+            Swag.assert(prop.edView.hasFocus())
+            Swag.assert(data.value == 42 and data.text == "before" and data.bounded == 10,
+                        Format.toString("kind %, item %: value %, text %, bounded %", kind, index, data.value, data.text, data.bounded).toString())
+            Swag.assert(changes == 0 and not prop.canUndo())
+        }
+
+        let edit = prop.items[1]!.editBox
+        edit.setFocus()
+        edit.selectAll()
+        host.sendRune(Input.Key.A, '9')
+        host.keyPress(Input.Key.Return)
+        Swag.assert(data.value == 9 and changes == 1 and prop.canUndo())
+    }
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    prop.focusNavigation()     // count row
+    host.keyPress(Input.Key.Return)     // edit count
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[1]!.editBox))
+
+    host.keyPress(Input.Key.Down)     // commit + move to label row
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    prop.focusNavigation()
+    host.keyPress(Input.Key.Return)     // edit count
+    host.keyPress(Input.Key.Tab)        // -> edit label row
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[2]!.editBox))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 600)
+    var data: PropHeadlessArrayData
+    data.actions.resize(1)
+    let prop = Properties.create(&host.root, {0, 0, 380, 560}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
+    Swag.assert(prop.items[1]!.label != null and prop.items[2]!.label != null and (prop.items[4]!.label != null))
+
+    // For each value row, the inner value line must start at or below the label bottom.
+    func assertBelowLabel(item: *PropertiesItem)
+    {
+        let labelBottom = item.label.position.bottom()
+        for c in item.line.children
+        {
+            if c == cast(*Wnd?, item.label) do
+                continue
+            Swag.assert(c.position.y >= labelBottom)
+        }
+    }
+
+    assertBelowLabel(unwrap prop.items[1])     // vector
+    assertBelowLabel(unwrap prop.items[2])     // array count editor
+    assertBelowLabel(unwrap prop.items[4])     // bool
+
+    // Rows and labels span the whole control (the value editors keep their own cap)
+    let originItem = unwrap prop.items[1]
+    let rowWidth   = originItem.line.position.width
+    Swag.assert(rowWidth > cast(f32, prop.editorWidth))
+    Swag.assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32, prop.leftMargin), 0.01))
+    Swag.assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
+
+    let actionsItem = unwrap prop.items[2]
+    let actionRight = cast(f32, prop.editorWidth) - prop.rightMargin - PropRevertGap
+    Swag.assert((actionsItem.arrayAddButton != null))
+    Swag.assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
+
+    // The bool description is nudged down to optically center on the box: it carries a
+    // positive top text padding derived from the font descent (never a hard-coded value).
+    let chk    = prop.items[4]!.checkBox
+    let chkRow = unwrap chk.parent
+    var desc: *Label?
+    for c in chkRow.children do
+        if c != cast(*Wnd?, chk) do
+            desc = assume cast (*Label, c)
+    let descLbl = unwrap desc
+    Swag.assert(descLbl.textPadding.y > 0)
+    Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
+    Swag.assert(chkRow.position.height >= descLbl.position.bottom())     // wrapped info text is not clipped
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 200)
+    var data: PropHeadlessColorData
+    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    Swag.assert(prop.scrollWnd.scrollSize.y > prop.position.height)     // content overflows -> scrollable
+
+    func sendWheel(p: *Properties, deltaY: f32)
+    {
+        var wheel = MouseEvent{kind: .Wheel}
+        wheel.delta.y    = deltaY
+        wheel.surfacePos = {20, 90}
+        p.edView.sendEvent(&wheel)
+    }
+
+    // Control: with no popup, the wheel scrolls the list.
+    let y0 = prop.scrollWnd.scrollPosition().y
+    sendWheel(prop, -6)     // scroll down
+    let y1 = prop.scrollWnd.scrollPosition().y
+    Swag.assert(y1 != y0)
+
+    // Modal: with a popup open, the same wheel is swallowed and the list stays put.
+    let popup = Wnd.create'Wnd(&host.root, {})
+    prop.editPopup = popup
+    sendWheel(prop, -6)
+    Swag.assert(prop.scrollWnd.scrollPosition().y == y1)
+
+    // Clearing the popup restores scrolling.
+    prop.editPopup = null
+    sendWheel(prop, 6)     // scroll back up
+    Swag.assert(prop.scrollWnd.scrollPosition().y != y1)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 200)
+    var data: PropHeadlessColorData
+    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    let btn = unwrap findIconButton(prop.items[9]!.line)     // the color swatch button
+
+    // Hover the button (no popup yet) -> hot.
+    host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
+    Swag.assert(btn.isHot)
+
+    // With a popup open, a MouseLeave must still reach the button and clear the hover.
+    let popup = Wnd.create'Wnd(&host.root, {})
+    prop.editPopup = popup
+    host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
+    Swag.assert(not btn.isHot)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData     // enabled = true
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    prop.focusNavigation()
+    host.keyPress(Input.Key.End)     // enabled (checkbox) row
+    let chk = prop.items[3]!.checkBox
+    Swag.assert(chk.isChecked())
+
+    host.keyPress(Input.Key.Space)
+    Swag.assert(not chk.isChecked())
+    host.keyPress(Input.Key.Space)
+    Swag.assert(chk.isChecked())
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    var data: PropHeadlessSliderData     // volume=50, level=5
+    let prop = Properties.create(&host.root, {0, 0, 300, 200})
+    prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
+    prop.edView.sendResizeEvent()
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])     // section is not navigable in list mode
+
+    // The very first Right in navigation steps the slider and focuses it (so the
+    // value changes immediately, not only on the second press).
+    host.keyPress(Input.Key.Right)
+    let volumeSlider = prop.items[1]!.sliderBox
+    Swag.assert(volumeSlider.value() > 50)
+    Swag.assert(data.volume > 50)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, volumeSlider.slider))
+
+    // A further Right keeps stepping (now in edit mode on the focused slider).
+    let v1 = volumeSlider.value()
+    host.keyPress(Input.Key.Right)
+    Swag.assert(volumeSlider.value() > v1)
+
+    // Down auto-commits and moves to the next row, back in navigation mode.
+    host.keyPress(Input.Key.Down)
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    var data: PropHeadlessSliderData     // volume=50, level=5
+    let prop = Properties.create(&host.root, {0, 0, 300, 200})
+    prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
+    prop.edView.sendResizeEvent()
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])
+
+    let edit = prop.items[1]!.sliderBox.edit
+
+    // Enter focuses the value box (not the slider track) and selects its whole text.
+    host.keyPress(Input.Key.Return)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, edit))
+    Swag.assert(edit.selBeg == 0 and edit.selEnd == (edit.text()).count)
+    Swag.assert((edit.text()).count > 0)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 200)
+    var data: PropHeadlessEnumData     // choice = Mid (index 1)
+    let prop = Properties.create(&host.root, {0, 0, 280, 180})
+    prop.addStruct(data, "E")     // [0]=section [1]=choice
+    prop.edView.sendResizeEvent()
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])
+    let combo = prop.items[1]!.comboBox
+    Swag.assert(combo.selectedIndex == 1)     // Mid
+
+    // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
+    // the keys to the popup (so they never leak to page navigation outside the grid).
+    host.keyPress(Input.Key.Return)
+    Swag.assert(combo.popup != null)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+
+    let pview = assume cast (*PopupListView, combo.popup.scrollWnd.view)
+    Swag.assert(pview.hotIdx == 1)     // highlight starts on the current value
+
+    // Down moves the highlight only; the committed value stays until Enter.
+    host.keyPress(Input.Key.Down)     // highlight Mid -> High
+    Swag.assert(pview.hotIdx == 2)
+    Swag.assert(combo.selectedIndex == 1)     // not committed yet
+    Swag.assert(data.choice == .Mid)
+
+    // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
+    host.sendMouseEvent(cast(*Wnd, pview), MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
+    Swag.assert(pview.hotIdx == 2)
+
+    // Enter commits the highlighted item (writes the data) and closes the edit.
+    host.keyPress(Input.Key.Return)
+    host.pump()
+    Swag.assert(combo.selectedIndex == 2)
+    Swag.assert(data.choice == .High)
+    Swag.assert(combo.popup == null)
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    var data: PropHeadlessCustomData
+    let prop = Properties.create(&host.root, {0, 0, 300, 180})
+    prop.addStruct(data, "C")     // [0]=section [1]=origin [2]=count
+    prop.edView.sendResizeEvent()
+
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
+
+    host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
+    let f = unwrap host.app.keyboardFocusWnd
+    Swag.assert(f is EditBox)
+
+    host.keyPress(Input.Key.Down)     // commit + move to the next row
+    Swag.assert(prop.selItem == prop.items[2])
+    Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 200)
+    var data: PropHeadlessCustomData
+    let prop = Properties.create(&host.root, {0, 0, 300, 180})
+    prop.addStruct(data, "C")
+
+    prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
+    prop.focusNavigation()
+    Swag.assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data, "Settings")
+
+    Swag.assert(prop.items.count == 4)
+    Swag.assert(prop.items[0]!.flags.has(.Section))
+    Swag.assert(prop.sections.count == 1)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 180)
+    var data: PropHeadlessData
+    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .None)
+    ctrl.addStruct(data, "Settings")
+    ctrl.properties.edView.sendResizeEvent()
+
+    Swag.assert(ctrl.properties.items.count == 4)
+    let it0 = unwrap ctrl.properties.items[0]
+    let it1 = unwrap ctrl.properties.items[1]
+    let it2 = unwrap ctrl.properties.items[2]
+    let it3 = unwrap ctrl.properties.items[3]
+    Swag.assert(it0.line.position.y == 2)
+    Swag.assert(it1.line.position.y == 38)
+    Swag.assert(it2.line.position.y == 74)
+    Swag.assert(it3.line.position.y == 110)
+    Swag.assert(it0.line.position.height == 32)
+    Swag.assert(it1.line.position.height == 32)
+    Swag.assert(it2.line.position.height == 32)
+    Swag.assert(it3.line.position.height == 32)
+    Swag.assert(it0.line.position.width > 0)
+
+    let countItem = it1
+    Swag.assert(countItem.label.position == {0, 0, 150, 32})
+    Swag.assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
+    Swag.assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
+    Swag.assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1240, 820)
+    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+
+    let filter = EditBox.create(page, "")
+    filter.dockStyle = .Top
+    filter.margin    = {16, 16, 16, 4}
+
+    var dataA: PropHeadlessGroupedData
+    var dataB: PropHeadlessGroupedData
+    var dataC: PropHeadlessGroupedData
+    let prop = Properties.create(page, {}, .List)
+    prop.dockStyle = .Center
+    prop.margin    = {16, 8, 16, 16}
+    prop.addStruct(dataA, "Appearance")
+    prop.addStruct(dataB, "Content")
+    prop.addStruct(dataC, "Layout")
+
+    page.applyLayout()
+
+    Swag.assert(prop.items.count == 18)
+    let it0 = unwrap prop.items[0]
+    let it1 = unwrap prop.items[1]
+    Swag.assert(it0.line.isVisible())
+    Swag.assert(it1.line.isVisible())
+    Swag.assert(it0.line.position.height > 0)
+    Swag.assert(it1.line.position.y > it0.line.position.y)
+    Swag.assert(it0.label.position.height > 0)
+    Swag.assert(it1.label.position.height > 0)
+    Swag.assert(prop.scrollWnd.scrollSize.y > prop.position.height)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(520, 420)
+
+    var data: MultiTile
+    let prop = Properties.create(&host.root, {0, 0, 500, 400}, .Condensed)
+    prop.addStruct(data, "Tile")
+
+    host.root.applyLayout()
+    host.pump()
+
+    let option      = unwrap findFieldItem(prop, #nameof(MultiBadges.Star))
+    let optionLabel = assume cast (*Label, option.line.children[1])
+    Swag.assert(option.checkBox.dockStyle == .Left)
+    Swag.assert(option.line.position.height == prop.gridLineHeight)
+    Swag.assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
+    Swag.assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1, t2: MultiTile
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    bases.add(cast(*u8, &t2))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = unwrap findFieldItem(prop, "count")
+    Swag.assert(prop.instanceCount(countItem) == 3)
+    Swag.assert(not prop.fieldIsMixed(countItem))     // all start equal (0)
+
+    // Edit the native field: all three instances change together.
+    countItem.editBox.setText("9")
+    prop.validateNative(countItem)
+    Swag.assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
+
+    // Bool toggle propagates to all.
+    let flagItem = unwrap findFieldItem(prop, "flag")
+    flagItem.checkBox.toggle()
+    Swag.assert(t0.flag and t1.flag and t2.flag)
+
+    // Enum selection propagates to all.
+    let choiceItem = unwrap findFieldItem(prop, "choice")
+    choiceItem.comboBox.setSelectedIndex(2)     // High
+    Swag.assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1: MultiTile
+    t0.count = 1
+    t1.count = 2     // differs -> mixed
+    t0.flag  = true
+    t1.flag  = false     // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = unwrap findFieldItem(prop, "count")
+    Swag.assert(prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "")     // blank when mixed
+
+    let flagItem = unwrap findFieldItem(prop, "flag")
+    Swag.assert(prop.fieldIsMixed(flagItem))
+    Swag.assert(flagItem.checkBox.state == .Indeterminate)     // indeterminate when mixed
+
+    // Editing the mixed native field sets both instances and clears the mixed state.
+    countItem.editBox.setText("7")
+    prop.validateNative(countItem)
+    Swag.assert(t0.count == 7 and t1.count == 7)
+    Swag.assert(not prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "7")
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0: MultiTile
+    t0.count = 3
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let countItem = unwrap findFieldItem(prop, "count")
+    Swag.assert(prop.instanceCount(countItem) == 1)
+    Swag.assert(not prop.fieldIsMixed(countItem))
+    Swag.assert(countItem.editBox.text() == "3")
+
+    countItem.editBox.setText("8")
+    prop.validateNative(countItem)
+    Swag.assert(t0.count == 8)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 380)
+    var t0, t1: MultiTile
+    t0.pos = {1, 10}
+    t1.pos = {2, 10}     // x differs (mixed), y uniform
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let posItem = unwrap findFieldItem(prop, "pos")
+
+    // x component differs -> mixed; y component is uniform -> not mixed.
+    Swag.assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    Swag.assert(not prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
+
+    var boxes: Array'(*EditBox?)
+    collectEditBoxes(posItem.line, &boxes)
+    Swag.assert(boxes.count == 2)     // x and y
+
+    // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
+    let box0 = unwrap boxes[0]
+    box0.setText("5")
+    box0.sigCommitted.call(box0)
+    Swag.assert(t0.pos.x == 5 and t1.pos.x == 5)
+    Swag.assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
+    Swag.assert(not prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
+
+    var b0, b1: MultiBadges
+    b0 = .Star
+    b1 = MultiBadges.Star | MultiBadges.Lock     // Star shared, Lock only on b1
+
+    var item: PropertiesItem
+    item.type = MultiBadges
+    item.dataInstances.add(cast(*u8, &b0))
+    item.dataInstances.add(cast(*u8, &b1))
+
+    let starMask = cast(u64, cast(s32, MultiBadges.Star))
+    let lockMask = cast(u64, cast(s32, MultiBadges.Lock))
+    let pinMask  = cast(u64, cast(s32, MultiBadges.Pin))
+
+    Swag.assert(not prop.flagBitIsMixed(&item, starMask))     // shared -> uniform
+    Swag.assert(prop.flagBitIsMixed(&item, lockMask))         // disagrees -> mixed
+    Swag.assert(not prop.flagBitIsMixed(&item, pinMask))      // neither has it -> uniform
+
+    // Set Pin on every instance: Lock stays only on b1, Star stays on both.
+    prop.writeEnumBit(&item, pinMask, true)
+    Swag.assert(cast(bool, (b0 & MultiBadges.Pin)) and cast(bool, (b1 & MultiBadges.Pin)))
+    Swag.assert(not cast(bool, (b0 & MultiBadges.Lock)))
+    Swag.assert(cast(bool, (b1 & MultiBadges.Lock)))
+    Swag.assert(cast(bool, (b0 & MultiBadges.Star)) and cast(bool, (b1 & MultiBadges.Star)))
+
+    // Clearing a shared bit clears it everywhere.
+    prop.writeEnumBit(&item, starMask, false)
+    Swag.assert(not cast(bool, (b0 & MultiBadges.Star)) and not cast(bool, (b1 & MultiBadges.Star)))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1: MultiTile
+    t0.name = "alpha"
+    t1.name = "beta"     // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let nameItem = unwrap findFieldItem(prop, "name")
+    Swag.assert(prop.fieldIsMixed(nameItem))
+    Swag.assert(nameItem.editBox.text() == "")
+
+    nameItem.editBox.setText("shared")
+    prop.validateDynamicString(nameItem)
+    Swag.assert(t0.name == "shared" and t1.name == "shared")
+    Swag.assert(not prop.fieldIsMixed(nameItem))
+
+    // Same content in distinct buffers must not read as mixed.
+    t0.name = "same"
+    t1.name = "same"
+    Swag.assert(not prop.fieldIsMixed(nameItem))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1: MultiTile
+    t0.tint = Pixel.Argb.Red
+    t1.tint = Pixel.Argb.Blue     // differs -> mixed
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(MultiTile, bases.toSlice(), "S")
+    prop.edView.sendResizeEvent()
+
+    let tintItem = unwrap findFieldItem(prop, "tint")
+    Swag.assert(prop.fieldIsMixed(tintItem))
+
+    // Make them equal and refresh: no longer mixed.
+    t1.tint = Pixel.Argb.Red
+    prop.refresh()
+    Swag.assert(not prop.fieldIsMixed(tintItem))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 240)
+    var data: ValData     // name empty -> error, count ok
+    let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    let nameItem  = unwrap findFieldItem(prop, "name")
+    let countItem = unwrap findFieldItem(prop, "count")
+
+    Swag.assert(nameItem.validation == .Error)     // empty name flagged on build
+    Swag.assert(nameItem.validationMsg == "Name is required.")
+    Swag.assert(countItem.validation == .None)
+    Swag.assert(nameItem.validationLabel != null and nameItem.validationLabel.isVisible())
+
+    // The message is led by a dot in its tone, no glyph: the words start past the dot and its gap.
+    let dotMetrics = host.theme.metrics
+    Swag.assert(not nameItem.validationLabel.icon.isValid())
+    Swag.assert(nameItem.validationLabel.textPadding.x == dotMetrics.embInfo_DotSize + dotMetrics.embInfo_DotGap)
+    Swag.assert(nameItem.validationLabel.textColor == host.theme.colors.critical)
+
+    // Editing into an invalid range raises a warning.
+    countItem.editBox.setText("150")
+    prop.validateNative(countItem)
+    Swag.assert(data.count == 150)
+    Swag.assert(countItem.validation == .Warning)
+    Swag.assert(countItem.validationMsg == "Count is unusually large.")
+
+    // Fixing the name clears its error.
+    nameItem.editBox.setText("hello")
+    prop.validateDynamicString(nameItem)
+    Swag.assert(nameItem.validation == .None)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(280, 220)
+    var data: PropHeadlessData     // no IPropertyNotify
+    let prop = Properties.create(&host.root, {0, 0, 260, 200}, .List)
+    prop.addStruct(data)
+    prop.edView.sendResizeEvent()
+
+    let it = unwrap findFieldItem(prop, "count")
+
+    prop.setItemValidation(it, .Error, "bad value")
+    Swag.assert(it.validation == .Error and it.validationMsg == "bad value")
+
+    // updateValidation must not clobber a manual state when there is no notify interface.
+    prop.updateValidation()
+    Swag.assert(it.validation == .Error)
+
+    prop.setItemValidation(it, .None)
+    Swag.assert(it.validation == .None)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 360)
+    g_PropRoDynamic = true
+
+    var data: PropHeadlessRoData
+    let prop = Properties.create(&host.root, {0, 0, 240, 340})
+    prop.addStruct(data)
+
+    let normalItem  = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.normal))
+    let lockedItem  = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
+    let dynamicItem = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
+    Swag.assert(normalItem.editBox != null and lockedItem.editBox != null and (dynamicItem.editBox != null))
+
+    // Edit-box editors stay focusable but become read-only. The editable field is not; the
+    // read-only fields (attribute + dynamic) are. They are not changeable either.
+    Swag.assert(not normalItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(dynamicItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(prop.canChangeItem(normalItem))
+    Swag.assert(not prop.canChangeItem(lockedItem))
+    Swag.assert(not prop.canChangeItem(dynamicItem))
+
+    // Clearing the dynamic flag releases only that field; the attribute one stays locked.
+    g_PropRoDynamic = false
+    prop.setCurrentSection(Swag.U32.Max)
+    Swag.assert(not dynamicItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(prop.canChangeItem(dynamicItem))
+    Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
+    Swag.assert(not prop.canChangeItem(lockedItem))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 520)
+    var data: PropMoveData
+    data.dyn.resize(3)
+    data.dyn[0].id = 10
+    data.dyn[1].id = 20
+    data.dyn[2].id = 30
+    data.stat[0]   = 1
+    data.stat[1]   = 2
+    data.stat[2]   = 3
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    prop.addStruct(data)
+
+    let dynArr = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
+    var elems: Array'(*PropertiesItem?)
+    for it in prop.items where it!.parent == dynArr do
+        elems.add(it)
+    Swag.assert(elems.count == 3)
+
+    // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
+    prop.moveArrayValue(unwrap elems[0], 1)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+    prop.moveArrayValue(unwrap elems[2], -1)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
+
+    // Move at the boundaries is a no-op.
+    prop.moveArrayValue(unwrap elems[0], -1)
+    Swag.assert(data.dyn[0].id == 20)
+
+    // Remove the element at index 1 (id 30) -> [20,10]. Used to compute an out-of-bounds index
+    // for struct arrays with more than one element.
+    prop.removeArrayValue(unwrap elems[1])
+    Swag.assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
+
+    // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
+    let statArr = unwrap findFieldItem(prop, #nameof(PropMoveData.stat))
+    var statElems: Array'(*PropertiesItem?)
+    for it in prop.items where it!.parent == statArr do
+        statElems.add(it)
+    Swag.assert(statElems.count == 3)
+    prop.moveArrayValue(unwrap statElems[0], 1)
+    Swag.assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 520)
+    var data: PropMoveData
+    data.dyn.resize(3)
+    data.dyn[0].id = 10
+    data.dyn[1].id = 20
+    data.dyn[2].id = 30
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    prop.addStruct(data)
+
+    // Copy the first element's 'id' field (value 10) and read it back from the clipboard.
+    let idField = unwrap findFieldItem(prop, #nameof(PropMoveElem.id))
+    prop.menuItem = idField
+    prop.sendCommandEvent(ActionProperties.Copy)
+    var got: s32
+    Swag.assert(Clipboard.getTypedValue(&got, unwrap idField.type) and got == 10)
+
+    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
+    var elems: Array'(*PropertiesItem?)
+    for it in prop.items where it!.parent == dynArr do
+        elems.add(it)
+    Swag.assert(elems.count == 3)
+
+    // update(): Move Up is disabled on the first element, enabled on the second.
+    prop.menuItem = elems[0]
+    var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    Swag.assert(st.updatedFields.has(.Disabled) and st.disabled)
+    prop.menuItem = elems[1]
+    st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    Swag.assert(st.updatedFields.has(.Disabled) and not st.disabled)
+
+    // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
+    // CommandEvent path (sendCommandEvent updates state first, then sends the command).
+    prop.sendCommandEvent(ActionProperties.MoveUp)
+    Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessAngleData
+
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    g_PropAngleEditorCalls = 0
+    prop.addStruct(data)
+
+    // The editor ran once for 'rot'; the struct was NOT expanded into a 'deg' child row, so
+    // items = [section, rot, name].
+    Swag.assert(g_PropAngleEditorCalls == 1)
+    Swag.assert(prop.items.count == 3)
+
+    let rot = unwrap findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
+    Swag.assert((rot.editBox != null))
+    Swag.assert(rot.numChilds == 0)
+    Swag.assert(rot.editBox.text() == "45 deg")
+
+    // A plain field next to it still uses the built-in editor.
+    let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
+    Swag.assert(name != null and (name.editBox != null))
+
+    // The registry resolves the editor for the angle type, but not for an unrelated one.
+    Swag.assert(Properties.findEditor(PropHeadlessAngle) != null)
+    Swag.assert(Properties.findEditor(string?) == null)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
+
+    // The default value comes from a real default-constructed instance of the struct.
+    Swag.assert(countItem.defaultData != null)
+    Swag.assert(cast(const *s32, countItem.defaultData)[] == 42)
+
+    // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
+    Swag.assert(not countItem.isModified)
+    Swag.assert(prop.canReset(countItem))
+    Swag.assert(countItem.revertButton == null or not countItem.revertButton.isVisible())
+
+    // Static string field is read-only -> never resettable and never modified.
+    let nameItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.name))
+    Swag.assert(not prop.canReset(nameItem))
+    Swag.assert(not nameItem.isModified)
+
+    // Bool list rows span the whole row (the side description wraps over the control
+    // width). List mode has NO revert button: a modified row is marked by the painted
+    // vertical accent bar (VSCode-style), and reset lives in the context menu.
+    let enabledItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.enabled))
+    Swag.assert((enabledItem.checkBox != null))
+    data.enabled = false
+    prop.updateStates()
+    Swag.assert(enabledItem.isModified)
+    Swag.assert(enabledItem.revertButton == null)
+    let contentWidth = cast(f32, prop.editorWidth) - prop.leftMargin - prop.rightMargin
+    Swag.assert(enabledItem.checkBox.parent!.position.width > contentWidth)
+
+    // Edit the value away from its default: the row becomes modified (no button either).
+    countItem.editBox.setText("99")
+    prop.validateNative(countItem)
+    Swag.assert(data.count == 99)
+    Swag.assert(countItem.isModified)
+    Swag.assert(countItem.revertButton == null)
+
+    // Reset (the context-menu action path) restores the declared default.
+    prop.resetItemDefault(countItem)
+    Swag.assert(data.count == 42)
+    Swag.assert(not countItem.isModified)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
+    prop.menuItem = countItem
+
+    // At default: the command exists but is disabled.
+    var st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
+    Swag.assert(st.updatedFields.has(.Disabled) and st.disabled)
+
+    // After a change: enabled, and executing it restores the default.
+    data.count = 7
+    prop.updateStates()
+    Swag.assert(countItem.isModified)
+    st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
+    Swag.assert(st.updatedFields.has(.Disabled) and not st.disabled)
+
+    prop.sendCommandEvent(ActionProperties.ResetDefault)
+    Swag.assert(data.count == 42 and not countItem.isModified)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    g_PropDefResetCalls    = 0
+    g_PropDefForceModified = true
+
+    var data: PropDefaultCustom
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let valItem = unwrap findFieldItem(prop, #nameof(PropDefaultCustom.val))
+
+    // Value equals the declared default (5), but the override forces "modified".
+    Swag.assert(cast(const *s32, unwrap valItem.data)[] == 5)
+    Swag.assert(valItem.isModified)
+
+    // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
+    prop.resetItemDefault(valItem)
+    Swag.assert(g_PropDefResetCalls == 1)
+
+    // Flipping the override back reports "at default".
+    g_PropDefForceModified = false
+    prop.updateStates()
+    Swag.assert(not valItem.isModified)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data)
+
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
+    Swag.assert((countItem.editBox != null))
+
+    // The revert arrow is docked to the right of the row (the trailing action margin) and present
+    // from the start; while at its default the arrow is hidden (disabled) but the column stays
+    // reserved so the editor keeps a constant width.
+    let btn = countItem.revertButton
+    Swag.assert(btn.dockStyle == .Right)
+    Swag.assert(btn.isDisabled())
+    let editWidthClean = countItem.editBox.position.width
+
+    // Change the value: the arrow becomes active WITHOUT resizing the editor.
+    data.count = 5
+    prop.updateStates()
+    Swag.assert(countItem.isModified and not btn.isDisabled())
+    Swag.assert(countItem.editBox.position.width == editWidthClean)
+
+    // Reset hides the arrow again; the editor width is still unchanged.
+    btn.isHot              = true
+    btn.isIn               = true
+    btn.isPressed          = true
+    btn.isPressing         = true
+    btn.aniBk.themeCrc     = 42'u32
+    host.app.mouseEnterWnd = btn
+    host.app.setMouseCaptureRaw(btn)
+    prop.resetItemDefault(countItem)
+    Swag.assert(not countItem.isModified and btn.isDisabled())
+    Swag.assert(countItem.editBox.position.width == editWidthClean)
+    Swag.assert(not btn.icon.isValid())
+    Swag.assert(not btn.isHot)
+    Swag.assert(not btn.isIn)
+    Swag.assert(not btn.isPressed)
+    Swag.assert(not btn.isPressing)
+    Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
+    Swag.assert(host.app.mouseEnterWnd == null)
+    Swag.assert(host.app.mouseCaptureWnd == null)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+    var data: PropDefaultData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
+    prop.addStruct(data)
+
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
+    Swag.assert((countItem.revertButton != null))
+
+    let btn = countItem.revertButton
+    Swag.assert(btn.position.height == PropCondensedControlHeight)
+    Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
+
+    data.count = 5
+    prop.updateStates()
+    Swag.assert(countItem.isModified and not btn.isDisabled())
+    Swag.assert(btn.position.height == PropCondensedControlHeight)
+    Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1: PropDefaultData
+    t0.count = 42     // at default
+    t1.count = 7      // differs
+
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases: Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
+
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
+    Swag.assert(countItem.isModified)     // one instance differs
+
+    prop.resetItemDefault(countItem)
+    Swag.assert(t0.count == 42 and t1.count == 42)
+    Swag.assert(not countItem.isModified)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
+    Swag.assert(not prop.canUndo() and not prop.canRedo())
+
+    // Writing the same value back records nothing.
+    cast(*s32, unwrap it.data)[] = 42
+    prop.commitItemChange(it)
+    Swag.assert(not prop.canUndo())
+
+    // Two real edits.
+    cast(*s32, it.data)[] = 100
+    prop.commitItemChange(it)
+    Swag.assert(data.count == 100 and prop.canUndo() and not prop.canRedo())
+
+    cast(*s32, it.data)[] = 7
+    prop.commitItemChange(it)
+    Swag.assert(data.count == 7)
+
+    prop.undo()
+    Swag.assert(data.count == 100 and prop.canUndo() and prop.canRedo())
+    prop.undo()
+    Swag.assert(data.count == 42 and not prop.canUndo())
+
+    prop.redo()
+    Swag.assert(data.count == 100)
+    prop.redo()
+    Swag.assert(data.count == 7 and not prop.canRedo())
+
+    // New edit after undo truncates the redo tail.
+    prop.undo()     // -> 100
+    prop.undo()     // -> 42
+    cast(*s32, it.data)[] = 55
+    prop.commitItemChange(it)
+    Swag.assert(data.count == 55 and not prop.canRedo())
+    prop.undo()
+    Swag.assert(data.count == 42)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 360)
+    var data: MultiTile
+    data.name = "alpha"
+    let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
+    prop.addStruct(data)
+
+    let it = unwrap findFieldItem(prop, #nameof(MultiTile.name))
+
+    cast(*String, unwrap it.data)[] = "beta"
+    prop.commitItemChange(it)
+    Swag.assert(data.name == "beta")
+
+    prop.undo()
+    Swag.assert(data.name == "alpha")
+    prop.redo()
+    Swag.assert(data.name == "beta")
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 360)
+    var t0, t1: PropHeadlessData     // both count = 42
+    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    var bases:  Array'(*u8)
+    bases.add(cast(*u8, &t0))
+    bases.add(cast(*u8, &t1))
+    prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
+
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
+
+    cast(*s32, unwrap it.data)[] = 100     // edit instance 0; hasChanged propagates
+    prop.commitItemChange(it)
+    Swag.assert(t0.count == 100 and t1.count == 100)
+
+    prop.undo()
+    Swag.assert(t0.count == 42 and t1.count == 42)
+    prop.redo()
+    Swag.assert(t0.count == 100 and t1.count == 100)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.addStruct(data)
+    prop.focusNavigation()
+
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
+    cast(*s32, unwrap it.data)[] = 100
+    prop.commitItemChange(it)
+    Swag.assert(data.count == 100)
+
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
+    Swag.assert(data.count == 42)
+    host.keyPress(Input.Key.Y, Input.KeyModifiers.Control)
+    Swag.assert(data.count == 100)
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
+    Swag.assert(data.count == 42)
+    host.keyPress(Input.Key.Z, Input.KeyModifiers.Control | Input.KeyModifiers.Shift)
+    Swag.assert(data.count == 100)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 480)
+    var data: PropDecorData
+    let prop = Properties.create(&host.root, {0, 0, 340, 460}, .Grid)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+
+    // Nested categories: Transform is a top-level group (level 0); Advanced is nested under it
+    // (level 1, reusing the same Transform header); Physics is a second top-level group (level 0).
+    let transform = unwrap findFieldItem(prop, "Transform")
+    let advanced  = unwrap findFieldItem(prop, "Advanced")
+    let physics   = unwrap findFieldItem(prop, "Physics")
+    Swag.assert(transform.flags.has(.Category) and transform.level == 0)
+    Swag.assert(advanced.flags.has(.Category) and advanced.level == 1)
+    Swag.assert(physics.flags.has(.Category) and physics.level == 0)
+    Swag.assert(advanced.parent == transform)     // subgroup nested under its prefix
+
+    // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
+    // step further, and the subgroup header lines up with the fields it groups.
+    let px    = unwrap findFieldItem(prop, #nameof(PropDecorData.px))
+    let shear = unwrap findFieldItem(prop, #nameof(PropDecorData.shear))
+    Swag.assert(prop.itemIndent(px) == 0)
+    Swag.assert(prop.itemIndent(transform) == 0)
+    Swag.assert(prop.itemIndent(shear) > prop.itemIndent(px))
+    Swag.assert(prop.itemIndent(advanced) == prop.itemIndent(shear))     // subgroup header aligns with its field
+
+    // The three decorators on 'mass' produced three extra rows before it, all under Physics.
+    var spacer, heading, note: *PropertiesItem?
+    for it in prop.items
+    {
+        let item = unwrap it
+        if item.flags.has(.Spacer) do
+            spacer = item
+        if item.flags.has(.Header) do
+            heading = item
+        if item.flags.has(.Note) do
+            note = item
+    }
+
+    let spacerIt  = unwrap spacer
+    let headingIt = unwrap heading
+    let noteIt    = unwrap note
+    Swag.assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
+    Swag.assert(headingIt.typeValue.name == "Body")
+    Swag.assert(spacerIt.line.position.height == 16)     // Gap(16)
+    Swag.assert((noteIt.label != null))     // the info bar label
+
+    // Decorators are inert: not focusable and never expandable.
+    Swag.assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
+    Swag.assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 260)
+
+    var data: PropHeadlessPanelStringData
+    data.dynamic = "Editable"
+    let prop = Properties.create(&host.root, {0, 0, 300, 240}, kind: .Panel)
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    let dynamic     = unwrap findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))
+    let fixed       = unwrap findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))
+    let dynamicCtrl = assume cast (*EditCtrl, dynamic.line.children[1])
+    let fixedCtrl   = assume cast (*EditCtrl, fixed.line.children[1])
+    Swag.assert(not dynamic.label.isVisible() and not fixed.label.isVisible())
+    Swag.assert(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
+    Swag.assert(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
+    Swag.assert(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
+    Swag.assert(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
+    Swag.assert(fixedCtrl.edit.flags.has(.ReadOnly))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropHeadlessFontStyleData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300}, kind: .Panel)
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    // items[0] is the implicit section.
+    let item  = unwrap prop.items[1]
+    let combo = item.comboBox
+    Swag.assert(combo != null and combo.flags.has(.Segmented) and combo.items.count == 4)
+    for style, i in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
+        Swag.assert(combo.items[i]!.fontStyle == style)
+
+    combo.setSelectedIndex(1)
+    Swag.assert(data.style == .Bold)
+    combo.setSelectedIndex(3)
+    Swag.assert(data.style == .BoldItalic)
+    combo.setSelectedIndex(0)
+    Swag.assert(data.style == .Regular)
+
+    data.style = .Italic
+    prop.refresh()
+    Swag.assert(combo.selectedIndex == 2)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    func indexOf(prop: *Properties, name: string)->u64
+    {
+        for item, idx in prop.items
+        {
+            if item!.typeValue.name == name do
+                return idx
+        }
+
+        Swag.assert(false)
+        return 0
+    }
+
+    var data: PropHeadlessUsingDerived
+
+    // Declaration order by default: the 'using' base fields come first
+    let prop0 = Properties.create(&host.root, {0, 0, 240, 300})
+    prop0.addStruct(data)
+    Swag.assert(indexOf(prop0, "baseVal") < indexOf(prop0, "ownVal"))
+
+    // Most specific first with usingFieldsLast
+    let prop1 = Properties.create(&host.root, {0, 0, 240, 300})
+    prop1.setUsingFieldsLast(true)
+    prop1.addStruct(data)
+    Swag.assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+    var data: PropFilterData
+    var ntfy: PropFilterHost
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.setNotify(&ntfy)
+    prop.addStruct(data)
+
+    let item = unwrap prop.items[1]
+    Swag.assert((item.comboBox != null))
+    Swag.assert(item.comboBox.items.count == 3)
+
+    // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
+    Swag.assert(item.comboBox.selectedIndex == 1)
+
+    // Selecting the last combo slot writes the matching enum value back
+    item.comboBox.setSelectedIndex(2)
+    Swag.assert(data.choice == .High)
+    item.comboBox.setSelectedIndex(0)
+    Swag.assert(data.choice == .Low)
+}
+#test
+{
+    // The focused editor commits during host teardown, while its data is still alive.
+    var data: PropDropData
+    var host: Testing.HeadlessHost
+    host.setup(420, 200)
+    let prop = Properties.create(&host.root, {0, 0, 420, 200}, .List)
+    prop.addStruct(data, "S")
+    prop.edView.sendResizeEvent()
+    host.root.applyLayout()
+    host.pump()
+
+    let sourceItem = unwrap findFieldItem(prop, "source")
+    let noteItem   = unwrap findFieldItem(prop, "note")
+
+    Swag.assert(host.dropFilesOnWnd(sourceItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.Copy)
+    Swag.assert(sourceItem.editBox.text() == "c:/assets/mesh.obj")
+
+    // The editor holds it until the focus leaves, which is when a typed value lands too.
+    prop.validateDynamicString(sourceItem)
+    Swag.assert(data.source == "c:/assets/mesh.obj")
+
+    // A field that did not ask for paths refuses them and keeps what it had.
+    Swag.assert(host.dropFilesOnWnd(noteItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.None)
+    Swag.assert(noteItem.editBox.text() == "")
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    var data: PropSameCategData
+    let opt = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
+    opt.dockStyle = .Center
+    opt.addStruct(data, "Application")
+
+    host.root.applyLayout()
+    host.pump()
+
+    // One section + one category header + the three fields
+    var categs = 0
+    for item in opt.properties.items
+    {
+        if item!.flags.has(.Category) do
+            categs += 1
+    }
+
+    Swag.assert(categs == 1)
+    Swag.assert(opt.properties.items.count == 5)
+
+    // The bool description spans the control width, not the value column
+    var descItem: *PropertiesItem?
+    for item in opt.properties.items
+    {
+        if item!.typeValue.name == "first" do
+            descItem = item
+    }
+
+    let descIt = unwrap descItem
+    Swag.assert((descIt.checkBox != null))
+    Swag.assert(descIt.checkBox.parent!.position.width > cast(f32, opt.properties.editorWidth))
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    var data: PropAlignData
+    let prop = Properties.create(&host.root, {0, 0, 400, 560}, .List)
+    prop.addStruct(data, "S")
+    host.root.applyLayout()
+    host.pump()
+
+    func assertAligned(prop: *Properties)
+    {
+        var right = -1.0'f32
+        for item in prop.items
+        {
+            let it = unwrap item
+            var w: *Wnd?
+            if it.sliderBox != null do
+                w = it.sliderBox
+            elif it.comboBox != null do
+                w = it.comboBox
+            elif it.editBox != null do
+                w = it.editBox
+            if not w do
+                continue
+
+            let wnd = w
+            if right < 0 do
+                right = wnd.position.right()
+            Swag.assert(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))
+        }
+
+        Swag.assert(right > 0)
+    }
+
+    assertAligned(prop)
+
+    // Grow then shrink the control: the editors must not drift
+    prop.setPosition({0, 0, 760, 560})
+    host.root.applyLayout()
+    host.pump()
+    assertAligned(prop)
+
+    prop.setPosition({0, 0, 300, 560})
+    host.root.applyLayout()
+    host.pump()
+    assertAligned(prop)
+}
+#test
+{
+    // Whatever this test installs, the next one starts with the declared strings.
+    defer Properties.setTextResolver(null)
+
+    Swag.assert(Properties.resolveText("Thickness") == "Thickness")
+
+    Properties.setTextResolver(func(key: string)->string?
+    {
+        switch key
+        {
+        case "Thickness": return "Epaisseur"
+        case "Debug":     return "Diagnostics"
+        }
+
+        return null
+    })
+
+    Swag.assert(Properties.resolveText("Thickness") == "Epaisseur")
+    Swag.assert(Properties.resolveText("Count") == "Count")
+
+    // An installed resolver outranks the module's own wording for the same key, and the
+    // module still answers for the keys the resolver declines.
+    Swag.assert(Properties.resolveText("Debug") == "Diagnostics")
+    Swag.assert(Properties.resolveText("Show Clip Rect") == strings().prop_ShowClipRect)
+
+    Properties.setTextResolver(null)
+    Swag.assert(Properties.resolveText("Thickness") == "Thickness")
+}
+#test
+{
+    defer Properties.setTextResolver(null)
+    Properties.setTextResolver(func(key: string)->string?
+    {
+        switch key
+        {
+        case "Numbers":  return "Nombres"
+        case "Count":    return "Nombre"
+        case "Straight": return "Droite"
+        case "Bezier":   return "Courbe"
+        }
+
+        return null
+    })
+
+    var host: Testing.HeadlessHost
+    host.setup(600, 400)
+
+    var data: PropHeadlessResolvedData
+    let prop = Properties.create(&host.root, {0, 0, 560, 360})
+    prop.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    var sawCategory, sawLabel, sawCombo = false
+    for item in prop.items
+    {
+        let it = unwrap item
+        if it.label == null do
+            continue
+        if it.label.text() == "NOMBRES" do
+            sawCategory = true
+        if it.label.text() == "Nombre" do
+            sawLabel = true
+        if it.comboBox != null and
+           it.comboBox.items.count == 2 and
+           it.comboBox.items[0]!.name.raw == "Droite" do
+            sawCombo = true
+    }
+
+    Swag.assert(sawCategory)
+    Swag.assert(sawLabel)
+    Swag.assert(sawCombo)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data, "Settings")
+
+    let numbers = unwrap findFieldItem(prop, "Numbers")
+    let count   = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
+    prop.collapseAll()
+    Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
+
+    prop.setFilter("Count")
+    Swag.assert(numbers.line.isVisible() and count.line.isVisible())
+    Swag.assert(not numbers.flags.has(.Expanded))
+
+    prop.setFilter("")
+    Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 320)
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    prop.addStruct(data, "Settings")
+    Swag.assert(prop.matchCount() == 0)
+
+    let count = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
+    prop.setFilter("OUN")
+    Swag.assert(prop.matchCount() == 1)
+    Swag.assert(prop.nameMatch(count) == 1)
+    discard host.render()
+
+    prop.setFilter("nothing of the kind")
+    Swag.assert(prop.matchCount() == 0)
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 360)
+
+    var data: PropHeadlessGroupedData
+    let prop = Properties.create(&host.root, {0, 0, 340, 340}, .Grid)
+    prop.addStruct(data, "Settings")
+
+    let count   = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
+    let enabled = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.enabled))
+    let numbers = unwrap findFieldItem(prop, "Numbers")
+    let flags   = unwrap findFieldItem(prop, "Flags")
+
+    data.enabled = false
+    prop.updateStates()
+    Swag.assert(enabled.isModified and not count.isModified)
+
+    prop.collapseAll()
+    prop.expandModified()
+    Swag.assert(not numbers.flags.has(.Expanded) and flags.flags.has(.Expanded))
+    Swag.assert(not count.line.isVisible() and enabled.line.isVisible())
+
+    prop.expandAll()
+    Swag.assert(count.line.isVisible() and enabled.line.isVisible())
+
+    prop.setModifiedOnly(true)
+    Swag.assert(prop.modifiedOnly)
+    Swag.assert(not count.line.isVisible() and enabled.line.isVisible())
+
+    prop.resetItemDefault(enabled)
+    Swag.assert(not enabled.isModified and not enabled.line.isVisible())
+    prop.setModifiedOnly(false)
+    Swag.assert(count.line.isVisible() and enabled.line.isVisible())
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(720, 520)
+
+    var data: PropCtrlGoldenData
+    data.opacity = 0.4
+    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 720, 520}, .Grid, .SectionNavigation | .SearchBar)
+    ctrl.addStruct(data)
+    host.root.applyLayout()
+    host.pump()
+
+    Swag.assert(ctrl.sectionLines.count == 6)
+    let firstSection = String.from(ctrl.sectionLines[0].items[0]!.name.raw)
+    ctrl.setSectionIcon(firstSection, host.theme.icon(.Options, 16))
+    Swag.assert(ctrl.sectionLines[0].items[0]!.icon.isValid() and ctrl.list.isLineSelected(0))
+    for expected, index in ["2", "2", "1", "2", "1", "1"] do
+        Swag.assert(sectionCountText(ctrl, index) == expected)
+
+    ctrl.search.setText("op")
+    Swag.assert(ctrl.properties.matchCount() == 3)
+    for expected, index in ["2", "0", "0", "1", "1", "0"] do
+        Swag.assert(sectionCountText(ctrl, index) == expected)
+
+    for kind in [PropertiesKind.Panel, .List, .Condensed, .Grid]
+    {
+        ctrl.setKind(kind)
+        host.root.applyLayout()
+        host.pump()
+        Swag.assert(ctrl.properties.kind == kind and ctrl.properties.matchCount() == 3)
+        Swag.assert(ctrl.sectionLines.count == 6 and sectionCountText(ctrl, 3) == "1")
+        Swag.assert(ctrl.sectionLines[0].items[0]!.icon.isValid())
+
+        // A slider shows the value the data holds, whatever the presentation.
+        let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropCtrlGoldenData.opacity))
+        Swag.assert(opacity.sliderBox != null and Math.abs(opacity.sliderBox.value() - 0.4) < 0.001)
+    }
+
+    ctrl.search.setText("")
+    Swag.assert(sectionCountText(ctrl, 1) == "2")
+}
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 440)
+    var data: PropHeadlessData
+    let ctrl = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
+    ctrl.addStruct(data, "General")
+    ctrl.setSectionIcon("General", host.theme.icon(.Options, 16))
+    Swag.assert(ctrl.tab.items[1]!.icon.isValid())
+    ctrl.setKind(.Grid)
+    Swag.assert(ctrl.tab.items[1]!.icon.isValid())
+}
+#test
+{
+    for kind in [PropertiesKind.List, .Grid, .Condensed, .Panel]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(520, 620)
+
+        var data: PropGoldenData
+        data.opacity = 0.4
+        data.caption = "Main card of the dashboard, in its long version"
+        let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 520, 620}, kind, .None)
+        ctrl.addStruct(data, "Inspector")
+        host.root.applyLayout()
+        host.pump()
+
+        let opacity = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.opacity))
+        Swag.assert(opacity.isModified and
+                    opacity.sliderBox != null and
+                    opacity.sliderBox.edit.form == .Transparent)
+
+        let caption = unwrap findFieldItem(ctrl.properties, #nameof(PropGoldenData.caption))
+        Swag.assert(caption.validation == .Warning and caption.validationLabel != null)
+        Swag.assert(ctrl.properties.marksInMargin(caption) == (kind == .Condensed))
+        Swag.assert(caption.validationLabel.isVisible() == (kind != .Condensed))
+
+        // A panel names a field with its control, from the leading edge, where its mark follows.
+        if kind == .Panel do
+            Swag.assert(opacity.sliderBox.label.textHorizontalAlignment == .Left)
+    }
+}

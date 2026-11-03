@@ -108,7 +108,7 @@ prove it. Operating-system integrations live in
   through a parameter. Prototype the owning field on `PopupMenuItem` and measure the churn on
   consumers.
 - Done when: an identifier formatted at the call site either works or is rejected at build
-  time, and a test in `menu.test.swg` pins whichever it is.
+  time, and a test in `menu.swg` pins whichever it is.
 
 ### std.gui.049 — One dirty rectangle couples distant changes on a surface
 
@@ -368,7 +368,7 @@ construction so static labels do not depend on each application remembering a ma
   labels are not audited.
 - Next: audit those three composites for the commit-then-assume pattern. Either round out
   through one shared helper, or measure the second axis after committing the first. Prove it
-  the way `dialogs.layout.test.swg` does, by sweeping content length.
+  the way `dialogs.layout.swg` does, by sweeping content length.
 - Done when: Popup lists, menu popups, and automatic labels retain all measured content after
   committing size across fractional scales and a sweep of content lengths, with no new scroll
   bar or clipped last line.
@@ -527,7 +527,7 @@ preview. Validate requested settings against the capabilities supplied by platfo
   context on the window thread there were no multi-second calls, but the previous presenter
   still reached 71–93 ms in `glFlush + SwapBuffers`. Remeasure physical dragging with the
   current layered presenter and its synchronous geometry frames (std.gui.057). The default renderer
-  owns its context on the window thread, and `surface.renderthread.win32.test.swg` checks
+  owns its context on the window thread, and `surface.renderthread.win32.swg` checks
   that ownership across resized paints.
 - Measurement constraint: use a DPI-aware probe that actually presses, moves, and releases the
   border. Cross-thread `SetWindowPos` probes and median-only round trips do not measure

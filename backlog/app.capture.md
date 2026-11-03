@@ -39,7 +39,7 @@ still-image editing and output work.
   `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` killed the packaged process in
   three of four attempts; move-only (`SWP_NOSIZE`) and hand-dragging never did. `Surface` now
   separates application placement from interactive `WM_DPICHANGED` and skips minimized
-  `WM_SIZE`, but `surface.resize.test.swg` does not cover the maximized mixed-DPI transition and
+  `WM_SIZE`, but `surface.resize.swg` does not cover the maximized mixed-DPI transition and
   the crash has not been reproduced on the current implementation.
 - Next: from the maximized two-monitor state, reproduce with the `gui2` example, then bisect
   move-only across the DPI boundary, resize-only on one screen, and both. Move the entry to

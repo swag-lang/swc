@@ -142,7 +142,7 @@ expression of them. They were recovered from its transcription of the standard a
 form this decoder reads. Every one was then re-checked here: each is prefix-free, no Kraft sum
 exceeds one, each coefficient table names 102 distinct events, the motion vector table covers minus
 thirty-two to thirty-two without a hole, and each scan order is a permutation of the sixty-four
-positions. `mpeg4.tables.test.swg` re-checks all of that inside this repository. No source line of
+positions. `mpeg4.tables.swg` re-checks all of that inside this repository. No source line of
 that project is reproduced here.
 
 ## MP3 normative tables
@@ -157,7 +157,7 @@ tables, scalefactor band widths, and the synthesis window — and are facts of t
 than either project's expression of them. Both projects store them in their own packed decoding
 structures; those were unpacked, compared code by code against each other, and written out in the
 form the standard prints. The 1,298 Huffman code words agree between the two sources, every table
-is a complete prefix code, and `mp3.tables.test.swg` re-checks that inside this repository. No
+is a complete prefix code, and `mp3.tables.swg` re-checks that inside this repository. No
 source line of either project is reproduced here.
 
 ## Pacman example

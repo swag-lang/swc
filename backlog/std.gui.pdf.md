@@ -45,7 +45,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Evidence: the stored corpus stays below three megabytes per file. Generated tests cover
   cross-reference repair (a blunted `startxref`) and incremental updates
-  (`pdf.document.test.swg`), and filter tests reject a truncated run-length stream. None
+  (`pdf.document.swg`), and filter tests reject a truncated run-length stream. None
   carries a hostile fixture. There is no document-level adversarial matrix for cyclic page
   trees, contradictory lengths, declared-size attacks or very large scans. The parser has local
   depth limits but no overall memory or node budget.
@@ -60,7 +60,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Evidence: `Reader.loadOutline` already returns owned bookmark titles, hierarchy levels and
   page-space positions. It resolves direct and named destinations and local `GoTo` actions,
-  including cyclic-name/outline protection; `documentoutline.test.swg` checks cropped and rotated
+  including cyclic-name/outline protection; `documentoutline.swg` checks cropped and rotated
   destination coordinates. Swag Scope consumes this outline.
 - Remaining: the page decoder does not read `/Annots`, so a link annotation exposes neither its
   bounds nor its `/Dest` or `/A` target. Bookmark destinations do not cover links within a page.
@@ -94,7 +94,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Evidence: the widget already supports pointer selection across pages, double-click word
   selection, Ctrl+A and Ctrl+C. Arrow keys scroll; they do not move a text caret or extend a
-  selection. `pdfview.test.swg` protects cross-page pointer copy.
+  selection. `pdfview.swg` protects cross-page pointer copy.
 - Next: add keyboard movement and selection extension over the existing `PdfTextPosition` model,
   preserving pointer behavior and distinguishing text navigation from viewport scrolling.
 - Done when: keyboard selection crosses words, lines, and pages, respects modifiers, reveals
@@ -207,8 +207,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.030 — Corpus rendering has no fixed page goldens
 
-- Evidence: `pdf.corpus.test.swg` renders pages and asserts `image.isValid()`. The two golden-tagged
-  cases in `pdf.prepare.test.swg` compare prepared and unprepared renders of the same corpus page,
+- Evidence: `pdf.corpus.swg` renders pages and asserts `image.isValid()`. The two golden-tagged
+  cases in `pdf.prepare.swg` compare prepared and unprepared renders of the same corpus page,
   so they prove preparation parity but also pass if both paths acquire the same rendering defect.
   The PDF corpus has no fixed page expectations spanning its document families.
 - Intent: protect the decoded output against an independently reviewed stored image, including a

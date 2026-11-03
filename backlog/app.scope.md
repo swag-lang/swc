@@ -26,11 +26,11 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   `tools/apps.bat dm test swagscope` reuses its test executable and passes 353 tests in
   282.6 seconds; native execution accounts for about 280 seconds. A separate cached
   `--test-tag golden` run passes 70 tests in about 210 seconds (209 in execution), compared
-  with 20.5 seconds for the 51 tests in `viewerwindow.test.swg` and 7.1 seconds for the
-  28 tests in `video.test.swg`. These are single runs, not matched benchmark medians.
+  with 20.5 seconds for the 51 tests in `viewerwindow.swg` and 7.1 seconds for the
+  28 tests in `video.swg`. These are single runs, not matched benchmark medians.
   Terminal progress attributes approximately 32 and 35 seconds to the Markdown and Explorer
-  lens cases in `viewerwindow.golden.test.swg`, and 31 seconds to the return-caption case in
-  `viewer.pictures.golden.test.swg`. That case opens 15 viewers in both themes, paints full
+  lens cases in `viewerwindow.swg`, and 31 seconds to the return-caption case in
+  `viewer.pictures.swg`. That case opens 15 viewers in both themes, paints full
   1280-by-800 windows repeatedly through `framedViewerWindow`, settling and capture, then
   crops to the caption. Each `settleAnimations` call paints twice; it does not sleep.
 - Next: separate preparation from settling/capture in the picture helpers and measure the
@@ -50,8 +50,8 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   uploads, texture eviction and the 639-entry library have not reproduced the corruption. The
   extended library probe completed eight Online/Local phases and two refreshes in 95 seconds,
   comparing settled cached pixels with uploaded textures and checking native presentation.
-- Next: extend `browsemedialibrary.smoke.test.swg` and the opt-in
-  `explorerlibrary.integration.test.swg` toward longer refresh sequences on the failing library.
+- Next: extend `browsemedialibrary.swg` and the opt-in
+  `explorerlibrary.swg` toward longer refresh sequences on the failing library.
   Compare decoded pixels, uploaded textures, the GPU target, native presentation bitmap and,
   in an explicit interactive run if necessary, displayed pixels. Extend resize checks with DPI transitions and partial repaint
   checkpoints. Reduce any failure to the owning renderer or transfer test before changing it.
@@ -144,7 +144,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 ### app.scope.007 — The viewer bar can leave while an options sheet opened from it is up
 
-- Evidence: `viewerwindow.test.swg:2598` (the image viewer's play button after a round trip
+- Evidence: `viewerwindow.swg:2598` (the image viewer's play button after a round trip
   through the hex viewer) failed once in two full Scope runs and twice in the first two of
   fifteen runs of that file alone; the other thirteen passed. The test calls `revealViewerBar`,
   then opens two options sheets from the play button. Their modal loops call
@@ -157,7 +157,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Next: count a running modal loop (`app().inModalLoop != 0`) as holding the bar in
   `concealViewerBar`, add a test that fires `viewerBarTimer` with `inModalLoop` raised and checks
   the bar stays (and leaves on the next linger once the loop is over), then prove it with ten
-  consecutive runs of `viewerwindow.test.swg` (`--run-timeout 300`) and two full Scope runs.
+  consecutive runs of `viewerwindow.swg` (`--run-timeout 300`) and two full Scope runs.
 - Done when: the bar never leaves while a sheet or menu opened from it is up, and the play button
   test passes ten runs in a row under load.
 - Related: std.gui.058

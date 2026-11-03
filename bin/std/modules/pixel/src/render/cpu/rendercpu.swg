@@ -341,7 +341,7 @@ private impl RenderCpu
     // stroke carries a signed distance around [[Pixel.StrokeCoverageBias]] instead, because one
     // quad has to describe both of its sides; the two travel in the same batch and are told apart
     // by range. This is the OpenGL fragment program's rule, and the two have to agree to the
-    // pixel — see `render.parity.test.swg`.
+    // pixel — see `render.parity.swg`.
     #[Swag.Inline]
     func signedCoverage(raw: f32)->f32
     {

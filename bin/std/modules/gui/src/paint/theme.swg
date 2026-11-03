@@ -432,11 +432,13 @@ impl Theme
         if wanted <= .res.atlasScale do
             return
 
+        let image    = themeWidgetsImage(.images orelse defaultThemeImages(), wanted)
+        let uploaded = renderer.addImage(image[])
+        if not uploaded.isValid() do
+            return
         if .res.atlasScale > 0 do
             renderer.removeTexture(&.res.imgWidgets)
-
-        let image = themeWidgetsImage(.images orelse defaultThemeImages(), wanted)
-        .res.imgWidgets = renderer.addImage(image[])
+        .res.imgWidgets = uploaded
         .res.atlasScale = wanted
     }
 

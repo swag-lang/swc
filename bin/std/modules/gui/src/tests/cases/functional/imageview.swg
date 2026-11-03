@@ -1,5 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
 #test
@@ -17,15 +18,16 @@ using Swag, Core, Pixel
     expect movie.load(fileName)
 
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
-    view.exchangeMovie(&movie)
+    Swag.assert(view.exchangeMovie(&movie))
     Swag.assert(view.movie.isValid() and not movie.isValid())
     Swag.assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
 
     var replacement: Movie
     expect replacement.load(fileName)
-    view.exchangeMovie(&replacement)
+    Swag.assert(view.exchangeMovie(&replacement))
     Swag.assert(view.movie.isValid() and replacement.isValid())
 }
+
 #test
 {
     var host: Testing.HeadlessHost
@@ -75,6 +77,7 @@ using Swag, Core, Pixel
     view.clear()
     Swag.assert(not view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and not view.isMirrored)
 }
+
 #test
 {
     var host: Testing.HeadlessHost
@@ -106,6 +109,7 @@ using Swag, Core, Pixel
     Swag.assert(wider.pixels.buffer == widerPixels)
     Swag.assert(view.image.width == 120)
 }
+
 #test
 {
     var host: Testing.HeadlessHost
@@ -122,6 +126,7 @@ using Swag, Core, Pixel
     Swag.assert(view.image.pixels.buffer == pixels)
     Swag.assert(view.uploadedTexture.isValid() and view.isFitted)
 }
+
 #test
 {
     const Source = """\
@@ -157,6 +162,7 @@ using Swag, Core, Pixel
     view.clear()
     Swag.assert(not view.hasContent() and not view.hasDrawing())
 }
+
 #test
 {
     var host: Testing.HeadlessHost
@@ -207,6 +213,7 @@ using Swag, Core, Pixel
     Swag.assert(not view.hasContent())
     Swag.assert(not view.uploadedTexture.isValid())
 }
+
 #test
 {
     var host: Testing.HeadlessHost

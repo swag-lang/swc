@@ -161,13 +161,17 @@ private impl ImageView
            .uploadedTexture.height != frame.height or
            .uploadedTexture.pixelFormat != frame.pixelFormat
         {
+            let uploaded = .app().renderer.addImage(frame[])
+            if not uploaded.isValid() do
+                return
             if .uploadedTexture.isValid() do
                 .app().renderer.removeTexture(&.uploadedTexture)
-            .uploadedTexture = .app().renderer.addImage(frame[])
+            .uploadedTexture = uploaded
         }
         else
         {
-            .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer)) do
+                .app().renderer.removeTexture(&.uploadedTexture)
         }
     }
 
@@ -409,11 +413,22 @@ impl ImageView
     }
 
     // Displays an owned copy of `image` and fits it to the viewport.
+    //
+    // Keeps the current image when the renderer cannot allocate a texture.
     mtd setImage(image: Image)
     {
+        if not image.isValid()
+        {
+            .clear()
+            return
+        }
+
+        let uploaded = .app().renderer.addImage(image)
+        if not uploaded.isValid() do
+            return
         .clear()
         .image = image
-        .uploadedTexture = .app().renderer.addImage(.image)
+        .uploadedTexture = uploaded
         .zoomToFit()
     }
 
@@ -430,17 +445,24 @@ impl ImageView
 
     // Takes an image's pixel storage and fits it to the viewport.
     //
-    // `image` is left empty. Use this after a one-shot decode when the caller has no reason to
+    // `image` is left empty after a successful upload; on GPU allocation failure both values
+    // stay unchanged. Use this after a one-shot decode when the caller has no reason to
     // retain a second pixel buffer; use [[Gui.ImageView.setImage]] when the caller keeps its own
     // independent image.
     mtd takeImage(image: *Image)
     {
-        .clear()
-        if not image.isValid() do
+        if not image.isValid()
+        {
+            .clear()
             return
+        }
 
+        let uploaded = .app().renderer.addImage(image[])
+        if not uploaded.isValid() do
+            return
+        .clear()
         .image = #move image[]
-        .uploadedTexture = .app().renderer.addImage(.image)
+        .uploadedTexture = uploaded
         .zoomToFit()
     }
 
@@ -469,7 +491,8 @@ impl ImageView
         }
 
         Memory.copy(.image.pixels.storage(), image.pixels.storage(), .image.byteCount)
-        .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer)) do
+            .app().renderer.removeTexture(&.uploadedTexture)
         .invalidate()
     }
 
@@ -521,16 +544,20 @@ impl ImageView
            view.height != .planarHeight or
            view.chromaShift != .planarChromaShift
         {
+            let uploaded = .app().renderer.addImage(view)
+            if not uploaded.isValid() do
+                return
             .clear()
             .planarWidth       = view.width
             .planarHeight      = view.height
             .planarChromaShift = view.chromaShift
-            .uploadedTexture   = .app().renderer.addImage(view)
+            .uploadedTexture   = uploaded
             .zoomToFit()
             return
         }
 
-        .app().renderer.updateTexture(.uploadedTexture, view)
+        if not .app().renderer.updateTexture(.uploadedTexture, view) do
+            .app().renderer.removeTexture(&.uploadedTexture)
         .invalidate()
     }
 
@@ -570,7 +597,8 @@ impl ImageView
         }
 
         swap(&.image, image)
-        .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer))
+        if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(.image.pixels.buffer)) do
+            .app().renderer.removeTexture(&.uploadedTexture)
         .invalidate()
     }
 
@@ -601,9 +629,12 @@ impl ImageView
         let turns  = .rotationQuarterTurns
         let mirror = .isMirrored
 
+        let uploaded = .app().renderer.addImage(image)
+        if not uploaded.isValid() do
+            return
         .clear()
         .image                = image
-        .uploadedTexture      = .app().renderer.addImage(.image)
+        .uploadedTexture      = uploaded
         .isFitted             = fitted
         .zoom                 = Math.clamp(scaled, MinZoom, MaxZoom)
         .panOffset            = offset
@@ -627,16 +658,26 @@ impl ImageView
         var movie: Movie
         try movie.load(fileName)
 
-        .exchangeMovie(&movie)
+        if not .exchangeMovie(&movie) do
+            fail Pixel.RenderResourceError{"renderer cannot allocate the movie texture"}
     }
 
     // Displays a prepared movie by exchanging its owned decoding state with the view.
     //
     // This is the publication counterpart to loading or decoding a [[Gui.Movie]] outside the GUI
     // thread. On return, `movie` owns the content that previously belonged to the view, or an
-    // empty movie when the view had none. An invalid movie clears the view.
-    mtd exchangeMovie(movie: *Movie)
+    // empty movie when the view had none. An invalid movie clears the view. Returns false and
+    // preserves both values when the renderer cannot allocate the first frame.
+    mtd exchangeMovie(movie: *Movie)->bool
     {
+        var uploaded: Texture
+        if movie.isValid()
+        {
+            uploaded = .app().renderer.addImage(movie.frame)
+            if not uploaded.isValid() do
+                return false
+        }
+
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
         Swag.drop(&.image, 1)
@@ -646,13 +687,13 @@ impl ImageView
         .planarWidth, .planarHeight = 0
         swap(&.movie, movie)
         .reportedMovieFailure = false
-        if .movie.isValid() do
-            .uploadedTexture = .app().renderer.addImage(.movie.frame)
-        .isFitted  = true
-        .zoom      = 1
-        .panOffset = {}
+        .uploadedTexture      = uploaded
+        .isFitted             = true
+        .zoom                 = 1
+        .panOffset            = {}
         .sigZoomChanged.call(me)
         .invalidate()
+        return true
     }
 
     // Returns the scale currently used to paint the image.

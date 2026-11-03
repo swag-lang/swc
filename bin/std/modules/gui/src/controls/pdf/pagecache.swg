@@ -40,10 +40,22 @@ impl PdfResidentPage
             return
         for item in .page.items
         {
+            var uploaded: Pixel.Texture
             if item.kind == .Image do
-                .textures.add(renderer.addImage(item.image))
+                uploaded = renderer.addImage(item.image)
             elif item.hasMask do
-                .textures.add(renderer.addImage(item.maskImage))
+                uploaded = renderer.addImage(item.maskImage)
+            else do
+                continue
+            if not uploaded.isValid()
+            {
+                for &texture in .textures do
+                    renderer.removeTexture(texture)
+                .textures.clear()
+                return
+            }
+
+            .textures.add(uploaded)
         }
 
         .hasTextures = true

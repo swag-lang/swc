@@ -153,15 +153,9 @@ impl IRenderer for RenderOgl
 
     mtd impl addImage(view: const *YuvPlanarView)->Texture => .addImageImpl(view)
 
-    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)
-    {
-        .updatePlanarImpl(texture, view)
-    }
+    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)->bool => .updatePlanarImpl(texture, view)
 
-    mtd impl updateTexture(texture: Texture, pixels: const *u8)
-    {
-        .updateTextureImpl(texture, pixels)
-    }
+    mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .updateTextureImpl(texture, pixels)
 
     mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .readTexturePixelsImpl(texture, pixelFormat)
 

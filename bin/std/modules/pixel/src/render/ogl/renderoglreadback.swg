@@ -156,6 +156,11 @@ impl RenderOglReadback
         if not .mapping and stride == rowBytes
         {
             glGetBufferSubData(GL_PIXEL_PACK_BUFFER, 0, cast(s64, .byteCount), destination.buffer)
+            if glGetError() != GL_NO_ERROR
+            {
+                .failed = true
+                return false
+            }
         }
         else
         {
@@ -266,6 +271,12 @@ private impl RenderOglReadback
         glPixelStorei(GL_PACK_SKIP_ROWS, 0)
         glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
         glReadPixels(.sourceX, .sourceY, .width, .height, GL_BGRA, GL_UNSIGNED_BYTE, null)
+        if glGetError() != GL_NO_ERROR
+        {
+            .failed = true
+            return
+        }
+
         .transfer = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
         .failed   = .transfer == null
         glFlush()

@@ -690,7 +690,7 @@ impl Surface
         .presentationHeight = 0
     }
 
-    internal mtd bindNativePresentationTarget()
+    internal mtd bindNativePresentationTarget()->bool
     {
         if .presentationTarget.colorBuffer.width != .rc.width or .presentationTarget.colorBuffer.height != .rc.height
         {
@@ -698,7 +698,10 @@ impl Surface
             .presentationTarget = .app.renderer.createRenderTarget(.rc.width, .rc.height)
         }
 
+        if not .presentationTarget.colorBuffer.isValid() do
+            return false
         .app.renderer.bindRenderTarget(&.presentationTarget)
+        return true
     }
 
     internal mtd canQueueNativePresentation()->bool =>
@@ -770,7 +773,7 @@ impl Surface
         return not .readback.isPending()
     }
 
-    internal mtd prepareNativePresentation(target: const *Pixel.RenderTarget)
+    internal mtd prepareNativePresentation(target: const *Pixel.RenderTarget)->bool
     {
         // A persistent layered HWND lets USER32 publish geometry and pixels together. Its
         // bitmap is CPU-backed; keep it across repaints and copy the complete premultiplied
@@ -793,8 +796,11 @@ impl Surface
         }
 
         let image = .app.renderer.readRenderTarget(target, 0, 0, .rc.width, .rc.height)
+        if not image.isValid() do
+            return false
         Memory.copy(unwrap .presentationPixels, image.pixels.storage(), image.byteCount)
         .presentationDirtyRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
+        return true
     }
 
     internal mtd publishNativePresentation()

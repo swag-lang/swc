@@ -462,7 +462,7 @@ impl Surface
         if .app.renderer.needsNativeWindow() and not .advanceNativePresentation() do
             return
         if .paintToRenderTarget(root) do
-            .presentRenderTarget()
+            discard .presentRenderTarget()
     }
 
     // Prepares the next native geometry while the old window rectangle is still on screen.
@@ -474,7 +474,7 @@ impl Surface
         if not .paintToRenderTarget(root) do
             return false
         if .app.renderer.needsNativeWindow() do
-            .presentRenderTarget(publish: false)
+            return .presentRenderTarget(publish: false)
         return true
     }
 
@@ -487,13 +487,15 @@ impl Surface
         }
 
         .app.renderer.begin(.rc)
-        .presentRenderTarget()
+        discard .presentRenderTarget()
     }
 
     private mtd paintToRenderTarget(root: *Wnd)->bool
     {
         root.flushLayout()
         .createRT()
+        if not .rt.colorBuffer.isValid() do
+            return false
 
         if not .isDirty do
             return false
@@ -608,7 +610,7 @@ impl Surface
         return true
     }
 
-    private mtd presentRenderTarget(publish = true)
+    private mtd presentRenderTarget(publish = true)->bool
     {
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
@@ -618,6 +620,7 @@ impl Surface
         let native       = .app.renderer.needsNativeWindow()
         let asynchronous = native and publish and .canQueueNativePresentation()
         var deferred: bool
+        var prepared     = true
         if native and not (.isDisabled and .app.fadeDisabledSurface)
         {
             // The surface already contains the complete premultiplied frame. Read that target
@@ -625,17 +628,24 @@ impl Surface
             .colorDisabled = Argb.White
             deferred       = asynchronous and .queueNativePresentation(&.rt)
             if not deferred do
-                .prepareNativePresentation(&.rt)
+                prepared = .prepareNativePresentation(&.rt)
         }
         else
         {
-            .copyRenderTargetForPresentation()
-            if native
+            prepared = .copyRenderTargetForPresentation()
+            if prepared and native
             {
                 deferred = asynchronous and .queueNativePresentation(&.presentationTarget)
                 if not deferred do
-                    .prepareNativePresentation(&.presentationTarget)
+                    prepared = .prepareNativePresentation(&.presentationTarget)
             }
+        }
+
+        if not prepared
+        {
+            .app.renderer.end()
+            .invalidate()
+            return false
         }
 
         var presentUs = 0'u64
@@ -651,10 +661,12 @@ impl Surface
             .app.frameTrace.addSurface(.paintRecordUs, .paintTargetUs, presentUs, swapUs, .paintArea, .paintVertices, .paintBatches)
             .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
         }
+
+        return true
     }
 
     // Disabled surfaces need the tinting pass; software surfaces retain their ordinary blit.
-    private mtd copyRenderTargetForPresentation()
+    private mtd copyRenderTargetForPresentation()->bool
     {
         // Paint render target to screen. This pass copies physical texels one to
         // one, so it runs unscaled: destination and source are both device pixels.
@@ -685,13 +697,15 @@ impl Surface
         .painter.drawTexture(dstRect, dstRect, .rt.colorBuffer, color)
         .painter.end()
 
-        if .app.renderer.needsNativeWindow() do
-            .bindNativePresentationTarget()
+        if .app.renderer.needsNativeWindow() and not .bindNativePresentationTarget() do
+            return false
         .app.renderer.draw(&.painter)
         if .app.renderer.needsNativeWindow()
         {
             .app.renderer.unbindRenderTarget()
         }
+
+        return true
     }
 
     // `width` and `height` are in physical pixels; the window tree receives the

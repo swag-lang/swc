@@ -144,6 +144,46 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
+// A quiet reading at the foot of a light window opens upward with a shadow under its tab.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    host.setReducedMotion(false)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let button = IconButton.createQuiet(&host.root)
+    button.setArrowPosition(.RightUpward)
+    button.setQuietText("1931 × 1615")
+    button.setPosition({24, 218, button.position.width, 28})
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Resize Image…", Menu_Open)
+    popup.addItem("Expand Image…", Menu_New)
+    popup.addItem("Expand Capture…", Menu_Quit)
+    popup.addItem("Trim Capture", "Menu.Trim")
+
+    var checked: bool
+    host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(_)
+    {
+        if checked[] do
+            return
+        Swag.assert(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
+        Swag.assert(popup.presentationOpacity == 1 and popup.presentationOffset == Math.Point{})
+        Swag.assert(popup.position.y + popup.getPopupBodyRect().bottom() == button.surfaceRect().y)
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.quiet-anchor-up.light")
+        Swag.assert(host.dismissPopupMenu())
+        checked[] = true
+    }
+
+    discard popup.doModal(button, autoDestroy: true)
+    Swag.assert(checked)
+    host.pump()
+}
+
 // A button against the right edge keeps its integrated popup against that same edge. The shadow
 // may extend outside the client area, but the visible body must not be clamped inward and detached
 // from its trigger.

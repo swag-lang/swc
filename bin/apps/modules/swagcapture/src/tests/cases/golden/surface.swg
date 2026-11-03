@@ -154,7 +154,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(captured)
 }
 
-// Text size opens as an attached preset menu, while the inspector keeps the exact editor, in Encre.
+// Font size opens in the same widget-backed choice popup as the face, in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -168,20 +168,39 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     let button = unwrap main.miniBarFontSize
-    var captured: bool
-    host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
+    host.clickWnd(button)
+    let popup = unwrap main.textChoicePopover
+    Swag.require(popup.list.lineCount() == TextChoiceSizes.count)
+    host.finishAnimations()
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "edit.text-size-menu")
+    button.hidePopup()
+}
+
+// The font choice has the same attached list and a real search field above it, in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false)
+    defer
     {
-        if captured[] do
-            return
-        Swag.require((unwrap host.capturedPopupMenu()).items.count == MiniBarFontSizes.count)
-        var image = host.render(main)
-        Pixel.Testing.assertImageGolden(&image, "edit.text-size-menu")
-        Swag.require(host.dismissPopupMenu())
-        captured[] = true
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
     }
 
+    let button = unwrap main.miniBarFontFace
     host.clickWnd(button)
-    Swag.require(captured)
+    let popup  = unwrap main.textChoicePopover
+    let filter = unwrap popup.filter
+    Swag.require(popup.list.scrollWnd.scrollSize.y > popup.list.position.height)
+    filter.setText(main.theme().res.defaultTypeFaceR.familyName())
+    Swag.require(popup.list.lineCount() > 0 and filter.hasFocus())
+    host.finishAnimations()
+    var image = host.render(main)
+    Pixel.Testing.assertImageGolden(&image, "edit.font-choice.paper")
+    button.hidePopup()
 }
 
 // The selection tool leaves the canvas clear until an object is chosen, in Encre.

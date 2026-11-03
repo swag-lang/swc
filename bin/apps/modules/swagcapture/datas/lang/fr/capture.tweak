@@ -11,6 +11,7 @@ ui_AllCaptures         Tous les éléments
 ui_ImageBadge          IMAGE
 ui_CommaSeparatedTags  Étiquettes séparées par des virgules
 ui_Search              Rechercher
+ui_NoMatchingFonts     Aucune police ne correspond à la recherche.
 ui_BarView             Affichage
 ui_Overlays            Surimpressions
 ui_ThumbnailSize       Taille des vignettes

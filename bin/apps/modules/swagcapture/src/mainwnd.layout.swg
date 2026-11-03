@@ -23,14 +23,6 @@ func alignOfUserData(data: *void?)->FormTextAlign => cast(FormTextAlign, cast(u6
 func alignIsVertical(data: *void?)->bool => (cast(u64, data) & AlignVerticalFlag) != 0
 const AlignVerticalFlag = 0x100'u64
 
-// The faces a text can be set in, listed by the face of the mini-bar, enumerated once.
-var g_MiniBarFonts: Array'SystemFontFamilyInfo
-
-// Common text sizes in the mini-bar; the inspector keeps the full numeric range.
-const MiniBarFontSizes = [12'u32, 16, 24, 32, 40, 48, 72, 96, 120, 150]
-
-func miniBarFontSizeId(size: u32)->String => Format.toString("capture.font.size.%", size)
-
 // The room the floating parts of the editor take over the edges of the work.
 struct FloatingInsets
 {
@@ -284,11 +276,11 @@ impl MainWnd
         let style = .selectedTextStyle()
         if not style.found do
             return
-        for item in .miniBar.items
-        {
-            if item.wnd is ComboBox as face do
-                face.setSelectedIndex(miniBarFontIndex(style.face), notify: false)
-        }
+        let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+        let shown = style.face.count ? style.face : defaultFace
+        .miniBarFontFace?.setText(shown)
+        if .miniBarFontFace do
+            .miniBarFontFace.toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
         .miniBarFontSize?.setText(Format.toString("%", cast(s32, Math.round(style.size))))
     }
 
@@ -296,6 +288,7 @@ impl MainWnd
     // entry: the bar only brings the commands of the selection next to it.
     mtd fillMiniBar(kind: MiniBarKind)
     {
+        .miniBarFontFace = null
         .miniBarFontSize = null
         .miniBar.clear()
         if kind == .None do
@@ -377,15 +370,7 @@ impl MainWnd
         return {false, FormText, "", 0, .Regular, .Center, .Center}
     }
 
-    // The theme face and separator precede the installed font families.
-    func miniBarFontIndex(face: string)->u32
-    {
-        for &font, index in g_MiniBarFonts where font.name == face do
-            return cast(u32, index) + 2
-        return 0
-    }
-
-    // Adds the text face to the mini-bar, with the interface face first.
+    // Adds the current text face as a quiet popup trigger, level with the size beside it.
     mtd addTextFace()
     {
         let style = .selectedTextStyle()
@@ -393,33 +378,25 @@ impl MainWnd
             return
 
         let metrics = .themeMetrics()
-        if g_MiniBarFonts.isEmpty() do
-            g_MiniBarFonts = FontFamily.enumerateSystemFonts()
-
         let defaultFace = .theme().res.defaultTypeFaceR.familyName()
         let shown       = style.face.count ? style.face : defaultFace
-        let font        = unwrap .font().regular
-        let width       = Math.ceil(Painter.measureString(shown, font).width + 2 * metrics.comboBox_Padding + metrics.miniBar_ButtonSize)
-        with let face   = ComboBox.create(.miniBar, {0, 0, width, metrics.miniBar_ButtonSize}, flags: .Flat)
+        with .miniBarFontFace = IconButton.createQuiet(.miniBar)
         {
-            .toolTip = appStrings().prop_Font
-            .addItem(defaultFace)
-            .addSeparator()
-            for &fnt in g_MiniBarFonts do
-                .addItem(fnt.name)
-
-            .setSelectedIndex(miniBarFontIndex(style.face), notify: false)
-            .sigChanged += func|main = me|(_, index)
+            .toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
+            .updateFlags(add: .Popup)
+            .setText(shown)
+            .resize(112, metrics.miniBar_ButtonSize)
+            .sigPopupRequested += func|main = me|(button)
             {
-                main.setSelectedFace(index < 2 ? "" : g_MiniBarFonts[index - 2].name.toString())
+                main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Face)
             }
+            .sigPopupClosed += func|main = me|(_) { main.textChoicePopover = null }
         }
 
-        .miniBar.addItem(face)
+        .miniBar.addItem(.miniBarFontFace)
     }
 
-    // Shows the current text size and opens a short list of useful sizes. Exact values belong in
-    // the inspector, where the editor has room for both the slider and numeric entry.
+    // The size uses the same trigger and popup as the face. Exact values stay in the inspector.
     mtd addTextSize()
     {
         let style   = .selectedTextStyle()
@@ -429,41 +406,17 @@ impl MainWnd
         with .miniBarFontSize = IconButton.createQuiet(.miniBar)
         {
             .toolTip = appStrings().prop_Size
+            .updateFlags(add: .Popup)
             .setText(Format.toString("%", cast(s32, Math.round(style.size))))
             .resize(width, metrics.miniBar_ButtonSize)
-            .sigPressed += func|main = me|(button) { main.showTextSizeMenu(assume cast(*IconButton, button)) }
+            .sigPopupRequested += func|main = me|(button)
+            {
+                main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size)
+            }
+            .sigPopupClosed += func|main = me|(_) { main.textChoicePopover = null }
         }
 
         .miniBar.addItem(.miniBarFontSize)
-    }
-
-    // Presets are a direct gesture; the property's numeric editor remains the source of exact
-    // values. Selection uses the same property path so undo and both surfaces stay in sync.
-    mtd showTextSizeMenu(button: *IconButton)
-    {
-        let style = .selectedTextStyle()
-        if not style.found do
-            return
-
-        with let menu = MenuCtrl.createPopup(me)
-        {
-            for size in MiniBarFontSizes
-            {
-                let checked = Math.abs(style.size - cast(f32, size)) < 0.01
-                .addRadioItem(Format.toString("%", size), miniBarFontSizeId(size), checked: checked)
-            }
-        }
-
-        let chosen = menu.doModal(button, autoDestroy: true) orelse ""
-        for size in MiniBarFontSizes
-        {
-            let id = miniBarFontSizeId(size)
-            if chosen != id.toString() do
-                continue
-            let value = cast(f32, size)
-            .propWnd.pushTypedValue(cast #bit (u32, value), style.type, #nameof(FormText.fontSize), true)
-            break
-        }
     }
 
     // Sets the face of the selected texts to `face`, the interface face when empty, as one step

@@ -116,7 +116,9 @@ struct MainWnd
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:     MiniBarKind = .None
     miniBarForm:     *BaseForm?     // The form the mini-bar was filled for, whose face, size and style it shows.
-    miniBarFontSize: *IconButton?     // The current text size, opened as a preset menu.
+    miniBarFontFace: *IconButton?     // Current text face, opened as a filtered choice popup.
+    miniBarFontSize: *IconButton?     // Current text size, opened through the same choice popup.
+    textChoicePopover: *TextChoicePopover?     // Open face or size list, if any.
 
     icons:       IconSet
     appIcon:     ImageList

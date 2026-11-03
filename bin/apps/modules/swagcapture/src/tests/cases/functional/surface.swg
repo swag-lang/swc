@@ -291,8 +291,10 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
     let size = unwrap main.miniBarFontSize
-    host.clickPopupMenuItemWhenShown("capture.font.size.72")
     host.clickWnd(size)
+    let sizePopup = unwrap main.textChoicePopover
+    Swag.require(sizePopup.kind == .Size and sizePopup.list.lineCount() == TextChoiceSizes.count)
+    sizePopup.list.selectLine(6)
     Swag.require(text.fontSize == 72)
     host.runFrames(1)
     Swag.require(size.text() == "72")
@@ -348,8 +350,9 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     main.updateState()
 
     let size = unwrap main.miniBarFontSize
-    host.clickPopupMenuItemWhenShown("capture.font.size.96")
     host.clickWnd(size)
+    let popup = unwrap main.textChoicePopover
+    popup.list.selectLine(7)
     host.runFrames(1)
     Swag.require(callout.fontSize == 96 and size.text() == "96")
 }
@@ -368,14 +371,9 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     }
 
     let text = assume cast(*FormText, (unwrap main.getCapture()).forms[0])
-    var face: *ComboBox?
-    for item in main.miniBar.items
-    {
-        if item.wnd is ComboBox as combo do
-            face = combo
-    }
-
-    Swag.require(face != null)
+    let face = unwrap main.miniBarFontFace
+    let size = unwrap main.miniBarFontSize
+    Swag.require(face.position.height == size.position.height and face.arrowPosition == size.arrowPosition)
     discard host.render(main)
     host.pump()
     var font: *PropertiesItem?
@@ -385,22 +383,34 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     let first: String = font.comboBox.items[2]!.name.raw
     font.comboBox.setSelectedIndex(2)
     Swag.require(text.fontName == first)
-    Swag.require(face.selectedItem()!.name.raw == first)
+    Swag.require(face.text() == first.toString())
 
     let last: String = font.comboBox.items.back()!.name.raw
     font.comboBox.setSelectedIndex(cast(u32, font.comboBox.items.count - 1))
-    Swag.require(text.fontName == last and face.selectedItem()!.name.raw == last)
+    Swag.require(text.fontName == last and face.text() == last.toString())
     main.editWnd.editView.setFocus()
     host.keyPress(.Z, .Control)
     host.runFrames(1)
-    Swag.require(text.fontName == first and face.selectedItem()!.name.raw == first)
+    Swag.require(text.fontName == first and face.text() == first.toString())
     host.keyPress(.Y, .Control)
     host.runFrames(1)
-    Swag.require(text.fontName == last and face.selectedItem()!.name.raw == last)
+    Swag.require(text.fontName == last and face.text() == last.toString())
 
-    face.setSelectedIndex(0)
+    host.clickWnd(face)
+    let popup  = unwrap main.textChoicePopover
+    let filter = unwrap popup.filter
+    let fullHeight = (unwrap popup.parent).position.height
+    filter.setText("__missing_font__")
+    Swag.require(popup.list.lineCount() == 0)
+    Swag.require(popup.parent.position.height < fullHeight)
+    filter.setText(main.theme().res.defaultTypeFaceR.familyName())
+    Swag.require(popup.list.lineCount() > 0)
+    host.keyPress(.Down)
+    Swag.require(popup.list.hasFocus())
+    host.keyPress(.Return)
     host.runFrames(1)
-    Swag.require(text.fontName.isEmpty() and face.selectedIndex == 0)
+    Swag.require(text.fontName.isEmpty() and face.text() == main.theme().res.defaultTypeFaceR.familyName())
+    Swag.require(main.textChoicePopover == null)
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         Swag.require(item.comboBox.selectedIndex == 0)
 }

@@ -26,6 +26,7 @@ struct AppStrings
     ui_ImageBadge:             string = "IMAGE"
     ui_CommaSeparatedTags:     string = "Tags separated by commas"
     ui_Search:                 string = "Search"
+    ui_NoMatchingFonts:        string = "No matching fonts"     // Empty result of the font picker search.
     ui_BarView:                string = "View"
     ui_Overlays:               string = "Overlays"
     ui_ThumbnailSize:          string = "Thumbnail Size"     // Option choosing how large the thumbnails of the library are.

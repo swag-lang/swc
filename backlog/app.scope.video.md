@@ -5,7 +5,7 @@ supported codecs, audio-clock synchronization, track selection, sidecar and embe
 seeking, full-screen hosting, mute, and volume. This backlog owns professional playback and
 inspection around `std/video`; codec implementation work remains in [std.video.md](std.video.md).
 
-### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
+### app.scope.video.001 — Playback rate stops at 2x and has no pitch-preserving mode
 
 - Evidence: the transport's playback-speed menu and Shift+Left/Right offer 0.25x–2x pitch-following
   rates through `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
@@ -25,7 +25,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   clock with `followAudioClock`. A diagnostic run saw XAudio2's played-sample counter stay at
   zero with buffers queued, so `Voice.playbackPositionSeconds` never moved and the correction
   never fired; that run did not establish whether the process had a working audio endpoint.
-  Only the no-sound stalled-output case is tested (`viewer.video.test.swg`).
+  Only the no-sound stalled-output case is tested (`viewers/video/tests/video.test.swg`).
 - Next: play a video with sound on a machine whose output is audible and log
   `playbackSampleFrame` against the wall clock for a minute.
 - Done when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately

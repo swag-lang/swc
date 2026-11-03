@@ -364,10 +364,10 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.revealFilter()
         Swag.assert(explorer.filter.position.width > 100 and explorer.filter.hasFocus())
 
-        // Search, sort and kind filters share the folder-title line.
+        // Filtering floats above the title; sort and view remain on its baseline.
         let filterRect = explorer.filter.surfaceRect()
         let sortRect   = explorer.sortMenu.surfaceRect()
-        Swag.assert(filterRect.y == sortRect.y and filterRect.height == Explorer.ToolHeight)
+        Swag.assert(filterRect.y < sortRect.y and filterRect.height == Explorer.ToolHeight)
         Swag.assert(explorer.modeMenu.surfaceRect().y == sortRect.y)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
         Swag.assert(explorer.grid.hovered == 0)

@@ -74,7 +74,7 @@ func delete(dirName: string, recurse = false) fail
             break
     }
 
-    try Env.guardWrite(path, followLeaf: false)
+    try Env.guardWrite(path, followFinalEntry: false)
 
     if recurse
     {

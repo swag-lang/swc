@@ -1,9 +1,10 @@
 #global private
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 struct Owner
 {
     values: [4]u64
-    drops: *u64
+    drops:  *u64
 }
 
 impl Owner
@@ -11,7 +12,7 @@ impl Owner
     mtd opDrop()
     {
         .values[0] = 0
-        .drops[] += 1
+        .drops[]   += 1
     }
 }
 
@@ -41,7 +42,7 @@ func forward(drops: *u64, rejected: bool)->u64 fail =>
 
 #test
 {
-    var drops: u64
+    var drops:   u64
     var outcome: Swag.Error
     discard catch consume(Owner{[29, 0, 0, 0], &drops}, try reject()) as outcome
     Swag.assert(outcome.value() != null and drops == 1)

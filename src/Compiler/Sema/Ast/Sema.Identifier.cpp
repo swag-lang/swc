@@ -38,9 +38,9 @@ namespace
 
     bool symbolMayBeExcludedByGlobalCompilerIf(Sema& sema, const Symbol& symbol)
     {
-        const SourceView&      sourceView = sema.compiler().srcView(symbol.srcViewRef());
-        const std::vector<Token>& tokens  = sourceView.tokens();
-        const size_t           end        = std::min<size_t>(symbol.tokRef().get(), tokens.size());
+        const SourceView&         sourceView = sema.compiler().srcView(symbol.srcViewRef());
+        const std::vector<Token>& tokens     = sourceView.tokens();
+        const size_t              end        = std::min<size_t>(symbol.tokRef().get(), tokens.size());
         for (size_t index = 0; index + 1 < end; ++index)
         {
             if (tokens[index].id == TokenId::CompilerGlobal && tokens[index + 1].id == TokenId::KwdIf)
@@ -744,7 +744,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             if (isUnconditionalForwardType(sema, *candidate, codeRef()))
                 break;
 
-            const Result  ready     = sema.waitDeclared(candidate, codeRef());
+            const Result ready = sema.waitDeclared(candidate, codeRef());
             if (!candidate->isExcludedByCondition())
             {
                 SWC_RESULT(ready);

@@ -14,15 +14,15 @@ func release(pointer: *void, size: u64)
 {
     var request: AllocatorRequest
     request.address = pointer
-    request.size = size
+    request.size    = size
     Swag.getContext().allocator!.free(&request)
 }
 struct Owner
 {
-    target: const *void?
-    spare: const *void?
+    target:        const *void?
+    spare:         const *void?
     width, height: s32
-    owned: bool
+    owned:         bool
 }
 #[Swag.NoInline]
 func target(value: Owner)->*void => cast #unconst (*void, unwrap value.target)
@@ -37,7 +37,7 @@ func dropValue(value: Owner)
     let owner = cast(*Owner, allocate(#sizeof(Owner)))
     Swag.init(owner, 1)
     owner.target = allocate(8)
-    owner.owned = true
+    owner.owned  = true
     dropValue(owner[])
     owner.width = 17
     Swag.assert(owner.width == 17)

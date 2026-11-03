@@ -353,15 +353,10 @@ impl IWnd for ViewerWindow
             return
         }
 
-        // The commands the window names have their keys registered as shortcuts; what is left
-        // here is what a key means only in context.
+        // Commands use registered shortcuts, after the focused control has had the key.
         let plain = evt.modifiers == .None
         switch evt.key
         {
-        case .Escape where plain and .infoSheet.isLocallyVisible():       .closeInformation()
-        case .Escape where plain and .searchShown:                        .hideSearch()
-        case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
-        case .Escape where plain and .fullScreen:                         .setFullScreen(false)
         case .Left, .Right where plain: evt.accepted = not .forwardingViewerKey and .forwardKeyToViewer(evt)
         default: evt.accepted = false
         }
@@ -865,6 +860,7 @@ impl ViewerWindow
     {
         .layoutViewerBar()
         .layoutSearchBar()
+        .explorer?.layoutFilter()
     }
 
     // Places the find bar at the trailing top corner of the document, sized to the search group.

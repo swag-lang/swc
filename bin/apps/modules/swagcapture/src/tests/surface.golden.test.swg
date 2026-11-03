@@ -310,7 +310,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = true
+    let dark   = true
     var host: Gui.Testing.HeadlessHost
     let editor = testSetupInPlace(&host, dark)
     defer

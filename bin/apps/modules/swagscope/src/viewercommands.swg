@@ -12,6 +12,7 @@ namespace ViewerCommands
     const Explore           = "scope.explore"
     const ReturnToExplorer  = "scope.explore.return"
     const Close             = "scope.close"
+    const Dismiss           = "scope.dismiss"
     const Reload            = "scope.reload"
     const PreviousFile      = "scope.previousFile"
     const NextFile          = "scope.nextFile"
@@ -166,6 +167,7 @@ impl ViewerWindow
 
         // The lens uses one chord everywhere.
         .registerKeyShortcut(.Control, .Space, ViewerCommands.Lens)
+        .registerKeyShortcut(.None, .Escape, ViewerCommands.Dismiss)
         .registerKeyShortcut(.None, .I, ViewerCommands.Information)
         .registerKeyShortcut(Input.KeyModifiers.Control | .Shift, .O, ViewerCommands.Outline)
         .registerKeyShortcut(.Control, .O, ViewerCommands.Open)
@@ -505,6 +507,13 @@ impl ViewerWindow
             name   = texts.ui_CloseFile
             icon   = .commandGlyph(.WndClose)
             hidden = not hasFile and not exploring
+
+        case ViewerCommands.Dismiss:
+            name     = Gui.strings().dlg_Close
+            disabled = not .infoSheet.isLocallyVisible() and
+                       not .searchShown and
+                       not .fullScreen and
+                       not exploring
 
         case ViewerCommands.Reload:
             name   = texts.cmd_Reload
@@ -889,6 +898,16 @@ impl ViewerWindow
 
         case ViewerCommands.Close:
             .closeFile()
+
+        case ViewerCommands.Dismiss:
+            if .infoSheet.isLocallyVisible() do
+                .closeInformation()
+            elif .searchShown do
+                .hideSearch()
+            elif .fullScreen do
+                .setFullScreen(false)
+            elif .isExploring() do
+                .closeFile()
 
         case ViewerCommands.Reload:
             .reloadCurrentFile()

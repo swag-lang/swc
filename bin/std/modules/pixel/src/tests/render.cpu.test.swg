@@ -434,6 +434,28 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     Swag.assert(image.pixelColor(16, 2).a == 0)
 }
 
+// Alpha replay preserves translucent coverage rather than multiplying it by itself.
+#test
+{
+    var renderer: RenderCpu
+    let render:   IRenderer = &renderer
+    var target = render.createRenderTarget(8, 8)
+    defer render.deleteRenderTarget(&target)
+    var painter = Painter.create(render)
+    painter.begin()
+    painter.bindRenderTarget(&target, paintAlpha: true)
+    painter.setColorMaskFull()
+    painter.clear(Argb.Zero)
+    painter.setColorMaskColor()
+    painter.setBlendingMode(.Alpha)
+    painter.fillRect(0, 0, 8, 8, Color.fromArgb(128'u8, Argb.White))
+    painter.unbindRenderTarget()
+    painter.end()
+    render.draw(&painter)
+    let image = render.readRenderTarget(&target, 0, 0, 8, 8)
+    Swag.assert(image.pixelColor(4, 4).a == 128)
+}
+
 // The built-in blur program is interpreted directly by the CPU backend.
 #test
 {

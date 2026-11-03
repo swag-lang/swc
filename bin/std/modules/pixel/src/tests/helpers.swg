@@ -2,6 +2,31 @@
 
 using Swag, Core
 
+// Samples centered chroma with integer area weights, independently of the renderer's floats.
+// Clamping repeats the plane's edge samples.
+func expectedChromaSample(plane: const [*] u8, stride: u64, planeWidth, planeHeight, width, height, x, y: s32)->u8
+{
+    let dx = cast(s64, width) * 2
+    let dy = cast(s64, height) * 2
+    let px = Math.clamp((cast(s64, x) * 2 + 1) * planeWidth - width, 0, (planeWidth - 1) * dx)
+    let py = Math.clamp((cast(s64, y) * 2 + 1) * planeHeight - height, 0, (planeHeight - 1) * dy)
+    let x0 = px / dx
+    let y0 = py / dy
+    let x1 = Math.min(x0 + 1, cast(s64, planeWidth - 1))
+    let y1 = Math.min(y0 + 1, cast(s64, planeHeight - 1))
+    let wx = px % dx
+    let wy = py % dy
+
+    let a   = cast(s64, plane[cast(u64, y0) * stride + cast(u64, x0)])
+    let b   = cast(s64, plane[cast(u64, y0) * stride + cast(u64, x1)])
+    let c   = cast(s64, plane[cast(u64, y1) * stride + cast(u64, x0)])
+    let d   = cast(s64, plane[cast(u64, y1) * stride + cast(u64, x1)])
+    let sum = (a * (dx - wx) + b * wx) * (dy - wy) +
+              (c * (dx - wx) + d * wx) * wy
+    let divisor = dx * dy
+    return cast(u8, (sum + divisor / 2) / divisor)
+}
+
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
@@ -117,9 +142,10 @@ func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
 func makeTypeFaceCollection()->Array'u8
 {
     func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
-                                                    cast(u32, bytes[offset + 1]) << 16 |
-                                                    cast(u32, bytes[offset + 2]) << 8 |
-                                                    bytes[offset + 3]
+                                                       cast(u32, bytes[offset + 1]) << 16 |
+                                                       cast(u32, bytes[offset + 2]) << 8 |
+                                                       bytes[offset + 3]
+
     func write32(bytes: *Array'u8, offset: u64, value: u32)
     {
         for index in 4 do
@@ -138,7 +164,7 @@ func makeTypeFaceCollection()->Array'u8
         let offset = cast(u32, bytes.count)
         write32(&bytes, 12 + index * 4, offset)
         bytes.add(source.toSlice())
-        let tables = cast(u32, bytes[offset + 4]) << 8 | bytes[offset + 5]
+        let tables    = cast(u32, bytes[offset + 4]) << 8 | bytes[offset + 5]
         var foundHead = false
         for table in tables
         {
@@ -152,8 +178,10 @@ func makeTypeFaceCollection()->Array'u8
                 foundHead = true
             }
         }
+
         Swag.assert(foundHead)
     }
+
     return bytes
 }
 

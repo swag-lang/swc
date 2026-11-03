@@ -21,7 +21,7 @@ not the discovery.
 
 - Evidence: each page prints its own index and inline search script (`DocSearch`), so a page
   stays a single file that reaches nothing. From `std.core.html`, no query reaches
-  `Gui.Widget`. A shared index loaded by every page is the second file that the identity
+  `Gui.Wnd`. A shared index loaded by every page is the second file that the identity
   rule refuses ([design-swag-identity](../.agents/skills/design-swag-identity/SKILL.md)).
 - Next: choose between two options and implement it:
   - a `search.html` that carries the whole workspace index with the same script and is

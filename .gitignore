@@ -11,3 +11,5 @@ riderModule.iml
 *.user
 __pycache__/
 /vscode/node_modules/
+*.actual.png
+*.actual.txt

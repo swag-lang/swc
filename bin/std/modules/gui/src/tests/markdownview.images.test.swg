@@ -235,6 +235,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(320, 240)
     var cache: HtmlImageCache
+
     // All four jobs deliberately block. Dedicated executors keep this fixture independent
     // of the shared pool's worker ceiling, including a one-worker test run.
     var executors: [4] Swag.Executor
@@ -266,7 +267,8 @@ using Swag, Core, Pixel
             started.release()
             gate.acquire()
             parsing.drawing = expect Svg.Drawing.parse(Source)
-        }, executor: &executors[index])
+        },
+                            executor: &executors[index])
     }
 
     for 4 do

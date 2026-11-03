@@ -117,8 +117,8 @@ private struct CpuPlanarTexture
 {
     luma, chromaB, chromaR: Array'u8
     width, height, chromaWidth, chromaHeight: s32 = 0
-    matrix: YuvMatrix = .Bt601
-    studioRange: bool = false
+    matrix:      YuvMatrix = .Bt601
+    studioRange: bool      = false
 }
 
 // Inclusive device-pixel rectangle a draw batch can touch inside its target.
@@ -204,10 +204,10 @@ private struct RasterBatch
 
     late stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
 
-    solidPaint: bool        // The paint multiplies by opaque white, which is the identity.
-    paintImage: *Image?     // Storage of a bound texture paint, resolved once.
+    solidPaint:  bool                   // The paint multiplies by opaque white, which is the identity.
+    paintImage:  *Image?                // Storage of a bound texture paint, resolved once.
     paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
-    atlas:      const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
+    atlas:       const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
 
     blurWeights:     const [*] f32?     // Gaussian tap weights owned by the active draw call.
     blurWeightCount: u64
@@ -693,13 +693,11 @@ private impl RenderCpu
 
         let dst = readPixel(image, x, y)
 
-        // OpenGL rebuilds paintAlpha targets with GL_MAX and a source-alpha blend factor.
-        // Preserve that slightly unusual alpha-squared behavior so CPU and GPU resolves agree.
+        // GL_MAX ignores blend factors: alpha replay keeps the greatest source coverage.
         if .alphaResolve
         {
             var out = dst
-            let a   = cast(u8, Math.clamp(Math.round(cast(f32, src.a) * cast(f32, src.a) / 255.0), 0.0, 255.0))
-            out.a = Math.max(out.a, a)
+            out.a = Math.max(out.a, src.a)
             writePixel(image, x, y, out)
             return
         }
@@ -863,35 +861,35 @@ private impl RenderCpu
     // Samples a top-down byte plane at the normalized coordinates used by a GPU texture.
     func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
     {
-        let x  = Math.clamp(u * width - 0.5, 0.0, cast(f32, width - 1))
-        let y  = Math.clamp((1.0 - v) * height - 0.5, 0.0, cast(f32, height - 1))
-        let x0 = cast(s32, Math.floor(x))
-        let y0 = cast(s32, Math.floor(y))
-        let x1 = Math.min(x0 + 1, width - 1)
-        let y1 = Math.min(y0 + 1, height - 1)
-        let tx = x - x0
-        let ty = y - y0
+        let x      = Math.clamp(u * width - 0.5, 0.0, cast(f32, width - 1))
+        let y      = Math.clamp((1.0 - v) * height - 0.5, 0.0, cast(f32, height - 1))
+        let x0     = cast(s32, Math.floor(x))
+        let y0     = cast(s32, Math.floor(y))
+        let x1     = Math.min(x0 + 1, width - 1)
+        let y1     = Math.min(y0 + 1, height - 1)
+        let tx     = x - x0
+        let ty     = y - y0
         let pixels = plane.storage()
-        let c00 = cast(f32, pixels[cast(u64, (y0 * width + x0))])
-        let c10 = cast(f32, pixels[cast(u64, (y0 * width + x1))])
-        let c01 = cast(f32, pixels[cast(u64, (y1 * width + x0))])
-        let c11 = cast(f32, pixels[cast(u64, (y1 * width + x1))])
-        let top = c00 + (c10 - c00) * tx
-        let bot = c01 + (c11 - c01) * tx
+        let c00    = cast(f32, pixels[cast(u64, (y0 * width + x0))])
+        let c10    = cast(f32, pixels[cast(u64, (y0 * width + x1))])
+        let c01    = cast(f32, pixels[cast(u64, (y1 * width + x0))])
+        let c11    = cast(f32, pixels[cast(u64, (y1 * width + x1))])
+        let top    = c00 + (c10 - c00) * tx
+        let bot    = c01 + (c11 - c01) * tx
         return top + (bot - top) * ty
     }
 
     // Filters all source planes at the draw coordinate and applies the color matrix afterward.
     func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32)->Color
     {
-        let y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
-        let d = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
-        let e = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
+        let y       = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+        let d       = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
+        let e       = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
         let factors = yuvConversionFactors(texture.matrix, texture.studioRange)
-        let c = Math.max(y - cast(f32, factors.lumaOffset), 0.0) * cast(f32, factors.lumaScale)
-        let r = (c + cast(f32, factors.redCr) * e + 128.0) / 256.0
-        let g = (c + cast(f32, factors.greenCb) * d + cast(f32, factors.greenCr) * e + 128.0) / 256.0
-        let b = (c + cast(f32, factors.blueCb) * d + 128.0) / 256.0
+        let c       = Math.max(y - cast(f32, factors.lumaOffset), 0.0) * cast(f32, factors.lumaScale)
+        let r       = (c + cast(f32, factors.redCr) * e + 128.0) / 256.0
+        let g       = (c + cast(f32, factors.greenCb) * d + cast(f32, factors.greenCr) * e + 128.0) / 256.0
+        let b       = (c + cast(f32, factors.blueCb) * d + 128.0) / 256.0
         return Color{a: 255,
                      r: cast(u8, Math.round(Math.clamp(r, 0.0, 255.0))),
                      g: cast(u8, Math.round(Math.clamp(g, 0.0, 255.0))),
@@ -1208,6 +1206,7 @@ private impl RenderCpu
                     let v    = 1.0 - (p.textureRect.y + ty * (p.textureRect.w - p.textureRect.y))
                     return RenderCpu.samplePlanar(batch.paintPlanar, u, v)
                 }
+
                 return sampleSubRect(image, paintPos, &.paint, .contentScale)
             }
 
@@ -2302,7 +2301,7 @@ private impl RenderCpu
         {
             var previousTop, previousBottom: u64
             var previousColor: u32
-            var hasPrevious: bool
+            var hasPrevious:   bool
 
             // Keep the shader's normalized additions in the same top-to-bottom sample order.
             // Integer averaging changes truncation at byte boundaries, even for opaque mattes.
@@ -2318,8 +2317,8 @@ private impl RenderCpu
                         // their exact resolved bytes, including float rounding and straight-alpha
                         // conversion, instead of normalizing the same four samples again.
                         let sourceOffset = cast(u64, y * 2) * cast(u64, source.rowStride) + cast(u64, x) * 8
-                        let bottom = cast(const [*] u64, source.pixels.storage() + sourceOffset)[0]
-                        let top    = cast(const [*] u64, source.pixels.storage() + sourceOffset + cast(u64, source.rowStride))[0]
+                        let bottom       = cast(const [*] u64, source.pixels.storage() + sourceOffset)[0]
+                        let top          = cast(const [*] u64, source.pixels.storage() + sourceOffset + cast(u64, source.rowStride))[0]
                         if hasPrevious and top == previousTop and bottom == previousBottom
                         {
                             cast([*] u32, pixel)[0] = previousColor
@@ -2345,10 +2344,10 @@ private impl RenderCpu
 
                     let alpha = sum[3] / cast(f32, factor * factor)
                     let color = sum[3] <= 0.00001 ? Color.fromArgbF32(alpha, 0, 0, 0) : Color.fromArgbF32(alpha, sum[2] / sum[3], sum[1] / sum[3], sum[0] / sum[3])
-                    pixel[0] = color.b
-                    pixel[1] = color.g
-                    pixel[2] = color.r
-                    pixel[3] = color.a
+                    pixel[0]      = color.b
+                    pixel[1]      = color.g
+                    pixel[2]      = color.r
+                    pixel[3]      = color.a
                     previousColor = cast(const [*] u32, pixel)[0]
                 }
             }
@@ -3236,12 +3235,12 @@ impl RenderCpu
     // Reuses the renderer-owned plane buffers as decoded video frames replace each other.
     private mtd copyPlanar(view: const *YuvPlanarView, target: *CpuPlanarTexture)
     {
-        target.width = view.width
-        target.height = view.height
-        target.chromaWidth = view.chromaWidth()
+        target.width        = view.width
+        target.height       = view.height
+        target.chromaWidth  = view.chromaWidth()
         target.chromaHeight = view.chromaHeight()
-        target.matrix = view.matrix
-        target.studioRange = view.studioRange
+        target.matrix       = view.matrix
+        target.studioRange  = view.studioRange
         target.luma.resize(cast(u64, target.width * target.height))
         target.chromaB.resize(cast(u64, target.chromaWidth * target.chromaHeight))
         target.chromaR.resize(cast(u64, target.chromaWidth * target.chromaHeight))
@@ -3251,6 +3250,7 @@ impl RenderCpu
                         view.luma + cast(u64, y) * view.lumaStride,
                         cast(u64, target.width))
         }
+
         for y in target.chromaHeight
         {
             Memory.copy(target.chromaB.storage() + cast(u64, (y * target.chromaWidth)),

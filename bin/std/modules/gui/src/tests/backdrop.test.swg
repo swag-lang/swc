@@ -82,7 +82,7 @@ func backdropMaterialSheet(light: bool)->Image
 {
     let light = false
     var host: Testing.HeadlessHost
-    let lens = backdropLens(&host, light)
+    let lens  = backdropLens(&host, light)
     lens.open()
     let image = host.renderSettled()
     Pixel.Testing.assertImageGolden(&image, light ? "backdrop.lens.paper" : "backdrop.lens.ink")

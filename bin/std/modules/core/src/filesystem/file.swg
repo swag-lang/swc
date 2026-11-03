@@ -52,7 +52,7 @@ enum FileShare
 // Deletes `fullName` permanently after enforcing the process sandbox.
 func delete(fullName: string) fail
 {
-    try Env.guardWrite(fullName, followLeaf: false)
+    try Env.guardWrite(fullName, followFinalEntry: false)
     try deleteNative(fullName)
 }
 

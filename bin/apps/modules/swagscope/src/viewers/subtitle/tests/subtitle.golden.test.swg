@@ -10,8 +10,8 @@ using Core, Pixel, Gui, Viewers
 {
     let fileName = scopeTestDataPath("viewer.reading.srt")
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, fileName.toString(), false)
-    let view   = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
+    let window   = framedViewerWindow(&host, fileName.toString(), false)
+    let view     = assume cast(*Captions.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.assert(view.revealCue(1))
     window.applyLayout()
     host.settleAnimations(window, 4)

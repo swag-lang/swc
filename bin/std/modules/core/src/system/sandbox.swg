@@ -396,15 +396,15 @@ internal func sandboxSpecialDirectory(what: SpecialDirectory)->String
 //
 // Every operation in [[Core.File]] and [[Core.Directory]] that creates, modifies or removes
 // something calls this first. Outside a sandbox it is a single boolean test. Operations that
-// remove the final directory entry itself pass followLeaf=false; every parent is still checked.
-internal func guardWrite(path: string, followLeaf = true) fail
+// remove the final directory entry itself pass followFinalEntry=false; every parent is still checked.
+internal func guardWrite(path: string, followFinalEntry = true) fail
 {
     if not g_Sandboxed do
         return
     if not Path.isValidPathName(path) do
         fail InvalidFileNameError{fileName: mkString(path)}
     var checked = String.from(path)
-    if not followLeaf
+    if not followFinalEntry
     {
         let full = try Path.absolute(path)
         let name = Path.fileName(full)

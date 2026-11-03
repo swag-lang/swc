@@ -208,7 +208,7 @@ namespace
                 if (closeTokRef.isValid())
                 {
                     snippetEndTokRef = closeTokRef;
-                    ioEndOffset     = srcView.tokenByteEnd(srcView.token(closeTokRef));
+                    ioEndOffset      = srcView.tokenByteEnd(srcView.token(closeTokRef));
                 }
             }
         }

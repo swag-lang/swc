@@ -12,7 +12,7 @@ private func thumbnailFixture(name: string)->String => Path.combine(unwrap Path.
     defer catch File.delete(file)
     discard expect File.writeAllText(file, "WEBVTT\n\n00:00.000 --> 00:01.000\nVisible subtitle words\n")
     var service: ThumbnailService
-    var buffer: ConcatBuffer
+    var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     expect encoder.writeAll(&buffer, ThumbnailSettings{localArtworkOnly: true})
     let subtitle = expect service.render(file, buffer.toString())

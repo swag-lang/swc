@@ -142,8 +142,8 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
 {
     ApiPublicationTestDirectory directory("UsingAfterDeclaration");
-    const fs::path module = directory.path() / "provider";
-    const fs::path api    = module / "api";
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
     SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
     SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
 namespace Types { struct Value { number: s32 } }
@@ -156,7 +156,7 @@ func read(value: Value)->s32 => value.number
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
     options.timeoutMs      = 15000;
-    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
     {
         std::println(stderr, "[using API export] {}", result.output);
@@ -1090,7 +1090,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication)
 {
     ApiPublicationTestDirectory directory("InheritedForeign");
-    constexpr std::string_view providerSource = R"(#global public
+    constexpr std::string_view  providerSource = R"(#global public
 #[Foreign(module: "kernel32", link: "kernel32", callconv: .C)]
 {
     func GetCurrentProcessId()->u32
@@ -1109,10 +1109,10 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication
 #[Foreign(module: "kernel32", function: "GetCurrentProcessId", link: "kernel32", callconv: .C)]
 func directProcessId()->u32
 )";
-    constexpr std::string_view consumerSetup = R"(#import("provider")
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
 #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
 )";
-    constexpr std::string_view consumerSource = R"(func verify()
+    constexpr std::string_view  consumerSource = R"(func verify()
 {
     let processId = Provider.GetCurrentProcessId()
     Swag.assert(processId != 0)
@@ -1132,15 +1132,15 @@ func directProcessId()->u32
     {
         const fs::path workspace = directory.path() / backend;
         const fs::path modules   = workspace / "modules";
-        const Utf8 setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
+        const Utf8     setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
         SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", setup.view()));
         SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
         const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
-        Os::ProcessRunOptions options;
-        std::string           output;
+        Os::ProcessRunOptions   options;
+        std::string             output;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
         options.timeoutMs      = 30000;
@@ -1282,8 +1282,8 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_EmptyFunctionAliasesKeepDelimiters)
 {
     ApiPublicationTestDirectory directory("EmptyFunctionAliases");
-    const fs::path module = directory.path() / "provider";
-    const fs::path api    = module / "api";
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
     SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
     SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
 #[Swag.CallingConvention(.C)]
@@ -1298,7 +1298,7 @@ const Following = 42
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
     options.timeoutMs      = 15000;
-    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
     {
         std::println(stderr, "[empty function alias export] {}", result.output);

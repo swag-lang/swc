@@ -16,10 +16,11 @@ func referenceDifference(expected, actual: const *Image, tolerance: u8)->Testing
         {
             let left  = expected.pixelColor(x, y)
             let right = actual.pixelColor(x, y)
-            let delta = cast(u8, Math.max(Math.abs(cast(s32, left.r) - right.r),
-                                         Math.abs(cast(s32, left.g) - right.g),
-                                         Math.abs(cast(s32, left.b) - right.b),
-                                         Math.abs(cast(s32, left.a) - right.a)))
+            let delta = cast(u8,
+                             Math.max(Math.abs(cast(s32, left.r) - right.r),
+                                      Math.abs(cast(s32, left.g) - right.g),
+                                      Math.abs(cast(s32, left.b) - right.b),
+                                      Math.abs(cast(s32, left.a) - right.a)))
             result.maxChannelDelta = Math.max(result.maxChannelDelta, delta)
             if delta <= tolerance do
                 continue
@@ -79,8 +80,7 @@ func checkDifference(expected, actual: const *Image)
                 expected.convertAlphaTo(association)
             checkDifference(&expected, &expected)
             checkDifference(&source, &expected)
-            var changed = Image.create(expected.width, expected.height, format,
-                                       Swag.makeSlice(expected.pixels.storage(), expected.pixels.count), association)
+            var changed = Image.create(expected.width, expected.height, format, Swag.makeSlice(expected.pixels.storage(), expected.pixels.count), association)
             changed.pixels[17] = 35
             changed.pixels[changed.rowStride + 7] = 71
             checkDifference(&expected, &changed)

@@ -273,8 +273,11 @@ private func decodeWebVtt(track: *Track, source: string) fail
         if index >= lines.count do
             break
         let block = Latin1.trim(lines[index])
-        if block == "STYLE" or block == "REGION" or block == "NOTE" or
-           Utf8.startsWith(block, "NOTE ") or Utf8.startsWith(block, "NOTE\t")
+        if block == "STYLE" or
+           block == "REGION" or
+           block == "NOTE" or
+           Utf8.startsWith(block, "NOTE ") or
+           Utf8.startsWith(block, "NOTE\t")
         {
             while index < lines.count and (Latin1.trim(lines[index])).count do
                 index += 1
@@ -292,6 +295,7 @@ private func decodeWebVtt(track: *Track, source: string) fail
                 index += 1
             continue
         }
+
         let times = try cueTimeLine(lines[index])
         index += 1
         let first = index

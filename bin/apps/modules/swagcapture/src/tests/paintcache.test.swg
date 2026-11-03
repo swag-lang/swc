@@ -24,7 +24,7 @@ func testPopulate(capture: *Capture)
     discard testAddArrow(capture, 15, 65, 65, 90)
     discard testAddLine(capture, 80, 65, 120, 95)
     let text = testAddText(capture, 125, 20, 60, 30)
-    text.text = "Cache"
+    text.text     = "Cache"
     text.fontSize = 24
     discard testAddStep(capture, 150, 75, 20, 20)
 
@@ -96,8 +96,10 @@ func testPopulate(capture: *Capture)
 
     f.editView.setZoom(2)
     let captureRect = f.editView.getCaptureRect()
-    Swag.assert(captureRect.x >= 0 and captureRect.y >= 0 and
-                captureRect.right() <= f.editView.position.width and captureRect.bottom() <= f.editView.position.height)
+    Swag.assert(captureRect.x >= 0 and
+                captureRect.y >= 0 and
+                captureRect.right() <= f.editView.position.width and
+                captureRect.bottom() <= f.editView.position.height)
     for 12 do
         discard f.gui.render(f.main)
     Swag.assert(not f.capture.cacheNeedsRefine)

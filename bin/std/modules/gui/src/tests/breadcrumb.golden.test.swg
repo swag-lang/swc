@@ -48,7 +48,7 @@ private func assertBreadcrumbGolden(ancestors: bool)
     }
 
     let target = ancestors ? path.overflowRect : path.items[1].arrowRect
-    var point = path.localToSurface(target.center())
+    var point  = path.localToSurface(target.center())
     host.surface.surfaceToScreen(&point)
     host.click(point)
     Swag.assert(captured)

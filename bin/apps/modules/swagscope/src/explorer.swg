@@ -96,6 +96,7 @@ struct Explorer
         header:      *Wnd
         summary:     *Label
         tools:       *StackLayoutCtrl
+        filterPanel: *FloatingPanel
         address:     *PathBar
         title:       *Label
         status:      *Label
@@ -161,6 +162,7 @@ impl Explorer
         }
 
         result.createHeader()
+        result.registerKeyShortcut(.None, .Oem2, ViewerCommands.Find)
 
         // The tiles draw from the cell edge, so the sheet steps in by the air a cell keeps, and
         // its pictures line up with the title above them.
@@ -311,9 +313,18 @@ impl Explorer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        // Filtering shares the sort and kind controls' line and leaves it when the query is empty.
-        with .filter = EditBox.create(.tools, "", {0, 0, ViewerWindow.SearchFieldWidth, ToolHeight}, flags: .ClearButton)
+        // The filter opens under its caption button, independently of the title's tools.
+        with .filterPanel = FloatingPanel.create(me, id: "scope.explorer.filter")
         {
+            .hide()
+        }
+
+        with .filter = EditBox.create(.filterPanel,
+                                      "",
+                                      {0, 0, ViewerWindow.SearchNoOptionsFieldWidth, ToolHeight},
+                                      flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        {
+            .dockStyle = .Center
             .setForm(.Transparent)
             .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
@@ -323,12 +334,23 @@ impl Explorer
                 view.fill()
             }
 
+            .sigSubmitted += func|view = me|(_)
+            {
+                view.focusContent()
+            }
+
+            .sigCancelled += func|view = me|(_)
+            {
+                view.filter.setText("")
+                view.focusContent()
+            }
+
             .sigFocusLost += func|view = me|(edit)
             {
                 if not edit.text().count
                 {
                     edit.hide()
-                    view.fitHeader()
+                    discard view.app().animator.leave(view.filterPanel)
                 }
             }
         }
@@ -390,8 +412,27 @@ impl Explorer
     mtd revealFilter()
     {
         .filter.show()
-        .fitHeader()
+        .layoutFilter()
+        .filterPanel.bringToFront()
+        discard .app().animator.arrive(.filterPanel, {0, -.themeMetrics().motion_AnchorTravel})
         .filter.setFocus()
+    }
+
+    // Keep the edit beside the gesture that revealed it, including after a resize or pane change.
+    mtd layoutFilter()
+    {
+        if .filterPanel == null do
+            return
+        let area   = .clientRect()
+        let inset  = .themeMetrics().floating_Inset * 0.5
+        let pad    = .filterPanel.padding
+        let anchor = .window.findCaptionButton.surfaceRect()
+        let origin = .surfaceToLocal(Math.Point{anchor.x, anchor.bottom()})
+        let width  = Math.min(ViewerWindow.SearchNoOptionsFieldWidth + pad.x + pad.z,
+                              Math.max(area.width - 2 * inset, 0))
+        let x = Math.clamp(origin.x, inset, Math.max(inset, area.right() - width - inset))
+        .filterPanel.setPosition({x, Math.max(origin.y + inset, area.y), width, ToolHeight + pad.y + pad.w})
+        .filterPanel.applyLayout()
     }
 
     // The full address has its own line; the title and tools share the line below it.
@@ -425,8 +466,7 @@ impl Explorer
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
         let compact     = space < 900
         let veryCompact = space < 500
-        .filter.position.width = veryCompact ? 48 : (compact ? 72 : ViewerWindow.SearchFieldWidth)
-        .tools.spacing         = veryCompact ? 0 : (compact ? 4 : 8)
+        .tools.spacing = veryCompact ? 0 : (compact ? 4 : 8)
         .sortMenu.setQuietText(compact ? "" : .sortName())
         .kindMenu.setQuietText(compact ? "" : .filterKindName())
         .modeMenu.setQuietText("")
@@ -463,6 +503,7 @@ impl Explorer
         .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
         .tools.computeLayout()
         .address.refreshPath()
+        .layoutFilter()
     }
 
     // Shows the listing presentation and, for thumbnails, their organization in one menu.
@@ -2049,7 +2090,6 @@ impl IWnd for Explorer
         case .Right where evt.modifiers.has(.Alt): .goForward()
         case .Up where evt.modifiers.has(.Alt):    .goUp()
         case .Back:                                .goUp()
-        case .Oem2 where evt.modifiers == .None:   .revealFilter()
         case .P where evt.modifiers == .None:      .playChosen()
         default:                                   evt.accepted = false
         }

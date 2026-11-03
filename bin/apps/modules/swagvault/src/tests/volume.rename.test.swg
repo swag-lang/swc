@@ -1,5 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core
 
 // A rejected move into the source's descendants must preserve the replacement target.

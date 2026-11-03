@@ -390,8 +390,10 @@ impl Painter
     func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo)->{ glyphX: f32, rightX: f32 }
     {
         var result: #returntype
-        result.glyphX = left + offsetX * info.scale
-        result.rightX = result.glyphX + advanceX * info.scale
+
+        // Preserve the separate multiply/add rounding across optimization policies.
+        result.glyphX = Math.mulAdd(offsetX, info.scale, left)
+        result.rightX = Math.mulAdd(advanceX, info.scale, result.glyphX)
         return result
     }
 
@@ -697,7 +699,10 @@ impl Painter
             var placed = PlacedGlyph{glyph.desc, step.glyphX}
             if info.snapPixels and placed.desc.width != 0 and placed.desc.height != 0
             {
-                let device   = Math.round((placed.x + info.snapOffsetX) * info.deviceScale * positions)
+                // Keep translation and scaling precise until the quarter-pixel quantization:
+                // an intermediate f32 rounding can move a pen just below a midpoint onto it.
+                let deviceX  = (cast(f64, placed.x) + cast(f64, info.snapOffsetX)) * cast(f64, info.deviceScale)
+                let device   = cast(f32, Math.round(deviceX * cast(f64, SubpixelPositions)))
                 let pixel    = Math.floor(device / positions)
                 let subpixel = cast(u32, device - pixel * positions)
                 placed.x = pixel / info.deviceScale - info.snapOffsetX

@@ -566,7 +566,7 @@ func addViewAsSection(results: *Lens.Results, chosen: *u64)
 #[Swag.TestTag("golden")]
 #test
 {
-    let light = false
+    let light  = false
     var chosen = Swag.U64.Max
     var host: Testing.HeadlessHost
     host.setup(800, 680)

@@ -153,8 +153,13 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
 
 // Converts one row whose chroma planes carry a sample per pair of pixels.
 private func convertRowHalfChroma(destination: [*] u8,
-                                  luma, cb, cr: const [*] u8,
-                                  width, height, chromaWidth, chromaHeight: s32,
+                                  luma,
+                                  cb,
+                                  cr: const [*] u8,
+                                  width,
+                                  height,
+                                  chromaWidth,
+                                  chromaHeight: s32,
                                   chromaStride: u64,
                                   y: s32,
                                   factors: const *YuvConversionFactors)
@@ -195,28 +200,33 @@ private func convertRowHalfChroma(destination: [*] u8,
 // Reconstructs one chroma value at the normalized texture coordinate of a luma pixel center.
 private func sampleLinearChroma(plane: const [*] u8,
                                 stride: u64,
-                                planeWidth, planeHeight, imageWidth, imageHeight, x, y: s32)->u8
+                                planeWidth,
+                                planeHeight,
+                                imageWidth,
+                                imageHeight,
+                                x,
+                                y: s32)->u8
 {
-    let px = Math.clamp((cast(f32, x) + 0.5) * cast(f32, planeWidth) / cast(f32, imageWidth) - 0.5,
-                        0.0,
-                        cast(f32, planeWidth - 1))
-    let py = Math.clamp((cast(f32, y) + 0.5) * cast(f32, planeHeight) / cast(f32, imageHeight) - 0.5,
-                        0.0,
-                        cast(f32, planeHeight - 1))
-    let x0 = cast(s32, Math.floor(px))
-    let y0 = cast(s32, Math.floor(py))
+    // Keep the center mapping rational until the final division. Rounding normalized f32
+    // coordinates first can turn an exact half-channel into 101.49998 on odd-sized planes.
+    let dx = cast(f64, imageWidth) * 2
+    let dy = cast(f64, imageHeight) * 2
+    let px = Math.clamp((cast(f64, x) * 2 + 1) * planeWidth - imageWidth, 0.0, (planeWidth - 1) * dx)
+    let py = Math.clamp((cast(f64, y) * 2 + 1) * planeHeight - imageHeight, 0.0, (planeHeight - 1) * dy)
+    let x0 = cast(s32, Math.floor(px / dx))
+    let y0 = cast(s32, Math.floor(py / dy))
     let x1 = Math.min(x0 + 1, planeWidth - 1)
     let y1 = Math.min(y0 + 1, planeHeight - 1)
-    let tx = px - cast(f32, x0)
-    let ty = py - cast(f32, y0)
+    let tx = px - x0 * dx
+    let ty = py - y0 * dy
 
-    let c00 = cast(f32, plane[cast(u64, y0) * stride + cast(u64, x0)])
-    let c10 = cast(f32, plane[cast(u64, y0) * stride + cast(u64, x1)])
-    let c01 = cast(f32, plane[cast(u64, y1) * stride + cast(u64, x0)])
-    let c11 = cast(f32, plane[cast(u64, y1) * stride + cast(u64, x1)])
-    let top = c00 + (c10 - c00) * tx
-    let bot = c01 + (c11 - c01) * tx
-    return cast(u8, Math.round(top + (bot - top) * ty))
+    let c00 = cast(f64, plane[cast(u64, y0) * stride + cast(u64, x0)])
+    let c10 = cast(f64, plane[cast(u64, y0) * stride + cast(u64, x1)])
+    let c01 = cast(f64, plane[cast(u64, y1) * stride + cast(u64, x0)])
+    let c11 = cast(f64, plane[cast(u64, y1) * stride + cast(u64, x1)])
+    let top = c00 * (dx - tx) + c10 * tx
+    let bot = c01 * (dx - tx) + c11 * tx
+    return cast(u8, Math.round((top * (dy - ty) + bot * ty) / (dx * dy)))
 }
 
 // Public only because it is embedded in backend-owned storage; callers never construct it.
@@ -242,7 +252,6 @@ internal func yuvConversionFactors(matrix: YuvMatrix, studioRange: bool)->YuvCon
     case .Bt2020: return studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 430, -48, -167, 548} : YuvConversionFactors{lumaScale, lumaOffset, 377, -42, -146, 483}
     }
 }
-
 
 // Returns the scaled luma term of the selected conversion.
 #[Swag.Inline]

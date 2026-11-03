@@ -211,7 +211,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
 | `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
-| `goldens.bat accept` | Promote every pending `.actual.txt` and `.actual.png` under `bin/` |
+| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
 | `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |

@@ -55,20 +55,5 @@ echo Usage: goldens.bat [dm] [test^|accept] [swc options]
 exit /b 0
 
 :accept
-set "accepted=0"
-for /r "%~dp0..\bin" %%F in (*.actual.txt *.actual.png) do (
-    call :promote "%%~fF"
-    if errorlevel 1 exit /b 1
-)
-if "%accepted%"=="0" echo no pending snapshot to accept
-exit /b 0
-
-:promote
-set "actual=%~1"
-set "golden=%actual:.actual.txt=.txt%"
-set "golden=%golden:.actual.png=.png%"
-move /y "%actual%" "%golden%" >nul
-if errorlevel 1 exit /b 1
-set /a accepted+=1
-echo accepted %~nx1
-exit /b 0
+call "%~dp0_tool.bat" goldens accept
+exit /b %errorlevel%

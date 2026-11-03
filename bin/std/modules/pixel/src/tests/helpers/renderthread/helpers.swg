@@ -95,19 +95,13 @@ impl IRenderer for PresentProbe
 
     mtd impl addImage(view: const *YuvPlanarView)->Texture => .cpu.addImageImpl(view)
 
-    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)
-    {
-        .cpu.updatePlanarImpl(texture, view)
-    }
+    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)->bool => .cpu.updatePlanarImpl(texture, view)
 
     mtd impl addImage(fullName: string)->Texture fail => try .cpu.addImageImpl(fullName)
 
     mtd impl addImage(image: Image)->Texture => .cpu.addImageImpl(&image)
 
-    mtd impl updateTexture(texture: Texture, pixels: const *u8)
-    {
-        .cpu.updateTextureImpl(texture, pixels)
-    }
+    mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .cpu.updateTextureImpl(texture, pixels)
 
     mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .cpu.readTexturePixelsImpl(texture, pixelFormat)
 

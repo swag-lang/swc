@@ -451,7 +451,12 @@ private impl IWnd for Panel
         {
             if .services.reportFinished do
                 content.movie.loops = false
-            .imageView.exchangeMovie(&content.movie)
+            if not .imageView.exchangeMovie(&content.movie)
+            {
+                .services.failed(me, "renderer cannot allocate the movie texture")
+                return
+            }
+
             if .imageView.movie.frameCount > 1 do
                 .showPlayback()
         }

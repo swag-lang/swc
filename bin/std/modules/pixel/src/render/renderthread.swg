@@ -340,8 +340,19 @@ impl IRenderer for RenderThread
         return result
     }
 
-    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView) { .execute(func|me, &texture, view|() { me.backend.updateTexture(texture, view) }) }
-    mtd impl updateTexture(texture: Texture, pixels: const *u8) { .execute(func|me, &texture, pixels|() { me.backend.updateTexture(texture, pixels) }) }
+    mtd impl updateTexture(texture: Texture, view: const *YuvPlanarView)->bool
+    {
+        var result: bool
+        .execute(func|me, &texture, view, &result|() { result = me.backend.updateTexture(texture, view) })
+        return result
+    }
+
+    mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool
+    {
+        var result: bool
+        .execute(func|me, &texture, pixels, &result|() { result = me.backend.updateTexture(texture, pixels) })
+        return result
+    }
 
     mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {

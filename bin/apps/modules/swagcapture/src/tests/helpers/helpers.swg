@@ -126,6 +126,20 @@ func testUseScratchLibrary()
     g_Library.loaded = false
 }
 
+func testPrepareRecentLibrary(main: *MainWnd)
+{
+    // Each scenario owns the callbacks it registers. Drop previous closures before their
+    // captured windows disappear, then restore a pristine library value.
+    Swag.drop(&g_Library, 1)
+    Swag.init(&g_Library, 1)
+
+    expect Library.init()
+    g_Library.loaded = true
+
+    if main.recentWnd == null do
+        main.recentWnd = RecentWnd.create(main, main)
+}
+
 // Empties the recycle bin of the scratch library, which other tests fill, so a page that counts
 // what it holds draws the same picture whatever ran before.
 func testEmptyTrash()

@@ -2,14 +2,14 @@
 
 using Core, Pixel, Pdf
 
-private struct CorpusPdf
+struct CorpusPdf
 {
     name:      string
     pageCount: u64
     scale:     f32 = 0.25
 }
 
-private func renderCorpus(fixtures: const [..] CorpusPdf)
+func renderCorpus(fixtures: const [..] CorpusPdf)
 {
     for fixture in fixtures
     {

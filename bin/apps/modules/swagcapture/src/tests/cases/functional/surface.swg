@@ -275,7 +275,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     Swag.require(main.editArea.presentationOffset == Math.Point{})
 }
 
-// Enter applies a typed size through both editors; Escape keeps the document unchanged.
+// A preset changes text size from the mini-bar; exact sizes stay editable in the inspector.
 #[Swag.TestTag("capture.interaction")]
 #test
 {
@@ -290,24 +290,12 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
-    var size: *EditBox?
-    for item in main.miniBar.items
-    {
-        if item.wnd is EditBox as edit do
-            size = edit
-    }
-
-    Swag.require(size != null)
-    size.setFocus()
-    size.setText("72")
-    host.keyPress(.Return)
+    let size = unwrap main.miniBarFontSize
+    host.clickPopupMenuItemWhenShown("capture.font.size.72")
+    host.clickWnd(size)
     Swag.require(text.fontSize == 72)
     host.runFrames(1)
-
-    size.setFocus()
-    size.setText("999999")
-    host.keyPress(.Return)
-    Swag.require(text.fontSize == 72)
+    Swag.require(size.text() == "72")
 
     discard host.render(main)
     var fontSize: *PropertiesItem?
@@ -321,7 +309,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         edit.setText("36")
         host.keyPress(.Return)
         Swag.require(Math.abs(text.fontSize - 36) < 0.01)
-        Swag.require(size.text() == "36" and size.isValid())
+        Swag.require(size.text() == "36")
         var edited = host.render(main)
         capture.invalidateAllFormCaches()
         var fresh = host.render(main)
@@ -338,12 +326,32 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     host.keyPress(.Y, .Control)
     host.runFrames(1)
     Swag.require(text.fontSize == 36 and size.text() == "36")
-    size.setFocus()
-    size.setText("80")
-    main.updateMiniBar()
-    Swag.require(text.fontSize == 36 and size.text() == "80")
-    host.keyPress(.Escape)
-    Swag.require(text.fontSize == 36 and size.text() == "36")
+}
+
+// A callout uses the same size menu and writes its own property type.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let callout = testAddCallout(capture, 50, 50, 200, 70)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.updateState()
+
+    let size = unwrap main.miniBarFontSize
+    host.clickPopupMenuItemWhenShown("capture.font.size.96")
+    host.clickWnd(size)
+    host.runFrames(1)
+    Swag.require(callout.fontSize == 96 and size.text() == "96")
 }
 
 // Choosing a font names the same family in the document, inspector and mini-bar.

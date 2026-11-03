@@ -154,6 +154,36 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(captured)
 }
 
+// Text size opens as an attached preset menu, while the inspector keeps the exact editor, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let button = unwrap main.miniBarFontSize
+    var captured: bool
+    host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require((unwrap host.capturedPopupMenu()).items.count == MiniBarFontSizes.count)
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, "edit.text-size-menu")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    host.clickWnd(button)
+    Swag.require(captured)
+}
+
 // The selection tool leaves the canvas clear until an object is chosen, in Encre.
 #[Swag.TestTag("golden")]
 #test

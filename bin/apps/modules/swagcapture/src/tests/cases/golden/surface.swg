@@ -124,7 +124,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
 }
 
-// The selection's overflow button opens the real attached menu in Encre.
+// Right-clicking a selection opens the editor's contextual actions in Encre.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -138,20 +138,19 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    let button = assume cast(*IconButton, unwrap main.miniBar.items.back().wnd)
     var captured: bool
-    host.app.sigFrame += func|host = &host, main, dark, captured = &captured|(_)
+    host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
     {
         if captured[] do
             return
         Swag.require(host.capturedPopupMenu() != null)
         var image = host.render(main)
-        Pixel.Testing.assertImageGolden(&image, dark ? "edit.selection-menu" : "edit.selection-menu.paper")
+        Pixel.Testing.assertImageGolden(&image, "edit.context-menu")
         Swag.require(host.dismissPopupMenu())
         captured[] = true
     }
 
-    host.clickWnd(button)
+    host.click({300, 300}, Input.MouseButton.Right)
     Swag.require(captured)
 }
 
@@ -614,7 +613,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     testAssertLibraryMenuGolden(&host, main, main.libWnd.folderBtn, "library.menu.folders")
 }
 
-// The quick styles of every tool, one row each as the inspector shows the row of the tool in
+// The quick styles of every tool with saved presets, as the inspector shows the row of the tool in
 // hand: each preset a small picture of the shape it draws, in its own colours, on the raised
 // ground, the preset in force ringed in Arc, then the cell that keeps a new one; in Encre.
 #[Swag.TestTag("golden")]
@@ -631,9 +630,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     // Two columns of tools, as the picture lays them out.
-    const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Highlight, EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image]
-    const Second     = 3
-    const LabelWidth = 96.0
+    const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Line, EditMode.Polygon, EditMode.Draw, EditMode.Highlight,
+                        EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image, EditMode.PixSel]
+    const Second     = 6
+    const LabelWidth = 108.0
     const Pad        = 24.0
     let metrics    = main.themeMetrics()
     let strip      = 6 * QuickChipWidth
@@ -663,6 +663,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
             hoverCell = quick.rowCells()[0]
         Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
         y += quick.position.height + metrics.inspector_RowGap
+        Swag.require(y <= panel.position.height)
     }
 
     host.finishAnimations()
@@ -674,6 +675,33 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     host.finishAnimations()
     image = host.render(panel)
     Pixel.Testing.assertImageGolden(&image, dark ? "presets.hover" : "presets.hover.paper")
+}
+
+// The shape overflow in Papier shows the light, dark, filled and outlined choices on one
+// consistent chip ground, with the same menu geometry as the editor.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.editMode = .Shape
+    main.updateState()
+    main.quickWnd.updateQuickStyles(forceRebuild: true)
+    let more = unwrap main.quickWnd.moreButton
+    Swag.require(more.isLocallyVisible())
+    main.quickWnd.openAllPresets(more)
+    host.finishAnimations()
+    Swag.require((assume cast(*PresetPopover, unwrap main.quickWnd.allPresets)).columns == 4)
+
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "edit.shape.presets.paper")
 }
 
 // A selected form whose properties are not saved leads the QuickStyle strip, ahead of saved

@@ -237,7 +237,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
     let capture = unwrap main.getCapture()
     host.clickPopupMenuItemWhenShown(ActionCopyPaste.Duplicate)
-    host.clickWnd(unwrap main.miniBar.items.back().wnd)
+    host.click({300, 300}, Input.MouseButton.Right)
     host.pump()
     Swag.require(capture.forms.count == 2 and capture.selection.count == 1)
     main.editWnd.editView.setFocus()

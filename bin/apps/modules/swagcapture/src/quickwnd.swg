@@ -20,11 +20,9 @@ const QuickChipHeight = QuickCellHeight + 2 * QuickChipInset
 const QuickSampleWidth    = 24.0
 const QuickSampleHeight   = 15.0
 const QuickStrokeZoom     = 0.28'f32     // The scale a line or an arrow is painted at in its cell.
-const QuickTextHeight     = 14.0'f32     // The size the "Aa" of a text is painted at in its cell.
+const QuickTextHeight     = 17.0'f32     // The size the "A" of a text is painted at in its cell.
 const QuickMaskWidth      = 21.0         // Width of the pattern of a mask preset.
 const QuickMaskHeight     = 14.0         // Height of the pattern of a mask preset.
-const QuickLightDepth     = 0.09'f32     // Slightly deeper ground under light ink on Papier.
-const QuickNeutralDepth   = 0.3'f32      // Contrast ground for black or white ink on a ground of the same value.
 const QuickDarkHighlightAlpha = 50'u8    // Minimum preview opacity for translucent marks on Encre.
 const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5            // Presets in a row of that popover.
@@ -195,6 +193,7 @@ struct PresetPopover
     using wnd:  Wnd
     late quick: *QuickWnd
     chosen:     u64     // The cell the keys stand on.
+    columns:    u64     // Number of cells in each visible row.
 }
 
 impl IWnd for PresetPopover
@@ -206,7 +205,7 @@ impl IWnd for PresetPopover
             return
 
         let count = .children.count
-        let cols  = cast(u64, QuickPopoverColumns)
+        let cols  = .columns
         switch evt.key
         {
         case .Left:
@@ -312,7 +311,7 @@ struct QuickStylePaintForm
 impl QuickStylePaintForm
 {
     // Creates the copy of `srcItf` a cell of [[QuickCellWidth]] by [[QuickCellHeight]] paints,
-    // laid out in the middle of the cell: a box, a stroke rising across, "Aa", a bubble with its
+    // laid out in the middle of the cell: a box, a stroke rising across, "A", a bubble with its
     // tail, a numbered disc, the pattern of a mask.
     func create(srcItf: IForm)->QuickStylePaintForm
     {
@@ -378,7 +377,7 @@ impl QuickStylePaintForm
             draw.points.add({48, 12})
 
         case FormText as txt:
-            txt.text      = "Aa"
+            txt.text      = "A"
             txt.alignHorz = .Center
             txt.alignVert = .Center
             txt.rotate    = 0
@@ -389,7 +388,7 @@ impl QuickStylePaintForm
 
         if paintItf is FormText
         {
-            // "Aa" is wider than it is tall: the box takes the width of the cell.
+            // The letter takes the width of the cell so its alignment is stable across fonts.
             let k = 1 / result.zoom
             paintItf.setBaseForm(cast(QuickCellMargin * k), cast(rect.y * k), cast((QuickCellWidth - 2 * QuickCellMargin) * k), cast(rect.height * k))
         }
@@ -411,21 +410,17 @@ impl QuickStylePaintForm
         }
 
         // The tail of a callout lives in canvas space and is never carried by a style: the sample
-        // is a short body with "Aa" in it and its tail hanging below on the left.
+        // is a short, empty body with its tail hanging below on the left.
         if paintItf is FormCallout as cl
         {
-            cl.text       = "Aa"
-            cl.fontSize   = 8
-            cl.boldSize   = 0
+            cl.editingText = true
             cl.roundSize  = Math.min(cl.roundSize, 4)
             cl.borderSize = Math.min(cl.borderSize, 1)
-            cl.alignHorz  = .Center
-            cl.alignVert  = .Center
-            cl.x          = cast(s32, Math.round((QuickCellWidth - 24) * 0.5))
-            cl.y          = cast(s32, Math.round((QuickCellHeight - 16) * 0.5))
-            cl.w          = 24
-            cl.h          = 12
-            cl.tailX      = cl.x + 5
+            cl.x          = cast(s32, Math.round((QuickCellWidth - 28) * 0.5))
+            cl.y          = cast(s32, Math.round((QuickCellHeight - 19) * 0.5))
+            cl.w          = 28
+            cl.h          = 15
+            cl.tailX      = cl.x + 6
             cl.tailY      = cl.y + cl.h + 4
         }
 
@@ -943,7 +938,8 @@ impl QuickWnd
         .add(Argb.Black, Argb.White, Argb.Black)
     }
 
-    // Fills the text quick styles with the shipped set.
+    // One row of distinct text inks; size remains a property of the text and can be saved as a
+    // personal preset instead of repeating nearly identical letters at three hidden sizes.
     mtd defaultQuickStyleText()
     {
         mtd add(borderSize, fontSize: f32, bdColor, bkColor: Color)
@@ -960,23 +956,13 @@ impl QuickWnd
             .qsText.add(form)
         }
 
-        .add(4, 24, Argb.White, ColorRed)
-        .add(4, 24, Argb.White, ColorGreen)
+        .add(4, 48, Argb.White, ColorRed)
+        .add(4, 48, Argb.White, ColorGreen)
         .add(4, 48, Argb.White, ColorBlue)
-        .add(4, 48, Argb.White, ColorYellow)
-
-        .add(4, 72, Argb.White, ColorRed)
-        .add(4, 72, Argb.White, ColorGreen)
-        .add(4, 72, Argb.White, ColorBlue)
-        .add(4, 72, Argb.White, ColorYellow)
+        .add(4, 48, Argb.Black, ColorYellow)
 
         .add(4, 48, Argb.Zero, Argb.White)
-        .add(4, 48, Argb.Zero, Argb.Gray)
         .add(4, 48, Argb.Zero, Argb.Black)
-
-        .add(4, 72, Argb.Zero, Argb.White)
-        .add(4, 72, Argb.Zero, Argb.Gray)
-        .add(4, 72, Argb.Zero, Argb.Black)
     }
 
     // Fills the freehand drawing quick styles with the shipped set.
@@ -1285,16 +1271,10 @@ impl QuickWnd
 
         painter.setParams(.Antialiased)
 
-        // Black and white samples need a middle-value ground when the palette shares their value.
-        // The sample ink itself stays unchanged, and only the chosen preset receives a ring.
-        let itf        = unwrap btnp.formItf
-        let groundLum  = luminance(colors.raised)
-        let inkLum     = luminance(presetInk(itf))
-        let isSwatch   = itf.subKind != .Highlight and not (itf is FormImage)
-        let light      = isSwatch and groundLum > 0.6 and inkLum > 0.75
-        let sameValue  = isSwatch and (groundLum > 0.6 and inkLum > 0.9 or groundLum < 0.4 and inkLum < 0.12)
-        let depth      = sameValue ? QuickNeutralDepth : (light ? QuickLightDepth : 0'f32)
-        let ground     = Color.lerpRgb(colors.raised, colors.text, depth)
+        // All saved styles share a ground. The selected preset alone receives a ring.
+        let itf       = unwrap btnp.formItf
+        let groundLum = luminance(colors.raised)
+        let ground    = colors.raised
         painter.fillRoundRect(cell, QuickCellCorner, QuickCellCorner, ground)
 
         // A mask shows what it does to what it covers.
@@ -1311,9 +1291,33 @@ impl QuickWnd
         let preview = unwrap paintForm.itf
         if preview.subKind == .Highlight and groundLum < 0.4 do
             preview.alpha = Math.max(preview.alpha, QuickDarkHighlightAlpha)
+        if preview is FormText as words where words.borderColor == Argb.Zero and needsContrast(words.backColor, groundLum) do
+            words.borderColor = colors.faintText
+        if preview is FormShape as shape where shape.borderColor == Argb.Zero and needsContrast(shape.backColor, groundLum)
+        {
+            shape.borderColor = colors.softText
+            shape.borderSize  = 2
+        }
         painter.pushClippingRect(cell)
         painter.pushTransform()
         painter.translateTransform(cell.x, cell.y)
+        if preview.subKind == .None and
+           (preview is FormShape or preview is FormLine or preview is FormArrow or preview is FormPolygon or preview is FormDraw) and
+           needsContrast(preview.borderColor, groundLum)
+        {
+            let ink   = preview.borderColor
+            let width = preview.borderSize
+            preview.borderColor = colors.softText
+            preview.borderSize  = width + 2
+            painter.pushTransform()
+            painter.translateTransform(QuickCellWidth * 0.5, QuickCellHeight * 0.5)
+            painter.scaleTransform(1.14, 1.14)
+            painter.translateTransform(-QuickCellWidth * 0.5, -QuickCellHeight * 0.5)
+            Capture.paintForm(painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, preview, zoom: paintForm.zoom, quickMode: paintForm.quick)
+            painter.popTransform()
+            preview.borderColor = ink
+            preview.borderSize  = width
+        }
         Capture.paintForm(painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, preview, zoom: paintForm.zoom, quickMode: paintForm.quick)
         painter.popTransform()
         painter.popClippingRect()
@@ -1332,22 +1336,17 @@ impl QuickWnd
         painter.drawRoundRect(ring, r, r, btnp.themeColors().focusRing, QuickRingWidth)
     }
 
-    // Returns the ink a preset is mostly seen in: the fill of words and of a step, the stroke of
-    // everything else.
-    func presetInk(itf: IForm)->Color
-    {
-        switch itf
-        {
-        case FormText as text:       return text.backColor
-        case FormCallout as callout: return callout.backColor
-        case FormStep as step:       return step.backColor
-        }
-
-        return itf.borderColor
-    }
-
     // Returns how light `color` reads, from 0 to 1.
     func luminance(color: Color)->f32 => (0.299 * cast(f32, color.r) + 0.587 * cast(f32, color.g) + 0.114 * cast(f32, color.b)) / 255
+
+    // Whether a neutral ink disappears into the current preset ground.
+    func needsContrast(ink: Color, groundLum: f32)->bool
+    {
+        if not ink.a do
+            return false
+        let inkLum = luminance(ink)
+        return groundLum < 0.4 and inkLum < 0.12 or groundLum > 0.6 and inkLum > 0.9
+    }
 
     // Paints what a mask of `kind` does, in the middle of `cell`: the pixels of a pixelation,
     // the soft pixels of a blur, a solid picture, a magnifier, a captured window.
@@ -1650,7 +1649,12 @@ impl QuickWnd
         let model       = .main.editModeToModel(.presetMode().mode)
         let showCurrent = .canAddCurrentStyle()
         let count       = style.forms.count + (showCurrent ? 2 : 0)
-        let perRow      = cast(u64, QuickPopoverColumns)
+        // Use four columns when five would leave holes without saving a row.
+        let wide        = cast(u64, QuickPopoverColumns)
+        let narrow      = wide - 1
+        let wideRows    = (count + wide - 1) / wide
+        let narrowRows  = (count + narrow - 1) / narrow
+        let perRow      = narrowRows == wideRows ? narrow : wide
         let rows        = (count + perRow - 1) / perRow
         let width       = cast(f32, Math.min(count, perRow)) * QuickChipWidth + 2 * QuickPopoverPad
         let height      = cast(f32, rows) * QuickChipHeight + 2 * QuickPopoverPad
@@ -1662,6 +1666,7 @@ impl QuickWnd
             .focusPolicy     = .Tab
             .wndFlags        |= .NoFocusRing
             .quick           = me
+            .columns         = perRow
         }
 
         .allPresets = body
@@ -1834,11 +1839,13 @@ impl QuickWnd
             fixed += 1
         if model do
             fixed += 1
-        // A lone chip makes the second row look unfinished. Keep one full row and put the
-        // remaining saved styles behind its last "more" chip when the fixed cells leave room.
+        // A lone chip makes the second row look unfinished. Text also stays on one row: its
+        // saved sizes and colours can share a glyph, so extra choices belong in the popover.
+        // Keep fixed cells visible and put remaining saved styles behind "more".
         let total      = presets.count + fixed
         let sparseTail = total == perRow + 1 and perRow > fixed + 1
-        let capacity   = sparseTail ? perRow : perRow * QuickVisibleRows
+        let textRow    = .currentStyle == &.qsText and perRow > fixed
+        let capacity   = textRow or sparseTail ? perRow : perRow * QuickVisibleRows
         let all   = presets.count + fixed <= capacity
         let shown = all ? presets.count : (capacity > fixed ? capacity - fixed - 1 : 0)
 

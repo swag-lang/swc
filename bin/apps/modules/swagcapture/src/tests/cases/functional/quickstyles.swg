@@ -18,7 +18,7 @@ using Swag, Core
     Swag.require(textPaint.itf.buffer != textItf.buffer)
     Swag.require(f.main.mdlFormText.text == "Keep me")
     Swag.require(textItf.boundRect() == textRectBefore)
-    Swag.require(assume cast(*FormText, unwrap textPaint.itf).text == "Aa")
+    Swag.require(assume cast(*FormText, unwrap textPaint.itf).text == "A")
     textPaint.release()
 
     f.main.mdlFormPolygon.points.add({10, 10})
@@ -433,6 +433,28 @@ using Swag, Core
     Swag.require((unwrap quick.allPresets).children.count == quick.qsImage.forms.count + 2)
 }
 
+// Older saved text palettes may carry many sizes. The strip stays one row while the popover
+// retains every saved choice.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Text
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+    for i in 8 do
+        quick.qsText.add(assume cast(IForm, MainWnd.newFormFromForm(quick.qsText.forms[i % 6])))
+    quick.updateQuickStyles(forceRebuild: true)
+
+    let cells = quick.rowCells()
+    Swag.require(quick.qsText.forms.count == 14 and cells.count == 6 and cells.back().isMore)
+    Swag.require(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
+    quick.openAllPresets(unwrap quick.moreButton)
+    Swag.require((unwrap quick.allPresets).children.count == quick.qsText.forms.count)
+}
+
 // A quick style keeps its optional name for editing, without taking a caption line under the row.
 #test
 {
@@ -540,7 +562,7 @@ using Swag, Core
     Swag.require(popover.chosen == 0)
     f.gui.keyPress(.Right)
     f.gui.keyPress(.Down)
-    Swag.require(popover.chosen == 1 + QuickPopoverColumns)
+    Swag.require(popover.chosen == 1 + popover.columns)
 
     // Enter applies the cell the keys stand on, and the popover closes.
     let chosen = style.forms[popover.chosen]

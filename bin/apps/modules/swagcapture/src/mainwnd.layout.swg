@@ -357,34 +357,6 @@ impl MainWnd
 
         .miniBar.addSeparator()
         .miniBar.addButton(theme.icon(.Remove, size), ActionSelection.DeleteSelection, appStrings().act_Delete)
-
-        // Secondary selection commands stay reachable even while the inspector is already open.
-        with let more = .miniBar.addButton(theme.icon(.More, size), toolTip: appStrings().lens_Selection, flags: .Popup)
-        {
-            .setArrowPosition(.None)
-            .sigPopupRequested += func|main = me|(button)
-            {
-                with let menu = MenuCtrl.createPopup(main)
-                {
-                    .addItem(ActionEdit.EditText)
-                    .addItem(ActionCopyPaste.Duplicate)
-                    .addItem(ActionCopyPaste.CopyAsImage)
-                    .addSeparator()
-                    .addItem(ActionAlign.SendToFront)
-                    .addItem(ActionAlign.MoveForward)
-                    .addItem(ActionAlign.MoveBackward)
-                    .addItem(ActionAlign.SendToBack)
-                    .addSeparator()
-                    .addItem(ActionGroup.Group)
-                    .addItem(ActionGroup.Ungroup)
-                    .addItem(ActionEdit.ResetRotation)
-                    .addSeparator()
-                    .addItem(ActionView.Inspector)
-                }
-
-                discard menu.doModal(assume cast(*IconButton, button), autoDestroy: true)
-            }
-        }
     }
 
     // Returns the face, the size, the style and the horizontal alignment of the selected text or callout.

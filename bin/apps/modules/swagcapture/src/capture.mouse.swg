@@ -1,7 +1,6 @@
 impl Capture
 {
-    // Shows the editor's context menu at `pos`: actions on the selection first, then the clipboard,
-    // arrangement, and canvas commands.
+    // Shows the editor's context menu at `pos`: actions on the selection, clipboard, and order.
     mtd popupMenu(view: *EditView, pos: Math.Point)
     {
         with let menu = MenuCtrl.createPopup(view)
@@ -10,6 +9,7 @@ impl Capture
             // when they don't apply, and the trailing separator collapses when none
             // of them is visible.
             .addItem(ActionEdit.EditText)
+            .addItem(ActionCopyPaste.Duplicate)
             .addItem(ActionCopyPaste.PasteImageInside)
             .addItem(ActionEdit.ClearImageInside)
             .addSeparator()
@@ -45,21 +45,20 @@ impl Capture
             menu.addPopup(appStrings().ui_MenuArrange, popup1)
         }
 
-        with menu
+        if .canGroup() do
+            menu.addItem(ActionGroup.Group)
+        if .canUngroup() do
+            menu.addItem(ActionGroup.Ungroup)
+
+        for it in .selection
         {
-            .addItem(ActionGroup.Group)
-            .addItem(ActionGroup.Ungroup)
-            .addSeparator()
-            .addItem(ActionEdit.ResetRotation)
-            .addSeparator()
-            .addItem(ActionSelection.SelectAll)
-            .addItem(ActionSelection.SelectSameAll)
-            .addItem(ActionSelection.DeSelectAll)
-            .addSeparator()
-            .addItem(ActionFlatten.Flatten)
-            .addItem(ActionFlatten.FlattenAll)
-            .addSeparator()
-            .addItem(ActionSelection.Snap)
+            let form = .forms[it]
+            if form.canRotate() and not Math.isZeroEpsilon(form.rotate)
+            {
+                menu.addSeparator()
+                menu.addItem(ActionEdit.ResetRotation)
+                break
+            }
         }
 
         discard menu.doModal(pos)

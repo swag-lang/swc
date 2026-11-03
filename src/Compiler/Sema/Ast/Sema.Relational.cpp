@@ -814,12 +814,39 @@ namespace
         return Cast::castIfNeeded(sema, bareView, sema.typeMgr().addType(widened), CastKind::Implicit);
     }
 
+    // An integer meets an f32 at f64, which holds every 32-bit integer exactly: promoting the
+    // integer to f32 would round it above 2^24 before the comparison. A constant within 2^24 is
+    // exact in f32, so it keeps the narrower comparison.
+    Result widenIntegerMeetingF32(Sema& sema, SemaNodeView& intView, SemaNodeView& floatView)
+    {
+        const TypeInfo& intType   = SemaHelpers::aliasType(sema, intView);
+        const TypeInfo& floatType = SemaHelpers::aliasType(sema, floatView);
+        if (!intType.isInt() || !floatType.isFloat() || floatType.payloadFloatBitsOr(64) != 32)
+            return Result::Continue;
+
+        if (intView.hasConstant() && intView.cst() && intView.cst()->isInt())
+        {
+            constexpr int64_t exactInF32 = int64_t{1} << 24;
+            const ApsInt&     value      = intView.cst()->getInt();
+            const int64_t     asSigned   = value.asI64();
+            const bool        exact      = value.fits64() && (value.isUnsigned() ? static_cast<uint64_t>(asSigned) <= static_cast<uint64_t>(exactInF32) : asSigned >= -exactInF32 && asSigned <= exactInF32);
+            if (exact)
+                return Result::Continue;
+        }
+
+        const TypeRef f64 = sema.typeMgr().typeF64();
+        SWC_RESULT(Cast::castIfNeeded(sema, intView, f64, CastKind::Promotion));
+        return Cast::castIfNeeded(sema, floatView, f64, CastKind::Promotion);
+    }
+
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         SWC_UNUSED(node);
 
         SWC_RESULT(widenNullableCompareOperand(sema, nodeLeftView, nodeRightView));
         SWC_RESULT(widenNullableCompareOperand(sema, nodeRightView, nodeLeftView));
+        SWC_RESULT(widenIntegerMeetingF32(sema, nodeLeftView, nodeRightView));
+        SWC_RESULT(widenIntegerMeetingF32(sema, nodeRightView, nodeLeftView));
 
         const bool orderedCompare = op == TokenId::SymLess ||
                                     op == TokenId::SymLessEqual ||

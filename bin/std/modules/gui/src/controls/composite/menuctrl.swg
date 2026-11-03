@@ -202,15 +202,29 @@ public impl IWnd for MenuCtrl
         let rects   = .themeRects()
         let metrics = .themeMetrics()
 
-        // Shadow. The anchor band carries the attached bar item or button, not the body, so the
-        // shadow spans everything but that band: below the body when the popup hangs from a bar,
-        // above it when the popup stands on its button.
+        // The body and its opening tab both cast a shadow. Clip the tab's shadow to the side
+        // beyond the body so their shared edge does not make a dark seam.
         if not .paintByFrame
         {
             let subRect      = &theme.rects.menuPopup_Shadow
             let anchorHeight = .getPopupBarAnchorHeight()
             let shadowY      = .popupButtonOpensUp ? 0 : anchorHeight
             theme.drawSubRect(painter, Math.Rectangle{0, shadowY, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
+
+            if .hasPopupBarAnchor()
+            {
+                let body   = .getPopupBodyRect()
+                let anchor = .getPopupBarAnchorLocalRect()
+                let reach  = metrics.menuPopup_ShadowSize
+                let clip   = .popupButtonOpensUp ?
+                    Math.Rectangle{0, body.bottom(), .position.width, .position.height - body.bottom()} :
+                    Math.Rectangle{0, 0, .position.width, body.y}
+                var shadow = anchor
+                shadow.inflate(reach)
+                painter.pushClippingRect(clip)
+                theme.drawSubRect(painter, shadow, subRect, colors.menuPopup_Shadow)
+                painter.popClippingRect()
+            }
         }
 
         // Back
@@ -1443,11 +1457,15 @@ public impl MenuCtrl
 
         .resolveSubmenuDirections()
 
-        // The menu leaves its anchor by a few pixels: down from a button above it, up from one below.
+        // An attached menu and its button form one outline. Show that outline at its final
+        // position so the pressed button cannot show through a moving, translucent tab.
         let anchorY = button ? button.surfaceRect().vertCenter() : surfacePos.y
         let travel  = .themeMetrics().motion_AnchorTravel
         .bringToFront()
-        discard .app().animator.arrive(me, {0, .surfaceRect().vertCenter() < anchorY ? travel : -travel})
+        if .hasPopupBarAnchor() do
+            .show()
+        else do
+            discard .app().animator.arrive(me, {0, .surfaceRect().vertCenter() < anchorY ? travel : -travel})
         .captureMouse()
 
         .endModal          = false

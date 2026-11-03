@@ -671,12 +671,14 @@ impl MainWnd
         with .sizeReading = IconButton.createQuiet(.editArea)
         {
             .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
+            .setArrowPosition(.RightUpward)
             .sigPressed += func|main = me|(button) { main.showSizeMenu(button) }
         }
 
         with .zoomReading = IconButton.createQuiet(.editArea)
         {
             .style.setFont(.theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize), .Regular)
+            .setArrowPosition(.RightUpward)
             .sigPressed += func|main = me|(button) { main.showZoomMenu(button) }
         }
 

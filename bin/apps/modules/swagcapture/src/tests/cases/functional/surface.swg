@@ -883,6 +883,8 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
 
     Swag.assert(main.sizeReading.text() == "400 × 240")
     Swag.assert(main.zoomReading.text() == "100 %")
+    Swag.assert(main.sizeReading.arrowPosition == .RightUpward)
+    Swag.assert(main.zoomReading.arrowPosition == .RightUpward)
 
     // The zoom menu runs the existing fit command and refreshes the displayed percentage.
     main.editWnd.editView.setZoom(0.5)

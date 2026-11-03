@@ -52,6 +52,28 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     return result
 }
 
+// Shape and dash choices share the same cell grid in the inspector.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    f.main.editMode = .Shape
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let shapes = testFindStyleButtons(prop, appStrings().act_Shape)
+    let dashes = testFindStyleButtons(prop, appStrings().ui_PropDash)
+    Swag.require(shapes.count == 3 and dashes.count == 4)
+    for i in shapes.count
+    {
+        let shape = shapes[i].surfaceRect()
+        let dash  = dashes[i].surfaceRect()
+        Swag.require(shape.x == dash.x and shape.width == dash.width)
+    }
+}
+
 // Editing a tool's defaults with no selection leaves the document clean.
 #[Swag.TestTag("capture.interaction")]
 #test

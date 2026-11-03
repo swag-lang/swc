@@ -4,7 +4,7 @@ const ChoiceGap           = 4.0      // Air between two glyphs of a choice row.
 const ChoiceGlyphSize     = 14.0     // Side of the shape a shape glyph draws.
 const ChoiceGlyphInset    = 5.0      // Air between a dash sample and the edges of its cell.
 const DashStroke          = 2.0      // Weight of a dash sample: heavy enough for its dots, light enough for its gaps.
-const DashCellWidth       = 34.0     // Width of a dash cell, long enough for a whole pattern.
+const ChoiceWideCellWidth = 34.0     // Shared width of shape and dash choices; holds a whole dash pattern.
 const MaxLayerRows        = 12       // Layers the inspector lists for several objects.
 const PositionLetterWidth = 14.0     // Width of the letter before a value of the position strip.
 
@@ -289,13 +289,13 @@ impl PropWnd
 
             // A radio: a press on the glyph already chosen keeps it chosen; the row unchecks the
             // others itself.
-            let width       = row == .Dash ? DashCellWidth : size
+            let width       = row == .StartCap or row == .EndCap ? size : ChoiceWideCellWidth
             with let button = IconButton.create(stack, {}, {0, 0, width, size}, flags: .Radio)
             {
                 .userData = enumToUserData(value)
                 .toolTip  = tip
                 .setForm(.RoundedRectangle)
-                .setCheckIndicator(.Frame)
+                .setCheckIndicator(.Full)
                 .setChecked(value == current)
             }
 
@@ -440,7 +440,7 @@ impl PropWnd
                 .setText(quickStyleKindName(kind))
                 .setTextPosition(.Right)
                 .setForm(.RoundedRectangle)
-                .setCheckIndicator(.Frame)
+                .setCheckIndicator(.Full)
                 .setChecked(current == kind)
             }
 
@@ -528,7 +528,7 @@ impl PropWnd
                 .setText(name)
                 .setTextPosition(.Right)
                 .setForm(.RoundedRectangle)
-                .setCheckIndicator(.Frame)
+                .setCheckIndicator(.Full)
                 .setChecked(capture.selection.contains(i))
                 .sigPressed += func|prop = me|(btn)
                 {

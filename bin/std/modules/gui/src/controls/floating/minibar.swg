@@ -111,7 +111,7 @@ impl MiniBar
         with let button = IconButton.create(me, glyph, {0, 0, metrics.miniBar_ButtonSize, metrics.miniBar_ButtonSize}, id, flags | .IconOnly)
         {
             .setForm(.RoundedRectangle)
-            .setCheckIndicator(.Frame)
+            .setCheckIndicator(.Full)
             .toolTip = toolTip orelse ""
         }
 

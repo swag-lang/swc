@@ -953,6 +953,10 @@ namespace
             case Runtime::ExceptionKind::Safety:
                 return {.diagId = DiagnosticId::safety_err_runtime, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
 
+            // The error fails the running test or the compilation, and the code goes on.
+            case Runtime::ExceptionKind::Check:
+                return {.diagId = DiagnosticId::sema_err_check_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::None, .exceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION};
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -1868,7 +1872,7 @@ namespace
         RuntimeExceptionReport report = buildRuntimeExceptionDiagnostic(ctx, info, decodedException.location);
 
         Utf8 diagMessage = decodedException.message;
-        if (decodedException.kind == Runtime::ExceptionKind::Assert)
+        if (decodedException.kind == Runtime::ExceptionKind::Assert || decodedException.kind == Runtime::ExceptionKind::Check)
         {
             if (diagMessage.empty())
                 diagMessage = formatAssertDiagnosticMessage(extractAssertConditionText(report.codeRange));

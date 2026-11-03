@@ -26,7 +26,8 @@ struct ImageGoldenOptions
 // There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
 // so a new test starts by producing its reference; the file then shows up as untracked, which is
 // where it gets reviewed and committed. A name whose golden no longer matches writes the produced
-// text next to it as '<name>.actual.txt', prints the first differing line, and fails. Accepting
+// text next to it as '<name>.actual.txt', prints the first differing line, and fails the test
+// through [[Swag.check]]: the test goes on, so one run reports every golden it moved. Accepting
 // the new output is therefore a copy, which `tools/goldens.bat accept` does in bulk.
 //
 // These checks remain active when Pixel is built as a release dependency.
@@ -63,7 +64,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     let expected = catch File.readAllText(path, normalizeEol: true)
     {
         Console.println("[golden] cannot read ", path)
-        Swag.assert(false)
+        Swag.check(false, "the golden cannot be read", loc)
         return
     }
 
@@ -73,7 +74,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     let actual = actualPath(path.toString(), ".txt")
     writeText(actual.toString(), text)
     reportDiff(name, path.toString(), actual.toString(), expected.toString(), text)
-    Swag.assert(false)
+    Swag.check(false, "the text differs from its golden", loc)
 }
 
 // Compares two owned pixel buffers with the same bounded tolerance as image goldens.
@@ -81,7 +82,8 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 // `expected` and `actual` must be valid images. Dimensions must match exactly. A channel delta
 // at or below [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] is accepted; at most
 // [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] pixels may exceed it. A failed comparison
-// writes `<name>.expected.png` and `<name>.actual.png` beside the calling test.
+// writes `<name>.expected.png` and `<name>.actual.png` beside the calling test, and fails it
+// through [[Swag.check]] without stopping it.
 // The check remains active when Pixel is built as a release dependency.
 func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
@@ -101,14 +103,15 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
     Console.println("        expected: ", expectedPath)
     Console.println("        actual  : ", actualPath)
     reportImageDifference(&difference, expected, actual)
-    Swag.assert(false)
+    Swag.check(false, "the pixels differ from the expected image", loc)
 }
 
 // Compares owned pixels against the PNG golden named `name`.
 //
 // Goldens live under `src/tests/goldens/<name>.png`. A missing golden is created
 // and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
-// first differing pixel, and fails. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
+// first differing pixel, and fails the test through [[Swag.check]], which lets it compare its other
+// goldens. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
 // raster differences; both limits default to exact comparison.
 // The check remains active when Pixel is built as a release dependency. Goldens are recorded from
 // devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
@@ -124,7 +127,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     {
         if not writeImage(image, path.toString())
         {
-            Swag.assert(false)
+            Swag.check(false, "the golden cannot be recorded", loc)
             return
         }
 
@@ -136,7 +139,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     let expected = catch Image.load(path.toString())
     {
         Console.println("[golden] cannot read ", path)
-        Swag.assert(false)
+        Swag.check(false, "the golden cannot be read", loc)
         return
     }
 
@@ -152,17 +155,8 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Console.println("         golden : ", path)
     Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
-    if not continuesPastMismatch() do
-        Swag.assert(false)
+    Swag.check(false, "the pixels differ from the golden", loc)
 }
-
-// Reports whether a golden mismatch is only recorded, its actual written, rather than failing the test.
-//
-// Set `SWAG_GOLDEN_CONTINUE=1` when a change is known to move many goldens: a test stops at its
-// first failed assertion, so without it each run reveals one more actual per test. The run then
-// passes whatever the pixels are, and every `.actual.png` it leaves must be reviewed and moved over
-// its golden by hand, then the run repeated without the variable.
-private func continuesPastMismatch()->bool => Env.variable("SWAG_GOLDEN_CONTINUE") == "1"
 
 // Widens `options` by the rounding a release build may add to a golden recorded from devmode.
 private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions

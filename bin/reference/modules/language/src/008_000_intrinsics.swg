@@ -86,3 +86,31 @@ this reference.
         Swag.assert(false, "this assertion emits no code")
     }
 }
+
+/**
+# Test Verdicts
+
+A test states what it verifies with 'Swag.require(condition, message)' and
+'Swag.check(condition, message)'. They are verdicts, not invariants: no 'Swag.Safety' setting
+and no configuration removes them, and their condition is always evaluated.
+
+- 'Swag.require' fails the test and stops it, for a condition the rest of the test depends on.
+  Like 'Swag.assert', its condition narrows the code that follows.
+- 'Swag.check' records the failure and lets the test go on, for an observation that leaves the
+  program's state intact. The test reports every failed check and is counted as failed at its
+  end. Its condition never narrows the code that follows.
+
+Without a message, the report shows the condition's source. Outside a running test, a failed
+verdict stops the program, so a failure is never lost.
+*/
+
+#test
+{
+    #[Swag.Safety(.Assert, false)]
+    {
+        var count = 2
+        Swag.require(count == 2, "a verdict ignores the safety setting")
+        count += 1
+        Swag.check(count == 3)
+    }
+}

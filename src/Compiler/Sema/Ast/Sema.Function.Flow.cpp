@@ -1423,6 +1423,12 @@ namespace
         return Result::Continue;
     }
 
+    // A test verdict is not a programmer invariant: no safety setting removes it.
+    Result setupIntrinsicVerdictRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
+    }
+
     // Once assert succeeds, its condition's true facts hold for the rest of the
     // enclosing block, like a guard whose false branch exits.
     void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
@@ -1760,6 +1766,16 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
     {
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
         setupIntrinsicAssertNarrowFacts(sema, *this);
+    }
+    else if (intrinsicId == TokenId::IntrinsicRequire)
+    {
+        SWC_RESULT(setupIntrinsicVerdictRuntimeCall(sema, *this));
+        setupIntrinsicAssertNarrowFacts(sema, *this);
+    }
+    else if (intrinsicId == TokenId::IntrinsicCheck)
+    {
+        // A failed check lets the test go on, so its condition proves nothing afterwards.
+        SWC_RESULT(setupIntrinsicVerdictRuntimeCall(sema, *this));
     }
     else if (intrinsicId == TokenId::IntrinsicGlobalsToDrop)
     {

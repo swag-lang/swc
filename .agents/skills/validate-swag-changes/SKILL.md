@@ -263,11 +263,8 @@ consumer that activates the changed behavior.
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
   without promoting them.
-- A test stops at its first failed assertion, so a change that moves several image goldens of
-  one test reveals them one run at a time. Set `SWAG_GOLDEN_CONTINUE=1` for the run that collects
-  them: an image golden mismatch then writes its `.actual.png` and the test goes on. That run
-  passes whatever the pixels are, so it is a collection pass only; review and promote what it
-  left, then repeat the run without the variable before reporting green.
+- A golden mismatch fails its test through `Swag.check`, which lets the test go on: one run
+  writes every `.actual` a change moved, and the run stays red until each is promoted or fixed.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside
   the intended part is a regression or a new finding, not noise.
 - Cover each rendering branch that the change reaches. Across one visual test family, rotate Encre

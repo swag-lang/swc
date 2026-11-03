@@ -61,6 +61,7 @@ namespace Runtime
         Warning = 2,
         Assert  = 3,
         Safety  = 4,
+        Check   = 5,
     };
 
     enum class RuntimeFlags : uint64_t

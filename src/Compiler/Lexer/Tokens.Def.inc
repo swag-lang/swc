@@ -271,6 +271,8 @@ SWC_TOKEN_DEF(IntrinsicCompilerError, "Swag.compilerError", TokenIdKindE::Intrin
 SWC_TOKEN_DEF(IntrinsicCompilerWarning, "Swag.compilerWarning", TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicBreakpoint, "Swag.breakpoint", TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicAssert, "Swag.assert", TokenIdKindE::Intrinsic)
+SWC_TOKEN_DEF(IntrinsicRequire, "Swag.require", TokenIdKindE::Intrinsic)
+SWC_TOKEN_DEF(IntrinsicCheck, "Swag.check", TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPanic, "Swag.panic", TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicSafetyPanic, "Swag.safetyPanic", TokenIdKindE::Intrinsic)
 

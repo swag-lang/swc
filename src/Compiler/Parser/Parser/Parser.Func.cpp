@@ -630,6 +630,8 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                     break;
 
                 case TokenId::IntrinsicAssert:
+                case TokenId::IntrinsicRequire:
+                case TokenId::IntrinsicCheck:
                     if (args.empty() || args.size() > 3)
                         requireArgs(args.empty() ? 1 : 3);
                     break;

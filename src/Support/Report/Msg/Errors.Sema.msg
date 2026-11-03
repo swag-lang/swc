@@ -69,6 +69,8 @@ SWC_DIAG_DEF(sema_err_module_setup_only_directive, Error, "'{tok}' can only be u
 SWC_DIAG_DEF(sema_err_import_invalid_constraint_value, Error, "import constraint '{arg}' does not accept value '{value}'; accepted values are '{values}'")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion does not hold: {because}")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion does not hold")
+SWC_DIAG_DEF(sema_err_check_failed, Error, "check does not hold: {because}")
+SWC_DIAG_DEF(sema_err_check_failed, Error, "check does not hold")
 SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "cannot infer a scope for '.{value}' in this context; [help] qualify it explicitly, for example '<Type>.{value}'")
 SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "type '{type}' does not provide an auto scope in a 'with' statement; [help] qualify the member access explicitly")
 SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "cannot resolve an auto scope in this context; [help] qualify the name with its type or scope")

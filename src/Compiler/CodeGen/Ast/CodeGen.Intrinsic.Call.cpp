@@ -42,6 +42,55 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_ASSERT = 3;
+    constexpr uint64_t K_RUNTIME_EXCEPTION_KIND_CHECK  = 5;
+
+    bool isVerdictIntrinsic(TokenId id)
+    {
+        return id == TokenId::IntrinsicRequire || id == TokenId::IntrinsicCheck;
+    }
+
+    bool isAssertLikeIntrinsic(TokenId id)
+    {
+        return id == TokenId::IntrinsicAssert || isVerdictIntrinsic(id);
+    }
+
+    // The source of the condition, from the token after the opening parenthesis to the first
+    // comma or closing parenthesis at the call's own depth. A verdict without a message reports it.
+    std::string_view verdictConditionText(const CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        if (!node.srcViewRef().isValid() || !node.tokRef().isValid())
+            return {};
+
+        const SourceView&         srcView = codeGen.srcView(node.srcViewRef());
+        const std::vector<Token>& tokens  = srcView.tokens();
+        uint32_t                  index   = node.tokRef().get() + 1;
+        if (index >= tokens.size() || tokens[index].id != TokenId::SymLeftParen)
+            return {};
+
+        const uint32_t first = ++index;
+        uint32_t       depth = 0;
+        for (; index < tokens.size(); ++index)
+        {
+            const TokenId id = tokens[index].id;
+            if (id == TokenId::SymLeftParen || id == TokenId::SymLeftBracket || id == TokenId::SymLeftCurly)
+                ++depth;
+            else if (id == TokenId::SymRightParen || id == TokenId::SymRightBracket || id == TokenId::SymRightCurly)
+            {
+                if (!depth)
+                    break;
+                --depth;
+            }
+            else if (id == TokenId::SymComma && !depth)
+                break;
+        }
+
+        if (index == first || index >= tokens.size())
+            return {};
+
+        const uint32_t start = srcView.tokenByteStart(tokens[first]);
+        const uint32_t end   = srcView.tokenByteEnd(tokens[index - 1]);
+        return Utf8Helper::trim(srcView.codeView(start, end - start));
+    }
 
     ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
     {
@@ -1156,6 +1205,8 @@ namespace
         CodeGenNodePayload message;
         if (children.size() > 1)
             message = codeGen.payload(children[1]);
+        else if (const std::string_view conditionText = isVerdictIntrinsic(node.intrinsicId) ? verdictConditionText(codeGen, node) : std::string_view{}; !conditionText.empty())
+            message = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), conditionText));
         else
             message = CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, makeZeroStructConstant(codeGen, codeGen.typeMgr().typeString()));
 
@@ -1198,7 +1249,8 @@ namespace
 
         ABICall::PreparedArg kindArg;
         kindArg.srcReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(kindArg.srcReg, ApInt(K_RUNTIME_EXCEPTION_KIND_ASSERT, 64), MicroOpBits::B64);
+        const uint64_t exceptionKind = node.intrinsicId == TokenId::IntrinsicCheck ? K_RUNTIME_EXCEPTION_KIND_CHECK : K_RUNTIME_EXCEPTION_KIND_ASSERT;
+        builder.emitLoadRegImm(kindArg.srcReg, ApInt(exceptionKind, 64), MicroOpBits::B64);
         kindArg.kind        = ABICall::PreparedArgKind::Direct;
         kindArg.isFloat     = false;
         kindArg.numBits     = 64;
@@ -2527,11 +2579,13 @@ namespace
 
 Result AstIntrinsicCallExpr::codeGenPreNode(CodeGen& codeGen) const
 {
-    if (intrinsicId != TokenId::IntrinsicAssert)
+    if (!isAssertLikeIntrinsic(intrinsicId))
         return Result::Continue;
 
     const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
-    if (!payload || !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assert))
+    if (isVerdictIntrinsic(intrinsicId))
+        SWC_ASSERT(payload != nullptr && payload->runtimeFunctionSymbol != nullptr);
+    else if (!payload || !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assert))
         return Result::SkipChildren;
 
     codeGen.ensureNodePayload<AssertCodeGenPayload>(codeGen.curNodeRef());
@@ -2540,7 +2594,7 @@ Result AstIntrinsicCallExpr::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstIntrinsicCallExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (intrinsicId != TokenId::IntrinsicAssert)
+    if (!isAssertLikeIntrinsic(intrinsicId))
         return Result::Continue;
 
     const AstNodeRef conditionRef = codeGen.ast().nthNode(spanChildrenRef, 0);
@@ -2567,6 +2621,9 @@ Result AstIntrinsicCallExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
 Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     // Vector dispatch materializes its first argument, so assertions must be handled before it.
+    if (isVerdictIntrinsic(intrinsicId))
+        return codeGenAssert(codeGen, *this);
+
     if (intrinsicId == TokenId::IntrinsicAssert)
     {
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());

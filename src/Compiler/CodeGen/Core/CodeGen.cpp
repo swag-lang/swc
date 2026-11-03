@@ -1301,10 +1301,11 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 
         const AstNode& parent    = node(parentRef);
         const auto*    intrinsic = parent.safeCast<AstIntrinsicCallExpr>();
-        if (intrinsic && intrinsic->intrinsicId == TokenId::IntrinsicAssert)
+        if (intrinsic && (intrinsic->intrinsicId == TokenId::IntrinsicAssert || intrinsic->intrinsicId == TokenId::IntrinsicRequire || intrinsic->intrinsicId == TokenId::IntrinsicCheck))
         {
             // The condition is always evaluated, but diagnostic arguments exist only on the
-            // non-returning failure path. Never drop their storage at the successful join.
+            // failure path. Never drop their storage at the successful join: a failed check
+            // returns there and leaves its message to the failed test.
             const AstNodeRef conditionRef = ast().nthNode(intrinsic->spanChildrenRef, 0);
             if (resolvedNodeRef(flushRootRef) == resolvedNodeRef(conditionRef))
                 break;

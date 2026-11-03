@@ -11,6 +11,23 @@
 // callers remain responsible for the invariant. Use '#assert' for unconditional compile-time checks.
 func assert(value: bool, message: string? = null, loc = #callerlocation)
 
+// Fails the running test and stops it when `value` is false.
+//
+// A test verdict, not a programmer invariant: no [[Swag.Safety]] setting or configuration removes
+// it, so a test proves the same thing in every build. The condition is always evaluated. Without
+// `message`, the report shows the condition's source. Like [[Swag.assert]], the condition narrows
+// the code that follows. Outside a test, a failed requirement stops the program.
+func require(value: bool, message: string? = null, loc = #callerlocation)
+
+// Records a failure of the running test when `value` is false, and lets the test go on.
+//
+// The test runs to its end, reports every failed check, and is then counted as failed. Use it for
+// an observation that leaves the program's state intact, such as comparing a result with its
+// reference; use [[Swag.require]] when the rest of the test depends on the condition. The
+// condition is always evaluated and never narrows the code that follows. Without `message`, the
+// report shows the condition's source. Outside a test, a failed check stops the program.
+func check(value: bool, message: string? = null, loc = #callerlocation)
+
 // Stops execution in the attached debugger, as a breakpoint instruction.
 func breakpoint()
 

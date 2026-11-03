@@ -27,6 +27,6 @@ func checkCaptureRaster(cell: s32, bytes: const [..] u8)
 
 #test
 {
-    checkCaptureRaster(32, #include("../../datas/icons.32px.png"))
-    checkCaptureRaster(40, #include("../../datas/icons.40px.png"))
+    checkCaptureRaster(32, #include("../../../../datas/icons.32px.png"))
+    checkCaptureRaster(40, #include("../../../../datas/icons.40px.png"))
 }

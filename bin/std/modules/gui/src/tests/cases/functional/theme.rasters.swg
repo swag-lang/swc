@@ -35,7 +35,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 
 #test
 {
-    const Source = #include("../theme/icons.svg")
+    const Source = #include("../../../theme/icons.svg")
     for size in [16, 20, 24, 28, 32, 40, 48] do
         checkThemeRaster(Source, unwrap themeIconRaster(size), size, 24, 8192)
     Swag.assert(themeIconRaster(37) == null)
@@ -43,7 +43,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 
 #test
 {
-    const Source = #include("../theme/widgets.svg")
+    const Source = #include("../../../theme/widgets.svg")
     for scale in [1, 2] do
         checkThemeRaster(Source, unwrap themeWidgetRaster(scale), scale, 1, 4096)
     Swag.assert(themeWidgetRaster(3) == null)
@@ -64,7 +64,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
 
     var custom: IconAtlas
     custom.embedded = true
-    const Source = #include("../theme/icons.svg")
+    const Source = #include("../../../theme/icons.svg")
     custom.pendingSource = Swag.makeString(Source.buffer, Source.count)
     Swag.assert(custom.image(32).width == 8 * 32)
     expect custom.setup("<svg width='24' height='24'><rect width='24' height='24' fill='red'/></svg>")

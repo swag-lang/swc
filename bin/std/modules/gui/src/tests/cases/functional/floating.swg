@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// The dock stands at the leading edge, vertically centred, and keeps exactly one tool active.
 #test
 {
     var host: Testing.HeadlessHost
@@ -43,6 +45,8 @@ using Swag, Core, Pixel
     host.root.resize(480, 300)
     Swag.assert(Math.abs(dock.position.y + body.y * 0.5 - 150) <= 1)
 }
+
+// The mini-bar stands above the selection, centred on it, and goes below it near the top edge.
 #test
 {
     var host: Testing.HeadlessHost
@@ -83,6 +87,8 @@ using Swag, Core, Pixel
     let first = unwrap bar.items[0].wnd
     Swag.assert(first.position.x == metrics.miniBar_Padding and first.position.height == metrics.miniBar_ButtonSize)
 }
+
+// The hint line sits centred, its bottom the hint inset above the bottom edge, as wide as what it writes.
 #test
 {
     var host: Testing.HeadlessHost
@@ -104,6 +110,9 @@ using Swag, Core, Pixel
     hint.setReading(null)
     Swag.assert(hint.contentWidth() == 0)
 }
+
+// A hint line with less room than it writes leaves its last hints out whole, rather than cutting
+// a word at its edge; the reading always stands.
 #test
 {
     var host: Testing.HeadlessHost
@@ -130,6 +139,9 @@ using Swag, Core, Pixel
     host.root.applyLayout()
     Swag.assert(hint.position.width == first)
 }
+
+// A leading and a trailing hint line stand on the edges the parent's padding measures, at the same
+// height as a centred one.
 #test
 {
     var host: Testing.HeadlessHost
@@ -154,6 +166,8 @@ using Swag, Core, Pixel
     Swag.assert(reading.position.right() == 480 - 60 and reading.position.width == reading.contentWidth())
     Swag.assert(keys.position.bottom() == 400 - metrics.hintLine_Bottom and reading.position.y == keys.position.y)
 }
+
+// The sheet opens at the trailing edge, below the strip of the window, and its key toggles it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -209,6 +223,9 @@ using Swag, Core, Pixel
     sheet.clear()
     Swag.assert(not sheet.beside)
 }
+
+// A sheet arrives from its edge and fades out, reachable at once on the way in and gone at
+// once on the way out; the mini-bar leaves its selection rising, and follows it once it is up.
 #test
 {
     var host: Testing.HeadlessHost
@@ -242,6 +259,8 @@ using Swag, Core, Pixel
     bar.showNear({240, 300, 120, 80})
     Swag.assert(bar.presentationOffset == Math.Point{} and bar.presentationOpacity == 1)
 }
+
+// The inspector stands at the trailing edge with its editors in one column, and folds to a tab.
 #test
 {
     var host: Testing.HeadlessHost
@@ -277,6 +296,9 @@ using Swag, Core, Pixel
     inspector.clear()
     Swag.assert(inspector.rows.isEmpty())
 }
+
+// An inspector carrying generated settings stands the whole height of its parent and hands them
+// the column under its rows; clearing the rows keeps them.
 #test
 {
     var host: Testing.HeadlessHost
@@ -302,6 +324,9 @@ using Swag, Core, Pixel
     Swag.assert(inspector.rows.isEmpty() and not content.isPendingDestroy)
     Swag.assert(content.position.y == pad + metrics.control_InspectorHeight + metrics.inspector_RowGap)
 }
+
+// A small negative top offset balances the top and bottom insets without crossing the parent's
+// floating inset when the strip is hidden.
 #test
 {
     var host: Testing.HeadlessHost
@@ -323,6 +348,8 @@ using Swag, Core, Pixel
     host.root.applyLayout()
     Swag.assert(inspector.position.y == metrics.floating_Inset)
 }
+
+// A mini-bar is filled again for each selection: clearing it destroys what it held.
 #test
 {
     var host: Testing.HeadlessHost
@@ -341,6 +368,8 @@ using Swag, Core, Pixel
     Swag.assert(bar.items.isEmpty() and button.isPendingDestroy)
     Swag.assert(bar.bodySize().x < width)
 }
+
+// A section label names its group in small spaced capitals and can be renamed.
 #test
 {
     var host: Testing.HeadlessHost
@@ -353,6 +382,9 @@ using Swag, Core, Pixel
     var image = host.render(&host.root)
     Swag.assert(image.isValid())
 }
+
+// A floating panel holds what the application puts in it inside its padding; floating, it casts
+// its shadow outside its body, and docked beside the work it casts none.
 #test
 {
     var host: Testing.HeadlessHost
@@ -375,6 +407,8 @@ using Swag, Core, Pixel
     panel.setShadow(false)
     Swag.assert(panel.invalidatePadding.w == 0 and not panel.wndFlags.has(.BeforeChildrenPaint))
 }
+
+// A hint without a key is words alone: what the tool in hand does takes no keycap.
 #test
 {
     var host: Testing.HeadlessHost
@@ -390,6 +424,9 @@ using Swag, Core, Pixel
     var image = host.render(&host.root)
     Swag.assert(image.isValid())
 }
+
+// A dock cell can stand for a group of tools: it shows the one chosen last, and a tool of the
+// group made the active one by its command comes into the cell.
 #test
 {
     var host: Testing.HeadlessHost

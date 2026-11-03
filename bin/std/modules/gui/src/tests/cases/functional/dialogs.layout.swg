@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+/// Predefined dialogs fit their shared layers around the content instead of keeping stale blank rows.
 #test
 {
     var host: Testing.HeadlessHost
@@ -17,6 +19,8 @@ using Swag, Core, Pixel
     expected += dlg.buttonBar.position.height + dlg.buttonBar.margin.y + 2 * metrics.wnd_BorderSize + 2 * dlg.surface.shadowMargin()
     Swag.assert(Math.abs(dlg.surface.position.height - Math.ceil(expected) * dlg.surface.dpiScale) < 1.5)
 }
+
+// A prompt is as tall as its help line, not as tall as the shell it opened in.
 #test
 {
     var host: Testing.HeadlessHost
@@ -37,6 +41,8 @@ using Swag, Core, Pixel
     long.surface.destroy()
     host.pump()
 }
+
+// Fitting a resizable editor preserves the authored editor height and makes it the minimum.
 #test
 {
     var host: Testing.HeadlessHost
@@ -53,6 +59,8 @@ using Swag, Core, Pixel
     Swag.assert(Math.abs(dlg.surface!.position.height - Math.ceil(outerHeight) * dlg.surface.dpiScale) < 1.5)
     Swag.assert(Math.abs(dlg.surface.minSize.y - dlg.surface.position.height / dlg.surface.dpiScale) < 0.5)
 }
+
+// The about box measures its header and message instead of retaining the old 300-unit shell.
 #test
 {
     var host: Testing.HeadlessHost
@@ -81,6 +89,8 @@ using Swag, Core, Pixel
     Swag.assert(dlg.labelIdentity.position.y >= dlg.labelMessageTitle.position.bottom())
     Swag.assert(dlg.identityView.position.bottom() <= dlg.labelMessage.position.y)
 }
+
+// The application form supplies the common version, build, source, copyright, and tile.
 #test
 {
     var host: Testing.HeadlessHost
@@ -103,6 +113,8 @@ using Swag, Core, Pixel
     Swag.assert(dlg.labelIcon.icon.sizeY == dlg.themeMetrics().dialog_TileSize)
     Swag.assert(dlg.identityView.isAncestorOf(dlg.labelIcon))
 }
+
+// A question is as wide as its actions need, and never narrower than the family's floor.
 #test
 {
     var host: Testing.HeadlessHost
@@ -136,6 +148,15 @@ using Swag, Core, Pixel
     wide.surface.destroy()
     host.pump()
 }
+
+// A message box holds the message it was fitted to, whatever that message measures.
+//
+// The box takes the extent of its own text as its width, and that extent is fractional: the
+// window tree is laid out on whole logical units and the window itself is placed on whole
+// physical pixels. Committed as measured, the width came back a fraction short, the message
+// wrapped one line more than the box had been made tall for, and the box clipped the very text
+// it was fitted to. Only some lengths land on a losing fraction, so the case is swept instead
+// of picked — a two-sentence error box was one of them.
 #test
 {
     var host: Testing.HeadlessHost
@@ -166,6 +187,8 @@ using Swag, Core, Pixel
         tail += "!"
     }
 }
+
+// An oversized message stays inside the available surface height and exposes its final line.
 #test
 {
     var host: Testing.HeadlessHost
@@ -192,6 +215,12 @@ using Swag, Core, Pixel
     dlg.surface.destroy()
     host.pump()
 }
+
+// An application block added to the about box grows it, and stops growing it at the measure.
+//
+// What an application lists there — the formats it opens, the plugins it carries — has no natural
+// length, so the box follows it only as far as [[Gui.AboutDlg.MaxSectionsHeight]] and the column
+// scrolls from there. A box that followed it further would be as tall as the display.
 #test
 {
     var host: Testing.HeadlessHost

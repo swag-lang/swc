@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// A whole occurrence answers better than characters found in order, and better again at the
+// start of a word; the runs it matched are reported in bytes.
 #test
 {
     let whole = Lens.match("center", "if not .centerGroup do")
@@ -30,6 +33,8 @@ using Swag, Core, Pixel
     let accented = Lens.match("ÉTÉ", "un été chaud")
     Swag.assert(accented.matched and accented.spans[0].start == 3 and accented.spans[0].count == 5)
 }
+
+// The first character of a query selects the sources that answer it.
 #test
 {
     let line = Lens.splitPrefix(":42")
@@ -40,6 +45,9 @@ using Swag, Core, Pixel
     Swag.assert(plain.prefix == .None and plain.rest == "center")
     Swag.assert(Lens.prefixText(.Action) == ">")
 }
+
+// Opening the lens shows every source and the commands grouped by family; a hidden command is
+// left out and a disabled one cannot be chosen. Typing narrows the rows and marks what matched.
 #test
 {
     var host: Testing.HeadlessHost
@@ -80,6 +88,8 @@ using Swag, Core, Pixel
     lens.setQuery(nothing)
     Swag.assert(lens.rows.isEmpty() and lens.chosenEntry() == null)
 }
+
+// A prefix keeps one kind of source: `>` the commands alone, `:` the lines alone.
 #test
 {
     var host: Testing.HeadlessHost
@@ -93,6 +103,9 @@ using Swag, Core, Pixel
     Swag.assert(lens.results.prefix == .Line and lens.results.query == "center")
     Swag.assert(lens.results.sections.count == 1 and lens.results.sections[0]!.label == "In this file")
 }
+
+// The footer opens the complete command catalogue without typing, and preserves a query when
+// narrowing it to actions.
 #test
 {
     var host: Testing.HeadlessHost
@@ -111,6 +124,8 @@ using Swag, Core, Pixel
     Swag.assert(lens.query() == ">center" and lens.chosenEntry()!.id == LensTheme)
     Swag.assert(host.app.keyboardFocusWnd == &lens.input.wnd)
 }
+
+// Enter closes the lens and posts the chosen command; Escape closes it and gives the keyboard back.
 #test
 {
     var posted: Array'String
@@ -149,6 +164,8 @@ using Swag, Core, Pixel
     Swag.assert(not lens.isOpen() and posted.count == 1)
     Swag.assert(host.app.keyboardFocusWnd == &field.wnd)
 }
+
+// Search accepts task words in either order, omitted accents, and bounded command misspellings.
 #test
 {
     let words = Lens.match("  image   save ", "Save as Image…")
@@ -178,6 +195,8 @@ using Swag, Core, Pixel
     lens.setQuery("image save")
     Swag.assert(lens.chosenEntry()!.id == LensSave)
 }
+
+// A click outside the lens closes it without running anything; a row with an action runs it.
 #test
 {
     var ran = 0
@@ -201,6 +220,8 @@ using Swag, Core, Pixel
     lens.runChosen()
     Swag.assert(not lens.isOpen() and ran == 1)
 }
+
+// The initials of the words answer between a whole occurrence and scattered letters.
 #test
 {
     let initials = Lens.match("cla", "Capture Last Area")
@@ -209,6 +230,9 @@ using Swag, Core, Pixel
     Swag.assert(initials.score < Lens.match("last", "Capture Last Area").score)
     Swag.assert(initials.score > Lens.match("cpa", "Capture Last Area").score)
 }
+
+// The families of commands rank by their best command, and a command matched only by scattered
+// letters is left out when another answers better; sources retain their internal row order.
 #test
 {
     var host: Testing.HeadlessHost
@@ -226,6 +250,9 @@ using Swag, Core, Pixel
     Swag.assert(lens.rows[0].section.label == "View")
     Swag.assert(lens.chosenEntry()!.title == "Center Theme")
 }
+
+// At rest, a lens with a context offers it and the commands chosen last, not every command;
+// Escape empties the query before it closes the lens.
 #test
 {
     var host: Testing.HeadlessHost
@@ -257,6 +284,10 @@ using Swag, Core, Pixel
     host.keyPress(.Escape)
     Swag.assert(not lens.isOpen())
 }
+
+// An exclusive choice is one row of segments: the keys reach it on the one in force, move along
+// it with Left and Right past what cannot be chosen, and Enter runs the segment they chose. On
+// another row, Left and Right belong to the query.
 #test
 {
     var chosen = Swag.U64.Max
@@ -305,6 +336,8 @@ using Swag, Core, Pixel
     lens.setQuery("binary")
     Swag.assert(lens.chosenEntry()!.title == "Binary")
 }
+
+// A pointer click in the child ComboBox chooses and runs its segment.
 #test
 {
     var chosen = Swag.U64.Max
@@ -324,6 +357,8 @@ using Swag, Core, Pixel
 
     Swag.assert(not lens.isOpen() and chosen == 3)
 }
+
+// Refreshing from a populated inline section to none leaves its pooled child out of selection sync.
 #test
 {
     var showChoices = true
@@ -346,6 +381,9 @@ using Swag, Core, Pixel
     lens.refresh()
     Swag.assert(lens.inlineChoices[0].row == Swag.U64.Max and not lens.inlineChoices[0].combo.isVisible())
 }
+
+// Ctrl Enter runs the chosen setting and keeps the lens open on it, its state asked for again,
+// so several settings can be flipped in a row; Enter still runs and closes.
 #test
 {
     var posted: Array'String
@@ -395,6 +433,8 @@ using Swag, Core, Pixel
     host.keyPress(.Return)
     Swag.assert(not lens.isOpen() and posted.count == 3 and posted[2] == LensSave)
 }
+
+// One edit in a multiword task is recoverable; each other word must identify a distinct word.
 #test
 {
     for query in ["svae image", "image svae", "savve image", "saxe image"]
@@ -412,6 +452,8 @@ using Swag, Core, Pixel
     Swag.assert(not Lens.match("svae 2025", "Save 2026", tolerateTypos: true).matched)
     Swag.assert(not Lens.match("svae/image", "save/image", tolerateTypos: true).matched)
 }
+
+// Aliases follow the language at query time, preserve command identity, and rank below title words.
 #test
 {
     var host: Testing.HeadlessHost
@@ -429,6 +471,8 @@ using Swag, Core, Pixel
     lens.setQuery("screen grab")
     Swag.assert(lens.chosenEntry() == null)
 }
+
+// A disabled exact match stays visible without suppressing the usable approximate alternative.
 #test
 {
     var host: Testing.HeadlessHost

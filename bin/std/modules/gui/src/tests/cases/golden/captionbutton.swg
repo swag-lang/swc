@@ -42,9 +42,3 @@ using Swag, Core
     host.pump()
     Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
 }
-
-
-// A hidden caption action leaves the caption: the pointer reaches the strip where it stood.
-
-// A leading action sits between the application glyph and title, remains a caption hit target,
-// and leaves the native controls at the trailing edge.

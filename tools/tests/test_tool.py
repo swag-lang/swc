@@ -116,6 +116,15 @@ class ToolTests(unittest.TestCase):
             self.assertEqual(tool.execute([tool.Stage('script', [sys.executable, '-c', 'print("marker")'],
                                                      expected_output='marker')], os.environ.copy()), 0)
 
+    def test_captured_compiler_output_works_with_narrow_console_encoding(self):
+        bytes_out = io.BytesIO()
+        narrow_console = io.TextIOWrapper(bytes_out, encoding='cp1252')
+        command = [sys.executable, '-c', "import sys; sys.stdout.buffer.write('◆ marker'.encode('utf-8'))"]
+        with redirect_stdout(narrow_console):
+            self.assertEqual(tool.execute([tool.Stage('script', command, expected_output='marker')],
+                                          os.environ.copy()), 0)
+        self.assertEqual(bytes_out.getvalue(), '◆ marker'.encode('utf-8'))
+
 
 if __name__ == '__main__':
     unittest.main()

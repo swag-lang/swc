@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// A staged step waiting for a menu where the button opens a sheet fails the step instead of
+// leaving the sheet running forever.
 #test
 {
     var host: Testing.HeadlessHost
@@ -26,6 +29,9 @@ using Swag, Core, Pixel
     Swag.assert(not host.autoHandled and not host.autoFailure.isEmpty())
     Swag.assert(host.capturedOptionSheet() == null)
 }
+
+// The appearance is found through the lens like any other command: the themes and the languages
+// as rows applying their choice, the one in force checked, and About when it has a listener.
 #test
 {
     var themeChanges, aboutRequests: u32

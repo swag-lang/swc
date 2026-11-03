@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// A tip holding one short line is exactly as large as that line, and shows nothing else.
 #test
 {
     var host: Testing.HeadlessHost
@@ -22,6 +24,8 @@ using Swag, Core, Pixel
     let line    = lbl.font().regular!.height
     Swag.assert(tip.position.height <= Math.ceil(line + metrics.toolTip_Padding.y + metrics.toolTip_Padding.w))
 }
+
+// A tip longer than the width cap wraps instead of growing, and still holds all of its text.
 #test
 {
     var host: Testing.HeadlessHost
@@ -38,6 +42,8 @@ using Swag, Core, Pixel
     Swag.assert(tip.position.height > line * 1.5)
     Swag.assert(lbl.maxLines == 0)
 }
+
+// A tip taller than the height cap stops there and marks its last line, rather than scrolling.
 #test
 {
     var host: Testing.HeadlessHost
@@ -55,6 +61,8 @@ using Swag, Core, Pixel
     Swag.assert(lbl.maxLines > 1)
     Swag.assert(tip.position.height > metrics.toolTip_MaxHeight - lbl.font().regular!.height)
 }
+
+// A window smaller than the theme's caps bounds the tip too, rather than shoving it back inside.
 #test
 {
     var host: Testing.HeadlessHost
@@ -66,6 +74,12 @@ using Swag, Core, Pixel
 
     assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
 }
+
+var g_LinkOwner: *Wnd?
+
+var g_LinkText:  String
+
+// A tip carrying a link is reachable, keeps its markup colors, and says which owner it came from.
 #test
 {
     var host: Testing.HeadlessHost
@@ -102,6 +116,8 @@ using Swag, Core, Pixel
     Swag.assert(g_LinkOwner == btn)
     Swag.assert(g_LinkText == "swag-lang.org")
 }
+
+// A tip with nothing to click stays out of the way: the pointer reaching it ends it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -114,6 +130,12 @@ using Swag, Core, Pixel
     host.app.toolTip.pointerMoved(btn, lbl)
     Swag.assert(host.app.toolTip.current == null)
 }
+
+// A tip belongs to its application, so one left open cannot reach the next application.
+//
+// The state used to be held per process, and a test that ended with a tip on screen handed a live
+// window — parented to a surface that had just gone — to whatever ran next. Neither host here
+// tears its tip down on purpose; the second one must still start empty.
 #test
 {
     var first: Testing.HeadlessHost

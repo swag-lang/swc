@@ -192,7 +192,7 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
     // Item offsets are one-based and relative to the byte before the data block, which
     // is what makes the first item start exactly where the offset table ends.
     let table    = offset + 3
-    let dataBase = table + cast(u64, (count + 1)) * offSize - 1
+    let dataBase = table + (cast(u64, count) + 1) * offSize - 1
 
     result.starts.reserve(cast(u64, count) + 1)
     for i in cast(u64, count) + 1

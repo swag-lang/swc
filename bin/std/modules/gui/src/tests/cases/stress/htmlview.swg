@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Pixel
 
+// A search over a streamed document lands on the box that draws the match, wherever it is in the
+// file and however much of it has been read.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -54,6 +57,9 @@ using Core, Pixel
     let position = view.scroll.scrollPosition().y
     Swag.assert(top >= position and top <= position + view.scroll.paddedClientRect().height)
 }
+
+// Progressive refreshes spread out fourfold, so a large generated page does not repeatedly
+// rebuild almost the same prefix while the reader is still interacting with it.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -85,6 +91,10 @@ using Core, Pixel
     Swag.assert(view.sheet.parseCount == firstParseCount)
     view.stopLoading()
 }
+
+// A real generated Rustdoc page keeps its full production scale. Its highlighted source expands
+// to hundreds of thousands of nodes, and its structural selectors used to rescan tens of
+// thousands of siblings for each match. Small documents cannot expose that failure mode.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -133,6 +143,10 @@ using Core, Pixel
     let resident = allocator.stats()
     Swag.assert(resident.sizeAlloc < initial.sizeAlloc + 128 * 1024 * 1024)
 }
+
+// Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
+// generic window may start at a recovery boundary, but it must never make file size become DOM
+// size and revisiting one byte offset must choose the same resident source.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -169,6 +183,9 @@ using Core, Pixel
     Swag.assert(revealed)
     Swag.assert(view.virtualWindowStart == residentStart and view.virtualWindowEnd == residentEnd)
 }
+
+// A virtual HTML document follows the latest scrollbar position through repeated long seeks and
+// reversals. Revisiting a stop must materialize the same source window and the same pixels.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -226,6 +243,9 @@ using Core, Pixel
         Swag.assert(Hash.hashBytes32(image.pixels.toSlice()) == firstPass[reverse])
     }
 }
+
+// A hostile document nested thousands of elements deep flattens at the depth bound instead of
+// walking the recursive passes off the native stack, and its content stays readable.
 #[Swag.TestTag("stress")]
 #test
 {

@@ -168,9 +168,3 @@ using Swag, Core, Pixel
     host.pump()
     Swag.assert(host.surfaceWnd.captionButtons.isEmpty())
 }
-
-// A staged step waiting for a menu where the button opens a sheet fails the step instead of
-// leaving the sheet running forever.
-
-// The appearance is found through the lens like any other command: the themes and the languages
-// as rows applying their choice, the one in force checked, and About when it has a listener.

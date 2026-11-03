@@ -65,9 +65,6 @@ using Swag, Core
     Swag.assert(modifiedPosition.y > 0 and view.scroll.scrollPosition() == modifiedPosition)
 }
 
-// Delaying the loader cannot expose its unfinished tail, and a reverse overlap retains the
-// visible windows until the same source block has its replacement at exactly the same y.
-
 // A prose page submits text by line, keeping wheel repaint work independent of its word count.
 #test
 {
@@ -1148,12 +1145,6 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(view.scroll.scrollPosition().y > 0)
 }
 
-// Sequential wheel reading releases distant blocks while retaining a reverse-scroll reserve.
-// Resident geometry stays bounded independently of the amount of source already traversed.
-
-// A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
-// boundary through the real focused keyboard path; End reaches the real EOF on its next paint.
-
 // HTML fragments loaded by successive Page Down keys must not steal focus and reveal themselves
 // at the top of the document before Markdown has placed them in its layout.
 #test
@@ -1203,13 +1194,6 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(not view.hasUnloadedSource() and view.bytesRead > initialBytes)
     Swag.assert(seenHtml.count == 16)
 }
-
-// A resident window opened near EOF retains blocks before its target and requests the preceding
-// window while those blocks are still visible. Reverse scrolling must never alternate between a
-// forward-only island and an empty virtual gap.
-
-// A scrollbar reversal supersedes a seek that is still materializing. The earlier target must
-// never win one timer later and pull the document back in the direction the reader just left.
 
 // Each manually fired streaming timer consumes the same block budget in a headless host.
 #test

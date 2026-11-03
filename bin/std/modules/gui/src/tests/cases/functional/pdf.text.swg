@@ -1,6 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
+
 using Core, Core.Math, Pdf
 
+// Standard metrics are read from the built-in tables, so a run can be measured without any
+// font file on the machine.
 #test
 {
     Swag.assert(Math.isEqualEpsilon(StandardFont.Helvetica.glyphWidth('A'), 0.667, 0.0005))
@@ -20,6 +23,7 @@ using Core, Core.Math, Pdf
     Swag.assert(StandardFont.Courier.textWidth("abcd", 10) == 24)
     Swag.assert(StandardFont.Helvetica.textWidth("", 12) == 0)
 }
+
 #test
 {
     let helvetica = StandardFont.fromBaseName("Helvetica")
@@ -45,6 +49,8 @@ using Core, Core.Math, Pdf
         Swag.assert(round.found and round.font == font)
     }
 }
+
+// The four base encodings map a byte to the character the format assigns it.
 #test
 {
     Swag.assert(encodingRune(.WinAnsi, 'A') == 'A')
@@ -61,6 +67,9 @@ using Core, Core.Math, Pdf
     Swag.assert(glyphNameRune("u01FF") == 'ǿ')
     Swag.assert(glyphNameRune("not-a-glyph") == 0)
 }
+
+// `Td`, `TD`, `T*`, and `TL` move the line matrix through it, so a rotated text matrix
+// carries the line advance with it.
 #test
 {
     let content = "BT /F0 10 Tf 0 -1 1 0 20 30 Tm 5 0 Td (A) Tj 12 TL T* (B) Tj ET"
@@ -79,6 +88,9 @@ using Core, Core.Math, Pdf
     Swag.assert(Math.isEqualEpsilon(second.tx - first.tx, -12, 0.01))
     Swag.assert(Math.isEqualEpsilon(second.ty, first.ty, 0.01))
 }
+
+// `/Widths` decides how far a shown string moves the position, and the entries of a `TJ`
+// array move it back by their own amount.
 #test
 {
     var objects: Array'u8
@@ -100,6 +112,9 @@ using Core, Core.Math, Pdf
     let offset = second.pages[0].items[1].itemTransform().tx - second.pages[0].items[0].itemTransform().tx
     Swag.assert(Math.isEqualEpsilon(offset, 15, 0.01))
 }
+
+// Render mode 3 hides the marks but still advances, which is what an invisible text layer over
+// a scanned page relies on.
 #test
 {
     var objects: Array'u8
@@ -115,6 +130,8 @@ using Core, Core.Math, Pdf
     // The hidden run still moved the position, so the visible one does not start at the origin.
     Swag.assert(document.pages[0].items[1].itemTransform().tx > 20)
 }
+
+// Invisible OCR text remains searchable at the same offsets as the displayed page's index.
 #test
 {
     var objects: Array'u8
@@ -134,6 +151,8 @@ using Core, Core.Math, Pdf
     let indexed = TextIndex.build(&page)
     Swag.assert(text == indexed.text)
 }
+
+// A `/Differences` array renames single codes, and text extraction follows the new names.
 #test
 {
     var objects: Array'u8
@@ -144,6 +163,8 @@ using Core, Core.Math, Pdf
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(pageText(document.pages[0]) == "é€C")
 }
+
+// A `/ToUnicode` CMap outranks the encoding, in both its single and its range form.
 #test
 {
     let cmap = #raw """
@@ -168,6 +189,12 @@ endcmap
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
     Swag.assert(pageText(document.pages[0]) == "ABabc")
 }
+
+// A simple font keeps its one-byte codes whatever its `/ToUnicode` CMap declares.
+//
+// Writers routinely give a simple font a map with the two-byte codespace of an identity
+// encoding while writing the map's own codes one byte wide, and mix a two-byte entry in among
+// them. The map says how a code spells out as text; it never says how wide a code is.
 #test
 {
     let cmap = #raw """
@@ -191,6 +218,8 @@ endcmap
     Swag.assert(document.pages[0].fonts[0].codeBytes == 1)
     Swag.assert(pageText(document.pages[0]) == "B")
 }
+
+// A composite font addresses glyphs with two-byte codes and takes its widths from `/W`.
 #test
 {
     let cmap = #raw """
@@ -227,6 +256,8 @@ endcmap
     // The two glyphs are 500 and 250 thousandths wide at size twenty.
     Swag.assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
 }
+
+// An explicit `/CIDToGIDMap` replaces the identity mapping for a TrueType descendant.
 #test
 {
     const glyphMap: [10] u8 = [0, 0, 0, 1, 0, 2, 0, 7, 0, 8]
@@ -242,6 +273,9 @@ endcmap
     Swag.assert(font.glyphIndex(4) == {index: 8, found: true})
     Swag.assert(not font.glyphIndex(5).found)
 }
+
+// The writer keeps the face each run asks for, and a decoded document reports the standard
+// face closest to the one the file names.
 #test
 {
     var document = Document.create()
@@ -259,6 +293,8 @@ endcmap
     Swag.assert(decoded.pages[0].items[2].textFont() == .CourierOblique)
     Swag.assert(pageText(decoded.pages[0]) == "RegularBold serifFixed")
 }
+
+// A face is emitted once however many runs use it, and a page with no text emits no font.
 #test
 {
     var document = Document.create()

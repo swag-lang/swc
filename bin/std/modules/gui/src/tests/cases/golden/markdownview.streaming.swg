@@ -3,18 +3,6 @@
 
 using Swag, Core
 
-// A wheel notch immediately after a distant jump must not wait for background prefetch.
-// Both directions keep a complete viewport and respond on the next paint.
-
-// Reading a short file in one chunk does not mean that all its blocks have been laid out.
-// End must reach its last block even when only the first background batch is ready.
-
-// Reaching the streamed end replaces the block under a stationary pointer. The following wheel
-// notch must resolve its new target without requiring an intervening mouse move.
-
-// Every document key uses the scrollbar's next-paint loading path, including reversals before
-// the pending destination is painted. No loading timer is needed to expose a simple text page.
-
 // A distant scrollbar jump must paint its destination without waiting for loading timers.
 // Reversals before that paint belong to the latest request, and prefetch cannot move it later.
 #[Swag.TestTag("golden")]

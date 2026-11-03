@@ -3,16 +3,6 @@
 
 using Swag, Core, Pixel
 
-/// Predefined dialogs fit their shared layers around the content instead of keeping stale blank rows.
-
-// A prompt is as tall as its help line, not as tall as the shell it opened in.
-
-// Fitting a resizable editor preserves the authored editor height and makes it the minimum.
-
-// The about box measures its header and message instead of retaining the old 300-unit shell.
-
-// The application form supplies the common version, build, source, copyright, and tile.
-
 // Renders `dlg` on its own surface, its shadow included, over the ground of the window it stands above.
 func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
 {
@@ -236,22 +226,3 @@ func filler(count: u64)->String
     replace.surface!.destroy()
     host.pump()
 }
-
-// A question is as wide as its actions need, and never narrower than the family's floor.
-
-// A message box holds the message it was fitted to, whatever that message measures.
-//
-// The box takes the extent of its own text as its width, and that extent is fractional: the
-// window tree is laid out on whole logical units and the window itself is placed on whole
-// physical pixels. Committed as measured, the width came back a fraction short, the message
-// wrapped one line more than the box had been made tall for, and the box clipped the very text
-// it was fitted to. Only some lengths land on a losing fraction, so the case is swept instead
-// of picked — a two-sentence error box was one of them.
-
-// An oversized message stays inside the available surface height and exposes its final line.
-
-// An application block added to the about box grows it, and stops growing it at the measure.
-//
-// What an application lists there — the formats it opens, the plugins it carries — has no natural
-// length, so the box follows it only as far as [[Gui.AboutDlg.MaxSectionsHeight]] and the column
-// scrolls from there. A box that followed it further would be as tall as the display.

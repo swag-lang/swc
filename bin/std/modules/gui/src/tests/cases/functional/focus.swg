@@ -1,7 +1,46 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+const FocusHeadless_Default = "FocusHeadless.Default"
+
+const FocusHeadless_Cancel  = "FocusHeadless.Cancel"
+
+// A form built the way a card is built: a docked action bar created before the content that fills
+// what is left over, so creation order and reading order disagree on purpose.
+struct FocusHeadlessCard
+{
+    panel:   *Wnd                 // Raised panel holding the whole card.
+    actions: *StackLayoutCtrl     // Action bar docked at the bottom.
+    body:    *Wnd                 // Content filling what the bar leaves.
+    field:   *EditBox             // Field of the body.
+    browse:  *PushButton          // Trailing action on the same line as the field.
+    submit:  *PushButton          // Dominant action, in the bar.
+}
+
+// Builds a laid-out `FocusHeadlessCard` inside `parent`, at `rect`.
+func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
+{
+    var result: #returntype
+
+    result.panel = Wnd.create'Wnd(parent, rect)
+
+    result.actions = StackLayoutCtrl.create(result.panel, .Right, {0, 0, 0, 30})
+    result.actions.dockStyle = .Bottom
+    result.submit  = PushButton.create(result.actions, "Go")
+
+    result.body           = Wnd.create'Wnd(result.panel)
+    result.body.dockStyle = .Center
+    result.field          = EditBox.create(result.body, "", {0, 0, 100, 24})
+    result.browse         = PushButton.create(result.body, "...", {110, 0, 40, 24})
+
+    result.panel.applyLayout()
+    result.actions.computeLayout()
+    return result
+}
+
+// A canvas has no traversal stop, but its root hook still receives game-style keyboard input.
 #test
 {
     var pressedCount: u32
@@ -23,6 +62,8 @@ using Swag, Core, Pixel
     Swag.assert(pressedCount == 1)
     Swag.assert(host.app.keyboardFocusWnd == &host.root)
 }
+
+// The ring reads the way the eye does, not the way the tree was built.
 #test
 {
     var host: Testing.HeadlessHost
@@ -36,6 +77,8 @@ using Swag, Core, Pixel
     Swag.assert(order.stops[1] == cast(*Wnd, card.browse))
     Swag.assert(order.stops[2] == cast(*Wnd, card.submit))
 }
+
+// Two columns keep their own fields together instead of interleaving row by row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -51,6 +94,8 @@ using Swag, Core, Pixel
     Swag.assert(order.stops[3] == cast(*Wnd, right.field))
     Swag.assert(order.stops[5] == cast(*Wnd, right.submit))
 }
+
+// Tab walks the ring and wraps around, Shift+Tab walks it backwards.
 #test
 {
     var host: Testing.HeadlessHost
@@ -72,6 +117,8 @@ using Swag, Core, Pixel
     host.keyPress(.Tab, .Shift)
     Swag.assert(card.submit.hasFocus())
 }
+
+// The ring shows only while the keyboard is what moved the focus.
 #test
 {
     var host: Testing.HeadlessHost
@@ -90,6 +137,9 @@ using Swag, Core, Pixel
     host.clickWnd(card.submit)
     Swag.assert(not card.submit.hasVisibleFocus())
 }
+
+// Native surface deactivation removes the logical focus and its caret, then activation restores
+// the recorded stop instead of leaving a control painted as active in a background application.
 #test
 {
     var host: Testing.HeadlessHost
@@ -118,6 +168,8 @@ using Swag, Core, Pixel
     Swag.assert(edit.hasFocus())
     Swag.assert(edit.timerCaret != null)
 }
+
+// A hidden or disabled control hands the keyboard to what follows it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -139,6 +191,11 @@ using Swag, Core, Pixel
     second.body.disable()
     Swag.assert(second.submit.hasFocus())
 }
+
+// A control taken off the surface hands the keyboard on rather than dropping it.
+//
+// Destroying is deferred, so a focus left pointing into the window is only cleared a frame later,
+// with nothing to say where it should have gone. The next Tab then restarted at the top.
 #test
 {
     var host: Testing.HeadlessHost
@@ -154,6 +211,10 @@ using Swag, Core, Pixel
     host.pump()
     Swag.assert(card.submit.hasFocus())
 }
+
+// A Lost callback can dismantle the old focused subtree without recursively losing focus again.
+// The new owner is published before that callback runs, so releaseFocus sees that the keyboard
+// has already left the subtree being destroyed.
 #test
 {
     var host: Testing.HeadlessHost
@@ -176,6 +237,8 @@ using Swag, Core, Pixel
     Swag.assert(lostCount == 1)
     Swag.assert(next.hasFocus())
 }
+
+// A composite is one stop, and the focus lands on the part of it that reads the keys.
 #test
 {
     var host: Testing.HeadlessHost
@@ -197,6 +260,8 @@ using Swag, Core, Pixel
     Swag.assert(list.hasFocus())
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, list.listView))
 }
+
+// A group of options is one stop, entered on the option that is checked.
 #test
 {
     var host: Testing.HeadlessHost
@@ -228,6 +293,8 @@ using Swag, Core, Pixel
     host.keyPress(.Tab)
     Swag.assert(after.hasFocus())
 }
+
+// Enter and Escape stand for the two standard buttons of the surface.
 #test
 {
     var host: Testing.HeadlessHost
@@ -258,6 +325,8 @@ using Swag, Core, Pixel
     host.keyPress(.Escape)
     Swag.assert(host.commandCount == previous)
 }
+
+// The arrows walk the group the focus stands in; Tab is what crosses the whole box.
 #test
 {
     var host: Testing.HeadlessHost
@@ -284,6 +353,12 @@ using Swag, Core, Pixel
     host.keyPress(.Tab)
     Swag.assert(field.hasFocus())
 }
+
+// A list keeps the keys it reads and hands back the ones it does not.
+//
+// A control that marks every key handled makes the surface it sits on unanswerable: the box cannot
+// be backed out of and the traversal cannot leave the control. A file box opens the keyboard on its
+// file list, which is exactly where Escape and Tab have to keep working.
 #test
 {
     var host: Testing.HeadlessHost
@@ -322,6 +397,11 @@ using Swag, Core, Pixel
     host.keyPress(.Tab)
     Swag.assert(ok.hasFocus())
 }
+
+// The accent stands on the action Enter would run, which a focused button is.
+//
+// A box names one dominant action, and the keyboard can stand on another. Left where it was
+// created, the fill said Enter would run something other than what the ring points at.
 #test
 {
     var host: Testing.HeadlessHost
@@ -361,6 +441,11 @@ using Swag, Core, Pixel
     Swag.assert(ok.paintedForm() == .Default)
     Swag.assert(cancel.paintedForm() == .Normal)
 }
+
+// A box gives the keyboard back to the control it was opened from.
+//
+// The surface under a modal keeps its own focus while the box runs, so backing out of the box
+// resumes the form where the reader left it instead of restarting the traversal somewhere else.
 #test
 {
     var host: Testing.HeadlessHost
@@ -387,6 +472,9 @@ using Swag, Core, Pixel
     host.keyPress(.Tab)
     Swag.assert(card.submit.hasFocus())
 }
+
+// A stop alone in its group answers the arrows with the whole ring, and a modified arrow is a
+// gesture of the control rather than a traversal.
 #test
 {
     var host: Testing.HeadlessHost
@@ -405,6 +493,8 @@ using Swag, Core, Pixel
     host.keyPress(.Right, .Control)
     Swag.assert(alone.hasFocus())
 }
+
+// A box opens on the action it names as its default, with the ring already showing.
 #test
 {
     var host: Testing.HeadlessHost
@@ -433,6 +523,8 @@ using Swag, Core, Pixel
     Swag.assert(modalResult == Dialog.BtnNo)
     Swag.assert(checked)
 }
+
+// A callback cannot take the keyboard away from a modal box through its disabled caller.
 #test
 {
     var host: Testing.HeadlessHost
@@ -460,6 +552,8 @@ using Swag, Core, Pixel
     Swag.assert(modalResult == Dialog.BtnCancel)
     Swag.assert(checked and caller.hasFocus())
 }
+
+// A box with something to fill in opens on that instead, and its default still answers Enter.
 #test
 {
     var host: Testing.HeadlessHost
@@ -491,6 +585,13 @@ using Swag, Core, Pixel
     Swag.assert(modalResult == Dialog.BtnOk)
     Swag.assert(checked)
 }
+
+// A control the reader would act on is passed over, and the box opens on its named default.
+//
+// A confirmation carrying a `Do not ask again` checkbox reads first, so the box opened with the
+// ring on the checkbox: the reader was pointed at a preference instead of at the question, and
+// the first Space toggled it rather than answering. The rule is the flag, not the widget, so a
+// toggle beside the checkbox is passed over for the same reason and without naming its type.
 #test
 {
     var host: Testing.HeadlessHost

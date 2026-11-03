@@ -49,6 +49,7 @@ using Core, Gui, Pixel
     Swag.assert(errorPresented, "the broken image never reached the native error surface")
 
     var document = scopeTestDataPath("markdown.images.md", #curlocation)
+    Path.normalize(&document)
     window.openFile(document, remember: false)
     let documentReady = func|window, &document|()->bool
     {

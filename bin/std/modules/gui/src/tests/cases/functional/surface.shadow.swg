@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// Repainting the interior must not record a clipped outline or its overlap-safe alpha pass.
 #test
 {
     for scale in [1.0'f32, 1.5'f32, 2.0'f32]
@@ -38,6 +40,8 @@ using Swag, Core, Pixel
         }
     }
 }
+
+// A maximized body stays opaque without the shadow or the rectangular premultiplication pass.
 #test
 {
     for scale in [1.0'f32, 1.5'f32]

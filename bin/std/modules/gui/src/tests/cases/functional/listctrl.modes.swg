@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// The ground of the row under the pointer comes in over a beat, and the one it left goes out.
 #test
 {
     var host: Testing.HeadlessHost
@@ -28,6 +30,8 @@ using Swag, Core, Pixel
     host.finishAnimations()
     Swag.assert(list.hotPresence == 1 and list.leftPresence == 0)
 }
+
+// Files carry the quiet hue of their kind; folders carry the mark of a place.
 #test
 {
     var host: Testing.HeadlessHost

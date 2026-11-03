@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// Replacing an overlapping streamed window keeps the images already painted in its viewport.
 #test
 {
     let imagePath = Testing.tempFilePath("markdown-overlap-", ".svg")
@@ -43,6 +45,9 @@ using Swag, Core, Pixel
     Swag.assert(cast(u64, newInline.images.entries[0].image.pixels.buffer) == inlinePixels)
     Swag.assert(cast(u64, newHtml.images.entries[0].image.pixels.buffer) == htmlPixels)
 }
+
+// An embedded HTML canvas keeps its own scroll fixed, but still follows the outer Markdown
+// viewport. Its loading frames must repaint the visible image after the reader scrolls to it.
 #test
 {
     let fileName = Testing.tempFilePath("markdown-scrolled-image-", ".svg")
@@ -117,6 +122,9 @@ using Swag, Core, Pixel
     host.surface.paintWnd(view)
     Swag.assert(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
 }
+
+// Parsing survives entry-array growth and prepares no software bitmap. Paint uses the
+// surface renderer at the latest DPI, reuses its texture, and retirement joins parsing.
 #test
 {
     let fileName = Testing.tempFilePath("markdown-image-worker-", ".svg")
@@ -152,6 +160,9 @@ using Swag, Core, Pixel
     discard cache.texture(host.app.renderer, fileName.toString(), 120, 60)
     Swag.assert(not cache.parsing.isEmpty())
 }
+
+// A gallery publishes a light image while an earlier photograph is still decoding.
+// Saturated parsing also keeps its bound and never schedules the same source twice.
 #test
 {
     // A gated task cannot yield the caller in JIT execution; native tests exercise the overlap.
@@ -214,6 +225,9 @@ using Swag, Core, Pixel
     let next = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)
     Swag.assert(next == null and cache.parsing.count == 4)
 }
+
+// File preparation publishes dimensions without decoding SVG contents. A later read failure
+// retires the spinner and remains cached instead of retrying the missing resource every frame.
 #test
 {
     let imagePath = Testing.tempFilePath("markdown-image-deferred-", ".svg")

@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+// Panes are parented, counted, and fill the client area (panes + bars).
 #test
 {
     var host: Testing.HeadlessHost
@@ -24,6 +26,8 @@ using Swag, Core
     let total   = splitter.items[0]!.size + splitter.items[1]!.size + barSize
     Swag.assert(Math.abs(total - client.width) < 1.5)
 }
+
+// Panes authored before the splitter has a rectangle keep their initial sizes for first layout.
 #test
 {
     for vertical in [false, true]
@@ -42,6 +46,8 @@ using Swag, Core
         Swag.assert(Math.abs(first.size + second.size + splitter.themeMetrics().splitView_BarSize - 600) < 0.01)
     }
 }
+
+// A size change is shared within each priority group, including when every pane preserves size.
 #test
 {
     for preserve in [false, true]
@@ -64,6 +70,8 @@ using Swag, Core
             Swag.assert(item!.size == 130)
     }
 }
+
+// A pane can be hidden and shown again, updating the visible-pane count.
 #test
 {
     var host: Testing.HeadlessHost
@@ -84,6 +92,8 @@ using Swag, Core
     Swag.assert(splitter.numVisiblePanes == 2)
     Swag.assert(pane1.isLocallyVisible())
 }
+
+// setPaneSize clamps to the pane minimum size.
 #test
 {
     var host: Testing.HeadlessHost
@@ -99,6 +109,8 @@ using Swag, Core
     splitter.setPaneSize(0, -50)
     Swag.assert(pane0It.size >= 20)
 }
+
+// Hidden panes do not absorb size transferred between visible neighbors.
 #test
 {
     var host: Testing.HeadlessHost

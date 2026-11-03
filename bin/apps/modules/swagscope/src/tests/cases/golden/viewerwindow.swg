@@ -332,6 +332,10 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 #[Swag.TestTag("golden")]
 #test
 {
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {}
+
     let fileName = Testing.tempFilePath("scope-lens-markdown-", ".md")
     discard expect File.writeAllBytes(fileName, "# Guide\n\n## Getting started\n")
     defer discard catch File.delete(fileName)

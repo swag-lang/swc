@@ -3,6 +3,7 @@
 
 using Swag, Core, Pixel
 
+// A movie decoded away from the widget is published by ownership exchange only.
 #test
 {
     var host: Testing.HeadlessHost
@@ -28,6 +29,7 @@ using Swag, Core, Pixel
     Swag.assert(view.movie.isValid() and replacement.isValid())
 }
 
+// A still image starts fitted, supports explicit zoom, and releases its renderer texture cleanly.
 #test
 {
     var host: Testing.HeadlessHost
@@ -78,6 +80,7 @@ using Swag, Core, Pixel
     Swag.assert(not view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and not view.isMirrored)
 }
 
+// Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
 #test
 {
     var host: Testing.HeadlessHost
@@ -110,6 +113,7 @@ using Swag, Core, Pixel
     Swag.assert(view.image.width == 120)
 }
 
+// A one-shot decode can hand its storage to the view without allocating a second pixel buffer.
 #test
 {
     var host: Testing.HeadlessHost
@@ -127,6 +131,28 @@ using Swag, Core, Pixel
     Swag.assert(view.uploadedTexture.isValid() and view.isFitted)
 }
 
+// Counts the pixels of one row that sit between the two plateaus of an opaque red-on-white
+// picture, which is how wide the edges crossing that row are drawn.
+private func edgeSpread(image: *Image, row: s32)->s32
+{
+    var result = 0's32
+    for x in image.width
+    {
+        let green = cast(s32, image.pixelColor(x, row).g)
+        if green > 8 and green < 247 do
+            result += 1
+    }
+
+    return result
+}
+
+// A vector document is drawn at the scale the view shows it at, so a magnified drawing is drawn
+// again rather than magnified: its edges stay a pixel wide however far the view zooms in.
+//
+// The same document rasterized once at its view-box size and shown through the picture path is
+// the control: there the zoom magnifies pixels, and every edge is spread over the zoom factor.
+// The document is opaque and covers its whole view box, so the only pixels between the two
+// plateaus of the measured row are the two edges of the disc.
 #test
 {
     const Source = """\
@@ -163,6 +189,8 @@ using Swag, Core, Pixel
     Swag.assert(not view.hasContent() and not view.hasDrawing())
 }
 
+// A video frame reaches the view as planes: the texture is kept across frames, the geometry comes
+// from the picture even though the view holds no image, and the next size starts a new texture.
 #test
 {
     var host: Testing.HeadlessHost
@@ -214,6 +242,8 @@ using Swag, Core, Pixel
     Swag.assert(not view.uploadedTexture.isValid())
 }
 
+// A picture whose samples are not square is laid out and fitted with the size it is shown at,
+// while the storage it was given keeps every column it holds.
 #test
 {
     var host: Testing.HeadlessHost

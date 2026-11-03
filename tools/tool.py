@@ -173,8 +173,12 @@ def execute(stages, environment):
         result = subprocess.run(stage.command, env=environment, check=False,
                                 stdout=subprocess.PIPE if stage.expected_output else None)
         if stage.expected_output:
-            output = result.stdout.decode(errors='replace')
-            print(output, end='', flush=True)
+            output = result.stdout.decode('utf-8', errors='replace')
+            if hasattr(sys.stdout, 'buffer'):
+                sys.stdout.buffer.write(result.stdout)
+                sys.stdout.buffer.flush()
+            else:
+                print(output, end='', flush=True)
             if result.returncode == 0 and stage.expected_output not in output:
                 print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
                 return 1

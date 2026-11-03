@@ -1,5 +1,12 @@
 #global if #command == Swag.CompilerCommand.Test
+
 using Swag, Core
+
+// The shaped run retains this descriptor, so it needs addressable static storage. This test only reads it.
+private var g_CapturedHeadingGlyph: GlyphDesc = {uv: Math.Rectangle{0, 0, 0.1640625, 0.1796875}, atlasIndex: 0, shiftX: -6, shiftY: 38, width: 42, height: 46}
+
+// Pin scaled quad emission independently of glyph generation. The captured 36-pixel heading's
+// right edge moved by one f32 step under contraction.
 
 #test
 {

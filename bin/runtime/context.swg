@@ -233,6 +233,7 @@ namespace Swag
         panicStackCount:     u32                // Number of valid addresses in 'panicStack'
         panicCatch:          *void?             // Innermost 'catchPanic' running on this context
         cancelScope:         *CancelScope?      // Cancellation state of the work running on this context
+        testCheck:           (func(string?, SourceCodeLocation)->bool)?     // Native test verdict handler shared across imported runtimes
         compilerRaise:       (func(*Context))?  // Compiler-owned diagnostic transport; null in a native process
     }
 

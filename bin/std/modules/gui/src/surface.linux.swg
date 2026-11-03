@@ -252,18 +252,22 @@ impl Surface
             expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, .windowId, 0))
     }
 
-    internal mtd bindNativePresentationTarget()
+    internal mtd bindNativePresentationTarget()->bool
     {
         if .presentationWidth != .rc.width or .presentationHeight != .rc.height
         {
+            let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
+            if not replacement.colorBuffer.isValid() do
+                return false
             if .presentationTarget.colorBuffer.isValid() do
                 .app.renderer.deleteRenderTarget(&.presentationTarget)
-            .presentationTarget = .app.renderer.createRenderTarget(.rc.width, .rc.height)
+            .presentationTarget = replacement
             .presentationWidth  = .rc.width
             .presentationHeight = .rc.height
         }
 
         .app.renderer.bindRenderTarget(&.presentationTarget)
+        return true
     }
 
     // EGL presents directly at renderer.end; this path owns no asynchronous CPU readback.
@@ -272,7 +276,7 @@ impl Surface
     internal mtd advanceNativePresentation()->bool  => true
     internal mtd cancelNativePresentation() { .preparedFrame = false }
 
-    internal mtd prepareNativePresentation(target: const *RenderTarget)
+    internal mtd prepareNativePresentation(target: const *RenderTarget)->bool
     {
         .painter.begin()
         .painter.setContentScale(1)
@@ -286,6 +290,7 @@ impl Surface
         .app.renderer.unbindRenderTarget()
         .app.renderer.draw(&.painter)
         .preparedFrame = true
+        return true
     }
 
     internal mtd publishNativePresentation()

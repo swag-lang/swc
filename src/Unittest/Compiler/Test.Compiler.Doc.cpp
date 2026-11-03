@@ -162,6 +162,19 @@ plain payload
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DocTypeNamesDoNotLinkStructuralBindings)
+{
+    const std::unordered_map<Utf8, Utf8> local     = {{"color", "LocalColor"}, {"Count", "LocalCount"}};
+    const std::unordered_map<Utf8, Utf8> external  = {{"transform", "foreign.html#Other_transform"}, {"Foreign.Matrix", "foreign.html#Matrix"}};
+    const DocRenderContext               renderCtx = {.references = &local, .externalReferences = &external};
+    const Utf8                           html      = DocMarkdown::renderTypeName(renderCtx, "{transform: {color: color}, color \t: [Count] Foreign.Matrix, callback: func(transform: Foreign.Matrix)->color}");
+    if (html.contains("Other_transform") || !html.contains("{transform: {color: <a href=\"#LocalColor\">color</a>}") || !html.contains("color \t: [<a href=\"#LocalCount\">Count</a>]"))
+        return Result::Error;
+    if (!html.contains("func(transform: <a href=\"foreign.html#Matrix\">Foreign.Matrix</a>)-&gt;<a href=\"#LocalColor\">color</a>"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_DocBlockCommentsPreserveCodeIndentation)
 {
     static constexpr std::string_view SOURCE = R"(/*

@@ -285,7 +285,9 @@ namespace
         }
         else
         {
-            std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
+            // Lazy ELF resolution preserves System V arguments, but Swag also passes arguments
+            // in R10/R11. Resolve PLT entries before the first call can lose those registers.
+            std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
             if (job.output == LinkJob::Output::Executable)
                 arguments.emplace_back("-no-pie");
             else

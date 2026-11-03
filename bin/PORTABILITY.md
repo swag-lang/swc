@@ -45,6 +45,8 @@ to the compiler host; Linux selects System V, the Linux runtime and GNU-linked E
 `--os linux` and `--os windows` explicitly override the target.
 Native executables cover startup, arguments, synchronization and fault recovery. Static/shared
 imports execute initialization and cleanup, and published .so files survive executable relocation.
+ELF executables and shared libraries resolve imports at load time: the lazy System V resolver
+would clobber the fifth and sixth Swag argument registers (R10/R11) on the first call.
 Compile-time shared imports execute through the same runtime hooks. Dynamic load/unload preserves
 shared context and initialization/final-close ownership. Shared libraries are position-independent,
 reject text relocations, and protect relocated constants after loading. Native `--debug` emits DWARF

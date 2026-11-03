@@ -27,3 +27,10 @@ public func verifyArguments(expected: const [..] string)->bool
     }
     return true
 }
+
+// Swag uses R10 and R11 for its fifth and sixth integer arguments on x64.
+#[Swag.NoInline]
+public func verifyRegisterArguments(a, b, c, d, e, f: u64)->bool
+{
+    return a == 11 and b == 22 and c == 33 and d == 44 and e == 55 and f == 66
+}

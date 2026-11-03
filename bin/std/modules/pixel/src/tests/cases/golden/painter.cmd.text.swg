@@ -2,19 +2,6 @@
 
 using Swag, Core
 
-// Command-stream goldens for text. Text is the only primitive that writes per-vertex texture
-// coordinates, so these are the goldens that pin glyph atlas addressing. See
-// [[Testing.assertGolden]].
-//
-// Glyph slots are packed in first-use order, so tests that shared a cache would record atlas
-// coordinates depending on which one ran first. Each test owns its cache, which makes it
-// reproducible whatever the test order without any arrangement between tests.
-private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode)->*Font
-{
-    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
-    return cache.createFont(face, size, mode)
-}
-
 #[Swag.TestTag("golden")]
 #test
 {
@@ -88,9 +75,3 @@ private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode
     painter.end()
     Testing.assertGolden(&painter, "text.program.switch")
 }
-
-// The shaped run retains this descriptor, so it needs addressable static storage. This test only reads it.
-private var g_CapturedHeadingGlyph: GlyphDesc = {uv: Math.Rectangle{0, 0, 0.1640625, 0.1796875}, atlasIndex: 0, shiftX: -6, shiftY: 38, width: 42, height: 46}
-
-// Pin scaled quad emission independently of glyph generation. The captured 36-pixel heading's
-// right edge moved by one f32 step under contraction.

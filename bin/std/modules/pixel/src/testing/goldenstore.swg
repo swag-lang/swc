@@ -20,7 +20,7 @@ struct ImageGoldenOptions
 // drawing emits, not on the pixels it would produce: it needs no GPU and no window, and its
 // result is identical on every machine.
 //
-// Goldens live in 'src/tests/goldens', beside the categorized scripts folder, one '.txt' file per name.
+// Goldens live in 'src/tests/goldens', beside the categorized cases folder, one '.txt' file per name.
 // 'name' may contain '/' to group goldens in sub-folders.
 //
 // There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
@@ -373,11 +373,12 @@ private
         var dir      = testRoot
         while dir != null
         {
-            if Path.fileName(dir) == "scripts"
+            if Path.fileName(dir) == "cases" or Path.fileName(dir) == "helpers"
             {
                 testRoot = Path.directoryName(dir)
                 break
             }
+
             dir = Path.directoryName(dir)
         }
 

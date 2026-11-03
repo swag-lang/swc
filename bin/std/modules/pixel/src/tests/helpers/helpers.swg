@@ -269,11 +269,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
             return unwrap Path.directoryName(directory)
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases")
+    Swag.assert(false, "test source is outside cases or helpers")
     return ""
 }

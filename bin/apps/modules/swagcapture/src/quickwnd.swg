@@ -25,6 +25,7 @@ const QuickMaskWidth      = 21.0         // Width of the pattern of a mask prese
 const QuickMaskHeight     = 14.0         // Height of the pattern of a mask preset.
 const QuickLightDepth     = 0.09'f32     // Slightly deeper ground under light ink on Papier.
 const QuickNeutralDepth   = 0.3'f32      // Contrast ground for black or white ink on a ground of the same value.
+const QuickDarkHighlightAlpha = 50'u8    // Minimum preview opacity for translucent marks on Encre.
 const QuickPopoverPad     = 12.0         // Air inside the popover holding every preset of a tool.
 const QuickPopoverColumns = 5            // Presets in a row of that popover.
 const QuickVisibleRows    = 2            // Rows of presets the inspector shows before its popover.
@@ -1307,10 +1308,13 @@ impl QuickWnd
         // Each sample is painted at the zoom and with the sizes its copy chose for the cell.
         var paintForm = QuickStylePaintForm.create(itf)
         defer paintForm.release()
+        let preview = unwrap paintForm.itf
+        if preview.subKind == .Highlight and groundLum < 0.4 do
+            preview.alpha = Math.max(preview.alpha, QuickDarkHighlightAlpha)
         painter.pushClippingRect(cell)
         painter.pushTransform()
         painter.translateTransform(cell.x, cell.y)
-        Capture.paintForm(painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, unwrap paintForm.itf, zoom: paintForm.zoom, quickMode: paintForm.quick)
+        Capture.paintForm(painter, {}, {0, 0, QuickCellWidth, QuickCellHeight}, preview, zoom: paintForm.zoom, quickMode: paintForm.quick)
         painter.popTransform()
         painter.popClippingRect()
 

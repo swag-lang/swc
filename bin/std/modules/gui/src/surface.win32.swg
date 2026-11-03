@@ -694,12 +694,13 @@ impl Surface
     {
         if .presentationTarget.colorBuffer.width != .rc.width or .presentationTarget.colorBuffer.height != .rc.height
         {
+            let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
+            if not replacement.colorBuffer.isValid() do
+                return false
             .app.renderer.deleteRenderTarget(&.presentationTarget)
-            .presentationTarget = .app.renderer.createRenderTarget(.rc.width, .rc.height)
+            .presentationTarget = replacement
         }
 
-        if not .presentationTarget.colorBuffer.isValid() do
-            return false
         .app.renderer.bindRenderTarget(&.presentationTarget)
         return true
     }

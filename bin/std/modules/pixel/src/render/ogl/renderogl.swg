@@ -1094,8 +1094,13 @@ impl RenderOgl
         var colorID: GLuint
         glGenTextures(1, &colorID)
         let textureNameError = glGetError()
-        if not colorID or textureNameError != GL_NO_ERROR do
+        if not colorID or textureNameError != GL_NO_ERROR
+        {
+            if colorID do
+                glDeleteTextures(1, &colorID)
             return {}
+        }
+
         glBindTexture(GL_TEXTURE_2D, colorID)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)
@@ -1110,6 +1115,8 @@ impl RenderOgl
         let framebufferNameError = glGetError()
         if not fbo or framebufferNameError != GL_NO_ERROR
         {
+            if fbo do
+                glDeleteFramebuffers(1, &fbo)
             glDeleteTextures(1, &colorID)
             return {}
         }
@@ -1165,8 +1172,13 @@ impl RenderOgl
         var textureID: GLuint
         glGenTextures(1, &textureID)
         let nameError = glGetError()
-        if not textureID or nameError != GL_NO_ERROR do
+        if not textureID or nameError != GL_NO_ERROR
+        {
+            if textureID do
+                glDeleteTextures(1, &textureID)
             return 0
+        }
+
         glBindTexture(GL_TEXTURE_2D, textureID)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
@@ -1322,8 +1334,13 @@ impl RenderOgl
         var textureID: GLuint
         glGenTextures(1, &textureID)
         let nameError = glGetError()
-        if not textureID or nameError != GL_NO_ERROR do
+        if not textureID or nameError != GL_NO_ERROR
+        {
+            if textureID do
+                glDeleteTextures(1, &textureID)
             return {}
+        }
+
         glBindTexture(GL_TEXTURE_2D, textureID)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)

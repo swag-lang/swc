@@ -417,7 +417,7 @@ impl Surface
         .setPosition(np)
     }
 
-    private mtd createRT()
+    private mtd createRT()->bool
     {
         if not .rt.colorBuffer.isValid() or
            .rt.colorBuffer.width < .rc.width or
@@ -425,14 +425,19 @@ impl Surface
         {
             // Grow each axis independently. Recomputing both from the current client size would
             // shrink one axis while growing the other, then allocate again when the drag reverses.
-            let width  = Math.max(.rt.colorBuffer.width, .rc.width)
-            let height = Math.max(.rt.colorBuffer.height, .rc.height)
-            let w      = (width + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
-            let h      = (height + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
+            let width       = Math.max(.rt.colorBuffer.width, .rc.width)
+            let height      = Math.max(.rt.colorBuffer.height, .rc.height)
+            let w           = (width + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
+            let h           = (height + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
+            let replacement = .app.renderer.createRenderTarget(w, h)
+            if not replacement.colorBuffer.isValid() do
+                return false
             .app.renderer.deleteRenderTarget(&.rt)
-            .rt = .app.renderer.createRenderTarget(w, h)
+            .rt = replacement
             .invalidate()
         }
+
+        return true
     }
 
     internal mtd paint()
@@ -493,8 +498,7 @@ impl Surface
     private mtd paintToRenderTarget(root: *Wnd)->bool
     {
         root.flushLayout()
-        .createRT()
-        if not .rt.colorBuffer.isValid() do
+        if not .createRT() do
             return false
 
         if not .isDirty do

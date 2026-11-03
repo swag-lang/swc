@@ -37,6 +37,31 @@ class ToolTests(unittest.TestCase):
              patch.dict(os.environ, environment or {}, clear=True), patch.object(tool, 'execute', execute):
             return tool.main(arguments)
 
+    def test_golden_accept_needs_no_compiler_and_preserves_unrelated_files(self):
+        folder = self.root / 'bin/std/modules/fixture/src/tests/goldens'
+        folder.mkdir(parents=True)
+        for path in (self.root / 'bin').glob('swc*'):
+            path.unlink()
+        (folder / 'image.png').write_bytes(b'old image')
+        (folder / 'image.actual.png').write_bytes(b'reviewed image')
+        (folder / 'text.actual.txt').write_text('reviewed text')
+        (folder / 'keep.actual.bin').write_bytes(b'unrelated')
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(self.invoke(['goldens', 'accept']), 0)
+        self.assertEqual((folder / 'image.png').read_bytes(), b'reviewed image')
+        self.assertEqual((folder / 'text.txt').read_text(), 'reviewed text')
+        self.assertEqual((folder / 'keep.actual.bin').read_bytes(), b'unrelated')
+        self.assertFalse(list(folder.glob('*.actual.png')))
+        self.assertFalse(list(folder.glob('*.actual.txt')))
+
+    def test_empty_golden_accept_and_invalid_action(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(self.invoke(['goldens', 'accept'], windows=True), 0)
+        self.assertIn('no pending snapshot', output.getvalue())
+        with self.assertRaises(ValueError):
+            self.invoke(['goldens', 'unexpected'])
+
     def test_full_campaign_uses_same_suites_on_both_hosts(self):
         for windows in (False, True):
             self.assertEqual(self.invoke(['tests', 'dm'], windows=windows), 0)

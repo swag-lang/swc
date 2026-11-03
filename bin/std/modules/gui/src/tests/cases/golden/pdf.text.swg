@@ -33,3 +33,33 @@ using Core, Core.Math, Pdf
     let actualRound   = expect roundPage.render()
     Pixel.Testing.assertImagesNear(&expectedRound, &actualRound, "pdf.text.invisible-roundtrip")
 }
+
+// Standard faces use the same metrics and family in the preview and the written document.
+#[Swag.TestTag("golden")]
+#test
+{
+    let faces: [12] StandardFont = [
+        .Helvetica, .HelveticaBold, .HelveticaOblique, .HelveticaBoldOblique,
+        .TimesRoman, .TimesBold, .TimesItalic, .TimesBoldItalic,
+        .Courier, .CourierBold, .CourierOblique, .CourierBoldOblique]
+    var document = Document.create()
+    var page = Page.create(240, 300)
+    for face, index in faces do
+        page.addText("Visible café 123", 10, 10 + cast(f32, index) * 23, 14, font: face)
+    document.addPage(#move page)
+    let bytes = expect document.encode()
+    var roundtrip = expect Document.decode(bytes.toSlice())
+    let expected = expect document.editPage(0).render()
+    let actual = expect roundtrip.editPage(0).render()
+    Pixel.Testing.assertImagesNear(&expected, &actual, "pdf.text.standard-roundtrip")
+
+    // Editing a decoded run must also discard the old face and encoded advances.
+    roundtrip.editPage(0).setText(0, "Edited café 456")
+    roundtrip.editPage(0).setTextSize(0, 16)
+    roundtrip.editPage(0).setTextFont(0, .CourierBoldOblique)
+    let editedBytes = expect roundtrip.encode()
+    var edited = expect Document.decode(editedBytes.toSlice())
+    let expectedEdited = expect roundtrip.editPage(0).render()
+    let actualEdited = expect edited.editPage(0).render()
+    Pixel.Testing.assertImagesNear(&expectedEdited, &actualEdited, "pdf.text.edited-roundtrip")
+}

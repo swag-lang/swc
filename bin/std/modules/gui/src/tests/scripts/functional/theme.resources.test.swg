@@ -71,8 +71,8 @@ using Swag, Core, Pixel
     let folder = Path.combine(root.toString(), "theme")
     expect Directory.create(folder)
     let path = Path.combine(folder.toString(), "inter-regular.ttf")
-    const Regular = #include("../theme/inter-regular.ttf")
-    const Bold    = #include("../theme/inter-bold.ttf")
+    const Regular = #include("../../../theme/inter-regular.ttf")
+    const Bold    = #include("../../../theme/inter-bold.ttf")
     discard expect File.writeAllBytes(path, Regular)
     var first: Testing.HeadlessHost
     first.app.resources.addFolder(root.toString())

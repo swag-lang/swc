@@ -8,8 +8,15 @@
 #import("runtime_context_base_static", link: "static-library")
 #import("runtime_context_direct_static", link: "static-library")
 #import("core", location: "swag@std")
-// Core also imports win32; the workspace suite uses this diamond to guard global deduplication.
-#import("win32", location: "swag@std")
+// Core also imports its native ABI module; this diamond guards global deduplication.
+#static if #os == Swag.TargetOs.Windows
+{
+    #import("win32", location: "swag@std")
+}
+#static if #os == Swag.TargetOs.Linux
+{
+    #import("linux", location: "swag@std")
+}
 #run
 {
     // Keep the workspace rooted at an executable so we validate direct exe -> dll usage.

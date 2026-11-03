@@ -66,7 +66,9 @@ func probeScheduler(param: *void?)->u32
     while not probe.grow.isRaised() do
         discard SwitchToThread()
 
-    let maximum  = probe.initialCount > 6 ? probe.initialCount : 6'u32
+    let requestedMaximum = probe.initialCount > 6 ? probe.initialCount : 6'u32
+    let capacity         = Swag.schedulerInstance().capacity
+    let maximum          = requestedMaximum > capacity ? capacity : requestedMaximum
     var previous = probe.initialCount
     var tasks: [4] Swag.Task
     for round in 96
@@ -145,8 +147,11 @@ func checkSchedulerPublication()
         probe.join()
 
     Swag.assert(created and ready)
-    let initialCount = probes[0].initialCount
-    Swag.assert(Swag.workerCount() == (initialCount > 6 ? initialCount : 6'u32))
+    let initialCount     = probes[0].initialCount
+    let requestedMaximum = initialCount > 6 ? initialCount : 6'u32
+    let capacity         = Swag.schedulerInstance().capacity
+    let maximum          = requestedMaximum > capacity ? capacity : requestedMaximum
+    Swag.assert(Swag.workerCount() == maximum)
     for probe in probes
     {
         Swag.assert(probe.scheduler == probes[0].scheduler)

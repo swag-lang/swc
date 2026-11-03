@@ -1829,12 +1829,16 @@ impl QuickWnd
 
         // Keep the live style and its save action first; overflow only saved presets.
         let perRow   = cast(u64, Math.max(1, cast(s32, Math.floor((.position.width + 0.5) / QuickChipWidth))))
-        let capacity = perRow * QuickVisibleRows
         var fixed    = 0'u64
         if transient do
             fixed += 1
         if model do
             fixed += 1
+        // A lone chip or pair makes the second row look unfinished. Keep one full row and put
+        // the remaining saved styles behind its last "more" chip when the fixed cells leave room.
+        let total      = presets.count + fixed
+        let sparseTail = total > perRow and total <= perRow + 2 and perRow > fixed + 1
+        let capacity   = sparseTail ? perRow : perRow * QuickVisibleRows
         let all   = presets.count + fixed <= capacity
         let shown = all ? presets.count : (capacity > fixed ? capacity - fixed - 1 : 0)
 

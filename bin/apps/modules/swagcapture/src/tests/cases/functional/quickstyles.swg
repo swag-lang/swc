@@ -408,6 +408,31 @@ using Swag, Core
     Swag.require(quick.allPresets == null)
 }
 
+// Seven chips in a six-column inspector leave an orphan. The image tool keeps its live style
+// and save action visible, with the last saved style available from the overflow chip.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Image
+    f.main.mdlFormImage.borderColor = Argb.Magenta
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+    quick.updateQuickStyles(forceRebuild: true)
+
+    Swag.require(quick.canAddCurrentStyle() and quick.qsImage.forms.count == 5)
+    let cells = quick.rowCells()
+    Swag.require(cells.count == 6 and cells[0].isTransient and cells[1].isModel and cells.back().isMore)
+    for cell in cells do
+        Swag.require(cell.position.y == 0)
+    Swag.require(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
+
+    quick.openAllPresets(unwrap quick.moreButton)
+    Swag.require((unwrap quick.allPresets).children.count == quick.qsImage.forms.count + 2)
+}
+
 // A quick style keeps its optional name for editing, without taking a caption line under the row.
 #test
 {

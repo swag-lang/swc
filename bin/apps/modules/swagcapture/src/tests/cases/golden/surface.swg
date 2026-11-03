@@ -297,6 +297,14 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     let mask = testAddImage(capture, 60, 80, 280, 40)
     mask.kind = .Pixelate
     testAssertEditGolden(&host, main, [0], "edit.mask")
+
+    // The overflow keeps the last image styles reachable without a stranded second row.
+    let more = unwrap main.quickWnd.moreButton
+    Swag.require(more.isLocallyVisible())
+    main.quickWnd.openAllPresets(more)
+    host.finishAnimations()
+    var image = host.render(&host.surfaceWnd)
+    Pixel.Testing.assertImageGolden(&image, "edit.mask.presets")
 }
 
 // The colour popover opened from the inspector: the recent colours, the palette, the exact value

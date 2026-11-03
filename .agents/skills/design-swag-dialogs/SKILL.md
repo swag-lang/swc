@@ -29,9 +29,9 @@ Other skills govern the parts around the box:
   ([Make Space Describe Relationships](../build-swag-standard-apps/SKILL.md#make-space-describe-relationships)).
 
 This skill governs the box itself. The measurable half is enforced by
-[`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.charter.test.swg),
+[`dialogs.charter.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/functional/dialogs.charter.test.swg),
 which builds and measures every predefined box, and by
-[`dialogs.layout.test.swg`](../../../bin/std/modules/gui/src/tests/dialogs.layout.test.swg),
+[`dialogs.layout.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/golden/dialogs.layout.test.swg),
 which pins what each box fits itself to. A number argued here with no line in those tests will
 drift back within a release.
 

@@ -25,7 +25,7 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   clock with `followAudioClock`. A diagnostic run saw XAudio2's played-sample counter stay at
   zero with buffers queued, so `Voice.playbackPositionSeconds` never moved and the correction
   never fired; that run did not establish whether the process had a working audio endpoint.
-  Only the no-sound stalled-output case is tested (`viewers/video/tests/video.test.swg`).
+  Only the no-sound stalled-output case is tested (`src/tests/scripts/functional/viewers/video/video.test.swg`).
 - Next: play a video with sound on a machine whose output is audible and log
   `playbackSampleFrame` against the wall clock for a minute.
 - Done when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately

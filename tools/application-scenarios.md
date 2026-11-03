@@ -4,20 +4,20 @@ Use complementary test families. A passing startup smoke is not a completed user
 
 | Boundary | What it establishes | Where it lives |
 | --- | --- | --- |
-| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/` for application-wide behavior; `src/viewers/<viewer>/tests/` for one viewer |
-| Golden tests | Maintained text/image references | Beside their owning tests as `<plan>.golden.test.swg`, tag `golden` |
-| Application scenarios | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/<plan>.smoke.test.swg`, tag `integration.application.smoke` |
-| External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/<contract>.integration.test.swg`, explicit `integration.*` tag |
+| Ordinary tests | Model, decoder, command and layout behavior | `src/tests/scripts/functional/`, with an optional area folder |
+| Golden tests | Maintained text/image references | `src/tests/scripts/golden/`, with snapshots in `src/tests/goldens/`, tag `golden` |
+| Application scenarios | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/scripts/smoke/<plan>.smoke.test.swg`, tag `integration.application.smoke` |
+| External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/scripts/integration/<contract>.integration.test.swg`, explicit `integration.*` tag |
 | Startup smoke | The shipped executable and published resources start and stop within a budget | `tools/apps.bat [dm] smoke <application>` |
 
 The scenario tag is an opt-in selection of ordinary `#test` functions, not another test language
 or a second assertion framework. Keep the test-only guard and keep scenarios out of `#main`.
 Keep each family in dedicated files, with `.test.swg` last. Name a smoke file for the complete
 user plan, such as `browsemedialibrary.smoke.test.swg`; the first control or screen does not own
-the journey. Do not mix ordinary and golden tests in one file. Put each viewer's code and tests
-together under `src/viewers/<viewer>/`; reserve `src/tests/` for application-wide or shared plans.
-Keep viewer-local test support under that viewer's `tests/helpers.swg`; put support shared by
-several viewers in `src/tests/helpers.swg`, not in duplicated setup or new production APIs.
+the journey. Do not mix ordinary and golden tests in one file. Keep every module test under
+`src/tests/scripts/`; preserve viewer-specific grouping with an area folder such as
+`src/tests/scripts/functional/viewers/<viewer>/`. Put shared test helpers under
+`src/tests/scripts/helpers/`, not in production APIs.
 Run the real application window and its normal event loop; do not replace filesystem enumeration,
 background workers, decoders or the renderer with fakes in a test intended to cover that path.
 Include production initialization such as the application icon and resource registration; redirect

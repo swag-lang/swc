@@ -103,7 +103,7 @@ being compiled by it.
 
 ### repo.tooling.003 — Matroska timing and display-size cases lack reproducible fixtures
 
-- Evidence: `bin/std/modules/video/src/tests/matroska.test.swg` covers the absent-display-size
+- Evidence: `bin/std/modules/video/src/tests/scripts/functional/matroska.test.swg` covers the absent-display-size
   fallback. It covers neither a track whose `DefaultDuration` misstates its rate (the frame
   rate must come from timestamps) nor a display size that differs from the stored size. Both
   behaviors are verified only on private films. No EBML fixture producer is checked in. PyAV

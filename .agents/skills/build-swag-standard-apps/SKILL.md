@@ -378,7 +378,7 @@ language before calling a feature done**, at the window's declared minimum size.
   `Testing.assertContentFits`, which fails when a window is arranged smaller than its content.
 - **Assert the containment the generic check cannot see**, such as a block overflowing its
   parent, and run it over every entry of `Gui.languages()`. Swag Vault's `assertColumnFits` in
-  `src/tests/mainwindow.test.swg` is the worked example.
+  `src/tests/scripts/functional/mainwindow.test.swg` is the worked example.
 - **Shorten the text before changing the layout.** If the wording is already as short as it can
   honestly be, fix the measurement rather than adding room.
 - **Translate as you write.** A key added to the reference table but missing from
@@ -439,7 +439,7 @@ Pixel.Testing.assertImageGolden(&image, "surface.encre")
 ## Keep The Workspace Shippable
 
 - Keep every standard application in the `bin/apps` workspace, as
-  `bin/apps/modules/<application>` with `module.swg`, `src/`, `src/tests/*.test.swg` and a
+  `bin/apps/modules/<application>` with `module.swg`, `src/`, `src/tests/scripts/` and a
   root-level `datas/` for icons and other immutable resources. Test fixtures go in
   `src/tests/datas/`. Lay out tests as described in
   [modify-swag-codebase](../modify-swag-codebase/SKILL.md).
@@ -463,7 +463,7 @@ Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed
 
 Keep test families separate using the filenames in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md#lay-out-a-modules-tests-the-same-way-every-time).
-Application smoke scenarios belong in `<plan>.smoke.test.swg`, named for the user journey across
+Application smoke scenarios belong in `src/tests/scripts/smoke/<plan>.smoke.test.swg`, named for the user journey across
 the application, with the tag `integration.application.smoke`. A control or the first screen is
 not the owner of a journey that also opens documents, returns, saves or restores state. Keep the
 plan's setup, actions, readiness deadlines and observable checkpoints readable in the `#test`;

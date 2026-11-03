@@ -48,7 +48,7 @@ The charter's token table maps onto the code like this:
 | Chosen segment, tool tip | `segment`, `tip` | segment and tool-tip parts |
 | Floating shadow, dim, veils | `shadow`, `veil` | `floating_Shadow`, `lens_Dim`, `veilSoft`/`Medium`/`Strong` |
 
-[`theme.colors.test.swg`](../../../bin/std/modules/gui/src/tests/theme.colors.test.swg) pins the
+[`theme.colors.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/functional/theme.colors.test.swg) pins the
 charter values. If a derivation lands one step away from the table, the derivation has a defect;
 it is not a new value. Information notices use Arc: there is no separate information hue.
 
@@ -171,7 +171,7 @@ A section label is always `Gui.SectionLabel`. Nobody shapes their own small capi
 The charter's Controls section and the pictures
 [gui.controls.ink](../../../backlog/design/imgs/gui.controls.ink.png) and
 [gui.controls.paper](../../../backlog/design/imgs/gui.controls.paper.png) give every control in
-every state. [`controls.charter.test.swg`](../../../bin/std/modules/gui/src/tests/controls.charter.test.swg)
+every state. [`controls.charter.test.swg`](../../../bin/std/modules/gui/src/tests/scripts/golden/controls.charter.test.swg)
 and its goldens hold the measurable part. Implementation notes:
 
 - **Push buttons** have four forms: primary (`btnPush_Strong*`), secondary (`btnPush_*`), quiet

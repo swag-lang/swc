@@ -85,7 +85,7 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 ### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
 
 - Evidence: the image viewer (`Viewers.Picture.Panel`) browses every indexed format through
-  `Movie` and one `timeline` slider; `viewers/image/tests/imageset.test.swg` covers all nine multi-image codec
+  `Movie` and one `timeline` slider; `src/tests/scripts/functional/viewers/image/imageset.test.swg` covers all nine multi-image codec
   paths, including unequal dimensions. The slider and counter do not show the selected item's
   kind, name, dimensions, mip/layer/face coordinates, or thumbnail, although `ImageFrameInfo`
   already supplies the indexed properties.

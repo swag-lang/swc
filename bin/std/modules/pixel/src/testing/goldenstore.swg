@@ -20,7 +20,7 @@ struct ImageGoldenOptions
 // drawing emits, not on the pixels it would produce: it needs no GPU and no window, and its
 // result is identical on every machine.
 //
-// Goldens live in a 'goldens' folder next to the calling source file, one '.txt' file per name.
+// Goldens live in 'src/tests/goldens', beside the categorized scripts folder, one '.txt' file per name.
 // 'name' may contain '/' to group goldens in sub-folders.
 //
 // There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
@@ -106,7 +106,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 
 // Compares owned pixels against the PNG golden named `name`.
 //
-// Goldens live beside the calling test under `goldens/<name>.png`. A missing golden is created
+// Goldens live under `src/tests/goldens/<name>.png`. A missing golden is created
 // and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
 // first differing pixel, and fails. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
 // raster differences; both limits default to exact comparison.
@@ -366,12 +366,22 @@ private
         Console.println("         run the test with 'swag.sandbox.corpus=<directory>' to record there")
     }
 
-    // Goldens sit in a 'goldens' folder beside the test source file, so a test and its snapshots
-    // move together and a module owns its own corpus.
+    // Categorized test sources share the module's src/tests/goldens corpus.
     func goldenPath(name, extension: string, loc: Swag.SourceCodeLocation)->String
     {
-        let dir    = Path.directoryName(loc.fileName)
-        let folder = Path.combine(dir, "goldens")
+        var testRoot = Path.directoryName(loc.fileName)
+        var dir      = testRoot
+        while dir != null
+        {
+            if Path.fileName(dir) == "scripts"
+            {
+                testRoot = Path.directoryName(dir)
+                break
+            }
+            dir = Path.directoryName(dir)
+        }
+
+        let folder = Path.combine(testRoot, "goldens")
 
         var file = String.from(name)
         file += extension

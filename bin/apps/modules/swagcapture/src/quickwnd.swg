@@ -1349,21 +1349,28 @@ impl QuickWnd
         let pale  = colors.faintText
         switch #complete kind
         {
-        case .Pixelate, .Blur:
+        case .Pixelate:
 
-            // Pixels in two tones; a blur keeps them closer and softer.
+            // Hard, separate blocks read as pixelation even at chip size.
             let side = QuickMaskHeight / 4
             let cols = cast(s32, QuickMaskWidth / side)
             for y in 4
             {
                 for x in cols
                 {
-                    var color = (x + y) % 2 ? dark : pale
-                    if kind == .Blur do
-                        color = Color.lerpRgb(dark, pale, cast(f32, (x * 2 + y) % 3) * 0.25 + 0.25)
+                    let color = (x + y) % 2 ? dark : pale
                     painter.fillRect(Math.Rectangle{frame.x + cast(f32, x) * side, frame.y + cast(f32, y) * side, side, side}, color)
                 }
             }
+
+        case .Blur:
+            // A soft band, built from translucent strokes, has no hard pixel corners.
+            let left  = frame.x + 2
+            let right = frame.right() - 2
+            let y     = frame.vertCenter()
+            painter.drawLine(left, y, right, y, Pen.createSolid(dark.withAlpha(80), 10))
+            painter.drawLine(left, y, right, y, Pen.createSolid(dark.withAlpha(120), 6))
+            painter.drawLine(left, y, right, y, Pen.createSolid(dark.withAlpha(180), 2))
 
         case .Image:
             painter.fillRoundRect(frame, 2, 2, colors.text)

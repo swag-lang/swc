@@ -4,6 +4,12 @@
 
 using Swag, Core
 
+func testAddMonitorAt(main: *MainWnd, rect: Math.Rectangle)
+{
+    main.monitors.add({bounds: rect, workArea: rect, scaleFactor: 1, physicalBounds: rect, physicalWorkArea: rect})
+}
+
+
 // Returns the module's test root for test cases stored under cases/<type>.
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
@@ -20,7 +26,6 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 }
 
 // Shared headless application fixtures.
-
 struct HeadlessFixture
 {
     gui:           Gui.Testing.HeadlessHost

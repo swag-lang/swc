@@ -26,6 +26,7 @@ function Assert-Call([int] $Index, [string] $Text) {
 try {
     $null = New-Item -ItemType Directory -Path (Join-Path $scratch 'tools'), (Join-Path $scratch 'bin') -Force
     Copy-Item -LiteralPath $Tool -Destination (Join-Path $scratch 'tools\unittests.bat')
+    Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $Tool) 'tool.py') -Destination (Join-Path $scratch 'tools\tool.py')
     $env:SWC_RUNNER_TEST_LOG = Join-Path $scratch 'calls.txt'
     $compilerSource = @'
 using System;
@@ -61,7 +62,7 @@ public static class CompilerProbe
         }
     }
     Invoke-Suite @('dm', 'cpp') 7 'unittest'
-    Invoke-Suite @('dm', '-bc', 'release') 1 'unittest'
+    Invoke-Suite @('dm', '-bc', 'release') 7 'unittest'
     if ($calls.Count -ne 1) { throw 'The campaign continued after a C++ test failure.' }
 
     foreach ($suite in @('lexer', 'parser', 'sema')) {
@@ -86,7 +87,7 @@ public static class CompilerProbe
     }
     Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "build`t--workspace"
     if ($calls.Count -ne 1) { throw 'Workspace tests continued after fixture preparation failed.' }
-    Invoke-Suite @('dm', 'workspace', '-bc', 'release') 1 "test`t--workspace"
+    Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "test`t--workspace"
     if ($calls.Count -ne 2) { throw 'Workspace tests continued after the consumer failed.' }
     Write-Output 'Compiler suite runner: 15 regression cases passed.'
 }

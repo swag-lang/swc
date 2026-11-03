@@ -4,7 +4,7 @@
 
 using Core, Gui, Pixel
 
-// Opt-in, read-only source-library probe. The ordinary smoke owns its offline fixtures; this
+// Opt-in, read-only source-library probe. The offline journey owns its fixtures; this
 // probe exercises a reported library's names, codecs and share latency without copying it.
 #[Swag.TestTag("integration.application.library")]
 #test

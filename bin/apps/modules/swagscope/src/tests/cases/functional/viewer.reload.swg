@@ -3,20 +3,6 @@
 
 using Core, Gui, Viewers
 
-func writeReloadFile(fileName, text: string)
-{
-    var file = expect File.openWrite(fileName)
-    discard expect file.write(text)
-}
-
-func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
-{
-    host.fireTimer(window.fileWatchTimer)
-    if window.fileWatch.load.started do
-        window.fileWatch.load.task.wait()
-    host.fireTimer(window.fileWatchTimer)
-}
-
 // External edits keep the Markdown reading position and zoom through progressive replacement.
 
 // Idle document streams permit exclusive saves before all their content has been consumed.

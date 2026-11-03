@@ -3,17 +3,16 @@
 
 struct MemoryLogWriter
 {
-    lines: [4] String
-    count: u32
+    expected: String
+    count:    u32
 }
 
 impl ILogWriter for MemoryLogWriter
 {
     mtd impl print(text: string)
     {
-        if me.count < me.lines.count do
-            me.lines[me.count] = text
         me.count += 1
+        Swag.assert(text == me.expected.toString(), Format.toString("Expected '%', got '%'", me.expected.toString(), text))
     }
 }
 
@@ -55,60 +54,58 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
 #test
 {
-    var writer: MemoryLogWriter
+    let loc = currentLocation()
+    let expected = makeExpectedShortLine("CORE", loc, "hello")
+    var writer = MemoryLogWriter{expected: expected}
+
     var log = Log.create()
     log.setPrefix("CORE")
     log.setFlags(LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line)
-
     log.addWriter(writer)
-
-    let loc = currentLocation()
     log.print("hello", loc)
 
     Swag.assert(writer.count == 1)
-    Swag.assert(writer.lines[0].toString() == makeExpectedShortLine("CORE", loc, "hello").toString())
     Swag.assert(log.prefix() == "CORE")
     Swag.assert(log.flags() == (LogFlags.Prefix | LogFlags.ShortFileName | LogFlags.Line))
 }
 
 #test
 {
-    var writerA: MemoryLogWriter
-    var writerB: MemoryLogWriter
+    let loc = currentLocation()
+    let expected = makeExpectedFullLoc(loc, "world")
+    var writerA = MemoryLogWriter{expected: expected}
+    var writerB = MemoryLogWriter{expected: expected}
+
     var log = Log.create()
     log.setFlags(LogFlags.LongFileName | LogFlags.FullLoc)
-
     log.addWriter(writerA)
     log.addWriter(writerB)
-
-    let loc = currentLocation()
     log.print("world", loc)
 
-    let expected = makeExpectedFullLoc(loc, "world")
     Swag.assert(writerA.count == 1)
     Swag.assert(writerB.count == 1)
-    Swag.assert(writerA.lines[0].toString() == expected.toString())
-    Swag.assert(writerB.lines[0].toString() == expected.toString())
 }
 
 #test
 {
-    var writer: MemoryLogWriter
-    var log = Log.create()
-    log.setFlags(LogFlags.ShortFileName)
-
-    log.addWriter(writer)
-    log.clearWriters()
-
-    log.addWriter(writer)
-
     let secondLoc = currentLocation()
-    log.print("second", secondLoc)
-
-    Swag.assert(writer.count == 1)
     var expected: String
     expected.append(Path.fileName(secondLoc.fileName))
     expected.append(" ")
     expected.append("second")
-    Swag.assert(writer.lines[0].toString() == expected.toString())
+    var removedWriter = MemoryLogWriter{expected: "never written"}
+    var writer        = MemoryLogWriter{expected: expected}
+
+    var log = Log.create()
+    log.setFlags(LogFlags.ShortFileName)
+
+    log.addWriter(removedWriter)
+    log.clearWriters()
+
+    log.addWriter(writer)
+
+    log.print("second", secondLoc)
+
+    Swag.assert(removedWriter.count == 0)
+    Swag.assert(writer.count == 1)
 }

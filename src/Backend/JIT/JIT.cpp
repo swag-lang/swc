@@ -1125,7 +1125,7 @@ namespace
 
             // The error fails the running test or the compilation, and the code goes on.
             case Runtime::ExceptionKind::Check:
-                return {.diagId = DiagnosticId::sema_err_check_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::None, .exceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION};
+                return {.diagId = DiagnosticId::sema_err_check_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::None, .exceptionAction = RuntimeExceptionAction::Resume};
 
             default:
                 SWC_UNREACHABLE();

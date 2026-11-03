@@ -159,15 +159,34 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     let context = Swag.getContext()
     if kind == .Assert and context.panicCatch do
         Swag.panic(message, loc)
-    if not Swag.jit() do
-        Swag.panic(message, loc)
+    // A check records failure without unwinding the native test's active frame.
+    if kind == .Check and not Swag.jit() and Swag.__testCheckFailed(message, loc) do
+        return
+    if not Swag.jit()
+    {
+        var msg = message
+        if not msg
+        {
+            switch kind
+            {
+            case .Assert: msg = "assertion does not hold"
+            case .Safety: msg = "runtime safety contract does not hold"
+            case .Check:  msg = "check does not hold"
+            default:      msg = "runtime error"
+            }
+        }
+
+        Swag.panic(msg, loc)
+    }
 
     context.exceptionLoc = loc
     context.exceptionParams[0] = cast(const *void, &context.exceptionLoc)
     context.exceptionParams[1] = cast(const *void?, message.buffer)
     context.exceptionParams[2] = cast(const *void, message.count)
     context.exceptionParams[3] = cast(const *void, cast(u64, kind))
-    Swag.__valueBorrowReset()
+    // Resumable checks keep every borrow alive for the following statements.
+    if kind != .Check do
+        Swag.__valueBorrowReset()
     if context.compilerRaise
     {
         context.compilerRaise(context)

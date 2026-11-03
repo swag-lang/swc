@@ -1262,16 +1262,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and nested JIT/native fault recovery preserves ownership without stale code or storage.
 - Related: platform.portability.001, platform.portability.093
 
-### platform.portability.093 — Finish Linux native debug and cache support
+### platform.portability.093 — Finish Linux native debug support
 
 - Missing: register locations, precise lexical lifetimes, inline records, global/constant DIEs
   and enum names in native DWARF. Optimized variables without recorded stack homes are absent;
   unsupported composite types retain opaque names/sizes. GDB expression probes require C because
   Swag has no DWARF language identifier.
-- Missing: whole-module ELF incremental relinking after a static dependency changes without an API
-  change. Output-local function reuse and the shared machine-code cache do not cover that boundary.
-- Next: extend debug type/location coverage and implement ELF relink manifests with current dependency
-  resolution, corrupt-input fallback and executable probes after dependency replacement.
-- Done when: richer Linux debug records describe the surviving values and scopes, and incremental
-  native relinking preserves foreign calls, runtime context and module initialization/cleanup.
+- Next: extend debug type/location coverage, with executable and shared-library fixtures that inspect
+  emitted records and stop in GDB to verify values and scope boundaries.
+- Done when: richer Linux debug records describe the surviving values and scopes without
+  inventing locations for optimized-away storage.
 - Related: platform.portability.005

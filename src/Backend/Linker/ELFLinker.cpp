@@ -12,6 +12,7 @@
 #include "Main/CompilerCache.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Support/Math/Sha256.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -57,6 +58,115 @@ namespace
             }
         }
         return {};
+    }
+
+    constexpr uint64_t K_RELINK_MAGIC       = 0x314b4e4c45435753; // SWCELNK1
+    constexpr size_t   K_RELINK_HEADER_SIZE = 40;
+
+    bool buildRelinkCache(ByteArray& bytes, const std::vector<LinkArchiveMember>& objects)
+    {
+        const Utf8& identity = compilerCacheIdentity();
+        if (identity.empty() || identity.size() > UINT32_MAX || objects.empty() || objects.size() > UINT32_MAX)
+            return false;
+        bytes.appendLe64(K_RELINK_MAGIC);
+        bytes.resize(K_RELINK_HEADER_SIZE);
+        bytes.appendLe32(static_cast<uint32_t>(identity.size()));
+        bytes.append(identity.view());
+        bytes.appendLe32(static_cast<uint32_t>(objects.size()));
+        for (const LinkArchiveMember& object : objects)
+        {
+            bytes.appendLe64(object.bytes.size());
+            bytes.append(object.bytes.span());
+        }
+        const auto checksum = sha256(bytes.span().subspan(K_RELINK_HEADER_SIZE));
+        std::memcpy(bytes.data() + 8, checksum.data(), checksum.size());
+        return true;
+    }
+
+    bool readRelinkCache(std::vector<LinkArchiveMember>& outObjects, const ByteArray& bytes)
+    {
+        if (!bytes.containsRange(0, K_RELINK_HEADER_SIZE + 4) || bytes.readLe64(0) != K_RELINK_MAGIC)
+            return false;
+        const auto checksum = sha256(bytes.span().subspan(K_RELINK_HEADER_SIZE));
+        if (std::memcmp(bytes.data() + 8, checksum.data(), checksum.size()) != 0)
+            return false;
+        const Utf8&    identity     = compilerCacheIdentity();
+        const uint32_t identitySize = bytes.readLe32(K_RELINK_HEADER_SIZE);
+        size_t         cursor       = K_RELINK_HEADER_SIZE + 4;
+        if (identity.empty() || identitySize != identity.size() || !bytes.containsRange(cursor, identitySize) || std::memcmp(bytes.data() + cursor, identity.data(), identitySize) != 0)
+            return false;
+        cursor += identitySize;
+        if (!bytes.containsRange(cursor, 4))
+            return false;
+        const uint32_t count = bytes.readLe32(cursor);
+        cursor += 4;
+        if (!count || count > (bytes.size() - cursor) / 72)
+            return false;
+        std::vector<LinkArchiveMember> objects;
+        objects.reserve(count);
+        for (uint32_t index = 0; index < count; ++index)
+        {
+            if (!bytes.containsRange(cursor, 8))
+                return false;
+            const uint64_t size = bytes.readLe64(cursor);
+            cursor += 8;
+            if (size < 64 || !bytes.containsRange(cursor, size) || bytes.readLe32(cursor) != 0x464c457f ||
+                bytes[cursor + 4] != std::byte{2} || bytes[cursor + 5] != std::byte{1} || bytes.readLe16(cursor + 16) != 1 || bytes.readLe16(cursor + 18) != 62)
+                return false;
+            LinkArchiveMember object;
+            object.name = std::format("relinked_{:06}.o", index);
+            object.bytes.append(bytes.span().subspan(cursor, size));
+            objects.push_back(std::move(object));
+            cursor += size;
+        }
+        if (cursor != bytes.size())
+            return false;
+        outObjects = std::move(objects);
+        return true;
+    }
+
+    void appendLibraryArguments(LinkJob& job, const CompilerInstance& compiler, const std::set<Utf8>& libraries)
+    {
+        std::set<fs::path> archives;
+        for (const fs::path& directory : compiler.importedDependencyLinkDirs())
+        {
+            job.elfLinkArguments.emplace_back("-L" + Utf8(fs::absolute(directory)));
+            // -L does not resolve DT_NEEDED entries of imported shared libraries. Keep this
+            // search path link-only so deployed artifacts retain their $ORIGIN runpath.
+            job.elfLinkArguments.emplace_back("-Xlinker");
+            job.elfLinkArguments.emplace_back("-rpath-link");
+            job.elfLinkArguments.emplace_back("-Xlinker");
+            job.elfLinkArguments.emplace_back(Utf8(fs::absolute(directory)));
+            std::error_code error;
+            for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, error), end; it != end && !error; it.increment(error))
+            {
+                if (it->is_regular_file(error) && it->path().extension() == ".a")
+                    archives.insert(fs::absolute(it->path()));
+            }
+        }
+        job.elfLinkArguments.emplace_back("-Wl,--start-group");
+        for (const fs::path& archive : archives)
+            job.elfLinkArguments.emplace_back(archive);
+        for (const Utf8& library : libraries)
+        {
+            const fs::path name(library.c_str());
+            if (name.has_parent_path())
+                job.elfLinkArguments.emplace_back(fs::absolute(name));
+            else
+            {
+                const fs::path dependency = resolveDependencyLibrary(name, compiler.importedDependencyLinkDirs());
+                if (!dependency.empty())
+                {
+                    if (!archives.contains(dependency))
+                        job.elfLinkArguments.emplace_back(dependency);
+                }
+                else if (name.has_extension())
+                    job.elfLinkArguments.emplace_back("-l:" + library);
+                else
+                    job.elfLinkArguments.emplace_back("-l" + library);
+            }
+        }
+        job.elfLinkArguments.emplace_back("-Wl,--end-group");
     }
 
     bool writeBytes(LinkJob& job, const fs::path& path, const ByteArray& bytes)
@@ -242,51 +352,12 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
             collectLibraries(libraries, builder_->ctx(), *function.machineCode);
     if (builder_->startup)
         collectLibraries(libraries, builder_->ctx(), builder_->startup->code);
-    std::set<fs::path> archives;
-    for (const fs::path& directory : builder_->compiler().importedDependencyLinkDirs())
-    {
-        outJob.elfLinkArguments.emplace_back("-L" + Utf8(fs::absolute(directory)));
-        // -L does not resolve DT_NEEDED entries of imported shared libraries. Keep this
-        // search path link-only so deployed artifacts retain their $ORIGIN runpath.
-        outJob.elfLinkArguments.emplace_back("-Xlinker");
-        outJob.elfLinkArguments.emplace_back("-rpath-link");
-        outJob.elfLinkArguments.emplace_back("-Xlinker");
-        outJob.elfLinkArguments.emplace_back(Utf8(fs::absolute(directory)));
-        std::error_code error;
-        for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, error), end; it != end && !error; it.increment(error))
-        {
-            if (it->is_regular_file(error) && it->path().extension() == ".a")
-                archives.insert(fs::absolute(it->path()));
-        }
-    }
-    outJob.elfLinkArguments.emplace_back("-Wl,--start-group");
-    for (const fs::path& archive : archives)
-        outJob.elfLinkArguments.emplace_back(archive);
-    for (const Utf8& library : libraries)
-    {
-        const fs::path name(library.c_str());
-        if (name.has_parent_path())
-            outJob.elfLinkArguments.emplace_back(fs::absolute(name));
-        else
-        {
-            const fs::path dependency = resolveDependencyLibrary(name, builder_->compiler().importedDependencyLinkDirs());
-            if (!dependency.empty())
-            {
-                if (!archives.contains(dependency))
-                    outJob.elfLinkArguments.emplace_back(dependency);
-            }
-            else if (name.has_extension())
-                outJob.elfLinkArguments.emplace_back("-l:" + library);
-            else
-                outJob.elfLinkArguments.emplace_back("-l" + library);
-        }
-    }
-    outJob.elfLinkArguments.emplace_back("-Wl,--end-group");
+    appendLibraryArguments(outJob, builder_->compiler(), libraries);
 
     if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
     {
         const NativeArtifactBuilder artifacts(*builder_);
-        NativeArtifactPaths paths;
+        NativeArtifactPaths         paths;
         artifacts.queryPaths(paths);
         if (!paths.staticLibraryPath.empty())
         {
@@ -294,6 +365,20 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
             SWC_RESULT(builder_->buildObjectBytes());
             takeObjects(outJob.staticLibraryMembers, *builder_);
             outJob.staticLibraryPath = fs::absolute(paths.staticLibraryPath);
+        }
+    }
+    const CompilerInstance& compiler = builder_->compiler();
+    if (kind == Runtime::BuildCfgBackendKind::Executable && compiler.hasImportedStaticLinkInputs() &&
+        compiler.cmdLine().command != CommandKind::Test && !compiler.buildCfg().backend.debugInfo && !compiler.importedNativeExecuted())
+    {
+        // Preserve exactly the objects used by this link, including function-cache hits.
+        // One checksummed generation avoids mixing objects from interrupted publications.
+        ByteArray bytes;
+        if (buildRelinkCache(bytes, outJob.archiveMembers))
+        {
+            const fs::path path = outJob.buildDir / (Utf8(outJob.outputPath.filename()) + ".relink.elfcache").c_str();
+            outJob.incrementalObjects.push_back({.path = path, .bytes = std::move(bytes)});
+            outJob.incrementalLibraries.assign(libraries.begin(), libraries.end());
         }
     }
     return prepareFunctionCache(outJob);
@@ -336,11 +421,33 @@ Result ELFLinker::prepareFunctionCache(LinkJob& job) const
     return Result::Continue;
 }
 
-Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob&, std::span<const fs::path>, std::span<const Utf8>)
+Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)
 {
-    // Whole-module relink manifests still contain COFF inputs. ELF function reuse is
-    // independent and runs during ordinary native preparation.
-    outPrepared = false;
+    outPrepared                      = false;
+    const CompilerInstance& compiler = builder_->compiler();
+    if (objectPaths.size() != 1 || compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        compiler.cmdLine().command == CommandKind::Test || compiler.buildCfg().backend.debugInfo || compiler.importedNativeExecuted())
+        return Result::Continue;
+
+    ByteArray                      bytes;
+    FileSystem::IoErrorInfo        error;
+    std::vector<LinkArchiveMember> objects;
+    if (FileSystem::readBinaryFile(objectPaths.front(), bytes, error) != Result::Continue || !readRelinkCache(objects, bytes))
+        return Result::Continue;
+
+    outJob                = {};
+    outJob.targetOs       = Runtime::TargetOs::Linux;
+    outJob.output         = LinkJob::Output::Executable;
+    outJob.outputPath     = fs::absolute(builder_->artifactPath);
+    outJob.buildDir       = fs::absolute(builder_->buildDir);
+    outJob.archiveMembers = std::move(objects);
+    // The manifest owns API freshness; dependency paths are resolved again against
+    // this invocation's selected artifacts, never replayed from an old command line.
+    std::set<Utf8> libraries(libraryNames.begin(), libraryNames.end());
+    for (const Utf8& library : compiler.foreignLibs())
+        libraries.insert(library);
+    appendLibraryArguments(outJob, compiler, libraries);
+    outPrepared = true;
     return Result::Continue;
 }
 

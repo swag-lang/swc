@@ -801,6 +801,72 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRelinksChangedStaticDependenciesAndRecoversDamagedCache)
+{
+    const LinkerTestDirectory directory("elf_module_relink");
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"Provider\"; cfg.backendKind = .StaticLibrary }\n"));
+    SWC_RESULT(directory.write("modules/consumer/module.swg", "#import(\"provider\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"Consumer\"; cfg.backendKind = .Executable }\n"));
+    std::string main = "#main\n{\n    switch Provider.value()\n    {\n";
+    for (uint32_t phase = 1; phase <= 7; ++phase)
+        main += std::format("    case {}: Swag.print(\"value-{}\\n\")\n", phase, phase);
+    main += "    default: Swag.panic(\"unexpected provider value\", #curlocation)\n    }\n}\n";
+    SWC_RESULT(directory.write("modules/consumer/src/main.swg", main));
+    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+    fs::path                cachePath;
+    for (uint32_t phase = 1; phase <= 7; ++phase)
+    {
+        std::string provider = std::format("#[Swag.NoInline]\npublic func value()->s32 {{ return {} }}\n", phase);
+        provider += "#init { Swag.print(\"provider-init\\n\") }\n#drop { Swag.print(\"provider-drop\\n\") }\n";
+        // An API change requires compilation even when an older object cache is intact.
+        if (phase == 7)
+            provider += "public func added()->s32 { return 1 }\n";
+        SWC_RESULT(directory.write("modules/provider/src/value.swg", provider));
+        std::error_code error;
+        if (phase == 3)
+        {
+            const auto originalTime = fs::last_write_time(cachePath, error);
+            if (error)
+                return Result::Error;
+            ByteArray               bytes;
+            FileSystem::IoErrorInfo ioError;
+            SWC_RESULT(FileSystem::readBinaryFile(cachePath, bytes, ioError));
+            if (bytes.empty())
+                return Result::Error;
+            bytes[bytes.size() - 1] ^= std::byte{1};
+            SWC_RESULT(FileSystem::writeBinaryFile(cachePath, bytes.data(), bytes.size(), ioError));
+            // Reach the cache integrity check, not just manifest mtime invalidation.
+            fs::last_write_time(cachePath, originalTime, error);
+            if (error)
+                return Result::Error;
+        }
+        if (phase == 5 && (!fs::remove(cachePath, error) || error))
+            return Result::Error;
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const auto                  status      = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+        const auto                  initialized = output.find("provider-init");
+        const auto                  value       = output.find(std::format("value-{}", phase));
+        const auto                  dropped     = output.find("provider-drop");
+        const bool                  reused      = phase == 2 || phase == 4 || phase == 6;
+        if (status != Os::ProcessRunResult::Ok || exitCode || initialized == std::string::npos || value == std::string::npos || dropped == std::string::npos ||
+            initialized >= value || value >= dropped || (output.find("relinked") != std::string::npos) != reused)
+        {
+            std::println(stderr, "[ELF module relink phase {}] result={}, exit={}\n{}", phase, static_cast<uint32_t>(status), exitCode, output);
+            return Result::Error;
+        }
+        if (phase == 1)
+        {
+            for (fs::recursive_directory_iterator it(directory.path(), error), end; it != end && !error; it.increment(error))
+                if (it->path().filename().string().ends_with(".relink.elfcache"))
+                    cachePath = it->path();
+            if (error || cachePath.empty())
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

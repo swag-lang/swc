@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global internal
 
 using Swag, Core
 
@@ -31,8 +32,7 @@ func expectedChromaSample(plane: const [*] u8, stride: u64, planeWidth, planeHei
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.directoryName(loc.fileName)
-    var path = Path.combine(dir, "datas", fileName)
+    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
     Swag.assert(File.exists(path))
     return path
 }
@@ -262,7 +262,6 @@ func fallbackTestFace(symbols: bool)->*TypeFace fail
     let bytes = try makeFallbackTestBytes(symbols)
     return try TypeFace.create(symbols ? "pixel-fallback-symbol-fixture" : "pixel-fallback-primary-fixture", bytes.toSlice())
 }
-#global internal
 
 // Returns the module's test root for test cases stored under cases/<type>.
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
@@ -270,12 +269,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
             return unwrap Path.directoryName(directory)
         directory = Path.directoryName(directory)
     }
 
-    Swag.assert(false, "test source is outside cases")
+    Swag.assert(false, "test source is outside cases or helpers")
     return ""
 }
-

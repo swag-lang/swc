@@ -1,4 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
+#global internal
 
 using Core
 
@@ -7,7 +8,6 @@ func raiseVolumeError(kind: ErrorKind) fail
 {
     fail volumeError(kind)
 }
-#global internal
 
 // Returns the module's test root for test cases stored under cases/<type>.
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
@@ -23,4 +23,3 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     Swag.assert(false, "test source is outside cases")
     return ""
 }
-

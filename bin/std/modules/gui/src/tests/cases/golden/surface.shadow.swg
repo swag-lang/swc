@@ -3,10 +3,6 @@
 
 using Swag, Core, Pixel
 
-// Repainting the interior must not record a clipped outline or its overlap-safe alpha pass.
-
-// A maximized body stays opaque without the shadow or the rectangular premultiplication pass.
-
 // The complete surface pipeline owns the premultiplied shadow and the rounded body together.
 // Fractional scales pin the boundaries where the shadow's rectangular scissors meet.
 #[Swag.TestTag("golden")]

@@ -1,28 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
-#global internal
+#global private
 
 using Swag, Core
-
-// Dynamic navigation targets remain valid after the source collection has been released.
-
-// An automatically destroyed popup retires its surface-sibling submenus before their owner.
-
-const Menu_New  = "Menu.New"
-const Menu_Open = "Menu.Open"
-const Menu_Quit = "Menu.Quit"
-
-var MenuSelectedCount: u32
-
-// Stands for a string table field: a resolver reads it again on every layout.
-var MenuResolvedLabel: string = "Open"
-
-func menuResolvedLabel()->string => MenuResolvedLabel
-
-func menuCommandSelected(_: *MenuCtrl, id: WndId)
-{
-    if id == Menu_Open do
-        MenuSelectedCount += 1
-}
 
 enum MenuMarkerPalette
 {
@@ -90,32 +69,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
-
-// A menu bar holds items; a popup menu holds items, separators and disabled entries.
-
-// An entry built from a resolver re-reads its label on every layout; one built from a
-// literal keeps the wording it was created with.
-
-// A submenu carries a resolver the same way, and a language change asks the bar to
-// measure itself again.
-
-// A bar entry reserves what its label really occupies at the density it is drawn at.
-//
-// Laid out at a scale of one and drawn at another, a run comes out wider than the width
-// reserved for it and the entry loses its last glyph to the clip — a shortfall that grows
-// with the word, so a long translation is where it shows.
-
-// Headless tests can drive modal popup menus through the normal mouse pipeline.
-
-// A modal menu's queued command keeps the identifier selected before its caller changes it.
-
-// A submenu label keeps its complete measured run beside the reserved chevron band.
-
-// Headless popup menus can drive nested submenus through hover/timer behavior.
-
-// A centred popup fitted at the right edge keeps its notch under the requested anchor.
-
-// Clicking outside a captured popup dismisses it without selecting an item.
 
 // An icon-button menu carries the button itself into the popup outline, with no detached notch.
 #[Swag.TestTag("golden")]
@@ -191,9 +144,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// An anchored menu that is taller than the room above its button keeps its shadow and content
-// inside the top edge instead of leaving the menu body glued beyond the window.
-
 // A button against the right edge keeps its integrated popup against that same edge. The shadow
 // may extend outside the client area, but the visible body must not be clamped inward and detached
 // from its trigger.
@@ -228,10 +178,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     Swag.assert(checked)
     host.pump()
 }
-
-// A submenu at the right edge chooses the available left side as a complete rectangle.
-
-// A caller can keep child menus and their markers on the left even when the right side also fits.
 
 // A left-opening submenu marker replaces the unused glyph on its row, even when another row
 // makes the popup keep a shared glyph column.
@@ -315,14 +261,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// Hidden popup rows keep their previous layout values, but they must not
-// intercept the row now visible under the mouse.
-
-// A popup item links a submenu back to its owner.
-
-// Opening a menu-bar popup on press must not be cancelled by the release
-// captured by the newly shown popup.
-
 // A taller menu bar centers its visual/hit item band and uses that band as popup anchor.
 #[Swag.TestTag("golden")]
 #test
@@ -363,8 +301,3 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     host.mouseUp({0, 0})
 }
-
-// A menu-bar popup carries the opened bar item inside its own themed area.
-
-// A menu opened from the end of a line stands with its top-right corner on the anchor, and an
-// entry that destroys something is set apart in the critical ink.

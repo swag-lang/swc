@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+// A document palette styles all caption controls and survives their full-screen recreation.
 #test
 {
     var host: Testing.HeadlessHost
@@ -22,6 +24,9 @@ using Swag, Core, Pixel
     host.surfaceWnd.setChromePalette(null)
     Swag.assert(host.surfaceWnd.minimizeBtn.themeColors().btnIcon_Icon == applicationInk)
 }
+
+// The window glyph is the shape of the mark alone, in white, so the chrome can tint it with one
+// ink in either theme: its Voltage and its ink tile are both gone.
 #test
 {
     var host: Testing.HeadlessHost
@@ -42,6 +47,9 @@ using Swag, Core, Pixel
     Swag.assert(at(pixels.toSlice(), 2, 2) >> 24 == 0)
     Swag.assert(at(pixels.toSlice(), 16, 16) >> 24 == 0)
 }
+
+// The top strip is the window's own ground: no band, no rail and no glow. It stays draggable
+// wherever no control sits, the title included, and the window buttons are not part of it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -63,6 +71,10 @@ using Swag, Core, Pixel
     Swag.assert(image.pixelColor(240, 4).argb == ground.argb)
     Swag.assert(image.pixelColor(240, cast(s32, strip) + 8).argb == ground.argb)
 }
+
+// The view takes the whole body and the strip floats over it. Content reaching the top edge
+// passes under the title and still drags the window there, a control set in the strip keeps its
+// clicks, and a band that must keep clear of the chrome reads its inset.
 #test
 {
     var host: Testing.HeadlessHost
@@ -100,6 +112,8 @@ using Swag, Core, Pixel
     band.destroy()
     host.pump()
 }
+
+// Under the strip, the view names its own ground: there, and only there, the window drags.
 #test
 {
     var host: Testing.HeadlessHost
@@ -119,6 +133,9 @@ using Swag, Core, Pixel
     let close = unwrap host.surfaceWnd.closeBtn
     Swag.assert(not host.surfaceWnd.hitTestCaption(close.surfaceRect().center()))
 }
+
+// Taking the caption away, as full screen does, removes the strip and tells the view, even when
+// its size does not change.
 #test
 {
     var resizes = 0
@@ -143,6 +160,9 @@ using Swag, Core, Pixel
     host.surface.updateFlags(add: .LargeCaption)
     Swag.assert(host.root.stripInset() == host.theme.metrics.wnd_StripHeight)
 }
+
+// A document that writes the title itself takes it out of the strip, and gives it back; the
+// surface keeps it for the system either way.
 #test
 {
     var host: Testing.HeadlessHost

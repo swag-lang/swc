@@ -2,35 +2,6 @@
 
 using Core, Pixel, Pdf
 
-struct CorpusPdf
-{
-    name:      string
-    pageCount: u64
-    scale:     f32 = 0.25
-}
-
-func renderCorpus(fixtures: const [..] CorpusPdf)
-{
-    for fixture in fixtures
-    {
-        var reader = expect Reader.open(corpusPdfPath(fixture.name))
-        Swag.assert(reader.pageCount() == fixture.pageCount)
-        for pageIndex in fixture.pageCount
-        {
-            var page  = expect reader.loadPage(pageIndex)
-            let image = expect page.render({scale: fixture.scale, maxDimension: 8192})
-            Swag.assert(image.isValid())
-        }
-    }
-}
-
-// Real documents from several LLVM subprojects exercise 354 pages produced by different PDF
-// writers. Every page is decoded lazily and rendered, so one incompatible late page fails here.
-// Quarter-size pages keep this compatibility sweep small; visual and zoom tests own full detail.
-
-
-
-
 // A search reads a page's text without decoding its images, paths and masks, and what it reads
 // is byte for byte what the displayed page indexes, so a match found in one lands on the same
 // characters of the other. Slides carry the images and forms, the PDFBox fixtures the form

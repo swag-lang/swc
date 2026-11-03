@@ -26,15 +26,3 @@ using Swag, Core
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "splitter.panel-panes.vertical")
 }
-
-// Panes are parented, counted, and fill the client area (panes + bars).
-
-// Panes authored before the splitter has a rectangle keep their initial sizes for first layout.
-
-// A size change is shared within each priority group, including when every pane preserves size.
-
-// A pane can be hidden and shown again, updating the visible-pane count.
-
-// setPaneSize clamps to the pane minimum size.
-
-// Hidden panes do not absorb size transferred between visible neighbors.

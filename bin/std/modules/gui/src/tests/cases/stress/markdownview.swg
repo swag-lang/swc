@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+// Delaying the loader cannot expose its unfinished tail, and a reverse overlap retains the
+// visible windows until the same source block has its replacement at exactly the same y.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -96,6 +99,9 @@ using Swag, Core
     Swag.assert(hasSearchRect and not view.waitingScroll)
     Swag.assert(searchRect.y >= 0 and searchRect.bottom() <= viewport.height)
 }
+
+// Sequential wheel reading releases distant blocks while retaining a reverse-scroll reserve.
+// Resident geometry stays bounded independently of the amount of source already traversed.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -144,6 +150,9 @@ using Swag, Core
     Swag.assert(view.bytesRead - view.residentStart <= 256 * 1024 + 8 * 1024)
     Swag.assert(view.blocks.count < 10_000)
 }
+
+// A multi-megabyte streamed document moves by one rendered line, one viewport page, or a document
+// boundary through the real focused keyboard path; End reaches the real EOF on its next paint.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -196,6 +205,10 @@ using Swag, Core
     Swag.assert(view.residentStart == 0)
     Swag.assert(view.scroll.scrollPosition().y == 0)
 }
+
+// A resident window opened near EOF retains blocks before its target and requests the preceding
+// window while those blocks are still visible. Reverse scrolling must never alternate between a
+// forward-only island and an empty virtual gap.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -261,6 +274,9 @@ using Swag, Core
 
     Swag.assert(visibleBlock)
 }
+
+// A scrollbar reversal supersedes a seek that is still materializing. The earlier target must
+// never win one timer later and pull the document back in the direction the reader just left.
 #[Swag.TestTag("stress")]
 #test
 {

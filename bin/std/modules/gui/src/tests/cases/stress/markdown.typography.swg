@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core
 
+// Retiring earlier source blocks must not apply the first surviving block's top margin twice.
 #[Swag.TestTag("stress")]
 #test
 {

@@ -69,8 +69,6 @@ using Core, Pixel
     Swag.assert(view.scroll.scrollPosition().y < 2)
 }
 
-// A heading click owns its position, including during a wheel glide or reverse prefetch.
-
 #test
 {
     var host: Testing.HeadlessHost

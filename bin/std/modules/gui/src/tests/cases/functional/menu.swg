@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+// Dynamic navigation targets remain valid after the source collection has been released.
 #test
 {
     var host: Testing.HeadlessHost
@@ -16,6 +18,8 @@ using Swag, Core
 
     Swag.assert(menu.items[0]!.id == expected)
 }
+
+// An automatically destroyed popup retires its surface-sibling submenus before their owner.
 #test
 {
     var destroyed: u32
@@ -46,6 +50,21 @@ using Swag, Core
     button.destroy()
     host.pump()
 }
+
+var MenuSelectedCount: u32
+
+// Stands for a string table field: a resolver reads it again on every layout.
+var MenuResolvedLabel: string = "Open"
+
+func menuResolvedLabel()->string => MenuResolvedLabel
+
+func menuCommandSelected(_: *MenuCtrl, id: WndId)
+{
+    if id == Menu_Open do
+        MenuSelectedCount += 1
+}
+
+// A menu bar holds items; a popup menu holds items, separators and disabled entries.
 #test
 {
     var host: Testing.HeadlessHost
@@ -77,6 +96,9 @@ using Swag, Core
     sub.clear()
     Swag.assert(sub.items.isEmpty())
 }
+
+// An entry built from a resolver re-reads its label on every layout; one built from a
+// literal keeps the wording it was created with.
 #test
 {
     var host: Testing.HeadlessHost
@@ -101,6 +123,9 @@ using Swag, Core
     bar.computeLayoutBar()
     Swag.assert(bar.items[1]!.size > widened)
 }
+
+// A submenu carries a resolver the same way, and a language change asks the bar to
+// measure itself again.
 #test
 {
     var host: Testing.HeadlessHost
@@ -127,6 +152,12 @@ using Swag, Core
     bar.computeLayoutBar()
     Swag.assert(bar.items[0]!.name.raw == "Fichier")
 }
+
+// A bar entry reserves what its label really occupies at the density it is drawn at.
+//
+// Laid out at a scale of one and drawn at another, a run comes out wider than the width
+// reserved for it and the entry loses its last glyph to the clip — a shortfall that grows
+// with the word, so a long translation is where it shows.
 #test
 {
     var host: Testing.HeadlessHost
@@ -156,6 +187,8 @@ using Swag, Core
     // is exactly the width the entry used to be short of.
     Swag.assert(measure("Affichage", rsf, 1.0) <= drawn)
 }
+
+// Headless tests can drive modal popup menus through the normal mouse pipeline.
 #test
 {
     var host: Testing.HeadlessHost
@@ -190,6 +223,8 @@ using Swag, Core
 
     host.pump()
 }
+
+// A modal menu's queued command keeps the identifier selected before its caller changes it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -215,6 +250,8 @@ using Swag, Core
         Swag.assert(host.lastCommand == expected)
     }
 }
+
+// A submenu label keeps its complete measured run beside the reserved chevron band.
 #test
 {
     var host: Testing.HeadlessHost
@@ -234,6 +271,8 @@ using Swag, Core
     Swag.assert(metrics.menuPopup_WindowMargin == 8)
     Swag.assert(popup.position.width - chromeWidth + 0.01 >= item.name.boundRect.width)
 }
+
+// Headless popup menus can drive nested submenus through hover/timer behavior.
 #test
 {
     var host: Testing.HeadlessHost
@@ -280,6 +319,8 @@ using Swag, Core
 
     host.pump()
 }
+
+// A centred popup fitted at the right edge keeps its notch under the requested anchor.
 #test
 {
     var host: Testing.HeadlessHost
@@ -310,6 +351,8 @@ using Swag, Core
     Swag.assert(checked)
     host.pump()
 }
+
+// Clicking outside a captured popup dismisses it without selecting an item.
 #test
 {
     var host: Testing.HeadlessHost
@@ -336,6 +379,9 @@ using Swag, Core
 
     host.pump()
 }
+
+// An anchored menu that is taller than the room above its button keeps its shadow and content
+// inside the top edge instead of leaving the menu body glued beyond the window.
 #test
 {
     var host: Testing.HeadlessHost
@@ -362,6 +408,8 @@ using Swag, Core
     Swag.assert(checked)
     host.pump()
 }
+
+// A submenu at the right edge chooses the available left side as a complete rectangle.
 #test
 {
     var host: Testing.HeadlessHost
@@ -391,6 +439,8 @@ using Swag, Core
     Swag.assert(checked)
     host.pump()
 }
+
+// A caller can keep child menus and their markers on the left even when the right side also fits.
 #test
 {
     var host: Testing.HeadlessHost
@@ -421,6 +471,9 @@ using Swag, Core
     Swag.assert(checked)
     host.pump()
 }
+
+// Hidden popup rows keep their previous layout values, but they must not
+// intercept the row now visible under the mouse.
 #test
 {
     var host: Testing.HeadlessHost
@@ -448,6 +501,8 @@ using Swag, Core
     let pointOnQuit = Math.Point{popup.position.width * 0.5, quitIt.pos + quitIt.size * 0.5}
     Swag.assert(popup.hitTestPopup(pointOnQuit) == 3)
 }
+
+// A popup item links a submenu back to its owner.
 #test
 {
     var host: Testing.HeadlessHost
@@ -464,6 +519,9 @@ using Swag, Core
     Swag.assert(bar.items[1]!.popup == sub)
     Swag.assert(sub.ownerMenu == bar)
 }
+
+// Opening a menu-bar popup on press must not be cancelled by the release
+// captured by the newly shown popup.
 #test
 {
     var host: Testing.HeadlessHost
@@ -488,6 +546,8 @@ using Swag, Core
     Swag.assert(bar.subVisible == sub)
     Swag.assert(not sub.ignoreNextRelease)
 }
+
+// A menu-bar popup carries the opened bar item inside its own themed area.
 #test
 {
     var host: Testing.HeadlessHost
@@ -508,6 +568,9 @@ using Swag, Core
     Swag.assert(sub.position.y == -metrics.menuPopup_ShadowSize)
     Swag.assert(sub.items[0]!.pos > metrics.menuPopup_ShadowSize + bar.position.height)
 }
+
+// A menu opened from the end of a line stands with its top-right corner on the anchor, and an
+// entry that destroys something is set apart in the critical ink.
 #test
 {
     var host: Testing.HeadlessHost

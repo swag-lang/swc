@@ -1,7 +1,10 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Pixel
 
+// The virtual HTML window is refreshed in advance in both directions. A delayed timer still
+// cannot leave the viewport outside the materialized layout on the next paint.
 #test
 {
     let fileName = Testing.tempFilePath("html-continuous-scroll-", ".html")
@@ -86,6 +89,8 @@ using Core, Pixel
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == 0 and view.scroll.scrollTarget().y == 0)
 }
+
+// SVG image dimensions come from the root attributes; CSS dimensions can override them.
 #test
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("html_svg_size_%.svg", Guid64.random()).toString())
@@ -129,6 +134,8 @@ using Core, Pixel
     Swag.assert(oversized != null and view.images.entries[0].image.width <= 4096)
     Swag.assert(cast(u64, view.images.entries[0].image.width) * cast(u64, view.images.entries[0].image.height) <= 8 * 1024 * 1024)
 }
+
+// Large square figures obey the area budget as well as the longest-side limit.
 #test
 {
     let fileName = Testing.tempFilePath("html-svg-budget-", ".svg")
@@ -144,6 +151,8 @@ using Core, Pixel
     Swag.assert(cast(u64, image.width) * cast(u64, image.height) <= 8 * 1024 * 1024)
     Swag.assert(image.pixelColor(image.width / 2, image.height / 2).argb == 0xFF285078)
 }
+
+// Every offline resource path uses the same lexical boundary before filesystem access.
 #test
 {
     Swag.assert(Path.equals(htmlLocalResourcePath("pages", "images/title.png").toString(), "pages/images/title.png"))
@@ -162,6 +171,113 @@ using Core, Pixel
         Swag.assert(htmlLocalResourcePath("pages", "C:/images/title.png") == "C:/images/title.png")
     }
 }
+
+// Returns the first element of a document carrying a tag, so a test can name what it inspects.
+func findTag(document: const *HtmlDocument, tag: HtmlTag)->u32
+{
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag do
+        return cast(u32, index)
+    return HtmlNoNode
+}
+
+// Returns the first element carrying a class used to name fixture structure.
+func findClass(document: const *HtmlDocument, name: string)->u32
+{
+    for index in document.nodes.count where document.hasClass(cast(u32, index), name) do
+        return cast(u32, index)
+    return HtmlNoNode
+}
+
+// Returns the position of the first laid-out text item matching `text` inside a box.
+func findItemPos(view: *HtmlView, box: u32, text: string)->{ x: f32, y: f32, found: bool }
+{
+    var result: #returntype
+    for item in view.layout.constBox(box).items
+    {
+        if item.kind != .Text or view.layout.inlineText(item) != text do
+            continue
+        result.x     = item.x
+        result.y     = item.y
+        result.found = true
+        return result
+    }
+
+    return result
+}
+
+// Returns the nth element carrying a tag, so a test can address repeated fixture structure.
+func findNthTag(document: const *HtmlDocument, tag: HtmlTag, wanted: u32)->u32
+{
+    var seen = 0'u32
+    for index in document.nodes.count where document.constNode(cast(u32, index)).tag == tag
+    {
+        seen += 1
+        if seen == wanted do
+            return cast(u32, index)
+    }
+
+    return HtmlNoNode
+}
+
+// Writes `bytes` to a temporary file, loads it whole through a view, and returns its text.
+func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, tag: string)->String
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_html_charset_%_%.html", tag, Guid64.random()).toString())
+    discard expect File.writeAllBytes(fileName, bytes)
+    defer discard catch File.delete(fileName)
+
+    let view = HtmlView.createFile(&host.root, fileName)
+    view.resize(640, 480)
+    view.applyLayout()
+
+    var steps = 0'u32
+    while view.isLoading() and steps < 100
+    {
+        view.streamStep()
+        steps += 1
+    }
+
+    Swag.assert(not view.isLoading())
+    return view.document.textContent(0)
+}
+
+struct HtmlLinkHit
+{
+    point: Math.Point
+    found: bool
+}
+
+// Finds a visible point inside a link after sticky and independently scrolled offsets apply.
+func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
+{
+    let viewport = view.scroll.paddedClientRect()
+    let painter  = view.painter()
+    var result: #returntype
+    var y        = 2.0'f32
+    while y < viewport.height
+    {
+        var x = 2.0'f32
+        while x < viewport.width
+        {
+            let point = Math.Point{x, y}
+            if view.linkAt(painter.nodeAt(point)) == url
+            {
+                result.point = point
+                result.found = true
+                return result
+            }
+
+            x += 4
+        }
+
+        y += 4
+    }
+
+    return result
+}
+
+// The tree builder closes what a document leaves open and never lets a hidden element reach the
+// visible tree.
 #test
 {
     let document = parseDocument("<html><body><p>First<p>Second<ul><li>a<li>b</ul><div class=\"x y\" id=\"z\">t</div></body></html>")
@@ -191,6 +307,8 @@ using Core, Pixel
     Swag.assert(document.id(division) == "z")
     Swag.assert(document.attribute(division, "class") == "x y")
 }
+
+// Character references decode to their code points, including the numeric forms.
 #test
 {
     Swag.assert(htmlDecodeText("a&amp;b").toString() == "a&b")
@@ -200,6 +318,8 @@ using Core, Pixel
     Swag.assert(htmlDecodeText("&nosuchentity;").toString() == "&nosuchentity;")
     Swag.assert(htmlDecodeText("a & b").toString() == "a & b")
 }
+
+// A raw-text element never contributes markup, whatever it contains.
 #test
 {
     let document = parseDocument("<style>p { color: red }</style><script>if (a<b) {}</script><p>after</p>")
@@ -212,6 +332,8 @@ using Core, Pixel
     // A script body is text, so its `<` never opened an element.
     Swag.assert(findTag(&document, .B) == HtmlNoNode)
 }
+
+// Reading a document in chunks produces the tree the whole source produces.
 #test
 {
     let source = expect File.readAllText(htmlFixturePath())
@@ -233,6 +355,9 @@ using Core, Pixel
     Swag.assert(streamed.nodes.count == whole.nodes.count)
     Swag.assert(streamed.textContent(0) == whole.textContent(0))
 }
+
+// The cascade orders declarations by importance, then specificity, then source order, and
+// resolves the custom properties a document defines.
 #test
 {
     var source: String = "<style>"
@@ -263,6 +388,8 @@ using Core, Pixel
     let emphasis = findTag(&view.document, .Em)
     Swag.assert(not view.layout.styleOfNode(emphasis).italic)
 }
+
+// Unsupported complex functional selectors cannot silently become their first compound.
 #test
 {
     var host: Testing.HeadlessHost
@@ -283,6 +410,8 @@ using Core, Pixel
     Swag.assert(link.color == Color.fromArgb(0xFF123456) and link.fontSize == 16)
     Swag.assert(view.layout.styleOfNode(view.elementById("accepted")).fontSize == 23)
 }
+
+// Lengths read every unit a document uses, and math expressions keep what layout must resolve.
 #test
 {
     var pool: HtmlValuePool
@@ -298,6 +427,9 @@ using Core, Pixel
     Swag.assert(htmlParseLength(&pool, "clamp(10px, 50%, 80px)", context).length.resolve(&pool, context) == 80)
     Swag.assert(htmlParseLength(&pool, "auto", context).length.isAuto())
 }
+
+// Polygonal clip paths remain paintable decorations rather than being treated as unsupported
+// masks, which is what gives documentation overview cards their cut corners and visible fill.
 #test
 {
     var host: Testing.HeadlessHost
@@ -316,6 +448,8 @@ using Core, Pixel
     var image = host.render(view)
     Swag.assert(image.isValid())
 }
+
+// Every color notation a document uses reads back as the same paint.
 #test
 {
     Swag.assert(htmlParseColor("#f00").color == Color.fromArgb(0xFFFF0000))
@@ -335,6 +469,8 @@ using Core, Pixel
     Swag.assert(htmlParseColor("transparent").matched and not htmlParseColor("transparent").color.a)
     Swag.assert(not htmlParseColor("inherit").matched)
 }
+
+// Blocks stack with collapsed margins, and a grid places its children over its declared tracks.
 #test
 {
     var source: String = "<style>"
@@ -366,6 +502,8 @@ using Core, Pixel
     Swag.assert(right.rect.x - left.rect.right() == 10)
     Swag.assert(right.rect.width == view.scroll.paddedClientRect().width - 110)
 }
+
+// A flex row shares what is left over between the items that grow.
 #test
 {
     var source: String = "<style>body { margin: 0 }"
@@ -390,6 +528,8 @@ using Core, Pixel
     Swag.assert(grow.rect.x == 120)
     Swag.assert(Math.abs(grow.rect.width - (width - 120)) <= 0.5)
 }
+
+// Text wraps into as many lines as the measure allows, and a forced break starts a new one.
 #test
 {
     var host: Testing.HeadlessHost
@@ -420,6 +560,8 @@ using Core, Pixel
     let broken = view.layout.constBox(view.boxOfNode(view.elementById("q")))
     Swag.assert(broken.lines.count == 2)
 }
+
+// A terminal preserved newline ends the last line without creating another blank line.
 #test
 {
     var host: Testing.HeadlessHost
@@ -433,6 +575,8 @@ using Core, Pixel
     let code = view.layout.constBox(view.boxOfNode(view.elementById("code")))
     Swag.assert(code.lines.count == 2)
 }
+
+// A block stays inside the measure its ancestors set, however deep it sits.
 #test
 {
     var host: Testing.HeadlessHost
@@ -450,6 +594,8 @@ using Core, Pixel
     Swag.assert(block.rect.x == 8)
     Swag.assert(block.rect.width == 840)
 }
+
+// A table sizes its columns from what their cells need.
 #test
 {
     var host: Testing.HeadlessHost
@@ -469,6 +615,8 @@ using Core, Pixel
     Swag.assert(wide.rect.width > narrow.rect.width)
     Swag.assert(wide.rect.x == narrow.rect.right())
 }
+
+// A table cell aligns its contents inside the row height established by a taller sibling.
 #test
 {
     var host: Testing.HeadlessHost
@@ -488,6 +636,8 @@ using Core, Pixel
     Swag.assert(not content.items.isEmpty())
     Swag.assert(content.items[0].y + content.items[0].ascent + content.items[0].descent >= cell.content.bottom() - 1)
 }
+
+// A bounded overflow region moves its own contents and never paints them outside its viewport.
 #test
 {
     var host: Testing.HeadlessHost
@@ -526,6 +676,8 @@ using Core, Pixel
     image = host.render(view)
     Swag.assert(image.pixelColor(97, 90).argb != host.theme.colors.scrollBar_Box.argb)
 }
+
+// A tall inline image remains paintable after its typographic origin has left the viewport.
 #test
 {
     var host: Testing.HeadlessHost
@@ -546,6 +698,8 @@ using Core, Pixel
     var image = host.render(view)
     Swag.assert(image.pixelColor(20, 20).argb == 0xFFFF0000)
 }
+
+// A CSS region scrollbar pages through its track and drags its thumb like a native vertical bar.
 #test
 {
     var host: Testing.HeadlessHost
@@ -573,6 +727,10 @@ using Core, Pixel
     host.mouseUp({96, 95})
     Swag.assert(view.layout.constBox(rail).scrollTop > 190)
 }
+
+// A viewport-relative rail has a definite height even though its document parent grows with its
+// content. This is the two-pane shape used by generated module pages: the outer view owns the
+// page scrollbar while the rail consumes the wheel independently.
 #test
 {
     var host: Testing.HeadlessHost
@@ -598,6 +756,8 @@ using Core, Pixel
     Swag.assert(view.scrollRegion(rail, 70))
     Swag.assert(view.layout.constBox(rail).scrollTop == 70)
 }
+
+// A positive z-index keeps a sticky header above siblings that occur later in the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -620,6 +780,9 @@ using Core, Pixel
     Swag.assert(image.pixelColor(120, 80).argb == 0xFF0000FF)
     Swag.assert(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
 }
+
+// Inline runs share one build arena, so retaining a paragraph costs storage proportional to its
+// bytes rather than one allocator block per word.
 #test
 {
     var host: Testing.HeadlessHost
@@ -647,6 +810,9 @@ using Core, Pixel
     let after = allocator.stats()
     Swag.assert(after.countAlloc < before.countAlloc + 256)
 }
+
+// Painting a search hit survives every split of the match across inline items: an item that
+// begins inside the hit has an empty prefix, which must never reach String.opSlice.
 #test
 {
     var host: Testing.HeadlessHost
@@ -663,6 +829,8 @@ using Core, Pixel
     Swag.assert(view.findText("gamma delta"))
     discard host.render(view)
 }
+
+// A source-backed reveal marks the requested occurrence, not the first equal word in its node.
 #test
 {
     var host: Testing.HeadlessHost
@@ -683,6 +851,12 @@ using Core, Pixel
     view.clearSearch()
     Swag.assert(not view.searchMatchRect(&bounds))
 }
+
+// What a scroll position shows does not depend on how the reader got there.
+//
+// This is the contract the previous viewer could not keep: its scroll-to-byte estimate changed as
+// it moved the resident source window, so travelling with the scrollbar rewrote the text and
+// sometimes emptied the page. A virtual window must map a position deterministically.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -735,6 +909,8 @@ using Core, Pixel
 
     Swag.assert(downward[0] != downward[1] and downward[1] != downward[2])
 }
+
+// The focused document answers the whole keyboard scrolling contract.
 #test
 {
     var host: Testing.HeadlessHost
@@ -774,6 +950,25 @@ using Core, Pixel
     host.click({20, 20})
     Swag.assert(view.hasFocus())
 }
+
+// Reports whether a vertical run of one column holds the exact color.
+func columnHasColor(image: *Pixel.Image, x: s32, y0, y1: s32, argb: u32)->bool
+{
+    for y in y0 until y1 where image.pixelColor(x, y).argb == argb do
+        return true
+    return false
+}
+
+// Reports whether a horizontal run of one row holds the exact color.
+func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
+{
+    for x in x0 until x1 where image.pixelColor(x, y).argb == argb do
+        return true
+    return false
+}
+
+// Each corner rounds by its own radius. A box that rounds one corner keeps the other three
+// square rather than taking the largest radius everywhere.
 #test
 {
     var host: Testing.HeadlessHost
@@ -795,6 +990,10 @@ using Core, Pixel
     Swag.assert(image.pixelColor(2, 57).argb == 0xFFFF0000)
     Swag.assert(image.pixelColor(97, 57).argb == 0xFFFF0000)
 }
+
+// A rounded box whose sides carry different colours keeps each side's own colour. One stroke
+// cannot do that, so such a box is drawn side by side, with square corners as the documented
+// approximation.
 #test
 {
     var host: Testing.HeadlessHost
@@ -817,6 +1016,8 @@ using Core, Pixel
     Swag.assert(image.pixelColor(109, 30).argb == 0xFF00FF00)
     Swag.assert(image.pixelColor(50, 69).argb == 0xFF0000FF)
 }
+
+// A box whose four sides agree is still drawn as one rounded ring, on every side.
 #test
 {
     var host: Testing.HeadlessHost
@@ -846,6 +1047,9 @@ using Core, Pixel
     Swag.assert(not columnHasColor(&image, 56, 72, 90, 0xFF0000FF))
     Swag.assert(image.pixelColor(1, 1).argb == 0xFFFFFFFF)
 }
+
+// A percentage height resolves against a parent that has one, down a whole chain of them, and
+// still falls back to content height where nothing definite stands above it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -876,6 +1080,10 @@ using Core, Pixel
     let inside = view.layout.constBox(view.boxOfNode(view.elementById("inside")))
     Swag.assert(inside.rect.height == 12)
 }
+
+// A positioned box answers to the nearest positioned ancestor, not to whatever box happens to
+// hold it. The badge of a card is the shape this is written for: `position: relative` on the card,
+// `position: absolute` on the badge two levels down.
 #test
 {
     var host: Testing.HeadlessHost
@@ -914,6 +1122,9 @@ using Core, Pixel
     Swag.assert(filler.rect.bottom() == frameBottom)
     Swag.assert(Math.abs(filler.rect.height - (frameBottom - frameTop) * 0.5) <= 0.5)
 }
+
+// Two automatic insets keep a positioned box where the flow would have put it, rather than
+// collapsing it onto the edge of its containing block.
 #test
 {
     var host: Testing.HeadlessHost
@@ -936,6 +1147,9 @@ using Core, Pixel
     Swag.assert(note.rect.x == page.content.x)
     Swag.assert(note.rect.y == page.content.y + 30)
 }
+
+// A positioned child of a flex or grid container is laid out like any other positioned box. It
+// takes no part in the container's own line, but it is placed and sized.
 #test
 {
     var host: Testing.HeadlessHost
@@ -974,6 +1188,9 @@ using Core, Pixel
     Swag.assert(gridPin.rect.y == grid.rect.y + 4)
     Swag.assert(gridPin.rect.right() == grid.rect.right() - 4)
 }
+
+// A positioned span written in the middle of a paragraph splits that paragraph's text into
+// anonymous blocks. The box still answers to the card, not to the paragraph it was written in.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1000,6 +1217,9 @@ using Core, Pixel
     Swag.assert(tag.rect.y == card.rect.y + 3)
     Swag.assert(tag.rect.right() == card.rect.right() - 5)
 }
+
+// A positioned box with no positioned ancestor resolves against the initial containing block:
+// the top of the document, and the viewport's width.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1026,6 +1246,8 @@ using Core, Pixel
     Swag.assert(corner.rect.x == 0 and corner.rect.y == 0)
     Swag.assert(Math.abs(corner.rect.width - width * 0.5) <= 0.5)
 }
+
+// An absolutely positioned generated rule is a box of its own, and a functional color paints it.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1057,6 +1279,8 @@ using Core, Pixel
     var image = host.render(view)
     Swag.assert(image.pixelColor(cast(u32, decoration.rect.horzCenter()), cast(u32, decoration.rect.vertCenter())).argb == 0xFFFF8080)
 }
+
+// Every checked-in HTML fixture is a complete document that the streaming parser accepts.
 #test
 {
     const Names = ["html.comprehensive.html",
@@ -1074,6 +1298,8 @@ using Core, Pixel
         Swag.assert(findTag(&document, .Body) != HtmlNoNode)
     }
 }
+
+// A flexible documentation header keeps all navigation links on its single browser-sized row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1093,6 +1319,9 @@ using Core, Pixel
     Swag.assert(not links.children.isEmpty())
     Swag.assert(Math.abs(github.rect.y - view.layout.constBox(links.children[0]).rect.y) <= 1)
 }
+
+// The left frame owns wheel input under the pointer at every page position, including when its
+// own scrollbar is already at an edge. The document owns wheel input only over the right frame.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1123,6 +1352,9 @@ using Core, Pixel
     Swag.assert(view.scroll.scrollPosition().y > pageStart)
     Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
 }
+
+// Clicking a fragment in the independently scrolled rail positions its target after the CSS
+// scroll margin instead of hiding it under the sticky header.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1142,6 +1374,8 @@ using Core, Pixel
     let target = view.layout.constBox(view.boxOfNode(view.elementById("frame-target-two")))
     Swag.assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 60) <= 1)
 }
+
+// A relative local link replaces the displayed file and follows its fragment in the new page.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1163,6 +1397,11 @@ using Core, Pixel
     let target = view.layout.constBox(view.boxOfNode(view.elementById("local-target")))
     Swag.assert(Math.abs(target.rect.y - view.scroll.scrollPosition().y - 68) <= 1)
 }
+
+// The generated Pixel API page stays progressive, preserves its independently scrolled rail
+// across partial rebuilds, resolves a fragment from the next chunk, and keeps the browser's
+// one-line header. The test deliberately stops after that third 48 KiB chunk: exercising a
+// progressive frame must not turn every GUI configuration into a full megabyte-layout benchmark.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1212,6 +1451,8 @@ using Core, Pixel
 
     view.stopLoading()
 }
+
+// A file-open failure stays inspectable even when no observer was connected during construction.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1222,6 +1463,8 @@ using Core, Pixel
     Swag.assert(not view.failureReason.isEmpty())
     Swag.assert(not view.isLoading())
 }
+
+// A `>` inside a quoted attribute value belongs to the value, not to the tag.
 #test
 {
     let document = parseDocument("<p><a href=\"#x\" title=\"a > b\" data-note='1 > 0'>link</a> tail</p><p>second</p>")
@@ -1242,6 +1485,9 @@ using Core, Pixel
     Swag.assert(para != HtmlNoNode)
     Swag.assert(strays.textContent(para).toString() == "text")
 }
+
+// The newline that immediately follows a `<pre>` or `<textarea>` start tag is not content, and
+// only that one is dropped.
 #test
 {
     let document = parseDocument("<pre>\nkeep</pre><pre>\n\ntwo</pre><textarea>\nvalue</textarea>")
@@ -1253,6 +1499,9 @@ using Core, Pixel
     let nested = parseDocument("<pre><code>\nkept</code></pre>")
     Swag.assert(nested.textContent(findTag(&nested, .Code)).toString() == "\nkept")
 }
+
+// Both fixes hold when the source arrives in chunks that cut a quoted value and a dropped
+// newline at every awkward position.
 #test
 {
     let source = "<p><a href=\"#x\" title=\"a > b\">link</a> tail</p><pre>\n    indented</pre>"
@@ -1275,6 +1524,9 @@ using Core, Pixel
     Swag.assert(streamed.attribute(anchor, "title") == "a > b")
     Swag.assert(streamed.textContent(findTag(&streamed, .Pre)).toString() == "    indented")
 }
+
+// Preserved white space keeps the indentation a code line starts with; collapsed white space
+// still drops it. This is the shape of every `.code-block` the generated documentation draws.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1308,6 +1560,8 @@ using Core, Pixel
     Swag.assert(foldedFour.y > foldedZero.y)
     Swag.assert(Math.abs(foldedFour.x - foldedZero.x) < 0.5)
 }
+
+// `repeat()` expands to its full track list, alone and mixed with plain tracks.
 #test
 {
     var source: String = "<style>body { margin: 0 }"
@@ -1351,6 +1605,9 @@ using Core, Pixel
     Swag.assert(Math.abs(m3.rect.width - 100) <= 0.75)
     Swag.assert(Math.abs(m3.rect.x - m2.rect.right()) <= 0.75)
 }
+
+// An image embedded in the document as a `data:` URI decodes like a file image, so a
+// self-contained export shows its figures. The payload is the pixel module's own fixture.
 #test
 {
     const Embedded = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQAAAABbAUdZAAAABGdBTUEAAYagMeiWXwAAAFtJREFUeJwtzLEJAzAMBdHr0gSySiALejRvkBU8gsGNCmFFB1Hx4IovqurSpIRszqklUwbnUzRXEuIRsiG/SyY9G0JzJSVei9qynm9qyjBpLp0pYW7pbzBl8L8fEIdJL9AvFMkAAAAASUVORK5CYII="
@@ -1373,6 +1630,9 @@ using Core, Pixel
     Swag.assert(view.images.entries.count == 1 and view.images.entries[0].loaded)
     discard host.render(view)
 }
+
+// A document's bytes decide its decoding: a `charset=` declaration, a byte-order mark, or the
+// content itself. Assuming UTF-8 used to refuse every legacy page outright.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1410,6 +1670,9 @@ using Core, Pixel
     Swag.assert(Utf8.contains(wideText.toString(), "wide text"))
     Swag.assert(not Utf8.contains(wideText.toString(), "ÿþ"))
 }
+
+// Misnested formatting keeps its formatting: the close that pops an inline ancestor reopens the
+// formatting elements it swallowed, the way every browser recovers `<b>one <i>two</b> three</i>`.
 #test
 {
     let document = parseDocument("<p><b>one <i class=\"x\">two</b> three</i> four</p>")
@@ -1430,6 +1693,9 @@ using Core, Pixel
     let para = findTag(&document, .P)
     Swag.assert(document.textContent(para).toString() == "one two three four")
 }
+
+// A source that writes no `<html>`, `<head>` or `<body>` is the same document as one that does.
+// This is what makes a page's own `body { ... }` rules apply to a fragment.
 #test
 {
     let document = parseDocument("<style>body { margin: 0 }</style>text<p>content</p>")
@@ -1455,6 +1721,9 @@ using Core, Pixel
         Swag.assert(written.constNode(cast(u32, index)).tag != .Body)
     Swag.assert(written.textContent(onlyBody).toString() == "onetwo")
 }
+
+// Character references resolve against the standard's complete list, including the two-code-point
+// ones and the legacy spellings a document writes without their semicolon.
 #test
 {
     let document = parseDocument("<p>&boxplus; &NotEqualTilde; &copy; &copy 2026 &notit; &unknownref;</p>")
@@ -1468,6 +1737,9 @@ using Core, Pixel
     Swag.assert(query.attribute(link, "href") == "?a=1&copy=2&b=3")
     Swag.assert(query.attribute(link, "title") == "\u00A9 2026")
 }
+
+// The background a document asks for covers the canvas, not just the box that carries it: a page
+// that sets a white ground is white everywhere, including under and beside its content.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1486,6 +1758,9 @@ using Core, Pixel
     // still paints over it.
     Swag.assert(image.pixelColor(20, 12).argb == 0xFF0000FF)
 }
+
+// Content written inside the table structure but outside any cell renders before the table,
+// where browsers foster-parent it, and the grid keeps only its rows.
 #test
 {
     let document = parseDocument("<div><table>stray <b>bold</b><tr><td>cell</td></tr></table></div>")
@@ -1505,6 +1780,9 @@ using Core, Pixel
     Swag.assert(document.textContent(cell).toString() == "cell")
     Swag.assert(document.textContent(table).toString() == "cell")
 }
+
+// A block interrupts a paragraph even through its open inline children: the paragraph closes,
+// and the block is its sibling rather than its grandchild.
 #test
 {
     let document = parseDocument("<p>lead <b>bold<div>block</div>")
@@ -1514,6 +1792,8 @@ using Core, Pixel
     Swag.assert(document.textContent(para).toString() == "lead bold")
     Swag.assert(document.textContent(block).toString() == "block")
 }
+
+// The recoveries hold when the source arrives in chunks that cut every token.
 #test
 {
     let source = "<div><table>stray<tr><td>cell</td></tr></table></div><p><b>one <i>two</b> three</i></p>"
@@ -1543,6 +1823,9 @@ using Core, Pixel
     Swag.assert(second != HtmlNoNode)
     Swag.assert(streamed.textContent(second).toString() == " three")
 }
+
+// A left float leaves the stack: the lines beside it shorten, the flow returns to the margin
+// below it, and `clear` starts below the floats it names.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1581,6 +1864,8 @@ using Core, Pixel
     let cleared = view.layout.constBox(view.boxOfNode(view.elementById("c")))
     Swag.assert(cleared.rect.y >= 40)
 }
+
+// A right float hugs the right edge, and the text keeps the left one.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1605,6 +1890,26 @@ using Core, Pixel
     let first = findItemPos(view, view.boxOfNode(view.elementById("t")), "first")
     Swag.assert(first.found and first.x < 1 and first.y < 40)
 }
+
+// Returns the right edge of the widest visible item of a box, so overflow tests read geometry.
+func maxItemRight(view: *HtmlView, box: u32)->f32
+{
+    var result = 0.0'f32
+    for item in view.layout.constBox(box).items where item.visible do
+        result = Math.max(result, item.x + item.width)
+    return result
+}
+
+func countTextItems(view: *HtmlView, box: u32)->u64
+{
+    var result = 0'u64
+    for item in view.layout.constBox(box).items where item.kind == .Text do
+        result += 1
+    return result
+}
+
+// An unbreakable run wider than its column breaks at a character boundary under
+// `overflow-wrap: break-word`, and a later wider layout re-joins the fragments.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1630,6 +1935,9 @@ using Core, Pixel
     Swag.assert(view.layout.constBox(box).lines.count == 1)
     Swag.assert(countTextItems(view, box) == 1)
 }
+
+// CJK text carries no spaces: every character is a break opportunity, and the paragraph stays
+// inside its column instead of overflowing it as one run.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1654,6 +1962,8 @@ using Core, Pixel
     keep.rebuild()
     Swag.assert(countTextItems(keep, keep.boxOfNode(keep.elementById("c"))) == 1)
 }
+
+// `word-break: break-all` fills each line to its edge, splitting the run mid-word.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1671,6 +1981,9 @@ using Core, Pixel
     Swag.assert(view.layout.constBox(box).lines.count >= 2)
     Swag.assert(maxItemRight(view, box) <= 120.5)
 }
+
+// `<wbr>` marks a soft break opportunity, and `&shy;` breaks with a visible hyphen only where
+// the break was taken.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1710,6 +2023,9 @@ using Core, Pixel
     for item in view.layout.constBox(whole).items do
         Swag.assert(not item.hyphenAtBreak)
 }
+
+// The `font` shorthand expands into its longhands, including the `/line-height` form, and
+// `word-spacing` widens each space of the line.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1740,6 +2056,24 @@ using Core, Pixel
     Swag.assert(plain > 0)
     Swag.assert(Math.abs(spaced - plain - 10) <= 0.01)
 }
+
+// Reports whether a parsed color lands within a small tolerance of an expected paint, which is
+// what a conversion through another color space can promise.
+func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
+{
+    if not value.matched do
+        return false
+
+    let expected = Pixel.Color.fromArgb(argb)
+    let dr       = Math.abs(cast(s32, value.color.r) - cast(s32, expected.r))
+    let dg       = Math.abs(cast(s32, value.color.g) - cast(s32, expected.g))
+    let db       = Math.abs(cast(s32, value.color.b) - cast(s32, expected.b))
+    let da       = Math.abs(cast(s32, value.color.a) - cast(s32, expected.a))
+    return dr <= tolerance and dg <= tolerance and db <= tolerance and da <= tolerance
+}
+
+// The modern color notations convert to sRGB: the OK family, the Lab family, `hwb()`, the
+// `color()` function, and hue units other than degrees.
 #test
 {
     Swag.assert(closeColor(htmlParseColor("oklch(0.62796 0.25768 29.234)"), 0xFFFF0000))
@@ -1767,6 +2101,8 @@ using Core, Pixel
     // An unknown color space is refused, so the cascade keeps its previous value.
     Swag.assert(not htmlParseColor("color(rec2020 1 0 0)").matched)
 }
+
+// The full `an+b` grammar matches, and the `-of-type` selectors count within their type.
 #test
 {
     var source: String = "<style>"
@@ -1802,6 +2138,26 @@ using Core, Pixel
     Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 1)).color == Pixel.Color.fromArgb(0xFF0000FF))
     Swag.assert(view.layout.styleOfNode(findNthTag(&view.document, .Span, 2)).color != Pixel.Color.fromArgb(0xFF0000FF))
 }
+
+// Returns the canvas rectangle of the first inline item drawn with `text`.
+func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
+{
+    for boxIndex in view.layout.boxes.count
+    {
+        let box = view.layout.constBox(cast(u32, boxIndex))
+        for itemIndex in box.items.count
+        {
+            let item = &box.items[itemIndex]
+            if view.layout.inlineText(item) == text do
+                return Math.Rectangle{item.x, item.y, item.width, item.ascent + item.descent}
+        }
+    }
+
+    return {}
+}
+
+// Select-all covers the whole document, extraction keeps the reading order, and the clipboard
+// receives exactly what the reader sees.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1823,6 +2179,8 @@ using Core, Pixel
     Swag.assert(not view.hasSelection())
     Swag.assert(not view.copySelection())
 }
+
+// A mouse drag selects what it crosses, and a double click takes the word under the pointer.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1845,6 +2203,8 @@ using Core, Pixel
     host.doubleClick(view.canvas.localToSurface(Math.Point{alpha.horzCenter(), alpha.vertCenter()}))
     Swag.assert(view.selectedText() == "alpha")
 }
+
+// The context menu reaches the same selection commands the keyboard binds.
 #test
 {
     var host: Testing.HeadlessHost

@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Core, Pixel
 
+// A heading click owns its position, including during a wheel glide or reverse prefetch.
 #[Swag.TestTag("stress")]
 #test
 {

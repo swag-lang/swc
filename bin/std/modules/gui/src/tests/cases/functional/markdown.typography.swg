@@ -3,8 +3,6 @@
 
 using Core
 
-// Retiring earlier source blocks must not apply the first surviving block's top margin twice.
-
 // Explicit line boxes and collapsing margins keep the same geometry after append and reflow.
 #test
 {

@@ -1,7 +1,67 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core
 
+struct PropHeadlessData
+{
+    count:   s32     = 42
+    label:   string? = "hello"
+    enabled: bool    = true
+}
+
+struct PropHeadlessHiddenData
+{
+    visible: s32 = 1
+
+    #[Properties.Hidden]
+    persistedOnly: s32 = 2
+}
+
+struct PropHeadlessCustomData
+{
+    origin: Math.Point = {10, 20}
+    count:  s32        = 3
+}
+
+enum PropHeadlessChoice
+{
+    Low
+    Mid
+    High
+}
+
+struct PropHeadlessEnumData
+{
+    choice: PropHeadlessChoice = .Mid
+}
+
+// Carries one of each presentation attribute a text resolver has to reach.
+struct PropHeadlessResolvedData
+{
+    #[Category("Numbers"), Name("Count")]
+    count: s32 = 42
+
+    #[Name("Line"), BoolCombo("Straight", "Bezier")]
+    bezier: bool
+}
+
+struct PropHeadlessSliderData
+{
+    #[SliderMinMax(0, 100)]
+    volume: s32 = 50
+
+    #[SliderMinMax(0, 10)]
+    level: s32 = 5
+}
+
+struct PropHeadlessFontData
+{
+    #[Properties.FontName]
+    face: String
+}
+
+// The separator after the default face is not an entry in the system font table.
 #[Swag.TestTag("properties.font")]
 #test
 {
@@ -27,6 +87,52 @@ using Swag, Core
     prop.refresh()
     Swag.assert(combo.selectedIndex == 0)
 }
+
+struct PropHeadlessGroupedData
+{
+    #[Category("Numbers")]
+    count: s32 = 42
+
+    label: string? = "hello"
+
+    #[Category("Flags")]
+    enabled: bool = true
+}
+
+struct PropHeadlessRoData
+{
+    normal: s32 = 1
+
+    #[Properties.ReadOnly]
+    locked: s32 = 2
+
+    dynamic: s32 = 3
+}
+
+struct PropMoveElem
+{
+    id: s32 = 0
+}
+
+struct PropMoveData
+{
+    dyn:  Array'PropMoveElem
+    stat: [3] s32
+}
+
+var g_PropRoDynamic: bool
+
+impl IPropertyNotify for PropHeadlessRoData
+{
+    mtd impl isItemReadOnly(_: *Properties, item: *PropertiesItem)->bool
+    {
+        if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic) do
+            return g_PropRoDynamic
+        return false
+    }
+}
+
+// Properties.addStruct reflects a struct into one item per field (+ a section item).
 #test
 {
     var host: Testing.HeadlessHost
@@ -39,6 +145,9 @@ using Swag, Core
     Swag.assert(prop.items.count == 4)
     Swag.assert(prop.items[0]!.flags.has(.Section))
 }
+
+// Public configuration methods keep their observable state synchronized, and clear makes the
+// control reusable without retaining rows or selection state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -64,6 +173,8 @@ using Swag, Core
     Swag.assert(prop.items.isEmpty())
     Swag.assert(not prop.selItem)
 }
+
+// A field kept for persistence can opt out of a generated editor without leaving its structure.
 #test
 {
     var host: Testing.HeadlessHost
@@ -76,6 +187,10 @@ using Swag, Core
     Swag.assert(prop.items[1]!.typeValue.name == #nameof(PropHeadlessHiddenData.visible))
     Swag.assert(data.persistedOnly == 2)
 }
+
+// PropertiesCtrl keeps visible grid rows after the same staged layout sequence
+// used by the gui4 example: create at a placeholder height, add structs, then
+// dock into its final parent.
 #test
 {
     var host: Testing.HeadlessHost
@@ -111,6 +226,9 @@ using Swag, Core
     Swag.assert(ctrl.properties.items[1]!.line.position.height == ctrl.properties.gridLineHeight)
     Swag.assert(ctrl.properties.items[1]!.line.position.y >= ctrl.properties.gridLineHeight)
 }
+
+// Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
+// highlight over the editable rows (clamped), Home/End jump to the ends.
 #test
 {
     var host: Testing.HeadlessHost
@@ -137,6 +255,9 @@ using Swag, Core
     host.keyPress(Input.Key.End)
     Swag.assert(prop.selItem == prop.items[3])
 }
+
+// Enter starts editing the selected row (focuses its editor); Escape returns to
+// navigation mode (focus back on the grid).
 #test
 {
     var host: Testing.HeadlessHost
@@ -152,6 +273,17 @@ using Swag, Core
     host.keyPress(Input.Key.Escape)
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
+
+struct PropHeadlessCancelData
+{
+    value: s32 = 42
+    text:  String
+
+    #[Properties.SliderMinMax(0, 100)]
+    bounded: s32 = 10
+}
+
+// Cancelling pending text preserves the bound values and creates no change notification or undo.
 #test
 {
     for kind in [PropertiesKind.Grid, PropertiesKind.List, PropertiesKind.Condensed, PropertiesKind.Panel]
@@ -193,6 +325,9 @@ using Swag, Core
         Swag.assert(data.value == 9 and changes == 1 and prop.canUndo())
     }
 }
+
+// While editing, Up/Down auto-commit and move the selection back to navigation
+// mode on the adjacent row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -209,6 +344,8 @@ using Swag, Core
     Swag.assert(prop.selItem == prop.items[2])
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
+
+// Tab commits the current edit and starts editing the next editable row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -223,6 +360,23 @@ using Swag, Core
     Swag.assert(prop.selItem == prop.items[2])
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.items[2]!.editBox))
 }
+
+struct PropHeadlessActionData
+{
+    #[Description("Visible actions are listed in the preview footer.")]
+    visible: bool = true
+}
+
+struct PropHeadlessArrayData
+{
+    origin:  Math.Point = {36, 46}
+    actions: Array'PropHeadlessActionData
+}
+
+// In list mode each row is a vertical StackLayoutCtrl: the name label on top and the
+// value editor stacked underneath. Editors that wrap their control in an inner line
+// (bool, vector, array count) must not dock-center that line vertically, or it would
+// overlap the name label. This asserts every value child sits fully below its label.
 #test
 {
     var host: Testing.HeadlessHost
@@ -277,6 +431,17 @@ using Swag, Core
     Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
     Swag.assert(chkRow.position.height >= descLbl.position.bottom())     // wrapped info text is not clipped
 }
+
+struct PropHeadlessColorData
+{
+    f0, f1, f2, f3, f4, f5, f6, f7: s32
+    tint: Pixel.Color
+    f8, f9, f10, f11, f12, f13:     s32
+}
+
+// While an editor popup (e.g. the color picker) is open the grid is modal: mouse wheel
+// events over the list are swallowed so it cannot scroll out from under the anchored
+// popup. Clearing the popup restores scrolling.
 #test
 {
     var host: Testing.HeadlessHost
@@ -313,6 +478,24 @@ using Swag, Core
     sendWheel(prop, 6)     // scroll back up
     Swag.assert(prop.scrollWnd.scrollPosition().y != y1)
 }
+
+func findIconButton(w: *Wnd)->*IconButton?
+{
+    for c in w.children
+    {
+        if c is IconButton as button do
+            return button
+        let sub = findIconButton(c)
+        if sub do
+            return sub
+    }
+
+    return null
+}
+
+// The modal block must swallow only wheel events, not hover/leave: otherwise the popup
+// trigger button never receives its MouseLeave and stays stuck in the hot state after
+// the popup closes. A MouseLeave while the popup is open must still clear the button.
 #test
 {
     var host: Testing.HeadlessHost
@@ -334,6 +517,8 @@ using Swag, Core
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
     Swag.assert(not btn.isHot)
 }
+
+// In navigation mode, Space toggles a bool row's checkbox in place.
 #test
 {
     var host: Testing.HeadlessHost
@@ -352,6 +537,9 @@ using Swag, Core
     host.keyPress(Input.Key.Space)
     Swag.assert(chk.isChecked())
 }
+
+// Navigating a slider row: Right steps the slider track and focuses it (auto-commit
+// model), a further Right keeps stepping, Down commits and moves to the next row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -382,6 +570,9 @@ using Swag, Core
     Swag.assert(prop.selItem == prop.items[2])
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
+
+// Enter on a slider row edits its value box like a plain editbox row: it focuses the
+// inner EditBox and selects its text so the value can be typed over right away.
 #test
 {
     var host: Testing.HeadlessHost
@@ -402,6 +593,9 @@ using Swag, Core
     Swag.assert(edit.selBeg == 0 and edit.selEnd == (edit.text()).count)
     Swag.assert((edit.text()).count > 0)
 }
+
+// Editing an enum row: Enter focuses the combo, Left/Right change the selection
+// (reaching the combo, not intercepted) and write back to the data.
 #test
 {
     var host: Testing.HeadlessHost
@@ -443,6 +637,9 @@ using Swag, Core
     Swag.assert(combo.popup == null)
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
+
+// A row with a custom/composite editor (e.g. a Math.Point) is navigable and can be
+// activated: Enter focuses the first inner editor, Down auto-commits to the next row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -463,6 +660,9 @@ using Swag, Core
     Swag.assert(prop.selItem == prop.items[2])
     Swag.assert(host.app.keyboardFocusWnd == cast(*Wnd?, prop.edView))
 }
+
+// focusNavigation keeps the already-selected row (so clicking a header/custom row does not
+// jump the selection to the first item).
 #test
 {
     var host: Testing.HeadlessHost
@@ -475,6 +675,8 @@ using Swag, Core
     prop.focusNavigation()
     Swag.assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
 }
+
+// A named section becomes the first item and is registered.
 #test
 {
     var host: Testing.HeadlessHost
@@ -487,6 +689,8 @@ using Swag, Core
     Swag.assert(prop.items[0]!.flags.has(.Section))
     Swag.assert(prop.sections.count == 1)
 }
+
+// PropertiesCtrl grid keeps deterministic line and editor heights.
 #test
 {
     var host: Testing.HeadlessHost
@@ -517,6 +721,9 @@ using Swag, Core
     Swag.assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
     Swag.assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
 }
+
+// Properties list keeps rows visible after being docked with a filter bar, as
+// used by the second page of gui4.
 #test
 {
     var host: Testing.HeadlessHost
@@ -550,6 +757,44 @@ using Swag, Core
     Swag.assert(it1.label.position.height > 0)
     Swag.assert(prop.scrollWnd.scrollSize.y > prop.position.height)
 }
+
+//
+// Multi-selection editing: the grid edits several instances of the same struct at once.
+//
+
+enum MultiChoice
+{
+    Low
+    Mid
+    High
+}
+
+#[Swag.EnumFlags]
+enum MultiBadges
+{
+    #[Description("Adds a star marker.")]
+    Star
+
+    #[Description("Locks the tile.")]
+    Lock
+
+    #[Description("Pins the tile.")]
+    Pin
+}
+
+struct MultiTile
+{
+    count:  s32         = 0
+    flag:   bool        = false
+    name:   String
+    choice: MultiChoice = .Low
+    badges: MultiBadges
+    tint:   Pixel.Color
+    pos:    Math.Point  = {0, 0}
+}
+
+// Condensed enum-flag rows keep the marker and its wording in two adjacent cells. The checkbox
+// must not take the Center dock used by full-cell editors, which would overlap the label.
 #test
 {
     var host: Testing.HeadlessHost
@@ -569,6 +814,8 @@ using Swag, Core
     Swag.assert(optionLabel.position.x - option.checkBox.position.right() >= PropCondensedCheckTextGap)
     Swag.assert(option.checkBox.position.vertCenter() == optionLabel.position.vertCenter())
 }
+
+// Edits applied through the grid write into every selected instance.
 #test
 {
     var host: Testing.HeadlessHost
@@ -602,6 +849,9 @@ using Swag, Core
     choiceItem.comboBox.setSelectedIndex(2)     // High
     Swag.assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
 }
+
+// A field that differs across instances is "mixed": the editor shows no concrete value,
+// and editing it resolves the field on every instance.
 #test
 {
     var host: Testing.HeadlessHost
@@ -634,6 +884,8 @@ using Swag, Core
     Swag.assert(not prop.fieldIsMixed(countItem))
     Swag.assert(countItem.editBox.text() == "7")
 }
+
+// A single instance behaves exactly like the classic addStruct (no multi state).
 #test
 {
     var host: Testing.HeadlessHost
@@ -655,6 +907,19 @@ using Swag, Core
     prop.validateNative(countItem)
     Swag.assert(t0.count == 8)
 }
+
+func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
+{
+    for c in w.children
+    {
+        if c is EditBox as edit do
+            out.add(edit)
+        collectEditBoxes(c, out)
+    }
+}
+
+// Editing one vector component writes that component into every instance while leaving
+// the other components (which may legitimately differ) untouched.
 #test
 {
     var host: Testing.HeadlessHost
@@ -688,6 +953,11 @@ using Swag, Core
     Swag.assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
     Swag.assert(not prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
 }
+
+// Enum-flags multi-edit logic: a bit that disagrees across instances is "mixed", and
+// setting one flag bit on every instance preserves the other (differing) bits. Exercised
+// through the helpers directly because the EnumFlags attribute is not reflected in a
+// test-mode build, so the flag rows would not be constructed here (they are in gui4).
 #test
 {
     var host: Testing.HeadlessHost
@@ -722,6 +992,8 @@ using Swag, Core
     prop.writeEnumBit(&item, starMask, false)
     Swag.assert(not cast(bool, (b0 & MultiBadges.Star)) and not cast(bool, (b1 & MultiBadges.Star)))
 }
+
+// Dynamic strings are compared and propagated by content (they own a heap buffer).
 #test
 {
     var host: Testing.HeadlessHost
@@ -751,6 +1023,8 @@ using Swag, Core
     t1.name = "same"
     Swag.assert(not prop.fieldIsMixed(nameItem))
 }
+
+// A color (struct via the built-in ColorEditor) reports mixed and propagates as a whole value.
 #test
 {
     var host: Testing.HeadlessHost
@@ -774,6 +1048,37 @@ using Swag, Core
     prop.refresh()
     Swag.assert(not prop.fieldIsMixed(tintItem))
 }
+
+//
+// Per-item validation (info / warning / error) state.
+//
+
+struct ValData
+{
+    name:  String
+    count: s32 = 5
+}
+
+impl Gui.IPropertyNotify for ValData
+{
+    mtd impl validateItem(_: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult
+    {
+        switch item.typeValue.crc
+        {
+        case Reflection.fieldCrc(ValData, #nameof(ValData.name)):
+            if .name.isEmpty() do
+                return {.Error, "Name is required."}
+
+        case Reflection.fieldCrc(ValData, #nameof(ValData.count)):
+            if .count > 100 do
+                return {.Warning, "Count is unusually large."}
+        }
+
+        return {}
+    }
+}
+
+// Validation is computed from the bound struct on build and after each change.
 #test
 {
     var host: Testing.HeadlessHost
@@ -809,6 +1114,8 @@ using Swag, Core
     prop.validateDynamicString(nameItem)
     Swag.assert(nameItem.validation == .None)
 }
+
+// A validation set manually (no notify interface) is kept across refreshes.
 #test
 {
     var host: Testing.HeadlessHost
@@ -830,6 +1137,9 @@ using Swag, Core
     prop.setItemValidation(it, .None)
     Swag.assert(it.validation == .None)
 }
+
+// Read-only fields gray (disable) their editor, while staying visible. Covers both the
+// ReadOnly attribute and the dynamic isItemReadOnly notify API, including toggling at runtime.
 #test
 {
     var host: Testing.HeadlessHost
@@ -862,6 +1172,9 @@ using Swag, Core
     Swag.assert(lockedItem.editBox.flags.has(.ReadOnly))
     Swag.assert(not prop.canChangeItem(lockedItem))
 }
+
+// Reordering array elements (static + dynamic) and removing a dynamic element by the correct
+// index, including struct arrays whose element rows are interleaved with their field rows.
 #test
 {
     var host: Testing.HeadlessHost
@@ -908,6 +1221,10 @@ using Swag, Core
     prop.moveArrayValue(unwrap statElems[0], 1)
     Swag.assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 }
+
+// The context-menu commands run through the shared gui action system (ActionProperties /
+// IActionUI): update() computes each item's enabled state, execute() performs the change via a
+// real CommandEvent — no hardcoded result-string switch.
 #test
 {
     var host: Testing.HeadlessHost
@@ -947,6 +1264,16 @@ using Swag, Core
     prop.sendCommandEvent(ActionProperties.MoveUp)
     Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
 }
+
+struct PropHeadlessAngleData
+{
+    rot:  PropHeadlessAngle
+    name: string? = "x"
+}
+
+// A registered IPropertyEditor that claims a type overrides the built-in dispatch: the struct
+// is not expanded into its sub-fields, the editor's construct runs once per field of that type,
+// and its item.sigRefresh drives the displayed value.
 #test
 {
     var host: Testing.HeadlessHost
@@ -975,6 +1302,50 @@ using Swag, Core
     Swag.assert(Properties.findEditor(PropHeadlessAngle) != null)
     Swag.assert(Properties.findEditor(string?) == null)
 }
+
+// --- Reset to default -------------------------------------------------------
+
+struct PropDefaultData
+{
+    count:   s32     = 42
+    name:    string? = "hello"     // static string: read-only, never resettable
+    enabled: bool    = true
+}
+
+var g_PropDefResetCalls:    s32
+
+var g_PropDefForceModified: bool
+
+struct PropDefaultCustom
+{
+    val: s32 = 5
+}
+
+impl IPropertyNotify for PropDefaultCustom
+{
+    // Force the modified state regardless of the actual value (the customizable test).
+    mtd impl isItemAtDefault(_: *Properties, item: *PropertiesItem)->PropDefaultState
+    {
+        if item.typeValue.name == #nameof(PropDefaultCustom.val) do
+            return g_PropDefForceModified ? .Modified : .AtDefault
+        return .Auto
+    }
+
+    // Take over the reset itself.
+    mtd impl resetItemToDefault(_: *Properties, item: *PropertiesItem)->bool
+    {
+        if item.typeValue.name == #nameof(PropDefaultCustom.val)
+        {
+            g_PropDefResetCalls += 1
+            return true
+        }
+
+        return false
+    }
+}
+
+// Built-in detection: a field equal to its declared default is not modified; editing it flags the
+// row (isModified + a visible revert button) and Properties.resetItemDefault restores the value.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1023,6 +1394,9 @@ using Swag, Core
     Swag.assert(data.count == 42)
     Swag.assert(not countItem.isModified)
 }
+
+// The "Reset to default" context-menu command goes through the shared action system: update()
+// disables it while the value is at its default and enables it once modified; execute() resets.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1048,6 +1422,9 @@ using Swag, Core
     prop.sendCommandEvent(ActionProperties.ResetDefault)
     Swag.assert(data.count == 42 and not countItem.isModified)
 }
+
+// The test and the reset are both customizable through IPropertyNotify: isItemAtDefault forces the
+// modified state (even though the value equals the default), and resetItemToDefault handles reset.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1074,6 +1451,10 @@ using Swag, Core
     prop.updateStates()
     Swag.assert(not valItem.isModified)
 }
+
+// Grid mode: the revert column is reserved on the right of every resettable row (docked, present
+// even while at default), so the value editor keeps a constant width; toggling the arrow on/off
+// never resizes it. Mirrors the Godot/Unreal revert column.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1119,6 +1500,9 @@ using Swag, Core
     Swag.assert(host.app.mouseEnterWnd == null)
     Swag.assert(host.app.mouseCaptureWnd == null)
 }
+
+// Condensed grid mode: the revert button is sized to the condensed editor height, then docked
+// right; this keeps it vertically centered in the thin row instead of overflowing from the top.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1140,6 +1524,9 @@ using Swag, Core
     Swag.assert(btn.position.height == PropCondensedControlHeight)
     Swag.assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 }
+
+// Multi-selection: a field is "modified" when it differs from the default in ANY edited instance,
+// and reset writes the declared default into every instance.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1161,6 +1548,10 @@ using Swag, Core
     Swag.assert(t0.count == 42 and t1.count == 42)
     Swag.assert(not countItem.isModified)
 }
+
+// Undo/redo of a scalar field edit: each commit records one step; undo/redo walk the timeline;
+// canUndo/canRedo track the edges; a no-op change records nothing; a new edit after undo drops
+// the redo tail.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1205,6 +1596,8 @@ using Swag, Core
     prop.undo()
     Swag.assert(data.count == 42)
 }
+
+// Undo/redo of a dynamic String field (copied by content, not by raw bytes).
 #test
 {
     var host: Testing.HeadlessHost
@@ -1225,6 +1618,8 @@ using Swag, Core
     prop.redo()
     Swag.assert(data.name == "beta")
 }
+
+// Undo/redo across a multi-selection edit restores every edited instance.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1247,6 +1642,8 @@ using Swag, Core
     prop.redo()
     Swag.assert(t0.count == 100 and t1.count == 100)
 }
+
+// Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z) drive undo/redo while the grid is in navigation mode.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1270,6 +1667,26 @@ using Swag, Core
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control | Input.KeyModifiers.Shift)
     Swag.assert(data.count == 100)
 }
+
+// --- Nested subgroups (#3) and decorators (#5) ------------------------------
+
+struct PropDecorData
+{
+    #[Category("Transform")]
+    px: s32 = 1
+
+    #[Category("Transform/Advanced")]
+    shear: s32 = 2
+
+    #[Category("Physics")]
+    #[Heading("Body")]
+    #[Gap(16)]
+    #[HelpBox("Affects simulation")]
+    mass: s32 = 3
+}
+
+// A "/"-separated Category opens nested subgroups (the shared prefix is reused across siblings),
+// and the Heading / Gap / HelpBox decorators inject header / spacer / note rows above the field.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1323,6 +1740,23 @@ using Swag, Core
     Swag.assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
     Swag.assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
 }
+
+struct PropHeadlessFontStyleData
+{
+    style = Pixel.FontFamilyStyle.Regular
+}
+
+struct PropHeadlessPanelStringData
+{
+    #[Properties.Name("Dynamic text")]
+    dynamic: String
+
+    #[Properties.Name("Fixed text")]
+    fixed: string = "Read only"
+}
+
+// Panel string fields keep a persistent, aligned label. A placeholder stops naming a field as
+// soon as it contains a value, and the static-string variant must not fall back to a stacked row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1346,6 +1780,9 @@ using Swag, Core
     Swag.assert(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
     Swag.assert(fixedCtrl.edit.flags.has(.ReadOnly))
 }
+
+// The FontFamilyStyle editor is one row of four segments, each lettered "Aa" in the style it
+// stands for; choosing one writes that style, and the row follows the field.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1374,6 +1811,20 @@ using Swag, Core
     prop.refresh()
     Swag.assert(combo.selectedIndex == 2)
 }
+
+struct PropHeadlessUsingBase
+{
+    baseVal: s32
+}
+
+struct PropHeadlessUsingDerived
+{
+    using base: PropHeadlessUsingBase
+    ownVal:     s32
+}
+
+// usingFieldsLast walks the struct's own fields before recursing into its 'using'
+// bases, so a derived type edits its most specific fields first.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1404,6 +1855,29 @@ using Swag, Core
     prop1.addStruct(data)
     Swag.assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
 }
+
+enum PropFilterChoice
+{
+    Hidden
+    Low
+    Medium
+    High
+}
+
+struct PropFilterData
+{
+    choice = PropFilterChoice.Medium
+}
+
+struct PropFilterHost {}
+
+impl IPropertyNotify for PropFilterHost
+{
+    mtd impl isEnumValueVisible(_: *Properties, _: *PropertiesItem, enumValue: Swag.TypeValue)->bool => enumValue.name != "Hidden"
+}
+
+// The host notify can hide enum values (isEnumValueVisible): the combo omits them and
+// the selection/write-back mapping stays correct through the remaining entries.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1427,6 +1901,18 @@ using Swag, Core
     item.comboBox.setSelectedIndex(0)
     Swag.assert(data.choice == .Low)
 }
+
+// A String field naming a document, and one holding free text beside it.
+struct PropDropData
+{
+    #[Properties.Name("Source"), Properties.FilePath]
+    source: String
+
+    #[Properties.Name("Note")]
+    note: String
+}
+
+// A file dropped on a FilePath field fills it, and commits with the focus like a typed value.
 #test
 {
     // The focused editor commits during host teardown, while its data is still alive.
@@ -1453,6 +1939,19 @@ using Swag, Core
     Swag.assert(host.dropFilesOnWnd(noteItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.None)
     Swag.assert(noteItem.editBox.text() == "")
 }
+
+struct PropSameCategData
+{
+    #[Properties.Category("Debug"), Properties.Name("First"), Properties.Description("A long description that should wrap over the full control width, not over the value column")]
+    first: bool
+    #[Properties.Category("Debug"), Properties.Name("Second")]
+    second: bool
+    #[Properties.Category("Debug"), Properties.Name("Third")]
+    third: bool
+}
+
+// Consecutive fields sharing the same Category reuse the open header instead of
+// creating new segments (regression: the empty 'until' range used to panic).
 #test
 {
     var host: Testing.HeadlessHost
@@ -1488,6 +1987,22 @@ using Swag, Core
     Swag.assert((descIt.checkBox != null))
     Swag.assert(descIt.checkBox.parent!.position.width > cast(f32, opt.properties.editorWidth))
 }
+
+enum PropAlignChoice { A, B, C }
+
+struct PropAlignData
+{
+    #[Properties.Name("Slide"), Properties.SliderMinMax(0, 100)]
+    slide: f32 = 10
+    #[Properties.Name("Choice")]
+    choice = PropAlignChoice.A
+    #[Properties.Name("Count")]
+    count: s32 = 5
+}
+
+// List mode: every value editor (slider, combo, edit box) shares the same fixed edit
+// width, so their right edges line up — and stay lined up after the control is resized
+// (regression: anchored widths drifted with the resize history).
 #test
 {
     var host: Testing.HeadlessHost
@@ -1536,6 +2051,9 @@ using Swag, Core
     host.pump()
     assertAligned(prop)
 }
+
+// A field the resolver claims shows its answer; a field it declines keeps the declared
+// wording, and the module's own strings answer after it.
 #test
 {
     // Whatever this test installs, the next one starts with the declared strings.
@@ -1565,6 +2083,9 @@ using Swag, Core
     Properties.setTextResolver(null)
     Swag.assert(Properties.resolveText("Thickness") == "Thickness")
 }
+
+// Every generated row goes through the resolver: the field label, the category header,
+// and the two entries of a boolean combo.
 #test
 {
     defer Properties.setTextResolver(null)
@@ -1610,6 +2131,9 @@ using Swag, Core
     Swag.assert(sawLabel)
     Swag.assert(sawCombo)
 }
+
+// Filtering is stronger than the persisted disclosure state: a match remains reachable through
+// a collapsed branch, and clearing the query restores that branch to its previous state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1631,6 +2155,8 @@ using Swag, Core
     prop.setFilter("")
     Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
 }
+
+// A search counts the fields it found by their own words, and finds where in the name to mark.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1650,6 +2176,9 @@ using Swag, Core
     prop.setFilter("nothing of the kind")
     Swag.assert(prop.matchCount() == 0)
 }
+
+// The modified-only view composes with default tracking and updates immediately when an edit is
+// reset. expandModified opens only the path that contains the changed field.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1685,6 +2214,13 @@ using Swag, Core
     prop.setModifiedOnly(false)
     Swag.assert(count.line.isVisible() and enabled.line.isVisible())
 }
+
+// Returns the count the section list writes after the section `index`.
+func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.sectionLines[index].items[1]!.name.raw
+
+// The editor changes presentation at run time: the rows are built again from the same
+// structure, with its values and the search in force, and the section list counts the fields
+// each section lets through.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1726,6 +2262,8 @@ using Swag, Core
     ctrl.search.setText("")
     Swag.assert(sectionCountText(ctrl, 1) == "2")
 }
+
+// The same section icon also survives a tabbed grid's presentation changes.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1738,6 +2276,10 @@ using Swag, Core
     ctrl.setKind(.Grid)
     Swag.assert(ctrl.tab.items[1]!.icon.isValid())
 }
+
+// The marks of a row in each presentation: a slider reads its value as a figure with no box
+// until it is edited, a Condensed warning is a stroke in the margin that says its words on
+// hover, and a changed field of a panel names itself with its own control.
 #test
 {
     for kind in [PropertiesKind.List, .Grid, .Condensed, .Panel]

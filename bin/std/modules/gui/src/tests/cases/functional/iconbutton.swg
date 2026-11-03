@@ -1,7 +1,31 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
+
 using Swag, Core, Pixel
 
+const IconButtonHeadless_Command = "IconButtonHeadless.Command"
+
+var IconButtonHeadlessPressedCount: u32
+
+var IconButtonHeadlessCheckCount:   u32
+
+func iconButtonHeadlessPressed(_: *Button)
+{
+    IconButtonHeadlessPressedCount += 1
+}
+
+func iconButtonHeadlessChecked(_: *IconButton)
+{
+    IconButtonHeadlessCheckCount += 1
+}
+
+func iconButtonHeadlessReset()
+{
+    IconButtonHeadlessPressedCount = 0
+    IconButtonHeadlessCheckCount   = 0
+}
+
+// A plain icon button posts a command and fires sigPressed on click.
 #test
 {
     var host: Testing.HeadlessHost
@@ -16,6 +40,8 @@ using Swag, Core, Pixel
     Swag.assert(IconButtonHeadlessPressedCount == 1)
     Swag.assert(not btn.isChecked)
 }
+
+// A Toggle button flips its checked state on every click.
 #test
 {
     var host: Testing.HeadlessHost
@@ -35,6 +61,8 @@ using Swag, Core, Pixel
     Swag.assert(not btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 2)
 }
+
+// A radio button can only be set, never unset, by user activation.
 #test
 {
     var host: Testing.HeadlessHost
@@ -54,6 +82,8 @@ using Swag, Core, Pixel
     Swag.assert(btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 1)
 }
+
+// Programmatic checked-state changes support both stateful modes and remain silent.
 #test
 {
     var host: Testing.HeadlessHost
@@ -76,6 +106,8 @@ using Swag, Core, Pixel
     Swag.assert(radio.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 0)
 }
+
+// Space and Enter activate a focused toggle with the same state, signal, and command contract as a click.
 #test
 {
     var host: Testing.HeadlessHost
@@ -94,6 +126,29 @@ using Swag, Core, Pixel
     Swag.assert(IconButtonHeadlessCheckCount == 2)
     Swag.assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
 }
+
+// Number of pixels painted in one exact color.
+func iconButtonColorCount(image: const *Image, color: Color)->s32
+{
+    var result = 0
+    for y in cast(s32, image.height)
+    {
+        for x in cast(s32, image.width)
+        {
+            if image.pixelColor(x, y).argb == color.argb do
+                result += 1
+        }
+    }
+
+    return result
+}
+
+// A checked button draws the indicator its placement asks for, and none at all when it asks
+// for none.
+//
+// An indicator on one edge is the two-pixel Arc rule of a tab underline. Drawn under a color
+// swatch, a field of a form, or a preset cell painted in the user's own colors, it would read as
+// one more thing painted in the cell, which is why the two indicator-less placements draw none.
 #test
 {
     var host: Testing.HeadlessHost
@@ -135,6 +190,12 @@ using Swag, Core, Pixel
         Swag.assert(iconButtonColorCount(&marked, rule) == 0)
     }
 }
+
+// The checked frame is drawn on the shape the button has.
+//
+// A rectangular tool takes the control corner like a rounded one. The frame and the focus ring
+// have to follow that corner, or either mark crosses the fill at the corners — which leaves the
+// corner pixel of the cell on the ground it stands on.
 #test
 {
     var host: Testing.HeadlessHost
@@ -162,6 +223,8 @@ using Swag, Core, Pixel
         }
     }
 }
+
+// A checked tool is written in Arc in both themes, and never in the ink of a fill.
 #test
 {
     var host: Testing.HeadlessHost
@@ -189,6 +252,9 @@ using Swag, Core, Pixel
         }
     }
 }
+
+// The two indicator-less placements differ by what they leave the state colors saying: `None`
+// reads as pressed, `Ink` keeps the checked ink so the glyph itself carries the state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -210,6 +276,8 @@ using Swag, Core, Pixel
     var ink = host.render()
     Swag.assert(iconButtonColorCount(&ink, colors.btnIcon_CheckedPressedBk) == 0)
 }
+
+// Hiding a button resets both its pointer state and its animated overlay state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -225,6 +293,8 @@ using Swag, Core, Pixel
     Swag.assert(not btn.isPressed)
     Swag.assert(btn.aniBk.themeCrc == Swag.U32.Max)
 }
+
+// Disabling a button keeps it in the layout, but still drops transient input/paint state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -248,6 +318,9 @@ using Swag, Core, Pixel
     Swag.assert(host.app.mouseEnterWnd == null)
     Swag.assert(host.app.mouseCaptureWnd == null)
 }
+
+// An icon button answers what its content needs, so a longer wording widens the button
+// instead of being crowded by it.
 #test
 {
     var host: Testing.HeadlessHost

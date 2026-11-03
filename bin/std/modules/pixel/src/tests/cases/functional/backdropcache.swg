@@ -29,7 +29,7 @@ func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, sc
     if clipped or fullClip do
         painter.popClippingRect()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return cpu.surfaceImage()
 }
 

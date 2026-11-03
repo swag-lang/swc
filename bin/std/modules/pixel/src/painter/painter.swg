@@ -544,10 +544,11 @@ impl Painter
     // Submits the completed command stream to the selected renderer.
     //
     // Rendering is synchronous. Call [[Pixel.Painter.end]] before this method.
-    mtd render()
+    // Backend failures follow [[Pixel.IRenderer.draw]]; do not present a failed submission.
+    mtd render() fail
     {
         Swag.assert(not .drawingBegin)
-        .renderer().draw(me)
+        try .renderer().draw(me)
     }
 
     private func getTextureSize(brush: Brush)->{ w: s32, h: s32 }

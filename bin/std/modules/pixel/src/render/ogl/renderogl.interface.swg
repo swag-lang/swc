@@ -121,9 +121,9 @@ impl IRenderer for RenderOgl
         .resetScissorRectImpl()
     }
 
-    mtd impl draw(painter: *Painter)
+    mtd impl draw(painter: *Painter) fail
     {
-        .drawImpl(painter)
+        try .drawImpl(painter)
     }
 
     mtd impl bindRenderTarget(target: *RenderTarget, vp: *Math.Rectangle? = null)

@@ -25,10 +25,8 @@ Include production initialization such as the application icon and resource regi
 persisted settings into the owned temporary directory. An empty test shell can miss startup failures.
 Use the same commands and input handlers as the UI. OS-level input delivery remains a separate
 integration boundary: calling an action directly does not test keyboard routing or hit testing.
-Native test entry points omit `#main`. An application that relaunches itself as a worker must
-dispatch that explicit helper mode before UI startup, as Scope does in `#premain`;
-otherwise the child can exit successfully without performing any work. Exercise that protocol
-in the scenario instead of replacing the child with an in-process decoder.
+Native test entry points omit `#main`. Exercise background work through the production task and
+decoder path rather than replacing it with a fake in the scenario.
 
 ## Write an executable test plan
 
@@ -69,6 +67,21 @@ viewer open/return, refresh, resize and theme changes, with visible thumbnails a
 as checkpoints. These tests use local fixtures; online artwork, network shares, monitor DPI changes
 and visible-compositor behavior are not covered.
 
-Run it with the private-desktop launcher documented in [README.md](README.md). Logs identify each
+Run it on the normal interactive desktop with the commands in [README.md](README.md). Logs identify each
 stage. Keep the compiler, program configuration, fixture identities, renderer and failing stage
 with a bug report. A deterministic failure is more useful than retries that turn it green.
+
+`integration/playrecentvideo.swg` opens a film through the history input handler, advances beyond
+four seconds of real playback, returns to history, and repeats. It checks native presentation
+after playback, rather than ending at the first decoded frame. Run release regressions on the
+normal interactive desktop:
+
+```powershell
+tools/apps.bat test swagscope -bc release --test-file playrecentvideo.swg --test-tag integration.application.journey
+```
+
+The command shows test windows on the current desktop and needs authorization for that visible
+run. It does not send operating-system mouse or keyboard input. Preserve window visibility,
+monitor configuration, pointer-driven controls, presentation timing, and runtime worker counts
+in reproduction notes. Headless rendering remains useful for bounded library tests and goldens;
+it does not establish that the shipped executable works on the normal desktop.

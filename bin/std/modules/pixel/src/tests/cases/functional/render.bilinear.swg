@@ -33,7 +33,7 @@ func blend(first, second: Color, weight: u32)->Color
     painter.setBlendingMode(.Copy)
     painter.drawTexture({0, 0, 16, 16}, texture)
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image = cpu.surfaceImage()
     for y in 16

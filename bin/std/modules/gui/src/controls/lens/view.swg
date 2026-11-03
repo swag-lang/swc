@@ -511,7 +511,7 @@ impl View
         .backdrop = BackdropEffect{algorithm: .Gaussian,
                                    radius: metrics.lens_BlurRadius * 3,
                                    saturation: metrics.lens_Saturation,
-                                   tint: .themeColors().floating_Shadow.withAlphaF32(metrics.lens_TintOpacity)}
+                                   tint: .themeColors().raised.withAlphaF32(metrics.lens_TintOpacity)}
     }
 
     // Closes the lens without running anything.

@@ -130,7 +130,7 @@ using Swag, Core
     painter.setBlendingMode(.Copy)
     painter.drawTexture({2, 2, 4, 4}, texture)
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     let image = cpu.surfaceImage()
     Swag.require(image.pixelColor(3, 3) == Color.fromArgb(0'u8, 255'u8, 0'u8, 0'u8))
     Swag.require(image.pixelColor(1, 3) == Color.fromArgb(Argb.Blue))

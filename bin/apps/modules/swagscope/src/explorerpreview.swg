@@ -59,6 +59,7 @@ struct ExplorerPreview
     archivePath:     String
     entry:           Viewers.Archive.ZipEntry
     service:         ThumbnailService
+    executor:        Swag.Executor
     image:           Image
     temporary:       String
     error:           String
@@ -74,6 +75,8 @@ impl ExplorerPreview
 {
     mtd start(owner: *Wnd)
     {
+        if not .executor.isStarted() do
+            .executor.start()
         .image       = {}
         .needsOnline = false
         .error.clear()
@@ -84,7 +87,8 @@ impl ExplorerPreview
             catch operation.produce() { operation.error = Viewer.failureText(Swag.err) }
         },
                 owner,
-                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
+                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background,
+                executor: &.executor)
     }
 
     private mtd produce() fail
@@ -291,7 +295,7 @@ impl ExplorerPreview
         }
     }
 
-    // Decode remote bytes in the same isolated process as local previews.
+    // Decode remote bytes in the same background task as local previews.
     private mtd renderOnlineImage(bytes: const [..] u8)->Image fail
     {
         var extension = ".jpg"

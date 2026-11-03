@@ -32,7 +32,7 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
 
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, 160, 64)
 }
 

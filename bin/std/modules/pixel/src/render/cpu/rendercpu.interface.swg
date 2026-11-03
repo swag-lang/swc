@@ -54,7 +54,7 @@ impl IRenderer for RenderCpu
         .resetScissorRectImpl()
     }
 
-    mtd impl draw(painter: *Painter)
+    mtd impl draw(painter: *Painter) fail
     {
         .drawImpl(painter)
     }

@@ -43,7 +43,7 @@ painter.begin()
 painter.clear(Color.fromRgb(20, 22, 30))
 painter.fillRect(Math.Rectangle{24, 24, 120, 48}, Color.fromRgb(60, 140, 240))
 painter.end()
-painter.render()
+try painter.render()
 
 renderer.end()
 let image = cpu.surfaceImage()
@@ -74,13 +74,18 @@ renderer.begin(context)
 painter.begin()
 // Record shapes, textures, and text here.
 painter.end()
-painter.render()
+try painter.render()
 renderer.end()
 ```
 
 Update [[Pixel.RenderContext.width]] and [[Pixel.RenderContext.height]] after a
 drawable resize. Keep OpenGL calls on the thread required by the platform
 integration.
+
+[[Pixel.IRenderer.draw]] and [[Pixel.Painter.render]] report backend failures through `fail`.
+A failed submission can leave partially drawn targets: preserve the last presented image,
+record a complete replacement, and retry before presenting again. The renderer restores the
+caller's target binding and releases transient resources queued by the failed stream.
 
 ## Render targets and layers
 

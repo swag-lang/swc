@@ -145,7 +145,7 @@ func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
 
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
 }
@@ -231,7 +231,7 @@ func renderParityScene(renderer: IRenderer)->Image
 
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
 }
@@ -284,7 +284,7 @@ func renderTextParityScene(renderer: IRenderer)->Image
     painter.drawString(196, 126, "Shadow", msdf, Color.fromArgb(Argb.SeaGreen), shadow)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     return renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
 }
@@ -313,7 +313,7 @@ func renderLayerParityScene(renderer: IRenderer)->Image
 
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     return renderer.readRenderTarget(&target, 0, 0, RenderLayerWidth, RenderLayerHeight)
 }
@@ -408,7 +408,7 @@ func renderPlanarParityScene(renderer: IRenderer)->Image
     painter.drawTexture({0, 0, RenderPlanarWidth, RenderPlanarHeight}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     return renderer.readRenderTarget(&target, 0, 0, RenderPlanarWidth, RenderPlanarHeight)
 }
@@ -470,7 +470,7 @@ func renderClipRegionParityScene(renderer: IRenderer)->Image
 
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, RenderParityWidth, RenderParityHeight)
 }
 
@@ -525,7 +525,7 @@ func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
     painter.setBlendingMode(.Alpha)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, RenderBlendWidth, RenderBlendHeight)
 }
 

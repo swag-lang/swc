@@ -29,7 +29,7 @@ using Core, Ogl
         painter.startClippingRegion()
         painter.fillRect({8, 8, 32, 24}, Argb.White)
         painter.end()
-        gpu.draw(&painter)
+        expect gpu.draw(&painter)
 
         var attachment, sampled: GLint
         glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachment)
@@ -43,7 +43,7 @@ using Core, Ogl
         painter.endClippingRegion()
         painter.resetClippingRegion()
         painter.end()
-        gpu.draw(&painter)
+        expect gpu.draw(&painter)
     }
 
     // The completed mask becomes readable again and still clips ordinary drawing.
@@ -56,7 +56,7 @@ using Core, Ogl
     painter.fillRect({0, 0, 96, 64}, Argb.Red)
     painter.resetClippingRegion()
     painter.end()
-    gpu.draw(&painter)
+    expect gpu.draw(&painter)
     let result = gpu.readRenderTarget(&target, 0, 0, 96, 64)
     Swag.require(result.pixelColor(16, 16) == Color.fromArgb(Argb.Red))
     Swag.require(result.pixelColor(64, 48) == Color.fromArgb(Argb.Black))

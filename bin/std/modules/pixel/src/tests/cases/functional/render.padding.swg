@@ -28,7 +28,7 @@ func renderFractionalSourceScene(renderer: IRenderer)->Image
     painter.drawTexture({0, 0, 2, 2}, {0, 0, 1.5, 1.5}, source.colorBuffer)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, 2, 2)
 }
 
@@ -77,7 +77,7 @@ func renderResolvePaddingScene(renderer: IRenderer, factor: s32)->Image
     painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, 40, 40)
 }
 

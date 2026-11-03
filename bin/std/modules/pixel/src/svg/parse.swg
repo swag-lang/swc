@@ -3816,7 +3816,7 @@ impl Drawing
 
         tilePainter.unbindRenderTarget()
         tilePainter.end()
-        renderer.draw(&tilePainter)
+        expect renderer.draw(&tilePainter)
 
         let tileImage = renderer.readRenderTarget(&target, 0, 0, pixelWidth, pixelHeight)
         renderer.deleteRenderTarget(&target)
@@ -4137,6 +4137,7 @@ impl Drawing
     //
     // The renderer must be ready to draw — its context selected and [[Pixel.IRenderer.init]]
     // called — because this records a complete painter submission and executes it.
+    // Returns an invalid image when the backend cannot allocate, draw, or read a tile.
     mtd const rasterize(renderer: IRenderer, width, height: s32, supersample: u8 = 2)->Image
     {
         Swag.assert(width > 0 and height > 0)
@@ -4167,11 +4168,15 @@ impl Drawing
         // target sizes, including a partial tile at the right or bottom edge.
         var sampled = renderer.createRenderTarget(sampledWidth, sampledHeight)
         defer renderer.deleteRenderTarget(&sampled)
+        if not sampled.colorBuffer.isValid() do
+            return {}
         var resolved: RenderTarget
         if ss > 1 do
             resolved = renderer.createRenderTarget(tileWidth, tileHeight)
         defer if ss > 1 do
             renderer.deleteRenderTarget(&resolved)
+        if ss > 1 and not resolved.colorBuffer.isValid() do
+            return {}
 
         var tileY = 0
         while tileY < height
@@ -4216,11 +4221,13 @@ impl Drawing
                     }
 
                     painter.end()
-                    renderer.draw(&painter)
+                    catch renderer.draw(&painter) { return {} }
 
                     // Render-target readbacks and images share the bottom-up row convention. Copy
                     // each tile into the matching bottom-up rows of the complete result.
                     mattes[matte] = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
+                    if not mattes[matte].isValid() do
+                        return {}
                 }
 
                 for row in copyHeight

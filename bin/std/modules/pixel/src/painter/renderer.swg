@@ -80,7 +80,11 @@ interface IRenderer
     mtd resetScissorRect()
 
     // Executes a completed painter command stream synchronously.
-    mtd draw(painter: *Painter)
+    //
+    // Reports backend errors through `fail`. A failed submission can have partially changed its
+    // targets; do not present them. The backend restores the caller's target binding and releases
+    // transient resources queued by the stream. Record a fresh, complete frame before retrying.
+    mtd draw(painter: *Painter) fail
 
     // Binds an off-screen target for following direct operations.
     //
@@ -165,7 +169,9 @@ interface IRenderer
 
     // Acquires a pooled off-screen target at least as large as requested.
     //
-    // The OpenGL backend stops the command stream if the target cannot be allocated.
+    // Allocation failure returns an owned descriptor with an invalid color buffer, as with
+    // [[Pixel.IRenderer.createRenderTarget]]. Release it normally. Submitting a painter that
+    // uses such a target reports the failure through [[Pixel.IRenderer.draw]].
     mtd acquireRenderTarget(width, height: s32)->*RenderTarget
 
     // Returns a pooled target to this renderer; `null` is ignored.

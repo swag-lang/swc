@@ -22,7 +22,7 @@ func outlineTestRender(pen: Pen)->Image
     var renderer: RenderCpu
     renderer.begin(OutlineTestWidth, OutlineTestHeight)
     let render: IRenderer = &renderer
-    render.draw(&painter)
+    expect render.draw(&painter)
     render.end()
     return renderer.surfaceImage()
 }
@@ -157,7 +157,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     var renderer: RenderCpu
     renderer.begin(OutlineTestWidth, OutlineTestHeight)
     let render: IRenderer = &renderer
-    render.draw(&painter)
+    expect render.draw(&painter)
     render.end()
 
     let img = renderer.surfaceImage()

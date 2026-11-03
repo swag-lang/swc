@@ -38,7 +38,7 @@ painter.begin()
 painter.clear(Color.fromRgb(24, 32, 48))
 painter.fillCircle(160, 90, 48, Color.fromRgb(72, 149, 239))
 painter.end()
-painter.render()
+try painter.render()
 renderer.end()
 
 let image = cpu.surfaceImage()

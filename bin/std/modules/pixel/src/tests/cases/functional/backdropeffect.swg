@@ -16,7 +16,7 @@ using Core
     for command in painter.commandBuffer where Swag.kindOf(command.op) == .ReleaseRenderTarget do
         targets += 1
     Swag.require(targets == 2)
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     renderer.end()
 }
 
@@ -46,7 +46,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     painter.fillRect(Math.Rectangle{32, 24, 8, 8}, Argb.Red)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, width, height)
 }
 
@@ -83,7 +83,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
         effect.draw(&painter, {-4, -3, 40, 30})
         effect.draw(&painter, {0, 0, 31, 19})
         painter.end()
-        renderer.draw(&painter)
+        expect renderer.draw(&painter)
         renderer.end()
         let image = cpu.surfaceImage()
         for y in image.height
@@ -115,7 +115,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     BackdropEffect{opacity: 0}.draw(&painter, {8, 0, 4, 8})
     BackdropEffect{}.draw(&painter, {})
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     renderer.end()
     let image = cpu.surfaceImage()
     let gray  = image.pixelColor(1, 1)
@@ -144,7 +144,7 @@ func renderBackdropScene(renderer: IRenderer, algorithm: BackdropBlur, scale: f3
     // The material must have restored the caller's full mask and unrestricted scissor.
     painter.fillRect(Math.Rectangle{20, 12, 4, 4}, Argb.Green)
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     renderer.end()
     let image  = cpu.surfaceImage()
     let inside = image.pixelColor(8, 8)

@@ -60,8 +60,9 @@ struct Surface
 
         readonly
         {
-            painter: Painter          // Painter recording the surface's frame.
-            rt:      RenderTarget     // Render target the frame is drawn into.
+            painter:       Painter          // Painter recording the surface's frame.
+            rt:            RenderTarget     // Render target the frame is drawn into.
+            renderFailure: String           // Latest failed painter submission; cleared after a successful repaint.
 
             // Physical device pixels per logical unit on the monitor showing this surface.
             // `position` is in physical screen pixels; the window tree, painting, and mouse
@@ -347,6 +348,10 @@ impl Surface
     // Adds a rectangle in surface coordinates to the pending repaint region.
     mtd invalidateRect(rect: Math.Rectangle)
     {
+        // Layout and hidden controls can invalidate an empty extent while their bounds change.
+        // It owns no pixels and must not become a native scissor on an otherwise clean surface.
+        if rect.width <= 0 or rect.height <= 0 do
+            return
         if not .isDirty
         {
             .dirtyRect = rect
@@ -599,9 +604,19 @@ impl Surface
             .renderer.bindRenderTarget(&me.rt, vp: &myRect)
             .renderer.setScissorRect(physClip)
             .renderer.clear()
-            .renderer.draw(&me.painter)
+            catch .renderer.draw(&me.painter)
+            {
+                me.renderFailure = Errors.message(Swag.err)
+                .renderer.unbindRenderTarget()
+                .renderer.end()
+                me.invalidate()
+                return false
+            }
+
             .renderer.unbindRenderTarget()
         }
+
+        .renderFailure.clear()
 
         .paintTargetUs = 0
         .paintArea     = 0
@@ -703,7 +718,14 @@ impl Surface
 
         if .app.renderer.needsNativeWindow() and not .bindNativePresentationTarget() do
             return false
-        .app.renderer.draw(&.painter)
+        catch .app.renderer.draw(&.painter)
+        {
+            .renderFailure = Errors.message(Swag.err)
+            if .app.renderer.needsNativeWindow() do
+                .app.renderer.unbindRenderTarget()
+            return false
+        }
+
         if .app.renderer.needsNativeWindow()
         {
             .app.renderer.unbindRenderTarget()

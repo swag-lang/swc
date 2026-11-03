@@ -5,7 +5,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
 private func thumbnailFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
 
-// The isolated worker renders subtitle content and can reuse that process for a video frame.
+// One background renderer handles subtitle content and can reuse its state for a video frame.
 #test
 {
     let file = Testing.tempFilePath("scope-subtitle-preview-", ".vtt")

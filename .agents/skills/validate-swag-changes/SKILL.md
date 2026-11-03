@@ -203,8 +203,9 @@ across modules uses the workspace suite.
 - Select application journeys by `--test-tag integration.application.journey`, optionally narrowed
   by their `cases/integration/<plan>.swg` file. These are ordinary `#test` functions running
   the native application lifecycle, separate from the workspace's bounded startup `smoke` command. Name and
-  select the plan, not the control where the first action happens. On Windows, use
-  `tools/test-desktop.ps1` when the plan does not need the visible desktop. Keep functional,
+  select the plan, not the control where the first action happens. On Windows, run native
+  journeys on the normal interactive desktop through `tools/apps.bat test` or `tools/std.bat test`.
+  Keep the real windows, compositor, and event loop in the test boundary. Keep functional,
   golden, integration and stress tests in their respective `cases/<type>/` directories; filenames
   end in `.swg` without a type suffix. Tags select execution and do not replace load admission.
 - Smoke only the changed example or script when its value is that the real program starts.

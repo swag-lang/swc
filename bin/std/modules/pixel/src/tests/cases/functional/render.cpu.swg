@@ -7,7 +7,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     var renderer: RenderCpu
     renderer.begin(width, height)
     let render: IRenderer = &renderer
-    render.draw(painter)
+    expect render.draw(painter)
     render.end()
     return renderer.surfaceImage()
 }
@@ -170,7 +170,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.fillRect({60, 0, 12, 12}, Src)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image    = renderer.readRenderTarget(&target, 0, 0, 72, 12)
     let expected = image.pixelColor(60, 0)
@@ -291,7 +291,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setInterpolationMode(.Pixel)
     painter.drawTexture({0, 0, 8, 8}, texture)
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = renderer.surfaceImage()
     assertPixel(image, 1, 1, Color.fromArgb(255'u8, 0'u8, 0'u8, 255'u8))
@@ -331,7 +331,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setBlendingMode(.Copy)
     painter.drawTexture({2, 2, 4, 3}, {1, 0, 4, 3}, texture)
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = renderer.surfaceImage()
     for y in 3's32
@@ -390,7 +390,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.drawTexture({4, 4, 4, 4}, inner.colorBuffer)
     painter.unbindRenderTarget()
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = render.readRenderTarget(&outer, 0, 0, 12, 12)
     assertPixel(image, 2, 2, Argb.Black)
@@ -426,7 +426,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.drawPath(&path, pen)
     painter.unbindRenderTarget()
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 32, 32)
     let hit   = image.pixelColor(16, 16)
@@ -451,7 +451,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.fillRect(0, 0, 8, 8, Color.fromArgb(128'u8, Argb.White))
     painter.unbindRenderTarget()
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
     let image = render.readRenderTarget(&target, 0, 0, 8, 8)
     Swag.require(image.pixelColor(4, 4).a == 128)
 }
@@ -482,7 +482,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 9, 9)
     Swag.require(image.pixelColor(4, 4).a > 0)
@@ -593,7 +593,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
-    render.draw(&painter)
+    expect render.draw(&painter)
 
     let image = render.readRenderTarget(&target, 0, 0, 2, 2)
     let gray  = image.pixelColor(0, 0)
@@ -760,7 +760,7 @@ private func checkSharedEdge(mode: s32)
     painter.fillPolygon(secondTriangle, brush)
     painter.end()
 
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     let image = cpu.surfaceImage()
     let last  = mode == 1 ? 22 : 28
     for coordinate in 17 until last

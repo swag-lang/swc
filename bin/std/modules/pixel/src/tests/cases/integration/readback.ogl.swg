@@ -27,7 +27,7 @@ using Core, Ogl
     painter.fillRect({7, 18, 15, 16}, Color.fromArgb(255'u8, 151'u8, 87'u8, 41'u8))
     painter.unbindRenderTarget()
     painter.end()
-    gpu.draw(&painter)
+    expect gpu.draw(&painter)
     let expected = gpu.readRenderTarget(&target, 3, 5, 21, 29)
     var actual   = Image.create(21, 29, .BGRA8)
     var readback: RenderOglReadback

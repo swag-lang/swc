@@ -69,6 +69,11 @@ using Swag, Core
     view.clear()
     Swag.require(not view.movie.isValid())
     Swag.require(not view.uploadedTexture.isValid())
+
+    view.setImage(Pixel.Image.create(2, 2, .RGBA8))
+    view.setImage({})
+    Swag.require(not view.movie.isValid())
+    Swag.require(not view.uploadedTexture.isValid())
 }
 
 // Image-list content is either a paused image or a playing sprite sheet, by explicit API choice.

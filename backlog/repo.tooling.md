@@ -8,7 +8,7 @@ being compiled by it.
 ### repo.tooling.012 — Extend application scenarios beyond Explorer
 
 - Evidence: bounded startup smokes do not perform user journeys. The explicit
-  `integration.application.journey` boundary and private-desktop launcher are described in
+  `integration.application.journey` boundary and normal-desktop commands are described in
   `tools/application-scenarios.md`; Capture and Vault have no scenarios under that tag.
 - Next: add independent, sub-40-second `#test` journeys in each application's `src/tests`:
   Capture imports a real picture, annotates, undoes/redoes, exports and reopens the result;

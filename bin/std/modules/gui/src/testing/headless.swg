@@ -733,6 +733,7 @@ impl HeadlessHost
         .pump()
         .surface.invalidate()
         .surface.paintWnd(wnd)
+        Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
@@ -744,6 +745,7 @@ impl HeadlessHost
     mtd renderSettled(wnd: *Wnd? = null)->Pixel.Image
     {
         .settleAnimations(wnd)
+        Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
         return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
@@ -757,6 +759,7 @@ impl HeadlessHost
         .pump()
         surface.invalidate()
         surface.paint()
+        Swag.require(surface.renderFailure.isEmpty(), surface.renderFailure.toString())
         let target = .app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
 
         // A surface leaves its pixels premultiplied, the way the compositor reads them: read

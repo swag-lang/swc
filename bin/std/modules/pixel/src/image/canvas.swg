@@ -199,7 +199,7 @@ impl ImageCanvas
         let renderer = unwrap .renderer
         renderer.begin(.width, .height)
         let rendererItf: IRenderer = renderer
-        .painter.render()
+        expect .painter.render()
         var result: #returntype = rendererItf.readRenderTarget(unwrap .target, 0, 0, .width, .height)
         rendererItf.end()
 

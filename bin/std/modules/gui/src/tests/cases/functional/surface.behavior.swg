@@ -6,6 +6,24 @@ using Swag, Core
 const GuiHeadlessSmoke_CloseWindow = "GuiHeadlessSmoke.CloseWindow"
 const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
+// A hidden or collapsing control can invalidate an empty extent between two frames. It must
+// neither schedule a negative native scissor nor extend an already pending repaint region.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.surface.isDirty = false
+    for rect in [Math.Rectangle{29, 113, 636, -108}, Math.Rectangle{10, 10, -4, 8}, Math.Rectangle{10, 10, 0, 8}]
+    {
+        host.surface.invalidateRect(rect)
+        Swag.require(not host.surface.isDirty)
+    }
+
+    host.surface.invalidateRect({20, 20, 40, 30})
+    host.surface.invalidateRect({29, 113, 636, -108})
+    Swag.require(host.surface.isDirty and host.surface.dirtyRect == {20, 20, 40, 30})
+}
+
 // A click routes the button's command to the root, and the command that closes the host hides the
 // root and schedules its destruction.
 #test

@@ -139,7 +139,16 @@ impl MediaLibraryFixture
                     }
                 }
 
-                fail Errors.InvalidFormatError{Errors.mkString(Format.toString("Explorer stage '%' exceeded its deadline", stage))}
+                Console.println("file=", window.currentFile, " pending=", window.pendingFile, " render failure=", window.surface!.renderFailure)
+                if window.currentView and
+                   window.activeChoiceIndex < window.instances.count and
+                   window.choices[window.activeChoiceIndex].key == "video"
+                {
+                    let video = assume cast(*Film.Panel, window.currentView)
+                    Console.println("opened=", video.openFinished, " frame=", video.frameIndex, " has frame=", video.hasFrame, " awaiting=", video.awaitingFrame, " playing=", video.playing, " failure=", video.failureText)
+                }
+
+                fail Errors.InvalidFormatError{Errors.mkString(Format.toString("Viewer stage '%' exceeded its deadline", stage))}
             }
 
             Threading.Thread.sleep(10'ms)

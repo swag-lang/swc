@@ -146,6 +146,12 @@ impl ImageRect
     // Keeps the current image when the renderer cannot allocate a texture.
     mtd setImage(image: Image)
     {
+        if not image.isValid()
+        {
+            .clear()
+            return
+        }
+
         let uploaded = .app().renderer.addImage(image)
         if not uploaded.isValid() do
             return

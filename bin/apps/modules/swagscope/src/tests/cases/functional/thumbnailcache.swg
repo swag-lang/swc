@@ -74,7 +74,7 @@ using Core, Pixel, Gui
     Swag.require(preview.needsOnline)
 }
 
-// A cached preview survives a fresh operation and avoids launching the renderer process.
+// A cached preview survives a fresh operation without initializing its renderer.
 #test
 {
     var host: Testing.HeadlessHost
@@ -95,7 +95,7 @@ using Core, Pixel, Gui
         preview.wait()
         host.pump()
         Swag.require(preview.image.isValid() and preview.error.isEmpty())
-        Swag.require(not preview.service.process.isRunning())
+        Swag.require(not preview.service.ready)
     }
 }
 
@@ -124,7 +124,7 @@ using Core, Pixel, Gui
     preview.wait()
     host.pump()
     Swag.require(preview.image.isValid() and preview.needsOnline)
-    Swag.require(not preview.service.process.isRunning())
+    Swag.require(not preview.service.ready)
 
     stampMovieCache(&frame)
     expect ThumbnailCache.write(key, &frame)

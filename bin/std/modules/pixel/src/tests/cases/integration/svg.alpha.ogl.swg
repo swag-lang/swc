@@ -2,7 +2,7 @@
 #global if #os == Swag.TargetOs.Windows
 #global private
 
-using Core
+using Core, Ogl
 
 // The one-matte optimization must preserve the GPU overload's coverage as well.
 #[Swag.TestTag("integration.renderer.opengl")]
@@ -17,4 +17,12 @@ using Core
     renderer.setCurrentContext(context)
     renderer.init()
     assertSvgWhiteMaskRaster(renderer, 256)
+
+    // A rejected tile allocation must return an invalid image, never dereference empty pixels.
+    let drawing = expect Svg.Drawing.parse("<svg width='8' height='8'><rect width='8' height='8' fill='white'/></svg>")
+    glScissor(0, 0, 1, -1)
+    let failed = drawing.rasterize(renderer, 8, 8)
+    Swag.require(not failed.isValid() and glGetError() == GL_NO_ERROR)
+    let recovered = drawing.rasterize(renderer, 8, 8)
+    Swag.require(recovered.isValid())
 }

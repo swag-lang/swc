@@ -67,7 +67,13 @@ impl Capture
         layer.end()
         painter.end()
 
-        render.draw(&painter)
+        catch render.draw(&painter)
+        {
+            render.end()
+            layer.release()
+            return {}
+        }
+
         render.end()
 
         let rt     = unwrap layer.contentTarget

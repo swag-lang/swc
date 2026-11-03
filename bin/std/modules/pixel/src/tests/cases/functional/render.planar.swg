@@ -155,7 +155,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     painter.drawTexture({0, 0, 8, 6}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image    = renderer.readRenderTarget(&target, 0, 0, 8, 6)
     let expected = expectedPlanarColor(Luma, ChromaB, ChromaR)
@@ -218,7 +218,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     painter.drawTexture({0, 0, 4, 4}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     // Studio-range 235 is white; the padding would have shown as black.
     let image = renderer.readRenderTarget(&target, 0, 0, 4, 4)
@@ -257,7 +257,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     painter.drawTexture({0, 0, 4, 4}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image = renderer.readRenderTarget(&target, 0, 0, 4, 4)
     Swag.require(image.pixelColor(0, 0).r >= 250)

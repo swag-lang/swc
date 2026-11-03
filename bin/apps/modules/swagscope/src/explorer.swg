@@ -30,6 +30,10 @@ const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 const ExplorerFilmTileAspect:    f32 = 9.0 / 16.0
 
+// Bound thumbnail decoding independently of the host's core count so opening a film keeps CPU
+// time for its viewer and the window event loop.
+const ExplorerPreviewTasks = 2'u64
+
 // Reports whether `word` opens a declaration or a statement, which a code cell sets in Arc.
 func isCardKeyword(word: string)->bool
 {
@@ -242,7 +246,7 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.resize(cast(u64, Swag.workerCount()))
+        result.previews.resize(Math.min(cast(u64, Swag.workerCount()), ExplorerPreviewTasks))
         result.grid.busy.resize(result.previews.count)
         for result.previews.count
         {

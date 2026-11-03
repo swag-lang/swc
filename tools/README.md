@@ -166,24 +166,20 @@ Swag.CompilerCommand.Test` and tagged `integration.application.journey`. They us
 test runner; integration tags keep them out of default headless tests. See
 [the scenario contract](application-scenarios.md) for fixtures, checkpoints, and coverage limits.
 
-On Windows, run a scenario without taking focus or showing test windows on the user's desktop:
+On Windows, run native scenarios on the normal interactive desktop:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-desktop.ps1 -Module swagscope -TestFile browsemedialibrary.swg
+tools/apps.bat test swagscope -bc release --test-file browsemedialibrary.swg --test-tag integration.application.journey --run-timeout 60
+tools/apps.bat test swagscope -bc release --test-file playrecentvideo.swg --test-tag integration.application.journey --run-timeout 60
+tools/std.bat test gui -bc release --test-file presentation.win32.swg --test-tag integration.host.windows --run-timeout 60
 ```
 
-The launcher creates a private desktop without switching to it, invokes `apps.bat test`, and
-retains its log under the printed temporary directory. A job owns the compiler and all children;
-the process timeout is 15 minutes including compilation, and `-RunTimeout` bounds each test
-executable (60 seconds by default). `-Configuration release` selects the program configuration;
-omitting `-DevMode` selects `swc.exe`. `-Workspace std -Module gui -TestTag integration.host.windows`
-selects native GUI integration tests instead. It never automates the user's mouse or keyboard.
-Use `-Action smoke -Module swagscope` for the shipped executable's startup smoke on the
-same private-desktop boundary, without test filters.
-
-Native GPU rendering still depends on the installed driver. A private desktop does not reproduce
-the visible desktop compositor, monitor changes, or live border dragging. Keep those tests in an
-explicit interactive integration campaign.
+These commands show real windows and may take focus. Authorization for a native desktop run
+covers those windows; the tests call application input handlers without sending operating-system
+mouse or keyboard input. Keep native presentation, monitor configuration, and ordinary window
+visibility in the reproduction boundary. Use `tools/apps.bat smoke swagscope -bc release` for
+the shipped executable's startup smoke. `--run-timeout` bounds the test process; each individual
+journey must still finish within its own deadline below 40 seconds.
 
 | Launcher | Purpose |
 | --- | --- |

@@ -470,7 +470,7 @@ plan's setup, actions, readiness deadlines and observable checkpoints readable i
 do not grow a scenario state machine in production startup code. Each new production regression
 that depends on such a sequence should extend an appropriate plan or introduce an independent one.
 Use real fixtures, workers, native windows and the event loop for the boundary being exercised.
-The shared contract and private-desktop command are in
+Run native journeys on the normal interactive desktop. The shared contract and commands are in
 [tools/application-scenarios.md](../../../tools/application-scenarios.md).
 Ordinary focused tests, scenario tests and the shipped executable's bounded startup smoke prove
 different contracts; none replaces the other two. Keep maintained snapshots in

@@ -41,7 +41,7 @@ func checkResolve(width, height: s32)
             painter.setDefaultShader()
             painter.unbindRenderTarget()
             painter.end()
-            renderer.draw(&painter)
+            expect renderer.draw(&painter)
             images[pass] = renderer.readRenderTarget(&target, 0, 0, width, height)
         }
 
@@ -116,7 +116,7 @@ func checkResolve(width, height: s32)
             painter.setDefaultShader()
             painter.unbindRenderTarget()
             painter.end()
-            renderer.draw(&painter)
+            expect renderer.draw(&painter)
             images[index] = renderer.readRenderTarget(&target, 0, 0, width, Height)
         }
 

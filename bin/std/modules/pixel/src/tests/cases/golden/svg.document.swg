@@ -37,7 +37,7 @@ using Swag, Core
     drawing.paint(&painter, 0, 0)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image = renderer.readRenderTarget(&target, 0, 0, 120, 72)
     Testing.assertImageGolden(&image, "svg.document.paint")

@@ -228,6 +228,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource, font: *Font)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
+
     // Authored or edited runs have no encoded codes yet. Their standard PDF metrics must
     // already govern the preview, just as they will after encoding and decoding the page.
     let standardRun = item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
@@ -247,7 +248,7 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
     var naturalTotal  = 0.0'f32
     for index in count
     {
-        var text: String
+        var text:     String
         var declared: f32
         if standardRun
         {
@@ -331,7 +332,7 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
 {
     let fontSize = cast(u32, Math.max(1, Math.round(item.fontSize)))
     var resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
-    var index = item.fontIndex
+    var index    = item.fontIndex
     var standard: FontResource
     if not resource or item.textCodes.isEmpty() or item.textCodes.count != item.textAdvances.count
     {
@@ -340,8 +341,8 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         standard.fixedPitch = face / 4 == 2
         standard.bold       = (face & 1) != 0
         standard.italic     = (face & 2) != 0
-        resource = &standard
-        index = cast(u32, page.fonts.count) + face
+        resource            = &standard
+        index               = cast(u32, page.fonts.count) + face
     }
 
     if not resource.bytes.isEmpty()
@@ -763,7 +764,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     painter.end()
 
     renderer.begin(context)
-    painter.render()
+    expect painter.render()
     var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
     for &texture in textures do
         renderer.removeTexture(texture)

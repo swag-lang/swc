@@ -28,7 +28,7 @@ using Core, Core.Math
     painter.clear(Argb.Red)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     let actual   = renderer.readRenderTarget(&target, 0, 0, 32, 32)
     var expected = Image.create(32, 32, .BGRA8)
     expected.fill(Color.fromArgb(Argb.Red))

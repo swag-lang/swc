@@ -99,7 +99,7 @@ using Swag, Core
     painter.drawString(12, 82, "Outline + glow", font, Color.fromArgb(Argb.Zero), effect)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     let image = renderer.readRenderTarget(&target, 0, 0, RenderTextWidth, RenderTextHeight)
     var fractional: u32

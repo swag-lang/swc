@@ -38,8 +38,23 @@ impl PaintImage
 
         let r  = wnd.app().renderer
         let rt = r.acquireRenderTarget(pt.w, pt.h)
+        if not rt.colorBuffer.isValid()
+        {
+            r.releaseRenderTarget(rt)
+            pt.image = {}
+            return false
+        }
+
         r.bindRenderTarget(rt)
-        r.draw(painter)
+        catch r.draw(painter)
+        {
+            r.unbindRenderTarget()
+            r.end()
+            r.releaseRenderTarget(rt)
+            pt.image = {}
+            return false
+        }
+
         pt.image = r.unbindRenderTargetToImage(0, 0, pt.w, pt.h)
         r.end()
         r.releaseRenderTarget(rt)

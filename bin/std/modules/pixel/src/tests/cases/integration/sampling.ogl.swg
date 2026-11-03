@@ -48,7 +48,7 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     painter.drawTexture({40, 60, 35, 16}, {1, 1, 6, 6}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, 192, 160)
 }
 
@@ -99,7 +99,7 @@ func renderPlanarSamplingScene(renderer: IRenderer, scale: f32)->Image
     painter.drawTexture({0, 0, cast(f32, Width) * scale, cast(f32, Height) * scale}, texture)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     return renderer.readRenderTarget(&target, 0, 0, 16, 16)
 }
 

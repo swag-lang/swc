@@ -2,7 +2,7 @@
 #global if #os == Swag.TargetOs.Windows
 #global private
 
-using Core, Pixel, Win32
+using Core, Pixel, Win32, Ogl
 
 // Ordinary frames yield to input while readback is pending, coalesce dirty content, and never
 // let an older asynchronous frame replace a synchronously prepared resize.
@@ -107,4 +107,46 @@ using Core, Pixel, Win32
     discard catch Testing.verifyNativePresentation(surface) as corruption
     bitmap[0] = saved
     Swag.require(corruption.value() != null)
+
+    // A failed GPU submission preserves the published bitmap and schedules a complete repaint.
+    // The native error arrives after recording, so allocation checks cannot consume it first.
+    var inject = true
+    surface.wnd.view.hookOnEvent = func|&inject|(_, evt)->bool
+    {
+        if inject and evt is PaintEvent
+        {
+            glScissor(0, 0, 1, -1)
+            inject = false
+        }
+
+        return false
+    }
+
+    var retained: Array'u8
+    retained.add(pixels)
+    surface.invalidate()
+    surface.paint()
+    Swag.require(not surface.renderFailure.isEmpty() and surface.isDirty)
+    Swag.require(not surface.readback.isPending())
+    Swag.require(Slice.equals(retained.toSlice(), pixels))
+    surface.paint()
+    Swag.require(surface.renderFailure.isEmpty())
+    watch.restart()
+    while surface.readback.isPending() and watch.elapsedMilliseconds() < 2000
+    {
+        discard surface.advanceNativePresentation()
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+
+    // Invalid expected pixels must fail verification, not compare two empty slices as equal.
+    glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, surface.rt.handle))
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0)
+    var unavailable: Swag.Error
+    discard catch Testing.verifyNativePresentation(surface) as unavailable
+    glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, surface.rt.handle))
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cast(GLuint, surface.rt.colorBuffer.handle), 0)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    Swag.require(unavailable.value() != null)
 }

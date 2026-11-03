@@ -11,8 +11,8 @@ private const ThumbnailTextLines  = 18
 struct ThumbnailRenderer
 {
     canvas:    ImageCanvas
-    bodyFont:  *Font
-    titleFont: *Font
+    bodyFont:  *Font?
+    titleFont: *Font?
 }
 
 impl ThumbnailRenderer
@@ -42,7 +42,7 @@ impl ThumbnailRenderer
         .canvas.clear(Color.fromRgb(238, 239, 240))
         painter.fillRect({8, 8, 240, 304}, Color.fromRgb(255, 255, 255))
         painter.fillRect({8, 8, 240, 3}, Color.fromRgb(53, 122, 186))
-        painter.drawString(18, 20, viewerName, .titleFont, Color.fromRgb(66, 72, 78))
+        painter.drawString(18, 20, viewerName, unwrap .titleFont, Color.fromRgb(66, 72, 78))
         painter.fillRect({18, 38, 220, 1}, Color.fromRgb(224, 226, 228))
 
         if textual
@@ -55,7 +55,7 @@ impl ThumbnailRenderer
                 source.replace('>', "›")
                 var content: RichString = #move source
                 var format:  RichStringFormat
-                format.font.regular  = .bodyFont
+                format.font.regular  = unwrap .bodyFont
                 format.palette       = [Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62)]
                 format.colorUrl      = Color.fromRgb(36, 112, 176)
                 format.colorHotUrl   = format.colorUrl

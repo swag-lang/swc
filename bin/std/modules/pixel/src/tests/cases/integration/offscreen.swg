@@ -27,7 +27,7 @@ using Core
         painter.clear(Argb.Red)
         painter.unbindRenderTarget()
         painter.end()
-        gpu.draw(&painter)
+        expect gpu.draw(&painter)
         let pixels = gpu.readRenderTarget(&target, 0, 0, 32, 24)
         Swag.require(pixels.pixelColor(17, 13).argb == Argb.Red)
         gpu.end()

@@ -31,7 +31,7 @@ using Swag, Core
         layer.draw(draw)
         painter.unbindRenderTarget()
         painter.end()
-        renderer.draw(&painter)
+        expect renderer.draw(&painter)
         return renderer.readRenderTarget(&target, 0, 0, 240, 160)
     }
 

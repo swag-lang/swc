@@ -67,7 +67,7 @@ impl IRenderer for PresentProbe
         .cpu.resetScissorRectImpl()
     }
 
-    mtd impl draw(painter: *Painter)
+    mtd impl draw(painter: *Painter) fail
     {
         .cpu.drawImpl(painter)
     }

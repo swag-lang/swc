@@ -52,7 +52,7 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
         painter.popClippingRect()
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
 
     var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
     renderer.deleteRenderTarget(&target)

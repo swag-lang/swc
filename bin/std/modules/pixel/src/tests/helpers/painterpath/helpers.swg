@@ -23,7 +23,7 @@ func strokeDarkness(size: f32, contentScale = 1.0'f32)->u64
     var renderer: RenderCpu
     renderer.begin(cast(s32, (cast(f32, Side) * contentScale)), cast(s32, (cast(f32, Side) * contentScale)))
     let render: IRenderer = &renderer
-    render.draw(&painter)
+    expect render.draw(&painter)
     render.end()
 
     let image  = renderer.surfaceImage()

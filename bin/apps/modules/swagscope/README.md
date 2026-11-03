@@ -42,13 +42,12 @@ shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up
 up, and F5 refreshes the location.
 
 Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
-Lists and thumbnail grids render only their visible rows. A reusable child process renders
-thumbnails through the existing viewer registry, including documents, source code, fonts and
-video. Audio uses its file tags and local cover art instead of a rendered byte map. A viewer can optionally provide `Viewer.Plugin.thumbnail` as a direct image decoder;
-otherwise its ordinary viewer renders offscreen with `Viewer.Host.isThumbnail()` set. This mode
-must not play media or persist reader preferences. Obsolete requests
-are cancelled, and at most 128 thumbnails are retained in the renderer. A decoder failure or
-timeout leaves the file's type icon available for opening it normally.
+Lists and thumbnail grids render only their visible rows. Two background tasks at most produce
+thumbnails through the viewer registry, reusing a renderer in each task. Video and image viewers
+can provide direct decoders; other files receive a bounded text or byte preview. Audio uses its
+file tags and local cover art. Thumbnail work does not play media or persist reader preferences.
+Obsolete requests are cancelled, and at most 128 thumbnails are retained in the renderer. A
+decoder failure leaves the file's type icon available for opening it normally.
 
 ## Integrated viewer registry
 
@@ -356,5 +355,8 @@ Realistic user journeys are dedicated `#test` functions tagged `integration.appl
 `src/tests/cases/integration/browsemedialibrary.swg` exercises a temporary mixed-format media library,
 through the native window, workers and presentation path. Large preview-cache eviction coverage lives in
 `src/tests/cases/stress/previewcache.swg`. Both are excluded from default headless tests. Run the
-journey on a private Windows desktop with `tools/test-desktop.ps1 -DevMode -Module swagscope`; see the
+journeys on the normal Windows desktop with
+`tools/apps.bat test swagscope -bc release --test-tag integration.application.journey`.
+`src/tests/cases/integration/playrecentvideo.swg` opens a recent film, checks sustained playback,
+and returns to history twice. See the
 [shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

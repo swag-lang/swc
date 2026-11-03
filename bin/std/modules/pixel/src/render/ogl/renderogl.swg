@@ -774,11 +774,17 @@ impl RenderOgl
     // says what OpenGL is actually clipping to.
     private mtd applyScissor(rect: Math.Rectangle)
     {
-        .scissorBox = rect
+        // Empty rectangles clip every pixel. OpenGL rejects negative extents instead of treating
+        // them as empty, leaving an error for an unrelated operation in the next submission.
+        let scissor = rect.width <= 0 or rect.height <= 0 ? Math.Rectangle{} : rect
+        .scissorBox = scissor
         .scissorOn  = true
         let {width: _, height: h} = .targetSizeImpl()
         glEnable(GL_SCISSOR_TEST)
-        glScissor(cast(GLint, rect.x), cast(GLint, (cast(f32, h) - rect.y - rect.height)), cast(GLint, rect.width), cast(GLint, rect.height))
+        glScissor(cast(GLint, scissor.x),
+                  cast(GLint, (cast(f32, h) - scissor.y - scissor.height)),
+                  cast(GLint, scissor.width),
+                  cast(GLint, scissor.height))
     }
 
     // Lets drawing reach the whole bound target again.
@@ -1124,7 +1130,8 @@ impl RenderOgl
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorID, 0)
         let status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-        if status != GL_FRAMEBUFFER_COMPLETE or glGetError() != GL_NO_ERROR
+        let attachmentError = glGetError()
+        if status != GL_FRAMEBUFFER_COMPLETE or attachmentError != GL_NO_ERROR
         {
             glDeleteFramebuffers(1, &fbo)
             glDeleteTextures(1, &colorID)
@@ -1575,7 +1582,7 @@ impl RenderOgl
         glUniformMatrix4fv(cast(GLint, mdl), 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
-    private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64)
+    private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64) fail
     {
         switch cmd.op
         {
@@ -1607,7 +1614,7 @@ impl RenderOgl
             // so a fragment lands on the same device pixel in both; the scissor is lifted for the
             // reset alone, because the old region can extend past the clip in force now.
             let {width, height} = .targetSizeImpl()
-            .clipMaskIndex   = .clipMaskFor(width, height)
+            .clipMaskIndex   = try .clipMaskFor(width, height)
             .clipMaskWriting = true
             .clipMaskOn      = false
             let mask = .clipMasks[cast(u64, .clipMaskIndex)]
@@ -1792,7 +1799,6 @@ impl RenderOgl
             let isDF = cache.renderMode.isDistanceField()
             let magF = isDF ? GL_LINEAR : GL_NEAREST
             let minF = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
-            cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
             let bpp = cache.renderMode.bytesPerPixel()
             let fmt = bpp == 1 ? GL_RED : (bpp == 4 ? GL_RGBA : GL_RGB)
@@ -1800,7 +1806,7 @@ impl RenderOgl
             {
                 if not atlas.dirty do
                     continue
-                atlas.dirty = false
+                defer #fail .removeTextureImpl(&atlas.texture)
 
                 let isNew = atlas.texture.handle == InvalidTextureHandle
 
@@ -1811,7 +1817,7 @@ impl RenderOgl
                     textureID = cast(atlas.texture.handle)
                 let textureNameError = glGetError()
                 if not textureID or textureNameError != GL_NO_ERROR do
-                    Swag.panic("OpenGL cannot allocate a glyph atlas", #curlocation)
+                    fail RenderResourceError{"OpenGL cannot allocate a glyph atlas"}
 
                 atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
 
@@ -1831,7 +1837,7 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
                     glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei, atlas.texture.width), cast(GLsizei, atlas.texture.height), 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
                     if glGetError() != GL_NO_ERROR do
-                        Swag.panic("OpenGL cannot initialize a glyph atlas", #curlocation)
+                        fail RenderResourceError{"OpenGL cannot initialize a glyph atlas"}
                 }
                 else
                 {
@@ -1842,7 +1848,7 @@ impl RenderOgl
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, atlas.texture.width))
                     glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint, atlas.dirtyMinX), cast(GLint, atlas.dirtyMinY), cast(GLsizei, (atlas.dirtyMaxX - atlas.dirtyMinX)), cast(GLsizei, (atlas.dirtyMaxY - atlas.dirtyMinY)), fmt, GL_UNSIGNED_BYTE, pixels)
                     if glGetError() != GL_NO_ERROR do
-                        Swag.panic("OpenGL cannot update a glyph atlas", #curlocation)
+                        fail RenderResourceError{"OpenGL cannot update a glyph atlas"}
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
                 }
 
@@ -1851,8 +1857,11 @@ impl RenderOgl
                 if isDF do
                     glGenerateMipmap(GL_TEXTURE_2D)
                 if glGetError() != GL_NO_ERROR do
-                    Swag.panic("OpenGL cannot build glyph atlas mipmaps", #curlocation)
+                    fail RenderResourceError{"OpenGL cannot build glyph atlas mipmaps"}
+                atlas.dirty = false
             }
+
+            cache.dirty = false
 
         case .ResetTexture0:
             if .planarPrevShader
@@ -1972,7 +1981,7 @@ impl RenderOgl
                         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
                         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei, newCapacity), 2, 0, GL_RGBA, GL_FLOAT, null)
                         if glGetError() != GL_NO_ERROR do
-                            Swag.panic("OpenGL cannot allocate gradient stops", #curlocation)
+                            fail RenderResourceError{"OpenGL cannot allocate gradient stops"}
                         .gradientTextureCapacity = newCapacity
                     }
                     else
@@ -1992,7 +2001,7 @@ impl RenderOgl
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
                     if glGetError() != GL_NO_ERROR do
-                        Swag.panic("OpenGL cannot upload gradient stops", #curlocation)
+                        fail RenderResourceError{"OpenGL cannot upload gradient stops"}
                     glActiveTexture(GL_TEXTURE0)
                 }
             }
@@ -2024,6 +2033,8 @@ impl RenderOgl
             me.removeTextureImpl(&texture)
 
         case .BindRenderTarget:
+            if not cmd.renderTgt.tgt.colorBuffer.isValid() do
+                fail RenderResourceError{"OpenGL cannot allocate a painter render target"}
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let curRT = unwrap .curRT
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
@@ -2060,7 +2071,7 @@ impl RenderOgl
                     case .Transform, .StartFont, .StartMsdfFont, .EndFont,
                          .ResetTexture0, .BindTexture0, .ResetTextureFont,
                          .BindTextureFont, .SetFontEffect, .DrawTriangles:
-                        .executeCommand(dc, cmd1, cast(u64, i))
+                        try .executeCommand(dc, cmd1, cast(u64, i))
                     }
                 }
 
@@ -2082,8 +2093,10 @@ impl RenderOgl
 
         case .CaptureBackdrop:
             let capture = &cmd.backdropCapture
-            let size    = .targetSizeImpl()
-            let rect    = capture.rect
+            if not capture.tgt.colorBuffer.isValid() do
+                fail RenderResourceError{"OpenGL cannot allocate a backdrop render target"}
+            let size = .targetSizeImpl()
+            let rect = capture.rect
             .prepareFramebufferTouch()
             glDisable(GL_SCISSOR_TEST)
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, capture.tgt.handle))
@@ -2164,8 +2177,69 @@ impl RenderOgl
     }
 
     // Executes a completed painter command stream.
-    internal mtd drawImpl(dc: *Painter)
+    internal mtd drawImpl(dc: *Painter) fail
     {
+        let previousTarget = .curRT
+        let targetDepth    = .stackRT.count
+        var nextCommand: u64
+        defer #fail
+        {
+            // A failed stream still owns releases after the command that failed. Restore the
+            // caller's target even when a nested layer or coverage-mask pass was interrupted.
+            for cmd in dc.commandBuffer.toSlice()[nextCommand until dc.commandBuffer.count]
+            {
+                if Swag.kindOf(cmd.op) == .ReleaseRenderTarget
+                {
+                    .releaseRenderTargetImpl(cmd.renderTgt.tgt)
+                }
+                elif Swag.kindOf(cmd.op) == .ReleaseTexture
+                {
+                    var texture = cmd.texture0.texture
+                    .removeTextureImpl(&texture)
+                }
+            }
+
+            .stackRT.resize(targetDepth)
+            .curRT           = previousTarget
+            .clipMaskOn      = false
+            .clipMaskWriting = false
+            .alphaReplay     = false
+            .overlapMode     = false
+            .stackClipMaskOn.clear()
+            .rebindCurrentTarget()
+            .clearScissor()
+            while glGetError() != GL_NO_ERROR {}
+        }
+
+        // Attribute an earlier native error to the submission boundary, never to the next
+        // allocation. It is reported to the caller, who must repaint before presenting.
+        if glGetError() != GL_NO_ERROR do
+            fail RenderResourceError{"OpenGL has an error before painter submission"}
+        if .curRT and not .curRT.colorBuffer.isValid() do
+            fail RenderResourceError{"OpenGL cannot allocate the submission render target"}
+
+        var unpackBuffer, alignment, rowLength, skipRows, skipPixels: GLint
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpackBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment)
+        glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowLength)
+        glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skipRows)
+        glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skipPixels)
+        defer
+        {
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, unpackBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, alignment)
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, rowLength)
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, skipRows)
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, skipPixels)
+            for i in 4 do
+                glDisableVertexAttribArray(cast(GLuint, i))
+        }
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         let {width, height} = .targetSizeImpl()
         if width <= 0 or height <= 0 do
             return
@@ -2188,10 +2262,10 @@ impl RenderOgl
         let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
         glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
         if glGetError() != GL_NO_ERROR do
-            Swag.panic("OpenGL cannot allocate the vertex stream", #curlocation)
+            fail RenderResourceError{"OpenGL cannot allocate the vertex stream"}
         glBufferSubData(GL_ARRAY_BUFFER, 0, byteSize, dc.vertexBuffer.buffer)
         if glGetError() != GL_NO_ERROR do
-            Swag.panic("OpenGL cannot upload the vertex stream", #curlocation)
+            fail RenderResourceError{"OpenGL cannot upload the vertex stream"}
 
         // Default shader; a planar picture drawn last in the previous submission no longer
         // holds a program to restore.
@@ -2220,12 +2294,14 @@ impl RenderOgl
 
         for i in 4 do
             glEnableVertexAttribArray(cast(GLuint, i))
-        for cmd, cmdIdx in dc.commandBuffer do
-            .executeCommand(dc, cmd, cmdIdx)
+        for cmd, cmdIdx in dc.commandBuffer
+        {
+            try .executeCommand(dc, cmd, cmdIdx)
+            nextCommand = cmdIdx + 1
+        }
+
         if glGetError() != GL_NO_ERROR do
-            Swag.panic("OpenGL cannot complete the painter commands", #curlocation)
-        for i in 4 do
-            glDisableVertexAttribArray(cast(GLuint, i))
+            fail RenderResourceError{"OpenGL cannot complete the painter commands"}
         .finishAdvancedBlendPass()
     }
 
@@ -2268,7 +2344,7 @@ impl RenderOgl
     // recently used entry back rather than keeping a full-target texture for every size the
     // window ever passed through. The mask in force is never the one reused: the region being
     // drawn still samples it.
-    private mtd clipMaskFor(width, height: s32)->s32
+    private mtd clipMaskFor(width, height: s32)->s32 fail
     {
         .clipMaskClock += 1
 
@@ -2299,22 +2375,23 @@ impl RenderOgl
         mask.texture = .createPlaneTexture(width, height)
         glActiveTexture(GL_TEXTURE0)
         if not mask.texture do
-            Swag.panic("OpenGL cannot allocate a clipping mask", #curlocation)
+            fail RenderResourceError{"OpenGL cannot allocate a clipping mask"}
         glGenFramebuffers(1, &mask.framebuffer)
         let framebufferNameError = glGetError()
         if not mask.framebuffer or framebufferNameError != GL_NO_ERROR
         {
             .releaseClipMask(&mask)
-            Swag.panic("OpenGL cannot allocate a clipping framebuffer", #curlocation)
+            fail RenderResourceError{"OpenGL cannot allocate a clipping framebuffer"}
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mask.texture, 0)
         let status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-        if status != GL_FRAMEBUFFER_COMPLETE or glGetError() != GL_NO_ERROR
+        let attachmentError = glGetError()
+        if status != GL_FRAMEBUFFER_COMPLETE or attachmentError != GL_NO_ERROR
         {
             .releaseClipMask(&mask)
-            Swag.panic("OpenGL cannot complete a clipping framebuffer", #curlocation)
+            fail RenderResourceError{"OpenGL cannot complete a clipping framebuffer"}
         }
 
         if reuse >= 0
@@ -2428,12 +2505,6 @@ impl RenderOgl
 
         var rt = Memory.new'RenderTarget()
         rt[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
-        if not rt.colorBuffer.isValid()
-        {
-            Memory.delete(rt)
-            Swag.panic("OpenGL cannot allocate a pooled render target", #curlocation)
-        }
-
         return rt
     }
 
@@ -2442,6 +2513,12 @@ impl RenderOgl
     {
         if not tgt do
             return
+        if not tgt.colorBuffer.isValid()
+        {
+            Memory.delete(tgt)
+            return
+        }
+
         tgt.poolUsed = true
         .stackReleasedRT.add(tgt)
     }

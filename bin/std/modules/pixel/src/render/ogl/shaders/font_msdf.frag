@@ -39,11 +39,29 @@ float median(float a, float b, float c)
     return max(min(a, b), min(max(a, b), c));
 }
 
+// Interpolate distance fields in floating point: low-precision normalized texture
+// filtering can amplify coverage and bevel errors after the distance-range scaling.
+vec4 sampleDistanceField(vec2 uv)
+{
+    ivec2 size = textureSize(inTexture1, 0);
+    vec2 p = clamp(uv, vec2(0.0), vec2(1.0)) * vec2(size) - 0.5;
+    ivec2 lo = ivec2(floor(p));
+    ivec2 hi = lo + ivec2(1);
+    vec2 t = fract(p);
+    lo = clamp(lo, ivec2(0), size - ivec2(1));
+    hi = clamp(hi, ivec2(0), size - ivec2(1));
+    vec4 a = texelFetch(inTexture1, lo, 0);
+    vec4 b = texelFetch(inTexture1, ivec2(hi.x, lo.y), 0);
+    vec4 c = texelFetch(inTexture1, ivec2(lo.x, hi.y), 0);
+    vec4 d = texelFetch(inTexture1, hi, 0);
+    return mix(mix(a, b, t.x), mix(c, d, t.x), t.y);
+}
+
 // Coverage at one sample for a given edge threshold. 'aa' (>=1) is the transition
 // width in screen pixels; aa = 1 keeps the analytic ~1px crisp edge.
 float coverageAt(vec2 uv, float screenPxRange, float edge, float aa)
 {
-    vec3  msd = texture(inTexture1, uv).rgb;
+    vec3  msd = sampleDistanceField(uv).rgb;
     float sd  = median(msd.r, msd.g, msd.b);
     return clamp((sd - edge) * screenPxRange / aa + 0.5, 0.0, 1.0);
 }
@@ -85,7 +103,7 @@ void main()
     // MTSDF: the RGB median keeps the face corners sharp, but its sub-edge field has
     // corner-ray artifacts. The alpha channel is a true single-channel SDF: smooth and
     // ray-free, so the outer effects (outline outer edge, glow, soft shadow) use it.
-    vec4  msd = texture(inTexture1, vuv1);
+    vec4  msd = sampleDistanceField(vuv1);
     float sdM = median(msd.r, msd.g, msd.b);
     float sdT = msd.a;
 
@@ -108,8 +126,8 @@ void main()
     {
         // Sample forward in the painter's right/down axes. Quad derivatives reverse the
         // vertical light and alternate the sampled pair between neighboring fragments.
-        vec2  grad     = vec2(texture(inTexture1, vuv1 + dFdx(vuv1)).a - sdT,
-                              texture(inTexture1, vuv1 - dFdy(vuv1)).a - sdT);
+        vec2  grad     = vec2(sampleDistanceField(vuv1 + dFdx(vuv1)).a - sdT,
+                              sampleDistanceField(vuv1 - dFdy(vuv1)).a - sdT);
         float gmag     = length(grad);
         float ref      = 1.0 / screenPxRange;
         float strength = smoothstep(0.0, 0.6 * ref, gmag);

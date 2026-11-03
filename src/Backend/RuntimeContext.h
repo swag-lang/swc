@@ -80,6 +80,7 @@ namespace Runtime
         uint32_t panicStackCount;
         void*    panicCatch;
         void*    cancelScope;
+        bool (*testCheck)(String, SourceCodeLocation);
     };
 }
 

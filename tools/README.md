@@ -117,9 +117,11 @@ The sandbox workspace fixture runs in JIT; the dynamic-library consumer first bu
 fixture and receives its absolute path. The script fixture checks its expected output marker.
 
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
-folder. It isolates caches with `TMPDIR`, forces rebuilds and caps compiler/runtime workers at
-three. Each compiler invocation has a fresh load-admission check and a 900-second timeout
-(`--timeout` overrides it). Timeout cleanup stops the owned process group, including subprocesses.
+folder. It isolates caches with `TMPDIR` and caps compiler/runtime workers at three.
+Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
+Each compiler invocation has a fresh load-admission check and a 900-second timeout
+(`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native
+tests that create separate sessions.
 Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
 on success or failure. `--output-dir` must not exist and must be outside the checkout. Without
 it, a new temporary directory is retained. `--keep-going` continues independent stages after

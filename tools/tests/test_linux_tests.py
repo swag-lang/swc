@@ -4,10 +4,13 @@ from argparse import Namespace
 from contextlib import redirect_stdout
 import io
 import json
+import os
+import signal
 from pathlib import Path
 import runpy
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -77,10 +80,43 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertGreater(stage.command.index('--test-jit'), stage.command.index('--no-test-jit'))
         self.assertNotIn('--no-test-native', stage.command)
 
-    def run_stage(self, code, **options):
+    def run_stage(self, code, timeout=5, **options):
         stage = RUNNER['Stage']('probe', [sys.executable, '-c', code], **options)
         with redirect_stdout(io.StringIO()):
-            return RUNNER['run_stage'](stage, self.root, {}, 5, [sys.executable, '-c', 'pass'])
+            return RUNNER['run_stage'](stage, self.root, {}, timeout, [sys.executable, '-c', 'pass'])
+
+    @unittest.skipUnless(sys.platform == "linux", "Linux process-tree cleanup")
+    def test_timeout_stops_detached_native_child(self):
+        pid_file = self.root / 'child.pid'
+        child = 'import time; time.sleep(60)'
+        code = (f'import subprocess, sys, time; from pathlib import Path; '
+                f'p = subprocess.Popen([sys.executable, "-c", {child!r}], start_new_session=True); '
+                f'Path({str(pid_file)!r}).write_text(str(p.pid)); time.sleep(60)')
+        try:
+            result = self.run_stage(code, timeout=1)
+            self.assertEqual(result['status'], 'timeout')
+            self.assertEqual(result['returncode'], 124)
+            pid = int(pid_file.read_text())
+            status = Path(f'/proc/{pid}/status')
+            deadline = time.monotonic() + 2
+            while status.exists():
+                state = next(line.split()[1] for line in status.read_text().splitlines() if line.startswith('State:'))
+                if state in ('Z', 'X'):
+                    break
+                self.assertLess(time.monotonic(), deadline, 'detached child survived the timeout')
+                time.sleep(0.01)
+        finally:
+            if pid_file.exists():
+                try:
+                    os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def test_campaign_reuses_only_its_isolated_dependencies(self):
+        stage, = self.plan('std')
+        self.assertNotIn('--rebuild', stage.command)
+        focused, = self.plan('std', module='core')
+        self.assertIn('--rebuild', focused.command)
 
     def test_nonzero_status_preserves_log_and_fails(self):
         result = self.run_stage('print("fixture failure"); raise SystemExit(7)')

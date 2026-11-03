@@ -26,7 +26,12 @@ def plan(args, scratch, compiler, dev_compiler):
     suites = COMPILER_SUITES if args.suite in ('all', 'compiler') else (args.suite,)
     if args.suite == 'all':
         suites += WORKSPACES
-    common = ['--build-cfg', args.build_cfg, '--rebuild']
+    common = ['--build-cfg', args.build_cfg]
+    # Every campaign starts from a new immutable snapshot. Reuse its dependencies
+    # between stages instead of rebuilding the GUI for every example and application.
+    campaign = args.suite in ('all', 'compiler') or (args.suite in WORKSPACES and not args.module)
+    if not campaign:
+        common.append('--rebuild')
     filters = [arg for value in args.test_file for arg in ('--test-file', value)]
     filters += [arg for value in args.test_tag for arg in ('--test-tag', value)]
     for suite in suites:
@@ -63,6 +68,59 @@ def plan(args, scratch, compiler, dev_compiler):
     return stages
 
 
+def stop_process_tree(pid):
+    """Freeze parents before finding children, then kill even detached descendants."""
+    handles = []
+
+    def freeze(current, parent=None):
+        try:
+            handle = os.pidfd_open(current)
+        except ProcessLookupError:
+            return
+        if parent is not None:
+            try:
+                actual_parent = int(Path(f'/proc/{current}/stat').read_text().rpartition(')')[2].split()[1])
+            except FileNotFoundError:
+                actual_parent = None
+            if actual_parent != parent:
+                os.close(handle)
+                return
+        handles.append(handle)
+        try:
+            signal.pidfd_send_signal(handle, signal.SIGSTOP)
+            # Wait until no thread can fork another child or reap and recycle a child PID.
+            while True:
+                status = Path(f'/proc/{current}/status').read_text()
+                state = next(line.split()[1] for line in status.splitlines() if line.startswith('State:'))
+                if state in ('T', 't', 'Z', 'X'):
+                    break
+                time.sleep(0.01)
+            # task/*/children is optional in Linux kernels; stat always exposes the parent.
+            for entry in Path('/proc').iterdir():
+                if not entry.name.isdecimal():
+                    continue
+                try:
+                    parent_pid = int((entry / 'stat').read_text().rpartition(')')[2].split()[1])
+                except FileNotFoundError:
+                    continue
+                if parent_pid == current:
+                    freeze(int(entry.name), current)
+        except (ProcessLookupError, FileNotFoundError):
+            pass
+
+    try:
+        freeze(pid)
+    finally:
+        # Never leave a frozen process behind, including when discovery fails.
+        for handle in reversed(handles):
+            try:
+                signal.pidfd_send_signal(handle, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            finally:
+                os.close(handle)
+
+
 def run_stage(stage, scratch, environment, timeout, admission):
     log = scratch / 'logs' / (stage.name + '.log')
     print(f'RUN {stage.name} (log: {log})', flush=True)
@@ -82,8 +140,8 @@ def run_stage(stage, scratch, environment, timeout, admission):
         try:
             code = process.wait(timeout=timeout)
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
-            # Tests can spawn compilers and native executables; stop the whole owned group.
-            os.killpg(process.pid, signal.SIGKILL)
+            # Native tests create their own sessions, so killing one process group is insufficient.
+            stop_process_tree(process.pid)
             process.wait()
             if sys.exc_info()[0] is KeyboardInterrupt:
                 raise

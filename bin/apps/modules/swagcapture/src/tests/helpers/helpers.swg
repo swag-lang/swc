@@ -395,4 +395,3 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     f.main.quickWnd.setDefault()
     return f.main.propWnd
 }
-

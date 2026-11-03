@@ -88,7 +88,7 @@ rendering; physical GPU coverage is separate. Core, Ogl, TrueType and Pixel buil
 GUI integration runs under Xvfb/Openbox with a compositor. Capture, Scope and Vault pass native graphical smokes;
 complete application workflows and physical desktop/GPU validation remain.
 
-## Linux compiler and standard-module suites
+## Isolated Linux test campaigns
 
 ```sh
 python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
@@ -100,26 +100,49 @@ python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
 
-The launcher stages the selected executable and this checkout's runtime in an external temporary
-folder, isolates caches with `TMPDIR`, and removes the staging folder afterwards. Each invocation
-has its own load-admission check, three compiler workers and a 180-second timeout (`--timeout`
-overrides it). Lexer/parser suites include their expected-error inputs. The native suite runs
-JIT and native tests by default; `--execution jit` or `--execution native` selects one path.
-`--file-filter` narrows standalone source inputs. Source suites force a rebuild in their isolated
-cache; the native suite uses the default host target. The C++ suite requires
-DevMode; add `--dev-full` to include its filesystem tests. The Linux DevMode full C++ suite
-passes 1,780 tests as of 2026-11-03, including ELF linking, native ABI, runtime stack/symbol boundaries and module-publication cases.
-The native language suite passes 4,047 tests in each execution mode.
-The `dynamic-library` boundary stages Core and the existing runtime-context workspace fixtures.
-It builds a shared library and tests native context sharing, initialization, repeated loads,
-final-close destruction and reloading through `Core.NativeLibrary`.
-The `std` suite copies the standard workspace, including module fixtures and resources, and tests
-one `--module` with executable output. It runs JIT and native tests by default; `--execution`
-selects either path. Repeat `--test-file` to select module test files while retaining the complete
-implementation, and use `--test-tag` for an opt-in integration family. External requirements such
-as an X11 display still need to be supplied. Set the launcher's `TMPDIR` to an existing external
-disk directory when the system temporary directory is memory-backed and space is limited.
-These focused selections do not establish complete Linux support for every `bin/` module.
+To run the complete campaign, provide both compiler executables. The C++ stage uses DevMode;
+all other stages use the selected main compiler (Release is recommended for applications):
+
+```sh
+python3 tools/linux-tests.py all --compiler /absolute/build/release/swc \
+  --dev-compiler /absolute/build/devmode/swc.dm \
+  --output-dir /absolute/scratch/linux-tests --keep-going
+```
+
+`all` runs the portability check, C++ filesystem tests, lexer/parser/sema normal and error inputs,
+JIT, safety, sanity, native, every compiler workspace fixture, and every module in std, examples,
+apps and reference. `compiler` selects only the compiler suites and workspace fixtures.
+The command builders are shared with `tool.py` and the Windows batch entry points.
+The sandbox workspace fixture runs in JIT; the dynamic-library consumer first builds its shared
+fixture and receives its absolute path. The script fixture checks its expected output marker.
+
+The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
+folder. It isolates caches with `TMPDIR`, forces rebuilds and caps compiler/runtime workers at
+three. Each compiler invocation has a fresh load-admission check and a 900-second timeout
+(`--timeout` overrides it). Timeout cleanup stops the owned process group, including subprocesses.
+Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
+on success or failure. `--output-dir` must not exist and must be outside the checkout. Without
+it, a new temporary directory is retained. `--keep-going` continues independent stages after
+errors; a dependent stage whose prerequisite failed is reported as blocked. Any failure, timeout,
+blocked stage or unfinished campaign returns a nonzero status. `--dry-run` records the plan
+without executing tests.
+
+`std`, `examples`, `apps`, `reference` and `workspace` accept an optional `--module`.
+Repeat `--test-file` or `--test-tag` to select tests without dropping implementation files.
+`--file-filter` narrows standalone compiler-suite inputs. `--build-cfg` selects the program
+configuration independently of the compiler executable. Standard/application campaigns run
+native tests; examples, reference and the native language suite run both execution modes.
+For compatibility, a focused `std --module` runs both modes by default. `--execution` overrides
+these defaults. The focused `cpp` suite requires DevMode; add `--dev-full` for filesystem tests.
+`dynamic-library` selects just shared-library preparation and its native consumer.
+
+As on Windows, ordinary campaigns include functional, golden and stress cases; `integration.*`
+tags are opt-in. Select those explicitly with `--test-tag` and supply their external services or
+hardware. Platform guards restrict native API tests to their owning operating system.
+Golden failures are never promoted or ignored; `SWAG_GOLDEN_CONTINUE=1` is rejected.
+GUI and GPU-backed golden cases need an X11 display and the libraries described above.
+Set the launcher's `TMPDIR` to an external disk directory if the system temporary directory is
+memory-backed. A runnable campaign does not imply every Linux test currently passes.
 
 The Linux desktop-registration integration is native-only because its peer is the generated
 executable. It uses private XDG directories and needs GIO, `gio`, `/usr/bin/env`, `chmod` and

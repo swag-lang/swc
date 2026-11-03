@@ -1,136 +1,204 @@
-"""Run focused compiler and standard-module tests on Linux with isolated resources and caches."""
+"""Run Linux compiler suites or the complete repository test campaign."""
 
 import argparse
+import json
 import os
 from pathlib import Path
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
+
+
+from tool import (SOURCE_SUITES, WORKSPACES, COMPILER_SUITES, Stage, cpp_stage,
+                  module_names, module_stage, portability_check, source_stages, workspace_stages)
+
+
+SUITES = ('all', 'compiler', *COMPILER_SUITES, *WORKSPACES, 'dynamic-library')
+
+
+def plan(args, scratch, compiler, dev_compiler):
+    """Use the same command builders as the Windows launchers, in an isolated tree."""
+    stages = []
+    suites = COMPILER_SUITES if args.suite in ('all', 'compiler') else (args.suite,)
+    if args.suite == 'all':
+        suites += WORKSPACES
+    common = ['--build-cfg', args.build_cfg, '--rebuild']
+    filters = [arg for value in args.test_file for arg in ('--test-file', value)]
+    filters += [arg for value in args.test_tag for arg in ('--test-tag', value)]
+    for suite in suites:
+        if suite == 'cpp':
+            stages.append(cpp_stage(dev_compiler or compiler, ['--verbose-unittest'],
+                                    full=args.dev_full or args.suite in ('all', 'compiler')))
+        elif suite in SOURCE_SUITES:
+            options = common.copy()
+            if args.file_filter:
+                options += ['--file-filter', args.file_filter]
+            if args.execution == 'jit':
+                options.append('--no-test-native')
+            elif args.execution == 'native':
+                options.append('--no-test-jit')
+            stages += source_stages(compiler, scratch, suite, options, output_root=scratch)
+        elif suite in ('workspace', 'dynamic-library'):
+            modules = [args.module] if args.module else None
+            if suite == 'dynamic-library':
+                modules = ['runtime_context_dynamic_consumer']
+            stages += workspace_stages(compiler, scratch, [*common, *filters], modules=modules,
+                                       script=suite == 'workspace' and not args.module)
+        else:
+            modules = [args.module] if args.module else module_names(scratch / suite)
+            for module in modules:
+                options = [*common, *filters]
+                mode = args.execution or ('both' if args.module and suite == 'std' else 'native' if suite in ('std', 'apps') else 'both')
+                if mode == 'jit':
+                    options += ['--test-jit', '--no-test-native']
+                elif mode == 'native':
+                    options += ['--no-test-jit']
+                elif suite in ('std', 'apps'):
+                    options += ['--test-jit']
+                stages.append(module_stage(compiler, scratch, suite, 'test', module, options, child_compiler=True))
+    return stages
+
+
+def run_stage(stage, scratch, environment, timeout, admission):
+    log = scratch / 'logs' / (stage.name + '.log')
+    print(f'RUN {stage.name} (log: {log})', flush=True)
+    while True:
+        status = subprocess.run(admission, check=False).returncode
+        if status == 0:
+            break
+        if status != 2:
+            raise RuntimeError('cannot measure build and test admission')
+        print('Waiting for build and test admission.', flush=True)
+        time.sleep(5)
+    start = time.monotonic()
+    state = 'passed'
+    with log.open('wb') as output:
+        process = subprocess.Popen(stage.command, cwd=scratch, env=environment,
+                                   stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            code = process.wait(timeout=timeout)
+        except (subprocess.TimeoutExpired, KeyboardInterrupt):
+            # Tests can spawn compilers and native executables; stop the whole owned group.
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait()
+            if sys.exc_info()[0] is KeyboardInterrupt:
+                raise
+            code, state = 124, 'timeout'
+    content = log.read_text(errors='replace')
+    if code != 0:
+        state = 'failed' if state == 'passed' else state
+    elif stage.expected_output and stage.expected_output not in content:
+        code, state = 1, 'missing-output'
+    result = dict(name=stage.name, status=state, returncode=code,
+                  seconds=round(time.monotonic() - start, 2), log=str(log), command=stage.command)
+    print(f'{state.upper()} {stage.name} ({result["seconds"]}s)', flush=True)
+    if state != 'passed':
+        print('\n'.join(content.splitlines()[-35:]), flush=True)
+    return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('suite', choices=('cpp', 'lexer', 'parser', 'native', 'std', 'dynamic-library'))
-    parser.add_argument('--compiler', required=True, type=Path, help='built Linux compiler executable')
-    parser.add_argument('--dev-full', action='store_true', help='include filesystem tests and extra IR/native validation in the C++ suite')
-    parser.add_argument('--execution', choices=('both', 'jit', 'native'), help='native or std suite execution mode (default: both)')
-    parser.add_argument('--file-filter', help='select standalone source files whose path contains this text')
-    parser.add_argument('--module', help='standard module to test with the std suite')
-    parser.add_argument('--test-file', action='append', default=[], help='select module test source paths without dropping implementation files')
-    parser.add_argument('--test-tag', action='append', default=[], help='select module tests by tag, including opt-in integrations')
-    parser.add_argument('--timeout', type=int, default=180, help='maximum seconds per compiler invocation')
+    parser.add_argument('suite', choices=SUITES)
+    parser.add_argument('--compiler', required=True, type=Path, help='Linux compiler executable; use Release for applications')
+    parser.add_argument('--dev-compiler', type=Path, help='DevMode compiler for the C++ stage; required by all and compiler')
+    parser.add_argument('--dev-full', action='store_true', help='include filesystem C++ tests (automatic in all and compiler)')
+    parser.add_argument('--execution', choices=('both', 'jit', 'native'))
+    parser.add_argument('--build-cfg', choices=('devmode', 'release'), default='devmode')
+    parser.add_argument('--file-filter', help='select standalone compiler source inputs')
+    parser.add_argument('--module', help='select one workspace module')
+    parser.add_argument('--test-file', action='append', default=[])
+    parser.add_argument('--test-tag', action='append', default=[])
+    parser.add_argument('--timeout', type=int, default=900, help='seconds per compiler invocation (default: 900)')
+    parser.add_argument('--output-dir', type=Path, help='new external directory for sources, caches, logs and report; retained after the run')
+    parser.add_argument('--keep-going', action='store_true', help='continue independent stages after an error')
+    parser.add_argument('--dry-run', action='store_true', help='stage inputs and write the command plan without executing tests')
     args = parser.parse_args()
+    root = Path(__file__).resolve().parent.parent
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
         parser.error('the test host must be Linux x86-64')
     if args.timeout <= 0:
-        parser.error('--timeout must be positive')
+        parser.error('--timeout needs a positive number of seconds')
+    if args.suite in ('all', 'compiler') and not args.dev_compiler:
+        parser.error('--dev-compiler is required to include the C++ tests')
     if args.dev_full and args.suite != 'cpp':
-        parser.error('--dev-full only applies to the C++ suite')
-    if args.execution and args.suite not in ('native', 'std'):
-        parser.error('--execution only applies to the native and std suites')
-    if args.suite == 'std':
-        if not args.module or Path(args.module).name != args.module or args.module in ('.', '..'):
-            parser.error('--module must name one standard module for the std suite')
-    elif args.module or args.test_file or args.test_tag:
-        parser.error('--module, --test-file and --test-tag only apply to the std suite')
-    if args.file_filter is not None and (args.suite in ('cpp', 'std', 'dynamic-library') or not args.file_filter):
-        parser.error('--file-filter requires a nonempty source-suite filter')
+        parser.error('--dev-full only applies to cpp; all and compiler already include it')
+    if args.execution and args.suite not in ('native', *WORKSPACES):
+        parser.error('--execution only applies to native or a bin workspace')
+    if (args.module or args.test_file or args.test_tag) and args.suite not in (*WORKSPACES, 'workspace'):
+        parser.error('--module, --test-file and --test-tag need a workspace suite')
+    if args.file_filter is not None and (args.suite not in SOURCE_SUITES or not args.file_filter):
+        parser.error('--file-filter needs a nonempty standalone source-suite filter')
+    if args.module:
+        directory = root / 'bin' / ('unittests/workspace' if args.suite == 'workspace' else args.suite)
+        if Path(args.module).name != args.module or args.module in ('.', '..') or not (directory / 'modules' / args.module / 'module.swg').is_file():
+            parser.error('--module needs an existing module in the selected workspace')
+    for executable in (args.compiler, args.dev_compiler):
+        if executable and (not executable.is_file() or not os.access(executable, os.X_OK)):
+            parser.error(f'compiler is not executable: {executable}')
+    if args.output_dir:
+        scratch = args.output_dir.resolve()
+        if scratch == root or root in scratch.parents:
+            parser.error('--output-dir needs a directory outside the checkout')
+        if scratch.exists():
+            parser.error('--output-dir already exists; select a new directory')
+        scratch.mkdir(parents=True)
+    else:
+        scratch = Path(tempfile.mkdtemp(prefix='swc-linux-tests-')).resolve()
+    print(f'Test artifacts: {scratch}', flush=True)
     import resource
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    compiler = args.compiler.resolve()
-    if not compiler.is_file() or not os.access(compiler, os.X_OK):
-        parser.error('--compiler must name an executable file')
-
-    root = Path(__file__).resolve().parent.parent
-    if args.suite == 'std' and not (root / 'bin/std/modules' / args.module / 'module.swg').is_file():
-        parser.error('--module must name an existing standard module')
+    compiler = scratch / 'swc'
+    shutil.copy2(args.compiler.resolve(), compiler)
+    dev_compiler = None
+    if args.dev_compiler:
+        dev_compiler = scratch / 'swc.dm'
+        shutil.copy2(args.dev_compiler.resolve(), dev_compiler)
+    # Keep the installed bin layout, including data and golden fixtures. Exclude only
+    # generated workspace output and caches; never select a subset of source files.
+    for name in ('runtime', 'unittests', 'std', *(WORKSPACES[1:] if args.suite == 'all' else (args.suite,) if args.suite in WORKSPACES[1:] else ())):
+        shutil.copytree(root / 'bin' / name, scratch / name, ignore=shutil.ignore_patterns('.output', '.tmp'))
+    (scratch / 'temp').mkdir()
+    (scratch / 'logs').mkdir()
+    environment = os.environ.copy()
+    environment.update(TMPDIR=str(scratch / 'temp'), SWAG_PATH=str(scratch), SWAG_RUNTIME_THREADS='3')
+    if environment.get('SWAG_GOLDEN_CONTINUE') == '1':
+        parser.error('SWAG_GOLDEN_CONTINUE=1 hides golden failures; unset it before running tests')
+    if args.suite == 'all':
+        portability_check(root)
+    stages = plan(args, scratch, compiler, dev_compiler)
+    (scratch / 'plan.json').write_text(json.dumps([vars(stage) for stage in stages], indent=2) + '\n')
+    if args.dry_run:
+        print(f'Planned {len(stages)} stages; no tests executed.', flush=True)
+        return 0
     admission = [sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
-    # Stage the executable together with this checkout's runtime. Neither its
-    # original installation nor another checkout supplies resources or caches.
-    with tempfile.TemporaryDirectory(prefix='swc-linux-tests-') as directory:
-        scratch = Path(directory).resolve()
-        staged_compiler = scratch / compiler.name
-        shutil.copy2(compiler, staged_compiler)
-        shutil.copytree(root / 'bin/runtime', scratch / 'runtime')
-        if args.suite == 'cpp' and args.dev_full:
-            # Native fixture subprocesses resolve installed test inputs beside the executable.
-            shutil.copytree(root / 'bin/unittests', scratch / 'unittests')
-            # JIT lifecycle fixtures exercise module-owned native threads through Core.
-            for module in ('core', 'linux'):
-                shutil.copytree(root / 'bin/std/modules' / module, scratch / 'std/modules' / module)
-        temporary = scratch / 'temp'
-        temporary.mkdir()
-        environment = os.environ.copy()
-        environment['TMPDIR'] = str(temporary)
-        environment['SWAG_PATH'] = str(scratch)
-        environment.setdefault('SWAG_RUNTIME_THREADS', '3')
-
-        if args.suite == 'cpp':
-            commands = [['unittest', '--num-cores', '3', '--verbose-unittest']]
-            if args.dev_full:
-                commands[0].append('--dev-full')
-        elif args.suite == 'std':
-            # Copy the workspace so module data, relative fixtures and dependencies
-            # retain their layout without writing outputs into the source checkout.
-            workspace = scratch / 'std'
-            shutil.copytree(root / 'bin/std/modules', workspace / 'modules')
-            command = ['test', '--workspace', str(workspace), '--workspace-module', args.module,
-                       '--artifact-kind', 'executable', '--num-cores', '3', '--rebuild']
-            for path in args.test_file:
-                command += ['--test-file', path]
-            for tag in args.test_tag:
-                command += ['--test-tag', tag]
-            if args.execution == 'jit':
-                command.append('--no-test-native')
-            elif args.execution == 'native':
-                command.append('--no-test-jit')
-            commands = [command]
-        elif args.suite == 'dynamic-library':
-            workspace = scratch / 'workspace'
-            for module in ('runtime_context_dynamic_dll', 'runtime_context_dynamic_consumer'):
-                shutil.copytree(root / 'bin/unittests/workspace/modules' / module, workspace / 'modules' / module)
-            for module in ('core', 'linux'):
-                shutil.copytree(root / 'bin/std/modules' / module, scratch / 'std/modules' / module)
-            library = workspace / '.output/runtime_context_dynamic_dll/shared-library/devmode/x86_64/runtime_context_dynamic_dll.so'
-            common = ['--workspace', str(workspace), '--num-cores', '3', '--rebuild']
-            commands = [
-                ['build', *common, '--workspace-module', 'runtime_context_dynamic_dll'],
-                ['test', *common, '--workspace-module', 'runtime_context_dynamic_consumer',
-                 '--no-test-jit', '--run-arg=--dynamic-runtime-library=' + str(library)],
-            ]
+    results = []
+    passed = set()
+    for stage in stages:
+        if any(name not in passed for name in stage.requires):
+            result = dict(name=stage.name, status='blocked', requires=stage.requires)
+            print(f'BLOCKED {stage.name}: prerequisite did not pass', flush=True)
         else:
-            stages = {'lexer': ['--lex-only'], 'parser': ['--syntax-only'], 'native': []}
-            directories = [args.suite] if args.suite == 'native' else [args.suite, 'errors/' + args.suite]
-            commands = []
-            for directory in directories:
-                commands.append([
-                    'test', '--directory', str(root / 'bin/unittests' / directory),
-                    '--module-namespace', args.suite.capitalize(), '--artifact-kind', 'executable',
-                    '--num-cores', '3', '--rebuild', *stages[args.suite], '--out-dir', str(scratch / 'out' / directory),
-                    '--work-dir', str(scratch / 'work' / directory),
-                ])
-
-            for command in commands:
-                if args.file_filter:
-                    command += ['--file-filter', args.file_filter]
-                if args.execution == 'jit':
-                    command.append('--no-test-native')
-                elif args.execution == 'native':
-                    command.append('--no-test-jit')
-
-        for command in commands:
-            subprocess.run(admission, check=True)
-            subprocess.run([str(staged_compiler), *command], cwd=scratch, env=environment, check=True, timeout=args.timeout)
-    return 0
+            result = run_stage(stage, scratch, environment, args.timeout, admission)
+        results.append(result)
+        if result['status'] == 'passed':
+            passed.add(stage.name)
+        report = dict(suite=args.suite, planned=len(stages), passed=len(passed), results=results,
+                      complete=len(results) == len(stages))
+        (scratch / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+        if result['status'] != 'passed' and not args.keep_going:
+            break
+    print(f'{len(passed)}/{len(stages)} stages passed; report: {scratch / "report.json"}', flush=True)
+    return 0 if len(passed) == len(stages) else 1
 
 
 if __name__ == '__main__':
     try:
         raise SystemExit(main())
-    except subprocess.CalledProcessError as error:
-        raise SystemExit(error.returncode if error.returncode >= 0 else 128 - error.returncode)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        print(f'cannot complete Linux compiler tests: {error}', file=sys.stderr)
+    except (OSError, RuntimeError) as error:
+        print(f'cannot complete Linux tests: {error}', file=sys.stderr)
         raise SystemExit(1)

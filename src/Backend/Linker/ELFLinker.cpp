@@ -1,12 +1,15 @@
 #include "pch.h"
 #include "Backend/Linker/ELFLinker.h"
+#include "Backend/Linker/ELFObjectWriter.h"
 #include "Backend/Linker/ELFSymbolTable.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeElfFunctionCache.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 
@@ -207,16 +210,24 @@ namespace
 
 Result ELFLinker::prepareLink(LinkJob& outJob)
 {
-    outJob = {};
-    outJob.targetOs = Runtime::TargetOs::Linux;
+    outJob            = {};
+    outJob.targetOs   = Runtime::TargetOs::Linux;
     outJob.outputPath = fs::absolute(builder_->artifactPath);
-    outJob.buildDir = fs::absolute(builder_->buildDir);
-    const auto kind = builder_->compiler().buildCfg().backendKind;
-    outJob.output = kind == Runtime::BuildCfgBackendKind::StaticLibrary ? LinkJob::Output::StaticLibrary :
-                   kind == Runtime::BuildCfgBackendKind::SharedLibrary ? LinkJob::Output::SharedLibrary : LinkJob::Output::Executable;
+    outJob.buildDir   = fs::absolute(builder_->buildDir);
+    const auto kind   = builder_->compiler().buildCfg().backendKind;
+    outJob.output     = kind == Runtime::BuildCfgBackendKind::StaticLibrary ? LinkJob::Output::StaticLibrary : kind == Runtime::BuildCfgBackendKind::SharedLibrary ? LinkJob::Output::SharedLibrary
+                                                                                                                                                                   : LinkJob::Output::Executable;
     if (kind != Runtime::BuildCfgBackendKind::StaticLibrary)
         SWC_RESULT(builder_->buildObjectBytes());
     takeObjects(outJob.archiveMembers, *builder_);
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        if (!info.cacheHit)
+            continue;
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        SWC_ASSERT(record && record->hit);
+        outJob.archiveMembers.push_back({.name = std::format("cached_function_{:06}.o", outJob.archiveMembers.size()), .bytes = record->objectBytes});
+    }
     if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
     {
         const Utf8 scope = nativeArtifactScopeName(builder_->compiler());
@@ -285,13 +296,50 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
             outJob.staticLibraryPath = fs::absolute(paths.staticLibraryPath);
         }
     }
+    return prepareFunctionCache(outJob);
+}
+
+Result ELFLinker::prepareFunctionCache(LinkJob& job) const
+{
+    if (!builder_->functionCacheEnabled())
+        return Result::Continue;
+    const NativeArtifactBuilder artifacts(*builder_);
+    SWC_RESULT(artifacts.partitionIncrementalFunctionObjects());
+    SWC_RESULT(builder_->buildObjectBytes());
+
+    std::unordered_map<const SymbolFunction*, const ByteArray*> generated;
+    for (const NativeObjDescription& object : builder_->objectDescriptions)
+    {
+        SWC_ASSERT(object.functions.size() == 1);
+        generated.emplace(object.functions.front()->symbol, &object.objBytes);
+    }
+    std::vector<NativeElfCachedFunction> entries;
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        if (!record)
+            continue;
+        const ByteArray* bytes = record->hit ? &record->objectBytes : nullptr;
+        if (!bytes)
+        {
+            const auto found = generated.find(info.symbol);
+            if (found != generated.end())
+                bytes = found->second;
+        }
+        if (!bytes || !isSelfContainedElfObject(bytes->span(), info.symbolName.view()))
+            continue;
+        entries.push_back({.key = record->key.view(), .fingerprint = record->fingerprint.view(), .symbolName = info.symbolName.view(), .callClobbers = info.symbol->callClobbers(), .objectBytes = bytes->span()});
+    }
+    ByteArray bytes;
+    if (NativeElfFunctionCache(compilerCacheIdentity()).build(bytes, entries))
+        job.incrementalCacheFiles.push_back({.path = builder_->functionCacheArchivePath(), .bytes = std::move(bytes)});
     return Result::Continue;
 }
 
 Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob&, std::span<const fs::path>, std::span<const Utf8>)
 {
-    // Persistent native relinks currently store COFF archives. Linux rebuilds its ELF
-    // objects until the cache has a target-specific object/index reader.
+    // Whole-module relink manifests still contain COFF inputs. ELF function reuse is
+    // independent and runs during ordinary native preparation.
     outPrepared = false;
     return Result::Continue;
 }

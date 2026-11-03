@@ -8,10 +8,16 @@ SWC_BEGIN_NAMESPACE();
 class ELFLinker final : public Linker
 {
 public:
-    explicit ELFLinker(NativeBackendBuilder& builder) : Linker(builder) {}
-    Result prepareLink(LinkJob& outJob) override;
-    Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
+    explicit ELFLinker(NativeBackendBuilder& builder) :
+        Linker(builder)
+    {
+    }
+    Result      prepareLink(LinkJob& outJob) override;
+    Result      tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
     static void execute(LinkJob& job);
+
+private:
+    Result prepareFunctionCache(LinkJob& job) const;
 };
 
 SWC_END_NAMESPACE();

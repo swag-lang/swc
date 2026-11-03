@@ -3,16 +3,17 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Debug/SymbolTable.h"
+#include "Backend/Encoder/X64DwarfFrame.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/ELFObjectWriter.h"
 #include "Backend/RuntimeName.h"
-#include "Backend/Encoder/X64DwarfFrame.h"
-#include "Unittest/Native/NativeTestBytes.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
+#include "Unittest/Native/NativeTestBytes.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -800,6 +801,110 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 SWC_TEST_END()
 
 #if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
+{
+    const LinkerTestDirectory directory("elf_function_cache");
+    const auto                writeProgram = [&](const uint64_t seed, const uint32_t blankLines, const uint32_t marker) -> Result {
+        std::string source(blankLines, '\n');
+        source += "#[Swag.NoInline]\nfunc cachedLeaf(value: u64)->u64\n{\n    var result = value\n";
+        uint64_t expected = 7;
+        for (uint64_t step = 0; step < 32; ++step)
+        {
+            source += std::format("    result = ((result << 3) ^ (result >> 2)) ^ {}'u64\n", seed + step);
+            expected = ((expected << 3) ^ (expected >> 2)) ^ (seed + step);
+        }
+        source += "    return result\n}\n";
+        uint64_t second = expected;
+        for (uint64_t step = 0; step < 32; ++step)
+            second = ((second << 3) ^ (second >> 2)) ^ (seed + step);
+        source += std::format("#main {{ let first = cachedLeaf(7); let second = cachedLeaf(first); Swag.assert(first == {}'u64 and second == {}'u64); Swag.print(\"cache-ok-{}\\n\") }}\n", expected, second, marker);
+        return directory.write("program.swg", source);
+    };
+    const std::vector<Utf8> arguments = {
+        "run", "--file", Utf8(directory.path() / "program.swg"), "--artifact-name", "cache-probe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color",
+        "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
+    const auto run = [&](const bool reused, const uint32_t marker) -> Result {
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const auto                  status = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+        if (status != Os::ProcessRunResult::Ok || exitCode || output.find(std::format("cache-ok-{}", marker)) == std::string::npos ||
+            (output.find("unchanged function") != std::string::npos) != reused)
+        {
+            std::println(stderr, "[ELF function cache marker {}] result={}, exit={}\n{}", marker, static_cast<uint32_t>(status), exitCode, output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+    const auto checkSourceLine = [&](const uint32_t expected) -> Result {
+        const fs::path              table = directory.path() / "symbols.bin";
+        const std::vector<Utf8>     dump  = {"--dump-section", ".swagdbg=" + Utf8(table), Utf8(directory.path() / "output/cache-probe"), Utf8(directory.path() / "inspected-elf")};
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 5000};
+        if (Os::runProcess(exitCode, "objcopy", dump, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+            return Result::Error;
+        ByteArray               bytes;
+        FileSystem::IoErrorInfo error;
+        SWC_RESULT(FileSystem::readBinaryFile(table, bytes, error));
+        // An image table contains resolved addresses, not the object relocations
+        // required by SymbolTable::read. Inspect its runtime layout directly.
+        if (!bytes.containsRange(0, SymbolTable::HEADER_SIZE) || bytes.readLe32(0) != SymbolTable::MAGIC || bytes.readLe32(4) != SymbolTable::VERSION_PLAIN)
+            return Result::Error;
+        const uint32_t count   = bytes.readLe32(8);
+        const uint32_t strings = bytes.readLe32(12);
+        if (strings < SymbolTable::HEADER_SIZE + static_cast<uint64_t>(count) * SymbolTable::ENTRY_SIZE || strings > bytes.size())
+            return Result::Error;
+        const auto readString = [&](const uint32_t offset) -> std::string_view {
+            if (offset < strings || offset >= bytes.size())
+                return {};
+            const char* begin = reinterpret_cast<const char*>(bytes.data() + offset);
+            const char* end   = static_cast<const char*>(std::memchr(begin, 0, bytes.size() - offset));
+            return end ? std::string_view(begin, end) : std::string_view{};
+        };
+        for (uint32_t index = 0; index < count; ++index)
+        {
+            const uint64_t entry = SymbolTable::HEADER_SIZE + static_cast<uint64_t>(index) * SymbolTable::ENTRY_SIZE;
+            if (readString(bytes.readLe32(entry + 8)).ends_with(".cachedLeaf"))
+                return bytes.readLe32(entry + 16) == expected && readString(bytes.readLe32(entry + 12)).ends_with("/program.swg") ? Result::Continue : Result::Error;
+        }
+        return Result::Error;
+    };
+    SWC_RESULT(writeProgram(11, 0, 1));
+    SWC_RESULT(run(false, 1));
+    SWC_RESULT(checkSourceLine(5));
+    SWC_RESULT(writeProgram(11, 0, 2));
+    SWC_RESULT(run(true, 2));
+    SWC_RESULT(checkSourceLine(5));
+
+    fs::path        cachePath;
+    std::error_code error;
+    for (fs::recursive_directory_iterator it(directory.path(), error), end; it != end && !error; it.increment(error))
+        if (it->path().extension() == ".elfcache")
+            cachePath = it->path();
+    if (error || cachePath.empty())
+        return Result::Error;
+    SWC_RESULT(writeProgram(12, 0, 3));
+    SWC_RESULT(run(false, 3));
+    SWC_RESULT(writeProgram(12, 0, 4));
+    SWC_RESULT(run(true, 4));
+
+    // Token indices and generated symbol names survive blank lines; recorded source lines do not.
+    SWC_RESULT(writeProgram(12, 3, 5));
+    SWC_RESULT(run(false, 5));
+    SWC_RESULT(writeProgram(12, 3, 6));
+    SWC_RESULT(run(true, 6));
+    SWC_RESULT(checkSourceLine(8));
+    FileSystem::IoErrorInfo ioError;
+    const std::array        corrupt = {std::byte{0}, std::byte{1}};
+    SWC_RESULT(FileSystem::writeBinaryFile(cachePath, corrupt.data(), corrupt.size(), ioError));
+    SWC_RESULT(writeProgram(12, 3, 7));
+    SWC_RESULT(run(false, 7));
+    SWC_RESULT(writeProgram(12, 3, 8));
+    SWC_RESULT(run(true, 8));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRuntimeSymbolsResolveStaticAndSharedFrames)
 {
     for (const bool shared : {false, true})

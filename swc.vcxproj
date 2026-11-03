@@ -206,6 +206,7 @@
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.Linker.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.ElfSymbolTable.cpp"/>
+        <ClCompile Include="src\Unittest\Native\Test.Native.ElfFunctionCache.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.PeWriter.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.Pdb.cpp"/>
         <ClCompile Include="src\Unittest\Sema\Test.Sema.DecisionProcedures.cpp"/>
@@ -248,6 +249,7 @@
         <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeElfFunctionCache.cpp"/>
         <ClCompile Include="src\Backend\Linker\Linker.cpp"/>
         <ClCompile Include="src\Backend\Linker\PELinker.cpp"/>
         <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp"/>
@@ -916,6 +918,7 @@
         <ClInclude Include="src\Backend\Native\NativeRDataCollector.h"/>
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
+        <ClInclude Include="src\Backend\Native\NativeElfFunctionCache.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.h"/>
         <ClInclude Include="src\Backend\Linker\PELinker.h"/>
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>

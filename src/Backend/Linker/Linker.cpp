@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Linker/ELFLinker.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"
-#include "Backend/Linker/ELFLinker.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjectFormat.h"
@@ -157,6 +157,8 @@ namespace
         if (job.targetOs == Runtime::TargetOs::Linux)
         {
             ELFLinker::execute(job);
+            if (job.ok)
+                publishIncrementalCache(job);
             return;
         }
         const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);

@@ -1264,22 +1264,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.093 — Finish Linux native debug and cache support
 
-- Evidence: ELF executables, shared libraries and GNU archives support foreign imports,
-  transitive module initialization and cleanup, published dependencies and distinct module
-  symbols. Shared libraries use position-independent function addresses and unwind records,
-  reject dynamic text relocations, and preserve canonical local/foreign pointer identity.
-  Native `--debug` now emits DWARF 4 source lines, functions, basic types, pointers, fixed arrays,
-  struct fields and stack-home parameter/local locations. Debug sections remain non-allocated;
-  contribution-local symbols resolve offsets across multiple ELF objects without TEXTREL.
-  Executable and shared-library fixtures pass readelf/addr2line checks, and GDB source breakpoints,
-  stepping, stacks and scalar/struct/array/pointer inspection work on dedicated fixtures.
-  Optimized variables without recorded stack homes are absent. Register locations, precise lexical
-  lifetimes, inline records, global/constant DIEs and enum names remain unsupported; other composite
-  types retain opaque names/sizes. GDB expression probes select C because Swag has no DWARF language
-  identifier. The output-local incremental native-object archive remains COFF-specific and disabled
-  for Linux; this is separate from the shared machine-code cache.
-- Next: extend source/debug type and location coverage, then add a target-specific incremental
-  native-object cache without reusing the COFF archive decoder.
-- Done when: Linux native output emits source debug information and reuses native caches while
-  preserving foreign calls, runtime context sharing and module load/unload lifecycle behavior.
+- Missing: register locations, precise lexical lifetimes, inline records, global/constant DIEs
+  and enum names in native DWARF. Optimized variables without recorded stack homes are absent;
+  unsupported composite types retain opaque names/sizes. GDB expression probes require C because
+  Swag has no DWARF language identifier.
+- Missing: whole-module ELF incremental relinking after a static dependency changes without an API
+  change. Output-local function reuse and the shared machine-code cache do not cover that boundary.
+- Next: extend debug type/location coverage and implement ELF relink manifests with current dependency
+  resolution, corrupt-input fallback and executable probes after dependency replacement.
+- Done when: richer Linux debug records describe the surviving values and scopes, and incremental
+  native relinking preserves foreign calls, runtime context and module initialization/cleanup.
 - Related: platform.portability.005

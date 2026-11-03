@@ -1,16 +1,17 @@
 #include "pch.h"
 #include "Backend/Linker/ELFObjectWriter.h"
+#include "Support/Core/ByteView.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_PROGBITS = 1;
-    constexpr uint32_t K_SYMTAB = 2;
-    constexpr uint32_t K_STRTAB = 3;
-    constexpr uint32_t K_RELA = 4;
-    constexpr uint32_t K_NOBITS = 8;
+    constexpr uint32_t K_PROGBITS         = 1;
+    constexpr uint32_t K_SYMTAB           = 2;
+    constexpr uint32_t K_STRTAB           = 3;
+    constexpr uint32_t K_RELA             = 4;
+    constexpr uint32_t K_NOBITS           = 8;
     constexpr uint64_t K_WRITE            = 1;
     constexpr uint64_t K_ALLOC            = 2;
     constexpr uint64_t K_EXEC             = 4;
@@ -290,6 +291,101 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
         bytes.appendLe64(section.entrySize);
     }
     outBytes = std::move(bytes);
+    return true;
+}
+
+bool isSelfContainedElfObject(const std::span<const std::byte> object, const std::string_view requiredSymbol)
+{
+    const ByteView bytes(object);
+    if (requiredSymbol.empty() || !bytes.containsRange(0, 64) || bytes.readLe32(0) != 0x464c457f ||
+        object[4] != std::byte{2} || object[5] != std::byte{1} || object[6] != std::byte{1} ||
+        bytes.readLe16(16) != 1 || bytes.readLe16(18) != 62 || bytes.readLe32(20) != 1 ||
+        bytes.readLe16(52) != 64 || bytes.readLe16(58) != 64)
+        return false;
+    const uint64_t sections = bytes.readLe64(40);
+    const uint32_t count    = bytes.readLe16(60);
+    if (!count || !bytes.containsRange(sections, static_cast<uint64_t>(count) * 64))
+        return false;
+    uint32_t symbolSection = 0;
+    for (uint32_t index = 1; index < count; ++index)
+    {
+        const size_t   section = sections + index * 64;
+        const uint32_t type    = bytes.readLe32(section + 4);
+        if (type != K_NOBITS && !bytes.containsRange(bytes.readLe64(section + 24), bytes.readLe64(section + 32)))
+            return false;
+        if (type == 9) // ELF64 objects use explicit-addend relocations only.
+            return false;
+        if (type == K_SYMTAB)
+        {
+            if (symbolSection)
+                return false;
+            symbolSection = index;
+        }
+    }
+    if (!symbolSection)
+        return false;
+    const size_t   table        = sections + symbolSection * 64;
+    const uint64_t symbols      = bytes.readLe64(table + 24);
+    const uint64_t symbolSize   = bytes.readLe64(table + 32);
+    const uint32_t stringsIndex = bytes.readLe32(table + 40);
+    if (!symbolSize || symbolSize % 24 || bytes.readLe64(table + 56) != 24 || !stringsIndex || stringsIndex >= count)
+        return false;
+    const size_t stringsSection = sections + stringsIndex * 64;
+    if (bytes.readLe32(stringsSection + 4) != K_STRTAB)
+        return false;
+    const uint64_t strings     = bytes.readLe64(stringsSection + 24);
+    const uint64_t stringsSize = bytes.readLe64(stringsSection + 32);
+    bool           found       = false;
+    for (uint64_t offset = 0; offset < symbolSize; offset += 24)
+    {
+        const uint32_t nameOffset = bytes.readLe32(symbols + offset);
+        const uint32_t definition = bytes.readLe16(symbols + offset + 6);
+        if (nameOffset >= stringsSize || definition >= count)
+            return false;
+        const char* name = reinterpret_cast<const char*>(object.data() + strings + nameOffset);
+        const void* end  = std::memchr(name, 0, stringsSize - nameOffset);
+        if (!end)
+            return false;
+        const std::string_view text(name, static_cast<const char*>(end) - name);
+        if (!definition)
+        {
+            if (offset || !text.empty())
+                return false;
+            continue;
+        }
+        const size_t   section = sections + definition * 64;
+        const uint64_t value   = bytes.readLe64(symbols + offset + 8);
+        const uint64_t size    = bytes.readLe64(symbols + offset + 16);
+        const uint64_t extent  = bytes.readLe64(section + 32);
+        if (value > extent || size > extent - value)
+            return false;
+        if (text == requiredSymbol && std::to_integer<uint8_t>(object[symbols + offset + 4]) == 0x12 && (bytes.readLe64(section + 8) & K_EXEC))
+            found = true;
+    }
+    if (!found)
+        return false;
+    for (uint32_t index = 1; index < count; ++index)
+    {
+        const size_t section = sections + index * 64;
+        if (bytes.readLe32(section + 4) != K_RELA)
+            continue;
+        const uint64_t size   = bytes.readLe64(section + 32);
+        const uint32_t target = bytes.readLe32(section + 44);
+        if (size % 24 || bytes.readLe64(section + 56) != 24 || bytes.readLe32(section + 40) != symbolSection || !target || target >= count)
+            return false;
+        const uint64_t relocations = bytes.readLe64(section + 24);
+        const uint64_t extent      = bytes.readLe64(sections + target * 64 + 32);
+        for (uint64_t offset = 0; offset < size; offset += 24)
+        {
+            const uint64_t position = bytes.readLe64(relocations + offset);
+            const uint64_t info     = bytes.readLe64(relocations + offset + 8);
+            const uint32_t kind     = static_cast<uint32_t>(info);
+            const uint32_t width    = kind == K_ABS64 ? 8 : kind == K_PC32 ? 4
+                                                                           : 0;
+            if (!width || !(info >> 32) || (info >> 32) >= symbolSize / 24 || position > extent || width > extent - position)
+                return false;
+        }
+    }
     return true;
 }
 

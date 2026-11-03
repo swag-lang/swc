@@ -1,12 +1,14 @@
 #include "pch.h"
-#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Linker/PEFormat.h"
+#include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
+#include "Backend/Native/NativeElfFunctionCache.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/SymbolSort.h"
@@ -25,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -180,11 +183,37 @@ namespace
         return Utf8Helper::toLowerHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
     }
 
-    Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
+    Utf8 functionCacheFingerprint(NativeBackendBuilder& builder, const SymbolFunction& function)
     {
         const MicroBuilder* microBuilder = function.microInstrBuilder();
         if (!microBuilder || microBuilder->instructions().count() < K_FUNCTION_CACHE_MIN_INSTRUCTIONS || !microBuilder->codeRelocations().empty())
             return {};
+
+        if (builder.ctx().cmdLine().targetOs == Runtime::TargetOs::Linux)
+        {
+            // Reuse the shared IR identity, including optimizer facts and ABI inputs. Object
+            // bytes also retain source locations, unlike the machine cache's rebound ranges.
+            std::vector<DebugSourceInfo> sources;
+            const Utf8                   key = MachineCodeCache::inputKey(builder.ctx(), sources, function, *microBuilder, compilerCacheIdentity().view());
+            if (key.empty())
+                return {};
+            ByteArray identity;
+            identity.append(key.view());
+            for (const DebugSourceInfo& source : sources)
+            {
+                if (!source.isValid())
+                    continue;
+                ResolvedDebugSourceInfo resolved;
+                if (!tryResolveDebugSourceInfo(builder.ctx(), resolved, source) || !resolved.sourceFile)
+                    return {};
+                const Utf8& path = resolved.sourceFile->genericPathString();
+                identity.appendLe64(path.size());
+                identity.append(path.view());
+                identity.appendLe32(resolved.codeRange.line);
+                identity.appendLe32(resolved.codeRange.column);
+            }
+            return Utf8Helper::toLowerHex(sha256(identity.span()));
+        }
 
         ByteArray identity;
         microBuilder->backendBuildCfg().appendCacheIdentity(identity);
@@ -1102,19 +1131,33 @@ void NativeBackendBuilder::prepareFunctionCache()
 {
     functionCacheEnabled_ = false;
     existingFunctionCacheArchive_.reset();
+    existingElfFunctionCache_.reset();
     existingFunctionCacheEntries_.clear();
     functionCacheRecords_.clear();
     functionCacheArchivePath_.clear();
     functionCacheIndexPath_.clear();
 
     const CommandLine& commandLine = compiler_->cmdLine();
-    if (commandLine.targetOs != Runtime::TargetOs::Windows || commandLine.rebuild || commandLine.command == CommandKind::Test ||
+    if (commandLine.rebuild || commandLine.command == CommandKind::Test ||
         compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
         compiler_->buildCfg().backend.debugInfo || compiler_->importedNativeExecuted())
         return;
 
     NativeArtifactPaths paths;
     NativeArtifactBuilder(*this).queryPaths(paths);
+    if (commandLine.targetOs == Runtime::TargetOs::Linux)
+    {
+        if (compilerCacheIdentity().empty())
+            return;
+        functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.elfcache", paths.name.view());
+        functionCacheEnabled_     = true;
+        existingElfFunctionCache_ = std::make_unique<NativeElfFunctionCache>(compilerCacheIdentity());
+        ByteArray               bytes;
+        FileSystem::IoErrorInfo error;
+        if (FileSystem::readBinaryFile(functionCacheArchivePath_, bytes, error) == Result::Continue)
+            existingElfFunctionCache_->load(std::move(bytes));
+        return;
+    }
     functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.lib", paths.name.view());
     functionCacheIndexPath_   = paths.buildDir / std::format("{}.incremental.idx", paths.name.view());
     functionCacheEnabled_     = true;
@@ -1208,6 +1251,22 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     NativeFunctionCacheRecord record;
     record.key         = functionCacheKey(*this, function);
     record.fingerprint = fingerprint;
+
+    if (existingElfFunctionCache_)
+    {
+        const NativeElfCachedFunction* cached = existingElfFunctionCache_->find(record.key.view());
+        if (cached && cached->fingerprint == fingerprint.view())
+        {
+            record.symbolName = Utf8(cached->symbolName);
+            record.objectBytes.append(cached->objectBytes);
+            record.hit = true;
+            function.setCallClobbers(cached->callClobbers);
+        }
+        const bool             hit = record.hit;
+        const std::scoped_lock lock(functionCacheMutex_);
+        functionCacheRecords_.insert_or_assign(&function, std::move(record));
+        return hit;
+    }
 
     const auto cached = existingFunctionCacheEntries_.find(record.key);
     if (cached != existingFunctionCacheEntries_.end() && cached->second.fingerprint == fingerprint && existingFunctionCacheArchive_)

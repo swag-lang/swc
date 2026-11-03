@@ -17,6 +17,7 @@ SWC_BEGIN_NAMESPACE();
 struct MicroRelocation;
 class CompilerInstance;
 class Archive;
+class NativeElfFunctionCache;
 class Linker;
 class ScopedTimedLog;
 class SymbolFunction;
@@ -300,6 +301,7 @@ private:
     LinkJob                 deferredToolRun_;
 
     std::unique_ptr<Archive>                                             existingFunctionCacheArchive_;
+    std::unique_ptr<NativeElfFunctionCache>                              existingElfFunctionCache_;
     std::unordered_map<Utf8, NativeFunctionCacheEntry>                   existingFunctionCacheEntries_;
     std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
     mutable std::mutex                                                   functionCacheMutex_;

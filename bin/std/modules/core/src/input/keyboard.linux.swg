@@ -141,15 +141,34 @@ public impl Keyboard
     // Returns the canonical portable key for an X11 keysym, or None.
     //
     // Return, PageDown, PrintScreen, and CapsLock are preferred over their historical
-    // aliases. Other aliases choose the first portable key with the same keysym.
+    // aliases. Keypad navigation and Enter map to the matching portable commands.
+    // Other aliases choose the first portable key with the same keysym.
     func virtualKeyToKey(vkey: VirtualKey)->Key
     {
         switch vkey
         {
-        case 0xFF0D: return .Return
-        case 0xFF56: return .PageDown
-        case 0xFF61: return .PrintScreen
-        case 0xFFE5: return .CapsLock
+        case 0xFF0D, 0xFF8D: return .Return
+        case 0xFF56:         return .PageDown
+        case 0xFF61:         return .PrintScreen
+        case 0xFFE5:         return .CapsLock
+        case 0xFF80:         return .Space
+        case 0xFF89:         return .Tab
+        case 0xFF91:         return .F1
+        case 0xFF92:         return .F2
+        case 0xFF93:         return .F3
+        case 0xFF94:         return .F4
+        case 0xFF95:         return .Home
+        case 0xFF96:         return .Left
+        case 0xFF97:         return .Up
+        case 0xFF98:         return .Right
+        case 0xFF99:         return .Down
+        case 0xFF9A:         return .PageUp
+        case 0xFF9B:         return .PageDown
+        case 0xFF9C:         return .End
+        case 0xFF9D:         return .Clear
+        case 0xFF9E:         return .Insert
+        case 0xFF9F:         return .Delete
+        case 0xFFBD:         return .OemPlus
         }
 
         if vkey != 0
@@ -173,7 +192,8 @@ public impl Keyboard
 
     // Returns the simple X11 character captured by the latest update, or zero.
     //
-    // Handles Latin-1, Unicode keysyms and Shift/Caps Lock in the first keyboard group.
+    // Handles Latin-1, Unicode keysyms and Shift/Caps Lock in the first keyboard group,
+    // including standard PC keypad digits or navigation according to NumLock and Shift.
     // This is not text composition: dead keys, compose sequences, legacy non-Latin
     // keysyms, additional groups, and IME text must use a future text-input adapter.
     mtd keyToRune(key: Key)->rune => .currentState.native.nativeRunes[key]

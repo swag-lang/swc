@@ -6,6 +6,7 @@ using Core, Pixel
 #[Swag.Opaque]
 struct ApplicationNative
 {
+    nativeKeyPresses:       [256]Input.Key
     public hotKeysDisabled: bool
     lastClickTime:          [Input.MouseButton]u32
     lastClickPosition:      [Input.MouseButton]Math.Point
@@ -268,7 +269,7 @@ impl Application
             if id == context.screen.root and kind == 2
             {
                 let packet = cast(*Linux.xcb_key_press_event_t, cast(*void, event))
-                let key    = LinuxDesktop.portableKey(context, packet.detail)
+                let key    = LinuxDesktop.portableKey(context, packet.detail, packet.state)
                 var modifiers: Input.KeyModifiers
                 if packet.state & 1 do
                     modifiers |= .Shift
@@ -337,6 +338,7 @@ impl Application
                     discard surface.restoreFocus()
 
             case 10:
+                Memory.clear(&surface.app.nativeKeyPresses, #sizeof(surface.app.nativeKeyPresses))
                 if not surface.app.nativeFocusTransition do
                     surface.loseKeyboardFocus()
                 surface.app.setActivated(false)
@@ -444,19 +446,34 @@ impl Application
 
 namespace LinuxDesktop
 {
-    internal func portableKey(context: *Context, code: u8)->Input.Key
+    internal func portableKey(context: *Context, code: u8, state: u16)->Input.Key
     {
         var symbols: const [*]u32?
         let count = context.xkb_keymap_key_get_syms_by_level(unwrap context.keyboardMap, code, 0, 0, &symbols)
         if count <= 0 or not symbols do
             return .None
-        return Input.Keyboard.virtualKeyToKey(symbols[0])
+        var symbol = symbols[0]
+
+        // Keypad commands follow NumLock and Shift. Other shortcuts keep their base symbol.
+        if symbol >= 0xFF80 and symbol <= 0xFFBD
+        {
+            let keyboardState = unwrap context.keyboardState
+            discard context.xkb_state_update_mask(keyboardState, state & 255, 0, 0, 0, 0, (state >> 13) & 3)
+            symbol = context.xkb_state_key_get_one_sym(keyboardState, code)
+        }
+
+        return Input.Keyboard.virtualKeyToKey(symbol)
     }
 
     internal func dispatchKey(context: *Context, surface: *Surface, packet: *Linux.xcb_key_press_event_t, pressed: bool)
     {
         let app = surface.app
-        let key = portableKey(context, packet.detail)
+        var key = app.nativeKeyPresses[packet.detail]
+        if key == .None do
+            key = portableKey(context, packet.detail, packet.state)
+
+        // A lock change while held must not turn the release into a different key.
+        app.nativeKeyPresses[packet.detail] = pressed ? key : .None
         app.keyboard.setCurrentKeyState(key, pressed)
         if pressed and not app.keyboardFocusWnd do
             app.seedKeyboardFocus()

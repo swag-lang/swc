@@ -53,10 +53,16 @@ internal struct Context
         xcb_get_keyboard_mapping_reply:          Linux.xcb_get_keyboard_mapping_reply_fn
         xcb_get_keyboard_mapping_keysyms:        Linux.xcb_get_keyboard_mapping_keysyms_fn
         xcb_get_keyboard_mapping_keysyms_length: Linux.xcb_get_keyboard_mapping_keysyms_length_fn
-        xcb_warp_pointer_checked:                Linux.xcb_warp_pointer_checked_fn
-        xcb_clear_area_checked:                  Linux.xcb_clear_area_checked_fn
-        xcb_send_event_checked:                  Linux.xcb_send_event_checked_fn
-        xcb_set_input_focus_checked:             Linux.xcb_set_input_focus_checked_fn
+
+        xcb_get_modifier_mapping:                 Linux.xcb_get_modifier_mapping_fn
+        xcb_get_modifier_mapping_reply:           Linux.xcb_get_modifier_mapping_reply_fn
+        xcb_get_modifier_mapping_keycodes:        Linux.xcb_get_modifier_mapping_keycodes_fn
+        xcb_get_modifier_mapping_keycodes_length: Linux.xcb_get_modifier_mapping_keycodes_length_fn
+
+        xcb_warp_pointer_checked:    Linux.xcb_warp_pointer_checked_fn
+        xcb_clear_area_checked:      Linux.xcb_clear_area_checked_fn
+        xcb_send_event_checked:      Linux.xcb_send_event_checked_fn
+        xcb_set_input_focus_checked: Linux.xcb_set_input_focus_checked_fn
     }
 }
 
@@ -147,10 +153,16 @@ internal func ensure()->*Context fail
     state.xcb_get_keyboard_mapping_reply          = try symbol'Linux.xcb_get_keyboard_mapping_reply_fn(library, "xcb_get_keyboard_mapping_reply")
     state.xcb_get_keyboard_mapping_keysyms        = try symbol'Linux.xcb_get_keyboard_mapping_keysyms_fn(library, "xcb_get_keyboard_mapping_keysyms")
     state.xcb_get_keyboard_mapping_keysyms_length = try symbol'Linux.xcb_get_keyboard_mapping_keysyms_length_fn(library, "xcb_get_keyboard_mapping_keysyms_length")
-    state.xcb_warp_pointer_checked                = try symbol'Linux.xcb_warp_pointer_checked_fn(library, "xcb_warp_pointer_checked")
-    state.xcb_clear_area_checked                  = try symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    state.xcb_send_event_checked                  = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
-    state.xcb_set_input_focus_checked             = try symbol'Linux.xcb_set_input_focus_checked_fn(library, "xcb_set_input_focus_checked")
+
+    state.xcb_get_modifier_mapping                 = try symbol'Linux.xcb_get_modifier_mapping_fn(library, "xcb_get_modifier_mapping")
+    state.xcb_get_modifier_mapping_reply           = try symbol'Linux.xcb_get_modifier_mapping_reply_fn(library, "xcb_get_modifier_mapping_reply")
+    state.xcb_get_modifier_mapping_keycodes        = try symbol'Linux.xcb_get_modifier_mapping_keycodes_fn(library, "xcb_get_modifier_mapping_keycodes")
+    state.xcb_get_modifier_mapping_keycodes_length = try symbol'Linux.xcb_get_modifier_mapping_keycodes_length_fn(library, "xcb_get_modifier_mapping_keycodes_length")
+
+    state.xcb_warp_pointer_checked    = try symbol'Linux.xcb_warp_pointer_checked_fn(library, "xcb_warp_pointer_checked")
+    state.xcb_clear_area_checked      = try symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
+    state.xcb_send_event_checked      = try symbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
+    state.xcb_set_input_focus_checked = try symbol'Linux.xcb_set_input_focus_checked_fn(library, "xcb_set_input_focus_checked")
     var screenIndex: s32
     let connection = state.xcb_connect(null, &screenIndex)
     if not connection do

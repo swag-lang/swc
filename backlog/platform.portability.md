@@ -646,8 +646,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Progress (Linux): Core polls X11 keymaps and keyboard mappings, exposes canonical keysyms as
   VirtualKey values, maps common modifiers and the first three mouse buttons, and snapshots basic
   Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
-  implemented. Xvfb and no-display checks pass JIT/native. Extra buttons, additional groups,
-  dead keys/compose, IME, layout-change routing and synthetic key-transition tests remain pending;
+  implemented. Standard PC keypad NumLock/Shift selection and held-key release identity pass
+  real XTEST integration in both polling and GUI paths. Extra buttons, additional groups,
+  dead keys/compose, IME and layout-change routing remain pending;
   polling snapshots are separate native requests, not one atomic input sample.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed

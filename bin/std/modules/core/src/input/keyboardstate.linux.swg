@@ -29,6 +29,8 @@ private func keysymRune(symbol: u32)->rune
         return cast(rune, symbol - 0xFFB0 + '0')
     switch symbol
     {
+    case 0xFF80: return ' '
+    case 0xFFBD: return '='
     case 0xFFAA: return '*'
     case 0xFFAB: return '+'
     case 0xFFAC: return ','
@@ -74,6 +76,29 @@ impl KeyboardStateNative
             Linux.free(pointer)
         }
 
+        // NumLock can be bound to any modifier slot; inspect the server's current mapping.
+        let modifiers = context.xcb_get_modifier_mapping_reply(connection,
+                                                               context.xcb_get_modifier_mapping(connection),
+                                                               null)
+        if not modifiers do
+            return
+        defer Linux.free(modifiers)
+        let modifierCount  = cast(u32, modifiers.keycodes_per_modifier) * 8
+        let modifierLength = context.xcb_get_modifier_mapping_keycodes_length(modifiers)
+        if modifierLength < 0 or cast(u32, modifierLength) < modifierCount do
+            return
+        let codes = context.xcb_get_modifier_mapping_keycodes(modifiers)
+        var numLockMask: u16
+        for index in modifierCount
+        {
+            let code = codes[index]
+            if code < setup.min_keycode or code > setup.max_keycode do
+                continue
+            let offset = cast(u32, code - setup.min_keycode) * columns
+            for column in cast(u32, columns) where symbols[offset + column] == 0xFF7F do
+                numLockMask |= cast(u16, 1 << (index / modifiers.keycodes_per_modifier))
+        }
+
         for key in Key
         {
             let wanted = Keyboard.keyToVirtualKey(key)
@@ -81,15 +106,25 @@ impl KeyboardStateNative
                 continue
             for index in 0 until count
             {
-                let offset = index * columns
-                let base   = symbols[offset]
-                if base != wanted do
+                let offset  = index * columns
+                let base    = symbols[offset]
+                let shifted = columns > 1 ? symbols[offset + 1] : 0'u32
+                var symbol  = (mask & 1) and shifted != 0 ? shifted : base
+                if base >= 0xFF80 and base <= 0xFFBD
+                {
+                    let shiftedLevel = (mask & numLockMask) != 0 and (mask & 1) == 0
+                    symbol = shiftedLevel and shifted != 0 ? shifted : base
+                    if Keyboard.virtualKeyToKey(symbol) != Keyboard.virtualKeyToKey(wanted) do
+                        continue
+                }
+                elif base != wanted
+                {
                     continue
+                }
+
                 let code = index + setup.min_keycode
                 if (keys.keys[code / 8] & (1 << (code % 8))) != 0 do
                     .nativePressed[key] = true
-                let shifted = columns > 1 ? symbols[offset + 1] : 0'u32
-                var symbol  = (mask & 1) and shifted != 0 ? shifted : base
                 if base >= 'a' and base <= 'z'
                 {
                     let upper = ((mask & 1) != 0) != ((mask & 2) != 0)

@@ -446,3 +446,32 @@ alias xcb_get_extension_data_fn = func(*void, *xcb_extension_t)->const *xcb_quer
 #assert(#offsetof(xcb_extension_t.global_id) == 8)
 #assert(#sizeof(xcb_query_extension_reply_t) == 12)
 #assert(#offsetof(xcb_query_extension_reply_t.present) == 8)
+
+struct xcb_get_modifier_mapping_reply_t
+{
+    public
+    {
+        response_type:         u8
+        keycodes_per_modifier: u8
+        sequence:              u16
+        length:                u32
+        pad0:                  [24]u8
+    }
+}
+
+alias xcb_get_modifier_mapping_cookie_t           = xcb_void_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_get_modifier_mapping_fn                 = func(*void)->xcb_get_modifier_mapping_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_get_modifier_mapping_reply_fn           = func(*void, xcb_get_modifier_mapping_cookie_t, *(*xcb_generic_error_t?)?)->*xcb_get_modifier_mapping_reply_t?
+
+#[Swag.CallingConvention(.C)]
+alias xcb_get_modifier_mapping_keycodes_fn        = func(const *xcb_get_modifier_mapping_reply_t)->[*]u8
+
+#[Swag.CallingConvention(.C)]
+alias xcb_get_modifier_mapping_keycodes_length_fn = func(const *xcb_get_modifier_mapping_reply_t)->s32
+
+#assert(#sizeof(xcb_get_modifier_mapping_reply_t) == 32)
+#assert(#offsetof(xcb_get_modifier_mapping_reply_t.keycodes_per_modifier) == 1)

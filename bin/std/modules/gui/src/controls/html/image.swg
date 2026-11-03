@@ -274,7 +274,7 @@ impl HtmlImageCache
 
         .renderer      = renderer
         entry.texture  = renderer.addImage(entry.image)
-        entry.uploaded = true
+        entry.uploaded = entry.texture.isValid()
         return &entry.texture
     }
 }

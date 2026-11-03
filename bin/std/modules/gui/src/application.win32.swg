@@ -289,15 +289,13 @@ impl Application
 
         if small
         {
-            index = cast(s32, .mapFileSmallIcons.count)
-            .mapFileSmallIcons.add(name, index)
+            index      = cast(s32, .mapFileSmallIcons.count)
             curImg     = &.fileSmallIconsImage
             curImgList = &.fileSmallIconsImageList
         }
         else
         {
-            index = cast(s32, .mapFileBigIcons.count)
-            .mapFileBigIcons.add(name, index)
+            index      = cast(s32, .mapFileBigIcons.count)
             curImg     = &.fileBigIconsImage
             curImgList = &.fileBigIconsImageList
         }
@@ -319,10 +317,17 @@ impl Application
         if curImg.isValid() do
             nimage.mix(curImg, 0, 0)
         nimage.mix(img, sizeIcon * index, 0)
-        curImg[] = nimage
+        let uploaded = .renderer.addImage(nimage)
+        if not uploaded.isValid() do
+            return result
 
         curImgList.release(.renderer)
-        curImgList.set(.renderer.addImage(curImg), sizeIcon, sizeIcon)
+        curImg[] = #move nimage
+        curImgList.set(uploaded, sizeIcon, sizeIcon)
+        if small do
+            .mapFileSmallIcons.add(name, index)
+        else do
+            .mapFileBigIcons.add(name, index)
 
         return Icon.from(curImgList, index)
     }

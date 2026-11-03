@@ -199,6 +199,8 @@ impl IconSet
         let cell    = size * cast(s32, scale)
         let image   = .atlas!.image(cell)
         let texture = .renderer.addImage(image[])
+        if not texture.isValid() do
+            return
         list.release(.renderer)
         list.set(texture, cell, cell)
     }

@@ -1994,6 +1994,13 @@ impl IWnd for Explorer
                     {
                         if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
                             .entries[preview.index].albumTrack = preview.mediaFile
+                        let uploaded = .app().renderer.addImage(preview.image)
+                        if not uploaded.isValid()
+                        {
+                            .requestPreview()
+                            return
+                        }
+
                         let replacing = .entries[preview.index].texture.isValid()
                         if not replacing and .cached.count >= 128
                         {
@@ -2007,7 +2014,7 @@ impl IWnd for Explorer
 
                         if replacing do
                             .app().renderer.removeTexture(&.entries[preview.index].texture)
-                        .entries[preview.index].texture = .app().renderer.addImage(preview.image)
+                        .entries[preview.index].texture = uploaded
                         let duration = thumbnailDuration(&preview.image)
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration

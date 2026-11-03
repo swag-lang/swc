@@ -221,10 +221,16 @@ impl IWnd for ColorPicker
                 .image.fillHsl(modeFill, Color.fromHsl(.hue, .saturation, .lightness))
             }
 
-            if .texture.isValid() do
-                .app().renderer.updateTexture(.texture, nnPixels(.image.pixels.buffer))
-            else do
+            if .texture.isValid()
+            {
+                if not .app().renderer.updateTexture(.texture, nnPixels(.image.pixels.buffer)) do
+                    .app().renderer.removeTexture(&.texture)
+            }
+            else
+            {
                 .texture = .app().renderer.addImage(.image)
+            }
+
             .computeXY()
         }
 

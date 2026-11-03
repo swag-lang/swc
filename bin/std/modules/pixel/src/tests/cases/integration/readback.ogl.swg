@@ -85,4 +85,171 @@ using Core, Ogl
     Swag.assert(not readback.isPending())
     let copied = readback.tryCopyTo(actual.pixels.toSlice())
     Swag.assert(not copied)
+
+    // A target whose attachment disappeared represents a driver-side readback failure.
+    glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, target.handle))
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    let invalid = gpu.readRenderTarget(&target, 0, 0, 1, 1)
+    Swag.assert(not invalid.isValid() and glGetError() == GL_NO_ERROR)
+
+    let accepted = readback.submit(&target, 0, 0, 1, 1)
+    if accepted
+    {
+        var failureWatch: Time.Stopwatch
+        failureWatch.start()
+        while not readback.hasFailed() and failureWatch.elapsedMilliseconds() < 2000
+        {
+            discard readback.tryCopyTo(actual.pixels.toSlice())
+            if not readback.hasFailed() do
+                Threading.Thread.sleep(1'ms)
+        }
+    }
+
+    Swag.assert(readback.hasFailed())
+    glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, target.handle))
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, cast(GLuint, target.colorBuffer.handle), 0)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+}
+
+// Creating or reading another target must leave the active draw target in place.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    var renderer: RenderOgl
+    renderer.setOffscreen()
+    let gpu: IRenderer = &renderer
+    var context        = expect gpu.createContext(null, 32, 32)
+    defer gpu.deleteContext(&context)
+    gpu.begin(context)
+    gpu.init()
+
+    var active = gpu.createRenderTarget(16, 16)
+    defer gpu.deleteRenderTarget(&active)
+    gpu.bindRenderTarget(&active)
+
+    var other = gpu.createRenderTarget(8, 8)
+    defer gpu.deleteRenderTarget(&other)
+    var readBinding, drawBinding: GLint
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readBinding)
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawBinding)
+    Swag.assert(readBinding == cast(GLint, active.handle) and drawBinding == cast(GLint, active.handle))
+
+    var maxTextureSize: GLint
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize)
+    let refused = gpu.createRenderTarget(maxTextureSize + 1, 1)
+    Swag.assert(not refused.colorBuffer.isValid() and glGetError() == GL_NO_ERROR)
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readBinding)
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawBinding)
+    Swag.assert(readBinding == cast(GLint, active.handle) and drawBinding == cast(GLint, active.handle))
+
+    discard gpu.readRenderTarget(&other, 0, 0, 8, 8)
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readBinding)
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawBinding)
+    Swag.assert(readBinding == cast(GLint, active.handle) and drawBinding == cast(GLint, active.handle))
+
+    gpu.clear()
+    glClearColor(0, 1, 0, 1)
+    glClear(GL_COLOR_BUFFER_BIT)
+    gpu.unbindRenderTarget()
+    let pixels = gpu.readRenderTarget(&active, 0, 0, 16, 16)
+    Swag.assert(pixels.pixelColor(7, 7).argb == Argb.Lime)
+
+    var packBuffer: GLuint
+    glGenBuffers(1, &packBuffer)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer)
+    glBufferData(GL_PIXEL_PACK_BUFFER, 4, null, GL_STREAM_READ)
+    glPixelStorei(GL_PACK_ALIGNMENT, 8)
+    glPixelStorei(GL_PACK_ROW_LENGTH, 32)
+    glPixelStorei(GL_PACK_SKIP_ROWS, 1)
+    glPixelStorei(GL_PACK_SKIP_PIXELS, 2)
+    let packed = gpu.readRenderTarget(&active, 0, 0, 16, 16)
+    Swag.assert(packed.pixelColor(7, 7).argb == Argb.Lime)
+    var currentBuffer, alignment, rowLength, skipRows, skipPixels: GLint
+    glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &currentBuffer)
+    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+    glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+    glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+    glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+    Swag.assert(currentBuffer == cast(GLint, packBuffer) and
+                alignment == 8 and
+                rowLength == 32 and
+                skipRows == 1 and
+                skipPixels == 2)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+    glDeleteBuffers(1, &packBuffer)
+    gpu.end()
+}
+
+// CPU uploads and texture reads ignore ambient pixel-buffer and row-stride state.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    var renderer: RenderOgl
+    renderer.setOffscreen()
+    let gpu: IRenderer = &renderer
+    var context        = expect gpu.createContext(null, 16, 16)
+    defer gpu.deleteContext(&context)
+    gpu.begin(context)
+    gpu.init()
+
+    var unpackBuffer: GLuint
+    glGenBuffers(1, &unpackBuffer)
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBuffer)
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 4, null, GL_STREAM_DRAW)
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 8)
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 32)
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 1)
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 2)
+
+    var target = gpu.createRenderTarget(2, 2)
+    Swag.assert(target.colorBuffer.isValid())
+    gpu.deleteRenderTarget(&target)
+
+    var image = Image.create(2, 2, .RGBA8)
+    image.fill(Argb.Red)
+    var texture = gpu.addImage(image)
+    Swag.assert(texture.isValid())
+    image.fill(Argb.Blue)
+    Swag.assert(gpu.updateTexture(texture, image.pixels.storage()))
+
+    var unpackBinding, alignment, rowLength, skipRows, skipPixels: GLint
+    glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpackBinding)
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment)
+    glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowLength)
+    glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skipRows)
+    glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skipPixels)
+    Swag.assert(unpackBinding == cast(GLint, unpackBuffer) and
+                alignment == 8 and
+                rowLength == 32 and
+                skipRows == 1 and
+                skipPixels == 2)
+
+    var packBuffer: GLuint
+    glGenBuffers(1, &packBuffer)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer)
+    glBufferData(GL_PIXEL_PACK_BUFFER, 4, null, GL_STREAM_READ)
+    glPixelStorei(GL_PACK_ALIGNMENT, 8)
+    glPixelStorei(GL_PACK_ROW_LENGTH, 32)
+    glPixelStorei(GL_PACK_SKIP_ROWS, 1)
+    glPixelStorei(GL_PACK_SKIP_PIXELS, 2)
+    let pixels = gpu.readTexturePixels(texture, .RGBA8)
+    Swag.assert(Slice.equals(pixels.toSlice(), image.pixels.toSlice()))
+    glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &unpackBinding)
+    glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+    glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+    glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+    glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+    Swag.assert(unpackBinding == cast(GLint, packBuffer) and
+                alignment == 8 and
+                rowLength == 32 and
+                skipRows == 1 and
+                skipPixels == 2)
+
+    gpu.removeTexture(&texture)
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+    glDeleteBuffers(1, &unpackBuffer)
+    glDeleteBuffers(1, &packBuffer)
+    gpu.end()
 }

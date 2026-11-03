@@ -19,13 +19,13 @@ using Swag, Core, Pixel
     expect movie.load(fileName)
 
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
-    view.exchangeMovie(&movie)
+    Swag.assert(view.exchangeMovie(&movie))
     Swag.assert(view.movie.isValid() and not movie.isValid())
     Swag.assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
 
     var replacement: Movie
     expect replacement.load(fileName)
-    view.exchangeMovie(&replacement)
+    Swag.assert(view.exchangeMovie(&replacement))
     Swag.assert(view.movie.isValid() and replacement.isValid())
 }
 

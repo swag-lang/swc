@@ -74,13 +74,17 @@ impl ImageRect
            .uploadedTexture.height != frame.height or
            .uploadedTexture.pixelFormat != frame.pixelFormat
         {
+            let uploaded = .app().renderer.addImage(frame[])
+            if not uploaded.isValid() do
+                return
             if .uploadedTexture.isValid() do
                 .app().renderer.removeTexture(&.uploadedTexture)
-            .uploadedTexture = .app().renderer.addImage(frame[])
+            .uploadedTexture = uploaded
         }
         else
         {
-            .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer)) do
+                .app().renderer.removeTexture(&.uploadedTexture)
         }
     }
 
@@ -138,10 +142,15 @@ impl ImageRect
     }
 
     // Uploads and displays an owned copy of an image.
+    //
+    // Keeps the current image when the renderer cannot allocate a texture.
     mtd setImage(image: Image)
     {
+        let uploaded = .app().renderer.addImage(image)
+        if not uploaded.isValid() do
+            return
         .clear()
-        .uploadedTexture = .app().renderer.addImage(image)
+        .uploadedTexture = uploaded
         .movie.setSpriteSheet(ImageList.create(.uploadedTexture))
         .movie.setPaused(true)
         .invalidate()
@@ -186,10 +195,15 @@ impl ImageRect
     // Loads a registered image set; animations play and independent images start paused.
     mtd loadMovie(fileName: string) fail
     {
-        try .movie.load(fileName)
+        var movie: Movie
+        try movie.load(fileName)
+        let uploaded = .app().renderer.addImage(movie.frame)
+        if not uploaded.isValid() do
+            fail Pixel.RenderResourceError{"renderer cannot allocate the movie texture"}
         if .uploadedTexture.isValid() do
             .app().renderer.removeTexture(&.uploadedTexture)
-        .uploadedTexture = .app().renderer.addImage(.movie.frame)
+        swap(&.movie, &movie)
+        .uploadedTexture = uploaded
         .invalidate()
     }
 }

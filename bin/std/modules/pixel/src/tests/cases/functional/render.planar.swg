@@ -243,7 +243,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
 
     var secondStorage: Array'u8
     let second = flatPlanarPicture(&secondStorage, 4, 4, 235, 128, 128)
-    renderer.updateTexture(texture, &second)
+    Swag.assert(renderer.updateTexture(texture, &second))
 
     var target = renderer.createRenderTarget(4, 4)
     defer renderer.deleteRenderTarget(&target)

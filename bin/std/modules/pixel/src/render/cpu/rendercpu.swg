@@ -3222,14 +3222,15 @@ impl RenderCpu
     }
 
     // Converts a planar picture into the surface that holds it.
-    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
+    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
         if not texture.isValid() do
-            return
+            return false
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         view.convertToRgb(&storage.image)
         .copyPlanar(view, &storage.planar)
+        return true
     }
 
     // Reuses the renderer-owned plane buffers as decoded video frames replace each other.
@@ -3285,12 +3286,13 @@ impl RenderCpu
     // Replaces all bytes of a renderer-owned texture.
     //
     // `pixels` must address at least [[Pixel.Texture.byteCount]] readable bytes.
-    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
+    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)->bool
     {
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
         Memory.copy(target.image.pixels.storage(), pixels, target.image.byteCount)
+        return true
     }
 
     // Reads a renderer-owned texture into the requested tightly packed format.

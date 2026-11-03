@@ -449,6 +449,22 @@ private impl RenderOgl
     func generateTexture(datas: const [..] u8, w, h: s32)->GLuint
     {
         Swag.assert(datas.count <= 8 * 8)
+        var previousTexture, previousBuffer, previousAlignment, previousRowLength, previousSkipRows, previousSkipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment)
+        glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength)
+        glGetIntegerv(GL_UNPACK_SKIP_ROWS, &previousSkipRows)
+        glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &previousSkipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment)
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength)
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, previousSkipRows)
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
+        }
 
         var arr: [64] u32
         for p, i in datas do
@@ -456,9 +472,18 @@ private impl RenderOgl
 
         var result: GLuint
         glGenTextures(1, &result)
+        let nameError = glGetError()
+        if not result or nameError != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot allocate a built-in texture", #curlocation)
         glBindTexture(GL_TEXTURE_2D, result)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &arr[0])
+        if glGetError() != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot initialize a built-in texture", #curlocation)
         return result
     }
 
@@ -879,6 +904,9 @@ impl RenderOgl
         .createShaders()
 
         glGenBuffers(1, &.vertexbuffer)
+        let vertexBufferError = glGetError()
+        if not .vertexbuffer or vertexBufferError != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot allocate the vertex buffer", #curlocation)
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
 
         // Vertex buffer layout
@@ -896,6 +924,9 @@ impl RenderOgl
         // Generate predefined textures
         .whiteTexture = generateTexture([1], 1, 1)
         glGenTextures(1, &.gradientTexture)
+        let gradientNameError = glGetError()
+        if not .gradientTexture or gradientNameError != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot allocate the gradient texture", #curlocation)
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -967,12 +998,15 @@ impl RenderOgl
     // still be read afterwards.
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, w, h: s32)->Image
     {
-        var result: #returntype = Image.create(w, h, .BGRA8)
-        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, rt.handle))
+        if not rt.colorBuffer.isValid() do
+            return {}
+        var previousRead: GLint
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead)
+        defer glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, rt.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        return result
+        return .readBoundTargetToImage(rt, x, y, w, h)
     }
 
     // Reads the active target into a new image, then restores the previous target.
@@ -980,16 +1014,44 @@ impl RenderOgl
     {
         let curRT = unwrap .curRT
 
-        var result: #returntype = Image.create(w, h, .BGRA8)
-
         // Name the framebuffer to read from rather than trusting whatever the command stream
         // left bound. A painter binds and unbinds targets as it runs, and reading the ambient
         // binding takes the DEFAULT framebuffer instead - a blank buffer, or a foreign window -
         // which is the whole-image mismatch the parity tests were retrying around.
-        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, curRT.handle))
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, curRT.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
+        let result = .readBoundTargetToImage(curRT, x, y, w, h)
         .unbindRenderTargetImpl()
+        return result
+    }
+
+    // Reads the selected framebuffer with a CPU destination regardless of ambient pack state.
+    private mtd readBoundTargetToImage(rt: const *RenderTarget, x, y, w, h: s32)->Image
+    {
+        var result: #returntype = Image.create(w, h, .BGRA8)
+        var buffer, alignment, rowLength, skipRows, skipPixels: GLint
+        glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &buffer)
+        glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+        glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+        glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+        glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+        defer
+        {
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, buffer))
+            glPixelStorei(GL_PACK_ALIGNMENT, alignment)
+            glPixelStorei(GL_PACK_ROW_LENGTH, rowLength)
+            glPixelStorei(GL_PACK_SKIP_ROWS, skipRows)
+            glPixelStorei(GL_PACK_SKIP_PIXELS, skipPixels)
+        }
+
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+        glPixelStorei(GL_PACK_ALIGNMENT, 4)
+        glPixelStorei(GL_PACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
+        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
+        if glGetError() != GL_NO_ERROR do
+            return {}
         return result
     }
 
@@ -1015,19 +1077,61 @@ impl RenderOgl
     internal mtd createRenderTargetImpl(w, h: s32)->RenderTarget
     {
         Swag.assert(w > 0 and h > 0)
+        var previousRead, previousDraw: GLint
+        var previousTexture, previousUnpackBuffer: GLint
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead)
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDraw)
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousUnpackBuffer)
+        defer
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, previousDraw))
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousUnpackBuffer))
+        }
+
         var colorID: GLuint
         glGenTextures(1, &colorID)
+        let textureNameError = glGetError()
+        if not colorID or textureNameError != GL_NO_ERROR
+        {
+            if colorID do
+                glDeleteTextures(1, &colorID)
+            return {}
+        }
+
         glBindTexture(GL_TEXTURE_2D, colorID)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null)
+        if glGetError() != GL_NO_ERROR
+        {
+            glDeleteTextures(1, &colorID)
+            return {}
+        }
 
         var fbo: GLuint
         glGenFramebuffers(1, &fbo)
+        let framebufferNameError = glGetError()
+        if not fbo or framebufferNameError != GL_NO_ERROR
+        {
+            if fbo do
+                glDeleteFramebuffers(1, &fbo)
+            glDeleteTextures(1, &colorID)
+            return {}
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorID, 0)
+        let status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        if status != GL_FRAMEBUFFER_COMPLETE or glGetError() != GL_NO_ERROR
+        {
+            glDeleteFramebuffers(1, &fbo)
+            glDeleteTextures(1, &colorID)
+            return {}
+        }
 
         // Clipping uses coverage textures; no draw enables hardware depth or stencil tests.
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
         var result: #returntype
         result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h)
         return result
@@ -1054,26 +1158,72 @@ impl RenderOgl
     // Creates one single-channel plane of a planar picture.
     private mtd createPlaneTexture(width, height: s32)->GLuint
     {
+        var previousTexture, previousUnpackBuffer, previousAlignment: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousUnpackBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousUnpackBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment)
+        }
+
         var textureID: GLuint
         glGenTextures(1, &textureID)
+        let nameError = glGetError()
+        if not textureID or nameError != GL_NO_ERROR
+        {
+            if textureID do
+                glDeleteTextures(1, &textureID)
+            return 0
+        }
+
         glBindTexture(GL_TEXTURE_2D, textureID)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, cast(GLsizei, width), cast(GLsizei, height), 0, GL_RED, GL_UNSIGNED_BYTE, null)
+        if glGetError() != GL_NO_ERROR
+        {
+            glDeleteTextures(1, &textureID)
+            return 0
+        }
+
         return textureID
     }
 
     // Uploads one plane, letting the driver skip whatever padding the source rows carry.
-    private mtd uploadPlane(handle: GLuint, pixels: const [*] u8, stride: u64, width, height: s32)
+    private mtd uploadPlane(handle: GLuint, pixels: const [*] u8, stride: u64, width, height: s32)->bool
     {
+        var previousTexture, previousBuffer, previousAlignment, previousRowLength, previousSkipRows, previousSkipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment)
+        glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength)
+        glGetIntegerv(GL_UNPACK_SKIP_ROWS, &previousSkipRows)
+        glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &previousSkipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment)
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength)
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, previousSkipRows)
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
+        }
+
         glBindTexture(GL_TEXTURE_2D, handle)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, stride))
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, width), cast(GLsizei, height), GL_RED, GL_UNSIGNED_BYTE, pixels)
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        return glGetError() == GL_NO_ERROR
     }
 
     // Registers a planar picture as three single-channel planes the shader converts.
@@ -1085,31 +1235,50 @@ impl RenderOgl
         }
 
         let luma = .createPlaneTexture(view.width, view.height)
+        if not luma do
+            return {}
 
         var planes: ChromaPlanes
         planes.chromaB = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
         planes.chromaR = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
+        if not planes.chromaB or not planes.chromaR
+        {
+            var lumaID = luma
+            glDeleteTextures(1, &lumaID)
+            if planes.chromaB do
+                glDeleteTextures(1, &planes.chromaB)
+            if planes.chromaR do
+                glDeleteTextures(1, &planes.chromaR)
+            return {}
+        }
 
         var result: #returntype
         result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
         .chromaPlanes.add(result.handle, planes)
-        .updatePlanarImpl(result, view)
+        if not .updatePlanarImpl(result, view)
+        {
+            .removeTextureImpl(&result)
+            return {}
+        }
+
         return result
     }
 
     // Replaces the planar picture held by a texture, converting nothing.
-    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)
+    internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
         if not texture.isValid() or (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
-            return
+            return false
         let planes = .chromaPlanes.tryFind(texture.handle)
         if not planes do
-            return
+            return false
 
-        .uploadPlane(cast(GLuint, texture.handle), view.luma, view.lumaStride, texture.width, texture.height)
-        .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight())
-        .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
+        if not .uploadPlane(cast(GLuint, texture.handle), view.luma, view.lumaStride, texture.width, texture.height) or
+           not .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight()) or
+           not .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight()) do
+            return false
         planes.value.factors = view.conversionFactors()
+        return true
     }
 
     // Loads an image file into a texture owned by this renderer.
@@ -1145,12 +1314,45 @@ impl RenderOgl
         let fmt       = pixelFormatToNative(source.pixelFormat)
         let tinternal = pixelFormatToInternal(source.pixelFormat)
         let dataType  = pixelFormatToNativeType(source.pixelFormat)
+        var previousTexture, previousBuffer, previousAlignment, previousRowLength, previousSkipRows, previousSkipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment)
+        glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength)
+        glGetIntegerv(GL_UNPACK_SKIP_ROWS, &previousSkipRows)
+        glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &previousSkipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment)
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength)
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, previousSkipRows)
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
+        }
 
         var textureID: GLuint
         glGenTextures(1, &textureID)
+        let nameError = glGetError()
+        if not textureID or nameError != GL_NO_ERROR
+        {
+            if textureID do
+                glDeleteTextures(1, &textureID)
+            return {}
+        }
+
         glBindTexture(GL_TEXTURE_2D, textureID)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32, source.width), cast(s32, source.height), 0, fmt, dataType, cast([*] u8, source.pixels.storage()))
+        if glGetError() != GL_NO_ERROR
+        {
+            glDeleteTextures(1, &textureID)
+            return {}
+        }
 
         var result: #returntype
         result.attach(cast(TextureHandle, textureID), source.pixelFormat, source.width, source.height)
@@ -1222,27 +1424,74 @@ impl RenderOgl
     }
 
     // Replaces all bytes of a texture owned by this renderer.
-    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
+    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)->bool
     {
+        if not texture.isValid() do
+            return false
         let fmt       = pixelFormatToNative(texture.pixelFormat)
         let textureID = cast(GLuint, texture.handle)
+        var previousTexture, previousBuffer, previousAlignment, previousRowLength, previousSkipRows, previousSkipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment)
+        glGetIntegerv(GL_UNPACK_ROW_LENGTH, &previousRowLength)
+        glGetIntegerv(GL_UNPACK_SKIP_ROWS, &previousSkipRows)
+        glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &previousSkipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment)
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, previousRowLength)
+            glPixelStorei(GL_UNPACK_SKIP_ROWS, previousSkipRows)
+            glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
+        }
+
         glBindTexture(GL_TEXTURE_2D, textureID)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(s32, texture.width), cast(s32, texture.height), fmt, pixelFormatToNativeType(texture.pixelFormat), pixels)
+        return glGetError() == GL_NO_ERROR
     }
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
     internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: #returntype
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, cast(texture.handle))
+        if not texture.isValid() do
+            return result
         Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
+        var previousTexture, previousBuffer, alignment, rowLength, skipRows, skipPixels: GLint
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
+        glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previousBuffer)
+        glGetIntegerv(GL_PACK_ALIGNMENT, &alignment)
+        glGetIntegerv(GL_PACK_ROW_LENGTH, &rowLength)
+        glGetIntegerv(GL_PACK_SKIP_ROWS, &skipRows)
+        glGetIntegerv(GL_PACK_SKIP_PIXELS, &skipPixels)
+        defer
+        {
+            glBindTexture(GL_TEXTURE_2D, cast(GLuint, previousTexture))
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, previousBuffer))
+            glPixelStorei(GL_PACK_ALIGNMENT, alignment)
+            glPixelStorei(GL_PACK_ROW_LENGTH, rowLength)
+            glPixelStorei(GL_PACK_SKIP_ROWS, skipRows)
+            glPixelStorei(GL_PACK_SKIP_PIXELS, skipPixels)
+        }
+
+        glBindTexture(GL_TEXTURE_2D, cast(texture.handle))
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+        glPixelStorei(GL_PACK_ALIGNMENT, 1)
+        glPixelStorei(GL_PACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
         result.resize(cast(u64, texture.width) * cast(u64, texture.height) * pixelFormat.bitsPerPixel() / 8)
         let fmt = pixelFormatToNative(pixelFormat)
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
         glGetTexImage(GL_TEXTURE_2D, 0, fmt, pixelFormatToNativeType(pixelFormat), result.buffer)
-        glDisable(GL_TEXTURE_2D)
+        if glGetError() != GL_NO_ERROR do
+            result.clear()
         return result
     }
 
@@ -1560,6 +1809,9 @@ impl RenderOgl
                     glGenTextures(1, &textureID)
                 else do
                     textureID = cast(atlas.texture.handle)
+                let textureNameError = glGetError()
+                if not textureID or textureNameError != GL_NO_ERROR do
+                    Swag.panic("OpenGL cannot allocate a glyph atlas", #curlocation)
 
                 atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
 
@@ -1578,6 +1830,8 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
                     glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei, atlas.texture.width), cast(GLsizei, atlas.texture.height), 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
+                    if glGetError() != GL_NO_ERROR do
+                        Swag.panic("OpenGL cannot initialize a glyph atlas", #curlocation)
                 }
                 else
                 {
@@ -1587,6 +1841,8 @@ impl RenderOgl
                     let pixels = atlas.data.buffer + cast(u64, atlas.dirtyMinY) * atlas.width + atlas.dirtyMinX * bpp
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, atlas.texture.width))
                     glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint, atlas.dirtyMinX), cast(GLint, atlas.dirtyMinY), cast(GLsizei, (atlas.dirtyMaxX - atlas.dirtyMinX)), cast(GLsizei, (atlas.dirtyMaxY - atlas.dirtyMinY)), fmt, GL_UNSIGNED_BYTE, pixels)
+                    if glGetError() != GL_NO_ERROR do
+                        Swag.panic("OpenGL cannot update a glyph atlas", #curlocation)
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
                 }
 
@@ -1594,6 +1850,8 @@ impl RenderOgl
                 // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.
                 if isDF do
                     glGenerateMipmap(GL_TEXTURE_2D)
+                if glGetError() != GL_NO_ERROR do
+                    Swag.panic("OpenGL cannot build glyph atlas mipmaps", #curlocation)
             }
 
         case .ResetTexture0:
@@ -1709,10 +1967,13 @@ impl RenderOgl
 
                     if .gradientTextureCapacity < params.gradientStopCount
                     {
-                        .gradientTextureCapacity = Math.max(.gradientTextureCapacity * 2, params.gradientStopCount)
+                        let newCapacity = Math.max(.gradientTextureCapacity * 2, params.gradientStopCount)
                         glActiveTexture(GL_TEXTURE2)
                         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
-                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei, .gradientTextureCapacity), 2, 0, GL_RGBA, GL_FLOAT, null)
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei, newCapacity), 2, 0, GL_RGBA, GL_FLOAT, null)
+                        if glGetError() != GL_NO_ERROR do
+                            Swag.panic("OpenGL cannot allocate gradient stops", #curlocation)
+                        .gradientTextureCapacity = newCapacity
                     }
                     else
                     {
@@ -1730,6 +1991,8 @@ impl RenderOgl
 
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
+                    if glGetError() != GL_NO_ERROR do
+                        Swag.panic("OpenGL cannot upload gradient stops", #curlocation)
                     glActiveTexture(GL_TEXTURE0)
                 }
             }
@@ -1924,7 +2187,11 @@ impl RenderOgl
         // of driver allocation per frame for nothing.
         let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
         glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
+        if glGetError() != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot allocate the vertex stream", #curlocation)
         glBufferSubData(GL_ARRAY_BUFFER, 0, byteSize, dc.vertexBuffer.buffer)
+        if glGetError() != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot upload the vertex stream", #curlocation)
 
         // Default shader; a planar picture drawn last in the previous submission no longer
         // holds a program to restore.
@@ -1955,6 +2222,8 @@ impl RenderOgl
             glEnableVertexAttribArray(cast(GLuint, i))
         for cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx)
+        if glGetError() != GL_NO_ERROR do
+            Swag.panic("OpenGL cannot complete the painter commands", #curlocation)
         for i in 4 do
             glDisableVertexAttribArray(cast(GLuint, i))
         .finishAdvancedBlendPass()
@@ -2029,9 +2298,24 @@ impl RenderOgl
         glActiveTexture(GL_TEXTURE5)
         mask.texture = .createPlaneTexture(width, height)
         glActiveTexture(GL_TEXTURE0)
+        if not mask.texture do
+            Swag.panic("OpenGL cannot allocate a clipping mask", #curlocation)
         glGenFramebuffers(1, &mask.framebuffer)
+        let framebufferNameError = glGetError()
+        if not mask.framebuffer or framebufferNameError != GL_NO_ERROR
+        {
+            .releaseClipMask(&mask)
+            Swag.panic("OpenGL cannot allocate a clipping framebuffer", #curlocation)
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mask.texture, 0)
+        let status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        if status != GL_FRAMEBUFFER_COMPLETE or glGetError() != GL_NO_ERROR
+        {
+            .releaseClipMask(&mask)
+            Swag.panic("OpenGL cannot complete a clipping framebuffer", #curlocation)
+        }
 
         if reuse >= 0
         {
@@ -2144,6 +2428,12 @@ impl RenderOgl
 
         var rt = Memory.new'RenderTarget()
         rt[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
+        if not rt.colorBuffer.isValid()
+        {
+            Memory.delete(rt)
+            Swag.panic("OpenGL cannot allocate a pooled render target", #curlocation)
+        }
+
         return rt
     }
 

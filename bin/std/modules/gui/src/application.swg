@@ -1254,10 +1254,17 @@ impl Application
             return
 
         var mark = .appIcon.convertedTo(.RGBA8)
-        .appIconTileList.set(.renderer.addImage(mark))
+        var tile = .renderer.addImage(mark)
+        if not tile.isValid() do
+            return
 
         mark.keyOutGround(MarkInk, MarkVoltage)
-        .appIconList.set(.renderer.addImage(mark))
+        var icon = .renderer.addImage(mark)
+        if not icon.isValid()
+        {
+            .renderer.removeTexture(&tile)
+            return
+        }
 
         // The window glyph keeps the coverage of the keyed-out mark and takes white for its ink,
         // so a tint gives it any one color. `mark` is straight RGBA8 here.
@@ -1266,7 +1273,17 @@ impl Application
             pix[0], pix[1], pix[2] = 0xFF
         }
 
-        .appIconGlyphList.set(.renderer.addImage(mark))
+        let glyph = .renderer.addImage(mark)
+        if not glyph.isValid()
+        {
+            .renderer.removeTexture(&tile)
+            .renderer.removeTexture(&icon)
+            return
+        }
+
+        .appIconTileList.set(tile)
+        .appIconList.set(icon)
+        .appIconGlyphList.set(glyph)
         .appIconLoaded = true
     }
 

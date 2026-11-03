@@ -1,11 +1,11 @@
 // How a step marker counts.
 enum FormStepType
 {
-    #[Properties.Name("1...2...3...")]
+    #[Properties.Name("1 · 2 · 3")]
     Number
-    #[Properties.Name("A...B...C...")]
+    #[Properties.Name("A · B · C")]
     LetterUp
-    #[Properties.Name("a...b...c...")]
+    #[Properties.Name("a · b · c")]
     LetterDown
 }
 

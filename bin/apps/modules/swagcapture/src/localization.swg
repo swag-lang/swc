@@ -504,7 +504,7 @@ func appStrings()->const *AppStrings => &g_AppStrings
 // The grid builds its rows from compile-time attribute literals, so the literal is the key:
 // the `prop_` field whose reference English repeats it answers with its wording in the
 // active language. Answers `null` for a string no field claims, which is what leaves a
-// symbol such as `"%"` or `"1...2...3..."` alone.
+// symbol such as `"%"` or `"1 · 2 · 3"` alone.
 func resolvePropertyText(key: string)->string?
 {
     let type      = assume cast(const *Swag.TypeInfoStruct, #typeof(AppStrings))

@@ -37,20 +37,6 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     return false
 }
 
-func testPrepareRecentLibrary(main: *MainWnd)
-{
-    // Each scenario owns the callbacks it registers. Drop previous closures before their
-    // captured windows disappear, then restore a pristine library value.
-    Swag.drop(&g_Library, 1)
-    Swag.init(&g_Library, 1)
-
-    expect Library.init()
-    g_Library.loaded = true
-
-    if main.recentWnd == null do
-        main.recentWnd = RecentWnd.create(main, main)
-}
-
 // The automatic save snapshots on the interface thread and lands on a job worker:
 // scheduling clears the dirty flag immediately, an edit made after scheduling must
 // not leak into the file being written, and the flush waits for the atomic replace.

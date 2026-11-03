@@ -269,9 +269,8 @@ After changing `apply`, a palette, a measure, or a widget's look:
 
 1. `tools/std.bat dm test gui --test-file theme.colors.swg --test-file theme.sheet.swg --test-file themestyle.swg --test-file controls.charter.swg`
 2. A theme change crosses widgets and applications, so run the complete golden campaign:
-   `tools/goldens.bat dm test`. Each mismatch leaves a `.actual.png` beside its golden.
-   (`SWAG_GOLDEN_CONTINUE=1` collects every mismatch of a test in one run; see
-   [validate-swag-changes](../validate-swag-changes/SKILL.md).)
+   `tools/goldens.bat dm test`. Each mismatch leaves a `.actual.png` beside its golden, and a
+   test goes on past a mismatch, so one run collects all of them.
 3. **Review every `.actual` as a whole screen against its charter picture, in Encre and Papier.**
    Do not look only at the diff, and do not look only at the part you meant to change. A golden
    that changed in a part you did not touch is a finding. Promote each reviewed snapshot on its

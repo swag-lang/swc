@@ -700,6 +700,19 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: the reference states what `"\xFF"` holds, a fixture pins it, and no source under
   `bin/` relies on the other reading.
 
+### language.design.042 — Tests still state their verdicts with `Swag.assert`
+
+- Evidence: `Swag.require` and `Swag.check` are the test verdicts: no `Swag.Safety` setting removes
+  them, and a failed check lets its test go on. About 19,600 `Swag.assert(` calls under the module
+  test folders of `bin/` still state verdicts as programmer invariants, which an explicit
+  `#[Swag.Safety(.Assert, false)]` silently removes. Golden comparisons in `Pixel.Testing`
+  already use `Swag.check`.
+- Next: rewrite the calls in `#test` bodies and in test helpers to `Swag.require`, one module per
+  batch, keeping `Swag.assert` in the production code those tests reach; then warn on a
+  `Swag.assert` written directly in a `#test` body.
+- Done when: no `#test` body or test helper under `bin/` calls `Swag.assert`, and a sema fixture
+  pins the warning.
+
 ---
 
 ## Generic contracts and execution semantics

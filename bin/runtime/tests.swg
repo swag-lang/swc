@@ -78,6 +78,23 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
     resumeFailedTest()
 }
 
+// Records a failed 'Swag.check' in the running test, which goes on to its end and is then counted
+// as failed. Returns false when no test is running: nothing would ever count the failure, so the
+// caller stops the program instead.
+func __testCheckFailed(message: string?, loc: Swag.SourceCodeLocation)->bool
+{
+    if not g_TestRunning do
+        return false
+
+    Swag.print("\ncheck does not hold\n")
+    Swag.print("-------------------\n")
+    if message do
+        Swag.print("message: ", message, "\n")
+    Swag.print("source:  ", loc.fileName, ":", loc.lineStart, ":", loc.colStart, "\n\n")
+    g_TestFailed = true
+    return true
+}
+
 // A test executable launched without the `swag.test` run argument behaves like an application:
 // every #test is skipped and #main runs on a state no test has touched.
 func __isTestRun()->bool

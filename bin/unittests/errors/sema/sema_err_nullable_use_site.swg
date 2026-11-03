@@ -42,6 +42,20 @@ func nullableUseSiteDeref(p: *s32?)->s32
     return p[]     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
+// A failed check lets the test go on, so it proves nothing about the code that follows; a
+// requirement stops the test when it fails, and narrows like an assertion.
+func nullableUseSiteDerefAfterCheck(p: *s32?)->s32
+{
+    Swag.check(p != null)
+    return p[]     // swc-expected-error {{sema_err_nullable_deref}}
+}
+
+func nullableUseSiteDerefAfterRequire(p: *s32?)->s32
+{
+    Swag.require(p != null)
+    return p[]
+}
+
 func nullableUseSiteDerefCast(p: *s32?)->u32
 {
     return cast(*u32?, p)[]     // swc-expected-error {{sema_err_nullable_deref}}

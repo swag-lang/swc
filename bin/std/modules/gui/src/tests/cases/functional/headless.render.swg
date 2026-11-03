@@ -1,7 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 using Swag, Core, Pixel
-    using wnd: Wnd
 
 #test
 {

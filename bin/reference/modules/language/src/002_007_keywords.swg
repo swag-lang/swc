@@ -106,10 +106,10 @@ Swag.modules()  Swag.processInfo()  Swag.runtimeFlags()
 Type, value, lifecycle, and control intrinsics:
 
 ```swag
-Swag.assert  Swag.breakpoint  Swag.compilerError  Swag.compilerWarning
+Swag.assert  Swag.breakpoint  Swag.check  Swag.compilerError  Swag.compilerWarning
 .count  .buffer  Swag.drop  Swag.getContext  Swag.init
 Swag.kindOf  Swag.makeAny  Swag.makeInterface  Swag.makeSlice  Swag.makeString  Swag.panic
-Swag.postCopy  Swag.postMove  Swag.print  Swag.safetyPanic  Swag.setContext
+Swag.postCopy  Swag.postMove  Swag.print  Swag.require  Swag.safetyPanic  Swag.setContext
 Swag.stringCmp  Swag.tableOf  Swag.typeCmp
 ```
 

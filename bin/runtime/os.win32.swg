@@ -614,6 +614,11 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     if kind == .Assert and Swag.getContext().panicCatch do
         Swag.panic(message, loc)
 
+    // A failed check belongs to the running test, which goes on. The compiler running a JIT
+    // test records it the same way when the exception below returns.
+    if kind == .Check and not Swag.jit() and __testCheckFailed(message, loc) do
+        return
+
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
     // hooks), instead of dying silently on an unhandled SEH exception.
@@ -626,6 +631,7 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
             {
             case .Assert: msg = "assertion does not hold"
             case .Safety: msg = "runtime safety contract does not hold"
+            case .Check:  msg = "check does not hold"
             default:      msg = "runtime error"
             }
         }
@@ -639,7 +645,10 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     cxt.exceptionParams[1] = cast(const *void?, message.buffer)
     cxt.exceptionParams[2] = cast(const *void, cast(u64, message.count))
     cxt.exceptionParams[3] = cast(const *void, cast(u64, kind))
-    Swag.__valueBorrowReset()
+
+    // A check resumes where it failed, with every borrow still live.
+    if kind != .Check do
+        Swag.__valueBorrowReset()
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 

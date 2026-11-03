@@ -1179,6 +1179,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicMemSet:
             return parseIntrinsicCallExpr(3);
         case TokenId::IntrinsicAssert:
+        case TokenId::IntrinsicRequire:
+        case TokenId::IntrinsicCheck:
         case TokenId::IntrinsicPrint:
             return parseIntrinsicCallExpr(UINT32_MAX);
 

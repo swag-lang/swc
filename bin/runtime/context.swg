@@ -136,6 +136,7 @@ namespace Swag
         Warning
         Assert
         Safety
+        Check       // A failed 'Swag.check', which lets the running test go on
     }
 
     const MaxTraces = 32     // Maximum error traces

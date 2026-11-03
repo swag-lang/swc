@@ -1,5 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
-#global private
+#global internal
 
 using Swag, Core, Pixel
 
@@ -42,7 +42,7 @@ using Swag, Core, Pixel
 
 // Counts the pixels of one row that sit between the two plateaus of an opaque red-on-white
 // picture, which is how wide the edges crossing that row are drawn.
-private func edgeSpread(image: *Image, row: s32)->s32
+func edgeSpread(image: *Image, row: s32)->s32
 {
     var result = 0's32
     for x in image.width

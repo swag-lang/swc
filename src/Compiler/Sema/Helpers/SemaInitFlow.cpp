@@ -1543,8 +1543,10 @@ namespace
 
                 case AstNodeId::IntrinsicCallExpr:
                 {
-                    // An assertion evaluates nothing when assertions are off.
-                    const bool isAssert = node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicAssert;
+                    // An assertion evaluates nothing when assertions are off, and a verdict
+                    // evaluates its diagnostic arguments only when it fails.
+                    const TokenId intrinsicId = node.cast<AstIntrinsicCallExpr>().intrinsicId;
+                    const bool    isAssert    = intrinsicId == TokenId::IntrinsicAssert || intrinsicId == TokenId::IntrinsicRequire || intrinsicId == TokenId::IntrinsicCheck;
                     if (isAssert)
                         conditionalDepth_++;
                     const FlowExit exit = walkCall(ref, node, state);

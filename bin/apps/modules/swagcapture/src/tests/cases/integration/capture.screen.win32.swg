@@ -96,3 +96,49 @@ using Swag, Core
     Swag.assert(image.width == 320)
     Swag.assert(image.height == 240)
 }
+
+// A real OS grab must reach the editor and persist as a reloadable Swag Capture document.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    f.main.captureOptions.hideEditorBefore = false
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = false
+    f.main.captureOptions.sendToEditor     = true
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
+
+    g_StartGrabX = 0
+    g_StartGrabY = 0
+    g_EndGrabX   = 16
+    g_EndGrabY   = 12
+
+    let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea)
+    Swag.assert(actionExecuted)
+    f.gui.pump()
+
+    let capture = unwrap f.main.getCapture()
+    let path    = capture.file
+    defer
+    {
+        discard catch File.delete(path)
+        g_Library.files.clear()
+    }
+
+    Swag.assert(capture.sourceKind == .Screen)
+    Swag.assert(capture.width == 16 and capture.height == 12)
+    Swag.assert(capture.backImg.isValid())
+    Swag.assert(File.exists(path))
+
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.assert(loaded.width == 16 and loaded.height == 12)
+    Swag.assert(loaded.sourceKind == .Screen)
+    Swag.assert(loaded.backImg.isValid())
+}

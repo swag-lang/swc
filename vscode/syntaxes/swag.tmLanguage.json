@@ -229,7 +229,7 @@
     "intrinsics": {
       "patterns": [
         {
-          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|postCopy|postMove)\\b",
+          "match": "\\b(Swag)(\\.)(tableOf|stringCmp|typeCmp|getContext|setContext|print|compilerError|compilerWarning|breakpoint|assert|require|check|panic|safetyPanic|init|drop|makeAny|makeSlice|makeString|makeInterface|kindOf|postCopy|postMove)\\b",
           "captures": {
             "1": {
               "name": "entity.name.namespace.builtin.swag"

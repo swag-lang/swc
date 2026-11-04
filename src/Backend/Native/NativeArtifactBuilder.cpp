@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/PEFormat.h"
+#include "Backend/Linker/Format.COFF.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroBuilder.h"

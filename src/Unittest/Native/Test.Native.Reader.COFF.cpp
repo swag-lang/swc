@@ -1,0 +1,318 @@
+#include "pch.h"
+#include "Backend/Linker/Format.COFF.h"
+
+#if SWC_HAS_UNITTEST
+
+#include "Backend/Linker/Archive.COFF.h"
+#include "Backend/Linker/Reader.COFF.h"
+#include "Support/Os/Os.h"
+#include "Support/Report/Diagnostic.h"
+#include "Unittest/Unittest.h"
+
+SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    constexpr size_t TEXT_HEADER = sizeof(PE::FileHeader);
+    constexpr size_t TEXT_DATA   = TEXT_HEADER + 2 * sizeof(PE::SectionHeader);
+    constexpr size_t RELOC_DATA  = TEXT_DATA + 4;
+
+    template<typename T>
+    void writeRecord(ByteArray& bytes, const size_t offset, const T& record)
+    {
+        static_assert(std::is_trivially_copyable_v<T>);
+        std::memcpy(bytes.data() + offset, &record, sizeof(record));
+    }
+
+    ByteArray makeCoffReaderObject(const bool overflow)
+    {
+        const size_t relocData  = RELOC_DATA + (overflow ? sizeof(PE::Relocation) : 0);
+        const size_t symbolData = relocData + 2 * sizeof(PE::Relocation);
+        ByteArray    bytes(symbolData + 5 * sizeof(PE::Symbol));
+
+        PE::FileHeader file{};
+        file.Machine              = PE::FILE_MACHINE_AMD64;
+        file.NumberOfSections     = 2;
+        file.PointerToSymbolTable = static_cast<uint32_t>(symbolData);
+        file.NumberOfSymbols      = 5;
+        writeRecord(bytes, 0, file);
+
+        PE::SectionHeader text{};
+        std::memcpy(text.Name, ".text", 5);
+        text.SizeOfRawData        = 4;
+        text.PointerToRawData     = TEXT_DATA;
+        text.PointerToRelocations = RELOC_DATA;
+        text.NumberOfRelocations  = overflow ? 0xFFFF : 2;
+        text.Characteristics      = PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ;
+        if (overflow)
+            text.Characteristics |= PE::SCN_LNK_NRELOC_OVFL;
+        writeRecord(bytes, TEXT_HEADER, text);
+        bytes.writeLe32(TEXT_DATA, 0x12345678);
+
+        PE::SectionHeader bss{};
+        std::memcpy(bss.Name, ".bss", 4);
+        bss.SizeOfRawData   = 64;
+        bss.Characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
+        writeRecord(bytes, TEXT_HEADER + sizeof(text), bss);
+
+        PE::Relocation reloc{};
+        if (overflow)
+        {
+            reloc.RelocCount = 3; // Includes the count record itself.
+            writeRecord(bytes, RELOC_DATA, reloc);
+        }
+        reloc.VirtualAddress   = 1;
+        reloc.SymbolTableIndex = 3;
+        reloc.Type             = PE::REL_AMD64_REL32;
+        writeRecord(bytes, relocData, reloc);
+        reloc.SymbolTableIndex = 0;
+        writeRecord(bytes, relocData + sizeof(reloc), reloc);
+
+        PE::Symbol symbol{};
+        symbol.N.Name.Long        = 4;
+        symbol.SectionNumber      = 1;
+        symbol.Value              = 1;
+        symbol.StorageClass       = PE::SYM_CLASS_EXTERNAL;
+        symbol.NumberOfAuxSymbols = 1;
+        writeRecord(bytes, symbolData, symbol);
+        // Record 1 is an auxiliary record; it must not become a definition.
+        symbol = {};
+        std::memcpy(symbol.N.ShortName, "aux", 3);
+        symbol.SectionNumber = 1;
+        writeRecord(bytes, symbolData + sizeof(symbol), symbol);
+        symbol = {};
+        std::memcpy(symbol.N.ShortName, "bss", 3);
+        symbol.SectionNumber = 2;
+        symbol.Value         = 3;
+        symbol.StorageClass  = PE::SYM_CLASS_EXTERNAL;
+        writeRecord(bytes, symbolData + 2 * sizeof(symbol), symbol);
+        symbol = {};
+        std::memcpy(symbol.N.ShortName, "external", 8);
+        symbol.StorageClass = PE::SYM_CLASS_EXTERNAL;
+        writeRecord(bytes, symbolData + 3 * sizeof(symbol), symbol);
+        symbol = {};
+        std::memcpy(symbol.N.ShortName, "local", 5);
+        symbol.SectionNumber = 1;
+        symbol.StorageClass  = PE::SYM_CLASS_STATIC;
+        writeRecord(bytes, symbolData + 4 * sizeof(symbol), symbol);
+
+        constexpr std::string_view longName = "defined_function_name";
+        bytes.appendLe32(static_cast<uint32_t>(4 + longName.size() + 1));
+        bytes.appendCString(longName);
+        return bytes;
+    }
+
+    bool rejectsCoffObject(const ByteArray& bytes, const DiagnosticId expected)
+    {
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols;
+        Diagnostic                   fullDiag;
+        Diagnostic                   symbolsDiag;
+        if (readCoffObject(object, fullDiag, bytes) || readCoffDefinedSymbols(symbols, symbolsDiag, bytes.span()))
+            return false;
+        return !fullDiag.elements().empty() && !symbolsDiag.elements().empty() &&
+               fullDiag.elements().front()->id() == expected && symbolsDiag.elements().front()->id() == expected;
+    }
+}
+
+SWC_TEST_BEGIN(CoffReader_DefinedSymbolsPreserveObjectSemantics)
+{
+    for (const bool overflow : {false, true})
+    {
+        ByteArray                    bytes = makeCoffReaderObject(overflow);
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols(1); // Reading replaces previous output.
+        Diagnostic                   diag;
+        if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
+            return Result::Error;
+        std::ranges::fill(bytes, std::byte{0xCC});
+        bytes = ByteArray{};
+
+        if (symbols.size() != 3 || object.definedSymbols.size() != symbols.size() || object.sections.size() != 2)
+            return Result::Error;
+        if (symbols[0].name != "defined_function_name" || symbols[0].sectionIndex != 0 || symbols[0].value != 1 ||
+            symbols[1].name != "bss" || symbols[1].sectionIndex != 1 || symbols[1].value != 3 ||
+            symbols[2].name != "local" || symbols[2].sectionIndex != 0 || symbols[2].value != 0)
+            return Result::Error;
+        for (size_t i = 0; i < symbols.size(); ++i)
+        {
+            if (symbols[i].name != object.definedSymbols[i].name || symbols[i].sectionIndex != object.definedSymbols[i].sectionIndex || symbols[i].value != object.definedSymbols[i].value)
+                return Result::Error;
+        }
+        const CoffInputSection& text = object.sections[0];
+        const CoffInputSection& bss  = object.sections[1];
+        if (text.name != ".text" || text.isBss || text.bytes.size() != 4 || text.bytes.readLe32(0) != 0x12345678 || text.relocs.size() != 2 ||
+            text.relocs[0].symbolName != "external" || text.relocs[1].symbolName != "defined_function_name" ||
+            text.relocs[0].offset != 1 || text.relocs[0].type != PE::REL_AMD64_REL32 ||
+            bss.name != ".bss" || !bss.isBss || bss.bssSize != 64 || !bss.bytes.empty() || !bss.relocs.empty())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CoffReader_SymbolViewsPreserveClassificationAndBounds)
+{
+    const ByteArray valid     = makeCoffReaderObject(false);
+    const size_t    symbolsAt = valid.readLe32(offsetof(PE::FileHeader, PointerToSymbolTable));
+    for (const int16_t sectionNumber : std::array<int16_t, 5>{-2, -1, 0, 3, 0x7FFF})
+    {
+        ByteArray bytes = valid;
+        bytes.writeLe16(symbolsAt + offsetof(PE::Symbol, SectionNumber), static_cast<uint16_t>(sectionNumber));
+        // An undefined record can reference the same long name as a non-section definition.
+        bytes.writeLe32(symbolsAt + 3 * sizeof(PE::Symbol), 0);
+        bytes.writeLe32(symbolsAt + 3 * sizeof(PE::Symbol) + 4, 4);
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols;
+        Diagnostic                   diag;
+        if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
+            return Result::Error;
+        std::ranges::fill(bytes, std::byte{0xCC});
+        if (object.definedSymbols.size() != 2 || symbols.size() != 2 || symbols[0].name != "bss" || symbols[1].name != "local" ||
+            object.sections[0].relocs[0].symbolName != "defined_function_name" || object.sections[0].relocs[1].symbolName != "defined_function_name")
+            return Result::Error;
+    }
+
+    // Keep the reader's bounded handling of missing and unterminated long names.
+    for (const bool missingName : {false, true})
+    {
+        ByteArray bytes = valid;
+        if (missingName)
+            bytes.writeLe32(symbolsAt + 4, static_cast<uint32_t>(bytes.size()));
+        else
+            bytes.resize(bytes.size() - 1);
+        CoffObject                   object;
+        std::vector<CoffInputSymbol> symbols;
+        Diagnostic                   diag;
+        if (!readCoffObject(object, diag, bytes) || !readCoffDefinedSymbols(symbols, diag, bytes.span()))
+            return Result::Error;
+        const size_t expectedCount = missingName ? 2 : 3;
+        if (object.definedSymbols.size() != expectedCount || symbols.size() != expectedCount)
+            return Result::Error;
+        if (missingName)
+        {
+            if (!object.sections[0].relocs[1].symbolName.empty() || symbols[0].name != "bss")
+                return Result::Error;
+        }
+        else if (object.sections[0].relocs[1].symbolName != "defined_function_name" || symbols[0].name != "defined_function_name")
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CoffReader_DefinedSymbolsValidateDiscardedData)
+{
+    const ByteArray valid = makeCoffReaderObject(false);
+    ByteArray       bytes(sizeof(PE::FileHeader) - 1);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_header))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe16(offsetof(PE::FileHeader, Machine), PE::FILE_MACHINE_I386);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_unsupported_machine))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe32(offsetof(PE::FileHeader, PointerToSymbolTable), static_cast<uint32_t>(bytes.size()));
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_symbols))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe16(offsetof(PE::FileHeader, SizeOfOptionalHeader), 0xFFFF);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_section))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRawData), static_cast<uint32_t>(bytes.size() - 1));
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_section_out_of_bounds))
+        return Result::Error;
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRawData), 0xFFFFFFF0);
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, SizeOfRawData), 0x40);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_section_out_of_bounds))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_relocs))
+        return Result::Error;
+    bytes = valid;
+    bytes.writeLe32(RELOC_DATA + offsetof(PE::Relocation, SymbolTableIndex), 5);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range))
+        return Result::Error;
+    bytes = makeCoffReaderObject(true);
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), static_cast<uint32_t>(bytes.size() - 1));
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow))
+        return Result::Error;
+    bytes                         = makeCoffReaderObject(true);
+    const uint32_t overflowOffset = static_cast<uint32_t>(bytes.size() - sizeof(PE::Relocation));
+    bytes.writeLe32(TEXT_HEADER + offsetof(PE::SectionHeader, PointerToRelocations), overflowOffset);
+    bytes.writeLe32(overflowOffset, 2);
+    if (!rejectsCoffObject(bytes, DiagnosticId::cmd_err_link_coff_truncated_relocs))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CoffReader_ArchiveIndexesDefinitionsOnly)
+{
+    std::vector<LinkArchiveMember> members = {{.name = "symbols.obj", .bytes = makeCoffReaderObject(true)}};
+    ByteArray                      bytes;
+    Diagnostic                     diag;
+    if (!buildCoffStaticArchive(bytes, diag, members))
+        return Result::Error;
+    Archive archive;
+    if (!archive.load(diag, std::move(bytes)))
+        return Result::Error;
+    const uint32_t offset = archive.memberOffsetForSymbol("defined_function_name");
+    if (!offset || archive.memberOffsetForSymbol("bss") != offset || archive.memberOffsetForSymbol("local") != offset || archive.memberOffsetForSymbol("external") ||
+        !std::ranges::equal(archive.memberData(diag, offset), members[0].bytes))
+        return Result::Error;
+    members[0].bytes.writeLe32(RELOC_DATA + sizeof(PE::Relocation) + offsetof(PE::Relocation, SymbolTableIndex), 5);
+    if (buildCoffStaticArchive(bytes, diag, members) || diag.elements().empty() || diag.elements().front()->id() != DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CoffReader_MergeConsumesBuffersAndPreservesRebasedSymbols)
+{
+    const ByteArray         bytes = makeCoffReaderObject(false);
+    std::vector<CoffObject> objects(1);
+    Diagnostic              diag;
+    LinkImage               image;
+    if (!readCoffObject(objects[0], diag, bytes))
+        return Result::Error;
+
+    const std::byte* firstBytes = objects[0].sections[0].bytes.data();
+    if (!mergeCoffObjectsIntoImage(image, diag, std::move(objects)))
+        return Result::Error;
+    if (image.sections.size() != 2 || image.sections[0].bytes.data() != firstBytes ||
+        !objects[0].sections[0].bytes.empty() || !objects[0].sections[0].relocs.empty())
+        return Result::Error;
+
+    // Append an aligned object to a populated image. Duplicate definitions keep the first value.
+    objects.clear();
+    objects.resize(1);
+    if (!readCoffObject(objects[0], diag, bytes))
+        return Result::Error;
+    objects[0].sections[0].characteristics |= PE::SCN_ALIGN_16BYTES;
+    objects[0].definedSymbols.push_back({.name = "second_function_name", .sectionIndex = 0, .value = 2});
+    if (!mergeCoffObjectsIntoImage(image, diag, std::move(objects)))
+        return Result::Error;
+    if (!objects[0].sections[0].bytes.empty() || !objects[0].sections[0].relocs.empty())
+        return Result::Error;
+    objects.clear();
+
+    const LinkSection& text = image.sections[0];
+    if (text.bytes.size() != 20 || text.align != 16 || text.bytes.readLe32(0) != 0x12345678 || text.bytes.readLe32(16) != 0x12345678)
+        return Result::Error;
+    for (size_t i = 4; i < 16; ++i)
+    {
+        if (text.bytes[i] != std::byte{0})
+            return Result::Error;
+    }
+    if (text.relocs.size() != 4 || text.relocs[0].offset != 1 || text.relocs[2].offset != 17 ||
+        text.relocs[2].symbolName != "external" || text.relocs[3].symbolName != "defined_function_name" ||
+        text.relocs[2].kind != LinkRelocKind::Rel32 || image.sections[1].bssSize != 128)
+        return Result::Error;
+    if (image.symbols.size() != 4 || image.symbols[0].name != "defined_function_name" || image.symbols[0].value != 1 ||
+        image.symbols[3].name != "second_function_name" || image.symbols[3].sectionIndex != 0 || image.symbols[3].value != 18)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_END_NAMESPACE();
+
+#endif

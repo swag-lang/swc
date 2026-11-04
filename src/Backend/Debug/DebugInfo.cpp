@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.h"
-#include "Backend/Debug/DebugInfoCodeView.h"
-#include "Backend/Debug/DebugInfoDwarf.h"
+#include "Backend/Debug/DebugInfo.CodeView.h"
+#include "Backend/Debug/DebugInfo.DWARF.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

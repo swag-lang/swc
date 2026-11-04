@@ -1,0 +1,355 @@
+#include "pch.h"
+#include "Backend/Linker/Archive.COFF.h"
+#include "Backend/Linker/Reader.COFF.h"
+#include "Support/Math/Helpers.h"
+#include "Support/Report/Assert.h"
+#include "Support/Report/Diagnostic.h"
+
+SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    constexpr std::string_view ARCHIVE_MAGIC        = "!<arch>\n";
+    constexpr size_t           MEMBER_HEADER_SIZE   = 60;
+    constexpr size_t           IMPORT_HEADER_SIZE   = 20;
+    constexpr uint16_t         IMPORT_SIG2          = 0xFFFF;
+    constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
+
+    uint16_t readLe16(const std::span<const std::byte> bytes, const size_t offset) noexcept
+    {
+        SWC_ASSERT(offset <= bytes.size() && sizeof(uint16_t) <= bytes.size() - offset);
+        return static_cast<uint16_t>(std::to_integer<uint16_t>(bytes[offset + 0]) | (std::to_integer<uint16_t>(bytes[offset + 1]) << 8));
+    }
+
+    size_t archiveAlignedSize(size_t size)
+    {
+        return Math::alignUpU64(size, 2);
+    }
+}
+
+bool tryReadCoffImport(ArchiveImport& outImport, Diagnostic& outDiag, const Archive& archive, uint32_t headerOffset)
+{
+    const std::span<const std::byte> data = archive.memberData(outDiag, headerOffset);
+    if (data.empty())
+        return false;
+
+    return tryReadCoffImport(outImport, data);
+}
+
+bool tryReadCoffImport(ArchiveImport& outImport, const std::span<const std::byte> data)
+{
+    if (data.size() < IMPORT_HEADER_SIZE)
+        return false;
+    if (readLe16(data, 0) != 0 || readLe16(data, 2) != IMPORT_SIG2)
+        return false; // a regular COFF member, not a short import
+
+    const uint16_t ordinalOrHint = readLe16(data, 16);
+    const uint16_t flags         = readLe16(data, 18);
+    const uint16_t type          = flags & 0x3;
+    const uint16_t nameType      = (flags >> 2) & 0x7;
+
+    // Strings follow the header: importName\0 dllName\0.
+    const auto*  strings = reinterpret_cast<const char*>(data.data() + IMPORT_HEADER_SIZE);
+    const size_t maxLen  = data.size() - IMPORT_HEADER_SIZE;
+    size_t       nameLen = 0;
+    while (nameLen < maxLen && strings[nameLen] != '\0')
+        ++nameLen;
+    const std::string_view importName{strings, nameLen};
+
+    const size_t dllStart = nameLen + 1;
+    size_t       dllLen   = 0;
+    while (dllStart + dllLen < maxLen && strings[dllStart + dllLen] != '\0')
+        ++dllLen;
+    const std::string_view dllName{strings + dllStart, dllLen};
+
+    outImport.importName = Utf8{importName};
+    outImport.dll        = Utf8{dllName};
+    outImport.isData     = type == 1;     // IMPORT_OBJECT_DATA
+    outImport.byOrdinal  = nameType == 0; // IMPORT_OBJECT_ORDINAL
+    outImport.ordinal    = ordinalOrHint;
+
+    return true;
+}
+namespace
+{
+    void appendHeaderField(const std::span<char> outHeader, std::string_view value, size_t offset, size_t width)
+    {
+        std::memcpy(outHeader.data() + offset, value.data(), std::min(value.size(), width));
+    }
+
+    // Writes a 60-byte archive member header. Numeric fields are left-justified, space-padded.
+    void appendMemberHeader(ByteArray& out, std::string_view name, uint32_t dataSize)
+    {
+        std::array<char, MEMBER_HEADER_SIZE> header;
+        header.fill(' ');
+        appendHeaderField(header, name, 0, 16);
+        appendHeaderField(header, "0", 16, 12); // date
+        appendHeaderField(header, "0", 28, 6);  // uid
+        appendHeaderField(header, "0", 34, 6);  // gid
+        appendHeaderField(header, "0", 40, 8);  // mode
+
+        const auto result = std::to_chars(header.data() + 48, header.data() + 58, dataSize);
+        SWC_ASSERT(result.ec == std::errc{});
+        header[58] = '\x60';
+        header[59] = '\n';
+
+        out.append(std::string_view{header.data(), header.size()});
+    }
+
+    void appendArchiveMember(ByteArray& outBytes, std::string_view name, std::span<const std::byte> data)
+    {
+        appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
+        outBytes.append(data);
+        if (data.size() & 1)
+            outBytes.pushBack(static_cast<std::byte>('\n'));
+    }
+
+    struct ArchiveMemberBuild
+    {
+        // Names borrow the input object name or the reserved import-record buffer until emission ends.
+        std::string_view           name;
+        std::span<const std::byte> data;
+        std::vector<Utf8>          symbols;
+        uint32_t                   headerOffset = 0;
+    };
+
+    bool checkArchiveMemberCount(Diagnostic& outDiag, const size_t count)
+    {
+        // The second COFF linker member stores one-based unsigned-short member indices.
+        if (count <= std::numeric_limits<uint16_t>::max())
+            return true;
+
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_member_limit);
+        outDiag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(count));
+        return false;
+    }
+
+    // Assembles a COFF archive from prepared members: both linker symbol directories, an optional
+    // long-names member, then the member contents.
+    void emitArchive(ByteArray& outBytes, std::vector<ArchiveMemberBuild>& members)
+    {
+        // Names longer than 15 characters live in a "//" member and are referenced
+        // by "/<decimal-offset>" instead of the inline "name/" form.
+        size_t   longNamesSize   = 0;
+        uint32_t symbolCount     = 0;
+        size_t   symbolNamesSize = 0;
+        for (const ArchiveMemberBuild& member : members)
+        {
+            if (member.name.size() > 15)
+                longNamesSize += member.name.size() + 1;
+            symbolCount += static_cast<uint32_t>(member.symbols.size());
+            for (const Utf8& symbol : member.symbols)
+                symbolNamesSize += symbol.size() + 1;
+        }
+
+        struct IndexedSymbol
+        {
+            std::string_view name;
+            uint16_t         memberIndex;
+        };
+
+        std::vector<IndexedSymbol> sortedSymbols;
+        sortedSymbols.reserve(symbolCount);
+        for (size_t index = 0; index < members.size(); ++index)
+        {
+            for (const Utf8& symbol : members[index].symbols)
+                sortedSymbols.push_back({symbol.view(), static_cast<uint16_t>(index + 1)});
+        }
+
+        std::ranges::sort(sortedSymbols, [](const IndexedSymbol& left, const IndexedSymbol& right) {
+            if (left.name != right.name)
+                return left.name < right.name;
+            return left.memberIndex < right.memberIndex;
+        });
+
+        // Match the first directory's first-definition lookup when several members define a name.
+        const auto duplicates = std::ranges::unique(sortedSymbols, {}, &IndexedSymbol::name);
+        sortedSymbols.erase(duplicates.begin(), duplicates.end());
+
+        size_t sortedNamesSize = 0;
+        for (const IndexedSymbol& symbol : sortedSymbols)
+            sortedNamesSize += symbol.name.size() + 1;
+
+        const size_t linkerDataSize       = 4 + static_cast<size_t>(symbolCount) * 4 + symbolNamesSize;
+        const size_t secondLinkerDataSize = 8 + members.size() * 4 + sortedSymbols.size() * 2 + sortedNamesSize;
+
+        // Compute each member header's file offset now that the leading members' sizes are known.
+        size_t cursor = 8; // after "!<arch>\n"
+        cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(linkerDataSize);
+        cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(secondLinkerDataSize);
+
+        const bool hasLongNames = longNamesSize != 0;
+        if (hasLongNames)
+            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(longNamesSize);
+
+        for (ArchiveMemberBuild& member : members)
+        {
+            member.headerOffset = static_cast<uint32_t>(cursor);
+            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(member.data.size());
+        }
+
+        outBytes.clear();
+        outBytes.reserve(cursor);
+        outBytes.append(ARCHIVE_MAGIC);
+
+        // The first directory is big-endian and follows member order.
+        appendMemberHeader(outBytes, "/", static_cast<uint32_t>(linkerDataSize));
+        outBytes.appendBe32(symbolCount);
+        for (const ArchiveMemberBuild& member : members)
+            for (size_t s = 0; s < member.symbols.size(); ++s)
+                outBytes.appendBe32(member.headerOffset);
+
+        for (const ArchiveMemberBuild& member : members)
+        {
+            for (const Utf8& symbol : member.symbols)
+                outBytes.appendCString(symbol.view());
+        }
+
+        if (linkerDataSize & 1)
+            outBytes.pushBack(static_cast<std::byte>('\n'));
+
+        // The second directory identifies this as a COFF archive to external readers. Its
+        // offsets and one-based indices are little-endian, and its names are lexical.
+        appendMemberHeader(outBytes, "/", static_cast<uint32_t>(secondLinkerDataSize));
+        outBytes.appendLe32(static_cast<uint32_t>(members.size()));
+        for (const ArchiveMemberBuild& member : members)
+            outBytes.appendLe32(member.headerOffset);
+
+        outBytes.appendLe32(static_cast<uint32_t>(sortedSymbols.size()));
+        for (const IndexedSymbol& symbol : sortedSymbols)
+            outBytes.appendLe16(symbol.memberIndex);
+
+        for (const IndexedSymbol& symbol : sortedSymbols)
+            outBytes.appendCString(symbol.name);
+        if (secondLinkerDataSize & 1)
+            outBytes.pushBack(static_cast<std::byte>('\n'));
+
+        if (hasLongNames)
+        {
+            appendMemberHeader(outBytes, "//", static_cast<uint32_t>(longNamesSize));
+            for (const ArchiveMemberBuild& member : members)
+            {
+                if (member.name.size() <= 15)
+                    continue;
+
+                outBytes.appendCString(member.name);
+            }
+
+            if (longNamesSize & 1)
+                outBytes.pushBack(static_cast<std::byte>('\n'));
+        }
+
+        size_t longNameOffset = 0;
+        for (const ArchiveMemberBuild& member : members)
+        {
+            // Enough for an inline name plus slash, or a slash and any decimal size_t offset.
+            std::array<char, 32> nameField;
+            size_t               nameSize;
+            if (member.name.size() <= 15)
+            {
+                nameSize = member.name.size();
+                std::memcpy(nameField.data(), member.name.data(), nameSize);
+                nameField[nameSize++] = '/';
+            }
+            else
+            {
+                nameField[0]      = '/';
+                const auto result = std::to_chars(nameField.data() + 1, nameField.data() + nameField.size(), longNameOffset);
+                SWC_ASSERT(result.ec == std::errc{});
+                nameSize = static_cast<size_t>(result.ptr - nameField.data());
+                longNameOffset += member.name.size() + 1;
+            }
+
+            appendArchiveMember(outBytes, std::string_view{nameField.data(), nameSize}, member.data);
+        }
+    }
+}
+
+bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers)
+{
+    if (!checkArchiveMemberCount(outDiag, inputMembers.size()))
+        return false;
+
+    ByteArray                       aliasedMemberBytes;
+    std::vector<ArchiveMemberBuild> members;
+    members.reserve(inputMembers.size());
+
+    std::vector<CoffInputSymbol> symbols;
+    for (const LinkArchiveMember& inputMember : inputMembers)
+    {
+        if (!readCoffDefinedSymbols(symbols, outDiag, inputMember.bytes.span()))
+            return false;
+
+        ArchiveMemberBuild member;
+        member.name = inputMember.name.view();
+        member.data = inputMember.bytes.span();
+        if (&outBytes == &inputMember.bytes)
+        {
+            // Emission replaces the output buffer; retain only the input member it would overwrite.
+            aliasedMemberBytes = inputMember.bytes;
+            member.data        = aliasedMemberBytes.span();
+        }
+
+        member.symbols.reserve(symbols.size());
+        for (CoffInputSymbol& symbol : symbols)
+            member.symbols.push_back(std::move(symbol.name));
+
+        members.push_back(std::move(member));
+    }
+
+    emitArchive(outBytes, members);
+    return true;
+}
+
+bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
+{
+    if (!checkArchiveMemberCount(outDiag, exportNames.size()))
+        return false;
+
+    // Reserve the complete buffer before borrowing spans so later records cannot invalidate them.
+    size_t recordsSize = 0;
+    for (const Utf8& name : exportNames)
+        recordsSize += IMPORT_HEADER_SIZE + name.size() + 1 + dllFileName.size() + 1;
+
+    ByteArray importRecords;
+    importRecords.reserve(recordsSize);
+
+    std::vector<ArchiveMemberBuild> members;
+    members.reserve(exportNames.size());
+
+    for (const Utf8& name : exportNames)
+    {
+        // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
+        const size_t recordOffset = importRecords.size();
+        // Sig1, Sig2, Version, and Machine.
+        importRecords.appendLe16(0);
+        importRecords.appendLe16(IMPORT_SIG2);
+        importRecords.appendLe16(0);
+        importRecords.appendLe16(IMPORT_MACHINE_AMD64);
+
+        // TimeDateStamp, SizeOfData, OrdinalOrHint, and NameType=NAME/Type=CODE.
+        importRecords.appendLe32(0);
+        importRecords.appendLe32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1));
+        importRecords.appendLe16(0);
+        importRecords.appendLe16(1 << 2);
+
+        importRecords.appendCString(name.view());
+        const size_t dllOffset = importRecords.size();
+        importRecords.appendCString(dllFileName);
+
+        ArchiveMemberBuild member;
+        // Use the record's copy: the caller's DLL name may alias the output that emission replaces.
+        member.name = {reinterpret_cast<const char*>(importRecords.data() + dllOffset), dllFileName.size()};
+        member.data = importRecords.span().subspan(recordOffset);
+
+        member.symbols.reserve(2);
+        member.symbols.push_back(name);               // the thunk symbol
+        member.symbols.emplace_back("__imp_" + name); // the IAT symbol
+        members.push_back(std::move(member));
+    }
+
+    emitArchive(outBytes, members);
+    return true;
+}
+
+SWC_END_NAMESPACE();

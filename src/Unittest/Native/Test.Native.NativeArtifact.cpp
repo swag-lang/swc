@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/PEFormat.h"
+#include "Backend/Linker/Format.COFF.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_UNITTEST
@@ -8,9 +8,9 @@
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
-#include "Backend/Linker/CoffReader.h"
-#include "Backend/Linker/ObjectWriter.elf.h"
-#include "Backend/Linker/LinkDebugMerge.h"
+#include "Backend/Linker/Reader.COFF.h"
+#include "Backend/Linker/ObjectWriter.ELF.h"
+#include "Backend/Linker/LinkDebugMerge.CodeView.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"

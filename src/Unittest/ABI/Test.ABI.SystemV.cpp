@@ -3,11 +3,11 @@
 #if SWC_HAS_UNITTEST && defined(__linux__) && defined(__x86_64__)
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABICall.SystemV.h"
-#include "Backend/ABI/SystemVAbi.h"
+#include "Backend/ABI/Abi.SystemV.h"
 #include <sys/mman.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "Backend/Encoder/Encoder.x64.h"
+#include "Backend/Encoder/Encoder.X64.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/RuntimeContext.h"
 #include "Backend/JIT/JITMemoryManager.h"

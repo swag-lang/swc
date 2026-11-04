@@ -19,7 +19,7 @@ def main():
     root = Path(__file__).resolve().parent.parent
     admission = [sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
     sources = [root / path for path in (
-        'src/Backend/Encoder/X64DwarfFrame.cpp',
+        'src/Backend/Encoder/Frame.DWARF.X64.cpp',
         'src/Backend/JIT/JITMemory.cpp',
         'src/Backend/JIT/JITMemoryManager.cpp',
         'src/Main/HostCpuGuard.cpp',
@@ -41,13 +41,13 @@ def main():
         'src/Support/Os/ProcessOutput.cpp',
         'src/Support/Os/Os.Memory.Linux.cpp',
         'src/Support/Os/ReadOnlyFileMapping.Linux.cpp',
-        'src/Unittest/Support/LinuxHostMain.cpp',
-        'src/Unittest/Support/LinuxHost.Files.cpp',
-        'src/Unittest/Support/LinuxHost.Services.cpp',
-        'src/Unittest/Support/LinuxHost.Process.cpp',
-        'src/Unittest/Support/LinuxHost.Stack.cpp',
-        'src/Unittest/Support/LinuxHost.Unwind.cpp',
-        'src/Unittest/Support/LinuxHost.Exceptions.cpp',
+        'src/Unittest/Support/Host.Main.Linux.cpp',
+        'src/Unittest/Support/Host.Files.Linux.cpp',
+        'src/Unittest/Support/Host.Services.Linux.cpp',
+        'src/Unittest/Support/Host.Process.Linux.cpp',
+        'src/Unittest/Support/Host.Stack.Linux.cpp',
+        'src/Unittest/Support/Host.Unwind.Linux.cpp',
+        'src/Unittest/Support/Host.Exceptions.Linux.cpp',
     )]
     # No artifacts or generated test inputs belong in the checkout.
     with tempfile.TemporaryDirectory(prefix='swc-linux-host-') as scratch:
@@ -60,7 +60,7 @@ def main():
         subprocess.run(admission, check=True)
         subprocess.run([args.cxx, '-O2', '-march=x86-64-v3', '-I', str(root / 'src'),
                         str(root / 'src/Main/HostCpuGuard.cpp'),
-                        str(root / 'src/Unittest/Support/LinuxHost.CpuReject.cpp'),
+                        str(root / 'src/Unittest/Support/Host.CpuReject.Linux.cpp'),
                         '-Wl,--wrap=__cpu_indicator_init', '-o', str(cpu_reject)], cwd=scratch, check=True)
         subprocess.run(admission, check=True)
         rejected = subprocess.run([str(cpu_reject)], cwd=scratch, capture_output=True, timeout=10)
@@ -68,7 +68,7 @@ def main():
             raise RuntimeError(f'CPU rejection failed before initialization: {rejected.returncode}, {rejected.stderr!r}')
         print('PASS unsupported CPU rejected before C++ initialization', flush=True)
         subprocess.run(admission, check=True)
-        subprocess.run([args.cxx, '-shared', '-fPIC', str(root / 'src/Unittest/Support/LinuxHost.Module.cpp'),
+        subprocess.run([args.cxx, '-shared', '-fPIC', str(root / 'src/Unittest/Support/Host.Module.Linux.cpp'),
                         '-o', str(module_directory / 'libswc_host_test.so')], cwd=scratch, check=True)
         subprocess.run(admission, check=True)
         print(f'building Linux host tests ({args.configuration})', flush=True)

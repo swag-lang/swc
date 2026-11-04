@@ -2,7 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Encoder/Encoder.x64.h"
+#include "Backend/Encoder/Encoder.X64.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"

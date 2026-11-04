@@ -59,7 +59,7 @@ report into a professional inspection workflow.
 ### app.scope.binary.014 — A program database is only identified
 
 - Evidence: `.pdb` matches only the MSF 7.00 signature. The PE report already shows the CodeView
-  GUID and age a PDB must match, and this repository writes PDBs (`src/Backend/Linker/PdbWriter.cpp`).
+  GUID and age a PDB must match, and this repository writes PDBs (`src/Backend/Linker/Writer.PDB.cpp`).
 - Next: add an MSF reader that reports the superblock and stream directory, then decode the PDB
   info stream for its GUID and age.
 - Done when: the MSF superblock, the stream directory, the named streams and the GUID/age that

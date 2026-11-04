@@ -2,9 +2,8 @@
 #include "Backend/Native/NativeImageBuilder.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
-#include "Backend/Linker/CoffReader.h"
-#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/SectionProperties.COFF.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -76,7 +75,7 @@ namespace
         Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description, std::vector<DebugInfoFunctionRecord>& debugFunctions) const
         {
             textSection.name            = ".text";
-            textSection.characteristics = PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ | PE::SCN_ALIGN_32BYTES;
+            textSection.characteristics = K_NATIVE_TEXT_SECTION_COFF_CHARACTERISTICS;
 
             if (description.startup)
             {
@@ -242,9 +241,7 @@ namespace
             }
 
             LinkSection&   linkSection = image_->sections[sectionIndex];
-            const uint32_t align       = coffSectionAlignmentFromCharacteristics(section.characteristics);
-            linkSection.align          = std::max(linkSection.align, align);
-            linkSection.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
+            const uint32_t align = applyNativeSectionCoffProperties(linkSection, section);
             if (isDebug)
                 linkSection.flags.add(LinkSectionFlagsE::Debug);
 

@@ -1,14 +1,14 @@
 #include "pch.h"
-#include "Backend/Linker/PEFormat.h"
+#include "Backend/Linker/Format.COFF.h"
 
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Debug/SymbolTable.h"
-#include "Backend/Encoder/DwarfFrame.x64.h"
-#include "Backend/Linker/Archive.h"
-#include "Backend/Linker/ObjectWriter.elf.h"
-#include "Backend/Linker/ELFImageWriter.h"
-#include "Backend/Linker/ELFReader.h"
+#include "Backend/Encoder/Frame.DWARF.X64.h"
+#include "Backend/Linker/Archive.COFF.h"
+#include "Backend/Linker/ObjectWriter.ELF.h"
+#include "Backend/Linker/ImageWriter.ELF.h"
+#include "Backend/Linker/Reader.ELF.h"
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/RuntimeName.h"
 #include "Main/ExitCodes.h"
@@ -329,7 +329,7 @@ SWC_TEST_BEGIN(Linker_ImportLibraryNamesSurviveAliasedOutput)
         {
             const uint32_t offset = archive.memberOffsetForSymbol(name);
             ArchiveImport  imported;
-            if (!offset || archive.memberOffsetForSymbol("__imp_" + name) != offset || !archive.tryReadImport(imported, diag, offset) ||
+            if (!offset || archive.memberOffsetForSymbol("__imp_" + name) != offset || !tryReadCoffImport(imported, diag, archive, offset) ||
                 imported.dll != dll || imported.importName != name || imported.byOrdinal || imported.isData)
                 return Result::Error;
         }
@@ -418,11 +418,11 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     if (assigned.memberOffsetForSymbol(symbol) != firstOffset || assigned.memberOffsetForSymbol("__imp_" + symbol) != firstOffset || assigned.memberOffsetForSymbol("missing") || assigned.memberOffsetForSymbol("previous"))
         return Result::Error;
     ArchiveImport imported;
-    if (!assigned.tryReadImport(imported, diag, firstOffset) || imported.importName != symbol || imported.dll != "archive-test.dll")
+    if (!tryReadCoffImport(imported, diag, assigned, firstOffset) || imported.importName != symbol || imported.dll != "archive-test.dll")
         return Result::Error;
     const std::span<const std::byte> importData = assigned.memberData(diag, firstOffset);
     ArchiveImport                    importedFromBytes;
-    if (importData.empty() || !assigned.tryReadImport(importedFromBytes, importData))
+    if (importData.empty() || !tryReadCoffImport(importedFromBytes, importData))
         return Result::Error;
     if (importedFromBytes.importName != symbol || importedFromBytes.dll != "archive-test.dll")
         return Result::Error;
@@ -472,12 +472,12 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MappedArchivesKeepBytesAcrossMovesAndReplacemen
     if (!original.loadFile(diag, path))
         return Result::Error;
     ArchiveImport imported;
-    if (!assigned.tryReadImport(imported, diag, offset) || imported.dll != "old.dll" || imported.importName != "original")
+    if (!tryReadCoffImport(imported, diag, assigned, offset) || imported.dll != "old.dll" || imported.importName != "original")
         return Result::Error;
     if (assigned.memberOffsetForSymbol("replacement") || original.memberOffsetForSymbol("original"))
         return Result::Error;
     const uint32_t replacementOffset = original.memberOffsetForSymbol("replacement");
-    if (!replacementOffset || !original.tryReadImport(imported, diag, replacementOffset) || imported.dll != "new.dll")
+    if (!replacementOffset || !tryReadCoffImport(imported, diag, original, replacementOffset) || imported.dll != "new.dll")
         return Result::Error;
 
     // Reload a mapped owner from memory, then reuse that owner for another mapping.

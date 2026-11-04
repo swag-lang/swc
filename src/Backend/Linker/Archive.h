@@ -11,15 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 class Diagnostic;
 
-struct ArchiveImport
-{
-    Utf8     dll;
-    Utf8     importName;
-    uint16_t ordinal   = 0;
-    bool     byOrdinal = false;
-    bool     isData    = false;
-};
-
 // Reads GNU/COFF static archives and COFF import libraries with 32-bit indexes.
 // Symbol lookup decodes only the first linker member; referenced objects are loaded on demand.
 class Archive
@@ -49,12 +40,6 @@ public:
     // Returns the raw member contents at the given member-header offset.
     std::span<const std::byte> memberData(Diagnostic& outDiag, uint32_t headerOffset) const;
 
-    // If the member at the given offset is a short-import record, decodes it and returns true.
-    bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;
-
-    // Decodes a short-import record from member bytes already returned by memberData().
-    bool tryReadImport(ArchiveImport& outImport, std::span<const std::byte> data) const;
-
     // The file the archive was read from. The debug records of its members are grouped under it.
     const fs::path& sourcePath() const { return sourcePath_; }
     void            setSourcePath(fs::path path) { sourcePath_ = std::move(path); }
@@ -70,14 +55,5 @@ private:
     StringMap<uint32_t>                      symbolToMember_;
     fs::path                                 sourcePath_;
 };
-
-// Builds a COFF static library (`!<arch>`) from prepared object members: both linker directories,
-// an optional long-names member, and the object members. Returns false and fills outDiag on failure.
-bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers);
-
-// Builds an import library: a COFF archive of short-import records, one per exported name, so a
-// dependent link resolves those names as by-name imports from the given DLL file. Returns false
-// and fills outDiag when the member count exceeds the COFF directory limit.
-bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

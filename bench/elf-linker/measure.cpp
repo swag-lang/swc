@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/ELFImageWriter.h"
+#include "Backend/Linker/ImageWriter.ELF.h"
 #include "Backend/Linker/ELFObjectWriter.h"
 #include "Backend/Linker/ELFSymbolTable.h"
 #include "Backend/Linker/LinkJob.h"

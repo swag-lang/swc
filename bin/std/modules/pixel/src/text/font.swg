@@ -264,7 +264,7 @@ public impl FontCache
     // Sets the ordered typefaces searched when a font lacks a Unicode character.
     //
     // The list is copied; typefaces retain their process-wide lifetime. The primary face
-    // always wins. Installed system fonts are searched last on Windows and Linux when `useSystemFonts`
+    // always wins. Installed system fonts are searched last on Windows when `useSystemFonts`
     // is true (the default). Other platforms use only this list. An empty list with false
     // disables fallback. Existing font views adopt the policy; reshape any retained text runs.
     // Fallback preserves size and rendering mode and synthesizes missing bold or italic styles.
@@ -316,6 +316,7 @@ public impl FontCache
         cache.forceItalic = forceItalic
         cache.hasKerning  = typeFace.face.hasKerning()
 
+        Sync.scopedLock(&typeFace.glyphMutex)
         expect typeFace.face.setPixelSize(0, refSize)
         let metrics = &typeFace.face.size.metrics
         cache.ascent        = metrics.ascender / 64.0
@@ -472,7 +473,7 @@ public impl Font
             }
         }
 
-        #static if #os == Swag.TargetOs.Windows or #os == Swag.TargetOs.Linux
+        #static if #os == Swag.TargetOs.Windows
         {
             if not face and .owner.useSystemFallback do
                 face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
@@ -580,6 +581,7 @@ impl GlyphCache
             return here.value
 
         // 'kern' is scaled to the current pixel size, so query it at the reference size.
+        Sync.scopedLock(&.typeFace.glyphMutex)
         expect .typeFace.face.setPixelSize(0, .refSize)
         let kv = .typeFace.face.getKerning(leftIndex, rightIndex)
         let px = kv.x / 64.0
@@ -599,14 +601,20 @@ impl GlyphCache
     // normally invokes it automatically when a descriptor is first requested.
     mtd renderGlyphBitmap(glyphIndex: u32, subpixel: u32 = 0) fail
     {
+        Sync.scopedLock(&.typeFace.glyphMutex)
+        try .renderGlyphBitmapLocked(glyphIndex, subpixel)
+    }
+
+    private mtd renderGlyphBitmapLocked(glyphIndex, subpixel: u32) fail
+    {
         switch .renderMode
         {
         case .Msdf:
-            discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
+            discard try .typeFace.renderGlyphMsdfByIndexLocked(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
 
         default:
             let penOffsetX = cast(f32, subpixel % SubpixelPositions) / cast(f32, SubpixelPositions)
-            discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic, penOffsetX)
+            discard try .typeFace.renderGlyphByIndexLocked(glyphIndex, .refSize, .forceBold, .forceItalic, penOffsetX)
         }
     }
 
@@ -624,9 +632,11 @@ impl GlyphCache
         if entry do
             return cast(const *GlyphDesc, entry.value)
 
-        // Render the glyph
+        // Separate renderer caches share one mutable face. Keep its slot stable through
+        // rasterization, the atlas copy and the metrics read; a render-only lock is too short.
+        Sync.scopedLock(&.typeFace.glyphMutex)
         let bpp = .renderMode.bytesPerPixel()
-        discard catch .renderGlyphBitmap(glyphIndex, position)
+        discard catch .renderGlyphBitmapLocked(glyphIndex, position)
         let bmpRef = &.typeFace.face.glyph.bitmap
 
         // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)

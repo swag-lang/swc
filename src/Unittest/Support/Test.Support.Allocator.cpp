@@ -20,8 +20,9 @@ SWC_TEST_BEGIN(Allocator_AlignedBlocksSurviveAllocatingThreadExit)
             for (const size_t size : sizes)
             {
                 void* block = ::operator new(size, std::align_val_t{alignment}, std::nothrow);
-                if (block)
-                    std::memset(block, static_cast<int>(index + 1), std::max(size, size_t{1}));
+                // A zero-size allocation must be releasable but exposes no writable bytes.
+                if (block && size)
+                    std::memset(block, static_cast<int>(index + 1), size);
                 blocks[index++] = block;
             }
         }
@@ -40,7 +41,7 @@ SWC_TEST_BEGIN(Allocator_AlignedBlocksSurviveAllocatingThreadExit)
             else
             {
                 valid &= reinterpret_cast<uintptr_t>(block) % alignment == 0;
-                for (size_t offset = 0; offset < std::max(size, size_t{1}); ++offset)
+                for (size_t offset = 0; offset < size; ++offset)
                     valid &= block[offset] == static_cast<uint8_t>(index + 1);
                 ::operator delete(block, std::align_val_t{alignment});
             }

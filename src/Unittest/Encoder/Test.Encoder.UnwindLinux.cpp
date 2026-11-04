@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #if SWC_HAS_UNITTEST && defined(__linux__)
-#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/Encoder.x64.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"

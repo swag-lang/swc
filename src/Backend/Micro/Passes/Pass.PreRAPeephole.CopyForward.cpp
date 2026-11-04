@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
-#include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Encoder/Immediate.x64.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 

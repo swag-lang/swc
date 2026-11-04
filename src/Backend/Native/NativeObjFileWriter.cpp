@@ -2,7 +2,7 @@
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
-#include "Backend/Native/NativeObjFileWriterElf.h"
+#include "Backend/Native/NativeObjFileWriter.elf.h"
 #include "Main/FileSystem.h"
 #include "Backend/Native/NativeObjectFormat.h"
 #include "Backend/Runtime.h"

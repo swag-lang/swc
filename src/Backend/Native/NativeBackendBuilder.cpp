@@ -8,7 +8,7 @@
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
-#include "Backend/Native/NativeElfFunctionCache.h"
+#include "Backend/Native/NativeFunctionCache.elf.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/SymbolSort.h"

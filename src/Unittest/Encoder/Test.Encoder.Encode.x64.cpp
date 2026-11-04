@@ -3,8 +3,8 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Encoder/X64Encoder.h"
-#include "Backend/Encoder/X64Unwind.Windows.h"
+#include "Backend/Encoder/Encoder.x64.h"
+#include "Backend/Encoder/Unwind.x64.windows.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"

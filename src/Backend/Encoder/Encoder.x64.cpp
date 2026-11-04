@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Encoder/X64Encoder.h"
-#include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Encoder/Encoder.x64.h"
+#include "Backend/Encoder/Immediate.x64.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"

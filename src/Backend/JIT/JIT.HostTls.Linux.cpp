@@ -2,8 +2,8 @@
 #include "Backend/JIT/JIT.h"
 
 #if defined(__linux__) && defined(__x86_64__)
-#include "Backend/Encoder/X64DwarfFrame.h"
-#include "Backend/Encoder/X64TlsAccess.h"
+#include "Backend/Encoder/DwarfFrame.x64.h"
+#include "Backend/Encoder/TlsAccess.x64.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"

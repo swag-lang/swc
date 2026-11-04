@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/Encoder.x64.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/RuntimeContext.h"
 #include "Backend/JIT/JITMemoryManager.h"

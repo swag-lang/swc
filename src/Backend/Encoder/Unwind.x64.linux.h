@@ -1,6 +1,6 @@
 #pragma once
-#include "Backend/Encoder/X64DwarfFrame.h"
-#include "Backend/Encoder/X64Unwind.h"
+#include "Backend/Encoder/DwarfFrame.x64.h"
+#include "Backend/Encoder/Unwind.x64.h"
 #include "Backend/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();

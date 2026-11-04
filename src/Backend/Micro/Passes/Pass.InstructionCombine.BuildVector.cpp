@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Encoder/Immediate.x64.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"

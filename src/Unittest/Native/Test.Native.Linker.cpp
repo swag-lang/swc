@@ -4,9 +4,9 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Debug/SymbolTable.h"
-#include "Backend/Encoder/X64DwarfFrame.h"
+#include "Backend/Encoder/DwarfFrame.x64.h"
 #include "Backend/Linker/Archive.h"
-#include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Linker/ObjectWriter.elf.h"
 #include "Backend/RuntimeName.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"

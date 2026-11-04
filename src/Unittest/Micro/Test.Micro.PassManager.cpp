@@ -1,10 +1,10 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Micro/MicroOptimizerStats.h"
 
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/Encoder.x64.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"

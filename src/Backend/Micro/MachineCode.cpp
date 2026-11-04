@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/Encoder.x64.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"

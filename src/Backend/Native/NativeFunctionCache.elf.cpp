@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Native/NativeElfFunctionCache.h"
-#include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Native/NativeFunctionCache.elf.h"
+#include "Backend/Linker/ObjectWriter.elf.h"
 #include "Support/Core/ByteView.h"
 #include "Support/Math/Sha256.h"
 

@@ -9,7 +9,7 @@
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Linker/ObjectWriter.elf.h"
 #include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"

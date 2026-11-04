@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Encoder/Encoder.h"
-#include "Backend/Encoder/X64Unwind.h"
-#include "Backend/Encoder/X64TlsAccess.h"
+#include "Backend/Encoder/Unwind.x64.h"
+#include "Backend/Encoder/TlsAccess.x64.h"
 
 #ifndef IMAGE_REL_AMD64_ADDR64
 #define IMAGE_REL_AMD64_ADDR64 0x0001

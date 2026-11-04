@@ -2,7 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Linker/ELFSymbolTable.h"
+#include "Backend/Linker/SymbolTable.elf.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Unittest/Unittest.h"
 

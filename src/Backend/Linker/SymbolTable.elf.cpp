@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/ELFSymbolTable.h"
+#include "Backend/Linker/SymbolTable.elf.h"
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Report/Assert.h"
 

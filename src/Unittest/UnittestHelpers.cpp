@@ -2,7 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/Encoder.x64.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"

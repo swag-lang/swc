@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/Encoder/EncoderDebugInfo.h"
-#include "Backend/Encoder/X64TlsAccess.h"
+#include "Backend/Encoder/TlsAccess.x64.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroRelocation.h"

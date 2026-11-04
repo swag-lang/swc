@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Linker/ObjectWriter.elf.h"
 #include "Support/Core/ByteView.h"
 #include "Support/Report/Diagnostic.h"
 

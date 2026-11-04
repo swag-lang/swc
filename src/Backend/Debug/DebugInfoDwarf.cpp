@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoDwarf.h"
 #include "Backend/Debug/DebugPath.h"
-#include "Backend/Encoder/X64DwarfFrame.h"
+#include "Backend/Encoder/DwarfFrame.x64.h"
 #include "Backend/Linker/PEFormat.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"

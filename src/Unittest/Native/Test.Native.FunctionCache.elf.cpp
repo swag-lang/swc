@@ -2,8 +2,8 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Linker/ELFObjectWriter.h"
-#include "Backend/Native/NativeElfFunctionCache.h"
+#include "Backend/Linker/ObjectWriter.elf.h"
+#include "Backend/Native/NativeFunctionCache.elf.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
 

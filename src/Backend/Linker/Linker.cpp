@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
-#include "Backend/Linker/ELFLinker.h"
+#include "Backend/Linker/Linker.elf.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"

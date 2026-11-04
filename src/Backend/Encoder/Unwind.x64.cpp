@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Encoder/X64Unwind.h"
-#include "Backend/Encoder/X64Unwind.Linux.h"
-#include "Backend/Encoder/X64Unwind.Windows.h"
+#include "Backend/Encoder/Unwind.x64.h"
+#include "Backend/Encoder/Unwind.x64.linux.h"
+#include "Backend/Encoder/Unwind.x64.windows.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

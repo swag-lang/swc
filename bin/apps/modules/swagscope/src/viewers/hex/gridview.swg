@@ -987,25 +987,30 @@ impl IActionUI for Action
         switch cxt.id
         {
         case Action.CopyBytes:
-            evt.updatedFields |= .Name | .Shortcut
+            evt.icon          = grid.theme().icon(.Copy)
+            evt.updatedFields |= .Icon | .Name | .Shortcut
             evt.name          = bounded ? Format.toString(texts().ui_CopyBytesMax, limit) : texts().ui_CopyBytes
             evt.shortcut      = "Ctrl C"
 
         case Action.CopyText:
-            evt.updatedFields |= .Name
+            evt.icon = grid.theme().icon(.Copy)
+            evt.updatedFields |= .Icon | .Name
             evt.name = bounded ? Format.toString(texts().ui_CopyTextMax, limit) : texts().ui_CopyText
 
         case Action.CopyDump:
-            evt.updatedFields |= .Name
+            evt.icon = grid.theme().icon(.Copy)
+            evt.updatedFields |= .Icon | .Name
             evt.name = bounded ? Format.toString(texts().ui_CopyDumpMax, limit) : texts().ui_CopyDump
 
         case Action.SelectAll:
-            evt.updatedFields |= .Name | .Shortcut
+            evt.icon          = grid.theme().icon(.SelectAll)
+            evt.updatedFields |= .Icon | .Name | .Shortcut
             evt.name          = texts().ui_SelectAll
             evt.shortcut      = "Ctrl A"
 
         case Action.GoTo:
-            evt.updatedFields |= .Name | .Shortcut
+            evt.icon          = grid.theme().icon(.GoTo)
+            evt.updatedFields |= .Icon | .Name | .Shortcut
             evt.name          = texts().ui_GoTo
             evt.shortcut      = "Ctrl G"
         }

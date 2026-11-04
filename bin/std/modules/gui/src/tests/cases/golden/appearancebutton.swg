@@ -3,6 +3,27 @@
 
 using Swag, Core, Pixel
 
+// Navigation, search and image transforms remain legible at menu and command-bar sizes.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(344, 96)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    let icons = [ThemeIcons.MirrorHorizontal, .MirrorVertical, .FitWidth, .MatchCase,
+                 ThemeIcons.RegularExpression, .GoTo, .SelectAll]
+    for icon, index in icons
+    {
+        let x = 8 + cast(f32, index) * 48
+        IconButton.create(&host.root, host.theme.icon(icon, 20), Math.Rectangle{x, 8, 40, 36})
+        IconButton.create(&host.root, host.theme.icon(icon, 16), Math.Rectangle{x, 52, 40, 36})
+    }
+
+    var image = host.renderSettled(&host.root)
+    Pixel.Testing.assertImageGolden(&image, "themeicons.reader-actions.paper")
+}
+
 // Pins the shared application glyphs at the two sizes where standard chrome uses them.
 #[Swag.TestTag("golden")]
 #test

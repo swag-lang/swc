@@ -102,7 +102,7 @@ private func createZoomMenu(owner: *Wnd, current: u32)->*MenuCtrl
 {
     let menu = MenuCtrl.createPopup(owner, owner: owner)
     for preset in ZoomPresets do
-        menu.addItem(preset.label, preset.id, checked: preset.percent == current)
+        menu.addItem(preset.label, preset.id, owner.theme().icon(preset.percent < 100 ? .ZoomOut : preset.percent == 100 ? .ActualSize : .ZoomIn, themeRowIconSize(owner.themeMetrics())), checked: preset.percent == current)
     return menu
 }
 

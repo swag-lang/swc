@@ -568,12 +568,14 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     // At rest the lens offers what the film is watched with, and nothing it cannot do: this film
     // has neither subtitles nor a second sound track.
     var results: Lens.Results
-    var entries = Viewer.LensEntries.create(&results, "Video")
+    var entries = Viewer.LensEntries.create(&results, "Video", host.theme)
     view.describeLens(&entries)
     Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 3)
     Swag.require(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
     Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Speed)
     Swag.require(results.sections[0]!.entries[2].title == appStrings().cmd_FullScreen)
+    for &entry in results.sections[0]!.entries do
+        Swag.require(entry.glyph.isValid(), entry.title)
 
     // The speed chip opens the speeds, the one in force checked.
     Swag.require(view.speedChip.text() == "1×" and not view.audioChip.isLocallyVisible())

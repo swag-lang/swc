@@ -199,7 +199,8 @@ private impl EmbeddedViewer
         for choice, index in .choices
         {
             let plugin = &.owner.index.plugins[choice.pluginIndex]
-            menu.addRadioItem(plugin.displayName(), Format.toString("scope.embedded.viewer.%", index), checked: index == .activeIndex)
+            let item   = menu.addRadioItem(plugin.displayName(), Format.toString("scope.embedded.viewer.%", index), checked: index == .activeIndex)
+            item.icon = .owner.pluginIcon(plugin, themeRowIconSize(.themeMetrics()))
         }
 
         let chosen = menu.doModal(.viewerMenu, autoDestroy: true) orelse ""

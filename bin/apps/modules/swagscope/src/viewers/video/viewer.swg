@@ -903,24 +903,24 @@ private impl Panel
         {
             let strings = Film.texts()
             if ready do
-                entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, shortcut: Input.formatKeyShortcut(.None, .Space))
+                entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, shortcut: Input.formatKeyShortcut(.None, .Space))
             if .subtitleReady do
-                entries.add(strings.cmd_Subtitles, func|view = me|() { view.showChip(view.subtitleChip, func|view|(page) { view.describeSubtitles(page) }) })
+                entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChip(view.subtitleChip, func|view|(page) { view.describeSubtitles(page) }) })
             if .audio and .video.audioTrackCount() > 1 do
-                entries.add(strings.cmd_AudioTrack, func|view = me|() { view.showChip(view.audioChip, func|view|(page) { view.describeAudioTracks(page) }) })
-            entries.add(strings.cmd_Speed, func|view = me|() { view.showChip(view.speedChip, func|view|(page) { view.describeSpeeds(page) }) })
-            entries.add(texts.cmd_FullScreen, func|view = me|() { view.toggleFullScreen() }, shortcut: Input.formatKeyShortcut(.None, .F))
+                entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChip(view.audioChip, func|view|(page) { view.describeAudioTracks(page) }) })
+            entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChip(view.speedChip, func|view|(page) { view.describeSpeeds(page) }) })
+            entries.add(texts.cmd_FullScreen, .FullScreen, func|view = me|() { view.toggleFullScreen() }, shortcut: Input.formatKeyShortcut(.None, .F))
             return
         }
 
-        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
-        entries.add(texts.cmd_Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
-        entries.add(texts.cmd_SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
-        entries.add(texts.cmd_PreviousFrame, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
-        entries.add(texts.cmd_NextFrame, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
-        entries.add(texts.cmd_Mute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
-        entries.add(texts.cmd_Options, func|view = me|() { view.showOptions() })
+        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
+        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
+        entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
+        entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+        entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
     // Creates the two veils over the picture, hidden: the title and its facts at the top, the

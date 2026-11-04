@@ -584,12 +584,12 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_GoToCue, func|view = me|() { view.promptGoToCue() })
-        entries.add(strings.ui_GoToTime, func|view = me|() { view.promptGoToTime() })
-        entries.add(strings.ui_PreviousCue, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(strings.ui_NextCue, func|view = me|() { discard view.navigateCue(true) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
-        entries.add(strings.ui_FirstCue, func|view = me|() { discard view.navigateCueBoundary(false) }, shortcut: Input.formatKeyShortcut(.Control, .Home))
-        entries.add(strings.ui_LastCue, func|view = me|() { discard view.navigateCueBoundary(true) }, shortcut: Input.formatKeyShortcut(.Control, .End))
+        entries.add(strings.ui_GoToCue, .GoTo, func|view = me|() { view.promptGoToCue() })
+        entries.add(strings.ui_GoToTime, .History, func|view = me|() { view.promptGoToTime() })
+        entries.add(strings.ui_PreviousCue, .ChevronLeft, func|view = me|() { discard view.navigateCue(false) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+        entries.add(strings.ui_NextCue, .ChevronRight, func|view = me|() { discard view.navigateCue(true) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        entries.add(strings.ui_FirstCue, .ChevronUp, func|view = me|() { discard view.navigateCueBoundary(false) }, shortcut: Input.formatKeyShortcut(.Control, .Home))
+        entries.add(strings.ui_LastCue, .ChevronDown, func|view = me|() { discard view.navigateCueBoundary(true) }, shortcut: Input.formatKeyShortcut(.Control, .End))
     }
 
     mtd promptGoToCue()

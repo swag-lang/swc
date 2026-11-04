@@ -209,35 +209,50 @@ impl Panel
         // written into the shared settings and drawn again at once.
         page.addHeading(strings.ui_SubtitleAppearance)
         let style = &g_SubtitleSettings
-        page.addLink(strings.ui_SubtitleFont, subtitleFontText(style.font), func|view = me|(fonts)
-        {
-            for font in [SubtitleFont.Sans, .Monospace] do
-                fonts.addChoice(subtitleFontText(font), g_SubtitleSettings.font == font, func|view, font|() { g_SubtitleSettings.font = font; view.subtitleSettingsChanged() })
-        })
+        page.addLink(strings.ui_SubtitleFont,
+                     subtitleFontText(style.font),
+                     func|view = me|(fonts)
+                     {
+                         for font in [SubtitleFont.Sans, .Monospace] do
+                             fonts.addChoice(subtitleFontText(font), g_SubtitleSettings.font == font, func|view, font|() { g_SubtitleSettings.font = font; view.subtitleSettingsChanged() })
+                     },
+                     icon: .theme().icon(.Edit, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_SubtitleSize, subtitleSizeText(style.size), func|view = me|(sizes)
-        {
-            for size in [SubtitleSize.Small, .Normal, .Large, .VeryLarge] do
-                sizes.addChoice(subtitleSizeText(size), g_SubtitleSettings.size == size, func|view, size|() { g_SubtitleSettings.size = size; view.subtitleSettingsChanged() })
-        })
+        page.addLink(strings.ui_SubtitleSize,
+                     subtitleSizeText(style.size),
+                     func|view = me|(sizes)
+                     {
+                         for size in [SubtitleSize.Small, .Normal, .Large, .VeryLarge] do
+                             sizes.addChoice(subtitleSizeText(size), g_SubtitleSettings.size == size, func|view, size|() { g_SubtitleSettings.size = size; view.subtitleSettingsChanged() })
+                     },
+                     icon: .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_SubtitleEffect, subtitleEffectText(style.effect), func|view = me|(effects)
-        {
-            for effect in [SubtitleEffect.Outline, .Shadow, .Background, .None] do
-                effects.addChoice(subtitleEffectText(effect), g_SubtitleSettings.effect == effect, func|view, effect|() { g_SubtitleSettings.effect = effect; view.subtitleSettingsChanged() })
-        })
+        page.addLink(strings.ui_SubtitleEffect,
+                     subtitleEffectText(style.effect),
+                     func|view = me|(effects)
+                     {
+                         for effect in [SubtitleEffect.Outline, .Shadow, .Background, .None] do
+                             effects.addChoice(subtitleEffectText(effect), g_SubtitleSettings.effect == effect, func|view, effect|() { g_SubtitleSettings.effect = effect; view.subtitleSettingsChanged() })
+                     },
+                     icon: .theme().icon(.Appearance, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_SubtitlePosition, subtitlePositionText(style.position), func|view = me|(positions)
-        {
-            for position in [SubtitlePosition.Bottom, .Center, .Top] do
-                positions.addChoice(subtitlePositionText(position), g_SubtitleSettings.position == position, func|view, position|() { g_SubtitleSettings.position = position; view.subtitleSettingsChanged() })
-        })
+        page.addLink(strings.ui_SubtitlePosition,
+                     subtitlePositionText(style.position),
+                     func|view = me|(positions)
+                     {
+                         for position in [SubtitlePosition.Bottom, .Center, .Top] do
+                             positions.addChoice(subtitlePositionText(position), g_SubtitleSettings.position == position, func|view, position|() { g_SubtitleSettings.position = position; view.subtitleSettingsChanged() })
+                     },
+                     icon: .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_SubtitleColor, subtitleColorText(style.color), func|view = me|(colors)
-        {
-            for color in [SubtitleColor.White, .Yellow] do
-                colors.addChoice(subtitleColorText(color), g_SubtitleSettings.color == color, func|view, color|() { g_SubtitleSettings.color = color; view.subtitleSettingsChanged() })
-        })
+        page.addLink(strings.ui_SubtitleColor,
+                     subtitleColorText(style.color),
+                     func|view = me|(colors)
+                     {
+                         for color in [SubtitleColor.White, .Yellow] do
+                             colors.addChoice(subtitleColorText(color), g_SubtitleSettings.color == color, func|view, color|() { g_SubtitleSettings.color = color; view.subtitleSettingsChanged() })
+                     },
+                     icon: .theme().icon(.Picker, themeRowIconSize(.themeMetrics())))
 
         // A step is a tenth of a second, a second with Shift, within a minute either way.
         page.addStepper(strings.ui_SubtitleDelay,
@@ -250,6 +265,6 @@ impl Panel
                         canDecrease: style.delay > -MaxSubtitleDelay,
                         canIncrease: style.delay < MaxSubtitleDelay)
         if style.delay != 0 do
-            page.addAction(strings.ui_SubtitleDelayReset, func|view = me|() { g_SubtitleSettings.delay = 0; view.subtitleSettingsChanged() })
+            page.addAction(strings.ui_SubtitleDelayReset, func|view = me|() { g_SubtitleSettings.delay = 0; view.subtitleSettingsChanged() }, icon: .theme().icon(.Update, themeRowIconSize(.themeMetrics())))
     }
 }

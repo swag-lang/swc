@@ -677,11 +677,11 @@ impl Panel
     {
         let texts = appStrings()
         let ready = .playButton.isEnabled()
-        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
-        entries.add(texts.cmd_Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
-        entries.add(texts.cmd_SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
-        entries.add(texts.cmd_Mute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+        entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
+        entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
     }
 
     mtd seekRelative(seconds: f32)

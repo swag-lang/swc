@@ -19186,9 +19186,13 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_ThemeIcons_FitView" class="code-type">FitView</td><td><p>Fit the complete document inside its viewport.</p>
 </td></tr>
+<tr><td id="Gui_ThemeIcons_FitWidth" class="code-type">FitWidth</td><td><p>Fit the document width inside its viewport.</p>
+</td></tr>
 <tr><td id="Gui_ThemeIcons_Folder" class="code-type">Folder</td><td><p>A folder in a file listing.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_FullScreen" class="code-type">FullScreen</td><td><p>Enter-full-screen action.</p>
+</td></tr>
+<tr><td id="Gui_ThemeIcons_GoTo" class="code-type">GoTo</td><td><p>Jump to a specified position in a document.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_History" class="code-type">History</td><td><p>Previously visited items or states.</p>
 </td></tr>
@@ -19202,11 +19206,17 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Lock" class="code-type">Lock</td><td><p>Closed padlock, for a protected or read-only object.</p>
 </td></tr>
+<tr><td id="Gui_ThemeIcons_MatchCase" class="code-type">MatchCase</td><td><p>Match uppercase and lowercase letters exactly.</p>
+</td></tr>
 <tr><td id="Gui_ThemeIcons_MatchWholeWord" class="code-type">MatchWholeWord</td><td><p>Restrict a search to complete words.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Minimize" class="code-type">Minimize</td><td><p>Generic minimize action glyph.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Minus" class="code-type">Minus</td><td><p>Subtract or step-down action glyph, the counterpart of <span class="code-inline">Plus</span>.</p>
+</td></tr>
+<tr><td id="Gui_ThemeIcons_MirrorHorizontal" class="code-type">MirrorHorizontal</td><td><p>Reflect content left to right.</p>
+</td></tr>
+<tr><td id="Gui_ThemeIcons_MirrorVertical" class="code-type">MirrorVertical</td><td><p>Reflect content top to bottom.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_More" class="code-type">More</td><td><p>Additional-actions glyph.</p>
 </td></tr>
@@ -19240,6 +19250,8 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 </td></tr>
 <tr><td id="Gui_ThemeIcons_Redo" class="code-type">Redo</td><td><p>Redo action glyph.</p>
 </td></tr>
+<tr><td id="Gui_ThemeIcons_RegularExpression" class="code-type">RegularExpression</td><td><p>Interpret a search as a regular expression.</p>
+</td></tr>
 <tr><td id="Gui_ThemeIcons_Remove" class="code-type">Remove</td><td><p>Remove action glyph.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_RemoveAll" class="code-type">RemoveAll</td><td><p>Remove-all action glyph.</p>
@@ -19261,6 +19273,8 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <tr><td id="Gui_ThemeIcons_SeekBackward" class="code-type">SeekBackward</td><td><p>Media seek toward an earlier position.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_SeekForward" class="code-type">SeekForward</td><td><p>Media seek toward a later position.</p>
+</td></tr>
+<tr><td id="Gui_ThemeIcons_SelectAll" class="code-type">SelectAll</td><td><p>Select every item in the current content.</p>
 </td></tr>
 <tr><td id="Gui_ThemeIcons_SendBackward" class="code-type">SendBackward</td><td><p>Send-backward ordering action.</p>
 </td></tr>
@@ -24017,10 +24031,10 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">push</span>(path: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addAction</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L166">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addAction" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addAction</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addAction" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L169">src</a></div>
 <p>Adds a command run at once, such as resetting a setting to its default.</p>
-<p>An action that opens something else — a dialog, another window — passes <span class="code-inline">closesSheet</span>: the sheet closes first, and <span class="code-inline">run</span> runs once it has left the screen.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addAction</span>(label: <span class="STpe">string</span>, run: <span class="SKwd">func</span>||(), disabled = <span class="SKwd">false</span>, closesSheet = <span class="SKwd">false</span>)</span></div>
+<p>An action that opens something else — a dialog, another window — passes <span class="code-inline">closesSheet</span>: the sheet closes first, and <span class="code-inline">run</span> runs once it has left the screen. An optional <span class="code-inline">icon</span> leads the label.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addAction</span>(label: <span class="STpe">string</span>, run: <span class="SKwd">func</span>||(), disabled = <span class="SKwd">false</span>, closesSheet = <span class="SKwd">false</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addChoice" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addChoice</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addChoice" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L111">src</a></div>
@@ -24029,19 +24043,19 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addChoice</span>(label: <span class="STpe">string</span>, checked: <span class="STpe">bool</span>, choose: <span class="SKwd">func</span>||(), detail: <span class="STpe">string</span>? = <span class="SKwd">null</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {}, disabled = <span class="SKwd">false</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addCommand" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addCommand</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addCommand" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L186">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addCommand" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addCommand</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addCommand" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L190">src</a></div>
 <p>Adds a row bound to the command <span class="code-inline">id</span> of <span class="code-inline">target</span>, described and run by the command system.</p>
 <p>The row takes its wording and its state from what <span class="code-inline">target</span> computes for the command, the way a menu entry made with <a href="#Gui_MenuCtrl_addItem">Gui.MenuCtrl.addItem</a> does: a command of an exclusive group is a choice, a checkable one a switch, any other an action. Activating the row sends the command to <span class="code-inline">target</span> at once. A hidden command adds nothing. Like a menu entry, the row borrows <span class="code-inline">id</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addCommand</span>(id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addCommandLink" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addCommandLink</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addCommandLink" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L213">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addCommandLink" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addCommandLink</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addCommandLink" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L217">src</a></div>
 <p>Adds a link worded <span class="code-inline">label</span> to a page holding the commands <span class="code-inline">ids</span> of <span class="code-inline">target</span>.</p>
 <p>The link shows the wording of the command that is checked, which is how an exclusive group of commands names its choice in force. The page borrows <span class="code-inline">ids</span>: give it storage that outlives the sheet, such as a constant array.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addCommandLink</span>(label: <span class="STpe">string</span>, ids: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Gui_WndId">WndId</a></span>, target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addHeading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addHeading</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addHeading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L237">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addHeading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addHeading</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addHeading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L241">src</a></div>
 <p>Adds the title of the group of rows that follows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addHeading</span>(label: <span class="STpe">string</span>)</span></div>
 </section>
@@ -24064,7 +24078,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(path: <span class="SCst"><a href="std.pixel.html#Pixel_LinePathList">LinePathList</a></span>, fill = <span class="SKwd">true</span>, fillColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), stroke = <span class="SKwd">false</span>, strokeColor = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), strokeWidth = <span class="SNum">1.0</span>, strokeStyle: <span class="SCst"><a href="#Gui_Pdf_PathStrokeStyle">PathStrokeStyle</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addStepper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addStepper</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addStepper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addStepper" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addStepper</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addStepper" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L149">src</a></div>
 <p>Adds a value stepped down or up in place, showing <span class="code-inline">value</span>.</p>
 <p><span class="code-inline">step</span> receives <span class="code-inline">-1</span> or <span class="code-inline">1</span> for one step, and <span class="code-inline">-10</span> or <span class="code-inline">10</span> when Shift is held. The sheet does not clamp anything: the callback owns the range, and <span class="code-inline">canDecrease</span> and <span class="code-inline">canIncrease</span> say whether a step is still possible in each direction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addStepper</span>(label: <span class="STpe">string</span>, value: <span class="STpe">string</span>, step: <span class="SKwd">func</span>||(<span class="STpe">s32</span>), canDecrease = <span class="SKwd">true</span>, canIncrease = <span class="SKwd">true</span>)</span></div>
@@ -24076,9 +24090,9 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addText</span>(text: <span class="STpe">string</span>, x, y, size: <span class="STpe">f32</span>, color = <span class="SCst">Color</span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="std.pixel.html#Pixel_Argb">Argb</a></span>.<span class="SCst">Black</span>), font = <span class="SCst"><a href="#Gui_Pdf_StandardFont">StandardFont</a></span>.<span class="SCst"><a href="#Gui_Pdf_StandardFont_Helvetica">Helvetica</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addToggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addToggle</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addToggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L128">src</a></div>
-<p>Adds a setting that is on or off; <span class="code-inline">toggle</span> receives the state the reader asked for.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addToggle</span>(label: <span class="STpe">string</span>, on: <span class="STpe">bool</span>, toggle: <span class="SKwd">func</span>||(<span class="STpe">bool</span>), disabled = <span class="SKwd">false</span>)</span></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_addToggle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.addToggle</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_addToggle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L129">src</a></div>
+<p>Adds a setting that is on or off; <span class="code-inline">toggle</span> receives the state the reader asked for. An optional <span class="code-inline">icon</span> leads the label.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addToggle</span>(label: <span class="STpe">string</span>, on: <span class="STpe">bool</span>, toggle: <span class="SKwd">func</span>||(<span class="STpe">bool</span>), disabled = <span class="SKwd">false</span>, icon: <span class="SCst"><a href="#Gui_Icon">Icon</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Pdf_Page_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.clear</span> <a class="api-item-permalink" href="#Gui_Pdf_Page_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/pdf/page.swg#L244">src</a></div>
@@ -24091,7 +24105,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">f32</span>)-&gt;<span class="SCst">Page</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_isChoiceList" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.isChoiceList</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_isChoiceList" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L252">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_OptionSheet_Page_isChoiceList" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Page.isChoiceList</span> <a class="api-item-permalink" href="#Gui_OptionSheet_Page_isChoiceList" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/page.swg#L256">src</a></div>
 <p>Reports whether the page holds choices and nothing else but their headings.</p>
 <p>That is the only page a choice may leave on its own: anywhere else the reader came to adjust several things in turn.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isChoiceList</span>()-&gt;<span class="STpe">bool</span></span></div>
@@ -26496,7 +26510,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">ensureAtlasScale</span>(renderer: <span class="SCst"><a href="std.pixel.html#Pixel_IRenderer">IRenderer</a></span>, scale: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Theme_fileGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.fileGlyph</span> <a class="api-item-permalink" href="#Gui_Theme_fileGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L163">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Theme_fileGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.fileGlyph</span> <a class="api-item-permalink" href="#Gui_Theme_fileGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L170">src</a></div>
 <p>Returns the line glyph of a file named <span class="code-inline">name</span> at <span class="code-inline">size</span> logical pixels: a folder, or a page marked with the kind its extension says — a picture, code, a sound, a film, a paged document, an archive.</p>
 <p>A listing draws these rather than the colored icons of the system, so a row reads by its name first and the glyph only says what kind of thing it is. A file kind carries its quiet hue (<span class="code-inline">fileKind_*</span>); a folder uses Arc, the mark of a place to go. A plain file takes the ink its row gives it. Defined kind colors stay the same on hovered and selected rows.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fileGlyph</span>(name: <span class="STpe">string</span>, isDirectory: <span class="STpe">bool</span>, size = <span class="SNum">16</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
@@ -26513,7 +26527,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">floatingShadowReach</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Theme_icon" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Theme.icon</span> <a class="api-item-permalink" href="#Gui_Theme_icon" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L146">src</a></div>
 <p>Creates an icon descriptor for a theme glyph displayed at <span class="code-inline">size</span> logical pixels.</p>
 <p>The frames behind a given size are rasterized once from the vector icon set, at the current atlas scale, and shared by every icon of that size. Folder and file-kind glyphs carry their theme color, honored by <a href="#Gui_Icon_paint">Gui.Icon.paint</a> in every control.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">icon</span>(idx: <span class="SCst"><a href="#Gui_ThemeIcons">ThemeIcons</a></span>, size = <span class="SNum">24</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_Icon">Icon</a></span></span></div>
@@ -30871,17 +30885,22 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.ThemeIcons.FileVideo|Gui_ThemeIcons_FileVideo|A film.",
 "k|Gui.ThemeIcons.Filter|Gui_ThemeIcons_Filter|Filter action glyph.",
 "k|Gui.ThemeIcons.FitView|Gui_ThemeIcons_FitView|Fit the complete document inside its viewport.",
+"k|Gui.ThemeIcons.FitWidth|Gui_ThemeIcons_FitWidth|Fit the document width inside its viewport.",
 "k|Gui.ThemeIcons.Folder|Gui_ThemeIcons_Folder|A folder in a file listing.",
 "k|Gui.ThemeIcons.FullScreen|Gui_ThemeIcons_FullScreen|Enter-full-screen action.",
+"k|Gui.ThemeIcons.GoTo|Gui_ThemeIcons_GoTo|Jump to a specified position in a document.",
 "k|Gui.ThemeIcons.History|Gui_ThemeIcons_History|Previously visited items or states.",
 "k|Gui.ThemeIcons.HourGlass|Gui_ThemeIcons_HourGlass|Waiting or in-progress status.",
 "k|Gui.ThemeIcons.Information|Gui_ThemeIcons_Information|Informational status.",
 "k|Gui.ThemeIcons.LineNumbers|Gui_ThemeIcons_LineNumbers|Show the number of each line beside a text.",
 "k|Gui.ThemeIcons.Link|Gui_ThemeIcons_Link|Link action glyph.",
 "k|Gui.ThemeIcons.Lock|Gui_ThemeIcons_Lock|Closed padlock, for a protected or read-only object.",
+"k|Gui.ThemeIcons.MatchCase|Gui_ThemeIcons_MatchCase|Match uppercase and lowercase letters exactly.",
 "k|Gui.ThemeIcons.MatchWholeWord|Gui_ThemeIcons_MatchWholeWord|Restrict a search to complete words.",
 "k|Gui.ThemeIcons.Minimize|Gui_ThemeIcons_Minimize|Generic minimize action glyph.",
 "k|Gui.ThemeIcons.Minus|Gui_ThemeIcons_Minus|Subtract or step-down action glyph, the counterpart of Plus.",
+"k|Gui.ThemeIcons.MirrorHorizontal|Gui_ThemeIcons_MirrorHorizontal|Reflect content left to right.",
+"k|Gui.ThemeIcons.MirrorVertical|Gui_ThemeIcons_MirrorVertical|Reflect content top to bottom.",
 "k|Gui.ThemeIcons.More|Gui_ThemeIcons_More|Additional-actions glyph.",
 "k|Gui.ThemeIcons.OpenExternal|Gui_ThemeIcons_OpenExternal|Open content in another application or window.",
 "k|Gui.ThemeIcons.OpenFile|Gui_ThemeIcons_OpenFile|Open-file action glyph.",
@@ -30898,6 +30917,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.ThemeIcons.Question|Gui_ThemeIcons_Question|Question or confirmation status.",
 "k|Gui.ThemeIcons.Quit|Gui_ThemeIcons_Quit|Quit application action.",
 "k|Gui.ThemeIcons.Redo|Gui_ThemeIcons_Redo|Redo action glyph.",
+"k|Gui.ThemeIcons.RegularExpression|Gui_ThemeIcons_RegularExpression|Interpret a search as a regular expression.",
 "k|Gui.ThemeIcons.Remove|Gui_ThemeIcons_Remove|Remove action glyph.",
 "k|Gui.ThemeIcons.RemoveAll|Gui_ThemeIcons_RemoveAll|Remove-all action glyph.",
 "k|Gui.ThemeIcons.RepeatAll|Gui_ThemeIcons_RepeatAll|Play the files of the folder in turn, around again past the last one.",
@@ -30909,6 +30929,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "k|Gui.ThemeIcons.SearchPrevious|Gui_ThemeIcons_SearchPrevious|Previous occurrence in a search result.",
 "k|Gui.ThemeIcons.SeekBackward|Gui_ThemeIcons_SeekBackward|Media seek toward an earlier position.",
 "k|Gui.ThemeIcons.SeekForward|Gui_ThemeIcons_SeekForward|Media seek toward a later position.",
+"k|Gui.ThemeIcons.SelectAll|Gui_ThemeIcons_SelectAll|Select every item in the current content.",
 "k|Gui.ThemeIcons.SendBackward|Gui_ThemeIcons_SendBackward|Send-backward ordering action.",
 "k|Gui.ThemeIcons.SendToBack|Gui_ThemeIcons_SendToBack|Send-to-back ordering action.",
 "k|Gui.ThemeIcons.Settings|Gui_ThemeIcons_Settings|Open a page of adjustable settings.",

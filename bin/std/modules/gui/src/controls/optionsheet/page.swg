@@ -125,13 +125,15 @@ impl Page
     }
 
     // Adds a setting that is on or off; `toggle` receives the state the reader asked for.
-    mtd addToggle(label: string, on: bool, toggle: func||(bool), disabled = false)
+    // An optional `icon` leads the label.
+    mtd addToggle(label: string, on: bool, toggle: func||(bool), disabled = false, icon: Icon = {})
     {
         with var row: Row
         {
             .kind = .Toggle
             .label.set(label)
             .checked  = on
+            .icon     = icon
             .disabled = disabled
             .toggle   = toggle
         }
@@ -163,7 +165,8 @@ impl Page
     //
     // An action that opens something else — a dialog, another window — passes `closesSheet`: the
     // sheet closes first, and `run` runs once it has left the screen.
-    mtd addAction(label: string, run: func||(), disabled = false, closesSheet = false)
+    // An optional `icon` leads the label.
+    mtd addAction(label: string, run: func||(), disabled = false, closesSheet = false, icon: Icon = {})
     {
         with var row: Row
         {
@@ -171,6 +174,7 @@ impl Page
             .label.set(label)
             .disabled    = disabled
             .closesSheet = closesSheet
+            .icon        = icon
             .run         = run
         }
 

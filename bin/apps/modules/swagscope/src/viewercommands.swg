@@ -249,7 +249,7 @@ impl ViewerWindow
         if not instance.view or not instance.lensSource do
             return
         let plugin  = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
-        var entries = Viewer.LensEntries.create(results, plugin.displayName())
+        var entries = Viewer.LensEntries.create(results, plugin.displayName(), .theme())
         instance.lensSource(&entries)
     }
 
@@ -611,7 +611,7 @@ impl ViewerWindow
 
         case ViewerCommands.MatchCase:
             name    = texts.ui_SearchMatchCase
-            icon    = .commandGlyph(.Edit)
+            icon    = .commandGlyph(.MatchCase)
             hidden  = not search
             toggle  = true
             checked = .searchMatchCaseOption
@@ -625,7 +625,7 @@ impl ViewerWindow
 
         case ViewerCommands.RegularExpression:
             name    = texts.ui_SearchRegularExpression
-            icon    = .commandGlyph(.Edit)
+            icon    = .commandGlyph(.RegularExpression)
             hidden  = not search
             toggle  = true
             checked = .searchRegexOption
@@ -859,6 +859,12 @@ impl ViewerWindow
         {
             evt.checked = checked
             evt.updatedFields.add(.Checked)
+        }
+
+        if evt.id == ViewerCommands.Forget or evt.id == ViewerCommands.ClearHistory
+        {
+            evt.renderingHint |= .Critical
+            evt.updatedFields.add(.RenderingHint)
         }
 
         evt.accepted = true

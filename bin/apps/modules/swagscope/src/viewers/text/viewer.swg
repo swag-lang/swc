@@ -788,18 +788,18 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
-        entries.add(strings.ui_Numbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
+        entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
+        entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
         for encoding, index in Encodings
         {
             let name = Format.toString("% · %", strings.ui_Encoding, EncodingNames[index])
-            entries.add(name, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)
+            entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)
         }
 
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
-        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
     // Opens how the text is laid out and decoded: wrapping, line numbers, and the encoding.
@@ -812,16 +812,19 @@ impl Panel
     mtd describeOptions(page: *OptionSheet.Page)
     {
         let strings = texts()
-        page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() })
-        page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() })
+        page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() }, icon: .theme().icon(.Wrap, themeRowIconSize(.themeMetrics())))
+        page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() }, icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        page.addLink(strings.ui_Encoding, .encodingName(), func|view = me|(encodings)
-        {
-            for encoding, index in Encodings do
-                encodings.addChoice(EncodingNames[index], encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
-        })
+        page.addLink(strings.ui_Encoding,
+                     .encodingName(),
+                     func|view = me|(encodings)
+                     {
+                         for encoding, index in Encodings do
+                             encodings.addChoice(EncodingNames[index], encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
+                     },
+                     icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
     }
 
     // Creates the zoom menu button in the viewer's information group.

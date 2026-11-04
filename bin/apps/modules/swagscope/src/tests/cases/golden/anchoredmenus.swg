@@ -3,6 +3,52 @@
 
 using Core, Pixel, Gui, Viewers
 
+// Context commands use the same live command metadata as the lens and anchored menus.
+func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
+{
+    host.app.sigFrame += func|host, golden|(_)
+    {
+        let menu = unwrap host.capturedPopupMenu()
+        for item in menu.items where item and not item.separator and not item.label do
+            Swag.require(item.icon.isValid(), item.id)
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        assertScopeImageGolden(&image, golden)
+        Swag.require(host.dismissPopupMenu())
+    }
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.console.exe"), true)
+    let view   = assume cast(*Binary.Panel, window.currentView)
+    captureScopeContextMenu(&host, "menus.binary.context.paper")
+    view.showContextMenu({350, 240})
+    host.app.sigFrame.clear()
+    host.pump()
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("title.png"), false)
+    for choice, index in window.choices where choice.key == "hex"
+    {
+        window.selectViewer(cast(u32, index))
+        break
+    }
+
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*Hex.Panel, window.currentView)
+    captureScopeContextMenu(&host, "menus.hex.context")
+    view.grid.showContextMenu({350, 240})
+    host.app.sigFrame.clear()
+    host.pump()
+}
+
 // Exercise the shipped opener and modal path, keeping the surrounding view in the image.
 internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *ViewerWindow, button: *IconButton, golden: string)
 {
@@ -18,6 +64,12 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
         let menu  = host.capturedPopupMenu()
         let sheet = host.capturedOptionSheet()
         Swag.require(menu != null or sheet != null)
+        if menu do
+            for item in menu.items where item and not item.separator and not item.label do
+                Swag.require(item.icon.isValid(), item.id)
+        if sheet do
+            for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle do
+                Swag.require(row.icon.isValid(), row.label.raw)
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         assertScopeImageGolden(&image, golden)

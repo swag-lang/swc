@@ -205,10 +205,10 @@ impl ViewerHome
         let texts   = appStrings()
         let missing = .window.missingRecentCount()
         let menu    = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.home_ClearMissing, MissingId, rightName: Format.toString("%", missing), disabled: missing == 0)
-        menu.addItem(texts.home_ClearOlder, OlderId, disabled: .window.olderRecentCount() == 0)
+        menu.addItem(texts.home_ClearMissing, MissingId, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())), rightName: Format.toString("%", missing), disabled: missing == 0).critical = true
+        menu.addItem(texts.home_ClearOlder, OlderId, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())), disabled: .window.olderRecentCount() == 0).critical = true
         menu.addSeparator()
-        menu.addItem(texts.home_ClearAll, AllId).critical = true
+        menu.addItem(texts.home_ClearAll, AllId, .theme().icon(.RemoveAll, themeRowIconSize(.themeMetrics()))).critical = true
 
         switch menu.doModal(.clearButton, autoDestroy: true) orelse ""
         {

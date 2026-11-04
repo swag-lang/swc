@@ -113,10 +113,10 @@ private impl Panel
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25%", "scope.midi.zoom25")
-        menu.addItem("50%", "scope.midi.zoom50")
-        menu.addItem("100%", "scope.midi.zoom100")
-        menu.addItem("200%", "scope.midi.zoom200")
+        menu.addItem("25%", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("50%", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("100%", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        menu.addItem("200%", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
@@ -176,8 +176,8 @@ impl Panel
     // Gives the lens the options and the zoom of the score.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
     }
 
     mtd showOptions()
@@ -193,43 +193,55 @@ impl Panel
         {
             let selected = .roll.selectedTrack
             let current  = selected == Swag.U32.Max ? strings.ui_AllTracks : .roll.document.tracks[selected].name.toString()
-            page.addLink(strings.ui_Track, current, func|view = me|(tracks)
-            {
-                tracks.addChoice(texts().ui_AllTracks, view.roll.selectedTrack == Swag.U32.Max, func|view|() { view.roll.setTrack(Swag.U32.Max) })
-                for track, index in view.roll.document.tracks
-                {
-                    tracks.addChoice(track.name,
-                                     view.roll.selectedTrack == index,
-                                     func|view, index|()
-                                     {
-                                         view.roll.setTrack(cast(u32, index))
-                                     },
-                                     detail: noteCountText(track.noteCount))
-                }
-            })
+            page.addLink(strings.ui_Track,
+                         current,
+                         func|view = me|(tracks)
+                         {
+                             tracks.addChoice(texts().ui_AllTracks, view.roll.selectedTrack == Swag.U32.Max, func|view|() { view.roll.setTrack(Swag.U32.Max) })
+                             for track, index in view.roll.document.tracks
+                             {
+                                 tracks.addChoice(track.name,
+                                                  view.roll.selectedTrack == index,
+                                                  func|view, index|()
+                                                  {
+                                                      view.roll.setTrack(cast(u32, index))
+                                                  },
+                                                  detail: noteCountText(track.noteCount))
+                             }
+                         },
+                         icon: .theme().icon(.AudioTracks, themeRowIconSize(.themeMetrics())))
         }
 
         if not .isLoading() and .failureReason.isEmpty()
         {
             let current = .roll.mode == .Tracks ? strings.ui_ByTrack : strings.ui_ByPitch
-            page.addLink(strings.ui_Presentation, current, func|view = me|(modes)
-            {
-                modes.addChoice(texts().ui_ByTrack, view.roll.mode == .Tracks, func|view|() { view.roll.setMode(.Tracks) })
-                modes.addChoice(texts().ui_ByPitch, view.roll.mode == .Pitches, func|view|() { view.roll.setMode(.Pitches) })
-            })
+            page.addLink(strings.ui_Presentation,
+                         current,
+                         func|view = me|(modes)
+                         {
+                             modes.addChoice(texts().ui_ByTrack, view.roll.mode == .Tracks, func|view|() { view.roll.setMode(.Tracks) })
+                             modes.addChoice(texts().ui_ByPitch, view.roll.mode == .Pitches, func|view|() { view.roll.setMode(.Pitches) })
+                         },
+                         icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
         }
 
-        page.addLink(strings.ui_PitchLabels, pitchLabelText(.pitchLabelMode), func|view = me|(labels)
-        {
-            for mode in [PitchLabelMode.Scientific, .MidiNumber] do
-                labels.addChoice(pitchLabelText(mode), mode == view.pitchLabelMode, func|view, mode|() { view.setPitchLabelMode(mode) })
-        })
+        page.addLink(strings.ui_PitchLabels,
+                     pitchLabelText(.pitchLabelMode),
+                     func|view = me|(labels)
+                     {
+                         for mode in [PitchLabelMode.Scientific, .MidiNumber] do
+                             labels.addChoice(pitchLabelText(mode), mode == view.pitchLabelMode, func|view, mode|() { view.setPitchLabelMode(mode) }, detail: texts().ui_PitchReference)
+                     },
+                     icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_KeyboardWidth, keyboardWidthText(.keyboardWidthMode), func|view = me|(widths)
-        {
-            for index in 3'u32 do
-                widths.addChoice(keyboardWidthText(index), index == view.keyboardWidthMode, func|view, index|() { view.setKeyboardWidthMode(index) })
-        })
+        page.addLink(strings.ui_KeyboardWidth,
+                     keyboardWidthText(.keyboardWidthMode),
+                     func|view = me|(widths)
+                     {
+                         for index in 3'u32 do
+                             widths.addChoice(keyboardWidthText(index), index == view.keyboardWidthMode, func|view, index|() { view.setKeyboardWidthMode(index) })
+                     },
+                     icon: .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())))
     }
 
     // Names each pitch by its note and octave, or by its MIDI number; the choice is remembered.

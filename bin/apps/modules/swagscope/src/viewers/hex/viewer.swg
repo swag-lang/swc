@@ -326,8 +326,8 @@ impl Panel
     // Gives the lens the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        entries.add(appStrings().cmd_Options, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomMenu, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
     }
 
     mtd showOptions()
@@ -339,29 +339,41 @@ impl Panel
     mtd describeOptions(page: *OptionSheet.Page)
     {
         let strings = texts()
-        page.addLink(strings.ui_RowWidth, rowWidthName(.rowWidthIndex), func|view = me|(rows)
-        {
-            for index in RowWidthCount do
-                rows.addChoice(rowWidthName(index), index == view.rowWidthIndex, func|view, index|() { view.setRowWidth(index) })
-        })
+        page.addLink(strings.ui_RowWidth,
+                     rowWidthName(.rowWidthIndex),
+                     func|view = me|(rows)
+                     {
+                         for index in RowWidthCount do
+                             rows.addChoice(rowWidthName(index), index == view.rowWidthIndex, func|view, index|() { view.setRowWidth(index) })
+                     },
+                     icon: .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_ValueWidth, valueWidthName(.valueWidthIndex), func|view = me|(widths)
-        {
-            for index in 4'u32 do
-                widths.addChoice(valueWidthName(index), index == view.valueWidthIndex, func|view, index|() { view.setValueWidth(index) })
-        })
+        page.addLink(strings.ui_ValueWidth,
+                     valueWidthName(.valueWidthIndex),
+                     func|view = me|(widths)
+                     {
+                         for index in 4'u32 do
+                             widths.addChoice(valueWidthName(index), index == view.valueWidthIndex, func|view, index|() { view.setValueWidth(index) })
+                     },
+                     icon: .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_Representation, formatName(.formatIndex), func|view = me|(formats)
-        {
-            for index in view.formatCount() do
-                formats.addChoice(formatName(index), index == view.formatIndex, func|view, index|() { view.setFormat(index) })
-        })
+        page.addLink(strings.ui_Representation,
+                     formatName(.formatIndex),
+                     func|view = me|(formats)
+                     {
+                         for index in view.formatCount() do
+                             formats.addChoice(formatName(index), index == view.formatIndex, func|view, index|() { view.setFormat(index) })
+                     },
+                     icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
 
-        page.addLink(strings.ui_ByteOrder, .bigEndian ? strings.ui_EndianBig : strings.ui_EndianLittle, func|view = me|(orders)
-        {
-            orders.addChoice(texts().ui_EndianLittle, not view.bigEndian, func|view|() { view.setBigEndian(false) })
-            orders.addChoice(texts().ui_EndianBig, view.bigEndian, func|view|() { view.setBigEndian(true) })
-        })
+        page.addLink(strings.ui_ByteOrder,
+                     .bigEndian ? strings.ui_EndianBig : strings.ui_EndianLittle,
+                     func|view = me|(orders)
+                     {
+                         orders.addChoice(texts().ui_EndianLittle, not view.bigEndian, func|view|() { view.setBigEndian(false) })
+                         orders.addChoice(texts().ui_EndianBig, view.bigEndian, func|view|() { view.setBigEndian(true) })
+                     },
+                     icon: .theme().icon(.Sort, themeRowIconSize(.themeMetrics())))
     }
 
     private mtd offsetText(offset: u64)->String => formatDigits(offset, .grid.offsetDigits)

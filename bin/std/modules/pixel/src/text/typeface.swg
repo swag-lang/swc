@@ -5,18 +5,22 @@ using Core, TrueType
 // Use [[Pixel.TypeFace.load]] for a font file or [[Pixel.TypeFace.create]] for
 // bytes already in memory. Their `At` variants select a face within a font collection. Returned pointers are shared by Pixel's process-wide
 // typeface cache and remain valid until module shutdown; never delete them.
+// Separate rendering-thread font caches may share a typeface: glyph loading, atlas copying
+// and metric reads serialize access to its mutable workspace. Each font cache still belongs
+// to its rendering thread.
 #[Swag.Opaque]
 public struct TypeFace
 {
     internal
     {
-        fullName:     String       // Cache key or source filename, owned so a dynamic key cannot dangle.
+        fullName:     String         // Cache key or source filename, owned so a dynamic key cannot dangle.
         late allocationAllocator: IAllocator     // Allocator that owns this cached value.
-        late face:    *Face        // Owned TrueType face and its copied font bytes.
-        faceLoaded:   bool         // Whether `face` can be destroyed during cleanup.
-        forceBoldDiv: u32 = 11     // Em-size divisor used for synthetic bold strength.
-        forceItalic:  bool         // Whether every rasterized glyph is synthetically slanted.
-        forceBold:    bool         // Whether every rasterized glyph is synthetically emboldened.
+        late face:    *Face          // Owned TrueType face and its copied font bytes.
+        faceLoaded:   bool           // Whether `face` can be destroyed during cleanup.
+        glyphMutex:   Swag.Mutex     // Protects the shared size, outline and borrowed glyph bitmap.
+        forceBoldDiv: u32 = 11       // Em-size divisor used for synthetic bold strength.
+        forceItalic:  bool           // Whether every rasterized glyph is synthetically slanted.
+        forceBold:    bool           // Whether every rasterized glyph is synthetically emboldened.
     }
 }
 
@@ -245,6 +249,14 @@ public impl TypeFace
     #[Swag.Propagate]
     mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false, penOffsetX = 0.0'f32)->const *Bitmap fail
     {
+        Sync.scopedLock(&.glyphMutex)
+        return .renderGlyphByIndexLocked(glyphIndex, size, forceBold, forceItalic, penOffsetX)
+    }
+
+    // The caller holds glyphMutex until it has copied the bitmap and glyph metrics.
+    #[Swag.Propagate]
+    internal mtd renderGlyphByIndexLocked(glyphIndex: u32, size: u32, forceBold, forceItalic: bool, penOffsetX: f32)->const *Bitmap fail
+    {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
         .transform(size, 0, forceBold, forceItalic)
@@ -265,6 +277,14 @@ public impl TypeFace
     #[Swag.Propagate]
     mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
+        Sync.scopedLock(&.glyphMutex)
+        return .renderGlyphMsdfByIndexLocked(glyphIndex, size, spread, forceBold, forceItalic)
+    }
+
+    // The caller holds glyphMutex until it has copied the bitmap and glyph metrics.
+    #[Swag.Propagate]
+    internal mtd renderGlyphMsdfByIndexLocked(glyphIndex: u32, size, spread: u32, forceBold, forceItalic: bool)->const *Bitmap fail
+    {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
         .transform(size, 0, forceBold, forceItalic)
@@ -278,6 +298,7 @@ public impl TypeFace
     // widens the outline and the advance by that many pixels.
     mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
+        Sync.scopedLock(&.glyphMutex)
         var result: #returntype
 
         try .face.setPixelSize(0, size)
@@ -301,6 +322,7 @@ public impl TypeFace
     // rune form one group, so path-list boolean operations keep the glyphs apart.
     mtd buildStringOutline(text: string, size: u32, embolden: u32 = 0)->LinePathList fail
     {
+        Sync.scopedLock(&.glyphMutex)
         var result: #returntype
 
         try .face.setPixelSize(0, size)

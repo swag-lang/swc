@@ -787,7 +787,8 @@ impl IActionUI for Action
             evt.shortcut      = "Ctrl Shift E"
 
         case Action.GoTo:
-            evt.updatedFields |= .Name | .Shortcut | .Disabled
+            evt.icon          = theme.icon(.GoTo)
+            evt.updatedFields |= .Name | .Icon | .Shortcut | .Disabled
             evt.name          = texts.ui_MenuGoTo
             evt.shortcut      = "Ctrl G"
             evt.disabled      = not view.doc.image.fileSize
@@ -1081,7 +1082,7 @@ impl Panel
         if .hasPage
         {
             let page = .page.isLocallyVisible()
-            entries.add(page ? strings.ui_ShowStructure : strings.ui_ShowReport, func|view = me, page|()
+            entries.add(page ? strings.ui_ShowStructure : strings.ui_ShowReport, page ? .Outline : .File, func|view = me, page|()
             {
                 view.showPage(not page)
                 if page do
@@ -1089,8 +1090,8 @@ impl Panel
             })
         }
 
-        entries.add(strings.ui_MenuBack, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
-        entries.add(strings.ui_MenuForward, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
+        entries.add(strings.ui_MenuBack, .ChevronLeft, func|view = me|() { discard view.navigateHistory(-1) }, disabled: not .backButton.isEnabled())
+        entries.add(strings.ui_MenuForward, .ChevronRight, func|view = me|() { discard view.navigateHistory(1) }, disabled: not .forwardButton.isEnabled())
     }
 
     // Creates the command group `host` registers for this viewer, and the history buttons in it.

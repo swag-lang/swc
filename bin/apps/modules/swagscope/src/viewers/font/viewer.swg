@@ -129,12 +129,13 @@ private impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_EditSample, func|view = me|()
+        entries.add(strings.ui_EditSample, .Edit, func|view = me|()
         {
             view.sampleEdit.setFocus()
             view.sampleEdit.selectAll()
         })
         entries.add(strings.ui_PreviousPage,
+                    .ChevronLeft,
                     func|view = me|()
                     {
                         view.document.previousPage()
@@ -142,6 +143,7 @@ private impl Panel
                     },
                     disabled: not .previousButton.isEnabled())
         entries.add(strings.ui_NextPage,
+                    .ChevronRight,
                     func|view = me|()
                     {
                         view.document.nextPage()
@@ -153,7 +155,7 @@ private impl Panel
         let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
         for range, index in Ranges
         {
-            entries.add(names[index], func|view = me, range|()
+            entries.add(names[index], .GoTo, func|view = me, range|()
             {
                 view.document.goToCharacterPage(range)
                 view.refreshPageCommands()
@@ -167,11 +169,11 @@ private impl Panel
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(texts().ui_BasicLatin, "scope.font.range.basic")
-            .addItem(texts().ui_Latin1, "scope.font.range.latin1")
-            .addItem(texts().ui_Greek, "scope.font.range.greek")
-            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic")
-            .addItem(texts().ui_Symbols, "scope.font.range.symbols")
+            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
+            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())))
         }
 
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""

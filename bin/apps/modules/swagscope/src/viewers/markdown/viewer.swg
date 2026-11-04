@@ -503,32 +503,38 @@ func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
 
 func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomButton)
 {
-    page.addLink(texts().ui_Width, widthName(g_ViewerSettings.widthIndex), func|view, zoom|(widths)
-    {
-        for index in WidthCount
-        {
-            widths.addChoice(widthName(index), index == g_ViewerSettings.widthIndex, func|view, zoom, index|()
-            {
-                g_ViewerSettings.widthIndex = index
-                applyViewerStyle(view, g_ViewerSettings.themeIndex, index, zoom.zoomPercent, applyColors: false)
-                catch g_App.saveState()
-            })
-        }
-    })
+    page.addLink(texts().ui_Width,
+                 widthName(g_ViewerSettings.widthIndex),
+                 func|view, zoom|(widths)
+                 {
+                     for index in WidthCount
+                     {
+                         widths.addChoice(widthName(index), index == g_ViewerSettings.widthIndex, func|view, zoom, index|()
+                         {
+                             g_ViewerSettings.widthIndex = index
+                             applyViewerStyle(view, g_ViewerSettings.themeIndex, index, zoom.zoomPercent, applyColors: false)
+                             catch g_App.saveState()
+                         })
+                     }
+                 },
+                 icon: view.theme().icon(.FitWidth, themeRowIconSize(view.themeMetrics())))
 
-    page.addLink(texts().ui_Theme, themeName(g_ViewerSettings.themeIndex), func|view, zoom|(themes)
-    {
-        for index in ThemeCount
-        {
-            themes.addChoice(themeName(index), index == g_ViewerSettings.themeIndex, func|view, zoom, index|()
-            {
-                g_ViewerSettings.themeIndex = index
-                applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
-                zoom.reportStatistics()
-                catch g_App.saveState()
-            })
-        }
-    })
+    page.addLink(texts().ui_Theme,
+                 themeName(g_ViewerSettings.themeIndex),
+                 func|view, zoom|(themes)
+                 {
+                     for index in ThemeCount
+                     {
+                         themes.addChoice(themeName(index), index == g_ViewerSettings.themeIndex, func|view, zoom, index|()
+                         {
+                             g_ViewerSettings.themeIndex = index
+                             applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
+                             zoom.reportStatistics()
+                             catch g_App.saveState()
+                         })
+                     }
+                 },
+                 icon: view.theme().icon(.Appearance, themeRowIconSize(view.themeMetrics())))
 }
 
 // Creates the integrated Markdown view.
@@ -566,8 +572,8 @@ func createViewer(host: Viewer.Host)
         entries.addZoom(.In, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.In, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
-        entries.add(appStrings().cmd_ZoomMenu, func|zoomButton|() { zoomButton.showZoomMenu() })
-        entries.add(appStrings().cmd_Options, func|view, zoomButton|() { showOptions(view, view, zoomButton) })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|zoomButton|() { zoomButton.showZoomMenu() })
+        entries.add(appStrings().cmd_Options, .Settings, func|view, zoomButton|() { showOptions(view, view, zoomButton) })
     })
 
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)

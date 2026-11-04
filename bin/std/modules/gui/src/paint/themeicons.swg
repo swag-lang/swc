@@ -98,15 +98,22 @@ enum ThemeIcons
 
     // The pages of a file listing: one page, marked with what the file holds. Ask for them through
     // [[Gui.Theme.fileGlyph]], which reads the kind from the name.
-    File            // A file in a file listing, of no kind of its own.
-    FileImage       // A picture.
-    FileCode        // Source code, a script, or structured data.
-    FileAudio       // A sound.
-    FileVideo       // A film.
-    FileArchive     // An archive of other files.
-    Star            // An outlined rating star.
-    StarFilled      // A filled rating star.
-    Outline         // Document heading hierarchy.
+    File                  // A file in a file listing, of no kind of its own.
+    FileImage             // A picture.
+    FileCode              // Source code, a script, or structured data.
+    FileAudio             // A sound.
+    FileVideo             // A film.
+    FileArchive           // An archive of other files.
+    Star                  // An outlined rating star.
+    StarFilled            // A filled rating star.
+    Outline               // Document heading hierarchy.
+    MirrorHorizontal      // Reflect content left to right.
+    MirrorVertical        // Reflect content top to bottom.
+    FitWidth              // Fit the document width inside its viewport.
+    MatchCase             // Match uppercase and lowercase letters exactly.
+    RegularExpression     // Interpret a search as a regular expression.
+    GoTo                  // Jump to a specified position in a document.
+    SelectAll             // Select every item in the current content.
 }
 
 // Extensions read as each kind of file, compared without case.

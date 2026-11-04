@@ -19,29 +19,33 @@ struct LensEntries
         query:   String            // What the reader typed, without its prefix.
     }
 
+    theme:   *Theme
     section: *Lens.Section?
 }
 
 impl LensEntries
 {
-    // Starts the rows of the viewer named `label` for `results`.
-    func create(results: *Lens.Results, label: string)->LensEntries => LensEntries{results: results, label: label, query: results.query}
+    // Starts the rows of the viewer named `label` for `results`, borrowing `theme` for their glyphs.
+    // The theme must outlive these entries.
+    func create(results: *Lens.Results, label: string, theme: *Theme)->LensEntries => LensEntries{results: results, label: label, query: results.query, theme: theme}
 
-    // Adds a row titled `title` that runs `run` once the lens has left the screen, and returns it.
+    // Adds a row titled `title` with the shared action `icon`, running `run` after the lens closes.
     //
     // `shortcut` names the key that runs the same command, written at the end of the row; a
     // `checked` row is the choice or the setting in force, and a `disabled` one shows faint and
     // cannot be chosen. Returns `null` when the query answers neither the row nor the viewer.
     #[Swag.Discardable]
-    mtd add(title: string, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
+    mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
     {
         if not Lens.match(.query, title).matched and not Lens.match(.query, .label).matched do
             return null
         if not .section do
             .section = .results.addSection(.label)
 
+        let glyph      = .theme.icon(icon, .theme.metrics.menuPopup_IconSize)
         with let entry = .section.addEntry(title)
         {
+            .glyph      = glyph
             .run        = run
             .checked    = checked
             .disabled   = disabled
@@ -63,9 +67,9 @@ impl LensEntries
         let texts = appStrings()
         switch #complete command
         {
-        case .In:    return .add(texts.cmd_ZoomIn, run, disabled: percent >= MaxZoom, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        case .Out:   return .add(texts.cmd_ZoomOut, run, disabled: percent <= MinZoom, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        case .Reset: return .add(texts.cmd_ZoomReset, run, checked: percent == 100, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        case .In:    return .add(texts.cmd_ZoomIn, .ZoomIn, run, disabled: percent >= MaxZoom, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        case .Out:   return .add(texts.cmd_ZoomOut, .ZoomOut, run, disabled: percent <= MinZoom, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        case .Reset: return .add(texts.cmd_ZoomReset, .ActualSize, run, checked: percent == 100, shortcut: Input.formatKeyShortcut(.Control, .D0))
         }
     }
 }

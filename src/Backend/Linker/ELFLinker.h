@@ -3,8 +3,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// GNU/Linux final linking uses the host C driver for CRT/loader discovery.
-// Indexed ELF archives are built internally from the prepared object bytes.
+// Integrated Linux ELF linker. Resolves archives and shared-library imports and
+// writes executables, shared objects and static archives without a host toolchain.
 class ELFLinker final : public Linker
 {
 public:

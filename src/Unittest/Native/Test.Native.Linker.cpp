@@ -7,6 +7,9 @@
 #include "Backend/Encoder/X64DwarfFrame.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/ELFObjectWriter.h"
+#include "Backend/Linker/ELFImageWriter.h"
+#include "Backend/Linker/ELFReader.h"
+#include "Backend/Linker/LinkJob.h"
 #include "Backend/RuntimeName.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
@@ -768,6 +771,333 @@ func(T) accumulate(value: T)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ELFImage_WritesProtectedSegmentsAndRejectsUnresolvedInputs)
+{
+    LinkImage image;
+    LinkSection code;
+    code.name = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+    image.sections.push_back(std::move(code));
+    image.symbols.push_back({.name = "answer"});
+    LinkJob job;
+    job.output = LinkJob::Output::SharedLibrary;
+    job.outputPath = "internal.so";
+    job.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image))
+        return Result::Error;
+    ByteArray bytes;
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
+        return Result::Error;
+    ELF::File file;
+    if (!file.read(error, bytes.span()) || !file.shared || file.soname != "internal.so")
+        return Result::Error;
+    bool stack = false, relro = false;
+    for (uint32_t index = 0; index < bytes.readLe16(56); ++index)
+    {
+        const uint64_t header = bytes.readLe64(32) + uint64_t{index} * 56;
+        const uint32_t type = bytes.readLe32(header), flags = bytes.readLe32(header + 4);
+        if (type == 1 && (flags & 3) == 3)
+            return Result::Error;
+        if (type == 0x6474e551)
+            stack = flags == 6;
+        if (type == 0x6474e552)
+            relro = bytes.readLe64(header + 40) != 0;
+    }
+    if (!stack || !relro)
+        return Result::Error;
+    const ByteArray original = job.archiveMembers[0].bytes;
+    ELF::File object;
+    if (!object.read(error, original.span()))
+        return Result::Error;
+    for (const ELF::Section& section : object.sections)
+        if (section.type == ELF::SHT_SYMTAB)
+            job.archiveMembers[0].bytes[section.offset + 24 + 4] = std::byte{0x1a};
+    if (buildElfImage(bytes, error, job) || !error.view().contains("IFUNC"))
+        return Result::Error;
+    job.archiveMembers[0].bytes = original;
+    image.sections[0].bytes.resize(8);
+    image.sections[0].relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = "missing_import"});
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image) || buildElfImage(bytes, error, job) || !error.view().contains("missing_import"))
+        return Result::Error;
+    job.archiveMembers[0].bytes.writeLe64(40, UINT64_MAX);
+    if (buildElfImage(bytes, error, job) || !bytes.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ELFImage_ResolvesWeakCommonAndStrongDefinitions)
+{
+    LinkImage image;
+    LinkSection data;
+    data.name = ".data";
+    data.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write;
+    data.bytes.appendLe64(17);
+    image.sections.push_back(std::move(data));
+    image.symbols.push_back({.name = "value"});
+    ByteArray original;
+    Diagnostic diagnostic;
+    if (!buildElfObject(original, diagnostic, image))
+        return Result::Error;
+    ELF::File object;
+    Utf8 error;
+    if (!object.read(error, original.span()))
+        return Result::Error;
+    uint64_t symbolOffset = 0, dataOffset = 0;
+    for (const ELF::Section& section : object.sections)
+    {
+        if (section.type == ELF::SHT_SYMTAB)
+            symbolOffset = section.offset + 24;
+        if (section.name == ".data")
+            dataOffset = section.offset;
+    }
+    std::vector<LinkArchiveMember> members(5);
+    for (LinkArchiveMember& member : members)
+    {
+        member.bytes = original;
+        member.bytes.writeLe64(symbolOffset + 16, 8);
+    }
+    for (const size_t index : {size_t{0}, size_t{4}})
+    {
+        members[index].bytes.writeLe16(symbolOffset + 6, ELF::SHN_COMMON);
+        members[index].bytes.writeLe64(symbolOffset + 8, index ? 64 : 32);
+        members[index].bytes.writeLe64(symbolOffset + 16, index ? 16 : 8);
+    }
+    members[1].bytes[symbolOffset + 4] = std::byte{0x21};
+    members[2].bytes[symbolOffset + 4] = std::byte{0x21};
+    members[2].bytes.writeLe64(dataOffset, 99);
+    members[3].bytes.writeLe64(dataOffset, 42);
+    for (size_t scenario = 0; scenario < 3; ++scenario)
+    {
+        LinkJob job;
+        job.output = LinkJob::Output::SharedLibrary;
+        job.outputPath = "symbols.so";
+        job.archiveMembers = scenario == 0 ? std::vector<LinkArchiveMember>{members[0], members[1], members[4]} : scenario == 1 ? std::vector<LinkArchiveMember>{members[1], members[2]} : members;
+        ByteArray bytes;
+        if (!buildElfImage(bytes, error, job))
+            return Result::Error;
+        ELF::File linked;
+        if (!linked.read(error, bytes.span()))
+            return Result::Error;
+        const auto value = std::ranges::find(linked.symbols, std::string("value"), &ELF::Symbol::name);
+        if (value == linked.symbols.end() || !value->section || value->section >= linked.sections.size())
+            return Result::Error;
+        const ELF::Section& section = linked.sections[value->section];
+        if (!scenario)
+        {
+            if (section.type != ELF::SHT_NOBITS || value->size != 16 || value->value % 64)
+                return Result::Error;
+        }
+        else if (value->binding() != (scenario == 1 ? 2 : 1) || value->size != 8 || section.type != ELF::SHT_PROGBITS ||
+                 bytes.readLe64(section.offset + value->value - section.address) != (scenario == 1 ? 17 : 42))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ExecutesProcessEntryAndEagerLibcImports)
+{
+    const LinkerTestDirectory directory("internal_elf_entry");
+    LinkImage image;
+    LinkSection code;
+    code.name = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0x48, 0x83, 0xec, 8, 0x48, 0x8d, 0x3d, 0, 0, 0, 0, 0xe8, 0, 0, 0, 0, 0x31, 0xc0, 0x48, 0x83, 0xc4, 8, 0xc3});
+    code.relocs = {{.offset = 7, .kind = LinkRelocKind::Rel32, .symbolName = "message"}, {.offset = 12, .kind = LinkRelocKind::Rel32, .symbolName = "puts"}};
+    image.sections.push_back(std::move(code));
+    LinkSection message;
+    message.name = ".rdata";
+    message.flags = LinkSectionFlagsE::Read;
+    message.bytes.append("internal ELF link");
+    message.bytes.pushBack(std::byte{0});
+    image.sections.push_back(std::move(message));
+    image.symbols = {{.name = "main"}, {.name = "message", .sectionIndex = 1}};
+    LinkJob job;
+    job.outputPath = directory.path() / "program";
+    job.elfLibraries = {"c"};
+    job.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image))
+        return Result::Error;
+    ByteArray bytes;
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[internal ELF] {}", error);
+        return Result::Error;
+    }
+    SWC_RESULT(directory.write("program", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    std::error_code permissions;
+    fs::permissions(job.outputPath, fs::perms::owner_exec, fs::perm_options::add, permissions);
+    if (permissions)
+        return Result::Error;
+    uint32_t exitCode = 0;
+    std::string output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    if (Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output != "internal ELF link\n")
+    {
+        std::println(stderr, "[internal ELF] exit={}, output={}", exitCode, output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_CopyRelocationsShareStorageWithGotReferences)
+{
+    const LinkerTestDirectory directory("internal_elf_copy");
+    LinkImage image;
+    LinkSection code;
+    code.name = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    // Update libc's optind through a direct reference, then observe the same storage
+    // through the GOT. A copy relocation must not leave one access in the original DSO.
+    NativeTest::emit(code.bytes, {0x8b, 0x05, 0, 0, 0, 0, 0x83, 0xc0, 1, 0x89, 0x05, 0, 0, 0, 0, 0x48, 0x8b, 0x0d, 0, 0, 0, 0, 0x2b, 0x01, 0xc3});
+    code.relocs = {{.offset = 2, .kind = LinkRelocKind::Rel32, .symbolName = "optind"}, {.offset = 11, .kind = LinkRelocKind::Rel32, .symbolName = "optind"}, {.offset = 18, .kind = LinkRelocKind::GotRel32, .symbolName = "optind"}};
+    image.sections.push_back(std::move(code));
+    image.symbols.push_back({.name = "main"});
+    image.imports.push_back({.symbolName = "optind", .isData = true});
+    LinkJob job;
+    job.outputPath = directory.path() / "program";
+    job.elfLibraries = {"c"};
+    job.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image))
+        return Result::Error;
+    ByteArray bytes;
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[ELF copy relocation] {}", error);
+        return Result::Error;
+    }
+    SWC_RESULT(directory.write("program", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    std::error_code permissions;
+    fs::permissions(job.outputPath, fs::perms::owner_exec, fs::perm_options::add, permissions);
+    if (permissions)
+        return Result::Error;
+    uint32_t exitCode = 0;
+    std::string output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    if (Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+    for (LinkReloc& relocation : image.sections[0].relocs)
+        relocation.symbolName = "errno";
+    image.imports[0].symbolName = "errno";
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image) || buildElfImage(bytes, error, job) || !error.view().contains("TLS"))
+        return Result::Error;
+}
+SWC_TEST_END()
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ArchiveDefinitionsOverrideCommonDeclarations)
+{
+    const LinkerTestDirectory directory("internal_elf_archive_common");
+    SWC_RESULT(directory.write("main.c", "int value; int main(void) { return value != 42; }\n"));
+    SWC_RESULT(directory.write("weak.c", "__attribute__((weak)) int value = 7;\n"));
+    SWC_RESULT(directory.write("strong.c", "int value = 42;\n"));
+    uint32_t exitCode = 0;
+    std::string output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    for (const char* name : {"main", "weak", "strong"})
+    {
+        const std::vector<Utf8> arguments = {"-x", "c", "-fcommon", "-c", std::format("{}.c", name), "-o", std::format("{}.o", name)};
+        if (Os::runProcess(exitCode, "c++", arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+            return Result::Error;
+    }
+    FileSystem::IoErrorInfo io;
+    std::vector<LinkArchiveMember> members(2);
+    SWC_RESULT(FileSystem::readBinaryFile(directory.path() / "weak.o", members[0].bytes, io));
+    SWC_RESULT(FileSystem::readBinaryFile(directory.path() / "strong.o", members[1].bytes, io));
+    ByteArray bytes;
+    Diagnostic diagnostic;
+    if (!buildElfStaticArchive(bytes, diagnostic, members))
+        return Result::Error;
+    SWC_RESULT(directory.write("library.a", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    LinkJob job;
+    job.outputPath = directory.path() / "program";
+    job.archiveMembers.resize(1);
+    job.elfLibraries = {directory.path() / "library.a", "c"};
+    SWC_RESULT(FileSystem::readBinaryFile(directory.path() / "main.o", job.archiveMembers[0].bytes, io));
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[ELF common archive] {}", error);
+        return Result::Error;
+    }
+    SWC_RESULT(directory.write("program", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    std::error_code permissions;
+    fs::permissions(job.outputPath, fs::perms::owner_exec, fs::perm_options::add, permissions);
+    if (permissions || Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_LoadsNativeConstructorsAndPreservesArrayMetadata)
+{
+    const LinkerTestDirectory directory("internal_elf_constructor");
+    constexpr std::string_view source = R"(extern "C" {
+__attribute__((visibility("protected"))) int initialized;
+__attribute__((constructor(200))) static void second() { initialized = initialized * 10 + 2; }
+__attribute__((constructor(101))) static void first() { initialized = initialized * 10 + 1; }
+__attribute__((constructor)) static void last() { initialized = initialized * 10 + 3; }
+}
+)";
+    SWC_RESULT(directory.write("constructor.cpp", source));
+    uint32_t exitCode = 0;
+    std::string output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const std::vector<Utf8> compile = {"-c", "-fPIC", "constructor.cpp", "-o", "constructor.o"};
+    if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+    LinkJob job;
+    job.output = LinkJob::Output::SharedLibrary;
+    job.outputPath = directory.path() / "constructor.so";
+    job.archiveMembers.resize(1);
+    FileSystem::IoErrorInfo io;
+    SWC_RESULT(FileSystem::readBinaryFile(directory.path() / "constructor.o", job.archiveMembers[0].bytes, io));
+    ByteArray bytes;
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[ELF constructor] {}", error);
+        return Result::Error;
+    }
+    SWC_RESULT(directory.write("constructor.so", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    const std::vector<Utf8> inspect = {"--dump-section", ".init_array=array.bin", "constructor.so", "inspected.so"};
+    if (Os::runProcess(exitCode, "objcopy", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+    void* module = nullptr;
+    void* initialized = nullptr;
+    if (!Os::loadExternalModule(module, job.outputPath.string()) || !Os::getExternalSymbolAddress(initialized, module, "initialized") || *static_cast<const int*>(initialized) != 123)
+        return Result::Error;
+    LinkImage image;
+    LinkSection code;
+    code.name = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0x48, 0x8b, 0x0d, 0, 0, 0, 0, 0x8b, 0x01, 0x83, 0xe8, 123, 0xc3});
+    code.relocs.push_back({.offset = 3, .kind = LinkRelocKind::GotRel32, .symbolName = "initialized"});
+    image.sections.push_back(std::move(code));
+    image.symbols.push_back({.name = "main"});
+    LinkJob program;
+    program.outputPath = directory.path() / "program";
+    program.elfLibraries = {job.outputPath, "c"};
+    program.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(program.archiveMembers[0].bytes, diagnostic, image) || !buildElfImage(bytes, error, program))
+        return Result::Error;
+    SWC_RESULT(directory.write("program", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    std::error_code permissions;
+    fs::permissions(program.outputPath, fs::perms::owner_exec, fs::perm_options::add, permissions);
+    if (permissions || Os::runProcess(exitCode, program.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+    image.sections[0].relocs[0].kind = LinkRelocKind::Rel32;
+    image.imports.push_back({.symbolName = "initialized", .isData = true});
+    if (!buildElfObject(program.archiveMembers[0].bytes, diagnostic, image) || buildElfImage(bytes, error, program) || !error.view().contains("protected"))
+        return Result::Error;
+}
+SWC_TEST_END()
+#endif
+
 SWC_TEST_BEGIN(ELFArchive_IndexesDefinitionsAndPreservesMembers)
 {
     LinkImage image;
@@ -814,6 +1144,10 @@ SWC_TEST_BEGIN(ELFArchive_IndexesDefinitionsAndPreservesMembers)
         return Result::Error;
     members.clear();
     if (!buildElfStaticArchive(bytes, diagnostic, members) || bytes.size() != 72 || ByteView(bytes.span()).readBe32(68))
+        return Result::Error;
+    std::memcpy(bytes.data() + 8, "/SYM64/", 7);
+    Archive unsupported;
+    if (unsupported.load(diagnostic, std::move(bytes)))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -1223,7 +1557,7 @@ int main()
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(ELFObject_RelocatedConstantsBecomeReadOnlyAfterLoading)
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_RelocatedConstantsBecomeReadOnlyAfterLoading)
 {
     const LinkerTestDirectory directory("elf_relro");
     LinkImage                 image;
@@ -1282,14 +1616,17 @@ int main()
     std::string                 output;
     uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-    // -z text rejects a dynamic relocation in read-only storage; RELRO must then restore
-    // read-only permissions after the loader has resolved the pointer.
-    const std::vector<Utf8> libraryArguments = {"-shared", "-Wl,-z,text,-z,relro,-z,now", "generated.o", "-o", "generated.so"};
-    if (Os::runProcess(exitCode, "c++", libraryArguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    LinkJob job;
+    job.output = LinkJob::Output::SharedLibrary;
+    job.outputPath = directory.path() / "generated.so";
+    job.archiveMembers.push_back({.name = "generated.o", .bytes = std::move(bytes)});
+    Utf8 error;
+    if (!buildElfImage(bytes, error, job))
     {
-        std::println(stderr, "[ELF relocated constants] {}", output);
+        std::println(stderr, "[ELF relocated constants] {}", error);
         return Result::Error;
     }
+    SWC_RESULT(directory.write("generated.so", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
     const std::vector<Utf8> consumerArguments = {"consumer.cpp", "-ldl", "-o", "consumer"};
     if (Os::runProcess(exitCode, "c++", consumerArguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         return Result::Error;

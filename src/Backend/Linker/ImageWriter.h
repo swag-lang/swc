@@ -11,8 +11,8 @@ class Diagnostic;
 
 // Serialises the resolved link inputs into the final on-disk artifact bytes for one target format:
 // executable/shared-library images plus the static and import libraries that accompany them. A
-// concrete subclass exists per object/container format (PE today, ELF/Mach-O later); create() selects
-// it from the target OS, mirroring NativeObjFileWriter. Every method is self-contained so it can run
+// concrete subclasses consume resolved LinkImage inputs (currently PE). ELF jobs resolve and write
+// their object inputs through ELFImageWriter instead. Every method is self-contained so it can run
 // on a background link thread, touching nothing but its arguments.
 class ImageWriter
 {

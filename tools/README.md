@@ -100,7 +100,9 @@ files, the precompiled header and the executable remain under the supplied build
 DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
 Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
 executables, GNU static archives and shared modules are available, including transitive imports
-and shared runtime initialization. Shared libraries are position-independent and reject dynamic
+and shared runtime initialization. ELF executables, shared libraries and archives are linked
+inside `swc`: an installed compiler needs the Linux runtime libraries but no `cc`, assembler,
+`ar`, or external linker. GCC is needed to build `swc` itself, not to use it. Shared libraries are position-independent and reject dynamic
 text relocations; relocated constants become read-only after loading. Native `--debug` emits DWARF 4
 source lines, functions, basic types and recorded stack-home variables. Dedicated executable/shared
 fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away

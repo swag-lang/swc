@@ -255,6 +255,8 @@
         <ClCompile Include="src\Backend\Linker\Win32OsPatcher.cpp"/>
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\ELFObjectWriter.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFReader.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFImageWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\ELFSymbolTable.cpp"/>
         <ClCompile Include="src\Backend\Linker\ELFLinker.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
@@ -933,6 +935,8 @@
         <ClInclude Include="src\Backend\Linker\Win32OsPatcher.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\ELFObjectWriter.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFReader.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\ELFSymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\ELFLinker.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>

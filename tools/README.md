@@ -45,10 +45,21 @@ the PowerShell probes under `tools/tests` exercise the Windows entry points them
 
 With Ubuntu WSL 2 installed and a clone at `~/swag/swc`, open `tools\linux.bat` to enter
 an interactive Linux shell in that clone. The complete repository, including `tools/`, lives
-there; no separate copy of the tools is needed. The session sets `SWAG_PATH`, `SWC_COMPILER`,
+there; no separate copy of the tools is needed. Inside the shell, the same workspace launcher
+names and arguments work on both systems:
+
+```sh
+apps.bat build swagscope
+apps.bat test swagscope --test-file commandpresentation.swg
+apps.bat run swagscope
+std.bat test gui --test-file appearancebutton.swg
+```
+
+In Windows CMD, `.bat` runs the batch launcher. In the Linux shell, Bash maps that same command
+to the shared Python tool engine. `dm`, `-bc release`, `--test-file` and the other compiler options
+keep their positions and meaning. The session sets `SWAG_SOURCE`, `SWAG_PATH`, `SWC_COMPILER`,
 `SWC_DEVMODE_COMPILER`, `TMPDIR` and the compiler search path. WSLg displays Linux application
-windows on the Windows desktop. Inside that shell, use the `python3 tools/tool.py` commands above,
-or `python3 tools/tool.py apps run swagscope` to launch Swag Scope.
+windows on the Windows desktop. The underlying Python interface remains available for scripting.
 
 From Windows:
 

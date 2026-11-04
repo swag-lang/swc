@@ -17,6 +17,7 @@ action=$4
 configuration=$5
 shift 5
 cd "$source"
+export SWAG_SOURCE="$source"
 export SWAG_PATH="$source/bin"
 export SWC_COMPILER="$build/release/swc"
 export SWC_DEVMODE_COMPILER="$build/devmode/swc.dm"
@@ -29,7 +30,10 @@ if [ "$configuration" = release ]; then compiler=$SWC_COMPILER; fi
 case "$action" in
     shell)
         printf 'Swag Linux: %s\nCompiler: %s\n' "$source" "$compiler"
-        printf 'Examples: python3 tools/tool.py unittests dm sema\n          python3 tools/tool.py apps run swagscope\n'
+        printf 'Use the same launchers and arguments as Windows: apps.bat build swagscope\n'
+        printf 'Also: apps.bat test swagscope --test-file commandpresentation.swg\n'
+        printf '      apps.bat run swagscope\n'
+        source tools/linux-shell.sh
         exec bash -i
         ;;
     sync)

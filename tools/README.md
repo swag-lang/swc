@@ -41,6 +41,41 @@ failure and preserves the failing exit status. Dynamic-library fixtures use the 
 WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
 the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
 
+## Local Linux session from Windows
+
+With Ubuntu WSL 2 installed and a clone at `~/swag/swc`, open `tools\linux.bat` to enter
+an interactive Linux shell in that clone. The complete repository, including `tools/`, lives
+there; no separate copy of the tools is needed. The session sets `SWAG_PATH`, `SWC_COMPILER`,
+`SWC_DEVMODE_COMPILER`, `TMPDIR` and the compiler search path. WSLg displays Linux application
+windows on the Windows desktop. Inside that shell, use the `python3 tools/tool.py` commands above,
+or `python3 tools/tool.py apps run swagscope` to launch Swag Scope.
+
+From Windows:
+
+```bat
+tools\linux.bat
+tools\linux.bat sync
+tools\linux.bat build
+tools\linux.bat --release build
+tools\linux.bat test compiler
+tools\linux.bat test std --module core --execution native
+tools\linux.bat --release test apps --module swagscope --execution native
+tools\linux.bat exec pwd
+```
+
+`sync` fetches committed `master` changes from the Windows checkout containing this launcher,
+then fast-forwards the Linux checkout. It never copies uncommitted edits. Commit Windows work
+before syncing, then build the Linux compiler. Linux commits that diverge from Windows `master`
+need an explicit merge or rebase. Build and workspace outputs remain separate on each OS.
+
+Defaults are distribution `Ubuntu-24.04`, source `~/swag/swc` and build directory `~/swag/build`.
+Override them with `SWC_WSL_DISTRO`, `SWC_WSL_SOURCE` and `SWC_WSL_BUILD` in Windows; source/build
+values are absolute Linux paths. The source clone and GCC 14 dependencies must already exist.
+`build` refreshes the runtime beside the selected compiler. `test` uses the isolated Linux
+campaign launcher and the current WSLg display; display-server-specific or physical-device
+integration tests still require their documented environment. Automated headless graphics can
+use Xvfb/Openbox/Picom as described below.
+
 ## Linux compiler build
 
 ```sh

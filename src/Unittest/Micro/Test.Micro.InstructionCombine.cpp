@@ -876,7 +876,7 @@ SWC_TEST_BEGIN(MicroPassHelpers_PartialFlagWritersDoNotKillLiveness)
         {
             for (const auto op : {MicroOp::ShiftLeft, MicroOp::ShiftRight, MicroOp::ShiftArithmeticRight, MicroOp::RotateLeft, MicroOp::RotateRight})
             {
-                for (const uint64_t count : {0ull, 1ull, countMask + 1, countMask + 2})
+                for (const uint64_t count : std::array<uint64_t, 4>{0, 1, countMask + 1, countMask + 2})
                 {
                     MicroBuilder builder(ctx);
                     builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);

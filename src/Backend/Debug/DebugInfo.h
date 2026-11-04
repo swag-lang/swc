@@ -86,6 +86,7 @@ struct DebugInfoObjectRequest
     std::span<const DebugInfoConstantRecord> constants;
 
     bool emitCodeView = false;
+    bool emitDwarf    = false;
 };
 
 struct DebugInfoObjectResult

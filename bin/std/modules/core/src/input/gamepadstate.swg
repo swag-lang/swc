@@ -87,6 +87,11 @@ impl GamepadState
     }
 
     // Refreshes this state from one backend snapshot.
+    //
+    // Linux reads evdev key/axis state: X/Y and RX/RY are sticks, Z/RZ are triggers, and HAT0
+    // or directional buttons supply the D-pad. Missing optional controls are neutral. Axis
+    // ranges are normalized with Y pointing up; device-specific remapping/deadzones are not
+    // applied. Separate native key/axis queries are not an atomic hardware packet.
     mtd update(padIndex: u32) fail
     {
         .update(try readRawGamepadState(padIndex))

@@ -128,3 +128,5 @@ impl Event
         return {succeeded: status.result != WAIT_FAILED, errorCode: status.errorCode}
     }
 }
+
+internal func raiseEventFailure(errorCode: u32) fail => try Win32.failWinError(errorCode)

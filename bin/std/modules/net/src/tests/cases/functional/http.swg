@@ -57,8 +57,14 @@ func stallHttp(thread: const *Threading.Thread)
     let elapsed = Time.monotonicMilliseconds() - started
     thread.wait()
     Swag.require(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
-        Swag.require(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
+    if error.value() is NetworkError as networkError
+    {
+        #static if #os == Swag.TargetOs.Windows do
+            Swag.require(networkError.code == 12002)     // ERROR_WINHTTP_TIMEOUT
+        else do
+            Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
+    }
+
     Swag.require(elapsed < 7_000)
 }
 

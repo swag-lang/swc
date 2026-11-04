@@ -1,5 +1,14 @@
 #global export
 
+#static if #os == Swag.TargetOs.Linux
+{
+    internal const NativeOpenGlLibrary = "libGL.so.1"
+}
+else
+{
+    internal const NativeOpenGlLibrary = "opengl32"
+}
+
 alias GLenum     = u32
 alias GLboolean  = u8
 alias GLbitfield = u32
@@ -718,7 +727,7 @@ const GL_FOG_SPECULAR_TEXTURE_WIN = 0x80EC
 const GL_LOGIC_OP = GL_INDEX_LOGIC_OP
 const GL_TEXTURE_COMPONENTS = GL_TEXTURE_INTERNAL_FORMAT
 
-#[Swag.Foreign("opengl32", callconv: Swag.CallConv.C)]
+#[Swag.Foreign(module: NativeOpenGlLibrary, link: NativeOpenGlLibrary, callconv: Swag.CallConv.C)]
 {
     func glAccum(op: GLenum, value: GLfloat)
     func glAlphaFunc(fc: GLenum, refr: GLclampf)

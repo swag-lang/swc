@@ -3,14 +3,23 @@
 
 using Swag
 
-func createSandboxTestJunction(link, target: string)->bool
+func createSandboxTestDirectoryLink(link, target: string)->bool
 {
-    let fontsDir   = Env.realSpecialDirectory(.Font)
-    let windowsDir = Path.directoryName(fontsDir.toString())
-    let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
-    let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
-    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) { return false }
-    return process.exitCode() == 0
+    #static if #os == Swag.TargetOs.Linux
+    {
+        let nativeLink   = String.from(link)
+        let nativeTarget = String.from(target)
+        return Linux.symlinkat(nativeTarget.storage(), Linux.AT_FDCWD, nativeLink.storage()) == 0
+    }
+    else
+    {
+        let fontsDir   = Env.realSpecialDirectory(.Font)
+        let windowsDir = Path.directoryName(fontsDir.toString())
+        let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
+        let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
+        let process    = catch Env.runProcess(Env.StartInfo{fileName: shell.toString(), nativeArguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe}) { return false }
+        return process.exitCode() == 0
+    }
 }
 
 // Containment, not prefix matching. 'sandboxed' starts with 'sandbox' but is not inside it,
@@ -27,19 +36,27 @@ func createSandboxTestJunction(link, target: string)->bool
     Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "D:/tmp/sandbox/a.txt"))
 }
 
-// Separator style and case are normalized away: a caller must not be able to escape by
-// spelling the same location differently.
+// Windows treats separator style and case as aliases; Linux preserves both distinctions.
 #test
 {
-    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:\\tmp\\sandbox\\a.txt"))
-    Swag.require(Env.isInsideDirectory("C:\\tmp\\sandbox", "C:/tmp/sandbox/a.txt"))
-    Swag.require(Env.isInsideDirectory("C:/TMP/Sandbox", "c:/tmp/sandbox/a.txt"))
+    #static if WINDOWS
+    {
+        Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:\\tmp\\sandbox\\a.txt"))
+        Swag.require(Env.isInsideDirectory("C:\\tmp\\sandbox", "C:/tmp/sandbox/a.txt"))
+        Swag.require(Env.isInsideDirectory("C:/TMP/Sandbox", "c:/tmp/sandbox/a.txt"))
+    }
+    else
+    {
+        Swag.require(not Env.isInsideDirectory("/tmp/sandbox", "/tmp/sandbox\\a.txt"))
+        Swag.require(not Env.isInsideDirectory("/tmp/Sandbox", "/tmp/sandbox/a.txt"))
+    }
+
     Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/./a.txt"))
     Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/../a.txt"))
-    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/.. /a.txt"))
-    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/name. /a.txt"))
-    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/NUL.txt"))
-    Swag.require(not Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/COM1.log"))
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/.. /a.txt") == not WINDOWS)
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/name. /a.txt") == not WINDOWS)
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/NUL.txt") == not WINDOWS)
+    Swag.require(Env.isInsideDirectory("C:/tmp/sandbox", "C:/tmp/sandbox/COM1.log") == not WINDOWS)
 }
 
 // An empty root contains nothing. Answering true would turn a failure to configure the
@@ -177,9 +194,8 @@ func createSandboxTestJunction(link, target: string)->bool
     expect Env.clearLeftoverDefaultRoot(root.toString())
 }
 
-// A leftover a third party still holds inside refuses to clear, and reports it rather than
-// adopting the root half-emptied; the same clear succeeds once the hold is gone. This is the
-// premise behind the arming hook's fallback siblings.
+// Windows sharing can prevent clearing a held file; POSIX unlink leaves the existing
+// descriptor usable while removing the name and its containing directory.
 #test
 {
     if not Env.isSandboxed() do
@@ -193,7 +209,15 @@ func createSandboxTestJunction(link, target: string)->bool
     var errOutcome: Swag.Error
     catch Env.clearLeftoverDefaultRoot(root.toString()) as errOutcome
     let err = errOutcome.value()
-    Swag.require(err != null)
+    #static if WINDOWS do
+        Swag.require(err != null)
+    else
+    {
+        Swag.require(err == null and not Directory.exists(root.toString()))
+        expect held.writeAll([17'u8, 19])
+        let retainedSize = expect held.size()
+        Swag.require(retainedSize == 2)
+    }
 
     held.close()
     expect Env.clearLeftoverDefaultRoot(root.toString())
@@ -233,7 +257,7 @@ func createSandboxTestJunction(link, target: string)->bool
     Swag.require(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
 }
 
-// A directory junction cannot redirect an allowed sandbox write into the granted corpus.
+// A directory link cannot redirect an allowed sandbox write into the granted corpus.
 #test
 {
     if not Env.isSandboxed() do
@@ -249,7 +273,8 @@ func createSandboxTestJunction(link, target: string)->bool
     defer discard catch Directory.delete(target.toString(), recurse: true)
     discard expect File.writeAllText(targetFile.toString(), "keep")
 
-    Swag.require(createSandboxTestJunction(link.toString(), target.toString()))
+    let linked = createSandboxTestDirectoryLink(link.toString(), target.toString())
+    Swag.require(linked)
 
     var errorOutcome: Swag.Error
     discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as errorOutcome
@@ -268,4 +293,17 @@ func createSandboxTestJunction(link, target: string)->bool
     Swag.require(not Directory.exists(link.toString()))
     Swag.require(Directory.exists(targetChild.toString()))
     Swag.require(expect File.readAllText(targetFile.toString()) == "keep")
+}
+
+#test
+{
+    let arguments: [?] string = ["program", "swag.sandbox.corpus=/data", "swag.sandbox-extra", "swag.sandbox=/tmp/space name"]
+    let parsed = Env.findRunArgumentIn(arguments, "swag.sandbox")
+    Swag.require(parsed.found and parsed.value == "/tmp/space name")
+    let bare = Env.findRunArgumentIn(["program", "swag.sandbox"], "swag.sandbox")
+    Swag.require(bare.found and bare.value.isEmpty())
+    let absent = Env.findRunArgumentIn(["swag.sandbox.corpus=/data", "swag.sandbox-extra"], "swag.sandbox")
+    Swag.require(not absent.found)
+    Swag.require(not Env.isInsideDirectory("/tmp\0ignored", "/tmp/file"))
+    Swag.require(not Env.isInsideDirectory("/tmp", ""))
 }

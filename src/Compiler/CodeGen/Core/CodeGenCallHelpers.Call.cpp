@@ -336,7 +336,7 @@ namespace
 
     void materializePreparedDirectScalarArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg)
     {
-        if (normalizedArg.isIndirect)
+        if (normalizedArg.isIndirect || normalizedArg.isSystemVStorage())
             return;
 
         TaskContext&       ctx               = codeGen.ctx();
@@ -663,7 +663,7 @@ namespace
 
     void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
-        if (!normalizedArg.isIndirect || normalizedArg.needsIndirectCopy)
+        if ((!normalizedArg.isIndirect && !normalizedArg.isSystemVStorage()) || normalizedArg.needsIndirectCopy)
             return;
         if (argRef.isInvalid() || !argPayload.isValue())
             return;
@@ -723,9 +723,10 @@ namespace
 
     void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CodeGenNodePayload& argPayload, const TypeInfo& normalizedType, const ABITypeNormalize::NormalizedType& normalizedArg, const ResolvedCallArgument& resolvedArg)
     {
-        SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect, normalizedArg.isFloat, normalizedArg.numBits));
+        SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg.isIndirect || normalizedArg.isSystemVStorage(), normalizedArg.isFloat, normalizedArg.numBits));
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
+        outPreparedArg.systemVTypeRef = normalizedArg.isSystemVStorage() ? normalizedType.typeRef() : TypeRef::invalid();
         outPreparedArg.isFloat     = normalizedArg.isFloat;
         outPreparedArg.isSigned    = normalizedArg.isSigned;
         outPreparedArg.numBits     = normalizedArg.numBits;
@@ -734,6 +735,9 @@ namespace
 
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
+        // The System V aggregate path snapshots all sources before assigning lanes.
+        if (callConv.isSystemVAMD64 && std::ranges::any_of(args, [](const ABICall::PreparedArg& arg) { return arg.hasSystemVStorage(); }))
+            return;
         MicroBuilder&             builder = codeGen.builder();
         ABICall::ArgRegisterState registerState;
         for (uint32_t i = 0; i < args.size(); ++i)
@@ -1460,6 +1464,15 @@ namespace
         if (!hasVariadic)
             return Result::Continue;
 
+        // C ellipses use ordinary ABI slots for each promoted argument. Only Swag
+        // variadics carry the packed slice expected by a Swag function body.
+        if (!hasTypedVariadic && callConvKind != CallConvKind::Swag)
+        {
+            for (const ResolvedCallArgument& argument : args.subspan(argIndex))
+                SWC_RESULT(appendPreparedFixedArg(out, codeGen, callRef, callConv, nullptr, argument));
+            return Result::Continue;
+        }
+
         ABICall::PreparedArg variadicPreparedArg;
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
         const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();
@@ -1677,31 +1690,31 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     }
 
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs.args);
-    MicroReg        hiddenRetStorageReg     = MicroReg::invalid();
+    MicroReg        resultStorageReg        = MicroReg::invalid();
     SymbolVariable* directVarInitStorageSym = nullptr;
     SymbolVariable* directReturnStorageSym  = nullptr;
     bool            usesDirectReturnStorage = false;
-    if (normalizedRet.isIndirect)
+    const bool      needsResultStorage      = normalizedRet.isIndirect || normalizedRet.isSystemVStorage();
+    if (needsResultStorage)
     {
-        // Reuse the destination variable storage for indirect direct-call results whenever possible.
-        // Otherwise the ABI helper falls back to compiler-segment scratch storage, which the native
-        // backend cannot serialize into object-file relocations.
-        CodeGenFunctionHelpers::tryUseDirectVarInitStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
+        // Reuse destination storage for both hidden-pointer and split-register results.
+        // A dedicated semantic storage slot keeps other results in the caller's frame.
+        CodeGenFunctionHelpers::tryUseDirectVarInitStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), resultStorageReg, directVarInitStorageSym);
 
-        if (!hiddenRetStorageReg.isValid())
-            usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directReturnStorageSym);
+        if (!resultStorageReg.isValid())
+            usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), resultStorageReg, directReturnStorageSym);
 
         const CodeGenNodePayload* nodePayload = codeGen.safePayload(codeGen.curNodeRef());
-        if (!hiddenRetStorageReg.isValid() &&
+        if (!resultStorageReg.isValid() &&
             nodePayload &&
             nodePayload->runtimeStorageSym != nullptr &&
             ((nodePayload->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid()) ||
              CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *nodePayload->runtimeStorageSym)))
-            hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            resultStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
     }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
-    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.args, normalizedRet, hiddenRetStorageReg);
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.args, normalizedRet, normalizedRet.isIndirect ? resultStorageReg : MicroReg::invalid());
     if (calledFunction->hasInterfaceMethodSlot() && calledFunction->name(codeGen.ctx()) == "free" && CodeGenSafety::hasLifecycleSanity(codeGen) && calledFunction->isAllocatorRelease(codeGen.ctx()))
     {
         // Interface dispatch has no direct-call relocation carrying a FREES summary.
@@ -1725,8 +1738,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (preparedArgs.transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(preparedArgs.transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 
-    ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
-    setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
+    ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet, resultStorageReg);
+    setPayloadStorageKind(nodePayload, needsResultStorage);
 
     // Drop the '#move' argument temporaries: a no-op when the callee consumed them.
     for (const PostCallTemporaryDrop& drop : preparedArgs.postCallDrops)
@@ -1736,7 +1749,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
 
     // Only the success edge owns a result that can be destroyed.
-    const bool ownsTemporaryResult = normalizedRet.isIndirect && directVarInitStorageSym == nullptr && !usesDirectReturnStorage;
+    const bool ownsTemporaryResult = needsResultStorage && directVarInitStorageSym == nullptr && !usesDirectReturnStorage;
     if (ownsTemporaryResult && codeGen.hasLifecycle(calledFunction->returnTypeRef(), CodeGenLifecycleKind::Drop))
     {
         const SymbolVariable* storageSym = codeGen.runtimeStorageSymbol(codeGen.curNodeRef());
@@ -1755,7 +1768,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
     const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!normalizedRet.isVoid);
-    SWC_ASSERT(!normalizedRet.isIndirect);
+    SWC_ASSERT(!normalizedRet.isIndirect && !normalizedRet.isSystemVStorage());
 
     PreparedCallArguments preparedArgs;
     SWC_RESULT(buildPreparedABIArguments(preparedArgs, codeGen, callRef, calledFunction, MicroReg::invalid(), args));

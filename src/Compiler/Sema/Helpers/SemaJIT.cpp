@@ -608,7 +608,11 @@ namespace
     {
         // Each root's order is already unique, but roots often share most dependencies.
         // Build membership alongside the output so previously reached roots need no walk.
-        const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn);
+        // A pure leaf cannot read a mutable global or call its initializer. Pulling unrelated
+        // callbacks into its closure can wait on the very function currently folding this leaf.
+        const bool needsGlobalRoots = SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn) &&
+                                      (!symFn.isPure() || symFn.hasCallDependencies() || !extraRoots.empty());
+        const bool mayRepeat = !extraRoots.empty() || needsGlobalRoots;
         if (!mayRepeat)
         {
             symFn.visitJitOrder([&out](SymbolFunction* function) {
@@ -637,7 +641,7 @@ namespace
             appendJitOrderDeduplicated(*root, out, seen);
         }
 
-        if (SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn))
+        if (needsGlobalRoots)
             appendGlobalFunctionInitJitOrder(sema, out, seen);
     }
 
@@ -1118,7 +1122,7 @@ namespace
 #endif
     }
 
-    __forceinline Result constCallArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, const AstNodeRef& callRef, const ResolvedCallArgument& resolvedArg)
+    SWC_FORCE_INLINE Result constCallArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, const AstNodeRef& callRef, const ResolvedCallArgument& resolvedArg)
     {
         const AstNodeRef argRef = resolvedArg.argRef;
         if (argRef.isValid())
@@ -1134,7 +1138,7 @@ namespace
         return defaultArgumentConstantRef(sema, outCstRef, callRef, resolvedArg);
     }
 
-    __forceinline bool appendConstCallArgument(Sema& sema, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, const TypeRef& argValueTypeRef, const ConstantRef& argCstRef)
+    SWC_FORCE_INLINE bool appendConstCallArgument(Sema& sema, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, const TypeRef& argValueTypeRef, const ConstantRef& argCstRef)
     {
         TaskContext&         ctx              = sema.ctx();
         const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);

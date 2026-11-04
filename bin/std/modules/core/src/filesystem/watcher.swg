@@ -72,7 +72,14 @@ struct WatchOptions
 // [[Core.Directory.Watcher.next]] has at most one outstanding host read. A timeout preserves that
 // request, so the next call continues waiting without a notification gap. `cancel` may be called
 // from another thread and permanently changes subsequent reads to `Cancelled`. `close` releases
-// resources and must not race with `next` or another `close`.
+// resources and must not race with any other method.
+//
+// Linux watches directories with inotify. Recursive traversal skips linked directories; opening
+// a root whose final path component is a symbolic link fails. Parent components follow normal
+// filesystem resolution. Keep the root's ancestor paths stable while watching. Directory aliases
+// through bind mounts fail with ENOTSUP.
+// Linux maps Security and Attributes to attribute notifications, Size and LastWrite to modify
+// notifications, and Creation to newly created entries; these categories can overlap.
 #[Swag.NoCopy]
 struct Watcher
 {
@@ -135,6 +142,13 @@ impl Watcher
     // `waitMilliseconds` is zero for polling and [[Swag.U32.Max]] for an unbounded wait. Rename
     // records split by host buffer boundaries are paired across calls. `Overflow` means paths may
     // have changed without a corresponding record and requires a complete rescan.
+    //
+    // Linux retains unmatched rename cookies for 50 ms across reads; moves out of the scope then
+    // become Removed, and unmatched moves into it become Added. Adding a recursive subtree also
+    // reports Overflow because changes before its subscription cannot be recovered. Queue loss,
+    // root removal/rename, unmount, or an event overlapping an unresolved moved path reports
+    // Overflow and permanently cancels the stream: recreate the watcher before rescanning.
+    // Native read/subscription failures also cancel the Linux stream and propagate the error.
     mtd next(waitMilliseconds = Swag.U32.Max)->WatchBatch fail
     {
         Swag.assert(.isOpen())

@@ -28,23 +28,9 @@ using Core.Math
 // A substitute that ignores the requested shape is what makes a rendered page read as the
 // wrong document: a serif paper set in a sans face changes every line of it. Each row is
 // tried in order, so a machine missing the first name still gets the closest match it has.
-private const SubstituteSerif: [4] [4] string = [
-    ["times.ttf", "DejaVuSerif.ttf", "LiberationSerif-Regular.ttf", "georgia.ttf"],
-    ["timesbd.ttf", "DejaVuSerif-Bold.ttf", "LiberationSerif-Bold.ttf", "georgiab.ttf"],
-    ["timesi.ttf", "DejaVuSerif-Italic.ttf", "LiberationSerif-Italic.ttf", "georgiai.ttf"],
-    ["timesbi.ttf", "DejaVuSerif-BoldItalic.ttf", "LiberationSerif-BoldItalic.ttf", "georgiaz.ttf"]]
-
-private const SubstituteSans: [4] [4] string = [
-    ["arial.ttf", "segoeui.ttf", "DejaVuSans.ttf", "LiberationSans-Regular.ttf"],
-    ["arialbd.ttf", "segoeuib.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"],
-    ["ariali.ttf", "segoeuii.ttf", "DejaVuSans-Oblique.ttf", "LiberationSans-Italic.ttf"],
-    ["arialbi.ttf", "segoeuiz.ttf", "DejaVuSans-BoldOblique.ttf", "LiberationSans-BoldItalic.ttf"]]
-
-private const SubstituteMono: [4] [4] string = [
-    ["cour.ttf", "consola.ttf", "DejaVuSansMono.ttf", "LiberationMono-Regular.ttf"],
-    ["courbd.ttf", "consolab.ttf", "DejaVuSansMono-Bold.ttf", "LiberationMono-Bold.ttf"],
-    ["couri.ttf", "consolai.ttf", "DejaVuSansMono-Oblique.ttf", "LiberationMono-Italic.ttf"],
-    ["courbi.ttf", "consolaz.ttf", "DejaVuSansMono-BoldOblique.ttf", "LiberationMono-BoldItalic.ttf"]]
+private const SubstituteSerif: [4] string = ["Times New Roman", "DejaVu Serif", "Liberation Serif", "Georgia"]
+private const SubstituteSans:  [4] string = ["Arial", "Segoe UI", "DejaVu Sans", "Liberation Sans"]
+private const SubstituteMono:  [4] string = ["Courier New", "Consolas", "DejaVu Sans Mono", "Liberation Mono"]
 
 // Returns the face standing in for a font whose program cannot be drawn.
 private func substituteTypeface(fallbackFontFile: string, resource: const *FontResource?)->*TypeFace fail
@@ -71,21 +57,20 @@ private func substituteTypeface(fallbackFontFile: string, resource: const *FontR
     elif serif do
         family = SubstituteSerif
 
-    // The requested style first, then the regular weight of the same family, then anything
-    // at all: a missing italic must not cost the reader the serif shape as well.
-    for candidate in family[style]
+    // Resolve owned installed-family descriptors: font files may live in nested directories
+    // or collections, and a missing style can be synthesized by the shared font loader.
+    for candidate in family
     {
-        catch { return try TypeFace.load(candidate) }
+        let installed = FontFamily.findSystemFont(candidate)
+        if let face = catch FontFamily.createTypeFace(installed, cast(FontFamilyStyle, style)) do
+            return face
     }
 
-    for candidate in family[0]
+    for candidate in SubstituteSans
     {
-        catch { return try TypeFace.load(candidate) }
-    }
-
-    for candidate in SubstituteSans[0]
-    {
-        catch { return try TypeFace.load(candidate) }
+        let installed = FontFamily.findSystemFont(candidate)
+        if let face = catch FontFamily.createTypeFace(installed, cast(FontFamilyStyle, style)) do
+            return face
     }
 
     fail Errors.UnsupportedFormatError{"no substitute font is available"}

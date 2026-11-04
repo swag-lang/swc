@@ -69,7 +69,7 @@ public:
         uint32_t size     = 0;
         uint32_t capacity = 0;
 
-        LargeBlockStorage storage;
+        LargeBlockStorage storage{nullptr, {}};
     };
 
     struct LargeBlockRange

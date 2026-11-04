@@ -123,6 +123,34 @@ SWC_TEST_BEGIN(JIT_DependencyOrderPreservesCyclesSharedChildrenAndIgnoredNodes)
 }
 SWC_TEST_END()
 
+#if defined(_M_X64) || defined(__x86_64__)
+SWC_TEST_BEGIN(JIT_IndirectFunctionRelocationsPreserveFarPointerIdentity)
+{
+    // These canonical addresses deliberately span more than rel32 reach. Loading a
+    // function value must return its address, rather than a per-caller branch island.
+    for (const uint64_t target : {0x1000ull, 0x00007FFFFFFFF000ull})
+    {
+        ByteArray code;
+        for (const uint8_t byte : {0x48, 0x8B, 0x05, 0, 0, 0, 0, 0xC3})
+            code.pushBack(static_cast<std::byte>(byte));
+        const ByteArray          unwind;
+        const std::array         relocations = {MicroRelocation{.kind = MicroRelocation::Kind::ForeignFunctionAddress, .form = MicroRelocation::Form::IndirectRelative32, .codeOffset = 3, .relativeEndOffset = 7, .targetAddress = target}};
+        std::array<JITMemory, 2> memories;
+        for (JITMemory& memory : memories)
+        {
+            SWC_RESULT(JIT::prepare(ctx, memory, code, unwind, relocations));
+            SWC_RESULT(JIT::patch(ctx, memory, relocations));
+            JIT::finalize(memory);
+            const auto loadPointer = reinterpret_cast<uint64_t (*)()>(memory.entryPoint());
+            if (loadPointer() != target)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+#endif
+
 #ifdef _M_X64
 
 namespace
@@ -1214,7 +1242,7 @@ SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
     auto invalidRelocations                  = loweredCode.codeRelocations;
     invalidRelocations.front().constantShard = ConstantStorageLayout::SHARD_COUNT;
     JITMemory invalidMemory;
-    JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations);
+    SWC_RESULT(JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations));
     if (JIT::patch(ctx, invalidMemory, invalidRelocations) != Result::Error)
         return Result::Error;
 
@@ -1264,7 +1292,7 @@ SWC_TEST_BEGIN(JIT_RipRelativeFloatXorConstant)
         return Result::Error;
 
     JITMemory executableMemory;
-    JIT::prepare(ctx, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, loweredCode.codeRelocations);
+    SWC_RESULT(JIT::prepare(ctx, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, loweredCode.codeRelocations));
     SWC_RESULT(JIT::patch(ctx, executableMemory, loweredCode.codeRelocations));
 
     const MicroRelocation& relocation = loweredCode.codeRelocations.front();

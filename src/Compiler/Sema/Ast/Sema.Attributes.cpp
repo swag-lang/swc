@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/ABI/CallConvKind.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
+#include "Main/Command/CommandLine.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
@@ -403,10 +404,13 @@ namespace
         SWC_ASSERT(value->getInt().fits64());
 
         const auto callConvKind = static_cast<CallConvKind>(value->getInt().asI64());
-        if (!isValidCallConvKind(callConvKind))
+        // The concrete System V profile is internal; source selects the target ABI with .C.
+        if (!isValidCallConvKind(callConvKind) || callConvKind == CallConvKind::SystemVAMD64)
             return SemaError::raise(sema, invalidCallConvDiagnostic, arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
 
-        outValue = callConvKind;
+        // Compiler instances can target different platforms under the same Global.
+        // Freeze the concrete ABI here instead of inheriting the process-wide C alias.
+        outValue = CallConv::resolveKind(callConvKind, sema.ctx().cmdLine().targetOs);
         return Result::Continue;
     }
 

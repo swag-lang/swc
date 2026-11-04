@@ -1,4 +1,3 @@
-#global if WINDOWS
 #global public
 #global namespace Sync
 
@@ -26,6 +25,6 @@ impl EventStatus
     mtd const raise() fail
     {
         if not .succeeded do
-            try Win32.failWinError(.errorCode)
+            try raiseEventFailure(.errorCode)
     }
 }

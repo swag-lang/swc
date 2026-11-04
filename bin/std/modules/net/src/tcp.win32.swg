@@ -42,7 +42,7 @@ private func newSocket()->SOCKET fail
     return handle
 }
 
-private func closeSocket(handle: SOCKET)
+internal func closeTcpSocket(handle: u64)
 {
     discard closesocket(handle)
     discard WSACleanup()
@@ -58,15 +58,12 @@ impl TcpStream
         if Win32.connect(handle, cast(const *SOCKADDR, cast(const *void, &address)), #sizeof(SOCKADDR_IN)) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
-            closeSocket(handle)
+            closeTcpSocket(handle)
             fail NetworkError{code: code}
         }
 
         return {handle: handle, open: true}
     }
-
-    // Returns whether this stream still owns a connection.
-    mtd const isOpen()->bool => .open
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
     mtd read(buffer: [..] u8)->u64 fail
@@ -93,19 +90,6 @@ impl TcpStream
             fail NetworkError{code: WSAGetLastError()}
         return cast(u64, result)
     }
-
-    // Closes the connection; repeated calls do nothing.
-    mtd close()
-    {
-        if .open
-        {
-            closeSocket(.handle)
-            .open = false
-        }
-    }
-
-    // Closes the connection when this owner is dropped.
-    mtd opDrop() { .close() }
 }
 
 impl TcpListener
@@ -123,7 +107,7 @@ impl TcpListener
            Win32.listen(handle, backlog) == SOCKET_ERROR
         {
             let code = WSAGetLastError()
-            closeSocket(handle)
+            closeTcpSocket(handle)
             fail NetworkError{code: code}
         }
 
@@ -157,17 +141,4 @@ impl TcpListener
 
         return {handle: handle, open: true}
     }
-
-    // Closes the listener; repeated calls do nothing.
-    mtd close()
-    {
-        if .open
-        {
-            closeSocket(.handle)
-            .open = false
-        }
-    }
-
-    // Closes the listener when this owner is dropped.
-    mtd opDrop() { .close() }
 }

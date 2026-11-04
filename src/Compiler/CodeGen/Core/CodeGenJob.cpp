@@ -10,6 +10,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+CodeGenJob::~CodeGenJob() = default;
+
 namespace
 {
 #if SWC_DEV_MODE

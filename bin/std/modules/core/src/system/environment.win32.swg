@@ -495,6 +495,16 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
 }
 
+#premain
+{
+    if not (Swag.runtimeFlags() & .FromCompiler)
+    {
+        let str = getNativeArgs()
+        if str.count do
+            Swag.processInfo().args = str
+    }
+}
+
 var g_StoreArgs: String
 
 func getNativeArgs()->string
@@ -693,6 +703,8 @@ impl Window
     mtd setNativeHandle(nativeHandle: HWND) { .nativeHandle = cast(const *void?, nativeHandle) }
 
     private mtd const win32Handle()->HWND => cast(HWND, .nativeHandle)
+
+    internal mtd renderHandleNative()->const *void? => .nativeHandle
 
     mtd rebindNative() { SetWindowLongPtrA(.win32Handle(), GWLP_USERDATA, cast #bit (LONG_PTR, cast(u64, me))) }
 }

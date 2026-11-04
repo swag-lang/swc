@@ -97,11 +97,6 @@ namespace
         return static_cast<uint8_t>(cond) <= static_cast<uint8_t>(MicroCond::NotSign);
     }
 
-    bool isValidCallConv(const CallConvKind kind)
-    {
-        return static_cast<uint8_t>(kind) <= static_cast<uint8_t>(CallConvKind::Swag);
-    }
-
     bool isValidAnyRegister(const MicroReg reg)
     {
         if (!reg.isValid())
@@ -352,7 +347,7 @@ namespace
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
             case MicroInstrOpcode::CallAlignedIndirect:
-                if (!isValidCallConv(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
+                if (!isValidCallConvKind(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
                     return reportError(context, phase, std::format("call instruction #{} uses unsupported calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;
 
@@ -439,6 +434,11 @@ namespace
         {
             return reportError(context, phase, std::format("relocation #{} has incomplete constant source metadata", relocationIndex));
         }
+
+        if (relocation.form == MicroRelocation::Form::IndirectRelative32 &&
+            (inst.op != MicroInstrOpcode::LoadRegPtrReloc ||
+             (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress && relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)))
+            return reportError(context, phase, std::format("relocation #{} needs a function-address load for its pointer slot", relocationIndex));
 
         if (relocation.requiresConstantCopy() &&
             (relocation.kind != MicroRelocation::Kind::ConstantAddress || relocation.form != MicroRelocation::Form::Relative32 || !relocation.hasConstantSource()))

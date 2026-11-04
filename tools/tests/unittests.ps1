@@ -53,6 +53,10 @@ public static class CompilerProbe
     Add-Type -TypeDefinition $compilerSource -OutputAssembly (Join-Path $scratch 'bin\swc.dm.exe') -OutputType ConsoleApplication
     Copy-Item -LiteralPath (Join-Path $scratch 'bin\swc.dm.exe') -Destination (Join-Path $scratch 'bin\swc.exe')
 
+    foreach ($module in @('runtime_context_dynamic_consumer', 'runtime_context_dynamic_dll')) {
+        $null = New-Item -ItemType Directory -Path (Join-Path $scratch "bin\unittests\workspace\modules\$module") -Force
+    }
+
     foreach ($configuration in @(@('-bc', 'release'), @('--build-cfg', 'devmode'), @('--build-cfg=release'))) {
         Invoke-Suite (@('dm', 'cpp') + $configuration + @('--num-cores', '1')) 0
         Assert-Call 0 "unittest`t--dev-full"
@@ -72,9 +76,6 @@ public static class CompilerProbe
         if ($calls.Count -ne 2) { throw "The $suite suite did not reach its error fixtures." }
     }
 
-    foreach ($module in @('runtime_context_dynamic_consumer', 'runtime_context_dynamic_dll')) {
-        $null = New-Item -ItemType Directory -Path (Join-Path $scratch "bin\unittests\workspace\modules\$module") -Force
-    }
     foreach ($configuration in @('release', 'devmode')) {
         Invoke-Suite @('dm', 'workspace', '-bc', $configuration, '--num-cores', '1') 0
         Assert-Call 0 "build`t--workspace"

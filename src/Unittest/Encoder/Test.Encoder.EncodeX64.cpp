@@ -14,6 +14,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/ByteArray.h"
 #include "Unittest/Unittest.h"
@@ -687,14 +688,27 @@ namespace
 
     Result runCase(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
     {
-        const RunCaseFn runOneCase = EncoderRunCase{.ctx = &ctx};
+        // These byte goldens include isolated stack operations and indirect jumps, not
+        // complete functions whose control flow can carry Linux unwind information.
+        CommandLine command = ctx.cmdLine();
+        command.targetOs    = Runtime::TargetOs::Windows;
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      targetContext(compiler);
+        SWC_RESULT(compiler.setupSema(targetContext));
+        const RunCaseFn runOneCase = EncoderRunCase{.ctx = &targetContext};
         return buildFn(runOneCase);
     }
 
     Result runUnwindCase(TaskContext& ctx, const BuilderCaseFn& fn, std::span<const uint8_t> expectedUnwindBytes)
     {
-        X64Encoder   encoder(ctx);
-        MicroBuilder builder(ctx);
+        // The expected bytes are Windows UNWIND_INFO, independently of the test host.
+        CommandLine command = ctx.cmdLine();
+        command.targetOs    = Runtime::TargetOs::Windows;
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      targetContext(compiler);
+        SWC_RESULT(compiler.setupSema(targetContext));
+        X64Encoder   encoder(targetContext);
+        MicroBuilder builder(targetContext);
         fn(builder);
 
         MicroRegisterAllocationPass   regAllocPass;

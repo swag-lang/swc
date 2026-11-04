@@ -9,6 +9,9 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -365,7 +368,11 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageP
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg rax = MicroReg::intReg(0);
-    MicroBuilder       builder(ctx);
+    CommandLine        command = ctx.cmdLine();
+    command.targetOs           = Runtime::TargetOs::Windows;
+    CompilerInstance compiler(ctx.global(), command);
+    TaskContext      targetContext(compiler);
+    MicroBuilder     builder(targetContext);
 
     builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitRet();
@@ -404,7 +411,11 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ProbesBodyStackGrowthWithoutClobberingR
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);
     constexpr MicroReg rax = MicroReg::intReg(0);
-    MicroBuilder       builder(ctx);
+    CommandLine        command = ctx.cmdLine();
+    command.targetOs           = Runtime::TargetOs::Windows;
+    CompilerInstance compiler(ctx.global(), command);
+    TaskContext      targetContext(compiler);
+    MicroBuilder     builder(targetContext);
 
     builder.emitLoadRegImm(rax, ApInt(42, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);

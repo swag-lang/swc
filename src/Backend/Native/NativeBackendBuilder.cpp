@@ -4,8 +4,11 @@
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Linker/PEFormat.h"
+#include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
+#include "Backend/Native/NativeElfFunctionCache.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/SymbolSort.h"
@@ -24,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -179,11 +183,37 @@ namespace
         return Utf8Helper::toLowerHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
     }
 
-    Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
+    Utf8 functionCacheFingerprint(NativeBackendBuilder& builder, const SymbolFunction& function)
     {
         const MicroBuilder* microBuilder = function.microInstrBuilder();
         if (!microBuilder || microBuilder->instructions().count() < K_FUNCTION_CACHE_MIN_INSTRUCTIONS || !microBuilder->codeRelocations().empty())
             return {};
+
+        if (builder.ctx().cmdLine().targetOs == Runtime::TargetOs::Linux)
+        {
+            // Reuse the shared IR identity, including optimizer facts and ABI inputs. Object
+            // bytes also retain source locations, unlike the machine cache's rebound ranges.
+            std::vector<DebugSourceInfo> sources;
+            const Utf8                   key = MachineCodeCache::inputKey(builder.ctx(), sources, function, *microBuilder, compilerCacheIdentity().view());
+            if (key.empty())
+                return {};
+            ByteArray identity;
+            identity.append(key.view());
+            for (const DebugSourceInfo& source : sources)
+            {
+                if (!source.isValid())
+                    continue;
+                ResolvedDebugSourceInfo resolved;
+                if (!tryResolveDebugSourceInfo(builder.ctx(), resolved, source) || !resolved.sourceFile)
+                    return {};
+                const Utf8& path = resolved.sourceFile->genericPathString();
+                identity.appendLe64(path.size());
+                identity.append(path.view());
+                identity.appendLe32(resolved.codeRange.line);
+                identity.appendLe32(resolved.codeRange.column);
+            }
+            return Utf8Helper::toLowerHex(sha256(identity.span()));
+        }
 
         ByteArray identity;
         microBuilder->backendBuildCfg().appendCacheIdentity(identity);
@@ -257,8 +287,10 @@ namespace
         return result;
     }
 
-    bool isPublishDependencyExtension(const Utf8& extension)
+    bool isPublishDependencyExtension(const Utf8& extension, const Runtime::TargetOs targetOs)
     {
+        if (targetOs == Runtime::TargetOs::Linux)
+            return extension == ".so";
         return extension == ".dll" || extension == ".pdb";
     }
 
@@ -761,6 +793,8 @@ namespace
 
         appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
         appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+        if (compiler.cmdLine().targetOs == Runtime::TargetOs::Linux && compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+            appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::SetupUnixArguments);
         if (!builder.testFunctions.empty())
         {
             appendRuntimeRoot(IdentifierManager::RuntimeFunctionKind::RunTest);
@@ -1069,7 +1103,7 @@ namespace
             const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
             SWC_ASSERT(trailingBytes <= 4);
             record.addend -= trailingBytes;
-            record.type = IMAGE_REL_AMD64_REL32;
+            record.kind = NativeRelocationKind::Rel32;
             BinaryPatch::write<uint32_t>(bytes, patchOffset, static_cast<uint32_t>(record.addend));
             return;
         }
@@ -1097,6 +1131,7 @@ void NativeBackendBuilder::prepareFunctionCache()
 {
     functionCacheEnabled_ = false;
     existingFunctionCacheArchive_.reset();
+    existingElfFunctionCache_.reset();
     existingFunctionCacheEntries_.clear();
     functionCacheRecords_.clear();
     functionCacheArchivePath_.clear();
@@ -1110,6 +1145,19 @@ void NativeBackendBuilder::prepareFunctionCache()
 
     NativeArtifactPaths paths;
     NativeArtifactBuilder(*this).queryPaths(paths);
+    if (commandLine.targetOs == Runtime::TargetOs::Linux)
+    {
+        if (compilerCacheIdentity().empty())
+            return;
+        functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.elfcache", paths.name.view());
+        functionCacheEnabled_     = true;
+        existingElfFunctionCache_ = std::make_unique<NativeElfFunctionCache>(compilerCacheIdentity());
+        ByteArray               bytes;
+        FileSystem::IoErrorInfo error;
+        if (FileSystem::readBinaryFile(functionCacheArchivePath_, bytes, error) == Result::Continue)
+            existingElfFunctionCache_->load(std::move(bytes));
+        return;
+    }
     functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.lib", paths.name.view());
     functionCacheIndexPath_   = paths.buildDir / std::format("{}.incremental.idx", paths.name.view());
     functionCacheEnabled_     = true;
@@ -1203,6 +1251,22 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     NativeFunctionCacheRecord record;
     record.key         = functionCacheKey(*this, function);
     record.fingerprint = fingerprint;
+
+    if (existingElfFunctionCache_)
+    {
+        const NativeElfCachedFunction* cached = existingElfFunctionCache_->find(record.key.view());
+        if (cached && cached->fingerprint == fingerprint.view())
+        {
+            record.symbolName = Utf8(cached->symbolName);
+            record.objectBytes.append(cached->objectBytes);
+            record.hit = true;
+            function.setCallClobbers(cached->callClobbers);
+        }
+        const bool             hit = record.hit;
+        const std::scoped_lock lock(functionCacheMutex_);
+        functionCacheRecords_.insert_or_assign(&function, std::move(record));
+        return hit;
+    }
 
     const auto cached = existingFunctionCacheEntries_.find(record.key);
     if (cached != existingFunctionCacheEntries_.end() && cached->second.fingerprint == fingerprint && existingFunctionCacheArchive_)
@@ -1376,6 +1440,65 @@ const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbo
     return scopedSymbolNames_;
 }
 
+Result NativeBackendBuilder::remapRDataReferences(NativeSectionData& section)
+{
+    const auto& names = scopedSymbolNames();
+    for (NativeSectionRelocation& relocation : section.relocations)
+    {
+        if (relocation.symbolName != names.rdataBase)
+            continue;
+        const auto* allocation = relocation.addend <= UINT32_MAX ? tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend)) : nullptr;
+        if (!allocation)
+            return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, section.name);
+        relocation.symbolName = rdataAllocationSymbol(*allocation);
+        relocation.addend -= allocation->emittedOffset;
+    }
+    return Result::Continue;
+}
+
+Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation)
+{
+    SWC_ASSERT(std::has_single_bit(allocation.align));
+    SWC_ASSERT(allocation.emittedOffset + allocation.size <= mergedRData.bytes.size());
+
+    // The collector emits allocations in offset order and sorts each allocation's relocations.
+    // Visit only this allocation's range instead of scanning the entire module for every object.
+    const auto&                      relocations = mergedRData.relocations;
+    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
+    const std::span<const std::byte> allocationBytes{mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
+    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
+
+    if (!hasRelocations && allocation.zeroFilled)
+    {
+        // Keep all-zero allocations as uninitialized data without copying bytes
+        // into a section that would immediately discard them again.
+        section.name            = ".rbss";
+        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ;
+        section.requireAlignment(allocation.align);
+        section.bss             = true;
+        section.bssSize         = allocation.size;
+        return Result::Continue;
+    }
+
+    section.name            = ".rdata";
+    section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ;
+    section.requireAlignment(allocation.align);
+    section.bytes.append(allocationBytes);
+
+    for (auto it = first; it != relocations.end(); ++it)
+    {
+        const NativeSectionRelocation& sourceRelocation = *it;
+        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
+            break;
+
+        NativeSectionRelocation relocation = sourceRelocation;
+        relocation.offset -= allocation.emittedOffset;
+        section.relocations.push_back(std::move(relocation));
+    }
+
+    return remapRDataReferences(section);
+}
+
 Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(target.bytes != nullptr);
@@ -1384,7 +1507,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, ownerName);
 
     const uint32_t patchOffset = target.functionOffset + relocation.codeOffset;
-    const size_t   patchSize   = relocation.form == MicroRelocation::Form::Relative32 ? sizeof(uint32_t) : sizeof(uint64_t);
+    const size_t   patchSize   = relocation.form == MicroRelocation::Form::Absolute64 ? sizeof(uint64_t) : sizeof(uint32_t);
     SWC_ASSERT(patchOffset + patchSize <= target.bytes->size());
 
     NativeSectionRelocation record;
@@ -1399,10 +1522,10 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             SWC_ASSERT(targetFunction != nullptr);
             SWC_RESULT(resolveFunctionSymbolName(record.symbolName, targetFunction, target.allowUnresolvedSymbols));
             record.addend = 0;
-            if (relocation.form == MicroRelocation::Form::Relative32)
+            if (relocation.form != MicroRelocation::Form::Absolute64)
             {
                 SWC_ASSERT(relocation.relativeEndOffset == relocation.codeOffset + sizeof(uint32_t));
-                record.type = IMAGE_REL_AMD64_REL32;
+                record.kind = relocation.form == MicroRelocation::Form::IndirectRelative32 ? NativeRelocationKind::GotRel32 : NativeRelocationKind::Rel32;
                 BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, 0);
             }
             else
@@ -1891,7 +2014,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
     // Every shared directory is read, including the ones this executable does not link against
     // because it took their module's code in instead: such a directory is the only place that still
-    // names the DLL, and naming it is what lets a copy an earlier build published beside the
+    // names the shared library, and naming it is what lets a copy an earlier build published beside the
     // executable be taken back out.
     std::vector<fs::path>        sourceDirs = compiler_->importedDependencyLinkDirs();
     std::unordered_set<fs::path> linkedAgainst(sourceDirs.begin(), sourceDirs.end());
@@ -1924,7 +2047,7 @@ Result NativeBackendBuilder::publishExecutableDependencies()
             if (!it->is_regular_file(ec) || ec)
                 continue;
             const Utf8 extension = lowerPathExtension(it->path());
-            if (!isPublishDependencyExtension(extension))
+            if (!isPublishDependencyExtension(extension, ctx_.cmdLine().targetOs))
                 continue;
 
             const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
@@ -1942,8 +2065,8 @@ Result NativeBackendBuilder::publishExecutableDependencies()
 
             if (!publishFromThisDir || (extension == ".pdb" && !publishDebugInfo))
             {
-                // Windows loads DLLs from the executable folder before PATH. If dependencies
-                // were published by a previous build, remove them when publish is now disabled.
+                // Retire files published by an earlier build when publication is disabled,
+                // including ELF libraries found through the executable's $ORIGIN runpath.
                 SWC_RESULT(removePublishedFile(dstPath));
 
                 continue;
@@ -1986,7 +2109,7 @@ Result NativeBackendBuilder::reportError(const Diagnostic& diag)
 Result NativeBackendBuilder::validateTarget()
 {
     const CommandLine& commandLine = ctx_.cmdLine();
-    if (commandLine.targetOs != Runtime::TargetOs::Windows)
+    if (commandLine.targetOs != Runtime::TargetOs::Windows && commandLine.targetOs != Runtime::TargetOs::Linux)
     {
         return reportError(DiagnosticId::cmd_err_native_target_os_not_supported);
     }
@@ -2084,7 +2207,8 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
     NativeTestProgressContext   progressContext{.builder = this, .stage = stage ? &*stage : nullptr};
     const Os::ProcessRunOptions options{
         .capturedOutput            = &artifactOutput,
-        .logCtx                    = &ctx_,
+        .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::print(*static_cast<const TaskContext*>(context), line); },
+        .forwardLineUserData       = &ctx_,
         .additionalPathDirectories = runtimePathDirs,
         .outputLineCallback        = progressContext.stage ? &NativeBackendBuilder::forwardNativeTestProgress : nullptr,
         .outputLineUserData        = &progressContext,
@@ -2194,16 +2318,28 @@ bool NativeBackendBuilder::parseNativeTestProgressEvent(NativeTestProgressEvent&
 }
 
 // Extract the executed/failed tally printed by the runtime's __testsDone on its
-// "[swag.test] <executed> <failed>" marker line.
+// "[swag.test] executed=<executed> failed=<failed>" marker line.
 void NativeBackendBuilder::parseNativeTestSummary(const std::string& output)
 {
-    const size_t pos = output.rfind("[swag.test] ");
+    constexpr std::string_view PREFIX = "[swag.test] executed=";
+    const size_t              pos    = output.rfind(PREFIX);
     if (pos == std::string::npos)
+        return;
+
+    const std::string_view summary(output.data() + pos + PREFIX.size(), output.size() - pos - PREFIX.size());
+    const size_t           failedPos = summary.find(" failed=");
+    if (failedPos == std::string_view::npos)
         return;
 
     uint32_t executed = 0;
     uint32_t failed   = 0;
-    if (sscanf_s(output.c_str() + pos, "[swag.test] executed=%u failed=%u", &executed, &failed) != 2)
+    const std::string_view executedText   = summary.substr(0, failedPos);
+    const std::string_view failedTail     = summary.substr(failedPos + 8);
+    const std::string_view failedText     = failedTail.substr(0, failedTail.find_first_of("\r\n"));
+    const auto             executedResult = std::from_chars(executedText.data(), executedText.data() + executedText.size(), executed);
+    const auto             failedResult   = std::from_chars(failedText.data(), failedText.data() + failedText.size(), failed);
+    if (executedResult.ec != std::errc{} || executedResult.ptr != executedText.data() + executedText.size() ||
+        failedResult.ec != std::errc{} || failedResult.ptr != failedText.data() + failedText.size())
         return;
 
     hasNativeTestSummary = true;

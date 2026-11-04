@@ -27,7 +27,7 @@ namespace
 
 ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, const TypeInfo& type, Usage usage)
 {
-    // Convert semantic types into one ABI transfer model: register value or indirect pointer.
+    // Convert semantic types into scalar, indirect-pointer or classified storage transfers.
     const TypeInfo& ty = type.unwrapAliasEnumTypeOrSelf(ctx);
     if (ty.isVoid())
         return makeNormalizedType(true, false, false, 0);
@@ -52,6 +52,29 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
 
     if (ty.isTypedVariadic())
         return makeNormalizedType(false, false, false, 64);
+
+    if (conv.isSystemVAMD64)
+    {
+        // Array parameters retain the language's borrowed-storage contract. Embedded
+        // arrays still participate in the enclosing value's eightbyte classification.
+        if (usage == Usage::Argument && (ty.isArray() || ty.isAggregateArray()))
+        {
+            SWC_ASSERT(ty.sizeOf(ctx) <= UINT32_MAX);
+            return makeIndirectStructType(static_cast<uint32_t>(ty.sizeOf(ctx)), std::max(ty.alignOf(ctx), 1u), false);
+        }
+        if (ty.isSimd() || (ty.isFloat() && ty.payloadFloatBits() == 128))
+            return makeNormalizedType(false, true, false, 128);
+        const auto storage = SystemVAbi::classify(ctx, ty);
+        SWC_FORCE_ASSERT(storage.has_value() && "unsupported System V storage type");
+        NormalizedType result = makeNormalizedType(false, false, false, 64);
+        result.systemVClasses = 0x80 | static_cast<uint8_t>(storage->classes[0]) | (static_cast<uint8_t>(storage->classes[1]) << 3);
+        result.indirectSize = storage->size;
+        result.indirectAlign = storage->alignment;
+        // MEMORY arguments are copied by value onto the stack. Only a MEMORY
+        // result consumes an implicit pointer in the first integer argument lane.
+        result.isIndirect = usage == Usage::Return && storage->memory();
+        return result;
+    }
 
     if ((ty.isFunction() && ty.isLambdaClosure()) || ty.isStringOrSlice() || ty.isInterface() || ty.isAny())
     {

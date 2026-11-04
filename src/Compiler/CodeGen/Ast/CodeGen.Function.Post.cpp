@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -21,6 +22,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1070,10 +1072,20 @@ namespace
         // The local this return replaces is released right before its storage takes the value.
         const SymbolVariable* replacedLocal      = codeGen.returnReplacedLocal(codeGen.curNodeRef());
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
-        if (normalizedRet.isIndirect)
+        if (normalizedRet.isIndirect || normalizedRet.isSystemVStorage())
         {
-            // Hidden first argument points to caller-provided return storage.
-            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            MicroReg outputStorageReg;
+            if (normalizedRet.isIndirect)
+                outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            else
+            {
+                // Capture the whole result before deferred actions can destroy its
+                // source or clobber ABI lanes. Sixteen bytes retain call alignment.
+                SWC_ASSERT(normalizedRet.indirectSize <= 16 && normalizedRet.indirectAlign <= 16);
+                builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+                outputStorageReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(outputStorageReg, callConv.stackPointer, MicroOpBits::B64);
+            }
             SWC_ASSERT(!replacedLocal || !returnValueIsInPlace);
             const bool dropsReplaced = replacedLocal && codeGen.hasLifecycle(returnTypeRef, CodeGen::LifecycleKind::Drop);
             if (dropsReplaced && !delayReturnMaterialization)
@@ -1125,7 +1137,13 @@ namespace
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
 
-            builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+            if (normalizedRet.isIndirect)
+                builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+            else
+            {
+                ABICall::loadSystemVReturn(builder, outputStorageReg, normalizedRet.systemVStorageType());
+                builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+            }
         }
         else
         {
@@ -1424,7 +1442,8 @@ Result CodeGenCallHelpers::emitFallibleCastFailure(CodeGen& codeGen)
 // after each fallible call, especially inside loops.
 bool CodeGenCallHelpers::canReadErrorFlagInline(const CodeGen& codeGen)
 {
-    return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
+    return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
+           !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function());
 }
 
 Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
@@ -1434,6 +1453,24 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
 
     MicroBuilder&       builder       = codeGen.builder();
     const MicroLabelRef continueLabel = builder.createLabel();
+
+    if (SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
+    {
+        // #run and compiler-only functions execute in the compiler even when its output
+        // targets another OS. Their error flag belongs to the host thread's context.
+        const CallConvKind hostKind = CallConv::hostKind();
+        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&CompilerInstance::runtimeContextFromTls));
+        const auto prepared = ABICall::prepareArgs(builder, hostKind, {});
+        ABICall::callReg(builder, hostKind, targetReg, prepared);
+        const MicroReg contextReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(contextReg, CallConv::get(hostKind).intReturn, MicroOpBits::B64);
+        builder.emitCmpMemImm(contextReg, offsetof(Runtime::Context, hasError), ApInt(0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+        SWC_RESULT(emitFallibleJump(codeGen));
+        builder.placeLabel(continueLabel);
+        return Result::Continue;
+    }
 
     if (canReadErrorFlagInline(codeGen))
     {

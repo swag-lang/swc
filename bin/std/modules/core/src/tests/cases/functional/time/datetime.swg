@@ -250,3 +250,20 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     let delta = local.ticks > now.ticks ? local.ticks - now.ticks : now.ticks - local.ticks
     Swag.require(delta < Time.TicksPerMinute)
 }
+
+// Local conversion keeps fractional milliseconds and leaves invalid dates unchanged.
+#test
+{
+    for utc in [Time.DateTime{1969, 12, 31, 23, 59, 59, 123},
+                Time.DateTime{2000, 2, 29, 12, 34, 56, 789},
+                Time.DateTime{2024, 7, 1, 12, 0, 0, 456},
+                Time.DateTime{2040, 1, 1, 0, 0, 0, 456}]
+    {
+        let local = utc.toLocal()
+        Swag.require(local.isValid())
+        Swag.require(local.millisecond == utc.millisecond)
+    }
+
+    let invalid = Time.DateTime{2024, 2, 30, 12, 0, 0, 123}
+    Swag.require(invalid.toLocal() == invalid)
+}

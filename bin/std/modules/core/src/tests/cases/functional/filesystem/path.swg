@@ -54,7 +54,7 @@ using Swag
 #test
 {
     Swag.require(Path.isDirectorySeparator('/'u8))
-    Swag.require(Path.isDirectorySeparator('\\'u8))
+    Swag.require(Path.isDirectorySeparator('\\'u8) == WINDOWS)
     Swag.require(not Path.isDirectorySeparator('a'u8))
 
     Swag.require(Path.isValidPathName("src/tests/core.swg"))
@@ -62,13 +62,13 @@ using Swag
     Swag.require(Path.isValidPathName("src:tests/core.swg"))
     Swag.require(not Path.isValidPathName(""))
     Swag.require(not Path.isValidPathName("\x00"))
-    Swag.require(not Path.isValidPathName("\x1f"))
-    Swag.require(not Path.isValidPathName(#raw """bad"name"""))
-    Swag.require(not Path.isValidPathName("bad<name"))
-    Swag.require(not Path.isValidPathName("bad>name"))
-    Swag.require(not Path.isValidPathName("bad|name"))
-    Swag.require(not Path.isValidPathName("bad*name"))
-    Swag.require(not Path.isValidPathName("bad?name"))
+    Swag.require(Path.isValidPathName("\x1f") == not WINDOWS)
+    Swag.require(Path.isValidPathName(#raw """bad"name""") == not WINDOWS)
+    Swag.require(Path.isValidPathName("bad<name") == not WINDOWS)
+    Swag.require(Path.isValidPathName("bad>name") == not WINDOWS)
+    Swag.require(Path.isValidPathName("bad|name") == not WINDOWS)
+    Swag.require(Path.isValidPathName("bad*name") == not WINDOWS)
+    Swag.require(Path.isValidPathName("bad?name") == not WINDOWS)
     if WINDOWS
     {
         Swag.require(not Path.isValidPathName("C:/sandbox/.. /outside.txt"))
@@ -88,16 +88,16 @@ using Swag
     Swag.require(not Path.isValidFileName(".."))
     Swag.require(not Path.isValidFileName(""))
     Swag.require(not Path.isValidFileName("\x00"))
-    Swag.require(not Path.isValidFileName("\x1f"))
-    Swag.require(not Path.isValidFileName(#raw """bad"name"""))
-    Swag.require(not Path.isValidFileName("bad<name"))
-    Swag.require(not Path.isValidFileName("bad>name"))
-    Swag.require(not Path.isValidFileName("bad|name"))
-    Swag.require(not Path.isValidFileName("bad:name"))
-    Swag.require(not Path.isValidFileName("bad*name"))
-    Swag.require(not Path.isValidFileName("bad?name"))
+    Swag.require(Path.isValidFileName("\x1f") == not WINDOWS)
+    Swag.require(Path.isValidFileName(#raw """bad"name""") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad<name") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad>name") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad|name") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad:name") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad*name") == not WINDOWS)
+    Swag.require(Path.isValidFileName("bad?name") == not WINDOWS)
     Swag.require(not Path.isValidFileName("src/core.swg"))
-    Swag.require(not Path.isValidFileName(#raw "src\core.swg"))
+    Swag.require(Path.isValidFileName(#raw "src\core.swg") == not WINDOWS)
     if WINDOWS
     {
         Swag.require(not Path.isValidFileName("name."))
@@ -117,41 +117,55 @@ using Swag
     Swag.require(Path.rootLength("/src/core.swg") == 1)
     Swag.require(Path.equals(Path.rootName("/src/core.swg") orelse "", "/"))
     Swag.require(Path.isRooted("/src/core.swg"))
-    Swag.require(Path.rootLength("C:/src/core.swg") == 3)
-    Swag.require(Path.equals(Path.rootName("C:/src/core.swg") orelse "", "C:/"))
-    Swag.require(Path.isRooted("C:/src/core.swg"))
-    Swag.require(Path.rootLength("C:core.swg") == 2)
-    Swag.require(Path.equals(Path.rootName("C:core.swg") orelse "", "C:"))
-    Swag.require(Path.isRooted("C:core.swg"))
-    Swag.require(Path.rootLength(#raw "\\?\C:\src\core.swg") == (#raw "\\?\C:\").count)
-    Swag.require(Path.equals(Path.rootName(#raw "\\?\C:\src\core.swg") orelse "", #raw "\\?\C:\"))
-    Swag.require(Path.isRooted(#raw "\\?\C:\src\core.swg"))
-    Swag.require(Path.rootLength(#raw "\\server\share\src\core.swg") == (#raw "\\server\share\").count)
-    Swag.require(Path.equals(Path.rootName(#raw "\\server\share\src\core.swg") orelse "", #raw "\\server\share\"))
-    Swag.require(Path.isRooted(#raw "\\server\share\src\core.swg"))
-    Swag.require(Path.rootLength(#raw "\\?\UNC\server\share\src\core.swg") == (#raw "\\?\UNC\server\share\").count)
-    Swag.require(Path.equals(Path.rootName(#raw "\\?\UNC\server\share\src\core.swg") orelse "", #raw "\\?\UNC\server\share\"))
-    Swag.require(Path.isRooted(#raw "\\?\UNC\server\share\src\core.swg"))
+    if WINDOWS
+    {
+        Swag.require(Path.rootLength("C:/src/core.swg") == 3)
+        Swag.require(Path.equals(Path.rootName("C:/src/core.swg") orelse "", "C:/"))
+        Swag.require(Path.isRooted("C:/src/core.swg"))
+        Swag.require(Path.rootLength("C:core.swg") == 2)
+        Swag.require(Path.equals(Path.rootName("C:core.swg") orelse "", "C:"))
+        Swag.require(Path.isRooted("C:core.swg"))
+        Swag.require(Path.rootLength(#raw "\\?\C:\src\core.swg") == (#raw "\\?\C:\").count)
+        Swag.require(Path.equals(Path.rootName(#raw "\\?\C:\src\core.swg") orelse "", #raw "\\?\C:\"))
+        Swag.require(Path.isRooted(#raw "\\?\C:\src\core.swg"))
+        Swag.require(Path.rootLength(#raw "\\server\share\src\core.swg") == (#raw "\\server\share\").count)
+        Swag.require(Path.equals(Path.rootName(#raw "\\server\share\src\core.swg") orelse "", #raw "\\server\share\"))
+        Swag.require(Path.isRooted(#raw "\\server\share\src\core.swg"))
+        Swag.require(Path.rootLength(#raw "\\?\UNC\server\share\src\core.swg") == (#raw "\\?\UNC\server\share\").count)
+        Swag.require(Path.equals(Path.rootName(#raw "\\?\UNC\server\share\src\core.swg") orelse "", #raw "\\?\UNC\server\share\"))
+        Swag.require(Path.isRooted(#raw "\\?\UNC\server\share\src\core.swg"))
+    }
+    else
+    {
+        // Drive and UNC spellings are ordinary relative names on POSIX targets.
+        for path in ["C:/src/core.swg", "C:core.swg", #raw "\\?\C:\src\core.swg",
+                     #raw "\\server\share\src\core.swg", #raw "\\?\UNC\server\share\src\core.swg"]
+        {
+            Swag.require(Path.rootLength(path) == 0)
+            Swag.require(Path.rootName(path) == null and not Path.isRooted(path))
+        }
+        Swag.require(Path.rootLength("//src/core.swg") == 1)
+    }
 
     Swag.require(Path.equals(Path.directoryName("src/tests/core.swg") orelse "", "src/tests"))
     Swag.require(Path.equals(Path.directoryName("src/tests/") orelse "", "src/tests"))
-    Swag.require(Path.equals(Path.directoryName("src\\tests\\core.swg") orelse "", "src\\tests"))
+    Swag.require(Path.equals(Path.directoryName("src\\tests\\core.swg") orelse "", WINDOWS ? "src\\tests" : ""))
     Swag.require(Path.equals(Path.directoryName("C:/src/core.swg") orelse "", "C:/src"))
     Swag.require(Path.equals(Path.directoryName("C:/src/") orelse "", "C:/src"))
     Swag.require(Path.directoryName("core.swg") == null)
     Swag.require(Path.equals(Path.directoryName("/core.swg") orelse "", "/"))
-    Swag.require(Path.equals(Path.directoryName("C:/core.swg") orelse "", "C:/"))
-    Swag.require(Path.equals(Path.directoryName(#raw "C:\core.swg") orelse "", #raw "C:\"))
-    Swag.require(Path.equals(Path.directoryName(#raw "\\server\share\core.swg") orelse "", #raw "\\server\share\"))
+    Swag.require(Path.equals(Path.directoryName("C:/core.swg") orelse "", WINDOWS ? "C:/" : "C:"))
+    Swag.require(Path.equals(Path.directoryName(#raw "C:\core.swg") orelse "", WINDOWS ? #raw "C:\" : ""))
+    Swag.require(Path.equals(Path.directoryName(#raw "\\server\share\core.swg") orelse "", WINDOWS ? #raw "\\server\share\" : ""))
     Swag.require(Path.directoryName("/") == null)
-    Swag.require(Path.directoryName("C:/") == null)
+    Swag.require(Path.directoryName("C:/") == (WINDOWS ? null : "C:"))
     Swag.require(Path.directoryName(#raw "\\server\share\") == null)
 
     Swag.require(Path.equals(Path.fileName("src/tests/core.swg") orelse "", "core.swg"))
     Swag.require(Path.equals(Path.fileName("core.swg") orelse "", "core.swg"))
     Swag.require(Path.equals(Path.fileName("C:/src/core.swg") orelse "", "core.swg"))
-    Swag.require(Path.equals(Path.fileName("src\\tests\\core.swg") orelse "", "core.swg"))
-    Swag.require(Path.equals(Path.fileName("C:core.swg") orelse "", "core.swg"))
+    Swag.require(Path.equals(Path.fileName("src\\tests\\core.swg") orelse "", WINDOWS ? "core.swg" : "src\\tests\\core.swg"))
+    Swag.require(Path.equals(Path.fileName("C:core.swg") orelse "", WINDOWS ? "core.swg" : "C:core.swg"))
     Swag.require(Path.fileName("src/tests/") == null)
     Swag.require(Path.fileName("C:/src/") == null)
 
@@ -179,24 +193,24 @@ using Swag
         Swag.require(Path.hasExtension("core."))
     Swag.require(not Path.hasExtension("core"))
     Swag.require(not Path.hasExtension("src.tests/core"))
-    Swag.require(Path.hasExtension("CORE.SWG", ".swg"))
-    Swag.require(Path.hasExtension("core.SWG", ".SwG"))
+    Swag.require(Path.hasExtension("CORE.SWG", ".swg") == WINDOWS)
+    Swag.require(Path.hasExtension("core.SWG", ".SwG") == WINDOWS)
     Swag.require(not Path.hasExtension("core.swg", ".txt"))
 
     Swag.require(Path.combine("src", "tests", "core.swg") == "src/tests/core.swg")
     Swag.require(Path.combine("", "src/", "tests", "core.swg") == "src/tests/core.swg")
     Swag.require(Path.combine("src", "", "", "core.swg") == "src/core.swg")
     Swag.require(Path.combine("src/", "/core.swg") == "src//core.swg")
-    Swag.require(Path.equals("SRC/Tests/Core.swg", "src/tests/core.swg"))
+    Swag.require(Path.equals("SRC/Tests/Core.swg", "src/tests/core.swg") == WINDOWS)
     Swag.require(not Path.equals("SRC/Tests/Core.swg", "src/tests/other.swg"))
 
     var normalized: String = "src\\tests\\core.swg"
     Path.normalize(&normalized)
-    Swag.require(normalized == "src/tests/core.swg")
+    Swag.require(normalized == (WINDOWS ? "src/tests/core.swg" : #raw "src\tests\core.swg"))
 
     normalized = #raw "C:\src\tests\core.swg"
     Path.normalize(&normalized)
-    Swag.require(normalized == "C:/src/tests/core.swg")
+    Swag.require(normalized == (WINDOWS ? "C:/src/tests/core.swg" : #raw "C:\src\tests\core.swg"))
 }
 
 // Distinct UTF-8 directory names must remain distinct under every target case policy.

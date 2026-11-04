@@ -147,8 +147,6 @@ namespace
         NativeBackendBuilder            nativeBuilder(compiler, false);
         const NativeArtifactBuilder     artifactBuilder(nativeBuilder);
         NativeArtifactPaths             nativePaths;
-        Os::WindowsToolchainPaths       toolchain;
-        const auto                      toolchainResult = Linker::queryToolchainPaths(nativeBuilder, toolchain);
         std::vector<Logger::FieldEntry> entries;
 
         artifactBuilder.queryPaths(nativePaths);
@@ -159,11 +157,23 @@ namespace
             addInfoEntry(entries, "Build directory", nativePaths.buildDir);
         addInfoEntry(entries, "Output directory", nativePaths.outDir);
         addInfoEntry(entries, "Artifact path", nativePaths.artifactPath);
-        addInfoEntry(entries, "PDB path", nativePaths.pdbPath);
+        if (!nativePaths.pdbPath.empty())
+            addInfoEntry(entries, "PDB path", nativePaths.pdbPath);
         Logger::printFieldGroup(ctx, "Native Paths", entries, nextInfoGroupStyle(hasPrintedGroup));
 
         entries.clear();
-        CommandPrint::addNativeToolchainEntries(entries, toolchainResult, toolchain);
+        if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
+        {
+            addInfoEntry(entries, "Object format", "ELF64 (x86-64)");
+            addInfoEntry(entries, "Compiler driver", "cc (from PATH at link time)");
+            addInfoEntry(entries, "Archive writer", "ar (from PATH at link time)");
+        }
+        else
+        {
+            Os::WindowsToolchainPaths toolchain;
+            const auto toolchainResult = Linker::queryToolchainPaths(nativeBuilder, toolchain);
+            CommandPrint::addNativeToolchainEntries(entries, toolchainResult, toolchain);
+        }
 
         Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
     }

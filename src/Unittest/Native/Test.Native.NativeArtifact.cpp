@@ -1,8 +1,10 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -81,6 +83,8 @@ namespace
     CommandLine makeNativeArtifactCmdLine()
     {
         CommandLine cmdLine;
+        // These object and debug fixtures inspect COFF sections and CodeView records.
+        cmdLine.targetOs         = Runtime::TargetOs::Windows;
         cmdLine.command          = CommandKind::Build;
         cmdLine.name             = "native_paths";
         cmdLine.sourceDrivenTest = false;
@@ -656,7 +660,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataRelativeReferencesAccountForTraili
             relocation.codeOffset                           = 2;
             relocation.relativeEndOffset                    = 6 + trailing;
             SWC_RESULT(fixture.nativeBuilder->appendCodeRelocation(target, "relative_constant", relocation));
-            if (records.size() != 1 || records.front().offset != 10 || records.front().type != IMAGE_REL_AMD64_REL32)
+            if (records.size() != 1 || records.front().offset != 10 || records.front().kind != NativeRelocationKind::Rel32)
                 return Result::Error;
             if (!trailing)
                 baseAddend = records.front().addend;
@@ -958,7 +962,7 @@ SWC_TEST_BEGIN(NativeArtifact_ArchiveMemberNamesItsFunctions)
     const auto fragment = std::ranges::find(object.sections, Utf8(SymbolTable::OBJECT_SECTION), &CoffInputSection::name);
     if (fragment == object.sections.end())
         return failNativeArtifactTest(K_TEST_NAME, "the object carries no symbol fragment");
-    if (!(fragment->characteristics & IMAGE_SCN_LNK_REMOVE))
+    if (!(fragment->characteristics & PE::SCN_LNK_REMOVE))
         return failNativeArtifactTest(K_TEST_NAME, "the symbol fragment would reach an image another linker writes");
 
     std::vector<SymbolTable::Relocation> relocations;
@@ -979,16 +983,17 @@ SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
     const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
     auto&                           source = fixture.nativeBuilder->mergedData;
     source.name                            = ".data";
-    source.characteristics                 = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    source.characteristics                 = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
     source.bytes.resize(40, std::byte{0xAA});
     source.relocations = {
-        {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .type = IMAGE_REL_AMD64_ADDR64},
-        {.offset = 8, .symbolName = "short", .addend = 0xFEDCBA9876543210, .type = IMAGE_REL_AMD64_ADDR32NB},
-        {.offset = 16, .symbolName = "long_external_section_relative", .addend = 0x8877665544332211, .type = IMAGE_REL_AMD64_SECREL},
-        {.offset = 24, .symbolName = "short", .addend = 0xFFFFFFFFFFFFFFFC, .type = IMAGE_REL_AMD64_REL32},
-        {.offset = 32, .symbolName = "long_external_section", .addend = 0x123456789ABCDEF0, .type = IMAGE_REL_AMD64_SECTION},
+        {.offset = 0, .symbolName = "long_external_address64", .addend = 0x123456789ABCDEF0, .kind = NativeRelocationKind::Abs64},
+        {.offset = 8, .symbolName = "short", .addend = 0xFEDCBA9876543210, .kind = NativeRelocationKind::Rva32},
+        {.offset = 16, .symbolName = "long_external_section_relative", .addend = 0x8877665544332211, .kind = NativeRelocationKind::SectionOffset32},
+        {.offset = 24, .symbolName = "short", .addend = 0xFFFFFFFFFFFFFFFC, .kind = NativeRelocationKind::Rel32},
+        {.offset = 32, .symbolName = "long_external_section", .addend = 0x123456789ABCDEF0, .kind = NativeRelocationKind::SectionIndex16},
     };
-    const NativeSectionData original = source;
+    const NativeSectionData           original      = source;
+    constexpr std::array<uint16_t, 5> expectedTypes = {PE::REL_AMD64_ADDR64, PE::REL_AMD64_ADDR32NB, PE::REL_AMD64_SECREL, PE::REL_AMD64_REL32, PE::REL_AMD64_SECTION};
 
     NativeObjDescription description;
     description.includeData = true;
@@ -1015,8 +1020,8 @@ SWC_TEST_BEGIN(NativeArtifact_CoffSectionRelocationsPreserveAddendsAndSource)
             const auto& expected = original.relocations[index];
             const auto& emitted  = data->relocs[index];
             const auto& retained = source.relocations[index];
-            if (emitted.offset != expected.offset || emitted.type != expected.type || emitted.symbolName != expected.symbolName ||
-                retained.offset != expected.offset || retained.type != expected.type || retained.symbolName != expected.symbolName || retained.addend != expected.addend)
+            if (emitted.offset != expected.offset || emitted.type != expectedTypes[index] || emitted.symbolName != expected.symbolName ||
+                retained.offset != expected.offset || retained.kind != expected.kind || retained.symbolName != expected.symbolName || retained.addend != expected.addend)
                 return Result::Error;
         }
         if (iteration && bytes != previousBytes)
@@ -1060,10 +1065,10 @@ SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
         if (object.definedSymbols[index].name != names[index])
             return Result::Error;
 
-    IMAGE_FILE_HEADER header{};
+    PE::FileHeader header{};
     if (!readBinaryRecord(header, bytes, 0) || header.NumberOfSymbols != names.size())
         return Result::Error;
-    const size_t stringTableOffset = header.PointerToSymbolTable + names.size() * sizeof(IMAGE_SYMBOL);
+    const size_t stringTableOffset = header.PointerToSymbolTable + names.size() * sizeof(PE::Symbol);
     uint32_t     stringBytes       = 0;
     if (!readBinaryRecord(stringBytes, bytes, stringTableOffset) || stringBytes != expectedStringBytes)
         return Result::Error;
@@ -1074,10 +1079,10 @@ SWC_TEST_BEGIN(NativeArtifact_CoffStringTablePreservesNamesAndSharedOffsets)
     for (size_t duplicateIndex = 0; duplicateIndex < 2; ++duplicateIndex)
     {
         const size_t originalIndex = duplicateIndex == 0 ? 2 : 5;
-        IMAGE_SYMBOL original{};
-        IMAGE_SYMBOL duplicate{};
-        if (!readBinaryRecord(original, bytes, header.PointerToSymbolTable + originalIndex * sizeof(IMAGE_SYMBOL)) ||
-            !readBinaryRecord(duplicate, bytes, header.PointerToSymbolTable + (names.size() - 2 + duplicateIndex) * sizeof(IMAGE_SYMBOL)))
+        PE::Symbol original{};
+        PE::Symbol duplicate{};
+        if (!readBinaryRecord(original, bytes, header.PointerToSymbolTable + originalIndex * sizeof(PE::Symbol)) ||
+            !readBinaryRecord(duplicate, bytes, header.PointerToSymbolTable + (names.size() - 2 + duplicateIndex) * sizeof(PE::Symbol)))
             return Result::Error;
         if (original.N.Name.Short != 0 || original.N.Name.Long != duplicate.N.Name.Long)
             return Result::Error;
@@ -1121,23 +1126,23 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
     if (objectBytes.empty())
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "object file was not written");
 
-    IMAGE_FILE_HEADER fileHeader{};
+    PE::FileHeader fileHeader{};
     if (!readBinaryRecord(fileHeader, objectBytes, 0))
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing file header");
     if (fileHeader.NumberOfSections == 0)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing section header");
 
-    IMAGE_SECTION_HEADER textHeader{};
-    if (!readBinaryRecord(textHeader, objectBytes, sizeof(IMAGE_FILE_HEADER)))
+    PE::SectionHeader textHeader{};
+    if (!readBinaryRecord(textHeader, objectBytes, sizeof(PE::FileHeader)))
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing text section header");
     if (std::memcmp(textHeader.Name, ".text", 5) != 0)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "first section is not .text");
     if (textHeader.NumberOfRelocations != 0xFFFF)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "section relocation count was not saturated");
-    if ((textHeader.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
+    if ((textHeader.Characteristics & PE::SCN_LNK_NRELOC_OVFL) == 0)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "extended relocation flag is missing");
 
-    IMAGE_RELOCATION overflowRecord{};
+    PE::Relocation overflowRecord{};
     if (!readBinaryRecord(overflowRecord, objectBytes, textHeader.PointerToRelocations))
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing overflow relocation record");
     if (overflowRecord.RelocCount != RELOCATION_COUNT + 1)
@@ -1145,10 +1150,10 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
     if (overflowRecord.SymbolTableIndex != 0 || overflowRecord.Type != 0)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "overflow relocation record is not empty");
 
-    IMAGE_RELOCATION firstRelocation{};
-    if (!readBinaryRecord(firstRelocation, objectBytes, textHeader.PointerToRelocations + sizeof(IMAGE_RELOCATION)))
+    PE::Relocation firstRelocation{};
+    if (!readBinaryRecord(firstRelocation, objectBytes, textHeader.PointerToRelocations + sizeof(PE::Relocation)))
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing first real relocation");
-    if (firstRelocation.VirtualAddress != 0 || firstRelocation.Type != IMAGE_REL_AMD64_ADDR64)
+    if (firstRelocation.VirtualAddress != 0 || firstRelocation.Type != PE::REL_AMD64_ADDR64)
         return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "first relocation payload does not match the encoded relocation");
 }
 SWC_TEST_END()
@@ -1205,6 +1210,13 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     if (emittedRootOffset == emittedNestedOffset || emittedNestedOffset == emittedStringOffset)
         return Result::Error;
 
+    // A writable global can point into a read-only allocation too. Its relocation
+    // has to follow the archive split just like a code or read-only-data reference.
+    auto& globalData = fixture.nativeBuilder->mergedData;
+    const uint32_t globalPointerOffset = static_cast<uint32_t>(globalData.bytes.size());
+    globalData.bytes.appendLe64(0);
+    globalData.relocations.push_back({.offset = globalPointerOffset, .symbolName = fixture.nativeBuilder->scopedSymbolNames().rdataBase, .addend = emittedNestedOffset + sizeof(uint64_t)});
+
     SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
     SWC_RESULT(fixture.nativeBuilder->buildObjectBytes());
 
@@ -1240,6 +1252,14 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedNestedOffset);
 
     Diagnostic diag;
+    CoffObject writableObject;
+    if (!readCoffObject(writableObject, diag, fixture.nativeBuilder->objectDescriptions.front().objBytes))
+        return Result::Error;
+    const auto writableData = std::ranges::find(writableObject.sections, Utf8(".data"), &CoffInputSection::name);
+    if (writableData == writableObject.sections.end() || writableData->bytes.readLe64(globalPointerOffset) != sizeof(uint64_t) ||
+        !std::ranges::any_of(writableData->relocs, [&](const CoffInputReloc& relocation) { return relocation.offset == globalPointerOffset && relocation.symbolName == nestedSymbol; }))
+        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "global pointer does not reference its archive allocation");
+
     CoffObject functionObject;
     CoffObject rootObject;
     CoffObject nestedObject;
@@ -1287,7 +1307,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ArchiveBatchesLargeConstantSets)
         builder.rdataAllocationMap[0].push_back(allocation);
         builder.rdataAllocations.push_back(allocation);
     }
-    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .type = IMAGE_REL_AMD64_ADDR64});
+    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .kind = NativeRelocationKind::Abs64});
 
     SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
     if (builder.objectDescriptions.size() > 65535)
@@ -1549,6 +1569,7 @@ var GValue: s32 = 0
 
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
+    cmdLine.targetOs    = hostTargetOs();
     cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
     cmdLine.name        = "compiler_run_expr_test";
@@ -1908,6 +1929,7 @@ func exported()->u32 => reachedFromExport()
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LibraryPrunesUnexportedUnreachableFunctions");
 
     CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("library_prunes_unexported_unreachable_functions", Runtime::BuildCfgBackendKind::StaticLibrary);
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.directories.clear();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -2514,6 +2536,62 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
 }
 SWC_TEST_END()
 
+#if defined(__linux__) && defined(__x86_64__)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ElfArchiveKeepsGlobalConstantPointers)
+{
+    CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("elf_archive_global_pointer", Runtime::BuildCfgBackendKind::StaticLibrary);
+    commandLine.targetOs = Runtime::TargetOs::Linux;
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+    NativeBackendBuilder& builder = *fixture.nativeBuilder;
+    builder.mergedRData.name = ".rdata";
+    builder.mergedRData.bytes.append("padpayload");
+    builder.mergedRData.bytes.pushBack(std::byte{0});
+    builder.rdataAllocations.push_back({.sourceOffset = 0, .size = 11, .align = 1, .emittedOffset = 0});
+    builder.mergedData.name = ".data";
+    builder.mergedData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_8BYTES;
+    builder.mergedData.bytes.appendLe64(0);
+    builder.mergedData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = 3});
+
+    const auto writer = NativeObjFileWriter::create(builder);
+    std::error_code directoryError;
+    fs::create_directories(commandLine.workDir, directoryError);
+    if (directoryError)
+        return Result::Error;
+    NativeObjDescription globals;
+    globals.objPath = commandLine.workDir / "globals.o";
+    globals.includeData = true;
+    globals.splitRDataReferences = true;
+    SWC_RESULT(writer->writeObjectFile(globals));
+    NativeObjDescription constant;
+    constant.objPath = commandLine.workDir / "constant.o";
+    constant.rdataAllocationIndex = 0;
+    constant.rdataAllocationCount = 1;
+    constant.splitRDataReferences = true;
+    SWC_RESULT(writer->writeObjectFile(constant));
+
+    const std::string source = std::format("#include <cstring>\nextern const char* value asm(\"{}\");\nint main() {{ return std::strcmp(value, \"payload\") == 0 ? 0 : 1; }}\n", builder.scopedSymbolNames().dataBase);
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "consumer.cpp", source.data(), source.size(), ioError));
+    const std::array<std::pair<fs::path, std::vector<Utf8>>, 3> commands = {{
+        {"ar", {"rcsD", "library.a", "globals.o", "constant.o"}},
+        {"c++", {"-no-pie", "consumer.cpp", "library.a", "-o", "consumer"}},
+        {commandLine.workDir / "consumer", {}},
+    }};
+    for (const auto& [program, arguments] : commands)
+    {
+        std::string output;
+        uint32_t exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        if (Os::runProcess(exitCode, program, arguments, commandLine.workDir, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        {
+            std::println(stderr, "[ELF archive consumer] {}: {}", Utf8(program), output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
 {
     static constexpr std::string_view SOURCE     = R"(#main
@@ -2530,6 +2608,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
     for (const std::string_view configuration : {"devmode", "release"})
     {
         CommandLine command = makeStandaloneNativeArtifactCmdLine(std::format("print_fractional_carries_{}", configuration), Runtime::BuildCfgBackendKind::Executable);
+        command.targetOs = hostTargetOs();
         command.directories.clear();
         command.files.insert(sourcePath);
         command.buildCfg          = Utf8(configuration);

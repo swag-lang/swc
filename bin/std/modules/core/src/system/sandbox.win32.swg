@@ -3,9 +3,6 @@
 
 using Win32
 
-// Returns the operating-system identifier of the running process.
-internal func currentProcessId()->u32 => GetCurrentProcessId()
-
 // Returns whether the process command line carries the run argument `name`, with the value after its '=' when there is one.
 //
 // Read straight from the operating system rather than through 'Swag.args()'. The sandbox is armed
@@ -15,28 +12,11 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
 {
     var result: #returntype
 
-    // A compile-time run has no operating-system command line of its own: it executes inside
-    // the compiler, which hands the program its arguments directly. Consult those first so a
-    // test running under the interpreter is isolated exactly like the native one.
-    for arg in Swag.args()
-    {
-        if arg.count < name.count do
-            continue
-        if arg[until name.count] != name do
-            continue
-        if arg.count == name.count
-        {
-            result.found = true
-            return result
-        }
-
-        if arg[name.count] == '='
-        {
-            result.found = true
-            result.value = String.from(arg[name.count + 1 to])
-            return result
-        }
-    }
+    // Runtime arguments are already present in a JIT run. Windows native startup still
+    // needs the command-line fallback below before its argument vector is populated.
+    result = findRunArgumentIn(Swag.args(), name)
+    if result.found do
+        return result
 
     var scan = GetCommandLineA()
     if not scan do
@@ -98,6 +78,8 @@ internal func findRunArgument(name: string)->{ found: bool, value: String }
 internal func absolutePath(path: string)->String
 {
     var result: #returntype
+    if not Path.isValidPathName(path) do
+        return ""
 
     const MaxLength = 32768'u32
 
@@ -109,58 +91,13 @@ internal func absolutePath(path: string)->String
     // Only the returned length decides: the call does not clear the thread's last error, so a
     // stale one would send an otherwise successful resolution down the fallback path.
     let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null)
-    if written == 0 or written > MaxLength
-    {
-        // Fall back to the literal path. It can only make the check stricter: a path that
-        // cannot be resolved will not match the root, so the write is refused.
-        result = String.from(path)
-        Path.normalize(&result)
-        return result
-    }
+
+    // A failed canonicalization must never become a literal prefix accepted by containment.
+    if written == 0 or written >= MaxLength do
+        return ""
 
     arr16.count = written
     result      = Utf8.fromUtf16(arr16.toSlice())
     Path.normalize(&result)
     return result
-}
-
-// Reports whether an existing component of `path` is a reparse point.
-internal func containsReparsePoint(path: string, includeFinalEntry = true)->bool fail
-{
-    let full         = absolutePath(path)
-    let fullPath     = full.toString()
-    let rootLength   = cast(u64, Path.rootLength(fullPath))
-    var segmentBegin = rootLength
-
-    for index in fullPath.count where index >= rootLength
-    {
-        let c = index < fullPath.count ? fullPath[index] : 0'u8
-        if c != '/' and index != fullPath.count - 1 do
-            continue
-
-        let end = c == '/' ? index : index + 1
-        if end == fullPath.count and not includeFinalEntry do
-            break
-        if end > segmentBegin
-        {
-            let prefix = fullPath[until end]
-            var attributes: File.FileAttributes
-            var outcome:    Swag.Error
-            catch { attributes = try File.attributes(prefix) } as outcome
-            let error = outcome.value()
-            if error != null
-            {
-                if error is Errors.FileNotFoundError do
-                    return false
-                try outcome.raise()
-            }
-
-            if attributes.has(.ReparsePoint) do
-                return true
-        }
-
-        segmentBegin = index + 1
-    }
-
-    return false
 }

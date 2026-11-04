@@ -10,6 +10,7 @@ namespace Runtime
 enum class NativeObjectFormat : uint8_t
 {
     WindowsCoff,
+    LinuxElf,
 };
 
 std::optional<NativeObjectFormat> getNativeObjFormat(Runtime::TargetOs targetOs);

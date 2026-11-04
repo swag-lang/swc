@@ -24,10 +24,10 @@ func log(msg: string)
 // without attaching leaves the process waiting.
 func attach() fail
 {
-    let arguments = Format.toString("-p %", GetCurrentProcessId())
+    let processId = Format.toString("%", GetCurrentProcessId())
 
     // Dropping the process value closes its launcher handles without waiting for attachment.
-    discard try Env.startProcess("vsjitdebugger.exe", arguments.toString())
+    discard try Env.startProcess("vsjitdebugger.exe", ["-p", processId.toString()])
 
     while not IsDebuggerPresent() do
         Threading.Thread.sleep(100'ms)

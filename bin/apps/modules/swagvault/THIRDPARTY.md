@@ -1,5 +1,20 @@
 # Third-party components
 
+## Linux system libraries
+
+Linux loads the distribution-provided libfuse3, libsystemd, libX11 and libXss at runtime.
+They are not copied from the Windows vendor package. Their upstream projects and notices are:
+
+- [libfuse](https://github.com/libfuse/libfuse), library under GNU LGPLv2.1; the mounting utility
+  is distributed separately by the operating system.
+- [systemd](https://github.com/systemd/systemd), libsystemd under GNU LGPLv2.1 or later.
+- [libX11](https://gitlab.freedesktop.org/xorg/lib/libx11) and
+  [libXScrnSaver](https://gitlab.freedesktop.org/xorg/lib/libxscrnsaver), X.Org permissive licences.
+
+The checked-in bindings describe their native interfaces; application ownership and error
+handling live in the Linux backends. Consult the installed distribution packages for the licence
+texts corresponding to the shared libraries actually loaded.
+
 ## WinFsp 2.2.26215 (2026 Beta 4)
 
 WinFsp - Windows File System Proxy, Copyright (C) Bill Zissimopoulos

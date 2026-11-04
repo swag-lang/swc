@@ -55,6 +55,10 @@ typographic family names when available, bringing light and semibold variants in
 family. If a query matches no typographic family, legacy family names are searched instead;
 asking for a separately named light family still selects that family's faces.
 
+On Linux, [[Pixel.FontCatalog.loadSystem]] scans conventional system and user font directories
+into a fresh snapshot. It includes the XDG user data directory and legacy `$HOME/.fonts`,
+ignores unavailable directories and invalid fonts, and does not consult Fontconfig aliases.
+
 ## Load an installed family
 
 On Windows and Linux, [[Pixel.FontFamily.enumerateSystemFontNames]] returns owned names for a
@@ -69,6 +73,32 @@ if let face = try Pixel.FontFamily.createTypeFace("Example Sans", .BoldItalic)
     let font = cache.createFont(face, 20)
 }
 ```
+
+For a selector that retains native face descriptions, use
+[[Pixel.FontFamily.enumerateSystemFonts]] or [[Pixel.FontFamily.findSystemFont]] and pass the
+returned [[Pixel.SystemFontFamilyInfo]] to [[Pixel.FontFamily.createTypeFace]]. Linux descriptors
+own file paths, collection indices, and metadata; Windows descriptors contain GDI face data.
+Linux selects the closest installed face for every style slot from the shared process snapshot.
+A descriptor remains usable independently of the array that returned it, but its backing font
+file must still exist when first loaded.
+
+## Choose fallback fonts
+
+[[Pixel.Font.resolveRune]] keeps a character in the primary face when it is covered, then
+searches the ordered list supplied to [[Pixel.FontCache.setFallbackTypeFaces]]. Windows and
+Linux search installed fonts last unless system fallback is disabled. Resolved fonts preserve
+the primary size and render mode and synthesize bold or italic when needed. A character absent
+from every candidate keeps the primary font's missing glyph.
+
+```swag
+var cache: Pixel.FontCache
+let symbols = try Pixel.TypeFace.load("fonts/symbols.ttf")
+cache.setFallbackTypeFaces([symbols], false)
+```
+
+Passing `false` limits lookup to the supplied faces. System discovery and rune lookups are
+cached; Linux shares one installed-font snapshot across family enumeration, selected-family
+loading, and missing-character lookup. The first such request initializes the snapshot.
 
 ## Rich text
 

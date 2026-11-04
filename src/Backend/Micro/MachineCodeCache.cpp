@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -24,8 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC                = 0x3445444f434d5753; // SWMCODE4
-    constexpr uint32_t K_CHECKSUM_OFFSET      = 48;
+    constexpr uint64_t K_MAGIC                = 0x3645444f434d5753; // SWMCODE6
+    constexpr uint32_t K_CHECKSUM_OFFSET      = 56;
     constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE      = 28;
     constexpr uint32_t K_SOURCE_SIZE          = 12;
@@ -44,20 +45,21 @@ namespace
         return (static_cast<uint64_t>(source.srcViewRef.get()) << 32) | source.tokRef.get();
     }
 
-    void appendTypeQualifiers(ByteArray& out, TaskContext& ctx, const TypeRef typeRef, const ABITypeNormalize::Usage usage)
+    void appendTypeQualifiers(ByteArray& out, TaskContext& ctx, const TypeRef typeRef, const ABITypeNormalize::Usage usage, CallConvKind callConvKind)
     {
         out.appendLe32(typeRef.isValid());
         if (typeRef.isInvalid())
             return;
         out.appendLe32(ctx.typeMgr().get(typeRef).flags().get());
         out.appendLe32(ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef).flags().get());
-        const auto shape = ABITypeNormalize::normalize(ctx, CallConv::get(CallConvKind::Swag), ctx.typeMgr().get(typeRef), usage);
+        const auto shape = ABITypeNormalize::normalize(ctx, CallConv::get(callConvKind), ctx.typeMgr().get(typeRef), usage);
         out.pushBack(static_cast<std::byte>(shape.isVoid));
         out.pushBack(static_cast<std::byte>(shape.isFloat));
         out.pushBack(static_cast<std::byte>(shape.isSigned));
         out.pushBack(static_cast<std::byte>(shape.isIndirect));
         out.pushBack(static_cast<std::byte>(shape.needsIndirectCopy));
         out.pushBack(static_cast<std::byte>(shape.numBits));
+        out.pushBack(static_cast<std::byte>(shape.systemVClasses));
         out.appendLe32(shape.indirectSize);
         out.appendLe32(shape.indirectAlign);
     }
@@ -112,10 +114,10 @@ namespace
         out.appendLe64(function.freesIndirectParamsMask());
         // Runtime type identity deliberately ignores nullability. The static
         // sanitizer consumes it, so the emitted-code identity keeps it here.
-        appendTypeQualifiers(out, ctx, function.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        appendTypeQualifiers(out, ctx, function.returnTypeRef(), ABITypeNormalize::Usage::Return, function.callConvKind());
         out.appendLe32(static_cast<uint32_t>(function.parameters().size()));
         for (const SymbolVariable* parameter : function.parameters())
-            appendTypeQualifiers(out, ctx, parameter->typeRef(), ABITypeNormalize::Usage::Argument);
+            appendTypeQualifiers(out, ctx, parameter->typeRef(), ABITypeNormalize::Usage::Argument, function.callConvKind());
         if (function.isForeign())
         {
             appendString(out, function.resolveForeignModuleName(ctx).view());
@@ -434,6 +436,8 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     const CommandLine& command = ctx.cmdLine();
     ByteArray          identity;
     appendString(identity, compilerIdentity);
+    identity.appendLe64(K_MAGIC);
+    identity.appendLe32(static_cast<uint32_t>(hostTargetOs()));
     builder.backendBuildCfg().appendCacheIdentity(identity);
     identity.appendLe32(ctx.compiler().buildCfg().backend.enableExceptions);
     identity.appendLe32(static_cast<uint32_t>(command.targetOs));
@@ -441,6 +445,7 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     identity.appendLe32(!command.scriptMode && Runtime::backendKindProducesNativeArtifact(ctx.compiler().buildCfg().backendKind));
     identity.appendLe32(builder.usesIntReturnRegOnRet());
     identity.appendLe32(builder.usesFloatReturnRegOnRet());
+    identity.appendLe64(builder.extraReturnRegsOnRet());
     identity.appendLe32(function.debugStackBaseReg().packed);
     identity.appendLe32(function.debugStackFrameSize());
     identity.appendLe32(function.attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards));
@@ -539,9 +544,11 @@ bool MachineCodeCache::read(MachineCode& out) const
         return false;
     const ByteView& bytes    = record.bytes;
     const uint32_t  codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
+    const uint32_t  hostUnwindSize = bytes.readLe32(48);
+    const uint32_t  tlsAccesses = bytes.readLe32(52);
     const uint32_t  relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
     const uint32_t  constants = bytes.readLe32(40), constantBytes = bytes.readLe32(44);
-    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE;
+    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + hostUnwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE + static_cast<uint64_t>(tlsAccesses) * 12;
     if (constantsStart + constantBytes != bytes.size() || !codeSize || constants > constantBytes / (K_CONSTANT_HEADER_SIZE + 1))
         return false;
     std::array<uint8_t, 32> checksum;
@@ -580,13 +587,15 @@ bool MachineCodeCache::read(MachineCode& out) const
     cursor += codeSize;
     code.unwindInfo.append(bytes.span().subspan(cursor, unwindSize));
     cursor += unwindSize;
+    code.hostUnwindInfo.append(bytes.span().subspan(cursor, hostUnwindSize));
+    cursor += hostUnwindSize;
     for (uint32_t index = 0; index < relocations; ++index, cursor += K_RELOCATION_SIZE)
     {
         const uint32_t target          = bytes.readLe32(cursor);
         const uint32_t form            = bytes.readLe32(cursor + 4);
         const bool     generatedTarget = (target & K_GENERATED_CONSTANT) != 0;
         const uint32_t targetIndex     = target & ~K_GENERATED_CONSTANT;
-        if (form > static_cast<uint32_t>(MicroRelocation::Form::Relative32) || (generatedTarget ? targetIndex >= generated.size() : targetIndex >= targets_.size()))
+        if (form > static_cast<uint32_t>(MicroRelocation::Form::IndirectRelative32) || (generatedTarget ? targetIndex >= generated.size() : targetIndex >= targets_.size()))
             return false;
         MicroRelocation relocation   = generatedTarget ? MicroRelocation{} : targets_[targetIndex];
         relocation.form              = static_cast<MicroRelocation::Form>(form);
@@ -594,7 +603,7 @@ bool MachineCodeCache::read(MachineCode& out) const
         relocation.relativeEndOffset = bytes.readLe32(cursor + 12);
         relocation.constantCopySize  = bytes.readLe32(cursor + 16);
         const auto     delta         = static_cast<int64_t>(bytes.readLe64(cursor + 20));
-        const uint32_t width         = relocation.form == MicroRelocation::Form::Relative32 ? 4 : 8;
+        const uint32_t width         = relocation.form == MicroRelocation::Form::Absolute64 ? 8 : 4;
         if (relocation.codeOffset > codeSize || codeSize - relocation.codeOffset < width || relocation.relativeEndOffset > codeSize)
             return false;
         if (generatedTarget)
@@ -636,6 +645,9 @@ bool MachineCodeCache::read(MachineCode& out) const
                 relocation.constantOffset = static_cast<uint32_t>(offset);
             }
         }
+        if (relocation.form == MicroRelocation::Form::IndirectRelative32 &&
+            (relocation.constantCopySize || (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress && relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)))
+            return false;
         relocation.instructionRef = MicroInstrRef::invalid();
         code.codeRelocations.push_back(relocation);
     }
@@ -648,6 +660,13 @@ bool MachineCodeCache::read(MachineCode& out) const
         auto debugSourceInfo        = sources_[source];
         debugSourceInfo.debugNoStep = (sourceFlags >> 31) != 0;
         code.debugSourceRanges.push_back({.codeStartOffset = start, .codeEndOffset = end, .debugSourceInfo = debugSourceInfo});
+    }
+    for (uint32_t index = 0; index < tlsAccesses; ++index, cursor += 12)
+    {
+        const X64TlsAccess access{bytes.readLe32(cursor), bytes.readLe32(cursor + 4), bytes.readLe32(cursor + 8)};
+        if (!access.valid(code.bytes.span()))
+            return false;
+        code.tlsAccesses.push_back(access);
     }
     out = std::move(code);
     return true;
@@ -677,7 +696,7 @@ void MachineCodeCache::write(const MachineCode& code) const
         records.appendLe32(relocation.relativeEndOffset);
         records.appendLe32(relocation.constantCopySize);
         records.appendLe64(static_cast<uint64_t>(delta));
-        if (relocation.form == MicroRelocation::Form::Relative32)
+        if (relocation.form != MicroRelocation::Form::Absolute64)
             image.writeLe32(relocation.codeOffset, 0);
         else
             image.writeLe64(relocation.codeOffset, 0);
@@ -709,10 +728,21 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.appendLe64(code.callClobbers);
     bytes.appendLe32(static_cast<uint32_t>(constants.indices.size()));
     bytes.appendLe32(static_cast<uint32_t>(constants.bytes.size()));
+    bytes.appendLe32(static_cast<uint32_t>(code.hostUnwindInfo.size()));
+    bytes.appendLe32(static_cast<uint32_t>(code.tlsAccesses.size()));
     bytes.resize(K_HEADER_SIZE, std::byte{0});
     bytes.append(image);
     bytes.append(code.unwindInfo);
+    bytes.append(code.hostUnwindInfo);
     bytes.append(records);
+    for (const X64TlsAccess& access : code.tlsAccesses)
+    {
+        if (!access.valid(code.bytes.span()))
+            return;
+        bytes.appendLe32(access.codeOffset);
+        bytes.appendLe32(access.destination);
+        bytes.appendLe32(access.slot);
+    }
     bytes.append(constants.bytes);
     if (bytes.size() > K_MAX_IMAGE_SIZE)
         return;

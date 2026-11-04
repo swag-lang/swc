@@ -136,7 +136,8 @@ namespace
         NativeBackendBuilder        nativeBuilder(compiler, false);
         const NativeArtifactBuilder artifactBuilder(nativeBuilder);
         artifactBuilder.queryPaths(result.paths);
-        result.toolchainResult = Linker::queryToolchainPaths(nativeBuilder, result.toolchain);
+        if (cmdLine.targetOs == Runtime::TargetOs::Windows)
+            result.toolchainResult = Linker::queryToolchainPaths(nativeBuilder, result.toolchain);
         return result;
     }
 
@@ -366,7 +367,7 @@ namespace
         addInfoEntry(entries, "Artifact path", nativePreview.paths.artifactPath);
         if (!nativePreview.paths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
-        addInfoEntry(entries, "Link inputs", "in memory");
+        addInfoEntry(entries, "Link inputs", ctx.cmdLine().targetOs == Runtime::TargetOs::Linux ? "ELF objects in a temporary link directory" : "in memory");
 
         Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
@@ -378,7 +379,10 @@ namespace
 
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Linker", "integrated (in-process)");
+        if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
+            addInfoEntry(entries, "Linker", nativePreview.backendKind == Runtime::BuildCfgBackendKind::StaticLibrary ? "ar @arguments.rsp" : "cc @arguments.rsp");
+        else
+            addInfoEntry(entries, "Linker", "integrated (in-process)");
 
         if (nativePreview.mayRunArtifact)
         {
@@ -400,7 +404,14 @@ namespace
 
         std::vector<Logger::FieldEntry> entries;
 
-        CommandPrint::addNativeToolchainEntries(entries, nativePreview.toolchainResult, nativePreview.toolchain);
+        if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
+        {
+            addInfoEntry(entries, "Object format", "ELF64 (x86-64)");
+            addInfoEntry(entries, "Compiler driver", "cc (from PATH at link time)");
+            addInfoEntry(entries, "Archive writer", "ar (from PATH at link time)");
+        }
+        else
+            CommandPrint::addNativeToolchainEntries(entries, nativePreview.toolchainResult, nativePreview.toolchain);
 
         Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
     }

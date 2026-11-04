@@ -110,6 +110,8 @@ struct Application
     keyboardFocusWnd:      *Wnd?     // Window currently holding the keyboard focus.
     mouseCaptureWnd:       *Wnd?     // Window currently holding the mouse capture.
     mouseEnterWnd:         *Wnd?     // Window the mouse last entered.
+    nativeMouseButtons:    bool      // The native adapter dispatches queued mouse-button transitions.
+    nativeKeyboardEvents:  bool      // The native adapter dispatches queued keyboard transitions.
     nativeFocusTransition: bool      // Whether a logical focus move is synchronously changing the native focus.
 
     // Drag and drop tracking. A gesture carrying a payload gets no mouse events at all, so the
@@ -370,6 +372,10 @@ private impl Application
         if not targetWnd do
             return
 
+        // Queued native button packets have already delivered their transitions.
+        if .nativeMouseButtons do
+            return
+
         // Detect changes
         for i in (.mouse.previousState.pressed).count
         {
@@ -445,6 +451,8 @@ private impl Application
     mtd sendKeyboardEvents()
     {
         .keyboard.update()
+        if .nativeKeyboardEvents do
+            return
 
         // The state above is polled from the system, not read from this application's own message
         // stream, so it keeps moving while another application owns the keyboard. Presenting every
@@ -954,7 +962,7 @@ impl Application
     // Releases resources owned by this value.
     mtd opDrop()
     {
-        .releaseNativeFrameTimer()
+        .releaseNativeApplication()
         .animator.cancelAll()
         .setGlobalHotKeysEnabled(false)
 

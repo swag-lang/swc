@@ -17,6 +17,7 @@ SWC_BEGIN_NAMESPACE();
 struct MicroRelocation;
 class CompilerInstance;
 class Archive;
+class NativeElfFunctionCache;
 class Linker;
 class ScopedTimedLog;
 class SymbolFunction;
@@ -152,6 +153,8 @@ public:
     const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
     bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
 
+    Result remapRDataReferences(NativeSectionData& section);
+    Result buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation);
     Result appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
 
     bool                             tryReuseFunction(SymbolFunction& function);
@@ -298,6 +301,7 @@ private:
     LinkJob                 deferredToolRun_;
 
     std::unique_ptr<Archive>                                             existingFunctionCacheArchive_;
+    std::unique_ptr<NativeElfFunctionCache>                              existingElfFunctionCache_;
     std::unordered_map<Utf8, NativeFunctionCacheEntry>                   existingFunctionCacheEntries_;
     std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
     mutable std::mutex                                                   functionCacheMutex_;

@@ -67,6 +67,16 @@ project test command, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1
 ```
 
+On Linux, use the equivalent Python check (Python 3, procfs and cgroup v2):
+
+```sh
+python3 .agents/skills/modify-swag-codebase/scripts/check-machine-load.py
+```
+
+It uses the same sampling window and thresholds, also accounting for visible cgroup CPU and
+memory limits. Exit codes are 0 for `ready`, 2 for `wait`, and 1 when measurement is unavailable.
+The Linux host-test launcher runs this check separately before its build and test commands.
+
 The check samples CPU instead of trusting an instantaneous reading. It reports `ready` only when
 average CPU use is at most 65%, available physical memory is at least both 8 GiB and 25% of
 installed memory, and commit headroom is at least both 4 GiB and 10% of the commit limit. These are

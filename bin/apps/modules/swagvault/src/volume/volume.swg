@@ -296,6 +296,8 @@ impl Volume
 
         result.file.stream = try File.open(path, .CreateNew, .ReadWrite, .Read)
         created = true
+        #static if #os == Swag.TargetOs.Linux do
+            try result.file.acquireLock(false)
         try result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
@@ -372,6 +374,8 @@ impl Volume
             result.file.stream = try File.open(path, .Open, .Read, .Read)
         else do
             result.file.stream = try File.open(path, .Open, .ReadWrite, .Read)
+        #static if #os == Swag.TargetOs.Linux do
+            try result.file.acquireLock(readOnly)
         var completed = false
         defer
         {

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -154,7 +155,7 @@ namespace
         builder.emitLoadRegDataSegmentReloc(targetReg, DataSegmentKind::GlobalZero, compiler.nativeProcessInfoOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfo, args)));
 
         const MicroReg wordReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        for (uint64_t offset = 0; offset < sizeof(Runtime::String); offset += sizeof(uint64_t))
+        for (uint64_t offset = 0; offset < offsetof(Runtime::ProcessInfo, arguments) + sizeof(Runtime::Slice<Runtime::String>) - offsetof(Runtime::ProcessInfo, args); offset += sizeof(uint64_t))
         {
             builder.emitLoadRegMem(wordReg, processArgsReg, offset, MicroOpBits::B64);
             builder.emitLoadMemReg(targetReg, offset, wordReg, MicroOpBits::B64);
@@ -430,7 +431,9 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     info.machineCode = machineCode.get();
     info.sortKey     = runtimeHookSymbolName(artifactScope.view());
     info.symbolName  = info.sortKey;
-    if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
+    // ELF publishes the generic lookup alias at shared-library link time. Object members
+    // also enter companion archives, where that alias would collide across modules.
+    if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary && compiler.cmdLine().targetOs != Runtime::TargetOs::Linux)
         info.exportName = K_SHARED_RUNTIME_HOOK_SYMBOL;
     info.debugName = std::format("{}::__runtimeHook", artifactScope);
     info.exported  = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
@@ -547,13 +550,13 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.outDir = outPaths.workDir;
 
     outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
-    outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
+    outPaths.pdbPath      = builder_->ctx().cmdLine().targetOs == Runtime::TargetOs::Windows ? outPaths.outDir / std::format("{}.pdb", outPaths.name) : fs::path{};
 
     // A shared library also publishes the archive built from the same objects, so that an
     // executable can link this module's code in instead of importing it from the DLL.
     const fs::path& staticLibraryOutDir = builder_->ctx().cmdLine().staticLibraryOutDir;
     if (!staticLibraryOutDir.empty() && builder_->compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
-        outPaths.staticLibraryPath = staticLibraryOutDir / std::format("{}.lib", outPaths.name);
+        outPaths.staticLibraryPath = staticLibraryOutDir / std::format("{}{}", outPaths.name, builder_->ctx().cmdLine().targetOs == Runtime::TargetOs::Linux ? ".a" : ".lib");
 
     if (!numObjects)
         return;
@@ -569,6 +572,15 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
 {
     switch (builder_->ctx().cmdLine().targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            switch (builder_->compiler().buildCfg().backendKind)
+            {
+                case Runtime::BuildCfgBackendKind::Executable: return "";
+                case Runtime::BuildCfgBackendKind::SharedLibrary: return ".so";
+                case Runtime::BuildCfgBackendKind::StaticLibrary: return ".a";
+                default: break;
+            }
+            break;
         case Runtime::TargetOs::Windows:
             switch (builder_->compiler().buildCfg().backendKind)
             {
@@ -593,6 +605,8 @@ Utf8 NativeArtifactBuilder::objectExtension() const
 {
     switch (builder_->ctx().cmdLine().targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            return ".o";
         case Runtime::TargetOs::Windows:
             return ".obj";
     }
@@ -690,13 +704,13 @@ Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
 void NativeArtifactBuilder::resetDataSections() const
 {
     builder_->mergedRData.name            = ".rdata";
-    builder_->mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedRData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedData.name            = ".data";
-    builder_->mergedData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedBss.name            = ".bss";
-    builder_->mergedBss.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+    builder_->mergedBss.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_16BYTES;
 
     builder_->mergedRData.bytes.clear();
     builder_->mergedRData.relocations.clear();
@@ -1019,6 +1033,24 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
     uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
+
+    if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
+    {
+        startup->symbolName = "main";
+        startup->debugName = "main";
+        const auto* argumentsFunction = builder_->compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SetupUnixArguments);
+        SWC_ASSERT(argumentsFunction);
+        if (!argumentsFunction)
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+        const CallConv& incoming = CallConv::get(CallConvKind::SystemVAMD64);
+        const MicroReg argcReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        const MicroReg argvReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegReg(argcReg, incoming.intArgRegs[0], MicroOpBits::B32);
+        builder.emitLoadRegReg(argvReg, incoming.intArgRegs[1], MicroOpBits::B64);
+        const std::array<ABICall::PreparedArg, 2> arguments = {{{.srcReg = argcReg, .numBits = 32}, {.srcReg = argvReg, .numBits = 64}}};
+        const auto prepared = ABICall::prepareArgs(builder, argumentsFunction->callConvKind(), arguments);
+        ABICall::callLocal(builder, argumentsFunction->callConvKind(), argumentsFunction, prepared);
+    }
 
     const IdentifierRef   setupRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
     const IdentifierRef   closeRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);

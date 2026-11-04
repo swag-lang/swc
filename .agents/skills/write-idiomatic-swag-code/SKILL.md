@@ -364,6 +364,11 @@ let renderer: IRenderer = &cpu
 - Omit redundant explicit types and conversions when the compiler preserves the intended type.
   Keep casts that document or enforce narrowing, signedness, representation, pointer nullability,
   native ABI boundaries, or bit reinterpretation.
+- At a native ABI boundary, reinterpret unrelated native struct pointers through `*void` (or
+  `const *void`), after checking the native layout discriminator. A direct struct-pointer cast
+  requests Swag dynamic type conversion; `cast #bit` accepts numeric scalars, not pointers.
+  The socket adapters in `net/src/tcp.win32.swg` and Linux `sockaddr_ll` handling demonstrate
+  this boundary. Never use the opaque-pointer escape to bypass a required Swag type check.
 - Prefer enum shorthand such as `.Linear`, inferred aggregate literals, and inferred local types
   when their context is unambiguous.
 - Let the destination name the struct a brace literal builds: `var p: Point = {1, 2}`,

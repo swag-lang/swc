@@ -5,7 +5,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
-#include "Compiler/Sema/Symbol/Symbol.impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 
@@ -95,7 +95,7 @@ namespace
         return inDeclaringModule(sema, method, siteViewRef) && inDeclaringType(sema, ownerStruct, siteViewRef);
     }
 
-    __forceinline bool canAccessMemberInOwner(Sema& sema, const SymbolVariable& field, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
+    SWC_FORCE_INLINE bool canAccessMemberInOwner(Sema& sema, const SymbolVariable& field, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
     {
         if (!inDeclaringModule(sema, field, siteViewRef))
             return false;

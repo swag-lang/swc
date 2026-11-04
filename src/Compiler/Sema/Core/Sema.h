@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"

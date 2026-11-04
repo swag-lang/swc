@@ -654,10 +654,8 @@ namespace Integration
         let mountedRoot      = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")
 
-        // Passing a quoted drive root (for example "Y:\\") is ambiguous in the
-        // Windows command-line grammar because the trailing slash escapes the quote.
-        // Pass the complete marker path, which cannot end in a path separator.
-        let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, visibilityMarker)
+        // Separate argument values preserve the marker path without manual quoting.
+        let probeArguments = [VisibilityProbeArgument, visibilityMarker.toString()]
         let executablePath = Env.Process.currentExecutablePath()
         var probe          = Env.startProcess(executablePath, probeArguments)
         let probeExitCode  = probe.waitForExit()

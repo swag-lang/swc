@@ -156,7 +156,7 @@ void MicroEmitPass::bindRel32RelocationOffset(const MicroPassContext& context, M
 
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint32_t) + trailingBytes);
     MicroRelocation& reloc = context.builder->codeRelocations()[relocationIndex];
-    SWC_ASSERT(reloc.form == MicroRelocation::Form::Relative32);
+    SWC_ASSERT(reloc.form == MicroRelocation::Form::Relative32 || reloc.form == MicroRelocation::Form::IndirectRelative32);
     reloc.codeOffset = codeEndOffset - trailingBytes - sizeof(uint32_t);
 
     // A RIP-relative displacement is measured from the end of the instruction,
@@ -263,6 +263,19 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
                 // have no segment source and must retain their absolute form.
                 relocation.form = MicroRelocation::Form::Relative32;
                 encoder.encodeLoadAddressRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+                bindRel32RelocationOffset(context, instructionRef, loadStart, encoder.size());
+                break;
+            }
+
+            const CompilerInstance& compiler = context.builder->ctx().compiler();
+            if (compiler.cmdLine().targetOs == Runtime::TargetOs::Linux && !compiler.cmdLine().scriptMode &&
+                Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind) &&
+                (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress))
+            {
+                // A GOT load keeps external pointer identity; the ELF linker may relax
+                // locally bound functions to LEA. JIT patching supplies a nearby pointer slot.
+                relocation.form = MicroRelocation::Form::IndirectRelative32;
+                encoder.encodeLoadRegMem(ops[0].reg, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
                 bindRel32RelocationOffset(context, instructionRef, loadStart, encoder.size());
                 break;
             }
@@ -850,6 +863,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
     }
 
     collectLoopHeaders(context);
+    encoder.prepareUnwind(*context.builder, context.callConvKind);
 
     for (;;)
     {

@@ -71,6 +71,11 @@ let preview = try reader.readChunk(previewId)
     #import("xinput")
 }
 
+#static if #os == Swag.TargetOs.Linux
+{
+    #import("linux")
+}
+
 #run
 {
     let itf = Swag.compiler()

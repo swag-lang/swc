@@ -1,10 +1,10 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Support/Core/StringMap.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -40,14 +40,14 @@ namespace
         return {begin, len};
     }
 
-    std::string_view symbolNameView(const IMAGE_SYMBOL& record, std::span<const std::byte> bytes, size_t symbolOffset, size_t stringTableOffset)
+    std::string_view symbolNameView(const PE::Symbol& record, std::span<const std::byte> bytes, size_t symbolOffset, size_t stringTableOffset)
     {
         if (record.N.Name.Short != 0)
         {
-            // Borrow from the input image, not the temporary IMAGE_SYMBOL copy.
-            const auto* shortName = reinterpret_cast<const char*>(bytes.data() + symbolOffset + offsetof(IMAGE_SYMBOL, N));
+            // Borrow from the input image, not the temporary PE::Symbol copy.
+            const auto* shortName = reinterpret_cast<const char*>(bytes.data() + symbolOffset + offsetof(PE::Symbol, N));
             size_t      len       = 0;
-            while (len < IMAGE_SIZEOF_SHORT_NAME && shortName[len] != '\0')
+            while (len < PE::SIZEOF_SHORT_NAME && shortName[len] != '\0')
                 ++len;
             return {shortName, len};
         }
@@ -59,15 +59,15 @@ namespace
 EnumFlags<LinkSectionFlagsE> linkSectionFlagsFromCoffCharacteristics(uint32_t characteristics)
 {
     EnumFlags<LinkSectionFlagsE> flags;
-    if (characteristics & IMAGE_SCN_CNT_CODE)
+    if (characteristics & PE::SCN_CNT_CODE)
         flags.add(LinkSectionFlagsE::Code);
-    if (characteristics & IMAGE_SCN_MEM_EXECUTE)
+    if (characteristics & PE::SCN_MEM_EXECUTE)
         flags.add(LinkSectionFlagsE::Execute);
-    if (characteristics & IMAGE_SCN_MEM_READ)
+    if (characteristics & PE::SCN_MEM_READ)
         flags.add(LinkSectionFlagsE::Read);
-    if (characteristics & IMAGE_SCN_MEM_WRITE)
+    if (characteristics & PE::SCN_MEM_WRITE)
         flags.add(LinkSectionFlagsE::Write);
-    if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+    if (characteristics & PE::SCN_CNT_UNINITIALIZED_DATA)
         flags.add(LinkSectionFlagsE::Uninit);
 
     return flags;
@@ -77,13 +77,13 @@ bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
 {
     switch (type)
     {
-        case IMAGE_REL_AMD64_ADDR64:
+        case PE::REL_AMD64_ADDR64:
             outKind = LinkRelocKind::Abs64;
             return true;
-        case IMAGE_REL_AMD64_ADDR32NB:
+        case PE::REL_AMD64_ADDR32NB:
             outKind = LinkRelocKind::Rva32;
             return true;
-        case IMAGE_REL_AMD64_REL32:
+        case PE::REL_AMD64_REL32:
             outKind = LinkRelocKind::Rel32;
             return true;
         default:
@@ -102,32 +102,32 @@ namespace
 
     bool readCoffContent(std::vector<CoffInputSymbol>& outSymbols, std::vector<CoffInputSection>* outSections, Diagnostic& outDiag, const std::span<const std::byte> bytes)
     {
-        IMAGE_FILE_HEADER fileHeader{};
+        PE::FileHeader fileHeader{};
         if (!tryReadValue(fileHeader, bytes, 0))
         {
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_header);
             return false;
         }
 
-        if (fileHeader.Machine != IMAGE_FILE_MACHINE_AMD64)
+        if (fileHeader.Machine != PE::FILE_MACHINE_AMD64)
         {
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_machine);
             return false;
         }
 
-        const size_t sectionTableOffset = sizeof(IMAGE_FILE_HEADER) + fileHeader.SizeOfOptionalHeader;
+        const size_t sectionTableOffset = sizeof(PE::FileHeader) + fileHeader.SizeOfOptionalHeader;
         const size_t sectionCount       = fileHeader.NumberOfSections;
         const size_t symbolTableOffset  = fileHeader.PointerToSymbolTable;
         const size_t symbolCount        = fileHeader.NumberOfSymbols;
-        const size_t stringTableOffset  = symbolTableOffset + symbolCount * sizeof(IMAGE_SYMBOL);
+        const size_t stringTableOffset  = symbolTableOffset + symbolCount * sizeof(PE::Symbol);
 
         // Views stay within this call; copy names only when they become owned output symbols or
         // relocations. Auxiliary records retain their index but have no name of their own.
         std::vector<CoffSymbolRecordView> records(symbolCount);
         for (size_t i = 0; i < symbolCount;)
         {
-            const size_t symbolOffset = symbolTableOffset + i * sizeof(IMAGE_SYMBOL);
-            IMAGE_SYMBOL record{};
+            const size_t symbolOffset = symbolTableOffset + i * sizeof(PE::Symbol);
+            PE::Symbol record{};
             if (!tryReadValue(record, bytes, symbolOffset))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
@@ -148,8 +148,8 @@ namespace
 
         for (size_t s = 0; s < sectionCount; ++s)
         {
-            IMAGE_SECTION_HEADER header{};
-            if (!tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
+            PE::SectionHeader header{};
+            if (!tryReadValue(header, bytes, sectionTableOffset + s * sizeof(PE::SectionHeader)))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_section);
                 return false;
@@ -158,15 +158,15 @@ namespace
             CoffInputSection* section = outSections ? &(*outSections)[s] : nullptr;
             if (section)
             {
-                char nameBuffer[IMAGE_SIZEOF_SHORT_NAME + 1] = {};
-                std::memcpy(nameBuffer, header.Name, IMAGE_SIZEOF_SHORT_NAME);
+                char nameBuffer[PE::SIZEOF_SHORT_NAME + 1] = {};
+                std::memcpy(nameBuffer, header.Name, PE::SIZEOF_SHORT_NAME);
                 section->name            = Utf8{std::string_view{nameBuffer}};
                 section->characteristics = header.Characteristics;
-                section->isBss           = (header.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0;
+                section->isBss           = (header.Characteristics & PE::SCN_CNT_UNINITIALIZED_DATA) != 0;
                 section->bssSize         = section->isBss ? header.SizeOfRawData : 0;
             }
 
-            const bool isUninit = (header.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0;
+            const bool isUninit = (header.Characteristics & PE::SCN_CNT_UNINITIALIZED_DATA) != 0;
             if (!isUninit && header.SizeOfRawData != 0 && header.PointerToRawData != 0)
             {
                 if (!containsRange(bytes, header.PointerToRawData, header.SizeOfRawData))
@@ -183,15 +183,15 @@ namespace
                 }
             }
 
-            if (header.NumberOfRelocations == 0 && (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
+            if (header.NumberOfRelocations == 0 && (header.Characteristics & PE::SCN_LNK_NRELOC_OVFL) == 0)
                 continue;
 
             size_t   relocOffset = header.PointerToRelocations;
             uint32_t relocCount  = header.NumberOfRelocations;
-            if (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            if (header.Characteristics & PE::SCN_LNK_NRELOC_OVFL)
             {
                 // The real count lives in the first record; skip that placeholder.
-                IMAGE_RELOCATION overflow{};
+                PE::Relocation overflow{};
                 if (!tryReadValue(overflow, bytes, relocOffset))
                 {
                     outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
@@ -199,7 +199,7 @@ namespace
                 }
 
                 relocCount = overflow.RelocCount;
-                relocOffset += sizeof(IMAGE_RELOCATION);
+                relocOffset += sizeof(PE::Relocation);
                 if (relocCount > 0)
                     relocCount -= 1;
             }
@@ -209,8 +209,8 @@ namespace
 
             for (uint32_t r = 0; r < relocCount; ++r)
             {
-                IMAGE_RELOCATION reloc{};
-                if (!tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
+                PE::Relocation reloc{};
+                if (!tryReadValue(reloc, bytes, relocOffset + r * sizeof(PE::Relocation)))
                 {
                     outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_relocs);
                     return false;

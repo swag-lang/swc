@@ -81,6 +81,7 @@ namespace Runtime
         void*    panicCatch;
         void*    cancelScope;
         bool (*testCheck)(String, SourceCodeLocation);
+        void (*compilerRaise)(Context*);
     };
 }
 

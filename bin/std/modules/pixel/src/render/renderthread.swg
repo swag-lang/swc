@@ -80,6 +80,11 @@ impl RenderThread
     // Reports whether the worker has been started and not yet closed.
     mtd const isStarted()->bool => .thread.isValid()
 
+    // Reports whether another frame can start without waiting for presentation.
+    //
+    // Before start and after close this returns true. It never consumes the completion signal.
+    public mtd isReady()->bool => not .isStarted() or .completedSerial.load() == .requestSerial
+
     // Waits until the pending presentation is complete; does nothing before start or after close.
     //
     // A native wait or completion-signal failure is consumed once, after the worker releases

@@ -1,5 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if #os == Swag.TargetOs.Windows
+#global if #os == Swag.TargetOs.Windows or #os == Swag.TargetOs.Linux
 #global private
 
 using Core

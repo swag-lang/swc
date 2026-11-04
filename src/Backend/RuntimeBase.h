@@ -16,6 +16,7 @@ namespace Runtime
     enum class TargetOs
     {
         Windows,
+        Linux,
     };
 
     enum class CompilerCommand

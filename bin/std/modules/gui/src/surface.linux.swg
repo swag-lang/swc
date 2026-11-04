@@ -288,7 +288,11 @@ impl Surface
         .painter.drawTexture(area, area, target.colorBuffer, Argb.White)
         .painter.end()
         .app.renderer.unbindRenderTarget()
-        .app.renderer.draw(&.painter)
+        catch .app.renderer.draw(&.painter)
+        {
+            .renderFailure = Errors.message(Swag.err)
+            return false
+        }
         .preparedFrame = true
         return true
     }

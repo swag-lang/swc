@@ -20,8 +20,8 @@ struct ArchiveImport
     bool     isData    = false;
 };
 
-// Reads COFF static and import libraries. Symbol lookup decodes only the first
-// linker member; the linker then loads the referenced members on demand.
+// Reads GNU/COFF static archives and COFF import libraries with 32-bit indexes.
+// Symbol lookup decodes only the first linker member; referenced objects are loaded on demand.
 class Archive
 {
 public:
@@ -41,6 +41,10 @@ public:
     // Returns the file offset of the member header defining the given symbol, or 0 if this archive
     // does not provide it (0 is never a valid member offset because the magic occupies offset 0).
     uint32_t memberOffsetForSymbol(const Utf8& symbol) const;
+
+    // ELF COMMON definitions can be superseded by a strong definition in a later member.
+    // Return every matching directory entry without changing first-definition COFF lookup.
+    std::vector<uint32_t> memberOffsetsForSymbol(const Utf8& symbol) const;
 
     // Returns the raw member contents at the given member-header offset.
     std::span<const std::byte> memberData(Diagnostic& outDiag, uint32_t headerOffset) const;

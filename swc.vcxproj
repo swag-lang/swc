@@ -257,6 +257,8 @@
         <ClCompile Include="src\Backend\Linker\ObjectWriter.elf.cpp"/>
         <ClCompile Include="src\Backend\Linker\SymbolTable.elf.cpp"/>
         <ClCompile Include="src\Backend\Linker\Linker.elf.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFReader.cpp"/>
+        <ClCompile Include="src\Backend\Linker\ELFImageWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
         <ClCompile Include="src\Backend\Linker\PEWriter.cpp"/>
         <ClCompile Include="src\Backend\Linker\PdbWriter.cpp"/>
@@ -935,6 +937,8 @@
         <ClInclude Include="src\Backend\Linker\ObjectWriter.elf.h"/>
         <ClInclude Include="src\Backend\Linker\SymbolTable.elf.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.elf.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFReader.h"/>
+        <ClInclude Include="src\Backend\Linker\ELFImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h"/>
         <ClInclude Include="src\Backend\Linker\PEFormat.h"/>

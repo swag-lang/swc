@@ -1261,3 +1261,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: richer Linux debug records describe the surviving values and scopes without
   inventing locations for optimized-away storage.
 - Related: platform.portability.005
+
+### platform.portability.095 — Extend foreign ELF archive ABI coverage
+
+- Evidence: the integrated ELF image writer rejects foreign static TLS sections, direct
+  TLS-variable imports and local IFUNC resolvers. Swag-generated objects use pthread-based
+  TLS and ordinary functions, so these input forms require separate foreign-ABI support.
+- Next: add reduced C/archive fixtures for TLS models and local IFUNC resolvers; implement
+  PT_TLS and the corresponding TLS relocations, then IRELATIVE/GOT/PLT resolver handling.
+- Done when: foreign TLS storage is isolated across native threads, local IFUNC calls and
+  pointers agree in executables and shared objects, and these tests pass without external
+  link tools. Imported DSOs may continue to handle their own TLS and IFUNC implementations.

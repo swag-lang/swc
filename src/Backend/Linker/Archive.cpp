@@ -115,6 +115,12 @@ bool Archive::decode(Diagnostic& outDiag)
         return false;
     }
 
+    if (std::memcmp(bytes_.data() + firstHeader, "/SYM64/", 7) == 0)
+    {
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_index);
+        return false;
+    }
+
     uint32_t memberSize = 0;
     if (!parseMemberSize(memberSize, bytes_, firstHeader))
     {
@@ -154,6 +160,12 @@ bool Archive::decode(Diagnostic& outDiag)
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
+        if (nameLen == memberEnd - nameCursor)
+        {
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_names);
+            return false;
+        }
+
         const uint32_t         memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
         const std::string_view name{nameStart, nameLen};
         symbolToMember_.try_emplace(name, Math::hash(name), memberOffset);
@@ -167,6 +179,35 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 {
     const uint32_t* memberOffset = symbolToMember_.find(symbol.view(), Math::hash(symbol.view()));
     return memberOffset ? *memberOffset : 0;
+}
+
+std::vector<uint32_t> Archive::memberOffsetsForSymbol(const Utf8& symbol) const
+{
+    std::vector<uint32_t> result;
+    uint32_t size = 0;
+    constexpr size_t data = ARCHIVE_MAGIC.size() + MEMBER_HEADER_SIZE;
+    if (!parseMemberSize(size, bytes_, ARCHIVE_MAGIC.size()) || size < 4 || !bytes_.containsRange(data, size))
+        return result;
+    const uint32_t count = bytes_.readBe32(data);
+    if (count > (size - 4) / 4)
+        return result;
+    size_t cursor = data + 4 + size_t{count} * 4;
+    const size_t end = data + size;
+    for (uint32_t index = 0; index < count && cursor < end; ++index)
+    {
+        const char* begin = reinterpret_cast<const char*>(bytes_.data() + cursor);
+        const auto* terminator = static_cast<const char*>(std::memchr(begin, 0, end - cursor));
+        if (!terminator)
+            return {};
+        if (std::string_view(begin, terminator) == symbol.view())
+        {
+            const uint32_t offset = bytes_.readBe32(data + 4 + size_t{index} * 4);
+            if (std::ranges::find(result, offset) == result.end())
+                result.push_back(offset);
+        }
+        cursor += terminator - begin + 1;
+    }
+    return result;
 }
 
 std::span<const std::byte> Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const

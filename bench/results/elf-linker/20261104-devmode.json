@@ -1,0 +1,1242 @@
+{
+  "recorded_at_utc": "2026-11-04T17:44:04.718547+00:00",
+  "compiler_configuration": "devmode",
+  "program_configuration": "devmode",
+  "rounds": 7,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "cpu_quota": "400000 100000",
+  "compiler_flags": [
+    "c++",
+    "-std=c++23",
+    "-O2",
+    "-g1",
+    "-DNDEBUG",
+    "-pthread",
+    "-march=x86-64-v3",
+    "-Wall",
+    "-Wextra",
+    "-fmax-errors=5",
+    "-I",
+    "/workspace/swc/src",
+    "-I",
+    "/workspace/swc/src/Support/Memory/mimalloc/include",
+    "-DSWC_DEV_MODE=1"
+  ],
+  "toolchain": "cc (Debian 14.2.0-19) 14.2.0",
+  "baseline_sha256": "8cfc033309e7435083860458ec63c7573faadddb6d0f0f9e50334f731a76a631",
+  "internal_sha256": "ec681fb49dbb858ff11657c63e607c193e8ddaeaeb698f82d42f160a2ef29e44",
+  "gnu_linker": "GNU ld (GNU Binutils for Debian) 2.44",
+  "link_scope": "in-memory objects through atomic image publication, including old materialization, response file, process, image read and cleanup; object generation excluded",
+  "compile_scope": "complete forced rebuild from sources, including parsing, code generation, dependency archives and image publication; execution validated outside timing",
+  "link_summary": [
+    {
+      "case": "executable/1",
+      "gnu": 66.636299,
+      "internal": 6.680037,
+      "saved_ms": 59.956261999999995,
+      "reduction_percent": 89.97537813437087,
+      "speedup": 9.975438609097525
+    },
+    {
+      "case": "executable/100",
+      "gnu": 76.039391,
+      "internal": 6.348112,
+      "saved_ms": 69.691279,
+      "reduction_percent": 91.65154807723276,
+      "speedup": 11.9782686568857
+    },
+    {
+      "case": "executable/1000",
+      "gnu": 180.528404,
+      "internal": 11.755547,
+      "saved_ms": 168.772857,
+      "reduction_percent": 93.48825628569784,
+      "speedup": 15.356869739876842
+    },
+    {
+      "case": "shared/1",
+      "gnu": 58.921021,
+      "internal": 5.702716,
+      "saved_ms": 53.218305,
+      "reduction_percent": 90.32142365625334,
+      "speedup": 10.33209807397037
+    },
+    {
+      "case": "shared/100",
+      "gnu": 65.24253,
+      "internal": 6.303056,
+      "saved_ms": 58.939474000000004,
+      "reduction_percent": 90.33903804772746,
+      "speedup": 10.350936117337369
+    },
+    {
+      "case": "shared/1000",
+      "gnu": 161.179828,
+      "internal": 10.784588,
+      "saved_ms": 150.39524,
+      "reduction_percent": 93.30897164129,
+      "speedup": 14.945385767170707
+    }
+  ],
+  "compile_summary": [
+    {
+      "case": "standalone",
+      "gnu": 836.8018069995742,
+      "internal": 876.0447580007167,
+      "saved_ms": -39.2429510011425,
+      "reduction_percent": -4.689635069246756,
+      "speedup": 0.9552043994981471
+    },
+    {
+      "case": "static",
+      "gnu": 3154.3488770003023,
+      "internal": 2664.7942189993046,
+      "saved_ms": 489.55465800099773,
+      "reduction_percent": 15.519990878959167,
+      "speedup": 1.1837119934104472
+    },
+    {
+      "case": "shared",
+      "gnu": 4050.5494109984284,
+      "internal": 4044.716073000018,
+      "saved_ms": 5.83333799841057,
+      "reduction_percent": 0.14401350055306406,
+      "speedup": 1.0014422119854964
+    }
+  ],
+  "link_samples": [
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 8.129493,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 66.636299,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 53.405846,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 5.841251,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 3.713688,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 68.79716,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 156.283768,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 80.51926,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 8.58005,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 86.874789,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 62.95398,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 6.680037,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 4.761031,
+      "bytes": 13608
+    },
+    {
+      "case": "executable/1",
+      "output": "executable",
+      "members": 1,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 43.521466,
+      "bytes": 15584
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 4.675468,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 74.891468,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 44.508752,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 7.552369,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 8.676586,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 81.604654,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 68.988009,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 6.348112,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 5.968203,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 76.039391,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 109.699037,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 4.88658,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 6.445174,
+      "bytes": 17160
+    },
+    {
+      "case": "executable/100",
+      "output": "executable",
+      "members": 100,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 85.350584,
+      "bytes": 19136
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 9.474341,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 189.33331,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 209.849544,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 11.755547,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 12.647371,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 201.482754,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 163.804703,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 13.981506,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 16.288703,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 160.557176,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 158.287728,
+      "bytes": 64728
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 9.277969,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 8.251533,
+      "bytes": 62744
+    },
+    {
+      "case": "executable/1000",
+      "output": "executable",
+      "members": 1000,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 180.528404,
+      "bytes": 64728
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 6.291143,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 46.37544,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 54.544695,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 22.766479,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 10.59464,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 76.321751,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 58.921021,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 4.852897,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 4.584196,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 49.251714,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 76.787702,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 5.702716,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 4.699929,
+      "bytes": 13456
+    },
+    {
+      "case": "shared/1",
+      "output": "shared",
+      "members": 1,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 74.763706,
+      "bytes": 14984
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 4.603471,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 78.291468,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 94.562029,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 8.892199,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 6.303056,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 65.24253,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 54.669947,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 8.762606,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 4.80011,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 66.715242,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 55.997311,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 6.924576,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 4.97834,
+      "bytes": 21112
+    },
+    {
+      "case": "shared/100",
+      "output": "shared",
+      "members": 100,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 54.071653,
+      "bytes": 22632
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 10.784588,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 575.26766,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 309.797142,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 7.929885,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 7.404507,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 136.864578,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 183.703793,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 12.933844,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 8.103985,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 132.84453,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 142.920654,
+      "bytes": 109184
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 16.765849,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 13.381862,
+      "bytes": 103560
+    },
+    {
+      "case": "shared/1000",
+      "output": "shared",
+      "members": 1000,
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 161.179828,
+      "bytes": 109184
+    }
+  ],
+  "compile_samples": [
+    {
+      "case": "standalone",
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 986.4157339998201
+    },
+    {
+      "case": "standalone",
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 815.3351040000416
+    },
+    {
+      "case": "standalone",
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 815.5720439990546
+    },
+    {
+      "case": "standalone",
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 834.2680360001395
+    },
+    {
+      "case": "standalone",
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 775.489343001027
+    },
+    {
+      "case": "standalone",
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 836.8018069995742
+    },
+    {
+      "case": "standalone",
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 818.2420039993303
+    },
+    {
+      "case": "standalone",
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 831.3773949994356
+    },
+    {
+      "case": "standalone",
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 1430.296973001532
+    },
+    {
+      "case": "standalone",
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 853.6674309998489
+    },
+    {
+      "case": "standalone",
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 928.8483639993501
+    },
+    {
+      "case": "standalone",
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 937.9997320011171
+    },
+    {
+      "case": "standalone",
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 876.0447580007167
+    },
+    {
+      "case": "standalone",
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 1014.1560149986617
+    },
+    {
+      "case": "static",
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 2561.722185999315
+    },
+    {
+      "case": "static",
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 3154.3488770003023
+    },
+    {
+      "case": "static",
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 3234.874444000525
+    },
+    {
+      "case": "static",
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 2218.4989900015353
+    },
+    {
+      "case": "static",
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 2262.067190999005
+    },
+    {
+      "case": "static",
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 2761.5681200004474
+    },
+    {
+      "case": "static",
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 6505.14406199909
+    },
+    {
+      "case": "static",
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 12440.589392999755
+    },
+    {
+      "case": "static",
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 6839.658619999682
+    },
+    {
+      "case": "static",
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 3904.7634529997595
+    },
+    {
+      "case": "static",
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 2755.111736998515
+    },
+    {
+      "case": "static",
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 2664.7942189993046
+    },
+    {
+      "case": "static",
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 2769.8737450009503
+    },
+    {
+      "case": "static",
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 2776.3797770003293
+    },
+    {
+      "case": "shared",
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 3973.3369700006733
+    },
+    {
+      "case": "shared",
+      "round": 1,
+      "implementation": "gnu",
+      "milliseconds": 4050.5494109984284
+    },
+    {
+      "case": "shared",
+      "round": 2,
+      "implementation": "gnu",
+      "milliseconds": 4219.883653999204
+    },
+    {
+      "case": "shared",
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 4044.716073000018
+    },
+    {
+      "case": "shared",
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 3836.3619569990988
+    },
+    {
+      "case": "shared",
+      "round": 3,
+      "implementation": "gnu",
+      "milliseconds": 3914.2311929990683
+    },
+    {
+      "case": "shared",
+      "round": 4,
+      "implementation": "gnu",
+      "milliseconds": 3721.1292310003046
+    },
+    {
+      "case": "shared",
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 3943.5739740001736
+    },
+    {
+      "case": "shared",
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 5889.463485000306
+    },
+    {
+      "case": "shared",
+      "round": 5,
+      "implementation": "gnu",
+      "milliseconds": 3964.2967820000194
+    },
+    {
+      "case": "shared",
+      "round": 6,
+      "implementation": "gnu",
+      "milliseconds": 4075.5269699984638
+    },
+    {
+      "case": "shared",
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 4398.165797001639
+    },
+    {
+      "case": "shared",
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 4455.0996420002775
+    },
+    {
+      "case": "shared",
+      "round": 7,
+      "implementation": "gnu",
+      "milliseconds": 4762.906254998597
+    }
+  ],
+  "baseline_commit": "1d663082027ae0781391e52cd9b18f0fe9333a7f",
+  "standalone_confirmation": {
+    "scope": "additional balanced standalone confirmation, one warm-up then eight alternating pairs; same binaries and source as main comparison",
+    "samples": [
+      {
+        "round": 1,
+        "implementation": "internal",
+        "milliseconds": 1102.470727999389,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 883 ms\n  \u2713  tuned       218 functions \u2022 55 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 144 ms\n  \u2713  clean       1 s 62 ms\n"
+      },
+      {
+        "round": 1,
+        "implementation": "gnu",
+        "milliseconds": 1153.1525049995253,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 877 ms\n  \u2713  tuned       218 functions \u2022 87 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 185 ms\n  \u2713  clean       1 s 98 ms\n"
+      },
+      {
+        "round": 2,
+        "implementation": "gnu",
+        "milliseconds": 1255.3205599997455,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 1 s 2 ms\n  \u2713  tuned       218 functions \u2022 78 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 178 ms\n  \u2713  clean       1 s 206 ms\n"
+      },
+      {
+        "round": 2,
+        "implementation": "internal",
+        "milliseconds": 1473.5864069989475,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 1 s 111 ms\n  \u2713  tuned       218 functions \u2022 159 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 277 ms\n  \u2713  clean       1 s 427 ms\n"
+      },
+      {
+        "round": 3,
+        "implementation": "internal",
+        "milliseconds": 1064.2485320004198,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 770 ms\n  \u2713  tuned       218 functions \u2022 96 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 220 ms\n  \u2713  clean       1 s 23 ms\n"
+      },
+      {
+        "round": 3,
+        "implementation": "gnu",
+        "milliseconds": 1110.1075299993681,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 787 ms\n  \u2713  tuned       218 functions \u2022 83 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 241 ms\n  \u2713  clean       1 s 50 ms\n"
+      },
+      {
+        "round": 4,
+        "implementation": "gnu",
+        "milliseconds": 1102.8936149996298,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 838 ms\n  \u2713  tuned       218 functions \u2022 96 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 203 ms\n  \u2713  clean       1 s 65 ms\n"
+      },
+      {
+        "round": 4,
+        "implementation": "internal",
+        "milliseconds": 975.9253550000722,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 715 ms\n  \u2713  tuned       218 functions \u2022 74 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 142 ms\n  \u2713  clean       874 ms\n"
+      },
+      {
+        "round": 5,
+        "implementation": "internal",
+        "milliseconds": 950.6021159995726,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 774 ms\n  \u2713  tuned       218 functions \u2022 70 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 120 ms\n  \u2713  clean       919 ms\n"
+      },
+      {
+        "round": 5,
+        "implementation": "gnu",
+        "milliseconds": 1275.4143230013142,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 985 ms\n  \u2713  tuned       218 functions \u2022 71 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 236 ms\n  \u2713  clean       1 s 237 ms\n"
+      },
+      {
+        "round": 6,
+        "implementation": "gnu",
+        "milliseconds": 1236.0898339993582,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 936 ms\n  \u2713  tuned       218 functions \u2022 90 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 231 ms\n  \u2713  clean       1 s 196 ms\n"
+      },
+      {
+        "round": 6,
+        "implementation": "internal",
+        "milliseconds": 949.4425259999844,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 756 ms\n  \u2713  tuned       218 functions \u2022 52 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 135 ms\n  \u2713  clean       915 ms\n"
+      },
+      {
+        "round": 7,
+        "implementation": "internal",
+        "milliseconds": 991.4082610011974,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 796 ms\n  \u2713  tuned       218 functions \u2022 70 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 131 ms\n  \u2713  clean       957 ms\n"
+      },
+      {
+        "round": 7,
+        "implementation": "gnu",
+        "milliseconds": 1234.8396739998861,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 944 ms\n  \u2713  tuned       218 functions \u2022 61 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 191 ms\n  \u2713  clean       1 s 175 ms\n"
+      },
+      {
+        "round": 8,
+        "implementation": "gnu",
+        "milliseconds": 932.9339579999214,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 745 ms\n  \u2713  tuned       218 functions \u2022 58 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 147 ms\n  \u2713  clean       904 ms\n"
+      },
+      {
+        "round": 8,
+        "implementation": "internal",
+        "milliseconds": 1037.4631819995557,
+        "output": "  \u25c6  swag        build \u2022 main.swg \u2022 devmode\n  \u2713  checked     36 files \u2022 63_838 tokens \u2022 818 ms\n  \u2713  tuned       218 functions \u2022 78 ms\n  \u2713  forged      461 functions \u2022 standalone \u2022 161 ms\n  \u2713  clean       993 ms\n"
+      }
+    ],
+    "summary": {
+      "gnu": 1193.9960894997057,
+      "internal": 1014.4357215003765
+    }
+  },
+  "validation": {
+    "compiler_configuration": "devmode",
+    "program_configuration": "devmode",
+    "elf_linker_tests_passed": 22,
+    "fast_cpp_tests_passed": 1674,
+    "native_tests_passed": 4049,
+    "selected_core_tests_passed": 21,
+    "blocked_external_tool_invocations": 0,
+    "scope": "Linux x86-64; focused ELF/native linking, all fast C++ tests, native language suite, selected core thread/event/concurrent allocator/SIMD/locale tests; Windows and full repository campaign not run",
+    "post_integration": {
+      "upstream_commit": "e03ae65f223f83cfd166b7213b8313f30c735a65",
+      "devmode_rebuild": "passed",
+      "focused_elf_tests_passed": 22,
+      "blocked_external_tool_invocations": 0
+    }
+  }
+}

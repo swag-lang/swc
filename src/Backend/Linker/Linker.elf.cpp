@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.elf.h"
 #include "Backend/Linker/ObjectWriter.elf.h"
+#include "Backend/Linker/ELFImageWriter.h"
 #include "Backend/Linker/SymbolTable.elf.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -125,18 +126,12 @@ namespace
         return true;
     }
 
-    void appendLibraryArguments(LinkJob& job, const CompilerInstance& compiler, const std::set<Utf8>& libraries)
+    void collectLibraryInputs(LinkJob& job, const CompilerInstance& compiler, const std::set<Utf8>& libraries)
     {
         std::set<fs::path> archives;
         for (const fs::path& directory : compiler.importedDependencyLinkDirs())
         {
-            job.elfLinkArguments.emplace_back("-L" + Utf8(fs::absolute(directory)));
-            // -L does not resolve DT_NEEDED entries of imported shared libraries. Keep this
-            // search path link-only so deployed artifacts retain their $ORIGIN runpath.
-            job.elfLinkArguments.emplace_back("-Xlinker");
-            job.elfLinkArguments.emplace_back("-rpath-link");
-            job.elfLinkArguments.emplace_back("-Xlinker");
-            job.elfLinkArguments.emplace_back(Utf8(fs::absolute(directory)));
+            job.elfSearchDirs.push_back(fs::absolute(directory));
             std::error_code error;
             for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, error), end; it != end && !error; it.increment(error))
             {
@@ -144,40 +139,25 @@ namespace
                     archives.insert(fs::absolute(it->path()));
             }
         }
-        job.elfLinkArguments.emplace_back("-Wl,--start-group");
         for (const fs::path& archive : archives)
-            job.elfLinkArguments.emplace_back(archive);
+            job.elfLibraries.push_back(archive);
         for (const Utf8& library : libraries)
         {
             const fs::path name(library.c_str());
             if (name.has_parent_path())
-                job.elfLinkArguments.emplace_back(fs::absolute(name));
+                job.elfLibraries.push_back(fs::absolute(name));
             else
             {
                 const fs::path dependency = resolveDependencyLibrary(name, compiler.importedDependencyLinkDirs());
                 if (!dependency.empty())
                 {
                     if (!archives.contains(dependency))
-                        job.elfLinkArguments.emplace_back(dependency);
+                        job.elfLibraries.push_back(dependency);
                 }
-                else if (name.has_extension())
-                    job.elfLinkArguments.emplace_back("-l:" + library);
                 else
-                    job.elfLinkArguments.emplace_back("-l" + library);
+                    job.elfLibraries.push_back(name);
             }
         }
-        job.elfLinkArguments.emplace_back("-Wl,--end-group");
-    }
-
-    bool writeBytes(LinkJob& job, const fs::path& path, const ByteArray& bytes)
-    {
-        FileSystem::IoErrorInfo error;
-        if (FileSystem::writeBinaryFile(path, bytes.data(), bytes.size(), error) == Result::Continue)
-            return true;
-        job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
-        job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));
-        job.error.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(error));
-        return false;
     }
 
     bool linkError(LinkJob& job, std::string_view reason)
@@ -188,80 +168,19 @@ namespace
         return false;
     }
 
-    bool executeTool(LinkJob& job, std::string_view tool, const std::span<const Utf8> arguments, const fs::path& directory)
+    bool publishImage(LinkJob& job)
     {
-        std::string                 output;
-        uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 120000};
-        const auto                  result = Os::runProcess(exitCode, fs::path(tool), arguments, directory, &options);
-        if (result == Os::ProcessRunResult::TimedOut)
-            return linkError(job, std::format("'{}' did not finish within 120 seconds\n{}", tool, output));
-        if (result != Os::ProcessRunResult::Ok)
-            return linkError(job, std::format("cannot run '{}': {}{}", tool, Os::systemError(), output));
-        if (exitCode)
-            return linkError(job, std::format("'{}' exited with status {}\n{}", tool, exitCode, output));
-        return true;
-    }
-
-    bool runTool(LinkJob& job, std::string_view tool, const std::vector<Utf8>& arguments, const fs::path& directory)
-    {
-        // GNU response files keep argument count independent of the process argv limit.
-        // Quoting is for libiberty's response parser; no shell interprets these bytes.
-        ByteArray response;
-        for (const Utf8& argument : arguments)
-        {
-            response.append("\"");
-            for (char character : argument.view())
-            {
-                if (character == '\\' || character == '"')
-                    response.pushBack(std::byte{'\\'});
-                response.pushBack(static_cast<std::byte>(character));
-            }
-            response.append("\"\n");
-        }
-        const fs::path responsePath = directory / "arguments.rsp";
-        if (!writeBytes(job, responsePath, response))
-            return false;
-        const std::array<Utf8, 1> invocation = {"@" + Utf8(responsePath)};
-        return executeTool(job, tool, invocation, directory);
-    }
-
-    bool publishImage(LinkJob& job, const fs::path& generated, const fs::path& destination)
-    {
-        ByteArray               bytes;
-        FileSystem::IoErrorInfo error;
-        if (FileSystem::readBinaryFile(generated, bytes, error) != Result::Continue)
-            return linkError(job, FileSystem::describeIoFailure(error));
-        const bool valid = bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
-        if (!valid)
-            return linkError(job, "the GNU toolchain did not produce the requested ELF64 artifact");
-        Utf8 symbolError;
-        if (!ELFSymbolTable::finalizeImage(bytes, symbolError))
-            return linkError(job, symbolError.view());
-        if (FileSystem::writeBinaryFileAtomic(destination, bytes.data(), bytes.size(), error, FileSystem::FileReplacement::Ordinary) != Result::Continue)
-            return linkError(job, FileSystem::describeIoFailure(error));
+        ByteArray bytes;
+        Utf8 error;
+        if (!buildElfImage(bytes, error, job) || !ELFSymbolTable::finalizeImage(bytes, error))
+            return linkError(job, error.view());
+        FileSystem::IoErrorInfo io;
+        if (FileSystem::writeBinaryFileAtomic(job.outputPath, bytes.data(), bytes.size(), io, FileSystem::FileReplacement::Ordinary) != Result::Continue)
+            return linkError(job, FileSystem::describeIoFailure(io));
         std::error_code permissionsError;
-        fs::permissions(destination, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add, permissionsError);
+        fs::permissions(job.outputPath, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add, permissionsError);
         if (permissionsError)
             return linkError(job, permissionsError.message());
-        return true;
-    }
-
-    bool materialize(std::vector<Utf8>& paths, LinkJob& job, const std::vector<LinkArchiveMember>& objects, const fs::path& directory)
-    {
-        std::error_code error;
-        fs::create_directories(directory, error);
-        if (error)
-            return linkError(job, error.message());
-        for (const LinkArchiveMember& object : objects)
-        {
-            // Link symbols carry identity. Fixed member names also keep tool operands independent
-            // of spaces, quotes and other punctuation in the user's artifact or directory name.
-            const fs::path path = directory / std::format("member_{:06}.o", paths.size());
-            if (!writeBytes(job, path, object.bytes))
-                return false;
-            paths.emplace_back(path.lexically_relative(directory.parent_path()));
-        }
         return true;
     }
 
@@ -278,48 +197,13 @@ namespace
 
     bool executePrepared(LinkJob& job)
     {
-        static std::atomic<uint64_t> nextId{0};
-        const fs::path               temporary = job.buildDir / std::format("elf-link-{}-{}", Os::currentProcessId(), nextId.fetch_add(1, std::memory_order_relaxed));
-        struct RemoveTemporary
-        {
-            fs::path path;
-            ~RemoveTemporary()
-            {
-                std::error_code error;
-                fs::remove_all(path, error);
-            }
-        } cleanup{temporary};
-        const fs::path output = temporary / job.outputPath.filename();
         if (job.output == LinkJob::Output::StaticLibrary)
         {
             if (!publishArchive(job, job.archiveMembers, job.outputPath))
                 return false;
         }
-        else
-        {
-            std::vector<Utf8> objects;
-            if (!materialize(objects, job, job.archiveMembers, temporary / "objects"))
-                return false;
-            // Lazy ELF resolution preserves System V arguments, but Swag also passes arguments
-            // in R10/R11. Resolve PLT entries before the first call can lose those registers.
-            std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
-            if (job.output == LinkJob::Output::Executable)
-                arguments.emplace_back("-no-pie");
-            else
-            {
-                arguments.emplace_back("-shared");
-                arguments.emplace_back("-Wl,-Bsymbolic");
-                arguments.emplace_back("-Wl,-z,text");
-                arguments.emplace_back("-Wl,-soname," + Utf8(job.outputPath.filename()));
-            }
-            arguments.emplace_back("-Wl,-rpath,$ORIGIN");
-            arguments.insert(arguments.end(), objects.begin(), objects.end());
-            arguments.insert(arguments.end(), job.elfLinkArguments.begin(), job.elfLinkArguments.end());
-            arguments.emplace_back("-o");
-            arguments.emplace_back(output);
-            if (!runTool(job, "cc", arguments, temporary) || !publishImage(job, output, job.outputPath))
-                return false;
-        }
+        else if (!publishImage(job))
+            return false;
         if (!job.staticLibraryPath.empty())
         {
             if (!publishArchive(job, job.staticLibraryMembers, job.staticLibraryPath))
@@ -352,7 +236,7 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
     if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
     {
         const Utf8 scope = nativeArtifactScopeName(builder_->compiler());
-        outJob.elfLinkArguments.emplace_back("-Wl,--defsym," + Utf8(K_SHARED_RUNTIME_HOOK_SYMBOL) + "=" + runtimeHookSymbolName(scope.view()));
+        outJob.elfRuntimeHook = runtimeHookSymbolName(scope.view());
     }
 
     std::set<Utf8> libraries = {"c", "m", "dl"};
@@ -363,7 +247,7 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
             collectLibraries(libraries, builder_->ctx(), *function.machineCode);
     if (builder_->startup)
         collectLibraries(libraries, builder_->ctx(), builder_->startup->code);
-    appendLibraryArguments(outJob, builder_->compiler(), libraries);
+    collectLibraryInputs(outJob, builder_->compiler(), libraries);
 
     if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
     {
@@ -457,7 +341,7 @@ Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, 
     std::set<Utf8> libraries(libraryNames.begin(), libraryNames.end());
     for (const Utf8& library : compiler.foreignLibs())
         libraries.insert(library);
-    appendLibraryArguments(outJob, compiler, libraries);
+    collectLibraryInputs(outJob, compiler, libraries);
     outPrepared = true;
     return Result::Continue;
 }

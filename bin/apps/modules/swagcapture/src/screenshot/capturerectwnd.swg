@@ -333,7 +333,7 @@ impl CaptureRectWnd
         with let menu = MenuCtrl.createPopup(me)
         {
             for delay in AreaDelays do
-                .addItem(areaDelayName(delay), Format.toString("%", delay))
+                .addItem(areaDelayName(delay), Format.toString("%", delay), icon: .theme().icon(.HourGlass))
         }
 
         .releaseMouse()

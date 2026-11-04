@@ -61,10 +61,10 @@ fileDlg_ReplaceDetail     % · modifié le %
 fileDlg_BtnReplace        Remplacer
 fileDlg_BtnCreate         Créer
 fileDlg_NewFolderWhere    Dans %
-fileDlg_BtnChooseNamed    Choisir %
 fileDlg_BtnOpenCount      Ouvrir les %
 fileDlg_BtnSave           Enregistrer
 fileDlg_BtnOpen           Ouvrir
+fileDlg_BtnSelect         Sélectionner
 
 browser_Desktop      Bureau
 browser_Documents    Documents
@@ -86,6 +86,8 @@ browser_TipRecent    Dossiers récents
 browser_TipUp        Dossier parent (Alt+Haut)
 browser_FileName     Nom du fichier
 browser_Folders      Dossiers
+browser_DateToday    Aujourd'hui · %
+browser_DateMonths   janv.;févr.;mars;avr.;mai;juin;juil.;août;sept.;oct.;nov.;déc.
 
 markdown_AlertNote      Note
 markdown_AlertTip       Astuce

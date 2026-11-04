@@ -22,11 +22,15 @@ impl IActionUI for ActionGroup
         switch cxt.id
         {
         case .Group:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Group)
             evt.updatedFields |= .Disabled | .Name
             evt.name          = appStrings().act_Group
             evt.disabled      = isLib or not capture or not capture.canGroup()
 
         case .Ungroup:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Ungroup)
             evt.updatedFields |= .Disabled | .Name
             evt.name          = appStrings().act_Ungroup
             evt.disabled      = isLib or not capture or not capture.canUngroup()

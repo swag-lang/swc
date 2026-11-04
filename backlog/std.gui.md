@@ -62,14 +62,20 @@ prove it. Operating-system integrations live in
   device and USB graphics dock offline (DriverFrameworks events 10121 and 10111). An OpenGL SVG
   mask comparison failed during the same validation period and passed in isolation and in its
   complete suite afterwards. That correlation does not establish the first corrupt stage.
+- An offscreen Scope golden also produced a mostly black, diagonally torn
+  `viewer.outline.markdown` image after `HeadlessHost.render` and `Image.crop`; the following
+  whole-window and translated-panel captures passed, as did the isolated outline test.
+  Its reference remains unchanged. This path does not publish a visible layered window,
+  so a displayed-pixels-only explanation cannot account for every observed failure.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.
 - Next: capture the GPU target, CPU presentation bitmap and desktop image from the same failing
   frame on DisplayLink, comparing asynchronous dirty-region presentation with the existing
   synchronous diagnostic path. Locate the first corrupt stage before changing synchronization,
-  row packing or render-target reuse. Also measure physical border-drag latency against
-  std.gui.056 on both displays, and capture
-  discrete placement at verified display cadence across DPI and adapter boundaries. Measure
+  row packing or render-target reuse. For the offscreen outline failure, preserve the uncropped
+  readback and compare the cropped region before attributing the fault to GPU readback or CPU
+  image transformation. Measure physical border-drag latency against std.gui.056 on both displays,
+  and capture discrete placement at verified display cadence across DPI and adapter boundaries. Measure
   sustained repaint cost with asynchronous dirty-region transfers. Keep the
   single-HWND publication contract for any faster presenter.
 - Capture constraint: target the verified Swag Scope HWND or its own window commands, never

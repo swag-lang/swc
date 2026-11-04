@@ -3,6 +3,44 @@
 
 using Swag, Core, Pixel
 
+struct IconTintProbe
+{
+    using wnd: Wnd
+    icon:      Icon
+    fallback:  Color
+}
+
+impl IWnd for IconTintProbe
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        .icon.paint(evt.paintContext.painter, 0, 0, .fallback)
+    }
+}
+
+// Icon.paint owns tint precedence even for a caller that always supplies neutral ink.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 32)
+    var atlas: IconAtlas
+    expect atlas.setup("<svg width='24' height='24'><rect width='24' height='24' fill='white'/></svg>")
+    var icons: IconSet
+    icons.setup(host.app.renderer, &atlas)
+    defer icons.free()
+    let probe = Wnd.create'IconTintProbe(&host.root, {0, 0, 24, 24})
+    probe.icon       = icons.icon(0, 24, 1)
+    probe.icon.color = host.theme.colors.fileKind_Video
+    probe.fallback   = host.theme.colors.softText
+    let colored = host.renderSettled()
+    Swag.require(colored.pixelColor(12, 12) == probe.icon.color)
+
+    probe.icon.color = {}
+    probe.invalidate()
+    let neutral = host.renderSettled()
+    Swag.require(neutral.pixelColor(12, 12) == probe.fallback)
+}
+
 // Supplied rasters own their pixels; invalid geometry leaves the cache unchanged.
 #test
 {

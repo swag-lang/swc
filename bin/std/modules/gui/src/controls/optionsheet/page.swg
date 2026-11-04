@@ -30,8 +30,9 @@ struct Row
         label:       RichString     // Wording of the row.
         value:       RichString     // Current value of a link or a stepper, written after the label.
         detail:      RichString     // Second line under the wording of a choice, or empty.
-        icon:        Icon           // Glyph before a link or after a choice; invalid for none.
+        icon:        Icon           // Glyph before a link, action or toggle, or after a choice; invalid for none.
         checked:     bool           // Whether a choice is the value in force, or a toggle is on.
+        critical:    bool           // Whether an enabled command uses the theme critical ink for content removal.
         disabled:    bool           // Whether the row cannot be activated.
         canDecrease: bool           // Whether a stepper can step down.
         canIncrease: bool           // Whether a stepper can step up.
@@ -197,6 +198,11 @@ impl Page
             .addToggle(label, checked, func|target, id|(_) { target.sendCommandEvent(id) }, disabled: disabled)
         else do
             .addAction(label, func|target, id|() { target.sendCommandEvent(id) }, disabled: disabled)
+
+        let row = .rows.backPtr()
+        row.critical = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
+        if state.updatedFields.has(.Icon) do
+            row.icon = state.icon
     }
 
     // Adds a link worded `label` to a page holding the commands `ids` of `target`.

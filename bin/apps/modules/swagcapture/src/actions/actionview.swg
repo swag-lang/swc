@@ -23,6 +23,8 @@ impl IActionUI for ActionView
         switch cxt.id
         {
         case .Clip:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Crop)
             evt.updatedFields |= .Name | .Disabled | .Checked
             evt.name          = appStrings().act_HideOutsideBox
             evt.checked       = main.editorOptions.clipToSelection
@@ -33,17 +35,23 @@ impl IActionUI for ActionView
 
         // The lens does not list itself: the key that opens it is already in the reader's hand.
         case .Lens:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Search)
             evt.updatedFields |= .Name | .Hidden
             evt.name          = appStrings().act_OpenLens
             evt.hidden        = true
 
         case .Inspector:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Settings)
             evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name          = appStrings().act_ShowInspector
             evt.checked       = not main.inspector.folded
             evt.disabled      = main.libraryMode
 
         case .Recent:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.History)
             evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name          = appStrings().act_ShowRecent
             evt.checked       = main.showRecent

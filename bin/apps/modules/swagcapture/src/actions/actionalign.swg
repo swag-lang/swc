@@ -26,12 +26,12 @@ impl IActionUI for ActionAlign
         let main = mainWndOf(cxt)
 
         if updateFromTable(cxt, evt, [
-            CmdDesc{AlignLeft, appStrings().act_AlignLeft, .MultiSel, hideDisabled: false},
-            CmdDesc{AlignCenter, appStrings().act_AlignCenter, .MultiSel, hideDisabled: false},
-            CmdDesc{AlignRight, appStrings().act_AlignRight, .MultiSel, hideDisabled: false},
-            CmdDesc{AlignTop, appStrings().act_AlignTop, .MultiSel, hideDisabled: false},
-            CmdDesc{AlignMiddle, appStrings().act_AlignMiddle, .MultiSel, hideDisabled: false},
-            CmdDesc{AlignBottom, appStrings().act_AlignBottom, .MultiSel, hideDisabled: false}])
+            CmdDesc{AlignLeft, appStrings().act_AlignLeft, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.TextAlignLeft)},
+            CmdDesc{AlignCenter, appStrings().act_AlignCenter, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.TextAlignCenter)},
+            CmdDesc{AlignRight, appStrings().act_AlignRight, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.TextAlignRight)},
+            CmdDesc{AlignTop, appStrings().act_AlignTop, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.AlignTop)},
+            CmdDesc{AlignMiddle, appStrings().act_AlignMiddle, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.AlignMiddle)},
+            CmdDesc{AlignBottom, appStrings().act_AlignBottom, .MultiSel, hideDisabled: false, icon: mainWndOf(cxt).icon(.AlignBottom)}])
         {
             return true
         }

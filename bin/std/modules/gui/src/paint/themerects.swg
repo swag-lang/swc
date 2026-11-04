@@ -118,8 +118,6 @@ struct ThemeImageRects
         menuPopup_Bk:                ThemeImageRect = {Math.Rectangle{1, 197, 27, 27}, 12, 10}        // Ground of a popup menu.
         menuPopup_Border:            ThemeImageRect = {Math.Rectangle{29, 197, 27, 27}, 12, 10.5}     // Border of a popup menu.
         menuPopup_HotBk:             ThemeImageRect = {Math.Rectangle{57, 197, 27, 27}, 12, 4}        // Ground of a popup menu entry under the pointer.
-        menuPopup_BarAnchorBk:       ThemeImageRect = {Math.Rectangle{281, 1, 27, 39}, 7, 6}          // Ground of the tab joining a popup menu to its menu bar entry.
-        menuPopup_BarAnchorBorder:   ThemeImageRect = {Math.Rectangle{309, 1, 27, 39}, 7, 6.5}        // Border of the tab joining a popup menu to its menu bar entry.
         menuBar_PopupSelectedBk:     ThemeImageRect = {Math.Rectangle{1, 197, 27, 27}, 12, 10}        // Ground of a menu bar entry whose popup is open.
         menuBar_PopupSelectedBorder: ThemeImageRect = {Math.Rectangle{29, 197, 27, 27}, 12, 10.5}     // Border of a menu bar entry whose popup is open.
         menuBar_Bk:                  ThemeImageRect = {Math.Rectangle{1, 29, 27, 27}, 12, 0}          // Ground of a menu bar.

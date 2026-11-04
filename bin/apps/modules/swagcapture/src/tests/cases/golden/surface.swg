@@ -335,13 +335,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     let capture = unwrap main.getCapture()
-    capture.backImg.fillGradient(Color.fromArgb(0xFFF2E9DF), Color.fromArgb(0xFF4E79B4),
-                                 Color.fromArgb(0xFFD5745A), Color.fromArgb(0xFF2A436D))
+    capture.backImg.fillGradient(Color.fromArgb(0xFFF2E9DF), Color.fromArgb(0xFF4E79B4), Color.fromArgb(0xFFD5745A), Color.fromArgb(0xFF2A436D))
     capture.backImg.visitPixels()
     {
         if x >= 80 and x < 320 and y >= 98 and y < 146 and x % 28 < 18 and y % 16 < 6 do
             cast(*u32, pix)[] = Color.fromArgb(0xFF233049).argb
     }
+
     let mask = testAddImage(capture, 60, 80, 280, 40)
     mask.kind = .Pixelate
     testAssertEditGolden(&host, main, [0], "edit.mask")
@@ -679,8 +679,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     }
 
     // Two columns of tools, as the picture lays them out.
-    const Modes      = [EditMode.Shape, EditMode.Arrow, EditMode.Line, EditMode.Polygon, EditMode.Draw, EditMode.Highlight,
-                        EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image, EditMode.PixSel]
+    const Modes = [EditMode.Shape, EditMode.Arrow, EditMode.Line, EditMode.Polygon, EditMode.Draw, EditMode.Highlight,
+                   EditMode.Text, EditMode.Callout, EditMode.Step, EditMode.Image, EditMode.PixSel]
     const Second     = 6
     const LabelWidth = 108.0
     const Pad        = 24.0
@@ -802,4 +802,22 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         main.lens.close()
         host.finishAnimations()
     }
+}
+
+// Quiet readings at the bottom of the real editor open upward without joining the window edge.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    testAssertLibraryMenuGolden(&host, main, main.sizeReading, "editor.menu.size.paper")
+    host.app.sigFrame.clear()
+    testAssertLibraryMenuGolden(&host, main, main.zoomReading, "editor.menu.zoom.paper")
 }

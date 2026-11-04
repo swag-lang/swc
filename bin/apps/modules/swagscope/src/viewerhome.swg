@@ -306,7 +306,7 @@ impl IWnd for ViewerHome
             {
                 var glyph = row.glyph
                 glyph.sizeX, glyph.sizeY = metrics.menuPopup_IconSize
-                glyph.paint(painter, rect.x + RowInset - 1, Math.round(centerY - glyph.sizeY * 0.5), glyph.color.a ? glyph.color : colors.faintText)
+                glyph.paint(painter, rect.x + RowInset - 1, Math.round(centerY - glyph.sizeY * 0.5), colors.faintText)
             }
 
             let file  = row.file.toString()

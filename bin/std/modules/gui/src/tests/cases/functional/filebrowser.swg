@@ -3,7 +3,7 @@
 
 using Swag, Core, File
 
-// Folder selection stays inside a narrow, scaled dialog and lets the action shrink again.
+// Folder selection keeps a stable action and puts the chosen path in the leading slot.
 #test
 {
     let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-dialog-polish-%", Guid64.random().toString()))
@@ -23,14 +23,15 @@ using Swag, Core, File
     dlg.surface.setPosition(rect)
     let primary     = unwrap dlg.surface.defaultButton
     let normalWidth = primary.position.width
+    let normalText  = String.from(primary.name.raw)
 
     for name in [longName, "Short", ""]
     {
         rect.width = 1400 * dlg.surface.dpiScale
         dlg.surface.setPosition(rect)
         dlg.browser.setFileName(name)
-        if name == "Short" do
-            Swag.require(Utf8.contains(primary.name.raw, name))
+        Swag.require(primary.name.raw == normalText and primary.position.width == normalWidth)
+        Swag.require(name.count ? dlg.browser.selectedPath() == dlg.browser.choiceLabel.text() : dlg.browser.choiceLabel.text().count == 0)
         rect.width = 540 * dlg.surface.dpiScale
         dlg.surface.setPosition(rect)
         dlg.applyLayout()
@@ -43,6 +44,10 @@ using Swag, Core, File
     }
 
     Swag.require(primary.position.width == normalWidth)
+    let field = dlg.browser.pathField
+    let path  = dlg.browser.pathBar
+    Swag.require(path.position.y >= field.themeMetrics().focusRing_Size)
+    Swag.require(path.position.bottom() <= field.position.height - field.themeMetrics().focusRing_Size)
     dlg.browser.pathField.setText("no matching folders")
     Swag.require(dlg.browser.listCtrl.lineCount() == 0)
     dlg.browser.listCtrl.scrollWnd.setScrollPos(100, 0)
@@ -74,6 +79,13 @@ using Swag, Core, File
         Swag.require(menu.items[0]!.name.raw == "Folder 1")
         Swag.require(menu.items[1]!.name.raw == "Folder 2" and menu.items[1]!.checked)
         Swag.require(menu.items[2]!.name.raw == "Folder 10")
+        for item in menu.items
+        {
+            let icon = item!.icon
+            Swag.require(icon.isValid())
+            Swag.require(icon.color == host.theme.colors.arc)
+        }
+
         opened = true
         menu.setEndModal(menu.items[0]!.id)
     }
@@ -216,6 +228,9 @@ using Swag, Core, File
     fb.recordRecentFolder("Z:/this-folder-does-not-exist")
     Swag.require(state.recentFolders.count == 1)
 
+    // Opening history must not probe every saved location, including offline folders.
+    state.recentFolders.add("Z:/this-folder-does-not-exist")
+
     // The real history trigger must join its menu to the button, just like an options menu.
     host.root.applyLayout()
     host.pump()
@@ -228,8 +243,10 @@ using Swag, Core, File
         let anchor = fb.historyButton.surfaceRect()
         Swag.require(popup.popupAnchorButton == fb.historyButton)
         Swag.require(popup.popupBarItemSurfaceRect == anchor)
-        Swag.require(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom())
-        Swag.require(popup.items.count == 1)
+        Swag.require(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom() + popup.themeMetrics().menuPopup_AnchorGap)
+        Swag.require(popup.items.count == 2)
+        for item in popup.items do
+            Swag.require(item!.icon.color == host.theme.colors.arc)
         checked[] = true
         popup.setEndModal(null)
     }
@@ -518,8 +535,7 @@ using Swag, Core, File
     host.pump()
 }
 
-// The line beside the type filter says what the box will answer with: the folder a folder box
-// picks, the count and weight of what a multiple box opens, whose rows check as they are chosen.
+// Only an explicit folder selection appears at the foot; multiple selection keeps its count.
 #test
 {
     let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-filebrowser-choice")
@@ -534,9 +550,16 @@ using Swag, Core, File
 
     let folders = FileBrowserCtrl.create(&host.root, {mode: .SelectFolder, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
     Swag.require(not folders.comboType.isLocallyVisible())
+    Swag.require(folders.typeRow.isLocallyVisible())
+    Swag.require(folders.choiceLabel.text().count == 0)
     Swag.require(folders.selectedPath() == folders.currentFolder)
     folders.listCtrl.selectLine(0)
-    Swag.require(Utf8.endsWith(folders.choiceLabel.text(), " / design"))
+    Swag.require(folders.selectedPath() == folders.choiceLabel.text())
+    Swag.require((unwrap Path.fileName(folders.selectedPath())) == "design")
+    Swag.require(folders.listCtrl.header.itemWidthForColumn(2) == 0)
+    Swag.require(folders.listCtrl.lines[0]!.items[1]!.horzAlign == .Right)
+    folders.listCtrl.selectLine(0, false)
+    Swag.require(folders.choiceLabel.text().count == 0)
 
     let files = FileBrowserCtrl.create(&host.root, {mode: .SelectFiles, showLocationsPane: false, initialFolder: root.toString()}, {0, 0, 600, 400})
     Swag.require(files.choiceLabel.text().count == 0)

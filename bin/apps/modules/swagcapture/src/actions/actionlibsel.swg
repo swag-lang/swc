@@ -29,6 +29,12 @@ impl IActionUI for ActionLibSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        if cxt.id == .Delete
+        {
+            evt.updatedFields |= .RenderingHint
+            evt.renderingHint |= .Critical
+        }
+
         let libWnd = assume cast(*LibraryWnd, cxt.wnd)
         let hasSel = libWnd.view.focusItem != Swag.U32.Max
 

@@ -72,6 +72,7 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     Swag.require(not viewer.embedded.isLoading())
     var image = host.renderSettled(window)
     assertScopeImageGolden(&image, "viewer.archive.document")
+    assertScopeAnchoredMenu(&host, window, embedded.viewerMenu, "menus.archive.viewer")
 
     var matches: Array'Viewer.SearchMatch
     let session = &window.instances[window.activeChoiceIndex]

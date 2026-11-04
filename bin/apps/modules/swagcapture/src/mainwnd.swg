@@ -57,6 +57,21 @@ enum CaptureIcons
     AlignMiddle         // Middle vertical alignment.
     AlignBottom         // Bottom vertical alignment.
     RatingStar          // Capture rating.
+    Callout             // Callout action glyph.
+    Bold                // Bold action glyph.
+    Italic              // Italic action glyph.
+    Group               // Group action glyph.
+    Ungroup             // Ungroup action glyph.
+    Flatten             // Flatten action glyph.
+    Resize              // Resize action glyph.
+    Expand              // Expand action glyph.
+    Crop                // Crop action glyph.
+    Flip                // Flip action glyph.
+    Mirror              // Mirror action glyph.
+    RotateRight         // RotateRight action glyph.
+    RotateLeft          // RotateLeft action glyph.
+    Snap                // Snap action glyph.
+    InvertSelection     // InvertSelection action glyph.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window
@@ -114,15 +129,15 @@ struct MainWnd
     embInfoFreeze: *InfoBar?
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
-    miniBarKind:     MiniBarKind = .None
-    miniBarForm:     *BaseForm?     // The form the mini-bar was filled for, whose face, size and style it shows.
-    miniBarFontFace: *IconButton?     // Current text face, opened as a filtered choice popup.
-    miniBarFontSize: *IconButton?     // Current text size, opened through the same choice popup.
+    miniBarKind:       MiniBarKind = .None
+    miniBarForm:       *BaseForm?              // The form the mini-bar was filled for, whose face, size and style it shows.
+    miniBarFontFace:   *IconButton?            // Current text face, opened as a filtered choice popup.
+    miniBarFontSize:   *IconButton?            // Current text size, opened through the same choice popup.
     textChoicePopover: *TextChoicePopover?     // Open face or size list, if any.
 
-    icons:       IconSet
-    appIcon:     ImageList
-    monitors:    Array'Env.Monitor
+    icons:    IconSet
+    appIcon:  ImageList
+    monitors: Array'Env.Monitor
 
     // State
     editMode:      EditMode   = .Shape
@@ -709,8 +724,8 @@ impl MainWnd
         let theme   = .theme()
         let words   = Painter.measureString(title, theme.createDefaultFont(metrics.inspector_TitleFontSize, .Bold)).width
         let small   = theme.createDefaultFont(metrics.defaultFontSize - 1)
-        let actions = Painter.measureString(Format.toString("% · %", appStrings().act_Duplicate, appStrings().act_Delete), small).width
-        let room    = metrics.inspector_Width - 2 * metrics.inspector_Padding - actions - 2 * metrics.btnIcon_SpacingTextH - metrics.iconText_Margin
+        let actions = 2 * (metrics.menuPopup_IconSize + 2 * metrics.btnIcon_Padding) + Painter.measureString(" · ", small).width
+        let room    = metrics.inspector_Width - 2 * metrics.inspector_Padding - actions - metrics.iconText_Margin
         return words <= room
     }
 
@@ -866,9 +881,17 @@ impl MainWnd
                 .inspector.setTitle(Format.toString(appStrings().ui_Objects, count))
         }
 
-        // The actions are words: the commands they post carry glyphs for the lens.
-        .inspector.addAction(appStrings().act_Duplicate).sigPressed += func|main = me|(_) { main.postCommandEvent(ActionCopyPaste.Duplicate) }
-        .inspector.addAction(appStrings().act_Delete).sigPressed    += func|main = me|(_) { main.postCommandEvent(ActionSelection.DeleteSelection) }
+        // Bind the inspector to the same wording, glyph and destructive state as every command presenter.
+        for id in [ActionCopyPaste.Duplicate, ActionSelection.DeleteSelection]
+        {
+            let state  = .sendComputeCommandStateEvent(id)
+            let button = .inspector.addAction(state.name, id)
+            let size   = .themeMetrics().menuPopup_IconSize
+            button.setIconSize(size, size)
+            button.updateFlags(add: .IconOnly)
+            button.toolTip = state.name
+            button.setQuietText(state.name)
+        }
     }
 
     // Registers every command family of the editor.

@@ -314,14 +314,15 @@ impl ViewerWindow
     mtd showFolderHistory()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        for one in .folderHistory where Directory.exists(one.folder) and File.exists(one.file)
+
+        // Opening history is an in-memory operation, even when a saved volume is offline.
+        // The selected folder or file is validated by the navigation operation.
+        for one in .folderHistory
         {
             var name = Path.fileName(one.folder) orelse one.folder.toString()
             if not name.count do
                 name = one.folder.toString()
-            var icon = .theme().fileGlyph(one.folder, true, themeRowIconSize(.themeMetrics()))
-            if icon.color.a == 0 do
-                icon.color = .themeColors().softText
+            let icon = .theme().icon(.Folder, themeRowIconSize(.themeMetrics()))
             discard menu.addItem(name, one.folder, icon)
         }
 

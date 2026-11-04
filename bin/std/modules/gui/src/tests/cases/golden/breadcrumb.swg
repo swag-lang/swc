@@ -24,9 +24,10 @@ private func assertBreadcrumbGolden(ancestors: bool)
     path.layout()
     path.sigFillMenu += func(_, _, menu)
     {
-        menu.addItem("Cover", "cover")
-        menu.addItem("Figures", "figures", checked: true)
-        menu.addItem("Sketches", "sketches")
+        let icon = menu.theme().icon(.Folder, menu.themeMetrics().menuPopup_IconSize)
+        menu.addItem("Cover", "cover", icon)
+        menu.addItem("Figures", "figures", icon, checked: true)
+        menu.addItem("Sketches", "sketches", icon)
     }
 
     let image = host.renderSettled()
@@ -39,8 +40,10 @@ private func assertBreadcrumbGolden(ancestors: bool)
             return
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.popupAnchorButton != null)
+        for item in menu.items do
+            Swag.require(item!.icon.color == host.theme.colors.arc)
         let anchor = menu.popupAnchorButton.surfaceRect()
-        Swag.require(Math.abs(menu.surfaceRect().y + menu.getPopupBodyRect().y - anchor.bottom()) < 0.5)
+        Swag.require(Math.abs(menu.surfaceRect().y + menu.getPopupBodyRect().y - anchor.bottom() - menu.themeMetrics().menuPopup_AnchorGap) < 0.5)
         let image = host.renderSettled()
         Pixel.Testing.assertImageGolden(&image, ancestors ? "breadcrumb.ancestors.paper" : "breadcrumb.children.encre")
         captured = true

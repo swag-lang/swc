@@ -134,8 +134,23 @@ impl Theme
     // Creates an icon descriptor for a theme glyph displayed at `size` logical pixels.
     //
     // The frames behind a given size are rasterized once from the vector icon set, at
-    // the current atlas scale, and shared by every icon of that size.
-    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon => .res.icons.icon(cast(s32, idx), size, .res.atlasScale)
+    // the current atlas scale, and shared by every icon of that size. Folder and file-kind
+    // glyphs carry their theme color, honored by [[Gui.Icon.paint]] in every control.
+    mtd icon(idx: ThemeIcons, size = 24'f32)->Icon
+    {
+        var result = .res.icons.icon(cast(s32, idx), size, .res.atlasScale)
+        switch idx
+        {
+        case .Folder:      result.color = .colors.arc
+        case .FileImage:   result.color = .colors.fileKind_Image
+        case .FileCode:    result.color = .colors.fileKind_Code
+        case .FileAudio:   result.color = .colors.fileKind_Audio
+        case .FileVideo:   result.color = .colors.fileKind_Video
+        case .FileArchive: result.color = .colors.fileKind_Archive
+        }
+
+        return result
+    }
 
     // Returns the line glyph of a file named `name` at `size` logical pixels: a folder, or a page
     // marked with the kind its extension says — a picture, code, a sound, a film, a paged
@@ -144,39 +159,30 @@ impl Theme
     // A listing draws these rather than the colored icons of the system, so a row reads by its
     // name first and the glyph only says what kind of thing it is. A file kind carries its quiet
     // hue (`fileKind_*`); a folder uses Arc, the mark of a place to go. A plain file takes the ink
-    // its row gives it. A selected row may draw any of them in its own ink.
+    // its row gives it. Defined kind colors stay the same on hovered and selected rows.
     mtd fileGlyph(name: string, isDirectory: bool, size = 16'f32)->Icon
     {
-        if isDirectory
-        {
-            var result = .icon(.Folder, size)
-            result.color = .colors.arc
-            return result
-        }
+        if isDirectory do
+            return .icon(.Folder, size)
 
         var result: #returntype
         let ext = Path.extension(name) orelse ""
         switch
         {
         case isExtensionOf(ext, ImageExtensions):
-            result       = .icon(.FileImage, size)
-            result.color = .colors.fileKind_Image
+            result = .icon(.FileImage, size)
 
         case isExtensionOf(ext, CodeExtensions):
-            result       = .icon(.FileCode, size)
-            result.color = .colors.fileKind_Code
+            result = .icon(.FileCode, size)
 
         case isExtensionOf(ext, AudioExtensions):
-            result       = .icon(.FileAudio, size)
-            result.color = .colors.fileKind_Audio
+            result = .icon(.FileAudio, size)
 
         case isExtensionOf(ext, VideoExtensions):
-            result       = .icon(.FileVideo, size)
-            result.color = .colors.fileKind_Video
+            result = .icon(.FileVideo, size)
 
         case isExtensionOf(ext, ArchiveExtensions):
-            result       = .icon(.FileArchive, size)
-            result.color = .colors.fileKind_Archive
+            result = .icon(.FileArchive, size)
 
         case isExtensionOf(ext, DocumentExtensions):
             result       = .icon(.File, size)

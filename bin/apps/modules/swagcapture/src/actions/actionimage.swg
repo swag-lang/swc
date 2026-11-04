@@ -51,14 +51,14 @@ impl IActionUI for ActionImage
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         if updateFromTable(cxt, evt, [
-            CmdDesc{ResizeImage, appStrings().act_ResizeImage, .Capture, hideDisabled: false},
-            CmdDesc{ExpandImage, appStrings().act_ExpandImage, .Capture, hideDisabled: false},
-            CmdDesc{ExpandCapture, appStrings().act_ExpandCapture, .Capture, hideDisabled: false},
-            CmdDesc{TrimCapture, appStrings().act_TrimCapture, .Capture, hideDisabled: false},
-            CmdDesc{FlipImage, appStrings().act_FlipImage, .Capture, hideDisabled: false},
-            CmdDesc{MirrorImage, appStrings().act_MirrorImage, .Capture, hideDisabled: false},
-            CmdDesc{RotateImageRight, appStrings().act_RotateImageRight, .Capture, hideDisabled: false},
-            CmdDesc{RotateImageLeft, appStrings().act_RotateImageLeft, .Capture, hideDisabled: false}])
+            CmdDesc{ResizeImage, appStrings().act_ResizeImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Resize)},
+            CmdDesc{ExpandImage, appStrings().act_ExpandImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Expand)},
+            CmdDesc{ExpandCapture, appStrings().act_ExpandCapture, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Expand)},
+            CmdDesc{TrimCapture, appStrings().act_TrimCapture, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Crop)},
+            CmdDesc{FlipImage, appStrings().act_FlipImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Flip)},
+            CmdDesc{MirrorImage, appStrings().act_MirrorImage, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.Mirror)},
+            CmdDesc{RotateImageRight, appStrings().act_RotateImageRight, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.RotateRight)},
+            CmdDesc{RotateImageLeft, appStrings().act_RotateImageLeft, .Capture, hideDisabled: false, icon: mainWndOf(cxt).icon(.RotateLeft)}])
         {
             return true
         }
@@ -69,6 +69,8 @@ impl IActionUI for ActionImage
         switch cxt.id
         {
         case .RestoreOrg:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Undo)
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_RestoreOriginal
             evt.disabled      = not capture or not capture.backImgOriginal.isValid()

@@ -21,12 +21,16 @@ impl IActionUI for ActionLibView
         switch cxt.id
         {
         case .Ratings:
-            evt.name    = appStrings().act_ShowRatings
-            evt.checked = libWnd.showRatingOverlay
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Star)
+            evt.name          = appStrings().act_ShowRatings
+            evt.checked       = libWnd.showRatingOverlay
 
         case .LinkMarkers:
-            evt.name    = appStrings().act_ShowLinkMarkers
-            evt.checked = libWnd.showLinkOverlay
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Link)
+            evt.name          = appStrings().act_ShowLinkMarkers
+            evt.checked       = libWnd.showLinkOverlay
         }
 
         return true

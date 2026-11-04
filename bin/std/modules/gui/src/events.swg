@@ -112,6 +112,7 @@ struct CommandStateEvent
         {
             None = 0           // No flags are enabled.
             ExclusiveGroup     // The command belongs to a mutually exclusive group.
+            Critical           // The command removes content; presenters use the theme critical ink while enabled.
         }
 
         // Selects whether command state is being computed or applied.

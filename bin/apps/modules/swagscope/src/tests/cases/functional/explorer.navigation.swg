@@ -28,6 +28,7 @@ using Core, Gui, Pixel
     Swag.require(menu.items.count == 2)
     let item = unwrap menu.items[1]
     Swag.require(item.name.raw == "docs")
+    Swag.require(item.icon.isValid() and item.icon.color == host.theme.colors.arc)
     let folderTarget = String.from(unwrap item.id)
     Swag.require(folderTarget == Format.toString("%\n%", explorer.listing.path, "docs/"))
     explorer.navigateBreadcrumb(folderTarget)
@@ -37,6 +38,8 @@ using Core, Gui, Pixel
 
     let parent = count - 3
     explorer.fillBreadcrumbMenu(parent, menu)
+    for entry in menu.items do
+        Swag.require(entry!.icon.color == host.theme.colors.arc)
     for &target in explorer.menuPaths do
         Swag.require(not Utf8.endsWith(target[], "viewer.archive.zip\n"))
 
@@ -64,6 +67,31 @@ using Core, Gui, Pixel
     host.pump()
     explorer.navigateTyped(Path.combine(folder, "no such folder"))
     Swag.require(explorer.status.text() == appStrings().explore_NotFound)
+}
+
+// Opening folder history reads saved entries without probing their volumes or last files.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window  = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    var missing = Path.combine(Env.getSpecialDirectory(.Temp), Guid64.random().toString())
+    window.folderHistory.add({folder: missing, file: Path.combine(missing, "missing.txt")})
+    var opened: bool
+    host.app.sigFrame += func|host = &host, &opened, &missing|(_)
+    {
+        if opened do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items.count == 1)
+        Swag.require(menu.items[0]!.id == missing.toString())
+        Swag.require(menu.items[0]!.icon.color == host.theme.colors.arc)
+        opened = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    window.showFolderHistory()
+    Swag.require(opened and window.currentFile.isEmpty())
 }
 
 // A short absolute path stays visible at minimum width, and its current segment opens editing.

@@ -73,7 +73,7 @@ struct IconButton
 
         readonly
         {
-            iconColor: Color                                   // Explicit icon color, or transparent for theme color.
+            iconColor: Color                                   // Fallback for an icon without an intrinsic tint; transparent uses the theme.
             textColor: Color                                   // Explicit label color, or transparent for theme color.
             form           = IconButtonForm.Rectangle          // Background geometry.
             checkIndicator = IconButtonCheckIndicator.Full     // Checked-state indicator placement.
@@ -306,12 +306,16 @@ impl IWnd for IconButton
         if .isPressed do
             paintFlags.add(.Pressed)
 
-        if icon.color.a do
-            colorIcon = icon.color
         if .iconColor.a do
             colorIcon = .iconColor
         if .textColor.a do
             colorText = .textColor
+
+        if .critical and not bc.isDisabled
+        {
+            colorIcon = colors.critical
+            colorText = colors.critical
+        }
 
         // Background. A flat button paints no box in any state; an overlay button paints its
         // hot/pressed/checked state as a translucent layer over the content instead (drawn at the
@@ -711,15 +715,23 @@ private impl IconButton
 
 impl IconButton
 {
-    // Paints the compact identity of this button inside the tab an attached menu owns while it is open.
-    //
-    // Menu buttons use one horizontal reading order here: glyph, wording, disclosure.
-    // The popup supplies the selected background and border, while this helper preserves the
-    // exact glyph sizes, font and spacing of the closed button.
-    internal mtd paintMenuAnchorContent(painter: *Painter, rect: Math.Rectangle, color: Color)
+    // Keep a popup clear of a compact floating bar's border as well as its button.
+    // A large panel is ordinary context, not an extension of the opener.
+    internal mtd menuAnchorGap(opensUp: bool)->f32
+    {
+        let gap   = .themeMetrics().menuPopup_AnchorGap
+        let panel = .ancestorByType'FloatingPanel()
+        if not panel or panel.paddedClientRect().height > .position.height + 2 * .themeMetrics().wnd_BorderSize do
+            return gap
+        let anchor = .surfaceRect()
+        let frame  = panel.surfaceRect()
+        return gap + Math.max(0'f32, opensUp ? anchor.y - frame.y : frame.bottom() - anchor.bottom())
+    }
+
+    // Horizontal start of the same glyph/word/disclosure run used by the open button.
+    internal mtd menuAnchorContentLeft(rect: Math.Rectangle)->f32
     {
         let metrics = .themeMetrics()
-        let theme   = .theme()
         var icon    = .icon
         if .iconWidth do
             icon.sizeX = .iconWidth
@@ -747,7 +759,33 @@ impl IconButton
             width += metrics.btnIcon_ArrowSize
         }
 
-        var x = rect.horzCenter() - width * 0.5
+        return rect.horzCenter() - width * 0.5
+    }
+
+    internal mtd menuAnchorTextLeft(rect: Math.Rectangle)->f32
+    {
+        let iconWidth = .iconWidth ? .iconWidth : .icon.sizeX
+        return .menuAnchorContentLeft(rect) + (.icon.isValid() ? iconWidth + .themeMetrics().btnIcon_SpacingTextH : 0)
+    }
+
+    // Repaints the glyph, wording and disclosure at their original sizes and spacing.
+    internal mtd paintMenuAnchorContent(painter: *Painter, rect: Math.Rectangle, color: Color)
+    {
+        let metrics = .themeMetrics()
+        let theme   = .theme()
+        var icon    = .icon
+        if .iconWidth do
+            icon.sizeX = .iconWidth
+        if .iconHeight do
+            icon.sizeY = .iconHeight
+
+        let hasIcon   = icon.isValid()
+        let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
+        var textWidth = 0'f32
+        if showsText do
+            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+
+        var x = .menuAnchorContentLeft(rect)
         if hasIcon
         {
             icon.paint(painter, x, .lineTop(rect.vertCenter(), icon.sizeY), color)

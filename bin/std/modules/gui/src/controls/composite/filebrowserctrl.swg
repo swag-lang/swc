@@ -123,9 +123,20 @@ struct FileBrowserCtrl
         sigChoiceChanged:      SigArray'func||(*Wnd)     // Emitted after what the browser would answer with changes.
     }
 
-    late typeRow:   *Wnd     // Row holding the type filter when the browser keeps it.
+    late typeRow:   *Wnd                  // Row holding the type filter when the browser keeps it.
     currentEntries: Array'FileInfo        // Filesystem entries backing visible rows.
     history:        NavigationHistory     // Folder-navigation history.
+    dateScale:      f32                   // Device scale used to fit the date column.
+    dateFont:       *Pixel.Font?          // Font used for its last measurement.
+}
+
+impl IWnd for FileBrowserCtrl
+{
+    mtd impl onBeforePaint(_: *PaintEvent)
+    {
+        if .listCtrl != null and (.dateScale != .deviceScale() or .dateFont != .listCtrl.font().regular) do
+            .fitDateColumn()
+    }
 }
 
 impl IWnd for FilePlacesBar
@@ -186,8 +197,7 @@ impl FilePlacesBar
         let menu = MenuCtrl.createPopup(.browser)
         for idx in .visibleCount until .stops.count
         {
-            var icon = .theme().fileGlyph("", isDirectory: true)
-            icon.color = .themeColors().arc
+            let icon = .theme().icon(.Folder, .themeMetrics().menuPopup_IconSize)
             discard menu.addItem(.stops[idx].name.toString(), .stops[idx].path.toString(), icon)
         }
 
@@ -323,7 +333,7 @@ private impl FileBrowserCtrl
         {
             let name     = Path.fileName(entry.fullName) orelse entry.fullName.toString()
             let selected = index + 1 < .pathBar.breadcrumb.items.count and .pathBar.breadcrumb.items[index + 1].tag == entry.fullName
-            menu.addItem(name, entry.fullName, checked: selected)
+            menu.addItem(name, entry.fullName, .theme().icon(.Folder, .themeMetrics().menuPopup_IconSize), checked: selected)
         }
     }
 
@@ -342,15 +352,15 @@ private impl FileBrowserCtrl
             return
 
         let menu = MenuCtrl.createPopup(me)
+
+        // History is already in memory. Probe only the chosen location when navigating;
+        // a disconnected network volume must not delay opening the whole menu.
         for &recent in state.recentFolders
         {
-            if not Directory.exists(recent.toString()) do
-                continue
             var name = Path.fileName(recent.toString()) orelse ""
             if not name.count do
                 name = recent.toString()
-            var icon = .theme().fileGlyph(name, isDirectory: true)
-            icon.color = .themeColors().softText
+            let icon = .theme().icon(.Folder, .themeMetrics().menuPopup_IconSize)
             discard menu.addItem(name, recent.toString(), icon)
         }
 
@@ -394,14 +404,26 @@ private impl FileBrowserCtrl
     mtd placeCrumbs()
     {
         let field = .pathField
+        if field.hasFocus() or field.text().count
+        {
+            .pathBar.hide()
+            field.setLeadingMargin(0)
+            return
+        }
+
+        .pathBar.show()
         let inset = field.padding.x
-        let room  = Math.max(field.position.width * 0.5, 0)
-        .pathBar.setPosition(Math.Rectangle{inset, 0, room, field.position.height})
+
+        // The field's atlas ring starts one hairline inside its rectangle.
+        let border = .themeMetrics().wnd_BorderSize + .themeMetrics().focusRing_Size
+        let height = Math.max(field.position.height - border * 2, 0)
+        let room   = Math.max(field.position.width * 0.5, 0)
+        .pathBar.setPosition(Math.Rectangle{inset, border, room, height})
         .pathBar.refreshPath()
         let items   = .pathBar.breadcrumb.items
         let content = items.isEmpty() ? 0.0 : items.back().arrowRect.right()
         let width   = Math.min(content + .themeMetrics().fileBrowser_GlyphGap, room)
-        .pathBar.resize(width, field.position.height)
+        .pathBar.resize(width, height)
         field.setLeadingMargin(width)
     }
 
@@ -504,21 +526,15 @@ private impl FileBrowserCtrl
 
     // Writes what the box will answer with beside the type filter, and tells the host.
     //
-    // Picking a folder, it is the path chosen: the selected folder, or the folder shown. Picking
-    // several files, it is their count and weight.
+    // Only an explicit folder choice is repeated here. Multiple-file selection keeps its count and weight.
     mtd updateChoice()
     {
         var text: String
         switch .options.mode
         {
         case .SelectFolder:
-            text = .displayPath()
-            let name = .editFile.text()
-            if name.count
-            {
-                text += " / "
-                text += name
-            }
+            if .editFile.text().count do
+                text = .selectedPath()
 
         case .SelectFiles:
             var count = 0
@@ -548,6 +564,10 @@ private impl FileBrowserCtrl
         {
         case ResizeEvent:
             .placeCrumbs()
+
+        case FocusEvent as focus:
+            if focus.kind == .Gained or focus.kind == .Lost do
+                .placeCrumbs()
 
         case KeyEvent as key:
             if key.kind != .Pressed do
@@ -618,15 +638,29 @@ private impl FileBrowserCtrl
         {
             .dockStyle = .Center
             .setPlaceholder(strings().browser_FilterHint)
-            .sigTextChanged += func|fileBrowser = me|(_) { fileBrowser.fillFileList() }
+            .sigTextChanged += func|fileBrowser = me|(_)
+            {
+                fileBrowser.placeCrumbs()
+                fileBrowser.fillFileList()
+            }
 
-            .sigSubmitted += func|fileBrowser = me|(_) { fileBrowser.submitPath() }
-            .hookOnEvent  = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
+            .sigCancelled += func|fileBrowser = me|(_)
+            {
+                fileBrowser.pathField.setText(null)
+            }
+
+            .sigSubmitted += func|fileBrowser = me|(_)
+            {
+                fileBrowser.submitPath()
+            }
+
+            .hookOnEvent = func|fileBrowser = me|(_, evt) => fileBrowser.handlePathEvent(evt)
         }
 
         with .pathBar = PathBar.create(.pathField)
         {
-            .sigNavigate += func|browser = me|(_, path)
+            .externalEditor = me.pathField
+            .sigNavigate    += func|browser = me|(_, path)
             {
                 browser.setCurrentFolder(path)
             }
@@ -665,11 +699,13 @@ private impl FileBrowserCtrl
             // whose unified result is integer, fed to an f32 parameter, is currently
             // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
             .addColumn(strings().browser_ColName, me.options.state ? cast(f32, me.options.state.nameColumnWidth) : 220.0)
-            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 110.0)
+            .addColumn(strings().browser_ColModified, me.options.state ? cast(f32, me.options.state.modifiedColumnWidth) : 110.0, align: .Right)
             .addColumn(strings().browser_ColSize, me.options.state ? cast(f32, me.options.state.sizeColumnWidth) : 72.0, align: .Right)
+            if me.options.mode == .SelectFolder do
+                .setColumnWidth(2, 0)
             .header.form = .Transparent
 
-            // The rows say what they are without a header: a name, a faint mono date and size.
+            // The rows say what they are without a header: a name, a readable date and a size.
             .header.hide()
 
             // A key the browsing gesture claims is marked handled, so the list does not read it a
@@ -814,7 +850,8 @@ impl FileBrowserCtrl
         state.currentFolder       = .currentFolder
         state.nameColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(0))
         state.modifiedColumnWidth = cast(.listCtrl.header.itemWidthForColumn(1))
-        state.sizeColumnWidth     = cast(.listCtrl.header.itemWidthForColumn(2))
+        if .options.mode != .SelectFolder do
+            state.sizeColumnWidth = cast(.listCtrl.header.itemWidthForColumn(2))
     }
 
     // Hands the foot — the type filter and the line of what is chosen — to a host that shows it elsewhere, such as the bottom-left slot of a dialog.
@@ -826,7 +863,7 @@ impl FileBrowserCtrl
         return .typeRow
     }
 
-    // Names the current folder relative to a known place for the compact selection summary.
+    // Names the current folder relative to a known place when asking to create a folder.
     mtd displayPath()->String
     {
         if .placesBar
@@ -864,6 +901,7 @@ impl FileBrowserCtrl
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
         fileBrowser.options         = opt
         fileBrowser.backgroundStyle = .Transparent
+        fileBrowser.wndFlags.add(.BeforeChildrenPaint)
         let metrics = fileBrowser.themeMetrics()
 
         let primaryShortcutCount = fileBrowser.options.shortcuts.count
@@ -1025,7 +1063,8 @@ impl FileBrowserCtrl
             }
             else
             {
-                .pathField.setFocus()
+                // Keep the location visible until the reader chooses to edit or filter it.
+                .listCtrl.setFocus()
             }
         }
 
@@ -1116,6 +1155,8 @@ impl FileBrowserCtrl
     private mtd fillFileList()
     {
         .listCtrl.clear()
+        if .options.mode == .SelectFolder do
+            .editFile.setText(null, notify: false)
 
         with var options: EnumerationOptions
         {
@@ -1179,10 +1220,10 @@ impl FileBrowserCtrl
             // In a save the rows are context, not choices.
             if .options.mode == .CreateFile do
                 line.colorFg = faint
-            let dateItem = line.setItem(1, briefFileTime(fi.lastWriteTime.toLocal(), now))
-            dateItem.sortKey = fi.lastWriteTime.toString(.DateTimeIso)
-            dateItem.colorFg = faint
-            dateItem.mono    = true
+            let dateItem = line.setItem(1, fileBrowserTime(fi.lastWriteTime.toLocal(), now))
+            dateItem.sortKey   = fi.lastWriteTime.toString(.DateTimeIso)
+            dateItem.colorFg   = faint
+            dateItem.horzAlign = .Right
             if not fi.isDirectory()
             {
                 let sizeItem = line.setItem(2, Format.byteSize(fi.size).toString())
@@ -1193,9 +1234,32 @@ impl FileBrowserCtrl
         }
 
         .listCtrl.setEmptyText(typed.count ? strings().browser_NoMatch : strings().browser_EmptyFolder)
+        .fitDateColumn()
         .listCtrl.computeLayout()
         .listCtrl.sort()
         .updateChoice()
+    }
+
+    // Fits the date column to every displayed timestamp.
+    internal mtd fitDateColumn()
+    {
+        .dateScale = .deviceScale()
+        .dateFont  = .listCtrl.font().regular
+        var format: Pixel.RichStringFormat
+        format.font = .listCtrl.font()
+        var width = 0'f32
+        for line in .listCtrl.lines
+        {
+            let item = unwrap line!.items[1]
+
+            // Use the same shaped chunks and DPI-resolved advances as the cell painter.
+            // Nominal font metrics can undercount a timestamp enough to trigger an ellipsis.
+            item.name.compute()
+            Painter.computeLayout({}, &item.name, format, .dateScale)
+            width = Math.max(width, item.name.boundRect.width)
+        }
+
+        .listCtrl.setColumnWidth(1, Math.ceil(width) + .listCtrl.header.itemPadding * 2)
     }
 
     // Creates a folder inside [[Gui.FileBrowserCtrl.currentFolder]] and refreshes the list on success.
@@ -1417,6 +1481,19 @@ impl FileBrowserCtrl
             return paths.count == 1 and Directory.exists(paths[0])
         }
     }
+}
+
+// Uses localized month names in the browser's spacious date column.
+internal func fileBrowserTime(time, now: Time.DateTime)->String
+{
+    if time.year == now.year and time.month == now.month and time.day == now.day do
+        return Format.toString(strings().browser_DateToday, time.toString(.TimeIsoHm))
+
+    let months = Tokenize.split(strings().browser_DateMonths, ';'rune)
+    let month  = months[time.month - 1]
+    if time.year == now.year do
+        return Format.toString("% % · %", time.day, month, time.toString(.TimeIsoHm))
+    return Format.toString("% % %", time.day, month, time.year)
 }
 
 // Writes `time` as briefly as a file list can still read it against `now`: "21:30" today,

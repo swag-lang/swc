@@ -20,6 +20,12 @@ impl IActionUI for ActionSelection
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        if cxt.id == .DeleteSelection
+        {
+            evt.updatedFields |= .RenderingHint
+            evt.renderingHint |= .Critical
+        }
+
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count
@@ -28,21 +34,29 @@ impl IActionUI for ActionSelection
         switch cxt.id
         {
         case .SelectAll:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Select)
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = not capture or not capture.forms.count or isLib
             evt.name          = appStrings().act_SelectAll
 
         case .SelectSameAll:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Group)
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = not capture or not capture.forms.count or not hasSel or isLib
             evt.name          = appStrings().act_SelectSimilar
 
         case .DeSelectAll:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Select)
             evt.updatedFields |= .Disabled | .Name
             evt.disabled      = not capture or not hasSel or isLib
             evt.name          = appStrings().act_DeselectAll
 
         case .InvertSelection:
+            evt.updatedFields |= .Icon
+            evt.icon = mainWndOf(cxt).icon(.InvertSelection)
             evt.updatedFields |= .Disabled | .Name
 
             // Nothing to invert when there are no forms (matches SelectAll).
@@ -56,11 +70,15 @@ impl IActionUI for ActionSelection
             evt.icon          = main.theme().icon(.Remove)
 
         case .Snap:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.Snap)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_SnapToForms
             evt.checked       = main.snap
 
         case .Freeze:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Lock)
             evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name          = appStrings().act_FreezeSelection
             evt.checked       = main.freezeSel

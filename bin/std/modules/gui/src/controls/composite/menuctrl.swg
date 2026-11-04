@@ -91,15 +91,12 @@ public struct MenuCtrl
     paintByFrame:            bool                   // Whether the frame paints an anchored popup.
     popupBarItemIdx:         u32 = Swag.U32.Max     // Owning menu-bar item for an anchored popup.
     popupBarItemSurfaceRect: Math.Rectangle         // Owning menu-bar item bounds in surface coordinates.
-    popupAnchorButton:       *IconButton?           // Icon button repainted as the tab of an attached popup.
-    popupButtonOpensUp:      bool                   // Whether an attached icon-button menu opens above its tab.
+    popupAnchorButton:       *IconButton?           // Icon button identified while its popup is open.
+    popupButtonOpensUp:      bool                   // Whether an anchored menu opens above its button.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
     popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
 }
-
-// Returns an icon's requested tint, or the row's text tint for an untinted icon.
-private func menuIconColor(icon: Icon, textColor: Color)->Color => icon.color.a ? icon.color : textColor
 
 public impl IWnd for MenuCtrl
 {
@@ -157,15 +154,7 @@ public impl IWnd for MenuCtrl
             backPos.width += metrics.menuBar_SpaceBetween
             if selected and it.popup != null and .subVisible == it.popup
             {
-                // Fill past the bar, outline only to it — the same split the popup makes in
-                // [[Gui.MenuCtrl.paintPopupBarAnchor]], and for the same reason.
-                var anchorBk = backPos
-                anchorBk.height += metrics.menuPopup_BarItemOverlap
-                theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
-
-                var anchorBorder = anchorBk
-                anchorBorder.setBottom(backPos.bottom() + metrics.wnd_BorderSize)
-                theme.drawSubRect(painter, anchorBorder, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
+                theme.drawSubRect(painter, backPos, &rects.btnIcon_RoundSquareBk, colors.menuPopup_Bk)
             }
             elif selected and (it.popup != null)
             {
@@ -182,7 +171,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-                icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), menuIconColor(icon, colorText))
+                icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
             }
 
             // Text
@@ -202,29 +191,14 @@ public impl IWnd for MenuCtrl
         let rects   = .themeRects()
         let metrics = .themeMetrics()
 
-        // The body and its opening tab both cast a shadow. Clip the tab's shadow to the side
-        // beyond the body so their shared edge does not make a dark seam.
+        // The body floats beside its opener. The opener stays on its original surface;
+        // an additional shadow around it would give it a different elevation from the menu.
         if not .paintByFrame
         {
             let subRect      = &theme.rects.menuPopup_Shadow
             let anchorHeight = .getPopupBarAnchorHeight()
             let shadowY      = .popupButtonOpensUp ? 0 : anchorHeight
             theme.drawSubRect(painter, Math.Rectangle{0, shadowY, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
-
-            if .hasPopupBarAnchor()
-            {
-                let body   = .getPopupBodyRect()
-                let anchor = .getPopupBarAnchorLocalRect()
-                let reach  = metrics.menuPopup_ShadowSize
-                let clip   = .popupButtonOpensUp ?
-                    Math.Rectangle{0, body.bottom(), .position.width, .position.height - body.bottom()} :
-                    Math.Rectangle{0, 0, .position.width, body.y}
-                var shadow = anchor
-                shadow.inflate(reach)
-                painter.pushClippingRect(clip)
-                theme.drawSubRect(painter, shadow, subRect, colors.menuPopup_Shadow)
-                painter.popClippingRect()
-            }
         }
 
         // Back
@@ -235,7 +209,7 @@ public impl IWnd for MenuCtrl
             theme.drawSubRect(painter, clientRect, &rects.menuPopup_Border, colors.menuPopup_Border, interpol: .Pixel)
         }
 
-        .paintPopupBarAnchor(painter, clientRect)
+        .paintPopupBarAnchor(painter)
         clientRect.applyPadding(.padding)
 
         var labelPos:       Math.Rectangle
@@ -267,7 +241,7 @@ public impl IWnd for MenuCtrl
             // A label opens a group in small spaced capitals, where the wording of the entries starts.
             if it.label
             {
-                labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
+                labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
                 SectionLabel.paint(me, painter, labelPos, it.name.raw)
                 continue
             }
@@ -281,7 +255,7 @@ public impl IWnd for MenuCtrl
             if isHot
             {
                 colorSel       = colors.popupItem_HotBk
-                colorText      = colors.popupItem_HotText
+                colorText      = it.critical ? colors.critical : colors.popupItem_HotText
                 colorRightText = colors.popupItem_HotRightText
             }
 
@@ -308,7 +282,7 @@ public impl IWnd for MenuCtrl
                 labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
             }
 
-            labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
+            labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
             labelPos.width -= metrics.menuPopup_IconSize
 
             // A left-opening submenu uses the shared glyph column when the row has no glyph of
@@ -366,7 +340,7 @@ public impl IWnd for MenuCtrl
                 checkPos.y = opticalTop(.font(), textCenterY, metrics.menuPopup_IconSize)
                 checkPos.width, checkPos.height = metrics.menuPopup_IconSize
 
-                if it.rg == .ExclusiveGroup do
+                if it.rg.has(.ExclusiveGroup) do
                     theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, markerColor)
                 else do
                     theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, markerColor)
@@ -376,7 +350,7 @@ public impl IWnd for MenuCtrl
             {
                 var icon = it.icon
                 icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-                icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), menuIconColor(icon, colorText))
+                icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
             // A shortcut is a measure, so it is written in the fixed-width face, small and faint.
@@ -590,14 +564,15 @@ impl MenuCtrl
         .popupButtonOpensUp      = button.arrowPosition == .RightUpward
     }
 
-    internal mtd getPopupBarAnchorHeight()->f32 => .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
+    internal mtd getPopupBarAnchorHeight()->f32
+    {
+        if not .hasPopupBarAnchor() do
+            return 0
+        let gap = .popupAnchorButton ? .popupAnchorButton.menuAnchorGap(.popupButtonOpensUp) : .themeMetrics().menuPopup_AnchorGap
+        return .popupBarItemSurfaceRect.height + gap
+    }
 
-    // Reports whether the body of an attached popup still fits on the side its tab opens to.
-    //
-    // The tab, the mouth it opens in the body's outline and the hairline that continues that
-    // outline are all placed against one edge of the body, so the body has to stay where its
-    // button is. A body that does not fit is moved by the window fit afterwards, and the tab
-    // then describes an edge the body no longer has.
+    // The body must keep its gap and window clearance on the preferred side.
     private mtd popupButtonAnchorFits()->bool
     {
         let parent = unwrap .parent
@@ -606,16 +581,11 @@ impl MenuCtrl
         let local  = parent.surfaceToLocal(Math.Point{anchor.x, anchor.y})
 
         if .popupButtonOpensUp do
-            return local.y - (.position.height - anchor.height - shadow) >= -shadow
-        return local.y - shadow + .position.height <= parent.position.height + shadow
+            return local.y - (.position.height - anchor.height - shadow) >= .themeMetrics().menuPopup_WindowMargin
+        return local.y - shadow + .position.height - shadow <= parent.position.height - .themeMetrics().menuPopup_WindowMargin
     }
 
-    // Settles which side an attached popup opens to, and gives the attachment up when it fits on
-    // neither.
-    //
-    // A menu taller than the room on both sides of its button is not attached to anything any
-    // more: it opens as an ordinary popup, hanging from under the button and clamped to the
-    // window, rather than as a tab drawn against an edge that has slid away from it.
+    // Flip before abandoning the anchor when neither side has room for the complete menu.
     private mtd fitPopupButtonAnchor()
     {
         if .popupButtonAnchorFits() do
@@ -678,7 +648,7 @@ impl MenuCtrl
         return result
     }
 
-    private mtd paintPopupBarAnchor(painter: *Painter, bodyRect: Math.Rectangle)
+    private mtd paintPopupBarAnchor(painter: *Painter)
     {
         if not .hasPopupBarAnchor() do
             return
@@ -691,7 +661,7 @@ impl MenuCtrl
         if anchorRect.isEmpty() do
             return
 
-        paintPopupAnchorTab(me, painter, anchorRect, bodyRect, .popupButtonOpensUp)
+        paintPopupOpener(me, painter, anchorRect, .popupAnchorButton)
         if .popupAnchorButton
         {
             .popupAnchorButton.paintMenuAnchorContent(painter, anchorRect, colors.menuBar_SelectedText)
@@ -715,7 +685,7 @@ impl MenuCtrl
         {
             var icon = i.icon
             icon.sizeX, icon.sizeY = metrics.menuPopup_IconSize
-            icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), menuIconColor(icon, colorText))
+            icon.paint(painter, labelPos.x, opticalTop(.font(), labelPos.vertCenter(), icon.sizeY), colorText)
         }
 
         painter.drawRichString(labelPos, &i.name, format)
@@ -808,8 +778,11 @@ impl MenuCtrl
                 it.rightName.set(evt.shortcut)
             if evt.updatedFields.has(.Checked) do
                 it.checked = evt.checked
-            if evt.updatedFields.has(.RenderingHint) do
-                it.rg = evt.renderingHint
+            if evt.updatedFields.has(.RenderingHint)
+            {
+                it.rg       = evt.renderingHint
+                it.critical = evt.renderingHint.has(.Critical)
+            }
         }
     }
 
@@ -861,7 +834,7 @@ impl MenuCtrl
         var pt          = popupParent.surfaceToLocal(Math.Point{pos.x, pos.y})
         let subPos      = sub.position
         let shadow      = metrics.menuPopup_ShadowSize
-        pt.x = Math.clamp(pt.x, bounds.x - shadow, Math.max(bounds.right() - subPos.width + shadow, bounds.x - shadow))
+        pt.x = Math.clamp(pt.x, bounds.x + metrics.menuPopup_WindowMargin - shadow, Math.max(bounds.right() - metrics.menuPopup_WindowMargin - subPos.width + shadow, bounds.x + metrics.menuPopup_WindowMargin - shadow))
         pt.y = Math.clamp(pt.y, bounds.y - shadow, Math.max(bounds.bottom() - subPos.height + shadow, bounds.y - shadow))
 
         pt = popupParent.localToSurface(pt)
@@ -1079,7 +1052,7 @@ impl MenuCtrl
         if not .paintByFrame do
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
-        let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
+        let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
         .position.width += metrics.menuPopup_IconSize + leadingWidth
 
         // With no glyph column to share, a popup whose submenus deliberately open on the left
@@ -1365,11 +1338,12 @@ public impl MenuCtrl
         .dirtyLayout = true
     }
 
-    // Runs a popup menu joined to a [[Gui.IconButton]] and returns its selected command, or null when dismissed.
+    // Runs a popup menu anchored to a [[Gui.IconButton]] and returns its selected command, or null when dismissed.
     //
-    // The button is repainted as the popup's opening tab instead of pointing at a detached box
-    // with a notch. A [[Gui.IconButtonArrowPosition.RightUpward]] marker opens the menu above the
-    // button; every other marker opens it below. When `autoDestroy` is true, the menu destroys
+    // The menu leaves a clear gap beside its opener. Text buttons align their wording with the
+    // menu entries; icon-only buttons centre the menu. Window margins take priority over that
+    // alignment. A [[Gui.IconButtonArrowPosition.RightUpward]] marker prefers the upper side;
+    // other markers prefer the lower side. When `autoDestroy` is true, the menu destroys
     // itself and its submenu tree after the modal loop.
     mtd doModal(button: *IconButton, autoDestroy: bool = false)->WndId? => .doModalImpl({}, .TopLeft, autoDestroy, button)
 
@@ -1410,7 +1384,21 @@ public impl MenuCtrl
             elif .popupButtonOpensUp do
                 y = anchor.y - (.position.height - anchor.height - sdw)
 
-            pt = .parent.surfaceToLocal(Math.Point{anchor.x - sdw, y})
+            let bodyWidth = .position.width - 2 * sdw
+            var left      = anchor.horzCenter() - bodyWidth * 0.5
+            if not button.name.isEmpty() and not button.flags.has(.IconOnly)
+            {
+                let lead = .popupHasGlyphs ? .themeMetrics().menuPopup_IconMargin + .themeMetrics().menuPopup_IconSize + .themeMetrics().menuPopup_IconTextMargin : .themeMetrics().menuPopup_IconMargin
+                left = button.menuAnchorTextLeft(anchor) - .padding.x - lead
+                if .popupHasMarkerColumn do
+                    left -= .themeMetrics().chevron_Size + .themeMetrics().menuPopup_IconTextMargin
+            }
+
+            let bounds    = .parent.clientRect()
+            let margin    = .themeMetrics().menuPopup_WindowMargin
+            let localLeft = .parent.surfaceToLocal(Math.Point{left, y})
+            pt   = {Math.clamp(localLeft.x, bounds.x + margin, Math.max(bounds.x + margin, bounds.right() - margin - bodyWidth)), localLeft.y}
+            pt.x -= sdw
             .setPosition(Math.Rectangle{pt.x, pt.y, .position.width, .position.height})
         }
 
@@ -1443,10 +1431,8 @@ public impl MenuCtrl
         let anchored = button != null or pos == .AnchorTopCenter or pos == .AnchorBottomCenter
         let margin   = .themeMetrics().menuPopup_WindowMargin
 
-        // An attached button can sit against either surface edge, closer than the popup shadow is
-        // deep. Let that invisible shadow start outside the surface on both axes; clamping it to
-        // the normal window margin would detach the popup body from a right-aligned trigger. A
-        // popup that gave its attachment up keeps the ordinary margin.
+        // Keep the original opener in place even when it touches the surface edge. The body
+        // already has its own margin; only the transparent shadow may extend beyond the surface.
         let fitMargin = .hasPopupBarAnchor() ? -.themeMetrics().menuPopup_ShadowSize : margin
         .fitPosInParent(fitMargin, fitMargin, simX: not anchored, simY: true)
 
@@ -1457,8 +1443,8 @@ public impl MenuCtrl
 
         .resolveSubmenuDirections()
 
-        // An attached menu and its button form one outline. Show that outline at its final
-        // position so the pressed button cannot show through a moving, translucent tab.
+        // Paint the opener at its final position so its normal state cannot show through a
+        // translating or fading copy.
         let anchorY = button ? button.surfaceRect().vertCenter() : surfacePos.y
         let travel  = .themeMetrics().motion_AnchorTravel
         .bringToFront()

@@ -25,7 +25,7 @@ struct Label
         readonly
         {
             icon:        Icon                                        // Optional displayed icon.
-            iconColor:   Color                                       // Explicit icon color, or transparent for the icon or theme color.
+            iconColor:   Color                                       // Fallback for an icon without an intrinsic tint; transparent uses the theme.
             textColor:   Color                                       // Explicit text color, or transparent for theme colors.
             flags = LabelFlags.None                                  // Active text layout and presentation options.
             lineGap:     s32                                         // Extra space between text lines, in logical pixels; zero by default.
@@ -130,8 +130,6 @@ impl IWnd for Label
 
             // Icon
             var color = .iconColor
-            if not color.a do
-                color = .icon.color
             if not color.a do
                 color = (.wndFlags & .Disabled) ? theme.colors.label_DisabledIcon : theme.colors.label_Icon
             .icon.paint(painter, posIcon.x, posIcon.y, color)
@@ -407,7 +405,9 @@ impl Label
         .invalidate()
     }
 
-    // Changes the explicit icon color; transparent restores automatic coloring.
+    // Changes the fallback icon color; transparent restores the theme color.
+    //
+    // An icon's intrinsic tint takes precedence over this fallback.
     mtd setIconColor(color: Color)
     {
         .iconColor = color

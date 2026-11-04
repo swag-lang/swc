@@ -103,9 +103,8 @@ impl IActionUI for ActionToolMode
 
         case .Callout:
 
-            // No sprite for this tool: the toolbar button draws its own bubble glyph
-            // via iconPainter, so this state intentionally does not manage the icon.
-            evt.updatedFields |= .Checked | .Name | .ToolTip
+            evt.updatedFields |= .Icon | .Checked | .Name | .ToolTip
+            evt.icon          = main.toolIcon(.Callout)
             evt.name          = appStrings().act_Callout
             evt.toolTip       = appStrings().tip_ToolCallout
             evt.checked       = main.editMode == EditMode.Callout

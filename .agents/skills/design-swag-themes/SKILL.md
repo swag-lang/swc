@@ -33,7 +33,7 @@ The charter's token table maps onto the code like this:
 | --- | --- | --- |
 | Ground | `ground` | `ground`, `wnd_Bk`, `view_Bk` |
 | Surface | `surface` | `surface`, `dlg_Bk`, the floating components |
-| Raised | `raised` | `raised`, `pressed` (derived) |
+| Raised | `raised` | `raised`, `menuPopup_Bk`, `pressed` (derived) |
 | Line | `line` | `line`, `strongLine` (derived with the faint ink) |
 | Text, Soft, Faint | `text`, `softText`, `faintText` | same names; `disabled` is derived |
 | Voltage | `signature` (a tone) | `signature`, `onSignature`, `focusRing`, `caret` |
@@ -211,7 +211,7 @@ every kind:
 - errors are a critical ring and a critical-dot line;
 - notes are an information notice;
 - mixed values read "Mixed values" in faint italic;
-- the layout menu is joined to its `•••` button;
+- the layout menu leaves a clear gap beside its `•••` button;
 - no border goes around an individual setting, and no box goes around a section.
 
 ## Theme Sheets

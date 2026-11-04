@@ -16,11 +16,17 @@ impl IActionUI for ActionPixSel
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        if cxt.id == .Clear
+        {
+            evt.updatedFields |= .RenderingHint
+            evt.renderingHint |= .Critical
+        }
+
         return updateFromTable(cxt, evt, [
-            CmdDesc{Clear, appStrings().act_Clear, .PixSel, hideDisabled: true},
-            CmdDesc{Fill, appStrings().act_Fill, .PixSel, hideDisabled: true},
-            CmdDesc{SmartFill, appStrings().act_SmartFill, .PixSel, hideDisabled: true},
-            CmdDesc{SmartMove, appStrings().act_SmartMove, .PixSel, hideDisabled: true}])
+            CmdDesc{Clear, appStrings().act_Clear, .PixSel, hideDisabled: true, icon: cxt.wnd!.theme().icon(.Remove)},
+            CmdDesc{Fill, appStrings().act_Fill, .PixSel, hideDisabled: true, icon: mainWndOf(cxt).icon(.SquareFill)},
+            CmdDesc{SmartFill, appStrings().act_SmartFill, .PixSel, hideDisabled: true, icon: mainWndOf(cxt).icon(.Image)},
+            CmdDesc{SmartMove, appStrings().act_SmartMove, .PixSel, hideDisabled: true, icon: mainWndOf(cxt).icon(.Select)}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool

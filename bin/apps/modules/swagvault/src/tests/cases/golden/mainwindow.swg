@@ -108,3 +108,29 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "surface.lens.paper")
 }
+
+// The timeout menu floats above the actual privacy form, with its neighbouring controls visible.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    window.showPage(.Options, animate: false)
+    window.unmountOnIdle.toggle()
+    window.applyLayout()
+    host.finishAnimations()
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.capturedPopupMenu() != null)
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "options.timeout.menu")
+        captured[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    window.idleTimeout.sigPressed.call(cast(*Button, window.idleTimeout))
+    Swag.require(captured)
+}

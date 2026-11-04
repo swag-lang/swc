@@ -23,6 +23,8 @@ impl IActionUI for ActionCaptureDelay
         switch cxt.id
         {
         case .Delay:
+            evt.updatedFields |= .Icon
+            evt.icon = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name
             switch main.captureOptions.delay
             {
@@ -34,30 +36,40 @@ impl IActionUI for ActionCaptureDelay
             }
 
         case .Delay0:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_NoDelay
             evt.checked       = main.captureOptions.delay == 0
 
         case .Delay1:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_OneSecond
             evt.checked       = main.captureOptions.delay == 1
 
         case .Delay2:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_TwoSeconds
             evt.checked       = main.captureOptions.delay == 2
 
         case .Delay5:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_FiveSeconds
             evt.checked       = main.captureOptions.delay == 5
 
         case .Delay9:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_NineSeconds

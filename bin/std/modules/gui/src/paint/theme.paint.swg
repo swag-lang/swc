@@ -230,7 +230,7 @@ impl Theme
             return
 
         var pos       = position
-        let iconColor = icon.color.a ? icon.color : stringFormat.palette[0]
+        let iconColor = stringFormat.palette[0]
 
         // Icon alone
         if count == 0

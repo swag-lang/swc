@@ -27,6 +27,8 @@ impl IActionUI for ActionRecentSize
         // reads as one choice among three. Announced without a wording, they were three
         // blank lines carrying a mark and nothing a reader could act on.
         case .RecentSmall:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewSmall)
             evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SmallView
@@ -34,6 +36,8 @@ impl IActionUI for ActionRecentSize
             evt.checked       = main.bottomSize == .Small
 
         case .RecentMedium:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewMedium)
             evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_MediumView
@@ -41,6 +45,8 @@ impl IActionUI for ActionRecentSize
             evt.checked       = main.bottomSize == .Medium
 
         case .RecentBig:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewBig)
             evt.updatedFields |= .Name | .ToolTip | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_BigView
@@ -48,18 +54,24 @@ impl IActionUI for ActionRecentSize
             evt.checked       = main.bottomSize == .Big
 
         case .LibSmall:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewSmall)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SmallView
             evt.checked       = main.libWnd.previewSize == PreviewSize.Small
 
         case .LibMedium:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewMedium)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_MediumView
             evt.checked       = main.libWnd.previewSize == PreviewSize.Medium
 
         case .LibBig:
+            evt.updatedFields |= .Icon
+            evt.icon          = mainWndOf(cxt).icon(.ViewBig)
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_BigView

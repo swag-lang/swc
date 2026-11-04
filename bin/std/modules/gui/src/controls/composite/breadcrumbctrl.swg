@@ -58,6 +58,7 @@ struct BreadcrumbCtrl
     firstVisible:  u64                // First level after the overflow trigger.
     hotOverflow:   bool
     pressOverflow: bool
+    ancestorIcon:  Icon     // Fallback for a path bar's hidden ancestor rows.
 }
 
 impl BreadcrumbCtrl
@@ -258,8 +259,12 @@ private impl BreadcrumbCtrl
     {
         let menu = MenuCtrl.createPopup(me)
         defer menu.destroy()
-        for index in 0 until .firstVisible do
-            menu.addItem(.items[index].name, Format.toString("%", index))
+        for index in 0 until .firstVisible
+        {
+            let item = &.items[index]
+            menu.addItem(item.name, Format.toString("%", index), item.icon.isValid() ? item.icon : .ancestorIcon)
+        }
+
         var rect     = .overflowRect
         let selected = .showLevelMenu(menu, rect, "…", overflow: true)
         if selected.count do

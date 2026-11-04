@@ -255,6 +255,7 @@ impl LibraryWnd
             with let entry = sectionOf(results, family).addEntry(state.name)
             {
                 .disabled = state.updatedFields.has(.Disabled) and state.disabled
+                .critical = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
                 .run      = func|libWnd = me, id|() { libWnd.sendCommandEvent(id) }
                 if state.updatedFields.has(.Shortcut)
                 {
@@ -333,9 +334,9 @@ impl LibraryWnd
         let texts  = appStrings()
         let family = texts.ui_BarFolders
         describeAction(results, query, family, texts.act_OpenLibraryFolder, .theme().icon(.Folder), func|libWnd = me|() { libWnd.navigateFolder(Library.getFolder()) })
-        describeAction(results, query, family, texts.act_BrowseFolder, .theme().icon(.OpenExternal), func|libWnd = me|() { libWnd.chooseFolder(false) })
+        describeAction(results, query, family, texts.act_BrowseFolder, .theme().icon(.ExploreFolder), func|libWnd = me|() { libWnd.chooseFolder(false) })
         describeAction(results, query, family, texts.act_ChooseLibraryFolder, .theme().icon(.Folder), func|libWnd = me|() { libWnd.chooseFolder(true) })
-        describeAction(results, query, family, texts.act_UseDefaultLibrary, .theme().icon(.Folder), func|libWnd = me|() { libWnd.setLibraryFolder("") })
+        describeAction(results, query, family, texts.act_UseDefaultLibrary, .theme().icon(.Undo), func|libWnd = me|() { libWnd.setLibraryFolder("") })
         .describeCommands(results, query, family, FolderIds)
     }
 
@@ -388,7 +389,8 @@ impl LibraryWnd
         {
             with let entry = sectionOf(results, family).addEntry(all)
             {
-                .run = func|libWnd = me|() { libWnd.applyDateFilter({}) }
+                .glyph = me.main.icon(.Calendar)
+                .run   = func|libWnd = me|() { libWnd.applyDateFilter({}) }
                 if me.view.filterYear == 0 do
                     .detail = LensCheck
             }
@@ -451,8 +453,8 @@ impl LibraryWnd
 
     mtd describeViewOptions(page: *OptionSheet.Page)
     {
-        page.addCommandLink(appStrings().ui_ThumbnailSize, ThumbnailSizeIds, me)
-        page.addCommandLink(appStrings().ui_SortBy, SortIds, me)
+        page.addCommandLink(appStrings().ui_ThumbnailSize, ThumbnailSizeIds, me, .main.icon(.ViewMedium))
+        page.addCommandLink(appStrings().ui_SortBy, SortIds, me, .theme().icon(.Sort))
         page.addCommand(ActionLibSort.Invert, me)
         page.addHeading(appStrings().ui_Overlays)
         page.addCommand(ActionLibView.Ratings, me)
@@ -470,39 +472,48 @@ impl LibraryWnd
     mtd describeFilterOptions(page: *OptionSheet.Page)
     {
         let texts = appStrings()
-        page.addCommandLink(texts.ui_FilterContent, ContentFilterIds, me)
+        page.addCommandLink(texts.ui_FilterContent, ContentFilterIds, me, .theme().icon(.Filter))
         page.addCommand(ActionLibFilter.FavoritesOnly, me)
 
         let application = .applicationFilter.isEmpty() ? texts.act_AllApplications : .applicationFilter.toString()
-        page.addLink(texts.act_Application, application, func|libWnd = me|(choices)
-        {
-            choices.addChoice(appStrings().act_AllApplications, libWnd.applicationFilter.isEmpty(), func|libWnd|() { libWnd.setApplicationFilter("") })
-            for &one in libWnd.uniqueFilterValues(true)
-            {
-                let name = one.toString()
-                let on   = Utf8.compare(one.toSlice(), libWnd.applicationFilter, .Latin1NoCase) == 0
-                choices.addChoice(name, on, func|libWnd, name|() { libWnd.setApplicationFilter(name) })
-            }
-        })
+        page.addLink(texts.act_Application,
+                     application,
+                     func|libWnd = me|(choices)
+                     {
+                         choices.addChoice(appStrings().act_AllApplications, libWnd.applicationFilter.isEmpty(), func|libWnd|() { libWnd.setApplicationFilter("") })
+                         for &one in libWnd.uniqueFilterValues(true)
+                         {
+                             let name = one.toString()
+                             let on   = Utf8.compare(one.toSlice(), libWnd.applicationFilter, .Latin1NoCase) == 0
+                             choices.addChoice(name, on, func|libWnd, name|() { libWnd.setApplicationFilter(name) })
+                         }
+                     },
+                     icon: .theme().icon(.OpenExternal))
 
         let tag = .tagFilter.isEmpty() ? texts.act_AllTags : .tagFilter.toString()
-        page.addLink(texts.act_Tags, tag, func|libWnd = me|(choices)
-        {
-            choices.addChoice(appStrings().act_AllTags, libWnd.tagFilter.isEmpty(), func|libWnd|() { libWnd.setTagFilter("") })
-            for &one in libWnd.uniqueFilterValues(false)
-            {
-                let name = one.toString()
-                let on   = Utf8.compare(one.toSlice(), libWnd.tagFilter, .Latin1NoCase) == 0
-                choices.addChoice(name, on, func|libWnd, name|() { libWnd.setTagFilter(name) })
-            }
-        })
+        page.addLink(texts.act_Tags,
+                     tag,
+                     func|libWnd = me|(choices)
+                     {
+                         choices.addChoice(appStrings().act_AllTags, libWnd.tagFilter.isEmpty(), func|libWnd|() { libWnd.setTagFilter("") })
+                         for &one in libWnd.uniqueFilterValues(false)
+                         {
+                             let name = one.toString()
+                             let on   = Utf8.compare(one.toSlice(), libWnd.tagFilter, .Latin1NoCase) == 0
+                             choices.addChoice(name, on, func|libWnd, name|() { libWnd.setTagFilter(name) })
+                         }
+                     },
+                     icon: .theme().icon(.Edit))
 
-        page.addCommandLink(texts.ui_FilterRating, RatingFilterIds, me)
-        page.addLink(texts.ui_FilterLinks, "", func|libWnd = me|(links)
-        {
-            for id in LinkFilterIds do
-                links.addCommand(id, libWnd)
-        })
+        page.addCommandLink(texts.ui_FilterRating, RatingFilterIds, me, .theme().icon(.Star))
+        page.addLink(texts.ui_FilterLinks,
+                     "",
+                     func|libWnd = me|(links)
+                     {
+                         for id in LinkFilterIds do
+                             links.addCommand(id, libWnd)
+                     },
+                     icon: .theme().icon(.Link))
 
         page.addCommand(ActionLibFilter.Reset, me)
     }

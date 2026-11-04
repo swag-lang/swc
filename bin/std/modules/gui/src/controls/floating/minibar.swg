@@ -112,6 +112,7 @@ impl MiniBar
         {
             .setForm(.RoundedRectangle)
             .setCheckIndicator(.Full)
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
             .toolTip = toolTip orelse ""
         }
 
@@ -124,8 +125,9 @@ impl MiniBar
     mtd addTextButton(text: string, id: WndId? = null)->*PushButton
     {
         let metrics = .themeMetrics()
-        let width   = Painter.measureString(text, .theme().createDefaultFont(metrics.defaultFontSize)).width + 2 * metrics.btnPush_TextMargin
-        let button  = PushButton.create(me, text, {0, 0, Math.ceil(width), metrics.miniBar_ButtonSize}, id, .Flat)
+        let button  = PushButton.create(me, text, {0, 0, 0, metrics.miniBar_ButtonSize}, id, .Flat)
+        button.setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+        button.fitWidthToLabel()
         .addItem(button)
         return button
     }

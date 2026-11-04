@@ -33,7 +33,7 @@ impl Capture
             .addItem(ActionAlign.AlignTop)
             .addItem(ActionAlign.AlignMiddle)
             .addItem(ActionAlign.AlignBottom)
-            menu.addPopup(appStrings().ui_MenuAlign, popup0)
+            menu.addPopup(appStrings().ui_MenuAlign, popup0, view.main.icon(.TextAlignLeft))
         }
 
         with let popup1 = MenuCtrl.createPopup(view)
@@ -42,7 +42,7 @@ impl Capture
             .addItem(ActionAlign.SendToBack)
             .addItem(ActionAlign.MoveForward)
             .addItem(ActionAlign.MoveBackward)
-            menu.addPopup(appStrings().ui_MenuArrange, popup1)
+            menu.addPopup(appStrings().ui_MenuArrange, popup1, view.theme().icon(.BringToFront))
         }
 
         if .canGroup() do

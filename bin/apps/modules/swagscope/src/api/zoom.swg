@@ -86,21 +86,28 @@ private const ZoomPresets: [5] ZoomPreset = [
 
 // Shows the zoom menu of a reading viewer beside `anchor`, with the level in use checked, and
 // returns the level the reader picked, or 0 when the menu closed without a choice.
-func pickZoom(owner: *Wnd, anchor: *Wnd, current: u32)->u32
+func pickZoom(owner: *Wnd, anchor: *IconButton, current: u32)->u32
 {
-    let rect = anchor.surfaceRect()
-    return pickZoom(owner, Math.Point{rect.x, rect.y + rect.height}, .TopLeft, current)
+    return zoomChoice(createZoomMenu(owner, current).doModal(anchor, autoDestroy: true))
 }
 
 // Shows the same zoom menu at the surface point `at`, placed around it as `pos` says: where the
 // lens stood, for a viewer whose window shows no zoom control to open it beside.
 func pickZoom(owner: *Wnd, at: Math.Point, pos: PopupPosition, current: u32)->u32
 {
+    return zoomChoice(createZoomMenu(owner, current).doModal(at, pos, autoDestroy: true))
+}
+
+private func createZoomMenu(owner: *Wnd, current: u32)->*MenuCtrl
+{
     let menu = MenuCtrl.createPopup(owner, owner: owner)
     for preset in ZoomPresets do
         menu.addItem(preset.label, preset.id, checked: preset.percent == current)
+    return menu
+}
 
-    let chosen = menu.doModal(at, pos, autoDestroy: true) orelse ""
+private func zoomChoice(chosen: WndId?)->u32
+{
     for preset in ZoomPresets where preset.id == chosen do
         return preset.percent
     return 0

@@ -51,6 +51,29 @@ impl IActionUI for ActionEdit
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        var glyph: Icon
+        switch cxt.id
+        {
+        case .EditText:         glyph = cxt.wnd!.theme().icon(.Edit)
+        case .ClearImageInside: glyph = cxt.wnd!.theme().icon(.Remove)
+        case .ResetRotation:    glyph = cxt.wnd!.theme().icon(.Undo)
+        case .Bold:             glyph = mainWndOf(cxt).icon(.Bold)
+        case .Italic:           glyph = mainWndOf(cxt).icon(.Italic)
+        case .ResetSteps:       glyph = cxt.wnd!.theme().icon(.Undo)
+        }
+
+        if glyph.isValid()
+        {
+            evt.updatedFields |= .Icon
+            evt.icon = glyph
+        }
+
+        if cxt.id == .ClearImageInside
+        {
+            evt.updatedFields |= .RenderingHint
+            evt.renderingHint |= .Critical
+        }
+
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
         let hasSel  = capture and capture.selection.count

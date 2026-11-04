@@ -246,8 +246,10 @@ Interface icons are the glyphs of icon buttons, menus, the dock and the lens. Dr
 deliberate dot or play triangle. Each glyph is drawn in one colour from the theme (soft at rest,
 Arc when chosen) and never carries a second colour, a badge or a tile. Application icons are the
 exception: they stay two-colour tiles because they are seen next to other products' icons. In a
-file listing, a file's glyph takes the quiet hue of its kind (`Theme.fileGlyph`, `fileKind_*`).
-The name and the row stay neutral.
+file listing, menu, breadcrumb, or any other control, a file's glyph takes the quiet hue of its
+kind (`Theme.fileGlyph`, `fileKind_*`), and a folder takes Arc. `Theme.icon` assigns the semantic
+color and `Icon.paint` honors it before the caller's fallback ink. Do not repeat or override that
+choice in individual widgets. The name and the row stay neutral.
 
 Judge a glyph at 16 physical pixels at 100 % scale, in soft on Encre and in ink on Papier, with
 its pixels enlarged rather than smoothed. A drawing at 64 hides what the stroke does at 16.
@@ -295,23 +297,27 @@ The generated documentation is the reference implementation for pages:
 boxes and rails. A window follows Silence instead: space first, a fill second, one hairline last,
 and no rail; see [build-swag-standard-apps](../build-swag-standard-apps/SKILL.md).
 
-## Join An Icon Menu To Its Button
+## Keep Anchored Menus Distinct From Their Openers
 
-A menu opened by the primary activation of an `IconButton` includes that button in its outline
-as the opening tab. The button and the menu share one ground and one border. This applies
-everywhere, including dialogs, the inspector, the mini-bar and the property grid's `•••` layout
-menu.
+Every anchored menu and option panel uses Raised as its ground, a 6 px clear gap from its
+opener and at least 8 px between its body and a window edge. The opener retains a quiet selected
+ground without a border extension or a second shadow. Never join its outline to the popup.
+This applies in dialogs, breadcrumbs, property editors, command bars and application viewers.
 
-Use `MenuCtrl.doModal(button, autoDestroy: true)` with the actual `IconButton`. Do not pass a
-point computed from `surfaceRect()`: that takes the coordinate-based path, and the menu is no
-longer joined to the button or placed by its rules. `RightUpward` opens the menu above the
-button. The shared menu fits itself against the window edges, so the caller adds no offsets. A
-context menu requested by the pointer stays at the pointer.
+Text menu openers align their wording with the menu's wording when space permits. Icon-only
+openers centre the body; option panels centre it too, because their columns change with the
+page. Window margins take priority. Keep the body's inner padding separate from the external
+gap: ordinary rows retain a 30 px pitch, glyphs have 10 px before their text. A compact floating
+bar contributes its outside edge to the clearance; an underlined inline opener paints its
+selected ground only behind its text line so it does not cover the surrounding paragraph.
 
-[`menu.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/menu.swg) protects the joined
-outline. [`properties.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/properties.swg)
-checks the property editor's real trigger in both themes. When you add a new trigger, test the
-path that opens it.
+Use `MenuCtrl.doModal(button, autoDestroy: true)` with the actual `IconButton`, or the equivalent
+`OptionSheet.View` overload. Do not convert a button to a point. `RightUpward` prefers the upper
+side; fitting may flip it. Pointer context menus still open at the pointer.
+
+The GUI menu, breadcrumb, property and option-sheet goldens cover shared geometry. Application
+menu goldens must open real commands and keep their surrounding view visible. Check text/icon
+alignment numerically and review complete images; isolated menu crops miss coincident borders.
 
 ## Match Every Syntax Surface
 

@@ -195,8 +195,7 @@ impl IWnd for ComboBox
             // the field is set in.
             if item.icon.isValid()
             {
-                let iconColor = item.icon.color.a ? item.icon.color : .aniText.cur()
-                item.icon.paint(painter, itemRect.x, itemRect.vertCenter() - item.icon.sizeY * 0.5, iconColor)
+                item.icon.paint(painter, itemRect.x, itemRect.vertCenter() - item.icon.sizeY * 0.5, .aniText.cur())
             }
 
             if .maxIconSize do

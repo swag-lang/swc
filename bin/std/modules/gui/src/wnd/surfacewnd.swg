@@ -335,7 +335,7 @@ impl SurfaceWnd
             icon = srfn.app.appGlyph(metrics.wnd_CaptionIconSize)
         if icon.isValid()
         {
-            icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, icon.color.a ? icon.color : colors.wnd_CaptionMark)
+            icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
             leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
         }
 

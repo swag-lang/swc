@@ -28,16 +28,26 @@ impl IActionUI for ActionFile
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
+        if cxt.id == .DeleteCapture
+        {
+            evt.updatedFields |= .RenderingHint
+            evt.renderingHint |= .Critical
+        }
+
         let main    = mainWndOf(cxt)
         let capture = main.getCapture()
 
         switch cxt.id
         {
         case .NewImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Plus)
             evt.updatedFields |= .Name
-            evt.name = appStrings().act_NewImage
+            evt.name          = appStrings().act_NewImage
 
         case .NewFromClipboard:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Paste)
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_NewFromClipboard
             evt.disabled      = not Clipboard.hasImage()
@@ -71,6 +81,8 @@ impl IActionUI for ActionFile
             evt.icon          = main.theme().icon(.Update)
 
         case .UnlinkImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Link)
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_UnlinkImage
             evt.disabled      = not capture or capture.linkedImage.isEmpty()
@@ -94,6 +106,8 @@ impl IActionUI for ActionFile
             evt.icon          = main.theme().icon(.Duplicate)
 
         case .RenameCapture:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Edit)
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_Rename
             evt.disabled      = not capture
@@ -117,6 +131,8 @@ impl IActionUI for ActionFile
             evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Information)
             evt.updatedFields |= .Name | .Disabled
             evt.name          = appStrings().act_FileDetails
             evt.disabled      = not capture

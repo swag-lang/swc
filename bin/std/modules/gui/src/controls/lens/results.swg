@@ -63,6 +63,7 @@ struct Entry
         monoTitle:  bool            // Whether the title is code or a measure, set in the fixed-width face.
         monoDetail: bool            // Whether the detail is a measure or a shortcut, set in the fixed-width face.
         disabled:   bool            // Whether the row is shown faint and cannot be chosen.
+        critical:   bool            // Whether the command removes content and uses the theme critical ink while enabled.
         checked:    bool            // Whether the row is the choice or the setting in force, marked with a check in Arc.
         checkable:  bool            // Whether the row is a setting or a choice, which `Ctrl Enter` runs keeping the lens open.
         id:         WndId?          // Command posted to the owner of the lens when the row is chosen; borrowed for the life of the row.

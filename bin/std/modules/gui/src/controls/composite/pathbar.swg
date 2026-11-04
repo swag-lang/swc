@@ -27,6 +27,7 @@ struct PathBar
 
     location:    String
     returnFocus: bool
+    internal externalEditor: *EditBox?     // Shared full-width editor when embedded inside a path field.
 }
 
 impl PathBar
@@ -51,6 +52,7 @@ impl PathBar
         {
             .backgroundStyle = .Transparent
             .fitToWidth      = true
+            .ancestorIcon    = result.theme().icon(.Folder, result.themeMetrics().menuPopup_IconSize)
             .style.setFont(result.theme().createDefaultFontFs(result.themeMetrics().defaultFontSize), .Regular)
             .sigItemPressed += func|result|(path, index)
             {
@@ -101,7 +103,6 @@ impl PathBar
     mtd setText(path: string)
     {
         .location = path
-        .breadcrumb.toolTip = path
     }
 
     // Builds all levels of a slash-separated path, including its root and current folder.
@@ -148,6 +149,14 @@ impl PathBar
     // Selects the full location and gives the keyboard to the editor, without submitting it.
     mtd beginEdit()
     {
+        if .externalEditor
+        {
+            .externalEditor.setText(.location)
+            .externalEditor.setFocus()
+            .externalEditor.selectAll()
+            return
+        }
+
         if .edit.isLocallyVisible() do
             return
         .returnFocus = false

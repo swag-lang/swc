@@ -1082,7 +1082,8 @@ impl Surface
     // Tab and Shift+Tab walk the whole ring of [[Gui.FocusOrder]]; the four arrows walk the group
     // the focus stands in, so an action bar answers Left and Right by choosing between its own
     // actions. Enter and Escape press [[Gui.Surface.defaultButton]] and
-    // [[Gui.Surface.cancelButton]]. Every other key belongs to whatever holds the focus, which is
+    // [[Gui.Surface.cancelButton]]. In a dialog, Escape first moves focus out of a text editor
+    // to the dialog itself, preserving its text. Every other key belongs to whatever holds the focus, which is
     // why this runs only once the focused window and its parents have all declined the event —
     // a field keeps its caret arrows and a list keeps its rows without knowing a traversal exists.
     //
@@ -1109,6 +1110,21 @@ impl Surface
             return .pressStandardButton(.defaultButton)
 
         case .Escape:
+            if .view() is Dialog
+            {
+                var field: *Wnd? = from
+                while field and field != .view()
+                {
+                    if field is EditBox or field is RichEditCtrl
+                    {
+                        .view().setSurfaceFallbackFocus()
+                        return true
+                    }
+
+                    field = field.parent
+                }
+            }
+
             return .pressStandardButton(.cancelButton)
         }
 

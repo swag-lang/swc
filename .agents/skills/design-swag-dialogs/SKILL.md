@@ -41,7 +41,8 @@ drift back within a release.
   object as the lens and the sheet. [`Dialog`](../../../bin/std/modules/gui/src/dialogs/dialog.swg)
   stands on a `SurfaceFlags.Sheet` surface, which is drawn on the surface ground.
 - **No caption band and no close cross.** The dim and the shadow already say "this is a dialog".
-  A box is dismissed by its own actions, and by `Esc`, which presses Cancel.
+  A box is dismissed by its own actions, and by `Esc`, which presses Cancel. From a text editor,
+  the first `Esc` returns focus to the box; a second presses Cancel.
 - **One inset, one gap.** The body keeps an inset of 28 and puts a gap of 16 between its pieces.
   Body text is quieter than the title.
 
@@ -113,8 +114,10 @@ under the last piece. They have no separator and no ground of their own.
 ### The bottom-left slot
 
 The bottom left is empty, or it holds one quiet control that belongs with the actions without
-being one of them (`Dialog.setLeadingControl`). In the file box it holds the type filter, the
-folder that will be chosen, or the count of what is chosen. A box never prints an `Esc` hint
+being one of them (`Dialog.setLeadingControl`). In the file box it holds the type filter or the
+count of selected files. Folder selection shows the full path of an explicitly selected folder,
+ellipsized to the available width, and leaves it empty when nothing is selected. The primary
+action stays "Select" regardless of the selection; the title already names folders. A box never prints an `Esc` hint
 there: the Cancel or Close button already says the box can be left. Key hints belong to surfaces
 with no button to leave by, such as the lens.
 
@@ -141,7 +144,8 @@ hand-written coordinates.
 | About (`AboutDlg.createApplication`) | Tile, name, mono line of version and date under it, capability line, links, one Close |
 
 - **The file box** keeps places, field and rows on the dialog surface inside the same inset, so
-  they share one left edge. Its rows show the name, then date and size in faint mono, with the
+  they share one left edge. Its rows show the name, a readable localized date aligned right, and
+  a size in faint mono, with the
   chosen row on the Arc selection ground. Each mode (`SelectFolder`, `CreateFile`, `SelectFiles`)
   and its two questions (`FileDlg.askNewFolderName`, `FileDlg.askReplace`) follow the charter's
   *The file box, in every mode*. A list never brings a panel with its own ground into a box: it

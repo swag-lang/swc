@@ -171,7 +171,7 @@ using Swag, Core, Pixel
         colors.apply(palette)
         Swag.require(colors.wnd_Bk == palette.ground)
         Swag.require(colors.dlg_Bk == palette.surface)
-        Swag.require(colors.menuPopup_Bk == palette.surface)
+        Swag.require(colors.menuPopup_Bk == palette.raised)
         Swag.require(colors.wnd_Border.a == 255)
 
         // The title and the window buttons are faint; a button reaches the body ink under the

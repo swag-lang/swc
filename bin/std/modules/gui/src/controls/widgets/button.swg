@@ -22,6 +22,7 @@ struct Button
 
     // Hover and press state, moved by the mouse events the button receives. Connect to
     // 'sigPressed' to react to a press instead of polling it.
+    critical:   bool     // Destructive command state, applied independently of its glyph.
     isPressed:  bool     // Whether the button is held down.
     isPressing: bool     // Whether the press gesture started on this button.
     isHot:      bool     // Whether the mouse is over the button.
@@ -41,10 +42,17 @@ impl IWnd for Button
         if evt.id != .id do
             return
 
-        if evt.updatedFields.has(.Icon) and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
+        if evt.updatedFields.has(.Icon) and .icon != evt.icon
         {
             evt.accepted = true
             .setIcon(evt.icon)
+        }
+
+        if evt.updatedFields.has(.RenderingHint) and .critical != evt.renderingHint.has(.Critical)
+        {
+            evt.accepted = true
+            .critical    = evt.renderingHint.has(.Critical)
+            .invalidate()
         }
 
         if evt.updatedFields.has(.Name) and .name != evt.name
@@ -106,6 +114,7 @@ impl Button
         .iconWidth  = width
         .iconHeight = height
         .invalidate()
+        .invalidateLayout()
     }
 
     // Returns the width the caption and the optional icon need side by side.
@@ -133,8 +142,9 @@ impl Button
 
         if .icon.isValid()
         {
-            result += .icon.sizeX
-            if result != .icon.sizeX do
+            let width = .iconWidth ? .iconWidth : .icon.sizeX
+            result += width
+            if result != width do
                 result += .themeMetrics().iconText_Margin
         }
 

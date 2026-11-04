@@ -587,8 +587,11 @@ impl PropWnd
                 .spacing   = ChoiceGap
             }
 
-            for k in 2 do
-                PushButton.create(row, "", {0, 0, 0, size}, id: Commands[pair * 2 + k], form: .Flat)
+            for k in 2
+            {
+                let button = PushButton.create(row, "", {0, 0, 0, size}, id: Commands[pair * 2 + k], form: .Flat)
+                button.setIconSize(.themeMetrics().menuPopup_IconSize, .themeMetrics().menuPopup_IconSize)
+            }
         }
     }
 

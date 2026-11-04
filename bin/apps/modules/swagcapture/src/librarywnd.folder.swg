@@ -56,11 +56,11 @@ impl LibraryWnd
     {
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(appStrings().act_OpenLibraryFolder, "capture.library.root")
+            .addItem(appStrings().act_OpenLibraryFolder, "capture.library.root", icon: .theme().icon(.Folder))
             .addSeparator()
-            .addItem(appStrings().act_BrowseFolder, "capture.library.browse")
-            .addItem(appStrings().act_ChooseLibraryFolder, "capture.library.choose")
-            .addItem(appStrings().act_UseDefaultLibrary, "capture.library.default")
+            .addItem(appStrings().act_BrowseFolder, "capture.library.browse", icon: .theme().icon(.ExploreFolder))
+            .addItem(appStrings().act_ChooseLibraryFolder, "capture.library.choose", icon: .theme().icon(.Folder))
+            .addItem(appStrings().act_UseDefaultLibrary, "capture.library.default", icon: .theme().icon(.Undo))
             .addSeparator()
             .addItem(ActionLibTrash.Toggle)
             .addItem(ActionLibTrash.Empty)

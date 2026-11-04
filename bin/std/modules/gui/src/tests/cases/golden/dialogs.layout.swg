@@ -132,9 +132,7 @@ func filler(count: u64)->String
 
     // Keep folders and files visible together so their glyphs can be compared.
 
-    // The disk dates the files of today; the picture keeps one moment.
-    for line, idx in dlg.browser.listCtrl.lines do
-        discard line!.setItem(1, Format.toString("10-2% 21:30", 6 - idx).toString())
+    pinBrowserDates(dlg.browser)
     dlg.browser.listCtrl.selectLine(0)
 
     let image = renderDialog(&host, &dlg.dialog)
@@ -186,15 +184,14 @@ func filler(count: u64)->String
         if mode == .SelectFiles do
             dlg.browser.pathField.setText(".md")
 
-        // The disk dates the files of today; the picture keeps one moment.
-        for line, idx in dlg.browser.listCtrl.lines do
-            discard line!.setItem(1, Format.toString("10-2% 21:30", 7 - idx).toString())
+        pinBrowserDates(dlg.browser)
 
         var name: string
         switch mode
         {
         case .SelectFolder:
             dlg.browser.listCtrl.selectLine(0)
+            dlg.browser.choiceLabel.setText("C:/Documents/swag/design")
             name = "folder"
 
         case .CreateFile:

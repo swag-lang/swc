@@ -26,6 +26,7 @@ struct CmdDesc
     id:           WndId
     name:         string
     need:         CmdNeed = .Nothing
+    icon:         Icon     // Shared by every presenter of the command.
     hideDisabled: bool    = false     // hidden follows disabled (contextual commands)
 }
 
@@ -52,8 +53,14 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         }
 
         evt.updatedFields |= .Name | .Disabled
-        evt.name          = d.name
-        evt.disabled      = disabled
+        if d.icon.isValid()
+        {
+            evt.updatedFields |= .Icon
+            evt.icon = d.icon
+        }
+
+        evt.name     = d.name
+        evt.disabled = disabled
 
         if d.hideDisabled
         {

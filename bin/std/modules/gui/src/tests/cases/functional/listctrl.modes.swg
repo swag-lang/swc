@@ -43,4 +43,20 @@ using Swag, Core, Pixel
     Swag.require(theme.fileGlyph("report.pdf", false).color == colors.fileKind_Document)
     Swag.require(theme.fileGlyph("notes.txt", false).color.a == 0)
     Swag.require(theme.fileGlyph("Captures", true).color == colors.arc)
+
+    // Direct requests must carry the same semantic tint in both palettes, without fileGlyph.
+    for light in [false, true]
+    {
+        if light do
+            host.theme.setLight()
+        else do
+            host.theme.setDark()
+        Swag.require(theme.icon(.Folder).color == colors.arc)
+        Swag.require(theme.icon(.FileImage).color == colors.fileKind_Image)
+        Swag.require(theme.icon(.FileCode).color == colors.fileKind_Code)
+        Swag.require(theme.icon(.FileAudio).color == colors.fileKind_Audio)
+        Swag.require(theme.icon(.FileVideo).color == colors.fileKind_Video)
+        Swag.require(theme.icon(.FileArchive).color == colors.fileKind_Archive)
+        Swag.require(theme.icon(.File).color.a == 0 and theme.icon(.History).color.a == 0)
+    }
 }

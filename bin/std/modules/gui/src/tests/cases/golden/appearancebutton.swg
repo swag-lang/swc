@@ -123,7 +123,7 @@ using Swag, Core, Pixel
             return
         host.finishAnimations()
         Swag.require(sheet.parent == &host.surfaceWnd and not sheet.opensUp)
-        Swag.require(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom()) < 0.5)
+        Swag.require(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom() - sheet.themeMetrics().menuPopup_AnchorGap) < 0.5)
         Swag.require(sheet.activateRow(strings().appearance_Theme))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -150,8 +150,8 @@ using Swag, Core, Pixel
             return
 
         let anchor  = button.surfaceRect()
-        let bodyTop = popup.surfaceRect().y + popup.popupBarItemSurfaceRect.height + popup.themeMetrics().menuPopup_ShadowSize
-        Swag.require(Math.abs(bodyTop - anchor.bottom()) < 0.5)
+        let bodyTop = popup.localToSurface(popup.getPopupBodyRect()).y
+        Swag.require(Math.abs(bodyTop - anchor.bottom() - popup.themeMetrics().menuPopup_AnchorGap) < 0.5)
         let submenuOpened = host.openPopupSubMenu("Theme")
         Swag.require(submenuOpened)
         Swag.require(sub.surfaceRect().y < host.surfaceWnd.stripHeight())

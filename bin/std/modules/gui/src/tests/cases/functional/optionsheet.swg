@@ -345,7 +345,7 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
 
         // The body hangs from its button: it grows upward and keeps its tab joined to it.
         Swag.require(sheet.opensUp)
-        Swag.require(sheet.body.bottom() == sheet.tab.y)
+        Swag.require(sheet.body.bottom() + sheet.themeMetrics().menuPopup_AnchorGap == sheet.tab.y)
     })
 }
 
@@ -400,7 +400,7 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
                  Swag.require(sheet.activateRow("Speed"))
                  let targetHeight = Math.min(sheet.contentHeight(&sheet.page, sheet.depth()), sheet.maxBodyHeight)
                  let metrics      = sheet.themeMetrics()
-                 let targetList   = Math.max(targetHeight - metrics.optionSheet_HeaderHeight - metrics.menuPopup_BarItemOverlap, 0)
+                 let targetList   = Math.max(targetHeight - metrics.optionSheet_HeaderHeight, 0)
                  let focusBottom  = sheet.rowTop(&sheet.page, sheet.focusRow) + sheet.rowHeight(&sheet.page.rows[sheet.focusRow]) + metrics.optionSheet_Inset
                  Swag.require(sheet.bodyHeight != targetHeight)
                  Swag.require(sheet.levels.back().scroll > 0)
@@ -438,7 +438,7 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
              func|host = &host|(sheet)
              {
                  Swag.require(not sheet.opensUp)
-                 Swag.require(sheet.tab.bottom() == sheet.body.y)
+                 Swag.require(sheet.tab.bottom() + sheet.themeMetrics().menuPopup_AnchorGap == sheet.body.y)
 
                  Swag.require(sheet.activateRow("Subtitles"))
                  host.finishAnimations()

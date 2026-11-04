@@ -237,29 +237,29 @@ impl IWnd for LibraryView
             }
             elif focused.kind == .Image
             {
-                .addItem(appStrings().act_OpenSelected, "capture.library.open")
+                .addItem(appStrings().act_OpenSelected, "capture.library.open", icon: .theme().icon(.OpenFile))
                 .addSeparator()
-                .addItem(appStrings().act_LocateImage, "capture.library.reveal")
+                .addItem(appStrings().act_LocateImage, "capture.library.reveal", icon: .theme().icon(.Folder))
             }
             else
             {
-                .addItem(appStrings().act_OpenSelected, "capture.library.open")
+                .addItem(appStrings().act_OpenSelected, "capture.library.open", icon: .theme().icon(.OpenFile))
                 .addSeparator()
                 .addItem(ActionFile.CopyImage)
-                .addItem(appStrings().act_ExportSelected, "capture.library.export")
+                .addItem(appStrings().act_ExportSelected, "capture.library.export", icon: .theme().icon(.Export))
                 .addItem(ActionFile.RenameCapture)
-                .addItem(appStrings().act_EditTags, "capture.library.tags")
-                .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", checked: focusedCapture and focusedCapture.favorite)
+                .addItem(appStrings().act_EditTags, "capture.library.tags", icon: .theme().icon(.Edit))
+                .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.favorite)
 
                 with let rating = MenuCtrl.createPopup(menu, owner: me)
                 {
-                    .addItem(appStrings().act_NoRating, "capture.library.rating.0", checked: focusedCapture and focusedCapture.rating == 0)
-                    .addItem(appStrings().act_Rating1, "capture.library.rating.1", checked: focusedCapture and focusedCapture.rating == 1)
-                    .addItem(appStrings().act_Rating2, "capture.library.rating.2", checked: focusedCapture and focusedCapture.rating == 2)
-                    .addItem(appStrings().act_Rating3, "capture.library.rating.3", checked: focusedCapture and focusedCapture.rating == 3)
-                    .addItem(appStrings().act_Rating4, "capture.library.rating.4", checked: focusedCapture and focusedCapture.rating == 4)
-                    .addItem(appStrings().act_Rating5, "capture.library.rating.5", checked: focusedCapture and focusedCapture.rating == 5)
-                    menu.addPopup(appStrings().act_Rating, rating)
+                    .addItem(appStrings().act_NoRating, "capture.library.rating.0", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 0)
+                    .addItem(appStrings().act_Rating1, "capture.library.rating.1", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 1)
+                    .addItem(appStrings().act_Rating2, "capture.library.rating.2", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 2)
+                    .addItem(appStrings().act_Rating3, "capture.library.rating.3", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 3)
+                    .addItem(appStrings().act_Rating4, "capture.library.rating.4", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 4)
+                    .addItem(appStrings().act_Rating5, "capture.library.rating.5", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 5)
+                    menu.addPopup(appStrings().act_Rating, rating, icon: .theme().icon(.Star))
                 }
 
                 .addSeparator()

@@ -99,31 +99,36 @@ impl IActionUI for ActionCapture
             evt.icon = main.icon(.ActiveWindow)
 
         case .HideEditor:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
+            evt.icon          = main.theme().icon(.Minimize)
             evt.name          = appStrings().act_HideEditorBefore
             evt.checked       = main.captureOptions.hideEditorBefore
             evt.accepted      = true
 
         case .CaptureCursor:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
+            evt.icon          = main.icon(.Select)
             evt.name          = appStrings().act_CaptureCursor
             evt.checked       = main.captureOptions.captureCursor
             evt.accepted      = true
 
         case .ToInPlace:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
+            evt.icon          = main.theme().icon(.Edit)
             evt.name          = appStrings().act_EditInPlace
             evt.checked       = main.captureOptions.inPlaceEdit
             evt.accepted      = true
 
         case .ToEditor:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
+            evt.icon          = main.theme().icon(.OpenExternal)
             evt.name          = appStrings().act_SendToEditor
             evt.checked       = main.captureOptions.sendToEditor
             evt.accepted      = true
 
         case .ToClipboard:
-            evt.updatedFields |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked | .Icon
+            evt.icon          = main.theme().icon(.Copy)
             evt.name          = appStrings().act_SendToClipboard
             evt.checked       = main.captureOptions.sendToClipboard
             evt.accepted      = true

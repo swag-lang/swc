@@ -41,7 +41,8 @@ enum EditBoxFlags
     // Enter submits it, Escape puts back the text the box held when it took the focus, and both
     // release the focus and keep the key. This is for a box that stands for a passing task —
     // renaming an item in place, filtering a list — and never for a field of a form, whose Enter
-    // belongs to the dialog's default action and whose Escape dismisses the dialog.
+    // belongs to the dialog's default action. A form field's Escape returns focus to the dialog
+    // without restoring its text; a second Escape dismisses the dialog.
     ReleaseFocusOnEnterOrEscape
     ReadOnly         // Prevents edits while preserving focus and selection.
     RightAligned     // Aligns text to the trailing edge.
@@ -570,8 +571,8 @@ private impl EditBox
         // Enter and Escape belong to the box only when it is an edit of its own — see
         // [[Gui.EditBoxFlags.ReleaseFocusOnEnterOrEscape]]. A plain field is one control of the
         // window around it: it says what happened through its signals and hands the key on, so
-        // Enter presses the dialog's default action and Escape dismisses the box, from inside a
-        // field exactly as from anywhere else.
+        // Enter presses the dialog's default action. Escape first returns focus to the dialog;
+        // another Escape can then dismiss it.
         case .Return:
             .sigSubmitted.call(me)
             if not .flags.has(.ReleaseFocusOnEnterOrEscape) do

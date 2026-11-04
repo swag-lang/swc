@@ -27,54 +27,72 @@ impl IActionUI for ActionLibSort
         switch cxt.id
         {
         case .Recent:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.History)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortCapturedAt
             evt.checked       = libWnd.sortMethod == .Recent
 
         case .Modified:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.History)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortModified
             evt.checked       = libWnd.sortMethod == .Modified
 
         case .Name:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Sort)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortName
             evt.checked       = libWnd.sortMethod == .Name
 
         case .Application:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.OpenExternal)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortApplication
             evt.checked       = libWnd.sortMethod == .Application
 
         case .WindowTitle:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Outline)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortWindowTitle
             evt.checked       = libWnd.sortMethod == .WindowTitle
 
         case .Dimensions:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.ActualSize)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortDimensions
             evt.checked       = libWnd.sortMethod == .Dimensions
 
         case .FileSize:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.File)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_SortFileSize
             evt.checked       = libWnd.sortMethod == .FileSize
 
         case .Similar:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Duplicate)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = appStrings().act_Similarity
             evt.checked       = libWnd.sortMethod == .Similar
 
         case .Invert:
+            evt.updatedFields |= .Icon
+            evt.icon = cxt.wnd!.theme().icon(.Sort)
             evt.updatedFields |= CommandStateEvent.UpdatedFields.Name | .Checked
             switch libWnd.sortMethod
             {

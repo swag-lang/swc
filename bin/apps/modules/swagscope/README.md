@@ -358,5 +358,7 @@ through the native window, workers and presentation path. Large preview-cache ev
 journeys on the normal Windows desktop with
 `tools/apps.bat test swagscope -bc release --test-tag integration.application.journey`.
 `src/tests/cases/integration/playrecentvideo.swg` opens a recent film, checks sustained playback,
-and returns to history twice. See the
+and returns to history twice. `src/tests/cases/integration/choosefolderhistory.swg` opens the Explore
+folder dialog, checks its history popup twice with an unavailable saved location, and browses the
+selected folder. See the
 [shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

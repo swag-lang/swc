@@ -54,9 +54,11 @@ impl IActionUI for ActionCopyPaste
             evt.icon = main.theme().icon(.Paste)
 
         case .PasteImageInside:
+            evt.updatedFields        |= .Icon
+            evt.icon                 = cxt.wnd!.theme().icon(.Paste)
             evt.updatedFields        |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
-            evt.name = appStrings().act_PasteInsideImage
+            evt.name                 = appStrings().act_PasteInsideImage
 
             let hasImg = Clipboard.hasImage()
             if capture and hasSel

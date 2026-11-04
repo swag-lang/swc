@@ -17,8 +17,10 @@ impl IActionUI for ActionQuickStyle
         switch cxt.id
         {
         case .Reset:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Undo)
             evt.updatedFields |= .Name
-            evt.name = appStrings().act_RestoreDefaultStyles
+            evt.name          = appStrings().act_RestoreDefaultStyles
         }
 
         return true

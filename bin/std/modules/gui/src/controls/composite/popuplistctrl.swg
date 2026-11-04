@@ -251,11 +251,10 @@ internal impl IWnd for PopupListView
             {
                 if it.icon.isValid()
                 {
-                    let iconColor = it.icon.color.a ? it.icon.color : colorText
-                    var icon      = it.icon
+                    var icon = it.icon
                     if .list.iconSize != 0 do
                         icon.sizeX, icon.sizeY = .list.iconSize
-                    icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, iconColor)
+                    icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, colorText)
                 }
 
                 if .list.maxIconSize do

@@ -1047,7 +1047,7 @@ impl ThemeColors
 
         // A menu is a floating surface with a clear resting outline. Its entry under the pointer is
         // chosen, so it is the selection ground; a check is Arc, a shortcut and a chevron faint.
-        .menuPopup_Bk         = p.surface
+        .menuPopup_Bk         = p.raised
         .menuPopup_Border     = fieldBorder
         .menuPopup_Shadow     = p.shadow
         .menuPopup_Separator  = p.line

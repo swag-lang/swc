@@ -35,8 +35,10 @@ impl IActionUI for ActionLibFilter
         switch cxt.id
         {
         case .Reset:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Undo)
             evt.updatedFields |= .Name
-            evt.name = appStrings().act_ResetFilters
+            evt.name          = appStrings().act_ResetFilters
 
         case .AllItems, .Captures, .ScreenCaptures, .ImportedCaptures, .Images:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
@@ -44,27 +46,39 @@ impl IActionUI for ActionLibFilter
             switch cxt.id
             {
             case .AllItems:
-                evt.name    = appStrings().act_FilterAllItems
-                evt.checked = libWnd.contentFilter == .All
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Filter)
+                evt.name          = appStrings().act_FilterAllItems
+                evt.checked       = libWnd.contentFilter == .All
 
             case .Captures:
-                evt.name    = appStrings().act_FilterCaptures
-                evt.checked = libWnd.contentFilter == .Captures
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.FileImage)
+                evt.name          = appStrings().act_FilterCaptures
+                evt.checked       = libWnd.contentFilter == .Captures
 
             case .ScreenCaptures:
-                evt.name    = appStrings().act_FilterScreenCaptures
-                evt.checked = libWnd.contentFilter == .ScreenCaptures
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.FileImage)
+                evt.name          = appStrings().act_FilterScreenCaptures
+                evt.checked       = libWnd.contentFilter == .ScreenCaptures
 
             case .ImportedCaptures:
-                evt.name    = appStrings().act_FilterImportedCaptures
-                evt.checked = libWnd.contentFilter == .ImportedCaptures
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.OpenFile)
+                evt.name          = appStrings().act_FilterImportedCaptures
+                evt.checked       = libWnd.contentFilter == .ImportedCaptures
 
             case .Images:
-                evt.name    = appStrings().act_FilterImages
-                evt.checked = libWnd.contentFilter == .Images
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.FileImage)
+                evt.name          = appStrings().act_FilterImages
+                evt.checked       = libWnd.contentFilter == .Images
             }
 
         case .FavoritesOnly:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.StarFilled)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_FilterFavorites
             evt.checked       = libWnd.favoritesOnly
@@ -75,46 +89,66 @@ impl IActionUI for ActionLibFilter
             switch cxt.id
             {
             case .RatingAny:
-                evt.name    = appStrings().act_FilterAnyRating
-                evt.checked = libWnd.minimumRating == 0
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterAnyRating
+                evt.checked       = libWnd.minimumRating == 0
 
             case .Rating1:
-                evt.name    = appStrings().act_FilterRating1
-                evt.checked = libWnd.minimumRating == 1
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterRating1
+                evt.checked       = libWnd.minimumRating == 1
 
             case .Rating2:
-                evt.name    = appStrings().act_FilterRating2
-                evt.checked = libWnd.minimumRating == 2
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterRating2
+                evt.checked       = libWnd.minimumRating == 2
 
             case .Rating3:
-                evt.name    = appStrings().act_FilterRating3
-                evt.checked = libWnd.minimumRating == 3
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterRating3
+                evt.checked       = libWnd.minimumRating == 3
 
             case .Rating4:
-                evt.name    = appStrings().act_FilterRating4
-                evt.checked = libWnd.minimumRating == 4
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterRating4
+                evt.checked       = libWnd.minimumRating == 4
 
             case .Rating5:
-                evt.name    = appStrings().act_FilterRating5
-                evt.checked = libWnd.minimumRating == 5
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Star)
+                evt.name          = appStrings().act_FilterRating5
+                evt.checked       = libWnd.minimumRating == 5
             }
 
         case .UpToDateLinkedImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Update)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_UpToDateLinked
             evt.checked       = libWnd.showUpToDateLinkedImage
 
         case .UnSavedLinkedImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Save)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_UnsavedLinked
             evt.checked       = libWnd.showUnSavedLinkedImage
 
         case .LinkedImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Link)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_FilterHasLinked
             evt.checked       = libWnd.showLinkedImage
 
         case .UnLinkedImage:
+            evt.updatedFields |= .Icon
+            evt.icon          = cxt.wnd!.theme().icon(.Link)
             evt.updatedFields |= .Name | .Checked
             evt.name          = appStrings().act_FilterNoLinked
             evt.checked       = libWnd.showUnLinkedImage

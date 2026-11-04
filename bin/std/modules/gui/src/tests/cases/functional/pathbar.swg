@@ -11,6 +11,7 @@ using Core
     let bar = PathBar.create(&host.root)
     bar.setPosition({0, 0, 400, 32})
     bar.setPath("Z:/Films")
+    Swag.require(bar.breadcrumb.toolTip.isEmpty())
     Swag.require(bar.breadcrumb.items.count == 2)
     Swag.require(bar.breadcrumb.items[0].tag == "Z:/")
     Swag.require(bar.breadcrumb.items[1].name == "Films")

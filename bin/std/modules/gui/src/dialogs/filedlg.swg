@@ -91,7 +91,7 @@ private impl FileDlg
             state.surfacePosition = .surface!.position
     }
 
-    // Names the choice in the primary action: the folder a folder box picks, how many files a multiple box opens.
+    // Counts a multiple-file choice while keeping single-file and folder actions stable.
     mtd nameChoice(confirmText: string)
     {
         var button: *PushButton?
@@ -103,18 +103,13 @@ private impl FileDlg
         var text = String.from(confirmText)
         switch .options.mode
         {
-        case .SelectFolder:
-            let name = .browser.editFile.text()
-            if name.count do
-                text = Format.toString(strings().fileDlg_BtnChooseNamed, name)
-
         case .SelectFiles:
             let count = .browser.selectedPaths().count
             if count > 1 do
                 text = Format.toString(strings().fileDlg_BtnOpenCount, count)
         }
 
-        // A long folder name belongs in the summary, not across the action row.
+        // Keep a translated count from displacing the other actions.
         let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize, .Bold)
         let room = Math.max(.position.width - .padding.x - .padding.z, 0) * 0.5
         if Pixel.Painter.measureString(text, font).width + .themeMetrics().btnPush_Padding * 2 > room do
@@ -297,7 +292,7 @@ impl FileDlg
             {
             case .CreateFile:   confirmText = strings().fileDlg_BtnSave
             case .SelectFile, .SelectFiles: confirmText = strings().fileDlg_BtnOpen
-            case .SelectFolder: confirmText = strings().fileDlg_TitleSelectFolder
+            case .SelectFolder: confirmText = strings().fileDlg_BtnSelect
             }
         }
 
@@ -314,7 +309,7 @@ impl FileDlg
         }
 
         // The type filter and the line of what is chosen take the quiet bottom-left slot of the box,
-        // and the primary action names the choice when there is one to name.
+        // and the primary action counts multiple files without embedding a folder name.
         dlg.setLeadingControl(dlg.browser.detachFoot())
         dlg.browser.sigChoiceChanged += func|dlg, confirmText|(_) { dlg.nameChoice(confirmText) }
         dlg.nameChoice(confirmText)

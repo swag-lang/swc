@@ -469,6 +469,7 @@ impl View
                 .disabled   = state.updatedFields.has(.Disabled) and state.disabled
                 .checked    = state.updatedFields.has(.Checked) and state.checked
                 .checkable  = state.updatedFields.has(.Checked)
+                .critical   = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
                 .monoDetail = true
                 if state.updatedFields.has(.Icon) do
                     .glyph = state.icon
@@ -511,7 +512,7 @@ impl View
         .backdrop = BackdropEffect{algorithm: .Gaussian,
                                    radius: metrics.lens_BlurRadius * 3,
                                    saturation: metrics.lens_Saturation,
-                                   tint: .themeColors().raised.withAlphaF32(metrics.lens_TintOpacity)}
+                                   tint: .themeColors().floating_Shadow.withAlphaF32(metrics.lens_TintOpacity)}
     }
 
     // Closes the lens without running anything.
@@ -1304,7 +1305,7 @@ private impl View
             painter.fillRoundRect(ground, metrics.corner_Control, metrics.corner_Control, colors.selection)
         }
 
-        let inkText  = entry.disabled ? colors.disabled : colors.text
+        let inkText  = entry.disabled ? colors.disabled : (entry.critical ? colors.critical : colors.text)
         let leadLeft = rect.x + metrics.lens_TextInset
         let mono     = theme.createDefaultFontFs(metrics.lens_RowFontSize - 1)
         if not entry.lead.isEmpty()
@@ -1317,7 +1318,7 @@ private impl View
             let size = metrics.menuPopup_IconSize
             var icon = entry.glyph
             icon.sizeX, icon.sizeY = size
-            icon.paint(painter, leadLeft + (metrics.lens_LeadWidth - metrics.iconText_Margin - size) * 0.5, Math.round(centerY - size * 0.5), entry.disabled ? colors.disabled : colors.softText)
+            icon.paint(painter, leadLeft + (metrics.lens_LeadWidth - metrics.iconText_Margin - size) * 0.5, Math.round(centerY - size * 0.5), entry.disabled ? colors.disabled : (entry.critical ? colors.critical : colors.softText))
         }
 
         // Selection changes only the ground; shortcuts keep the same trailing edge.
@@ -1494,6 +1495,7 @@ private func addCommandEntry(section: *Section, id: WndId, title: string, state:
         .disabled   = state.updatedFields.has(.Disabled) and state.disabled
         .checked    = state.updatedFields.has(.Checked) and state.checked
         .checkable  = state.updatedFields.has(.Checked)
+        .critical   = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
         .monoDetail = true
         if state.updatedFields.has(.Icon) do
             .glyph = state.icon

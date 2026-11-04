@@ -13,7 +13,7 @@ struct Icon
         index:     s32             // Frame index inside the atlas.
         sizeX:     f32 = 24        // Logical draw width.
         sizeY:     f32 = 24        // Logical draw height.
-        color:     Color           // Preferred tint; fully transparent lets the painting widget choose.
+        color:     Color           // Intrinsic tint; fully transparent lets the painting widget choose.
     }
 }
 
@@ -63,7 +63,9 @@ impl Icon
         .sizeY     = height != 0 ? height : cast(f32, imageList.frameHeight)
     }
 
-    // Draws the icon with its top-left corner at `x`, `y`, tinted by `color`.
+    // Draws the icon with its top-left corner at `x`, `y`, using its intrinsic tint when defined.
+    //
+    // The `color` argument is the fallback for an icon whose [[Gui.Icon.color]] is transparent.
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
         if not .imageList or not .imageList.isValid() do
@@ -83,6 +85,7 @@ impl Icon
             painter.setInterpolationMode(InterpolationMode.Linear)
         defer painter.setInterpolationMode(oldInterpol)
 
-        painter.drawTexture(Math.Rectangle{x, y, .sizeX, .sizeY}, Math.Rectangle{srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, color)
+        let tint = .color.a ? .color : color
+        painter.drawTexture(Math.Rectangle{x, y, .sizeX, .sizeY}, Math.Rectangle{srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, tint)
     }
 }

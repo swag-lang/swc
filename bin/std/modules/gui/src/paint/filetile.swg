@@ -81,7 +81,7 @@ func paint(host: *Wnd, painter: *Painter, imageRect: Math.Rectangle, content: co
         else
         {
             let icon = content.icon
-            icon.paint(painter, Math.round(imageRect.horzCenter() - icon.sizeX * 0.5), Math.round(imageRect.vertCenter() - icon.sizeY * 0.5), icon.color.a ? icon.color : colors.faintText)
+            icon.paint(painter, Math.round(imageRect.horzCenter() - icon.sizeX * 0.5), Math.round(imageRect.vertCenter() - icon.sizeY * 0.5), colors.faintText)
             if content.placeholder.count != 0
             {
                 let font = host.theme().createDefaultFontFs(metrics.fileTile_FactsFontSize)

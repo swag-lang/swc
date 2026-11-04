@@ -73,8 +73,8 @@ struct View
     // Geometry, in the local coordinates of the sheet.
     body:              Math.Rectangle     // Visible part of the ground, which holds the pages.
     ground:            Math.Rectangle     // Ground of the sheet, which runs past the window edges it covers.
-    tab:               Math.Rectangle     // Opening button joined to the body, when anchored to one.
-    anchorButton:      *IconButton?       // Button the sheet is joined to.
+    tab:               Math.Rectangle     // Opening button identified beside the body.
+    anchorButton:      *IconButton?       // Button the sheet is anchored to.
     anchorSurfaceRect: Math.Rectangle     // Bounds of that button, or the opening point, in surface coordinates.
     opensUp:           bool               // Whether an anchored body stands above its button.
     bodyWidth:         f32                // Width of the body.
@@ -146,7 +146,7 @@ impl IWnd for View
         let body       = .body
         let shadowRect = .placement == .Anchored ? .anchoredShadowRect() : .ground
         theme.drawSubRect(painter, shadowRect, &rects.menuPopup_Shadow, colors.menuPopup_Shadow)
-        theme.drawSubRect(painter, .ground, &rects.menuPopup_Bk, colors.menuPopup_Bk)
+        theme.drawSubRect(painter, .ground, &rects.menuPopup_Bk, .placement == .Anchored ? colors.menuPopup_Bk : colors.dlg_Bk)
 
         // Both pages are drawn inside the ground, so a page sliding out of it disappears under
         // its edge instead of crossing the outline.
@@ -177,7 +177,7 @@ impl IWnd for View
         {
             if not .tab.isEmpty()
             {
-                paintPopupAnchorTab(me, painter, .tab, body, .opensUp)
+                paintPopupOpener(me, painter, .tab, .anchorButton)
                 .anchorButton?.paintMenuAnchorContent(painter, .tab, colors.menuBar_SelectedText)
             }
         }
@@ -311,10 +311,10 @@ impl View
         return result
     }
 
-    // Runs the sheet joined to `button` until the reader closes it.
+    // Runs the sheet anchored to `button` until the reader closes it.
     //
-    // With [[Gui.OptionSheet.Placement.Anchored]], the button is repainted as the tab of the
-    // sheet, the way [[Gui.MenuCtrl.doModal]] joins a menu to it. The sheet opens above the button
+    // With [[Gui.OptionSheet.Placement.Anchored]], the sheet is centred on its button with a
+    // clear gap and window clearance, as for [[Gui.MenuCtrl.doModal]]. It opens above the button
     // when its marker is [[Gui.IconButtonArrowPosition.RightUpward]] or when it sits in the lower
     // half of the window, and below it otherwise. When `autoDestroy` is true, the sheet destroys
     // itself once closed.
@@ -331,7 +331,7 @@ impl View
 
     // Runs the sheet from the surface position `surfacePos` until the reader closes it.
     //
-    // An anchored sheet opens with its corner at that point. When `autoDestroy` is true, the sheet
+    // An anchored sheet opens centred on that point. When `autoDestroy` is true, the sheet
     // destroys itself once closed.
     mtd doModal(surfacePos: Math.Point, autoDestroy = false)
     {
@@ -472,10 +472,10 @@ private impl View
             let anchor = .anchorSurfaceRect
             let local  = parent.surfaceToLocal(Math.Point{anchor.x, anchor.y})
             let shadow = metrics.menuPopup_ShadowSize
-            let tab    = .anchorButton ? anchor.height : 0
+            let tab    = .anchorButton ? anchor.height + .anchorButton.menuAnchorGap(false) : 0
             .bodyWidth = Math.min(Math.max(metrics.optionSheet_Width, anchor.width), bounds.width - 2 * margin)
 
-            let roomAbove = local.y - bounds.y - margin - shadow
+            let roomAbove = local.y - bounds.y - margin - shadow - (.anchorButton ? .anchorButton.menuAnchorGap(true) : 0)
             let roomBelow = bounds.bottom() - local.y - tab - margin - shadow
             let wanted    = .contentHeight(&.page, 1)
             if .anchorButton and .anchorButton.arrowPosition == .RightUpward do
@@ -517,17 +517,13 @@ private impl View
             let anchor    = Math.Rectangle{corner.x, corner.y, .anchorSurfaceRect.width, .anchorSurfaceRect.height}
             let tabHeight = .anchorButton ? anchor.height : 0
 
-            // The body starts under the button and keeps it inside its width, sliding left of it
-            // only when the window ends first.
-            var left = anchor.x
-            if left + .bodyWidth > bounds.right() - margin do
-                left = Math.max(anchor.right() - .bodyWidth, bounds.x + margin)
-
-            var bodyTop = .opensUp ? anchor.y - .bodyHeight : anchor.y + tabHeight
-            if not .anchorButton and .opensUp do
-                bodyTop = anchor.y - .bodyHeight
-            let top    = Math.min(bodyTop, anchor.y) - shadow
-            let bottom = Math.max(bodyTop + .bodyHeight, anchor.y + tabHeight) + shadow
+            // A panel has several independent columns: centre it on the opener instead of
+            // suggesting a text alignment which disappears on the next page.
+            let left    = Math.clamp(anchor.horzCenter() - .bodyWidth * 0.5, bounds.x + margin, Math.max(bounds.x + margin, bounds.right() - margin - .bodyWidth))
+            let gap     = .anchorButton ? .anchorButton.menuAnchorGap(.opensUp) : 0
+            let bodyTop = .opensUp ? anchor.y - .bodyHeight - gap : anchor.y + tabHeight + gap
+            let top     = Math.min(bodyTop, anchor.y) - shadow
+            let bottom  = Math.max(bodyTop + .bodyHeight, anchor.y + tabHeight) + shadow
             .setPosition(Math.Rectangle{left - shadow, top, .bodyWidth + 2 * shadow, bottom - top})
 
             .body   = {shadow, bodyTop - top, .bodyWidth, .bodyHeight}
@@ -556,14 +552,12 @@ private impl View
         .invalidate()
     }
 
-    // Shadow of an anchored sheet: everything but the band of the button it is joined to.
+    // Shadow of the body only; the opener stays on its original surface.
     mtd anchoredShadowRect()->Math.Rectangle
     {
-        let client = .clientRect()
-        if .tab.isEmpty() do
-            return client
-        let tabBand = .tab.height
-        return {0, .opensUp ? 0 : tabBand, client.width, client.height - tabBand}
+        var result = .body
+        result.inflate(.themeMetrics().menuPopup_ShadowSize)
+        return result
     }
 
     // Displacement of a sheet presented over a veil while it arrives.
@@ -869,22 +863,9 @@ private impl View
         return height
     }
 
-    // Anchored tabs paint over the body by `menuPopup_BarItemOverlap`; keep the first row below it.
-    mtd rowTopInset()->f32
-    {
-        let metrics = .themeMetrics()
-        if .placement == .Anchored and .anchorButton and not .opensUp do
-            return Math.max(metrics.optionSheet_Inset, metrics.menuPopup_BarItemOverlap)
-        return metrics.optionSheet_Inset
-    }
-
-    mtd rowBottomInset()->f32
-    {
-        let metrics = .themeMetrics()
-        if .placement == .Anchored and .anchorButton and .opensUp do
-            return Math.max(metrics.optionSheet_Inset, metrics.menuPopup_BarItemOverlap)
-        return metrics.optionSheet_Inset
-    }
+    // The body's inset is independent of the clear space outside it.
+    mtd rowTopInset()->f32    => .themeMetrics().optionSheet_Inset
+    mtd rowBottomInset()->f32 => .themeMetrics().optionSheet_Inset
 
     // Height of the band above the header: the grip a bottom sheet is pulled by.
     mtd gripHeight()->f32 => .placement == .BottomSheet ? .themeMetrics().optionSheet_Inset * 2 : 0
@@ -893,16 +874,7 @@ private impl View
     {
         if levels == 1 and .placement == .Anchored do
             return 0
-        return .gripHeight() + .headerTopInset(levels) + Math.round(.themeMetrics().optionSheet_HeaderHeight * .rowScale())
-    }
-
-    // A tab overlaps the top of a sheet. Keep a nested page's header below that tab so its
-    // focus ground and ring remain visible instead of passing under the opening button.
-    mtd headerTopInset(levels: u64)->f32
-    {
-        if levels > 1 and .placement == .Anchored and .anchorButton and not .opensUp do
-            return .themeMetrics().menuPopup_BarItemOverlap
-        return 0
+        return .gripHeight() + Math.round(.themeMetrics().optionSheet_HeaderHeight * .rowScale())
     }
 
     // How much taller a row is than beside a button: a finger and a remote need larger targets
@@ -1114,8 +1086,7 @@ private impl View
                 painter.fillRoundRect(line, 2, 2, fadeColor(colors.optionSheet_StepBorder, opacity))
             }
 
-            let headerTop = .headerTopInset(levels)
-            var band      = Math.Rectangle{.body.x + pixelOffsetX, .body.y + grip + headerTop, .body.width, header - grip - headerTop}
+            var band = Math.Rectangle{.body.x + pixelOffsetX, .body.y + grip, .body.width, header - grip}
             if focused and focus == HeaderFocus
             {
                 var ground = band
@@ -1191,7 +1162,7 @@ private impl View
             theme.drawSubRect(painter, rect, &rects.menuPopup_HotBk, fadeColor(colors.optionSheet_HotBk, opacity))
         }
 
-        let textColor   = fadeColor(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotText : colors.popupItem_Text), opacity)
+        let textColor   = fadeColor(row.disabled ? colors.popupItem_DisabledText : (row.critical ? colors.critical : (hot ? colors.popupItem_HotText : colors.popupItem_Text)), opacity)
         let valueColor  = fadeColor(row.disabled ? colors.popupItem_DisabledText : (hot ? colors.popupItem_HotRightText : colors.popupItem_RightText), opacity)
         let markerColor = fadeColor(row.disabled ? colors.popupItem_DisabledSubmenuMarker : (hot ? colors.popupItem_HotSubmenuMarker : colors.popupItem_SubmenuMarker), opacity)
 
@@ -1201,11 +1172,11 @@ private impl View
         let leadX  = rect.x + metrics.optionSheet_RowPadding
         let iconSz = metrics.menuPopup_IconSize
         let center = row.detail.isEmpty() ? rect.vertCenter() : rect.y + rect.height * 0.32
-        if row.kind == .Link and row.icon.isValid()
+        if (row.kind == .Link or row.kind == .Action or row.kind == .Toggle) and row.icon.isValid()
         {
             var icon = row.icon
             icon.sizeX, icon.sizeY = iconSz
-            icon.paint(painter, leadX, opticalTop(.font(), center, iconSz), valueColor)
+            icon.paint(painter, leadX, opticalTop(.font(), center, iconSz), row.critical ? textColor : valueColor)
         }
         elif row.kind == .Choice and row.checked
         {
@@ -1229,7 +1200,7 @@ private impl View
             var icon = row.icon
             icon.sizeX, icon.sizeY = iconSz
             right -= iconSz
-            icon.paint(painter, right, opticalTop(.font(), center, iconSz), valueColor)
+            icon.paint(painter, right, opticalTop(.font(), center, iconSz), row.critical ? textColor : valueColor)
 
         case .Toggle:
             right = .paintSwitch(painter, row, rect, right, hot, opacity)
@@ -1250,7 +1221,7 @@ private impl View
         let labelX     = lead ? leadX + iconSz + metrics.menuPopup_IconTextMargin : leadX
         let labelW     = Math.max(right - metrics.menuPopup_IconTextMargin - labelX, 0)
         var label      = row.label
-        let labelColor = row.kind == .Action and not row.disabled ? fadeColor(colors.url_Text, opacity) : textColor
+        let labelColor = row.kind == .Action and not row.disabled and not row.critical ? fadeColor(colors.url_Text, opacity) : textColor
         if row.detail.isEmpty()
         {
             .drawText(painter, {labelX, rect.y, labelW, rect.height}, &label, labelColor)
@@ -1351,7 +1322,7 @@ private func pageNeedsLead(page: const *Page)->bool
 {
     for row in page.rows
     {
-        if row.kind == .Choice or (row.kind == .Link and row.icon.isValid()) do
+        if row.kind == .Choice or ((row.kind == .Link or row.kind == .Action or row.kind == .Toggle) and row.icon.isValid()) do
             return true
     }
 

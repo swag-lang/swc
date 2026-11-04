@@ -464,8 +464,12 @@ Anything that needs an answer is a dialog, not a toast.
   cells are and the sort marker right after its words; tree chevrons faint, turning a quarter
   turn when a branch opens. Dates, sizes and counts in faint mono; the name column takes the room
   the others leave. A list with no row says so in one faint sentence where its rows would be.
-- **Menus**: surface, corner 10, 6 px padding, rows 30, hover/selection Arc ground, shortcuts in
+- **Menus**: raised ground, corner 10, 6 px padding, rows 30, hover/selection Arc ground, shortcuts in
   mono faint at the right, `✓` in Arc, `›` for submenus, separators of one hairline inset 10.
+  Anchored menus leave 6 px of clear space from their opener and 8 px from window edges.
+  The opener has a quiet selected ground, without an extended border or independent shadow.
+  Align text openers with the entries' wording when room permits; centre icon-only openers
+  and option panels. Edge clearance takes priority. Glyphs keep 10 px before their wording.
 - **Notices**: a tinted ground of the tone, an 7 px dot in the tone, bold first phrase, no
   border, no icon tile.
 - **Tooltip**: surface (Papier: ink with paper text), corner 6, 12 px.
@@ -491,7 +495,7 @@ self-labelled controls and section labels followed by a hairline. In every kind:
 - a note is an information notice (Arc tint, Arc `i`);
 - mixed values across a multiple selection read "Mixed values" (translated) in faint italic;
 - search highlights matched characters with the highlight colour and shows a result count;
-  section navigation lists counts; the layout menu is a popup joined to its `•••` button.
+  section navigation lists counts; the layout menu floats beside its `•••` button.
 
 ## Dialogs
 
@@ -519,9 +523,8 @@ Dialogs still size themselves from their content (no authored width/height beyon
 ![The file box in every mode, Encre](imgs/dialogs.file.modes.ink.png)
 
 - **Choose a folder.** Only folders are listed, without sizes; there is no type filter. The
-  bottom-left slot shows, in faint mono, the path that will be chosen — the selected folder, or
-  the folder shown when nothing is selected — and the primary action names it ("Choose
-  "design"").
+  bottom-left slot shows the full path of the selected folder, ellipsized to fit, and stays empty
+  without an explicit selection. The primary action stays "Select" and keeps its width; the title names folders.
 - **Save.** The rows stand in faint ink: they are context, not choices. The name field is
   labelled above, focused, its stem selected and the extension written after it in faint, so
   typing replaces the name and keeps the type. The type filter holds the bottom-left slot and
@@ -777,13 +780,14 @@ the screen to its work.
 
 ## Icons
 
-**Kinds of file.** In a listing — the file box, Scope's home and explorer, the lens — a file's
-glyph carries one quiet hue of its kind: pictures green, films violet, sounds amber, code slate,
-paged documents old rose, archives sand. Folders and plain files keep the neutral ink. The hue is
-the glyph's alone: the name, the facts and the cell's ground stay neutral, a selected row may
-draw the glyph in its own ink, and a cell showing a real preview (a poster, a cover, a page)
-has no glyph and so no hue. Each theme has its own set, deepened on Papier
-(`fileKind_*`, `Theme.fileGlyph`).
+**Kinds of file.** In every control — listings, menus, breadcrumbs, buttons and the lens — a
+file's glyph carries one quiet hue of its kind: pictures green, films violet, sounds amber, code
+slate, paged documents old rose, archives sand. Folders carry Arc; plain files without a defined
+kind keep the neutral ink. The hue belongs to the glyph, including on hover and selection. The
+name and facts stay neutral, while the row uses the ordinary hover and selection grounds. A cell
+showing a real preview (a poster, a cover, a page) has no glyph and so no hue. Each theme has its
+own set, deepened on Papier. `Theme.icon` assigns these colors, `Theme.fileGlyph` resolves the kind
+from a name, and `Icon.paint` applies the defined color before the control's fallback ink.
 
 ![Neutral and tinted kinds in Encre](imgs/scope.tints.png)
 

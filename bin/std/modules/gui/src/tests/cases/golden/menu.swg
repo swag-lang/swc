@@ -70,7 +70,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
 
-// An icon-button menu carries the button itself into the popup outline, with no detached notch.
+// An icon-button menu keeps a clear gap from its selected opener.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -79,7 +79,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {24, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
-    Swag.require(button.themeRects().menuPopup_BarAnchorBk.radius == button.themeRects().btnIcon_RoundSquareBk.radius)
 
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Match case", Menu_Open, checked: true)
@@ -95,7 +94,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         Swag.require(popup.popupAnchorButton == button)
         Swag.require(popup.popupBarItemSurfaceRect == anchor)
         Swag.require(popup.getPopupBodyRect().y == popup.getPopupBarAnchorHeight() + popup.themeMetrics().menuPopup_ShadowSize)
-        Swag.require(popup.position.y + popup.getPopupBodyRect().y == anchor.bottom())
+        Swag.require(popup.position.y + popup.getPopupBodyRect().y == anchor.bottom() + popup.themeMetrics().menuPopup_AnchorGap)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor")
         let menuDismissed = host.dismissPopupMenu()
@@ -108,7 +107,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// A button below its menu carries the same integrated outline, reflected around the shared edge.
+// A button below its menu keeps the same clear gap above its opener.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -131,7 +130,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         let anchor = button.surfaceRect()
         Swag.require(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
-        Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == anchor.y)
+        Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == anchor.y - popup.themeMetrics().menuPopup_AnchorGap)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-up")
         let menuDismissed = host.dismissPopupMenu()
@@ -144,7 +143,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// A quiet reading at the foot of a light window opens upward with a shadow under its tab.
+// A quiet reading at the foot of a light window aligns with the wording of its popup.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -172,7 +171,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         Swag.require(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
         Swag.require(popup.presentationOpacity == 1 and popup.presentationOffset == Math.Point{})
-        Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == button.surfaceRect().y)
+        Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == button.surfaceRect().y - popup.themeMetrics().menuPopup_AnchorGap)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.quiet-anchor-up.light")
         Swag.require(host.dismissPopupMenu())
@@ -206,7 +205,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             return
         let shadow = popup.themeMetrics().menuPopup_ShadowSize
         Swag.require(popup.popupAnchorButton == button)
-        Swag.require(popup.position.right() >= host.root.clientRect().right() - shadow)
+        Swag.require(popup.position.right() - shadow <= host.root.clientRect().right() - popup.themeMetrics().menuPopup_WindowMargin)
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.icon-anchor-right")
         let menuDismissed = host.dismissPopupMenu()
@@ -282,7 +281,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     // The shared arrow column is paid for once by the whole popup, so the no-glyph popup ends
     // up wider than the glyph one by the chevron column minus the glyph column it replaces.
     let metrics = popup.themeMetrics()
-    Swag.require(Math.abs(popup.position.width - iconPopup.position.width - (metrics.chevron_Size + metrics.menuPopup_IconMargin - metrics.menuPopup_IconSize)) < 0.01)
+    Swag.require(Math.abs(popup.position.width - iconPopup.position.width - (metrics.chevron_Size - metrics.menuPopup_IconSize)) < 0.01)
 
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(_)
@@ -333,8 +332,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     localAnchor.x -= popupRect.x
     localAnchor.y -= popupRect.y
     let body = sub.getPopupBodyRect()
-    Swag.require(Math.abs(localAnchor.x - body.x) <= metrics.wnd_BorderSize)
-    Swag.require(Math.abs(localAnchor.bottom() - body.y) <= metrics.wnd_BorderSize)
+    Swag.require(popupRect.x + body.x >= metrics.menuPopup_WindowMargin)
+    Swag.require(Math.abs(localAnchor.bottom() + metrics.menuPopup_AnchorGap - body.y) <= metrics.wnd_BorderSize)
 
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "menu.popup.text-anchor.tall")

@@ -209,6 +209,8 @@ impl IWnd for PushButton
 
         // Content
         var format: RichStringFormat
+        if .critical and not bc.isDisabled do
+            colorText = colors.critical
         .aniText.apply(me, colorText)
         theme.setTextColors(&format, .aniText.cur())
         format.horzAlignment = .Center
@@ -224,7 +226,12 @@ impl IWnd for PushButton
             format.fontStyle = .Bold
         var labelPos = clientRect
         labelPos.inflate(-metrics.btnPush_Padding)
-        Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
+        var icon = .icon
+        if .iconWidth do
+            icon.sizeX = .iconWidth
+        if .iconHeight do
+            icon.sizeY = .iconHeight
+        Theme.drawIconText(bc.painter, labelPos, icon, &.name, format, metrics.iconText_Margin)
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -309,6 +316,9 @@ impl PushButton
     // a button that is on is a state; none of them stands for the answer to a box.
     mtd paintedForm()->PushButtonForm
     {
+        if .critical and .form != .Flat do
+            return .Destructive
+
         if .form != .Normal and .form != .Default do
             return .form
 

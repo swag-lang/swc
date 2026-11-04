@@ -79,10 +79,10 @@ struct Strings
         fileDlg_BtnReplace:        string = "Replace"                                     // Destructive action of the overwrite confirmation.
         fileDlg_BtnCreate:         string = "Create"                                      // Primary action of the folder-creation form.
         fileDlg_NewFolderWhere:    string = "In %"                                        // Where a created folder goes, under its name field.
-        fileDlg_BtnChooseNamed:    string = "Choose %"                                    // Primary action of a folder box, naming the folder.
         fileDlg_BtnOpenCount:      string = "Open the %"                                  // Primary action of a multiple file box, counting the files.
         fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
         fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
+        fileDlg_BtnSelect:         string = "Select"                                      // Confirmation button when selecting a folder.
 
         browser_Desktop:     string = "Desktop"                    // Default shortcut to the desktop.
         browser_Documents:   string = "Documents"                  // Default shortcut to the documents folder.
@@ -104,6 +104,8 @@ struct Strings
         browser_TipUp:       string = "Parent Folder (Alt+Up)"     // Tooltip of the parent-folder button.
         browser_FileName:    string = "File Name"                  // Name field label when picking a file.
         browser_Folders:     string = "Folders"                    // Type filter entry when picking a folder.
+        browser_DateToday:   string = "Today · %"                  // Modification time of an entry changed today.
+        browser_DateMonths:  string = "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec"     // Twelve abbreviated month names, separated by semicolons.
 
         markdown_AlertNote:      string = "Note"                                       // Title of a Markdown [!NOTE] alert.
         markdown_AlertTip:       string = "Tip"                                        // Title of a Markdown [!TIP] alert.

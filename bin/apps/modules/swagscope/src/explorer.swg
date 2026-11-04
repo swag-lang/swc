@@ -1297,7 +1297,7 @@ impl Explorer
         {
             let target   = .menuPaths[item].toString()
             let selected = index + 1 < breadcrumb.items.count and breadcrumb.items[index + 1].tag == target
-            menu.addItem(child.name, target, checked: selected)
+            menu.addItem(child.name, target, .theme().icon(.Folder, .themeMetrics().menuPopup_IconSize), checked: selected)
             item += 1
         }
     }

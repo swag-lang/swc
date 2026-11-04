@@ -92,7 +92,7 @@ using Swag, Core
     }
 }
 
-// Editing keys stay in a multiline editor, while an unbound Escape reaches the modal action.
+// Editing keys stay in a multiline editor. Escape leaves the editor before dismissing the modal.
 #test
 {
     var host: Testing.HeadlessHost
@@ -118,6 +118,8 @@ using Swag, Core
         host.keyPress(Input.Key.Tab)
         Swag.require(ed.text().count > 1)
         Swag.require(ed.focusTarget().hasFocus())
+        host.keyPress(Input.Key.Escape)
+        Swag.require(not ed.focusTarget().hasFocus())
         host.keyPress(Input.Key.Escape)
     }
 

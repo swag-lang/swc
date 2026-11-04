@@ -51,7 +51,7 @@ namespace
         {
             for (const std::string_view extension : {"", ".so", ".a"})
             {
-                const fs::path candidate = directory / (name.string() + std::string(extension));
+                const fs::path  candidate = directory / (name.string() + std::string(extension));
                 std::error_code error;
                 if (fs::is_regular_file(candidate, error))
                     return fs::absolute(candidate);
@@ -188,6 +188,21 @@ namespace
         return false;
     }
 
+    bool executeTool(LinkJob& job, std::string_view tool, const std::span<const Utf8> arguments, const fs::path& directory)
+    {
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 120000};
+        const auto                  result = Os::runProcess(exitCode, fs::path(tool), arguments, directory, &options);
+        if (result == Os::ProcessRunResult::TimedOut)
+            return linkError(job, std::format("'{}' did not finish within 120 seconds\n{}", tool, output));
+        if (result != Os::ProcessRunResult::Ok)
+            return linkError(job, std::format("cannot run '{}': {}{}", tool, Os::systemError(), output));
+        if (exitCode)
+            return linkError(job, std::format("'{}' exited with status {}\n{}", tool, exitCode, output));
+        return true;
+    }
+
     bool runTool(LinkJob& job, std::string_view tool, const std::vector<Utf8>& arguments, const fs::path& directory)
     {
         // GNU response files keep argument count independent of the process argv limit.
@@ -208,25 +223,16 @@ namespace
         if (!writeBytes(job, responsePath, response))
             return false;
         const std::array<Utf8, 1> invocation = {"@" + Utf8(responsePath)};
-        std::string output;
-        uint32_t exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 120000};
-        const auto result = Os::runProcess(exitCode, fs::path(tool), invocation, directory, &options);
-        if (result != Os::ProcessRunResult::Ok)
-            return linkError(job, std::format("cannot run '{}': {}{}", tool, Os::systemError(), output));
-        if (exitCode)
-            return linkError(job, std::format("'{}' exited with status {}\n{}", tool, exitCode, output));
-        return true;
+        return executeTool(job, tool, invocation, directory);
     }
 
     bool publish(LinkJob& job, const fs::path& generated, const fs::path& destination, bool archive)
     {
-        ByteArray bytes;
+        ByteArray               bytes;
         FileSystem::IoErrorInfo error;
         if (FileSystem::readBinaryFile(generated, bytes, error) != Result::Continue)
             return linkError(job, FileSystem::describeIoFailure(error));
-        const bool valid = archive ? bytes.size() >= 8 && std::memcmp(bytes.data(), "!<arch>\n", 8) == 0 :
-                                     bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
+        const bool valid = archive ? bytes.size() >= 8 && std::memcmp(bytes.data(), "!<arch>\n", 8) == 0 : bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
         if (!valid)
             return linkError(job, "the GNU toolchain did not produce the requested ELF64 artifact");
         Utf8 symbolError;
@@ -253,24 +259,49 @@ namespace
             return linkError(job, error.message());
         for (const LinkArchiveMember& object : objects)
         {
-            const fs::path path = directory / fs::path(object.name.c_str()).filename();
+            // Link symbols carry identity. Fixed member names also keep MRI operands independent
+            // of spaces, quotes and other punctuation in the user's artifact or directory name.
+            const fs::path path = directory / std::format("member_{:06}.o", paths.size());
             if (!writeBytes(job, path, object.bytes))
                 return false;
-            // Tools run in the parent directory. Short relative operands avoid GNU ar's
-            // expensive comparisons of the shared absolute prefix in large member lists.
             paths.emplace_back(path.lexically_relative(directory.parent_path()));
         }
         return true;
     }
 
+    bool buildArchive(LinkJob& job, const std::vector<Utf8>& members, const fs::path& directory)
+    {
+        // GNU ar's replacement mode scans the growing member list for every object. MRI
+        // adds directly to the list, keeping large per-function archives linear. ADDMOD
+        // prepends, so reverse the input to preserve link order and deterministic bytes.
+        ByteArray script;
+        script.append("CREATE archive.a\n");
+        for (const Utf8& member : std::views::reverse(members))
+        {
+            script.append("ADDMOD ");
+            script.append(member.view());
+            script.append("\n");
+        }
+        script.append("SAVE\nEND\n");
+        if (!writeBytes(job, directory / "archive.mri", script))
+            return false;
+        // The shell only redirects a fixed file name; no user text enters shell source.
+        const std::array<Utf8, 2> arguments = {"-c", "exec ar -DM < archive.mri"};
+        return executeTool(job, "sh", arguments, directory);
+    }
+
     bool executePrepared(LinkJob& job)
     {
         static std::atomic<uint64_t> nextId{0};
-        const fs::path temporary = job.buildDir / std::format("elf-link-{}-{}", Os::currentProcessId(), nextId.fetch_add(1, std::memory_order_relaxed));
+        const fs::path               temporary = job.buildDir / std::format("elf-link-{}-{}", Os::currentProcessId(), nextId.fetch_add(1, std::memory_order_relaxed));
         struct RemoveTemporary
         {
             fs::path path;
-            ~RemoveTemporary() { std::error_code error; fs::remove_all(path, error); }
+            ~RemoveTemporary()
+            {
+                std::error_code error;
+                fs::remove_all(path, error);
+            }
         } cleanup{temporary};
         std::vector<Utf8> objects;
         if (!materialize(objects, job, job.archiveMembers, temporary / "objects"))
@@ -278,9 +309,7 @@ namespace
         const fs::path output = temporary / job.outputPath.filename();
         if (job.output == LinkJob::Output::StaticLibrary)
         {
-            std::vector<Utf8> arguments = {"rcsD", Utf8(output)};
-            arguments.insert(arguments.end(), objects.begin(), objects.end());
-            if (!runTool(job, "ar", arguments, temporary) || !publish(job, output, job.outputPath, true))
+            if (!buildArchive(job, objects, temporary) || !publish(job, temporary / "archive.a", job.outputPath, true))
                 return false;
         }
         else
@@ -310,10 +339,7 @@ namespace
             std::vector<Utf8> members;
             if (!materialize(members, job, job.staticLibraryMembers, temporary / "archive"))
                 return false;
-            const fs::path archive = temporary / "companion.a";
-            std::vector<Utf8> arguments = {"rcsD", Utf8(archive)};
-            arguments.insert(arguments.end(), members.begin(), members.end());
-            if (!runTool(job, "ar", arguments, temporary) || !publish(job, archive, job.staticLibraryPath, true))
+            if (!buildArchive(job, members, temporary) || !publish(job, temporary / "archive.a", job.staticLibraryPath, true))
                 return false;
         }
         return true;

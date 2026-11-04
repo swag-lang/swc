@@ -788,7 +788,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 
-### compiler.core.105 — Resolve nested functions in runtime startup code
+### compiler.core.106 — Resolve nested functions in runtime startup code
 
 - Evidence: a noncapturing `func loadArguments()->bool` declared and called inside
   `__hostSetupProcessArguments` in `bin/runtime/os.win32.swg` passes semantic checking,

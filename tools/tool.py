@@ -113,6 +113,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
             requires = [build_name]
         stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires))
     if script:
+        stages.append(Stage('workspace-import-png-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'import_png.swgs')],
+                            expected_output='SWAG_IMPORTED_PNG_RAN'))
         stages.append(Stage('workspace-import-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_core_without_using.swgs')],
                             expected_output='SWAG_IMPORTED_CORE_WITHOUT_USING_RAN'))

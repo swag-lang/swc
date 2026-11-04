@@ -1,0 +1,2 @@
+#import("pixel", location: "swag@std")
+#load("modules/png_import_consumer/src/main.swg")

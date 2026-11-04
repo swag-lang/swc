@@ -1,0 +1,462 @@
+{
+  "scope": "warm end-to-end archive publication from in-memory ELF objects, including temporary cleanup; excludes object generation",
+  "toolchain": "GNU ar (GNU Binutils for Debian) 2.44",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "cpu_quota": "400000 100000",
+  "compiler": "c++ (Debian 14.2.0-19) 14.2.0",
+  "compiler_flags": [
+    "-std=c++23",
+    "-O2",
+    "-g1",
+    "-DNDEBUG",
+    "-pthread",
+    "-march=x86-64-v3",
+    "-Wall",
+    "-Wextra",
+    "-fmax-errors=5",
+    "-I",
+    "/workspace/swc/src",
+    "-I",
+    "/workspace/swc/src/Support/Memory/mimalloc/include",
+    "-DSWC_DEV_MODE=1"
+  ],
+  "rounds": 7,
+  "summary": [
+    {
+      "members": 1,
+      "ar": 15.365459,
+      "internal": 0.033896,
+      "saved_ms": 15.331563,
+      "reduction_percent": 99.77940131824244,
+      "speedup": 453.31186570686805
+    },
+    {
+      "members": 100,
+      "ar": 24.876036,
+      "internal": 0.19865,
+      "saved_ms": 24.677386,
+      "reduction_percent": 99.20144029378314,
+      "speedup": 125.22545179964762
+    },
+    {
+      "members": 1000,
+      "ar": 191.307207,
+      "internal": 2.709572,
+      "saved_ms": 188.597635,
+      "reduction_percent": 98.58365398643868,
+      "speedup": 70.60421609021647
+    },
+    {
+      "members": 10000,
+      "ar": 2719.309158,
+      "internal": 22.331004,
+      "saved_ms": 2696.978154,
+      "reduction_percent": 99.1787986322076,
+      "speedup": 121.7728122748086
+    }
+  ],
+  "samples": [
+    {
+      "members": 1,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 0.033896,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 1,
+      "implementation": "ar",
+      "milliseconds": 13.927111,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 2,
+      "implementation": "ar",
+      "milliseconds": 86.13055,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 0.049552,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 0.026274,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 3,
+      "implementation": "ar",
+      "milliseconds": 11.583403,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 4,
+      "implementation": "ar",
+      "milliseconds": 15.365459,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 0.035562,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 0.025388,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 5,
+      "implementation": "ar",
+      "milliseconds": 14.111193,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 6,
+      "implementation": "ar",
+      "milliseconds": 20.205532,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 0.049691,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 0.022273,
+      "bytes": 716
+    },
+    {
+      "members": 1,
+      "round": 7,
+      "implementation": "ar",
+      "milliseconds": 21.504486,
+      "bytes": 716
+    },
+    {
+      "members": 100,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 0.15466,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 1,
+      "implementation": "ar",
+      "milliseconds": 23.373068,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 2,
+      "implementation": "ar",
+      "milliseconds": 24.875169,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 0.253565,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 0.202657,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 3,
+      "implementation": "ar",
+      "milliseconds": 23.882983,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 4,
+      "implementation": "ar",
+      "milliseconds": 27.412313,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 0.19865,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 0.147453,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 5,
+      "implementation": "ar",
+      "milliseconds": 35.488701,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 6,
+      "implementation": "ar",
+      "milliseconds": 24.876036,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 0.234869,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 0.153521,
+      "bytes": 64462
+    },
+    {
+      "members": 100,
+      "round": 7,
+      "implementation": "ar",
+      "milliseconds": 36.3685,
+      "bytes": 64462
+    },
+    {
+      "members": 1000,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 1.947877,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 1,
+      "implementation": "ar",
+      "milliseconds": 188.134535,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 2,
+      "implementation": "ar",
+      "milliseconds": 197.529184,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 5.076819,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 3.365875,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 3,
+      "implementation": "ar",
+      "milliseconds": 175.800229,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 4,
+      "implementation": "ar",
+      "milliseconds": 161.406697,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 2.515102,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 3.015734,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 5,
+      "implementation": "ar",
+      "milliseconds": 208.350709,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 6,
+      "implementation": "ar",
+      "milliseconds": 199.049253,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 2.709572,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 2.249758,
+      "bytes": 644962
+    },
+    {
+      "members": 1000,
+      "round": 7,
+      "implementation": "ar",
+      "milliseconds": 191.307207,
+      "bytes": 644962
+    },
+    {
+      "members": 10000,
+      "round": 1,
+      "implementation": "internal",
+      "milliseconds": 19.476849,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 1,
+      "implementation": "ar",
+      "milliseconds": 2313.733782,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 2,
+      "implementation": "ar",
+      "milliseconds": 2864.799279,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 2,
+      "implementation": "internal",
+      "milliseconds": 32.446307,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 3,
+      "implementation": "internal",
+      "milliseconds": 19.531869,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 3,
+      "implementation": "ar",
+      "milliseconds": 2203.368199,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 4,
+      "implementation": "ar",
+      "milliseconds": 2863.664227,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 4,
+      "implementation": "internal",
+      "milliseconds": 22.331004,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 5,
+      "implementation": "internal",
+      "milliseconds": 22.874423,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 5,
+      "implementation": "ar",
+      "milliseconds": 2808.302015,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 6,
+      "implementation": "ar",
+      "milliseconds": 2719.309158,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 6,
+      "implementation": "internal",
+      "milliseconds": 32.603034,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 7,
+      "implementation": "internal",
+      "milliseconds": 18.502377,
+      "bytes": 6458962
+    },
+    {
+      "members": 10000,
+      "round": 7,
+      "implementation": "ar",
+      "milliseconds": 2112.031551,
+      "bytes": 6458962
+    }
+  ],
+  "date": "2026-11-04",
+  "configuration": "devmode",
+  "validation": {
+    "compiler_build": "tools/linux-build.py, GCC 14, DevMode, 3 jobs",
+    "focused_cpp_tests_passed": 16,
+    "external_ar_invocations": 0,
+    "benchmark_consumers": "matching defined symbols and linked C consumers passed for both archives at every member count",
+    "fast_cpp_tests_passed": 1672
+  }
+}

@@ -294,6 +294,105 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     return true;
 }
 
+bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members)
+{
+    outBytes.clear();
+    struct ArchiveSymbol
+    {
+        std::string_view name;
+        size_t member;
+    };
+    std::vector<ArchiveSymbol> symbols;
+    uint64_t namesSize = 0;
+    for (size_t member = 0; member < members.size(); ++member)
+    {
+        const ByteView bytes(members[member].bytes.span());
+        if (!bytes.containsRange(0, 64) || bytes.readLe32(0) != 0x464c457f ||
+            bytes.readLe16(16) != 1 || bytes.readLe16(18) != 62 ||
+            members[member].bytes[4] != std::byte{2} || members[member].bytes[5] != std::byte{1} || bytes.readLe16(58) != 64)
+            return objectError(outDiag, "archive member needs a little-endian ELF64 x86-64 relocatable object");
+        const uint64_t sections = bytes.readLe64(40);
+        const uint32_t count = bytes.readLe16(60);
+        if (!count || !bytes.containsRange(sections, uint64_t{count} * 64))
+            return objectError(outDiag, "ELF archive member has no complete section table");
+        for (uint32_t section = 1; section < count; ++section)
+        {
+            const uint64_t header = sections + uint64_t{section} * 64;
+            if (bytes.readLe32(header + 4) != K_SYMTAB)
+                continue;
+            const uint64_t table = bytes.readLe64(header + 24);
+            const uint64_t size = bytes.readLe64(header + 32);
+            const uint32_t stringsIndex = bytes.readLe32(header + 40);
+            if (size % 24 || bytes.readLe64(header + 56) != 24 || !bytes.containsRange(table, size) || !stringsIndex || stringsIndex >= count)
+                return objectError(outDiag, "ELF archive symbol table needs complete ELF64 entries and a linked string table");
+            const uint64_t stringsHeader = sections + uint64_t{stringsIndex} * 64;
+            const uint64_t strings = bytes.readLe64(stringsHeader + 24);
+            const uint64_t stringsSize = bytes.readLe64(stringsHeader + 32);
+            if (bytes.readLe32(stringsHeader + 4) != K_STRTAB || !bytes.containsRange(strings, stringsSize))
+                return objectError(outDiag, "ELF archive symbol names need a bounded string table");
+            for (uint64_t offset = 0; offset < size; offset += 24)
+            {
+                const uint64_t symbol = table + offset;
+                const uint8_t binding = std::to_integer<uint8_t>(members[member].bytes[symbol + 4]) >> 4;
+                // GNU ar indexes global, weak and GNU unique definitions, including COMMON/ABS.
+                if ((binding != 1 && binding != 2 && binding != 10) || !bytes.readLe16(symbol + 6))
+                    continue;
+                const uint32_t nameOffset = bytes.readLe32(symbol);
+                if (nameOffset >= stringsSize)
+                    return objectError(outDiag, "ELF archive symbol name lies outside its string table");
+                const char* name = reinterpret_cast<const char*>(members[member].bytes.data() + strings + nameOffset);
+                const auto* end = static_cast<const char*>(std::memchr(name, 0, stringsSize - nameOffset));
+                if (!end)
+                    return objectError(outDiag, "ELF archive symbol name has no null terminator");
+                if (end == name)
+                    continue;
+                symbols.push_back({std::string_view(name, end - name), member});
+                namesSize += end - name + 1;
+            }
+        }
+    }
+
+    // Fixed short names avoid a GNU long-name table and preserve the former MRI member order.
+    const uint64_t indexSize = 4 + uint64_t{symbols.size()} * 4 + namesSize;
+    uint64_t total = 8 + 60 + indexSize + (indexSize & 1);
+    std::vector<uint32_t> offsets;
+    offsets.reserve(members.size());
+    for (const LinkArchiveMember& member : members)
+    {
+        if (total > UINT32_MAX || member.bytes.size() > UINT32_MAX)
+            return objectError(outDiag, "ELF archive exceeds the GNU 32-bit index limit");
+        offsets.push_back(static_cast<uint32_t>(total));
+        total += 60 + member.bytes.size() + (member.bytes.size() & 1);
+    }
+    if (total > UINT32_MAX || symbols.size() > UINT32_MAX)
+        return objectError(outDiag, "ELF archive exceeds the GNU 32-bit index limit");
+
+    ByteArray bytes;
+    bytes.reserve(static_cast<size_t>(total));
+    bytes.append("!<arch>\n");
+    bytes.append(std::format("{:<16}{:<12}{:<6}{:<6}{:<8}{:<10}`\n", "/", 0, 0, 0, 0, indexSize));
+    bytes.appendBe32(static_cast<uint32_t>(symbols.size()));
+    for (const ArchiveSymbol& symbol : symbols)
+        bytes.appendBe32(offsets[symbol.member]);
+    for (const ArchiveSymbol& symbol : symbols)
+    {
+        bytes.append(symbol.name);
+        bytes.pushBack(std::byte{0});
+    }
+    if (bytes.size() & 1)
+        bytes.append("\n");
+    for (size_t member = 0; member < members.size(); ++member)
+    {
+        const std::string name = std::format("m{:012}/", member);
+        bytes.append(std::format("{:<16}{:<12}{:<6}{:<6}{:<8}{:<10}`\n", name, 0, 0, 0, "644", members[member].bytes.size()));
+        bytes.append(members[member].bytes.span());
+        if (bytes.size() & 1)
+            bytes.append("\n");
+    }
+    outBytes = std::move(bytes);
+    return true;
+}
+
 bool isSelfContainedElfObject(const std::span<const std::byte> object, const std::string_view requiredSymbol)
 {
     const ByteView bytes(object);

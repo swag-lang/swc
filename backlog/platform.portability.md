@@ -1261,18 +1261,3 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: richer Linux debug records describe the surviving values and scopes without
   inventing locations for optimized-away storage.
 - Related: platform.portability.005
-
-### platform.portability.094 — Imported PNG decoding corrupts allocation metadata in Linux scripts
-
-- Evidence: on Ubuntu 24.04, a `.swgs` script importing `pixel` from `swag@std` and calling
-  `expect Image.load` on `bin/std/modules/gui/src/theme/icons-16px.png` fails in DevMode program
-  configuration with the Release compiler. `Allocator.checkAllocated` reports `memory block
-  corruption` when `Image.decode` frees its reflection-created decoder at `decode.swg:100`.
-  A fresh script work directory reproduces it without SVG parsing or rendering. The native
-  executable consumer and Pixel's native image tests pass; the cause is not established.
-- Next: reduce the imported `Memory.new(typeinfo)` / initialization / interface-call / drop
-  sequence, locate the first invalid header or footer, and compare Linux JIT and native runtime
-  contexts, allocator tags, and imported type layouts. Add a separate importing consumer
-  regression, rather than relying only on tests compiled inside Pixel.
-- Done when: the imported PNG-loading script and its native equivalent both finish with valid
-  allocation metadata and identical decoded pixels, including metadata-only probing.

@@ -226,28 +226,24 @@ namespace
         return executeTool(job, tool, invocation, directory);
     }
 
-    bool publish(LinkJob& job, const fs::path& generated, const fs::path& destination, bool archive)
+    bool publishImage(LinkJob& job, const fs::path& generated, const fs::path& destination)
     {
         ByteArray               bytes;
         FileSystem::IoErrorInfo error;
         if (FileSystem::readBinaryFile(generated, bytes, error) != Result::Continue)
             return linkError(job, FileSystem::describeIoFailure(error));
-        const bool valid = archive ? bytes.size() >= 8 && std::memcmp(bytes.data(), "!<arch>\n", 8) == 0 : bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
+        const bool valid = bytes.size() >= 64 && bytes.readLe32(0) == 0x464c457f && bytes[4] == std::byte{2} && bytes[5] == std::byte{1} && bytes.readLe16(18) == 62;
         if (!valid)
             return linkError(job, "the GNU toolchain did not produce the requested ELF64 artifact");
         Utf8 symbolError;
-        if (!archive && !ELFSymbolTable::finalizeImage(bytes, symbolError))
+        if (!ELFSymbolTable::finalizeImage(bytes, symbolError))
             return linkError(job, symbolError.view());
-        const auto replacement = archive ? FileSystem::FileReplacement::Mapped : FileSystem::FileReplacement::Ordinary;
-        if (FileSystem::writeBinaryFileAtomic(destination, bytes.data(), bytes.size(), error, replacement) != Result::Continue)
+        if (FileSystem::writeBinaryFileAtomic(destination, bytes.data(), bytes.size(), error, FileSystem::FileReplacement::Ordinary) != Result::Continue)
             return linkError(job, FileSystem::describeIoFailure(error));
-        if (!archive)
-        {
-            std::error_code permissionsError;
-            fs::permissions(destination, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add, permissionsError);
-            if (permissionsError)
-                return linkError(job, permissionsError.message());
-        }
+        std::error_code permissionsError;
+        fs::permissions(destination, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add, permissionsError);
+        if (permissionsError)
+            return linkError(job, permissionsError.message());
         return true;
     }
 
@@ -259,7 +255,7 @@ namespace
             return linkError(job, error.message());
         for (const LinkArchiveMember& object : objects)
         {
-            // Link symbols carry identity. Fixed member names also keep MRI operands independent
+            // Link symbols carry identity. Fixed member names also keep tool operands independent
             // of spaces, quotes and other punctuation in the user's artifact or directory name.
             const fs::path path = directory / std::format("member_{:06}.o", paths.size());
             if (!writeBytes(job, path, object.bytes))
@@ -269,25 +265,15 @@ namespace
         return true;
     }
 
-    bool buildArchive(LinkJob& job, const std::vector<Utf8>& members, const fs::path& directory)
+    bool publishArchive(LinkJob& job, const std::vector<LinkArchiveMember>& members, const fs::path& destination)
     {
-        // GNU ar's replacement mode scans the growing member list for every object. MRI
-        // adds directly to the list, keeping large per-function archives linear. ADDMOD
-        // prepends, so reverse the input to preserve link order and deterministic bytes.
-        ByteArray script;
-        script.append("CREATE archive.a\n");
-        for (const Utf8& member : std::views::reverse(members))
-        {
-            script.append("ADDMOD ");
-            script.append(member.view());
-            script.append("\n");
-        }
-        script.append("SAVE\nEND\n");
-        if (!writeBytes(job, directory / "archive.mri", script))
+        ByteArray bytes;
+        if (!buildElfStaticArchive(bytes, job.error, members))
             return false;
-        // The shell only redirects a fixed file name; no user text enters shell source.
-        const std::array<Utf8, 2> arguments = {"-c", "exec ar -DM < archive.mri"};
-        return executeTool(job, "sh", arguments, directory);
+        FileSystem::IoErrorInfo error;
+        if (FileSystem::writeBinaryFileAtomic(destination, bytes.data(), bytes.size(), error, FileSystem::FileReplacement::Mapped) != Result::Continue)
+            return linkError(job, FileSystem::describeIoFailure(error));
+        return true;
     }
 
     bool executePrepared(LinkJob& job)
@@ -303,17 +289,17 @@ namespace
                 fs::remove_all(path, error);
             }
         } cleanup{temporary};
-        std::vector<Utf8> objects;
-        if (!materialize(objects, job, job.archiveMembers, temporary / "objects"))
-            return false;
         const fs::path output = temporary / job.outputPath.filename();
         if (job.output == LinkJob::Output::StaticLibrary)
         {
-            if (!buildArchive(job, objects, temporary) || !publish(job, temporary / "archive.a", job.outputPath, true))
+            if (!publishArchive(job, job.archiveMembers, job.outputPath))
                 return false;
         }
         else
         {
+            std::vector<Utf8> objects;
+            if (!materialize(objects, job, job.archiveMembers, temporary / "objects"))
+                return false;
             // Lazy ELF resolution preserves System V arguments, but Swag also passes arguments
             // in R10/R11. Resolve PLT entries before the first call can lose those registers.
             std::vector<Utf8> arguments = {"-Wl,--build-id=none", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--eh-frame-hdr", "-Wl,--fatal-warnings", "-pthread"};
@@ -331,15 +317,12 @@ namespace
             arguments.insert(arguments.end(), job.elfLinkArguments.begin(), job.elfLinkArguments.end());
             arguments.emplace_back("-o");
             arguments.emplace_back(output);
-            if (!runTool(job, "cc", arguments, temporary) || !publish(job, output, job.outputPath, false))
+            if (!runTool(job, "cc", arguments, temporary) || !publishImage(job, output, job.outputPath))
                 return false;
         }
         if (!job.staticLibraryPath.empty())
         {
-            std::vector<Utf8> members;
-            if (!materialize(members, job, job.staticLibraryMembers, temporary / "archive"))
-                return false;
-            if (!buildArchive(job, members, temporary) || !publish(job, temporary / "archive.a", job.staticLibraryPath, true))
+            if (!publishArchive(job, job.staticLibraryMembers, job.staticLibraryPath))
                 return false;
         }
         return true;

@@ -33,7 +33,7 @@ case "$action" in
         printf 'Use the same launchers and arguments as Windows: apps.bat build swagscope\n'
         printf 'Also: apps.bat test swagscope --test-file commandpresentation.swg\n'
         printf '      apps.bat run swagscope\n'
-        source tools/linux-shell.sh
+        source <(python3 -c "import sys; sys.stdout.write(sys.stdin.read().replace(chr(13), ''))" < tools/linux-shell.sh)
         exec bash -i
         ;;
     sync)

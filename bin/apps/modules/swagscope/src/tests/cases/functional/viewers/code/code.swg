@@ -64,6 +64,8 @@ struct CodeLanguageSample
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.require(result.view != null and result.info != null)
     let view = assume cast(*Code.Panel, result.view)
+    let zoom = view.zoomPercent
+    defer view.setZoom(zoom)
     assertViewerInfoButton(unwrap view.zoomLabel)
     Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
 

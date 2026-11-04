@@ -19,6 +19,7 @@ shift 5
 cd "$source"
 export SWAG_SOURCE="$source"
 export SWAG_PATH="$source/bin"
+export SWC_BUILD_DIR="$build"
 export SWC_COMPILER="$build/release/swc"
 export SWC_DEVMODE_COMPILER="$build/devmode/swc.dm"
 export SWAG_RUNTIME_THREADS=3

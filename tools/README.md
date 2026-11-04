@@ -57,7 +57,8 @@ std.bat test gui --test-file appearancebutton.swg
 
 In Windows CMD, `.bat` runs the batch launcher. In the Linux shell, Bash maps that same command
 to the shared Python tool engine. `dm`, `-bc release`, `--test-file` and the other compiler options
-keep their positions and meaning. The session sets `SWAG_SOURCE`, `SWAG_PATH`, `SWC_COMPILER`,
+keep their positions and meaning. `release.bat` builds the Linux Release compiler and refreshes its
+runtime beside it. The session sets `SWAG_SOURCE`, `SWAG_PATH`, `SWC_BUILD_DIR`, `SWC_COMPILER`,
 `SWC_DEVMODE_COMPILER`, `TMPDIR` and the compiler search path. WSLg displays Linux application
 windows on the Windows desktop. The underlying Python interface remains available for scripting.
 

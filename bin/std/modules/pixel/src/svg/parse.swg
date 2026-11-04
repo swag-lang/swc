@@ -1299,8 +1299,10 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
     let cx  = cosPhi * cxp - sinPhi * cyp + (x0 + x1) * 0.5
     let cy  = sinPhi * cxp + cosPhi * cyp + (y0 + y1) * 0.5
 
-    let startAngle = Math.atan2((py - cyp) / ry, (px - cxp) / rx)
-    let endAngle   = Math.atan2((-py - cyp) / ry, (-px - cxp) / rx)
+    // Round double-precision angles to path precision. Platform atan2f approximations
+    // can otherwise change the quarter-turn segment count and the resulting raster.
+    let startAngle = cast(f32, Math.atan2(cast(f64, (py - cyp) / ry), cast(f64, (px - cxp) / rx)))
+    let endAngle   = cast(f32, Math.atan2(cast(f64, (-py - cyp) / ry), cast(f64, (-px - cxp) / rx)))
 
     var sweepAngle = endAngle - startAngle
     if sweep and sweepAngle < 0 do

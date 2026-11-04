@@ -60,7 +60,7 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     Swag.require(baked.byteCount == decoded.byteCount)
     Swag.require(Memory.compare(baked.pixels.storage(), decoded.pixels.storage(), baked.byteCount) == 0)
     let unusual = atlas.image(37)
-    Swag.require(unusual.width == 8 * 37 and unusual.height == 11 * 37)
+    Swag.require(unusual.width == 8 * 37 and unusual.height == 12 * 37)
 
     var custom: IconAtlas
     custom.embedded = true

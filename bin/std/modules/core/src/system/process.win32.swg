@@ -7,18 +7,6 @@ using Win32, StrConv, Core.Errors
 // Windows environment names compare without regard to case.
 internal func processEnvironmentStoredName(name: string)->String => String.toUpper(name)
 
-// Bytes taken from a captured pipe in one read.
-private const PipeReadChunk = 4096'u32
-
-// Milliseconds a wait sleeps between two drains of the captured streams.
-//
-// A wait with nothing to capture blocks on the process handle instead, so this only bounds how
-// long a byte the child produced sits in a pipe before it is collected.
-private const PipePollInterval = 5'u32
-
-// Longest single wait issued to the system, so a very long timeout still fits a native call.
-private const MaxWaitStep = 0xFFFFFFFE'u64
-
 // Exits the current process, reporting `exitCode` to whoever waits on it.
 //
 // The code is signed like everywhere else exit codes travel — [[Core.Env.Process.waitForExit]],
@@ -83,7 +71,7 @@ func variable(name: string)->String
     return Utf8.fromUtf16(buffer.toSlice()[until written])
 }
 
-// Returns `value` spelled so the system parses it back as exactly one argument.
+// Serializes one argument using the Windows C-runtime command-line grammar.
 //
 // A value holding a space, a tab or a quote is wrapped, and the backslashes in front of a
 // wrapping quote are doubled, which is what the command-line grammar needs to give the child the
@@ -96,10 +84,10 @@ func quoteArgument(value: string)->String
     return result
 }
 
-// Returns `arguments` joined into the one command line the system parses back into them.
+// Serializes an argument vector using the Windows C-runtime command-line grammar.
 //
-// This is what [[Core.Env.StartInfo.arguments]] expects when the values are not already a
-// command line, so a caller never has to know the quoting rules of the platform.
+// Normal process calls pass the vector directly in [[Core.Env.StartInfo.arguments]]. This helper
+// is for native interoperability with that grammar; it does not escape cmd.exe shell syntax.
 func joinArguments(arguments: const [..] string)->String
 {
     var result: #returntype
@@ -256,11 +244,7 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
     return ownedChildEnd[]
 }
 
-// Starts the process `info` describes, returning as soon as it is running.
-//
-// The executable is resolved from the command line, so a bare name is searched along the
-// executable search path and a path containing spaces needs no quoting from the caller.
-func startProcess(info: StartInfo)->Process fail
+internal func startProcessNative(info: StartInfo)->Process fail
 {
     // Builds the zero-terminated block of 'name=value' entries expected by CreateProcessW.
     // Windows reads the entries without regard to case, so sort them that way.
@@ -281,40 +265,6 @@ func startProcess(info: StartInfo)->Process fail
             result.add(0)
         result.add(0)
         return result
-    }
-
-    Swag.assert(info.fileName != null, "missing process filename")
-    if not info.fileName.count do
-        fail BadParameterError{"process filename is empty"}
-    for c in info.fileName where c == 0 do
-        fail BadParameterError{"process strings cannot contain NUL"}
-    if info.arguments
-    {
-        for c in info.arguments where c == 0 do
-            fail BadParameterError{"process strings cannot contain NUL"}
-    }
-
-    if info.workingDirectory
-    {
-        for c in info.workingDirectory where c == 0 do
-            fail BadParameterError{"process strings cannot contain NUL"}
-    }
-
-    if info.environment
-    {
-        for name, value in info.environment.variables
-        {
-            if name.isEmpty() do
-                fail BadParameterError{"process environment names cannot be empty"}
-            for c in name.toString()
-            {
-                if c == '=' or c == 0 do
-                    fail BadParameterError{"process environment names cannot contain '=' or NUL"}
-            }
-
-            for c in value.toString() where c == 0 do
-                fail BadParameterError{"process environment values cannot contain NUL"}
-        }
     }
 
     var result: #returntype
@@ -358,10 +308,18 @@ func startProcess(info: StartInfo)->Process fail
     commandLine.append("\"")
     commandLine.append(executable.toString())
     commandLine.append("\"")
-    if info.arguments
+    if info.nativeArguments
     {
         commandLine.append(" ")
-        commandLine.append(info.arguments)
+        commandLine.append(info.nativeArguments)
+    }
+    elif info.arguments
+    {
+        for argument in info.arguments
+        {
+            commandLine.append(" ")
+            appendQuoted(&commandLine, argument)
+        }
     }
 
     var directory16:  Array'u16
@@ -475,17 +433,7 @@ impl Process
             try SetProcessAffinityMask(cast(HANDLE, .handle), info.affinityMask)
     }
 
-    // Releases resources owned by this value.
-    mtd opDrop()
-    {
-        .close()
-    }
-
-    // Releases every platform handle this value owns, without waiting for the process.
-    //
-    // Whatever the streams already produced stays readable, so a run can still be inspected
-    // once its process is gone. Calling `close` repeatedly is safe.
-    mtd close()
+    internal mtd closeNative()
     {
         releaseHandle(&.handle)
         releaseHandle(&.jobHandle)
@@ -533,121 +481,56 @@ impl Process
         .exited = true
     }
 
-    // Reads whatever the redirected streams hold right now, without waiting for more.
-    //
-    // Every wait already does this, so a caller only needs it to follow a long-running child
-    // while it works. Reaching the end of a stream is not a failure: the pipe is released and
-    // a later call simply has nothing to do.
-    mtd readAvailable()
-    {
-        .drainPipe(&.outputPipe, &.output)
-        .drainPipe(&.errorPipe, &.error)
-    }
-
-    // Moves everything one captured pipe currently holds into `text`.
-    private mtd drainPipe(pipe: *ProcessHandle, text: *String)
+    internal mtd drainPipeNative(pipe: *ProcessHandle, text: *String, limit: u64)
     {
         let handle = cast(HANDLE, pipe[])
         if not handle do
             return
-
-        var buffer: [PipeReadChunk] u8
-        for
+        var available: DWORD
+        if not PeekNamedPipe(handle, null, 0, null, &available, null)
         {
-            // Peeking first is what keeps this from blocking: a read of a pipe that holds
-            // nothing waits for the child, and this side may be the one it is waiting on.
-            var available: DWORD
-            if not PeekNamedPipe(handle, null, 0, null, &available, null)
-            {
-                // The writing end is gone for good. Releasing the reading end now is what
-                // makes the next pass a no-op instead of a peek that fails again.
-                releaseHandle(pipe)
-                return
-            }
+            releaseHandle(pipe)
+            return
+        }
 
-            if not available do
-                return
-
+        // Snapshot the available byte count: a descendant writing forever cannot trap this call.
+        var remaining = Math.min(cast(u64, available), limit)
+        var buffer: [4096] u8
+        while remaining != 0
+        {
             var read: DWORD
-            if not ReadFile(handle,
-                            &buffer[0],
-                            Math.min(available, PipeReadChunk),
-                            &read,
-                            null) or
-               not read
+            if not ReadFile(handle, &buffer[0], cast(u32, Math.min(remaining, buffer.count)), &read, null) or not read
             {
                 releaseHandle(pipe)
                 return
             }
 
             text.append(cast(string, buffer[until read]))
+            remaining -= read
         }
     }
 
-    // Waits for the process to exit and returns its exit code.
-    //
-    // The redirected streams are drained while waiting, so a child that produces more output
-    // than a pipe holds keeps running instead of blocking on a reader that never reads.
-    mtd waitForExit()->s32 fail
+    internal mtd pollExitNative(milliseconds: u32) fail
     {
-        if .exited do
-            return .status
-        Swag.assert(.handle != null, "invalid process handle")
-
-        let interval: DWORD = .hasCapturedStream() ? PipePollInterval : INFINITE
-        while not .exited
-        {
-            .readAvailable()
-            let status = try WaitForSingleObject(cast(HANDLE, .handle), interval)
-            if status == WAIT_OBJECT_0 do
-                try .collectExitCode()
-        }
-
-        // What the child wrote just before exiting is still sitting in the pipes.
-        .readAvailable()
-        return .status
+        let status = try WaitForSingleObject(cast(HANDLE, .handle), milliseconds)
+        if status == WAIT_OBJECT_0 do
+            try .collectExitCode()
     }
 
-    // Waits up to `timeout` for the process to exit, and returns whether it did.
-    //
-    // Drains the redirected streams like [[Core.Env.Process.waitForExit]] does. A zero timeout
-    // makes this a single poll, which is how a caller follows a child without blocking on it.
-    mtd tryWaitForExit(timeout: Time.Duration)->bool fail
+    internal mtd killNative() fail
     {
-        if .exited do
-            return true
-        Swag.assert(.handle != null, "invalid process handle")
-
-        var remaining = timeout.milliseconds()
-        for
-        {
-            .readAvailable()
-
-            let step  = .hasCapturedStream() ? cast(u64, PipePollInterval) : MaxWaitStep
-            let slice = Math.min(remaining, step)
-
-            let status = try WaitForSingleObject(cast(HANDLE, .handle), cast(DWORD, slice))
-            if status == WAIT_OBJECT_0
-            {
-                try .collectExitCode()
-                .readAvailable()
-                return true
-            }
-
-            if slice >= remaining do
-                break
-            remaining -= slice
-        }
-
-        return false
+        try .kill(1)
     }
+
+    // Returns whether this host implements process-tree resource accounting.
+    func supportsResourceMeasurement()->bool => true
 
     // Requests the immediate termination of the process, which is then given `exitCode`.
     //
     // The request is asynchronous: the process is still there when this returns, so follow it
     // with [[Core.Env.Process.waitForExit]] to observe the exit and collect what the child left
     // in the captured streams. Killing a process that already exited does nothing.
-    mtd kill(exitCode: s32 = 1) fail
+    mtd kill(exitCode: s32) fail
     {
         if .exited or not .handle do
             return
@@ -676,10 +559,7 @@ impl Process
         }
     }
 
-    // Closes the standard-input pipe, so a child reading to the end of its input sees that end.
-    //
-    // Calling it repeatedly is safe.
-    mtd closeStandardInput()
+    internal mtd closeStandardInputNative()
     {
         releaseHandle(&.inputPipe)
     }
@@ -704,3 +584,6 @@ impl Process
     // Returns the current operating-system thread identifier.
     func currentThreadId()->u64 => GetCurrentThreadId()
 }
+
+// Windows handles need no background child-reaping service.
+internal func shutdownProcessesNative() {}

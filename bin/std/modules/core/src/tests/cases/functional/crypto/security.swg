@@ -1,5 +1,4 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if WINDOWS
 #global private
 
 using Swag
@@ -110,5 +109,22 @@ using Swag
                 right[offset + length - 1] ^= 0x80
             }
         }
+    }
+}
+
+// The host fills requests larger than its single-call entropy limit without touching neighbors.
+#test
+{
+    var bytes: [1026] u8
+    for length in [0'u64, 1, 255, 256, 257, 1024]
+    {
+        bytes[0] = 19
+        bytes[length + 1] = 73
+        let range = bytes[1 until length + 1]
+        expect Crypto.randomBytes(range)
+        Crypto.secureClear(range)
+        for value in range do
+            Swag.require(value == 0)
+        Swag.require(bytes[0] == 19 and bytes[length + 1] == 73)
     }
 }

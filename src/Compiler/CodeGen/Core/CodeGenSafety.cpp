@@ -493,7 +493,8 @@ Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
     {
         SymbolFunction* fn = nullptr;
         SWC_RESULT(codeGen.sema().waitRuntimeFunction(kind, fn, codeGen.function().codeRef()));
-        codeGen.function().addCallDependency(fn);
+        // Emitting a guard records its dependency. Preparing the signatures must not
+        // make a leaf wait for runtime bodies it never calls.
     }
 
     return Result::Continue;

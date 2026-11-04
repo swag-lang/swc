@@ -1,5 +1,4 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if #os == Swag.TargetOs.Windows
 
 using Core
 

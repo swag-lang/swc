@@ -1,9 +1,10 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Linker/Linker.h"
-#include "Backend/Linker/PeWriter.h"
+#include "Backend/Linker/PEWriter.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -14,7 +15,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+#ifdef _WIN32
     using RtlDecompressBufferFn = LONG(WINAPI*)(USHORT compressionFormat, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG* finalUncompressedSize);
+
+#endif
 
     uint16_t peSubsystem(const ByteArray& bytes)
     {
@@ -22,13 +26,13 @@ namespace
             return 0;
 
         const uint32_t peOffset = bytes.readLe32(0x3C);
-        if (!bytes.containsRange(peOffset, sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64)))
+        if (!bytes.containsRange(peOffset, sizeof(uint32_t) + sizeof(PE::FileHeader) + sizeof(PE::OptionalHeader64)))
             return 0;
-        if (bytes.readLe32(peOffset) != IMAGE_NT_SIGNATURE)
+        if (bytes.readLe32(peOffset) != PE::NT_SIGNATURE)
             return 0;
 
-        const size_t optionalOffset = peOffset + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER);
-        return bytes.readLe16(optionalOffset + offsetof(IMAGE_OPTIONAL_HEADER64, Subsystem));
+        const size_t optionalOffset = peOffset + sizeof(uint32_t) + sizeof(PE::FileHeader);
+        return bytes.readLe16(optionalOffset + offsetof(PE::OptionalHeader64, Subsystem));
     }
 
     struct PeSectionView
@@ -47,21 +51,21 @@ namespace
 
         const uint32_t peOffset         = bytes.readLe32(0x3C);
         const size_t   fileHeaderOffset = peOffset + sizeof(uint32_t);
-        if (!bytes.containsRange(fileHeaderOffset, sizeof(IMAGE_FILE_HEADER)))
+        if (!bytes.containsRange(fileHeaderOffset, sizeof(PE::FileHeader)))
             return false;
 
-        IMAGE_FILE_HEADER fileHeader;
+        PE::FileHeader fileHeader;
         std::memcpy(&fileHeader, bytes.data() + fileHeaderOffset, sizeof(fileHeader));
         const size_t sectionTableOffset = fileHeaderOffset + sizeof(fileHeader) + fileHeader.SizeOfOptionalHeader;
-        if (!bytes.containsRange(sectionTableOffset, static_cast<size_t>(fileHeader.NumberOfSections) * sizeof(IMAGE_SECTION_HEADER)))
+        if (!bytes.containsRange(sectionTableOffset, static_cast<size_t>(fileHeader.NumberOfSections) * sizeof(PE::SectionHeader)))
             return false;
 
         for (uint32_t i = 0; i < fileHeader.NumberOfSections; ++i)
         {
-            IMAGE_SECTION_HEADER header;
+            PE::SectionHeader header;
             std::memcpy(&header, bytes.data() + sectionTableOffset + static_cast<size_t>(i) * sizeof(header), sizeof(header));
             size_t nameLength = 0;
-            while (nameLength < IMAGE_SIZEOF_SHORT_NAME && header.Name[nameLength])
+            while (nameLength < PE::SIZEOF_SHORT_NAME && header.Name[nameLength])
                 ++nameLength;
             if (std::string_view{reinterpret_cast<const char*>(header.Name), nameLength} != name)
                 continue;
@@ -76,6 +80,7 @@ namespace
         return false;
     }
 
+#ifdef _WIN32
     bool decompressLznt1(ByteArray& outBytes, const std::span<const std::byte> compressedBytes, const uint32_t uncompressedSize)
     {
         const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
@@ -92,6 +97,8 @@ namespace
             return false;
         return finalSize == uncompressedSize;
     }
+
+#endif
 
     ByteArray makeSingleImageIcon(const ByteArray& image)
     {
@@ -257,7 +264,7 @@ SWC_TEST_BEGIN(PeWriter_ExportTablesPreserveSortedNamesAndAliases)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
+SWC_TEST_BEGIN(PeWriter_PreservesEmbeddedDebugTable)
 {
     ByteArray text;
     NativeTest::emit(text, {0xC3});
@@ -308,6 +315,7 @@ SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
     PeSectionView dataView;
     if (!findPeSection(debugView, peBytes, ".swagdbg") || !findPeSection(dataView, peBytes, ".data"))
         return Result::Error;
+#ifdef _WIN32
     if (debugView.virtualSize != originalDebugSize || debugView.rawSize >= Math::alignUpU32(originalDebugSize, 0x200))
         return Result::Error;
     if (dataView.rawOffset <= debugView.rawOffset || dataView.rawOffset >= debugView.rawOffset + Math::alignUpU32(originalDebugSize, 0x200))
@@ -327,9 +335,18 @@ SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
         return Result::Error;
     if (decompressedBytes != originalDebugBytes)
         return Result::Error;
+#else
+    if (debugView.virtualSize != originalDebugSize || debugView.rawSize != Math::alignUpU32(originalDebugSize, 0x200))
+        return Result::Error;
+    if (!peBytes.containsRange(debugView.rawOffset, originalDebugSize) || std::memcmp(peBytes.data() + debugView.rawOffset, originalDebugBytes.data(), originalDebugSize) != 0)
+        return Result::Error;
+    if (dataView.rawOffset < debugView.rawOffset + debugView.rawSize)
+        return Result::Error;
+#endif
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
 // Hand-builds the smallest meaningful program -- one that calls kernel32!ExitProcess(42) through an
 // imported thunk -- writes it to a PE with the internal writer, runs it, and checks the exit code.
 // This exercises section layout and the import table/IAT/thunk path with a direct relative call,
@@ -406,6 +423,8 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     }
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_TEST_BEGIN(PeWriter_FoldsIdenticalUnwindInfo)
 {
@@ -579,7 +598,7 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
         return Result::Error;
     }
 
-    if (peSubsystem(peBytes) != IMAGE_SUBSYSTEM_WINDOWS_GUI)
+    if (peSubsystem(peBytes) != PE::SUBSYSTEM_WINDOWS_GUI)
         return Result::Error;
     if (!peBytes.containsUtf16Le("Patch App"))
         return Result::Error;

@@ -20,6 +20,7 @@ public:
         Exit,
         EnsureRuntimeAllocator,
         SetupRuntime,
+        SetupUnixArguments,
         ReleaseRuntime,
         CloseRuntime,
 
@@ -55,6 +56,8 @@ public:
         TlsGetPtr,
         TlsGetValue,
         TlsVarPtr,
+        HostProcessStorage,
+        HostCurrentThreadId,
 
         RaiseException,
 
@@ -174,6 +177,7 @@ public:
         RuntimeExit,
         RuntimeEnsureRuntimeAllocator,
         RuntimeSetupRuntime,
+        RuntimeSetupUnixArguments,
         RuntimeReleaseRuntime,
         RuntimeCloseRuntime,
 
@@ -212,6 +216,8 @@ public:
         RuntimeTlsGetPtr,
         RuntimeTlsGetValue,
         RuntimeTlsVarPtr,
+        RuntimeHostProcessStorage,
+        RuntimeHostCurrentThreadId,
 
         RuntimeRaiseException,
 

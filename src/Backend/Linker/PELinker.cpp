@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugPath.h"
@@ -11,6 +12,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
+#include "Backend/Native/NativeImageBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
@@ -319,7 +321,7 @@ namespace
 
     bool isDirectCallRelocation(const CoffInputSection& section, const CoffInputReloc& relocation)
     {
-        return section.name == ".text" && relocation.type == IMAGE_REL_AMD64_REL32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
+        return section.name == ".text" && relocation.type == PE::REL_AMD64_REL32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
     }
 
     bool isDirectCallRelocation(const LinkSection& section, const LinkReloc& relocation)
@@ -546,304 +548,6 @@ namespace
         return Result::Continue;
     }
 
-    struct SectionPlacement
-    {
-        uint32_t index = 0;
-        uint32_t base  = 0;
-        bool     valid = false;
-    };
-
-    // What one object description contributes to the image, built without touching it.
-    struct NativeImageDescriptionSections
-    {
-        NativeSectionData     textSection;
-        DebugInfoObjectResult unwind;
-    };
-
-    class NativeImageLowering
-    {
-    public:
-        NativeImageLowering(NativeBackendBuilder& builder, LinkImage& image) :
-            builder_(&builder),
-            image_(&image)
-        {
-            for (uint32_t i = 0; i < image.sections.size(); ++i)
-                sectionByName_[image.sections[i].name] = i;
-
-            for (const LinkSymbol& symbol : image.symbols)
-                definedNames_.insert(symbol.name);
-        }
-
-        // Reads only the description and the builder, so descriptions can be built in parallel.
-        Result buildDescription(NativeImageDescriptionSections& out, const NativeObjDescription& description) const
-        {
-            std::vector<DebugInfoFunctionRecord> debugFunctions;
-            debugFunctions.reserve(description.functions.size() + (description.startup ? 1u : 0u));
-            SWC_RESULT(buildTextSection(out.textSection, description, debugFunctions));
-            return buildUnwindSections(out.unwind, description, debugFunctions);
-        }
-
-        // Places a built description; the image depends on the order descriptions are placed in.
-        Result placeDescription(NativeImageDescriptionSections& sections, const NativeObjDescription& description)
-        {
-            SWC_RESULT(placeTextSection(std::move(sections.textSection), description));
-            if (description.includeData)
-                SWC_RESULT(appendDataSections());
-
-            return placeUnwindSections(sections.unwind);
-        }
-
-    private:
-        Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description, std::vector<DebugInfoFunctionRecord>& debugFunctions) const
-        {
-            textSection.name            = ".text";
-            textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
-
-            if (description.startup)
-            {
-                textSection.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
-                SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
-                debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
-            }
-            for (NativeFunctionInfo* info : description.functions)
-            {
-                textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
-                SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
-                debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
-            }
-
-            return Result::Continue;
-        }
-
-        Result placeTextSection(NativeSectionData&& textSection, const NativeObjDescription& description)
-        {
-            SectionPlacement placement;
-            SWC_RESULT(appendNativeSection(placement, std::move(textSection)));
-
-            if (description.startup)
-                addSymbol(description.startup->symbolName, placement.index, placement.base + description.startup->textOffset);
-            for (const NativeFunctionInfo* info : description.functions)
-                addSymbol(info->symbolName, placement.index, placement.base + info->textOffset);
-
-            return Result::Continue;
-        }
-
-        Result appendCodeRelocations(NativeSectionData& textSection, const uint32_t functionOffset, const Utf8& ownerName, const MachineCode& code, const bool allowUnresolvedSymbols) const
-        {
-            NativeCodeRelocationTarget target;
-            target.bytes                  = &textSection.bytes;
-            target.relocations            = &textSection.relocations;
-            target.functionOffset         = functionOffset;
-            target.allowUnresolvedSymbols = allowUnresolvedSymbols;
-
-            for (const MicroRelocation& relocation : code.codeRelocations)
-                SWC_RESULT(builder_->appendCodeRelocation(target, ownerName, relocation));
-
-            return Result::Continue;
-        }
-
-        Result appendDataSections()
-        {
-            SWC_ASSERT(builder_ != nullptr);
-            if (!builder_->mergedRData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedRData, builder_->scopedSymbolNames().rdataBase));
-            if (!builder_->mergedData.bytes.empty())
-                SWC_RESULT(appendDataSection(builder_->mergedData, builder_->scopedSymbolNames().dataBase));
-            if (builder_->mergedBss.bss)
-                SWC_RESULT(appendDataSection(builder_->mergedBss, builder_->scopedSymbolNames().bssBase));
-
-            return Result::Continue;
-        }
-
-        Result appendDataSection(const NativeSectionData& section, const Utf8& baseSymbolName)
-        {
-            SectionPlacement placement;
-            SWC_RESULT(appendNativeSection(placement, section));
-            addSymbol(baseSymbolName, placement.index, placement.base);
-            return Result::Continue;
-        }
-
-        Result buildUnwindSections(DebugInfoObjectResult& debugInfoResult, const NativeObjDescription& description, const std::vector<DebugInfoFunctionRecord>& debugFunctions) const
-        {
-            const DebugInfoObjectRequest debugInfoRequest = {
-                .ctx             = &builder_->ctx(),
-                .targetOs        = builder_->ctx().cmdLine().targetOs,
-                .objectPath      = description.objPath,
-                .objectIndex     = description.index,
-                .symbolScopeHash = builder_->scopedSymbolNames().scopeHash,
-                .functions       = debugFunctions,
-                .emitCodeView    = false,
-            };
-
-            return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);
-        }
-
-        Result placeUnwindSections(DebugInfoObjectResult& debugInfoResult)
-        {
-            // This request contains only function records, so CodeView defines only unwind symbols in .xdata.
-            SectionPlacement xdataPlacement;
-            for (NativeSectionData& section : debugInfoResult.sections)
-            {
-                if (isDebugSectionName(section.name))
-                    continue;
-
-                SectionPlacement placement;
-                SWC_RESULT(appendNativeSection(placement, std::move(section)));
-                if (section.name == ".xdata")
-                    xdataPlacement = placement;
-            }
-
-            for (const DebugInfoDefinedSymbol& symbol : debugInfoResult.symbols)
-            {
-                SWC_ASSERT(symbol.sectionName == ".xdata" && xdataPlacement.valid);
-                if (symbol.sectionName != ".xdata" || !xdataPlacement.valid)
-                    continue;
-
-                addSymbol(symbol.name, xdataPlacement.index, xdataPlacement.base + symbol.value);
-            }
-
-            return Result::Continue;
-        }
-
-        Result appendNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
-        {
-            if (!placeNativeSection(outPlacement, section))
-                return Result::Continue;
-
-            for (const NativeSectionRelocation& relocation : section.relocations)
-                SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, Utf8{relocation.symbolName}));
-
-            return Result::Continue;
-        }
-
-        // Transfer relocation names from a consumed section to avoid copying
-        // and allocating a symbol name for every relocation.
-        Result appendNativeSection(SectionPlacement& outPlacement, NativeSectionData&& section)
-        {
-            if (!placeNativeSection(outPlacement, section))
-                return Result::Continue;
-
-            for (NativeSectionRelocation& relocation : section.relocations)
-                SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, std::move(relocation.symbolName)));
-
-            return Result::Continue;
-        }
-
-        // False when the section takes no place in the image.
-        bool placeNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
-        {
-            outPlacement = {};
-            if (isDebugSectionName(section.name))
-                return false;
-
-            uint32_t   sectionIndex = 0;
-            const auto it           = sectionByName_.find(section.name);
-            if (it == sectionByName_.end())
-            {
-                LinkSection linkSection;
-                linkSection.name  = section.name;
-                linkSection.align = 1;
-                sectionIndex      = static_cast<uint32_t>(image_->sections.size());
-                image_->sections.push_back(std::move(linkSection));
-                sectionByName_.emplace(section.name, sectionIndex);
-            }
-            else
-            {
-                sectionIndex = it->second;
-            }
-
-            LinkSection&   linkSection = image_->sections[sectionIndex];
-            const uint32_t align       = coffSectionAlignmentFromCharacteristics(section.characteristics);
-            linkSection.align          = std::max(linkSection.align, align);
-            linkSection.flags.add(linkSectionFlagsFromCoffCharacteristics(section.characteristics));
-
-            uint32_t base = 0;
-            if (section.bss)
-            {
-                linkSection.bssSize = Math::alignUpU32(linkSection.bssSize, align);
-                base                = linkSection.bssSize;
-                linkSection.bssSize += section.bssSize;
-                linkSection.flags.add(LinkSectionFlagsE::Uninit);
-            }
-            else
-            {
-                base = Math::alignUpU32(static_cast<uint32_t>(linkSection.bytes.size()), align);
-                linkSection.bytes.resize(base, std::byte{0});
-                linkSection.bytes.insert(linkSection.bytes.end(), section.bytes.begin(), section.bytes.end());
-            }
-
-            outPlacement.index = sectionIndex;
-            outPlacement.base  = base;
-            outPlacement.valid = true;
-
-            return true;
-        }
-
-        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation, Utf8&& symbolName) const
-        {
-            LinkRelocKind kind;
-            if (!linkRelocKindFromCoffType(kind, relocation.type))
-            {
-                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
-                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(relocation.type));
-                diag.addArgument(Diagnostic::ARG_TARGET, sectionName);
-                return builder_->reportError(diag);
-            }
-
-            LinkSection&   section     = image_->sections[sectionIndex];
-            const uint32_t patchOffset = base + relocation.offset;
-            switch (relocation.type)
-            {
-                case IMAGE_REL_AMD64_ADDR64:
-                    if (patchOffset + sizeof(uint64_t) > section.bytes.size())
-                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-
-                    section.bytes.writeLe64(patchOffset, relocation.addend);
-                    break;
-
-                case IMAGE_REL_AMD64_ADDR32NB:
-                case IMAGE_REL_AMD64_REL32:
-                    if (patchOffset + sizeof(uint32_t) > section.bytes.size())
-                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-
-                    section.bytes.writeLe32(patchOffset, static_cast<uint32_t>(relocation.addend));
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-            LinkReloc linkReloc;
-#if SWC_DEBUG_MODE
-            linkReloc.sectionIndex = sectionIndex;
-#endif
-            linkReloc.offset     = patchOffset;
-            linkReloc.symbolName = std::move(symbolName);
-            linkReloc.kind       = kind;
-            section.relocs.push_back(std::move(linkReloc));
-
-            return Result::Continue;
-        }
-
-        void addSymbol(const Utf8& name, const uint32_t sectionIndex, const uint32_t value)
-        {
-            if (!definedNames_.insert(name).second)
-                return;
-
-            LinkSymbol symbol;
-            symbol.name         = name;
-            symbol.sectionIndex = sectionIndex;
-            symbol.value        = value;
-            image_->symbols.push_back(std::move(symbol));
-        }
-
-        NativeBackendBuilder* builder_ = nullptr;
-        LinkImage*            image_   = nullptr;
-
-        std::unordered_map<Utf8, uint32_t> sectionByName_;
-        std::unordered_set<Utf8>           definedNames_;
-    };
-
     void   collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs);
     void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage* image = nullptr);
     Result collectLinkWin32ApplicationConfig(NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig);
@@ -979,27 +683,7 @@ PELinker::PELinker(NativeBackendBuilder& builder) :
 
 Result PELinker::buildNativeImage(LinkImage& image) const
 {
-    SWC_ASSERT(builder_ != nullptr);
-    NativeImageLowering lowering(*builder_, image);
-
-    // Each description's code, relocations and unwind records are independent of every other
-    // one; only their placement in the image is ordered.
-    const auto&                                 descriptions = builder_->objectDescriptions;
-    std::vector<NativeImageDescriptionSections> sections(descriptions.size());
-    std::vector<Result>                         results(descriptions.size(), Result::Continue);
-
-    JobManager& jobMgr = builder_->ctx().global().jobMgr();
-    jobMgr.parallelForIndexed(builder_->ctx(), static_cast<uint32_t>(descriptions.size()), JobKind::NativeLinkPrepare, jobMgr.newClientId(), [&](TaskContext&, const uint32_t index) {
-        results[index] = lowering.buildDescription(sections[index], descriptions[index]);
-    });
-
-    for (size_t index = 0; index < descriptions.size(); ++index)
-    {
-        SWC_RESULT(results[index]);
-        SWC_RESULT(lowering.placeDescription(sections[index], descriptions[index]));
-    }
-
-    return Result::Continue;
+    return NativeImageBuilder::build(image, *builder_);
 }
 
 void PELinker::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const

@@ -5,6 +5,7 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -12,6 +13,8 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -37,6 +40,25 @@ namespace Backend::Unittest
         ByteArray code;
         code.resize(encoder.size());
         encoder.copyTo(code);
+#if defined(__linux__) && defined(__x86_64__)
+        if (ctx.cmdLine().targetOs == Runtime::TargetOs::Windows)
+        {
+            // These closed instruction fixtures can exercise the Windows ABI on a Linux
+            // host through GCC's explicit ABI bridge. They cannot call host functions or
+            // use Windows TLS; ordinary JIT execution keeps its cross-host rejection.
+            for (const auto& instruction : builder.instructions().view())
+            {
+                if (MicroInstr::info(instruction.op).flags.has(MicroInstrFlagsE::IsCallInstruction) || instruction.op == MicroInstrOpcode::LoadRegTlsSlot)
+                    return Result::Error;
+            }
+            JITMemoryManager manager;
+            JITMemory        memory;
+            manager.allocateAndCopy(memory, code.span());
+            using WindowsTestFn = void (__attribute__((ms_abi)) *)(uint64_t*);
+            reinterpret_cast<WindowsTestFn>(memory.entryPoint())(values);
+            return Result::Continue;
+        }
+#endif
         JITMemory memory;
         SWC_RESULT(JIT::emit(ctx, memory, code, {}, {}));
         using TestFn = void (*)(uint64_t*);

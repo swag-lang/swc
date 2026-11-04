@@ -16,6 +16,7 @@ class SourceFile;
 struct MicroInstr;
 struct MicroInstrOperand;
 struct MicroInstrUseDef;
+class MicroBuilder;
 class MicroEmitPass;
 class MicroLegalizePass;
 class Symbol;
@@ -77,6 +78,11 @@ public:
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
 
     virtual void buildUnwindInfo(ByteArray& outUnwindInfo) const {}
+    virtual void prepareUnwind(MicroBuilder& builder, CallConvKind callConv)
+    {
+        SWC_UNUSED(builder);
+        SWC_UNUSED(callConv);
+    }
     // Names the calling convention's frame register before encoding, so the
     // unwind builder can tell it from the other stack-pointer copies a prologue
     // makes.

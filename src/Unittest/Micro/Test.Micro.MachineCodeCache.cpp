@@ -5,14 +5,17 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/ABI/AbiTestTypes.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -78,6 +81,31 @@ namespace
     };
 }
 
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_PreservesIndirectFunctionAddressRelocations)
+{
+    ModuleCacheFixture fixture(ctx, "cacheIndirectPointer");
+    TaskContext&       localCtx = *fixture.context;
+    auto*              target   = makeCacheFunction(localCtx, "cacheIndirectTarget");
+    MicroBuilder       builder(localCtx);
+    builder.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), target);
+    MachineCode expected;
+    for (const uint8_t byte : {0x48, 0x8B, 0x05, 0, 0, 0, 0, 0xC3})
+        expected.bytes.pushBack(static_cast<std::byte>(byte));
+    expected.codeRelocations                      = builder.codeRelocations();
+    expected.codeRelocations[0].form              = MicroRelocation::Form::IndirectRelative32;
+    expected.codeRelocations[0].codeOffset        = 3;
+    expected.codeRelocations[0].relativeEndOffset = 7;
+    MachineCodeCache cache(localCtx, *fixture.function, builder);
+    cache.write(expected);
+    MachineCode restored;
+    if (!cache.read(restored) || restored.bytes != expected.bytes || restored.codeRelocations.size() != 1)
+        return Result::Error;
+    const auto& relocation = restored.codeRelocations.front();
+    if (relocation.form != MicroRelocation::Form::IndirectRelative32 || relocation.codeOffset != 3 || relocation.relativeEndOffset != 7 || relocation.targetSymbol != target)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 {
     ModuleCacheFixture  fixture(ctx, "cacheModuleCaller");
@@ -92,6 +120,11 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 
     MachineCode expected;
     expected.bytes.resize(8, std::byte{0});
+    const std::array<uint8_t, 9> tlsRead = {0x65, 0x4e, 0x8b, 0x14, 0xe5, 0x78, 0x14, 0, 0};
+    expected.bytes.append(std::as_bytes(std::span(tlsRead)));
+    expected.tlsAccesses.push_back({8, 10, 12});
+    expected.unwindInfo.appendLe32(0x12345678);
+    expected.hostUnwindInfo.appendLe64(0xABCDEF0123456789);
     expected.codeAlignment                 = 16;
     expected.codeRelocations               = builder.codeRelocations();
     expected.codeRelocations[0].codeOffset = 0;
@@ -99,7 +132,14 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
     MachineCodeCache cache(localCtx, *caller, builder);
     cache.write(expected);
     MachineCode restored;
-    if (!cache.read(restored) || restored.bytes.size() != 8 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
+    if (!cache.read(restored) || restored.bytes.size() != 17 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
+        return Result::Error;
+
+    if (restored.unwindInfo.size() != 4 || restored.unwindInfo.readLe32(0) != 0x12345678 ||
+        restored.hostUnwindInfo.size() != 8 || restored.hostUnwindInfo.readLe64(0) != 0xABCDEF0123456789)
+        return Result::Error;
+
+    if (restored.tlsAccesses.size() != 1 || restored.tlsAccesses[0].destination != 10 || restored.tlsAccesses[0].slot != 12 || !restored.tlsAccesses[0].valid(restored.bytes.span()))
         return Result::Error;
 
     auto*               relocatedTarget = makeCacheFunction(localCtx, "cacheModuleTarget");
@@ -412,6 +452,42 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeReleaseSummaries)
     target->addFreesParam(0, true);
     const Utf8 indirect = cacheKey(ctx, *caller, builder);
     if (before.empty() || direct.empty() || indirect.empty() || before == direct || direct == indirect)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_DistinguishesAdditionalResultRegisters)
+{
+    auto* function = makeCacheFunction(ctx, "cacheAggregateResult");
+    MicroBuilder builder(ctx);
+    builder.emitRet();
+    builder.setRetUsesAbiRegs(true, false);
+    const Utf8 scalar = cacheKey(ctx, *function, builder);
+    const uint64_t secondInteger = MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::intReg(3));
+    builder.setRetUsesAbiRegs(true, false, secondInteger);
+    const Utf8 aggregate = cacheKey(ctx, *function, builder);
+    if (scalar.empty() || aggregate.empty() || scalar == aggregate)
+        return Result::Error;
+    builder.setRetUsesAbiRegs(true, false);
+    if (cacheKey(ctx, *function, builder) != scalar)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_DistinguishesSystemVAggregateRegisterClasses)
+{
+    const std::array fields{ctx.typeMgr().typeU64(), ctx.typeMgr().typeF64()};
+    const TypeRef type = Backend::Unittest::makeStructType(ctx, fields);
+    auto* function = makeCacheFunction(ctx, "cacheSystemVStorage", type);
+    function->setCallConvKind(CallConvKind::SystemVAMD64);
+    MicroBuilder builder(ctx);
+    builder.emitRet();
+    const Utf8 mixed = cacheKey(ctx, *function, builder);
+    auto* field = ctx.typeMgr().get(type).payloadSymStruct().fields()[1];
+    field->setTypeRef(ctx.typeMgr().typeU64());
+    const Utf8 integers = cacheKey(ctx, *function, builder);
+    field->setTypeRef(ctx.typeMgr().typeF64());
+    if (mixed.empty() || integers.empty() || mixed == integers || cacheKey(ctx, *function, builder) != mixed)
         return Result::Error;
 }
 SWC_TEST_END()

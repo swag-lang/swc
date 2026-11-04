@@ -1,6 +1,6 @@
 # Repository tools
 
-Every launcher in this directory is a Windows batch file. It calls the checkout's existing
+Workspace launchers in this directory are Windows batch files. Each calls the checkout's existing
 compiler directly; launching a tool no longer compiles a Swag script first. Build the compiler
 once with `tools\devmode.bat` or `tools\release.bat` before using the launchers.
 
@@ -40,6 +40,212 @@ workspace fixtures, standard modules, examples, applications and reference tests
 failure and preserves the failing exit status. Dynamic-library fixtures use the host extension;
 WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
 the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
+
+## Local Linux session from Windows
+
+With Ubuntu WSL 2 installed and a clone at `~/swag/swc`, open `tools\linux.bat` to enter
+an interactive Linux shell in that clone. The complete repository, including `tools/`, lives
+there; no separate copy of the tools is needed. The session sets `SWAG_PATH`, `SWC_COMPILER`,
+`SWC_DEVMODE_COMPILER`, `TMPDIR` and the compiler search path. WSLg displays Linux application
+windows on the Windows desktop. Inside that shell, use the `python3 tools/tool.py` commands above,
+or `python3 tools/tool.py apps run swagscope` to launch Swag Scope.
+
+From Windows:
+
+```bat
+tools\linux.bat
+tools\linux.bat sync
+tools\linux.bat build
+tools\linux.bat --release build
+tools\linux.bat test compiler
+tools\linux.bat test std --module core --execution native
+tools\linux.bat --release test apps --module swagscope --execution native
+tools\linux.bat exec pwd
+```
+
+`sync` fetches committed `master` changes from the Windows checkout containing this launcher,
+then fast-forwards the Linux checkout. It never copies uncommitted edits. Commit Windows work
+before syncing, then build the Linux compiler. Linux commits that diverge from Windows `master`
+need an explicit merge or rebase. Build and workspace outputs remain separate on each OS.
+
+Defaults are distribution `Ubuntu-24.04`, source `~/swag/swc` and build directory `~/swag/build`.
+Override them with `SWC_WSL_DISTRO`, `SWC_WSL_SOURCE` and `SWC_WSL_BUILD` in Windows; source/build
+values are absolute Linux paths. The source clone and GCC 14 dependencies must already exist.
+`build` refreshes the runtime beside the selected compiler. `test` uses the isolated Linux
+campaign launcher and the current WSLg display; display-server-specific or physical-device
+integration tests still require their documented environment. Automated headless graphics can
+use Xvfb/Openbox/Picom as described below.
+
+## Linux compiler build
+
+```sh
+python3 tools/linux-build.py --build-dir /absolute/path/outside/checkout --configuration devmode
+```
+
+This incremental GNU Make build reuses the compiler source inventory in `swc.vcxproj` and selects
+Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
+`--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
+files, the precompiled header and the executable remain under the supplied build directory.
+DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
+Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
+executables, GNU static archives and shared modules are available, including transitive imports
+and shared runtime initialization. Shared libraries are position-independent and reject dynamic
+text relocations; relocated constants become read-only after loading. Native `--debug` emits DWARF 4
+source lines, functions, basic types and recorded stack-home variables. Dedicated executable/shared
+fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
+variables and richer debug records remain unsupported. Runtime panic traces resolve function names
+and recorded source locations across executables, static archives and shared libraries without
+`--debug`; stripping `.swagdbg` removes those runtime frame names. Linux executable builds reuse eligible
+self-contained function objects from `<name>.incremental.elfcache` in the work directory. The cache
+checks compiler identity, IR/ABI fingerprints, recorded source coordinates and payload integrity;
+`--rebuild`, `--debug`, tests and compile-time native imports disable it. Publication follows a successful
+link. Executables with static dependencies also retain a checksummed `<name>.relink.elfcache`: when
+only a native dependency changes, the workspace relinks the saved objects against current libraries.
+Compiler/API/configuration changes or missing/damaged cache inputs fall back to compilation.
+
+An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
+standard-module fallback; it does not redirect runtime lookup. From the repository root, prepare
+the runtime and invoke Linux workspaces directly:
+
+```sh
+mkdir -p /absolute/build/devmode/runtime
+cp -a bin/runtime/. /absolute/build/devmode/runtime/
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build \
+  --workspace bin/std --workspace-module pixel --num-cores 3
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
+  --workspace bin/std --workspace-module pixel --num-cores 3 \
+  --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
+```
+
+The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
+EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software
+rendering; physical GPU coverage is separate. Core, Ogl, TrueType and Pixel build on Linux.
+GUI integration runs under Xvfb/Openbox with a compositor. Capture, Scope and Vault pass native graphical smokes;
+complete application workflows and physical desktop/GPU validation remain.
+
+## Isolated Linux test campaigns
+
+```sh
+python3 tools/linux-tests.py lexer --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py parser --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py cpp --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py dynamic-library --compiler /absolute/build/devmode/swc.dm
+python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core --test-file environment.locale.linux.swg
+python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --execution native
+python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
+```
+
+To run the complete campaign, provide both compiler executables. The C++ stage uses DevMode;
+all other stages use the selected main compiler (Release is recommended for applications):
+
+```sh
+python3 tools/linux-tests.py all --compiler /absolute/build/release/swc \
+  --dev-compiler /absolute/build/devmode/swc.dm \
+  --output-dir /absolute/scratch/linux-tests --keep-going
+```
+
+`all` runs the portability check, C++ filesystem tests, lexer/parser/sema normal and error inputs,
+JIT, safety, sanity, native, every compiler workspace fixture, and every module in std, examples,
+apps and reference. `compiler` selects only the compiler suites and workspace fixtures.
+The command builders are shared with `tool.py` and the Windows batch entry points.
+The sandbox workspace fixture runs in JIT; the dynamic-library consumer first builds its shared
+fixture and receives its absolute path. The script fixture checks its expected output marker.
+
+The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
+folder. It isolates caches with `TMPDIR` and caps compiler/runtime workers at three.
+Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
+When admission requests a wait, the launcher can release its inactive artifact file cache without
+deleting files or weakening the CPU and memory thresholds.
+Each compiler invocation has a fresh load-admission check and a 900-second timeout
+(`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native
+tests that create separate sessions.
+Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
+on success or failure. `--output-dir` must not exist and must be outside the checkout. Without
+it, a new temporary directory is retained. `--keep-going` continues independent stages after
+errors; a dependent stage whose prerequisite failed is reported as blocked. Any failure, timeout,
+blocked stage or unfinished campaign returns a nonzero status. `--dry-run` records the plan
+without executing tests.
+
+`std`, `examples`, `apps`, `reference` and `workspace` accept an optional `--module`.
+Repeat `--test-file` or `--test-tag` to select tests without dropping implementation files.
+`--file-filter` narrows standalone compiler-suite inputs. `--build-cfg` selects the program
+configuration independently of the compiler executable. Standard/application campaigns run
+native tests; examples, reference and the native language suite run both execution modes.
+For compatibility, a focused `std --module` runs both modes by default. `--execution` overrides
+these defaults. The focused `cpp` suite requires DevMode; add `--dev-full` for filesystem tests.
+`dynamic-library` selects just shared-library preparation and its native consumer.
+
+As on Windows, ordinary campaigns include functional, golden and stress cases; `integration.*`
+tags are opt-in. Select those explicitly with `--test-tag` and supply their external services or
+hardware. Platform guards restrict native API tests to their owning operating system.
+Golden failures are never promoted or ignored; `SWAG_GOLDEN_CONTINUE=1` is rejected.
+GUI and GPU-backed golden cases need an X11 display and the libraries described above.
+Set the launcher's `TMPDIR` to an external disk directory if the system temporary directory is
+memory-backed. A runnable campaign does not imply every Linux test currently passes.
+
+The Linux desktop-registration integration is native-only because its peer is the generated
+executable. It uses private XDG directories and needs GIO, `gio`, `/usr/bin/env`, `chmod` and
+`update-mime-database`; it never changes the current user's associations:
+
+```sh
+python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core \
+  --execution native --test-file environment.registration.linux.swg \
+  --test-tag integration.desktop.registration
+```
+
+The native-only `integration.desktop.chooser` family requires a private session bus, `gdbus`,
+libsystemd and the Python GIO bindings. Start a test-owned bus with
+`dbus-daemon --session --fork --print-address=1 --print-pid=1`, retain its address and PID, and run
+`/usr/bin/python3 bin/std/modules/core/src/tests/datas/desktop.chooser.peer.py ADDRESS`.
+Wait for `READY`, set both `DBUS_SESSION_BUS_ADDRESS` and `SWAG_CHOOSER_PRIVATE_BUS` to that
+address, then run:
+
+```sh
+python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --module core \
+  --execution native --test-file environment.chooser.linux.swg \
+  --test-tag integration.desktop.chooser
+```
+
+Terminate the peer and the test-owned bus afterward. The peer never uses the ambient desktop
+bus; these checks exercise real descriptor transport and chooser request lifetime, not the
+appearance of a desktop application's dialog.
+
+## Linux host primitives
+
+```sh
+python3 tools/linux-host.py --configuration devmode
+python3 tools/linux-host.py --configuration release
+```
+
+This focused Linux x86-64 boundary builds the implemented C++ host services
+adapters with a C++23 compiler and library (GCC 14 or later), then runs their native tests.
+Use `--cxx /path/to/compiler` to select the compiler. The current baseline is glibc 2.36 and
+Linux 5.9 with pidfds, subreapers and `close_range` permitted. Python 3, procfs, and cgroup v2 are needed
+for machine-load admission; the launcher checks independently before building and testing and
+stops with exit code 2 when the machine needs to wait. Compilation is sequential. Builds and
+fixtures use a temporary directory outside the checkout and are removed on completion.
+
+The tests cover executable-page publication and patching, page protection, concurrent proximity
+allocations, arena exhaustion, release, mapped-cache lifetime across replacement and unlink,
+common file I/O and atomic publication, directory-lock aliases and replacement, TLS isolation,
+shared-library loading, terminal capabilities/redirection, native stack capture and ELF symbols,
+guarded signal stacks and stack overflow, generated DWARF frames and registration lifetime,
+C++ cleanup across generated frames (ordinary exceptions and repeated hardware faults),
+process arguments/output, timeouts and descendant cleanup after caller death or callback failure,
+file-user diagnostics (including mappings without descriptors), safe diagnostic reads, and explicitly
+configured Windows cross-toolchain discovery. These discovery fixtures validate paths and failures,
+not execution of Windows linker tools or production of a runnable Linux artifact.
+A separate fixture prevents CPU detection from initializing and verifies that the startup guard
+rejects the host before C++ constructors run, even when built for x86-64-v3. A native C++ shared-library fixture
+is built in the external temporary directory; it does not stand in for the Swag foreign-call ABI.
+`devmode` enables host assertions; `release` checks optimized code without those assertions.
+These are host-test build modes, not Swag program configurations. This launcher does not build
+`swc`, execute Swag sources, or establish Linux target-ABI support. See
+[the capability inventory](../bin/PORTABILITY.md#host-capability-inventory) and
+[the portability backlog](../backlog/platform.portability.md) for the remaining boundaries.
+
+The admission check's host/container pressure cases run with
+`python3 tools/tests/test_linux_host_admission.py` after a fresh machine-load check.
 
 ## Workspaces
 

@@ -663,6 +663,7 @@ private:
     bool                                                                                          suppressBuildConfigurationLog_ = false;
     bool                                                                                          runtimeAllocatorSafety_        = false;
     uint64_t                                                                                      commandWallTimeNs_             = 0;
+    std::once_flag                                                                                runtimeCompilerOnce_;
     Runtime::ICompiler                                                                            runtimeCompiler_{};
     Runtime::IAllocator                                                                           runtimeAllocator_{};
     Runtime::CompilerMessage                                                                      runtimeCompilerMessage_{};

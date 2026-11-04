@@ -23,7 +23,7 @@ using Net
 ```
 
 Streams own their connections and close them on drop. Operations can fail and may transfer fewer
-bytes than requested. Networking is available on Windows in this implementation.
+bytes than requested. TCP, HTTP and HTTPS are available on Windows and Linux.
 
 ## Request an HTTPS resource
 
@@ -40,10 +40,20 @@ using Core, Net
 }
 ```
 
-HTTPS uses the Windows trust store. Requests have bounded response bodies and return redirects
-without following them, so the caller can decide which destinations are acceptable.
+HTTPS verifies certificates and host names against the platform trust roots. Linux loads
+`libcurl.so.4` on the first HTTP request and needs thread-safe initialization and asynchronous DNS
+support; TCP-only programs do not load it. Standard proxy settings remain effective, including
+`NO_PROXY`. `SSL_CERT_FILE` and `SSL_CERT_DIR` override Linux CA roots for the server and HTTPS proxy.
+Requests have bounded response bodies and return redirects without following them, so the caller
+can decide which destinations are acceptable. [[Net.Http.get]] documents timeout and header limits.
 */
 #import("core")
+#static if #os == Swag.TargetOs.Linux
+{
+    #import("linux")
+    #import("curl")
+}
+
 #static if #os == Swag.TargetOs.Windows do
     #import("win32")
 

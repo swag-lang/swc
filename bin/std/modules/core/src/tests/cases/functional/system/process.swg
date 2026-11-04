@@ -46,7 +46,7 @@ func systemExecutablePath(name: string)->String
     discard expect File.duplicate(targetExe.toString(), sourceExe.toString())
     Swag.require(File.exists(targetExe.toString()))
 
-    let process = expect Env.runProcess(targetExe.toString(), "/c exit 7")
+    let process = expect Env.runProcess(Env.StartInfo{fileName: targetExe.toString(), nativeArguments: "/c exit 7", standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 7)
     Swag.require(not process.isRunning())
 }
@@ -55,7 +55,7 @@ func systemExecutablePath(name: string)->String
 {
     let shell = systemExecutablePath("cmd.exe")
 
-    let process = expect Env.runProcess(shell.toString(), "/c echo to-standard-output& echo to-standard-error 1>&2")
+    let process = expect Env.runProcess(Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c echo to-standard-output& echo to-standard-error 1>&2", standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 0)
 
     let output = String.from(process.standardOutput())
@@ -70,7 +70,7 @@ func systemExecutablePath(name: string)->String
     let shell     = systemExecutablePath("cmd.exe")
     let directory = Env.getSpecialDirectory(.Temp)
 
-    var info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c cd", workingDirectory: directory.toString(), standardOutput: .Pipe}
+    var info    = Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c cd", workingDirectory: directory.toString(), standardOutput: .Pipe}
     let process = expect Env.runProcess(info)
     Swag.require(process.exitCode() == 0)
 
@@ -100,7 +100,7 @@ func systemExecutablePath(name: string)->String
     // Windows matches variable names without regard to case, so a lookup finds it either way.
     Swag.require(environment.value("swag_process_test") == "captured-value")
 
-    var info          = Env.StartInfo{fileName: shell.toString(), arguments: "/c echo %SWAG_PROCESS_TEST%", environment: &environment, standardOutput: .Pipe}
+    var info          = Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c echo %SWAG_PROCESS_TEST%", environment: &environment, standardOutput: .Pipe}
     let granted       = expect Env.runProcess(info)
     let grantedOutput = String.from(granted.standardOutput())
     Swag.require(grantedOutput.contains("captured-value"))
@@ -138,7 +138,7 @@ func systemExecutablePath(name: string)->String
     // A program that keeps running until it is stopped, so the kill has something to reach.
     let waiter = systemExecutablePath("ping.exe")
 
-    var info    = Env.StartInfo{fileName: waiter.toString(), arguments: "-n 20 127.0.0.1", standardOutput: .Discard}
+    var info    = Env.StartInfo{fileName: waiter.toString(), arguments: ["-n", "20", "127.0.0.1"], standardOutput: .Discard}
     var process = expect Env.startProcess(info)
     Swag.require(process.isRunning())
     Swag.require(process.processId != 0)
@@ -186,7 +186,7 @@ func systemExecutablePath(name: string)->String
 
     var info = Env.StartInfo{
         fileName: shell.toString(),
-        arguments: "/c for /L %i in (1,1,200000) do @set _x=%i",
+        nativeArguments: "/c for /L %i in (1,1,200000) do @set _x=%i",
         standardOutput: .Discard,
         standardError: .Discard,
         measureResources: true}
@@ -207,7 +207,7 @@ func systemExecutablePath(name: string)->String
     // A run that was not measured answers zero rather than an accidental figure.
     let shell = systemExecutablePath("cmd.exe")
 
-    let process = expect Env.runProcess(shell.toString(), "/c exit 0")
+    let process = expect Env.runProcess(Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c exit 0", standardOutput: .Pipe, standardError: .Pipe})
     let used    = process.resources()
     Swag.require(used.peakMemory == 0)
     Swag.require(used.processCount == 0)
@@ -218,7 +218,7 @@ func systemExecutablePath(name: string)->String
     // Pinning a child to one processor must not change what it produces.
     let shell = systemExecutablePath("cmd.exe")
 
-    var info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c exit 3", affinityMask: 1}
+    var info    = Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c exit 3", affinityMask: 1}
     let process = expect Env.runProcess(info)
     Swag.require(process.exitCode() == 3)
 }
@@ -232,7 +232,7 @@ func systemExecutablePath(name: string)->String
     defer discard catch File.delete(marker)
 
     let arguments = Format.toString("/c echo started > \"%\"", marker.toString())
-    let info      = Env.StartInfo{fileName: shell.toString(), arguments: arguments.toString(), affinityMask: 0x8000000000000000}
+    let info      = Env.StartInfo{fileName: shell.toString(), nativeArguments: arguments.toString(), affinityMask: 0x8000000000000000}
     var outcome: Swag.Error
     discard catch Env.runProcess(info) as outcome
     Swag.require(outcome.value() != null)
@@ -250,7 +250,7 @@ func systemExecutablePath(name: string)->String
 {
     let shell = systemExecutablePath("cmd.exe")
 
-    let info    = Env.StartInfo{fileName: shell.toString(), arguments: "/c echo quiet-output& echo quiet-error 1>&2", standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
+    let info    = Env.StartInfo{fileName: shell.toString(), nativeArguments: "/c echo quiet-output& echo quiet-error 1>&2", standardOutput: .Pipe, standardError: .Pipe, consoleWindow: false}
     let process = expect Env.runProcess(info)
     Swag.require(process.exitCode() == 0)
 

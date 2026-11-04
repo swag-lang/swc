@@ -14,10 +14,11 @@ namespace Swag
     // Target processor
     enum TargetArch { X86_64 }
 
-    // The 'OS' to target when generating native code
+    // The operating system identified by the compiler or selected for generated code.
     enum TargetOs
     {
-        Windows     // Windows
+        Windows     // Microsoft Windows.
+        Linux       // GNU/Linux; native code generation requires a Linux backend.
     }
 
     // The compiler command being executed.

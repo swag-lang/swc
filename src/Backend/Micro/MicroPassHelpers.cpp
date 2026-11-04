@@ -1273,7 +1273,7 @@ void MicroPassHelpers::computePhysicalLiveness(MicroPhysLiveness& out, const Mic
     }
 
     const CallConv& conv        = CallConv::get(context.callConvKind);
-    uint64_t        exitLiveOut = 0;
+    uint64_t        exitLiveOut = context.extraReturnRegsOnRet;
     if (context.usesIntReturnRegOnRet)
         exitLiveOut |= MicroPhysLiveness::maskOf(conv.intReturn);
     if (context.usesFloatReturnRegOnRet)

@@ -2,6 +2,7 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
@@ -1033,7 +1034,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitImmediateOperand(PagedStore& store, MicroReg reg, uint64_t memOffset, uint8_t group)
+    SWC_FORCE_INLINE void emitImmediateOperand(PagedStore& store, MicroReg reg, uint64_t memOffset, uint8_t group)
     {
         if constexpr (Mode == ModRmMode::Memory)
             emitMemoryOperand(store, memOffset, group, reg);
@@ -1042,7 +1043,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitGroup1Immediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    SWC_FORCE_INLINE void emitGroup1Immediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
     {
         if (opBits == MicroOpBits::B8)
         {
@@ -1072,7 +1073,7 @@ namespace
     }
 
     template<ModRmMode Mode>
-    __forceinline void emitShiftImmediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    SWC_FORCE_INLINE void emitShiftImmediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
     {
         if constexpr (Mode == ModRmMode::Register)
             SWC_ASSERT(value <= 0x7F);
@@ -1122,6 +1123,12 @@ X64Encoder::X64Encoder(TaskContext& ctx) :
 {
 }
 
+void X64Encoder::enableHostUnwind()
+{
+    if (unwindTargetOs_ != hostTargetOs() && !hostUnwind_)
+        hostUnwind_ = X64Unwind::create(hostTargetOs());
+}
+
 void X64Encoder::reset(TaskContext& ctx)
 {
     // The tracker is the target's; a job for another target gets another one.
@@ -1130,6 +1137,7 @@ void X64Encoder::reset(TaskContext& ctx)
     {
         unwind_         = X64Unwind::create(targetOs);
         unwindTargetOs_ = targetOs;
+        hostUnwind_.reset();
     }
 
     Encoder::reset(ctx);
@@ -1138,7 +1146,17 @@ void X64Encoder::reset(TaskContext& ctx)
 void X64Encoder::resetCode()
 {
     Encoder::resetCode();
+    tlsAccesses_.clear();
     unwind_->reset();
+    if (hostUnwind_)
+        hostUnwind_->reset();
+}
+
+void X64Encoder::prepareUnwind(MicroBuilder& builder, const CallConvKind callConv)
+{
+    unwind_->prepare(builder, callConv, this);
+    if (hostUnwind_)
+        hostUnwind_->prepare(builder, callConv, this);
 }
 
 void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
@@ -1147,16 +1165,27 @@ void X64Encoder::buildUnwindInfo(ByteArray& outUnwindInfo) const
     unwind_->buildInfo(outUnwindInfo, size());
 }
 
+void X64Encoder::buildHostUnwindInfo(ByteArray& outUnwindInfo) const
+{
+    outUnwindInfo.clear();
+    if (hostUnwind_)
+        hostUnwind_->buildInfo(outUnwindInfo, size());
+}
+
 void X64Encoder::setUnwindFrameRegister(const MicroReg reg)
 {
     SWC_ASSERT(unwind_);
     unwind_->setFrameRegister(reg);
+    if (hostUnwind_)
+        hostUnwind_->setFrameRegister(reg);
 }
 
 void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)
 {
     SWC_ASSERT(unwind_);
     unwind_->onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
+    if (hostUnwind_)
+        hostUnwind_->onInstructionEncoded(inst, ops, codeStartOffset, codeEndOffset);
 }
 
 // ============================================================================
@@ -2482,6 +2511,8 @@ void X64Encoder::encodeLoadRegTlsSlot(MicroReg regDst, MicroReg indexReg)
 
     constexpr uint32_t K_TEB_TLS_SLOTS_MINUS_ONE = 0x1478;
 
+    const uint32_t codeOffset = store_.size();
+    tlsAccesses_.push_back({codeOffset, static_cast<uint32_t>(microRegToX64Reg(regDst)), static_cast<uint32_t>(microRegToX64Reg(indexReg))});
     store_.pushU8(0x65); // GS segment override
     const auto x64Dst   = microRegToX64Reg(regDst);
     const auto x64Index = microRegToX64Reg(indexReg);

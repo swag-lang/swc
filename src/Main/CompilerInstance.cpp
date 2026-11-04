@@ -277,7 +277,12 @@ namespace
     // object does not name: imported DLL globals keep the allocator interface of whichever JIT
     // run first filled them, and that module's CompilerInstance can be destroyed by the time
     // another module's code reaches them. A thread with no compiler task has no registry to check.
+    // This re-enters a Swag function, whose scalar ABI follows Windows x64 on every host.
+#if defined(__linux__) && defined(__x86_64__)
+    using RuntimeAllocatorBorrowGuard = void (__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+#else
     using RuntimeAllocatorBorrowGuard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+#endif
 
     RuntimeAllocatorBorrowGuard runtimeAllocatorBorrowGuard()
     {
@@ -386,15 +391,18 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     fileLookup_        = std::make_unique<LookupTable<SourceFile>>();
     srcViewLookup_     = std::make_unique<LookupTable<SourceView>>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
-    setupRuntimeCompiler();
+    // Code generation may embed this interface's address before any JIT call.
+    // Its native adapters are only needed when generated code actually executes.
+    runtimeCompiler_.obj = this;
+    runtimeCompiler_.itable = runtimeCompilerITable_;
 }
 
 CompilerInstance::~CompilerInstance()
 {
     CompilerCacheStore::flushAll();
-    // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
-    // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread
-    // exits, after this instance is gone; release those slots while the callbacks can still run.
+    // Generated TLS cleanup reads this instance's code and globals, such as the runtime
+    // allocator's thread heap. Retire its values and wait for active cleanup before unmapping
+    // code; OS worker threads can outlive the compiler instance that registered their callbacks.
     const std::vector<SymbolFunction*> jitFunctions = jitPreparedFunctionsSnapshot();
     if (!jitFunctions.empty())
     {
@@ -786,8 +794,9 @@ uint32_t CompilerInstance::valueBorrowExtentCacheOffset()
 // does, so the program's 'Swag.args()' would come back empty -- which breaks the runtime's
 // 'swag.test' panic guard (it scans Swag.args()), letting a headless panic pop an interactive
 // dialog box. We build the command line the program is effectively launched with: argv[0]
-// plus the effective run args (which include the auto-added 'swag.test' for the test
-// command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
+// plus the effective run args, alongside their exact values (including empty arguments,
+// quotes and backslashes). The effective args include the auto-added 'swag.test' for the test
+// command. This is done lazily at run time -- never at codegen -- so compile-time '#run'
 // code keeps seeing a zeroed Swag.processInfo() (see the context_intrinsics unit test).
 void CompilerInstance::ensureProcessInfoRunArgs()
 {
@@ -805,12 +814,14 @@ void CompilerInstance::ensureProcessInfoRunArgs()
             cmdLineStr += '"';
     };
 
-    const std::string exeName = exeFullName_.string();
+    const std::string        exeName = exeFullName_.string();
+    std::vector<std::string> argumentValues{exeName};
     appendQuoted(exeName);
     for (const Utf8& arg : effectiveGeneratedArtifactRunArgs(cmdLine()))
     {
         cmdLineStr += ' ';
         appendQuoted(arg.view());
+        argumentValues.emplace_back(arg.view());
     }
 
     // The arguments are handed to imported native modules, which parse them once, keep slices
@@ -818,28 +829,43 @@ void CompilerInstance::ensureProcessInfoRunArgs()
     // (a workspace run builds each dependency with its own short-lived instance while core.dll
     // and its siblings stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
-    static std::mutex              processInfoArgsMutex;
-    static std::deque<std::string> processInfoArgsStorage;
+    struct StoredProcessArgs
+    {
+        std::string                 commandLine;
+        std::vector<std::string>     values;
+        std::vector<Runtime::String> slices;
+    };
+    static std::mutex                    processInfoArgsMutex;
+    static std::deque<StoredProcessArgs> processInfoArgsStorage;
 
-    std::string_view stableArgs;
+    const StoredProcessArgs* stableArgs = nullptr;
     {
         std::scoped_lock lock(processInfoArgsMutex);
-        for (const std::string& existing : processInfoArgsStorage)
+        for (const auto& existing : processInfoArgsStorage)
         {
-            if (existing == cmdLineStr.view())
+            if (existing.values == argumentValues)
             {
-                stableArgs = existing;
+                stableArgs = &existing;
                 break;
             }
         }
 
-        if (stableArgs.empty())
-            stableArgs = processInfoArgsStorage.emplace_back(cmdLineStr.view());
+        if (!stableArgs)
+        {
+            auto& stored       = processInfoArgsStorage.emplace_back();
+            stored.commandLine = cmdLineStr.view();
+            stored.values      = std::move(argumentValues);
+            stored.slices.reserve(stored.values.size());
+            for (const auto& value : stored.values)
+                stored.slices.push_back({value.data(), value.size()});
+            stableArgs = &stored;
+        }
     }
 
     auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfo>(nativeProcessInfoOffset());
     SWC_ASSERT(infos != nullptr);
-    infos->args = {stableArgs.data(), stableArgs.length()};
+    infos->args      = {stableArgs->commandLine.data(), stableArgs->commandLine.size()};
+    infos->arguments = {const_cast<Runtime::String*>(stableArgs->slices.data()), stableArgs->slices.size()};
 }
 
 // The process infos JIT-compiled code sees through 'Swag.processInfo()'.
@@ -852,9 +878,15 @@ const Runtime::ProcessInfo& CompilerInstance::processInfo()
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
+    std::call_once(runtimeCompilerOnce_, [this] { setupRuntimeCompiler(); });
     PerThreadData& td                  = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.allocator        = runtimeAllocator();
     td.runtimeContext.defaultAllocator = td.runtimeContext.allocator;
+    if (!td.runtimeContext.compilerRaise)
+    {
+        TaskContext ctx(*this);
+        td.runtimeContext.compilerRaise = reinterpret_cast<void (*)(Runtime::Context*)>(JIT::runtimeDiagnosticHandler(ctx));
+    }
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)

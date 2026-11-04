@@ -800,3 +800,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   release complete before restoring test data or unloading generated code.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
+
+### compiler.core.106 — Resolve nested functions in runtime startup code
+
+- Evidence: a noncapturing `func loadArguments()->bool` declared and called inside
+  `__hostSetupProcessArguments` in `bin/runtime/os.win32.swg` passes semantic checking,
+  then native tuning reports `unknown name 'loadArguments'` at its declaration. Prefixing
+  the local name with `__` gives the same result. Returning the host setup status directly
+  to `__setupRuntime` compiles and passes the native argument-preservation reproducer.
+- Next: reduce a nested runtime helper to a constant return and inspect runtime cloning,
+  symbol publication and native lowering. Establish whether ordinary source nesting can
+  reproduce it before choosing a source-suite or compiler filesystem regression.
+- Done when: a nested runtime helper resolves and executes through native startup, with
+  a regression at the owning boundary and no unknown-name diagnosis on its declaration.

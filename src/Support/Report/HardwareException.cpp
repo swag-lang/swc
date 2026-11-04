@@ -105,32 +105,6 @@ namespace
     }
 }
 
-void HardwareException::appendSectionHeader(Utf8& outMsg, const std::string_view title)
-{
-    outMsg += "\n";
-    outMsg += title;
-    outMsg += ":";
-    outMsg += "\n";
-    outMsg += "---------------------------------\n";
-}
-
-void HardwareException::appendField(Utf8& outMsg, const std::string_view label, const std::string_view value)
-{
-    constexpr uint32_t kFieldWidth = 24;
-    SWC_ASSERT(!label.empty());
-    SWC_ASSERT(label.back() != ':');
-    outMsg += label;
-    outMsg += ":";
-    uint32_t used = static_cast<uint32_t>(label.size()) + 1;
-    while (used < kFieldWidth)
-    {
-        outMsg += " ";
-        ++used;
-    }
-    outMsg += value;
-    outMsg += "\n";
-}
-
 Utf8 HardwareException::format(const TaskContext* ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
     Utf8 msg;

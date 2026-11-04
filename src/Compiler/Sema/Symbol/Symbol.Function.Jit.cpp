@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
@@ -451,7 +452,13 @@ Result SymbolFunction::emitLowered(TaskContext& ctx, NativeBackendBuilder* nativ
         const CallConv& callConv = CallConv::get(callConvKind());
 
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef()), ABITypeNormalize::Usage::Return);
-        builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
+        if (normalizedRet.isSystemVStorage())
+        {
+            builder.setRetUsesAbiRegs(false, false);
+            ABICall::retainSystemVReturnRegs(builder, normalizedRet.systemVStorageType());
+        }
+        else
+            builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
     }
 
     // The static sanitizer runs the checks whose sanity guard is on for this function:
@@ -723,6 +730,22 @@ Result SymbolFunction::jitMaterialize(TaskContext& ctx)
     return Result::Error;
 }
 
+void* SymbolFunction::jitForeignTargetGuard(TaskContext& ctx)
+{
+    SWC_ASSERT(isForeign());
+    const std::scoped_lock lock(emitMutex_);
+    if (void* entry = jitEntryAddress())
+        return entry;
+
+    // Use the symbol's existing JIT ownership so teardown unregisters the guard
+    // before its compiler and the source declaration referenced by it disappear.
+    if (JIT::emitForeignTargetGuard(ctx, jitExecMemory_, *this) != Result::Continue)
+        return nullptr;
+    ctx.compiler().registerPreparedJitFunction(this);
+    ctx.compiler().publishJitFunctionEntry(*this, jitExecMemory_.entryPoint());
+    return jitExecMemory_.entryPoint();
+}
+
 bool SymbolFunction::jitPrepare(TaskContext& ctx)
 {
     const std::scoped_lock lock(emitMutex_);
@@ -740,7 +763,11 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.unwindInfo, loweredMicroCode_.codeRelocations);
+    if (JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.jitUnwindInfo(ctx), loweredMicroCode_.codeRelocations, loweredMicroCode_.tlsAccesses) != Result::Continue)
+    {
+        ctx.state().jitEmissionError = true;
+        return false;
+    }
 
     const void* entry = jitExecMemory_.entryPoint();
     if (!entry)

@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -12,6 +13,43 @@
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(Compiler_RunArgumentsPreserveValuesAndOutliveTheirInstance)
+{
+    const std::vector<Utf8> values = {"", "two words", "a\"b", "tail\\", "\t", "caf\xC3\xA9"};
+    Runtime::Slice<Runtime::String> saved{};
+    {
+        CommandLine cmdLine;
+        cmdLine.command = CommandKind::Run;
+        cmdLine.runArgs = values;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        compiler.ensureProcessInfoRunArgs();
+        saved = compiler.processInfo().arguments;
+        if (saved.count != values.size() + 1)
+            return Result::Error;
+        compiler.ensureProcessInfoRunArgs();
+        if (saved.ptr != compiler.processInfo().arguments.ptr)
+            return Result::Error;
+    }
+
+    // Imported modules retain these views after their building compiler is destroyed.
+    // More publications must neither move them nor merge distinct argument vectors.
+    for (uint32_t index = 0; index < 32; ++index)
+    {
+        CommandLine cmdLine;
+        cmdLine.command = CommandKind::Run;
+        cmdLine.runArgs = {std::format("other {}", index)};
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        compiler.ensureProcessInfoRunArgs();
+    }
+    for (size_t index = 0; index < values.size(); ++index)
+    {
+        const auto& actual = saved.ptr[index + 1];
+        if (std::string_view(actual.ptr, actual.length) != values[index].view())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_OptimizerConfigurationReachesNativeLayout)
 {
@@ -32,6 +70,7 @@ SWC_TEST_BEGIN(Compiler_OptimizerConfigurationReachesNativeLayout)
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "OptimizerConfigurationReachesNativeLayout");
     CommandLine                       cmdLine;
     cmdLine.command = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name    = "compiler_optimizer_configuration";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -66,6 +105,7 @@ SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name    = "compiler_command_line_tags";
     cmdLine.files.insert(sourcePath);
     cmdLine.tags.emplace_back("User.Flag");
@@ -100,6 +140,7 @@ SWC_TEST_BEGIN(Compiler_AllocatorCapabilitiesAreFixedBeforeModuleSetup)
     {
         CommandLine cmdLine;
         cmdLine.command  = CommandKind::Sema;
+        cmdLine.targetOs = hostTargetOs();
         cmdLine.buildCfg = configuration;
         CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -129,6 +170,7 @@ SWC_TEST_BEGIN(Compiler_ReleaseAllocatorCapabilitiesNeedExplicitTags)
 {
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.buildCfg = "release";
     cmdLine.tags.emplace_back("Swag.AllocatorSafety");
     cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics: bool = true");
@@ -154,6 +196,7 @@ SWC_TEST_BEGIN(Compiler_AllocatorCapabilityOverridesUseLastValue)
     {
         CommandLine cmdLine;
         cmdLine.command  = CommandKind::Sema;
+        cmdLine.targetOs = hostTargetOs();
         cmdLine.buildCfg = configuration;
         cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics");
         cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics: bool = false");
@@ -186,6 +229,7 @@ SWC_TEST_BEGIN(Compiler_InternalTagPrecedesUserOverride)
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name    = "compiler_internal_tag_precedence";
     cmdLine.files.insert(sourcePath);
     cmdLine.tags.emplace_back("Swag.Endian: string = big");

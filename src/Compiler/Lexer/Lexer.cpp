@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Lexer/Lexer.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
@@ -161,6 +162,50 @@ namespace
         return false;
     }
 
+    bool rawGlobalConditionEnds(const LangSpec& langSpec, const char8_t* cursor)
+    {
+        for (;;)
+        {
+            while (langSpec.isWhiteSpace(cursor[0]))
+                ++cursor;
+            if (cursor[0] == '/' && cursor[1] == '/')
+            {
+                while (cursor[0] && cursor[0] != '\n')
+                    ++cursor;
+                continue;
+            }
+            if (cursor[0] == '/' && cursor[1] == '*')
+            {
+                cursor += 2;
+                uint32_t depth = 1;
+                while (cursor[0] && depth)
+                {
+                    if (cursor[0] == '/' && cursor[1] == '*')
+                    {
+                        ++depth;
+                        cursor += 2;
+                    }
+                    else if (cursor[0] == '*' && cursor[1] == '/')
+                    {
+                        --depth;
+                        cursor += 2;
+                    }
+                    else
+                        ++cursor;
+                }
+                if (depth)
+                    return false;
+                continue;
+            }
+            break;
+        }
+
+        if (!cursor[0] || cursor[0] == '#' || cursor[0] == ';')
+            return true;
+        const auto word = readIdentifierRaw(langSpec, cursor);
+        return !word.empty() && word != "and" && word != "or" && word != "orelse" && word != "as" && word != "is";
+    }
+
     GlobalIfValue evaluateRawGlobalIf(const LangSpec& langSpec, const CommandLine& cmdLine, const char8_t*& cursor)
     {
         if (readIdentifierRaw(langSpec, cursor) != "if")
@@ -172,12 +217,15 @@ namespace
 
         const char8_t* exprCursor = cursor;
         const auto     boolValue  = readIdentifierRaw(langSpec, exprCursor);
-        if (boolValue == "false")
-            return GlobalIfValue::False;
-        if (boolValue == "true")
-            return GlobalIfValue::True;
+        if (boolValue == "false" || boolValue == "true")
+        {
+            if (!rawGlobalConditionEnds(langSpec, exprCursor))
+                return GlobalIfValue::Unknown;
+            return boolValue == "true" ? GlobalIfValue::True : GlobalIfValue::False;
+        }
 
-        if (readCompilerWordRaw(langSpec, cursor) != "#command")
+        const auto compilerWord = readCompilerWordRaw(langSpec, cursor);
+        if (compilerWord != "#command" && compilerWord != "#os")
             return GlobalIfValue::Unknown;
 
         skipBlanksRaw(langSpec, cursor);
@@ -196,16 +244,31 @@ namespace
             return GlobalIfValue::Unknown;
         if (!consumeRaw(".", cursor))
             return GlobalIfValue::Unknown;
-        if (readIdentifierRaw(langSpec, cursor) != "CompilerCommand")
+        const auto enumName = readIdentifierRaw(langSpec, cursor);
+        if (enumName != (compilerWord == "#os" ? "TargetOs" : "CompilerCommand"))
             return GlobalIfValue::Unknown;
         if (!consumeRaw(".", cursor))
             return GlobalIfValue::Unknown;
 
-        Runtime::CompilerCommand expected;
-        if (!commandFromName(expected, readIdentifierRaw(langSpec, cursor)))
-            return GlobalIfValue::Unknown;
+        const auto expectedName = readIdentifierRaw(langSpec, cursor);
+        bool       value;
+        if (compilerWord == "#os")
+        {
+            if (expectedName != "Windows" && expectedName != "Linux")
+                return GlobalIfValue::Unknown;
+            value = targetOsName(cmdLine.targetOs) == expectedName;
+        }
+        else
+        {
+            Runtime::CompilerCommand expected;
+            if (!commandFromName(expected, expectedName))
+                return GlobalIfValue::Unknown;
+            value = compilerCommandFromKind(cmdLine.command) == expected;
+        }
 
-        bool value = compilerCommandFromKind(cmdLine.command) == expected;
+        // A prefix is not a complete condition: leave combined expressions to sema.
+        if (!rawGlobalConditionEnds(langSpec, cursor))
+            return GlobalIfValue::Unknown;
         if (notEqual)
             value = !value;
 

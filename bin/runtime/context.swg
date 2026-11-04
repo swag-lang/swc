@@ -19,8 +19,9 @@ namespace Swag
     {
         public
         {
-            modules: const [..] Module?     // Every loaded module
-            args:    string?     // The application arguments, as returned by [[Swag.args]].
+            modules:   const [..] Module?     // Every loaded module
+            args:      string?               // The legacy process command line, when supplied by the host.
+            arguments: const [..] string?     // Host-supplied argument values, including the executable name; used by [[Swag.args]] without parsing.
         }
     }
 
@@ -233,6 +234,7 @@ namespace Swag
         panicCatch:          *void?             // Innermost 'catchPanic' running on this context
         cancelScope:         *CancelScope?      // Cancellation state of the work running on this context
         testCheck:           (func(string?, SourceCodeLocation)->bool)?     // Native test verdict handler shared across imported runtimes
+        compilerRaise:       (func(*Context))?  // Compiler-owned diagnostic transport; null in a native process
     }
 
     // Represent a part of a source code file.

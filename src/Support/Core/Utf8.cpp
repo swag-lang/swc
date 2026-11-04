@@ -1,7 +1,7 @@
 // ReSharper disable CppInconsistentNaming
 #include "pch.h"
 #include "Support/Core/Utf8.h"
-#include "Backend/Runtime.h"
+#include "Backend/RuntimeBase.h"
 
 SWC_BEGIN_NAMESPACE();
 

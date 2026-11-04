@@ -30,6 +30,7 @@ struct MicroRelocation
     {
         Absolute64,
         Relative32,
+        IndirectRelative32, // Load the target pointer from a nearby slot (ELF GOT or JIT island).
     };
 
     Kind kind = Kind::ConstantAddress;

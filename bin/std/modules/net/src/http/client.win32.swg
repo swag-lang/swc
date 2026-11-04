@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Windows
-#global export
+#global internal
 #global namespace Http
 
 using Core, Win32
@@ -25,59 +25,11 @@ private func queryLocation(request: HINTERNET)->String fail
     return Utf8.fromUtf16(buffer.toSlice()[0 until length / 2])
 }
 
-// Issues a bounded HTTP or HTTPS GET to `host`, `port` and an absolute request `path`.
-//
-// `path` must be absolute, fragment-free and already percent-encoded. HTTPS verifies the peer
-// using the Windows trust store.
-// Redirects are returned to the caller instead of being followed. Each phase has the configured
-// timeout setting; WinHTTP may enforce it with coarse timing and can exceed the requested value.
-// The operation is synchronous and cannot be cancelled while a native call is blocked.
-// The result owns its body and includes non-success status codes. Invalid input, transport errors,
-// and a body exceeding `maxBodyBytes` fail without returning a partial result.
-//
-// ```swag
-// #import("net")
-// using Core, Net
-//
-// #main
-// {
-//     let target = try Url.parseHttp("https://example.com/")
-//     let response = try Http.get(target.host, target.port, target.path, target.secure)
-//     Console.println(response.status)
-// }
-// ```
-func get(host: string, port: u16, path: string, secure = true, options: GetOptions = {})->Response fail
+func getNative(host: string, port: u16, path: string, secure = true, options: GetOptions = {})->Response fail
 {
-    if host.count == 0 or
-       port == 0 or
-       path.count == 0 or
-       path[0] != '/' or
-       options.timeoutMs == 0 or
-       options.timeoutMs > Swag.S32.Max do
-        fail Errors.BadParameterError{}
-    for c in host where c <= ' ' or c == 0x7F do
-        fail Errors.BadParameterError{}
-    for c in path where c <= ' ' or c == 0x7F or c == '#' do
-        fail Errors.BadParameterError{}
-    for c in options.userAgent where c < ' ' or c == 0x7F do
-        fail Errors.BadParameterError{}
-
     var headers: String
     for header in options.headers
     {
-        if header.name.count == 0 do
-            fail Errors.BadParameterError{}
-        for c in header.name
-        {
-            if not ((c >= 'a' and c <= 'z') or
-                    (c >= 'A' and c <= 'Z') or
-                    (c >= '0' and c <= '9') or
-                    Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max) do
-                fail Errors.BadParameterError{}
-        }
-
-        for c in header.value where c < ' ' or c == 0x7F do
-            fail Errors.BadParameterError{}
         headers += header.name
         headers += ": "
         headers += header.value

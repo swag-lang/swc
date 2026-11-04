@@ -35,7 +35,8 @@ struct LinkJob
     fs::path          buildDir;
 
     LinkImage                      image;          // Executable / SharedLibrary
-    std::vector<LinkArchiveMember> archiveMembers; // StaticLibrary: prepared object members
+    std::vector<LinkArchiveMember> archiveMembers; // Static libraries, or ELF objects for the GNU final link
+    std::vector<Utf8>              elfLinkArguments; // Owned GNU/Linux library and search arguments
     LinkDebugInfo                  debugInfo;      // self-contained debug records lowered by prepareLink
 
     // The archive a shared library publishes beside its DLL, holding the very same code one

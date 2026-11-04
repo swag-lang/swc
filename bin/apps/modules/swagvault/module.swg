@@ -15,7 +15,7 @@
 
         .name              = "swagvault"
         .resAppName        = "Swag Vault"
-        .resAppDescription = "Encrypted virtual disk for Windows"
+        .resAppDescription = "Encrypted virtual disk"
         .resAppIcoFileName = "datas/appicon.ico"
         .ignoreInWorkspace = false
 

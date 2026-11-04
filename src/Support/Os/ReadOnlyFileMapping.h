@@ -17,10 +17,12 @@ namespace Os
         std::span<const std::byte> bytes() const { return {view_, size_}; }
 
     private:
-        void*            file_    = nullptr;
-        void*            mapping_ = nullptr;
-        const std::byte* view_    = nullptr;
-        size_t           size_    = 0;
+#ifdef _WIN32
+        void* file_    = nullptr;
+        void* mapping_ = nullptr;
+#endif
+        const std::byte* view_ = nullptr;
+        size_t           size_ = 0;
     };
 }
 

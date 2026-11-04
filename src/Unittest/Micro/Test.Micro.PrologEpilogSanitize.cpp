@@ -9,6 +9,9 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -361,39 +364,46 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_DoesNotMergeOutsideEntryExitRegions)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageProbes)
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeStackAdjustIntoPageProbes)
 {
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rax = MicroReg::intReg(0);
-    MicroBuilder       builder(ctx);
+    for (const auto targetOs : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})
+    {
+        constexpr MicroReg rsp     = MicroReg::intReg(4);
+        constexpr MicroReg rax     = MicroReg::intReg(0);
+        CommandLine        command = ctx.cmdLine();
+        command.targetOs           = targetOs;
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      targetContext(compiler);
+        MicroBuilder     builder(targetContext);
 
-    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitRet();
+        builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitRet();
 
-    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+        SWC_RESULT(runPrologEpilogSanitizePass(builder));
 
-    if (builder.instructions().count() != 5)
-        return Result::Error;
+        if (builder.instructions().count() != 5)
+            return Result::Error;
 
-    const MicroOperandStorage& operands = builder.operands();
-    const MicroInstr*          subInst  = instructionAt(builder, 0);
-    const MicroInstr*          probe0   = instructionAt(builder, 1);
-    const MicroInstr*          probe1   = instructionAt(builder, 2);
-    const MicroInstr*          probe2   = instructionAt(builder, 3);
-    const MicroInstr*          retInst  = instructionAt(builder, 4);
-    if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
-        return Result::Error;
+        const MicroOperandStorage& operands = builder.operands();
+        const MicroInstr*          subInst  = instructionAt(builder, 0);
+        const MicroInstr*          probe0   = instructionAt(builder, 1);
+        const MicroInstr*          probe1   = instructionAt(builder, 2);
+        const MicroInstr*          probe2   = instructionAt(builder, 3);
+        const MicroInstr*          retInst  = instructionAt(builder, 4);
+        if (!subInst || !probe0 || !probe1 || !probe2 || !retInst)
+            return Result::Error;
 
-    if (!Backend::Unittest::isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
-        return Result::Error;
-    if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024ull))
-        return Result::Error;
-    if (!isStackProbeLoad(*probe1, probe1->ops(operands), rax, rsp, 4 * 1024ull))
-        return Result::Error;
-    if (!isStackProbeLoad(*probe2, probe2->ops(operands), rax, rsp, 0))
-        return Result::Error;
-    if (retInst->op != MicroInstrOpcode::Ret)
-        return Result::Error;
+        if (!Backend::Unittest::isStackAdjust(*subInst, subInst->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
+            return Result::Error;
+        if (!isStackProbeLoad(*probe0, probe0->ops(operands), rax, rsp, 8 * 1024ull))
+            return Result::Error;
+        if (!isStackProbeLoad(*probe1, probe1->ops(operands), rax, rsp, 4 * 1024ull))
+            return Result::Error;
+        if (!isStackProbeLoad(*probe2, probe2->ops(operands), rax, rsp, 0))
+            return Result::Error;
+        if (retInst->op != MicroInstrOpcode::Ret)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 
@@ -402,42 +412,49 @@ SWC_TEST_END()
 // flags produced by the allocation itself.
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ProbesBodyStackGrowthWithoutClobberingRegisters)
 {
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rax = MicroReg::intReg(0);
-    MicroBuilder       builder(ctx);
-
-    builder.emitLoadRegImm(rax, ApInt(42, 64), MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitLoadMemReg(rsp, 0, rax, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitRet();
-
-    SWC_RESULT(runPrologEpilogSanitizePass(builder));
-    if (builder.instructions().count() != 8)
-        return Result::Error;
-
-    const MicroOperandStorage& operands = builder.operands();
-    for (uint32_t page = 1; page <= 3; ++page)
+    for (const auto targetOs : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})
     {
-        const MicroInstr* probe = instructionAt(builder, page);
-        if (!probe || probe->op != MicroInstrOpcode::CmpMemImm)
+        constexpr MicroReg rsp     = MicroReg::intReg(4);
+        constexpr MicroReg rax     = MicroReg::intReg(0);
+        CommandLine        command = ctx.cmdLine();
+        command.targetOs           = targetOs;
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      targetContext(compiler);
+        MicroBuilder     builder(targetContext);
+
+        builder.emitLoadRegImm(rax, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadMemReg(rsp, 0, rax, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runPrologEpilogSanitizePass(builder));
+        if (builder.instructions().count() != 8)
             return Result::Error;
-        const MicroInstrOperand* ops = probe->ops(operands);
-        if (ops[0].reg != rsp || ops[1].opBits != MicroOpBits::B8 ||
-            ops[2].valueU64 != 0 - page * 4096ull || ops[3].valueU64 != 0)
+
+        const MicroOperandStorage& operands = builder.operands();
+        for (uint32_t page = 1; page <= 3; ++page)
+        {
+            const MicroInstr* probe = instructionAt(builder, page);
+            if (!probe || probe->op != MicroInstrOpcode::CmpMemImm)
+                return Result::Error;
+            const MicroInstrOperand* ops = probe->ops(operands);
+            if (ops[0].reg != rsp || ops[1].opBits != MicroOpBits::B8 ||
+                ops[2].valueU64 != 0 - page * 4096ull || ops[3].valueU64 != 0)
+                return Result::Error;
+        }
+
+        const MicroInstr* allocation = instructionAt(builder, 4);
+        if (!allocation || !Backend::Unittest::isStackAdjust(*allocation, allocation->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
+            return Result::Error;
+        const MicroInstr* store = instructionAt(builder, 5);
+        if (!store || store->op != MicroInstrOpcode::LoadMemReg || store->ops(operands)[1].reg != rax)
+            return Result::Error;
+
+        SWC_RESULT(runPrologEpilogSanitizePass(builder));
+        if (builder.instructions().count() != 8)
             return Result::Error;
     }
-
-    const MicroInstr* allocation = instructionAt(builder, 4);
-    if (!allocation || !Backend::Unittest::isStackAdjust(*allocation, allocation->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
-        return Result::Error;
-    const MicroInstr* store = instructionAt(builder, 5);
-    if (!store || store->op != MicroInstrOpcode::LoadMemReg || store->ops(operands)[1].reg != rax)
-        return Result::Error;
-
-    SWC_RESULT(runPrologEpilogSanitizePass(builder));
-    if (builder.instructions().count() != 8)
-        return Result::Error;
 }
 SWC_TEST_END()
 

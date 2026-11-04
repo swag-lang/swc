@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
@@ -174,6 +175,7 @@ func touch()
 
         CommandLine cmdLine;
         cmdLine.command   = CommandKind::Sema;
+        cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_lifecycle_init_wrapper_stress_{}", seed);
         cmdLine.silent    = true;
         cmdLine.numCores  = Unittest::compilerWorkerCount(ctx);
@@ -307,6 +309,7 @@ func touch()
 
         CommandLine cmdLine;
         cmdLine.command   = CommandKind::Sema;
+        cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_generated_spec_op_stress_{}", seed);
         cmdLine.silent    = true;
         cmdLine.numCores  = Unittest::compilerWorkerCount(ctx);
@@ -384,6 +387,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_generated_ast_thread_files";
     cmdLine.numCores = 1;
     cmdLine.workDir  = workDir.root();
@@ -538,6 +542,7 @@ const GeneratedB = 2
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name    = "compiler_generated_ast_runtime_location";
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -595,6 +600,7 @@ struct GeneratedInitNoise
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_generated_init_wrapper_noise";
     cmdLine.numCores = 1;
     cmdLine.workDir  = workDir.root();
@@ -715,6 +721,7 @@ func touch()
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_generated_spec_op_thread_files";
     cmdLine.numCores = 1;
     cmdLine.workDir  = workDir.root();
@@ -785,6 +792,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
 
     CommandLine cmdLine;
     cmdLine.command            = CommandKind::Sema;
+    cmdLine.targetOs           = hostTargetOs();
     cmdLine.name               = "compiler_generated_ast_diagnostics";
     cmdLine.silent             = true;
     cmdLine.devStopDiagnostics = false;

@@ -9,6 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#ifdef _WIN32
 namespace
 {
     class SharingLockedFile
@@ -144,12 +145,22 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteWaitsForTransientSharingLock)
 }
 SWC_TEST_END()
 
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots)
 {
-    SharingLockedFile file("atomic_concurrent");
-    if (!file.ready())
-        return Result::Error;
-    file.release();
+    const fs::path path = Os::getTemporaryPath() / std::format("swc_atomic_concurrent_p{}.bin", Os::currentProcessId());
+    struct RemoveTestFile
+    {
+        const fs::path* path;
+        ~RemoveTestFile()
+        {
+            std::error_code error;
+            fs::remove(*path, error);
+        }
+    } cleanup{&path};
+    FileSystem::IoErrorInfo initialError;
+    SWC_RESULT(FileSystem::writeBinaryFile(path, "old", 3, initialError));
 
     const std::array<std::string, 2> versions = {std::string(1024 * 1024, 'a'), std::string(2 * 1024 * 1024 + 4093, 'b')};
     std::atomic_uint32_t             running  = 2;
@@ -162,7 +173,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
             start.arrive_and_wait();
             FileSystem::IoErrorInfo error;
             for (uint32_t round = 0; round < 16; ++round)
-                if (FileSystem::writeBinaryFileAtomic(file.path(), versions[i].data(), versions[i].size(), error) != Result::Continue)
+                if (FileSystem::writeBinaryFileAtomic(path, versions[i].data(), versions[i].size(), error) != Result::Continue)
                     if (!failed.exchange(true))
                         fprintf(stderr, "atomic writer %zu stopped: %s\n", i, FileSystem::describeIoFailure(error).c_str());
             running.fetch_sub(1);
@@ -173,7 +184,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
     {
         std::string             contents;
         FileSystem::IoErrorInfo error;
-        if (FileSystem::readTextFile(file.path(), contents, error) != Result::Continue)
+        if (FileSystem::readTextFile(path, contents, error) != Result::Continue)
         {
             if (!failed.exchange(true))
                 fprintf(stderr, "atomic reader stopped: %s\n", FileSystem::describeIoFailure(error).c_str());
@@ -191,6 +202,7 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
 SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
 {
     if (!Os::isFatalHostException(EXCEPTION_ACCESS_VIOLATION))
@@ -199,6 +211,8 @@ SWC_TEST_BEGIN(Os_FatalHostExceptionClassificationExcludesCppExceptions)
         return Result::Error;
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_TEST_BEGIN(Os_FileLockOwnersNameTheProcessMappingAnImage)
 {
@@ -237,6 +251,7 @@ SWC_TEST_BEGIN(FileSystem_AppendFileUsersLeavesAnUnheldFileAlone)
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
 SWC_FILESYSTEM_TEST_BEGIN(Os_RunProcessChildTreeDoesNotSurviveTheCall)
 {
     // The contract on runProcess: the child and whatever it spawns die with the call, whichever
@@ -338,6 +353,8 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteReplacesLoadedLibrary)
 }
 SWC_TEST_END()
 
+#endif
+
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
 {
     const fs::path  directory = Os::getTemporaryPath() / std::format("swc_cache_mapping_p{}", Os::currentProcessId());
@@ -369,6 +386,38 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
     return result;
 }
 SWC_TEST_END()
+
+#ifdef __linux__
+SWC_FILESYSTEM_TEST_BEGIN(Os_ChildLibrarySearchPreservesTheParentEnvironment)
+{
+    const char* inherited = std::getenv("LD_LIBRARY_PATH");
+    const bool hadInherited = inherited != nullptr;
+    const std::string previous = inherited ? inherited : "";
+    const std::array<fs::path, 2> directories = {Os::getTemporaryPath() / "swc libraries", Os::getTemporaryPath() / "swc'libs"};
+    std::string expected = directories[0].string() + ":" + directories[1].string();
+    if (!previous.empty())
+        expected += ":" + previous;
+    std::string output;
+    uint32_t exitCode = 0;
+    Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .additionalPathDirectories = directories, .timeoutMs = 5000};
+    if (Os::runProcess(exitCode, "/usr/bin/env", {}, {}, &options) != Os::ProcessRunResult::Ok || exitCode != 0 ||
+        ("\n" + output).find("\nLD_LIBRARY_PATH=" + expected + "\n") == std::string::npos)
+        return Result::Error;
+    const char* after = std::getenv("LD_LIBRARY_PATH");
+    if ((after != nullptr) != hadInherited || (after && after != previous))
+        return Result::Error;
+
+    output.clear();
+    options.additionalPathDirectories = {};
+    if (Os::runProcess(exitCode, "/usr/bin/env", {}, {}, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    const std::string environment = "\n" + output;
+    if (hadInherited)
+        return environment.find("\nLD_LIBRARY_PATH=" + previous + "\n") != std::string::npos ? Result::Continue : Result::Error;
+    return environment.find("\nLD_LIBRARY_PATH=") == std::string::npos ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+#endif
 
 SWC_END_NAMESPACE();
 

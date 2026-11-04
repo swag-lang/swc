@@ -24,7 +24,6 @@ public:
     explicit NativeObjFileWriterCoff(NativeBackendBuilder& builder);
 
     Result buildObjectFile(ByteArray& outBytes, const NativeObjDescription& description) override;
-    Result writeObjectFile(const NativeObjDescription& description) override;
 
 private:
     struct CoffSymbolRecord
@@ -102,9 +101,7 @@ private:
     static void addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, std::string_view ownedName, CoffSymbolRecord record);
     static void addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex);
 
-    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
-
-    NativeBackendBuilder* builder_ = nullptr;
+    Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
 };
 
 SWC_END_NAMESPACE();

@@ -25,8 +25,7 @@ SWC_TEST_BEGIN(PagedStore_ReleasedProximityPagesAreDecommitted)
         if (!Os::isProximityMemory(released))
             return Result::Error;
     }
-    MEMORY_BASIC_INFORMATION memory{};
-    if (!VirtualQuery(released, &memory, sizeof(memory)) || memory.State != MEM_RESERVE || survivor.at<uint32_t>(live) != 42)
+    if (!Unittest::isDecommittedMemory(released) || survivor.at<uint32_t>(live) != 42)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -43,8 +42,7 @@ SWC_TEST_BEGIN(DataSegment_ReleasedLargeProximityBlocksAreDecommitted)
         if (!Os::isProximityMemory(released))
             return Result::Error;
     }
-    MEMORY_BASIC_INFORMATION memory{};
-    if (!VirtualQuery(released, &memory, sizeof(memory)) || memory.State != MEM_RESERVE)
+    if (!Unittest::isDecommittedMemory(released))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -273,7 +271,8 @@ SWC_TEST_BEGIN(DataSegment_RelocationRangesPreserveIndexedAndTailEntries)
     for (uint32_t i = 0; i < 64; ++i)
         repeated.addRelocation(16, i);
     auto expected = repeated.copyRelocations();
-    std::ranges::sort(expected, {}, &DataSegmentRelocation::offset);
+    // Equal offsets keep publication order on every standard-library implementation.
+    std::ranges::stable_sort(expected, {}, &DataSegmentRelocation::offset);
     repeated.copyRelocations(relocations, 16, 1);
     if (relocations.size() != expected.size())
         return Result::Error;

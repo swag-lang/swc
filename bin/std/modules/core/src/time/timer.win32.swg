@@ -1,26 +1,15 @@
 #global if WINDOWS
 #global namespace Time
 
-using Win32
-
-#[Swag.CallingConvention(.C)]
-private func timerEntryNative(param: *void?, _: BOOL)
+private func createTimerThreadNative(param: *void)->const *void fail
 {
-    timerEntry(param)
+    var id: Win32.DWORD
+    let thread = try Win32.CreateThread(null, 0, &timerWorkerEntry, param, 0, &id)
+    return cast(const *void, unwrap thread)
 }
 
-func createTimerNative(param: *void, delayMilliseconds: u32, periodic: bool)->TimerHandle fail
+private func joinTimerThreadNative(handle: const *void?)
 {
-    var result: TimerHandle
-    try CreateTimerQueueTimer(&result, null, &timerEntryNative, param, delayMilliseconds, periodic ? delayMilliseconds : 0, 0)
-    return result
-}
-
-func releaseTimerNative(handle: TimerHandle)
-{
-    let event = expect CreateEventA(null, FALSE, FALSE, null)
-    defer CloseHandle(event)
-
-    DeleteTimerQueueTimer(null, handle, event)
-    expect WaitForSingleObject(event, INFINITE)
+    expect Win32.WaitForSingleObject(handle, Win32.INFINITE)
+    Win32.CloseHandle(handle)
 }

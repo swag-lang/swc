@@ -1,6 +1,7 @@
 #global if #os == Swag.TargetOs.Windows
 
 #foreignlib("kernel32")
+#foreignlib("shell32")
 #foreignlib("user32")
 #foreignlib("ucrt")
 
@@ -77,6 +78,9 @@ namespace __Win32RT
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
     const CP_UTF8 = 65001'u32
 
+    #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
+    func CommandLineToArgvW(commandLine: const [*] u16, count: *s32)->[*] ([*] u16)?
+
     #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
     {
         func RtlCaptureContext(contextRecord: *void)
@@ -88,6 +92,7 @@ namespace __Win32RT
         func GetProcAddress(hModule: HANDLE, lpProcName: const [*] u8)->const *void?
         func GetCommandLineA()->const [*] u8?
         func GetCommandLineW()->const [*] u16?
+        func LocalFree(memory: *void?)->*void?
         func GetEnvironmentVariableA(lpName: const [*] u8, lpBuffer: [*] u8, nSize: DWORD)->DWORD
         func WideCharToMultiByte(codePage, dwFlags: DWORD, lpWideCharStr: const [*] u16, cchWideChar: s32, lpMultiByteStr: [*] u8?, cbMultiByte: s32, lpDefaultChar: const *u8?, lpUsedDefaultChar: *s32?)->s32
         func GetStdHandle(nStdHandle: u32)->HANDLE
@@ -549,9 +554,56 @@ namespace __Win32RT
     func atan2(value1, value2: f64)->f64 => __Win32RT.atan2(value1, value2)
 }
 
-// The command line this process was launched with, still owned by the operating system and
-// therefore valid for the whole run. The buffer holds the executable path followed by the
-// arguments, which is the shape 'Swag.args()' parses.
+// Decode Windows quoting before converting each argument to process-lifetime UTF-8 storage.
+// Splitting the raw command line loses escaped quotes and backslashes inside quoted arguments.
+#[Swag.Safety(.ValueBorrow, false)]
+func __hostSetupProcessArguments()->bool
+{
+    using __Win32RT
+    Swag.processInfo().args = __osCommandLine()
+
+    let wide = GetCommandLineW()
+    if not wide do
+        return false
+    var count: s32
+    let values = CommandLineToArgvW(wide, &count)
+    if not values do
+        return false
+    defer discard LocalFree(values)
+
+    var size = cast(u64, count) * #sizeof(string)
+    for index in count
+    {
+        let bytes = WideCharToMultiByte(CP_UTF8, 0, values[index], -1, null, 0, null, null)
+        if bytes <= 0 do
+            return false
+        size += cast(u64, bytes)
+    }
+
+    let memory = VirtualAlloc(null, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+    if not memory do
+        return false
+    let arguments = cast([*] string, memory)
+    var buffer    = cast([*] u8, memory) + cast(u64, count) * #sizeof(string)
+    var remaining = size - cast(u64, count) * #sizeof(string)
+    for index in count
+    {
+        let bytes = WideCharToMultiByte(CP_UTF8, 0, values[index], -1, buffer, cast(s32, remaining), null, null)
+        if bytes <= 0
+        {
+            discard VirtualFree(memory, 0, MEM_RELEASE)
+            return false
+        }
+
+        arguments[index] = Swag.makeString(buffer, cast(u64, bytes - 1))
+        buffer           += bytes
+        remaining        -= cast(u64, bytes)
+    }
+
+    Swag.processInfo().arguments = Swag.makeSlice(arguments, cast(u64, count))
+    return true
+}
+
 func __osCommandLine()->string?
 {
     // The system states the command line in both eight-bit and wide forms, and only the wide one

@@ -1,13 +1,15 @@
 #global public
 #global namespace Time
 
-// Native timer handle.
+// Opaque ownership of the common timer worker.
 internal alias TimerHandle = const *void?
 
-// Owns an operating-system timer that invokes a callback on a worker thread.
+// Owns a timer that invokes a callback on a dedicated worker thread.
 //
 // Each callback inherits the creating thread's allocator policy and user context values,
-// with independent temporary storage and error state. Periodic callbacks can overlap.
+// with independent temporary storage and error state. Each timer owns one worker: its callbacks
+// are serialized, use a monotonic deadline, and coalesce missed periods. Different timers can
+// invoke their callbacks concurrently.
 // The timer and the allocator or user state its callbacks borrow must stay alive until
 // [[Core.Time.Timer.release]] returns. The timer must not move while it is armed.
 #[Swag.NoCopy]
@@ -38,7 +40,7 @@ private func timerEntry(param: *void?)
 
 impl Timer
 {
-    // Releases the native timer when this value leaves scope.
+    // Releases the timer worker when this value leaves scope.
     mtd opDrop()
     {
         .release()
@@ -46,7 +48,8 @@ impl Timer
 
     // Creates a timer that first fires after `delay`.
     //
-    // A periodic timer subsequently fires at the same interval.
+    // A periodic timer subsequently fires at the same interval. Scheduling can delay a callback;
+    // Elapsed periods are skipped when a callback takes longer than its interval.
     func create(delay: Duration, callback: func(*Timer), periodic = false)->Timer fail
     {
         var result: #returntype
@@ -77,18 +80,18 @@ impl Timer
             .errorAllocator.setCapacity(errorCapacity, allocator)
         }
 
-        .handle = try createTimerNative(me, cast(u32, delayMs), periodic)
+        .handle = try createTimerWorker(me, cast(u32, delayMs), periodic)
     }
 
-    // Stops the timer and waits for any active callback before returning.
+    // Stops the timer and joins its worker, waiting for any active callback before returning.
     //
-    // Calling it from the callback of the same timer never returns, because it waits for that
-    // callback. Repeated calls do nothing.
+    // Do not call it from the callback of the same timer: the worker would have to join itself.
+    // Calls that release the same timer must be serialized. Repeated calls do nothing.
     mtd release()
     {
         if not .handle do
             return
-        releaseTimerNative(.handle)
+        releaseTimerWorker(.handle)
         .handle = null
     }
 }

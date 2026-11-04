@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
@@ -85,6 +86,7 @@ func validate()
 
         CommandLine cmdLine;
         cmdLine.command   = CommandKind::Sema;
+        cmdLine.targetOs  = hostTargetOs();
         cmdLine.name      = std::format("compiler_generic_union_deduction_randomized_{}", seed);
         cmdLine.silent    = true;
         cmdLine.numCores  = 1;
@@ -764,6 +766,7 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_auto_inline_same_module_cross_file";
     cmdLine.moduleNamespace = "CompilerAutoInline";
     cmdLine.silent          = true;
@@ -871,6 +874,7 @@ const copied = #run identity(42'u32)
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_auto_inline_compile_time";
     cmdLine.silent   = true;
     cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
@@ -947,6 +951,7 @@ func matchesInteger(target: typeinfo)->bool => target is s32
 
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_cross_file_inline_type_pattern";
     cmdLine.moduleNamespace = "CompilerInlineTypePattern";
     cmdLine.silent          = true;
@@ -994,6 +999,7 @@ func checkIndex(value: *s32)->s32
     const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "ExplicitInlineCaller");
     CommandLine                       cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_explicit_inline_cross_file";
     cmdLine.silent   = true;
     cmdLine.numCores = Unittest::compilerWorkerCount(ctx);
@@ -1071,6 +1077,7 @@ func trailingUse()
     const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "TrailingCodeBlockChunks");
     CommandLine    cmdLine;
     cmdLine.command         = CommandKind::Sema;
+    cmdLine.targetOs        = hostTargetOs();
     cmdLine.name            = "compiler_trailing_code_block_chunks";
     cmdLine.moduleNamespace = "CompilerTrailingChunks";
     cmdLine.silent          = true;
@@ -1277,6 +1284,81 @@ func A() {}
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
+{
+    struct Case
+    {
+        std::string_view condition;
+        bool            windowsSkip;
+        bool            linuxSkip;
+    };
+    constexpr Case cases[] = {
+        {"#os == Swag.TargetOs.Windows", false, true},
+        {"#os == Swag.TargetOs.Linux", true, false},
+        {"#os != Swag.TargetOs.Windows // target selection", true, false},
+        {"#os != Swag.TargetOs.Linux", false, true},
+        {"#os == Swag.TargetOs.Unknown", false, false},
+        {"#os == Swag.TargetOs.Linux or true", false, false},
+        {"#os == Swag.TargetOs.Linux and false", false, false},
+        {"#os == Swag.TargetOs.Linux\n    or true", false, false},
+        {"#os == Swag.TargetOs.Linux /* comment */ or true", false, false},
+        {"#os == Swag.TargetOs.Linux // comment\n    or true", false, false},
+        {"false or true", false, false},
+        {"false\n    or true", false, false},
+    };
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "GlobalOsGuard");
+    for (const auto target : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})
+    {
+        for (const auto& item : cases)
+        {
+            CommandLine cmdLine;
+            cmdLine.command = CommandKind::Syntax;
+            cmdLine.targetOs = target;
+            CompilerInstance compiler(ctx.global(), cmdLine);
+            const Utf8 source = std::format("#global if {}\nstruct PlatformValue {{ value: s32 }}\n", item.condition);
+            Unittest::registerTestSource(compiler, sourcePath, source.view());
+            TaskContext compilerCtx(compiler);
+            SourceFile& file = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+            SWC_RESULT(file.loadContent(compilerCtx));
+            Lexer lexer;
+            lexer.tokenize(compilerCtx, file.ast().srcView(), LexerFlagsE::Default);
+            const bool expectedSkip = target == Runtime::TargetOs::Windows ? item.windowsSkip : item.linuxSkip;
+            if (compilerCtx.hasError() || file.ast().srcView().mustSkip() != expectedSkip)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
+SWC_TEST_BEGIN(Compiler_LinuxGuardedRuntimeBootstrapsPureLeaves)
+{
+    // The runtime folds its monotonic frequency while allocator callbacks are still
+    // being analyzed. Unused borrow guards and unrelated global roots formed a cycle.
+    static constexpr std::string_view SOURCE = "const Answer = 42\n#assert(Answer == 42)\n";
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "LinuxGuardedRuntimeBootstrap");
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_linux_guarded_runtime_bootstrap";
+    cmdLine.targetOs = Runtime::TargetOs::Linux;
+    cmdLine.buildCfg = "devmode";
+    cmdLine.numCores = 3;
+    cmdLine.silent   = true;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+}
+SWC_TEST_END()
+#endif
+
 SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1002)
 {
     return runGenericUnionDeductionRandomizedSeed(ctx, 1002);
@@ -1346,6 +1428,7 @@ SWC_TEST_BEGIN(Compiler_ControlFlowPayloadsStayIndependentOfValues)
     const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "DeferredPayloadInvalidation");
     CommandLine    cmdLine;
     cmdLine.command  = CommandKind::Sema;
+    cmdLine.targetOs = hostTargetOs();
     cmdLine.name     = "compiler_deferred_payload_invalidation";
     cmdLine.silent   = true;
     cmdLine.numCores = 1;

@@ -44,6 +44,8 @@ struct MicroPassContext
     bool                  validateMicro           = false;
     bool                  usesIntReturnRegOnRet   = true;
     bool                  usesFloatReturnRegOnRet = true;
+    // Additional physical result lanes, such as System V RDX and XMM1.
+    uint64_t              extraReturnRegsOnRet   = 0;
 
     // The function's effective runtime-safety mask (build-config default combined with
     // any `#[Swag.Safety(...)]` overrides). The static sanitizer runs the checks whose

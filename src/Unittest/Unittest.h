@@ -27,6 +27,8 @@ namespace Unittest
     void   registerTest(const TestCase& test);
     void   registerSetup(SetupFn setupFn);
     Result runAll(const TaskContext& ctx);
+    bool   isDecommittedMemory(const void* address);
+    bool   isFileMapping(const void* address);
 
     // Nested compiler fixtures inherit the caller's worker request within this test budget.
     inline constexpr uint32_t MAX_COMPILER_WORKERS = 3;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
+#include "Backend/Debug/DebugInfoDwarf.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -9,6 +10,8 @@ std::unique_ptr<DebugInfo> DebugInfo::create(const Runtime::TargetOs targetOs)
 {
     switch (targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            return std::make_unique<DebugInfoDwarf>();
         case Runtime::TargetOs::Windows:
             return std::make_unique<DebugInfoCodeView>();
     }

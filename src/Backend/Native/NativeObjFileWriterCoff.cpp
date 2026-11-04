@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Linker/PEFormat.h"
 #include "Backend/Native/NativeObjFileWriterCoff.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Debug/DebugInfo.h"
@@ -22,13 +23,6 @@ namespace
 {
     constexpr size_t COFF_RELOCATION_OVERFLOW_LIMIT = 0xFFFFu;
 
-    uint32_t coffAlignmentCharacteristics(const uint32_t align)
-    {
-        SWC_ASSERT(std::has_single_bit(align));
-        const uint32_t clampedAlign = std::min(align, 8192u);
-        return (std::countr_zero(clampedAlign) + 1) << 20;
-    }
-
     bool needsCoffRelocationOverflow(size_t relocationCount)
     {
         return relocationCount >= COFF_RELOCATION_OVERFLOW_LIMIT;
@@ -36,7 +30,7 @@ namespace
 }
 
 NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) :
-    builder_(&builder)
+    NativeObjFileWriter(builder)
 {
 }
 
@@ -47,7 +41,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
 
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
-    textSection.data.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
+    textSection.data.characteristics = PE::SCN_CNT_CODE | PE::SCN_MEM_EXECUTE | PE::SCN_MEM_READ | PE::SCN_ALIGN_32BYTES;
     SWC_RESULT(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
@@ -80,6 +74,8 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     {
         CoffSectionBuild section;
         section.data = builder_->mergedData;
+        if (description.splitRDataReferences)
+            SWC_RESULT(builder_->remapRDataReferences(section.data));
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
@@ -105,12 +101,12 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     {
         CoffSectionBuild section;
         section.data.name            = Utf8(SymbolTable::OBJECT_SECTION);
-        section.data.characteristics = IMAGE_SCN_LNK_INFO | IMAGE_SCN_LNK_REMOVE | IMAGE_SCN_ALIGN_4BYTES;
+        section.data.characteristics = PE::SCN_LNK_INFO | PE::SCN_LNK_REMOVE | PE::SCN_ALIGN_4BYTES;
 
         SymbolTable::build(section.data.bytes, runtimeNames);
         section.data.relocations.reserve(runtimeNames.size());
         for (size_t i = 0; i < runtimeNames.size(); ++i)
-            section.data.relocations.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(runtimeNames[i].symbolName), .type = IMAGE_REL_AMD64_ADDR32NB});
+            section.data.relocations.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(runtimeNames[i].symbolName), .kind = NativeRelocationKind::Rva32});
 
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
@@ -153,21 +149,6 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     return buildCoffFile(outBytes, sections, symbols, symbolIndex);
 }
 
-Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
-{
-    ByteArray fileData;
-    SWC_RESULT(buildObjectFile(fileData, description));
-
-    FileSystem::IoErrorInfo ioError;
-    if (FileSystem::writeBinaryFile(description.objPath, fileData.data(), fileData.size(), ioError) == Result::Continue)
-        return Result::Continue;
-
-    if (ioError.problem == FileSystem::IoProblem::OpenWrite)
-        return builder_->reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
-
-    return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
-}
-
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
@@ -185,57 +166,7 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
 
 Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeRDataAllocationMapEntry& allocation) const
 {
-    SWC_ASSERT(allocation.emittedOffset + allocation.size <= builder_->mergedRData.bytes.size());
-
-    // The collector emits allocations in offset order and sorts each allocation's relocations.
-    // Visit only this allocation's range instead of scanning the entire module for every object.
-    const auto&                      relocations = builder_->mergedRData.relocations;
-    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
-    const std::span<const std::byte> allocationBytes{builder_->mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
-    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
-
-    if (!hasRelocations && allocation.zeroFilled)
-    {
-        // Keep all-zero allocations as uninitialized data without copying bytes
-        // into a section that would immediately discard them again.
-        section.data.name            = ".rbss";
-        section.data.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-        section.data.bss             = true;
-        section.data.bssSize         = allocation.size;
-        return Result::Continue;
-    }
-
-    section.data.name            = ".rdata";
-    section.data.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | coffAlignmentCharacteristics(allocation.align);
-    section.data.bytes.append(allocationBytes);
-
-    const NativeBackendBuilder::ScopedSymbolNames* names = nullptr;
-    for (auto it = first; it != relocations.end(); ++it)
-    {
-        const NativeSectionRelocation& sourceRelocation = *it;
-        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
-            break;
-
-        NativeSectionRelocation relocation = sourceRelocation;
-        relocation.offset -= allocation.emittedOffset;
-        if (!names)
-            names = &builder_->scopedSymbolNames();
-        if (relocation.symbolName == names->rdataBase)
-        {
-            const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
-            if (!targetAllocation)
-            {
-                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(names->scopeHash, allocation.emittedOffset);
-                return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
-            }
-
-            relocation.symbolName = builder_->rdataAllocationSymbol(*targetAllocation);
-            relocation.addend -= targetAllocation->emittedOffset;
-        }
-
-        section.data.relocations.push_back(std::move(relocation));
-    }
-
+    SWC_RESULT(builder_->buildRDataAllocationSection(section.data, allocation));
     return applySectionRelocations(section);
 }
 
@@ -283,19 +214,19 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
     SWC_ASSERT(section.relocations.empty());
     for (const auto& relocation : section.data.relocations)
     {
-        switch (relocation.type)
+        switch (relocation.kind)
         {
-            case IMAGE_REL_AMD64_ADDR64:
+            case NativeRelocationKind::Abs64:
                 BinaryPatch::write<uint64_t>(section.data.bytes, relocation.offset, relocation.addend);
                 break;
 
-            case IMAGE_REL_AMD64_ADDR32NB:
-            case IMAGE_REL_AMD64_SECREL:
-            case IMAGE_REL_AMD64_REL32:
+            case NativeRelocationKind::Rva32:
+            case NativeRelocationKind::SectionOffset32:
+            case NativeRelocationKind::Rel32:
                 BinaryPatch::write<uint32_t>(section.data.bytes, relocation.offset, static_cast<uint32_t>(relocation.addend));
                 break;
 
-            case IMAGE_REL_AMD64_SECTION:
+            case NativeRelocationKind::SectionIndex16:
                 BinaryPatch::write<uint16_t>(section.data.bytes, relocation.offset, static_cast<uint16_t>(relocation.addend));
                 break;
 
@@ -327,8 +258,8 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                             .name          = description.startup->symbolName,
                             .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
                             .value         = description.startup->textOffset,
-                            .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-                            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                            .type          = static_cast<uint16_t>(PE::SYM_DTYPE_FUNCTION << 8),
+                            .storageClass  = PE::SYM_CLASS_EXTERNAL,
                         });
     }
 
@@ -342,8 +273,8 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                             .name          = info->symbolName,
                             .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
                             .value         = info->textOffset,
-                            .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-                            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                            .type          = static_cast<uint16_t>(PE::SYM_DTYPE_FUNCTION << 8),
+                            .storageClass  = PE::SYM_CLASS_EXTERNAL,
                         });
     }
 
@@ -386,7 +317,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                             .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                             .value         = 0,
                             .type          = 0,
-                            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                            .storageClass  = PE::SYM_CLASS_EXTERNAL,
                         });
     }
 
@@ -412,7 +343,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                             .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                             .value         = 0,
                             .type          = 0,
-                            .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                            .storageClass  = PE::SYM_CLASS_EXTERNAL,
                         });
     }
 }
@@ -426,7 +357,7 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
             if (!symbolIndex.tryAdd(relocation.symbolName.view(), static_cast<uint32_t>(symbols.size())))
                 continue;
 
-            symbols.push_back({.name = relocation.symbolName, .sectionNumber = 0, .value = 0, .type = 0, .storageClass = IMAGE_SYM_CLASS_EXTERNAL});
+            symbols.push_back({.name = relocation.symbolName, .sectionNumber = 0, .value = 0, .type = 0, .storageClass = PE::SYM_CLASS_EXTERNAL});
         }
     }
 }
@@ -437,7 +368,7 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
     for (auto& symbol : symbols)
         symbol.stringOffset = stringTable.add(symbol.name.view());
 
-    uint32_t fileOffset = sizeof(IMAGE_FILE_HEADER) + static_cast<uint32_t>(sections.size()) * sizeof(IMAGE_SECTION_HEADER);
+    uint32_t fileOffset = sizeof(PE::FileHeader) + static_cast<uint32_t>(sections.size()) * sizeof(PE::SectionHeader);
     fileOffset          = Math::alignUpU32(fileOffset, 4);
 
     for (auto& section : sections)
@@ -462,33 +393,33 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
             section.numberOfRelocations   = section.hasRelocationOverflow ? static_cast<uint16_t>(COFF_RELOCATION_OVERFLOW_LIMIT) : static_cast<uint16_t>(section.relocations.size());
 
             const size_t relocationRecordCount = section.relocations.size() + (section.hasRelocationOverflow ? 1u : 0u);
-            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<uint32_t>::max() / sizeof(IMAGE_RELOCATION));
-            fileOffset += static_cast<uint32_t>(relocationRecordCount * sizeof(IMAGE_RELOCATION));
+            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<uint32_t>::max() / sizeof(PE::Relocation));
+            fileOffset += static_cast<uint32_t>(relocationRecordCount * sizeof(PE::Relocation));
             fileOffset = Math::alignUpU32(fileOffset, 4);
         }
     }
 
     const uint32_t symbolTableOffset = fileOffset;
-    fileOffset += static_cast<uint32_t>(symbols.size() * sizeof(IMAGE_SYMBOL));
+    fileOffset += static_cast<uint32_t>(symbols.size() * sizeof(PE::Symbol));
     const uint32_t stringTableOffset = fileOffset;
     fileOffset += stringTable.size;
 
     outBytes.resize(fileOffset, std::byte{0});
 
-    IMAGE_FILE_HEADER header{};
-    header.Machine              = IMAGE_FILE_MACHINE_AMD64;
-    header.NumberOfSections     = static_cast<WORD>(sections.size());
+    PE::FileHeader header{};
+    header.Machine              = PE::FILE_MACHINE_AMD64;
+    header.NumberOfSections     = static_cast<uint16_t>(sections.size());
     header.TimeDateStamp        = 0;
     header.PointerToSymbolTable = symbolTableOffset;
-    header.NumberOfSymbols      = static_cast<DWORD>(symbols.size());
+    header.NumberOfSymbols      = static_cast<uint32_t>(symbols.size());
     header.SizeOfOptionalHeader = 0;
     header.Characteristics      = 0;
     std::memcpy(outBytes.data(), &header, sizeof(header));
 
-    uint32_t sectionHeaderOffset = sizeof(IMAGE_FILE_HEADER);
+    uint32_t sectionHeaderOffset = sizeof(PE::FileHeader);
     for (const auto& section : sections)
     {
-        IMAGE_SECTION_HEADER headerSection{};
+        PE::SectionHeader headerSection{};
         std::memset(headerSection.Name, 0, sizeof(headerSection.Name));
         std::memcpy(headerSection.Name, section.data.name.data(), std::min(section.data.name.size(), K_COFF_SHORT_NAME_SIZE));
         headerSection.SizeOfRawData        = section.sizeOfRawData;
@@ -497,10 +428,10 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
         headerSection.NumberOfRelocations  = section.numberOfRelocations;
         headerSection.Characteristics      = section.data.characteristics;
         if (section.hasRelocationOverflow)
-            headerSection.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
+            headerSection.Characteristics |= PE::SCN_LNK_NRELOC_OVFL;
 
         std::memcpy(outBytes.data() + sectionHeaderOffset, &headerSection, sizeof(headerSection));
-        sectionHeaderOffset += sizeof(IMAGE_SECTION_HEADER);
+        sectionHeaderOffset += sizeof(PE::SectionHeader);
     }
 
     for (const auto& section : sections)
@@ -515,12 +446,12 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
         if (section.hasRelocationOverflow)
         {
             const size_t relocationRecordCount = section.relocations.size() + 1;
-            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<DWORD>::max());
+            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<uint32_t>::max());
 
-            IMAGE_RELOCATION relocRecord{};
-            relocRecord.RelocCount = static_cast<DWORD>(relocationRecordCount);
+            PE::Relocation relocRecord{};
+            relocRecord.RelocCount = static_cast<uint32_t>(relocationRecordCount);
             std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
-            relocOffset += sizeof(IMAGE_RELOCATION);
+            relocOffset += sizeof(PE::Relocation);
         }
 
         for (const auto& relocation : section.relocations)
@@ -528,19 +459,28 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
             const uint32_t* symbolTableIndex = symbolIndex.find(relocation.symbolName.view());
             SWC_ASSERT(symbolTableIndex != nullptr);
 
-            IMAGE_RELOCATION relocRecord{};
+            PE::Relocation relocRecord{};
             relocRecord.VirtualAddress   = relocation.offset;
             relocRecord.SymbolTableIndex = *symbolTableIndex;
-            relocRecord.Type             = relocation.type;
+            switch (relocation.kind)
+            {
+                case NativeRelocationKind::Abs64: relocRecord.Type = PE::REL_AMD64_ADDR64; break;
+                case NativeRelocationKind::Rva32: relocRecord.Type = PE::REL_AMD64_ADDR32NB; break;
+                case NativeRelocationKind::Rel32: relocRecord.Type = PE::REL_AMD64_REL32; break;
+                case NativeRelocationKind::SectionOffset32: relocRecord.Type = PE::REL_AMD64_SECREL; break;
+                case NativeRelocationKind::SectionIndex16: relocRecord.Type = PE::REL_AMD64_SECTION; break;
+                case NativeRelocationKind::GotRel32:
+                    return builder_->reportError(DiagnosticId::cmd_err_link_coff_unsupported_reloc, Diagnostic::ARG_VALUE, "GOT-relative", Diagnostic::ARG_TARGET, section.data.name);
+            }
             std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
-            relocOffset += sizeof(IMAGE_RELOCATION);
+            relocOffset += sizeof(PE::Relocation);
         }
     }
 
     uint32_t symbolOffset = symbolTableOffset;
     for (const auto& symbol : symbols)
     {
-        IMAGE_SYMBOL record{};
+        PE::Symbol record{};
         if (symbol.name.size() <= K_COFF_SHORT_NAME_SIZE)
         {
             std::memcpy(record.N.ShortName, symbol.name.data(), symbol.name.size());
@@ -557,7 +497,7 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
         record.StorageClass       = symbol.storageClass;
         record.NumberOfAuxSymbols = symbol.numAuxSymbols;
         std::memcpy(outBytes.data() + symbolOffset, &record, sizeof(record));
-        symbolOffset += sizeof(IMAGE_SYMBOL);
+        symbolOffset += sizeof(PE::Symbol);
     }
 
     std::memcpy(outBytes.data() + stringTableOffset, &stringTable.size, sizeof(uint32_t));

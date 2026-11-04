@@ -858,7 +858,8 @@ namespace
         attribute += ", link: ";
         appendModuleApiStringLiteral(attribute, function.foreignLinkModuleName());
 
-        static constexpr std::string_view CALL_CONVENTIONS[] = {"C", "WindowsX64", "Swag"};
+        // SystemVAMD64 is internal; the public spelling selects it through the target C ABI.
+        static constexpr std::string_view CALL_CONVENTIONS[] = {"C", "WindowsX64", "Swag", "C"};
         const auto                        convention         = static_cast<size_t>(function.foreignCallConvKind());
         SWC_ASSERT(convention < std::size(CALL_CONVENTIONS));
         attribute += std::format(", callconv: .{})", CALL_CONVENTIONS[convention]);
@@ -1087,8 +1088,7 @@ namespace
     }
 
     // Importers infer the module, Swag calling convention, and flattened scoped
-    // name. Emit an explicit target only for overloads, whose suffix depends on
-    // the complete overload set.
+    // name. Preserve an explicit target for overloads and module-qualified native names.
     Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction)
     {
         SWC_ASSERT(symbolFunction.callConvKind() == CallConvKind::Swag);

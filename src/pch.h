@@ -11,10 +11,16 @@
 #include <cctype>
 #include <cerrno>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <cwctype>
 #include <deque>
 #include <filesystem>
@@ -35,12 +41,14 @@
 #include <set>
 #include <shared_mutex>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -54,6 +62,12 @@ namespace fs = std::filesystem;
     }
 
 #define SWC_UNUSED(__x) ((void) (__x))
+
+#ifdef _MSC_VER
+#define SWC_FORCE_INLINE __forceinline
+#else
+#define SWC_FORCE_INLINE inline __attribute__((always_inline))
+#endif
 
 // MSVC keeps the standard spelling inert for ABI compatibility; its attribute packs empties.
 #if __has_cpp_attribute(msvc::no_unique_address)

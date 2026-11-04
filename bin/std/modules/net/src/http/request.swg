@@ -20,7 +20,7 @@ struct GetOptions
     {
         headers:      Array'Header                 // Request headers, whose strings are borrowed for the call.
         userAgent:    string = "Swag Net"          // User-Agent sent to the server.
-        timeoutMs:    u32    = 15_000              // WinHTTP timeout setting per phase, in milliseconds; not a strict deadline.
+        timeoutMs:    u32    = 15_000              // Timeout in milliseconds: per phase on Windows, whole transfer on Linux.
         maxBodyBytes: u64    = 4 * 1024 * 1024     // Maximum response body size in bytes.
     }
 }

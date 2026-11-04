@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Linker/ELFLinker.h"
 #include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"
@@ -153,6 +154,13 @@ namespace
     // background thread can write the artifact without touching the builder.
     void executePreparedLink(LinkJob& job)
     {
+        if (job.targetOs == Runtime::TargetOs::Linux)
+        {
+            ELFLinker::execute(job);
+            if (job.ok)
+                publishIncrementalCache(job);
+            return;
+        }
         const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);
         SWC_ASSERT(writer != nullptr);
         job.ok = runInternalLink(job, *writer);
@@ -166,6 +174,8 @@ std::unique_ptr<ImageWriter> ImageWriter::create(const Runtime::TargetOs targetO
 
     switch (*format)
     {
+        case NativeObjectFormat::LinuxElf:
+            return nullptr; // Linux final-image linking is handled separately from PE serialization.
         case NativeObjectFormat::WindowsCoff:
             return std::make_unique<PEWriter>();
     }
@@ -182,6 +192,8 @@ std::unique_ptr<Linker> Linker::create(NativeBackendBuilder& builder)
 {
     switch (builder.ctx().cmdLine().targetOs)
     {
+        case Runtime::TargetOs::Linux:
+            return std::make_unique<ELFLinker>(builder);
         case Runtime::TargetOs::Windows:
             return std::make_unique<PELinker>(builder);
     }

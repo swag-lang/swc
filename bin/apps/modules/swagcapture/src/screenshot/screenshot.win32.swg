@@ -11,7 +11,7 @@ struct CapturePlatformScope
 
 impl CapturePlatformScope
 {
-    mtd opDrop()
+    mtd close()
     {
         discard SetThreadDpiAwarenessContext(.previous)
     }

@@ -11,7 +11,7 @@ func createDirectoryJunction(link, target: string)->bool
     let windowsDir = Path.directoryName(fontsDir.toString())
     let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
     let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
-    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) { return false }
+    let process    = catch Env.runProcess(Env.StartInfo{fileName: shell.toString(), nativeArguments: arguments.toString(), standardOutput: .Pipe, standardError: .Pipe}) { return false }
     return process.exitCode() == 0
 }
 
@@ -37,11 +37,8 @@ func createDirectoryJunction(link, target: string)->bool
     let err = errOutcome.value()
     Swag.require(err != null)
 
-    // The sandbox rejects invalid paths before they reach the native filesystem call.
-    if Env.isSandboxed() do
-        Swag.require(err is Errors.SandboxError)
-    else do
-        Swag.require(err is Errors.InvalidFileNameError)
+    // Invalid names retain their filesystem error even when the sandbox rejects them first.
+    Swag.require(err is Errors.InvalidFileNameError)
     Swag.require(not Directory.exists(dirName))
 }
 

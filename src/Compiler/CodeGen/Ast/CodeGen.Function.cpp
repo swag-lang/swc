@@ -371,7 +371,7 @@ namespace
             SWC_ASSERT(symVar != nullptr);
 
             const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo = paramInfos[i];
-            if (paramInfo.isRegisterArg)
+            if (paramInfo.isRegisterArg || paramInfo.isSystemVStorage)
                 continue;
 
             if (stackParameterNeedsEagerLoad(codeGen, symbolFunc, *symVar, paramInfo))
@@ -400,6 +400,8 @@ namespace
 
         for (size_t i = 0; i < params.size(); ++i)
         {
+            if (paramInfos[i].isSystemVStorage)
+                continue;
             const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
@@ -510,6 +512,7 @@ namespace
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
+            CodeGenFunctionHelpers::materializeSystemVStorageParameters(codeGen, symbolFunc, paramInfos);
             CodeGenParameterReg::materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);
             spillAddressableParametersToLocalSlots(codeGen, symbolFunc, paramInfos);

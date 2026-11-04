@@ -213,6 +213,11 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
             if (floatArgs.widths & (3u << (index * 2)))
                 useDef.uses.push_back(callConv.floatArgRegs[index]);
         }
+        // System V variadic calls consume AL even though RAX is not an ordinary
+        // argument lane. Keep its setup live through DCE and register allocation.
+        if (callConv.isSystemVAMD64)
+            useDef.addUse(callConv.intReturn);
+
         // ABI tables contain physical registers, so no operand-sentinel filtering is needed.
         SWC_ASSERT(std::ranges::all_of(callConv.intTransientRegs, &MicroReg::isInt));
         SWC_ASSERT(std::ranges::all_of(callConv.floatTransientRegs, &MicroReg::isFloat));

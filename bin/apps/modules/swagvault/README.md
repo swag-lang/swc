@@ -1,6 +1,6 @@
 # Swag Vault
 
-Swag Vault creates encrypted container files and mounts them as Windows drives through WinFsp.
+Swag Vault creates encrypted container files and mounts them through WinFsp on Windows or libfuse3 on Linux.
 Its source, ordinary tests, and privileged integration harness share the applications workspace.
 
 ## Build, run, and test
@@ -43,6 +43,41 @@ file and directory handles through `GetFinalPathNameByHandleW`, as Python's `os.
 does. Windows classifies the drive as a network drive; WinFsp serves its files locally from the
 encrypted container without a network server. Restart the application and remount existing
 volumes after updating from a version that used local DOS-device mounts.
+
+## Linux mounts
+
+Install the distribution's FUSE 3 runtime and `fusermount3`, with access to `/dev/fuse`.
+Vault dynamically loads `libfuse3.so.4` or `libfuse3.so.3`; no driver installer or elevated Vault
+process is required. Automatic destinations are private directories under the user's application
+data directory, in `swag/vault/mounts`. An existing destination must be empty, owned by the mounting
+user, and not writable by another user. Only directories created by Vault are removed on unmount.
+
+Containers keep the same encrypted format and case-insensitive name lookup on both hosts. Linux exposes the mounting user's uid/gid,
+files as 0600 and directories as 0700. The persisted read-only attribute removes owner write access.
+Creation projects permissions into this private namespace; subsequent `chmod` can change only that
+read-only attribute. Other mode changes and ownership changes fail explicitly. Windows security
+descriptors are preserved. Symlinks, hard links, extended attributes and special files are not
+represented by this container format. Backslashes in Linux names are rejected because the shared
+namespace treats them as path separators. Stored timestamps retain 100-nanosecond precision.
+
+A writable container holds an exclusive advisory inode lock; read-only opens hold shared locks.
+Other Vault operations therefore cannot resize, rekey or write the same container while it is
+mounted. Unmount stops requests, joins the FUSE worker, commits pending metadata and closes the
+container. A read-only mount opens the container without host write access as well.
+
+Automatic unmount observes login1 session-lock and sleep signals through `libsystemd.so.0`, with
+an inhibitor that delays sleep while the GUI thread commits and unmounts protected volumes.
+Queued lock transitions are retained between timer ticks. Idle time comes from XScreenSaver on
+X11 (`libX11.so.6` and `libXss.so.1`), or login1 idle hints. These desktop services must be available
+and publish the relevant signals/hints; an unavailable idle clock does not invent an idle interval.
+The sleep delay remains subject to the session manager's configured inhibitor timeout.
+
+The Linux mount acceptance test is explicitly selected with `--tag vault.fuse.integration
+--test-tag integration.filesystem.fuse`. It uses generated scratch containers and verifies real
+kernel mounts, open-but-unlinked files, synchronization, read-only remounts and cleanup. Ordinary
+callback tests do not require FUSE access. The session protocol test uses the private login1 peer
+in `src/tests/datas/login1.peer.py`, selected with `--tag vault.session.integration --test-tag
+integration.session`; it never locks or suspends the host session.
 
 ## Privileged integration
 

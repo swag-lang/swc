@@ -49,14 +49,15 @@ namespace Os
     {
         std::string*              capturedOutput = nullptr;
         bool                      forwardOutput  = true;
-        const TaskContext*        logCtx         = nullptr;
-        std::span<const fs::path> additionalPathDirectories;
+        void (*forwardLineCallback)(const void* userData, std::string_view line) = nullptr;
+        const void* forwardLineUserData = nullptr;
+        std::span<const fs::path> additionalPathDirectories{};
         void (*outputLineCallback)(void* userData, std::string_view line) = nullptr;
         void* outputLineUserData                                          = nullptr;
 
         // Lines starting with this prefix are captured but not forwarded (used for
         // machine-readable marker lines like the native test tally).
-        std::string_view suppressForwardLinePrefix;
+        std::string_view suppressForwardLinePrefix{};
 
         // Kills the process and reports TimedOut after this many milliseconds; zero waits
         // forever. A run that is supposed to end on its own has to be given a deadline, or a
@@ -80,6 +81,7 @@ namespace Os
     void panicBox(std::string_view expr);
     Utf8 systemError();
     bool isFileSharingError();
+    bool isFileSharingError(std::error_code error);
 
     [[noreturn]]
     void exit(ExitCode code);
@@ -103,6 +105,9 @@ namespace Os
 
     bool isDebuggerAttached();
 
+    // Zero-initialized process storage shared with independently loaded Swag runtimes.
+    // Views and their publication anchor remain valid until process exit.
+    void*    processStorage(uint32_t key, uint32_t size);
     uint32_t memoryPageSize();
     void*    allocExecutableMemory(uint32_t size);
     bool     makeWritableExecutableMemory(void* ptr, uint32_t size);
@@ -120,6 +125,8 @@ namespace Os
     // Release committed pages without reusing their addresses while other JIT allocations live.
     void     freeProximityMemory(void* ptr, uint32_t size);
     bool     isProximityMemory(const void* ptr);
+    // Best-effort diagnostic read. On failure the destination may contain a partial prefix.
+    bool     tryReadMemory(std::span<std::byte> outBytes, const void* address);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
     void     registerExternalModuleSearchPath(const fs::path& path);

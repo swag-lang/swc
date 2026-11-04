@@ -8,7 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Symbol/Symbol.impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Main/CompilerInstance.h"
 #include "Symbol.Enum.h"
 #include "Symbol.Function.h"

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
@@ -185,11 +186,41 @@ namespace
             loadIntValueToReg(builder, dstReg, arg.srcReg, arg.numBits);
     }
 
+    MicroReg prepareSystemVCall(MicroBuilder& builder, const CallConv& conv, const CallFloatArgs floats, MicroReg targetReg = MicroReg::invalid())
+    {
+        if (!conv.isSystemVAMD64)
+            return targetReg;
+
+        // AL carries the number of live vector argument registers on a variadic
+        // call. Setting it for every System V call also covers function pointers
+        // whose declaration is unavailable here; fixed-prototype callees ignore it.
+        if (targetReg == conv.intReturn)
+        {
+            MicroReg scratch, unused;
+            SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(scratch, unused));
+            builder.emitLoadRegReg(scratch, targetReg, MicroOpBits::B64);
+            targetReg = scratch;
+        }
+        uint32_t count = 0;
+        for (uint32_t index = 0; index < 8; ++index)
+        {
+            if (floats.laneMask(index))
+                count = index + 1;
+        }
+        builder.emitLoadRegImm(conv.intReturn, ApInt(count, 32), MicroOpBits::B32);
+        return targetReg;
+    }
+
     void emitReturnWriteBack(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret, MicroReg regBase)
     {
         if (ret.isVoid || ret.isIndirect)
             return;
 
+        if (conv.isSystemVAMD64)
+        {
+            ABICall::storeSystemVReturn(builder, ret);
+            return;
+        }
         SWC_ASSERT(ret.valuePtr != nullptr);
         const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
@@ -209,9 +240,9 @@ namespace
             return result;
         }
 
-        // The unadjusted Swag path contains only register arguments, so it
-        // reserves alignment without inferring stack arguments from the count.
-        result.before  = callConvKind == CallConvKind::Swag ? ABICall::computeCallStackAdjust(callConvKind, 0) : ABICall::computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
+        // An unadjusted independent-bank call contains only register arguments;
+        // its total count does not describe how many arguments spill to the stack.
+        result.before  = CallConv::get(callConvKind).independentArgBanks ? ABICall::computeCallStackAdjust(callConvKind, 0) : ABICall::computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
         result.restore = result.before;
         return result;
     }
@@ -509,6 +540,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         return preparedCall;
 
     const CallConv& conv            = CallConv::get(callConvKind);
+    if (conv.isSystemVAMD64 && std::ranges::any_of(args, [](const PreparedArg& arg) { return arg.hasSystemVStorage(); }))
+        return prepareSystemVStorageArgs(builder, callConvKind, args);
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
     preparedCall.numPreparedArgs    = numPreparedArgs;
@@ -791,6 +824,11 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
         return;
 
     SWC_ASSERT(!ret.isIndirect);
+    if (ret.isSystemVStorage())
+    {
+        storeSystemVReturn(builder, outputStorageReg, ret.systemVStorageType());
+        return;
+    }
 
     const CallConv&   conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
@@ -807,6 +845,12 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
         return;
 
     SWC_ASSERT(!ret.isIndirect);
+    if (ret.isSystemVStorage())
+    {
+        SWC_ASSERT(valueIsLValue);
+        loadSystemVReturn(builder, valueReg, ret.systemVStorageType());
+        return;
+    }
 
     const CallConv& conv = CallConv::get(callConvKind);
 
@@ -838,11 +882,18 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
         loadIntValueToReg(builder, conv.intReturn, valueReg, ret.numBits);
 }
 
-void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)
+void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret, MicroReg directStorageReg)
 {
     if (ret.isVoid)
         return;
 
+    if (ret.isSystemVStorage() && !ret.isIndirect)
+    {
+        SWC_ASSERT(directStorageReg.isValid());
+        storeSystemVReturn(builder, directStorageReg, ret.systemVStorageType());
+        builder.emitLoadRegReg(dstReg, directStorageReg, MicroOpBits::B64);
+        return;
+    }
     const CallConv& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {
@@ -862,6 +913,12 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
+    if (CallConv::get(callConvKind).isSystemVAMD64)
+    {
+        callSystemVAddress(builder, callConvKind, targetAddress, args, ret);
+        return;
+    }
+
     // Fully self-contained call helper for runtime/JIT address calls.
     const CallConv&    conv        = CallConv::get(callConvKind);
     const auto         argLayouts  = collectArgLayouts(args);
@@ -876,6 +933,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
+    regTmp = prepareSystemVCall(builder, conv, argMasks.floats, regTmp);
     builder.emitCallReg(regTmp, callConvKind, argMasks.ints, argMasks.floats);
 
     emitReturnWriteBack(builder, conv, ret, regBase);
@@ -893,6 +951,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const 
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
     builder.emitCallLocal(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
@@ -914,6 +973,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const
     const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
     builder.emitCallExtern(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
@@ -946,6 +1006,7 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     }
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
+    targetReg = prepareSystemVCall(builder, conv, preparedCall.floatArgMask, targetReg);
     if (preparedCall.stackAlignmentLog2)
     {
         SWC_ASSERT(preparedCall.stackAlreadyAdjusted && preparedCall.stackAdjust >= AlignedCallStack::K_SAVE_SIZE);

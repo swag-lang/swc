@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -2866,6 +2867,17 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     if (sema.isNativeBuild() && sema.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows &&
         fn.idRef() == tlsGetValueId && sema.compiler().runtimeFunctionSymbol(tlsGetValueId) == &fn)
         return false;
+
+    // Across OS targets these runtime calls bind to compiler-host services in the
+    // JIT. Preserve that boundary instead of copying the target's foreign calls
+    // into their callers. Native host builds retain their ordinary inline policy.
+    if (sema.ctx().cmdLine().targetOs != hostTargetOs())
+    {
+        using Kind = IdentifierManager::RuntimeFunctionKind;
+        for (const auto kind : {Kind::TlsGetPtr, Kind::HostProcessStorage, Kind::HostCurrentThreadId})
+            if (sema.compiler().runtimeFunctionSymbol(kind) == &fn)
+                return false;
+    }
 
     // Structural guards that hold in every inline mode.
     if (fn.isClosure() || fn.isEmpty() || fn.isForeign())

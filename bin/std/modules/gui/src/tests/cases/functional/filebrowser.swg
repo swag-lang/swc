@@ -381,7 +381,8 @@ using Swag, Core, File
     for drive, idx in drives
     {
         var name = String.from(drive.toString())
-        name.removeBack()
+        if name.count > 1 do
+            name.removeBack()
         var path = String.from(drive.toString())
         Path.normalize(&path)
         Swag.require(places.stops[idx].name == name)

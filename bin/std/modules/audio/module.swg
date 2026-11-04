@@ -12,7 +12,12 @@ reconstruct the lossless extension substream.
 The high-level API revolves around three objects: [[Audio.SoundFile]] describes
 decoded or streamable source data, [[Audio.Voice]] controls one playback
 instance, and [[Audio.Bus]] groups voices for shared volume and routing. The
-default Windows backend is XAudio2; [[Audio.DriverKind.NoSound]] provides the
+default Windows backend is XAudio2; Linux uses FAudio through the SDL audio device driver.
+Linux requires `libFAudio.so.0` and its SDL dependencies; device acquisition failures are reported.
+The Linux backend accepts one through eight source or bus channels, including mono/stereo
+conversion and multiple or nested bus routes. Source sample rates range from 1000 to 200000 Hz,
+and frequency ratios from 1/1024 through 2. Values outside these ranges fail explicitly.
+[[Audio.DriverKind.NoSound]] provides the
 same lifecycle without opening an audio device.
 
 Create the engine before creating voices or buses. Destroying the engine stops
@@ -37,6 +42,8 @@ encodings fail instead of being guessed.
 */
 
 #import("core")
+#static if #os == Swag.TargetOs.Linux do
+    #import("faudio")
 #static if #os == Swag.TargetOs.Windows do
     #import("xaudio2")
 

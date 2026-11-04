@@ -8,6 +8,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct X64TlsAccess;
 class TaskContext;
 class JITMemory;
 class JITMemoryManager;
@@ -40,26 +41,31 @@ enum class JITRuntimeSetupMode : uint8_t
 class JIT final
 {
 public:
-    static void   prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations = {});
+    static Result prepare(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations = {}, std::span<const X64TlsAccess> tlsAccesses = {});
     static Result patch(TaskContext& ctx, const JITMemory& executableMemory, std::span<const MicroRelocation> relocations, const SymbolFunction* ownerFunction = nullptr);
     static Result patchGlobalFunctionVariables(TaskContext& ctx);
     static void   finalize(JITMemory& executableMemory);
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction = nullptr);
+    static Result emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMemory, const SymbolFunction& targetFunction);
     static bool   resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction);
 
     // Process-stable Swag entry for a native callback with up to two integer/pointer arguments
     // and a pointer or void result. Aggregate arguments must already be read-only indirect values.
     static void* getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
 
+    // Host diagnostic callback with the Swag scalar ABI; survives compiler instances.
+    static void* runtimeDiagnosticHandler(TaskContext& ctx);
+
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
-    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler);
+    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler, CallConvKind callConvKind = CallConvKind::C);
 
     // Frees every fiber-local slot JIT code allocated whose cleanup callback 'ownsCallback'
     // claims, running the callbacks for the threads that still hold values.
     static void releaseThreadStorage(const std::function<bool(const void*)>& ownsCallback);
 
 private:
-    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations);
+    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations, std::span<const X64TlsAccess> tlsAccesses = {});
+    static void* hostTlsReadAdapter(const X64TlsAccess& access);
 };
 
 SWC_END_NAMESPACE();

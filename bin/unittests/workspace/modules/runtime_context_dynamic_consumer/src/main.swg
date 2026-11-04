@@ -1,62 +1,68 @@
 using Core
 
-func verifyExpandedContextSlot(library: *NativeLibrary)
+// Native exports include the artifact name to keep independent modules distinct.
+const ExportPrefix = "__swc_api_72756e74696d655f636f6e746578745f64796e616d69635f646c6c__"
+
+#static if #os == Swag.TargetOs.Windows
 {
-    let hookSymbol    = library.symbol("__swc_rt_stage")
-    let contextSymbol = library.symbol("ctx_dynamic_read_context")
-    let failureSymbol = library.symbol("ctx_dynamic_catches_core_failure")
-    Swag.assert(hookSymbol != null and contextSymbol != null and failureSymbol != null)
-    let hook           = cast(func(u64, u64, u64, const *(string?)), hookSymbol)
-    let readContext    = cast(func()->*Swag.Context, contextSymbol)
-    let catchesFailure = cast(func()->bool, failureSymbol)
-    let previous       = Swag.getContext()
-    let previousSlot   = previous.runtimeTlsIdPlusOne
-    let flags          = cast(u64, previous.runtimeFlags)
-    let arguments      = &Swag.processInfo().args
-
-    var slots: [65] u32
-    var count = 0'u64
-    defer
+    func verifyExpandedContextSlot(library: *NativeLibrary)
     {
-        for i in count do discard Win32.TlsFree(slots[i])
-    }
+        let hookSymbol    = library.symbol("__swc_rt_stage")
+        let contextSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_read_context"))
+        let failureSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_catches_core_failure"))
+        Swag.assert(hookSymbol != null and contextSymbol != null and failureSymbol != null)
+        let hook           = cast(func(u64, u64, u64, const *(string?)), hookSymbol)
+        let readContext    = cast(func()->*Swag.Context, contextSymbol)
+        let catchesFailure = cast(func()->bool, failureSymbol)
+        let previous       = Swag.getContext()
+        let previousSlot   = previous.runtimeTlsIdPlusOne
+        let flags          = cast(u64, previous.runtimeFlags)
+        let arguments      = &Swag.processInfo().args
 
-    var expandedSlot = Win32.TLS_OUT_OF_INDEXES
-    while count < slots.count
-    {
-        let slot = Win32.TlsAlloc()
-        Swag.assert(slot != Win32.TLS_OUT_OF_INDEXES)
-        slots[count] = slot
-        count        += 1
-        if slot >= 64
+        var slots: [65] u32
+        var count = 0'u64
+        defer
         {
-            expandedSlot = slot
-            break
+            for i in count do discard Win32.TlsFree(slots[i])
         }
-    }
-    Swag.assert(expandedSlot != Win32.TLS_OUT_OF_INDEXES)
 
-    var alternate = previous[]
-    Swag.assert(Win32.TlsSetValue(expandedSlot, &alternate) != 0)
-    defer discard Win32.TlsSetValue(expandedSlot, null)
-    hook(0, expandedSlot + 1, flags, arguments)
-    defer
-    {
-        hook(0, previousSlot, flags, arguments)
-        discard Swag.getContext()
-    }
+        var expandedSlot = Win32.TLS_OUT_OF_INDEXES
+        while count < slots.count
+        {
+            let slot = Win32.TlsAlloc()
+            Swag.assert(slot != Win32.TLS_OUT_OF_INDEXES)
+            slots[count] = slot
+            count        += 1
+            if slot >= 64
+            {
+                expandedSlot = slot
+                break
+            }
+        }
+        Swag.assert(expandedSlot != Win32.TLS_OUT_OF_INDEXES)
 
-    // The direct TEB array ends at slot 63. Modules adopted into a larger slot
-    // must still see context replacement and propagate fallible calls correctly.
-    Swag.assert(readContext() == &alternate)
-    Swag.assert(Win32.TlsSetValue(expandedSlot, previous) != 0)
-    Swag.assert(readContext() == previous)
-    Swag.assert(catchesFailure())
+        var alternate = previous[]
+        Swag.assert(Win32.TlsSetValue(expandedSlot, &alternate) != 0)
+        defer discard Win32.TlsSetValue(expandedSlot, null)
+        hook(0, expandedSlot + 1, flags, arguments)
+        defer
+        {
+            hook(0, previousSlot, flags, arguments)
+            discard Swag.getContext()
+        }
+
+        // The direct TEB array ends at slot 63. Modules adopted into a larger slot
+        // must still see context replacement and propagate fallible calls correctly.
+        Swag.assert(readContext() == &alternate)
+        Swag.assert(Win32.TlsSetValue(expandedSlot, previous) != 0)
+        Swag.assert(readContext() == previous)
+        Swag.assert(catchesFailure())
+    }
 }
 
 func verifyDynamicallyLoadedRuntimeContext()
 {
-    const Prefix = "--dynamic-runtime-library="
+    const Prefix       = "--dynamic-runtime-library="
     var path = ""
     for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
         path = argument[Prefix.count until argument.count]
@@ -64,14 +70,20 @@ func verifyDynamicallyLoadedRuntimeContext()
     Swag.assert(path.count != 0)
     var library = expect NativeLibrary.load(path)
 
-    let symbol = library.symbol("ctx_dynamic_catches_core_failure")
+    let contextSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_read_context"))
+    Swag.assert(contextSymbol != null)
+    let readContext = cast(func()->*Swag.Context, contextSymbol)
+    Swag.assert(readContext() == Swag.getContext())
+
+    let symbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_catches_core_failure"))
     Swag.assert(symbol != null)
     let catchesCoreFailure = cast(func()->bool, symbol)
     Swag.assert(catchesCoreFailure())
 
-    verifyExpandedContextSlot(&library)
+    #static if #os == Swag.TargetOs.Windows do
+        verifyExpandedContextSlot(&library)
 
-    let countsSymbol = library.symbol("ctx_dynamic_lifecycle_counts")
+    let countsSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_lifecycle_counts"))
     Swag.assert(countsSymbol != null)
     let lifecycleCounts = cast(func()->u64, countsSymbol)
     Swag.assert(lifecycleCounts() == 0x0000000100000001)
@@ -80,7 +92,7 @@ func verifyDynamicallyLoadedRuntimeContext()
     Swag.assert(lifecycleCounts() == 0x0000000100000001)
 
     var dropCount = 0'u32
-    let setDropCounterSymbol = library.symbol("ctx_dynamic_set_drop_counter")
+    let setDropCounterSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_set_drop_counter"))
     Swag.assert(setDropCounterSymbol != null)
     let setDropCounter = cast(func(*u32), setDropCounterSymbol)
     setDropCounter(&dropCount)
@@ -91,12 +103,12 @@ func verifyDynamicallyLoadedRuntimeContext()
     Swag.assert(dropCount == 1)
 
     var reloaded = expect NativeLibrary.load(path)
-    let reloadedCountsSymbol = reloaded.symbol("ctx_dynamic_lifecycle_counts")
+    let reloadedCountsSymbol = reloaded.symbol(#stringof(ExportPrefix, "ctx_dynamic_lifecycle_counts"))
     Swag.assert(reloadedCountsSymbol != null)
     let reloadedLifecycleCounts = cast(func()->u64, reloadedCountsSymbol)
     Swag.assert(reloadedLifecycleCounts() == 0x0000000100000001)
 
-    let reloadedSetDropCounterSymbol = reloaded.symbol("ctx_dynamic_set_drop_counter")
+    let reloadedSetDropCounterSymbol = reloaded.symbol(#stringof(ExportPrefix, "ctx_dynamic_set_drop_counter"))
     Swag.assert(reloadedSetDropCounterSymbol != null)
     let reloadedSetDropCounter = cast(func(*u32), reloadedSetDropCounterSymbol)
     reloadedSetDropCounter(&dropCount)

@@ -61,6 +61,8 @@ SWC_DIAG_DEF(cmd_err_new_file_write_failed, Error, "cannot write starter file '{
 SWC_DIAG_DEF(cmd_err_clean_remove_failed, Error, "cannot remove '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_link_resource_read_failed, Error, "cannot read resource '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_link_resource_invalid, Error, "cannot use resource '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_link_external_failed, Error, "cannot link '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_link_elf_object, Error, "cannot write ELF object: {because}")
 SWC_DIAG_DEF(cmd_err_link_coff_truncated_header, Error, "truncated COFF file header")
 SWC_DIAG_DEF(cmd_err_link_coff_unsupported_machine, Error, "unsupported COFF machine (expected x64)")
 SWC_DIAG_DEF(cmd_err_link_coff_truncated_symbols, Error, "truncated COFF symbol table")
@@ -135,3 +137,4 @@ SWC_DIAG_DEF(cmd_err_workspace_requested_module_missing, Error, "workspace '{pat
 SWC_DIAG_DEF(cmd_err_workspace_requested_module_ignored, Error, "requested workspace module '{sym}' is marked 'ignoreInWorkspace'")
 SWC_DIAG_DEF(cmd_err_workspace_dependency_sync_failed, Error, "cannot synchronize workspace dependency '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_build_cfg_unknown_warning, Error, "build configuration field 'warnings.{arg}' does not accept value '{value}'; it accepts warning identifiers separated with '|', or 'all' for every warning")
+SWC_DIAG_DEF(cmd_err_jit_host_target, Error, "JIT cannot load {target} foreign libraries on the {value} compiler host")

@@ -24,6 +24,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -35,6 +36,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Fold.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1862,15 +1864,10 @@ namespace
 
     Result codeGenGetContext(CodeGen& codeGen)
     {
-        if (codeGen.isNativeBuild())
+        if (codeGen.isNativeBuild() && !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
             return codeGenGetContextNative(codeGen);
 
-        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
-
-        const auto&                       tlsGetValueFunction = *payload->runtimeFunctionSymbol;
-        const CallConvKind                callConvKind        = tlsGetValueFunction.callConvKind();
+        const CallConvKind                callConvKind        = CallConv::hostKind();
         const SemaNodeView                resultView          = codeGen.curViewType();
         MicroBuilder&                     builder             = codeGen.builder();
         SmallVector<ABICall::PreparedArg> preparedArgs;
@@ -1885,10 +1882,12 @@ namespace
         arg.numBits     = 64;
         preparedArgs.push_back(arg);
 
+        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&Os::tlsGetValue));
         const CallConv& callConv = CallConv::get(callConvKind);
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        ABICall::callLocal(builder, callConvKind, &tlsGetValueFunction, preparedCall);
+        ABICall::callReg(builder, callConvKind, targetReg, preparedCall);
 
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *resultView.type(), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
@@ -1908,15 +1907,9 @@ namespace
     {
         const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
 
-        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
-        SWC_ASSERT(payload != nullptr);
-        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
-        if (!payload || !payload->runtimeFunctionSymbol)
-            return Result::Error;
-
         const MicroReg contextReg = materializeSetContextArgument(codeGen, argumentRef);
         MicroReg       tlsIdReg   = MicroReg::invalid();
-        if (codeGen.isNativeBuild())
+        if (codeGen.isNativeBuild() && !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
         {
             const SymbolFunction* tlsAllocFunction = runtimeFunctionByName(codeGen, "__tlsAlloc");
             SWC_ASSERT(tlsAllocFunction != nullptr);
@@ -1931,13 +1924,18 @@ namespace
             builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
             builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
             builder.emitLoadMemReg(contextReg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
+            const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
+            SWC_ASSERT(payload && payload->runtimeFunctionSymbol);
+            return emitTlsSetValueCall(codeGen, *payload->runtimeFunctionSymbol, tlsIdReg, contextReg);
         }
-        else
-        {
-            tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
-        }
-
-        return emitTlsSetValueCall(codeGen, *payload->runtimeFunctionSymbol, tlsIdReg, contextReg);
+        tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
+        MicroBuilder& builder = codeGen.builder();
+        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&Os::tlsSetValue));
+        const std::array<ABICall::PreparedArg, 2> args{{{.srcReg = tlsIdReg, .numBits = 64}, {.srcReg = contextReg, .numBits = 64}}};
+        const auto prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), args);
+        ABICall::callReg(builder, CallConv::hostKind(), targetReg, prepared);
+        return Result::Continue;
     }
 }
 

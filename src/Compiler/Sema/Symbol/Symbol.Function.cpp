@@ -15,7 +15,9 @@
 #include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/SymbolOwnerFunction.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -731,6 +733,13 @@ Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
     collectPublicApiOverloads(*this, overloads);
     if (overloads.size() > 1)
         appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads.span());
+
+    // Native objects and import archives share one symbol namespace across modules. Encode the
+    // artifact bytes losslessly so case and punctuation cannot collapse distinct owners.
+    // API publication writes this complete name into the importer's Foreign attribute.
+    const Utf8 artifact = ctx.compiler().artifactName();
+    const auto bytes    = std::span{reinterpret_cast<const uint8_t*>(artifact.data()), artifact.size()};
+    apiName = "__swc_api_" + Utf8Helper::toLowerHex(bytes) + "__" + apiName;
 
     return apiName;
 }
@@ -1470,7 +1479,7 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 namespace
 {
     template<typename Map>
-    __forceinline auto ownerStructFromMap(Map* symMap) -> decltype(&symMap->template cast<SymbolStruct>())
+    SWC_FORCE_INLINE auto ownerStructFromMap(Map* symMap) -> decltype(&symMap->template cast<SymbolStruct>())
     {
         if (symMap)
         {

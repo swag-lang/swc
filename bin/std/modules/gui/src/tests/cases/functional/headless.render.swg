@@ -72,7 +72,7 @@ impl IWnd for SettledPaintWnd
 
     let surface = expect app.createSurface(0, 0, 160, 96)
     Swag.require(not app.renderer.needsNativeWindow())
-    Swag.require(not surface.hWnd)
+    Swag.require(surface.nativeRenderHandle() == null)
 
     surface.show()
     let image = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)

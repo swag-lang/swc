@@ -13,15 +13,20 @@ class TaskContext;
 class MicroBuilder;
 class Symbol;
 
+namespace SystemVAbi
+{
+    struct Classification;
+}
+
 namespace ABICall
 {
-    // Windows commits the stack one guard page at a time, so a frame larger than a page must
-    // touch each page on its way down.
-    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
+    // Touch every page of a large frame: Windows commits through guard pages, and Linux
+    // guard pages must not be skipped into an adjacent thread stack or mapping.
+    constexpr uint64_t K_STACK_PROBE_PAGE_SIZE = 4096;
 
-    inline bool needsWindowsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
+    inline bool needsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
     {
-        return stackAdjust > K_WINDOWS_STACK_PROBE_PAGE_SIZE && targetOs == Runtime::TargetOs::Windows;
+        return stackAdjust > K_STACK_PROBE_PAGE_SIZE && (targetOs == Runtime::TargetOs::Windows || targetOs == Runtime::TargetOs::Linux);
     }
 
     // An unspecified scalar ABI width uses a full integer register.
@@ -100,6 +105,9 @@ namespace ABICall
         uint64_t valueHi = 0;
         bool     isFloat = false;
         uint8_t  numBits = 0;
+        // For a classified System V value, value points to its exact storage instead
+        // of holding packed bits. The classification is consumed during lowering.
+        const SystemVAbi::Classification* systemVType = nullptr;
     };
 
     enum class PreparedArgKind : uint8_t
@@ -118,16 +126,23 @@ namespace ABICall
         bool            isAddressed        = false;
         bool            constrainToArgLane = false;
         uint8_t         numBits            = 0;
+        // Semantic callers keep a stable type handle; raw backend fixtures may supply
+        // a classification directly. Both forms describe storage addressed by srcReg.
+        TypeRef                           systemVTypeRef = TypeRef::invalid();
+        const SystemVAbi::Classification* systemVType    = nullptr;
+
+        bool hasSystemVStorage() const { return systemVType || systemVTypeRef.isValid(); }
     };
 
     struct Return
     {
         // Optional out buffer used by call helpers to materialize direct returns.
-        void*   valuePtr   = nullptr;
-        bool    isVoid     = true;
-        bool    isFloat    = false;
-        bool    isIndirect = false;
-        uint8_t numBits    = 0;
+        void*                             valuePtr    = nullptr;
+        bool                              isVoid      = true;
+        bool                              isFloat     = false;
+        bool                              isIndirect  = false;
+        uint8_t                           numBits     = 0;
+        const SystemVAbi::Classification* systemVType = nullptr;
     };
 
     struct PreparedCall
@@ -156,7 +171,7 @@ namespace ABICall
     void         materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind callConvKind, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
     void         storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, const ABITypeNormalize::NormalizedType& ret);
     void         storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
-    void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
+    void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret, MicroReg directStorageReg = MicroReg::invalid());
     void         callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);

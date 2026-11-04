@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -424,12 +425,51 @@ namespace
         result.opBits            = functionParameterLoadBits(type.isFloat, type.numBits);
     }
 
-    void setParameterLocationInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const CallConv& callConv, ABICall::ArgRegisterState& registerState, ABICall::ArgStackState& stackState, uint32_t slotIndex, const ABITypeNormalize::NormalizedType& type)
+    struct ParameterAllocator
+    {
+        ABICall::ArgRegisterState     registers;
+        ABICall::ArgStackState        stack;
+        SystemVAbi::ArgumentAllocator systemV;
+
+        ParameterAllocator(const CallConv& callConv, uint32_t hiddenArgCount) :
+            registers{.intLane = hiddenArgCount}
+        {
+            if (callConv.isSystemVAMD64)
+            {
+                for (uint32_t i = 0; i < hiddenArgCount; ++i)
+                    systemV.next({{SystemVAbi::Class::Integer, SystemVAbi::Class::None}, 8, 8});
+            }
+        }
+    };
+
+    void setParameterLocationInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const CallConv& callConv, ParameterAllocator& allocator, uint32_t slotIndex, const ABITypeNormalize::NormalizedType& type)
     {
         setParameterTypeInfo(result, type, slotIndex);
-        result.registerIndex = registerState.next(callConv, slotIndex, type.isFloat);
+        if (callConv.isSystemVAMD64)
+        {
+            SystemVAbi::Classification storage;
+            if (type.isSystemVStorage())
+                storage = type.systemVStorageType();
+            else
+            {
+                storage.size       = std::max(1u, static_cast<uint32_t>(type.numBits) / 8);
+                storage.alignment  = storage.size;
+                storage.classes[0] = type.isFloat ? SystemVAbi::Class::Sse : SystemVAbi::Class::Integer;
+                if (storage.size == 16)
+                    storage.classes[1] = type.isFloat ? SystemVAbi::Class::SseUp : SystemVAbi::Class::Integer;
+            }
+            const auto location     = allocator.systemV.next(storage);
+            result.isSystemVStorage = type.isSystemVStorage();
+            result.isRegisterArg    = !location.onStack;
+            result.registerIndex    = location.onStack ? UINT32_MAX : location.registers[0];
+            if (result.isSystemVStorage && result.isRegisterArg)
+                result.registerIndex |= static_cast<uint32_t>(location.registers[1]) << 8;
+            result.stackOffset = location.onStack ? 2 * sizeof(void*) + location.stackOffset : 0;
+            return;
+        }
+        result.registerIndex = allocator.registers.next(callConv, slotIndex, type.isFloat);
         result.isRegisterArg = result.registerIndex != UINT32_MAX;
-        result.stackOffset   = result.isRegisterArg ? 0 : 2 * sizeof(void*) + stackState.next(callConv, static_cast<uint8_t>(type.numBits ? type.numBits : 64));
+        result.stackOffset   = result.isRegisterArg ? 0 : 2 * sizeof(void*) + allocator.stack.next(callConv, static_cast<uint8_t>(type.numBits ? type.numBits : 64));
     }
 }
 
@@ -445,8 +485,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     SWC_ASSERT(parameterIndex < params.size());
     SWC_ASSERT(params[parameterIndex] == &symVar);
 
-    ABICall::ArgRegisterState registerState{.intLane = hiddenArgCount};
-    ABICall::ArgStackState    stackState;
+    ParameterAllocator allocator(callConv, hiddenArgCount);
     for (uint32_t i = 0; i <= parameterIndex; ++i)
     {
         const SymbolVariable* param = params[i];
@@ -455,7 +494,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = i + hiddenArgCount;
         FunctionParameterInfo                  currentInfo;
-        setParameterLocationInfo(currentInfo, callConv, registerState, stackState, slotIndex, type);
+        setParameterLocationInfo(currentInfo, callConv, allocator, slotIndex, type);
         if (i == parameterIndex)
             result = currentInfo;
     }
@@ -477,8 +516,7 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
     const uint32_t  hiddenArgCount = (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
 
     // Hidden return and closure pointers precede the declared parameters in the integer bank.
-    ABICall::ArgRegisterState registerState{.intLane = hiddenArgCount};
-    ABICall::ArgStackState    stackState;
+    ParameterAllocator allocator(callConv, hiddenArgCount);
 
     for (size_t i = 0; i < params.size(); ++i)
     {
@@ -489,7 +527,7 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = param->parameterIndex() + hiddenArgCount;
         FunctionParameterInfo&                 paramInfo = outParamInfos[i];
-        setParameterLocationInfo(paramInfo, callConv, registerState, stackState, slotIndex, type);
+        setParameterLocationInfo(paramInfo, callConv, allocator, slotIndex, type);
     }
 }
 
@@ -541,16 +579,15 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
         return false;
 
     const TypeInfo& storageType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
-    if (!SemaHelpers::isByValueAggregateType(storageType))
-        return false;
-
+    const bool      isAggregate = SemaHelpers::isByValueAggregateType(storageType);
     if (paramInfo)
-        return !paramInfo->isIndirect;
+        return paramInfo->isSystemVStorage || (isAggregate && !paramInfo->isIndirect);
 
     const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
-
+    if (!isAggregate && !callConv.isSystemVAMD64)
+        return false;
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, storageType, ABITypeNormalize::Usage::Argument);
-    return !normalizedParam.isIndirect;
+    return normalizedParam.isSystemVStorage() || (isAggregate && !normalizedParam.isIndirect);
 }
 
 bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
@@ -657,11 +694,42 @@ const SymbolVariable* CodeGenFunctionHelpers::resolveCanonicalParameter(const Sy
     return nullptr;
 }
 
+void CodeGenFunctionHelpers::materializeSystemVStorageParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const FunctionParameterInfo> paramInfos)
+{
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+    if (!callConv.isSystemVAMD64)
+        return;
+
+    const auto& params = symbolFunc.parameters();
+    SWC_ASSERT(paramInfos.size() == params.size());
+    for (size_t i = 0; i < params.size(); ++i)
+    {
+        if (!paramInfos[i].isSystemVStorage)
+            continue;
+        const SymbolVariable& param = *params[i];
+        SWC_ASSERT(param.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+        const auto     type     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param.typeRef()), ABITypeNormalize::Usage::Argument);
+        const MicroReg localReg = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), param.offset());
+        // All incoming scalar and aggregate lanes remain live until their own
+        // capture. Address calculations must not reuse any of those registers.
+        codeGen.builder().addVirtualRegForbiddenPhysRegs(localReg, callConv.intArgRegs.span());
+        ABICall::storeSystemVArgument(codeGen.builder(), localReg, type.systemVStorageType(), paramInfos[i].systemVLocation());
+
+        CodeGenNodePayload payload;
+        payload.typeRef = param.typeRef();
+        payload.reg     = localReg;
+        payload.setIsAddress();
+        codeGen.setVariablePayload(param, payload);
+    }
+}
+
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)
 {
     const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
     MicroBuilder&   builder  = codeGen.builder();
 
+    SWC_ASSERT(!paramInfo.isSystemVStorage);
     if (paramInfo.isRegisterArg)
     {
         if (paramInfo.isFloat)
@@ -1287,7 +1355,7 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
         return;
 
     MicroBuilder& builder = codeGen.builder();
-    if (!ABICall::needsWindowsStackProbe(codeGen.ctx().cmdLine().targetOs, sizeInBytes))
+    if (!ABICall::needsStackProbe(codeGen.ctx().cmdLine().targetOs, sizeInBytes))
     {
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(sizeInBytes, 64), MicroOp::Subtract, MicroOpBits::B64);
         return;
@@ -1301,11 +1369,11 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
     }
 
     uint64_t remaining = sizeInBytes;
-    while (remaining > ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+    while (remaining > ABICall::K_STACK_PROBE_PAGE_SIZE)
     {
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(ABICall::K_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegMem(scratchReg, callConv.stackPointer, 0, MicroOpBits::B64);
-        remaining -= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+        remaining -= ABICall::K_STACK_PROBE_PAGE_SIZE;
     }
 
     if (remaining)
@@ -1568,7 +1636,7 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
     SWC_ASSERT(dstStorageReg.isValid());
     SWC_ASSERT(srcStorageReg.isValid());
 
-    constexpr auto callConvKind = CallConvKind::C;
+    const auto callConvKind = CallConv::hostKind();
 
     MicroBuilder&  builder   = codeGen.builder();
     const MicroReg targetReg = codeGen.nextVirtualIntRegister();

@@ -175,8 +175,10 @@ public:
     static void printDim(const TaskContext& ctx, std::string_view message);
     static void printStdErr(LogColor color, std::string_view message, bool resetColor = true);
 
-    static void printField(const TaskContext& ctx, const FieldEntry& entry, const FieldGroupStyle& style = FieldGroupStyle{});
-    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries, const FieldGroupStyle& style = FieldGroupStyle{});
+    static void printField(const TaskContext& ctx, const FieldEntry& entry, const FieldGroupStyle& style);
+    static void printField(const TaskContext& ctx, const FieldEntry& entry) { printField(ctx, entry, {}); }
+    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries, const FieldGroupStyle& style);
+    static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries) { printFieldGroup(ctx, title, entries, {}); }
 
     static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 60);
     static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, LogColor dotColor, std::string_view dot, size_t messageColumn = 60);

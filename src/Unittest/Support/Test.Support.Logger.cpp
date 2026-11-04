@@ -16,10 +16,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    class LoggerBatchTestDirectory
+    class LoggerShellTestDirectory
     {
     public:
-        LoggerBatchTestDirectory()
+        LoggerShellTestDirectory()
         {
             path_ = (Os::getTemporaryPath() / "swc_unittest" / "logger" / std::format("batch_p{}", Os::currentProcessId())).lexically_normal();
             std::error_code ec;
@@ -27,7 +27,7 @@ namespace
             fs::create_directories(path_, ec);
         }
 
-        ~LoggerBatchTestDirectory()
+        ~LoggerShellTestDirectory()
         {
             std::error_code ec;
             fs::remove_all(path_, ec);
@@ -139,35 +139,42 @@ SWC_TEST_BEGIN(Logger_ProgressCanBeDisabledFromCommandLine)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Logger_BatchRedirectionKeepsPlainOutputAndExitCode)
+SWC_FILESYSTEM_TEST_BEGIN(Logger_ShellRedirectionKeepsPlainOutputAndExitCode)
 {
-    LoggerBatchTestDirectory testDir;
+    LoggerShellTestDirectory testDir;
     const fs::path           sourcePath = testDir.path() / "main.swg";
     const fs::path           logPath    = testDir.path() / "build.log";
-    const fs::path           batchPath  = testDir.path() / "compile.bat";
 
     SWC_RESULT(writeText(sourcePath, "#main\n{\n}\n"));
-    const Utf8 batch = std::format("@echo off\r\n\"{}\" syntax -f \"{}\" > \"{}\" 2>&1\r\nexit /b %errorlevel%\r\n", Os::getExeFullName().string(), sourcePath.string(), logPath.string());
+#ifdef _WIN32
+    const fs::path batchPath = testDir.path() / "compile.bat";
+    const Utf8 batch = std::format("@echo off\r\n\"{}\" syntax --num-cores 3 -f \"{}\" > \"{}\" 2>&1\r\nexit /b %errorlevel%\r\n", Os::getExeFullName().string(), sourcePath.string(), logPath.string());
     SWC_RESULT(writeText(batchPath, batch));
 
     const std::optional<Utf8> commandInterpreter = Os::readEnvironmentVariable("ComSpec");
     if (!commandInterpreter)
         return Result::Error;
 
+    const fs::path          interpreter{commandInterpreter->c_str()};
+    const std::vector<Utf8> args = {"/d", "/c", Utf8(batchPath.string())};
+#else
+    const fs::path interpreter = "/bin/sh";
+    // Paths are positional arguments, so spaces and shell metacharacters stay literal.
+    const std::vector<Utf8> args = {"-c", R"("$1" syntax --num-cores 3 -f "$2" > "$3" 2>&1)", "swc-logger-test", Utf8(Os::getExeFullName()), Utf8(sourcePath), Utf8(logPath)};
+#endif
     uint32_t                   exitCode  = 0;
-    const std::vector<Utf8>    args      = {"/d", "/c", Utf8(batchPath.string())};
-    const Os::ProcessRunResult runResult = Os::runProcess(exitCode, fs::path{commandInterpreter->c_str()}, args, testDir.path());
+    const Os::ProcessRunResult runResult = Os::runProcess(exitCode, interpreter, args, testDir.path());
 
     std::string             output;
     FileSystem::IoErrorInfo error;
     if (FileSystem::readTextFile(logPath, output, error) != Result::Continue)
     {
-        Logger::print(ctx, std::format("[logger-test] batch result={} exit={} log file was not created\n", static_cast<uint32_t>(runResult), exitCode));
+        Logger::print(ctx, std::format("[logger-test] shell result={} exit={} log file was not created\n", static_cast<uint32_t>(runResult), exitCode));
         return Result::Error;
     }
     if (runResult != Os::ProcessRunResult::Ok || exitCode != 0)
     {
-        Logger::print(ctx, std::format("[logger-test] batch result={} exit={}\n{}", static_cast<uint32_t>(runResult), exitCode, output));
+        Logger::print(ctx, std::format("[logger-test] shell result={} exit={}\n{}", static_cast<uint32_t>(runResult), exitCode, output));
         return Result::Error;
     }
     if (output.find('\x1b') != std::string::npos)

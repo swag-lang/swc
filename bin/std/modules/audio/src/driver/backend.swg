@@ -3,9 +3,10 @@ using Swag, Core, Core.Errors
 // Selects the engine backend.
 public enum DriverKind
 {
-    Default     // Selects XAudio2 on Windows and the no-sound backend elsewhere.
+    Default     // Selects XAudio2 on Windows, FAudio on Linux, and no-sound elsewhere.
     NoSound     // Preserves audio state and validation without producing sound.
     XAudio2     // Uses the Windows XAudio2 backend and fails where it is unavailable.
+    FAudio      // Uses the Linux FAudio/SDL audio backend and fails where it is unavailable.
 }
 
 struct DriverNative
@@ -16,6 +17,11 @@ struct DriverNative
     #static if #os == Swag.TargetOs.Windows
     {
         xAudio2: XAudio2DriverNative
+    }
+
+    #static if #os == Swag.TargetOs.Linux
+    {
+        fAudio: FAudioDriverNative
     }
 }
 
@@ -37,6 +43,14 @@ impl DriverNative
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .fAudio.createFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
 
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
@@ -60,6 +74,12 @@ impl DriverNative
             {
                 .xAudio2.destroyXAudio2()
             }
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                .fAudio.destroyFAudio()
+            }
         }
 
         .kind = .Default
@@ -76,6 +96,12 @@ impl DriverNative
             #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.stopEngineXAudio2()
+            }
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                .fAudio.stopEngineFAudio()
             }
         }
     }
@@ -94,6 +120,14 @@ impl DriverNative
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .fAudio.setOutputVolumeFAudio(volume)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -109,6 +143,12 @@ impl DriverNative
             {
                 return .xAudio2.outputVolumeXAudio2()
             }
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                return .fAudio.outputVolumeFAudio()
+            }
         }
 
         return 0
@@ -122,6 +162,10 @@ impl DriverNative
         #static if #os == Swag.TargetOs.Windows
         {
             return .XAudio2
+        }
+        elif #os == Swag.TargetOs.Linux
+        {
+            return .FAudio
         }
         else
         {
@@ -147,6 +191,14 @@ impl Voice
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
 
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try voice.createFAudio(createFlags)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
+
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
         }
@@ -163,6 +215,12 @@ impl Voice
             #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
+            }
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                .destroyFAudio()
             }
         }
     }
@@ -183,6 +241,14 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                return try .updateFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
 
         return false
@@ -202,6 +268,14 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .playFAudio(batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -219,6 +293,14 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .stopFAudio(batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -237,6 +319,14 @@ impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .resetFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -250,6 +340,10 @@ impl Voice
         case .XAudio2:
             #static if #os == Swag.TargetOs.Windows do
                 return .playedFramesXAudio2()
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux do
+                return .playedFramesFAudio()
         }
 
         return 0
@@ -278,6 +372,14 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .setVolumeFAudio(volume, batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -298,6 +400,14 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                return try .volumeFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
 
         return 0
@@ -326,6 +436,14 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .setFrequencyRatioFAudio(ratio, batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -346,6 +464,14 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                return try .frequencyRatioFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
 
         return 0
@@ -377,6 +503,14 @@ public impl Voice
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .setRoutingFAudio(buses)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 }
@@ -398,6 +532,14 @@ impl Bus
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
 
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try bus.createFAudio(numChannels, parent)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
+
         default:
             fail UnsupportedFormatError{"audio driver is not available"}
         }
@@ -414,6 +556,12 @@ impl Bus
             #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
+            }
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                .destroyFAudio()
             }
         }
     }
@@ -441,6 +589,14 @@ public impl Bus
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .setVolumeFAudio(volume, batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
     }
 
@@ -461,6 +617,14 @@ public impl Bus
             }
             else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                return try .volumeFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
         }
 
         return 0

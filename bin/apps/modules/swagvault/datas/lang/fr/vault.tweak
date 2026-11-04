@@ -67,12 +67,12 @@ ui_PrivacyTitle        Vie privée
 ui_OptionsHelp         Protégez l'emplacement des coffres et choisissez quand fermer automatiquement les lecteurs protégés.
 ui_PrivacyMode         Mode vie privée
 ui_PrivacyModeHelp     Ne pas enregistrer les chemins des conteneurs, l'historique de navigation ni les montages au démarrage.
-ui_UnmountOnLock       Démonter au verrouillage de Windows
-ui_UnmountOnLockHelp   Les lecteurs protégés se ferment dès que la session Windows actuelle est verrouillée.
+ui_UnmountOnLock       Démonter au verrouillage de session
+ui_UnmountOnLockHelp   Les lecteurs protégés se ferment lorsque la session actuelle est verrouillée.
 ui_UnmountOnSuspend    Démonter avant la mise en veille
-ui_UnmountOnSuspendHelp Les lecteurs protégés se ferment lorsque Windows met l'ordinateur en veille.
+ui_UnmountOnSuspendHelp Les lecteurs protégés se ferment avant la mise en veille de l'ordinateur.
 ui_UnmountOnIdle       Démonter après une période d'inactivité
-ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment lorsque Windows n'a reçu aucune entrée clavier ou souris pendant %.
+ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment après une absence d'entrée clavier ou souris pendant %.
 ui_Minutes             % minutes
 
 # The boxes that change a vault.
@@ -129,7 +129,7 @@ msg_HiddenCreateCanceled Création cachée annulée ; un ancien volume caché pe
 msg_ChooseExisting     Choisissez un conteneur existant.
 msg_AlreadyMounted     Un lecteur expose déjà ce conteneur.
 msg_UnmountFirst       Ce coffre est monté. Démontez-le avant de le modifier.
-msg_NoDriveLetter      Aucune lettre de lecteur n'est disponible.
+msg_NoDriveLetter      Aucun emplacement de montage n'est disponible.
 msg_StartingDriver     Démarrage du pilote de système de fichiers portable...
 msg_Unmounting         Synchronisation et démontage du lecteur chiffré...
 msg_CreateStopped      La création du conteneur s'est arrêtée.
@@ -177,3 +177,5 @@ msg_ErrorCode            Code d'erreur : 0x%{X}
 
 search_Create créer coffre;nouveau conteneur
 search_Open ouvrir coffre;ouvrir conteneur
+
+ui_AboutLinuxRuntime Système de fichiers en espace utilisateur — github.com/libfuse/libfuse. Les événements de session utilisent systemd et l’inactivité du bureau utilise X.Org. Licences dans THIRDPARTY.md.

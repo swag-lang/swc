@@ -77,3 +77,27 @@ can corrupt memory even when the code compiles.
 the Windows APIs shown here. It is not a promise that every external API uses
 the C ABI on every architecture; use the ABI specified by that API.
 */
+
+/**
+# C Variadic Arguments
+
+Declare the trailing ellipsis of a C function with an untyped 'args: ...'
+parameter and the C calling convention. Each extra argument occupies its own
+native ABI position. C default argument promotions convert 'f32' to 'f64' and
+'bool' or integer types narrower than 32 bits to 's32'. Fixed parameters retain
+their declared types. Function-pointer aliases for these calls also need '.C'.
+
+```swag
+#[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
+func snprintf(buffer: [*] u8, size: u64, format: const [*] u8, args: ...)->s32
+
+var text: [64] u8
+let count = snprintf(&text[0], text.count, "%.2f".buffer, 1.25'f32)
+Swag.assert(count == 4)
+```
+
+The example uses glibc on Linux. Match every argument to the native function's
+contract, including pointer types and format specifiers. A Swag 'string' is not
+a C string pointer; pass zero-terminated storage explicitly. Swag-convention
+variadic calls continue to use their ordinary packed argument slices.
+*/

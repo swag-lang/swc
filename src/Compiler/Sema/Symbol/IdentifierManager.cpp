@@ -123,6 +123,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimeEnsureRuntimeAllocator, .str = "__ensureRuntimeAllocator"},
         {.name = PredefinedName::RuntimeSetupRuntime, .str = "__setupRuntime"},
+        {.name = PredefinedName::RuntimeSetupUnixArguments, .str = "__setupUnixArguments"},
         {.name = PredefinedName::RuntimeReleaseRuntime, .str = "__releaseRuntime"},
         {.name = PredefinedName::RuntimeCloseRuntime, .str = "__closeRuntime"},
 
@@ -162,6 +163,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeTlsVarPtr, .str = "__tlsVarPtr"},
+        {.name = PredefinedName::RuntimeHostProcessStorage, .str = "__hostProcessStorage"},
+        {.name = PredefinedName::RuntimeHostCurrentThreadId, .str = "__hostCurrentThreadId"},
 
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
 
@@ -180,6 +183,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]                   = predefined(PredefinedName::RuntimeExit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EnsureRuntimeAllocator)] = predefined(PredefinedName::RuntimeEnsureRuntimeAllocator);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupRuntime)]           = predefined(PredefinedName::RuntimeSetupRuntime);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupUnixArguments)]     = predefined(PredefinedName::RuntimeSetupUnixArguments);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ReleaseRuntime)]         = predefined(PredefinedName::RuntimeReleaseRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CloseRuntime)]           = predefined(PredefinedName::RuntimeCloseRuntime);
 
@@ -216,6 +220,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]   = predefined(PredefinedName::RuntimeTlsGetPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]   = predefined(PredefinedName::RuntimeTlsVarPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostProcessStorage)] = predefined(PredefinedName::RuntimeHostProcessStorage);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostCurrentThreadId)] = predefined(PredefinedName::RuntimeHostCurrentThreadId);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
 

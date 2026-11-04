@@ -201,7 +201,8 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
 // Runs one capture in `captureMode`, `monitorIndex` naming the monitor of `.Monitor`.
 func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0) fail
 {
-    let platformScope = beginCapturePlatformScope()
+    var platformScope = beginCapturePlatformScope()
+    defer platformScope.close()
 
     // Keep the editor out of the desktop pixels unless the option says otherwise.
     let surface   = unwrap main.surface

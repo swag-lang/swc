@@ -29,7 +29,7 @@ using Core
     painter.clear(Argb.Red)
     painter.unbindRenderTarget()
     painter.end()
-    renderer.draw(&painter)
+    expect renderer.draw(&painter)
     renderer.setCurrentContext(second)
     renderer.deleteContext(&first)
     expect firstWindow.close()

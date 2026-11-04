@@ -115,7 +115,7 @@ func sendManagedClose(window: *Env.Window)
         painter.clear(Argb.Red)
         painter.unbindRenderTarget()
         painter.end()
-        renderer.draw(&painter)
+        expect renderer.draw(&painter)
         renderer.end()
 
         // A declined request leaves both the drawable and its renderer borrow alive.

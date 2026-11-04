@@ -1994,7 +1994,7 @@ impl IWnd for Explorer
                         else do
                             .setStatus(preview.error)
                     }
-                    elif preview.image.isValid()
+                    elif preview.image.isValid() and (preview.online or not preview.needsOnline)
                     {
                         if .entries[preview.index].directory and not preview.mediaFile.isEmpty() do
                             .entries[preview.index].albumTrack = preview.mediaFile

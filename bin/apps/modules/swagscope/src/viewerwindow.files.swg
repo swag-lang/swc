@@ -80,7 +80,13 @@ impl ViewerWindow
     // Carries a document's ground through the window instead of leaving a caption band above it.
     mtd refreshReadingAppearance()
     {
-        if .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
+        if .currentView is Viewers.Film.Panel
+        {
+            var player = Viewers.Film.videoChromePalette()
+            .surface?.wnd.setChromePalette(&player)
+            .style.setStyleSheetColors("ground 0xFF000000")
+        }
+        elif .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
         {
             let colors   = markdown.themeColors()
             var document = colors.view_Bk.relativeLuminance() <= 0.5 ?

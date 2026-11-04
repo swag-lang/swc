@@ -290,7 +290,7 @@ impl ExplorerPreview
 
             // A file replaced during rendering must not publish an image under its old identity.
             let current = catch ThumbnailCache.key(source, member, settings: .settings)
-            if not providerFailed and not Swag.isCancelled() and cache == current do
+            if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do
                 catch ThumbnailCache.write(cache, &.image)
         }
     }

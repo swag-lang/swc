@@ -812,7 +812,7 @@ impl Surface
         if not .flags.has(.Border) do
             return
 
-        var pen = Pen.createSolid(.app.theme.colors.wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
+        var pen = Pen.createSolid(.wnd.themeColors().wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
         pen.borderPos = .Inside
 
         let body   = .bodyShape()

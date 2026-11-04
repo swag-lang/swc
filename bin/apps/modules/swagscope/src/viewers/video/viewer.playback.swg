@@ -460,7 +460,10 @@ impl Panel
 
         if not .playing
         {
-            discard .publishHead()
+            // Only a requested seek or the first picture may publish while paused. Draining the
+            // run-ahead queue here made pause and stop appear to advance several frames.
+            if .awaitingFrame do
+                discard .publishHead()
             return
         }
 

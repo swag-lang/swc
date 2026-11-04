@@ -311,8 +311,9 @@ impl BottomVeil
         let metrics = parent.themeMetrics()
         let size    = themeActionButtonSize(metrics)
         let glyph   = parent.theme().icon(icon, themeActionIconSize(metrics))
-        let button  = IconButton.create(parent, glyph, Math.Rectangle{0, 0, size, size}, id, flags: flags | .Flat)
+        let button  = IconButton.create(parent, glyph, Math.Rectangle{0, 0, size, size}, id, flags: flags | .Overlay)
         button.setIconColor(VeilInk)
+        button.setTextColor(VeilInk)
         return button
     }
 

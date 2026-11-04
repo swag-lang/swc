@@ -94,6 +94,9 @@ class ToolTests(unittest.TestCase):
             self.assertIn('--rebuild', sandbox.command)
             self.assertIn('--no-test-native', sandbox.command)
             self.assertEqual(self.stages[-1].expected_output, 'SWAG_IMPORTED_CORE_WITHOUT_USING_RAN')
+            png = next(stage for stage in self.stages if stage.name == 'workspace-import-png-script')
+            self.assertEqual(png.expected_output, 'SWAG_IMPORTED_PNG_RAN')
+            self.assertTrue(png.command[-1].endswith('import_png.swgs'))
 
     def test_workers_and_explicit_runtime_override(self):
         for workers, expected in (('1', '1'), ('2', '2'), ('0', '3'), ('8', '3')):

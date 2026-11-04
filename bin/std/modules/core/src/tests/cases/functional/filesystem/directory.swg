@@ -37,11 +37,8 @@ func createDirectoryJunction(link, target: string)->bool
     let err = errOutcome.value()
     Swag.require(err != null)
 
-    // The sandbox rejects invalid paths before they reach the native filesystem call.
-    if Env.isSandboxed() do
-        Swag.require(err is Errors.SandboxError)
-    else do
-        Swag.require(err is Errors.InvalidFileNameError)
+    // Invalid names retain their filesystem error even when the sandbox rejects them first.
+    Swag.require(err is Errors.InvalidFileNameError)
     Swag.require(not Directory.exists(dirName))
 }
 

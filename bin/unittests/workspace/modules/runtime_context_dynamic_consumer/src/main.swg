@@ -1,12 +1,15 @@
 using Core
 
+// Native exports include the artifact name to keep independent modules distinct.
+const ExportPrefix = "__swc_api_72756e74696d655f636f6e746578745f64796e616d69635f646c6c__"
+
 #static if #os == Swag.TargetOs.Windows
 {
     func verifyExpandedContextSlot(library: *NativeLibrary)
     {
         let hookSymbol    = library.symbol("__swc_rt_stage")
-        let contextSymbol = library.symbol("ctx_dynamic_read_context")
-        let failureSymbol = library.symbol("ctx_dynamic_catches_core_failure")
+        let contextSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_read_context"))
+        let failureSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_catches_core_failure"))
         Swag.assert(hookSymbol != null and contextSymbol != null and failureSymbol != null)
         let hook           = cast(func(u64, u64, u64, const *(string?)), hookSymbol)
         let readContext    = cast(func()->*Swag.Context, contextSymbol)
@@ -59,8 +62,6 @@ using Core
 
 func verifyDynamicallyLoadedRuntimeContext()
 {
-    // ELF exports include the artifact name to keep independent modules distinct.
-    const ExportPrefix = #os == Swag.TargetOs.Linux ? "__swc_api_72756e74696d655f636f6e746578745f64796e616d69635f646c6c__" : ""
     const Prefix       = "--dynamic-runtime-library="
     var path = ""
     for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do

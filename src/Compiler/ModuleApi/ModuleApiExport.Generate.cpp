@@ -1088,7 +1088,7 @@ namespace
     }
 
     // Importers infer the module, Swag calling convention, and flattened scoped
-    // name. Preserve an explicit target for overloads and module-qualified ELF names.
+    // name. Preserve an explicit target for overloads and module-qualified native names.
     Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction)
     {
         SWC_ASSERT(symbolFunction.callConvKind() == CallConvKind::Swag);

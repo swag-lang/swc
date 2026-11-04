@@ -82,7 +82,6 @@ namespace
         fs::path path_;
     };
 
-#ifdef __linux__
     Result copyWorkspaceModules(const fs::path& destination, const std::initializer_list<std::string_view> modules)
     {
         const fs::path sourceModules = Os::getExeFullName().parent_path() / "unittests" / "workspace" / "modules";
@@ -99,7 +98,6 @@ namespace
         }
         return Result::Continue;
     }
-#endif
 
     Result runCompiler(const std::vector<Utf8>& args, const ExitCode expectedExit, const std::string_view expectedOutput)
     {
@@ -558,23 +556,26 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesExecuteDuringCompilation)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxTransitiveSharedModulesExecuteDuringCompilation)
+#endif
+
+SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSharedModulesExecuteDuringCompilation)
 {
     LinkerTestDirectory directory("transitive_shared_library_jit");
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
     // Build providers in a separate process so their earlier compilation cannot preload them.
     const std::vector<Utf8> dependencies = {
-        "build", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_middle",
+        "build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_middle",
         "--num-cores", "3", "--no-log-color"};
     SWC_RESULT(runCompiler(dependencies, ExitCode::Success, ""));
     const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
+        "run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
         "--num-cores", "3", "--no-log-color"};
     SWC_RESULT(runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed"));
     return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
 }
 SWC_TEST_END()
 
+#ifdef __linux__
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxCompanionArchivesKeepRuntimeHooksDistinct)
 {
     LinkerTestDirectory directory("companion_archive_runtime_hooks");

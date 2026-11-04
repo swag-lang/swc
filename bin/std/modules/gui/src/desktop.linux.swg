@@ -520,10 +520,10 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
     return result
 }
 
-internal func wslDpiScale()->f32?
+internal func wslDpiScale()->f32
 {
     if Env.variable("WSL_INTEROP").isEmpty() do
-        return null
+        return 0
 
     const command = """
         Add-Type -Namespace SwagDpi -Name Monitor -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); [DllImport("user32.dll")] public static extern uint GetDpiForSystem();'
@@ -531,15 +531,15 @@ internal func wslDpiScale()->f32?
         [SwagDpi.Monitor]::GetDpiForSystem()
         """
     const arguments: [6]string = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command]
-    let process = catch Env.runProcess("powershell.exe", arguments) { return null }
+    let process = catch Env.runProcess("powershell.exe", arguments) { return 0 }
     if process.exitCode() != 0 do
-        return null
+        return 0
 
     var output = String.from(process.standardOutput())
     output.trim()
-    let dpi = catch StrConv.toU32(output.toString()) { return null }
+    let dpi = catch StrConv.toU32(output.toString()) { return 0 }
     if dpi < 48 or dpi > 768 do
-        return null
+        return 0
     return cast(f32, dpi) / 96
 }
 
@@ -549,7 +549,8 @@ internal func preferences(context: *Context)->Preferences
     if not context.wslDpiResolved
     {
         context.wslDpiResolved = true
-        context.wslDpiScale = wslDpiScale() orelse 1
+        let scale = wslDpiScale()
+        context.wslDpiScale = scale > 0 ? scale : 1
     }
 
     var result = Preferences{scale: context.wslDpiScale}

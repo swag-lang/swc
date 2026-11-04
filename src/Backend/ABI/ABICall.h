@@ -13,17 +13,20 @@ class TaskContext;
 class MicroBuilder;
 class Symbol;
 
-namespace SystemVAbi { struct Classification; }
+namespace SystemVAbi
+{
+    struct Classification;
+}
 
 namespace ABICall
 {
-    // Windows commits the stack one guard page at a time, so a frame larger than a page must
-    // touch each page on its way down.
-    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
+    // Touch every page of a large frame: Windows commits through guard pages, and Linux
+    // guard pages must not be skipped into an adjacent thread stack or mapping.
+    constexpr uint64_t K_STACK_PROBE_PAGE_SIZE = 4096;
 
-    inline bool needsWindowsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
+    inline bool needsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
     {
-        return stackAdjust > K_WINDOWS_STACK_PROBE_PAGE_SIZE && targetOs == Runtime::TargetOs::Windows;
+        return stackAdjust > K_STACK_PROBE_PAGE_SIZE && (targetOs == Runtime::TargetOs::Windows || targetOs == Runtime::TargetOs::Linux);
     }
 
     // An unspecified scalar ABI width uses a full integer register.
@@ -125,8 +128,8 @@ namespace ABICall
         uint8_t         numBits            = 0;
         // Semantic callers keep a stable type handle; raw backend fixtures may supply
         // a classification directly. Both forms describe storage addressed by srcReg.
-        TypeRef systemVTypeRef = TypeRef::invalid();
-        const SystemVAbi::Classification* systemVType = nullptr;
+        TypeRef                           systemVTypeRef = TypeRef::invalid();
+        const SystemVAbi::Classification* systemVType    = nullptr;
 
         bool hasSystemVStorage() const { return systemVType || systemVTypeRef.isValid(); }
     };
@@ -134,11 +137,11 @@ namespace ABICall
     struct Return
     {
         // Optional out buffer used by call helpers to materialize direct returns.
-        void*   valuePtr   = nullptr;
-        bool    isVoid     = true;
-        bool    isFloat    = false;
-        bool    isIndirect = false;
-        uint8_t numBits    = 0;
+        void*                             valuePtr    = nullptr;
+        bool                              isVoid      = true;
+        bool                              isFloat     = false;
+        bool                              isIndirect  = false;
+        uint8_t                           numBits     = 0;
         const SystemVAbi::Classification* systemVType = nullptr;
     };
 

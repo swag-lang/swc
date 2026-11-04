@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
-#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABICall.SystemV.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -458,7 +458,7 @@ namespace
                 if (storage.size == 16)
                     storage.classes[1] = type.isFloat ? SystemVAbi::Class::SseUp : SystemVAbi::Class::Integer;
             }
-            const auto location = allocator.systemV.next(storage);
+            const auto location     = allocator.systemV.next(storage);
             result.isSystemVStorage = type.isSystemVStorage();
             result.isRegisterArg    = !location.onStack;
             result.registerIndex    = location.onStack ? UINT32_MAX : location.registers[0];
@@ -709,7 +709,7 @@ void CodeGenFunctionHelpers::materializeSystemVStorageParameters(CodeGen& codeGe
         const SymbolVariable& param = *params[i];
         SWC_ASSERT(param.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
         SWC_ASSERT(codeGen.localStackBaseReg().isValid());
-        const auto type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param.typeRef()), ABITypeNormalize::Usage::Argument);
+        const auto     type     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param.typeRef()), ABITypeNormalize::Usage::Argument);
         const MicroReg localReg = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), param.offset());
         // All incoming scalar and aggregate lanes remain live until their own
         // capture. Address calculations must not reuse any of those registers.
@@ -718,7 +718,7 @@ void CodeGenFunctionHelpers::materializeSystemVStorageParameters(CodeGen& codeGe
 
         CodeGenNodePayload payload;
         payload.typeRef = param.typeRef();
-        payload.reg = localReg;
+        payload.reg     = localReg;
         payload.setIsAddress();
         codeGen.setVariablePayload(param, payload);
     }
@@ -1355,7 +1355,7 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
         return;
 
     MicroBuilder& builder = codeGen.builder();
-    if (!ABICall::needsWindowsStackProbe(codeGen.ctx().cmdLine().targetOs, sizeInBytes))
+    if (!ABICall::needsStackProbe(codeGen.ctx().cmdLine().targetOs, sizeInBytes))
     {
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(sizeInBytes, 64), MicroOp::Subtract, MicroOpBits::B64);
         return;
@@ -1369,11 +1369,11 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
     }
 
     uint64_t remaining = sizeInBytes;
-    while (remaining > ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+    while (remaining > ABICall::K_STACK_PROBE_PAGE_SIZE)
     {
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(ABICall::K_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegMem(scratchReg, callConv.stackPointer, 0, MicroOpBits::B64);
-        remaining -= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+        remaining -= ABICall::K_STACK_PROBE_PAGE_SIZE;
     }
 
     if (remaining)

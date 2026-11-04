@@ -1192,7 +1192,7 @@ namespace
             uint64_t stackAdjust = 0;
             if (!isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, stackAdjust))
                 continue;
-            if (!context.taskContext || !ABICall::needsWindowsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust))
+            if (!context.taskContext || !ABICall::needsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust))
                 continue;
 
             auto nextIt = it;
@@ -1219,9 +1219,9 @@ namespace
             probeOps[1].reg    = conv.stackPointer;
             probeOps[2].opBits = MicroOpBits::B64;
 
-            while (remaining > ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            while (remaining > ABICall::K_STACK_PROBE_PAGE_SIZE)
             {
-                remaining -= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+                remaining -= ABICall::K_STACK_PROBE_PAGE_SIZE;
                 probeOps[3].valueU64 = remaining;
                 context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps);
             }
@@ -1237,7 +1237,7 @@ namespace
     bool hasBodyStackProbes(const MicroPassContext& context, MicroStorage::Iterator allocation, MicroReg stackPointer, uint64_t stackAdjust)
     {
         const auto begin = context.instructions->view().begin();
-        for (uint64_t offset = stackAdjust;; offset = ((offset - 1) / ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE) * ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+        for (uint64_t offset = stackAdjust;; offset = ((offset - 1) / ABICall::K_STACK_PROBE_PAGE_SIZE) * ABICall::K_STACK_PROBE_PAGE_SIZE)
         {
             if (allocation == begin)
                 return false;
@@ -1248,14 +1248,14 @@ namespace
             if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B8 ||
                 ops[2].valueU64 != uint64_t{0} - offset || ops[3].valueU64 != 0)
                 return false;
-            if (offset <= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            if (offset <= ABICall::K_STACK_PROBE_PAGE_SIZE)
                 return true;
         }
     }
 
     bool expandLargeBodyStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
-        if (!context.taskContext || context.taskContext->cmdLine().targetOs != Runtime::TargetOs::Windows)
+        if (!context.taskContext)
             return false;
 
         bool inPrologue = true;
@@ -1269,7 +1269,7 @@ namespace
 
             uint64_t stackAdjust = 0;
             if (!isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, stackAdjust) ||
-                !ABICall::needsWindowsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust) ||
+                !ABICall::needsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust) ||
                 hasBodyStackProbes(context, it, conv.stackPointer, stackAdjust))
                 continue;
 
@@ -1278,7 +1278,7 @@ namespace
             probe[0].reg    = conv.stackPointer;
             probe[1].opBits = MicroOpBits::B8;
             probe[3].setImmediateValue(ApInt(0, 8));
-            for (uint64_t offset = ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE; offset < stackAdjust; offset += ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            for (uint64_t offset = ABICall::K_STACK_PROBE_PAGE_SIZE; offset < stackAdjust; offset += ABICall::K_STACK_PROBE_PAGE_SIZE)
             {
                 probe[2].valueU64 = uint64_t{0} - offset;
                 context.instructions->insertSyntheticBefore(*context.operands, allocation, MicroInstrOpcode::CmpMemImm, probe);

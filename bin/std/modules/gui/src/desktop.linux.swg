@@ -15,6 +15,8 @@ internal struct Context
     settingsOwner:                                u32
     screenIndex:                                  s32
     uiThread:                                     u64
+    wslDpiScale:                                  f32 = 1
+    wslDpiResolved:                               bool
     surfaces:                                     Array'(*Surface)
     cursorFont:                                   u32
     cursors:                                      [CursorShape]u32
@@ -427,8 +429,8 @@ internal func failNative(error: s32) fail
     fail Swag.SystemError{message, errorID: cast(u64, error)}
 }
 
-// Gdk/WindowScalingFactor is the desktop UI scale. Xft/DPI remains the fallback for desktops
-// without that setting; physical monitor millimeters do not express the user's chosen scale.
+// Desktop settings are authoritative. WSLg's X11 server can report 96 DPI without publishing
+// the Windows monitor scale, so WSL interop supplies a fallback before Xft settings are read.
 internal struct Preferences
 {
     scale:         f32  = 1
@@ -518,10 +520,39 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
     return result
 }
 
+internal func wslDpiScale()->f32?
+{
+    if Env.variable("WSL_INTEROP").isEmpty() do
+        return null
+
+    const command = """
+        Add-Type -Namespace SwagDpi -Name Monitor -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); [DllImport("user32.dll")] public static extern uint GetDpiForSystem();'
+        [SwagDpi.Monitor]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null
+        [SwagDpi.Monitor]::GetDpiForSystem()
+        """
+    const arguments: [6]string = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command]
+    let process = catch Env.runProcess("powershell.exe", arguments) orelse return null
+    if process.exitCode() != 0 do
+        return null
+
+    var output = String.from(process.standardOutput())
+    output.trim()
+    let dpi = catch StrConv.toU32(output.toString()) orelse return null
+    if dpi < 48 or dpi > 768 do
+        return null
+    return cast(f32, dpi) / 96
+}
+
 internal func preferences(context: *Context)->Preferences
 {
     let connection   = unwrap context.connection
-    var result: #returntype
+    if not context.wslDpiResolved
+    {
+        context.wslDpiResolved = true
+        context.wslDpiScale = wslDpiScale() orelse 1
+    }
+
+    var result = Preferences{scale: context.wslDpiScale}
     let resourceName = expect atom(context, "RESOURCE_MANAGER")
     let resources    = catch readProperty(context, context.screen.root, resourceName) orelse Array'u8{}
     if not resources.isEmpty()

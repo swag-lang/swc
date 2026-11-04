@@ -9,6 +9,7 @@
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Backend/Linker/ELFObjectWriter.h"
 #include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -2572,8 +2573,15 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ElfArchiveKeepsGlobalConstantPointers)
     const std::string source = std::format("#include <cstring>\nextern const char* value asm(\"{}\");\nint main() {{ return std::strcmp(value, \"payload\") == 0 ? 0 : 1; }}\n", builder.scopedSymbolNames().dataBase);
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "consumer.cpp", source.data(), source.size(), ioError));
-    const std::array<std::pair<fs::path, std::vector<Utf8>>, 3> commands = {{
-        {"ar", {"rcsD", "library.a", "globals.o", "constant.o"}},
+    std::vector<LinkArchiveMember> members(2);
+    SWC_RESULT(FileSystem::readBinaryFile(globals.objPath, members[0].bytes, ioError));
+    SWC_RESULT(FileSystem::readBinaryFile(constant.objPath, members[1].bytes, ioError));
+    ByteArray archive;
+    Diagnostic diagnostic;
+    if (!buildElfStaticArchive(archive, diagnostic, members))
+        return Result::Error;
+    SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "library.a", archive.data(), archive.size(), ioError));
+    const std::array<std::pair<fs::path, std::vector<Utf8>>, 2> commands = {{
         {"c++", {"-no-pie", "consumer.cpp", "library.a", "-o", "consumer"}},
         {commandLine.workDir / "consumer", {}},
     }};

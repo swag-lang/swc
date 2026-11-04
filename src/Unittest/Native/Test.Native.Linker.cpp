@@ -11,6 +11,7 @@
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include "Support/Core/ByteView.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Native/NativeTestBytes.h"
@@ -764,6 +765,56 @@ func(T) accumulate(value: T)
             }
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ELFArchive_IndexesDefinitionsAndPreservesMembers)
+{
+    LinkImage image;
+    LinkSection section;
+    section.name = ".data";
+    section.bytes.append("odd");
+    image.sections.push_back(std::move(section));
+    image.symbols.push_back({.name = "first", .sectionIndex = 0});
+    image.symbols.push_back({.name = "second", .sectionIndex = 0});
+    image.sections[0].relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = "undefined"});
+    image.sections[0].bytes.resize(9);
+    std::vector<LinkArchiveMember> members(2);
+    Diagnostic diagnostic;
+    if (!buildElfObject(members[0].bytes, diagnostic, image))
+        return Result::Error;
+    members[0].bytes.append("x"); // Odd member sizes need an external padding byte.
+    image.symbols = {{.name = "third", .sectionIndex = 0}};
+    if (!buildElfObject(members[1].bytes, diagnostic, image))
+        return Result::Error;
+    ByteArray bytes;
+    if (!buildElfStaticArchive(bytes, diagnostic, members))
+        return Result::Error;
+    const ByteView view(bytes.span());
+    if (std::memcmp(bytes.data(), "!<arch>\n", 8) || view.readBe32(68) != 3)
+        return Result::Error;
+    const uint32_t first = view.readBe32(72);
+    const uint32_t second = view.readBe32(80);
+    if (view.readBe32(76) != first || first % 2 || second % 2 ||
+        std::memcmp(bytes.data() + 84, "first\0second\0third\0", 19) ||
+        second != first + 60 + members[0].bytes.size() + (members[0].bytes.size() & 1) ||
+        !std::ranges::equal(bytes.span().subspan(first + 60, members[0].bytes.size()), members[0].bytes.span()) ||
+        !std::ranges::equal(bytes.span().subspan(second + 60, members[1].bytes.size()), members[1].bytes.span()))
+        return Result::Error;
+    ByteArray repeated;
+    if (!buildElfStaticArchive(repeated, diagnostic, members) || repeated != bytes)
+        return Result::Error;
+    const ByteArray original = members[1].bytes;
+    members[1].bytes.writeLe64(40, UINT64_MAX);
+    if (buildElfStaticArchive(bytes, diagnostic, members) || !bytes.empty())
+        return Result::Error;
+    members[1].bytes = original;
+    members[1].bytes.resize(63);
+    if (buildElfStaticArchive(bytes, diagnostic, members) || !bytes.empty())
+        return Result::Error;
+    members.clear();
+    if (!buildElfStaticArchive(bytes, diagnostic, members) || bytes.size() != 72 || ByteView(bytes.span()).readBe32(68))
+        return Result::Error;
 }
 SWC_TEST_END()
 

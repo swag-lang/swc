@@ -3,8 +3,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// GNU/Linux final linking uses the host C driver for CRT/loader discovery and GNU ar
-// for indexed ELF archives. Prepared jobs own their objects and tool arguments.
+// GNU/Linux final linking uses the host C driver for CRT/loader discovery.
+// Indexed ELF archives are built internally from the prepared object bytes.
 class ELFLinker final : public Linker
 {
 public:

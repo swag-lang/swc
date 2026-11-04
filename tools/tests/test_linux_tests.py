@@ -45,7 +45,7 @@ class LinuxCampaignTests(unittest.TestCase):
                                 'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native',
                                 'workspace-build-dynamic-library', 'workspace-sandbox_consumer',
                                 'workspace-runtime_context_dynamic_consumer', 'workspace-runtime_context_dynamic_dll',
-                                'workspace-import-script', 'std-core', 'apps-swagcapture',
+                                'workspace-import-script', 'workspace-import-png-script', 'std-core', 'apps-swagcapture',
                                 'examples-gui1', 'reference-language'})
         cpp = stages[0].command
         self.assertEqual(cpp[0], '/dev/swc.dm')

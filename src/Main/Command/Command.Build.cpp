@@ -73,7 +73,12 @@ namespace Command
             Drop    = 3,
         };
 
+        // Generated hooks use Swag's scalar registers, including on a System V host.
+#if defined(__linux__) && defined(__x86_64__)
+        using RuntimeHookInvoker = void (__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+#else
         using RuntimeHookInvoker = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+#endif
 
         Result reportMissingRuntimeHook(TaskContext& ctx, const NativeRuntimeDependency& dependency, const Utf8& hookSymbolName)
         {

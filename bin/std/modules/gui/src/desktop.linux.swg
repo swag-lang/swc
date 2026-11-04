@@ -531,13 +531,13 @@ internal func wslDpiScale()->f32?
         [SwagDpi.Monitor]::GetDpiForSystem()
         """
     const arguments: [6]string = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command]
-    let process = catch Env.runProcess("powershell.exe", arguments) orelse return null
+    let process = catch Env.runProcess("powershell.exe", arguments) { return null }
     if process.exitCode() != 0 do
         return null
 
     var output = String.from(process.standardOutput())
     output.trim()
-    let dpi = catch StrConv.toU32(output.toString()) orelse return null
+    let dpi = catch StrConv.toU32(output.toString()) { return null }
     if dpi < 48 or dpi > 768 do
         return null
     return cast(f32, dpi) / 96

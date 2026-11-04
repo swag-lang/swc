@@ -427,9 +427,8 @@ internal func failNative(error: s32) fail
     fail Swag.SystemError{message, errorID: cast(u64, error)}
 }
 
-// XSETTINGS values are negotiated by the desktop settings manager; Xft resources supply
-// the scale when no settings manager advertises it. Physical monitor millimeters are not
-// used as the logical UI scale: desktop users choose that independently of panel density.
+// Gdk/WindowScalingFactor is the desktop UI scale. Xft/DPI remains the fallback for desktops
+// without that setting; physical monitor millimeters do not express the user's chosen scale.
 internal struct Preferences
 {
     scale:         f32  = 1
@@ -442,6 +441,7 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
     var result     = fallback
     var themeLight = fallback.prefersLight
     var preferDark = false
+    var windowScale: u32
     var source     = ByteStream.openRead(bytes)
     let order      = try source.readNative'u8()
     if order > 1 do
@@ -492,6 +492,8 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
                 result.reducedMotion = value == 0
             elif name == "Gtk/ApplicationPreferDarkTheme" do
                 preferDark = value != 0
+            elif name == "Gdk/WindowScalingFactor" and value >= 1 and value <= 8 do
+                windowScale = value
             elif name == "Xft/DPI" and value >= 48 * 1024 and value <= 768 * 1024 do
                 result.scale = cast(f32, value) / (96 * 1024)
 
@@ -509,6 +511,9 @@ internal func parseSettings(bytes: const [..]u8, fallback: Preferences)->Prefere
         }
     }
 
+    // Some desktops also scale Xft/DPI for older clients, so the explicit window scale wins.
+    if windowScale != 0 do
+        result.scale = cast(f32, windowScale)
     result.prefersLight = themeLight and not preferDark
     return result
 }

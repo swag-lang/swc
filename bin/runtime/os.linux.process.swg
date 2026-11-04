@@ -219,7 +219,7 @@ func __setUnixArguments(count: u32, values: const [*] (const [*] u8))->bool
 
 // The Unix entry installs its argv with __setUnixArguments before entering runtime
 // setup. Unlike Windows, there is no process command-line string to fetch here.
-func __hostSetupProcessArguments() {}
+func __hostSetupProcessArguments()->bool => true
 
 // Called by the Unix main entry before runtime and module initialization.
 func __setupUnixArguments(count: u32, values: const [*] (const [*] u8))

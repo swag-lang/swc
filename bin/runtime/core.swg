@@ -649,8 +649,11 @@ func __setupRuntime(flags: RuntimeFlags)
     // executable seeds its copy here and hands it down the hook chain to the modules it imports.
     // Under the compiler the real command line belongs to 'swc' itself; the host has already
     // filled the slot with the one the program is effectively launched with, so leave it alone.
-    if not (flags & .FromCompiler) do
-        __hostSetupProcessArguments()
+    if not (flags & .FromCompiler) and not __hostSetupProcessArguments()
+    {
+        __printString("cannot initialize process arguments\n")
+        __exitError()
+    }
 
     #static if #hastag("Swag.AllocatorDiagnostics") do
         discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))

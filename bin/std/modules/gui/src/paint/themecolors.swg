@@ -662,9 +662,11 @@ impl ThemeColors
         let pressed    = shiftState(p.raised, PressedShift)
         let strongLine = Color.lerpRgb(p.line, p.faintText, StrongLineMix)
 
-        // Resting fields and popup surfaces need a clearer edge on the dark palette. Keep the
-        // general hairline and separators quiet, and lift just these two outlines toward the ink.
+        // A resting field needs a clearer edge on Encre. Keep the general hairline quiet and lift
+        // just this outline toward the ink.
         let fieldBorder = p.ground.relativeLuminance() <= 0.5 ? Color.lerpRgb(p.line, p.faintText, FieldBorderMix) : p.line
+        // A popup needs a clear edge against its raised fill in both palettes.
+        let popupBorder = p.ground.relativeLuminance() <= 0.5 ? fieldBorder : Color.lerpRgb(p.line, p.faintText, FieldBorderMix)
         let disabled    = Color.lerpRgb(p.ground, p.text, DisabledMix)
         let faintLine   = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
@@ -1048,7 +1050,7 @@ impl ThemeColors
         // A menu is a floating surface with a clear resting outline. Its entry under the pointer is
         // chosen, so it is the selection ground; a check is Arc, a shortcut and a chevron faint.
         .menuPopup_Bk         = p.raised
-        .menuPopup_Border     = fieldBorder
+        .menuPopup_Border     = popupBorder
         .menuPopup_Shadow     = p.shadow
         .menuPopup_Separator  = p.line
         .menuBar_Bk           = p.ground

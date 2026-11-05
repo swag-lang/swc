@@ -54,6 +54,9 @@ using Swag
     Swag.require(en.ordinalPlural(11) == .Other)
     Swag.require(en.cardinalPlural(1) == .One)
     Swag.require(en.cardinalPlural(2) == .Other)
+    Swag.require(en.cardinalPlural(Swag.F64.Max) == .Other)
+    Swag.require(en.cardinalPlural(Swag.F64.Inf) == .Other)
+    Swag.require(en.cardinalPlural(Swag.F64.NaN) == .Other)
 
     let fr = Globalization.CultureInfo.fromName("fr-FR")
     Swag.require(fr.cardinalPlural(0) == .One)

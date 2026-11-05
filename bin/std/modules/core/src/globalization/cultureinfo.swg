@@ -208,6 +208,9 @@ public impl CultureInfo
     mtd const cardinalPlural(value: f64)->PluralCategory
     {
         let absolute = Math.abs(value)
+        if not Math.isFinite(absolute) or absolute >= cast(f64, Swag.U64.Max) do
+            return .Other
+
         let integer  = cast(u64, Math.trunc(absolute))
         let integral = absolute == cast(f64, integer)
 

@@ -151,21 +151,15 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
 
 bool MicroRegisterAllocationPass::LiveInterval::covers(const uint32_t pos) const
 {
-    for (const IntervalRange& range : ranges)
-    {
-        if (pos < range.from)
-            return false;
-        if (pos < range.to)
-            return true;
-    }
-    return false;
+    const auto range = std::ranges::upper_bound(ranges, pos, {}, &IntervalRange::to);
+    return range != ranges.end() && pos >= range->from;
 }
 
 uint32_t MicroRegisterAllocationPass::LiveInterval::nextIntersection(const LiveInterval& other, const uint32_t from) const
 {
     // First position >= from covered by both, or UINT32_MAX.
-    size_t a = 0;
-    size_t b = 0;
+    size_t a = static_cast<size_t>(std::ranges::upper_bound(ranges, from, {}, &IntervalRange::to) - ranges.begin());
+    size_t b = static_cast<size_t>(std::ranges::upper_bound(other.ranges, from, {}, &IntervalRange::to) - other.ranges.begin());
     while (a < ranges.size() && b < other.ranges.size())
     {
         const IntervalRange& ra = ranges[a];

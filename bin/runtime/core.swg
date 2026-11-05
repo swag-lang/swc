@@ -362,8 +362,8 @@ func __runtimeCopyIgnoresConst(target: typeinfo)->bool
     var valueType = target
     while valueType.kind == .Alias
     {
-        let alias = cast(const *TypeInfoAlias, cast(const *void, valueType))
-        valueType = alias.rawType
+        let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
+        valueType = aliasInfo.rawType
     }
     if valueType.kind == .Enum do
         return true
@@ -386,8 +386,8 @@ func __runtimeTypeIsPointer(type: typeinfo)->bool
     var valueType = type
     while valueType.kind == .Alias
     {
-        let alias = cast(const *TypeInfoAlias, cast(const *void, valueType))
-        valueType = alias.rawType
+        let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
+        valueType = aliasInfo.rawType
     }
     return valueType.kind == .Pointer
 }
@@ -438,8 +438,8 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     var valueTarget = target
     while valueTarget.kind == .Alias
     {
-        let alias = cast(const *TypeInfoAlias, cast(const *void, valueTarget))
-        valueTarget = alias.rawType
+        let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueTarget))
+        valueTarget = aliasInfo.rawType
     }
     var targetIsAny = false
     if valueTarget.kind == .Native

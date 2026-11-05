@@ -164,27 +164,32 @@ namespace
             // incoming edge back to a register/frame equivalence source. A
             // balanced stack adjustment changes the meaning of an offset only
             // temporarily; track it rather than rejecting every call frame.
+            // Keep the per-edge worklists at label scope so predecessor walks reuse them.
+            std::vector<std::pair<uint32_t, int64_t>> delayedPending;
+            FlatKeyMap<int64_t>                       delayedSeen;
+            std::vector<uint32_t>                     backtrackPending;
+            FlatKeySet                                backtrackVisited;
             const auto proveDelayedJump = [&](uint32_t jumpIndex) {
-                std::vector<std::pair<uint32_t, int64_t>> pending = {{jumpIndex, 0}};
-                FlatKeyMap<int64_t>                       seen;
-                while (!pending.empty())
+                delayedPending.assign(1, {jumpIndex, 0});
+                delayedSeen.clear();
+                while (!delayedPending.empty())
                 {
-                    const auto [index, delta] = pending.back();
-                    pending.pop_back();
+                    const auto [index, delta] = delayedPending.back();
+                    delayedPending.pop_back();
                     if (index == labelIndex - 1)
                     {
                         if (delta != 0)
                             return false;
                         continue;
                     }
-                    if (const int64_t* seenDelta = seen.find(index))
+                    if (const int64_t* seenDelta = delayedSeen.find(index))
                     {
                         if (*seenDelta != delta)
                             return false;
                         continue;
                     }
-                    seen.emplace(index, delta);
-                    if (seen.size() > K_MAX_BACKTRACK)
+                    delayedSeen.emplace(index, delta);
+                    if (delayedSeen.size() > K_MAX_BACKTRACK)
                         return false;
                     const MicroInstr* inst = storage.ptr(refs[index]);
                     if (!inst)
@@ -252,7 +257,7 @@ namespace
                     if (index == 0 || cfg.predecessors(index).empty())
                         return false;
                     for (const uint32_t predecessor : cfg.predecessors(index))
-                        pending.emplace_back(predecessor, previousDelta);
+                        delayedPending.emplace_back(predecessor, previousDelta);
                 }
                 return true;
             };
@@ -282,13 +287,13 @@ namespace
                 // Every backward path must reach a matching frame store (or
                 // reload) before a register change or a memory write. The
                 // bounded walk deliberately rejects complicated joins.
-                std::vector<uint32_t> pending = {jumpIndex};
-                FlatKeySet            visited;
-                while (!pending.empty() && valid)
+                backtrackPending.assign(1, jumpIndex);
+                backtrackVisited.clear();
+                while (!backtrackPending.empty() && valid)
                 {
-                    const uint32_t index = pending.back();
-                    pending.pop_back();
-                    if (!visited.insert(index))
+                    const uint32_t index = backtrackPending.back();
+                    backtrackPending.pop_back();
+                    if (!backtrackVisited.insert(index))
                     {
                         valid = false;
                         break;
@@ -296,7 +301,7 @@ namespace
                     // A back edge may reach a store at the preceding loop
                     // latch. Never use the reload being moved as its own
                     // proof of register/frame equivalence.
-                    if (visited.size() > K_MAX_BACKTRACK || index == loadIndex)
+                    if (backtrackVisited.size() > K_MAX_BACKTRACK || index == loadIndex)
                     {
                         valid = false;
                         break;
@@ -331,7 +336,7 @@ namespace
                         break;
                     }
                     for (const uint32_t predecessor : cfg.predecessors(index))
-                        pending.push_back(predecessor);
+                        backtrackPending.push_back(predecessor);
                 }
                 if (!valid)
                     break;
@@ -372,12 +377,13 @@ namespace
         // candidate, instead of walking the whole function again for each spill store.
         bool                  frameAccessesCollected = false;
         bool                  anySlotOpaque          = false;
-        std::vector<uint32_t> frameAccesses;
-        std::vector<uint32_t> sameStores;
-        std::vector<int64_t>  frameDepth;
-        std::vector<uint8_t>  reachesRead;
-        std::vector<uint8_t>  seen;
-        std::vector<uint32_t> pending;
+        std::vector<uint32_t>      frameAccesses;
+        std::vector<uint32_t>      sameStores;
+        std::vector<MicroInstrRef> deadStores;
+        std::vector<int64_t>       frameDepth;
+        std::vector<uint8_t>       reachesRead;
+        std::vector<uint8_t>       seen;
+        std::vector<uint32_t>      pending;
         const auto            collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
@@ -389,7 +395,7 @@ namespace
                 anySlotOpaque = true;
                 return;
             }
-            std::vector<uint32_t> pending = {0};
+            pending.assign(1, 0);
             frameDepth.assign(refs.size(), INT64_MIN);
             frameDepth[0] = 0;
             while (!pending.empty())
@@ -680,7 +686,7 @@ namespace
                 // A later write to this private slot is dead when every route
                 // from that write to the sole read crosses the new cold-entry
                 // store. This removes the loop-latch write on the hot path.
-                std::vector<MicroInstrRef> deadStores;
+                deadStores.clear();
                 for (const uint32_t otherStore : sameStores)
                 {
                     if (otherStore == storeIndex)

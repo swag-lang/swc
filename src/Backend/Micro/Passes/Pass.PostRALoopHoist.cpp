@@ -164,8 +164,10 @@ namespace
     MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder, MicroInstrRef& outRef)
     {
         SmallVector<MicroReg, 8> candidates;
-        for (const MicroInstr& inst : storage.view())
+        SmallVector<MicroInstrRef, 8> candidateRefs;
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
+            const MicroInstr& inst = *it;
             if (inst.op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const MicroInstrOperand* ops = inst.ops(operands);
@@ -173,55 +175,59 @@ namespace
                 !ops[0].reg.isInt() || isFrameBaseRegister(ops[0].reg, conv))
                 continue;
             if (std::ranges::find(candidates, ops[0].reg) == candidates.end())
+            {
                 candidates.push_back(ops[0].reg);
+                candidateRefs.push_back(it.current);
+            }
+        }
+
+        SmallVector<uint8_t, 8> defCounts;
+        for (size_t i = 0; i < candidates.size(); ++i)
+            defCounts.push_back(0);
+        size_t activeCandidates = candidates.size();
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end && activeCandidates; ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
+                continue;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const auto           countDefinition = [&](const MicroReg reg) {
+                const auto candidate = std::ranges::find(candidates, reg);
+                if (candidate == candidates.end())
+                    return;
+                const size_t candidateIndex = static_cast<size_t>(candidate - candidates.begin());
+                if (defCounts[candidateIndex] < 2 && ++defCounts[candidateIndex] == 2)
+                    --activeCandidates;
+            };
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            {
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                for (const MicroReg def : useDef.defs)
+                    countDefinition(def);
+            }
+            else if (const MicroInstrOperand* ops = inst.ops(operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        countDefinition(ops[i].reg);
+            }
         }
 
         MicroReg selected;
-        for (const MicroReg candidate : candidates)
+        size_t   selectedIndex = candidates.size();
+        for (size_t i = 0; i < candidates.size(); ++i)
         {
-            uint32_t defCount = 0;
-            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
-            {
-                const MicroInstr& inst = *it;
-                if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
-                    continue;
-                const MicroInstrDef& info = MicroInstr::info(inst.op);
-                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-                {
-                    const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-                    for (const MicroReg def : useDef.defs)
-                        defCount += def == candidate ? 1 : 0;
-                }
-                else if (const MicroInstrOperand* ops = inst.ops(operands))
-                {
-                    const auto modes = info.resolvedRegModes(ops);
-                    for (size_t i = 0; i < modes.size(); ++i)
-                        if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
-                            ++defCount;
-                }
-                if (defCount > 1)
-                    break;
-            }
-            if (defCount != 1)
+            if (defCounts[i] != 1)
                 continue;
             if (selected.isValid())
                 return MicroReg::invalid();
-            selected = candidate;
+            selected = candidates[i];
+            selectedIndex = i;
         }
         if (selected.isValid())
-        {
-            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
-            {
-                const MicroInstrOperand* ops = it->ops(operands);
-                if (it->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == selected &&
-                    ops[1].reg == conv.stackPointer && ops[2].opBits == MicroOpBits::B64)
-                {
-                    outRef = it.current;
-                    break;
-                }
-            }
-        }
+            outRef = candidateRefs[selectedIndex];
         return selected;
     }
 
@@ -945,7 +951,15 @@ namespace
     // an unused caller-saved SIMD register, even when the original GP register
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
-    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop, const FrameReachability& reach, const FrameRangeNormalizer& ranges, const bool stackEscaped)
+    bool cachePrivateSpills(
+        MicroPassContext& context,
+        const MicroControlFlowGraph& cfg,
+        const MicroPhysLiveness& liveness,
+        const NaturalLoop& loop,
+        const FrameReachability& reach,
+        const FrameRangeNormalizer& ranges,
+        const bool stackEscaped,
+        std::vector<uint8_t>& visited)
     {
         if (stackEscaped || reach.localSpaceEscapes || context.spillAreaLo >= context.spillAreaHi)
             return false;
@@ -1040,7 +1054,7 @@ namespace
         bool callFreeTrip = calls.empty();
         if (!calls.empty())
         {
-            std::vector<uint8_t>  visited(refs.size(), 0);
+            visited.assign(refs.size(), 0);
             SmallVector<uint32_t> pending;
             pending.push_back(loop.header);
             while (!pending.empty() && !callFreeTrip)
@@ -1641,11 +1655,12 @@ namespace
             SmallVector<const NaturalLoop*, 4> cacheLoops;
             for (const auto& loop : loopsByHeader | std::views::values)
                 cacheLoops.push_back(&loop);
-            std::stable_sort(cacheLoops.begin(), cacheLoops.end(), [](const NaturalLoop* a, const NaturalLoop* b) {
+            std::ranges::sort(cacheLoops, [](const NaturalLoop* a, const NaturalLoop* b) {
                 return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
             });
+            std::vector<uint8_t> visited;
             for (const NaturalLoop* loop : cacheLoops)
-                if (cachePrivateSpills(context, cfg, liveness, *loop, reach, ranges, stackEscapedForLoop(*loop)))
+                if (cachePrivateSpills(context, cfg, liveness, *loop, reach, ranges, stackEscapedForLoop(*loop), visited))
                     return true;
             return false;
         }

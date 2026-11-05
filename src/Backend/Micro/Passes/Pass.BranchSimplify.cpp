@@ -78,7 +78,9 @@ namespace
         bool                       hasAnyLabel         = false;
         bool                       hasConditionalJump  = false;
         bool                       hasImmediateCompare = false;
+        bool                       hasRegisterCompare  = false;
         bool                       hasSetCondition     = false;
+        bool                       hasIntegerClear     = false;
     };
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
@@ -195,7 +197,9 @@ namespace
         outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
         outLayout.hasImmediateCompare = false;
+        outLayout.hasRegisterCompare  = false;
         outLayout.hasSetCondition     = false;
+        outLayout.hasIntegerClear     = false;
 
         uint32_t ordinal = 0;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
@@ -221,8 +225,15 @@ namespace
             }
             else if (it->op == MicroInstrOpcode::CmpRegImm)
                 outLayout.hasImmediateCompare = true;
+            else if (it->op == MicroInstrOpcode::CmpRegReg)
+                outLayout.hasRegisterCompare = true;
             else if (it->op == MicroInstrOpcode::SetCondReg)
                 outLayout.hasSetCondition = true;
+            else if (it->op == MicroInstrOpcode::ClearReg)
+            {
+                const MicroInstrOperand* ops = it->ops(operands);
+                outLayout.hasIntegerClear |= ops && ops[0].reg.isInt();
+            }
         }
     }
 
@@ -8136,15 +8147,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     // The pre-RA loop provides shared SSA. Construct a fallback only when this
     // pass runs standalone, instead of initializing its many buffers every run.
+    // Branch-value folds need SSA only when a conditional branch has a compare
+    // or clear that can produce its flags.
     std::optional<MicroSsaState> localSsaState;
     MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*         ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
+    const bool                   hasSsaBranchWork = hasConditionalJump &&
+                                   (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare || scanCache.scan.layout.hasIntegerClear);
+    const MicroSsaState*         ssaState         = hasSsaBranchWork ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
-    if (ssaState && ssaState->isValid())
+    if (ssaState && ssaState->isValid() && (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare))
         computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     bool changed = false;
@@ -8162,7 +8177,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
-    if (ssaState && ssaState->isValid())
+    const ProgramLayout& layout = scanCache.scan.layout;
+    if (ssaState && ssaState->isValid() && (layout.hasImmediateCompare || layout.hasRegisterCompare || layout.hasIntegerClear) &&
+        (!knownValues.empty() || layout.hasIntegerClear))
         rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout, context.builder));
     // The SSA snapshot describes the code before any fold above.
     // Implied branch facts come only from immediate compares. Avoid building

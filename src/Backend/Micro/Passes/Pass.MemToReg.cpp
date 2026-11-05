@@ -1950,6 +1950,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
         SmallVector<RecordWord> kept;
         FlatKeyMap<RecordState> writeEffects;
+        std::unique_ptr<RecordState[]> in;
+        std::vector<uint8_t>           reached;
+        if (!records.empty())
+        {
+            in = std::make_unique_for_overwrite<RecordState[]>(n);
+            reached.resize(n);
+        }
         for (RecordWord& record : records)
         {
             const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
@@ -1989,8 +1996,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
             // The reached bit guards every read. First arrival assigns a full state,
             // so unreachable slots need no initialization; the entry starts empty.
-            const auto           in = std::make_unique_for_overwrite<RecordState[]>(n);
-            std::vector<uint8_t> reached(n, 0);
+            std::fill(reached.begin(), reached.end(), 0);
             in[entry]      = RecordState{};
             reached[entry] = 1;
             bool changed   = true;

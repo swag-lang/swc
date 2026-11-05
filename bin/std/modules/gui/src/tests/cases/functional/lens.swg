@@ -165,6 +165,24 @@ using Swag, Core, Pixel
     Swag.require(host.app.keyboardFocusWnd == &field.wnd)
 }
 
+// A lens opened from neutral ground closes back to neutral ground. Hiding its focused input must
+// not seed the first keyboard control behind it and draw a focus ring the reader never requested.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    discard PushButton.create(&host.root, "First action", {20, 20, 120, 32})
+    let lens = lensSetup(&host)
+
+    host.surface.clearFocus()
+    Swag.require(host.app.keyboardFocusWnd == null)
+    lens.open()
+    Swag.require(host.app.keyboardFocusWnd == &lens.input.wnd)
+    host.keyPress(.Escape)
+    Swag.require(not lens.isOpen())
+    Swag.require(host.app.keyboardFocusWnd == null)
+}
+
 // Search accepts task words in either order, omitted accents, and bounded command misspellings.
 #test
 {

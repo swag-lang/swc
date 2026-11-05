@@ -523,8 +523,16 @@ impl View
         discard .app().animator.leave(me)
         let back = .returnFocus
         .returnFocus = null
-        if back and not back.isPendingDestroy and back.isVisible() do
+        if back and not back.isPendingDestroy and back.isVisible()
+        {
             back.setFocus()
+            return
+        }
+
+        // Hiding the focused lens can seed the first focusable control behind it. When the lens
+        // opened from neutral ground there is no keyboard owner to restore, so keep that ground
+        // neutral instead of inventing a selection the reader never made.
+        .surface?.clearFocus()
     }
 
     // Reports whether the lens is on screen.

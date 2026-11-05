@@ -105,6 +105,7 @@ impl MainWindow
                 .detail     = me.vaultIdentity(path)
                 .monoDetail = true
                 .checked    = me.chosenPath == path
+                .glyph      = me.theme().fileGlyph(path, false, me.themeMetrics().menuPopup_IconSize)
                 .run        = func|window = me, path|() { window.chooseVault(path) }
             }
         }
@@ -136,6 +137,7 @@ impl MainWindow
         var disabled: bool
         var toggle:   bool
         var checked:  bool
+        var icon:     ThemeIcons
         switch evt.id
         {
         case VaultCommands.Lens:
@@ -143,43 +145,52 @@ impl MainWindow
 
         case VaultCommands.NewVault:
             name     = texts.ui_NewVault
+            icon     = .Plus
             disabled = not ready
 
         case VaultCommands.OpenFile:
             name     = texts.ui_OpenFile
+            icon     = .OpenFile
             disabled = not ready
 
         case VaultCommands.Vaults:
             name   = texts.ui_VaultsTitle
+            icon   = .Folder
             hidden = .page == .List and not locked
 
         case VaultCommands.Options:
             name   = texts.cmd_Options
+            icon   = .Options
             hidden = .page == .Options
 
         case VaultCommands.Mount:
             name     = texts.ui_Mount
+            icon     = .Link
             hidden   = not locked
             disabled = not ready or not .canMount()
 
         case VaultCommands.Unmount:
             name     = texts.ui_Unmount
+            icon     = .Remove
             hidden   = drive == null
             disabled = not ready
 
         case VaultCommands.OpenDrive:
+            icon   = .OpenExternal
             hidden = drive == null
             if drive do
                 name = Format.toString(texts.ui_OpenDrive, drive.mountLabel)
 
         case VaultCommands.ReadOnly:
             name    = texts.ui_ReadOnly
+            icon    = .Lock
             hidden  = not locked
             toggle  = true
             checked = .readOnly.isChecked()
 
         case VaultCommands.ProtectHidden:
             name     = texts.ui_ProtectHidden
+            icon     = .Eye
             hidden   = not locked
             disabled = .readOnly.isChecked()
             toggle   = true
@@ -187,6 +198,7 @@ impl MainWindow
 
         case VaultCommands.AtStartup:
             name   = texts.ui_MountAtStartup
+            icon   = .Update
             hidden = drive == null or .privacyMode
             toggle = true
             if drive do
@@ -194,51 +206,61 @@ impl MainWindow
 
         case VaultCommands.ChangePassword:
             name     = texts.ui_ChangePassword
+            icon     = .Lock
             hidden   = not locked
             disabled = not ready
 
         case VaultCommands.ChangeKeyFiles:
             name     = texts.ui_ChangeKeyFiles
+            icon     = .File
             hidden   = not locked
             disabled = not ready
 
         case VaultCommands.Resize:
             name     = texts.ui_Resize
+            icon     = .FitWidth
             hidden   = not locked
             disabled = not ready
 
         case VaultCommands.CreateHidden:
             name     = texts.ui_CreateHidden
+            icon     = .Plus
             hidden   = not locked
             disabled = not ready
 
         case VaultCommands.Forget:
             name     = texts.ui_Forget
+            icon     = .Remove
             hidden   = not locked or .privacyMode
             disabled = not ready
 
         case VaultCommands.Stop:
             name     = .operation.kind == .Resize ? texts.ui_StopResizing : texts.ui_StopCreating
+            icon     = .Stop
             hidden   = not stopping
             disabled = .operation.progress.isCanceled()
 
         case VaultCommands.PrivacyMode:
             name    = texts.ui_PrivacyMode
+            icon    = .Lock
             toggle  = true
             checked = .privacyMode
 
         case VaultCommands.UnmountOnLock:
             name    = texts.ui_UnmountOnLock
+            icon    = .Lock
             toggle  = true
             checked = .autoUnmount.onSessionLock
 
         case VaultCommands.UnmountOnSuspend:
             name    = texts.ui_UnmountOnSuspend
+            icon    = .Pause
             toggle  = true
             checked = .autoUnmount.onSuspend
 
         case VaultCommands.UnmountOnIdle:
             name    = texts.ui_UnmountOnIdle
+            icon    = .HourGlass
             toggle  = true
             checked = .autoUnmount.onIdle
 
@@ -248,6 +270,8 @@ impl MainWindow
 
         evt.name = name
         evt.updatedFields.add(.Name)
+        evt.icon = .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
+        evt.updatedFields.add(.Icon)
 
         if hidden
         {

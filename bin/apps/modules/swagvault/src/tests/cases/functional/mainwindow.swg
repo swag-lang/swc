@@ -502,6 +502,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(window.focusedWindow() == null)
 
+    // The lens opened from the neutral list returns there. Its focused input disappearing must
+    // not nominate the first quiet link and leave New Vault ringed.
+    window.lens.open()
+    Swag.require(window.lens.input.hasFocus())
+    host.keyPress(Input.Key.Escape)
+    Swag.require(not window.lens.isOpen())
+    Swag.require(window.focusedWindow() == null)
+
     window.openVault("C:\\vaults\\one")
     Swag.require(window.mountPassword.hasFocus())
     Swag.require(window.mountButton.isEnabled())
@@ -678,6 +686,18 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.applyPrivacyControl()
 
     let texts = appStrings()
+    let commandIds = [VaultCommands.NewVault, VaultCommands.OpenFile, VaultCommands.Vaults, VaultCommands.Options,
+                      VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.OpenDrive, VaultCommands.ReadOnly,
+                      VaultCommands.ProtectHidden, VaultCommands.AtStartup, VaultCommands.ChangePassword,
+                      VaultCommands.ChangeKeyFiles, VaultCommands.Resize, VaultCommands.CreateHidden,
+                      VaultCommands.Forget, VaultCommands.Stop, VaultCommands.PrivacyMode,
+                      VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend, VaultCommands.UnmountOnIdle]
+    for id in commandIds
+    {
+        let state = window.sendComputeCommandStateEvent(id)
+        Swag.require(state.updatedFields.has(.Icon) and state.icon.isValid())
+    }
+
     window.openVault("C:\\vaults\\locked")
     window.lens.open(">")
     for title in [texts.ui_NewVault, texts.ui_OpenFile, texts.ui_VaultsTitle, texts.cmd_Options,

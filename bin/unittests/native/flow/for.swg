@@ -202,6 +202,20 @@ func forStrictU8RefValue(value: ForStrictU8)->ForStrictU8
 
 #test
 {
+    var count = 0
+    var sum   = 0
+    for i in (cast(ForStrictU8, 4)).reversed()
+    {
+        #assert(#typeof(i) == ForStrictU8)
+        count += 1
+        sum   += cast(s32, i)
+    }
+    Swag.require(count == 4)
+    Swag.require(sum == 6)
+}
+
+#test
+{
     var count       = 0
     var first:  u64 = 0
     var second: u64 = 0

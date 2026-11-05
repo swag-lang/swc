@@ -1335,7 +1335,8 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
         // Attribute validators need to report their own, more specific diagnostic
         // for invalid enum payloads such as a calling convention value.
-        if (!castRequest.probing && !castIsAttributeArgument && !dstType.isEnumFlags())
+        if (!castRequest.probing && !castIsAttributeArgument && !dstType.isEnumFlags() &&
+            !dstType.payloadSymEnum().isIncomplete())
         {
             const ConstantValue& castValue = sema.cstMgr().get(underlyingRequest.constantFoldingResult());
             std::vector<const Symbol*> enumMembers;
@@ -1365,6 +1366,14 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
         const ConstantValue enumCst = ConstantValue::makeEnumValue(sema.ctx(), underlyingRequest.constantFoldingResult(), dstTypeRef);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), enumCst));
+    }
+    else if (!dstType.isEnumFlags() && !dstType.payloadSymEnum().isIncomplete())
+    {
+        // Ordinary enums can only be constructed from a value whose member
+        // identity was proven during semantic analysis. Runtime integers need
+        // a future checked conversion API; accepting them here creates invalid
+        // enum values even when runtime safety guards are disabled.
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
     return Result::Continue;

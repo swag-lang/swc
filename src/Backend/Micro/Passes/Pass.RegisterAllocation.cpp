@@ -1154,6 +1154,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         if (pred >= region.header)
             residency.backEdges.push_back(pred);
     }
+    std::ranges::sort(residency.backEdges);
 
     // Registers each class must keep out of the committed pairs: the pairs
     // are protected from eviction at the back-edge, and preloads must not
@@ -1348,7 +1349,10 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
     {
         LoopResidency& residency = activeLoopResidency_[residencyIndex - 1];
 
-        residency.backEdgeAtCurrentInstruction = std::ranges::find(residency.backEdges, instructionIndex) != residency.backEdges.end();
+        while (residency.nextBackEdgeIndex < residency.backEdges.size() && residency.backEdges[residency.nextBackEdgeIndex] < instructionIndex)
+            ++residency.nextBackEdgeIndex;
+        residency.backEdgeAtCurrentInstruction = residency.nextBackEdgeIndex < residency.backEdges.size() &&
+                                                  residency.backEdges[residency.nextBackEdgeIndex] == instructionIndex;
         if (!residency.backEdgeAtCurrentInstruction)
             continue;
 

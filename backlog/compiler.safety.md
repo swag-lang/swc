@@ -141,11 +141,10 @@ is the current scorecard.
   passes, but the native executable raises `0xC0000005` writing the literal in read-only
   storage. A variable holding an `any` does not itself own mutable storage for the borrowed
   value.
-- Next: decide and enforce the constness of literal-backed and constant-backed `any` views.
-  Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
-  choose rejection of mutable views or deliberate writable materialization without turning
-  `any` into an owning variant. Audit existing casts of literal-backed views before
-  migration.
+- Next: validate the storage-only TypeInfo marker for constant-backed `any` payloads, including
+  inline attribute payloads, `kindOf`, scalar and aggregate value-copy casts, const views, rejection
+  of mutable views, and updated reference examples.
+  Run focused JIT, native, and reference tests once machine-load admission allows a build.
 - Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
   storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
@@ -252,21 +251,21 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Evidence: a constant invalid value cast to an ordinary enum is rejected; `EnumFlags` still accepts
-  bit combinations. A runtime integer can still become an undeclared ordinary enum value with no
-  check in any configuration, and the result is used as an ordinary enum. A plain switch can fall
-  through on it. `switch #complete` already panics when `.Switch` safety is enabled; with that
-  guard disabled, the conversion still permits a value outside the cases.
-- Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
-  conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
-  returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
-  majority position and the only one that composes with exhaustive matching.
-- Next: choose the runtime rule and implement it for non-constant integers: a guarded conversion
-  under `.DynCast` or a fallible enum conversion that works with guards disabled. Preserve the
-  current permissive behavior for `#[Swag.EnumFlags]` combinations.
-- Done when: converting an integer to an enum has one documented rule, the flags case is
-  specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
-  combination.
+- Rule: casts to ordinary enums require a compile-time integer matching a declared member. Runtime
+  integer values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
+  `#[Swag.Incomplete]` enums intentionally accept values outside their declared members. This
+  avoids invalid values for closed enums regardless of runtime safety settings while a checked
+  conversion API is unspecified.
+- Evidence: semantic checks reject runtime ordinary-enum casts and preserve flags-enum casts.
+- The binary serializer reads an enum through its underlying type, so untrusted encoded values can
+  still introduce an undeclared member. Decide whether serialized ordinary enums must reject such
+  values or opt into `#[Swag.Incomplete]` for forward compatibility.
+- Next: audit generic and reflection-based conversions for runtime enum construction, resolve the
+  binary deserialization rule, then run the focused JIT/native, sema, standard-library, and
+  application tests for the migrated shipped code.
+- Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime
+  values, a runtime flags combination, an open enum, and the migrated shipped call sites; the cast
+  reference documents the rule.
 
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 

@@ -135,6 +135,8 @@ impl Decoder
     {
         if not dataType do
             fail SerializationError{"missing data type"}
+        let enumType = Reflection.resolveAliases(dataType)
+        let isEnum   = Reflection.isEnum(enumType)
         var type = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
@@ -159,6 +161,12 @@ impl Decoder
             case .F32:        cast(*f32, data)[] = try .serializer.readNative'f32()
             case .F64:        cast(*f64, data)[] = try .serializer.readNative'f64()
             }
+
+            if isEnum and
+               not Reflection.hasAttribute(enumType, EnumFlags) and
+               not Reflection.hasAttribute(enumType, Incomplete) and
+               not Reflection.hasDeclaredIntegerValue(enumType, data) do
+                fail SerializationError{"serialized value is not a member of the requested enum"}
 
             return
         }

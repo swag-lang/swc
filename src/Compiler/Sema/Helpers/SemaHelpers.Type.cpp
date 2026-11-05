@@ -727,11 +727,25 @@ TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRe
         return TypeRef::invalid();
 
     const TaskContext& ctx = sema.ctx();
+    const auto readonlyPayloadType = [&](TypeRef typeRef) {
+        if (!valueCstRef.isValid() || sema.cstMgr().get(valueCstRef).isNull())
+            return typeRef;
+
+        // Constant Any payloads are materialized in static storage; carry that fact
+        // separately so runtime type identity retains the logical value type.
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isConst() || type.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
+            return typeRef;
+
+        TypeInfo storageType = type;
+        storageType.addFlag(TypeInfoFlagsE::ReadOnlyStorage);
+        return sema.typeMgr().addType(storageType);
+    };
     if (ownerNodeRef.isValid())
     {
         const SemaNodeView ownerView = sema.viewTypeConstant(ownerNodeRef);
         if (ownerView.typeRef().isValid() && sema.typeMgr().isRuntimeTypeInfoPointer(ctx, ownerView.typeRef()))
-            return ownerView.typeRef();
+            return readonlyPayloadType(ownerView.typeRef());
 
         if (isTypeLikeTypeRef(ctx, ownerView.typeRef()))
         {
@@ -740,7 +754,7 @@ TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRe
             {
                 ConstantRef typeInfoCstRef = ConstantRef::invalid();
                 if (sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, representedTypeRef, ownerNodeRef) == Result::Continue && typeInfoCstRef.isValid())
-                    return sema.cstMgr().get(typeInfoCstRef).typeRef();
+                    return readonlyPayloadType(sema.cstMgr().get(typeInfoCstRef).typeRef());
             }
         }
     }
@@ -749,10 +763,10 @@ TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRe
     {
         ConstantRef normalizedCstRef = valueCstRef;
         if (normalizeTypeInfoConstantRef(sema, normalizedCstRef, ownerNodeRef) == Result::Continue && normalizedCstRef.isValid())
-            return sema.cstMgr().get(normalizedCstRef).typeRef();
+            return readonlyPayloadType(sema.cstMgr().get(normalizedCstRef).typeRef());
     }
 
-    return valueTypeRef;
+    return readonlyPayloadType(valueTypeRef);
 }
 
 Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef)

@@ -338,11 +338,6 @@ func fruitValue(value: Fruit)->s32
 {
     let values: [10] Fruit = [.Apple, .Banana, .Cherry, .Date, .Elder, .Fig, .Grape, .Honey, .Ivy, .Jack]
     for value, index in values do Swag.require(fruitValue(value) == cast(s32, index) + 1)
-
-    var rawValue = 0
-    Swag.require(not fruitValue(cast(Fruit, rawValue)))
-    rawValue = 30
-    Swag.require(not fruitValue(cast(Fruit, rawValue)))
 }
 
 #test

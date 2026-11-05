@@ -52,7 +52,7 @@ internal impl IPropertyEditor for FontStyleEditor
         {
             if not style or index > cast(u32, FontFamilyStyle.BoldItalic) do
                 return
-            style[] = cast(FontFamilyStyle, index)
+            style[] = [FontFamilyStyle.Regular, .Bold, .Italic, .BoldItalic][index]
             list.commitItemChange(item)
         }
 

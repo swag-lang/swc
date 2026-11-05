@@ -384,11 +384,12 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             entry.deps.push_back(entry.rtTypeRef);
 
             // Unqualified types would only add a self-dependency, which the walk ignores.
-            if (type.isConst() || type.isNullable())
+            if (type.isConst() || type.isNullable() || type.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
             {
                 TypeInfo unqualified = type;
                 unqualified.removeFlag(TypeInfoFlagsE::Const);
                 unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+                unqualified.removeFlag(TypeInfoFlagsE::ReadOnlyStorage);
                 entry.deps.push_back(tm.addType(unqualified));
             }
 

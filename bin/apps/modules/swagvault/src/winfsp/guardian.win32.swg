@@ -155,7 +155,7 @@ namespace WinFsp
                     catch { reported = try StrConv.parseU32(Swag.makeString(status.buffer + prefixCount, status.count - prefixCount)) } as parseErrorOutcome
                     let parseError = parseErrorOutcome.value()
                     let known      = parseError == null and reported.value <= cast(u32, ErrorKind.DriverUnavailable)
-                    fail volumeError(known ? cast(ErrorKind, reported.value) : .DriverUnavailable)
+                    fail volumeError(known ? ErrorKindValues[reported.value] : .DriverUnavailable)
                 }
             }
 

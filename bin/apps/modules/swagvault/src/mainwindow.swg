@@ -644,7 +644,7 @@ impl MainWindow
     mtd applyTheme()
     {
         .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
-        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
+    .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
     }
 
     // Returns the vault the list knows at `path`, or null.

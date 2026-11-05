@@ -236,7 +236,7 @@ impl Vector4
         let yn = (.y - dest.y)
         let zn = (.z - dest.z)
         let wn = (.w - dest.w)
-        return sqrt((xn * xn) + (yn * yn) + (zn * zn) + (wn * wn))
+        return Vector4{xn, yn, zn, wn}.length()
     }
 
     // Returns the squared distance between this vector and `dest`.
@@ -361,7 +361,7 @@ impl Vector4
     {
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
-        let cosine = .dot(other) / (.length() * other.length())
+        let cosine = normalizedVector4(me).dot(normalizedVector4(other))
         if cosine > 1 do
             return 1
         if cosine < -1 do

@@ -517,7 +517,9 @@ namespace
         uint32_t next = node.firstUseAfter(from);
         // Elections start at input slots. An enclosing loop's even tail
         // cannot precede an access already at this input.
-        if (next == from || !walk.loops)
+        const size_t instructionIndex = from / 2;
+        if (next == from || !walk.loops || walk.loops->empty() || !walk.loopDepth ||
+            instructionIndex >= walk.loopDepth->size() || !(*walk.loopDepth)[instructionIndex])
             return next;
         uint32_t lastAccess = K_IV_INVALID;
         for (const LoopRange& loop : *walk.loops)

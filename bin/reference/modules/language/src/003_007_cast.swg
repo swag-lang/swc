@@ -18,11 +18,11 @@ specified 'type'.
 }
 
 /**
-## Integer to Enum Casts
+## Casts to Closed Enums
 
-An ordinary enum can only be constructed from a compile-time integer that matches
-one of its declared members. A runtime integer cannot be cast to an ordinary enum,
-including with `try cast`; this keeps invalid discriminants out of enum values.
+An ordinary enum can only be constructed from a compile-time value that matches one
+of its declared members. Runtime values cannot be cast to an ordinary enum, including
+with `try cast`; this keeps invalid discriminants out of enum values.
 Use an enum marked `#[Swag.EnumFlags]` when runtime bit combinations are intended.
 An enum marked `#[Swag.Incomplete]` may also carry values outside its declared members.
 */

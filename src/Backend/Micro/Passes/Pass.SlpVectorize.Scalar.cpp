@@ -399,7 +399,8 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
     {
         FlatKeyMap<MicroReg>                   names;
         std::unordered_map<MicroReg, uint32_t> lastDefinitions;
-        std::unordered_set<uint32_t>           members;
+        FlatKeySet                             members;
+        members.reserve(block.instructions.size());
         bool                                   eligible = true;
         for (const MicroInstrRef reference : block.instructions)
         {

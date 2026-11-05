@@ -1033,7 +1033,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         // Labels a relocation points at are pinned; relocations by owning slot
         // let clones keep the tables and constants the body reads.
-        std::unordered_set<uint64_t>                                  relocLabels;
+        FlatKey64Set                                                  relocLabels;
         std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocsBySlot;
         bool                                                          relocationsIndexed = false;
 
@@ -1497,7 +1497,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!partial && internalLabels.empty())
             {
                 std::unordered_map<MicroReg, uint32_t> definitions;
-                std::unordered_set<MicroReg>           addressBases;
+                FlatKeySet                             addressBases;
                 bool                                   readsFlags = false;
                 for (uint32_t o = bodyBegin; o < bodyEnd && !readsFlags; ++o)
                 {
@@ -1506,7 +1506,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     readsFlags                    = ops && MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops);
                     const MicroInstrDef& info     = MicroInstr::info(inst->op);
                     if (ops && info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
-                        addressBases.insert(ops[info.memBaseOperandIndex].reg);
+                        addressBases.insert(ops[info.memBaseOperandIndex].reg.packed);
                     const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
                     for (const MicroReg reg : useDef.defs)
                         if (reg.isVirtualInt())
@@ -1518,7 +1518,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
                 SmallVector<MicroReg, 4> kept;
                 for (const MicroReg reg : steppedPointers)
-                    if (!readsFlags && definitions[reg] == 1 && !renamable.contains(reg) && addressBases.contains(reg))
+                    if (!readsFlags && definitions[reg] == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
                         kept.push_back(reg);
                 steppedPointers = kept;
             }

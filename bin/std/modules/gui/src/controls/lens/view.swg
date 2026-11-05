@@ -523,15 +523,15 @@ impl View
         discard .app().animator.leave(me)
         let back = .returnFocus
         .returnFocus = null
-        if back and not back.isPendingDestroy and back.isVisible()
+        if back and back.focusPolicy != .None and not back.isPendingDestroy and back.isVisible()
         {
             back.setFocus()
             return
         }
 
-        // Hiding the focused lens can seed the first focusable control behind it. When the lens
-        // opened from neutral ground there is no keyboard owner to restore, so keep that ground
-        // neutral instead of inventing a selection the reader never made.
+        // A keyboard shortcut on a neutral surface first seeds its root with fallback focus.
+        // That root has no focus policy and cannot accept setFocus on return. Hiding the lens
+        // may have focused the first button behind it, so clear that accidental selection.
         .surface?.clearFocus()
     }
 

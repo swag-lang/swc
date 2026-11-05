@@ -389,7 +389,7 @@ namespace
                 anySlotOpaque = true;
                 return;
             }
-            std::vector<uint32_t> pending = {0};
+            pending.assign(1, 0);
             frameDepth.assign(refs.size(), INT64_MIN);
             frameDepth[0] = 0;
             while (!pending.empty())

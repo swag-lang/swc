@@ -634,6 +634,42 @@ SWC_TEST_BEGIN(ConstantFolding_LazyAddressesKeepFilteredRelocationOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantFolding_ConstantAddressLoadsWithoutKnownValues)
+{
+    std::array<std::byte, 4> source{std::byte{0x34}, std::byte{0x12}, std::byte{0x00}, std::byte{0x00}};
+    std::array               dims{source.size()};
+    const TypeRef            arrayType   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef        constantRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayType, source));
+    const ConstantValue&     constant    = ctx.cstMgr().get(constantRef);
+    const uint64_t           address     = reinterpret_cast<uint64_t>(constant.getArray().data());
+    constexpr MicroReg       base        = MicroReg::virtualIntReg(1);
+    constexpr MicroReg       value       = MicroReg::virtualIntReg(2);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegPtrReloc(base, address, constantRef);
+    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B16);
+    const MicroInstrRef load = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    MicroSsaValueScratch scratch;
+    MicroPassContext     passContext;
+    passContext.taskContext     = &ctx;
+    passContext.builder         = &builder;
+    passContext.instructions    = &builder.instructions();
+    passContext.operands        = &builder.operands();
+    passContext.callConvKind    = CallConvKind::Swag;
+    passContext.ssaValueScratch = &scratch;
+    MicroConstantFoldingPass pass;
+    SWC_RESULT(pass.run(passContext));
+
+    const auto* folded = builder.instructions().ptr(load);
+    return std::ranges::none_of(scratch.flags, [](const uint8_t flag) { return flag != 0; }) && folded && folded->op == MicroInstrOpcode::LoadRegImm &&
+                   folded->ops(builder.operands())[2].valueU64 == 0x1234
+               ? Result::Continue
+               : Result::Error;
+}
+SWC_TEST_END()
+
 // A chain of address steps from a constant, as an unrolled counter leaves it,
 // folds whole in one run.
 SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)

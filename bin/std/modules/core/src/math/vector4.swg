@@ -448,11 +448,11 @@ impl Vector4
     // The result is the zero vector when `other` is near zero.
     mtd const projectedOnto(other: Vector4)->Vector4
     {
-        let dotProduct    = .dot(other)
         let otherLengthSq = other.lengthSquared()
         if Math.isZeroEpsilon(otherLengthSq) do
             return Zero
-        return other * (dotProduct / otherLengthSq)
+        let direction = normalizedVector4(other)
+        return direction * .dot(direction)
     }
 
     // Returns this vector reflected off a surface whose normal is `normal`.

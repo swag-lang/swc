@@ -74,6 +74,12 @@ enum ProbeStringState: string
     Busy = "busy"
 }
 
+enum ProbeArrayState: const [3] u32
+{
+    Idle = [1, 2, 3]
+    Busy = [4, 5, 6]
+}
+
 #[Swag.EnumFlags]
 #[EnumMeta("flags")]
 enum ProbeFlags: u32
@@ -321,6 +327,10 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     var invalidStringState = "missing"
     Swag.require(Reflection.hasDeclaredValue(#typeof(ProbeStringState), &stringState))
     Swag.require(not Reflection.hasDeclaredValue(#typeof(ProbeStringState), &invalidStringState))
+    var arrayState = ProbeArrayState.Busy
+    var invalidArrayState: [3] u32 = [4, 5, 7]
+    Swag.require(Reflection.hasDeclaredValue(#typeof(ProbeArrayState), &arrayState))
+    Swag.require(not Reflection.hasDeclaredValue(#typeof(ProbeArrayState), &invalidArrayState))
     Swag.require(not Reflection.isFlagsEnum(enumType))
     Swag.require(Reflection.isFlagsEnum(#typeof(ProbeFlags)))
     Swag.require(enumInfo.attributes![0].type == EnumMeta)

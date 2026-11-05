@@ -116,7 +116,7 @@ func recoverLock(allocator: *Allocator)
         Swag.require((address & (alignment - 1)) == 0)
         let header = allocator.headerOf(address)
         Swag.require(header.isElectric and header.userAddr == address)
-        let slack = cast(u64, header.allocAddr) + header.allocSize - address - 129
+        let slack = cast(u64, header.allocAddr) + header.commitSize - address - 129
         Swag.require(slack > 0 and slack < alignment)
 
         writeAt(address + 129, 1)
@@ -130,7 +130,7 @@ func recoverLock(allocator: *Allocator)
 
     let address = allocOne(itf, 129, 16)
     let header  = allocator.headerOf(address)
-    let guard   = cast(u64, header.allocAddr) + header.allocSize
+    let guard   = cast(u64, header.allocAddr) + header.commitSize
     let caught  = Swag.catchPanic(func|guard|() { writeAt(guard, 1) })
     Swag.require(caught.raised and caught.message() == "memory access violation")
     freeAt(itf, address)

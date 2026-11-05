@@ -1246,21 +1246,20 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         for (const auto& [wrapLo, wrapHi] : wrappingRanges)
             if (lo < wrapHi || wrapLo < hi)
                 return true;
-        for (const FrameVarRange& range : varRanges)
+        // Frame objects are disjoint and arrive in offset order. Skip every
+        // object ending before this slot, then inspect only starts in its span.
+        auto range = std::ranges::upper_bound(varRanges, lo, {}, &FrameVarRange::hi);
+        for (; range != varRanges.end() && range->lo < hi; ++range)
         {
-            if (range.poisoned && lo < range.hi && range.lo < hi)
+            if (range->poisoned)
                 return true;
         }
         return false;
     };
 
     auto insideKnownVariable = [&](const uint64_t lo, const uint64_t hi) -> bool {
-        for (const FrameVarRange& range : varRanges)
-        {
-            if (lo >= range.lo && hi <= range.hi)
-                return true;
-        }
-        return false;
+        const auto range = std::ranges::upper_bound(varRanges, lo, {}, &FrameVarRange::hi);
+        return range != varRanges.end() && lo >= range->lo && hi <= range->hi;
     };
 
     // A direct SP access to a known local is not an outgoing argument. Its

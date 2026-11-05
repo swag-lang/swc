@@ -1348,7 +1348,8 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
     {
         LoopResidency& residency = activeLoopResidency_[residencyIndex - 1];
 
-        if (std::ranges::find(residency.backEdges, instructionIndex) == residency.backEdges.end())
+        residency.backEdgeAtCurrentInstruction = std::ranges::find(residency.backEdges, instructionIndex) != residency.backEdges.end();
+        if (!residency.backEdgeAtCurrentInstruction)
             continue;
 
         // Demote pairs nothing consumed: no emitted read depends on them, so
@@ -4142,7 +4143,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             const auto& vregsForPairs = denseVirtualRegs_.regs();
             for (const LoopResidency& residency : activeLoopResidency_)
             {
-                if (std::ranges::find(residency.backEdges, idx) == residency.backEdges.end())
+                if (!residency.backEdgeAtCurrentInstruction)
                     continue;
                 for (const auto& [expectedDense, expectedPhys] : residency.expected)
                     appendUniqueReg(protectedKeys, vregsForPairs[expectedDense]);

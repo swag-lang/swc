@@ -258,9 +258,10 @@ is the current scorecard.
   avoids invalid values for closed enums regardless of runtime safety settings while a checked
   conversion API is unspecified.
 - Evidence: semantic checks reject runtime ordinary-enum casts and preserve flags-enum casts.
-- Binary and TagBin deserialization now reject undeclared members of closed enums; flags and
-  `#[Swag.Incomplete]` enums retain their declared semantics. TagBin validates enums in raw arrays,
-  including enums nested in raw structs and fixed arrays.
+- Binary and TagBin deserialization now reject undeclared members of closed enums; numeric flags
+  and `#[Swag.Incomplete]` enum payloads retain their declared semantics. TagBin validates enums in
+  raw arrays, including enums nested in raw structs and fixed arrays. JSON string-backed enums map
+  only to declared constants so decoded values do not borrow a temporary parser buffer.
 - Audit: generic `cast` calls use the same specialized sema rules; reflection assignment copies
   values of one runtime type; text parsing accepts declared enum names; command-line parsing uses
   that parser. `assume cast` remains the explicit unchecked escape hatch.

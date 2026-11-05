@@ -164,6 +164,7 @@ impl Decoder
                 if not isEnum do
                     fail SerializationError{"deserializing a borrowed string is unsupported"}
 
+                // Store a declared enum constant rather than borrowing the temporary parser text.
                 let text = try .serializer.readNative'String()
                 let typeEnum = assume cast(const *TypeInfoEnum, enumType)
                 var found = false

@@ -558,22 +558,42 @@ impl ViewerWindow
         catch .saveState()
     }
 
-    // Opens the file `delta` steps away in the sibling list, wrapping around at either end.
-    mtd navigate(delta: s32)
+    // Opens the file `delta` steps away, wrapping around at either end. Image controls stay on
+    // files named for the image viewer even when the folder panel lists every file kind.
+    mtd navigate(delta: s32, imagesOnly: bool = false)
     {
         if .currentFile.isEmpty() do
             return
+
+        if imagesOnly
+        {
+            let files = .imageSiblings()
+            var current: u64
+            for file, index in files where file[] == .currentFile
+            {
+                current = index
+                break
+            }
+            .navigateAmong(delta, files.toSlice(), current)
+            return
+        }
+
         if .siblingsDirty do
             .rebuildSiblings()
-        if .siblings.count <= 1 do
+        .navigateAmong(delta, .siblings.toSlice(), .siblingIndex)
+    }
+
+    private mtd navigateAmong(delta: s32, files: const [..] String, current: u64)
+    {
+        if files.count <= 1 do
             return
 
-        var index = cast(s64, .siblingIndex) + delta
+        var index = cast(s64, current) + delta
         if index < 0 do
-            index = cast(s64, .siblings.count) - 1
-        elif index >= cast(s64, .siblings.count) do
+            index = cast(s64, files.count) - 1
+        elif index >= cast(s64, files.count) do
             index = 0
-        .queueFile(.siblings[cast(u64, index)])
+        .queueFile(files[cast(u64, index)])
     }
 
     // Returns the files of the current file's folder that its viewer opens, in folder order and
@@ -584,6 +604,19 @@ impl ViewerWindow
         var result: #returntype
         for file in .folderFiles where .index.sharesViewer(.currentFile, file[]) do
             result.add(file[])
+        return result
+    }
+
+    // Returns only folder entries whose names select the image viewer.
+    private mtd imageSiblings()->Array'String
+    {
+        var result: #returntype
+        for file in .folderFiles
+        {
+            var pluginIndex: u64
+            if .index.namePlugin(file[], &pluginIndex) and .index.plugins[pluginIndex].key == "image" do
+                result.add(file[])
+        }
         return result
     }
 }

@@ -64,9 +64,9 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
     default:
         if rawType == string
         {
-            let value = cast(const *string, valueAddress)[]
+            let value = cast(const *(string?), valueAddress)[]
             for &caseInfo in typeEnum.values where caseInfo.value do
-                if cast(const *string, caseInfo.value)[] == value do
+                if cast(const *(string?), caseInfo.value)[] == value do
                     return true
             return false
         }

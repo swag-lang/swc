@@ -379,13 +379,13 @@ private impl Application
             return
 
         // Detect changes
-        for i in (.mouse.previousState.pressed).count
+        for button in Input.MouseButton
         {
-            let lastP = .mouse.previousState.pressed[i]
-            let curP  = .mouse.currentState.pressed[i]
+            let lastP = .mouse.previousState.pressed[button]
+            let curP  = .mouse.currentState.pressed[button]
             if not lastP and curP
             {
-                if .mouse.isButtonDoubleClick(cast(Input.MouseButton, i))
+                if .mouse.isButtonDoubleClick(button)
                 {
                     evt.kind = .DoubleClick
                 }
@@ -396,14 +396,14 @@ private impl Application
                     .focusPointerTarget(targetWnd)
                 }
 
-                evt.button = cast(Input.MouseButton, i)
+                evt.button = button
                 targetWnd.sendEvent(&evt)
                 .toolTip.hide()
             }
             elif lastP and not curP
             {
                 evt.kind   = .Released
-                evt.button = cast(Input.MouseButton, i)
+                evt.button = button
                 targetWnd.sendEvent(&evt)
             }
         }
@@ -441,6 +441,7 @@ private impl Application
             target.surface?.clearFocus()
             return
         }
+
         if target.focusPolicy != .None do
             target.setFocus()
     }
@@ -485,10 +486,10 @@ private impl Application
         let current  = .keyboard.currentState
 
         // Detect changes
-        for i in previous.pressed.count
+        for key in Input.Key
         {
-            let lastP = previous.pressed[i]
-            let curP  = current.pressed[i]
+            let lastP = previous.pressed[key]
+            let curP  = current.pressed[key]
 
             // A surface nothing has focused yet would be deaf to the keyboard. The first key
             // pressed is what seeds the focus, so a window can be driven from the keyboard without
@@ -504,16 +505,16 @@ private impl Application
             if not lastP and curP
             {
                 var evt = KeyEvent{kind: .Pressed}
-                evt.key       = cast(Input.Key, i)
+                evt.key       = key
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
                 if not evt.accepted do
-                    .routeUnhandledKey(targetWnd, cast(Input.Key, i), modifiers)
+                    .routeUnhandledKey(targetWnd, key, modifiers)
             }
             elif lastP and not curP
             {
                 var evt = KeyEvent{kind: .Released}
-                evt.key       = cast(Input.Key, i)
+                evt.key       = key
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
             }

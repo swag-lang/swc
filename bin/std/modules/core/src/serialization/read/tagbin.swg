@@ -23,20 +23,25 @@ private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
 // Raw TagBin arrays bypass per-value decoding, so validate closed enums in place.
-private func hasValidClosedEnumValues(type: typeinfo?, values: [*]const u8, count: u64)->bool
+private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
 {
     if not Reflection.isEnum(type) or
        Reflection.hasAttribute(type, EnumFlags) or
        Reflection.hasAttribute(type, Incomplete) do
         return true
 
-    let valueSize = unwrap type.sizeof
+    if count == 0 do
+        return true
+
+    let valueData = unwrap values
+    let valueSize = type.sizeof
     for index in count
     {
-        let valueAddress = cast(const *void, values + index * valueSize)
+        let valueAddress = cast(const *void, valueData + index * valueSize)
         if not Reflection.hasDeclaredIntegerValue(type, valueAddress) do
             return false
     }
+
     return true
 }
 
@@ -1168,7 +1173,7 @@ impl TagBin
                 bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
-                if not hasValidClosedEnumValues(valueType, unwrap bufArr.buffer, countElem[]) do
+                if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
                 return true
             }
@@ -1201,7 +1206,7 @@ impl TagBin
 
                 if countElem[] and te.sizeof do
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
-                if not hasValidClosedEnumValues(typeElem, data, countElem[]) do
+                if not hasValidClosedEnumValues(te, data, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
 
                 // The stream can hold more elements than the array does now; skip them

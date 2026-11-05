@@ -164,8 +164,10 @@ namespace
     MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder, MicroInstrRef& outRef)
     {
         SmallVector<MicroReg, 8> candidates;
-        for (const MicroInstr& inst : storage.view())
+        SmallVector<MicroInstrRef, 8> candidateRefs;
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
+            const MicroInstr& inst = *it;
             if (inst.op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const MicroInstrOperand* ops = inst.ops(operands);
@@ -173,7 +175,10 @@ namespace
                 !ops[0].reg.isInt() || isFrameBaseRegister(ops[0].reg, conv))
                 continue;
             if (std::ranges::find(candidates, ops[0].reg) == candidates.end())
+            {
                 candidates.push_back(ops[0].reg);
+                candidateRefs.push_back(it.current);
+            }
         }
 
         SmallVector<uint8_t, 8> defCounts;
@@ -211,6 +216,7 @@ namespace
         }
 
         MicroReg selected;
+        size_t   selectedIndex = candidates.size();
         for (size_t i = 0; i < candidates.size(); ++i)
         {
             if (defCounts[i] != 1)
@@ -218,20 +224,10 @@ namespace
             if (selected.isValid())
                 return MicroReg::invalid();
             selected = candidates[i];
+            selectedIndex = i;
         }
         if (selected.isValid())
-        {
-            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
-            {
-                const MicroInstrOperand* ops = it->ops(operands);
-                if (it->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == selected &&
-                    ops[1].reg == conv.stackPointer && ops[2].opBits == MicroOpBits::B64)
-                {
-                    outRef = it.current;
-                    break;
-                }
-            }
-        }
+            outRef = candidateRefs[selectedIndex];
         return selected;
     }
 

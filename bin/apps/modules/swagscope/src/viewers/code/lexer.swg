@@ -296,6 +296,15 @@ struct GenericLexer
 
 private impl GenericLexer
 {
+    mtd stateFromStorage(value: s32)->State
+    {
+        if value == cast(s32, State.BlockComment) do
+            return .BlockComment
+        if value == cast(s32, State.MarkupComment) do
+            return .MarkupComment
+        return .Default
+    }
+
     mtd addWords(words: const [..] string)
     {
         for word in words do
@@ -948,7 +957,7 @@ impl IRichEditLexer for GenericLexer
     mtd impl compute(linePrev: *RichEditLine?, line: *RichEditLine, lineNext: *RichEditLine?)
     {
         paintRange(line, 0, line.length(), .Default)
-        let previous = linePrev ? cast(State, linePrev.lexerState()) : State.Default
+        let previous = linePrev ? stateFromStorage(linePrev.lexerState()) : State.Default
         let state    = .language == .Xml or .language == .Html ? .computeMarkup(line, previous) : .computeCode(line, previous)
         if line.setLexerState(cast(s32, state)) and lineNext do
             lineNext.markStyleDirty()

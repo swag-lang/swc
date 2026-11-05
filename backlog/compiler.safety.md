@@ -48,12 +48,12 @@ is the current scorecard.
 - Evidence: `Core.Log.print` produced fourteen zero bytes when it passed a local `String`'s
   `toString()` view through a local `string` variable to `ILogWriter.print`. The local owner remained
   in scope, and calling `w.print(rendered.toString())` directly fixed the log test. Longer,
-  heap-backed messages did not reproduce the failure. This suggests a gap in preserving a short
-  inline string's storage across the borrowed view and dynamic call; the exact compiler phase is
-  not yet established.
-- Next: add a compiler regression for a local short `String`, a separate borrowed view, and an
-  interface callback; trace borrow/liveness analysis and generated code, then ensure an actual
-  escaping view still receives its existing diagnostic.
+  heap-backed messages did not reproduce the failure. Linux native DevMode and Release tests now
+  pass for both a short inline `String` view passed through a local interface callback and
+  `Core.Log.print` with a short formatted result.
+- Next: reproduce the original fourteen-byte failure on Windows with a regression that preserves
+  the exact `StringBuilder` and writer call path. Then trace borrow/liveness analysis and generated
+  code, and ensure an actual escaping view still receives its existing diagnostic.
 - Done when: the compiler either keeps the inline string valid through the callback or rejects the
   invalid lifetime before code generation, with positive and negative regressions covering both
   cases.

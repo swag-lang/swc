@@ -945,7 +945,15 @@ namespace
     // an unused caller-saved SIMD register, even when the original GP register
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
-    bool cachePrivateSpills(MicroPassContext& context, const MicroControlFlowGraph& cfg, const MicroPhysLiveness& liveness, const NaturalLoop& loop, const FrameReachability& reach, const FrameRangeNormalizer& ranges, const bool stackEscaped)
+    bool cachePrivateSpills(
+        MicroPassContext& context,
+        const MicroControlFlowGraph& cfg,
+        const MicroPhysLiveness& liveness,
+        const NaturalLoop& loop,
+        const FrameReachability& reach,
+        const FrameRangeNormalizer& ranges,
+        const bool stackEscaped,
+        std::vector<uint8_t>& visited)
     {
         if (stackEscaped || reach.localSpaceEscapes || context.spillAreaLo >= context.spillAreaHi)
             return false;
@@ -1040,7 +1048,7 @@ namespace
         bool callFreeTrip = calls.empty();
         if (!calls.empty())
         {
-            std::vector<uint8_t>  visited(refs.size(), 0);
+            visited.assign(refs.size(), 0);
             SmallVector<uint32_t> pending;
             pending.push_back(loop.header);
             while (!pending.empty() && !callFreeTrip)
@@ -1644,8 +1652,9 @@ namespace
             std::stable_sort(cacheLoops.begin(), cacheLoops.end(), [](const NaturalLoop* a, const NaturalLoop* b) {
                 return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
             });
+            std::vector<uint8_t> visited;
             for (const NaturalLoop* loop : cacheLoops)
-                if (cachePrivateSpills(context, cfg, liveness, *loop, reach, ranges, stackEscapedForLoop(*loop)))
+                if (cachePrivateSpills(context, cfg, liveness, *loop, reach, ranges, stackEscapedForLoop(*loop), visited))
                     return true;
             return false;
         }

@@ -71,7 +71,6 @@ SWC_TEST_BEGIN(Compiler_InfoReportsPathsWithoutCompilation)
     Os::ProcessRunOptions options;
     options.capturedOutput = &output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 10000;
 
     uint32_t                exitCode = UINT32_MAX;
     const std::vector<Utf8> args     = {"info", "--no-log-color", "--log-ascii", "--num-cores", "1"};
@@ -178,7 +177,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
     Os::ProcessRunOptions options;
     options.capturedOutput           = &output;
     options.forwardOutput            = false;
-    options.timeoutMs                = 60000;
     uint32_t                exitCode = UINT32_MAX;
     const std::vector<Utf8> args     = {
         "smoke",

@@ -74,7 +74,6 @@ SWC_TEST_BEGIN(Logger_CommandHelpWrapsAndAlignsDescriptions)
     Os::ProcessRunOptions options;
     options.capturedOutput = &output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 10000;
 
     uint32_t                exitCode = UINT32_MAX;
     const std::vector<Utf8> args     = {"help", "build"};

@@ -277,7 +277,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxAllocatorBorrowGuardUsesSwagAbi)
     Os::ProcessRunOptions   options;
     options.capturedOutput = &output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     // The source expects the borrow diagnostic from the host allocator's free callback.
     // A mismatched ABI produced a hardware fault instead and escaped that expectation.
     if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
@@ -303,7 +302,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_GlobalIfRetiresInactiveDeclarationsAndImpls)
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
@@ -328,7 +327,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NamedTypeWaitsForConditionalHomonyms)
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
@@ -359,7 +358,7 @@ struct State { value: s32 }
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) ||
         output.find("unknown name 'State'") == std::string::npos || output.find("internal compiler error") != std::string::npos)
@@ -381,24 +380,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_JitTestsDropModuleStateBeforeRestoringGlobals
         const std::string source = std::format("#global private\nconst FailurePhase = {}\n", phase) + R"(using Core
 var finished: Swag.AtomicValue'u32
 var thread: Threading.Thread
+var wake: Sync.Event
 
 func worker(current: const *Threading.Thread)
 {
-    let deadline = Time.monotonicMilliseconds() + 2000
-    while Time.monotonicMilliseconds() < deadline
-    {
-        if current.requestEnd.isRaised()
-        {
-            finished.store(1)
-            return
-        }
-        Threading.Thread.sleep(Time.Duration.fromMilliseconds(1))
-    }
-    finished.store(2)
+    wake.wait()
+    finished.store(current.requestEnd.isRaised() ? 1 : 2)
 }
 
 #init
 {
+    wake.init(false)
     expect thread.init(&worker)
     expect thread.start()
     if FailurePhase == 1 do
@@ -422,6 +414,7 @@ func worker(current: const *Threading.Thread)
 #drop
 {
     thread.safeForceEnd()
+    wake.signal()
     thread.wait()
     Swag.assert(finished.load() == 1)
     Swag.print("drop-joined\n")
@@ -432,7 +425,7 @@ func worker(current: const *Threading.Thread)
             "test", "--module", Utf8(module), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
         std::string                               output;
         uint32_t                                  exitCode = 0;
-        const Os::ProcessRunOptions               options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 60000};
+        const Os::ProcessRunOptions               options{.capturedOutput = &output, .forwardOutput = false};
         const auto                                result       = Os::runProcess(exitCode, Os::getExeFullName(), arguments, module, &options);
         const uint32_t                            expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
         constexpr std::array<std::string_view, 4> diagnostics  = {"", "init-original", "test-original", "drop-original"};
@@ -469,7 +462,7 @@ var initialized: bool
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success) || output.find("export-test-ran") == std::string::npos)
     {
@@ -494,7 +487,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxCVariadicCallsUseIndividualArguments)
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
@@ -518,7 +511,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_LinuxThreadLocalGlobalsReleaseBeforeWorkerExi
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::Success))
     {
@@ -555,7 +548,7 @@ func {}(status: s32)
                 "--out-dir", Utf8(directory.path() / "output" / name), "--work-dir", Utf8(directory.path() / "work" / name)};
             std::string                 output;
             uint32_t                    exitCode = 0;
-            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
             const auto                  result   = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
             const std::string           expected = std::format("jit code attempted to terminate the compiler process by calling {}(67)", function);
             if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(ExitCode::CompileError) || output.find(expected) == std::string::npos)

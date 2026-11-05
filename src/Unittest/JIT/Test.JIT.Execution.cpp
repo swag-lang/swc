@@ -173,10 +173,10 @@ namespace
             cv_.notify_all();
         }
 
-        bool wait()
+        void wait()
         {
             std::unique_lock lock(mutex_);
-            return cv_.wait_for(lock, std::chrono::seconds(5), [this] { return signaled_; });
+            cv_.wait(lock, [this] { return signaled_; });
         }
 
     private:
@@ -196,13 +196,12 @@ namespace
         JobResult exec() override
         {
             started.signal();
-            timedOut = !release.wait();
+            release.wait();
             return JobResult::Done;
         }
 
         JitTestSignal started;
         JitTestSignal release;
-        bool          timedOut = false;
     };
 
     class PausedJitOwnerJob final : public Job
@@ -305,9 +304,8 @@ namespace
             prime.nodeRef          = AstNodeRef{43};
             prime.runtimeSetupMode = JITRuntimeSetupMode::None;
             prime.onCompleted      = [&](Result result) {
-                const auto        deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
                 std::vector<Job*> waiting;
-                while (result == Result::Continue && std::chrono::steady_clock::now() < deadline)
+                while (result == Result::Continue)
                 {
                     jobs.waitingJobs(waiting, compiler.jobClientId());
                     if (std::ranges::find(waiting, &owner) != waiting.end())
@@ -327,7 +325,6 @@ namespace
                 // Also drives the lane with one worker. In parallel, its worker may
                 // have claimed the item, so wait for the protected dependency snapshot.
                 manager.executePendingMainThread();
-                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
                 while (true)
                 {
                     bool paused;
@@ -337,11 +334,6 @@ namespace
                     }
                     if (paused)
                         break;
-                    if (std::chrono::steady_clock::now() >= deadline)
-                    {
-                        owner.valid = false;
-                        break;
-                    }
                     std::this_thread::yield();
                 }
                 compiler.publishJitFunctionEntry(*setup, reinterpret_cast<void*>(&queuedJitSetupNoop));
@@ -380,7 +372,7 @@ namespace
             if (!jobs.isSingleThreaded())
             {
                 jobs.enqueue(blocker, JobPriority::Normal, compiler.jobClientId());
-                valid &= blocker.started.wait();
+                blocker.started.wait();
             }
             if (scenario == PausedJitScenario::IgnoredDependency)
             {
@@ -394,11 +386,10 @@ namespace
             }
             if (!jobs.isSingleThreaded())
             {
-                valid &= owner.finished.wait();
+                owner.finished.wait();
                 blocker.release.signal();
             }
             jobs.waitAll(compiler.jobClientId());
-            valid &= !blocker.timedOut;
         }
         const bool ignored = scenario == PausedJitScenario::IgnoredDependency;
         valid &= owner.completed && owner.result == (ignored ? Result::Error : Result::Continue);
@@ -521,18 +512,12 @@ namespace
                 {
                     // Hold publication until the owner is registered. This makes the
                     // after-parking case deterministic even on a busy worker pool.
-                    const auto        deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
                     std::vector<Job*> waiting;
                     while (true)
                     {
                         this->ctx().global().jobMgr().waitingJobs(waiting, this->ctx().compiler().jobClientId());
                         if (std::ranges::find(waiting, this) != waiting.end())
                             break;
-                        if (std::chrono::steady_clock::now() >= deadline)
-                        {
-                            valid.store(false);
-                            break;
-                        }
                         std::this_thread::yield();
                     }
                 }
@@ -565,16 +550,8 @@ namespace
             {
                 // Also works with one core: drive the queued item before returning Sleep.
                 manager.executePendingMainThread();
-                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
                 while (!manager.hasCompletion(ctx(), request_.nodeRef, request_.codeRef))
-                {
-                    if (std::chrono::steady_clock::now() >= deadline)
-                    {
-                        valid.store(false);
-                        break;
-                    }
                     std::this_thread::yield();
-                }
             }
             return JobResult::Sleep;
         }

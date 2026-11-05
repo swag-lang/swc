@@ -2017,7 +2017,7 @@ namespace
             NativeBackendBuilder builder(compiler, false);
             SWC_RESULT(builder.run());
             std::string output;
-            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+            const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
             uint32_t exitCode = 0;
             if (Os::runProcess(exitCode, builder.artifactPath, {}, artifacts.path, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
             {

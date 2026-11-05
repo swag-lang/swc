@@ -399,7 +399,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Os_ChildLibrarySearchPreservesTheParentEnvironment)
         expected += ":" + previous;
     std::string output;
     uint32_t exitCode = 0;
-    Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .additionalPathDirectories = directories, .timeoutMs = 5000};
+    Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .additionalPathDirectories = directories};
     if (Os::runProcess(exitCode, "/usr/bin/env", {}, {}, &options) != Os::ProcessRunResult::Ok || exitCode != 0 ||
         ("\n" + output).find("\nLD_LIBRARY_PATH=" + expected + "\n") == std::string::npos)
         return Result::Error;

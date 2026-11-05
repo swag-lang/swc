@@ -2589,7 +2589,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ElfArchiveKeepsGlobalConstantPointers)
     {
         std::string output;
         uint32_t exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         if (Os::runProcess(exitCode, program, arguments, commandLine.workDir, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         {
             std::println(stderr, "[ELF archive consumer] {}: {}", Utf8(program), output);

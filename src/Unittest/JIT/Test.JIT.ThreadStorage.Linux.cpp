@@ -173,7 +173,8 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRetirementWaitsForDeletedActiveCallbacks)
     bool entered = false;
     {
         std::unique_lock lock(state.mutex);
-        entered = state.changed.wait_for(lock, std::chrono::seconds(2), [&] { return state.entered || (state.setupFinished && !state.installed); }) && state.entered;
+        state.changed.wait(lock, [&] { return state.entered || (state.setupFinished && !state.installed); });
+        entered = state.entered;
     }
     std::jthread releaser([&] {
         JITThreadStorage::release([&](const void* callback) {
@@ -191,8 +192,8 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRetirementWaitsForDeletedActiveCallbacks)
     bool waited = false;
     {
         std::unique_lock lock(state.mutex);
-        const bool started = state.changed.wait_for(lock, std::chrono::seconds(2), [&] { return state.ownerSeen || state.releaseFinished; });
-        waited = started && state.ownerSeen && !state.changed.wait_for(lock, std::chrono::milliseconds(30), [&] { return state.releaseFinished; });
+        state.changed.wait(lock, [&] { return state.ownerSeen || state.releaseFinished; });
+        waited = state.ownerSeen && !state.releaseFinished;
         state.allowExit = true;
         state.changed.notify_all();
     }

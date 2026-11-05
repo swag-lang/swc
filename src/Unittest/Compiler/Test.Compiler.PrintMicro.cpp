@@ -55,7 +55,6 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         Os::ProcessRunOptions options;
         options.capturedOutput = &run.output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 15000;
         run.process            = Os::runProcess(run.exitCode, Os::getExeFullName(), args, directory, &options);
         return Result::Continue;
     }
@@ -296,7 +295,6 @@ public func exported()->u32 => 23
     Os::ProcessRunOptions   options;
     options.capturedOutput = &run.output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     run.process            = Os::runProcess(run.exitCode, Os::getExeFullName(), args, directory, &options);
 
     // A built library scopes its functions under the module name.

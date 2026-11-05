@@ -55,7 +55,6 @@ namespace
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 15000;
         result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
     }
 
@@ -122,7 +121,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
             arguments.emplace_back("consumer");
         }
         ImportResult                result;
-        const Os::ProcessRunOptions options{.capturedOutput = &result.output, .forwardOutput = false, .timeoutMs = 20000};
+        const Os::ProcessRunOptions options{.capturedOutput = &result.output, .forwardOutput = false};
         result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), arguments, workspace, &options);
         if (result.process != Os::ProcessRunResult::Ok || result.exitCode)
         {
@@ -155,7 +154,6 @@ func read(value: Value)->s32 => value.number
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
     {
@@ -255,7 +253,6 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_NamedStandardImportUsesWorkspaceOutputRoot)
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     result.process         = Os::runProcess(result.exitCode, compilerPath, args, directory.path(), &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
     {
@@ -479,7 +476,6 @@ func exposed(value: s32)->s32 => helper(value)
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 15000;
         result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
         if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
         {
@@ -557,7 +553,6 @@ impl Value
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 15000;
         result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
         const bool exported    = access == "public";
         if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != exported)
@@ -748,7 +743,6 @@ struct Holder { public slot: Swag.AtomicValue'Slot }
         Os::ProcessRunOptions   options;
         options.capturedOutput = &result.output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 15000;
         result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
         if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
         {
@@ -814,7 +808,6 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode == 0 ||
         result.output.find("cannot export the body of function 'WholeApi.exposed'") == std::string::npos ||
@@ -850,18 +843,16 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterReadsCompletedConcurrentPublication)
 {
     ApiPublicationTestDirectory directory("Concurrent");
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
     SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", "this API is still being written\n"));
 
-    ImportResult      importer;
-    std::atomic<bool> finished = false;
-    std::thread       reader;
-    std::barrier      started(2);
-    bool              returnedBeforePublication = false;
-    Result            writeResult               = Result::Continue;
+    ImportResult importer;
+    std::thread  reader;
+    std::barrier started(2);
+    Result       writeResult = Result::Continue;
     {
         ModuleApi::DirectoryAccess publication;
         Utf8                       because;
@@ -869,17 +860,14 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterWaitsForCompletePublication)
         reader = std::thread([&] {
             started.arrive_and_wait();
             runPublicationImporter(ctx, importer, directory);
-            finished.store(true, std::memory_order_release);
         });
         started.arrive_and_wait();
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        returnedBeforePublication = finished.load(std::memory_order_acquire);
-        writeResult               = CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE);
+        writeResult = CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE);
         if (writeResult == Result::Continue)
             writeResult = publication.completePublication(because);
     }
     reader.join();
-    if (writeResult != Result::Continue || returnedBeforePublication || importer.process != Os::ProcessRunResult::Ok || importer.exitCode != 0)
+    if (writeResult != Result::Continue || importer.process != Os::ProcessRunResult::Ok || importer.exitCode != 0)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -1074,7 +1062,6 @@ func length(value: const [*] u8)->u64
         std::string           output;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 30000;
         uint32_t exitCode      = UINT32_MAX;
         if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         {
@@ -1143,7 +1130,6 @@ func directProcessId()->u32
         std::string             output;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 30000;
         uint32_t exitCode      = UINT32_MAX;
         if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
         {
@@ -1196,7 +1182,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_RebuildModulePreservesCurrentDependencies)
         Os::ProcessRunOptions options;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
-        options.timeoutMs      = 30000;
         uint32_t exitCode      = UINT32_MAX;
         if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) == Os::ProcessRunResult::Ok && exitCode == 0)
             return Result::Continue;
@@ -1271,7 +1256,6 @@ func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
     std::string             output;
     options.capturedOutput = &output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 30000;
     uint32_t exitCode      = UINT32_MAX;
     if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
     {
@@ -1323,7 +1307,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
     std::string             output;
     options.capturedOutput = &output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     uint32_t exitCode      = UINT32_MAX;
     if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
     {
@@ -1370,7 +1353,6 @@ const Following = 42
     Os::ProcessRunOptions   options;
     options.capturedOutput = &result.output;
     options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
     result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
     if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
     {

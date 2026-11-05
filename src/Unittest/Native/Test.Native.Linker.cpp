@@ -107,7 +107,7 @@ namespace
     {
         uint32_t                    exitCode = 0;
         std::string                 output;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         const Os::ProcessRunResult  result = Os::runProcess(exitCode, Os::getExeFullName(), args, fs::current_path(), &options);
         if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(expectedExit) || output.find(expectedOutput) == std::string::npos || output.find("mimalloc: error") != std::string::npos)
         {
@@ -646,7 +646,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
     // A deployed executable has no compiler-provided paths or original workspace.
     std::string output;
     uint32_t exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const std::vector<Utf8> runArguments = {"", "two words", "a\"b", "tail\\", "café"};
     const auto result = Os::runProcess(exitCode, relocated / "artifact_shared_consumer", runArguments, relocated, &options);
     if (result != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("shared artifact passed") == std::string::npos || output.find("shared provider dropped") == std::string::npos)
@@ -936,7 +936,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ExecutesProcessEntryAndEagerLibcImports)
         return Result::Error;
     uint32_t exitCode = 0;
     std::string output;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     if (Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output != "internal ELF link\n")
     {
         std::println(stderr, "[internal ELF] exit={}, output={}", exitCode, output);
@@ -979,7 +979,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_CopyRelocationsShareStorageWithGotReferences)
         return Result::Error;
     uint32_t exitCode = 0;
     std::string output;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     if (Os::runProcess(exitCode, job.outputPath, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
         return Result::Error;
     for (LinkReloc& relocation : image.sections[0].relocs)
@@ -997,7 +997,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_ArchiveDefinitionsOverrideCommonDeclarations)
     SWC_RESULT(directory.write("strong.c", "int value = 42;\n"));
     uint32_t exitCode = 0;
     std::string output;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     for (const char* name : {"main", "weak", "strong"})
     {
         const std::vector<Utf8> arguments = {"-x", "c", "-fcommon", "-c", std::format("{}.c", name), "-o", std::format("{}.o", name)};
@@ -1045,7 +1045,7 @@ __attribute__((constructor)) static void last() { initialized = initialized * 10
     SWC_RESULT(directory.write("constructor.cpp", source));
     uint32_t exitCode = 0;
     std::string output;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const std::vector<Utf8> compile = {"-c", "-fPIC", "constructor.cpp", "-o", "constructor.o"};
     if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
         return Result::Error;
@@ -1229,7 +1229,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRelinksChangedStaticDependenciesAndRecover
             return Result::Error;
         std::string                 output;
         uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         const auto                  status      = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
         const auto                  initialized = output.find("provider-init");
         const auto                  value       = output.find(std::format("value-{}", phase));
@@ -1278,7 +1278,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
     const auto run = [&](const bool reused, const uint32_t marker) -> Result {
         std::string                 output;
         uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         const auto                  status = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
         if (status != Os::ProcessRunResult::Ok || exitCode || output.find(std::format("cache-ok-{}", marker)) == std::string::npos ||
             (output.find("unchanged function") != std::string::npos) != reused)
@@ -1293,7 +1293,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
         const std::vector<Utf8>     dump  = {"--dump-section", ".swagdbg=" + Utf8(table), Utf8(directory.path() / "output/cache-probe"), Utf8(directory.path() / "inspected-elf")};
         std::string                 output;
         uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 5000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         if (Os::runProcess(exitCode, "objcopy", dump, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
             return Result::Error;
         ByteArray               bytes;
@@ -1384,7 +1384,7 @@ func caller()
         const fs::path              library    = artifacts / "symbols.so";
         std::string                 output;
         uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         if (Os::runProcess(exitCode, executable, {}, artifacts, &options) != Os::ProcessRunResult::Ok || exitCode != 102)
             return Result::Error;
         const auto leaf   = output.find("NativeSymbols.leaf --> ");
@@ -1447,7 +1447,7 @@ public func second(value: s64)->s64
         const Utf8                  artifact = Utf8(fs::path(outputDirectory.c_str()) / (shared ? "dwarf.so" : "dwarf"));
         std::string                 output;
         uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         const std::vector<Utf8>     debugInfo = {"--debug-dump=info", "--debug-dump=loc", "--debug-dump=decodedline", artifact};
         if (Os::runProcess(exitCode, "readelf", debugInfo, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("DW_TAG_formal_parameter") == std::string::npos || output.find("adjusted") == std::string::npos || output.find("DW_OP_bregx") == std::string::npos || output.find("first.swg") == std::string::npos || output.find("second.swg") == std::string::npos || output.find("Warning:") != std::string::npos)
         {
@@ -1545,7 +1545,7 @@ int main()
 )"));
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const std::vector<Utf8>     inspect = {"-d", "output/pic.so"};
     if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("TEXTREL") != std::string::npos)
         return Result::Error;
@@ -1615,7 +1615,7 @@ int main()
 )"));
     std::string                 output;
     uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     LinkJob job;
     job.output = LinkJob::Output::SharedLibrary;
     job.outputPath = directory.path() / "generated.so";
@@ -1722,7 +1722,7 @@ int main()
 )"));
     std::string output;
     uint32_t exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
     const std::vector<Utf8> arguments = {"-no-pie", "-Wl,--build-id=none", "caller.cpp", "generated.o", "-o", "consumer"};
     if (Os::runProcess(exitCode, "c++", arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
     {

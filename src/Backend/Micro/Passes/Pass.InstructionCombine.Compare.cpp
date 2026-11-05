@@ -288,7 +288,7 @@ namespace InstructionCombine
             if (first >= last || last - first > MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN)
                 return false;
             SmallVector<uint32_t> pending;
-            SmallVector<uint32_t> visited;
+            std::array<uint64_t, (MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN + 63) / 64> visited{};
             for (const uint32_t predecessor : cfg.predecessors(last))
                 pending.push_back(predecessor);
             if (pending.empty())
@@ -307,9 +307,12 @@ namespace InstructionCombine
                 const auto addressTaken = cfg.addressTakenLabelIndices();
                 if (std::ranges::find(addressTaken, index) != addressTaken.end())
                     return false;
-                if (std::ranges::find(visited, index) != visited.end())
+                const uint32_t relativeIndex = index - first;
+                uint64_t&      visitedWord   = visited[relativeIndex >> 6u];
+                const uint64_t visitedMask   = 1ull << (relativeIndex & 63u);
+                if (visitedWord & visitedMask)
                     continue;
-                visited.push_back(index);
+                visitedWord |= visitedMask;
                 const MicroInstr* inst = ctx.storage->ptr(refs[index]);
                 if (!inst || ctx.isClaimed(refs[index]))
                     return false;

@@ -117,7 +117,7 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     var copy = assume cast(const *Swag.TypeInfoNative, s32)[]
     let target: typeinfo = &copy
     Swag.require(not compatible(target, s32))
-    let castResult2 = catch cast(any?, cast(target, 42's32))
+    let castResult2 = catch cast(const any?, cast(target, 42's32))
     Swag.require(castResult2 == null)
 }
 

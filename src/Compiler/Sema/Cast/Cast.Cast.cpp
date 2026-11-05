@@ -1320,6 +1320,34 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     if (underlyingRequest.constantFoldingResult().isValid())
     {
+        if (!dstType.isEnumFlags())
+        {
+            const ConstantValue& castValue = sema.cstMgr().get(underlyingRequest.constantFoldingResult());
+            std::vector<const Symbol*> enumMembers;
+            dstType.payloadSymEnum().getAllSymbols(enumMembers);
+
+            bool foundValue = false;
+            for (const Symbol* member : enumMembers)
+            {
+                if (!member || member->kind() != SymbolKind::EnumValue)
+                    continue;
+
+                const auto* enumMember = static_cast<const SymbolEnumValue*>(member);
+                const ConstantValue& enumValue = sema.cstMgr().get(enumMember->cstRef());
+                if (!enumValue.isEnumValue())
+                    continue;
+
+                if (sema.cstMgr().get(enumValue.getEnumValue()) == castValue)
+                {
+                    foundValue = true;
+                    break;
+                }
+            }
+
+            if (!foundValue)
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        }
+
         const ConstantValue enumCst = ConstantValue::makeEnumValue(sema.ctx(), underlyingRequest.constantFoldingResult(), dstTypeRef);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), enumCst));
     }

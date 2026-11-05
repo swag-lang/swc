@@ -18,6 +18,28 @@ struct ScratchLeakFailureAllocator
     storage: [128] u8
 }
 
+struct ScratchBufferFailureAllocator
+{
+    calls: u32
+    #[Swag.Align(16)]
+    storage: [128] u8
+}
+
+impl IAllocator for ScratchBufferFailureAllocator
+{
+    mtd impl alloc(request: *AllocatorRequest)
+    {
+        .calls += 1
+        if .calls == 1 do
+            request.address = null
+        else do
+            request.address = &.storage[0]
+    }
+
+    mtd impl realloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl free(_: *AllocatorRequest) {}
+}
+
 impl IAllocator for ScratchLeakFailureAllocator
 {
     mtd impl alloc(request: *AllocatorRequest)
@@ -191,6 +213,54 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 0
     itf.alloc(&req)
     Swag.require(req.address == null)
+
+    scratch.release()
+}
+
+// A zero-capacity scratch allocator sends every nonempty request to the backing allocator.
+#test
+{
+    var alloc:   Allocator
+    var scratch: ScratchAllocator
+    alloc.setup()
+    alloc.configure(false, false, false, false, false)
+    let backing: IAllocator = &alloc
+    scratch.setCapacity(0, backing)
+    let itf: IAllocator = &scratch
+
+    var request: AllocatorRequest
+    request.size = 24
+    itf.alloc(&request)
+    Swag.require(request.address != null)
+    Swag.require(scratch.block == null)
+    Swag.require(scratch.totalLeak == 24)
+    request.size = 24
+    itf.free(&request)
+    Swag.require(request.address == null)
+    Swag.require(scratch.totalLeak == 0)
+
+    scratch.release()
+}
+
+// If the arena cannot be allocated, the backing allocator can still satisfy the request.
+#test
+{
+    var backing: ScratchBufferFailureAllocator
+    var scratch: ScratchAllocator
+    scratch.setCapacity(128, Swag.makeInterface(&backing, #typeof(backing), IAllocator))
+    let itf: IAllocator = &scratch
+
+    var request: AllocatorRequest
+    request.size = 24
+    itf.alloc(&request)
+    Swag.require(request.address != null)
+    Swag.require(scratch.block == null)
+    Swag.require(scratch.totalLeak == 24)
+
+    request.size = 24
+    itf.free(&request)
+    Swag.require(request.address == null)
+    Swag.require(scratch.totalLeak == 0)
 
     scratch.release()
 }

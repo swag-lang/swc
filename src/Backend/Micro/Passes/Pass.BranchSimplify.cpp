@@ -3304,8 +3304,8 @@ namespace
 
         struct TableScratch
         {
-            CountTable                        chainJumps;
-            std::unordered_map<uint32_t, Arm> arms;
+            CountTable       chainJumps;
+            FlatKeyMap<Arm>  arms;
         };
 
         bool                                           changed = false;
@@ -3489,7 +3489,7 @@ namespace
             bool valid = true;
             for (const auto& [caseValue, labelId] : cases)
             {
-                if (arms.contains(labelId))
+                if (arms.find(labelId))
                     continue;
                 Arm arm;
                 if (!matchArm(labelId, arm) || lookupCount(labelReferences, labelId) != lookupCount(chainJumps, labelId))
@@ -3497,9 +3497,9 @@ namespace
                     valid = false;
                     break;
                 }
-                arms[labelId] = arm;
+                arms.emplace(labelId, arm);
             }
-            if (!valid || arms.contains(defaultId))
+            if (!valid || arms.find(defaultId))
                 continue;
 
             // The default: its own constant arm, or what D held before the chain
@@ -3579,7 +3579,9 @@ namespace
                 const uint64_t index = caseValue - low;
                 if (isSet[index])
                     continue;
-                table[index] = arms[labelId].value;
+                const Arm* arm = arms.find(labelId);
+                SWC_ASSERT(arm != nullptr);
+                table[index] = arm->value;
                 isSet[index] = 1;
             }
 
@@ -3823,8 +3825,19 @@ namespace
                 if (!arm.falls)
                     storage.erase(layout.order[arm.labelAt + 2]);
             };
-            for (const auto& [labelId, arm] : arms)
-                eraseArm(arm);
+            // Case targets can repeat. Reuse the jump-count table, whose
+            // validation work is complete, to erase each mapped arm once.
+            chainJumps.clear();
+            for (const auto& [caseValue, labelId] : cases)
+            {
+                uint32_t& seen = chainJumps.getOrInsert(labelId);
+                if (seen)
+                    continue;
+                seen = 1;
+                const Arm* arm = arms.find(labelId);
+                SWC_ASSERT(arm != nullptr);
+                eraseArm(*arm);
+            }
             if (defaultIsArm)
                 eraseArm(defaultArm);
 

@@ -58,6 +58,9 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
         let structType = assume cast(const *TypeInfoStruct, type)
         for &field in structType.fields where field.pointedType
         {
+            if Reflection.hasAttribute(field, NoSerialize) or
+               Reflection.hasAttribute(field.pointedType, NoSerialize) do
+                continue
             try validateDecodedEnumValues(field.pointedType,
                                           data + field.offset)
         }

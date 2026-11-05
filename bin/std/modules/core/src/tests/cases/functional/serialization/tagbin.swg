@@ -968,6 +968,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     var payload: TagBinHookPayload
     payload.customEnum = .Precise
 
+    Reflection.registerType(#typeof(TagBinHookPayload))
     let bytes = encodeTagBin(payload)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin

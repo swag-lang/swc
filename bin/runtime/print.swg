@@ -77,7 +77,7 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
 #[Safety(.All, false)]
 private func __ftoaScientific(result: [*] u8, value: f64)
 {
-    var mantissa = Math.abs(value)
+    var mantissa = value < 0 ? -value : value
     var exponent = 0's64
     while mantissa >= 10
     {
@@ -122,13 +122,13 @@ private func __ftoaScientific(result: [*] u8, value: f64)
 #[Safety(.All, false)]
 func __ftoa(result: [*] u8, value: f64)
 {
-    if Math.isNaN(value)
+    if value != value
     {
         Swag.memcpy(result, "nan", 4)
         return
     }
 
-    if not Math.isFinite(value)
+    if value > Swag.F64.Max or value < -Swag.F64.Max
     {
         if value < 0
         {

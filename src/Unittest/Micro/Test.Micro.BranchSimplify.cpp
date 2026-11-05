@@ -290,6 +290,27 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownTrueBranch)
 }
 SWC_TEST_END()
 
+// Equal SSA values also keep the register-to-register compare path eligible.
+SWC_TEST_BEGIN(BranchSimplify_FoldsKnownRegRegBranch)
+{
+    constexpr MicroReg vA = MicroReg::virtualIntReg(1);
+    constexpr MicroReg vB = MicroReg::virtualIntReg(2);
+    MicroBuilder      builder(ctx);
+    const MicroLabelRef labelThen = builder.createLabel();
+
+    builder.emitLoadRegImm(vA, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(vB, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelThen);
+    builder.emitRet();
+    builder.placeLabel(labelThen);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    return countConditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // load 5 ; cmp 0 ; je Then -> erase branch and dead taken path.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownFalseBranch)
 {

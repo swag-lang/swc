@@ -27,8 +27,8 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// Returns whether an integer stored as an enum's underlying value names a declared member.
-func hasDeclaredIntegerValue(type: typeinfo?, valueAddress: const *void?)->bool
+// Returns whether an underlying enum value stored at `valueAddress` names a declared member.
+func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
 {
     if not isEnum(type) or not valueAddress do
         return false

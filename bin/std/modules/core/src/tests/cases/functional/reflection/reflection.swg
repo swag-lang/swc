@@ -315,12 +315,12 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.require(cast(const *u32, enumValue.value)[] == 1)
     Swag.require(Reflection.enumName(enumType, &state) == "ProbeState.Busy")
     Swag.require(Reflection.enumName(enumType, &state, fullyQualified: false) == "Busy")
-    Swag.require(Reflection.hasDeclaredIntegerValue(enumType, &state))
-    Swag.require(not Reflection.hasDeclaredIntegerValue(enumType, &invalidStateValue))
+    Swag.require(Reflection.hasDeclaredValue(enumType, &state))
+    Swag.require(not Reflection.hasDeclaredValue(enumType, &invalidStateValue))
     var stringState = ProbeStringState.Busy
     var invalidStringState = "missing"
-    Swag.require(Reflection.hasDeclaredIntegerValue(#typeof(ProbeStringState), &stringState))
-    Swag.require(not Reflection.hasDeclaredIntegerValue(#typeof(ProbeStringState), &invalidStringState))
+    Swag.require(Reflection.hasDeclaredValue(#typeof(ProbeStringState), &stringState))
+    Swag.require(not Reflection.hasDeclaredValue(#typeof(ProbeStringState), &invalidStringState))
     Swag.require(not Reflection.isFlagsEnum(enumType))
     Swag.require(Reflection.isFlagsEnum(#typeof(ProbeFlags)))
     Swag.require(enumInfo.attributes![0].type == EnumMeta)

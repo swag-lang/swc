@@ -42,7 +42,7 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
         for index in count
         {
             let valueAddress = cast(const *void, valueData + index * valueSize)
-            if not Reflection.hasDeclaredIntegerValue(resolvedType, valueAddress) do
+            if not Reflection.hasDeclaredValue(resolvedType, valueAddress) do
                 return false
         }
         return true

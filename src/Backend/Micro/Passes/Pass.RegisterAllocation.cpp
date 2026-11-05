@@ -1103,6 +1103,7 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
 
 const MicroRegisterAllocationPass::LoopRegion* MicroRegisterAllocationPass::findSealedLoopRegion(const uint32_t headerIndex) const
 {
+    // collectLoopRegions visits header indices in ascending order.
     const auto region = std::ranges::lower_bound(sealedLoopRegions_, headerIndex, {}, &LoopRegion::header);
     return region != sealedLoopRegions_.end() && region->header == headerIndex ? &*region : nullptr;
 }

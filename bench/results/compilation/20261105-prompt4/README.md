@@ -50,3 +50,4 @@ At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite
 configuration. The changes are structural; no speed or memory improvement is
 claimed without a benchmark.
+| Visit only the back-edge suffix | Testing every predecessor against its instruction index while building loop depth, loop candidates and loop headers | CFG predecessor lists are source-ordered, so back-edges are the suffix; reverse traversal stops at the first earlier predecessor, and the final-element check detects loop headers. | DevMode build; all 1,678 C++ tests passed. |

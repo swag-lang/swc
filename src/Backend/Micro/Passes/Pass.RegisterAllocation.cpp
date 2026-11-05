@@ -582,14 +582,17 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     delta.assign(static_cast<size_t>(instructionCount_) + 1, 0);
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
-        for (const uint32_t p : predecessors_[s])
+        const auto& predecessors = predecessors_[s];
+        for (size_t predIndex = predecessors.size(); predIndex > 0; --predIndex)
         {
+            const uint32_t p = predecessors[predIndex - 1];
             SWC_ASSERT(p < instructionCount_);
-            if (p >= s)
-            {
-                ++delta[s];
-                --delta[p + 1];
-            }
+            // CFG predecessor lists are sorted by source instruction, so
+            // back-edges form a suffix and no earlier edge can match.
+            if (p < s)
+                break;
+            ++delta[s];
+            --delta[p + 1];
         }
     }
     functionHasLoop_ = true;
@@ -1957,14 +1960,9 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     SmallVector<uint32_t> loopHeaders;
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
-        for (const uint32_t p : predecessors_[s])
-        {
-            if (p >= s)
-            {
-                loopHeaders.push_back(s);
-                break;
-            }
-        }
+        const auto& predecessors = predecessors_[s];
+        if (!predecessors.empty() && predecessors.back() >= s)
+            loopHeaders.push_back(s);
     }
     if (loopHeaders.empty())
         return;

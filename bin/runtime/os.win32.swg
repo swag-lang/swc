@@ -845,17 +845,34 @@ private func __peU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 {
     size[] = 0
-    let image   = cast([*] u8, base)
-    let ntOff   = cast(u64, __peU32(image, 0x3C))
+    let image = cast([*] u8, base)
+    if image[0] != 'M'u8 or image[1] != 'Z'u8 do
+        return null
+    let ntOff = cast(u64, __peU32(image, 0x3C))
+    if ntOff < 64 or __peU32(image, ntOff) != 0x0000_4550 do
+        return null
     let count   = __peU16(image, ntOff + 6)
     let optSize = __peU16(image, ntOff + 20)
-    var section = ntOff + 24 + cast(u64, optSize)
+    if optSize < 64 do
+        return null
+
+    let optionalHeader = ntOff + 24
+    let imageSize      = cast(u64, __peU32(image, optionalHeader + 56))
+    let headerSize     = cast(u64, __peU32(image, optionalHeader + 60))
+    let sectionTable   = optionalHeader + cast(u64, optSize)
+    if imageSize < 64 or
+       headerSize > imageSize or
+       sectionTable > headerSize or
+       cast(u64, count) > (headerSize - sectionTable) / 40 do
+        return null
+
+    var sectionOffset = sectionTable
 
     let wanted = ".swagdbg"
     for index in count
     {
         var matches = true
-        for byte in 8 where image[section + cast(u64, byte)] != cast(u8, wanted[byte])
+        for byte in 8 where image[sectionOffset + cast(u64, byte)] != cast(u8, wanted[byte])
         {
             matches = false
             break
@@ -863,12 +880,15 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 
         if matches
         {
-            let rva = __peU32(image, section + 12)
-            size[] = cast(u64, (__peU32(image, section + 8) ? __peU32(image, section + 8) : __peU32(image, section + 16)))
+            let rva         = __peU32(image, sectionOffset + 12)
+            let sectionSize = cast(u64, (__peU32(image, sectionOffset + 8) ? __peU32(image, sectionOffset + 8) : __peU32(image, sectionOffset + 16)))
+            if cast(u64, rva) > imageSize or sectionSize > imageSize - cast(u64, rva) do
+                return null
+            size[] = sectionSize
             return cast([*] u8, &image[cast(u64, rva)])
         }
 
-        section += 40
+        sectionOffset += 40
     }
 
     return null

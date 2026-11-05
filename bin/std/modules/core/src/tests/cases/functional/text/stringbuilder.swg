@@ -27,4 +27,12 @@ func assertBuilderString(value: String, expected: string)->bool
     builder.appendString("def")
     Swag.require(builder.count() == 6)
     Swag.require(assertBuilderString(builder.moveToString(), "abcdef"))
+
+    var exactBucket: StrConv.StringBuilder
+    exactBucket.setBucketSize(4)
+    exactBucket.appendString("abcd")
+    exactBucket.zeroTerminate()
+    let bytes = unwrap exactBucket.buffer.toSlice()
+    Swag.require(exactBucket.count() == 4)
+    Swag.require(bytes.buffer[4] == 0)
 }

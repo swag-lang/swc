@@ -70,6 +70,22 @@ SWC_TEST_BEGIN(BranchSimplify_EmptyStreamIsUnchanged)
 }
 SWC_TEST_END()
 
+// A physical integer clear decides flags even when the function has no SSA values.
+SWC_TEST_BEGIN(BranchSimplify_FoldsPhysicalClearWithoutSsaValues)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef label = builder.createLabel();
+
+    builder.emitClearReg(MicroReg::intReg(0), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.placeLabel(label);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    return countConditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // je L0 ; L0: -> erase jump.
 SWC_TEST_BEGIN(BranchSimplify_ErasesJumpToImmediateLabel)
 {

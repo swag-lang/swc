@@ -346,6 +346,8 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
+        if (type.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
+            rtType.padding[0] |= 1;
         if (type.isAlias() && type.payloadSymAlias().isStrict())
             addFlag(rtType, Runtime::TypeInfoFlags::Strict);
         if (type.isPositionalTuple())
@@ -1216,11 +1218,12 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
     auto*   payload            = storage.ptr<Runtime::TypeInfo>(entry.offset);
     TypeRef unqualifiedTypeRef = key;
-    if (keyType.isConst() || keyType.isNullable())
+    if (keyType.isConst() || keyType.isNullable() || keyType.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
     {
         TypeInfo unqualified = keyType;
         unqualified.removeFlag(TypeInfoFlagsE::Const);
         unqualified.removeFlag(TypeInfoFlagsE::Nullable);
+        unqualified.removeFlag(TypeInfoFlagsE::ReadOnlyStorage);
         unqualifiedTypeRef = typeMgr.addType(unqualified);
     }
 

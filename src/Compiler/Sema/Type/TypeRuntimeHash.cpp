@@ -109,12 +109,12 @@ namespace
         return h;
     }
 
-    // The nullable qualifier must not affect runtime type identity: `nullable string` and
-    // `string` are the same runtime type (mirrors the qualifier masking in `Swag.typeCmp`).
+    // Nullability and storage-only constness do not affect runtime type identity.
     uint32_t identityFlags(const TypeInfo& typeInfo)
     {
         TypeInfoFlags flags = typeInfo.flags();
         flags.remove(TypeInfoFlagsE::Nullable);
+        flags.remove(TypeInfoFlagsE::ReadOnlyStorage);
         return flags.get();
     }
 
@@ -406,6 +406,7 @@ uint32_t TypeRuntimeHash::computeAggregate(const TaskContext& ctx, const TypeInf
 {
     RuntimeHashRootScope runtimeHashScope;
     flags.remove(TypeInfoFlagsE::Nullable);
+    flags.remove(TypeInfoFlagsE::ReadOnlyStorage);
     uint32_t h = Math::hash(static_cast<uint32_t>(kind));
     h          = Math::hashCombine(h, static_cast<uint32_t>(flags.get()));
     return combineAggregatePayload(h, ctx, kind, types, names);

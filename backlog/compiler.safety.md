@@ -141,11 +141,10 @@ is the current scorecard.
   passes, but the native executable raises `0xC0000005` writing the literal in read-only
   storage. A variable holding an `any` does not itself own mutable storage for the borrowed
   value.
-- Next: decide and enforce the constness of literal-backed and constant-backed `any` views.
-  Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
-  choose rejection of mutable views or deliberate writable materialization without turning
-  `any` into an owning variant. Audit existing casts of literal-backed views before
-  migration.
+- Next: validate the storage-only TypeInfo marker for constant-backed `any` payloads, including
+  inline attribute payloads, `kindOf`, scalar and aggregate value-copy casts, const views, rejection
+  of mutable views, and updated reference examples.
+  Run focused JIT, native, and reference tests once machine-load admission allows a build.
 - Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
   storage, and tests cover literal, constant, mutable-local, and const-local sources.
 

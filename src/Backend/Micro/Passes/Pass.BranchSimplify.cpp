@@ -73,7 +73,9 @@ namespace
     struct ProgramLayout
     {
         std::vector<MicroInstrRef> order;
-        std::vector<uint32_t>      ordinalByRef;
+        mutable std::vector<uint32_t> ordinalByRef;
+        size_t                       ordinalSlotCount   = 0;
+        mutable bool                 ordinalsBuilt      = false;
         RetainedCountTable         labelOrdinalById;
         bool                       hasAnyLabel         = false;
         bool                       hasConditionalJump  = false;
@@ -81,6 +83,20 @@ namespace
         bool                       hasRegisterCompare  = false;
         bool                       hasSetCondition     = false;
         bool                       hasIntegerClear     = false;
+
+        uint32_t ordinalOf(MicroInstrRef ref) const
+        {
+            if (ref.get() >= ordinalSlotCount)
+                return std::numeric_limits<uint32_t>::max();
+            if (!ordinalsBuilt)
+            {
+                ordinalByRef.resize(ordinalSlotCount);
+                for (uint32_t ordinal = 0; ordinal < order.size(); ++ordinal)
+                    ordinalByRef[order[ordinal].get()] = ordinal;
+                ordinalsBuilt = true;
+            }
+            return ordinalByRef[ref.get()];
+        }
     };
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
@@ -190,9 +206,10 @@ namespace
             outLabelReferences->clear();
         if (outIndirectJump)
             *outIndirectJump = false;
-        // Only live jump references query this table, and every live slot is
-        // overwritten below. Retain the unused slots across repeated scans.
-        outLayout.ordinalByRef.resize(storage.slotCount());
+        // Only a few branch fusions query ordinals. Retain the table's capacity,
+        // but defer filling it until one of those queries actually occurs.
+        outLayout.ordinalSlotCount = storage.slotCount();
+        outLayout.ordinalsBuilt    = false;
         outLayout.labelOrdinalById.clear();
         outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
@@ -205,7 +222,6 @@ namespace
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
         {
             outLayout.order.push_back(it.current);
-            outLayout.ordinalByRef[it.current.get()] = ordinal;
             if (outIndirectJump && (it->op == MicroInstrOpcode::JumpReg || it->op == MicroInstrOpcode::LoadLabelAddress))
                 *outIndirectJump = true;
 
@@ -479,10 +495,10 @@ namespace
 
     bool isTargetInImmediateLabelRun(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef jumpRef, const uint32_t targetLabelId)
     {
-        if (jumpRef.get() >= layout.ordinalByRef.size())
+        const uint32_t jumpOrdinal = layout.ordinalOf(jumpRef);
+        if (jumpOrdinal == std::numeric_limits<uint32_t>::max())
             return false;
 
-        const uint32_t jumpOrdinal = layout.ordinalByRef[jumpRef.get()];
         for (uint32_t ordinal = jumpOrdinal + 1; ordinal < layout.order.size(); ++ordinal)
         {
             const MicroInstr* nextInst = storage.ptr(layout.order[ordinal]);

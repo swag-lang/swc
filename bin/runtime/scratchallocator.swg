@@ -206,7 +206,12 @@ impl IAllocator for ScratchAllocator
         }
 
         let totalSize  = request.size + overhead
-        let allocation = cast([*] u8, unwrap .alloc(totalSize, alignment))
+        let allocation = cast([*] u8?, .alloc(totalSize, alignment))
+        if not allocation
+        {
+            request.address = null
+            return
+        }
 
         let headerEnd       = cast(u64, allocation) + #sizeof(LeakHeader)
         let alignedUserAddr = ScratchAllocator.align(headerEnd, alignment)

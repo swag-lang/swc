@@ -11,6 +11,28 @@ struct ScratchAlignmentProbeAllocator
     storage: [128] u8
 }
 
+struct ScratchLeakFailureAllocator
+{
+    calls: u32
+    #[Swag.Align(16)]
+    storage: [128] u8
+}
+
+impl IAllocator for ScratchLeakFailureAllocator
+{
+    mtd impl alloc(request: *AllocatorRequest)
+    {
+        .calls += 1
+        if .calls == 1 do
+            request.address = &.storage[0]
+        else do
+            request.address = null
+    }
+
+    mtd impl realloc(request: *AllocatorRequest) { request.address = null }
+    mtd impl free(_: *AllocatorRequest) {}
+}
+
 impl IAllocator for ScratchAlignmentProbeAllocator
 {
     mtd impl alloc(request: *AllocatorRequest)
@@ -79,6 +101,29 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req2.size = 200
     itf.alloc(&req2)
     Swag.require(scratch.used >= usedAfterFirst + 200)
+
+    scratch.release()
+}
+
+// A failed overflow allocation is reported as null without creating a leak header.
+#test
+{
+    var backing: ScratchLeakFailureAllocator
+    var scratch: ScratchAllocator
+    scratch.setCapacity(1, Swag.makeInterface(&backing, #typeof(backing), IAllocator))
+    let itf: IAllocator = &scratch
+
+    var fill: AllocatorRequest
+    fill.size = 1
+    itf.alloc(&fill)
+    Swag.require(fill.address != null)
+
+    var overflow: AllocatorRequest
+    overflow.size = 24
+    itf.alloc(&overflow)
+    Swag.require(overflow.address == null)
+    Swag.require(scratch.firstLeak == null)
+    Swag.require(scratch.totalLeak == 0)
 
     scratch.release()
 }

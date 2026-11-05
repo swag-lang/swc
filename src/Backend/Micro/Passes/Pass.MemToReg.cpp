@@ -1574,16 +1574,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // no candidate can use instruction ordinals or the entry boundary.
     if (hasFieldSplitWrite && hasNarrowFieldRead)
     {
-        std::optional<std::unordered_map<uint32_t, uint32_t>> position;
-        uint32_t                                              entryEnd        = std::numeric_limits<uint32_t>::max();
-        const auto                                            ensurePositions = [&] {
+        std::optional<FlatKeyMap<uint32_t>> position;
+        uint32_t                           entryEnd        = std::numeric_limits<uint32_t>::max();
+        const auto                         ensurePositions = [&] {
             if (position)
                 return;
             auto&    ordinals = position.emplace();
             uint32_t index    = 0;
             for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
             {
-                ordinals[it.current.get()] = index;
+                ordinals.getOrInsert(it.current.get()) = index;
                 const MicroInstrDef& info  = MicroInstr::info(it->op);
                 if (entryEnd == std::numeric_limits<uint32_t>::max() &&
                     (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
@@ -1616,7 +1616,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!writeInst || writeInst->op != MicroInstrOpcode::LoadMemReg || !writeInst->ops(operands)[1].reg.isAnyInt())
                 continue;
             ensurePositions();
-            const uint32_t writePos = (*position)[write->ref.get()];
+            const uint32_t writePos = position->getOrInsert(write->ref.get());
             const uint64_t end      = offset + 8;
             if (writePos >= entryEnd || overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
                 continue;
@@ -1639,7 +1639,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     if (acc.ref == write->ref)
                         continue;
                     const MicroInstr* read = storage.ptr(acc.ref);
-                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || (*position)[acc.ref.get()] <= writePos)
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || position->getOrInsert(acc.ref.get()) <= writePos)
                     {
                         usable = false;
                         break;
@@ -1694,8 +1694,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             uint32_t ordinal = 0;
             uint32_t breaks  = 0;
         };
-        std::optional<std::unordered_map<uint32_t, InstructionPosition>> positions;
-        const auto                                                       ensureOrdinals = [&] {
+        std::optional<FlatKeyMap<InstructionPosition>> positions;
+        const auto                                     ensureOrdinals = [&] {
             if (positions)
                 return;
             auto&    ordinals = positions.emplace();
@@ -1706,7 +1706,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const MicroInstrDef& info = MicroInstr::info(it->op);
                 if (it->op == MicroInstrOpcode::Label)
                     ++breaks;
-                ordinals[it.current.get()] = {index, breaks};
+                ordinals.getOrInsert(it.current.get()) = {index, breaks};
                 if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                     info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     ++breaks;
@@ -1757,7 +1757,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
 
             ensureOrdinals();
-            const InstructionPosition writePosition = (*positions)[write->ref.get()];
+            const InstructionPosition writePosition = positions->getOrInsert(write->ref.get());
 
             LaneSplit split;
             split.offset        = offset;
@@ -1784,7 +1784,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                         usable = false;
                         break;
                     }
-                    const InstructionPosition readPosition = (*positions)[acc.ref.get()];
+                    const InstructionPosition readPosition = positions->getOrInsert(acc.ref.get());
                     if (readPosition.ordinal <= writePosition.ordinal || readPosition.breaks != writePosition.breaks)
                     {
                         usable = false;
@@ -1931,7 +1931,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         uint8_t zero;
     };
     static_assert(std::is_trivial_v<RecordState>);
-    std::optional<std::unordered_map<uint32_t, RecordState>> recordStateAt;
+    std::optional<FlatKeyMap<RecordState>> recordStateAt;
     if (!records.empty())
     {
         const MicroControlFlowGraph& cfg   = context.builder->controlFlowGraph();
@@ -2048,7 +2048,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     valid = false;
                 // Only partial stores consult these byte facts during rewriting.
                 if (acc.isWrite && !wholeStore)
-                    (*recordStateAt)[acc.ref.get()] = in[index];
+                    recordStateAt->getOrInsert(acc.ref.get()) = in[index];
             }
             if (valid)
                 kept.push_back(std::move(record));
@@ -2293,7 +2293,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // the value in.
             // Over a word known to be zero, the field is the whole word.
             const uint64_t    fieldMask = (count == 8 ? ~0ull : (1ull << (count * 8)) - 1) << shift;
-            const RecordState state     = (*recordStateAt)[acc.ref.get()];
+            const RecordState state     = recordStateAt->getOrInsert(acc.ref.get());
             const uint8_t     byteMask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
             const bool        wordZero  = state.zero == static_cast<uint8_t>((1u << record.bytes) - 1);
             if ((state.zero & byteMask) != byteMask)

@@ -141,7 +141,7 @@ void setDiagnosticArgument(DiagnosticArguments& arguments, std::string_view name
         }
     }
 
-    arguments.emplace_back(DiagnosticArgument{.name = name, .val = std::move(sanitized)});
+    arguments.emplace_back(name, std::move(sanitized));
 }
 
 void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)

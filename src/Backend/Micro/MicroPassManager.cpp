@@ -202,9 +202,9 @@ namespace
     };
 #endif
 
+#if SWC_HAS_VALIDATE_MICRO
     Result verifyCurrentState(const MicroPassContext& context, std::string_view phase, VerifyStateCache& cache)
     {
-#if SWC_HAS_VALIDATE_MICRO
         if (!MicroVerify::isEnabled(context))
             return Result::Continue;
 
@@ -216,16 +216,11 @@ namespace
             SWC_RESULT(MicroVerify::verify(context, phase, &cache.structuralHash));
             cache.hasCurrentState = true;
         }
-#else
-        SWC_UNUSED(context);
-        SWC_UNUSED(phase);
-        SWC_UNUSED(cache);
-#endif
-
         return Result::Continue;
     }
+#endif
 
-    Result runPass(MicroPassContext& context, MicroPass& pass, VerifyStateCache& verifyCache)
+    Result runPass(MicroPassContext& context, MicroPass& pass, [[maybe_unused]] VerifyStateCache& verifyCache)
     {
         uint64_t storageRevisionBefore = 0;
         if (context.instructions)

@@ -596,6 +596,12 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                     out.bytes.writeLe32(reloc.offset, static_cast<uint32_t>(static_cast<int32_t>(value)));
                     break;
                 }
+
+                case LinkRelocKind::GotRel32:
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
+                    outDiag.addArgument(Diagnostic::ARG_VALUE, "GOT-relative");
+                    outDiag.addArgument(Diagnostic::ARG_TARGET, src.name);
+                    return false;
             }
         }
     }

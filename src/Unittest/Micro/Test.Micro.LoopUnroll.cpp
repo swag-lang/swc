@@ -293,7 +293,7 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesFullGroupsAndKeepsScalar
     constexpr MicroReg loaded  = MicroReg::virtualIntReg(3);
     constexpr MicroReg value   = MicroReg::virtualIntReg(4);
     constexpr MicroReg accum   = MicroReg::virtualIntReg(5);
-    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {128, false}, {66, false}, {129, false}, {130, false}, {131, false}, {64, true}})
+    for (const auto& [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {128, false}, {66, false}, {129, false}, {130, false}, {131, false}, {64, true}})
     {
         MicroBuilder builder(ctx);
         const auto   header = builder.createLabel();

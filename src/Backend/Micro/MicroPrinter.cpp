@@ -67,6 +67,8 @@ namespace
 #include "Backend/Micro/MicroInstr.Def.inc"
 
 #undef SWC_MICRO_INSTR_DEF
+            case MicroInstrOpcode::Count:
+                break;
         }
 
         SWC_UNREACHABLE();

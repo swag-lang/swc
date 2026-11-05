@@ -4115,12 +4115,10 @@ namespace
             --copyIt;
             if (!copyIt.current.isValid() || copyIt->op != MicroInstrOpcode::LoadRegReg)
                 continue;
-            const MicroInstrRef    copyRef = copyIt.current;
             MicroStorage::Iterator setIt   = copyIt;
             --setIt;
             if (!setIt.current.isValid() || setIt->op != MicroInstrOpcode::SetCondReg)
                 continue;
-            const MicroInstrRef    setRef    = setIt.current;
             const MicroInstr*      set       = &*setIt;
             MicroStorage::Iterator leftCmpIt = setIt;
             --leftCmpIt;
@@ -8001,7 +7999,7 @@ namespace
         return changed;
     }
 
-    bool eraseCfgUnreachable(MicroBuilder& builder, MicroStorage& storage, const MicroOperandStorage& operands)
+    bool eraseCfgUnreachable(MicroBuilder& builder, MicroStorage& storage, const MicroOperandStorage&)
     {
         const MicroControlFlowGraph& cfg = builder.controlFlowGraph();
         if (!cfg.instructionCount() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())

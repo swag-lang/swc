@@ -161,7 +161,7 @@ public:
     uint32_t  size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
     size_type capacity() const noexcept { return capacityValue_; }
     bool      empty() const noexcept { return sizeValue_ == 0; }
-    bool      isInline() const noexcept { return ptr_ == inlineData(); }
+    bool      isInline() const noexcept { return static_cast<const void*>(ptr_) == static_cast<const void*>(inlineDataStorage_); }
 
     std::span<T>       span() noexcept { return std::span<T>(ptr_, sizeValue_); }
     std::span<const T> span() const noexcept { return std::span<const T>(ptr_, sizeValue_); }
@@ -407,12 +407,12 @@ private:
 
     T* inlineData() noexcept
     {
-        return std::launder(reinterpret_cast<T*>(&inlineDataStorage_[0]));
+        return reinterpret_cast<T*>(&inlineDataStorage_[0]);
     }
 
     const T* inlineData() const noexcept
     {
-        return std::launder(reinterpret_cast<const T*>(&inlineDataStorage_[0]));
+        return reinterpret_cast<const T*>(&inlineDataStorage_[0]);
     }
 
     static void destroyN(T* p, size_type n) noexcept

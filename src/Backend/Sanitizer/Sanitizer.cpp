@@ -440,7 +440,6 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks, SmallVector<MicroIn
 void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIndices)
 {
     const MicroControlFlowGraph& cfg       = *cfg_;
-    const uint32_t               n         = cfg.instructionCount();
     const size_t                 numStates = inState_.size();
 
     liveRegIndex_.clear();
@@ -1993,18 +1992,18 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
         // A callee can write through any pointer it is handed, so nothing said about an
         // object survives a call - the release below re-states what this one just did.
-        state.freedPtrLocations.reset();
-        if (!newlyFreedLocations.empty())
+        if (newlyFreedLocations.empty() && !keepPendingRelease)
+            state.freedPtrLocations.reset();
+        else
         {
-            state.freedPtrLocations.emplace();
+            if (state.freedPtrLocations)
+                state.freedPtrLocations->clear();
+            else
+                state.freedPtrLocations.emplace();
             for (const auto& location : newlyFreedLocations)
                 (*state.freedPtrLocations)[location] = inst.debugSourceInfo.sourceCodeRef;
-        }
-        if (keepPendingRelease)
-        {
-            if (!state.freedPtrLocations)
-                state.freedPtrLocations.emplace();
-            (*state.freedPtrLocations)[*pendingRelease] = pendingOrigin;
+            if (keepPendingRelease)
+                (*state.freedPtrLocations)[*pendingRelease] = pendingOrigin;
         }
 
         // A callee handed both a pointer to release and the storage that holds it can put

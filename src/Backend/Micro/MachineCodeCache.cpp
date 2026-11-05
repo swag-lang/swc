@@ -328,7 +328,7 @@ namespace
                 forbidden.emplace_back(reg.packed, value.packed);
         std::ranges::sort(forbidden);
         out.appendLe32(static_cast<uint32_t>(forbidden.size()));
-        for (const auto [reg, value] : forbidden)
+        for (const auto& [reg, value] : forbidden)
         {
             out.appendLe32(reg);
             out.appendLe32(value);

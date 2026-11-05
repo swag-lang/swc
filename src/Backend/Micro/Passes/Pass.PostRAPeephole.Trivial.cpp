@@ -1015,7 +1015,7 @@ namespace PostRaPeephole
     // a third register. When the true value already occupies the ABI return
     // register, branch around one direct false-value copy instead. The same
     // return diamond around a float comparison can become MINSS/MAXSS directly.
-    bool tryFoldFloatReturnSelectDiamond(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst)
+    bool tryFoldFloatReturnSelectDiamond(Context& ctx, const MicroInstrRef firstCopyRef, const MicroInstr&)
     {
         if (ctx.isClaimed(firstCopyRef) || !ctx.passContext || !ctx.passContext->usesFloatReturnRegOnRet)
             return false;

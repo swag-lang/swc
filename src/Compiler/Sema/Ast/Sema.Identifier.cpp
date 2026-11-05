@@ -131,7 +131,7 @@ namespace
 
     using SemaHelpers::resolveLambdaBindingFunction;
 
-    bool requiresExplicitCaptureList(Sema& sema, const SymbolFunction& function)
+    bool requiresExplicitCaptureList(Sema&, const SymbolFunction& function)
     {
         const AstNode* decl = function.decl();
         if (!decl)

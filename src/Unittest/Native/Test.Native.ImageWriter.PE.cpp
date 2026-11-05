@@ -615,6 +615,30 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PeWriter_RejectsGotRelativeRelocation)
+{
+    LinkSection textSection;
+    textSection.name = ".text";
+    textSection.bytes.resize(4);
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+    textSection.relocs.push_back({.kind = LinkRelocKind::GotRel32, .symbolName = "entry"});
+
+    LinkImage image;
+    image.sections.push_back(std::move(textSection));
+    image.symbols.push_back({.name = "entry", .sectionIndex = 0, .value = 0});
+    image.entrySymbol = "entry";
+
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
+    if (writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, {}) || diag.elements().empty() ||
+        diag.elements().front()->id() != DiagnosticId::cmd_err_link_coff_unsupported_reloc)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

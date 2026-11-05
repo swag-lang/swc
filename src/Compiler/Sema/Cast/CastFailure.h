@@ -34,7 +34,7 @@ struct CastFailure
                 return;
             }
         }
-        arguments.emplace_back(DiagnosticArgument{name, std::forward<T>(arg)});
+        arguments.emplace_back(name, std::forward<T>(arg));
     }
 
     bool hasArgument(std::string_view name) const;

@@ -312,7 +312,7 @@ namespace
         return true;
     }
 
-    bool isKernel32ModuleName(const std::string_view moduleName)
+    [[maybe_unused]] bool isKernel32ModuleName(const std::string_view moduleName)
     {
         return asciiEqualsIgnoreCase(moduleName, "kernel32") || asciiEqualsIgnoreCase(moduleName, "kernel32.dll");
     }
@@ -603,7 +603,7 @@ namespace
         return Os::tryReadMemory(std::as_writable_bytes(std::span{&outValue, 1}), ptr);
     }
 
-    void appendHostValue(Utf8& out, std::string_view label, const void* ptr, const uint32_t numBits)
+    [[maybe_unused]] void appendHostValue(Utf8& out, std::string_view label, const void* ptr, const uint32_t numBits)
     {
         if (!ptr)
         {
@@ -2061,7 +2061,7 @@ namespace
         return Utf8Helper::truncate(trimmed, {.maxChars = kAssertMessageMaxChars, .mode = Utf8Helper::TruncateMode::Middle});
     }
 
-    void decodeCompilerDiagnosticException(const void* platformExceptionPointers, DecodedRuntimeException& outException)
+    void decodeCompilerDiagnosticException([[maybe_unused]] const void* platformExceptionPointers, DecodedRuntimeException& outException)
     {
         Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
 
@@ -2176,7 +2176,7 @@ namespace
         return true;
     }
 
-    bool tryResolveJitCrashFunction(const TaskContext& ctx, uint64_t rip, JitCrashFunctionMatch& outMatch)
+    [[maybe_unused]] bool tryResolveJitCrashFunction(const TaskContext& ctx, uint64_t rip, JitCrashFunctionMatch& outMatch)
     {
         outMatch = {};
 
@@ -2198,7 +2198,7 @@ namespace
         return false;
     }
 
-    bool tryResolveJitCrashSourceMatch(const TaskContext& ctx, const JitCrashFunctionMatch& functionMatch, MachineCode::ResolvedDebugSourceRange& outSourceMatch)
+    [[maybe_unused]] bool tryResolveJitCrashSourceMatch(const TaskContext& ctx, const JitCrashFunctionMatch& functionMatch, MachineCode::ResolvedDebugSourceRange& outSourceMatch)
     {
         outSourceMatch = {};
         if (!functionMatch.machineCode)
@@ -2207,7 +2207,7 @@ namespace
         return functionMatch.machineCode->tryResolveDebugSourceRangeAtOffset(ctx, outSourceMatch, functionMatch.codeOffset);
     }
 
-    void appendCurrentJitFunctionContext(Utf8& out, const TaskContext& ctx)
+    [[maybe_unused]] void appendCurrentJitFunctionContext(Utf8& out, const TaskContext& ctx)
     {
         const SymbolFunction* currentFn = ctx.state().runJitFunction;
         if (!currentFn)
@@ -2218,7 +2218,7 @@ namespace
         out += std::format("jit current size: 0x{:X}\n", currentFn->loweredCode().bytes.size());
     }
 
-    void appendJitByteDump(Utf8& out, const MachineCode& code, uint32_t codeOffset)
+    [[maybe_unused]] void appendJitByteDump(Utf8& out, const MachineCode& code, uint32_t codeOffset)
     {
         const uint32_t dumpStart = codeOffset > 8 ? codeOffset - 8 : 0;
         const uint32_t dumpEnd   = std::min<uint32_t>(static_cast<uint32_t>(code.bytes.size()), codeOffset + 8);

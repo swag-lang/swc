@@ -368,11 +368,10 @@ namespace
     }
 
     // Attempts the promotion on one loop. Returns true when the IR changed.
-    bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const MicroControlFlowGraph& cfg, const LoopPlacement& placement, std::span<const MicroInstrRef> instrRefs)
+    bool promoteLoop(const MicroPassContext& context, FunctionModel& fn, const LoopPlacement& placement, std::span<const MicroInstrRef> instrRefs)
     {
         MicroStorage&        storage   = *fn.storage;
         MicroOperandStorage& operands  = *fn.operands;
-        const uint32_t       n         = cfg.instructionCount();
         const NaturalLoop&   loop      = *placement.loop;
         const MicroInstrRef  headerRef = placement.headerRef;
         const uint32_t       exitTo    = placement.exitTo;
@@ -713,7 +712,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
     // instructions this very run displaced.
     for (const LoopPlacement& loop : loops)
     {
-        if (promoteLoop(context, fn, cfg, loop, instrRefs))
+        if (promoteLoop(context, fn, loop, instrRefs))
         {
             context.passChanged = true;
             if (context.ssaState)

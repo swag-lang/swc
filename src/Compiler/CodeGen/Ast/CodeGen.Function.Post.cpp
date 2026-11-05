@@ -284,17 +284,6 @@ namespace
         return resultReg;
     }
 
-    bool isEnumOrAliasEnum(CodeGen& codeGen, const TypeInfo& typeInfo)
-    {
-        if (typeInfo.isEnum())
-            return true;
-        if (!typeInfo.isAlias())
-            return false;
-
-        const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(codeGen.ctx());
-        return unwrappedType && unwrappedType->isEnum();
-    }
-
     bool usesAddressBackedFallibleExprResult(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())

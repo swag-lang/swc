@@ -250,7 +250,7 @@ namespace
                 forbiddenRegs.emplace_back(virtualReg.packed, physicalReg.packed);
         std::ranges::sort(forbiddenRegs);
         identity.appendLe32(static_cast<uint32_t>(forbiddenRegs.size()));
-        for (const auto [virtualReg, physicalReg] : forbiddenRegs)
+        for (const auto& [virtualReg, physicalReg] : forbiddenRegs)
         {
             identity.appendLe32(virtualReg);
             identity.appendLe32(physicalReg);
@@ -547,14 +547,6 @@ namespace
         }
 
         return changed;
-    }
-
-    // Appends the call dependencies of the functions from 'firstUnwalked' on, and of everything
-    // that appends, to the list.
-    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, size_t firstUnwalked = 0)
-    {
-        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
-        return appendCodeGenDependencies(builder, functions, seenFunctions, firstUnwalked);
     }
 
     struct RejectedConstantFunctions

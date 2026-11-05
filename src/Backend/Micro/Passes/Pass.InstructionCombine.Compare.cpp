@@ -222,7 +222,6 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::Label)
             return false;
-        const MicroInstrRef      labelRef = patternIt.current;
         const MicroInstr*        label    = &*patternIt;
         const MicroInstrOperand* initOps  = init->ops(*ctx.operands);
         const MicroInstrOperand* jumpOps  = jump->ops(*ctx.operands);
@@ -426,8 +425,6 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
             return false;
-        const MicroInstrRef      jumpRef  = patternIt.current;
-        const MicroInstr*        jumpInst = &*patternIt;
         const MicroInstrOperand* cmp      = cmpInst->ops(*ctx.operands);
         if (!cmp || cmp[2].opBits != MicroOpBits::B64 ||
             (cmp[0].reg != copy[1].reg && cmp[1].reg != copy[1].reg))

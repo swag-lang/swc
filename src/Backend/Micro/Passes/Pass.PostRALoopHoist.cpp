@@ -609,7 +609,7 @@ namespace
                              const CallConv&              conv,
                              const FrameReachability&     reach,
                              const bool                   restrictToUnreachable,
-                             const MicroPassContext&      context,
+                              const MicroPassContext&,
                              std::vector<Carried>&        out,
                              std::vector<SunkStore>&      sunkStores)
     {

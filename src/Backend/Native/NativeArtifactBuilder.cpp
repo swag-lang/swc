@@ -88,6 +88,10 @@ namespace
                 return K_RUNTIME_HOOK_PREMAIN_DONE;
             case RuntimeHookStage::Drop:
                 return K_RUNTIME_HOOK_DROP_DONE;
+            case RuntimeHookStage::Sync:
+            case RuntimeHookStage::DynamicLoad:
+            case RuntimeHookStage::DynamicUnload:
+                break;
         }
 
         SWC_UNREACHABLE();

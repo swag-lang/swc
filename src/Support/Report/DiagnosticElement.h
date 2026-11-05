@@ -77,7 +77,7 @@ public:
             }
         }
 
-        arguments_.emplace_back(DiagnosticArgument{name, std::forward<T>(arg)});
+        arguments_.emplace_back(name, std::forward<T>(arg));
     }
 
 private:

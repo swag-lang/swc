@@ -1627,7 +1627,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     }
 
     const size_t totalInt         = freeIntPersistent_.size() + freeIntTransient_.size();
-    const size_t totalFloat       = freeFloatPersistent_.size() + freeFloatTransient_.size();
     const size_t totalIntPersist  = freeIntPersistent_.size();
     const size_t totalFloatPersit = freeFloatPersistent_.size();
 

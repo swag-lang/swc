@@ -1430,7 +1430,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_GlobalAndConstantSectionsPreserveRequir
         CoffObject object;
         if (!readCoffObject(object, diagnostic, bytes))
             return Result::Error;
-        for (const Utf8 name : {Utf8(".data"), Utf8(".bss"), Utf8(".rdata")})
+        for (const Utf8& name : {Utf8(".data"), Utf8(".bss"), Utf8(".rdata")})
         {
             const auto section = std::ranges::find(object.sections, name, &CoffInputSection::name);
             if (section == object.sections.end() || coffSectionAlignmentFromCharacteristics(section->characteristics) != alignment)

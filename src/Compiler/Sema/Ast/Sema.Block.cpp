@@ -283,7 +283,7 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstFunctionBody::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
+Result AstFunctionBody::semaPreNodeChild(Sema& sema, const AstNodeRef&)
 {
     SemaHelpers::scopeBindingsForStatement(sema);
     return Result::Continue;
@@ -295,7 +295,7 @@ Result AstFunctionBody::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     return Result::Continue;
 }
 
-Result AstSwitchCaseBody::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
+Result AstSwitchCaseBody::semaPreNodeChild(Sema& sema, const AstNodeRef&)
 {
     SemaHelpers::scopeBindingsForStatement(sema);
     return Result::Continue;

@@ -313,7 +313,7 @@ namespace
         if (ready)
             execve(args.executable.c_str(), args.argv.data(), args.envp.data());
         const int error = errno;
-        (void) write(errorPipe, &error, sizeof(error));
+        [[maybe_unused]] const ssize_t written = write(errorPipe, &error, sizeof(error));
         _exit(127);
     }
 
@@ -407,7 +407,7 @@ namespace
             terminateDescendants(command, procDirectory);
         }
         closeDescriptor(execError[0]);
-        (void) write(handles.status[1], &result, sizeof(result));
+        [[maybe_unused]] const ssize_t written = write(handles.status[1], &result, sizeof(result));
         _exit(0);
     }
 }

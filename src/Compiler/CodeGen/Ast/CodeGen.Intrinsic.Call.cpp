@@ -1462,7 +1462,6 @@ namespace
         const TypeRef             resultTypeRef   = resultView.typeRef();
         const TypeInfo&           resultType      = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const MicroOpBits         resultBits      = CodeGenTypeHelpers::numericBits(resultType);
-        const uint32_t            logicalBitWidth = getNumBits(resultBits);
         CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder         = codeGen.builder();
         MicroReg                  materializedValue;

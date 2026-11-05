@@ -611,7 +611,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getFloatArgAsDouble(sema, args[0], x))
                 return Result::Continue;
 
-            Math::FoldIntrinsicUnaryFloatOp foldOp;
+            Math::FoldIntrinsicUnaryFloatOp foldOp{};
             const bool                      mapped = mapTokenToUnaryIntrinsicFoldOp(foldOp, intrinsicId);
             SWC_ASSERT(mapped);
 

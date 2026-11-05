@@ -36,7 +36,7 @@ void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
     stack_.back() = Frame(nodeRef);
 }
 
-AstVisitResult AstVisit::step(const TaskContext& ctx)
+AstVisitResult AstVisit::step(const TaskContext&)
 {
     if (stack_.empty())
         return AstVisitResult::Error;

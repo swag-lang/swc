@@ -109,7 +109,7 @@ public:
             }
         }
 
-        arguments_.emplace_back(Argument{name, std::forward<T>(arg)});
+        arguments_.emplace_back(name, std::forward<T>(arg));
     }
 
     void report(TaskContext& ctx) const;

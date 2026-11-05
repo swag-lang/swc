@@ -901,7 +901,9 @@ void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstN
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
+#if SWC_DEV_MODE
     const AstNodeRef    queryNodeRef = nodeRef;
+#endif
     const AstNodeRef    resolvedRef  = resolvedNodeRef(nodeRef);
     CodeGenNodePayload* nodePayload  = safePayload(nodeRef, resolvedRef);
 

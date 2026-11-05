@@ -650,7 +650,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivisionAndRemainderRespectFlagsAndDeferr
         std::pair{MicroOp::ModuloSigned, uint64_t{3}},
         std::pair{MicroOp::ModuloSigned, uint64_t{8}},
     };
-    for (const auto [operation, divisor] : cases)
+    for (const auto& [operation, divisor] : cases)
     {
         for (const bool deferred : {false, true})
         {

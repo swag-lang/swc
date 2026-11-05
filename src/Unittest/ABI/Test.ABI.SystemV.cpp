@@ -983,7 +983,7 @@ SWC_TEST_BEGIN(JIT_LinuxTlsReadsPreserveRegistersFlagsAndLeafStack)
         if (preserveState)
         {
             for (uint32_t reg = 0; reg < 16; ++reg)
-                vectors[reg] = {0x1234567800000000 + reg, 0xfedcba9800000000 + reg};
+                vectors[reg] = {0x1234567800000000ULL + reg, 0xfedcba9800000000ULL + reg};
             builder.emitLoadRegPtrImm(index, reinterpret_cast<uint64_t>(vectors.data()));
             for (uint32_t reg = 0; reg < 16; ++reg)
                 builder.emitLoadVecRegMem(MicroReg::floatReg(reg), index, reg * 16, MicroOpBits::B128);

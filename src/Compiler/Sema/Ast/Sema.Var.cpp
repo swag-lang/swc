@@ -743,7 +743,7 @@ namespace
         return fallbackTypeRef;
     }
 
-    Result validateFinalType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef finalTypeRef, bool isConst, bool isParameter, bool isUsing)
+    Result validateFinalType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef finalTypeRef, bool, bool isParameter, bool isUsing)
     {
         if (finalTypeRef.isInvalid())
             return Result::Continue;

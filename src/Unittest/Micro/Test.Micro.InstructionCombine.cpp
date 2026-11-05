@@ -6280,7 +6280,7 @@ SWC_TEST_BEGIN(InstCombine_ScaledAdd_ExposesIndependentShiftAndSum)
                 MicroOp  operation = MicroOp::Add;
                 uint64_t immediate = 0;
                 if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1 ||
-                    !firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::ShiftLeft || immediate != std::countr_zero(coefficient - 1) ||
+                    !firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::ShiftLeft || immediate != static_cast<uint64_t>(std::countr_zero(coefficient - 1)) ||
                     Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 2)
                     return Result::Error;
             }
@@ -6520,7 +6520,7 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
             MicroOp  operation = MicroOp::Add;
             uint64_t immediate = 0;
             if (!firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::ShiftLeft ||
-                immediate != std::countr_zero(coefficient - 1) ||
+                immediate != static_cast<uint64_t>(std::countr_zero(coefficient - 1)) ||
                 Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != stages * 2)
                 return Result::Error;
         }

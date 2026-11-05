@@ -306,7 +306,7 @@ namespace
         return {std::span{storage.data(), 0}, ref};
     }
 
-    ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
+    ConstantRef addCstFinalize([[maybe_unused]] const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_REF_DEBUG_INFO
         cstRef.dbgPtr = &manager.get(cstRef);

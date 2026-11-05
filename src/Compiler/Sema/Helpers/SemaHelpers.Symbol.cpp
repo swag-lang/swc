@@ -509,7 +509,6 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         const TypeInfo& vecType    = leftSimd ? leftAliasType : rightAliasType;
         const TypeInfo& laneType   = sema.typeMgr().get(vecType.payloadSimdLaneTypeRef());
         const bool      floatLanes = laneType.isFloat();
-        const uint32_t  laneBits   = floatLanes ? laneType.payloadFloatBits() : laneType.payloadIntBits();
 
         const bool isShift = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
         if (isShift)

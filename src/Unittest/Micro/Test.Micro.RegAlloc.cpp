@@ -1383,14 +1383,14 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
     using OptimLevel           = Runtime::BuildCfgBackendOptimLevel;
     // O0 keeps the first-sweep loop-region path in the fallback allocator.
     const std::array modes = {std::pair{false, OptimLevel::O2}, std::pair{true, OptimLevel::O2}, std::pair{true, OptimLevel::O0}};
-    for (const auto [firstSweep, optimLevel] : modes)
+    for (const auto& [firstSweep, optimLevel] : modes)
     {
         MicroRegisterAllocationPass reusedPass;
         // Every run destroys its builder afterwards. Reuse must replace the
         // borrowed CFG rows and liveness, including when both row count and
         // register word count shrink or grow across cyclic and acyclic listings.
         const std::array cases = {std::pair{0u, 129u}, std::pair{2u, 1u}, std::pair{3u, 70u}, std::pair{1u, 65u}, std::pair{0u, 2u}};
-        for (const auto [shape, liveCount] : cases)
+        for (const auto& [shape, liveCount] : cases)
         {
             std::array<Utf8, 2> listings;
             std::array<bool, 2> intervalAllocated{};

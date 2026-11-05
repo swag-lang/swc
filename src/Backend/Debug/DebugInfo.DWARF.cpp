@@ -211,7 +211,7 @@ namespace
             appendUnsigned(bytes, static_cast<uint32_t>(code));
             appendUnsigned(bytes, static_cast<uint32_t>(tag));
             bytes.pushBack(std::byte{static_cast<uint8_t>(children)});
-            for (const auto [attribute, form] : attributes)
+            for (const auto& [attribute, form] : attributes)
             {
                 appendUnsigned(bytes, static_cast<uint32_t>(attribute));
                 appendUnsigned(bytes, static_cast<uint32_t>(form));
@@ -223,7 +223,7 @@ namespace
         {
             abbreviation(Abbreviation::CompileUnit, Tag::CompileUnit, true, {{Attribute::Producer, Form::String}, {Attribute::Name, Form::String}, {Attribute::CompilationDirectory, Form::String}, {Attribute::StatementList, Form::SectionOffset}, {Attribute::Ranges, Form::SectionOffset}});
             abbreviation(Abbreviation::Function, Tag::Subprogram, true, {{Attribute::Name, Form::String}, {Attribute::LinkageName, Form::String}, {Attribute::LowPc, Form::Address}, {Attribute::HighPc, Form::Data8}, {Attribute::DeclarationFile, Form::Unsigned}, {Attribute::DeclarationLine, Form::Unsigned}, {Attribute::Type, Form::Reference8}});
-            for (const auto [code, tag] : {std::pair{Abbreviation::Parameter, Tag::Parameter}, std::pair{Abbreviation::Variable, Tag::Variable}})
+            for (const auto& [code, tag] : {std::pair{Abbreviation::Parameter, Tag::Parameter}, std::pair{Abbreviation::Variable, Tag::Variable}})
                 abbreviation(code, tag, false, {{Attribute::Name, Form::String}, {Attribute::Type, Form::Reference8}, {Attribute::Location, Form::SectionOffset}});
             abbreviation(Abbreviation::BaseType, Tag::BaseType, false, {{Attribute::Name, Form::String}, {Attribute::ByteSize, Form::Data8}, {Attribute::Encoding, Form::Data1}});
             abbreviation(Abbreviation::Pointer, Tag::Pointer, false, {{Attribute::ByteSize, Form::Data8}, {Attribute::Type, Form::Reference8}});

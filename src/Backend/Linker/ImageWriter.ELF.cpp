@@ -654,15 +654,20 @@ namespace
                         target.copy = true;
                     }
                 }
+                const ELF::Section& source = file->sections[relocation.section];
+                const bool importedFunctionAddress = !shared_ && target.imported && target.reference.file->shared &&
+                                                     target.reference.symbol().type() == 2 && relocation.type == ELF::R_ABS64 &&
+                                                     source.output && (sections_[source.output].flags & ELF::SHF_ALLOC) &&
+                                                     !(sections_[source.output].flags & ELF::SHF_WRITE);
                 if (relocation.type == ELF::R_GOTPCREL || relocation.type == ELF::R_GOTPCRELX || relocation.type == ELF::R_REX_GOTPCRELX ||
-                    ((relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32) && target.imported && !target.copy))
+                    ((relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32) && target.imported && !target.copy) || importedFunctionAddress)
                 {
                     if (target.got == K_NO_TARGET)
                     {
                         target.got = sections_[got_].bytes.size();
                         sections_[got_].bytes.appendLe64(0);
                     }
-                    if ((relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32) && target.plt == K_NO_TARGET)
+                    if (((relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32) || importedFunctionAddress) && target.plt == K_NO_TARGET)
                     {
                         target.plt = sections_[plt_].bytes.size();
                         sections_[plt_].bytes.resize(target.plt + 16, std::byte{0x90});
@@ -797,7 +802,9 @@ namespace
                 if (relocation.type == ELF::R_ABS64 && source.output && (source.flags & ELF::SHF_ALLOC))
                 {
                     const Target& target = targets_[file->symbols[relocation.symbol].target];
-                    if (!target.absolute && (shared_ || (target.imported && !target.copy)))
+                    const bool pltAddress = !shared_ && target.imported && target.plt != K_NO_TARGET &&
+                                            !(sections_[source.output].flags & ELF::SHF_WRITE);
+                    if (!target.absolute && (shared_ || (target.imported && !target.copy && !pltAddress)))
                         ++relocationCount_;
                 }
             }
@@ -993,15 +1000,20 @@ namespace
                 {
                     if (allocated)
                     {
-                        // Executables normally reach imports through GOT loads. Absolute
-                        // imported pointers in writable data are resolved by the loader too.
-                        if (relocation.type != ELF::R_ABS64 || !(output.flags & ELF::SHF_WRITE))
-                            return fail(std::format("{}: imported symbol '{}' needs a GOT-relative access", file->name, target.name));
-                        appendDynamicRelocation(location, ELF::R_ABS64, target, relocation.addend);
-                        output.bytes.writeLe64(offset, 0);
-                        continue;
+                        if (!shared_ && relocation.type == ELF::R_ABS64 && target.plt != K_NO_TARGET && !(output.flags & ELF::SHF_WRITE))
+                            value = sections_[plt_].address + target.plt;
+                        else
+                        {
+                            // Absolute imported pointers in writable data are resolved by the loader.
+                            if (relocation.type != ELF::R_ABS64 || !(output.flags & ELF::SHF_WRITE))
+                                return fail(std::format("{}: imported symbol '{}' needs a GOT-relative access", file->name, target.name));
+                            appendDynamicRelocation(location, ELF::R_ABS64, target, relocation.addend);
+                            output.bytes.writeLe64(offset, 0);
+                            continue;
+                        }
                     }
-                    value = 0;
+                    else
+                        value = 0;
                 }
                 value += static_cast<uint64_t>(relocation.addend);
                 if (relative)

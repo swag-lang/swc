@@ -520,9 +520,6 @@ void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const S
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 {
-    const IdentifierRef      idRef = sym.idRef();
-    const IdentifierManager& idMgr = sema.idMgr();
-
     const SpecOpKind kind = sym.specOpKind();
     if (kind == SpecOpKind::None)
         return Result::Continue;

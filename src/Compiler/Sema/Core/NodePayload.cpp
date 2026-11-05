@@ -261,7 +261,7 @@ bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
     return cstRef.isValid();
 }
 
-ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
+ConstantRef NodePayload::getConstantRef(const TaskContext&, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return ConstantRef::invalid();

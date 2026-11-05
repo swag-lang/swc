@@ -23,7 +23,7 @@ constexpr T swcCheck(T value, const char* expr, const char* file, int line) noex
 }
 
 template<typename T, typename U>
-constexpr T swcCheckNot(T value, const U& passValue, const char* expr, const char* file, int line) noexcept
+constexpr T swcCheckNot(T value, [[maybe_unused]] const U& passValue, [[maybe_unused]] const char* expr, [[maybe_unused]] const char* file, [[maybe_unused]] int line) noexcept
 {
 #if SWC_HAS_ASSERT
     if (value == passValue)

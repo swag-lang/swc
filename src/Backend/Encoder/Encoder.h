@@ -77,7 +77,7 @@ public:
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
 
-    virtual void buildUnwindInfo(ByteArray& outUnwindInfo) const {}
+    virtual void buildUnwindInfo(ByteArray&) const {}
     virtual void prepareUnwind(MicroBuilder& builder, CallConvKind callConv)
     {
         SWC_UNUSED(builder);

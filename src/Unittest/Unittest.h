@@ -65,14 +65,14 @@ namespace Unittest
     {                                                                                     \
         swc::Result                        __name(swc::TaskContext&);                     \
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name, SWC_TEST_KIND}; \
-        swc::Result                        __name(swc::TaskContext& ctx)                  \
+        swc::Result                        __name([[maybe_unused]] swc::TaskContext& ctx) \
         {
 #define SWC_FILESYSTEM_TEST_BEGIN(__name)                                                                       \
     namespace                                                                                                   \
     {                                                                                                           \
         swc::Result                        __name(swc::TaskContext&);                                           \
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name, swc::Unittest::TestKind::Filesystem}; \
-        swc::Result                        __name(swc::TaskContext& ctx)                                        \
+        swc::Result                        __name([[maybe_unused]] swc::TaskContext& ctx)                       \
         {
 #define SWC_TEST_END()            \
     return swc::Result::Continue; \

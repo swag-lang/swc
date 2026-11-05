@@ -54,8 +54,10 @@ def main():
     sources.update((root / 'src/Support/Os').glob('*.Linux.cpp'))
     sources = sorted(sources)
 
+    # Aggregate members omitted in C++ initializers are intentionally value-initialized.
+    # GCC's -Wmissing-field-initializers is noisy for that convention in this codebase.
     flags = ['-std=c++23', '-O2', '-g1', '-DNDEBUG', '-pthread', '-march=x86-64-v3',
-             '-Wall', '-Wextra', '-fmax-errors=5', '-I', str(root / 'src'),
+             '-Wall', '-Wextra', '-Wno-missing-field-initializers', '-fmax-errors=5', '-I', str(root / 'src'),
              '-I', str(root / 'src/Support/Memory/mimalloc/include')]
     if args.configuration == 'devmode':
         flags.append('-DSWC_DEV_MODE=1')
@@ -74,7 +76,9 @@ def main():
     for source, obj in zip(sources, objects):
         uses_pch = source.name not in ('HostCpuGuard.cpp', 'Mimalloc.cpp')
         dependencies = [source, stamp, *([str(pch) + '.gch'] if uses_pch else [])]
-        compile_command = [*command, *(['-include', str(pch)] if uses_pch else []),
+        # Mimalloc's own diagnostics are scoped to its amalgamated translation unit.
+        vendor_flags = ['-Wno-cpp', '-Wno-stringop-overflow'] if source.name == 'Mimalloc.cpp' else []
+        compile_command = [*command, *vendor_flags, *(['-include', str(pch)] if uses_pch else []),
                            '-MMD', '-MP', '-c', str(source), '-o', str(obj)]
         rules += [f'{make_path(obj)}: ' + ' '.join(map(make_path, dependencies)),
                   '\t@' + recipe(['echo', f'CXX {source.relative_to(root)}']),

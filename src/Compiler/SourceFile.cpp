@@ -112,7 +112,7 @@ void SourceFile::setContent(const std::string_view content)
         std::memcpy(content_.data(), content.data(), content.size());
     }
 
-    for (int i = 0; i < TRAILING_0; i++)
+    for (size_t i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
     sharedContent_.reset();
@@ -182,7 +182,7 @@ bool SourceFile::hasErrorLineInRange(const uint32_t lineStart, const uint32_t li
     const uint32_t lastLine  = std::max(lineStart, lineEnd);
 
     const std::scoped_lock lock(errorLinesMutex_);
-    for (const auto [errorStart, errorEnd] : errorLineRanges_)
+    for (const auto& [errorStart, errorEnd] : errorLineRanges_)
     {
         if (errorEnd >= firstLine && errorStart <= lastLine)
             return true;
@@ -234,7 +234,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     }
 
     // Pad lookahead reads beyond the final source byte with zeroes.
-    for (int i = 0; i < TRAILING_0; i++)
+    for (size_t i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
     ensureSourceView(ctx);

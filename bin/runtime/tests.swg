@@ -63,7 +63,7 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
 
     Swag.print("\n#test stops on hardware exception ", cast(s64, code), "\n")
     Swag.print("#test faulting instruction address ", instructionAddress, "\n")
-    let symbol = __symbolize(cast(*void, instructionAddress))
+    let symbol = symbolizeStackAddress(cast(*void, instructionAddress))
     if symbol.hasLine do
         Swag.print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
     elif symbol.found do

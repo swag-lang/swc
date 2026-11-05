@@ -29,6 +29,8 @@ private func endsDirectoryPart(c: u8)->bool
 // Returns whether `path` is a lexically valid path on the selected target.
 //
 // Windows paths reject components whose trailing dots or spaces are normalized, and reserved DOS device names.
+//
+// Verbatim `\\?\` paths preserve trailing dots and spaces.
 func isValidPathName(path: string)->bool
 {
     if path.count == 0 do
@@ -36,10 +38,10 @@ func isValidPathName(path: string)->bool
 
     let extendedSyntax = TargetHasWindowsPathSyntax and
                          path.count >= 4 and
-                         isDirectorySeparator(path[0]) and
-                         isDirectorySeparator(path[1]) and
+                         path[0] == '\\' and
+                         path[1] == '\\' and
                          path[2] == '?' and
-                         isDirectorySeparator(path[3])
+                         path[3] == '\\'
     for c, index in path
     {
         if c == 0 do
@@ -64,9 +66,8 @@ func isValidPathName(path: string)->bool
             let segment    = path[segmentBegin until segmentEnd]
             if segment.count and segment != "." and segment != ".."
             {
-                if segment[segment.count - 1] == '.' or
-                   segment[segment.count - 1] == ' ' or
-                   isReservedWindowsDeviceName(segment) do
+                let hasNormalizedSuffix = segment[segment.count - 1] == '.' or segment[segment.count - 1] == ' '
+                if (hasNormalizedSuffix and not extendedSyntax) or isReservedWindowsDeviceName(segment) do
                     return false
             }
 
@@ -361,9 +362,16 @@ func equals(path1, path2: string)->bool
     return offset1 == path1.count and offset2 == path2.count
 }
 
-// Replaces the target's alternate separator with its preferred separator.
+// Replaces the target's alternate separator with its preferred separator, except in verbatim Windows paths.
 func normalize(path: *String)
 {
+    if TargetHasWindowsPathSyntax and
+       path.count >= 4 and
+       path[0] == '\\' and
+       path[1] == '\\' and
+       path[2] == '?' and
+       path[3] == '\\' do
+        return
     if AltDirectorySeparator do
         path.replace(cast(rune, AltDirectorySeparator), "/")
 }

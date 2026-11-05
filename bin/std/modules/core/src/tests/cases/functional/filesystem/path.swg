@@ -79,6 +79,9 @@ using Swag
         Swag.require(not Path.isValidPathName("C:/sandbox/com\u00B9.log"))
         Swag.require(not Path.isValidFileName("lPt\u00B2.txt"))
         Swag.require(Path.isValidPathName("C:/sandbox/../outside.txt"))
+        Swag.require(Path.isValidPathName(#raw "\\?\C:\sandbox\trailing. "))
+        Swag.require(not Path.isValidPathName("C:/sandbox/trailing. "))
+        Swag.require(not Path.isValidPathName(#raw "//?/C:/sandbox/trailing. "))
     }
 
     Swag.require(Path.isValidFileName("core.swg"))
@@ -144,6 +147,7 @@ using Swag
             Swag.require(Path.rootLength(path) == 0)
             Swag.require(Path.rootName(path) == null and not Path.isRooted(path))
         }
+
         Swag.require(Path.rootLength("//src/core.swg") == 1)
     }
 
@@ -211,6 +215,10 @@ using Swag
     normalized = #raw "C:\src\tests\core.swg"
     Path.normalize(&normalized)
     Swag.require(normalized == (WINDOWS ? "C:/src/tests/core.swg" : #raw "C:\src\tests\core.swg"))
+
+    normalized = #raw "\\?\C:\src\tests\trailing. "
+    Path.normalize(&normalized)
+    Swag.require(normalized == #raw "\\?\C:\src\tests\trailing. ")
 }
 
 // Distinct UTF-8 directory names must remain distinct under every target case policy.

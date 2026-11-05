@@ -850,8 +850,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
                 else
                 {
                     // Original intervals have their dense register's index. Only
-                    // appended split children can hold another piece of this value.
-                    for (size_t otherIndex = denseVirtualRegs_.regs().size(); otherIndex < out.nodes.size(); ++otherIndex)
+                    // active split children can cover this position, so resolve
+                    // the hint in the bounded active set instead of every child
+                    // ever created by the walk.
+                    for (const uint32_t otherIndex : walk.active)
                     {
                         const LiveInterval& other = out.nodes[otherIndex];
                         if (other.denseIndex == hintDense && !other.spilled && other.assignedReg.isValid() && other.covers(at))

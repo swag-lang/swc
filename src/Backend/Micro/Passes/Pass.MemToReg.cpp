@@ -1049,11 +1049,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // The object a byte range lies in: a known variable's index, or
             // -1 for the frame space outside every known variable.
             const auto objectOf = [&](const uint64_t lo, const uint64_t hi) -> int32_t {
-                for (size_t i = 0; i < varRanges.size(); ++i)
-                {
-                    if (lo >= varRanges[i].lo && hi <= varRanges[i].hi)
-                        return static_cast<int32_t>(i);
-                }
+                const auto range = std::ranges::lower_bound(varRanges, lo, {}, &FrameVarRange::hi);
+                if (range != varRanges.end() && lo >= range->lo && hi <= range->hi)
+                    return static_cast<int32_t>(range - varRanges.begin());
                 return -1;
             };
 

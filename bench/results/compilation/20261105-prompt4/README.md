@@ -24,6 +24,9 @@ opcode check to every instruction, and the net effect is unmeasured.
 Searching split-child register hints only among active intervals was rejected:
 a source interval may end at the output slot yet still cover the preceding
 input slot used by the copy hint.
+Indexing MemToReg slot overlaps was rejected for now: bounded overlap queries
+need extra sorted and prefix-maximum storage, and their net tradeoff is unclear
+without slot-count evidence.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |

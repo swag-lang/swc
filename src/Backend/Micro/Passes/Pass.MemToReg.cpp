@@ -1970,8 +1970,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             in = std::make_unique_for_overwrite<RecordState[]>(n);
             reached.resize(n);
         }
+        uint8_t recordEpoch = 0;
         for (RecordWord& record : records)
         {
+            recordEpoch = static_cast<uint8_t>(recordEpoch + 1);
+            if (!recordEpoch)
+            {
+                std::ranges::fill(reached, uint8_t{0});
+                recordEpoch = 1;
+            }
+
             const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
             writeEffects.clear();
             for (const SlotAccess& acc : record.accesses)
@@ -2007,29 +2015,29 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 return state;
             };
 
-            // The reached bit guards every read. First arrival assigns a full state,
+            // The reached epoch guards every read. First arrival assigns a full state,
             // so unreachable slots need no initialization; the entry starts empty.
-            std::fill(reached.begin(), reached.end(), 0);
             in[entry]      = RecordState{};
-            reached[entry] = 1;
+            reached[entry] = recordEpoch;
             bool changed   = true;
             for (uint32_t sweep = 0; changed && sweep < sweepLimit; ++sweep)
             {
                 changed = false;
                 for (uint32_t index = 0; index < n; ++index)
                 {
-                    if (!reached[index])
+                    if (reached[index] != recordEpoch)
                         continue;
                     const RecordState out = transfer(index, in[index]);
                     for (const uint32_t succ : cfg.successors(index))
                     {
+                        const bool successorReached = reached[succ] == recordEpoch;
                         const RecordState merged{
-                            .defined = static_cast<uint8_t>(reached[succ] ? in[succ].defined & out.defined : out.defined),
-                            .zero    = static_cast<uint8_t>(reached[succ] ? in[succ].zero & out.zero : out.zero),
+                            .defined = static_cast<uint8_t>(successorReached ? in[succ].defined & out.defined : out.defined),
+                            .zero    = static_cast<uint8_t>(successorReached ? in[succ].zero & out.zero : out.zero),
                         };
-                        if (!reached[succ] || merged.defined != in[succ].defined || merged.zero != in[succ].zero)
+                        if (!successorReached || merged.defined != in[succ].defined || merged.zero != in[succ].zero)
                         {
-                            reached[succ] = 1;
+                            reached[succ] = recordEpoch;
                             in[succ]      = merged;
                             changed       = true;
                         }
@@ -2047,7 +2055,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 if (!valid)
                     break;
                 const uint32_t index = cfg.indexOf(acc.ref);
-                if (index == MicroControlFlowGraph::K_NO_INDEX || !reached[index])
+                if (index == MicroControlFlowGraph::K_NO_INDEX || reached[index] != recordEpoch)
                 {
                     valid = false;
                     break;

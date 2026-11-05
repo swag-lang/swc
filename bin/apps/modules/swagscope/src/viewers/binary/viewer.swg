@@ -120,12 +120,13 @@ impl Panel
     private mtd cellText(rowIndex, column: u64)->String
     {
         let row = &.doc.report.rows[rowIndex]
-        switch #complete cast(Column, column)
+        switch column
         {
-        case .Field:  return row.label
-        case .Value:  return row.value
-        case .Offset: return row.offset == Swag.U64.Max ? String.from("") : hexText(row.offset, 8)
-        case .Detail: return row.detail
+        case cast(u64, Column.Field):  return row.label
+        case cast(u64, Column.Value):  return row.value
+        case cast(u64, Column.Offset): return row.offset == Swag.U64.Max ? String.from("") : hexText(row.offset, 8)
+        case cast(u64, Column.Detail): return row.detail
+        default: return String.from("")
         }
     }
 

@@ -18,6 +18,37 @@ specified 'type'.
 }
 
 /**
+## Integer to Enum Casts
+
+An ordinary enum can only be constructed from a compile-time integer that matches
+one of its declared members. A runtime integer cannot be cast to an ordinary enum,
+including with `try cast`; this keeps invalid discriminants out of enum values.
+Use an enum marked `#[Swag.EnumFlags]` when runtime bit combinations are intended.
+An enum marked `#[Swag.Incomplete]` may also carry values outside its declared members.
+*/
+
+enum CastSeverity: s32
+{
+    Low = 1
+    High = 4
+}
+
+#[Swag.EnumFlags]
+enum CastPermission: u32
+{
+    Read
+    Write
+}
+
+#test
+{
+    let severity: CastSeverity = cast(CastSeverity, 4's32)
+    let permissions: CastPermission = cast(CastPermission, 3'u32)
+    Swag.require(severity == .High)
+    Swag.require(permissions == (CastPermission.Read | CastPermission.Write))
+}
+
+/**
 # Interface Conversion
 `cast(IFoo, value)` produces an 'IFoo' interface value when the source type
 implements that interface. The compiler establishes this conversion statically.

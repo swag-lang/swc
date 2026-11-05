@@ -29,6 +29,11 @@ enum ErrorKind
     DriverUnavailable     // The virtual drive component could not be loaded, started, or reached.
     Canceled              // The caller stopped the operation.
 }
+const ErrorKindValues: [20] ErrorKind = [
+    .HiddenProtected, .General, .InvalidInput, .PasswordRequired, .SizeTooSmall, .PasswordOrDamaged,
+    .NotFound, .AlreadyExists, .AccessDenied, .WriteProtected, .SparseContainer, .NotDirectory,
+    .IsDirectory, .DirectoryNotEmpty, .DiskFull, .Corrupted, .Io, .Elevated, .DriverUnavailable, .Canceled,
+]
 
 // One failure raised by the volume layer: what kind of failure it is, the native status that came
 // with it, and where it was raised.

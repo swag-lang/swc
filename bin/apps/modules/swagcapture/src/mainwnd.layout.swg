@@ -19,7 +19,16 @@ func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
 // The alignment a glyph of the text mini-bar stands for, and whether it is down the box rather
 // than across it, kept in the user data of the glyph.
 func alignUserData(align: FormTextAlign, vertical: bool)->*void => cast(*void, cast(u64, align) + (vertical ? AlignVerticalFlag : 0))
-func alignOfUserData(data: *void?)->FormTextAlign => cast(FormTextAlign, cast(u64, data) & ~AlignVerticalFlag)
+func alignOfUserData(data: *void?)->FormTextAlign
+{
+    switch cast(u64, data) & ~AlignVerticalFlag
+    {
+    case cast(u64, FormTextAlign.LeftTop): return .LeftTop
+    case cast(u64, FormTextAlign.RightBottom): return .RightBottom
+    case cast(u64, FormTextAlign.Center): return .Center
+    default: return .Center
+    }
+}
 func alignIsVertical(data: *void?)->bool => (cast(u64, data) & AlignVerticalFlag) != 0
 const AlignVerticalFlag = 0x100'u64
 

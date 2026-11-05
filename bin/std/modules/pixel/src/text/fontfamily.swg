@@ -28,6 +28,10 @@ enum FontFamilyStyle
     SemiBold       // Upright text between regular and bold.
 }
 
+const FontFamilyStyleValues: [6] FontFamilyStyle = [
+    .Regular, .Bold, .Italic, .BoldItalic, .Light, .SemiBold,
+]
+
 impl FontFamily
 {
     // Returns the font of the requested style, falling back to the closest available face.

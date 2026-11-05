@@ -5,6 +5,9 @@ using Core, Gui, Pixel, Video
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 enum ExplorerKindFilter { All, Videos, Images, Audio, Documents, Subtitles, Archives, Folders }
 enum ExplorerArtworkSource { Online, Local }
+const ExplorerModeValues: [5] ExplorerMode = [.Names, .Details, .Small, .Medium, .Large]
+const ExplorerKindFilterValues: [8] ExplorerKindFilter = [.All, .Videos, .Images, .Audio, .Documents, .Subtitles, .Archives, .Folders]
+const ExplorerArtworkSourceValues: [2] ExplorerArtworkSource = [.Online, .Local]
 
 // The shape the tiles of a folder take, read from what most of it holds.
 enum ExplorerBoard
@@ -15,6 +18,7 @@ enum ExplorerBoard
     Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
     Album       // One album: the cover large, then its tracks.
 }
+const ExplorerBoardValues: [5] ExplorerBoard = [.Grid, .Posters, .Covers, .Mosaic, .Album]
 
 // A day of a mosaic of pictures: where its label stands, its words and how many pictures it holds.
 struct ExplorerDayLabel

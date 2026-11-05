@@ -457,7 +457,7 @@ impl Decoder
         return cast(u64, .inChannels) * width * (.header.bitDepth / 8)
     }
 
-    mtd defilter8(width, height: u32, input, output: [*] u8)
+    mtd defilter8(width, height: u32, input, output: [*] u8)->bool
     {
         let rowStrideIn  = .getStrideIn(width)
         let rowStrideOut = .header.bitDepth < 8 ? cast(u64, .inChannels) * width : rowStrideIn
@@ -484,17 +484,18 @@ impl Decoder
         var row = 0'u32
         while row < height
         {
-            let filter = cast(RowFilter, src[0])
+            let filter = src[0]
             src += 1
 
             var destOff = dest + destOffset
             switch filter
             {
-            case .None:    Memory.copy(destOff, src, rowStrideIn)
-            case .Sub:     defilterSubRow(src, destOff, rowStrideIn, filterOffset)
-            case .Up:      defilterUpRow(src, up, destOff, rowStrideIn)
-            case .Average: defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
-            case .Paeth:   defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
+            case 0: Memory.copy(destOff, src, rowStrideIn)
+            case 1: defilterSubRow(src, destOff, rowStrideIn, filterOffset)
+            case 2: defilterUpRow(src, up, destOff, rowStrideIn)
+            case 3: defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
+            case 4: defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
+            default: return false
             }
 
             src += rowStrideIn
@@ -505,25 +506,25 @@ impl Decoder
                 dest -= rowStrideOut
             row += 1
         }
+        return true
     }
 
-    mtd defilter(width, height: u32, input, output: [*] u8)
+    mtd defilter(width, height: u32, input, output: [*] u8)->bool
     {
         if .header.bitDepth < 8
         {
-            .defilter8(width, height, input, output)
+            if not .defilter8(width, height, input, output) do
+                return false
             .expand8(width, height, output)
-            return
+            return true
         }
 
         if .header.bitDepth == 8 or .header.bitDepth == 16
-        {
-            .defilter8(width, height, input, output)
-            return
-        }
+            return .defilter8(width, height, input, output)
+        return false
     }
 
-    mtd adam7(dstPixels: [*] u8)
+    mtd adam7(dstPixels: [*] u8)->bool
     {
         var tmpArr: Array'u8
         var input = .dcmpBuf.storage()
@@ -539,7 +540,8 @@ impl Decoder
             let tmpBuffer = tmpArr.storage()
             Memory.clear(tmpBuffer, tmpArr.count)
 
-            .defilter(cast(u32, x), cast(u32, y), input, tmpBuffer)
+            if not .defilter(cast(u32, x), cast(u32, y), input, tmpBuffer) do
+                return false
 
             var t = tmpBuffer
             for j in y
@@ -559,21 +561,22 @@ impl Decoder
             let stride = (.getStrideIn(cast(u32, x)) + 1) * y
             input += stride
         }
+        return true
     }
 
     // Defilters the decompressed rows into `dstPixels`, which holds the whole image.
-    mtd defilter(dstPixels: [*] u8)
+    mtd defilter(dstPixels: [*] u8)->bool
     {
         if .header.interlaceMethod != .Adam7
         {
             .orderDefilter = false
             let input = .dcmpBuf.storage()
-            .defilter(.header.width, .header.height, input, dstPixels)
+            return .defilter(.header.width, .header.height, input, dstPixels)
         }
         else
         {
             .orderDefilter = true
-            .adam7(dstPixels)
+            return .adam7(dstPixels)
         }
     }
 }

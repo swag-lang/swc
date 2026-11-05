@@ -52,6 +52,17 @@ enum ThemeVariant
 }
 
 const ThemeVariantCount = 3
+const ThemeVariantValues: [ThemeVariantCount] ThemeVariant = [.Dark, .Light, .Sheet]
+
+func nextThemeVariant(variant: ThemeVariant)->ThemeVariant
+{
+    switch #complete variant
+    {
+    case .Dark:  return .Light
+    case .Light: return .Sheet
+    case .Sheet: return .Dark
+    }
+}
 
 // A theme written as a tweak sheet rather than in code, which is how anyone shipping an
 // application writes one. Reading it beside the palettes above is the point of having it
@@ -142,7 +153,7 @@ func readStartupSelection()
     for arg in Env.arguments()
     {
         for name, i in VariantArgs where arg == name do
-            g_Variant = cast(ThemeVariant, cast(s32, i))
+            g_Variant = ThemeVariantValues[i]
         for name, i in PageArgs where arg == name do
             g_Page = cast(s32, i)
     }
@@ -338,7 +349,7 @@ func updateTestMode()
     }
 
     showPage(0)
-    setVariant(cast(ThemeVariant, (cast(s32, g_Variant) + 1)))
+    setVariant(nextThemeVariant(g_Variant))
 }
 
 func onFrame(app: *Application)
@@ -349,7 +360,7 @@ func onFrame(app: *Application)
     if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
     if app.keyboard.isKeyJustPressed(.F2) do
-        setVariant(cast(ThemeVariant, ((cast(s32, g_Variant) + 1) % ThemeVariantCount)))
+        setVariant(nextThemeVariant(g_Variant))
 
     updateTestMode()
 }
@@ -371,7 +382,7 @@ func createRootView()
 
     for i in ThemeVariantCount
     {
-        let variant = cast(ThemeVariant, cast(s32, i))
+        let variant = ThemeVariantValues[i]
         let btn     = PushButton.create(view, variantName(variant), {})
         btn.sigPressed += func|variant|(_) { setVariant(variant) }
         g_ThemeButtons.add(btn)

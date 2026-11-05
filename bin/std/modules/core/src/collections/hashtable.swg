@@ -219,9 +219,9 @@ impl HashTable
 
     // Maps `key` to a copy of `val`, replacing the value of an existing key.
     //
-    // The value is copied in, so this only exists when it can be copied.
+    // The key and value are copied, so this only exists when both can be copied.
     mtd opIndexSet(key: K, val: V)
-        where Reflection.canCopy(#typeof(V))
+        where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
         .add(key, val)
     }

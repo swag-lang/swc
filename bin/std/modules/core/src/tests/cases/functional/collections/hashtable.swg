@@ -3,6 +3,30 @@
 
 using Swag
 
+#[Swag.NoCopy]
+struct HashTableNonCopyValue
+{
+    value: u32
+}
+
+#[Swag.NoCopy]
+struct HashTableNonCopyKey
+{
+    value: u32
+}
+
+#test
+{
+    #assert(not Reflection.canCopy(HashTable'(s32, HashTableNonCopyValue)))
+    #assert(not Reflection.canCopy(HashTable'(HashTableNonCopyKey, s32)))
+
+    var table: HashTable'(s32, HashTableNonCopyValue)
+    var value = HashTableNonCopyValue{value: 42}
+    table.add(1, #move value)
+
+    Swag.require(table.find(1).value.value == 42)
+}
+
 func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
 {
     for &key, value in table[]

@@ -261,8 +261,8 @@ is the current scorecard.
 - Binary and TagBin deserialization now reject undeclared members of closed enums; numeric flags
   and `#[Swag.Incomplete]` enum payloads retain their declared semantics. TagBin validates enums in
   raw arrays, including enums nested in raw structs and fixed arrays. JSON string-backed enums map
-  only to declared constants so decoded values do not borrow a temporary parser buffer. A custom
-  `ISerialize.readElement` hook is also checked after it fills an enum field.
+  only to declared constants so decoded values do not borrow a temporary parser buffer. Custom
+  `ISerialize.read` and `readElement` hooks are checked recursively after they fill a value.
 - Audit: generic `cast` calls use the same specialized sema rules; reflection assignment copies
   values of one runtime type; text parsing accepts declared enum names; command-line parsing uses
   that parser. `assume cast` remains the explicit unchecked escape hatch.

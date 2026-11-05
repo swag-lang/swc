@@ -13,6 +13,55 @@ private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
         fail SerializationError{"serialized value is not a member of the requested enum"}
 }
 
+// Checks closed enums inside values filled by a custom ISerialize hook.
+private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
+{
+    if not dataType do
+        return
+
+    let type = Reflection.resolveAliases(dataType)
+    if Reflection.isEnum(type)
+    {
+        try validateDecodedEnumValue(type, data)
+        return
+    }
+
+    let elementType = Reflection.dynamicArrayElementType(type)
+    if elementType
+    {
+        let array = cast(*Array'u8, data)
+        if not array.count do
+            return
+        var element = unwrap array.buffer
+        for array.count
+        {
+            try validateDecodedEnumValues(elementType, element)
+            element += elementType.sizeof
+        }
+        return
+    }
+
+    if Reflection.isStaticArray(type)
+    {
+        let arrayType = assume cast(const *TypeInfoArray, type)
+        var element = data
+        for arrayType.count
+        {
+            try validateDecodedEnumValues(arrayType.pointedType, element)
+            element += arrayType.pointedType.sizeof
+        }
+        return
+    }
+
+    if Reflection.isStruct(type) and type != String
+    {
+        let structType = assume cast(const *TypeInfoStruct, type)
+        for &field in structType.fields where field.pointedType
+            try validateDecodedEnumValues(field.pointedType,
+                                          data + field.offset)
+    }
+}
+
 // Reads serialized values, as seen from [[Core.Serialization.ISerialize]] and [[Core.Serialization.Serializer]].
 interface IDecoder
 {
@@ -321,7 +370,7 @@ impl Decoder
             {
                 if try itf.read(idecoder)
                 {
-                    try validateDecodedEnumValue(enumType, data)
+                    try validateDecodedEnumValues(type, cast([*] u8, data))
                     return
                 }
             }
@@ -344,7 +393,7 @@ impl Decoder
                 if itf and
                    (try itf.readElement(field.value, fieldData, idecoder))
                 {
-                    catch validateDecodedEnumValue(fieldType, fieldData)
+                    catch validateDecodedEnumValues(fieldType, fieldData)
                     {
                         if not (.flags & .IgnoreStructFieldError) do
                             fail Swag.err

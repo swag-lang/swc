@@ -57,8 +57,15 @@ func hasDeclaredIntegerValue(type: typeinfo?, valueAddress: const *void?)->bool
         for &caseInfo in typeEnum.values where caseInfo.value do
             if cast(const *u64, caseInfo.value)[] == value do
                 return true
+    case 16:
+        if rawType != string do
+            return false
+        let value = cast(const *(string?), valueAddress)[]
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if cast(const *(string?), caseInfo.value)[] == value do
+                return true
     default:
-        return true
+        return false
     }
     return false
 }

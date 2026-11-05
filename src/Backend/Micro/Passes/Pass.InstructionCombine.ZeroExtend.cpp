@@ -814,12 +814,7 @@ namespace InstructionCombine
         if (!frameAccess(*this, MicroPassHelpers::frameObjects(*passContext), object, offset, stride, base, ref, displacement, scale) || !object ||
             stride % 8 != 0 || (offset - object->offset) % 8 != 0 || (!stride && object->offset + object->size - offset < 8))
             return false;
-        for (const auto& [lo, hi] : zeroExtendedFrameObjects)
-        {
-            if (lo == object->offset)
-                return true;
-        }
-        return false;
+        return std::ranges::binary_search(zeroExtendedFrameObjects, object->offset, {}, [](const auto& range) { return range.first; });
     }
 
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

@@ -1527,7 +1527,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 };
                 excludeOutsideReads(0, bodyBegin);
                 excludeOutsideReads(bodyEnd, static_cast<uint32_t>(order.size()));
-                if (counter.isVirtual())
+                if (counter.isVirtual() && potentialRenamable.contains(counter.packed))
                     carriedOutside.insert(counter.packed);
                 for (const MicroReg reg : renamableRegs)
                 {

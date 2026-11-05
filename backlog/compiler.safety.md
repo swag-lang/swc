@@ -252,8 +252,8 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Rule: casts to ordinary enums require a compile-time integer matching a declared member. Runtime
-  integer values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
+- Rule: casts to ordinary enums require a compile-time value matching a declared member. Runtime
+  values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
   `#[Swag.Incomplete]` enums intentionally accept values outside their declared members. This
   avoids invalid values for closed enums regardless of runtime safety settings while a checked
   conversion API is unspecified.

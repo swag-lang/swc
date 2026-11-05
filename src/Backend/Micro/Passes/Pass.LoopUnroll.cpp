@@ -1033,7 +1033,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         // Labels a relocation points at are pinned; relocations by owning slot
         // let clones keep the tables and constants the body reads.
-        std::unordered_set<uint64_t>                                  relocLabels;
+        FlatKey64Set                                                  relocLabels;
         std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocsBySlot;
         bool                                                          relocationsIndexed = false;
 

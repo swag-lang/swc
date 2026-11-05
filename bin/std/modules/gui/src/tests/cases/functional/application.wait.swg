@@ -43,7 +43,7 @@
     host.setup(240, 120)
     defer host.shutdown()
     host.surface.show()
-    host.surface.isDirty = true
+    host.surface.invalidate()
     Swag.require(host.app.nativeFrameWaitMicroseconds(0) == 0)
     host.surface.hide()
     Swag.require(host.app.nativeFrameWaitMicroseconds(0) == 16000)

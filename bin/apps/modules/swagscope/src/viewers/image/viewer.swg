@@ -475,7 +475,6 @@ private impl IWnd for Panel
         .information.publish(&content.information)
         .refreshZoom()
         .applyLayout()
-        .setInitialFocus(.imageView)
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
 
@@ -575,7 +574,6 @@ private impl Panel
         result.createImageView()
 
         result.applyLayout()
-        result.setInitialFocus(result.imageView)
         result.load.start(host.fileName(), &loadViewerContent, result)
         return result
     }

@@ -290,8 +290,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     }
 }
 
-// A page change arrives quietly: the incoming page fades in from its side and settles, while the
-// keyboard is already on it.
+// A page change arrives quietly: the incoming page fades in from its side without choosing focus.
 #[Swag.TestTag("animation.vault")]
 #test
 {
@@ -301,7 +300,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.settleAnimations(window)
 
     window.showPage(.Create)
-    Swag.require(window.createPath.hasFocus())
+    Swag.require(window.focusedWindow() == null)
     host.advanceAnimations(0.05)
     Swag.require(window.createPage.presentationOpacity > 0 and window.createPage.presentationOpacity < 1)
     host.app.animator.finishAll()
@@ -493,16 +492,15 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.mountedDrives.drives.count == 2)
 }
 
-// The keyboard opens on the first thing there is to do, and walks the unfolded vault in the order
-// it reads: its password, then its choices, then Mount.
+// A page begins without focus. Choosing a locked vault places the keyboard in its password,
+// and Tab walks the access choices in reading order.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     useTestDestination(window)
 
-    // An empty list opens on the way to a new vault.
-    Swag.require(window.list.newVault.hasFocus())
+    Swag.require(window.focusedWindow() == null)
 
     window.openVault("C:\\vaults\\one")
     Swag.require(window.mountPassword.hasFocus())
@@ -522,8 +520,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.chosenPath.isEmpty())
     Swag.require(not window.list.card.panel.isLocallyVisible())
 
-    // The create page opens on its first field; Escape leads back to the list.
+    // Opening the create form leaves focus clear; editing its first field starts the keyboard path.
     window.showPage(.Create, animate: false)
+    Swag.require(window.focusedWindow() == null)
+    window.createPath.setFocus()
     Swag.require(window.createPath.hasFocus())
     host.keyPress(Input.Key.Tab)
     Swag.require(window.browseCreate.hasFocus())
@@ -541,24 +541,28 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let window = testSetupMainWindow(&host)
 
     window.showPage(.Create, animate: false)
+    Swag.require(window.focusedWindow() == null)
+    window.createPath.setFocus()
     Swag.require(window.createPath.hasFocus())
     host.keyPress(Input.Key.Tab)
     Swag.require(window.browseCreate.hasFocus())
 
-    // The box runs a nested loop, so the way out is armed before it opens. Escape has to reach
-    // the cancel action of the box from the file list the box opens the keyboard on. A box that
+    // The box runs a nested loop, so the way out is armed before it opens. Escape first leaves
+    // the path field and then reaches the cancel action. A box that
     // does not answer it is closed by hand after a few frames, so this fails on its assertion
     // rather than pumping frames until the runner gives up on it.
     var frames = 0's32
     var forced: bool
-    host.app.sigFrame += func|host = &host, frames = &frames, forced = &forced|(app)
+    host.app.sigFrame += func|host = &host, window, frames = &frames, forced = &forced|(app)
     {
         if not host.openedSurfaceCount() do
             return
 
         frames[] += 1
-        if frames[] == 1
+        if frames[] <= 2
         {
+            let focused = unwrap window.focusedWindow()
+            Swag.require(focused.surface != window.surface, "dialog did not take keyboard focus")
             host.keyPress(Input.Key.Escape)
         }
         elif frames[] > 30

@@ -215,7 +215,6 @@ private impl IWnd for Panel
         .applyLayout()
         .fillMargin()
         .refreshNavigation()
-        .setInitialFocus(.pdfView)
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
     }

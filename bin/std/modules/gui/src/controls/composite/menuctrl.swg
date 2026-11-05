@@ -1138,6 +1138,7 @@ public impl MenuCtrl
         with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .focusPolicy = .Click
+            .wndFlags   |= .NoPointerFocus
             .owner       = owner orelse parent
             .setAllPaddings(.themeMetrics().menuPopup_Padding)
             .style.addStyleSheetColors("frameWnd_Border $menuPopup_Border")

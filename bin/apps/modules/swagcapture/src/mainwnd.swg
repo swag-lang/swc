@@ -110,6 +110,7 @@ struct MainWnd
     {
         editArea, recentBar: *Wnd
         taskBar:             *StackLayoutCtrl
+        captureChoice:       *IconButton
         editWnd:             *EditWnd
         dock:                *ToolDock
         inspector:           *Inspector
@@ -685,6 +686,35 @@ impl MainWnd
         .zoomReading.setQuietText(Format.toString("% %", cast(s32, Math.round(.editWnd.editView.zoom * 100)), "%"))
         .placeReadings()
         .fillHintLine()
+    }
+
+    // Offers the capture modes and screen-reading options before taking a screenshot.
+    mtd showCaptureMenu(button: *IconButton)
+    {
+        let main = me
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addItem(ActionCapture.Area)
+            .addItem(ActionCapture.ActiveWnd)
+            .addItem(ActionCapture.FullScreen)
+            .addItem(ActionCapture.LastArea)
+            for index in 0 until main.monitors.count do
+                .addItem(ActionCapture.screenId(index))
+            .addSeparator()
+            .addItem(ActionCapture.CaptureCursor)
+        }
+
+        with let delays = MenuCtrl.createPopup(me)
+        {
+            .addItem(ActionCaptureDelay.Delay0)
+            .addItem(ActionCaptureDelay.Delay1)
+            .addItem(ActionCaptureDelay.Delay2)
+            .addItem(ActionCaptureDelay.Delay5)
+            .addItem(ActionCaptureDelay.Delay9)
+        }
+        menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
+
+        discard menu.doModal(button, autoDestroy: true)
     }
 
     // Opens the existing image-size commands from the size shown on the editor.

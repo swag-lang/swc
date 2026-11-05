@@ -491,14 +491,16 @@ const WidthCount = 4'u32
 const ThemeCount = 6'u32
 
 // Opens how the document reads: its measure and its appearance. Both choices are remembered, and
-// the keyboard goes back to the document, where the reader was.
+// the keyboard returns to the document when it opened the sheet from there.
 //
 // The page shows no line of readings, so the sheet takes the place of the lens.
 func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
 {
+    let returnFocus = view.hasFocus()
     let sheet = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
     sheet.doModal(Lens.followUpPoint(view, view.themeMetrics().optionSheet_Width), autoDestroy: true)
-    view.setFocus()
+    if returnFocus do
+        view.setFocus()
 }
 
 func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomButton)

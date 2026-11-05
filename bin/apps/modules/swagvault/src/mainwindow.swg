@@ -584,12 +584,13 @@ impl MainWindow
         discard dialog.doModal()
     }
 
-    // Brings `page` up, from the side it is reached from, and gives the keyboard to the first
-    // thing there is to do on it.
+    // Brings `page` up from the side it is reached from, without choosing a keyboard control.
     mtd showPage(page: WindowPage, animate = true)
     {
         let outgoing = .pageWnd(.page)
         let incoming = .pageWnd(page)
+        if outgoing != incoming do
+            .surface?.clearFocus()
         .page = page
 
         if animate and outgoing != incoming
@@ -604,8 +605,6 @@ impl MainWindow
 
         .applyLayout()
         .refreshHint()
-        .setInitialFocus(.initialStop())
-        .initialStop()?.setFocus()
     }
 
     // Returns the window that shows `page`.
@@ -617,29 +616,6 @@ impl MainWindow
         case .Create:   return .createPage
         case .Progress: return .progressPage
         case .Options:  return .optionsPage
-        }
-    }
-
-    // The stop a page opens on: the first thing there is to do on it.
-    mtd initialStop()->*Wnd?
-    {
-        switch #complete .page
-        {
-        case .List:
-            if .chosenLockedPath().count != 0 do
-                return .mountPassword
-            if not .list.rows.isEmpty() do
-                return .list.rows[0]
-            return .list.newVault
-
-        case .Create:
-            return .createPath
-
-        case .Progress:
-            return .progressPage.stop
-
-        case .Options:
-            return .privacyModeControl
         }
     }
 

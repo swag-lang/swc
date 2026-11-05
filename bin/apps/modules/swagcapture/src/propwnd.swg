@@ -421,8 +421,6 @@ impl PropWnd
         .grid.layoutHeader()
         .applyLayout()
 
-        let capture = .main.getCapture()
-        capture?.editView?.setFocus()
     }
 
     // Builds the property panel: the row of style cells above the grid of fields.

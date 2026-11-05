@@ -99,7 +99,6 @@ private impl Panel
         .applyLayout()
         .roll.refreshLayout()
         .refreshZoom()
-        .setInitialFocus(.roll)
         .refreshDetails()
     }
 

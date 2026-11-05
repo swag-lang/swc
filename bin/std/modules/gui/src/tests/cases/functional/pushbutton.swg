@@ -4,6 +4,7 @@
 using Swag, Core
 
 const PushButtonHeadless_Command = "PushButtonHeadless.Command"
+const PushButtonHeadless_Shortcut = "PushButtonHeadless.Shortcut"
 
 var PushButtonHeadlessPressedCount:      u32
 var PushButtonHeadlessRightPressedCount: u32
@@ -57,13 +58,62 @@ func pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command, .Default)
     button.sigPressed += &pushButtonHeadlessPressed
-    host.focus(button)
+    button.setFocus()
 
     host.keyPress(Input.Key.Space)
     host.keyPress(Input.Key.Return)
     Swag.require(PushButtonHeadlessPressedCount == 2)
     Swag.require(host.commandCount == 2 and host.lastCommand == PushButtonHeadless_Command)
     Swag.require(button.form == .Default)
+}
+
+// Modified keys stay available to shortcuts and never press a focused action.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let button = PushButton.create(&host.root, "Capture", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    button.sigPressed += &pushButtonHeadlessPressed
+    button.setFocus()
+
+    for modifiers in [Input.KeyModifiers.Control, Input.KeyModifiers.Shift, Input.KeyModifiers.Alt]
+    {
+        host.keyPress(Input.Key.Space, modifiers)
+        host.keyPress(Input.Key.Return, modifiers)
+    }
+    Swag.require(PushButtonHeadlessPressedCount == 0)
+    Swag.require(host.commandCount == 0)
+
+    host.surface.cancelButton = button
+    host.root.registerKeyShortcut(.Control, .Escape, PushButtonHeadless_Shortcut)
+    host.keyPress(Input.Key.Escape, .Control)
+    Swag.require(PushButtonHeadlessPressedCount == 0)
+    Swag.require(host.commandCount == 1 and host.lastCommand == PushButtonHeadless_Shortcut)
+
+    host.keyPress(Input.Key.Space)
+    Swag.require(PushButtonHeadlessPressedCount == 1 and host.commandCount == 2)
+}
+
+// Sending Space to a button outside the focus path cannot activate it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let focused = PushButton.create(&host.root, "Focused", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    let idle    = PushButton.create(&host.root, "Idle", {120, 20, 90, 30}, PushButtonHeadless_Command)
+    idle.sigPressed += &pushButtonHeadlessPressed
+    focused.setFocus()
+
+    Swag.require(focused.hasVisibleFocus() and not idle.hasVisibleFocus())
+    discard idle.sendKeyPress(.Space)
+    host.pump()
+    Swag.require(PushButtonHeadlessPressedCount == 0 and host.commandCount == 0)
 }
 
 #test

@@ -1117,7 +1117,6 @@ private impl Panel
         result.applyLayout()
         result.arrangeVeils()
         result.refreshChips()
-        result.setInitialFocus(result.playButton)
         return result
     }
 }

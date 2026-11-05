@@ -615,7 +615,6 @@ private impl Panel
         .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
         .fitWidth()
-        .setInitialFocus(.list)
 
         .refreshDetails()
     }
@@ -872,7 +871,6 @@ private impl Panel
 
         result.built = true
         result.applyLayout()
-        result.setInitialFocus(result.list)
         return result
     }
 }

@@ -1454,7 +1454,6 @@ impl View
 
         result.applyLayout()
         result.layoutDocument()
-        result.setInitialFocus(result)
         return result
     }
 

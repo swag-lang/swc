@@ -1525,7 +1525,6 @@ internal impl HtmlView
     public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
-        result.setInitialFocus(result)
         result.document.reserveForSource(source.count)
         result.parser.feed(source)
         result.parser.finish()
@@ -1568,7 +1567,6 @@ internal impl HtmlView
     public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
-        result.setInitialFocus(result)
         result.loadFile(fileName)
         return result
     }

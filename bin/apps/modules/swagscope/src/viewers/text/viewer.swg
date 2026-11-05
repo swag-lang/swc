@@ -721,7 +721,6 @@ impl Panel
         result.applyLayout()
         result.scheduleMore()
         result.startStatistics()
-        result.setInitialFocus(result.editor)
         return result
     }
 

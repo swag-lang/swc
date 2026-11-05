@@ -1161,7 +1161,6 @@ impl Panel
 
         result.applyLayout()
         result.layoutColumns()
-        result.setInitialFocus(result.list)
         result.loadFileName = host.fileName()
         result.startLoad(notify: false)
         return result

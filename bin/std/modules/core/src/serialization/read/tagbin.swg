@@ -243,8 +243,8 @@ private impl TagBin
     {
         var result: #returntype
         let count = try .stream.readVarint()
-        if count > .remaining() do
-            fail SerializationError{"string runs past the end of the stream"}
+        if count > .remainingPayload() do
+            fail SerializationError{"string runs past the end of its section"}
         result.reserve(count)
         try .stream.readBytes(unwrap result.buffer, count)
         result.length = count
@@ -390,6 +390,8 @@ private impl TagBin
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
 
+        if 4 > .remainingPayload() do
+            fail SerializationError{"fat table runs past the end of its section"}
         let sig = try .stream.readNative'u32()
         if sig != Write.TagBinSignature.Fat do
             fail SerializationError{"invalid fat signature"}
@@ -397,7 +399,9 @@ private impl TagBin
         var fatCount = sec.fatCount
         while fatCount
         {
-            var key  = try .readWireString()
+            var key = try .readWireString()
+            if 8 > .remainingPayload() do
+                fail SerializationError{"fat table runs past the end of its section"}
             let seek = try .stream.readNative'u64()
             if sec.mapSeek.contains(key) do
                 fail SerializationError{"serialized field key is duplicated"}
@@ -423,7 +427,7 @@ private impl TagBin
             // A raw section starts with its byte length, so the end of the decode can be
             // verified against what was written.
             let rawLen = try .stream.readNative'u64()
-            if rawLen > .remaining() do
+            if rawLen > .remainingPayload() do
                 fail SerializationError{"raw section runs past the end of the stream"}
 
             let sec = .newSection()
@@ -449,18 +453,26 @@ private impl TagBin
         let shapeId = try .stream.readNative'u32()
         if shapeId == Write.TagBinAdHocShape
         {
-            let fatSeek  = try .stream.readNative'u64()
-            let fatCount = try .stream.readNative'u64()
-
-            if fatSeek > .stream.length() do
-                fail SerializationError{"fat table runs past the end of the stream"}
+            let fatSeek      = try .stream.readNative'u64()
+            let fatCount     = try .stream.readNative'u64()
+            let payloadStart = .stream.position()
+            let enclosingEnd = payloadStart + .remainingPayload()
+            if fatSeek < payloadStart or fatSeek > enclosingEnd do
+                fail SerializationError{"fat table runs past the end of its section"}
+            if enclosingEnd - fatSeek < #sizeof(u32) do
+                fail SerializationError{"fat table runs past the end of its section"}
+            if fatCount > (enclosingEnd - fatSeek - #sizeof(u32)) / 9 do
+                fail SerializationError{"fat table count runs past the end of its section"}
 
             let sec = .newSection()
             sec.kind         = kind
             sec.plan         = plan
             sec.fatSeek      = fatSeek
             sec.fatCount     = fatCount
-            sec.afterFatSeek = 0
+            sec.payloadStart = payloadStart
+
+            // The enclosing boundary protects table reads until the actual end is known.
+            sec.afterFatSeek = enclosingEnd
 
             catch .loadSectionFat(sec)
             {     // The section is already live, so hand it back before reporting.
@@ -477,11 +489,11 @@ private impl TagBin
 
         let fatSeek      = try .stream.readNative'u64()
         let payloadStart = .stream.position()
-        let streamLength = .stream.length()
-        if fatSeek < payloadStart or fatSeek > streamLength do
-            fail SerializationError{"fat table runs past the end of the stream"}
-        if shape.fields.count > (streamLength - fatSeek) / #sizeof(u32) do
-            fail SerializationError{"fat table runs past the end of the stream"}
+        let enclosingEnd = payloadStart + .remainingPayload()
+        if fatSeek < payloadStart or fatSeek > enclosingEnd do
+            fail SerializationError{"fat table runs past the end of its section"}
+        if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32) do
+            fail SerializationError{"fat table runs past the end of its section"}
         let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
 
         let sec = .newSection()
@@ -516,6 +528,8 @@ private impl TagBin
         let payloadSize = sec.fatSeek - sec.payloadStart
         for i in shape.fields.count
         {
+            if #sizeof(u32) > .remainingPayload() do
+                fail SerializationError{"fat table runs past the end of its section"}
             let off = cast(u64, (try .stream.readNative'u32()))
             if off >= payloadSize do
                 fail SerializationError{"field offset runs past the payload area"}

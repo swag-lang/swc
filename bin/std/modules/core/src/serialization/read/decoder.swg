@@ -57,8 +57,10 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
     {
         let structType = assume cast(const *TypeInfoStruct, type)
         for &field in structType.fields where field.pointedType
+        {
             try validateDecodedEnumValues(field.pointedType,
                                           data + field.offset)
+        }
     }
 }
 
@@ -431,10 +433,11 @@ impl Decoder
             }
 
             // Rebuild derived state after all fields have been read.
-            if itf do
+            if itf
+            {
                 try itf.postRead(data, idecoder)
-
-            try validateDecodedEnumValue(enumType, data)
+                try validateDecodedEnumValues(type, cast([*] u8, data))
+            }
             return
         }
 

@@ -377,12 +377,13 @@ namespace
         // candidate, instead of walking the whole function again for each spill store.
         bool                  frameAccessesCollected = false;
         bool                  anySlotOpaque          = false;
-        std::vector<uint32_t> frameAccesses;
-        std::vector<uint32_t> sameStores;
-        std::vector<int64_t>  frameDepth;
-        std::vector<uint8_t>  reachesRead;
-        std::vector<uint8_t>  seen;
-        std::vector<uint32_t> pending;
+        std::vector<uint32_t>      frameAccesses;
+        std::vector<uint32_t>      sameStores;
+        std::vector<MicroInstrRef> deadStores;
+        std::vector<int64_t>       frameDepth;
+        std::vector<uint8_t>       reachesRead;
+        std::vector<uint8_t>       seen;
+        std::vector<uint32_t>      pending;
         const auto            collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
@@ -685,7 +686,7 @@ namespace
                 // A later write to this private slot is dead when every route
                 // from that write to the sole read crosses the new cold-entry
                 // store. This removes the loop-latch write on the hot path.
-                std::vector<MicroInstrRef> deadStores;
+                deadStores.clear();
                 for (const uint32_t otherStore : sameStores)
                 {
                     if (otherStore == storeIndex)

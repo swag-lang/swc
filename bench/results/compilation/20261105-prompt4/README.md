@@ -13,6 +13,7 @@ No elapsed-time, profiling, benchmark, or load-test run was made.
 | Reuse the SSA fixed-point result in constant folding | Scanning every known-value flag after propagation to determine whether any value was inferred | The fixed-point routine returns whether its unresolved count changed, which is equivalent to checking the final flags. | DevMode build; all 1,678 C++ tests passed. |
 | Mark selected MemToReg promotions | Scanning the promotion list for each candidate vector slot | A flag on each slot is set from the final overlap-filtered promotion list; the lane split consults that same final selection. | DevMode build; all 1,678 C++ tests passed. |
 
-The latest synchronized DevMode run passed all 1,678 C++ tests with one warning;
-114 filesystem tests were skipped by the default suite configuration. The changes
-are structural; no speed or memory improvement is claimed without a benchmark.
+At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
+with one warning; 114 filesystem tests were skipped by the default suite
+configuration. The changes are structural; no speed or memory improvement is
+claimed without a benchmark.

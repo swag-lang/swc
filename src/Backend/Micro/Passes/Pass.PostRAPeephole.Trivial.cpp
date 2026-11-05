@@ -214,12 +214,12 @@ namespace PostRaPeephole
             if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
                 return false;
             const uint64_t offset = source[3].valueU64;
-            for (const MicroFrameObject& object : MicroPassHelpers::frameObjects(*ctx.passContext))
-            {
-                if (object.size >= 8 && offset >= object.offset && offset - object.offset <= object.size - 8)
-                    return true;
-            }
-            return false;
+            const auto objects = MicroPassHelpers::frameObjects(*ctx.passContext);
+            auto       object  = std::ranges::upper_bound(objects, offset, {}, &MicroFrameObject::offset);
+            if (object == objects.begin())
+                return false;
+            --object;
+            return object->size >= 8 && offset >= object->offset && offset - object->offset <= object->size - 8;
         };
 
         using MicroOptimizationLimits::PostRAPeepholeTrivial::K_MAX_SPAN;

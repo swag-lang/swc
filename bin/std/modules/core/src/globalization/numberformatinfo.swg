@@ -122,7 +122,9 @@ public impl NumberFormatInfo
         let negative = value < 0
         let absolute = Math.abs(value)
         Swag.assert(absolute <= cast(f64, Swag.U64.Max) / cast(f64, scale), "numeric value is too large at the requested precision")
-        let scaled   = cast(u64, Math.round(absolute * cast(f64, scale)))
+        let rounded = Math.round(absolute * cast(f64, scale))
+        Swag.assert(rounded < cast(f64, Swag.U64.Max), "numeric value is too large at the requested precision")
+        let scaled   = cast(u64, rounded)
         let whole    = decimals ? scaled / scale : scaled
         let fraction = decimals ? scaled % scale : 0
 

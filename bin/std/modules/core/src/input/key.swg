@@ -218,8 +218,8 @@ public func keyFromStorageIndex(index: u64)->Key
     let typeEnum = assume cast(const *TypeInfoEnum, #typeof(Key))
     let value    = cast(s32, index)
     for &caseInfo in typeEnum.values where caseInfo.value do
-        if cast(const *s32, unwrap caseInfo.value)[] == value do
-            return cast(const *Key, unwrap caseInfo.value)[]
+        if cast(const *s32, caseInfo.value)[] == value do
+            return cast(const *Key, caseInfo.value)[]
 
     Swag.panic("keyboard enum values do not match storage indexes", #curlocation)
 }

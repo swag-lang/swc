@@ -176,38 +176,48 @@ namespace
                 candidates.push_back(ops[0].reg);
         }
 
-        MicroReg selected;
-        for (const MicroReg candidate : candidates)
+        SmallVector<uint8_t, 8> defCounts;
+        for (size_t i = 0; i < candidates.size(); ++i)
+            defCounts.push_back(0);
+        size_t activeCandidates = candidates.size();
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end && activeCandidates; ++it)
         {
-            uint32_t defCount = 0;
-            for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
+                continue;
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const auto           countDefinition = [&](const MicroReg reg) {
+                const auto candidate = std::ranges::find(candidates, reg);
+                if (candidate == candidates.end())
+                    return;
+                const size_t candidateIndex = static_cast<size_t>(candidate - candidates.begin());
+                if (defCounts[candidateIndex] < 2 && ++defCounts[candidateIndex] == 2)
+                    --activeCandidates;
+            };
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
-                const MicroInstr& inst = *it;
-                if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
-                    continue;
-                const MicroInstrDef& info = MicroInstr::info(inst.op);
-                if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-                {
-                    const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
-                    for (const MicroReg def : useDef.defs)
-                        defCount += def == candidate ? 1 : 0;
-                }
-                else if (const MicroInstrOperand* ops = inst.ops(operands))
-                {
-                    const auto modes = info.resolvedRegModes(ops);
-                    for (size_t i = 0; i < modes.size(); ++i)
-                        if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg == candidate)
-                            ++defCount;
-                }
-                if (defCount > 1)
-                    break;
+                const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+                for (const MicroReg def : useDef.defs)
+                    countDefinition(def);
             }
-            if (defCount != 1)
+            else if (const MicroInstrOperand* ops = inst.ops(operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        countDefinition(ops[i].reg);
+            }
+        }
+
+        MicroReg selected;
+        for (size_t i = 0; i < candidates.size(); ++i)
+        {
+            if (defCounts[i] != 1)
                 continue;
             if (selected.isValid())
                 return MicroReg::invalid();
-            selected = candidate;
+            selected = candidates[i];
         }
         if (selected.isValid())
         {

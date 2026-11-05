@@ -52,6 +52,31 @@ func makeExpectedFullLoc(loc: Swag.SourceCodeLocation, text: string)->String
 
 func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 
+// A local inline String remains alive while its separately named view crosses an interface call.
+#test
+{
+    let expected = String.from("short")
+    var writer   = MemoryLogWriter{expected: expected}
+    let callback: ILogWriter = writer
+    var value    = String.from("short")
+    let rendered = value.toString()
+
+    callback.print(rendered)
+    Swag.require(writer.count == 1)
+}
+
+// The logger's own short inline formatted String remains readable through its writer interface.
+#test
+{
+    let expected = String.from("short")
+    var writer   = MemoryLogWriter{expected: expected}
+    var log      = Log.create()
+    log.setFlags(LogFlags.None)
+    log.addWriter(writer)
+    log.print("short")
+    Swag.require(writer.count == 1)
+}
+
 #test
 {
     let loc      = currentLocation()

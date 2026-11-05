@@ -40,18 +40,21 @@ flattened public API name instead of the declaration name.
 linker. It does not declare functions by itself.
 */
 
-#foreignlib("kernel32")
-
-#[Swag.Foreign(module: "kernel32", callconv: Swag.CallConv.C)]
+#global if #os == Swag.TargetOs.Windows
 {
-    func GetCurrentProcessId()->u32
-    func Sleep(milliseconds: u32)
-}
+    #foreignlib("kernel32")
 
-#test
-{
-    Swag.require(GetCurrentProcessId() != 0)
-    Sleep(0)
+    #[Swag.Foreign(module: "kernel32", callconv: Swag.CallConv.C)]
+    {
+        func GetCurrentProcessId()->u32
+        func Sleep(milliseconds: u32)
+    }
+
+    #test
+    {
+        Swag.require(GetCurrentProcessId() != 0)
+        Sleep(0)
+    }
 }
 
 /**

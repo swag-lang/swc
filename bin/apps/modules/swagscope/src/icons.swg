@@ -24,6 +24,10 @@ enum ViewerIcons
     Subtitle     // Timed subtitle viewer.
     Archive      // Compressed-archive browser.
 }
+const ViewerIconValues: [15] ViewerIcons = [
+    .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
+    .Midi, .Subtitle, .Archive,
+]
 
 private const IconsSvg = #include("../datas/icons.svg")
 

@@ -22,6 +22,24 @@ private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 // Shape index of a field reference coming from a stream without shapes.
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
+// Raw TagBin arrays bypass per-value decoding, so validate closed enums in place.
+private func hasValidClosedEnumValues(type: typeinfo?, values: [*]const u8, count: u64)->bool
+{
+    if not Reflection.isEnum(type) or
+       Reflection.hasAttribute(type, EnumFlags) or
+       Reflection.hasAttribute(type, Incomplete) do
+        return true
+
+    let valueSize = unwrap type.sizeof
+    for index in count
+    {
+        let valueAddress = cast(const *void, values + index * valueSize)
+        if not Reflection.hasDeclaredIntegerValue(type, valueAddress) do
+            return false
+    }
+    return true
+}
+
 /*
 Reads the TagBin binary format, which keys every field so a stream survives the evolution of its types.
 
@@ -1150,6 +1168,8 @@ impl TagBin
                 bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
+                if not hasValidClosedEnumValues(valueType, unwrap bufArr.buffer, countElem[]) do
+                    fail SerializationError{"serialized value is not a member of the requested enum"}
                 return true
             }
         }
@@ -1181,6 +1201,8 @@ impl TagBin
 
                 if countElem[] and te.sizeof do
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
+                if not hasValidClosedEnumValues(typeElem, data, countElem[]) do
+                    fail SerializationError{"serialized value is not a member of the requested enum"}
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.

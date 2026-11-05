@@ -11,6 +11,7 @@ enum PlayMode
     Folder      // Continues through files of the same kind in folder order, wrapping at the end.
     Shuffle     // Continues through files of the same kind in random order, each once per round.
 }
+const PlayModeValues: [4] PlayMode = [.Once, .Repeat, .Folder, .Shuffle]
 
 const SlideDefaultSeconds   = 5'f32        // Initial duration of a still picture in a folder mode.
 const SlideMinSeconds       = 1'f32        // Shortest supported still-picture duration.
@@ -84,7 +85,7 @@ impl PlaybackApi
                          let current = api.settings(view).mode
                          for index in 4
                          {
-                             let mode = cast(PlayMode, index)
+                            let mode = PlayModeValues[index]
                              modes.addChoice(playModeText(mode),
                                              mode == current,
                                              func|api, view, mode|()

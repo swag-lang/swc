@@ -21,6 +21,10 @@ enum DayOfWeek
     Saturday  = 6
 }
 
+internal const DayOfWeekValues: [7] DayOfWeek = [
+    .Sunday, .Monday, .Tuesday, .Wednesday, .Thursday, .Friday, .Saturday,
+]
+
 // Selects the text layout [[Core.Time.DateTime.toString]] produces.
 enum DateTimeFormat
 {
@@ -153,7 +157,7 @@ impl DateTime
         var dayNumber       = 365 * marchYear + #wrap marchYear / 4 + #wrap marchYear / 400 +
                               #wrap (marchMonth * 306 + 5) / 10 + #wrap .day - 1 - #wrap marchYear / 100
         dayNumber += 3
-        return cast(DayOfWeek, (dayNumber % 7))
+        return DayOfWeekValues[dayNumber % 7]
     }
 
     // Returns the English name of `month`, numbered from 1 to 12.
@@ -239,7 +243,7 @@ impl DateTime
         if buf.count >= 1 and
            Latin1.isLetter(buf[0])
         {
-            let dayOfWeek = cast(DayOfWeek, (try parseName(&buf, DayOfWeekNames, &result.eat)))
+            let dayOfWeek = DayOfWeekValues[try parseName(&buf, DayOfWeekNames, &result.eat)]
             try parseSep(&buf, ' ', &result.eat)
             result.value.month = cast(u16, (try parseName(&buf, MonthNames, &result.eat))) + 1
 

@@ -93,6 +93,7 @@ public:
         Mixin,
         Implicit,
         EnumFlags,
+        Incomplete,
         ReservedEnumAttribute,
         NoDuplicate,
         FullInit,

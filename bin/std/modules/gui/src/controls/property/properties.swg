@@ -87,6 +87,7 @@ enum PropertiesKind
     Condensed     // Uses a compact classic grid with thin rows and controls.
     Panel         // Uses full-width self-labelled controls and separator categories.
 }
+const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
 internal const PropCondensedControlHeight = 20'f32

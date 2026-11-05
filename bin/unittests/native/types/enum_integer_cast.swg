@@ -13,11 +13,21 @@ enum Access: u32
     Write
 }
 
+#[Swag.Incomplete]
+enum OpenCode: u32
+{
+    Known = 1
+}
+
 #test
 {
     const green: Color = cast(Color, 4's32)
     Swag.require(green == .Green)
 
-    const both: Access = cast(Access, 3'u32)
+    var raw: u32 = 3
+    var both: Access = cast(Access, raw)
     Swag.require(both == (Access.Read | Access.Write))
+
+    var unknown: u32 = 99
+    Swag.require(cast(u32, cast(OpenCode, unknown)) == 99)
 }

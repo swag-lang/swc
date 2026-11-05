@@ -72,6 +72,7 @@ private
         blockSize: s32
     }
 
+    #[Swag.Incomplete]
     enum Marker
     {
         M_SOF0  = 0xC0

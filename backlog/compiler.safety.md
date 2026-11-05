@@ -252,20 +252,18 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Evidence: `cast(Color, 99)` is accepted with no check in any configuration, and the result is used
-  as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
-  declared member. A plain switch can fall through on it. `switch #complete` already panics when
-  `.Switch` safety is enabled; with that guard disabled, the conversion still permits a value
-  outside the cases. The missing contract is at conversion, not the guarded switch.
+- Evidence: a constant invalid value cast to an ordinary enum is rejected; `EnumFlags` still accepts
+  bit combinations. A runtime integer can still become an undeclared ordinary enum value with no
+  check in any configuration, and the result is used as an ordinary enum. A plain switch can fall
+  through on it. `switch #complete` already panics when `.Switch` safety is enabled; with that
+  guard disabled, the conversion still permits a value outside the cases.
 - Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
   conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
   majority position and the only one that composes with exhaustive matching.
-- Next: decide the spelling. `cast(Color, i)` becoming a guarded conversion under `.DynCast` costs a
-  compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `null` puts
-  the check in the type and needs no guard at all, which is the only form that also holds in a
-  build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be
-  excluded either way.
+- Next: choose the runtime rule and implement it for non-constant integers: a guarded conversion
+  under `.DynCast` or a fallible enum conversion that works with guards disabled. Preserve the
+  current permissive behavior for `#[Swag.EnumFlags]` combinations.
 - Done when: converting an integer to an enum has one documented rule, the flags case is
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.

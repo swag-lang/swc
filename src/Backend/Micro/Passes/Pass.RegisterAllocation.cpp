@@ -861,7 +861,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                                     std::ranges::find(controlFlowGraph_->addressTakenLabelIndices(), inner) == controlFlowGraph_->addressTakenLabelIndices().end();
                     for (const uint32_t pred : controlFlowGraph_->predecessors(inner))
                     {
-                        if (!regionIsGuard || pred == idx)
+                        if (pred == idx)
                             continue;
                         const MicroInstr*        entry    = instructions_->ptr(controlFlowGraph_->instructionRefs()[pred]);
                         const MicroInstrOperand* entryOps = entry->ops(*operands_);
@@ -869,6 +869,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                         regionIsGuard = pred < idx && entryOps &&
                                         (entry->op == MicroInstrOpcode::JumpCond || entry->op == MicroInstrOpcode::JumpCondImm) &&
                                         !MicroInstrInfo::isUnconditionalJumpInstruction(*entry, entryOps);
+                        if (!regionIsGuard)
+                            break;
                     }
                 }
             }

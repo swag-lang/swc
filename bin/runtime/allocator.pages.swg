@@ -214,7 +214,10 @@ func allocatorOsReserve(size: u64)->[*] u8?
             return null
     }
 
-    return __hostPageReserve(size)
+    let address = __hostPageReserve(size)
+    if address do
+        atomicAddU64(&g_AllocatorOsReserveCount, 1)
+    return address
 }
 
 // Commits 'size' bytes of a reservation, or returns false and changes nothing when the host refuses.
@@ -856,8 +859,6 @@ private func allocatorAddArena()->bool
     arena.reserveBase = reserved
     arena.base        = (cast(u64, reserved) + AllocatorSegmentSize - 1) & ~(AllocatorSegmentSize - 1)
     arena.usedSize    = 0
-
-    atomicAddU64(&g_AllocatorOsReserveCount, 1)
 
     // Publish the arena only once its bounds are readable, so a concurrent lookup never sees a
     // half-built entry.

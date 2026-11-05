@@ -22,21 +22,60 @@ private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 // Shape index of a field reference coming from a stream without shapes.
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
-// Raw TagBin arrays bypass per-value decoding, so validate closed enums in place.
-private func hasValidClosedEnumValues(type: typeinfo?, values: [*]const u8, count: u64)->bool
+// Raw TagBin arrays bypass per-value decoding, so validate closed enums in place,
+// including enums nested in raw structs and fixed arrays.
+private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
 {
-    if not Reflection.isEnum(type) or
-       Reflection.hasAttribute(type, EnumFlags) or
-       Reflection.hasAttribute(type, Incomplete) do
+    if count == 0 do
         return true
 
-    let valueSize = unwrap type.sizeof
-    for index in count
+    let valueData = unwrap values
+    let resolvedType = Reflection.resolveAliases(type)
+    let valueSize = cast(u64, resolvedType.sizeof)
+
+    if Reflection.isEnum(resolvedType)
     {
-        let valueAddress = cast(const *void, values + index * valueSize)
-        if not Reflection.hasDeclaredIntegerValue(type, valueAddress) do
-            return false
+        if Reflection.hasAttribute(resolvedType, EnumFlags) or
+           Reflection.hasAttribute(resolvedType, Incomplete) do
+            return true
+
+        for index in count
+        {
+            let valueAddress = cast(const *void, valueData + index * valueSize)
+            if not Reflection.hasDeclaredIntegerValue(resolvedType, valueAddress) do
+                return false
+        }
+        return true
     }
+
+    if Reflection.isStruct(resolvedType)
+    {
+        let typeStruct = assume cast(const *TypeInfoStruct, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            for &field in typeStruct.fields
+            {
+                if not field.pointedType do
+                    return false
+                if not hasValidClosedEnumValues(unwrap field.pointedType, value + field.offset, 1) do
+                    return false
+            }
+        }
+        return true
+    }
+
+    if Reflection.isStaticArray(resolvedType)
+    {
+        let typeArray = assume cast(const *TypeInfoArray, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            if not hasValidClosedEnumValues(typeArray.pointedType, value, typeArray.count) do
+                return false
+        }
+    }
+
     return true
 }
 
@@ -1168,7 +1207,7 @@ impl TagBin
                 bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
-                if not hasValidClosedEnumValues(valueType, unwrap bufArr.buffer, countElem[]) do
+                if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
                 return true
             }
@@ -1201,7 +1240,7 @@ impl TagBin
 
                 if countElem[] and te.sizeof do
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
-                if not hasValidClosedEnumValues(typeElem, data, countElem[]) do
+                if not hasValidClosedEnumValues(te, data, countElem[]) do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
 
                 // The stream can hold more elements than the array does now; skip them

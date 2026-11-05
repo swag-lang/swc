@@ -159,6 +159,13 @@ enum TagBinModeU32: u32
     Precise
 }
 
+#[Serialization.Final]
+struct TagBinEnumRecord
+{
+    mode:  TagBinModeU8
+    extra: [2] TagBinModeU8
+}
+
 struct TagBinEnumSource
 {
     mode: TagBinModeU8 = .Off
@@ -173,8 +180,10 @@ struct TagBinEnumTarget
 
 struct TagBinEnumArrays
 {
-    fixed:  [3] TagBinModeU8
-    values: Array'TagBinModeU8
+    fixed:        [3] TagBinModeU8
+    values:       Array'TagBinModeU8
+    records:      [2] TagBinEnumRecord
+    recordValues: Array'TagBinEnumRecord
 }
 
 struct TagBinLongText
@@ -1009,9 +1018,12 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     var source: TagBinEnumArrays
     source.fixed = [.Off, .Fast, .Precise]
     source.values.add([.Off, .Fast, .Precise])
+    source.records[0] = {mode: .Off, extra: [.Fast, .Precise]}
+    source.records[1] = {mode: .Fast, extra: [.Off, .Precise]}
+    source.recordValues.add(source.records)
     let bytes = encodeTagBin(source)
 
-    for fieldName in ["fixed", "values"]
+    for fieldName in ["fixed", "values", "records", "recordValues"]
     {
         var patched: Array'u8
         patched.add(bytes.toSlice())

@@ -408,8 +408,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     thread_local FlatKeySet addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
-    thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
+    thread_local FlatKeyMap<uint32_t>                       addrRegMoreOffsetGroups;
+    thread_local std::vector<SmallVector<uint64_t, 2>>      addrRegMoreOffsets;
     addressAdjustments.clear();
+    addrRegMoreOffsetGroups.clear();
     addrRegMoreOffsets.clear();
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
@@ -457,7 +459,15 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 found->ambiguous = true;
                 found->stackPointerOrigin |= ops[1].reg == stackPointer;
-                addrRegMoreOffsets[ar].push_back(offset);
+                uint32_t* groupIndex = addrRegMoreOffsetGroups.find(ar.packed);
+                if (!groupIndex)
+                {
+                    const uint32_t newIndex = static_cast<uint32_t>(addrRegMoreOffsets.size());
+                    addrRegMoreOffsets.emplace_back();
+                    addrRegMoreOffsetGroups.getOrInsert(ar.packed) = newIndex;
+                    groupIndex = addrRegMoreOffsetGroups.find(ar.packed);
+                }
+                addrRegMoreOffsets[*groupIndex].push_back(offset);
             }
             else
                 addrRegOffset.emplace(ar.packed, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = ops[1].reg == stackPointer});
@@ -647,10 +657,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto poisonTrackedEscape = [&](const MicroReg reg, const uint64_t baseOffset, const uint64_t extra) -> bool {
         if (!poisonEscapedOffset(baseOffset + extra))
             return false;
-        const auto more = addrRegMoreOffsets.find(reg);
-        if (more != addrRegMoreOffsets.end())
+        const uint32_t* groupIndex = addrRegMoreOffsetGroups.find(reg.packed);
+        if (groupIndex)
         {
-            for (const uint64_t offset : more->second)
+            for (const uint64_t offset : addrRegMoreOffsets[*groupIndex])
             {
                 if (!poisonEscapedOffset(offset + extra))
                     return false;

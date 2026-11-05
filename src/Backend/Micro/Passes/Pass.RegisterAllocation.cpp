@@ -975,13 +975,9 @@ bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex,
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= globalRangesByPhysDense_.size())
         return false;
 
-    for (const GlobalRange& range : globalRangesByPhysDense_[denseIndex])
-    {
-        if (range.lo <= hi && lo <= range.hi)
-            return true;
-    }
-
-    return false;
+    const auto& ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  range  = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::hi);
+    return range != ranges.end() && range->lo <= hi;
 }
 
 void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi, const uint32_t ownerDense)
@@ -990,7 +986,11 @@ void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const u
     if (denseIndex >= globalRangesByPhysDense_.size())
         globalRangesByPhysDense_.resize(denseIndex + 1);
 
-    globalRangesByPhysDense_[denseIndex].push_back({.lo = lo, .hi = hi, .ownerDense = ownerDense});
+    auto&       ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  at     = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::lo);
+    SWC_ASSERT(at == ranges.begin() || std::prev(at)->hi < lo);
+    SWC_ASSERT(at == ranges.end() || hi < at->lo);
+    ranges.insert(at, {.lo = lo, .hi = hi, .ownerDense = ownerDense});
 }
 
 bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, const MicroReg physReg, const uint32_t instructionIndex) const
@@ -1005,13 +1005,9 @@ bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, 
     const uint32_t virtDense = denseVirtualIndex(virtKey);
     const uint32_t liveUntil = virtDense < virtualSpanHi_.size() ? std::max(virtualSpanHi_[virtDense], instructionIndex) : instructionCount_;
 
-    for (const GlobalRange& range : globalRangesByPhysDense_[denseIndex])
-    {
-        if (range.lo <= liveUntil && instructionIndex <= range.hi)
-            return true;
-    }
-
-    return false;
+    const auto& ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  range  = std::ranges::lower_bound(ranges, instructionIndex, {}, &GlobalRange::hi);
+    return range != ranges.end() && range->lo <= liveUntil;
 }
 
 void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& outRegions)

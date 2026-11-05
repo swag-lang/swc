@@ -22,8 +22,8 @@ public func mouseButtonFromStorageIndex(index: u64)->MouseButton
     let typeEnum = assume cast(const *TypeInfoEnum, #typeof(MouseButton))
     let value    = cast(s32, index)
     for &caseInfo in typeEnum.values where caseInfo.value do
-        if cast(const *s32, unwrap caseInfo.value)[] == value do
-            return cast(const *MouseButton, unwrap caseInfo.value)[]
+        if cast(const *s32, caseInfo.value)[] == value do
+            return cast(const *MouseButton, caseInfo.value)[]
 
     Swag.panic("mouse button enum values do not match storage indexes", #curlocation)
 }

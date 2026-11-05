@@ -48,12 +48,19 @@ internal impl IPropertyEditor for FontStyleEditor
         for s in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
             combon.addItem(FontStyleSample).fontStyle = s
 
-        combon.sigChanged += func|list, item, style|(_, index)
+        combon.sigChanged += func|prop = list, item, style|(_, index)
         {
             if not style or index > cast(u32, FontFamilyStyle.BoldItalic) do
                 return
-            style[] = [FontFamilyStyle.Regular, .Bold, .Italic, .BoldItalic][index]
-            list.commitItemChange(item)
+            switch index
+            {
+            case 0: style[] = .Regular
+            case 1: style[] = .Bold
+            case 2: style[] = .Italic
+            case 3: style[] = .BoldItalic
+            }
+
+            prop.commitItemChange(item)
         }
 
         item.sigRefresh += func|style, combon|(_)

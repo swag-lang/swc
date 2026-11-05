@@ -490,11 +490,11 @@ impl Decoder
             var destOff = dest + destOffset
             switch filter
             {
-            case 0: Memory.copy(destOff, src, rowStrideIn)
-            case 1: defilterSubRow(src, destOff, rowStrideIn, filterOffset)
-            case 2: defilterUpRow(src, up, destOff, rowStrideIn)
-            case 3: defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
-            case 4: defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
+            case 0:  Memory.copy(destOff, src, rowStrideIn)
+            case 1:  defilterSubRow(src, destOff, rowStrideIn, filterOffset)
+            case 2:  defilterUpRow(src, up, destOff, rowStrideIn)
+            case 3:  defilterAverageRow(src, up, destOff, rowStrideIn, filterOffset)
+            case 4:  defilterPaethRow(src, up, destOff, rowStrideIn, filterOffset)
             default: return false
             }
 
@@ -506,6 +506,7 @@ impl Decoder
                 dest -= rowStrideOut
             row += 1
         }
+
         return true
     }
 
@@ -519,7 +520,7 @@ impl Decoder
             return true
         }
 
-        if .header.bitDepth == 8 or .header.bitDepth == 16
+        if .header.bitDepth == 8 or .header.bitDepth == 16 do
             return .defilter8(width, height, input, output)
         return false
     }
@@ -561,6 +562,7 @@ impl Decoder
             let stride = (.getStrideIn(cast(u32, x)) + 1) * y
             input += stride
         }
+
         return true
     }
 

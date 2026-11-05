@@ -859,8 +859,10 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                     // does not establish that same guarded-entry shape.
                     regionIsGuard = !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
                                     std::ranges::find(controlFlowGraph_->addressTakenLabelIndices(), inner) == controlFlowGraph_->addressTakenLabelIndices().end();
-                    for (const uint32_t pred : controlFlowGraph_->predecessors(inner))
+                    const auto& predecessors = controlFlowGraph_->predecessors(inner);
+                    for (size_t predIndex = 0; regionIsGuard && predIndex < predecessors.size(); ++predIndex)
                     {
+                        const uint32_t pred = predecessors[predIndex];
                         if (pred == idx)
                             continue;
                         const MicroInstr*        entry    = instructions_->ptr(controlFlowGraph_->instructionRefs()[pred]);
@@ -869,8 +871,6 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                         regionIsGuard = pred < idx && entryOps &&
                                         (entry->op == MicroInstrOpcode::JumpCond || entry->op == MicroInstrOpcode::JumpCondImm) &&
                                         !MicroInstrInfo::isUnconditionalJumpInstruction(*entry, entryOps);
-                        if (!regionIsGuard)
-                            break;
                     }
                 }
             }

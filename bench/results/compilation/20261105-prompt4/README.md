@@ -51,7 +51,7 @@ with one warning; 114 filesystem tests were skipped by the default suite
 configuration. The changes are structural; no speed or memory improvement is
 claimed without a benchmark.
 | Visit only the back-edge suffix | Testing every predecessor against its instruction index while building loop depth, loop candidates and loop headers | CFG predecessor lists are source-ordered, so back-edges are the suffix; reverse traversal stops at the first earlier predecessor, and the final-element check detects loop headers. | DevMode build; all 1,678 C++ tests passed. |
-| Stop rejected guarded-call predecessor scans | Continuing to inspect label predecessors after one incoming edge already invalidated the slow-call guard candidate | The guard predicate requires every non-fallthrough predecessor to be an earlier conditional jump; once one fails, later checks cannot restore eligibility. | DevMode build; all 1,678 C++ tests passed. |
+| Stop rejected guarded-call predecessor scans | Inspecting label predecessors after unsupported control flow, an address-taken label, or one invalid incoming edge has already rejected the slow-call guard candidate | Eligibility is a conjunction: the initial control-flow and address-taken checks must pass, and every non-fallthrough predecessor must be an earlier conditional jump. A failed check cannot be restored by later predecessors. | DevMode build; all 1,678 C++ tests passed. |
 
 The address-taken label list was not switched to binary search: it is appended in
 LoadLabelAddress source order, while its label instruction indices need not be

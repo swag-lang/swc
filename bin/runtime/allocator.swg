@@ -637,16 +637,17 @@ impl Allocator
         return null
     }
 
-    mtd osFree(address: *void?, size: u64)
+    mtd osFree(address: *void?, reservedSize, committedSize: u64)
     {
         if not address do
             return
 
-        // The host returns whole pages, including the unused tail of a thread-heap record.
-        let rounded = memAlign(size, cast(u32, AllocatorCommitGranularity))
-        __hostPageRelease(address, rounded)
+        // Return the complete reservation, but subtract only pages that were committed.
+        let roundedReserved  = memAlign(reservedSize, cast(u32, AllocatorCommitGranularity))
+        let roundedCommitted = memAlign(committedSize, cast(u32, AllocatorCommitGranularity))
+        allocatorHostPageRelease(address, roundedReserved, roundedCommitted)
 
-        atomicSubU64(&g_AllocatorCommittedBytes, rounded)
+        atomicSubU64(&g_AllocatorCommittedBytes, roundedCommitted)
         atomicAddU64(&g_AllocatorOsDecommitCount, 1)
     }
 
@@ -755,7 +756,7 @@ impl Allocator
         .unlinkHeap(heap)
         .segmentMutex.unlock()
 
-        .osFree(heap, #sizeof(AllocatorThreadHeap))
+        .osFree(heap, #sizeof(AllocatorThreadHeap), #sizeof(AllocatorThreadHeap))
     }
 
     // Unlinks a heap from the allocator's list. The caller holds the segment mutex.
@@ -1031,7 +1032,7 @@ impl Allocator
                 }
 
                 .removeCachedBlock(i)
-                .osFree(cast(*void, entry.address), entry.committed)
+                .osFree(cast(*void, entry.address), entry.reserved, entry.committed)
             }
 
             .mutex.unlock()
@@ -1251,8 +1252,11 @@ impl Allocator
     {
         #static if AllocatorHasDiagnostics
         {
-            let slack = cast([*] u8, (header.userAddr + header.userSize))
-            let count = cast(u64, header.allocAddr) + header.allocSize - header.userAddr - header.userSize
+            let slack    = cast([*] u8, (header.userAddr + header.userSize))
+            var slackEnd = cast(u64, header.allocAddr) + header.allocSize
+            if header.isElectric do
+                slackEnd -= AllocatorCommitGranularity
+            let count = slackEnd - header.userAddr - header.userSize
             for i in count
             {
                 if slack[i] != SlackByte do
@@ -1353,7 +1357,7 @@ impl Allocator
                 Swag.assert(.quarantineBytes >= oldest.allocSize)
                 .quarantineBytes -= oldest.allocSize
                 .quarantineCount -= 1
-                .osFree(oldest.allocAddr, oldest.commitSize)
+                .osFree(oldest.allocAddr, oldest.allocSize, oldest.commitSize)
             }
         }
     }
@@ -1470,7 +1474,7 @@ impl Allocator
         let budget = .blockCacheBudget()
         if committed > budget and (committed > AllocatorBlockCacheMaxBytes or atomicGet(&.cachedBlockCount) != 0)
         {
-            .osFree(cast(*void, address), committed)
+            .osFree(cast(*void, address), size, committed)
             return
         }
 
@@ -1489,7 +1493,7 @@ impl Allocator
 
             let evicted = .cachedBlocks[oldest]
             .removeCachedBlock(oldest)
-            .osFree(cast(*void, evicted.address), evicted.committed)
+            .osFree(cast(*void, evicted.address), evicted.reserved, evicted.committed)
         }
 
         .cachedBlockStamp += 1
@@ -1551,7 +1555,7 @@ impl Allocator
 
             heap.frontCount -= 1
             heap.front[i]   = heap.front[heap.frontCount]
-            .osFree(cast(*void, entry.address), entry.committed)
+            .osFree(cast(*void, entry.address), entry.reserved, entry.committed)
         }
     }
 
@@ -1559,7 +1563,7 @@ impl Allocator
     mtd drainBlockCache()
     {
         for i in .cachedBlockCount do
-            .osFree(cast(*void, .cachedBlocks[i].address), .cachedBlocks[i].committed)
+            .osFree(cast(*void, .cachedBlocks[i].address), .cachedBlocks[i].reserved, .cachedBlocks[i].committed)
         .cachedBlockBytes = 0
         .cachedBlockCount = 0
     }
@@ -1582,7 +1586,8 @@ impl Allocator
             return
         }
 
-        var allocSize = memAlign(overhead + payloadSize, cast(u32, AllocatorCommitGranularity))
+        var allocSize   = memAlign(overhead + payloadSize, cast(u32, AllocatorCommitGranularity))
+        var reserveSize = allocSize
         if allocSize == 0
         {
             request.address = null
@@ -1597,8 +1602,11 @@ impl Allocator
         {
             // Round the payload address down to preserve alignment without entering the guard.
             base = .osAllocGuarded(allocSize)
-            if base do
-                userAddr = (cast(u64, base) + allocSize - request.size) & ~(cast(u64, alignment) - 1)
+            if base
+            {
+                reserveSize = allocSize + AllocatorCommitGranularity
+                userAddr    = (cast(u64, base) + allocSize - request.size) & ~(cast(u64, alignment) - 1)
+            }
         }
         else
         {
@@ -1641,6 +1649,7 @@ impl Allocator
 
             if base do
                 userAddr = memAlign(cast(u64, base) + prefix, alignment)
+            reserveSize = allocSize
         }
 
         if not base
@@ -1651,7 +1660,7 @@ impl Allocator
 
         let header = (AllocatorHasDiagnostics and .electricMode) ? cast(*AllocatorHeader, (cast(u64, base) + trackingSize)) : adjacentHeaderOf(userAddr)
         header.allocAddr  = cast([*] void, base)
-        header.allocSize  = allocSize
+        header.allocSize  = reserveSize
         header.commitSize = commitSize
         header.userAddr   = userAddr
         header.userSize   = request.size
@@ -2372,7 +2381,7 @@ impl Allocator
             let other = .firstHeap
             .unlinkHeap(other)
             .purgeFront(other, Swag.U64.Max)
-            .osFree(other, #sizeof(AllocatorThreadHeap))
+            .osFree(other, #sizeof(AllocatorThreadHeap), #sizeof(AllocatorThreadHeap))
         }
 
         var revisit = Swag.atomicExchange(&.revisitPages, 0)
@@ -2411,7 +2420,7 @@ impl Allocator
             {
                 let header = .firstQuarantine
                 .firstQuarantine = header.next
-                .osFree(header.allocAddr, header.commitSize)
+                .osFree(header.allocAddr, header.allocSize, header.commitSize)
             }
 
             .lastQuarantine  = null
@@ -2422,7 +2431,7 @@ impl Allocator
             {
                 let header = .firstAlloc
                 .unlinkAllocated(header)
-                .osFree(header.allocAddr, header.commitSize)
+                .osFree(header.allocAddr, header.allocSize, header.commitSize)
             }
         }
 
@@ -2432,7 +2441,7 @@ impl Allocator
             {
                 let header = shard.first
                 .unlinkAllocated(header)
-                .osFree(header.allocAddr, header.commitSize)
+                .osFree(header.allocAddr, header.allocSize, header.commitSize)
             }
         }
 

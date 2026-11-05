@@ -248,6 +248,9 @@ public impl Xml
             default:  #error("invalid type")
             }
 
+            if parsed.ovf do
+                fail .getError("XML number is outside the range of its type")
+
             .stream.advance(parsed.eat)
             return parsed.value
         }

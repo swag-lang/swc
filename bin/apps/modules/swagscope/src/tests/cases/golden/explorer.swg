@@ -25,9 +25,7 @@ using Core, Gui, Pixel
     explorer.selected = 0
     explorer.fill()
     explorer.showInformation()
-    let titleWidth = Painter.measureString("docs", host.theme.createDefaultFont(Explorer.TitleFontSize, .Bold)).width
-    Swag.require(explorer.title.position.width >= titleWidth,
-                 Format.toString("short folder title gets % px but needs % px", explorer.title.position.width, titleWidth))
+    Swag.require(not explorer.title.isLocallyVisible())
     let sheet = window.infoSheet.text()
     Swag.require(Utf8.contains(sheet, appStrings().cmd_OpenChosen) and Utf8.contains(sheet, appStrings().cmd_Extract))
     Swag.require(Utf8.contains(sheet, "CRC-32"))

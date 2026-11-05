@@ -11,13 +11,13 @@ namespace __LinuxRT
         name:         [256] u8
     }
 
-    const OpenDirectory = 0x10000's32
-    const CloseOnExec = 0x80000's32
-    const LockExclusive = 2's32
+    const OpenDirectory       = 0x10000's32
+    const CloseOnExec         = 0x80000's32
+    const LockExclusive       = 2's32
     const MapPrivateAnonymous = 0x22's32
-    const MapShared = 1's32
-    const ProtectReadWrite = 3's32
-    const DiscardPages = 4's32
+    const MapShared           = 1's32
+    const ProtectReadWrite    = 3's32
+    const DiscardPages        = 4's32
 
     #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
     {
@@ -69,9 +69,10 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     let processId = cast(u32, getpid())
     for index in 8'u32
     {
-        name[8 + index] = Digits[(processId >> (28 - index * 4)) & 15]
+        name[8 + index]  = Digits[(processId >> (28 - index * 4)) & 15]
         name[17 + index] = Digits[(key >> (28 - index * 4)) & 15]
     }
+
     name[16] = 46     // '.'; a forked process must not join its parent's registry.
 
     const LinkPrefix = "/memfd:"
@@ -115,6 +116,7 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
         discard close(descriptor)
         return null
     }
+
     let view = mmap(null, size, ProtectReadWrite, MapShared, descriptor, 0)
     if cast(s64, view) == -1
     {
@@ -138,8 +140,8 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
 
 private struct LinuxPageReservation
 {
-    next:               *LinuxPageReservation?
-    size:               u64
+    next: *LinuxPageReservation?
+    size: u64
     firstPageCommitted: bool
 }
 
@@ -167,6 +169,7 @@ private func __linuxPageRegistry()->*LinuxPageRegistry?
         discard __LinuxRT.munmap(registry, #sizeof(LinuxPageRegistry))
         return cast(*LinuxPageRegistry, previous)
     }
+
     return cast(*LinuxPageRegistry, registry)
 }
 
@@ -176,12 +179,14 @@ private func __linuxPageRegistry()->*LinuxPageRegistry?
 func __hostPageReserve(size: u64)->[*] u8?
 {
     using __LinuxRT
-    if size == 0 or size % AllocatorHostCommitGranularity != 0 or size > Swag.U64.Max - AllocatorHostCommitGranularity do
+    if size == 0 or
+       size % AllocatorHostCommitGranularity != 0 or
+       size > Swag.U64.Max - AllocatorHostCommitGranularity do
         return null
     let registry = __linuxPageRegistry()
     if not registry do
         return null
-    let total = size + AllocatorHostCommitGranularity
+    let total   = size + AllocatorHostCommitGranularity
     let mapping = mmap(null, total, 0, MapPrivateAnonymous, -1, 0)
     if cast(s64, mapping) == -1 do
         return null
@@ -194,7 +199,7 @@ func __hostPageReserve(size: u64)->[*] u8?
     let record = cast(*LinuxPageReservation, unwrap mapping)
     record.size = size
     __hostLockExclusive(&registry.lock)
-    record.next = registry.first
+    record.next    = registry.first
     registry.first = record
     __hostUnlockExclusive(&registry.lock)
     return cast([*] u8, cast(u64, mapping) + AllocatorHostCommitGranularity)
@@ -217,6 +222,7 @@ private func __linuxSetPageCommitted(address: *void?, size: u64, committed: bool
             record.firstPageCommitted = committed
             return
         }
+
         record = record.next
     }
 }
@@ -239,6 +245,7 @@ func __hostPageDecommit(address: *void?, size: u64)
             Swag.__valueBorrowWrite(address, size, &location)
         }
     }
+
     if __LinuxRT.mprotect(address, size, 0) == 0
     {
         __linuxSetPageCommitted(address, size, false)
@@ -255,7 +262,21 @@ func __hostPageRelease(address: *void?, size: u64)
         let location = #curlocation
         Swag.__valueBorrowWrite(address, size, &location)
     }
+
     __linuxReleaseReservation(address, size)
+}
+
+func allocatorHostPageRelease(address: *void?, reservedSize, committedSize: u64)
+{
+    if not address do
+        return
+    #static if #safety(Swag.SafetyWhat.ValueBorrow)
+    {
+        let location = #curlocation
+        Swag.__valueBorrowWrite(address, committedSize, &location)
+    }
+
+    __linuxReleaseReservation(address, reservedSize)
 }
 
 #[Swag.Safety(.ValueBorrow, false)]
@@ -279,6 +300,7 @@ private func __linuxReleaseReservation(address: *void, size: u64)
                 link[] = next
             return
         }
+
         link = &record.next
     }
 }
@@ -299,5 +321,6 @@ func __hostPageAllocationBase(address: u64)->u64
             return record.firstPageCommitted ? base : 0
         record = record.next
     }
+
     return 0
 }

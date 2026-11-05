@@ -428,6 +428,21 @@ func __hostPageRelease(address: *void?, size: u64)
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
 
+func allocatorHostPageRelease(address: *void?, reservedSize, committedSize: u64)
+{
+    #static if #safety(Swag.SafetyWhat.ValueBorrow)
+    {
+        if address
+        {
+            let location = #curlocation
+            Swag.__valueBorrowWrite(address, committedSize, &location)
+        }
+    }
+
+    discard reservedSize
+    discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
+}
+
 // Returns the base of the reservation holding 'address', committed there or not, when that base is
 // itself a committed, readable page; zero otherwise, so that the caller never touches a page that
 // would fault.

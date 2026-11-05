@@ -177,7 +177,7 @@ namespace Swag
             crc:         u32                 // Stable type hash; collisions are possible
             flags = TypeInfoFlags.Zero       // Some additional flags
             kind  = TypeInfoKind.Invalid     // The kind of the type
-            padding:     [3] u8
+            padding:     [3] u8     // Bit 0 marks compiler Any descriptors for read-only payload storage
             unqualified: const *TypeInfo?     // Compiler descriptor without outer const/nullability; null for user descriptions
         }
     }

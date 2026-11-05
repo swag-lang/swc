@@ -157,9 +157,11 @@ func countOf(view: ICount)->s32
 /**
 ## Values Stored in `any`
 
-`try cast(*T, boxed)` borrows a stored value of type `T`. Dereference the result
-to read or update that value. A stored pointer can also expose the object it
-points to. A mismatching type raises a conversion error in either case.
+`try cast(*T, boxed)` borrows mutable storage of type `T`; use
+`try cast(const *T, boxed)` when the stored value may be constant-backed. A
+literal or constant value cannot provide a mutable pointer. A stored pointer can
+also expose the object it points to, subject to that pointer's constness. A
+mismatching type raises a conversion error in either case.
 
 `assume cast(T, boxed)` extracts a value when its type is an invariant. For a
 pointer or interface destination, it produces the corresponding borrowed view.
@@ -168,7 +170,7 @@ Neither mode extends the lifetime of the boxed value or its pointee.
 #test
 {
     var boxed: any = 42's32
-    if boxed is s32 as value do
+    if boxed is const s32 as value do
         Swag.require(value[] == 42)
     Swag.require(not (boxed is s64))
     Swag.require(assume cast (s32, boxed) == 42)

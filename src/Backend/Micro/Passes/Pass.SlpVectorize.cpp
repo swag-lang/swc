@@ -2372,12 +2372,17 @@ namespace
         // after the insertion point - checked structurally, by reference,
         // because instruction positions from the whole-function scan drift
         // once an earlier block has been rewritten.
-        std::unordered_set<uint32_t> referencedRoots;
+        FlatKeySet               referencedRoots;
+        SmallVector<uint32_t, 8> referencedRootOrder;
+        const auto addReferencedRoot = [&](const uint32_t rootKey) {
+            if (referencedRoots.insert(rootKey))
+                referencedRootOrder.push_back(rootKey);
+        };
         for (const PlanInstr& load : plan.loads)
-            referencedRoots.insert(load.rootKey);
+            addReferencedRoot(load.rootKey);
         for (const SeedGroup& group : vectorized)
-            referencedRoots.insert(group.rootKey);
-        for (const uint32_t rootKey : referencedRoots)
+            addReferencedRoot(group.rootKey);
+        for (const uint32_t rootKey : referencedRootOrder)
         {
             const RootInfo& root = fn.roots[rootKey];
             for (const MicroReg reg : {root.reg, root.index})
@@ -2489,7 +2494,7 @@ namespace
         rotateMaskRegs.fill(MicroReg::invalid());
 
         std::vector<MicroReg> rootRegs(fn.roots.size(), MicroReg::invalid());
-        for (const uint32_t rootKey : referencedRoots)
+        for (const uint32_t rootKey : referencedRootOrder)
         {
             const RootInfo& root = fn.roots[rootKey];
             rootRegs[rootKey]    = root.reg;

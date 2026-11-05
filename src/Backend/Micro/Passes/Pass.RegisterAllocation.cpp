@@ -975,13 +975,9 @@ bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex,
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= globalRangesByPhysDense_.size())
         return false;
 
-    for (const GlobalRange& range : globalRangesByPhysDense_[denseIndex])
-    {
-        if (range.lo <= hi && lo <= range.hi)
-            return true;
-    }
-
-    return false;
+    const auto& ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  range  = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::hi);
+    return range != ranges.end() && range->lo <= hi;
 }
 
 void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi, const uint32_t ownerDense)
@@ -990,7 +986,12 @@ void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const u
     if (denseIndex >= globalRangesByPhysDense_.size())
         globalRangesByPhysDense_.resize(denseIndex + 1);
 
-    globalRangesByPhysDense_[denseIndex].push_back({.lo = lo, .hi = hi, .ownerDense = ownerDense});
+    auto&       ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  at     = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::lo);
+    // Callers check for overlap first, so ordering by lo also orders hi.
+    SWC_ASSERT(at == ranges.begin() || std::prev(at)->hi < lo);
+    SWC_ASSERT(at == ranges.end() || hi < at->lo);
+    ranges.insert(at, {.lo = lo, .hi = hi, .ownerDense = ownerDense});
 }
 
 bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, const MicroReg physReg, const uint32_t instructionIndex) const
@@ -1005,13 +1006,9 @@ bool MicroRegisterAllocationPass::isReservedByGlobalFor(const MicroReg virtKey, 
     const uint32_t virtDense = denseVirtualIndex(virtKey);
     const uint32_t liveUntil = virtDense < virtualSpanHi_.size() ? std::max(virtualSpanHi_[virtDense], instructionIndex) : instructionCount_;
 
-    for (const GlobalRange& range : globalRangesByPhysDense_[denseIndex])
-    {
-        if (range.lo <= liveUntil && instructionIndex <= range.hi)
-            return true;
-    }
-
-    return false;
+    const auto& ranges = globalRangesByPhysDense_[denseIndex];
+    const auto  range  = std::ranges::lower_bound(ranges, instructionIndex, {}, &GlobalRange::hi);
+    return range != ranges.end() && range->lo <= liveUntil;
 }
 
 void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& outRegions)
@@ -1106,13 +1103,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
 
 const MicroRegisterAllocationPass::LoopRegion* MicroRegisterAllocationPass::findSealedLoopRegion(const uint32_t headerIndex) const
 {
-    for (const LoopRegion& region : sealedLoopRegions_)
-    {
-        if (region.header == headerIndex)
-            return &region;
-    }
-
-    return nullptr;
+    // collectLoopRegions visits header indices in ascending order.
+    const auto region = std::ranges::lower_bound(sealedLoopRegions_, headerIndex, {}, &LoopRegion::header);
+    return region != sealedLoopRegions_.end() && region->header == headerIndex ? &*region : nullptr;
 }
 
 bool MicroRegisterAllocationPass::isExpectedResident(const uint32_t denseIndex) const
@@ -1161,6 +1154,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         if (pred >= region.header)
             residency.backEdges.push_back(pred);
     }
+    std::ranges::sort(residency.backEdges);
 
     // Registers each class must keep out of the committed pairs: the pairs
     // are protected from eviction at the back-edge, and preloads must not
@@ -1355,7 +1349,11 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
     {
         LoopResidency& residency = activeLoopResidency_[residencyIndex - 1];
 
-        if (std::ranges::find(residency.backEdges, instructionIndex) == residency.backEdges.end())
+        while (residency.nextBackEdgeIndex < residency.backEdges.size() && residency.backEdges[residency.nextBackEdgeIndex] < instructionIndex)
+            ++residency.nextBackEdgeIndex;
+        residency.backEdgeAtCurrentInstruction = residency.nextBackEdgeIndex < residency.backEdges.size() &&
+                                                  residency.backEdges[residency.nextBackEdgeIndex] == instructionIndex;
+        if (!residency.backEdgeAtCurrentInstruction)
             continue;
 
         // Demote pairs nothing consumed: no emitted read depends on them, so
@@ -4149,7 +4147,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             const auto& vregsForPairs = denseVirtualRegs_.regs();
             for (const LoopResidency& residency : activeLoopResidency_)
             {
-                if (std::ranges::find(residency.backEdges, idx) == residency.backEdges.end())
+                if (!residency.backEdgeAtCurrentInstruction)
                     continue;
                 for (const auto& [expectedDense, expectedPhys] : residency.expected)
                     appendUniqueReg(protectedKeys, vregsForPairs[expectedDense]);

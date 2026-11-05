@@ -6,12 +6,11 @@
 // only: an ordinary read or write of the same storage beside them is a data race, so the field
 // is not part of the API.
 //
-// The plain operations are sequentially consistent: every thread observes all of them in one
-// order. [[Swag.AtomicValue.loadAcquire]] and [[Swag.AtomicValue.storeRelease]] order only what
-// one thread publishes to another, and the relaxed forms order nothing beyond the value itself.
-// A weaker form does not keep the plain form's guarantee, so use one only with a stated reason;
-// the memory model of the language reference says what each promises. Read-modify-write
-// operations are always sequentially consistent.
+// `load` uses acquire ordering; `store` is sequentially consistent.
+// [[Swag.AtomicValue.loadAcquire]] and [[Swag.AtomicValue.storeRelease]] provide the matching
+// acquire and release operations for publishing data between threads. The relaxed forms
+// promise no ordering beyond the value itself. The current runtime may provide stronger
+// ordering for those forms. Read-modify-write operations are sequentially consistent.
 //
 // ```swag
 // var counter: Swag.AtomicValue'u32

@@ -890,7 +890,7 @@ namespace
         std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
         // A scalar immediate has the same four-lane representation in every
         // group, so one materialized splat feeds all of its vector uses.
-        std::unordered_map<uint64_t, uint32_t> splatRegs;
+        FlatKeyMap<uint32_t, uint64_t> splatRegs;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -1178,11 +1178,11 @@ namespace
                             }
 
                             const uint64_t splatValue = n0.imm;
-                            const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                            const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
                             uint32_t       splatReg   = K_INVALID_ID;
-                            if (splatIt != plan_->splatRegs.end())
+                            if (knownSplat)
                             {
-                                splatReg = splatIt->second;
+                                splatReg = *knownSplat;
                             }
                             else
                             {
@@ -1282,11 +1282,11 @@ namespace
                         return K_INVALID_ID;
 
                     const uint64_t splatValue = n0.imm;
-                    const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                    const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
                     uint32_t       splatReg   = K_INVALID_ID;
-                    if (splatIt != plan_->splatRegs.end())
+                    if (knownSplat)
                     {
-                        splatReg = splatIt->second;
+                        splatReg = *knownSplat;
                     }
                     else
                     {
@@ -1434,7 +1434,7 @@ namespace
     class DeletionOracle
     {
     public:
-        DeletionOracle(SlpFunctionContext& fn, const std::unordered_set<uint32_t>& deletedStoreRefs, const std::unordered_set<uint32_t>& scalarDefinitions) :
+        DeletionOracle(SlpFunctionContext& fn, const FlatKeySet& deletedStoreRefs, const FlatKeySet& scalarDefinitions) :
             fn_(&fn),
             deletedStoreRefs_(&deletedStoreRefs),
             scalarDefinitions_(&scalarDefinitions)
@@ -1443,18 +1443,19 @@ namespace
 
         bool isValueDead(uint32_t valueId)
         {
-            const auto [it, inserted] = states_.try_emplace(valueId, State::InProgress);
-            if (!inserted)
-                return it->second != State::Live;
+            if (const State* known = states_.find(valueId))
+                return *known != State::Live;
 
-            // Optimistic for cycles until a use pins the value live. The reference
-            // remains valid when recursive queries grow the table.
-            State& state = it->second;
+            // Optimistic for cycles until a use pins the value live. Do not keep
+            // a table reference across recursive queries: a flat-table growth can
+            // move its entries.
+            states_.emplace(valueId, State::InProgress);
+            const auto setState = [&](const State state) { *states_.find(valueId) = state; };
 
             const MicroSsaState::ValueInfo* info = fn_->ssa->valueInfo(valueId);
             if (!info)
             {
-                state = State::Live;
+                setState(State::Live);
                 return false;
             }
 
@@ -1470,7 +1471,7 @@ namespace
                     const MicroSsaState::PhiInfo* phi = fn_->ssa->phiInfo(use.phiIndex);
                     if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE || !isValueDead(phi->resultValueId))
                     {
-                        state = State::Live;
+                        setState(State::Live);
                         return false;
                     }
                     continue;
@@ -1481,12 +1482,12 @@ namespace
 
                 if (!isInstructionDead(use.instRef))
                 {
-                    state = State::Live;
+                    setState(State::Live);
                     return false;
                 }
             }
 
-            state = State::Dead;
+            setState(State::Dead);
             return true;
         }
 
@@ -1540,9 +1541,9 @@ namespace
         };
 
         SlpFunctionContext*                 fn_                = nullptr;
-        const std::unordered_set<uint32_t>* deletedStoreRefs_  = nullptr;
-        const std::unordered_set<uint32_t>* scalarDefinitions_ = nullptr;
-        std::unordered_map<uint32_t, State> states_;
+        const FlatKeySet*                  deletedStoreRefs_  = nullptr;
+        const FlatKeySet*                  scalarDefinitions_ = nullptr;
+        FlatKeyMap<State> states_;
     };
 
     // ------------------------------------------------------------------
@@ -2267,7 +2268,8 @@ namespace
                 vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * fn.shape.bytes));
         }
 
-        std::unordered_set<uint32_t> deletedStoreRefs;
+        FlatKeySet                   deletedStoreRefs;
+        SmallVector<uint32_t, 16>    deletedStoreRefsInOrder;
         uint32_t                     firstDeletedPos = K_INVALID_ID;
         MicroInstrRef                firstDeletedRef = MicroInstrRef::invalid();
         for (const StoreRecord& record : scan.stores)
@@ -2278,7 +2280,8 @@ namespace
             if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*store, store->ops(*fn.operands)) &&
                 !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*fn.context->builder, record.instRef))
                 return false;
-            deletedStoreRefs.insert(record.instRef.get());
+            if (deletedStoreRefs.insert(record.instRef.get()))
+                deletedStoreRefsInOrder.push_back(record.instRef.get());
             if (record.pos < firstDeletedPos)
             {
                 firstDeletedPos = record.pos;
@@ -2335,7 +2338,7 @@ namespace
             if (!fn.ssa)
                 return false;
         }
-        std::unordered_set<uint32_t> scalarDefinitions;
+        FlatKeySet                   scalarDefinitions;
         for (const PlanInstr& operation : plan.ops)
             for (const MicroInstrRef definition : {operation.scalarDefinition, operation.scalarDefinition2})
                 if (definition.isValid())
@@ -2369,12 +2372,17 @@ namespace
         // after the insertion point - checked structurally, by reference,
         // because instruction positions from the whole-function scan drift
         // once an earlier block has been rewritten.
-        std::unordered_set<uint32_t> referencedRoots;
+        FlatKeySet               referencedRoots;
+        SmallVector<uint32_t, 8> referencedRootOrder;
+        const auto addReferencedRoot = [&](const uint32_t rootKey) {
+            if (referencedRoots.insert(rootKey))
+                referencedRootOrder.push_back(rootKey);
+        };
         for (const PlanInstr& load : plan.loads)
-            referencedRoots.insert(load.rootKey);
+            addReferencedRoot(load.rootKey);
         for (const SeedGroup& group : vectorized)
-            referencedRoots.insert(group.rootKey);
-        for (const uint32_t rootKey : referencedRoots)
+            addReferencedRoot(group.rootKey);
+        for (const uint32_t rootKey : referencedRootOrder)
         {
             const RootInfo& root = fn.roots[rootKey];
             for (const MicroReg reg : {root.reg, root.index})
@@ -2486,7 +2494,7 @@ namespace
         rotateMaskRegs.fill(MicroReg::invalid());
 
         std::vector<MicroReg> rootRegs(fn.roots.size(), MicroReg::invalid());
-        for (const uint32_t rootKey : referencedRoots)
+        for (const uint32_t rootKey : referencedRootOrder)
         {
             const RootInfo& root = fn.roots[rootKey];
             rootRegs[rootKey]    = root.reg;
@@ -2784,7 +2792,7 @@ namespace
             emitPlanInstr(store);
         }
 
-        for (const uint32_t refValue : deletedStoreRefs)
+        for (const uint32_t refValue : deletedStoreRefsInOrder)
             fn.storage->erase(MicroInstrRef(refValue));
         fn.context->builder->invalidateControlFlowGraph();
 

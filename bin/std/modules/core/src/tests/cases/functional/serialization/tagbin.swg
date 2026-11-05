@@ -159,6 +159,13 @@ enum TagBinModeU32: u32
     Precise
 }
 
+#[Serialization.Final]
+struct TagBinEnumRecord
+{
+    mode:  TagBinModeU8
+    extra: [2] TagBinModeU8
+}
+
 struct TagBinEnumSource
 {
     mode: TagBinModeU8 = .Off
@@ -169,6 +176,14 @@ struct TagBinEnumTarget
 {
     mode: TagBinModeU32 = .Off
     tail: s32
+}
+
+struct TagBinEnumArrays
+{
+    fixed:        [3] TagBinModeU8
+    values:       Array'TagBinModeU8
+    records:      [2] TagBinEnumRecord
+    recordValues: Array'TagBinEnumRecord
 }
 
 struct TagBinLongText
@@ -995,6 +1010,41 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     defer Memory.delete(decoded)
     Swag.require(decoded.mode == .Precise)
     Swag.require(decoded.tail == -9)
+}
+
+// Raw enum arrays still reject values that are not declared by a closed enum.
+#test
+{
+    var source: TagBinEnumArrays
+    source.fixed = [.Off, .Fast, .Precise]
+    source.values.add([.Off, .Fast, .Precise])
+    source.records[0] = {mode: .Off, extra: [.Fast, .Precise]}
+    source.records[1] = {mode: .Fast, extra: [.Off, .Precise]}
+    source.recordValues.add(source.records)
+    let bytes = encodeTagBin(source)
+
+    for fieldName in ["fixed", "values", "records", "recordValues"]
+    {
+        var patched: Array'u8
+        patched.add(bytes.toSlice())
+        let field = findTagBinV1Field(patched.toSlice(), fieldName)
+        var reader = ByteStream.openRead(patched.toSlice())
+        reader.setPosition(field.seek)
+        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Sequence)
+        discard expect reader.readVarint()
+        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Raw)
+        discard expect reader.readVarint()
+        let valuesSeek = reader.position()
+
+        var writer = ByteStream.openWrite(&patched)
+        writer.setPosition(valuesSeek + 1)
+        writer.writeNative(0x7F'u8)
+
+        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(TagBinEnumArrays, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+        Swag.require(errorOutcome.value() != null)
+    }
 }
 
 // The stream version of a struct is visible from user code during the decode, which is

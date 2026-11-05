@@ -195,6 +195,8 @@ private:
         // next back-edge instead of being refilled forever.
         SmallVector<uint8_t, 8>  consumed;
         SmallVector<uint32_t, 2> backEdges;
+        size_t                  nextBackEdgeIndex = 0;
+        bool                    backEdgeAtCurrentInstruction = false;
     };
 
     // Register-mapping snapshots recorded at each forward jump, consumed by

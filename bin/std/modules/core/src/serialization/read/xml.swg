@@ -136,13 +136,13 @@ public impl Xml
     // Reads the tag that opens a section.
     mtd beginSection(_: SectionKind) fail
     {
-        discard try .readTag()
+        discard try .readStartTag()
     }
 
-    // Reads the tag that closes a section.
+    // Reads and validates the matching tag that closes a section.
     mtd endSection() fail
     {
-        discard try .readTag()
+        try .readEndTag()
     }
 
     // Skips an optional XML declaration, then reads the tag that opens the document.
@@ -247,6 +247,9 @@ public impl Xml
             case u64: parsed = try StrConv.parseU64(.stream.remainingString())
             default:  #error("invalid type")
             }
+
+            if parsed.ovf do
+                fail .getError("XML number is outside the range of its type")
 
             .stream.advance(parsed.eat)
             return parsed.value

@@ -469,6 +469,8 @@ impl Array
     // The caller must initialize every new element before the array reads, copies, or drops it.
     mtd emplaceAddress(num: u32 = 1)->[*] T
     {
+        if not num do
+            return .storage()
         .grow(.count + num)
         .count += num
         return unwrap .buffer + .count - num
@@ -477,6 +479,8 @@ impl Array
     // Appends `num` default-initialized elements and returns the address of the first one.
     mtd emplaceInitAddress(num: u32 = 1)->[*] T
     {
+        if not num do
+            return .storage()
         .grow(.count + num)
         .count += num
         let res = unwrap .buffer + .count - num

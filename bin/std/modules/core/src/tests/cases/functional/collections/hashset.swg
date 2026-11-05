@@ -3,6 +3,28 @@
 
 using Swag
 
+#[Swag.NoCopy]
+struct HashSetNonCopyKey
+{
+    value: u32
+}
+
+#test
+{
+    #assert(not Reflection.canCopy(HashSet'HashSetNonCopyKey))
+
+    var values: HashSet'HashSetNonCopyKey
+    for i in 40
+    {
+        var key = HashSetNonCopyKey{value: cast(u32, i)}
+        values.add(#move key)
+    }
+
+    Swag.require(values.count == 40)
+    Swag.require(values.contains(HashSetNonCopyKey{value: 0}))
+    Swag.require(values.contains(HashSetNonCopyKey{value: 39}))
+}
+
 func assertHashSetKeysAreReadOnly(values: *HashSet's32)
 {
     for &key in values[]

@@ -92,6 +92,16 @@ public func(T) hash32(value: T)->u32
         return murmur3(cast(const *u32, (&value))[])
     elif Reflection.isStruct(T) do
         return hashBytes32(Swag.makeSlice(cast(const [*] u8, &value), #sizeof(T)))
+    elif Reflection.isFloat(T)
+    {
+        // IEEE-754 positive and negative zero compare equal, so they must share a hash.
+        if value == 0 do
+            return murmur3(0'u32)
+        #static if #sizeof(T) == 8 do
+            return cast(u32, murmur3(cast #bit (u64, value)))
+        else do
+            return murmur3(cast #bit (u32, value))
+    }
     elif Reflection.isInteger(T) and #sizeof(T) == 8
     {
         let hashed = cast #bit (u64, value)

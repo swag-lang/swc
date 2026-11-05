@@ -55,12 +55,15 @@ impl StringBuilder
         Format.append(&.buffer, fmt, values)
     }
 
-    // Writes a zero byte after the content without counting it, so the storage is zero-terminated.
+    // Writes a zero byte after the content without counting it, making the active bytes contiguous and zero-terminated.
     mtd zeroTerminate()
     {
-        let seek = .buffer.position()
+        let count = .buffer.count()
         .buffer.addNative(0'u8)
-        .buffer.truncate(seek)
+        .buffer.makeLinear()
+        .buffer.setPosition({})
+        .buffer.advance(count)
+        .buffer.truncate(.buffer.position())
     }
 
     // Returns a new [[Core.String]] holding a copy of the content.

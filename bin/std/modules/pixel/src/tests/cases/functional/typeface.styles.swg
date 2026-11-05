@@ -39,10 +39,3 @@ using Core
     discard expect File.delete(path)
     Swag.require((expect TypeFace.loadStyledAt(path, 0, .Bold)) == bold)
 }
-
-#test
-{
-    var outcome: Swag.Error
-    discard catch FontFamily.createTypeFace("Missing family", cast(FontFamilyStyle, 255)) as outcome
-    Swag.require(outcome.value() is Errors.BadParameterError)
-}

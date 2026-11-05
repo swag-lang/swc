@@ -48,12 +48,12 @@ is the current scorecard.
 - Evidence: `Core.Log.print` produced fourteen zero bytes when it passed a local `String`'s
   `toString()` view through a local `string` variable to `ILogWriter.print`. The local owner remained
   in scope, and calling `w.print(rendered.toString())` directly fixed the log test. Longer,
-  heap-backed messages did not reproduce the failure. This suggests a gap in preserving a short
-  inline string's storage across the borrowed view and dynamic call; the exact compiler phase is
-  not yet established.
-- Next: add a compiler regression for a local short `String`, a separate borrowed view, and an
-  interface callback; trace borrow/liveness analysis and generated code, then ensure an actual
-  escaping view still receives its existing diagnostic.
+  heap-backed messages did not reproduce the failure. Linux native DevMode and Release tests now
+  pass for both a short inline `String` view passed through a local interface callback and
+  `Core.Log.print` with a short formatted result.
+- Next: reproduce the original fourteen-byte failure on Windows with a regression that preserves
+  the exact `StringBuilder` and writer call path. Then trace borrow/liveness analysis and generated
+  code, and ensure an actual escaping view still receives its existing diagnostic.
 - Done when: the compiler either keeps the inline string valid through the callback or rejects the
   invalid lifetime before code generation, with positive and negative regressions covering both
   cases.
@@ -141,11 +141,10 @@ is the current scorecard.
   passes, but the native executable raises `0xC0000005` writing the literal in read-only
   storage. A variable holding an `any` does not itself own mutable storage for the borrowed
   value.
-- Next: decide and enforce the constness of literal-backed and constant-backed `any` views.
-  Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
-  choose rejection of mutable views or deliberate writable materialization without turning
-  `any` into an owning variant. Audit existing casts of literal-backed views before
-  migration.
+- Next: validate the storage-only TypeInfo marker for constant-backed `any` payloads, including
+  inline attribute payloads, `kindOf`, scalar and aggregate value-copy casts, const views, rejection
+  of mutable views, and updated reference examples.
+  Run focused JIT, native, and reference tests once machine-load admission allows a build.
 - Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
   storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
@@ -252,23 +251,20 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Evidence: `cast(Color, 99)` is accepted with no check in any configuration, and the result is used
-  as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
-  declared member. A plain switch can fall through on it. `switch #complete` already panics when
-  `.Switch` safety is enabled; with that guard disabled, the conversion still permits a value
-  outside the cases. The missing contract is at conversion, not the guarded switch.
-- Elsewhere: Rust makes an out-of-range enum discriminant undefined behavior and forbids the
-  conversion in safe code, requiring a `TryFrom` that returns an error; Swift's `init?(rawValue:)`
-  returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
-  majority position and the only one that composes with exhaustive matching.
-- Next: decide the spelling. `cast(Color, i)` becoming a guarded conversion under `.DynCast` costs a
-  compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `null` puts
-  the check in the type and needs no guard at all, which is the only form that also holds in a
-  build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be
-  excluded either way.
-- Done when: converting an integer to an enum has one documented rule, the flags case is
-  specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
-  combination.
+- Rule: casts to ordinary enums require a compile-time integer matching a declared member. Runtime
+  integer values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
+  `#[Swag.Incomplete]` enums intentionally accept values outside their declared members. This
+  avoids invalid values for closed enums regardless of runtime safety settings while a checked
+  conversion API is unspecified.
+- Evidence: semantic checks reject runtime ordinary-enum casts and preserve flags-enum casts.
+- Binary and TagBin deserialization now reject undeclared members of closed enums; flags and
+  `#[Swag.Incomplete]` enums retain their declared semantics. TagBin validates enums in raw arrays,
+  including enums nested in raw structs and fixed arrays.
+- Next: finish the generic/reflection conversion audit, then run the focused JIT/native, sema,
+  standard-library, and application tests for the migrated shipped code.
+- Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime
+  values, a runtime flags combination, an open enum, and the migrated shipped call sites; the cast
+  reference documents the rule.
 
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 

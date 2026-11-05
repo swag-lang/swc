@@ -32,6 +32,11 @@ struct JsonFloatPayload
     value: f64
 }
 
+struct JsonF32Payload
+{
+    value: f32
+}
+
 struct JsonKeyPayload
 {
     #[Serialization.Key("wireName")]
@@ -154,6 +159,29 @@ func assertJsonPayload(value: JsonPayload)->bool
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     Swag.require(buffer.toString() == "{\"value\":null}")
+}
+
+#test
+{
+    const InvalidFloats = [
+        "{\"value\":1e39}",
+        "{\"value\":-1e39}"]
+    for input in InvalidFloats
+    {
+        var decoder:    Serialization.Decoder'Serialization.Read.Json
+        var errOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(JsonF32Payload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
+        Swag.require(errOutcome.value() != null)
+    }
+
+    const InvalidF64 = ["{\"value\":1e309}", "{\"value\":-1e309}"]
+    for input in InvalidF64
+    {
+        var decoder:    Serialization.Decoder'Serialization.Read.Json
+        var errOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(JsonFloatPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
+        Swag.require(errOutcome.value() != null)
+    }
 }
 
 #test

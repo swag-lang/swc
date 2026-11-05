@@ -258,16 +258,16 @@ impl PropWnd
         switch #complete row
         {
         case .ShapeKind, .StepKind:
-            drawShapeGlyph(painter, cast(FormShapeKind, value), pos, color, ChoiceGlyphSize)
+            drawShapeGlyph(painter, FormShapeKindValues[value], pos, color, ChoiceGlyphSize)
 
         case .Dash:
             var rect = pos
             rect.inflate(-ChoiceGlyphInset, 0)
-            let pen = Pen.createDash(cast(DashStyle, value), color, DashStroke)
+            let pen = Pen.createDash(DashStyleValues[value], color, DashStroke)
             painter.drawLine(rect.x, rect.vertCenter(), rect.right(), rect.vertCenter(), pen)
 
         case .StartCap, .EndCap:
-            drawCapGlyph(painter, cast(LineCapStyle, value), row == .StartCap, pos, color)
+            drawCapGlyph(painter, LineCapStyleValues[value], row == .StartCap, pos, color)
         }
     }
 

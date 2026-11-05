@@ -428,6 +428,21 @@ func __hostPageRelease(address: *void?, size: u64)
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
 
+func allocatorHostPageRelease(address: *void?, reservedSize, committedSize: u64)
+{
+    #static if #safety(Swag.SafetyWhat.ValueBorrow)
+    {
+        if address
+        {
+            let location = #curlocation
+            Swag.__valueBorrowWrite(address, committedSize, &location)
+        }
+    }
+
+    discard reservedSize
+    discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
+}
+
 // Returns the base of the reservation holding 'address', committed there or not, when that base is
 // itself a committed, readable page; zero otherwise, so that the caller never touches a page that
 // would fault.
@@ -841,20 +856,43 @@ func __hostImageBaseForAddress(address: *void)->*void?
 private func __peU16(p: [*] u8, off: u64)->u16 => cast(const *u16, (&p[off]))[]
 private func __peU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
-// Locates the linker-owned `.swagdbg` payload in one Windows PE image.
-func __hostDebugSection(base: *void)->[*] u8?
+func __hostAllocateDebugImage()->*SwagDebugImage?
 {
-    let image   = cast([*] u8, base)
-    let ntOff   = cast(u64, __peU32(image, 0x3C))
+    return cast(*SwagDebugImage?, __Win32RT.VirtualAlloc(null, #sizeof(SwagDebugImage), __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+}
+
+// Locates the linker-owned `.swagdbg` payload in one Windows PE image.
+func __hostDebugSection(base: *void, size: *u64)->[*] u8?
+{
+    size[] = 0
+    let image = cast([*] u8, base)
+    if image[0] != 'M'u8 or image[1] != 'Z'u8 do
+        return null
+    let ntOff = cast(u64, __peU32(image, 0x3C))
+    if ntOff < 64 or __peU32(image, ntOff) != 0x0000_4550 do
+        return null
     let count   = __peU16(image, ntOff + 6)
     let optSize = __peU16(image, ntOff + 20)
-    var section = ntOff + 24 + cast(u64, optSize)
+    if optSize < 64 do
+        return null
+
+    let optionalHeader = ntOff + 24
+    let imageSize      = cast(u64, __peU32(image, optionalHeader + 56))
+    let headerSize     = cast(u64, __peU32(image, optionalHeader + 60))
+    let sectionTable   = optionalHeader + cast(u64, optSize)
+    if imageSize < 64 or
+       headerSize > imageSize or
+       sectionTable > headerSize or
+       cast(u64, count) > (headerSize - sectionTable) / 40 do
+        return null
+
+    var sectionOffset = sectionTable
 
     let wanted = ".swagdbg"
     for index in count
     {
         var matches = true
-        for byte in 8 where image[section + cast(u64, byte)] != cast(u8, wanted[byte])
+        for byte in 8 where image[sectionOffset + cast(u64, byte)] != cast(u8, wanted[byte])
         {
             matches = false
             break
@@ -862,11 +900,15 @@ func __hostDebugSection(base: *void)->[*] u8?
 
         if matches
         {
-            let rva = __peU32(image, section + 12)
+            let rva         = __peU32(image, sectionOffset + 12)
+            let sectionSize = cast(u64, (__peU32(image, sectionOffset + 8) ? __peU32(image, sectionOffset + 8) : __peU32(image, sectionOffset + 16)))
+            if cast(u64, rva) > imageSize or sectionSize > imageSize - cast(u64, rva) do
+                return null
+            size[] = sectionSize
             return cast([*] u8, &image[cast(u64, rva)])
         }
 
-        section += 40
+        sectionOffset += 40
     }
 
     return null
@@ -874,20 +916,31 @@ func __hostDebugSection(base: *void)->[*] u8?
 
 // Expands the linker-owned version-2 debug table on first use. Version 1 remains a
 // direct image view for compatibility with artifacts produced by older compilers.
-func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
+func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut: *u64)->[*] u8?
 {
+    decodedSizeOut[] = 0
+    if sectionSize < 16 do
+        return null
     if __peU32(section, 0) != 0x4244_5753 do
         return null
 
     let version = __peU32(section, 4)
-    if version == 1 do
-        return section
+    if version == 1
+    {
+        let decoded = cast([*] u8?, __Win32RT.VirtualAlloc(null, sectionSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+        if not decoded do
+            return null
+        Swag.memcpy(decoded, section, sectionSize)
+        decodedSizeOut[] = sectionSize
+        return decoded
+    }
+
     if version != 2 do
         return null
 
     let decodedSize = __peU32(section, 8)
     let packedSize  = __peU32(section, 12)
-    if decodedSize < 16 or packedSize == 0 do
+    if decodedSize < 16 or packedSize == 0 or cast(u64, packedSize) > sectionSize - 16 do
         return null
 
     let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
@@ -910,6 +963,7 @@ func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
         return null
     }
 
+    decodedSizeOut[] = cast(u64, finalSize)
     return decoded
 }
 

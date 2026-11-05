@@ -337,13 +337,14 @@ namespace
             // whose flags nothing reads before they are redefined (a carrier's
             // step lands right behind it and writes them too).
             thread_local std::vector<Induction> inductions;
+            thread_local FlatKeyMap<uint32_t>   inductionIndexByReg;
             inductions.clear();
+            inductionIndexByReg.clear();
             auto inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
-                for (uint32_t k = 0; k < inductions.size(); ++k)
-                    if (inductions[k].reg == reg)
-                        return k;
                 if (!reg.isVirtualInt())
                     return K_INVALID;
+                if (const uint32_t* index = inductionIndexByReg.find(reg.packed))
+                    return *index;
                 const RegOccurrences* countIt = scan.defs.find(reg.packed);
                 if (!countIt || countIt->count != 1)
                     return K_INVALID;
@@ -386,7 +387,9 @@ namespace
                     return K_INVALID;
 
                 inductions.push_back(induction);
-                return static_cast<uint32_t>(inductions.size() - 1);
+                const uint32_t index = static_cast<uint32_t>(inductions.size() - 1);
+                inductionIndexByReg.emplace(reg.packed, index);
+                return index;
             };
 
             // Splits a pair of registers into the induction and the invariant,
@@ -679,10 +682,12 @@ namespace
 
             thread_local std::vector<Carrier>         carriers;
             thread_local std::vector<MicroInstrRef>   erased;
-            thread_local std::unordered_set<uint32_t> inductionsCarried;
+            thread_local FlatKeySet                   inductionsCarried;
+            thread_local std::vector<uint32_t>        carriedInductionOrder;
             carriers.clear();
             erased.clear();
             inductionsCarried.clear();
+            carriedInductionOrder.clear();
             for (const Candidate& candidate : *chosen)
             {
                 const Induction& induction = inductions[candidate.inductionIx];
@@ -803,14 +808,17 @@ namespace
                 if (candidate.copyOfInductionRef.isValid())
                     erased.push_back(candidate.copyOfInductionRef);
                 if (candidate.isSum)
-                    inductionsCarried.insert(candidate.inductionIx);
+                {
+                    if (inductionsCarried.insert(candidate.inductionIx))
+                        carriedInductionOrder.push_back(candidate.inductionIx);
+                }
                 changed = true;
             }
 
             // An induction whose every use now reads a carrier is dead, and
             // its step with it: nothing else reads the register the step
             // defines, and liveness alone never sees through the cycle.
-            for (const uint32_t inductionIx : inductionsCarried)
+            for (const uint32_t inductionIx : carriedInductionOrder)
                 erased.push_back(inductions[inductionIx].stepRef);
 
             for (const MicroInstrRef ref : erased)

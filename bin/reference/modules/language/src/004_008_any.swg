@@ -32,16 +32,30 @@
 /**
 # Working with 'any' and Pointers
 
-Use `try cast(*T, boxed)` to borrow the stored value after checking its type.
-Use `catch cast(*T?, boxed)` when a failed conversion should produce null.
+Pointer casts borrow the stored value. Constant-backed values such as literals can only
+be borrowed through a const pointer; a mutable pointer cast fails. Use `const *T` to
+read any stored value, and use `*T` only when the 'any' refers to mutable storage.
+Use `catch cast(const *T?, boxed)` or `catch cast(*T?, boxed)` when a failed
+conversion should produce null.
 */
 
 #test
 {
     let a: any = 6
+    Swag.require((catch cast(*s32?, a)) == null)
     let ptr    = catch cast(const *s32?, a)
     Swag.require(ptr != null)
     Swag.require(ptr[] == 6)
+}
+
+#test
+{
+    var value: s32 = 6
+    var a: any = value
+    let ptr = catch cast(*s32?, a)
+    Swag.require(ptr != null)
+    ptr[] = 7
+    Swag.require(value == 7)
 }
 
 /**

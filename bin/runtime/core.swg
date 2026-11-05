@@ -24,7 +24,20 @@ func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
     if toType == null or fromType == null or ptr == null do
         return null
-    return __findDynamicView(toType, fromType, ptr, null, true)
+    if (fromType.padding[0] & 1) != 0 and not __isCompilerType(fromType) do
+        return null
+    let target = toType
+    let targetConst = (target.flags & .Const) != 0
+    let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.padding[0] & 1) != 0
+    if sourceReadOnly and not targetConst do
+        return null
+    var matchSourceType = fromType
+    var matchTargetType = target
+    if sourceReadOnly and fromType.unqualified != null do
+        matchSourceType = unwrap fromType.unqualified
+    if targetConst and target.unqualified != null do
+        matchTargetType = unwrap target.unqualified
+    return __findDynamicView(matchTargetType, matchSourceType, ptr, null, targetConst)
 }
 
 struct DynamicViewVisit
@@ -344,11 +357,58 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
     return false
 }
 
+func __runtimeCopyIgnoresConst(target: typeinfo)->bool
+{
+    var valueType = target
+    while valueType.kind == .Alias
+    {
+        let alias = cast(const *TypeInfoAlias, cast(const *void, valueType))
+        valueType = alias.rawType
+    }
+    if valueType.kind == .Enum do
+        return true
+    if valueType.kind == .Native
+    {
+        let native = cast(const *TypeInfoNative, cast(const *void, valueType))
+        return native.nativeKind == .S8 or native.nativeKind == .S16 or
+               native.nativeKind == .S32 or native.nativeKind == .S64 or
+               native.nativeKind == .U8 or native.nativeKind == .U16 or
+               native.nativeKind == .U32 or native.nativeKind == .U64 or
+               native.nativeKind == .F32 or native.nativeKind == .F64 or
+               native.nativeKind == .Bool or native.nativeKind == .Rune or
+               native.nativeKind == .String
+    }
+    return false
+}
+
+func __runtimeTypeIsPointer(type: typeinfo)->bool
+{
+    var valueType = type
+    while valueType.kind == .Alias
+    {
+        let alias = cast(const *TypeInfoAlias, cast(const *void, valueType))
+        valueType = alias.rawType
+    }
+    return valueType.kind == .Pointer
+}
+
 func __runtimeTypeCast(toType, fromType: typeinfo?)->typeinfo?
 {
     if not __isCompilerType(toType) or not __isCompilerType(fromType) do
         return null
-    if __runtimeTypeCompatible(unwrap toType, unwrap fromType, null) do
+    var target = unwrap toType
+    var source = unwrap fromType
+    let sourceStorageOnlyConst = (source.padding[0] & 1) != 0
+    let sourceReadOnly = (source.flags & .Const) != 0 or sourceStorageOnlyConst
+    let copyValue = __runtimeCopyIgnoresConst(target) or
+                    (sourceStorageOnlyConst and __runtimeTypeIsPointer(source))
+    if sourceReadOnly and not copyValue and (target.flags & .Const) == 0 do
+        return null
+    if sourceReadOnly and source.unqualified != null do
+        source = unwrap source.unqualified
+    if copyValue and (target.flags & .Const) != 0 and target.unqualified != null do
+        target = unwrap target.unqualified
+    if __runtimeTypeCompatible(target, source, null) do
         return fromType
     return null
 }
@@ -369,10 +429,41 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     result.view.itable = null
     if not __isCompilerType(toType) or source[] == null do
         return false
-    let sourceType = Swag.kindOf(source[])
+    var sourceType = source[].type
     if not __isCompilerType(sourceType) do
         return false
-    let target = unwrap toType
+    var target = unwrap toType
+    let sourceStorageOnlyConst = (sourceType.padding[0] & 1) != 0
+    let sourceReadOnly = (sourceType.flags & .Const) != 0 or sourceStorageOnlyConst
+    var valueTarget = target
+    while valueTarget.kind == .Alias
+    {
+        let alias = cast(const *TypeInfoAlias, cast(const *void, valueTarget))
+        valueTarget = alias.rawType
+    }
+    var targetIsAny = false
+    if valueTarget.kind == .Native
+    {
+        let native = cast(const *TypeInfoNative, cast(const *void, valueTarget))
+        targetIsAny = native.nativeKind == .Any
+    }
+    let storageOnlyValueCopy = sourceStorageOnlyConst and
+                               not __runtimeTypeIsPointer(target) and
+                               valueTarget.kind != .Interface and not targetIsAny
+    let copyReadOnly = sourceReadOnly and
+                       (__runtimeCopyIgnoresConst(target) or storageOnlyValueCopy or
+                        (sourceStorageOnlyConst and __runtimeTypeIsPointer(sourceType)))
+    if sourceReadOnly and not copyReadOnly and not readOnly do
+        return false
+
+    // A value copy can read a read-only source without exposing its storage.
+    if sourceStorageOnlyConst and sourceType.unqualified == null do
+        return false
+    if (copyReadOnly or sourceStorageOnlyConst) and sourceType.unqualified != null do
+        sourceType = unwrap sourceType.unqualified
+    if __runtimeCopyIgnoresConst(target) and (target.flags & .Const) != 0 and target.unqualified != null do
+        target = unwrap target.unqualified
+
     if Swag.typeCmp(target, sourceType, .Strict)
     {
         result.value = source[]
@@ -386,7 +477,8 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
 
     // The result's constness is carried by the cast expression; lookup only reads this address.
     let sourceData = cast #unconst(*void?, cast(const *void?, source[].buffer))
-    let found      = __dynamicCastImpl(target, sourceType, sourceData, view, false, null, true, readOnly)
+    let found      = __dynamicCastImpl(
+        target, sourceType, sourceData, view, false, null, true, readOnly or copyReadOnly)
     if target.kind == .Interface
     {
         if result.view.itable == null do

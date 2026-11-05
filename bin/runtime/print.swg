@@ -75,8 +75,81 @@ func __utoa(result: [*] u8, value: u64)->[*] u8
 }
 
 #[Safety(.All, false)]
+private func __ftoaScientific(result: [*] u8, value: f64)
+{
+    var mantissa = value < 0 ? -value : value
+    var exponent = 0's64
+    while mantissa >= 10
+    {
+        mantissa /= 10
+        exponent += 1
+    }
+
+    var ptr = result
+    if value < 0
+    {
+        ptr[] = '-'
+        ptr   += 1
+    }
+
+    let firstDigit = cast(u8, mantissa)
+    ptr[]    = '0' + firstDigit
+    ptr      += 1
+    mantissa = (mantissa - firstDigit) * 10
+    ptr[]    = '.'
+    ptr      += 1
+
+    // Seventeen significant digits retain the useful precision of an f64.
+    for 16
+    {
+        let digit = cast(u8, mantissa)
+        ptr[]    = '0' + digit
+        ptr      += 1
+        mantissa = (mantissa - digit) * 10
+    }
+
+    ptr[] = 'e'
+    ptr   += 1
+    if exponent >= 0
+    {
+        ptr[] = '+'
+        ptr   += 1
+    }
+
+    __itoa(ptr, exponent)
+}
+
+#[Safety(.All, false)]
 func __ftoa(result: [*] u8, value: f64)
 {
+    if value != value
+    {
+        Swag.memcpy(result, "nan", 4)
+        return
+    }
+
+    if value > Swag.F64.Max or value < -Swag.F64.Max
+    {
+        if value < 0
+        {
+            Swag.memcpy(result, "-inf", 5)
+        }
+        else
+        {
+            Swag.memcpy(result, "inf", 4)
+        }
+
+        return
+    }
+
+    // The fixed-point path converts the integer part to s64. Large finite floats still
+    // have a meaningful decimal form, but must not pass through that narrowing cast.
+    if value >= cast(f64, Swag.S64.Max) or value < cast(f64, Swag.S64.Min)
+    {
+        __ftoaScientific(result, value)
+        return
+    }
+
     var ipart = cast(s64, value)
     var fpart = value - cast(f64, ipart)
 

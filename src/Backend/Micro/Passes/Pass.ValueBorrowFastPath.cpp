@@ -252,7 +252,7 @@ namespace
     // The key of the region that is the whole function.
     constexpr uint32_t K_FUNCTION_REGION = std::numeric_limits<uint32_t>::max();
 
-    void findHoistableLoops(FlatKeyMap<uint32_t>& outGuardLoop, std::unordered_map<uint32_t, HoistedExtent>& outLoops, const MicroPassContext& context, std::span<const MicroInstrRef> calls)
+    void findHoistableLoops(FlatKeyMap<uint32_t>& outGuardLoop, FlatKeyMap<HoistedExtent>& outLoops, SmallVector<uint32_t, 4>& outLoopOrder, const MicroPassContext& context, std::span<const MicroInstrRef> calls)
     {
         FlatKeySet allowedCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
         for (const MicroInstrRef callRef : calls)
@@ -271,7 +271,8 @@ namespace
         {
             HoistedExtent hoisted;
             hoisted.insertBefore        = firstRef;
-            outLoops[K_FUNCTION_REGION] = hoisted;
+            outLoops.getOrInsert(K_FUNCTION_REGION) = hoisted;
+            outLoopOrder.push_back(K_FUNCTION_REGION);
             for (const MicroInstrRef callRef : calls)
                 outGuardLoop.getOrInsert(callRef.get()) = K_FUNCTION_REGION;
             return;
@@ -328,7 +329,8 @@ namespace
                 hoisted.insertBefore = refs[header];
             else
                 continue;
-            outLoops[header] = hoisted;
+            outLoops.getOrInsert(header) = hoisted;
+            outLoopOrder.push_back(header);
 
             // The widest loop holding a check hoists its read the furthest.
             for (const MicroInstrRef callRef : calls)
@@ -336,8 +338,13 @@ namespace
                 const uint32_t index = cfg.indexOf(callRef);
                 if (index == MicroControlFlowGraph::K_NO_INDEX || index >= loop.inBody.size() || !loop.inBody[index])
                     continue;
-                if (const uint32_t* chosen = outGuardLoop.find(callRef.get()); chosen && outLoops.at(*chosen).bodySize >= loop.bodySize)
-                    continue;
+                if (const uint32_t* chosen = outGuardLoop.find(callRef.get()))
+                {
+                    const HoistedExtent* chosenLoop = outLoops.find(*chosen);
+                    SWC_ASSERT(chosenLoop);
+                    if (chosenLoop->bodySize >= loop.bodySize)
+                        continue;
+                }
                 outGuardLoop.getOrInsert(callRef.get()) = header;
             }
         }
@@ -468,8 +475,9 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
     MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
 
     FlatKeyMap<uint32_t>                        guardLoop;
-    std::unordered_map<uint32_t, HoistedExtent> hoistedLoops;
-    findHoistableLoops(guardLoop, hoistedLoops, context, calls.span());
+    FlatKeyMap<HoistedExtent> hoistedLoops;
+    SmallVector<uint32_t, 4> hoistedLoopOrder;
+    findHoistableLoops(guardLoop, hoistedLoops, hoistedLoopOrder, context, calls.span());
 
     bool changed = false;
     for (const MicroInstrRef callRef : calls)
@@ -498,7 +506,9 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
         MicroReg hoistedHigh = MicroReg::invalid();
         if (const uint32_t* header = guardLoop.find(callRef.get()); header && cacheSource && nextInt <= MicroReg::K_MAX_INDEX - 2)
         {
-            HoistedExtent& hoisted = hoistedLoops.at(*header);
+            HoistedExtent* hoistedPtr = hoistedLoops.find(*header);
+            SWC_ASSERT(hoistedPtr);
+            HoistedExtent& hoisted = *hoistedPtr;
             if (!hoisted.used)
             {
                 hoisted.used        = true;
@@ -511,10 +521,12 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
         changed = true;
     }
 
-    for (const auto& hoisted : hoistedLoops | std::views::values)
+    for (const uint32_t header : hoistedLoopOrder)
     {
-        if (hoisted.used && nextInt <= MicroReg::K_MAX_INDEX - 1)
-            insertHoistedExtentRead(context, hoisted, MicroReg::virtualIntReg(nextInt++));
+        const HoistedExtent* hoisted = hoistedLoops.find(header);
+        SWC_ASSERT(hoisted);
+        if (hoisted->used && nextInt <= MicroReg::K_MAX_INDEX - 1)
+            insertHoistedExtentRead(context, *hoisted, MicroReg::virtualIntReg(nextInt++));
     }
 
     if (changed)

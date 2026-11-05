@@ -38,18 +38,6 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    let invalidDay = cast(Time.DayOfWeek, 7)
-    let rejectedEnglishName = Swag.catchPanic(func|invalidDay|() { discard Time.DateTime.dayOfWeekName(invalidDay) })
-    Swag.require(rejectedEnglishName.raised and rejectedEnglishName.message() == "day is outside the supported range")
-
-    var format                = Globalization.DateTimeFormatInfo{}
-    let formatPointer         = &format
-    let rejectedLocalizedName = Swag.catchPanic(func|formatPointer, invalidDay|() { discard formatPointer[].dayName(invalidDay) })
-    Swag.require(rejectedLocalizedName.raised and rejectedLocalizedName.message() == "day is outside the supported range")
-}
-
-#test
-{
     using Time.DateTimeFormat
 
     Swag.require(cast(u32, DateIso) == 0)

@@ -122,9 +122,45 @@ func detectEncoding(probe: const [..] u8)->Encoding
             return true
 
         let count = bytes.count
-        for back in 1 to 3 where back < count
+        for back in 1 to 4 where back <= count
         {
-            if Utf8.isValid(bytes[0 until count - back]) do
+            let start = count - back
+            let lead  = bytes[start]
+            var size  = 0'u8
+            if lead >= 0xC2 and lead <= 0xDF do
+                size = 2
+            elif lead >= 0xE0 and lead <= 0xEF do
+                size = 3
+            elif lead >= 0xF0 and lead <= 0xF4 do
+                size = 4
+            if not size or back >= size do
+                continue
+            if not Utf8.isValid(bytes[until start]) do
+                continue
+
+            var validTail = true
+            for offset in 1 until back
+            {
+                let value = bytes[start + offset]
+                if value < 0x80 or value > 0xBF
+                {
+                    validTail = false
+                    break
+                }
+
+                // The second byte excludes overlong forms, surrogates, and values past MaxRune.
+                if offset == 1 and
+                   ((lead == 0xE0 and value < 0xA0) or
+                    (lead == 0xED and value > 0x9F) or
+                    (lead == 0xF0 and value < 0x90) or
+                    (lead == 0xF4 and value > 0x8F))
+                {
+                    validTail = false
+                    break
+                }
+            }
+
+            if validTail do
                 return true
         }
 
@@ -182,7 +218,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     if not bytes.count do
         return {}
 
-    // Reorders complete big-endian UTF-16 units into native little-endian storage.
+    // Reorders complete big-endian UTF-16 units into native-endian storage.
     func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
     {
         const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
@@ -192,11 +228,14 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         let destination = result.storage()
         var offset      = 0'u64
 
-        while offset + 8 <= result.count
+        #static if not BIG_ENDIAN
         {
-            Math.Simd.store(destination + offset,
-                            cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
-            offset += 8
+            while offset + 8 <= result.count
+            {
+                Math.Simd.store(destination + offset,
+                                cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
+                offset += 8
+            }
         }
 
         while offset < result.count
@@ -208,7 +247,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         return result
     }
 
-    // Reorders complete big-endian UTF-32 units into native little-endian rune storage.
+    // Reorders complete big-endian UTF-32 units into native-endian rune storage.
     func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
     {
         const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
@@ -218,11 +257,14 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         let destination = result.storage()
         var offset      = 0'u64
 
-        while offset + 4 <= result.count
+        #static if not BIG_ENDIAN
         {
-            Math.Simd.store(cast([*] u8, (destination + offset)),
-                            Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
-            offset += 4
+            while offset + 4 <= result.count
+            {
+                Math.Simd.store(cast([*] u8, (destination + offset)),
+                                Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
+                offset += 4
+            }
         }
 
         while offset < result.count
@@ -250,14 +292,38 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         return Utf8.fromUnicode(runes.toSlice())
 
     case .Utf16Le:
-        return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2))
+        #static if BIG_ENDIAN
+        {
+            var units: Array'u16
+            units.resize(bytes.count / 2)
+            for i in units.count do
+                units[i] = Math.make16(bytes.buffer[2 * i + 1], bytes.buffer[2 * i])
+            return Utf8.fromUtf16(units.toSlice())
+        }
+
+        #static if not BIG_ENDIAN do
+            return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2))
 
     case .Utf16Be:
         let units = decodeUtf16BeUnits(bytes)
         return Utf8.fromUtf16(units.toSlice())
 
     case .Utf32Le:
-        return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune, bytes.buffer), bytes.count / 4))
+        #static if BIG_ENDIAN
+        {
+            var runes: Array'rune
+            runes.resize(bytes.count / 4)
+            for i in runes.count
+            {
+                let unit = bytes.buffer + 4 * i
+                runes[i] = cast(rune, Math.make32(unit[3], unit[2], unit[1], unit[0]))
+            }
+
+            return Utf8.fromUnicode(runes.toSlice())
+        }
+
+        #static if not BIG_ENDIAN do
+            return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune, bytes.buffer), bytes.count / 4))
 
     case .Utf32Be:
         let runes = decodeUtf32BeRunes(bytes)

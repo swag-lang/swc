@@ -869,7 +869,7 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
 
-        std::optional<std::unordered_map<uint32_t, uint32_t>> labels;
+        std::optional<FlatKeyMap<uint32_t>> labels;
 
         for (uint32_t i = 0; i + 3 < order.size(); ++i)
         {
@@ -900,14 +900,14 @@ namespace
                         continue;
                     uint32_t id = 0;
                     if (tryGetLabelId(id, *inst, inst->ops(operands)))
-                        labelOrdinals[id] = labelOrdinal;
+                        labelOrdinals.getOrInsert(id) = labelOrdinal;
                 }
             }
 
-            const auto exitIt = labels->find(exitId);
-            if (exitIt == labels->end() || exitIt->second <= i + 2)
+            const uint32_t* exitOrdinal = labels->find(exitId);
+            if (!exitOrdinal || *exitOrdinal <= i + 2)
                 continue;
-            const uint32_t    backIndex = exitIt->second - 1;
+            const uint32_t    backIndex = *exitOrdinal - 1;
             const MicroInstr* back      = storage.ptr(order[backIndex]);
             if (!back || back->op != MicroInstrOpcode::JumpCond || back->numOperands < 3)
                 continue;
@@ -915,8 +915,8 @@ namespace
             if (!backOps || backOps[0].cpuCond != MicroCond::Unconditional ||
                 backOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
                 continue;
-            const auto bodyIt = labels->find(static_cast<uint32_t>(backOps[2].valueU64));
-            if (bodyIt == labels->end() || bodyIt->second >= i)
+            const uint32_t* bodyOrdinal = labels->find(static_cast<uint32_t>(backOps[2].valueU64));
+            if (!bodyOrdinal || *bodyOrdinal >= i)
                 continue;
 
             bool safe = true;
@@ -932,7 +932,7 @@ namespace
             if (!safe)
                 continue;
 
-            const MicroInstrRef bodyRef     = order[bodyIt->second];
+            const MicroInstrRef bodyRef     = order[*bodyOrdinal];
             const uint64_t      prepId      = context.builder->createLabel().get();
             MicroInstrOperand   entryOps[3] = {backOps[0], backOps[1], backOps[2]};
             MicroInstrOperand   prepOps[1];
@@ -990,8 +990,8 @@ namespace
     {
         MicroStorage&                                         storage  = *context.instructions;
         MicroOperandStorage&                                  operands = *context.operands;
-        std::optional<std::unordered_map<uint64_t, uint32_t>> labelOrdinals;
-        const auto                                            findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
+        std::optional<FlatKeyMap<uint32_t, uint64_t>> labelOrdinals;
+        const auto                                   findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
             if (!labelOrdinals)
             {
                 auto& labels = labelOrdinals.emplace();
@@ -999,12 +999,12 @@ namespace
                 {
                     const MicroInstr* inst = storage.ptr(order[index]);
                     if (inst && inst->op == MicroInstrOpcode::Label)
-                        labels.try_emplace(inst->ops(operands)[0].valueU64, index);
+                        labels.emplace(inst->ops(operands)[0].valueU64, index);
                 }
             }
-            const auto it = labelOrdinals->find(id);
-            if (it != labelOrdinals->end() && it->second < endOrdinal)
-                return it->second;
+            const uint32_t* ordinal = labelOrdinals->find(id);
+            if (ordinal && *ordinal < endOrdinal)
+                return *ordinal;
             return static_cast<uint32_t>(order.size());
         };
 
@@ -1569,11 +1569,27 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     // A copied RIP-relative connector needs its own relocation. Keep a
     // snapshot because inserting the copies grows the builder's relocation
     // vector while rotations are applied.
-    std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocationsByRef;
+    struct RelocationGroup
+    {
+        SmallVector<MicroRelocation, 2> relocations;
+    };
+    FlatKeyMap<uint32_t>       relocationGroupByRef;
+    std::vector<RelocationGroup> relocationGroups;
     for (const MicroRelocation& reloc : context.builder->codeRelocations())
     {
         if (reloc.instructionRef.isValid())
-            relocationsByRef[reloc.instructionRef.get()].push_back(reloc);
+        {
+            const uint32_t slot = reloc.instructionRef.get();
+            uint32_t*      groupIndex = relocationGroupByRef.find(slot);
+            if (!groupIndex)
+            {
+                const uint32_t newIndex = static_cast<uint32_t>(relocationGroups.size());
+                relocationGroups.emplace_back();
+                relocationGroupByRef.getOrInsert(slot) = newIndex;
+                groupIndex = relocationGroupByRef.find(slot);
+            }
+            relocationGroups[*groupIndex].relocations.push_back(reloc);
+        }
     }
 
     for (const Rotation& rotation : rotations)
@@ -1604,10 +1620,10 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             testCopy.append(testOps, testInst->numOperands);
             const MicroInstrOpcode testOp  = testInst->op;
             const MicroInstrRef    copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
-            const auto             relocIt = relocationsByRef.find(order[ordinal].get());
-            if (relocIt != relocationsByRef.end())
+            const uint32_t* groupIndex = relocationGroupByRef.find(order[ordinal].get());
+            if (groupIndex)
             {
-                for (MicroRelocation reloc : relocIt->second)
+                for (MicroRelocation reloc : relocationGroups[*groupIndex].relocations)
                 {
                     reloc.instructionRef = copyRef;
                     context.builder->addRelocation(reloc);

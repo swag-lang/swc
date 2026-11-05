@@ -68,7 +68,7 @@ impl Thread
     // Suspends the current thread for at least `duration`.
     func sleep(duration: Time.Duration)
     {
-        var remaining = duration.milliseconds()
+        var remaining = duration.millisecondsCeiling()
         while remaining > Swag.U32.Max - 1
         {
             sleepNative(Swag.U32.Max - 1)

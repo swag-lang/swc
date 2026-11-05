@@ -43,7 +43,7 @@ struct String
     {
         buffer:    [*] u8?         // Storage of the string, inline for a small one.
         length:    u64             // Number of valid bytes in 'buffer'.
-        capacity:  u64             // Number of bytes 'buffer' can hold.
+        capacity:  u64             // Number of bytes 'buffer' can hold, including the zero terminator.
         allocator: IAllocator?     // Allocator used to grow the storage.
         padding:   [StringSmallSize] u8     // Inline storage of a small string.
     }
@@ -432,6 +432,7 @@ impl String
     // `value` must not be zero.
     mtd insert(byteIndex: u64, value: u8)
     {
+        Swag.assert(value != 0)
         if byteIndex == .length
         {
             .append(value)
@@ -439,7 +440,6 @@ impl String
         }
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
-        Swag.assert(value != 0)
 
         .grow(.length + 2)
         let buffer = unwrap .buffer
@@ -562,12 +562,13 @@ impl String
         .reserve(Math.max(.capacity * 2, wantedCapacity))
     }
 
-    // Sets the capacity to `newCapacity` bytes, truncating the text that no longer fits.
+    // Sets the capacity to `newCapacity` bytes, including the zero terminator, truncating text that no longer fits.
     //
     // A capacity up to [[Core.StringSmallSize]] uses the inline storage and releases any allocation.
     mtd reserve(newCapacity: u64)
     {
-        .length = Math.min(.length, newCapacity)
+        // Capacity includes the trailing zero byte.
+        .length = Math.min(.length, newCapacity ? newCapacity - 1 : 0)
         if .allocator == null do
             .allocator = Swag.getContext().allocator
 
@@ -577,9 +578,11 @@ impl String
             // Copy the bytes before releasing their previous allocation.
             if .buffer and .buffer != cast(&.padding[0])
             {
-                Memory.copy(&.padding[0], .buffer, Math.min(newCapacity, .length + 1))
+                Memory.copy(&.padding[0], .buffer, .length + 1)
                 Memory.free(.buffer, .capacity, .allocator)
             }
+
+            .padding[.length] = 0
 
             // Point the header at its own inline storage.
             .capacity = StringSmallSize
@@ -590,14 +593,15 @@ impl String
         {
             let oldBuffer = unwrap .buffer
             .buffer = cast(Memory.alloc(newCapacity, .allocator))
-            Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
+            Memory.copy(.buffer, oldBuffer, .length + 1)
             .capacity = newCapacity
         }
         // Allocate directly when no previous storage exists.
         elif not .buffer
         {
-            .buffer   = cast(Memory.alloc(newCapacity, .allocator))
-            .capacity = newCapacity
+            .buffer    = cast(Memory.alloc(newCapacity, .allocator))
+            .capacity  = newCapacity
+            .buffer[0] = 0
         }
         // Resize the existing allocation.
         else

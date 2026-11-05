@@ -499,13 +499,13 @@ public impl Json
             {
             case f32:
                 let val = try StrConv.parseF32(token)
-                if val.eat != length do
+                if val.eat != length or val.ovf do
                     fail .getError("JSON number cannot be represented as f32")
                 return val.value
 
             case f64:
                 let val = try StrConv.parseF64(token)
-                if val.eat != length do
+                if val.eat != length or val.ovf do
                     fail .getError("JSON number cannot be represented as f64")
                 return val.value
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Support/Core/PointerSet.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -46,10 +47,12 @@ public:
 
         if (!regToIndex_)
             regToIndex_.emplace();
-        const auto [it, inserted] = regToIndex_->try_emplace(reg, static_cast<uint32_t>(regs_.size()));
-        if (inserted)
-            regs_.push_back(reg);
-        return it->second;
+        if (const uint32_t* found = regToIndex_->find(reg.packed))
+            return *found;
+        const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
+        regToIndex_->getOrInsert(reg.packed) = newIndex;
+        regs_.push_back(reg);
+        return newIndex;
     }
 
     uint32_t find(const MicroReg reg) const
@@ -59,10 +62,8 @@ public:
 
         if (!regToIndex_)
             return K_INVALID_INDEX;
-        const auto it = regToIndex_->find(reg);
-        if (it == regToIndex_->end())
-            return K_INVALID_INDEX;
-        return it->second;
+        const uint32_t* found = regToIndex_->find(reg.packed);
+        return found ? *found : K_INVALID_INDEX;
     }
 
     bool contains(const MicroReg reg) const
@@ -109,10 +110,9 @@ private:
     }
 
     std::array<std::vector<uint32_t>, K_DIRECT_KIND_COUNT> directRegToIndex_;
-    // MSVC's empty hash map allocates buckets and a sentinel. Defer both until
-    // an exceptional register actually needs the fallback.
-    std::optional<std::unordered_map<MicroReg, uint32_t>> regToIndex_;
-    std::vector<MicroReg>                                 regs_;
+    // Exceptional registers are rare; keep the fallback empty until one needs it.
+    std::optional<FlatKeyMap<uint32_t>> regToIndex_;
+    std::vector<MicroReg>               regs_;
 };
 
 SWC_END_NAMESPACE();

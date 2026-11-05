@@ -115,7 +115,7 @@ bool tryInferSsaPhiValue(T_VALUE& outValue, const MicroSsaState::PhiInfo& phiInf
 }
 
 template<typename T_VALUE, typename T_TRAITS, typename T_CONTEXT>
-void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const T_CONTEXT& context, const SsaTryInferInstructionFn<T_VALUE, T_TRAITS, T_CONTEXT> tryInferInstruction)
+bool computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const T_CONTEXT& context, const SsaTryInferInstructionFn<T_VALUE, T_TRAITS, T_CONTEXT> tryInferInstruction)
 {
     const auto values = ssaState.values();
     // Every read checks the corresponding flag, so retained entries need no reset.
@@ -162,15 +162,17 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
         if (ssaState.phis().empty())
             break;
     }
+
+    return unresolved != values.size();
 }
 
 using MicroSsaTryInferKnownValueFn = SsaTryInferInstructionFn<MicroSsaKnownValue, MicroSsaKnownValueTraits, MicroSsaKnownValueContext>;
 
 template<MicroSsaTryInferKnownValueFn TryInferInstruction>
-inline void computeSsaKnownValues(std::vector<MicroSsaKnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
+inline bool computeSsaKnownValues(std::vector<MicroSsaKnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
 {
     const MicroSsaKnownValueContext context{&ssaState, &storage, &operands};
-    computeSsaValueFixedPoint<MicroSsaKnownValue, MicroSsaKnownValueTraits>(outValues, outFlags, ssaState, context, TryInferInstruction);
+    return computeSsaValueFixedPoint<MicroSsaKnownValue, MicroSsaKnownValueTraits>(outValues, outFlags, ssaState, context, TryInferInstruction);
 }
 
 SWC_END_NAMESPACE();

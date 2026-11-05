@@ -21,6 +21,10 @@ enum DayOfWeek
     Saturday  = 6
 }
 
+internal const DayOfWeekValues: [7] DayOfWeek = [
+    .Sunday, .Monday, .Tuesday, .Wednesday, .Thursday, .Friday, .Saturday,
+]
+
 // Selects the text layout [[Core.Time.DateTime.toString]] produces.
 enum DateTimeFormat
 {
@@ -153,7 +157,7 @@ impl DateTime
         var dayNumber       = 365 * marchYear + #wrap marchYear / 4 + #wrap marchYear / 400 +
                               #wrap (marchMonth * 306 + 5) / 10 + #wrap .day - 1 - #wrap marchYear / 100
         dayNumber += 3
-        return cast(DayOfWeek, (dayNumber % 7))
+        return DayOfWeekValues[dayNumber % 7]
     }
 
     // Returns the English name of `month`, numbered from 1 to 12.
@@ -239,7 +243,7 @@ impl DateTime
         if buf.count >= 1 and
            Latin1.isLetter(buf[0])
         {
-            let dayOfWeek = cast(DayOfWeek, (try parseName(&buf, DayOfWeekNames, &result.eat)))
+            let dayOfWeek = DayOfWeekValues[try parseName(&buf, DayOfWeekNames, &result.eat)]
             try parseSep(&buf, ' ', &result.eat)
             result.value.month = cast(u16, (try parseName(&buf, MonthNames, &result.eat))) + 1
 
@@ -310,24 +314,28 @@ impl DateTime
                Latin1.isDigit(buf[1])
             {
                 try parseSep(&buf, '.', &result.eat)
-                let fractionStart  = result.eat
-                var fraction       = cast(u32, (try parseU16(&buf, &result.eat)))
-                var fractionDigits = result.eat - fractionStart
+                var fraction       = 0'u16
+                var fractionDigits = 0'u8
+                while buf.count and Latin1.isDigit(buf[0])
+                {
+                    if fractionDigits < 3
+                    {
+                        fraction       = fraction * 10 + cast(u16, (buf[0] - '0'))
+                        fractionDigits += 1
+                    }
 
-                // Normalize the decimal fraction to three millisecond digits.
+                    buf        = Tokenize.eatCount(buf, 1)
+                    result.eat += 1
+                }
+
+                // Normalize the first three fractional digits to milliseconds.
                 while fractionDigits < 3
                 {
                     fraction       *= 10
                     fractionDigits += 1
                 }
 
-                while fractionDigits > 3
-                {
-                    fraction       /= 10
-                    fractionDigits -= 1
-                }
-
-                result.value.millisecond = cast(u16, fraction)
+                result.value.millisecond = fraction
             }
         }
 

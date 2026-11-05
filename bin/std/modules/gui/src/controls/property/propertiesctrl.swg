@@ -283,7 +283,7 @@ impl PropertiesCtrl
 
         default:
             for id, index in KindCommands where sel == id do
-                .setKind(cast(PropertiesKind, cast(u32, index)))
+                .setKind(PropertiesKindValues[index])
         }
     }
 

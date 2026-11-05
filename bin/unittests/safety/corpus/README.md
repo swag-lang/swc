@@ -82,7 +82,7 @@ rebuild or broader consumer campaign is needed for a corpus-only change.
 | 843 | Direct cast between unrelated structs | **Rejected** at the cast; related pointers remain accepted |
 | 843 | Reinterpretation through `*void`, inactive union member | **Not judged** — compiler.safety.006 |
 | 122, 124, 787, 806, 823 | Faults through `[*] T` and the raw intrinsics | **Not judged** — compiler.safety.006 |
-| 704 | Integer to enum | **Not judged** — compiler.safety.010 |
+| 704 | Integer to enum | **Rejected** for runtime ordinary-enum casts; `EnumFlags` combinations remain supported — compiler.safety.010 |
 | 478 | Non-exhaustive switch | **Not judged** — language.design.001 |
 | 401 | Memory leak | No static proof; runtime allocator leak report available — compiler.safety.017 |
 | 674 | Stack exhaustion | Fatal host-stack fault; Windows compiler execution reports it, native reporting follows its host |

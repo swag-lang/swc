@@ -208,6 +208,9 @@ public impl CultureInfo
     mtd const cardinalPlural(value: f64)->PluralCategory
     {
         let absolute = Math.abs(value)
+        if not Math.isFinite(absolute) or absolute >= cast(f64, Swag.U64.Max) do
+            return .Other
+
         let integer  = cast(u64, Math.trunc(absolute))
         let integral = absolute == cast(f64, integer)
 
@@ -247,8 +250,10 @@ public impl CultureInfo
             return .Other
         }
 
-        if .isLanguage("pl") and integral
+        if .isLanguage("pl")
         {
+            if not integral do
+                return .Many
             if integer == 1 do
                 return .One
             let mod10  = integer % 10
@@ -343,8 +348,10 @@ public impl CultureInfo
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
-            if c == 0x00DF do
+            if c == 0x00DF or c == 0x1E9E do
                 result.append("ss")
+            elif c == 0x017F do
+                result.append('s'u8)
             elif c == 0x03C2 do
                 result.append(0x03C3)
             elif turkic and c == 'I' do

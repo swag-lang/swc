@@ -193,7 +193,7 @@ impl OrderedMap
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V), 1'u64), 0)
+            return Swag.makeSlice(.entries.storage(), 0)
         return Swag.makeSlice(.entries.storage() + first, last - first)
     }
 
@@ -245,6 +245,9 @@ impl OrderedMap
     mtd const opIndexPtr(key: K)->const *V => &.find(key).value
 
     // Adds a key-value pair in sorted position, replacing the value of an existing key, and returns the entry.
+    //
+    // If the comparator considers `key` equal to an existing key, the entry's [[OrderedMapEntry.key]]
+    // stays unchanged and only its [[OrderedMapEntry.value]] is replaced.
     //
     // The key and value are copied; pass either with `#move` to transfer it.
     #[Discardable]

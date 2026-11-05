@@ -1182,8 +1182,25 @@ namespace
             return Result::Continue;
         }
 
-        const MicroReg anyBaseReg = exprPayload.reg;
-        builder.emitLoadRegMem(result.reg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+        // kindOf hides the storage-only marker on constant-backed Any values.
+        const MicroReg anyBaseReg     = exprPayload.reg;
+        const MicroReg anyTypeReg     = codeGen.nextVirtualIntRegister();
+        const MicroReg flagsReg       = codeGen.nextVirtualIntRegister();
+        const MicroReg unqualifiedReg = codeGen.nextVirtualIntRegister();
+        const MicroLabelRef done      = builder.createLabel();
+        builder.emitLoadRegMem(anyTypeReg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+        builder.emitLoadRegReg(result.reg, anyTypeReg, MicroOpBits::B64);
+        builder.emitCmpRegImm(anyTypeReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+        builder.emitLoadRegMem(flagsReg, anyTypeReg, offsetof(Runtime::TypeInfo, padding), MicroOpBits::B8);
+        builder.emitOpBinaryRegImm(flagsReg, ApInt(1, 8), MicroOp::And, MicroOpBits::B8);
+        builder.emitCmpRegImm(flagsReg, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+        builder.emitLoadRegMem(unqualifiedReg, anyTypeReg, offsetof(Runtime::TypeInfo, unqualified), MicroOpBits::B64);
+        builder.emitCmpRegImm(unqualifiedReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+        builder.emitLoadRegReg(result.reg, unqualifiedReg, MicroOpBits::B64);
+        builder.placeLabel(done);
         return Result::Continue;
     }
 

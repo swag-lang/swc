@@ -1005,7 +1005,25 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
-    computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
+    const bool hasKnownValues = computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
+
+    // The rewrite walk can only fold from known SSA values or constant-address
+    // relocations. Avoid scanning every instruction when neither source exists.
+    bool       hasConstantAddress = false;
+    if (!hasKnownValues && context.builder && context.taskContext && context.taskContext->hasCompiler())
+    {
+        for (const MicroRelocation& relocation : context.builder->codeRelocations())
+        {
+            if (relocation.kind == MicroRelocation::Kind::ConstantAddress && relocation.form == MicroRelocation::Form::Absolute64 &&
+                relocation.instructionRef.isValid() && relocation.targetAddress)
+            {
+                hasConstantAddress = true;
+                break;
+            }
+        }
+    }
+    if (!hasKnownValues && !hasConstantAddress)
+        return Result::Continue;
 
     // Publish only this run's addresses and context pointers to the constant-load folds. The
     // address table starts fresh: clearing a kept one would cost its largest size ever, not

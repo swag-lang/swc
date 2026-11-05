@@ -1190,6 +1190,16 @@ namespace
 
         const TypeRef operandTypeRef = operandSelfSubst ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
         const TypeRef sourceTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), operandTypeRef);
+        const SymbolVariable* indexedStorageRoot = nullptr;
+        if (resultTypeRef.isValid() && sourceTypeRef.isValid() &&
+            sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isSlice() &&
+            sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isArray())
+        {
+            SemaEscapeProjection arrayProjection;
+            if (storageProjection(sema, operandRef, arrayProjection) && arrayProjection.components.empty())
+                indexedStorageRoot = arrayProjection.root;
+        }
+
         if (resultTypeRef.isValid() &&
             sourceTypeRef.isValid() &&
             sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isAny() &&
@@ -1200,6 +1210,7 @@ namespace
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
+            info.indexedStorageRoot = indexedStorageRoot;
             if (sourceTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isAny())
                 info.viaErasedPayload = true;
 
@@ -1222,7 +1233,10 @@ namespace
         {
             info = storageBorrowInfo(sema, operandRef, resultTypeRef, operandSelfSubst);
             if (info.hasBorrow())
+            {
+                info.indexedStorageRoot = indexedStorageRoot;
                 return info;
+            }
 
             // No variable roots the storage: an rvalue produced by a call or materialized
             // from a literal is a temporary destroyed at the end of the statement.
@@ -1295,8 +1309,10 @@ namespace
         if (!elemTypeRef.isValid())
             return true;
 
-        // A builtin array or slice: the element VALUE read ('result == element') copies.
-        return unwrapAliasEnum(sema, elemTypeRef) == resultType.typeRef();
+        // A builtin array or slice: the element VALUE read copies. A contextual
+        // pointer conversion can change the result type without changing that read.
+        const TypeInfo& elemType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), elemTypeRef);
+        return elemType.typeRef() == resultType.typeRef() || (elemType.isAnyPointer() && resultType.isAnyPointer());
     }
 
     SemaEscapeInfo indexEscapeInfo(Sema& sema, AstNodeRef indexRef, AstNodeRef indexedRef, uint32_t& budget)
@@ -1314,6 +1330,23 @@ namespace
                                                 indexReadsElementByValue(sema, resultTypeRef, indexedRef);
             if (projectedInfo.hasBorrow() && !viewOfContainerStorage)
                 return projectedInfo;
+
+            // A slice bound to an array still reads that array's elements. Its
+            // sourceVar may name a borrow carried by an element, so use the
+            // separately recorded storage root for the exact element lookup.
+            const TypeRef indexedTypeRef = unwrapAliasEnum(sema, SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef)));
+            if (projection.components.size() == 1 && indexedTypeRef.isValid() && sema.typeMgr().get(indexedTypeRef).isSlice() &&
+                indexReadsElementByValue(sema, resultTypeRef, indexedRef))
+            {
+                const SemaEscapeInfo* sliceInfo = sema.variableEscapeInfo(*projection.root);
+                if (sliceInfo && sliceInfo->indexedStorageRoot)
+                {
+                    projection.root = sliceInfo->indexedStorageRoot;
+                    projectedInfo   = sema.projectionEscapeInfoIncludingWildcards(projection);
+                    if (projectedInfo.hasBorrow())
+                        return projectedInfo;
+                }
+            }
         }
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);

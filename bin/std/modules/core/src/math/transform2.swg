@@ -168,29 +168,52 @@ impl Transform2
     // Returns the transform that maps every transformed point back to where it came from.
     //
     // A singular transform — one that flattens the plane onto a line or a point — has no
-    // inverse. The identity is returned for it rather than a matrix of infinities, so a caller
-    // mapping through the result still gets finite coordinates. A transform counts as singular
-    // when the determinant of its linear part is zero or too small for its reciprocal to be
-    // finite; a tiny but valid scale still inverts.
+    // inverse. The identity is returned when the inverse cannot be represented by finite f32
+    // components, so a caller mapping through the result still gets finite coordinates. The
+    // determinant is evaluated in f64 to preserve inverses of very small or very large f32 scales.
     //
     // ```swag
     // let local = placement.inverse().transformPoint(pagePoint)
     // ```
     mtd const inverse()->Transform2
     {
-        let determinant        = .m11 * .m22 - .m12 * .m21
-        let inverseDeterminant = 1.0 / determinant
-        if determinant == 0 or not isFinite(inverseDeterminant) do
+        let m11         = cast(f64, .m11)
+        let m12         = cast(f64, .m12)
+        let m21         = cast(f64, .m21)
+        let m22         = cast(f64, .m22)
+        let determinant = m11 * m22 - m12 * m21
+        if determinant == 0 do
+            return Identity
+
+        let inverseM11 = m22 / determinant
+        let inverseM12 = -m12 / determinant
+        let inverseM21 = -m21 / determinant
+        let inverseM22 = m11 / determinant
+        let inverseTx  = -(cast(f64, .tx) * inverseM11 + cast(f64, .ty) * inverseM21)
+        let inverseTy  = -(cast(f64, .tx) * inverseM12 + cast(f64, .ty) * inverseM22)
+        let maxF32     = cast(f64, Swag.F32.Max)
+        if not Math.isFinite(inverseM11) or
+           Math.abs(inverseM11) > maxF32 or
+           not Math.isFinite(inverseM12) or
+           Math.abs(inverseM12) > maxF32 or
+           not Math.isFinite(inverseM21) or
+           Math.abs(inverseM21) > maxF32 or
+           not Math.isFinite(inverseM22) or
+           Math.abs(inverseM22) > maxF32 or
+           not Math.isFinite(inverseTx) or
+           Math.abs(inverseTx) > maxF32 or
+           not Math.isFinite(inverseTy) or
+           Math.abs(inverseTy) > maxF32 do
             return Identity
 
         with var result: #returntype
         {
-            .m11 = me.m22 * inverseDeterminant
-            .m12 = -me.m12 * inverseDeterminant
-            .m21 = -me.m21 * inverseDeterminant
-            .m22 = me.m11 * inverseDeterminant
-            .tx  = -(me.tx * .m11 + me.ty * .m21)
-            .ty  = -(me.tx * .m12 + me.ty * .m22)
+            .m11 = cast(f32, inverseM11)
+            .m12 = cast(f32, inverseM12)
+            .m21 = cast(f32, inverseM21)
+            .m22 = cast(f32, inverseM22)
+            .tx  = cast(f32, inverseTx)
+            .ty  = cast(f32, inverseTy)
         }
 
         return result

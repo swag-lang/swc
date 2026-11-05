@@ -73,12 +73,30 @@ namespace
     struct ProgramLayout
     {
         std::vector<MicroInstrRef> order;
-        std::vector<uint32_t>      ordinalByRef;
+        mutable std::vector<uint32_t> ordinalByRef;
+        size_t                       ordinalSlotCount   = 0;
+        mutable bool                 ordinalsBuilt      = false;
         RetainedCountTable         labelOrdinalById;
         bool                       hasAnyLabel         = false;
         bool                       hasConditionalJump  = false;
         bool                       hasImmediateCompare = false;
+        bool                       hasRegisterCompare  = false;
         bool                       hasSetCondition     = false;
+        bool                       hasIntegerClear     = false;
+
+        uint32_t ordinalOf(MicroInstrRef ref) const
+        {
+            if (ref.get() >= ordinalSlotCount)
+                return std::numeric_limits<uint32_t>::max();
+            if (!ordinalsBuilt)
+            {
+                ordinalByRef.resize(ordinalSlotCount);
+                for (uint32_t ordinal = 0; ordinal < order.size(); ++ordinal)
+                    ordinalByRef[order[ordinal].get()] = ordinal;
+                ordinalsBuilt = true;
+            }
+            return ordinalByRef[ref.get()];
+        }
     };
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
@@ -188,20 +206,22 @@ namespace
             outLabelReferences->clear();
         if (outIndirectJump)
             *outIndirectJump = false;
-        // Only live jump references query this table, and every live slot is
-        // overwritten below. Retain the unused slots across repeated scans.
-        outLayout.ordinalByRef.resize(storage.slotCount());
+        // Only a few branch fusions query ordinals. Retain the table's capacity,
+        // but defer filling it until one of those queries actually occurs.
+        outLayout.ordinalSlotCount = storage.slotCount();
+        outLayout.ordinalsBuilt    = false;
         outLayout.labelOrdinalById.clear();
         outLayout.hasAnyLabel         = false;
         outLayout.hasConditionalJump  = false;
         outLayout.hasImmediateCompare = false;
+        outLayout.hasRegisterCompare  = false;
         outLayout.hasSetCondition     = false;
+        outLayout.hasIntegerClear     = false;
 
         uint32_t ordinal = 0;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++ordinal)
         {
             outLayout.order.push_back(it.current);
-            outLayout.ordinalByRef[it.current.get()] = ordinal;
             if (outIndirectJump && (it->op == MicroInstrOpcode::JumpReg || it->op == MicroInstrOpcode::LoadLabelAddress))
                 *outIndirectJump = true;
 
@@ -221,8 +241,15 @@ namespace
             }
             else if (it->op == MicroInstrOpcode::CmpRegImm)
                 outLayout.hasImmediateCompare = true;
+            else if (it->op == MicroInstrOpcode::CmpRegReg)
+                outLayout.hasRegisterCompare = true;
             else if (it->op == MicroInstrOpcode::SetCondReg)
                 outLayout.hasSetCondition = true;
+            else if (it->op == MicroInstrOpcode::ClearReg)
+            {
+                const MicroInstrOperand* ops = it->ops(operands);
+                outLayout.hasIntegerClear |= ops && ops[0].reg.isInt();
+            }
         }
     }
 
@@ -468,10 +495,10 @@ namespace
 
     bool isTargetInImmediateLabelRun(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef jumpRef, const uint32_t targetLabelId)
     {
-        if (jumpRef.get() >= layout.ordinalByRef.size())
+        const uint32_t jumpOrdinal = layout.ordinalOf(jumpRef);
+        if (jumpOrdinal == std::numeric_limits<uint32_t>::max())
             return false;
 
-        const uint32_t jumpOrdinal = layout.ordinalByRef[jumpRef.get()];
         for (uint32_t ordinal = jumpOrdinal + 1; ordinal < layout.order.size(); ++ordinal)
         {
             const MicroInstr* nextInst = storage.ptr(layout.order[ordinal]);
@@ -3293,8 +3320,8 @@ namespace
 
         struct TableScratch
         {
-            CountTable                        chainJumps;
-            std::unordered_map<uint32_t, Arm> arms;
+            CountTable       chainJumps;
+            FlatKeyMap<Arm>  arms;
         };
 
         bool                                           changed = false;
@@ -3478,7 +3505,7 @@ namespace
             bool valid = true;
             for (const auto& [caseValue, labelId] : cases)
             {
-                if (arms.contains(labelId))
+                if (arms.find(labelId))
                     continue;
                 Arm arm;
                 if (!matchArm(labelId, arm) || lookupCount(labelReferences, labelId) != lookupCount(chainJumps, labelId))
@@ -3486,9 +3513,9 @@ namespace
                     valid = false;
                     break;
                 }
-                arms[labelId] = arm;
+                arms.emplace(labelId, arm);
             }
-            if (!valid || arms.contains(defaultId))
+            if (!valid || arms.find(defaultId))
                 continue;
 
             // The default: its own constant arm, or what D held before the chain
@@ -3568,7 +3595,9 @@ namespace
                 const uint64_t index = caseValue - low;
                 if (isSet[index])
                     continue;
-                table[index] = arms[labelId].value;
+                const Arm* arm = arms.find(labelId);
+                SWC_ASSERT(arm != nullptr);
+                table[index] = arm->value;
                 isSet[index] = 1;
             }
 
@@ -3812,8 +3841,19 @@ namespace
                 if (!arm.falls)
                     storage.erase(layout.order[arm.labelAt + 2]);
             };
-            for (const auto& [labelId, arm] : arms)
-                eraseArm(arm);
+            // Case targets can repeat. Reuse the jump-count table, whose
+            // validation work is complete, to erase each mapped arm once.
+            chainJumps.clear();
+            for (const auto& [caseValue, labelId] : cases)
+            {
+                uint32_t& seen = chainJumps.getOrInsert(labelId);
+                if (seen)
+                    continue;
+                seen = 1;
+                const Arm* arm = arms.find(labelId);
+                SWC_ASSERT(arm != nullptr);
+                eraseArm(*arm);
+            }
             if (defaultIsArm)
                 eraseArm(defaultArm);
 
@@ -7826,8 +7866,8 @@ namespace
     // read needs the old value and its write the new name.
     bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
     {
-        std::unordered_map<MicroReg, MicroReg> renamed;
-        const auto                             renameInstruction = [&](const MicroInstrRef ref) {
+        FlatKeyMap<MicroReg> renamed;
+        const auto           renameInstruction = [&](const MicroInstrRef ref) {
             MicroInstr*        instruction    = storage.ptr(ref);
             MicroInstrOperand* instructionOps = instruction->ops(operands);
             if (!instructionOps)
@@ -7848,10 +7888,10 @@ namespace
                     continue;
                 }
 
-                const auto it = renamed.find(reg);
-                if (it != renamed.end())
+                const MicroReg* renamedReg = renamed.find(reg.packed);
+                if (renamedReg)
                 {
-                    reg = it->second;
+                    reg = *renamedReg;
                     continue;
                 }
                 if (!isDef || !reg.isVirtualInt())
@@ -7860,7 +7900,7 @@ namespace
                     return false;
 
                 const MicroReg fresh = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-                renamed.emplace(reg, fresh);
+                renamed.emplace(reg.packed, fresh);
                 reg = fresh;
             }
             return true;
@@ -8136,15 +8176,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     // The pre-RA loop provides shared SSA. Construct a fallback only when this
     // pass runs standalone, instead of initializing its many buffers every run.
+    // Branch-value folds need SSA only when a conditional branch has a compare
+    // or clear that can produce its flags.
     std::optional<MicroSsaState> localSsaState;
     MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*         ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
+    const bool                   hasSsaBranchWork = hasConditionalJump &&
+                                   (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare || scanCache.scan.layout.hasIntegerClear);
+    const MicroSsaState*         ssaState         = hasSsaBranchWork ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
-    if (ssaState && ssaState->isValid())
+    if (ssaState && ssaState->isValid() && (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare))
         computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     bool changed = false;
@@ -8162,7 +8206,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         return transformChanged;
     };
 
-    if (ssaState && ssaState->isValid())
+    const ProgramLayout& layout = scanCache.scan.layout;
+    if (ssaState && ssaState->isValid() && (layout.hasImmediateCompare || layout.hasRegisterCompare || layout.hasIntegerClear) &&
+        (!knownValues.empty() || layout.hasIntegerClear))
         rewrote(foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags, scanCache.scan.layout, context.builder));
     // The SSA snapshot describes the code before any fold above.
     // Implied branch facts come only from immediate compares. Avoid building

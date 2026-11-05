@@ -25,9 +25,17 @@ impl ReversedCount
 // Returns a zero-allocation view that visits the indices of `count` in descending order.
 #[Swag.Inline]
 func(T) reversed(count: T)->ReversedCount'T
-    where #typeof(#type T).kind == .Native and
-          cast(const *Swag.TypeInfoNative, #typeof(#type T)).nativeKind >= .S8 and
-          cast(const *Swag.TypeInfoNative, #typeof(#type T)).nativeKind <= .U64
+    where
+    {
+        var rawType: const *Swag.TypeInfo = #typeof(#type T)
+        while rawType.kind == .Alias do
+            rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
+        if rawType.kind != .Native do
+            return false
+
+        let native = assume cast(const *Swag.TypeInfoNative, rawType)
+        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
+    }
 {
     return {count: count}
 }

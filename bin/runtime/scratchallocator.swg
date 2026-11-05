@@ -128,26 +128,32 @@ impl IAllocator for ScratchAllocator
         if not request.address do
             return
 
-        Swag.assert(.block != null)
         let reqAddr = request.address
         #static if #safety(Swag.SafetyWhat.ValueBorrow) do
             __valueBorrowWrite(reqAddr, request.size, &request.callerLoc)
 
-        // If this is the last allocated block in the buffer, we can free it
-        // by changing the allocated used size
-        let ptr = (.block + .used) - request.size
-        if ptr == request.address
+        if .block
         {
-            request.address = null
-            .used -= request.size
-            return
-        }
+            // If this is the last allocated block in the buffer, we can free it
+            // by changing the allocated used size. Check before subtracting so a
+            // larger overflow allocation never forms a pointer before the buffer.
+            if request.size <= .used
+            {
+                let ptr = (.block + .used) - request.size
+                if ptr == request.address
+                {
+                    request.address = null
+                    .used -= request.size
+                    return
+                }
+            }
 
-        // If the pointer is in the buffer, then we are done. We cannot free.
-        if request.address >= .block and request.address < .block + .capacity
-        {
-            request.address = null
-            return
+            // If the pointer is in the buffer, then we are done. We cannot free.
+            if request.address >= .block and request.address < .block + .capacity
+            {
+                request.address = null
+                return
+            }
         }
 
         // Otherwise we assume it's a leak. We unlink it, and free it with
@@ -170,27 +176,25 @@ impl IAllocator for ScratchAllocator
     // old payload ('request.oldSize' bytes) is copied into the new block.
     mtd allocBlock(request: *AllocatorRequest)
     {
-        if not .block
+        if not .block and .capacity
         {
             .block = cast([*] u8?, .alloc(.capacity))
-            if not .block
-            {
-                request.address = null
-                return
-            }
         }
 
         // Allocate in the buffer if there is enough room
-        let block        = .block
-        let blockAddress = cast(u64, block)
-        let userAddress  = ScratchAllocator.align(blockAddress + .used, request.alignment)
-        let usedAlign    = userAddress - blockAddress
-        if usedAlign <= .capacity and request.size <= .capacity - usedAlign
+        if .block
         {
-            request.address = cast(*void, userAddress)
-            .used           = usedAlign + request.size
-            .maxUsed        = Swag.max(.maxUsed, .used)
-            return
+            let block        = .block
+            let blockAddress = cast(u64, block)
+            let userAddress  = ScratchAllocator.align(blockAddress + .used, request.alignment)
+            let usedAlign    = userAddress - blockAddress
+            if usedAlign <= .capacity and request.size <= .capacity - usedAlign
+            {
+                request.address = cast(*void, userAddress)
+                .used           = usedAlign + request.size
+                .maxUsed        = Swag.max(.maxUsed, .used)
+                return
+            }
         }
 
         // Otherwise track the allocation in the leak list. The header and payload share an
@@ -206,7 +210,12 @@ impl IAllocator for ScratchAllocator
         }
 
         let totalSize  = request.size + overhead
-        let allocation = cast([*] u8, unwrap .alloc(totalSize, alignment))
+        let allocation = cast([*] u8?, .alloc(totalSize, alignment))
+        if not allocation
+        {
+            request.address = null
+            return
+        }
 
         let headerEnd       = cast(u64, allocation) + #sizeof(LeakHeader)
         let alignedUserAddr = ScratchAllocator.align(headerEnd, alignment)

@@ -22,6 +22,63 @@ private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 // Shape index of a field reference coming from a stream without shapes.
 private const NoShapeIndex = 0xFFFFFFFF'u32
 
+// Raw TagBin arrays bypass per-value decoding, so validate closed enums in place,
+// including enums nested in raw structs and fixed arrays.
+private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
+{
+    if count == 0 do
+        return true
+
+    let valueData = unwrap values
+    let resolvedType = Reflection.resolveAliases(type)
+    let valueSize = cast(u64, resolvedType.sizeof)
+
+    if Reflection.isEnum(resolvedType)
+    {
+        if Reflection.hasAttribute(resolvedType, EnumFlags) or
+           Reflection.hasAttribute(resolvedType, Incomplete) do
+            return true
+
+        for index in count
+        {
+            let valueAddress = cast(const *void, valueData + index * valueSize)
+            if not Reflection.hasDeclaredIntegerValue(resolvedType, valueAddress) do
+                return false
+        }
+        return true
+    }
+
+    if Reflection.isStruct(resolvedType)
+    {
+        let typeStruct = assume cast(const *TypeInfoStruct, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            for &field in typeStruct.fields
+            {
+                if not field.pointedType do
+                    return false
+                if not hasValidClosedEnumValues(unwrap field.pointedType, value + field.offset, 1) do
+                    return false
+            }
+        }
+        return true
+    }
+
+    if Reflection.isStaticArray(resolvedType)
+    {
+        let typeArray = assume cast(const *TypeInfoArray, resolvedType)
+        for index in count
+        {
+            let value = valueData + index * valueSize
+            if not hasValidClosedEnumValues(typeArray.pointedType, value, typeArray.count) do
+                return false
+        }
+    }
+
+    return true
+}
+
 /*
 Reads the TagBin binary format, which keys every field so a stream survives the evolution of its types.
 
@@ -75,7 +132,7 @@ struct TagBin
     convertNextNative: const *Swag.TypeInfoNative?     // Pending native conversion.
     convertValToArray: bool                            // Whether the next scalar becomes an array.
     convertArrayToVal: bool                            // Whether the next array becomes a scalar.
-    outStack:          Array'{ buf: const [..] u8?, seek: u64 }
+    outStack:          Array'{ buf: const [..] u8?, seek: u64, sectionDepth: u64 }
     elemStack:         Array'{ compressed: bool, tmpBuf: *Buffer? }
     tmpPool:           ArrayPtr'Buffer
     expectedRootType:  typeinfo?     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
@@ -210,13 +267,41 @@ private impl TagBin
     // Returns the number of unread bytes.
     mtd remaining()->u64 => .stream.length() - .stream.seek
 
+    // Returns unread payload bytes without crossing the active section's index.
+    // A compressed field installs a new stream, so only sections opened inside that
+    // decompressed payload use offsets relative to it.
+    mtd remainingPayload()->u64
+    {
+        var end = .stream.length()
+        var firstSection = 0'u64
+        if not .outStack.isEmpty() do
+            firstSection = .outStack.back().sectionDepth
+        var index = .sections.count
+        while index > firstSection
+        {
+            index -= 1
+            let sec = unwrap .sections[index]
+            if sec.kind == .Raw
+            {
+                end = Math.min(end, sec.afterFatSeek)
+            }
+            elif sec.kind == .Unordered
+            {
+                let sectionEnd = .stream.seek < sec.fatSeek ? sec.fatSeek : sec.afterFatSeek
+                end = Math.min(end, sectionEnd)
+            }
+        }
+
+        return .stream.seek < end ? end - .stream.seek : 0'u64
+    }
+
     // Reads a varint-sized UTF-8 string from the current stream.
     mtd readWireString()->String fail
     {
         var result: #returntype
         let count = try .stream.readVarint()
-        if count > .remaining() do
-            fail SerializationError{"string runs past the end of the stream"}
+        if count > .remainingPayload() do
+            fail SerializationError{"string runs past the end of its section"}
         result.reserve(count)
         try .stream.readBytes(unwrap result.buffer, count)
         result.length = count
@@ -362,6 +447,8 @@ private impl TagBin
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
 
+        if 4 > .remainingPayload() do
+            fail SerializationError{"fat table runs past the end of its section"}
         let sig = try .stream.readNative'u32()
         if sig != Write.TagBinSignature.Fat do
             fail SerializationError{"invalid fat signature"}
@@ -369,7 +456,9 @@ private impl TagBin
         var fatCount = sec.fatCount
         while fatCount
         {
-            var key  = try .readWireString()
+            var key = try .readWireString()
+            if 8 > .remainingPayload() do
+                fail SerializationError{"fat table runs past the end of its section"}
             let seek = try .stream.readNative'u64()
             if sec.mapSeek.contains(key) do
                 fail SerializationError{"serialized field key is duplicated"}
@@ -395,7 +484,7 @@ private impl TagBin
             // A raw section starts with its byte length, so the end of the decode can be
             // verified against what was written.
             let rawLen = try .stream.readNative'u64()
-            if rawLen > .remaining() do
+            if rawLen > .remainingPayload() do
                 fail SerializationError{"raw section runs past the end of the stream"}
 
             let sec = .newSection()
@@ -421,18 +510,26 @@ private impl TagBin
         let shapeId = try .stream.readNative'u32()
         if shapeId == Write.TagBinAdHocShape
         {
-            let fatSeek  = try .stream.readNative'u64()
-            let fatCount = try .stream.readNative'u64()
-
-            if fatSeek > .stream.length() do
-                fail SerializationError{"fat table runs past the end of the stream"}
+            let fatSeek      = try .stream.readNative'u64()
+            let fatCount     = try .stream.readNative'u64()
+            let payloadStart = .stream.position()
+            let enclosingEnd = payloadStart + .remainingPayload()
+            if fatSeek < payloadStart or fatSeek > enclosingEnd do
+                fail SerializationError{"fat table runs past the end of its section"}
+            if enclosingEnd - fatSeek < #sizeof(u32) do
+                fail SerializationError{"fat table runs past the end of its section"}
+            if fatCount > (enclosingEnd - fatSeek - #sizeof(u32)) / 9 do
+                fail SerializationError{"fat table count runs past the end of its section"}
 
             let sec = .newSection()
             sec.kind         = kind
             sec.plan         = plan
             sec.fatSeek      = fatSeek
             sec.fatCount     = fatCount
-            sec.afterFatSeek = 0
+            sec.payloadStart = payloadStart
+
+            // The enclosing boundary protects table reads until the actual end is known.
+            sec.afterFatSeek = enclosingEnd
 
             catch .loadSectionFat(sec)
             {     // The section is already live, so hand it back before reporting.
@@ -449,11 +546,11 @@ private impl TagBin
 
         let fatSeek      = try .stream.readNative'u64()
         let payloadStart = .stream.position()
-        let streamLength = .stream.length()
-        if fatSeek < payloadStart or fatSeek > streamLength do
-            fail SerializationError{"fat table runs past the end of the stream"}
-        if shape.fields.count > (streamLength - fatSeek) / #sizeof(u32) do
-            fail SerializationError{"fat table runs past the end of the stream"}
+        let enclosingEnd = payloadStart + .remainingPayload()
+        if fatSeek < payloadStart or fatSeek > enclosingEnd do
+            fail SerializationError{"fat table runs past the end of its section"}
+        if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32) do
+            fail SerializationError{"fat table runs past the end of its section"}
         let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
 
         let sec = .newSection()
@@ -488,6 +585,8 @@ private impl TagBin
         let payloadSize = sec.fatSeek - sec.payloadStart
         for i in shape.fields.count
         {
+            if #sizeof(u32) > .remainingPayload() do
+                fail SerializationError{"fat table runs past the end of its section"}
             let off = cast(u64, (try .stream.readNative'u32()))
             if off >= payloadSize do
                 fail SerializationError{"field offset runs past the payload area"}
@@ -535,7 +634,7 @@ private impl TagBin
         // Both sizes come from the stream, so a truncated or foreign payload can
         // name any value at all. The compressed run must fit in what is left,
         // otherwise the element is not readable.
-        if compressedSize > .remaining() do
+        if compressedSize > .remainingPayload() do
             fail SerializationError{"compressed payload runs past the end of the stream", field: val}
 
         if not deflateExpansionFits(uncompressedSize, compressedSize) do
@@ -571,7 +670,7 @@ private impl TagBin
         // track this element context
         .elemStack.add({compressed: true, tmpBuf: decompressedBuffer})
 
-        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize})
+        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize, sectionDepth: .sections.count})
         .stream.readBuffer = decompressedBuffer.toSlice()
         .stream.seek       = 0
     }
@@ -1004,7 +1103,7 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
-        let {buf: parentOut, seek: parentSeek} = .outStack.popBack()
+        let {buf: parentOut, seek: parentSeek, sectionDepth: _} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
@@ -1038,7 +1137,7 @@ impl TagBin
             // Every element takes at least one byte, so a count beyond the remaining
             // bytes is corrupt. Checking here keeps a hostile count from driving the
             // allocations below.
-            if countElem[] > .remaining() do
+            if countElem[] > .remainingPayload() do
                 fail SerializationError{"sequence count runs past the end of the stream"}
         }
 
@@ -1091,7 +1190,7 @@ impl TagBin
                 // Validate the payload against the remaining bytes before any
                 // allocation, so a corrupt count cannot request arbitrary memory.
                 let byteCount = countElem[] * elemSize
-                if elemSize != 0 and countElem[] > .remaining() / elemSize do
+                if elemSize != 0 and countElem[] > .remainingPayload() / elemSize do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
                 // The stream also records the written byte length: a different
@@ -1099,6 +1198,8 @@ impl TagBin
                 let byteLen = try .stream.readVarint()
                 if byteLen != byteCount do
                     fail SerializationError{"raw element layout changed"}
+                if byteCount > .remainingPayload() do
+                    fail SerializationError{"raw sequence runs past the end of its section"}
 
                 let bufArr = cast(*Array'u8, unwrap data)
                 bufArr.count = countElem[]
@@ -1106,6 +1207,8 @@ impl TagBin
                 bufArr.capacity = bufArr.count
                 if byteCount do
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
+                if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
+                    fail SerializationError{"serialized value is not a member of the requested enum"}
                 return true
             }
         }
@@ -1126,15 +1229,19 @@ impl TagBin
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let te = unwrap typeElem
-                if te.sizeof != 0 and streamCount > .remaining() / te.sizeof do
+                if te.sizeof != 0 and streamCount > .remainingPayload() / te.sizeof do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
                 let byteLen = try .stream.readVarint()
                 if byteLen != streamCount * te.sizeof do
                     fail SerializationError{"raw element layout changed"}
+                if streamCount * te.sizeof > .remainingPayload() do
+                    fail SerializationError{"raw sequence runs past the end of its section"}
 
                 if countElem[] and te.sizeof do
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
+                if not hasValidClosedEnumValues(te, data, countElem[]) do
+                    fail SerializationError{"serialized value is not a member of the requested enum"}
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
@@ -1185,7 +1292,7 @@ impl TagBin
             // Validate before reserving, so a corrupt length cannot request an
             // arbitrary allocation. The error type stays fully qualified: this generic
             // body is exported and re-checked without this file's 'using' context.
-            if count > .stream.length() - .stream.seek do
+            if count > .remainingPayload() do
                 fail Core.Errors.SerializationError{"string runs past the end of the stream"}
 
             result.reserve(count)
@@ -1195,6 +1302,10 @@ impl TagBin
         }
         else
         {
+            let nativeSize = .convertNextNative ? .convertNextNative.sizeof : #sizeof(NT)
+            if nativeSize > .remainingPayload() do
+                fail Core.Errors.SerializationError{"value runs past the end of its section"}
+
             if .convertNextNative
             {
                 #[Swag.Safety(.All, false)]

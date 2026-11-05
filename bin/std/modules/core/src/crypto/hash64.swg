@@ -60,6 +60,16 @@ public func(T) hash64(value: T)->u64
         return hashDynamicStorage(T, cast(const [*] u8, &value))
     elif Reflection.isStruct(T) do
         return Hash.murmur3(cast(const [*] u8, &value), #sizeof(T), 0)
+    elif Reflection.isFloat(T)
+    {
+        // IEEE-754 positive and negative zero compare equal, so they must share a hash.
+        if value == 0 do
+            return murmur3(0'u64)
+        #static if #sizeof(T) == 8 do
+            return murmur3(cast #bit (u64, value))
+        else do
+            return murmur3(cast #bit (u32, value))
+    }
     elif #sizeof(T) == 8 do
         return murmur3(cast #bit (u64, value))
     elif #sizeof(T) == 4 do

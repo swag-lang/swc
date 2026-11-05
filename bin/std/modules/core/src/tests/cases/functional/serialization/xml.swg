@@ -85,6 +85,15 @@ func(T) xmlAssertNative(input: string, expected: T)
     Swag.require(reader.stream.peekU8() == '<')
 }
 
+func(T) xmlRejectsOverflow(input: string)->bool
+{
+    var reader: Serialization.Read.Xml
+    expect reader.startRead(input)
+    var outcome: Swag.Error
+    discard catch reader.readNative'T() as outcome
+    return outcome.value() != null
+}
+
 #test
 {
     xmlAssertNative(" 1.5<", 1.5'f32)
@@ -97,4 +106,15 @@ func(T) xmlAssertNative(input: string, expected: T)
     xmlAssertNative(" 65000<", 65000'u16)
     xmlAssertNative(" 4000000000<", 4000000000'u32)
     xmlAssertNative(" 18000000000000000000<", 18000000000000000000'u64)
+}
+
+// Numeric overflow must fail instead of returning the parser's saturated value.
+#test
+{
+    Swag.require(xmlRejectsOverflow'u8("256<"))
+    Swag.require(xmlRejectsOverflow's8("-129<"))
+    Swag.require(xmlRejectsOverflow'f32("1e39<"))
+    Swag.require(xmlRejectsOverflow'f32("-1e39<"))
+    Swag.require(xmlRejectsOverflow'f64("1e309<"))
+    Swag.require(xmlRejectsOverflow'f64("-1e309<"))
 }

@@ -48,9 +48,10 @@ namespace
 
     struct SlotInfo
     {
-        uint64_t                maxAccessEnd       = 0;
-        bool                    hasWrite           = false;
-        bool                    stackPointerAccess = false;
+        uint64_t                maxAccessEnd         = 0;
+        bool                    hasWrite             = false;
+        bool                    stackPointerAccess   = false;
+        bool                    selectedForPromotion = false;
         SmallVector<SlotAccess> accesses;
     };
 
@@ -408,8 +409,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     thread_local FlatKeySet addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
-    thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
+    thread_local FlatKeyMap<uint32_t>                       addrRegMoreOffsetGroups;
+    thread_local std::vector<SmallVector<uint64_t, 2>>      addrRegMoreOffsets;
     addressAdjustments.clear();
+    addrRegMoreOffsetGroups.clear();
     addrRegMoreOffsets.clear();
 
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
@@ -457,7 +460,15 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 found->ambiguous = true;
                 found->stackPointerOrigin |= ops[1].reg == stackPointer;
-                addrRegMoreOffsets[ar].push_back(offset);
+                uint32_t* groupIndex = addrRegMoreOffsetGroups.find(ar.packed);
+                if (!groupIndex)
+                {
+                    const uint32_t newIndex = static_cast<uint32_t>(addrRegMoreOffsets.size());
+                    addrRegMoreOffsets.emplace_back();
+                    addrRegMoreOffsetGroups.getOrInsert(ar.packed) = newIndex;
+                    groupIndex = addrRegMoreOffsetGroups.find(ar.packed);
+                }
+                addrRegMoreOffsets[*groupIndex].push_back(offset);
             }
             else
                 addrRegOffset.emplace(ar.packed, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = ops[1].reg == stackPointer});
@@ -611,15 +622,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         frameEscapes.push_back(escapingRef);
         ensureVarRangesReady();
         bool found = false;
-        for (FrameVarRange& range : varRanges)
+        auto range = std::ranges::upper_bound(varRanges, offset, {}, &FrameVarRange::hi);
+        if (range != varRanges.end() && offset >= range->lo)
         {
-            if (offset >= range.lo && offset < range.hi)
-            {
-                if (!range.poisoned)
-                    range.firstEscape = escapingRef;
-                range.poisoned = true;
-                found          = true;
-            }
+            if (!range->poisoned)
+                range->firstEscape = escapingRef;
+            range->poisoned = true;
+            found           = true;
         }
         if (!found && !unknownSpaceEscaped)
         {
@@ -647,10 +656,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto poisonTrackedEscape = [&](const MicroReg reg, const uint64_t baseOffset, const uint64_t extra) -> bool {
         if (!poisonEscapedOffset(baseOffset + extra))
             return false;
-        const auto more = addrRegMoreOffsets.find(reg);
-        if (more != addrRegMoreOffsets.end())
+        const uint32_t* groupIndex = addrRegMoreOffsetGroups.find(reg.packed);
+        if (groupIndex)
         {
-            for (const uint64_t offset : more->second)
+            for (const uint64_t offset : addrRegMoreOffsets[*groupIndex])
             {
                 if (!poisonEscapedOffset(offset + extra))
                     return false;
@@ -1236,21 +1245,20 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         for (const auto& [wrapLo, wrapHi] : wrappingRanges)
             if (lo < wrapHi || wrapLo < hi)
                 return true;
-        for (const FrameVarRange& range : varRanges)
+        // Frame objects are disjoint and arrive in offset order. Skip every
+        // object ending before this slot, then inspect only starts in its span.
+        auto range = std::ranges::upper_bound(varRanges, lo, {}, &FrameVarRange::hi);
+        for (; range != varRanges.end() && range->lo < hi; ++range)
         {
-            if (range.poisoned && lo < range.hi && range.lo < hi)
+            if (range->poisoned)
                 return true;
         }
         return false;
     };
 
     auto insideKnownVariable = [&](const uint64_t lo, const uint64_t hi) -> bool {
-        for (const FrameVarRange& range : varRanges)
-        {
-            if (lo >= range.lo && hi <= range.hi)
-                return true;
-        }
-        return false;
+        const auto range = std::ranges::upper_bound(varRanges, lo, {}, &FrameVarRange::hi);
+        return range != varRanges.end() && lo >= range->lo && hi <= range->hi;
     };
 
     // A direct SP access to a known local is not an outgoing argument. Its
@@ -1553,6 +1561,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             filtered.push_back(p);
     }
     promotions = std::move(filtered);
+    for (const Promotion& promotion : promotions)
+    {
+        auto slot = slots.find(promotion.offset);
+        SWC_ASSERT(slot != slots.end());
+        if (slot != slots.end())
+            slot->second.selectedForPromotion = true;
+    }
 
     // ---- A word-sized object written once and read field by field. ----
     // A small aggregate passed by value arrives in one register and is spilled
@@ -1574,16 +1589,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // no candidate can use instruction ordinals or the entry boundary.
     if (hasFieldSplitWrite && hasNarrowFieldRead)
     {
-        std::optional<std::unordered_map<uint32_t, uint32_t>> position;
-        uint32_t                                              entryEnd        = std::numeric_limits<uint32_t>::max();
-        const auto                                            ensurePositions = [&] {
+        std::optional<FlatKeyMap<uint32_t>> position;
+        uint32_t                           entryEnd        = std::numeric_limits<uint32_t>::max();
+        const auto                         ensurePositions = [&] {
             if (position)
                 return;
             auto&    ordinals = position.emplace();
             uint32_t index    = 0;
             for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
             {
-                ordinals[it.current.get()] = index;
+                ordinals.getOrInsert(it.current.get()) = index;
                 const MicroInstrDef& info  = MicroInstr::info(it->op);
                 if (entryEnd == std::numeric_limits<uint32_t>::max() &&
                     (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
@@ -1616,7 +1631,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!writeInst || writeInst->op != MicroInstrOpcode::LoadMemReg || !writeInst->ops(operands)[1].reg.isAnyInt())
                 continue;
             ensurePositions();
-            const uint32_t writePos = (*position)[write->ref.get()];
+            const uint32_t writePos = position->getOrInsert(write->ref.get());
             const uint64_t end      = offset + 8;
             if (writePos >= entryEnd || overlapsPoisonedVariable(offset, end) || (unknownSpaceEscaped && !insideKnownVariable(offset, end)))
                 continue;
@@ -1639,7 +1654,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     if (acc.ref == write->ref)
                         continue;
                     const MicroInstr* read = storage.ptr(acc.ref);
-                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || (*position)[acc.ref.get()] <= writePos)
+                    if (acc.isWrite || !read || !isFieldReadOp(read->op) || position->getOrInsert(acc.ref.get()) <= writePos)
                     {
                         usable = false;
                         break;
@@ -1694,8 +1709,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             uint32_t ordinal = 0;
             uint32_t breaks  = 0;
         };
-        std::optional<std::unordered_map<uint32_t, InstructionPosition>> positions;
-        const auto                                                       ensureOrdinals = [&] {
+        std::optional<FlatKeyMap<InstructionPosition>> positions;
+        const auto                                     ensureOrdinals = [&] {
             if (positions)
                 return;
             auto&    ordinals = positions.emplace();
@@ -1706,7 +1721,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const MicroInstrDef& info = MicroInstr::info(it->op);
                 if (it->op == MicroInstrOpcode::Label)
                     ++breaks;
-                ordinals[it.current.get()] = {index, breaks};
+                ordinals.getOrInsert(it.current.get()) = {index, breaks};
                 if (info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                     info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     ++breaks;
@@ -1733,7 +1748,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             if (!usable || !write || write->bits != MicroOpBits::B128)
                 continue;
-            if (std::ranges::any_of(promotions, [&](const Promotion& p) { return p.offset == offset; }))
+            if (slot.selectedForPromotion)
                 continue;
             const MicroInstr* writeInst = storage.ptr(write->ref);
             if (!writeInst || (writeInst->op != MicroInstrOpcode::LoadMemReg && writeInst->op != MicroInstrOpcode::StoreVecMemReg) ||
@@ -1757,7 +1772,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
 
             ensureOrdinals();
-            const InstructionPosition writePosition = (*positions)[write->ref.get()];
+            const InstructionPosition writePosition = positions->getOrInsert(write->ref.get());
 
             LaneSplit split;
             split.offset        = offset;
@@ -1784,7 +1799,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                         usable = false;
                         break;
                     }
-                    const InstructionPosition readPosition = (*positions)[acc.ref.get()];
+                    const InstructionPosition readPosition = positions->getOrInsert(acc.ref.get());
                     if (readPosition.ordinal <= writePosition.ordinal || readPosition.breaks != writePosition.breaks)
                     {
                         usable = false;
@@ -1931,7 +1946,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         uint8_t zero;
     };
     static_assert(std::is_trivial_v<RecordState>);
-    std::optional<std::unordered_map<uint32_t, RecordState>> recordStateAt;
+    std::optional<FlatKeyMap<RecordState>> recordStateAt;
     if (!records.empty())
     {
         const MicroControlFlowGraph& cfg   = context.builder->controlFlowGraph();
@@ -1950,6 +1965,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
         SmallVector<RecordWord> kept;
         FlatKeyMap<RecordState> writeEffects;
+        std::unique_ptr<RecordState[]> in;
+        std::vector<uint8_t>           reached;
+        if (!records.empty())
+        {
+            in = std::make_unique_for_overwrite<RecordState[]>(n);
+            reached.resize(n);
+        }
         for (RecordWord& record : records)
         {
             const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
@@ -1989,8 +2011,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
             // The reached bit guards every read. First arrival assigns a full state,
             // so unreachable slots need no initialization; the entry starts empty.
-            const auto           in = std::make_unique_for_overwrite<RecordState[]>(n);
-            std::vector<uint8_t> reached(n, 0);
+            std::fill(reached.begin(), reached.end(), 0);
             in[entry]      = RecordState{};
             reached[entry] = 1;
             bool changed   = true;
@@ -2042,7 +2063,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     valid = false;
                 // Only partial stores consult these byte facts during rewriting.
                 if (acc.isWrite && !wholeStore)
-                    (*recordStateAt)[acc.ref.get()] = in[index];
+                    recordStateAt->getOrInsert(acc.ref.get()) = in[index];
             }
             if (valid)
                 kept.push_back(std::move(record));
@@ -2287,7 +2308,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // the value in.
             // Over a word known to be zero, the field is the whole word.
             const uint64_t    fieldMask = (count == 8 ? ~0ull : (1ull << (count * 8)) - 1) << shift;
-            const RecordState state     = (*recordStateAt)[acc.ref.get()];
+            const RecordState state     = recordStateAt->getOrInsert(acc.ref.get());
             const uint8_t     byteMask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
             const bool        wordZero  = state.zero == static_cast<uint8_t>((1u << record.bytes) - 1);
             if ((state.zero & byteMask) != byteMask)

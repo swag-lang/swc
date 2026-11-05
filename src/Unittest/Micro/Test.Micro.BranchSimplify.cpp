@@ -78,6 +78,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsPhysicalClearWithoutSsaValues)
 
     builder.emitClearReg(MicroReg::intReg(0), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitLoadRegImm(MicroReg::intReg(1), ApInt(1, 64), MicroOpBits::B64);
     builder.placeLabel(label);
     builder.emitRet();
 

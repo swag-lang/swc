@@ -141,10 +141,11 @@ is the current scorecard.
   passes, but the native executable raises `0xC0000005` writing the literal in read-only
   storage. A variable holding an `any` does not itself own mutable storage for the borrowed
   value.
-- Next: validate the storage-only TypeInfo marker for constant-backed `any` payloads, including
-  inline attribute payloads, `kindOf`, scalar and aggregate value-copy casts, const views, rejection
-  of mutable views, and updated reference examples.
-  Run focused JIT, native, and reference tests once machine-load admission allows a build.
+- Change: compiler type descriptors now carry storage-only constness for constant-backed `any`
+  payloads without changing their logical runtime type. Cast checks preserve it through pointer
+  copies and reject mutable borrows; value copies, const views, `kindOf`, and folded extraction
+  have matching handling and JIT/native fixtures.
+- Next: run focused JIT, native, and reference tests once machine-load admission allows a build.
 - Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
   storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
@@ -251,17 +252,21 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Rule: casts to ordinary enums require a compile-time integer matching a declared member. Runtime
-  integer values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
+- Rule: casts to ordinary enums require a compile-time value matching a declared member. Runtime
+  values cannot be converted, even with `try cast`; use `#[Swag.EnumFlags]` for bit sets.
   `#[Swag.Incomplete]` enums intentionally accept values outside their declared members. This
   avoids invalid values for closed enums regardless of runtime safety settings while a checked
   conversion API is unspecified.
 - Evidence: semantic checks reject runtime ordinary-enum casts and preserve flags-enum casts.
-- Binary and TagBin deserialization now reject undeclared members of closed enums; flags and
-  `#[Swag.Incomplete]` enums retain their declared semantics. TagBin validates enums in raw arrays,
-  including enums nested in raw structs and fixed arrays.
-- Next: finish the generic/reflection conversion audit, then run the focused JIT/native, sema,
-  standard-library, and application tests for the migrated shipped code.
+- Binary and TagBin deserialization now reject undeclared members of closed enums; numeric flags
+  and `#[Swag.Incomplete]` enum payloads retain their declared semantics. TagBin validates enums in
+  raw arrays, including enums nested in raw structs and fixed arrays. JSON string-backed enums map
+  only to declared constants so decoded values do not borrow a temporary parser buffer.
+- Audit: generic `cast` calls use the same specialized sema rules; reflection assignment copies
+  values of one runtime type; text parsing accepts declared enum names; command-line parsing uses
+  that parser. `assume cast` remains the explicit unchecked escape hatch.
+- Next: run the focused JIT/native, sema, standard-library, and application tests for the migrated
+  shipped code.
 - Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime
   values, a runtime flags combination, an open enum, and the migrated shipped call sites; the cast
   reference documents the rule.

@@ -37,6 +37,12 @@ struct JsonF32Payload
     value: f32
 }
 
+enum JsonStringState: string
+{
+    Idle = "idle"
+    Busy = "busy"
+}
+
 struct JsonKeyPayload
 {
     #[Serialization.Key("wireName")]
@@ -90,6 +96,21 @@ func assertJsonPayload(value: JsonPayload)->bool
     defer Memory.delete(decoded)
     Swag.require(assertJsonPayload(decoded[]))
     Swag.require(decoded.transient == 0)
+}
+
+#test
+{
+    let validInput: string = "\"busy\""
+    var validDecoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = expect validDecoder.readAll'JsonStringState(cast(const [..] u8, validInput))
+    defer Memory.delete(decoded)
+    Swag.require(decoded[] == .Busy)
+
+    let input = "\"missing\""
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(JsonStringState, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
 }
 
 #test

@@ -18,6 +18,9 @@ compilation report:
 
 The address-taken label list remains in instruction order. Binary search on that
 unsorted list was rejected; membership checks keep their original semantics.
+Moving indirect-jump detection into the common branch layout scan was also
+rejected: it removes a partial mention scan for indirect functions but adds an
+opcode check to every instruction, and the net effect is unmeasured.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |
@@ -29,7 +32,11 @@ unsorted list was rejected; membership checks keep their original semantics.
 | Mark selected MemToReg promotions | Scanning the promotion list for each candidate vector slot | A flag on each slot is set from the final overlap-filtered promotion list; the lane split consults that same final selection. | DevMode build; all 1,678 C++ tests passed. |
 | Index register-allocation reservations | Scanning every reserved physical-register range for each candidate overlap or local-allocation query | Ranges are inserted in start order only after an overlap check, so they remain disjoint; lower-bound queries find the first range that could intersect without changing the allocator's decisions. | DevMode build; all 1,678 C++ tests passed. |
 | Index sealed loop-region lookup | Scanning all sealed loop regions at every label during register allocation | Regions are collected by increasing instruction index; `lower_bound` locates a label's header while preserving the exact region selected. | DevMode build; all 1,678 C++ tests passed. |
-| Advance register back-edge membership | Searching every active loop's back-edge list linearly at each instruction, then repeating the match during register protection | Each loop's edge indices are sorted once; a monotonic cursor advances through them in instruction order. The match is reused by the immediately following protection scan. | DevMode build; all 1,678 C++ tests passed. |
+| Advance register back-edge membership | Searching every active loop's back-edge list linearly at each instruction, then repeating the match during register protection | CFG predecessor lists are collected in source-instruction order; filtering keeps that order, so a monotonic cursor advances without sorting. Its match is reused by the immediately following protection scan. | DevMode build; all 1,678 C++ tests passed. |
+| Skip dead prefixes in register interval queries | Rescanning earlier fragments for every `covers` and intersection query | The first fragment keeps a direct check; after it expires, the sorted and disjoint ranges use `upper_bound` to skip fragments that cannot contain or intersect the position. | DevMode build; all 1,678 C++ tests passed. |
+| Stop loop-range scans past the current header | Checking every later loop range when finding loop-carried next uses | Loop ranges are collected by ascending header; once a header is beyond the current position, all following ranges are also ineligible. | DevMode build; all 1,678 C++ tests passed. |
+| Gate loop-carried use scans by loop depth | Scanning all back-edge ranges for allocation positions outside every loop | The allocator's existing depth sweep counts precisely the back-edge ranges covering each instruction; zero depth proves no loop can match the election position. | DevMode build; all 1,678 C++ tests passed. |
+| Reserve the initial interval worklist | Repeated vector growth while adding the original intervals to the allocator's unhandled queue | The upper bound is already `out.nodes.size()`; reserving once removes geometric growth during initial population while split children can still expand it later. | DevMode build; all 1,678 C++ tests passed. |
 
 At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite

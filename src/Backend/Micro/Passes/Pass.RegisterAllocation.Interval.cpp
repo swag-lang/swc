@@ -151,25 +151,28 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
 
 bool MicroRegisterAllocationPass::LiveInterval::covers(const uint32_t pos) const
 {
-    for (const IntervalRange& range : ranges)
-    {
-        if (pos < range.from)
-            return false;
-        if (pos < range.to)
-            return true;
-    }
-    return false;
+    if (ranges.empty())
+        return false;
+    if (pos < ranges.front().to)
+        return pos >= ranges.front().from;
+
+    const auto range = std::ranges::upper_bound(ranges.begin() + 1, ranges.end(), pos, {}, &IntervalRange::to);
+    return range != ranges.end() && pos >= range->from;
 }
 
 uint32_t MicroRegisterAllocationPass::LiveInterval::nextIntersection(const LiveInterval& other, const uint32_t from) const
 {
     // First position >= from covered by both, or UINT32_MAX.
-    size_t a = 0;
-    size_t b = 0;
-    while (a < ranges.size() && b < other.ranges.size())
+    auto a = ranges.begin();
+    if (!ranges.empty() && from >= ranges.front().to)
+        a = std::ranges::upper_bound(ranges.begin() + 1, ranges.end(), from, {}, &IntervalRange::to);
+    auto b = other.ranges.begin();
+    if (!other.ranges.empty() && from >= other.ranges.front().to)
+        b = std::ranges::upper_bound(other.ranges.begin() + 1, other.ranges.end(), from, {}, &IntervalRange::to);
+    while (a != ranges.end() && b != other.ranges.end())
     {
-        const IntervalRange& ra = ranges[a];
-        const IntervalRange& rb = other.ranges[b];
+        const IntervalRange& ra = *a;
+        const IntervalRange& rb = *b;
         const uint32_t       lo = std::max({ra.from, rb.from, from});
         const uint32_t       hi = std::min(ra.to, rb.to);
         if (lo < hi)
@@ -523,14 +526,20 @@ namespace
         uint32_t next = node.firstUseAfter(from);
         // Elections start at input slots. An enclosing loop's even tail
         // cannot precede an access already at this input.
-        if (next == from || !walk.loops)
+        const size_t instructionIndex = from / 2;
+        if (next == from || !walk.loops || walk.loops->empty() || !walk.loopDepth ||
+            instructionIndex >= walk.loopDepth->size() || !(*walk.loopDepth)[instructionIndex])
             return next;
         uint32_t lastAccess = K_IV_INVALID;
         for (const LoopRange& loop : *walk.loops)
         {
             const uint32_t headPos = loop.head * 2;
             const uint32_t tailPos = loop.tail * 2;
-            if (from < headPos || from > tailPos + 1 || tailPos >= next)
+            // Loop ranges are collected by ascending header index. Once a
+            // header is past this position, no later range can enclose it.
+            if (from < headPos)
+                break;
+            if (from > tailPos + 1 || tailPos >= next)
                 continue;
             if (!node.covers(headPos) || !node.covers(tailPos))
                 continue;
@@ -720,6 +729,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         }
     }
 
+    walk.unhandled.reserve(out.nodes.size());
     for (uint32_t nodeIndex = 0; nodeIndex < out.nodes.size(); ++nodeIndex)
     {
         if (!out.nodes[nodeIndex].ranges.empty() && nodeIndex != pinnedIndex)

@@ -379,12 +379,13 @@ private impl Application
             return
 
         // Detect changes
-        for button in Input.MouseButton
+        for i in (.mouse.previousState.pressed).count
         {
-            let lastP = .mouse.previousState.pressed[button]
-            let curP  = .mouse.currentState.pressed[button]
+            let lastP = .mouse.previousState.pressed[i]
+            let curP  = .mouse.currentState.pressed[i]
             if not lastP and curP
             {
+                let button = Input.mouseButtonFromStorageIndex(i)
                 if .mouse.isButtonDoubleClick(button)
                 {
                     evt.kind = .DoubleClick
@@ -402,6 +403,7 @@ private impl Application
             }
             elif lastP and not curP
             {
+                let button = Input.mouseButtonFromStorageIndex(i)
                 evt.kind   = .Released
                 evt.button = button
                 targetWnd.sendEvent(&evt)
@@ -441,7 +443,6 @@ private impl Application
             target.surface?.clearFocus()
             return
         }
-
         if target.focusPolicy != .None do
             target.setFocus()
     }
@@ -486,10 +487,10 @@ private impl Application
         let current  = .keyboard.currentState
 
         // Detect changes
-        for key in Input.Key
+        for i in previous.pressed.count
         {
-            let lastP = previous.pressed[key]
-            let curP  = current.pressed[key]
+            let lastP = previous.pressed[i]
+            let curP  = current.pressed[i]
 
             // A surface nothing has focused yet would be deaf to the keyboard. The first key
             // pressed is what seeds the focus, so a window can be driven from the keyboard without
@@ -504,6 +505,7 @@ private impl Application
 
             if not lastP and curP
             {
+                let key = Input.keyFromStorageIndex(i)
                 var evt = KeyEvent{kind: .Pressed}
                 evt.key       = key
                 evt.modifiers = modifiers
@@ -513,6 +515,7 @@ private impl Application
             }
             elif lastP and not curP
             {
+                let key = Input.keyFromStorageIndex(i)
                 var evt = KeyEvent{kind: .Released}
                 evt.key       = key
                 evt.modifiers = modifiers

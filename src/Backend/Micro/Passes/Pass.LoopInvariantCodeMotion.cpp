@@ -1231,7 +1231,11 @@ namespace
                 }
 
                 if (violations.empty())
+                {
+                    keep = {};
+                    std::vector<uint32_t>().swap(worklist);
                     break;
+                }
                 for (const MicroReg reg : violations)
                     banned.insert(reg.packed);
             }

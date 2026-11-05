@@ -24,6 +24,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -1321,7 +1322,8 @@ namespace
             MicroReg asResultReg = MicroReg::invalid();
             // These targets are copied values, so their result does not expose Any storage.
             const bool copyValue = dstType.isScalarNumeric() || dstType.isBool() || dstType.isRune() ||
-                                   dstType.isEnum() || dstType.isString();
+                                   dstType.isEnum() || dstType.isString() ||
+                                   dstType.isStructOrAggregateStruct() || dstType.isAggregateArray();
             SWC_RESULT(emitAnyRuntimeAsCall(
                 asResultReg,
                 codeGen,
@@ -1756,6 +1758,8 @@ namespace
             TypeRef        anyTypeRef    = sourceTypeRef;
             if (srcType.isChar())
                 anyTypeRef = typeMgr.typeRune();
+            const SemaNodeView sourceView = codeGen.viewTypeConstant(srcNodeRef);
+            anyTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(codeGen.sema(), anyTypeRef, sourceView.cstRef(), srcNodeRef);
 
             MicroReg valuePtrReg = srcPayload.reg;
             if (!srcPayload.isAddress())

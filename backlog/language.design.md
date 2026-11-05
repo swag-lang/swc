@@ -281,6 +281,19 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: bindings distinguish absence from zero/false/empty payloads, evaluate once, scope names
   to successful branches, and preserve those rules through guards and nested patterns.
 
+### language.design.042 — A scalar `is/as` binding reads like a value but binds a pointer
+
+- Evidence: the language reference writes `if value is s32 as number where number[] > 0 do`
+  ([005_001_if.swg](../bin/reference/modules/language/src/005_001_if.swg)). The name `number`
+  suggests an `s32`, yet the binding has pointer type and needs `[]` even for a comparison.
+- Elsewhere: Rust identifier patterns copy or move a matched value by default; `ref` requests a
+  borrow explicitly ([Rust patterns](https://doc.rust-lang.org/reference/patterns.html#identifier-patterns)).
+- Next: decide whether scalar `is/as` bindings should copy the value while aggregate bindings
+  keep borrowing, and how a caller requests a mutable view. Check `where` guards, `const any`
+  sources, and pointer-valued payloads before choosing syntax.
+- Done when the binding type and mutation rules are explicit in the reference and JIT/native tests,
+  and the example can compare a scalar without an unexplained dereference.
+
 ### language.design.023 — A contextual `cast(value)` performs whatever conversion the target turns out to need
 
 - Evidence: `cast(value)` with no type "allows the compiler to infer the target type"

@@ -291,7 +291,7 @@ view in an 'if value is T as name' or 'case T as name' pattern.
 
 #test
 {
-    let value: any = "text"
+    let value: const any = "text"
 
     switch value
     {

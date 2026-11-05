@@ -1182,7 +1182,7 @@ namespace
             return Result::Continue;
         }
 
-        // kindOf hides the storage-only marker on constant-backed Any values.
+        // kindOf reports the logical value type, without its backing-storage flag.
         const MicroReg anyBaseReg     = exprPayload.reg;
         const MicroReg anyTypeReg     = codeGen.nextVirtualIntRegister();
         const MicroReg flagsReg       = codeGen.nextVirtualIntRegister();
@@ -1192,9 +1192,9 @@ namespace
         builder.emitLoadRegReg(result.reg, anyTypeReg, MicroOpBits::B64);
         builder.emitCmpRegImm(anyTypeReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
-        builder.emitLoadRegMem(flagsReg, anyTypeReg, offsetof(Runtime::TypeInfo, padding), MicroOpBits::B8);
-        builder.emitOpBinaryRegImm(flagsReg, ApInt(1, 8), MicroOp::And, MicroOpBits::B8);
-        builder.emitCmpRegImm(flagsReg, ApInt(0, 8), MicroOpBits::B8);
+        builder.emitLoadRegMem(flagsReg, anyTypeReg, offsetof(Runtime::TypeInfo, flags), MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(flagsReg, ApInt(static_cast<uint32_t>(Runtime::TypeInfoFlags::ReadOnlyStorage), 32), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(flagsReg, ApInt(0, 32), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
         builder.emitLoadRegMem(unqualifiedReg, anyTypeReg, offsetof(Runtime::TypeInfo, unqualified), MicroOpBits::B64);
         builder.emitCmpRegImm(unqualifiedReg, ApInt(0, 64), MicroOpBits::B64);

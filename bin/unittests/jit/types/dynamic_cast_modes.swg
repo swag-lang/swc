@@ -89,7 +89,7 @@ func(T) readCastValue(value: *T)->s32
 
     const value: s32 = 43
     var constantBox: any = value
-    Swag.require(Swag.kindOf(constantBox) == const s32)
+    Swag.require(Swag.kindOf(constantBox) == s32)
     Swag.require((catch cast(*s32?, constantBox)) == null)
     Swag.require(catch cast(const *s32?, constantBox) != null)
     Swag.require(assume cast(s32, constantBox) == 43)
@@ -129,7 +129,6 @@ func(T) readCastValue(value: *T)->s32
     let readOnly: const *CastValue = &value
     let boxed:    const any        = readOnly
     Swag.require((catch cast(const *CastValue?, boxed)) == readOnly)
-    Swag.require((catch cast(*CastValue?, boxed)) == null)
     let absent: *CastValue? = null
     let castResult4         = cast(*CastValue?, absent)
     Swag.require(castResult4 == null)

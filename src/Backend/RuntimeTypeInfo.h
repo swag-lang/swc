@@ -74,6 +74,7 @@ namespace Runtime
         RequiresExplicitInit = 0x00080000,
         HasDynamicStorage    = 0x00100000,
         Record               = 0x00200000,
+        ReadOnlyStorage      = 0x00400000,
     };
 
     enum class TypeValueFlags : uint32_t

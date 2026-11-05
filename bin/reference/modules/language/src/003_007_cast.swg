@@ -201,7 +201,7 @@ Neither mode extends the lifetime of the boxed value or its pointee.
 #test
 {
     var boxed: any = 42's32
-    if boxed is const s32 as value do
+    if boxed is s32 as value do
         Swag.require(value[] == 42)
     Swag.require(not (boxed is s64))
     Swag.require(assume cast (s32, boxed) == 42)

@@ -24,11 +24,11 @@ func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
 {
     if toType == null or fromType == null or ptr == null do
         return null
-    if (fromType.padding[0] & 1) != 0 and not __isCompilerType(fromType) do
+    if fromType.flags & .ReadOnlyStorage and not __isCompilerType(fromType) do
         return null
     let target = toType
     let targetConst = (target.flags & .Const) != 0
-    let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.padding[0] & 1) != 0
+    let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.flags & .ReadOnlyStorage) != 0
     if sourceReadOnly and not targetConst do
         return null
     var matchSourceType: typeinfo = fromType
@@ -176,6 +176,11 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
         return null
     let requestedType = __concreteAlias(toType)
     let targetIsConst = readOnly or (requestedType.flags & .Const) != 0
+    if fromType.flags & .ReadOnlyStorage
+    {
+        if not __isCompilerType(fromType) or (not targetIsConst and not borrowValue) do
+            return null
+    }
     var targetType    = requestedType
     if not borrowValue and requestedType.kind == .Pointer do
         targetType = __concreteAlias(cast(const *TypeInfoPointer, cast(const *void, requestedType)).pointedType)
@@ -392,22 +397,33 @@ func __runtimeTypeIsPointer(type: typeinfo)->bool
     return valueType.kind == .Pointer
 }
 
+func __runtimeCopiesValue(type: typeinfo)->bool
+{
+    var valueType = type
+    while valueType.kind == .Alias
+    {
+        let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
+        valueType = aliasInfo.rawType
+    }
+    return valueType.kind == .Struct or valueType.kind == .Array or
+           valueType.kind == .TypeListTuple or valueType.kind == .TypeListArray or
+           valueType.kind == .Simd or __runtimeCopyIgnoresConst(valueType)
+}
+
 func __runtimeTypeCast(toType, fromType: typeinfo?)->typeinfo?
 {
     if not __isCompilerType(toType) or not __isCompilerType(fromType) do
         return null
     var target = unwrap toType
     var source = unwrap fromType
-    let sourceStorageOnlyConst = (source.padding[0] & 1) != 0
-    let sourceReadOnly = (source.flags & .Const) != 0 or sourceStorageOnlyConst
-    let copyValue = __runtimeCopyIgnoresConst(target) or
-                    (sourceStorageOnlyConst and __runtimeTypeIsPointer(source))
+    let sourceReadOnly = (source.flags & .Const) != 0
+    let copyValue = __runtimeCopiesValue(target)
     if sourceReadOnly and not copyValue and (target.flags & .Const) == 0 do
         return null
     if sourceReadOnly and source.unqualified != null do
-        source = unwrap source.unqualified
+        source = source.unqualified
     if copyValue and (target.flags & .Const) != 0 and target.unqualified != null do
-        target = unwrap target.unqualified
+        target = target.unqualified
     if __runtimeTypeCompatible(target, source, null) do
         return fromType
     return null
@@ -421,6 +437,14 @@ struct RuntimeValueCastStorage
 
 #assert(#sizeof(RuntimeValueCastStorage) == 4 * #sizeof(u64))
 
+struct RuntimeAnyHeader
+{
+    value: *void?
+    type:  typeinfo?
+}
+
+#assert(#sizeof(RuntimeAnyHeader) == #sizeof(any))
+
 func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void, readOnly: bool)->bool
 {
     let result = cast(*RuntimeValueCastStorage, storage)
@@ -429,40 +453,26 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     result.view.itable = null
     if not __isCompilerType(toType) or source[] == null do
         return false
-    var sourceType = source[].type
-    if not __isCompilerType(sourceType) do
+    let sourceHeader = cast(const *RuntimeAnyHeader, cast(const *void, source))
+    if not __isCompilerType(sourceHeader.type) do
         return false
+    var sourceType = unwrap sourceHeader.type
     var target = unwrap toType
-    let sourceStorageOnlyConst = (sourceType.padding[0] & 1) != 0
+    let sourceStorageOnlyConst = (sourceType.flags & .ReadOnlyStorage) != 0
     let sourceReadOnly = (sourceType.flags & .Const) != 0 or sourceStorageOnlyConst
-    var valueTarget = target
-    while valueTarget.kind == .Alias
-    {
-        let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueTarget))
-        valueTarget = aliasInfo.rawType
-    }
-    var targetIsAny = false
-    if valueTarget.kind == .Native
-    {
-        let native = cast(const *TypeInfoNative, cast(const *void, valueTarget))
-        targetIsAny = native.nativeKind == .Any
-    }
-    let storageOnlyValueCopy = sourceStorageOnlyConst and
-                               not __runtimeTypeIsPointer(target) and
-                               valueTarget.kind != .Interface and not targetIsAny
     let copyReadOnly = sourceReadOnly and
-                       (__runtimeCopyIgnoresConst(target) or storageOnlyValueCopy or
+                       (__runtimeCopiesValue(target) or
                         (sourceStorageOnlyConst and __runtimeTypeIsPointer(sourceType)))
     if sourceReadOnly and not copyReadOnly and not readOnly do
         return false
 
     // A value copy can read a read-only source without exposing its storage.
-    if sourceStorageOnlyConst and sourceType.unqualified == null do
+    if sourceStorageOnlyConst and sourceType.unqualified == null and not copyReadOnly do
         return false
     if (copyReadOnly or sourceStorageOnlyConst) and sourceType.unqualified != null do
-        sourceType = unwrap sourceType.unqualified
-    if __runtimeCopyIgnoresConst(target) and (target.flags & .Const) != 0 and target.unqualified != null do
-        target = unwrap target.unqualified
+        sourceType = sourceType.unqualified
+    if copyReadOnly and (target.flags & .Const) != 0 and target.unqualified != null do
+        target = target.unqualified
 
     if Swag.typeCmp(target, sourceType, .Strict)
     {
@@ -516,10 +526,10 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
     if (type1.kind != type2.kind) or (type1.sizeof != type2.sizeof) do
         return false
 
-    // Nullability and explicit initialization are source contracts, not runtime type identity.
-    let nullableFlags = TypeInfoFlags.Nullable | TypeInfoFlags.RequiresExplicitInit
-    let flags1        = type1.flags & ~nullableFlags
-    let flags2        = type2.flags & ~nullableFlags
+    // These qualifiers do not change the identity of the represented value type.
+    let identityIgnoredFlags = TypeInfoFlags.Nullable | TypeInfoFlags.RequiresExplicitInit | TypeInfoFlags.ReadOnlyStorage
+    let flags1               = type1.flags & ~identityIgnoredFlags
+    let flags2               = type2.flags & ~identityIgnoredFlags
     if flags1 != flags2 do
         return false
 

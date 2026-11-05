@@ -439,9 +439,10 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
         DynamicStructCastSourceInfo sourceInfo;
         if (!resolveDynamicStructCastSourceInfo(sema, nodeExprRef, source.typeRef(), sourceInfo))
             return SemaError::raiseCannotCast(sema, nodeExprRef, source.typeRef(), target.typeRef());
-        TypeInfoFlags flags       = sourceInfo.sourceIsConst ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
+        const bool    readOnly    = sourceInfo.sourceIsConst || !hasFlag(AstIsTypeExprFlagsE::Binding);
+        TypeInfoFlags flags       = readOnly ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
         TypeInfo      destination = targetType.isInterface() ? targetType : TypeInfo::makeValuePointer(target.typeRef(), flags);
-        if (sourceInfo.sourceIsConst)
+        if (readOnly)
             destination.addFlag(TypeInfoFlagsE::Const);
         auto [typeRef, typeNode] = sema.ast().makeNode<AstNodeId::Identifier>(sema.node(nodeTypeRef).tokRef());
         typeNode->setCodeRef(sema.node(nodeTypeRef).codeRef());

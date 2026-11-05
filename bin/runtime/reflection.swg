@@ -86,6 +86,7 @@ namespace Swag
         RequiresExplicitInit = 0x00080000     // This type must be explicitly initialized
         HasDynamicStorage    = 0x00100000     // This value contains compiler-managed dynamic identity slots
         Record               = 0x00200000     // This is an anonymous record with named fields
+        ReadOnlyStorage      = 0x00400000     // An 'any' value uses immutable backing storage
     }
 
     // Runtime representation of an interface value.
@@ -177,7 +178,7 @@ namespace Swag
             crc:         u32                 // Stable type hash; collisions are possible
             flags = TypeInfoFlags.Zero       // Some additional flags
             kind  = TypeInfoKind.Invalid     // The kind of the type
-            padding:     [3] u8     // Bit 0 marks compiler Any descriptors for read-only payload storage
+            padding:     [3] u8
             unqualified: const *TypeInfo?     // Compiler descriptor without outer const/nullability; null for user descriptions
         }
     }

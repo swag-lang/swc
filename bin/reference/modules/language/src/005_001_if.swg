@@ -118,8 +118,8 @@ with a `where` clause. The `where` condition is only evaluated if the variable t
 For a concrete `T`, `name` is a non-null pointer; for an interface, it is an
 interface view. Source constness is preserved. The source is evaluated once, and
 no binding copies the object or extends its lifetime.
-For an 'any' boxed from a literal or constant, qualify `T` with `const` to bind
-a read-only view.
+An 'any' boxed from a literal or constant binds a read-only view.
+Declare the source `const any` to request that view in a binding pattern.
 
 An optional `where` guard runs only after a match. The binding is visible in that
 guard and the successful body, but not in `elif`, `else`, or after the statement.
@@ -127,8 +127,8 @@ A false guard continues to the next branch. `elif` accepts the same binding form
 */
 #test
 {
-    let value: any = 42's32
-    if value is const s32 as number where number[] > 0 do
+    let value: const any = 42's32
+    if value is s32 as number where number[] > 0 do
         Swag.require(number[] == 42)
     elif value is string as text do
         Swag.require(text[].count != 0)

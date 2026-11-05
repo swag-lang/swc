@@ -20,7 +20,7 @@ func runtimeEnumCast(raw: s32)->RuntimeEnumCastColour
     return cast(RuntimeEnumCastColour, raw)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-func runtimeEnumTryCast(raw: s32)->RuntimeEnumCastColour? fail
+func runtimeEnumTryCast(raw: s32)->RuntimeEnumCastColour fail
 {
     return try cast(RuntimeEnumCastColour, raw)     // swc-expected-error {{sema_err_cannot_cast}}
 }

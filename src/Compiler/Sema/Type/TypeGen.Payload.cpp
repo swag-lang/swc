@@ -347,7 +347,7 @@ namespace
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
         if (type.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
-            rtType.padding[0] |= 1;
+            addFlag(rtType, Runtime::TypeInfoFlags::ReadOnlyStorage);
         if (type.isAlias() && type.payloadSymAlias().isStrict())
             addFlag(rtType, Runtime::TypeInfoFlags::Strict);
         if (type.isPositionalTuple())

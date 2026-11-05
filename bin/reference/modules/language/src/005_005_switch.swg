@@ -296,7 +296,7 @@ lifetime. The name is visible in its case's guard and body only.
 */
 #test
 {
-    let value: any = "value"
+    let value: const any = "value"
     switch value
     {
     case s32: Swag.require(false)

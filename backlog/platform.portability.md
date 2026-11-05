@@ -1273,12 +1273,3 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pointers agree in executables and shared objects, and these tests pass without external
   link tools. Imported DSOs may continue to handle their own TLS and IFUNC implementations.
 
-### platform.portability.096 — Link pthread imports in Linux smoke scripts
-
-- Evidence: the Linux `cpp --dev-full` suite fails only
-  `Compiler_SmokeScriptRunsNativeWithModuleSetup`: the integrated ELF linker rejects
-  `smoke_script_00.o` because imported `pthread_getspecific` needs a GOT-relative access.
-  The relocation reaches `ImageWriter.ELF.cpp` as an allocated, non-relative import.
-- Next: preserve the generated object from a reduced reproducer, inspect its relocation type
-  and section, then emit a GOT-relative access or handle the applicable dynamic relocation.
-- Done when: the native smoke script runs and the Linux `cpp --dev-full` suite passes.

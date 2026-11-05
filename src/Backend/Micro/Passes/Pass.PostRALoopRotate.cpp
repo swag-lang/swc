@@ -1569,11 +1569,27 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     // A copied RIP-relative connector needs its own relocation. Keep a
     // snapshot because inserting the copies grows the builder's relocation
     // vector while rotations are applied.
-    std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocationsByRef;
+    struct RelocationGroup
+    {
+        SmallVector<MicroRelocation, 2> relocations;
+    };
+    FlatKeyMap<uint32_t>       relocationGroupByRef;
+    std::vector<RelocationGroup> relocationGroups;
     for (const MicroRelocation& reloc : context.builder->codeRelocations())
     {
         if (reloc.instructionRef.isValid())
-            relocationsByRef[reloc.instructionRef.get()].push_back(reloc);
+        {
+            const uint32_t slot = reloc.instructionRef.get();
+            uint32_t*      groupIndex = relocationGroupByRef.find(slot);
+            if (!groupIndex)
+            {
+                const uint32_t newIndex = static_cast<uint32_t>(relocationGroups.size());
+                relocationGroups.emplace_back();
+                relocationGroupByRef.getOrInsert(slot) = newIndex;
+                groupIndex = relocationGroupByRef.find(slot);
+            }
+            relocationGroups[*groupIndex].relocations.push_back(reloc);
+        }
     }
 
     for (const Rotation& rotation : rotations)
@@ -1604,10 +1620,10 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             testCopy.append(testOps, testInst->numOperands);
             const MicroInstrOpcode testOp  = testInst->op;
             const MicroInstrRef    copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
-            const auto             relocIt = relocationsByRef.find(order[ordinal].get());
-            if (relocIt != relocationsByRef.end())
+            const uint32_t* groupIndex = relocationGroupByRef.find(order[ordinal].get());
+            if (groupIndex)
             {
-                for (MicroRelocation reloc : relocIt->second)
+                for (MicroRelocation reloc : relocationGroups[*groupIndex].relocations)
                 {
                     reloc.instructionRef = copyRef;
                     context.builder->addRelocation(reloc);

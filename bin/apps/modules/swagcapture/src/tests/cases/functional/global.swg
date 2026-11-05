@@ -172,8 +172,7 @@ func testSetupGlobalMain(main: *MainWnd)
 }
 
 // The fixed dark matte was once the persisted default. It now migrates to the theme-derived
-// transparent value without changing a color the user actually chose, and an invalid stored
-// appearance value returns to the standard Swag palette before it reaches the complete switch.
+// transparent value without changing a color the user actually chose.
 #test
 {
     var f: HeadlessFixture
@@ -187,8 +186,4 @@ func testSetupGlobalMain(main: *MainWnd)
     f.main.editorOptions.editBackColor = 0xFF123456'u32
     f.main.migrateStoredOptions()
     Swag.require(f.main.editorOptions.editBackColor == 0xFF123456'u32)
-
-    f.main.editorOptions.theme = cast(AppearanceTheme, 99)
-    f.main.migrateStoredOptions()
-    Swag.require(f.main.editorOptions.theme == .Dark)
 }

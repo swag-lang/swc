@@ -47,15 +47,6 @@ private
     const Adam7SpacingX: [?] s64 = [8, 8, 4, 4, 2, 2, 1]
     const Adam7SpacingY: [?] s64 = [8, 8, 8, 4, 4, 2, 2]
 
-    enum RowFilter: u8
-    {
-        None    = 0
-        Sub     = 1
-        Up      = 2
-        Average = 3
-        Paeth   = 4
-    }
-
     struct ChunkHeader
     {
         length: u32
@@ -558,7 +549,8 @@ impl Decoder
         .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
 
         // defilter content
-        .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels())
+        if not .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels()) do
+            fail InvalidFormatError{"invalid PNG row filter"}
 
         // Channels match: result.pixels was already populated directly by defilter
         if intoResult do

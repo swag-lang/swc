@@ -39,6 +39,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Mixin, .str = "Mixin"},
         {.name = PredefinedName::Implicit, .str = "Implicit"},
         {.name = PredefinedName::EnumFlags, .str = "EnumFlags"},
+        {.name = PredefinedName::Incomplete, .str = "Incomplete"},
         {.name = PredefinedName::ReservedEnumAttribute, .str = "__reserved_enum_attribute"},
         {.name = PredefinedName::NoDuplicate, .str = "NoDuplicate"},
         {.name = PredefinedName::FullInit, .str = "FullInit"},

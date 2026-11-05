@@ -226,16 +226,16 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     }
 
     let movie = registry.choices("movie.mp4")
-    Swag.require(movie[0].key == "video" and cast(ViewerIcons, choicePlugin(&registry, &movie[0]).iconIndex) == .Video)
-    Swag.require(movie[1].key == "binary" and cast(ViewerIcons, choicePlugin(&registry, &movie[1]).iconIndex) == .Binary)
-    Swag.require(movie[2].key == "hex" and cast(ViewerIcons, choicePlugin(&registry, &movie[2]).iconIndex) == .Hex)
+    Swag.require(movie[0].key == "video" and ViewerIconValues[choicePlugin(&registry, &movie[0]).iconIndex] == .Video)
+    Swag.require(movie[1].key == "binary" and ViewerIconValues[choicePlugin(&registry, &movie[1]).iconIndex] == .Binary)
+    Swag.require(movie[2].key == "hex" and ViewerIconValues[choicePlugin(&registry, &movie[2]).iconIndex] == .Hex)
 
     let plain = Gui.Testing.tempFilePath("scope-keys-", ".txt")
     defer discard catch File.delete(plain)
     expect File.writeAllBytes(plain, "plain UTF-8 text")
     let readable = registry.choices(plain)
     Swag.require(readable[0].key == PlainText.ViewerKey)
-    Swag.require(cast(ViewerIcons, choicePlugin(&registry, &readable[0]).iconIndex) == .Text)
+    Swag.require(ViewerIconValues[choicePlugin(&registry, &readable[0]).iconIndex] == .Text)
 }
 
 // A descriptor unknown to the built-in registry participates in discovery and creation without

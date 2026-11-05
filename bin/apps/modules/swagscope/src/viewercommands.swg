@@ -206,7 +206,7 @@ impl ViewerWindow
                     section.inline = true
                 }
 
-                let chosen     = cast(ExplorerMode, cast(u32, mode))
+                let chosen     = ExplorerModeValues[mode]
                 with let entry = section.addEntry(name)
                 {
                     .checked = explorer.mode == chosen
@@ -1043,7 +1043,7 @@ impl ViewerWindow
              ViewerCommands.FilterArchives, ViewerCommands.FilterFolders:
             for command, index in ViewerCommands.KindFilters where id == command
             {
-                explorer.setKindFilter(cast(ExplorerKindFilter, cast(u32, index)))
+                explorer.setKindFilter(ExplorerKindFilterValues[index])
                 return true
             }
 
@@ -1081,19 +1081,19 @@ impl ViewerWindow
         default:
             for command, index in ViewerCommands.Modes where id == command
             {
-                explorer.setMode(cast(ExplorerMode, cast(u32, index)))
+                explorer.setMode(ExplorerModeValues[index])
                 return true
             }
 
             for command, index in ViewerCommands.Boards where id == command
             {
-                explorer.forceBoard(index != 0, index ? cast(ExplorerBoard, cast(u32, index - 1)) : .Grid)
+                explorer.forceBoard(index != 0, index ? ExplorerBoardValues[index - 1] : .Grid)
                 return true
             }
 
             for command, index in ViewerCommands.Artwork where id == command
             {
-                explorer.setArtworkSource(cast(ExplorerArtworkSource, cast(u32, index)))
+                explorer.setArtworkSource(ExplorerArtworkSourceValues[index])
                 return true
             }
 

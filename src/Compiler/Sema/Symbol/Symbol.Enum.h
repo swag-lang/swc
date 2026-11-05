@@ -65,6 +65,7 @@ public:
     }
 
     bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
+    bool     isIncomplete() const { return attributes().hasRtFlag(RtAttributeFlagsE::Incomplete); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
 private:

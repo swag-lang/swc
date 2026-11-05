@@ -27,6 +27,42 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
+// Returns whether an integer stored as an enum's underlying value names a declared member.
+func hasDeclaredIntegerValue(type: typeinfo?, valueAddress: const *void?)->bool
+{
+    if not isEnum(type) or not valueAddress do
+        return false
+
+    let typeEnum = assume cast(const *TypeInfoEnum, type)
+    let rawType  = unwrap typeEnum.rawType
+    switch rawType.sizeof
+    {
+    case 1:
+        let value = cast(const *u8, valueAddress)[]
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if cast(const *u8, caseInfo.value)[] == value do
+                return true
+    case 2:
+        let value = cast(const *u16, valueAddress)[]
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if cast(const *u16, caseInfo.value)[] == value do
+                return true
+    case 4:
+        let value = cast(const *u32, valueAddress)[]
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if cast(const *u32, caseInfo.value)[] == value do
+                return true
+    case 8:
+        let value = cast(const *u64, valueAddress)[]
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if cast(const *u64, caseInfo.value)[] == value do
+                return true
+    default:
+        return true
+    }
+    return false
+}
+
 // Returns the name of the case of enum `type` whose value is stored at `valueAddress`.
 //
 // For an enum marked `#[Swag.EnumFlags]`, returns the name of every case whose bits are all

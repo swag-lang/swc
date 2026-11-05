@@ -41,6 +41,7 @@ enum class RtAttributeFlagsE : uint64_t
     ReadOnly       = 1 << 29,
     NoReturn       = 1 << 30,
     Signal         = 1ull << 31,
+    Incomplete     = 1ull << 32,
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 

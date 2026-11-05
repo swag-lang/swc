@@ -316,6 +316,19 @@ func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->
 
 impl Encoder
 {
+    mtd filterFromIndex(index: s32)->Filter
+    {
+        switch index
+        {
+        case 0: return .None
+        case 1: return .Sub
+        case 2: return .Up
+        case 3: return .Average
+        case 4: return .Paeth
+        default: return .None
+        }
+    }
+
     mtd getBestFilter(size: u32)->Filter
     {
         if .encodeFlags.filterChoice == .Disabled do
@@ -327,7 +340,7 @@ impl Encoder
             for i in 5
             {
                 if chl == 1 << (i + 3) do
-                    return cast(i)
+                    return .filterFromIndex(i)
             }
         }
 
@@ -339,7 +352,7 @@ impl Encoder
             if not (chl & flag) do
                 continue
 
-            let score = .filterSum(size, cast(Filter, i))
+            let score = .filterSum(size, .filterFromIndex(i))
             if score < bestScore
             {
                 bestScore  = score
@@ -347,7 +360,7 @@ impl Encoder
             }
         }
 
-        return cast(bestFilter)
+        return .filterFromIndex(bestFilter)
     }
 
     mtd filterSum(size: u32, filter: Filter)->s32

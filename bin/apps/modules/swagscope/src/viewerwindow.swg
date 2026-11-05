@@ -698,7 +698,7 @@ impl ViewerWindow
     mtd applyTheme(index: u32)
     {
         .themeIndex = Math.min(index, cast(u32, AppearanceTheme.System))
-        .appearanceButton.setAppearanceTheme(cast(AppearanceTheme, .themeIndex))
+    .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
     }
 
     mtd applyLanguage()

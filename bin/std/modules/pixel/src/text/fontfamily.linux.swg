@@ -61,7 +61,7 @@ impl FontFamily
             for i in FontFamilyStyle.count
             {
                 let slot  = &family.faces[i]
-                let style = cast(FontFamilyStyle, i)
+                let style = FontFamilyStyleValues[i]
                 if slot.face.path.isEmpty() or fontCatalogStyleScore(face, style) < fontCatalogStyleScore(&slot.face, style)
                 {
                     slot.name = face.metadata.typographicStyleName
@@ -84,7 +84,7 @@ impl FontFamily
         var result: #returntype
         for i in FontFamilyStyle.count
         {
-            if let face = g_LinuxFontFallback.catalog.findFace(fontFamily, cast(FontFamilyStyle, i))
+            if let face = g_LinuxFontFallback.catalog.findFace(fontFamily, FontFamilyStyleValues[i])
             {
                 if result.name.isEmpty() do
                     result.name = face.metadata.typographicFamilyName

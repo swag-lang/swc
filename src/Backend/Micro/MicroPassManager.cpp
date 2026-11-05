@@ -408,7 +408,7 @@ namespace
             return Result::Continue;
 
 #if SWC_HAS_VALIDATE_MICRO
-        std::unordered_set<uint64_t> seenStates;
+        FlatKey64Set seenStates;
         if (MicroVerify::isEnabled(context))
         {
             seenStates.reserve(static_cast<size_t>(settings.maxIterations) + 1);
@@ -487,7 +487,7 @@ namespace
             {
                 SWC_ASSERT(verifyCache.hasCurrentState);
                 const uint64_t structuralHash = verifyCache.structuralHash;
-                if (!seenStates.insert(structuralHash).second)
+                if (!seenStates.insert(structuralHash))
                 {
                     std::string traceText;
                     if (!iterationTrace.empty())

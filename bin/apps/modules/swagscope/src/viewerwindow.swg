@@ -1016,8 +1016,6 @@ impl ViewerWindow
         Lens.Launcher.create(result, ViewerCommands.Lens)
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
         {
-            .focusPolicy = .Tab
-            .wndFlags.add(.ActivatesOnKey)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()
         }
@@ -1030,6 +1028,7 @@ impl ViewerWindow
         result.updateDocumentInsets()
         result.applyLayout()
         result.layoutFloatingParts()
+        result.home.setFocus()
         return result
     }
 

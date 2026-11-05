@@ -25,8 +25,8 @@ impl Launcher
     // Creates a caption action that posts `command` to `owner`.
     //
     // The surface owns the button, and `owner` must outlive it. The command identifier is copied.
-    // Route the same command from Ctrl Space so pointer and keyboard activation share behavior.
-    // The label follows the application language and its width follows the theme metrics.
+    // Route the same command from Ctrl Space; the caption button itself does not take keyboard
+    // focus. The label follows the application language and its width follows the theme metrics.
     #[Swag.Discardable]
     func create(owner: *Wnd, command: WndId)->*Launcher
     {
@@ -38,8 +38,7 @@ impl Launcher
             .command = command
             .setForm(.RoundedRectangle)
             .setTextPosition(.Right)
-            .focusPolicy = .Tab
-            .wndFlags.add(.ActivatesOnKey)
+            .focusPolicy = .None
             .sigPressed += func|result|(_) { result.owner!.postCommandEvent(result.command) }
             .refreshLabel()
         }

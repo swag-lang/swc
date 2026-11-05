@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// A named lens door fits its label, routes the same command, and survives language changes.
+// A named lens door fits its label, routes a pointer command without taking focus, and survives language changes.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -26,10 +26,9 @@ using Swag, Core
     host.click(button.surfaceRect().center())
     host.pump()
     Swag.require(host.commandCount == 1 and host.lastCommand == "test.lens")
+    Swag.require(button.focusPolicy == .None and not button.hasFocus())
     button.setFocus()
-    host.keyPress(.Return)
-    host.pump()
-    Swag.require(host.commandCount == 2 and host.lastCommand == "test.lens")
+    Swag.require(not button.hasFocus())
 
     expect host.app.setLanguage("fr")
     host.pump()

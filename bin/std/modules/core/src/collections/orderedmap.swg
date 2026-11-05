@@ -193,7 +193,7 @@ impl OrderedMap
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return Swag.makeSlice(cast(const [*] OrderedMapEntry'(K, V), 1'u64), 0)
+            return Swag.makeSlice(.entries.storage(), 0)
         return Swag.makeSlice(.entries.storage() + first, last - first)
     }
 

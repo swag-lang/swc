@@ -348,8 +348,10 @@ public impl CultureInfo
         let turkic = .isLanguage("tr") or .isLanguage("az")
         Utf8.visitRunes(cast(const [..] u8, value))
         {
-            if c == 0x00DF do
+            if c == 0x00DF or c == 0x1E9E do
                 result.append("ss")
+            elif c == 0x017F do
+                result.append('s'u8)
             elif c == 0x03C2 do
                 result.append(0x03C3)
             elif turkic and c == 'I' do

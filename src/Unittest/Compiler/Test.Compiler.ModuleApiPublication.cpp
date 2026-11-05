@@ -138,6 +138,44 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_MultilineArrayInitializer)
+{
+    ApiPublicationTestDirectory directory("MultilineArrayInitializer");
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+const Values: [3] s32 = [
+    10, 20, 30,
+]
+func read(index: u64)->s32 => Values[index]
+)"));
+
+    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "ArrayApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[multiline array API export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { discard ArrayApi.Values[1] }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[multiline array API consumer] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
 {
     ApiPublicationTestDirectory directory("UsingAfterDeclaration");

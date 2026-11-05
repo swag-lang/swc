@@ -31,12 +31,12 @@ func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
     let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.padding[0] & 1) != 0
     if sourceReadOnly and not targetConst do
         return null
-    var matchSourceType = fromType
-    var matchTargetType = target
+    var matchSourceType: typeinfo = fromType
+    var matchTargetType: typeinfo = target
     if sourceReadOnly and fromType.unqualified != null do
-        matchSourceType = unwrap fromType.unqualified
+        matchSourceType = fromType.unqualified
     if targetConst and target.unqualified != null do
-        matchTargetType = unwrap target.unqualified
+        matchTargetType = target.unqualified
     return __findDynamicView(matchTargetType, matchSourceType, ptr, null, targetConst)
 }
 

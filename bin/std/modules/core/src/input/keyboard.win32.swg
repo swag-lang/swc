@@ -23,7 +23,9 @@ impl Keyboard
     {
         if vkey > 255 do
             return Key.None
-        return cast(Key, mapVKeyToKey[vkey])
+        for key in Key where cast(u8, key) == mapVKeyToKey[vkey] do
+            return key
+        return Key.None
     }
 }
 

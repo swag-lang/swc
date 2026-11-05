@@ -93,7 +93,7 @@ private func __ftoaScientific(result: [*] u8, value: f64)
     }
 
     let firstDigit = cast(u8, mantissa)
-    ptr[]    = '0' + firstDigit
+    ptr[]    = cast(u8, '0') + firstDigit
     ptr      += 1
     mantissa = (mantissa - firstDigit) * 10
     ptr[]    = '.'
@@ -103,7 +103,7 @@ private func __ftoaScientific(result: [*] u8, value: f64)
     for 16
     {
         let digit = cast(u8, mantissa)
-        ptr[]    = '0' + digit
+        ptr[]    = cast(u8, '0') + digit
         ptr      += 1
         mantissa = (mantissa - digit) * 10
     }
@@ -124,7 +124,7 @@ func __ftoa(result: [*] u8, value: f64)
 {
     if value != value
     {
-        Swag.memcpy(result, "nan", 4)
+        Swag.memcpy(result, "nan".buffer, 4)
         return
     }
 
@@ -132,11 +132,11 @@ func __ftoa(result: [*] u8, value: f64)
     {
         if value < 0
         {
-            Swag.memcpy(result, "-inf", 5)
+            Swag.memcpy(result, "-inf".buffer, 5)
         }
         else
         {
-            Swag.memcpy(result, "inf", 4)
+            Swag.memcpy(result, "inf".buffer, 4)
         }
 
         return

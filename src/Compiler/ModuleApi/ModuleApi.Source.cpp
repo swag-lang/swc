@@ -222,36 +222,8 @@ namespace
 
         for (uint32_t tokIndex = snippetEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
-            const Token& token  = srcView.token(TokenRef(tokIndex));
-            bool         extend = false;
-
-            switch (token.id)
-            {
-                case TokenId::SymRightParen:
-                    extend = balance.paren != 0;
-                    if (extend)
-                        balance.paren--;
-                    break;
-
-                case TokenId::SymRightBracket:
-                    extend = balance.square != 0;
-                    if (extend)
-                        balance.square--;
-                    break;
-
-                case TokenId::SymRightCurly:
-                    extend = balance.curly != 0;
-                    if (extend)
-                        balance.curly--;
-                    break;
-
-                default:
-                    return;
-            }
-
-            if (!extend)
-                return;
-
+            const Token& token = srcView.token(TokenRef(tokIndex));
+            updateModuleApiDelimiterBalance(balance, token.id);
             ioEndOffset = srcView.tokenByteEnd(token);
             if (balance.empty())
                 return;

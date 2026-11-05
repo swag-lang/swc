@@ -29,8 +29,7 @@ enum FontFamilyStyle
 }
 
 const FontFamilyStyleValues: [6] FontFamilyStyle = [
-    .Regular, .Bold, .Italic, .BoldItalic, .Light, .SemiBold,
-]
+    .Regular, .Bold, .Italic, .BoldItalic, .Light, .SemiBold]
 
 impl FontFamily
 {

@@ -323,7 +323,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.require(Reflection.enumName(enumType, &state, fullyQualified: false) == "Busy")
     Swag.require(Reflection.hasDeclaredValue(enumType, &state))
     Swag.require(not Reflection.hasDeclaredValue(enumType, &invalidStateValue))
-    var stringState = ProbeStringState.Busy
+    var stringState        = ProbeStringState.Busy
     var invalidStringState = "missing"
     Swag.require(Reflection.hasDeclaredValue(#typeof(ProbeStringState), &stringState))
     Swag.require(not Reflection.hasDeclaredValue(#typeof(ProbeStringState), &invalidStringState))

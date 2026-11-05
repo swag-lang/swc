@@ -29,9 +29,9 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
     if count == 0 do
         return true
 
-    let valueData = unwrap values
+    let valueData    = unwrap values
     let resolvedType = Reflection.resolveAliases(type)
-    let valueSize = cast(u64, resolvedType.sizeof)
+    let valueSize    = cast(u64, resolvedType.sizeof)
 
     if Reflection.isEnum(resolvedType)
     {
@@ -45,6 +45,7 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
             if not Reflection.hasDeclaredValue(resolvedType, valueAddress) do
                 return false
         }
+
         return true
     }
 
@@ -58,10 +59,11 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
             {
                 if not field.pointedType do
                     return false
-                if not hasValidClosedEnumValues(unwrap field.pointedType, value + field.offset, 1) do
+                if not hasValidClosedEnumValues(field.pointedType, value + field.offset, 1) do
                     return false
             }
         }
+
         return true
     }
 

@@ -14,9 +14,9 @@ enum LineCapStyle
     SquareAnchor     // Add a centered square anchor.
     RoundAnchor      // Add a centered circular anchor.
 }
+
 const LineCapStyleValues: [8] LineCapStyle = [
-    .None, .Triangle, .Round, .Square, .ArrowAnchor, .ArrowAnchor2, .SquareAnchor, .RoundAnchor,
-]
+    .None, .Triangle, .Round, .Square, .ArrowAnchor, .ArrowAnchor2, .SquareAnchor, .RoundAnchor]
 
 // Selects the cap applied to each dash segment.
 enum DashCapStyle
@@ -46,6 +46,7 @@ enum DashStyle
     Dash        // Use the built-in dashed sequence.
     DashDot     // Alternate built-in dash and dot segments.
 }
+
 const DashStyleValues: [5] DashStyle = [.None, .Pattern, .Dot, .Dash, .DashDot]
 
 // Selects how a stroke is positioned relative to a closed contour.

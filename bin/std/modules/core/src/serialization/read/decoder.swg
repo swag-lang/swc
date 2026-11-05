@@ -147,7 +147,7 @@ impl Decoder
             fail SerializationError{"missing data type"}
         let enumType = Reflection.resolveAliases(dataType)
         let isEnum   = Reflection.isEnum(enumType)
-        var type = Reflection.resolveAliases(dataType)
+        var type     = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
         try .serializer.beginValue()
@@ -159,35 +159,58 @@ impl Decoder
             let typeNative = assume cast(const *TypeInfoNative, type)
             switch typeNative.nativeKind
             {
-            case .Bool:       cast(*bool, data)[] = try .serializer.readNative'bool()
-            case .U8:         cast(*u8, data)[] = try .serializer.readNative'u8()
-            case .U16:        cast(*u16, data)[] = try .serializer.readNative'u16()
-            case .U32, .Rune: cast(*u32, data)[] = try .serializer.readNative'u32()
-            case .U64:        cast(*u64, data)[] = try .serializer.readNative'u64()
-            case .S8:         cast(*s8, data)[] = try .serializer.readNative's8()
-            case .S16:        cast(*s16, data)[] = try .serializer.readNative's16()
-            case .S32:        cast(*s32, data)[] = try .serializer.readNative's32()
-            case .S64:        cast(*s64, data)[] = try .serializer.readNative's64()
-            case .F32:        cast(*f32, data)[] = try .serializer.readNative'f32()
-            case .F64:        cast(*f64, data)[] = try .serializer.readNative'f64()
+            case .Bool:
+                cast(*bool, data)[] = try .serializer.readNative'bool()
+
+            case .U8:
+                cast(*u8, data)[] = try .serializer.readNative'u8()
+
+            case .U16:
+                cast(*u16, data)[] = try .serializer.readNative'u16()
+
+            case .U32, .Rune:
+                cast(*u32, data)[] = try .serializer.readNative'u32()
+
+            case .U64:
+                cast(*u64, data)[] = try .serializer.readNative'u64()
+
+            case .S8:
+                cast(*s8, data)[] = try .serializer.readNative's8()
+
+            case .S16:
+                cast(*s16, data)[] = try .serializer.readNative's16()
+
+            case .S32:
+                cast(*s32, data)[] = try .serializer.readNative's32()
+
+            case .S64:
+                cast(*s64, data)[] = try .serializer.readNative's64()
+
+            case .F32:
+                cast(*f32, data)[] = try .serializer.readNative'f32()
+
+            case .F64:
+                cast(*f64, data)[] = try .serializer.readNative'f64()
+
             case .String:
                 if not isEnum do
                     fail SerializationError{"deserializing a borrowed string is unsupported"}
 
                 // Store a declared enum constant rather than borrowing the temporary parser text.
-                let text = try .serializer.readNative'String()
+                let text     = try .serializer.readNative'Core.String()
                 let typeEnum = assume cast(const *TypeInfoEnum, enumType)
-                var found = false
+                var found    = false
                 for &caseInfo in typeEnum.values where caseInfo.value
                 {
                     let caseValue = cast(const *(string?), unwrap caseInfo.value)[]
-                    if caseValue == text.toSlice()
+                    if caseValue and unwrap caseValue == text.toString()
                     {
-                        cast(*string, data)[] = caseValue
+                        cast(*string, data)[] = unwrap caseValue
                         found = true
                         break
                     }
                 }
+
                 if not found do
                     fail SerializationError{"serialized value is not a member of the requested enum"}
             }
@@ -296,7 +319,7 @@ impl Decoder
             let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if try itf.read(idecoder) do
+                if try itf.read(idecoder)
                 {
                     try validateDecodedEnumValue(enumType, data)
                     return

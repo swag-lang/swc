@@ -509,9 +509,14 @@ impl Vector3
     // [-π, π] and `phi` within [0, π]. `phi` is NaN for the zero vector.
     mtd const toSpherical()->{ theta: f32, phi: f32, radius: f32 }
     {
-        let radius = .length()
-        let phi    = Math.acos(.y / radius)
-        let theta  = Math.atan2(.z, .x)
+        let radius  = .length()
+        var cosineY = .y / radius
+        if cosineY > 1 do
+            cosineY = 1
+        elif cosineY < -1 do
+            cosineY = -1
+        let phi   = Math.acos(cosineY)
+        let theta = Math.atan2(.z, .x)
         return {theta: theta, phi: phi, radius: radius}
     }
 

@@ -177,8 +177,8 @@ namespace
             int64_t   offset = 0;
             int64_t   value  = 0;
         };
-        std::unordered_map<uint32_t, InnerLoop> innerByHeader;
-        std::unordered_map<uint32_t, Guard>     guardByJump;
+        FlatKeyMap<InnerLoop>                   innerByHeader;
+        FlatKeyMap<Guard>                       guardByJump;
         std::unordered_map<MicroReg, int64_t>   offsets;
         offsets.emplace(outer.counter, 0);
 
@@ -241,13 +241,13 @@ namespace
             if (inst->op == MicroInstrOpcode::Label)
             {
                 const auto innerIt = innerByHeader.find(o);
-                if (innerIt == innerByHeader.end())
+                if (!innerIt)
                     continue;
-                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->second.jump - 1])->ops(operands);
+                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->jump - 1])->ops(operands);
                 const auto               offsetIt = offsets.find(cmpOps[0].reg);
                 if (offsetIt == offsets.end())
                     return false;
-                innerIt->second.initOffset = offsetIt->second;
+                innerIt->initOffset = offsetIt->second;
                 continue;
             }
 
@@ -303,23 +303,23 @@ namespace
             const int64_t outerValue = static_cast<int64_t>(outer.initValue + k * outer.step);
             for (uint32_t o = outer.bodyBegin; o < outer.bodyEnd;)
             {
-                if (const auto guardIt = guardByJump.find(o); guardIt != guardByJump.end())
+                if (const Guard* guardIt = guardByJump.find(o))
                 {
                     bool taken = false;
-                    evaluateCompare(taken, guardIt->second.cond, outerValue + guardIt->second.offset, guardIt->second.value);
-                    o = taken ? guardIt->second.target : o + 1;
+                    evaluateCompare(taken, guardIt->cond, outerValue + guardIt->offset, guardIt->value);
+                    o = taken ? guardIt->target : o + 1;
                     continue;
                 }
 
                 const auto innerIt = innerByHeader.find(o);
-                if (innerIt == innerByHeader.end())
+                if (!innerIt)
                 {
                     ++total;
                     ++o;
                     continue;
                 }
 
-                const InnerLoop& inner     = innerIt->second;
+                const InnerLoop& inner     = *innerIt;
                 const int64_t    start     = outerValue + inner.initOffset;
                 const uint64_t   bodyCount = inner.jump - 2 - (o + 1);
                 if (start < 0 || static_cast<uint64_t>(start) >= inner.bound || (inner.bound - static_cast<uint64_t>(start)) % inner.step != 0)

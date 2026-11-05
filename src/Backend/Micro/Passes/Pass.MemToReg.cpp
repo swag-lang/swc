@@ -1950,8 +1950,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
         SmallVector<RecordWord> kept;
         FlatKeyMap<RecordState> writeEffects;
-        auto                   in      = std::make_unique_for_overwrite<RecordState[]>(n);
-        std::vector<uint8_t>   reached(n, 0);
+        std::unique_ptr<RecordState[]> in;
+        std::vector<uint8_t>           reached;
+        if (!records.empty())
+        {
+            in = std::make_unique_for_overwrite<RecordState[]>(n);
+            reached.resize(n);
+        }
         for (RecordWord& record : records)
         {
             const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);

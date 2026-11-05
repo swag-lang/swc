@@ -579,12 +579,22 @@ impl Curve
     {
         var roots: #returntype
 
-        if Math.abs(a) < 1e-6
+        // Scale before solving so the same curve keeps its extrema when its coordinates are
+        // uniformly tiny or large. An absolute cutoff here drops real extrema on small curves.
+        let scale = Math.max(Math.max(Math.abs(a), Math.abs(b)), Math.abs(c))
+        if scale == 0 do
+            return roots
+
+        let scaledA = a / scale
+        let scaledB = b / scale
+        let scaledC = c / scale
+
+        if scaledA == 0
         {
             // Linear case: bx + c = 0
-            if Math.abs(b) > 1e-6
+            if scaledB != 0
             {
-                let root = -c / b
+                let root = -scaledC / scaledB
                 if root >= 0.0 and root <= 1.0 do
                     roots.add(root)
             }
@@ -592,12 +602,24 @@ impl Curve
         else
         {
             // Quadratic case
-            let discriminant = b * b - 4.0 * a * c
+            let discriminant = scaledB * scaledB - 4.0 * scaledA * scaledC
             if discriminant >= 0.0
             {
                 let sqrtD = Math.sqrt(discriminant)
-                let root1 = (-b + sqrtD) / (2.0 * a)
-                let root2 = (-b - sqrtD) / (2.0 * a)
+
+                // This form avoids cancellation when the roots are far apart.
+                let q = -0.5 * (scaledB >= 0 ? scaledB + sqrtD : scaledB - sqrtD)
+                var root1, root2: f32
+                if q == 0
+                {
+                    root1 = -scaledB / (2.0 * scaledA)
+                    root2 = root1
+                }
+                else
+                {
+                    root1 = q / scaledA
+                    root2 = scaledC / q
+                }
 
                 if root1 >= 0.0 and root1 <= 1.0 do
                     roots.add(root1)
@@ -676,30 +698,24 @@ impl Curve
         let ax = 2.0 * (start.x - 2.0 * ctrl.x + end.x)
         let bx = 2.0 * (ctrl.x - start.x)
 
-        if Math.abs(ax) > 1e-6
+        let xRoots = solveQuadratic(0, ax, bx)
+        for t in xRoots
         {
-            let t = -bx / ax
-            if t >= 0.0 and t <= 1.0
-            {
-                let point = evaluateBezier(start, end, ctrl, t)
-                minX = Math.min(minX, point.x)
-                maxX = Math.max(maxX, point.x)
-            }
+            let point = evaluateBezier(start, end, ctrl, t)
+            minX = Math.min(minX, point.x)
+            maxX = Math.max(maxX, point.x)
         }
 
         // For Y component:
         let ay = 2.0 * (start.y - 2.0 * ctrl.y + end.y)
         let by = 2.0 * (ctrl.y - start.y)
 
-        if Math.abs(ay) > 1e-6
+        let yRoots = solveQuadratic(0, ay, by)
+        for t in yRoots
         {
-            let t = -by / ay
-            if t >= 0.0 and t <= 1.0
-            {
-                let point = evaluateBezier(start, end, ctrl, t)
-                minY = Math.min(minY, point.y)
-                maxY = Math.max(maxY, point.y)
-            }
+            let point = evaluateBezier(start, end, ctrl, t)
+            minY = Math.min(minY, point.y)
+            maxY = Math.max(maxY, point.y)
         }
 
         return Rectangle{minX, minY, maxX - minX, maxY - minY}

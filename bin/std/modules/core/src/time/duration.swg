@@ -29,7 +29,14 @@ impl Duration
     #[Inline]
     {
         // Returns the duration rounded to the nearest whole millisecond.
-        mtd const milliseconds()->u64 => cast(u64, Math.round(.seconds * 1000))
+        // Panics when the value is negative, non-finite, or too large for a u64 millisecond count.
+        mtd const milliseconds()->u64
+        {
+            Swag.assert(.seconds >= 0 and Math.isFinite(.seconds), "duration is invalid")
+            let value = Math.round(.seconds * 1000)
+            Swag.assert(value < cast(f64, Swag.U64.Max), "duration is too large in milliseconds")
+            return cast(u64, value)
+        }
 
         // Creates a duration from seconds.
         func fromSeconds(value: f64)->Duration

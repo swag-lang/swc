@@ -28,6 +28,7 @@ unsorted list was rejected; membership checks keep their original semantics.
 | Reuse the SSA fixed-point result in constant folding | Scanning every known-value flag after propagation to determine whether any value was inferred | The fixed-point routine returns whether its unresolved count changed, which is equivalent to checking the final flags. | DevMode build; all 1,678 C++ tests passed. |
 | Mark selected MemToReg promotions | Scanning the promotion list for each candidate vector slot | A flag on each slot is set from the final overlap-filtered promotion list; the lane split consults that same final selection. | DevMode build; all 1,678 C++ tests passed. |
 | Index register-allocation reservations | Scanning every reserved physical-register range for each candidate overlap or local-allocation query | Ranges are inserted in start order only after an overlap check, so they remain disjoint; lower-bound queries find the first range that could intersect without changing the allocator's decisions. | DevMode build; all 1,678 C++ tests passed. |
+| Index sealed loop-region lookup | Scanning all sealed loop regions at every label during register allocation | Regions are collected by increasing instruction index; `lower_bound` locates a label's header while preserving the exact region selected. | DevMode build; all 1,678 C++ tests passed. |
 
 At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite

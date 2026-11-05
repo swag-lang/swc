@@ -666,11 +666,11 @@ namespace
         bool                         indexedWrite           = false;
         bool                         sawStore               = false;
         bool                         allReadsHaveUnitStride = true;
-        std::unordered_set<MicroReg> indexedBases;
-        std::unordered_set<MicroReg> bodyDefs;
-        MicroReg                     loadedValue   = MicroReg::invalid();
-        MicroOpBits                  loadedBits    = MicroOpBits::Zero;
-        uint64_t                     elementStride = 0;
+        SmallVector<MicroReg, 2> indexedBases;
+        FlatKeySet               bodyDefs;
+        MicroReg                 loadedValue   = MicroReg::invalid();
+        MicroOpBits              loadedBits    = MicroOpBits::Zero;
+        uint64_t                 elementStride = 0;
         for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
         {
             const MicroInstrRef      ref  = order[ordinal];
@@ -688,7 +688,8 @@ namespace
                 MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
                 return false;
             const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
-            bodyDefs.insert(useDef.defs.begin(), useDef.defs.end());
+            for (const MicroReg def : useDef.defs)
+                bodyDefs.insert(def.packed);
             if (std::ranges::find(useDef.defs, counter) != useDef.defs.end() ||
                 std::ranges::find(useDef.defs, bound) != useDef.defs.end())
                 return false;
@@ -706,7 +707,7 @@ namespace
                 loadedValue            = ops[0].reg;
                 loadedBits             = bits;
                 elementStride          = stride;
-                indexedBases.insert(ops[1].reg);
+                indexedBases.push_back(ops[1].reg);
             }
             else if (inst->op == MicroInstrOpcode::LoadAmcMemReg)
             {
@@ -716,7 +717,7 @@ namespace
                     ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - (limits.partialFactor - 1) * elementStride)
                     return false;
                 indexedWrite = true;
-                indexedBases.insert(ops[0].reg);
+                indexedBases.push_back(ops[0].reg);
             }
             else
                 return false;
@@ -729,7 +730,7 @@ namespace
             return false;
         for (const MicroReg base : indexedBases)
         {
-            if (bodyDefs.contains(base))
+            if (bodyDefs.contains(base.packed))
                 return false;
         }
 

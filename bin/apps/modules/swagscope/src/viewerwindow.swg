@@ -789,13 +789,11 @@ impl ViewerWindow
         .viewerBarTimer = .addTimer(ViewerBarLinger)
     }
 
-    // Lets the viewer's commands go once the pointer rests, unless it rests on them or the
-    // keyboard is in them.
+    // Lets the viewer's commands go once the pointer rests, unless the keyboard is in them.
     mtd concealViewerBar()
     {
         let focused = .focusedWindow()
-        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or
-                      (focused and .viewerBar.isOwnerOf(focused)) or
+        let held    = (focused and .viewerBar.isOwnerOf(focused)) or
                       .lens.isOpen()
         if held and .viewerBarShown
         {

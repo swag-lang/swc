@@ -125,7 +125,7 @@ impl Panel
     // subtitles. The veils come with it, since the sheet stands on one.
     mtd showOptions()
     {
-        .pointerMoved(true)
+        .pointerMoved()
         .showChoices(.speedChip, func|view = me|(page) { view.describeOptions(page) })
     }
 

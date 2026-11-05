@@ -181,10 +181,9 @@ struct Panel
 
     seekOverlay: *SeekOverlay?
 
-    // The veils show while the hand moves and leave once it has been still a moment, unless it
-    // rests on them or a page of the options is open.
+    // The veils show while the hand moves and leave once it has been still a moment, unless a
+    // timeline is being dragged or an options page is open.
     veilsShown: bool
-    veilsHeld:  bool     // Whether the pointer last moved over a veil.
     veilClock:  Time.Stopwatch     // Time since the pointer last moved.
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
@@ -632,7 +631,7 @@ private impl IWnd for Panel
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Move do
-            .pointerMoved(false)
+            .pointerMoved()
         evt.accepted = false
     }
 
@@ -988,16 +987,11 @@ private impl Panel
             view.seekSeconds(timeline.value())
         }
 
-        // The veils follow the hand: any movement over the film brings them, and where it moved
-        // tells whether they are held.
+        // The veils follow movement over the film and its controls.
         .hookOnChildEvent = func|view = me|(_, evt)->bool
         {
-            if evt is MouseEvent as mouse where mouse.kind == .Move
-            {
-                let target = mouse.target
-                let held   = target != null and (target == view.bottomVeil or view.bottomVeil.isAncestorOf(target))
-                view.pointerMoved(held)
-            }
+            if evt is MouseEvent as mouse where mouse.kind == .Move do
+                view.pointerMoved()
 
             return false
         }
@@ -1013,10 +1007,9 @@ private impl Panel
     }
 
     // Shows the veils, and restarts the stillness after which they leave.
-    mtd pointerMoved(overVeil: bool)
+    mtd pointerMoved()
     {
         .veilClock.restart()
-        .veilsHeld = overVeil
         if .veilsShown do
             return
         .veilsShown = true
@@ -1034,11 +1027,11 @@ private impl Panel
         }
     }
 
-    // Lets the veils leave once the hand has been still for `stillMs` milliseconds, long enough,
-    // unless it rests on them, a timeline is being dragged, or a page of the options is open.
+    // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless a
+    // timeline is being dragged or a page of the options is open.
     internal mtd settleVeils(stillMs: u64)
     {
-        if not .veilsShown or .veilsHeld or .optionsOpen or .timelineChanging do
+        if not .veilsShown or .optionsOpen or .timelineChanging do
             return
         let rest = cast(u64, .themeMetrics().motion_ScrollRest * 1_000) * VeilRestFactor
         if stillMs < rest do
@@ -1066,7 +1059,7 @@ private impl Panel
     // the chip does; the lens does this for a chip it offers.
     mtd showChip(chip: *IconButton, build: OptionSheet.Builder)
     {
-        .pointerMoved(true)
+        .pointerMoved()
         .showChoices(chip, build)
     }
 

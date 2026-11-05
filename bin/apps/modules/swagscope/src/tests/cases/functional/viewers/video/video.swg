@@ -507,7 +507,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
 }
 
 // At rest nothing stands over the picture. A movement of the pointer brings the veils, a moment
-// of stillness takes them away, and a pointer resting on them keeps them. A press on the
+// of stillness takes them away, even when the pointer rests on them. A press on the
 // timeline seeks there, and the chips open the page of the options they name.
 #test
 {
@@ -532,21 +532,31 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     Swag.require(view.veilsShown and view.bottomVeil.isLocallyVisible() and view.topVeil.isLocallyVisible())
     Swag.require(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset + 16)
 
-    // Still over the picture, the veils leave; resting on the controls, they stay.
+    // Still over the picture, the veils leave.
     view.settleVeils(10_000)
     Swag.require(not view.veilsShown and not view.bottomVeil.isLocallyVisible())
 
     // The first movement brings the veils back, the next one lands on their controls.
     host.moveMouse(view.playButton.surfaceRect().center())
     host.moveMouse(view.playButton.surfaceRect().center() + Math.Point{1, 0})
-    Swag.require(view.veilsShown and view.veilsHeld)
+    Swag.require(view.veilsShown)
+    view.settleVeils(10_000)
+    Swag.require(not view.veilsShown and not view.bottomVeil.isLocallyVisible())
+
+    // An active drag keeps the controls visible until it ends.
+    host.moveMouse(view.playButton.surfaceRect().center() + Math.Point{2, 0})
+    view.timelineChanging = true
     view.settleVeils(10_000)
     Swag.require(view.veilsShown)
+    view.timelineChanging = false
+    view.settleVeils(10_000)
+    Swag.require(not view.veilsShown)
 
     // A press on the timeline seeks to where it points.
     let timeline   = view.timeline.surfaceRect()
     let trackX     = timeline.x + 8
     let trackWidth = timeline.width - 16
+    host.moveMouse(Math.Point{trackX + trackWidth * 0.75, timeline.vertCenter()})
     host.click(Math.Point{trackX + trackWidth * 0.75, timeline.vertCenter()})
     waitForVideoFrame(view)
     Swag.require(view.frameIndex == 3 and view.timeText() == "0:00 / 0:01")

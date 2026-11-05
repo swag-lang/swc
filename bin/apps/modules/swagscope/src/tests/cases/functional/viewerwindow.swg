@@ -1249,6 +1249,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let area = window.documentArea()
     Swag.require(window.viewerBar.position.x >= area.x + gutter - 1 and window.viewerBar.position.right() <= area.right() - gutter + 1)
     Swag.require(widestCommands.position.y >= 0 and widestCommands.position.bottom() <= window.viewerBar.position.height)
+    window.notePointer(window.viewerBar.surfaceRect().center())
     host.fireTimer(window.viewerBarTimer)
     Swag.require(not window.viewerBar.isLocallyVisible())
     window.currentCommands = null

@@ -75,7 +75,7 @@ struct TagBin
     convertNextNative: const *Swag.TypeInfoNative?     // Pending native conversion.
     convertValToArray: bool                            // Whether the next scalar becomes an array.
     convertArrayToVal: bool                            // Whether the next array becomes a scalar.
-    outStack:          Array'{ buf: const [..] u8?, seek: u64 }
+    outStack:          Array'{ buf: const [..] u8?, seek: u64, sectionDepth: u64 }
     elemStack:         Array'{ compressed: bool, tmpBuf: *Buffer? }
     tmpPool:           ArrayPtr'Buffer
     expectedRootType:  typeinfo?     // Root type supplied by [[Core.Serialization.Decoder.readAll]].
@@ -209,6 +209,34 @@ private impl TagBin
 
     // Returns the number of unread bytes.
     mtd remaining()->u64 => .stream.length() - .stream.seek
+
+    // Returns unread payload bytes without crossing the active section's index.
+    // A compressed field installs a new stream, so only sections opened inside that
+    // decompressed payload use offsets relative to it.
+    mtd remainingPayload()->u64
+    {
+        var end = .stream.length()
+        var firstSection = 0'u64
+        if not .outStack.isEmpty() do
+            firstSection = .outStack.back()!.sectionDepth
+        var index = .sections.count
+        while index > firstSection
+        {
+            index -= 1
+            let sec = unwrap .sections[index]
+            if sec.kind == .Raw
+            {
+                end = Math.min(end, sec.afterFatSeek)
+            }
+            elif sec.kind == .Unordered
+            {
+                let sectionEnd = .stream.seek < sec.fatSeek ? sec.fatSeek : sec.afterFatSeek
+                end = Math.min(end, sectionEnd)
+            }
+        }
+
+        return .stream.seek < end ? end - .stream.seek : 0'u64
+    }
 
     // Reads a varint-sized UTF-8 string from the current stream.
     mtd readWireString()->String fail
@@ -535,7 +563,7 @@ private impl TagBin
         // Both sizes come from the stream, so a truncated or foreign payload can
         // name any value at all. The compressed run must fit in what is left,
         // otherwise the element is not readable.
-        if compressedSize > .remaining() do
+        if compressedSize > .remainingPayload() do
             fail SerializationError{"compressed payload runs past the end of the stream", field: val}
 
         if not deflateExpansionFits(uncompressedSize, compressedSize) do
@@ -571,7 +599,7 @@ private impl TagBin
         // track this element context
         .elemStack.add({compressed: true, tmpBuf: decompressedBuffer})
 
-        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize})
+        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize, sectionDepth: .sections.count})
         .stream.readBuffer = decompressedBuffer.toSlice()
         .stream.seek       = 0
     }
@@ -1004,7 +1032,7 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
-        let {buf: parentOut, seek: parentSeek} = .outStack.popBack()
+        let {buf: parentOut, seek: parentSeek, sectionDepth: _} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
@@ -1038,7 +1066,7 @@ impl TagBin
             // Every element takes at least one byte, so a count beyond the remaining
             // bytes is corrupt. Checking here keeps a hostile count from driving the
             // allocations below.
-            if countElem[] > .remaining() do
+            if countElem[] > .remainingPayload() do
                 fail SerializationError{"sequence count runs past the end of the stream"}
         }
 
@@ -1091,7 +1119,7 @@ impl TagBin
                 // Validate the payload against the remaining bytes before any
                 // allocation, so a corrupt count cannot request arbitrary memory.
                 let byteCount = countElem[] * elemSize
-                if elemSize != 0 and countElem[] > .remaining() / elemSize do
+                if elemSize != 0 and countElem[] > .remainingPayload() / elemSize do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
                 // The stream also records the written byte length: a different
@@ -1099,6 +1127,8 @@ impl TagBin
                 let byteLen = try .stream.readVarint()
                 if byteLen != byteCount do
                     fail SerializationError{"raw element layout changed"}
+                if byteCount > .remainingPayload() do
+                    fail SerializationError{"raw sequence runs past the end of its section"}
 
                 let bufArr = cast(*Array'u8, unwrap data)
                 bufArr.count = countElem[]
@@ -1126,12 +1156,14 @@ impl TagBin
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let te = unwrap typeElem
-                if te.sizeof != 0 and streamCount > .remaining() / te.sizeof do
+                if te.sizeof != 0 and streamCount > .remainingPayload() / te.sizeof do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
                 let byteLen = try .stream.readVarint()
                 if byteLen != streamCount * te.sizeof do
                     fail SerializationError{"raw element layout changed"}
+                if streamCount * te.sizeof > .remainingPayload() do
+                    fail SerializationError{"raw sequence runs past the end of its section"}
 
                 if countElem[] and te.sizeof do
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
@@ -1185,7 +1217,7 @@ impl TagBin
             // Validate before reserving, so a corrupt length cannot request an
             // arbitrary allocation. The error type stays fully qualified: this generic
             // body is exported and re-checked without this file's 'using' context.
-            if count > .stream.length() - .stream.seek do
+            if count > .remainingPayload() do
                 fail Core.Errors.SerializationError{"string runs past the end of the stream"}
 
             result.reserve(count)
@@ -1195,6 +1227,10 @@ impl TagBin
         }
         else
         {
+            let nativeSize = .convertNextNative ? .convertNextNative.sizeof : #sizeof(NT)
+            if nativeSize > .remainingPayload() do
+                fail Core.Errors.SerializationError{"value runs past the end of its section"}
+
             if .convertNextNative
             {
                 #[Swag.Safety(.All, false)]

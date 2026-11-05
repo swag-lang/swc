@@ -211,10 +211,15 @@ namespace
             int64_t   offset = 0;
             int64_t   value  = 0;
         };
+        struct OffsetValue
+        {
+            int64_t offset = 0;
+            bool    valid  = false;
+        };
         FlatKeyMap<InnerLoop>                   innerByHeader;
         FlatKeyMap<Guard>                       guardByJump;
-        std::unordered_map<MicroReg, int64_t>   offsets;
-        offsets.emplace(outer.counter, 0);
+        FlatKeyMap<OffsetValue>                 offsets;
+        offsets.emplace(outer.counter.packed, OffsetValue{.offset = 0, .valid = true});
 
         const auto labelOrdinal = [&](const uint64_t id) {
             const LabelInfo* info = findLabel(labels, id);
@@ -278,10 +283,10 @@ namespace
                 if (!innerIt)
                     continue;
                 const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->jump - 1])->ops(operands);
-                const auto               offsetIt = offsets.find(cmpOps[0].reg);
-                if (offsetIt == offsets.end())
+                const OffsetValue*        offset = offsets.find(cmpOps[0].reg.packed);
+                if (!offset || !offset->valid)
                     return false;
-                innerIt->initOffset = offsetIt->second;
+                innerIt->initOffset = offset->offset;
                 continue;
             }
 
@@ -296,11 +301,11 @@ namespace
                 const MicroInstrOperand* cmpOps = cmp ? cmp->ops(operands) : nullptr;
                 if (target >= outer.bodyEnd || !cmpOps || cmp->op != MicroInstrOpcode::CmpRegImm || cmpOps[2].hasWideImmediateValue())
                     return false;
-                const auto offsetIt = offsets.find(cmpOps[0].reg);
-                bool       probe    = false;
-                if (offsetIt == offsets.end() || !evaluateCompare(probe, ops[0].cpuCond, 0, 0))
+                const OffsetValue* offset = offsets.find(cmpOps[0].reg.packed);
+                bool               probe  = false;
+                if (!offset || !offset->valid || !evaluateCompare(probe, ops[0].cpuCond, 0, 0))
                     return false;
-                guardByJump.emplace(o, Guard{.target = target, .cond = ops[0].cpuCond, .offset = offsetIt->second, .value = static_cast<int64_t>(cmpOps[2].valueU64)});
+                guardByJump.emplace(o, Guard{.target = target, .cond = ops[0].cpuCond, .offset = offset->offset, .value = static_cast<int64_t>(cmpOps[2].valueU64)});
                 continue;
             }
 
@@ -312,12 +317,12 @@ namespace
                 case MicroInstrOpcode::LoadRegReg:
                 case MicroInstrOpcode::LoadSignedExtRegReg:
                 case MicroInstrOpcode::LoadZeroExtRegReg:
-                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end())
-                        derived.emplace(ops[0].reg, it->second);
+                    if (const OffsetValue* source = offsets.find(ops[1].reg.packed); source && source->valid)
+                        derived.emplace(ops[0].reg, source->offset);
                     break;
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end() && ops[3].valueU64 <= MicroOptimizationLimits::LoopUnroll::K_MAX_DERIVED_OFFSET)
-                        derived.emplace(ops[0].reg, it->second + static_cast<int64_t>(ops[3].valueU64));
+                    if (const OffsetValue* source = offsets.find(ops[1].reg.packed); source && source->valid && ops[3].valueU64 <= MicroOptimizationLimits::LoopUnroll::K_MAX_DERIVED_OFFSET)
+                        derived.emplace(ops[0].reg, source->offset + static_cast<int64_t>(ops[3].valueU64));
                     break;
                 default:
                     break;
@@ -325,9 +330,10 @@ namespace
 
             const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
             for (const MicroReg def : useDef.defs)
-                offsets.erase(def);
+                if (OffsetValue* state = offsets.find(def.packed))
+                    state->valid = false;
             if (derived && derived->first.isVirtualInt())
-                offsets.insert_or_assign(derived->first, derived->second);
+                offsets.getOrInsert(derived->first.packed) = OffsetValue{.offset = derived->second, .valid = true};
         }
 
         // Replay every copy of the outer body with its counter value.

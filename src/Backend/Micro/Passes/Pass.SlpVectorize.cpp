@@ -1443,18 +1443,19 @@ namespace
 
         bool isValueDead(uint32_t valueId)
         {
-            const auto [it, inserted] = states_.try_emplace(valueId, State::InProgress);
-            if (!inserted)
-                return it->second != State::Live;
+            if (const State* known = states_.find(valueId))
+                return *known != State::Live;
 
-            // Optimistic for cycles until a use pins the value live. The reference
-            // remains valid when recursive queries grow the table.
-            State& state = it->second;
+            // Optimistic for cycles until a use pins the value live. Do not keep
+            // a table reference across recursive queries: a flat-table growth can
+            // move its entries.
+            states_.emplace(valueId, State::InProgress);
+            const auto setState = [&](const State state) { *states_.find(valueId) = state; };
 
             const MicroSsaState::ValueInfo* info = fn_->ssa->valueInfo(valueId);
             if (!info)
             {
-                state = State::Live;
+                setState(State::Live);
                 return false;
             }
 
@@ -1470,7 +1471,7 @@ namespace
                     const MicroSsaState::PhiInfo* phi = fn_->ssa->phiInfo(use.phiIndex);
                     if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE || !isValueDead(phi->resultValueId))
                     {
-                        state = State::Live;
+                        setState(State::Live);
                         return false;
                     }
                     continue;
@@ -1481,12 +1482,12 @@ namespace
 
                 if (!isInstructionDead(use.instRef))
                 {
-                    state = State::Live;
+                    setState(State::Live);
                     return false;
                 }
             }
 
-            state = State::Dead;
+            setState(State::Dead);
             return true;
         }
 
@@ -1542,7 +1543,7 @@ namespace
         SlpFunctionContext*                 fn_                = nullptr;
         const std::unordered_set<uint32_t>* deletedStoreRefs_  = nullptr;
         const std::unordered_set<uint32_t>* scalarDefinitions_ = nullptr;
-        std::unordered_map<uint32_t, State> states_;
+        FlatKeyMap<State> states_;
     };
 
     // ------------------------------------------------------------------

@@ -1022,6 +1022,7 @@ namespace
             FlatKeyMap<uint32_t> inLoopUse;
             FlatKeySet           nestedLoopUses;
             bool                 countedLoopUses = false;
+            std::vector<uint32_t> worklist;
             for (;;)
             {
                 runAcceptance();
@@ -1055,8 +1056,8 @@ namespace
                         countedLoopUses = true;
                     }
 
-                    FlatKeySet            keep;
-                    std::vector<uint32_t> worklist;
+                    FlatKeySet keep;
+                    worklist.clear();
                     for (const uint32_t i : hoistOrder)
                     {
                         const MicroInstr*       inst = storage.ptr(instrRefs[i]);

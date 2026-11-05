@@ -203,7 +203,7 @@ public impl TypeFace
 
         if key.style != 0
         {
-            let style = cast(FontFamilyStyle, key.style - 1)
+            let style = FontFamilyStyleValues[key.style - 1]
             tf.forceBold   = (style == .Bold or style == .BoldItalic) and not tf.isBold()
             tf.forceItalic = (style == .Italic or style == .BoldItalic) and not tf.isItalic()
         }

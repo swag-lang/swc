@@ -62,14 +62,14 @@ private func substituteTypeface(fallbackFontFile: string, resource: const *FontR
     for candidate in family
     {
         let installed = FontFamily.findSystemFont(candidate)
-        if let face = catch FontFamily.createTypeFace(installed, cast(FontFamilyStyle, style)) do
+        if let face = catch FontFamily.createTypeFace(installed, FontFamilyStyleValues[style]) do
             return face
     }
 
     for candidate in SubstituteSans
     {
         let installed = FontFamily.findSystemFont(candidate)
-        if let face = catch FontFamily.createTypeFace(installed, cast(FontFamilyStyle, style)) do
+        if let face = catch FontFamily.createTypeFace(installed, FontFamilyStyleValues[style]) do
             return face
     }
 

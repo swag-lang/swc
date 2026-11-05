@@ -158,7 +158,7 @@ impl SheetView
         var palettes: [ThemeVariantCount] ThemeColors
         for i in ThemeVariantCount
         {
-            palettes[i] = variantColors(cast(ThemeVariant, cast(s32, i)))
+            palettes[i] = variantColors(ThemeVariantValues[i])
             .grounds[i] = palettes[i].ground
         }
 
@@ -279,7 +279,7 @@ impl IWnd for SheetView
                     {
                         drawCell(painter,
                                  Math.Rectangle{captionX + 2, head.y, SwatchWidth, head.height},
-                                 variantName(cast(ThemeVariant, cast(s32, i))),
+                                 variantName(ThemeVariantValues[i]),
                                  unwrap .fontName,
                                  colors.label_TextFaint)
                         captionX += SwatchWidth + SwatchGap

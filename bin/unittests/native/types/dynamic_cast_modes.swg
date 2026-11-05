@@ -69,12 +69,54 @@ func(T) readCastValue(value: *T)->s32
 {
     var boxed: any = 17's32
     let value      = catch cast(*s32?, boxed)
-    if value != null do
-        Swag.require(value[] == 17)
-    Swag.require(value != null)
+    Swag.require(value == null)
+    Swag.require(catch cast(const *s32?, boxed) != null)
     let castResult3 = catch cast(*s64?, boxed)
     Swag.require(castResult3 == null)
     Swag.require(assume cast (s32, boxed) == 17)
+}
+
+// Constant-backed any values stay readable and cannot lend mutable storage.
+#test
+{
+    var literalBox: any = 42's32
+    Swag.require(Swag.kindOf(literalBox) == s32)
+    Swag.require((catch cast(*s32?, literalBox)) == null)
+    Swag.require(catch cast(const *s32?, literalBox) != null)
+    if literalBox is s32 as number do
+        number[] = 0
+    Swag.require(assume cast(s32, literalBox) == 42)
+
+    const value: s32 = 43
+    var constantBox: any = value
+    Swag.require(Swag.kindOf(constantBox) == const s32)
+    Swag.require((catch cast(*s32?, constantBox)) == null)
+    Swag.require(catch cast(const *s32?, constantBox) != null)
+    Swag.require(assume cast(s32, constantBox) == 43)
+
+    var recordBox: any = CastValue{number: 46}
+    Swag.require(Swag.kindOf(recordBox) == CastValue)
+    Swag.require((catch cast(*CastValue?, recordBox)) == null)
+    let recordValue = catch cast(const *CastValue?, recordBox)
+    Swag.require(recordValue != null)
+    if recordValue != null do
+        Swag.require(recordValue[].number == 46)
+    var recordCopy = assume cast(CastValue, recordBox)
+    recordCopy.number = 47
+    Swag.require(recordCopy.number == 47)
+    if recordValue != null do
+        Swag.require(recordValue[].number == 46)
+}
+
+// A mutable local remains writable through the same dynamic cast.
+#test
+{
+    var value: s32 = 44
+    var boxed: any = value
+    let pointer = catch cast(*s32?, boxed)
+    Swag.require(pointer != null)
+    pointer[] = 45
+    Swag.require(value == 45)
 }
 
 #assert(CastValue is ICastValue)
@@ -87,6 +129,7 @@ func(T) readCastValue(value: *T)->s32
     let readOnly: const *CastValue = &value
     let boxed:    const any        = readOnly
     Swag.require((catch cast(const *CastValue?, boxed)) == readOnly)
+    Swag.require((catch cast(*CastValue?, boxed)) == null)
     let absent: *CastValue? = null
     let castResult4         = cast(*CastValue?, absent)
     Swag.require(castResult4 == null)

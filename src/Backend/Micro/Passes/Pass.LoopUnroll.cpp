@@ -1273,7 +1273,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Body scan: collect internal labels, verify every branch is either
             // internal (remappable) or a forward exit, and that nothing but the
             // latch touches the counter.
-            std::unordered_set<uint64_t> internalLabels;
+            FlatKey64Set                 internalLabels;
+            SmallVector<uint64_t, 4>     internalLabelOrder;
             bool                         ok = true;
             SmallVector<MicroReg, 4>     constantTableBases;
             SmallVector<MicroReg, 4>     indexValues;
@@ -1317,8 +1318,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     case MicroInstrOpcode::Label:
                         if (!ops || relocLabels.contains(ops[0].valueU64))
                             ok = false;
-                        else
-                            internalLabels.insert(ops[0].valueU64);
+                        else if (internalLabels.insert(ops[0].valueU64))
+                            internalLabelOrder.push_back(ops[0].valueU64);
                         break;
 
                     case MicroInstrOpcode::JumpCond:
@@ -1398,7 +1399,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // No jump from outside the body may land on an internal label.
             // The layout is ordered, so its first and last incoming jumps
             // bound every source without rescanning all function jumps.
-            for (const uint64_t target : internalLabels)
+            for (const uint64_t target : internalLabelOrder)
             {
                 const LabelInfo& internal = *findLabel(labels, target);
                 if (internal.firstJump != std::numeric_limits<uint32_t>::max() &&
@@ -1538,7 +1539,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
             FlatKeyMap<uint32_t, uint32_t>                        currentName;
             uint32_t                                              nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
-            std::optional<std::unordered_map<uint64_t, uint64_t>> labelMap;
+            std::optional<FlatKeyMap<uint64_t, uint64_t>> labelMap;
             if (!internalLabels.empty())
                 labelMap.emplace().reserve(internalLabels.size());
             SmallVector<MicroInstrOperand, 8> newOps;
@@ -1564,8 +1565,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                 // The keys are the same for every copy. Replace their labels
                 // without destroying and allocating the map's nodes again.
-                for (const uint64_t id : internalLabels)
-                    labelMap->insert_or_assign(id, builder.createLabel().get());
+                for (const uint64_t id : internalLabelOrder)
+                    labelMap->getOrInsert(id) = builder.createLabel().get();
 
                 for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
@@ -1578,13 +1579,15 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                     if (src->op == MicroInstrOpcode::Label)
                     {
-                        newOps[0].valueU64 = (*labelMap)[newOps[0].valueU64];
+                        const uint64_t* remapped = labelMap->find(newOps[0].valueU64);
+                        SWC_ASSERT(remapped);
+                        newOps[0].valueU64 = *remapped;
                     }
                     else if (src->op == MicroInstrOpcode::JumpCond && labelMap)
                     {
-                        const auto remapIt = labelMap->find(newOps[2].valueU64);
-                        if (remapIt != labelMap->end())
-                            newOps[2].valueU64 = remapIt->second;
+                        const uint64_t* remapped = labelMap->find(newOps[2].valueU64);
+                        if (remapped)
+                            newOps[2].valueU64 = *remapped;
                     }
 
                     if (src->op == MicroInstrOpcode::OpBinaryRegImm && std::ranges::find(steppedPointers, newOps[0].reg) != steppedPointers.end())

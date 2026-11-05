@@ -1433,12 +1433,14 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // allocator has constraints on. Internal control flow makes a
             // linear renaming wrong at a join, so a body with labels keeps
             // every name.
-            std::unordered_set<MicroReg> renamable;
+            FlatKeySet                   renamable;
+            FlatKeySet                   potentialRenamable;
+            SmallVector<MicroReg, 16>    renamableRegs;
             bool                         hasRenamableFloat = false;
             MicroInstrRegOperandRefs     regOps;
             if (internalLabels.empty())
             {
-                std::unordered_set<MicroReg> seenInBody;
+                FlatKeySet seenInBody;
                 for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
                     MicroInstr* inst = storage.ptr(order[o]);
@@ -1452,20 +1454,25 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     // temporary.
                     for (size_t i = 0; i < modes.size(); ++i)
                         if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual())
-                            seenInBody.insert(ops[i].reg);
+                            seenInBody.insert(ops[i].reg.packed);
                     for (size_t i = 0; i < modes.size(); ++i)
                     {
                         if (modes[i] != MicroInstrRegMode::Def || !ops[i].reg.isVirtual())
                             continue;
-                        if (seenInBody.insert(ops[i].reg).second)
-                            renamable.insert(ops[i].reg);
+                        if (seenInBody.insert(ops[i].reg.packed))
+                        {
+                            potentialRenamable.insert(ops[i].reg.packed);
+                            renamableRegs.push_back(ops[i].reg);
+                        }
                     }
                 }
 
-                // Only the body's candidates matter outside it. Remove them
-                // directly instead of recording every unrelated register read.
+                // Only the body's candidates matter outside it. Mark those
+                // candidates as carried instead of recording unrelated reads.
+                FlatKeySet carriedOutside;
+                const size_t outsideCandidateCount = renamableRegs.size() - (counter.isVirtual() && potentialRenamable.contains(counter.packed) ? 1 : 0);
                 const auto excludeOutsideReads = [&](uint32_t begin, uint32_t end) {
-                    for (uint32_t o = begin; o < end && !renamable.empty(); ++o)
+                    for (uint32_t o = begin; o < end && carriedOutside.size() < outsideCandidateCount; ++o)
                     {
                         const MicroInstr* inst = storage.ptr(order[o]);
                         if (!inst || !inst->numOperands)
@@ -1473,19 +1480,22 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         const MicroInstrOperand* ops   = inst->ops(operands);
                         const auto               modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                         for (size_t i = 0; i < modes.size(); ++i)
-                            if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual())
-                                renamable.erase(ops[i].reg);
+                            if ((modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtual() &&
+                                ops[i].reg != counter && potentialRenamable.contains(ops[i].reg.packed))
+                                carriedOutside.insert(ops[i].reg.packed);
                     }
                 };
                 excludeOutsideReads(0, bodyBegin);
                 excludeOutsideReads(bodyEnd, static_cast<uint32_t>(order.size()));
-                renamable.erase(counter);
-                std::erase_if(renamable, [&](const MicroReg reg) {
-                    if (builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg))
-                        return true;
+                if (counter.isVirtual())
+                    carriedOutside.insert(counter.packed);
+                for (const MicroReg reg : renamableRegs)
+                {
+                    if (carriedOutside.contains(reg.packed) || builder.virtualRegForbiddenPhysRegs().contains(reg) || builder.shouldPreserveVirtualCopy(reg))
+                        continue;
+                    renamable.insert(reg.packed);
                     hasRenamableFloat = hasRenamableFloat || reg.isVirtualFloat();
-                    return false;
-                });
+                }
             }
 
             // A pointer the body steps by a constant, in place, and addresses memory
@@ -1522,7 +1532,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 for (const MicroReg reg : steppedPointers)
                 {
                     const uint32_t* definitionCount = definitions.find(reg.packed);
-                    if (!readsFlags && definitionCount && *definitionCount == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
+                    if (!readsFlags && definitionCount && *definitionCount == 1 && !renamable.contains(reg.packed) && addressBases.contains(reg.packed))
                         kept.push_back(reg);
                 }
                 steppedPointers = kept;
@@ -1633,7 +1643,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         }
                         for (const MicroInstrRegOperandRef& regOp : regOps)
                         {
-                            if (!regOp.def || regOp.use || !renamable.contains(*regOp.reg))
+                            if (!regOp.def || regOp.use || !renamable.contains(regOp.reg->packed))
                                 continue;
                             const MicroReg original = *regOp.reg;
                             MicroReg       fresh;

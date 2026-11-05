@@ -398,7 +398,8 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
     for (const ScalarBlock& block : blocks)
     {
         FlatKeyMap<MicroReg>                   names;
-        std::unordered_map<MicroReg, uint32_t> lastDefinitions;
+        FlatKeyMap<uint32_t>                   lastDefinitions;
+        SmallVector<MicroReg, 8>               definitionOrder;
         FlatKeySet                             members;
         members.reserve(block.instructions.size());
         bool                                   eligible = true;
@@ -424,7 +425,9 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
                     break;
                 }
                 names.emplace(value, MicroReg::virtualFloatReg(nextFloat++));
-                lastDefinitions.insert_or_assign(reg, value);
+                if (!lastDefinitions.find(reg.packed))
+                    definitionOrder.push_back(reg);
+                lastDefinitions.getOrInsert(reg.packed) = value;
             }
         }
         if (!eligible || names.empty())
@@ -517,9 +520,11 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
         }
         if (eligible)
         {
-            for (const auto& [reg, value] : lastDefinitions)
+            for (const MicroReg reg : definitionOrder)
             {
-                const auto* info        = ssa.valueInfo(value);
+                const uint32_t* value = lastDefinitions.find(reg.packed);
+                SWC_ASSERT(value);
+                const auto* info        = ssa.valueInfo(*value);
                 bool        liveOutside = false;
                 for (const auto& use : info->uses)
                 {
@@ -532,7 +537,7 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
                         liveOutside = true;
                 }
                 if (liveOutside)
-                    exitCopies.push_back({block.end, reg, *names.find(value)});
+                    exitCopies.push_back({block.end, reg, *names.find(*value)});
             }
         }
         else

@@ -234,7 +234,7 @@ func reportViewerChromeChanged(view: *Wnd)
 // Opens a neighboring file for the viewer that chose to own directional navigation.
 func navigateViewerFile(view: *Wnd, delta: s32)
 {
-    viewerWindowFor(view).navigate(delta)
+    viewerWindowFor(view).navigate(delta, imagesOnly: true)
 }
 
 // Answers a viewer that has finished presenting its file with what the play mode calls for.
@@ -789,11 +789,13 @@ impl ViewerWindow
         .viewerBarTimer = .addTimer(ViewerBarLinger)
     }
 
-    // Lets the viewer's commands go once the pointer rests, unless the keyboard is in them.
+    // Lets the viewer's commands go once the pointer rests away from them, unless the keyboard
+    // is in them.
     mtd concealViewerBar()
     {
         let focused = .focusedWindow()
-        let held    = (focused and .viewerBar.isOwnerOf(focused)) or
+        let held    = .viewerBar.surfaceRect().contains(.pointerPosition) or
+                      (focused and .viewerBar.isOwnerOf(focused)) or
                       .lens.isOpen()
         if held and .viewerBarShown
         {

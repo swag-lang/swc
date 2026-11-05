@@ -181,9 +181,10 @@ struct Panel
 
     seekOverlay: *SeekOverlay?
 
-    // The veils show while the hand moves and leave once it has been still a moment, unless a
-    // timeline is being dragged or an options page is open.
+    // The veils leave when the hand rests away from them, unless a timeline is being dragged or
+    // an options page is open.
     veilsShown:      bool
+    veilsHeld:       bool
     veilClock:       Time.Stopwatch     // Time since the pointer last moved.
     pointerKnown:    bool
     pointerPosition: Math.Point
@@ -633,7 +634,7 @@ private impl IWnd for Panel
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Move do
-            .notePointer(evt.surfacePos)
+            .notePointer(evt.surfacePos, false)
         evt.accepted = false
     }
 
@@ -992,8 +993,14 @@ private impl Panel
         // The veils follow movement over the film and its controls.
         .hookOnChildEvent = func|view = me|(_, evt)->bool
         {
-            if evt is MouseEvent as mouse where mouse.kind == .Move do
-                view.notePointer(mouse.surfacePos)
+            if evt is MouseEvent as mouse where mouse.kind == .Move
+            {
+                let target   = mouse.target
+                let overVeil = target != null and
+                               (target == view.topVeil or view.topVeil.isAncestorOf(target) or
+                                target == view.bottomVeil or view.bottomVeil.isAncestorOf(target))
+                view.notePointer(mouse.surfacePos, overVeil)
+            }
 
             return false
         }
@@ -1009,8 +1016,9 @@ private impl Panel
     }
 
     // Only a change of position counts as movement, even if a control receives another event.
-    mtd notePointer(position: Math.Point)
+    mtd notePointer(position: Math.Point, overVeil: bool)
     {
+        .veilsHeld = overVeil
         if .pointerKnown and position.x == .pointerPosition.x and position.y == .pointerPosition.y do
             return
         .pointerKnown    = true
@@ -1039,11 +1047,11 @@ private impl Panel
         }
     }
 
-    // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless a
-    // timeline is being dragged or a page of the options is open.
+    // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless the
+    // pointer rests on them, a timeline is being dragged, or a page of the options is open.
     internal mtd settleVeils(stillMs: u64)
     {
-        if not .veilsShown or .optionsOpen or .timelineChanging do
+        if not .veilsShown or .veilsHeld or .optionsOpen or .timelineChanging do
             return
         let rest = cast(u64, .themeMetrics().motion_ScrollRest * 1_000) * VeilRestFactor
         if stillMs < rest do

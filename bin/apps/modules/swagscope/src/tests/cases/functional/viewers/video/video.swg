@@ -548,9 +548,14 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     // The first movement brings the veils back, the next one lands on their controls.
     host.moveMouse(view.playButton.surfaceRect().center())
     host.moveMouse(view.playButton.surfaceRect().center() + Math.Point{1, 0})
-    Swag.require(view.veilsShown)
+    Swag.require(view.veilsShown and view.veilsHeld)
     view.settleVeils(10_000)
-    Swag.require(not view.veilsShown and not view.bottomVeil.isLocallyVisible())
+    Swag.require(view.veilsShown and view.bottomVeil.isLocallyVisible())
+
+    // Moving back into the picture releases the hover hold.
+    host.moveMouse(picturePoint + Math.Point{2, 0})
+    view.settleVeils(10_000)
+    Swag.require(not view.veilsShown and not view.veilsHeld)
 
     // An active drag keeps the controls visible until it ends.
     host.moveMouse(view.playButton.surfaceRect().center() + Math.Point{2, 0})

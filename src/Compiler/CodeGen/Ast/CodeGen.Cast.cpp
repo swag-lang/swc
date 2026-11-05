@@ -1068,17 +1068,45 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAnyRuntimeAsCall(MicroReg& outResultReg, CodeGen& codeGen, const SymbolFunction& asFn, TypeRef targetTypeRef, MicroReg sourceTypeReg, MicroReg valueAddrReg)
+    Result emitAnyRuntimeAsCall(
+        MicroReg& outResultReg,
+        CodeGen& codeGen,
+        const SymbolFunction& asFn,
+        TypeRef targetTypeRef,
+        MicroReg sourceTypeReg,
+        MicroReg valueAddrReg,
+        bool copyValue = false)
     {
         MicroBuilder& builder = codeGen.builder();
 
         MicroReg targetTypeReg = MicroReg::invalid();
         SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetTypeRef));
 
+        MicroReg castSourceTypeReg = sourceTypeReg;
+        if (copyValue)
+        {
+            // User-authored type descriptions may not have an unqualified descriptor.
+            castSourceTypeReg = codeGen.nextVirtualIntRegister();
+            const MicroReg unqualifiedTypeReg = codeGen.nextVirtualIntRegister();
+            const MicroLabelRef keepSourceTypeLabel = builder.createLabel();
+            builder.emitLoadRegReg(castSourceTypeReg, sourceTypeReg, MicroOpBits::B64);
+            builder.emitCmpRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, keepSourceTypeLabel);
+            builder.emitLoadRegMem(
+                unqualifiedTypeReg,
+                sourceTypeReg,
+                offsetof(Runtime::TypeInfo, unqualified),
+                MicroOpBits::B64);
+            builder.emitCmpRegImm(unqualifiedTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, keepSourceTypeLabel);
+            builder.emitLoadRegReg(castSourceTypeReg, unqualifiedTypeReg, MicroOpBits::B64);
+            builder.placeLabel(keepSourceTypeLabel);
+        }
+
         outResultReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegImm(outResultReg, ApInt(0, 64), MicroOpBits::B64);
 
-        const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
+        const MicroReg args[] = {targetTypeReg, castSourceTypeReg, valueAddrReg};
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, outResultReg);
     }
 
@@ -1142,7 +1170,14 @@ namespace
 
             if (dstType.isConst())
             {
-                SWC_RESULT(emitAnyRuntimeAsCall(asValueAddrReg, codeGen, runtimeAsFn, dstType.payloadTypeRef(), sourceTypeReg, valueAddrReg));
+                SWC_RESULT(emitAnyRuntimeAsCall(
+                    asValueAddrReg,
+                    codeGen,
+                    runtimeAsFn,
+                    dstType.payloadTypeRef(),
+                    sourceTypeReg,
+                    valueAddrReg,
+                    true));
 
                 TypeInfoFlags mutableFlags = dstType.flags();
                 mutableFlags.remove(TypeInfoFlagsE::Const);
@@ -1284,7 +1319,17 @@ namespace
             builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
 
             MicroReg asResultReg = MicroReg::invalid();
-            SWC_RESULT(emitAnyRuntimeAsCall(asResultReg, codeGen, runtimeAsFn, dstTypeRef, sourceTypeReg, valueAddrReg));
+            // These targets are copied values, so their result does not expose Any storage.
+            const bool copyValue = dstType.isScalarNumeric() || dstType.isBool() || dstType.isRune() ||
+                                   dstType.isEnum() || dstType.isString();
+            SWC_RESULT(emitAnyRuntimeAsCall(
+                asResultReg,
+                codeGen,
+                runtimeAsFn,
+                dstTypeRef,
+                sourceTypeReg,
+                valueAddrReg,
+                copyValue));
 
             if (hasDynCastSafety)
             {

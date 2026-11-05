@@ -1381,9 +1381,19 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     Runtime::Any runtimeAny{};
     std::memcpy(&runtimeAny, anyBytes.data(), sizeof(runtimeAny));
 
-    const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(runtimeAny.type);
+    TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(runtimeAny.type);
     if (!valueTypeRef.isValid())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    // The runtime descriptor records storage constness separately from the
+    // logical type. Constant folding operates on that logical type.
+    const TypeInfo& boxedType = sema.typeMgr().get(valueTypeRef);
+    if (boxedType.hasFlag(TypeInfoFlagsE::ReadOnlyStorage))
+    {
+        TypeInfo logicalType = boxedType;
+        logicalType.removeFlag(TypeInfoFlagsE::ReadOnlyStorage);
+        valueTypeRef = sema.typeMgr().addType(logicalType);
+    }
 
     ConstantRef valueCstRef = ConstantRef::invalid();
     if (!runtimeAny.value)

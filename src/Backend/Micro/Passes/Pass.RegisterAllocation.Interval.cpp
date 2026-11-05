@@ -524,7 +524,11 @@ namespace
         {
             const uint32_t headPos = loop.head * 2;
             const uint32_t tailPos = loop.tail * 2;
-            if (from < headPos || from > tailPos + 1 || tailPos >= next)
+            // Loop ranges are collected by ascending header index. Once a
+            // header is past this position, no later range can enclose it.
+            if (from < headPos)
+                break;
+            if (from > tailPos + 1 || tailPos >= next)
                 continue;
             if (!node.covers(headPos) || !node.covers(tailPos))
                 continue;

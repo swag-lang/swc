@@ -80,6 +80,15 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
     let full = cast(const [..] u8, "aaaaé")
     Swag.require(Text.detectEncoding(full[0 until full.count - 1]) == .Utf8)
+
+    let fourByte = cast(const [..] u8, "aaaa😀")
+    Swag.require(Text.detectEncoding(fourByte[0 until fourByte.count - 1]) == .Utf8)
+
+    let invalidTail: [4] u8 = ['c', 'a', 'f', 0xFF]
+    Swag.require(Text.detectEncoding(invalidTail) == .Windows1252)
+
+    let brokenTail: [5] u8 = ['c', 'a', 'f', 0xE2, '(']
+    Swag.require(Text.detectEncoding(brokenTail) == .Windows1252)
 }
 
 // Decoding produces the same UTF-8 whatever the source spells it in, including above the BMP.

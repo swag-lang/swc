@@ -122,9 +122,45 @@ func detectEncoding(probe: const [..] u8)->Encoding
             return true
 
         let count = bytes.count
-        for back in 1 to 3 where back < count
+        for back in 1 to 4 where back <= count
         {
-            if Utf8.isValid(bytes[0 until count - back]) do
+            let start = count - back
+            let lead  = bytes[start]
+            var size  = 0'u8
+            if lead >= 0xC2 and lead <= 0xDF do
+                size = 2
+            elif lead >= 0xE0 and lead <= 0xEF do
+                size = 3
+            elif lead >= 0xF0 and lead <= 0xF4 do
+                size = 4
+            if not size or back >= size do
+                continue
+            if not Utf8.isValid(bytes[until start]) do
+                continue
+
+            var validTail = true
+            for offset in 1 until back
+            {
+                let value = bytes[start + offset]
+                if value < 0x80 or value > 0xBF
+                {
+                    validTail = false
+                    break
+                }
+
+                // The second byte excludes overlong forms, surrogates, and values past MaxRune.
+                if offset == 1 and
+                   ((lead == 0xE0 and value < 0xA0) or
+                    (lead == 0xED and value > 0x9F) or
+                    (lead == 0xF0 and value < 0x90) or
+                    (lead == 0xF4 and value > 0x8F))
+                {
+                    validTail = false
+                    break
+                }
+            }
+
+            if validTail do
                 return true
         }
 

@@ -23,6 +23,12 @@ struct OrderedMapKey
     rank: s32
 }
 
+struct OrderedMapEquivalentKey
+{
+    rank:  s32
+    label: s32
+}
+
 #test
 {
     var map: OrderedMap'(s32, String)
@@ -89,6 +95,17 @@ struct OrderedMapKey
     var copy = map
     copy.add({rank: 2}, 20)
     Swag.require(map.count == 2 and copy.count == 3)
+}
+
+#test
+{
+    var map: OrderedMap'(OrderedMapEquivalentKey, s32)
+    map.initialize(func(left, right: const *OrderedMapEquivalentKey)->s32 => left.rank <=> right.rank)
+    map.add({rank: 1, label: 10}, 100)
+    let entry = map.add({rank: 1, label: 20}, 200)
+
+    Swag.require(map.count == 1)
+    Swag.require(entry.key.label == 10 and entry.value == 200)
 }
 
 // Reserving less storage preserves the elements and their existing capacity.

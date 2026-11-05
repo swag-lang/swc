@@ -34,6 +34,14 @@ using Swag
     Swag.require(en.numberFormat.format(1234567'u64, grouped: true) == "1,234,567")
     Swag.require(en.numberFormat.format(-9223372036854775807's64 - 1, grouped: true) == "-9,223,372,036,854,775,808")
     Swag.require(en.numberFormat.format(1234.5, 2, grouped: true) == "1,234.50")
+    Swag.require(en.numberFormat.format(18446744073709549568.0, 0) == "18446744073709549568")
+    var info             = en.numberFormat
+    let infoPointer      = &info
+    let rejectedOverflow = Swag.catchPanic(func|infoPointer|()
+    {
+        discard infoPointer[].format(cast(f64, Swag.U64.Max), 0)
+    })
+    Swag.require(rejectedOverflow.raised and rejectedOverflow.message() == "numeric value is too large at the requested precision")
 
     let fr = Globalization.CultureInfo.fromName("fr-FR")
     Swag.require(fr.numberFormat.format(1234567'u64, grouped: true) == "1\u202F234\u202F567")

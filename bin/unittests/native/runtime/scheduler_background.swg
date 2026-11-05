@@ -67,6 +67,22 @@ func roomySample()->Swag.WorkPressure
     Swag.require(budget.limit == 1)
 }
 
+// Large 64-bit host memory reports must not wrap the admission limit at 32 bits.
+#test
+{
+    var sample: Swag.WorkPressure
+    sample.memoryValid          = true
+    sample.physicalBytes        = Swag.U64.Max
+    sample.availableBytes       = Swag.U64.Max
+    sample.commitBytes          = Swag.U64.Max
+    sample.availableCommitBytes = Swag.U64.Max
+
+    var budget: Swag.BackgroundBudget
+    budget.limit = 8
+    budget.update(sample, 22, 0)
+    Swag.require(budget.limit == 8)
+}
+
 func pauseObserver()
 {
     var mutex:     Swag.Mutex

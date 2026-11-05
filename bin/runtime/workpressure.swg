@@ -65,7 +65,7 @@ impl BackgroundBudget
             var memoryTarget    = cast(u64, running) + headroom / PerBodyBytes
             if sample.availableBytes <= physicalReserve or sample.availableCommitBytes <= commitReserve do
                 memoryTarget = 1
-            if memoryTarget < target do
+            if memoryTarget < cast(u64, target) do
                 target = cast(u32, memoryTarget)
         }
         else

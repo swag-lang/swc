@@ -842,8 +842,9 @@ private func __peU16(p: [*] u8, off: u64)->u16 => cast(const *u16, (&p[off]))[]
 private func __peU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
-func __hostDebugSection(base: *void)->[*] u8?
+func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 {
+    size[] = 0
     let image   = cast([*] u8, base)
     let ntOff   = cast(u64, __peU32(image, 0x3C))
     let count   = __peU16(image, ntOff + 6)
@@ -863,6 +864,7 @@ func __hostDebugSection(base: *void)->[*] u8?
         if matches
         {
             let rva = __peU32(image, section + 12)
+            size[] = cast(u64, (__peU32(image, section + 8) ? __peU32(image, section + 8) : __peU32(image, section + 16)))
             return cast([*] u8, &image[cast(u64, rva)])
         }
 
@@ -874,20 +876,27 @@ func __hostDebugSection(base: *void)->[*] u8?
 
 // Expands the linker-owned version-2 debug table on first use. Version 1 remains a
 // direct image view for compatibility with artifacts produced by older compilers.
-func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
+func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut: *u64)->[*] u8?
 {
+    decodedSizeOut[] = 0
+    if sectionSize < 16 do
+        return null
     if __peU32(section, 0) != 0x4244_5753 do
         return null
 
     let version = __peU32(section, 4)
-    if version == 1 do
+    if version == 1
+    {
+        decodedSizeOut[] = sectionSize
         return section
+    }
+
     if version != 2 do
         return null
 
     let decodedSize = __peU32(section, 8)
     let packedSize  = __peU32(section, 12)
-    if decodedSize < 16 or packedSize == 0 do
+    if decodedSize < 16 or packedSize == 0 or cast(u64, packedSize) > sectionSize - 16 do
         return null
 
     let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
@@ -910,6 +919,7 @@ func __hostDecodeDebugSection(section: [*] u8)->[*] u8?
         return null
     }
 
+    decodedSizeOut[] = cast(u64, finalSize)
     return decoded
 }
 

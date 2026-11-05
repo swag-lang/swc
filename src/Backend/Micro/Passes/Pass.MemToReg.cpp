@@ -621,15 +621,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         frameEscapes.push_back(escapingRef);
         ensureVarRangesReady();
         bool found = false;
-        for (FrameVarRange& range : varRanges)
+        auto range = std::ranges::upper_bound(varRanges, offset, {}, &FrameVarRange::hi);
+        if (range != varRanges.end() && offset >= range->lo)
         {
-            if (offset >= range.lo && offset < range.hi)
-            {
-                if (!range.poisoned)
-                    range.firstEscape = escapingRef;
-                range.poisoned = true;
-                found          = true;
-            }
+            if (!range->poisoned)
+                range->firstEscape = escapingRef;
+            range->poisoned = true;
+            found           = true;
         }
         if (!found && !unknownSpaceEscaped)
         {

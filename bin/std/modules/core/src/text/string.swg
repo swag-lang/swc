@@ -581,10 +581,8 @@ impl String
                 Memory.copy(&.padding[0], .buffer, .length + 1)
                 Memory.free(.buffer, .capacity, .allocator)
             }
-            else
-            {
-                .padding[.length] = 0
-            }
+
+            .padding[.length] = 0
 
             // Point the header at its own inline storage.
             .capacity = StringSmallSize

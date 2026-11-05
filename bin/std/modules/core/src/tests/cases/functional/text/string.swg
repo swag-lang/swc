@@ -346,6 +346,11 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(truncated.storage()[0] == 0)
     Swag.require(cast(cstring?, truncated).count == 0)
 
+    var heapTruncated = makePatternString(80)
+    heapTruncated.reserve(4)
+    Swag.require(assertString(heapTruncated, "abc"))
+    Swag.require(heapTruncated.storage()[3] == 0)
+
     var allocatedEmpty: String
     allocatedEmpty.reserve(64)
     Swag.require(allocatedEmpty.isEmpty())

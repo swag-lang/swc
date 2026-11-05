@@ -6,7 +6,14 @@ enum RuntimeEnumCastColour
     Green
 }
 
+enum RuntimeEnumCastRatio: f32
+{
+    Normal = 1.0
+    Fast   = 2.0
+}
+
 const invalidRuntimeEnumCast: RuntimeEnumCastColour = cast(RuntimeEnumCastColour, 99's32) // swc-expected-error {{sema_err_cannot_cast}}
+const validFloatEnumCast: RuntimeEnumCastRatio = cast(RuntimeEnumCastRatio, 2.0'f32)
 
 func runtimeEnumCast(raw: s32)->RuntimeEnumCastColour
 {
@@ -16,6 +23,11 @@ func runtimeEnumCast(raw: s32)->RuntimeEnumCastColour
 func runtimeEnumTryCast(raw: s32)->RuntimeEnumCastColour? fail
 {
     return try cast(RuntimeEnumCastColour, raw)     // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+func runtimeFloatEnumCast(raw: f32)->RuntimeEnumCastRatio
+{
+    return cast(RuntimeEnumCastRatio, raw)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #[Swag.EnumFlags]

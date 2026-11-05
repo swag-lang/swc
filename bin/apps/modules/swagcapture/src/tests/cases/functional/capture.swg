@@ -50,8 +50,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     Swag.require(not main.captureChoice.hasFocus())
 }
 
-// The selection owns both keys and pointer gestures. Releasing the left button fixes the
-// rectangle on release; Escape and right click leave without a grab.
+// Releasing the left button fixes the rectangle. Right click restarts a drag, while Escape
+// leaves the capture; right click before starting a rectangle still leaves it.
 #test
 {
     var f: HeadlessFixture
@@ -83,11 +83,52 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     wnd.startGrab      = false
     wnd.tryStartGrab   = false
     evt.kind           = .Pressed
+    evt.button         = .Left
+    evt.surfacePos     = {30, 40}
+    wnd.sendEvent(&evt)
+    evt.kind       = .Move
+    evt.surfacePos = {100, 120}
+    wnd.sendEvent(&evt)
+    Swag.require(wnd.startGrab)
+
+    evt.kind   = .Pressed
+    evt.button = .Right
+    wnd.sendEvent(&evt)
+    Swag.require(not g_Exit and not g_GrabDone)
+    Swag.require(not wnd.startGrab and not wnd.tryStartGrab and wnd.autoGrab)
+
+    evt.kind   = .Released
+    evt.button = .Left
+    wnd.sendEvent(&evt)
+    Swag.require(not g_Exit and not g_GrabDone)
+
+    evt.kind       = .Pressed
+    evt.surfacePos = {50, 60}
+    wnd.sendEvent(&evt)
+    evt.kind       = .Move
+    evt.surfacePos = {150, 160}
+    wnd.sendEvent(&evt)
+    evt.kind       = .Released
+    evt.surfacePos = {170, 180}
+    wnd.sendEvent(&evt)
+    Swag.require(g_Exit and g_GrabDone)
+    Swag.require(getGrabRect() == {50, 60, 120, 120})
+
+    g_Exit, g_GrabDone = false
+    wnd.startGrab      = false
+    wnd.tryStartGrab   = false
+    evt.kind           = .Pressed
     evt.button         = .Right
     wnd.sendEvent(&evt)
     Swag.require(g_Exit and not g_GrabDone)
 
     g_Exit, g_GrabDone = false
+    evt.button         = .Left
+    wnd.sendEvent(&evt)
+    evt.kind       = .Move
+    evt.surfacePos = {200, 200}
+    wnd.sendEvent(&evt)
+    Swag.require(wnd.startGrab)
     var key = Gui.KeyEvent{kind: .Pressed, key: .Escape, modifiers: .Control}
     wnd.sendEvent(&key)
     Swag.require(not g_Exit)

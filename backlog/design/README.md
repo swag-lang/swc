@@ -673,7 +673,8 @@ the screen to its work.
   modes and the delay and cursor choices before the screen is read. Area capture shows the screen
   dimmed except the chosen zone, a 1 px Voltage edge, its size in a mono chip, and a pixel loupe
   with a Voltage crosshair. The keys at the foot stand on the floating ground, since the frozen
-  screen can be any picture.
+  screen can be any picture. Right click while drawing abandons the rectangle and lets the reader
+  draw another; Escape leaves the capture.
 - Editing in place, right after a capture: the desktop stays dimmed and the captured zone
   stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under

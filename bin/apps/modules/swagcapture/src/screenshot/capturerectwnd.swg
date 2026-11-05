@@ -35,7 +35,6 @@ struct CaptureRectWnd
 
     // Where the pointer is, in logical units, for the loupe.
     pointer: Math.Point
-
 }
 
 impl IWnd for CaptureRectWnd
@@ -82,7 +81,22 @@ impl IWnd for CaptureRectWnd
         switch evt.kind
         {
         case .Pressed where evt.button == .Right:
-            g_Exit = true
+            if .startGrab or .tryStartGrab
+            {
+                // Abandon only the rectangle in progress. The first drag's release must not
+                // accept the auto-detected zone, and the pointer can start a new drag.
+                .startGrab    = false
+                .tryStartGrab = false
+                .autoGrab     = true
+                g_StartGrabX, g_EndGrabX = physPosX
+                g_StartGrabY, g_EndGrabY = physPosY
+                g_CaptureWindow = {}
+                .testAutoGrab()
+                .lerpGrab = getGrabRect()
+                .invalidate()
+            }
+            else do
+                g_Exit = true
 
         case .Pressed where evt.button == .Left:
             .tryStartGrab    = true

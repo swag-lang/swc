@@ -110,6 +110,12 @@ namespace
         const auto      refs = cfg.instructionRefs();
         const CallConv& conv = CallConv::get(context.callConvKind);
         using MicroOptimizationLimits::PostRAPeephole::K_MAX_BACKTRACK;
+        std::vector<std::pair<uint32_t, int64_t>> delayedPending;
+        FlatKeyMap<int64_t>                       delayedSeen;
+        std::vector<uint32_t>                     backtrackPending;
+        FlatKeySet                                backtrackVisited;
+        // The walkers clear or reset these for each label edge, so retain
+        // their allocations across candidates in this pass.
         for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
         {
             const MicroInstr* label   = storage.ptr(refs[labelIndex]);
@@ -164,11 +170,6 @@ namespace
             // incoming edge back to a register/frame equivalence source. A
             // balanced stack adjustment changes the meaning of an offset only
             // temporarily; track it rather than rejecting every call frame.
-            // Keep the per-edge worklists at label scope so predecessor walks reuse them.
-            std::vector<std::pair<uint32_t, int64_t>> delayedPending;
-            FlatKeyMap<int64_t>                       delayedSeen;
-            std::vector<uint32_t>                     backtrackPending;
-            FlatKeySet                                backtrackVisited;
             const auto proveDelayedJump = [&](uint32_t jumpIndex) {
                 delayedPending.assign(1, {jumpIndex, 0});
                 delayedSeen.clear();

@@ -1,5 +1,7 @@
 #global namespace Input
 
+using Swag
+
 // Platform virtual-key code, as returned by [[Core.Input.Keyboard.keyToVirtualKey]].
 public alias VirtualKey = u32
 
@@ -204,6 +206,22 @@ public enum Key
     Y                      // Y key
     Z                      // Z key
     Zoom                   // Zoom key
+}
+
+// Returns the key whose stored enum value matches an index into keyboard state arrays.
+// Reading a compiler-declared enum value avoids constructing an enum from a runtime integer.
+public func keyFromStorageIndex(index: u64)->Key
+{
+    if index >= Key.count do
+        Swag.panic("invalid keyboard storage index", #curlocation)
+
+    let typeEnum = assume cast(const *TypeInfoEnum, #typeof(Key))
+    let value    = cast(s32, index)
+    for &caseInfo in typeEnum.values where caseInfo.value do
+        if cast(const *s32, unwrap caseInfo.value)[] == value do
+            return cast(const *Key, unwrap caseInfo.value)[]
+
+    Swag.panic("keyboard enum values do not match storage indexes", #curlocation)
 }
 
 // Returns the display text for a key shortcut.

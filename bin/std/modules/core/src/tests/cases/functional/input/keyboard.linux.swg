@@ -26,6 +26,8 @@
                                          .Clear, .Insert, .Delete, .OemPlus]
     for index in symbols.count do
         Swag.require(Input.Keyboard.virtualKeyToKey(symbols[index]) == expected[index])
+    const keypadDigits: [10] Input.Key = [.NumPad0, .NumPad1, .NumPad2, .NumPad3, .NumPad4,
+                                            .NumPad5, .NumPad6, .NumPad7, .NumPad8, .NumPad9]
     for index in 10 do
-        Swag.require(Input.Keyboard.virtualKeyToKey(0xFFB0 + cast(u32, index)) == cast(Input.Key, cast(u32, Input.Key.NumPad0) + cast(u32, index)))
+        Swag.require(Input.Keyboard.virtualKeyToKey(0xFFB0 + cast(u32, index)) == keypadDigits[index])
 }

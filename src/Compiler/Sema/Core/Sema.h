@@ -69,6 +69,10 @@ struct SemaEscapeInfo
     AstNodeRef            sourceRef = AstNodeRef::invalid();
     TypeRef               typeRef   = TypeRef::invalid();
 
+    // Exact array storage exposed by a slice conversion. Kept separately from
+    // sourceVar because an element of that array may carry a different borrow.
+    const SymbolVariable* indexedStorageRoot = nullptr;
+
     // All signature parameters whose storage this value may borrow. Keeping the full
     // set is required for aggregates and closures that carry more than one parameter;
     // sourceVar remains the representative origin used by local diagnostics.
@@ -121,6 +125,19 @@ struct SemaEscapeInfo
 
     void mergeFrom(const SemaEscapeInfo& other)
     {
+        if (kind == SemaEscapeKind::None)
+        {
+            *this = other;
+            return;
+        }
+
+        if (other.kind == SemaEscapeKind::None)
+            return;
+
+        const bool sameIndexedStorage = indexedStorageRoot && indexedStorageRoot == other.indexedStorageRoot;
+        if (!sameIndexedStorage)
+            indexedStorageRoot = nullptr;
+
         if (kind == other.kind && sourceVar == other.sourceVar)
             viaErasedPayload = viaErasedPayload || other.viaErasedPayload;
 
@@ -165,6 +182,9 @@ struct SemaEscapeInfo
 
         if (other.rank() > rank())
             *this = other;
+
+        if (!sameIndexedStorage)
+            indexedStorageRoot = nullptr;
     }
 
     // Severity order used when two may-borrow facts merge (flow joins, aggregates).

@@ -237,6 +237,12 @@ impl Decoder
                 let strBuf = cast(*String, data)
                 strBuf[] = #nodrop try .serializer.readNative'String()
                 strBuf.opPostMove()
+
+                if isEnum and
+                   not Reflection.hasAttribute(enumType, EnumFlags) and
+                   not Reflection.hasAttribute(enumType, Incomplete) and
+                   not Reflection.hasDeclaredValue(enumType, data) do
+                    fail SerializationError{"serialized value is not a member of the requested enum"}
                 return
             }
 

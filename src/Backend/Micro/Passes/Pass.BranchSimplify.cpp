@@ -7850,8 +7850,8 @@ namespace
     // read needs the old value and its write the new name.
     bool renameEarlyPath(const ReturnPath& path, MicroStorage& storage, MicroOperandStorage& operands, const MicroReg returnReg, const MicroReg valueReg, uint32_t& nextVirtualIntRegIndex)
     {
-        std::unordered_map<MicroReg, MicroReg> renamed;
-        const auto                             renameInstruction = [&](const MicroInstrRef ref) {
+        FlatKeyMap<MicroReg> renamed;
+        const auto           renameInstruction = [&](const MicroInstrRef ref) {
             MicroInstr*        instruction    = storage.ptr(ref);
             MicroInstrOperand* instructionOps = instruction->ops(operands);
             if (!instructionOps)
@@ -7872,10 +7872,10 @@ namespace
                     continue;
                 }
 
-                const auto it = renamed.find(reg);
-                if (it != renamed.end())
+                const MicroReg* renamedReg = renamed.find(reg.packed);
+                if (renamedReg)
                 {
-                    reg = it->second;
+                    reg = *renamedReg;
                     continue;
                 }
                 if (!isDef || !reg.isVirtualInt())
@@ -7884,7 +7884,7 @@ namespace
                     return false;
 
                 const MicroReg fresh = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
-                renamed.emplace(reg, fresh);
+                renamed.emplace(reg.packed, fresh);
                 reg = fresh;
             }
             return true;

@@ -659,7 +659,8 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
         uint32_t      baseUses = 0;
         bool          stable   = true;
     };
-    std::unordered_map<MicroReg, Cand> cands;
+    FlatKeyMap<Cand> cands;
+    SmallVector<MicroReg, 8> candidateRegs;
 
     // Pass A: collect sp-derived definitions.
     for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
@@ -672,7 +673,11 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
         const bool isLea = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == stackPointer;
         if ((isMov || isLea) && ops[0].reg.isVirtualInt())
         {
-            Cand& c = cands[ops[0].reg];
+            const uint32_t key   = ops[0].reg.packed;
+            Cand*          found = cands.find(key);
+            if (!found)
+                candidateRegs.push_back(ops[0].reg);
+            Cand&          c     = cands.getOrInsert(key);
             if (c.defRef.isValid())
                 c.stable = false; // defined more than once: not a stable base.
             else
@@ -699,9 +704,9 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
         {
             if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
                 continue;
-            const auto found = cands.find(ops[i].reg);
-            if (found != cands.end() && it.current != found->second.defRef)
-                found->second.stable = false;
+            Cand* found = ops[i].reg.isVirtual() ? cands.find(ops[i].reg.packed) : nullptr;
+            if (found && it.current != found->defRef)
+                found->stable = false;
         }
 
         // Count uses where the candidate is the addressing base: a direct
@@ -716,9 +721,9 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
             baseReg = ops[0].reg;
         if (baseReg.isVirtualInt())
         {
-            const auto found = cands.find(baseReg);
-            if (found != cands.end())
-                ++found->second.baseUses;
+            Cand* found = cands.find(baseReg.packed);
+            if (found)
+                ++found->baseUses;
         }
     }
 
@@ -731,25 +736,27 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
     // every escape a whole-function bail.
     if (preferred.isVirtualInt())
     {
-        const auto found = cands.find(preferred);
-        if (found != cands.end() && found->second.stable && found->second.defRef.isValid())
+        const Cand* found = cands.find(preferred.packed);
+        if (found && found->stable && found->defRef.isValid())
         {
-            outDefRef   = found->second.defRef;
-            outSpOffset = found->second.spOffset;
+            outDefRef   = found->defRef;
+            outSpOffset = found->spOffset;
             return preferred;
         }
     }
 
     MicroReg best;
     uint32_t bestUses = 0;
-    for (const auto& [reg, c] : cands)
+    for (const MicroReg reg : candidateRegs)
     {
-        if (c.stable && c.defRef.isValid() && c.baseUses > bestUses)
+        const Cand* c = cands.find(reg.packed);
+        SWC_ASSERT(c);
+        if (c->stable && c->defRef.isValid() && c->baseUses > bestUses)
         {
             best        = reg;
-            bestUses    = c.baseUses;
-            outDefRef   = c.defRef;
-            outSpOffset = c.spOffset;
+            bestUses    = c->baseUses;
+            outDefRef   = c->defRef;
+            outSpOffset = c->spOffset;
         }
     }
     return best;

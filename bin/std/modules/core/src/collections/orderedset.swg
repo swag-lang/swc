@@ -165,7 +165,7 @@ impl OrderedSet
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
         if last <= first do
-            return Swag.makeSlice(cast(const [*] K, 1'u64), 0)
+            return Swag.makeSlice(.keys.storage(), 0)
         return Swag.makeSlice(.keys.storage() + first, last - first)
     }
 

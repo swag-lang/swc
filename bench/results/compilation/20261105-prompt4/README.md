@@ -18,6 +18,9 @@ compilation report:
 
 The address-taken label list remains in instruction order. Binary search on that
 unsorted list was rejected; membership checks keep their original semantics.
+Moving indirect-jump detection into the common branch layout scan was also
+rejected: it removes a partial mention scan for indirect functions but adds an
+opcode check to every instruction, and the net effect is unmeasured.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |

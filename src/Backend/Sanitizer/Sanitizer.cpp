@@ -465,8 +465,10 @@ void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIn
         const uint32_t stateIndex = headStateIndex_[head];
 
         ChainFacts& chain = chains[stateIndex];
-        const auto  stamp = stateIndex + 1;
-        uint32_t    index = head;
+        const auto  stamp    = stateIndex + 1;
+        // Keep first-use marks distinct from definitions and every other chain's stamp.
+        const auto  useStamp = stamp + K_MAX_INSTRUCTIONS + 1;
+        uint32_t    index    = head;
         for (;;)
         {
             const MicroInstr&    inst = *context_.instructions->ptr(cfg.instructionRefs()[index]);
@@ -479,8 +481,11 @@ void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIn
                 const uint32_t dense = liveRegIndex_.ensure(reg);
                 if (dense >= defStamp.size())
                     defStamp.resize(dense + 1, 0);
-                if (defStamp[dense] != stamp)
+                if (defStamp[dense] != stamp && defStamp[dense] != useStamp)
+                {
                     chain.uses.push_back(dense);
+                    defStamp[dense] = useStamp;
+                }
             }
 
             for (const MicroReg reg : useDef.defs)

@@ -841,6 +841,11 @@ func __hostImageBaseForAddress(address: *void)->*void?
 private func __peU16(p: [*] u8, off: u64)->u16 => cast(const *u16, (&p[off]))[]
 private func __peU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
+func __hostAllocateDebugImage()->*SwagDebugImage?
+{
+    return cast(*SwagDebugImage?, __Win32RT.VirtualAlloc(null, #sizeof(SwagDebugImage), __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+}
+
 // Locates the linker-owned `.swagdbg` payload in one Windows PE image.
 func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 {
@@ -907,8 +912,12 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
     let version = __peU32(section, 4)
     if version == 1
     {
+        let decoded = cast([*] u8?, __Win32RT.VirtualAlloc(null, sectionSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+        if not decoded do
+            return null
+        Swag.memcpy(decoded, section, sectionSize)
         decodedSizeOut[] = sectionSize
-        return section
+        return decoded
     }
 
     if version != 2 do

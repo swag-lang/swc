@@ -10,12 +10,19 @@ struct __SwagSym
     line:    u32    = 0
 }
 
-var __dbgCacheBase:    *void?  = null
-var __dbgCacheSection: [*] u8? = null
-var __dbgCacheDecoded: [*] u8? = null
-var __dbgCacheSize:    u64     = 0
-var __dbgCacheCount:   u32     = 0
-var __dbgCacheValid:   bool    = false
+// Symbol sections stay mapped for the process lifetime because returned name and file views borrow them.
+struct SwagDebugImage
+{
+    next:    *SwagDebugImage?
+    base:    *void
+    section: [*] u8?
+    size:    u64
+    count:   u32
+    valid:   bool
+}
+
+private var __dbgImages: *SwagDebugImage?
+private var __dbgMutex:  MutexRW
 
 func __dbgU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
@@ -73,59 +80,63 @@ func validateDebugSection(section: [*] u8, size: u64)->bool
     return true
 }
 
-func __dbgFindSection(base: *void?)
+private func __dbgImage(base: *void)->*SwagDebugImage?
 {
-    __hostReleaseDecodedDebugSection(__dbgCacheDecoded)
-    __dbgCacheBase    = base
-    __dbgCacheValid   = false
-    __dbgCacheSection = null
-    __dbgCacheDecoded = null
-    __dbgCacheSize    = 0
-    __dbgCacheCount   = 0
-    if base == null do
-        return
+    __dbgMutex.lock()
+    defer __dbgMutex.unlock()
+    var scan = __dbgImages
+    while scan
+    {
+        if scan.base == base do
+            return scan
+        scan = scan.next
+    }
+
+    let image = __hostAllocateDebugImage()
+    if not image do
+        return null
+    image[]     = SwagDebugImage{next: __dbgImages, base: base}
+    __dbgImages = image
 
     var encodedSize: u64
     let encoded = __hostDebugSection(base, &encodedSize)
     if not encoded do
-        return
+        return image
 
     var decodedSize: u64
     let section = __hostDecodeDebugSection(encoded, encodedSize, &decodedSize)
     if not section do
-        return
+        return image
     if not validateDebugSection(section, decodedSize)
     {
         __hostReleaseDecodedDebugSection(section == encoded ? null : section)
-        return
+        return image
     }
 
-    __dbgCacheSection = section
-    if section != encoded do
-        __dbgCacheDecoded = section
-    __dbgCacheSize  = decodedSize
-    __dbgCacheCount = __dbgU32(section, 8)
-    __dbgCacheValid = true
+    image.section = section
+    image.size    = decodedSize
+    image.count   = __dbgU32(section, 8)
+    image.valid   = true
+    return image
 }
 
-func __symbolize(addr: *void)->__SwagSym
+func symbolizeStackAddress(addr: *void)->__SwagSym
 {
     var result: __SwagSym
 
     let imageBase = __hostImageBaseForAddress(addr)
     if not imageBase do
         return result
-    if imageBase != __dbgCacheBase do
-        __dbgFindSection(imageBase)
-    if not __dbgCacheValid do
+    let image = __dbgImage(imageBase)
+    if not image or not image.valid do
         return result
 
     let relativeAddress = cast(u64, addr) - cast(u64, imageBase)
     if relativeAddress > Swag.U32.Max do
         return result
     let rva = cast(u32, relativeAddress)
-    let sec = unwrap __dbgCacheSection
-    for i in __dbgCacheCount
+    let sec = unwrap image.section
+    for i in image.count
     {
         let entry = 16 + cast(u64, i) * 20
         let start = __dbgU32(sec, entry)
@@ -133,10 +144,10 @@ func __symbolize(addr: *void)->__SwagSym
         if cast(u64, rva) >= start and cast(u64, rva) < cast(u64, start) + size
         {
             let stringsOffset = __dbgU32(sec, 12)
-            if not readDebugString(sec, __dbgCacheSize, stringsOffset, __dbgU32(sec, entry + 8), &result.name) do
+            if not readDebugString(sec, image.size, stringsOffset, __dbgU32(sec, entry + 8), &result.name) do
                 return __SwagSym{}
             let fileOffset = __dbgU32(sec, entry + 12)
-            if fileOffset and not readDebugString(sec, __dbgCacheSize, stringsOffset, fileOffset, &result.file) do
+            if fileOffset and not readDebugString(sec, image.size, stringsOffset, fileOffset, &result.file) do
                 return __SwagSym{}
             result.found = true
             if fileOffset != 0
@@ -158,7 +169,7 @@ func __symbolize(addr: *void)->__SwagSym
 // says only that symbolization was unavailable, so the panic report leaves the whole section out.
 func __hasStackTraceSymbols(wh: const [..] (*void?))->bool
 {
-    for address in wh where address and __symbolize(address).found do
+    for address in wh where address and symbolizeStackAddress(address).found do
         return true
     return false
 }
@@ -171,7 +182,7 @@ func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocati
     {
         if not wh[i] do
             continue
-        let info = __symbolize(unwrap wh[i])
+        let info = symbolizeStackAddress(unwrap wh[i])
         if not info.found do
             continue
         if not info.hasLine and not printNoLine do

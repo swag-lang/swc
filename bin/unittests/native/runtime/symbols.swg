@@ -24,6 +24,21 @@ func validDebugTable()->[64] u8
     return bytes
 }
 
+func symbolizationFixture()->u32 => 7
+
+#test
+{
+    var invalid: Swag.AtomicValue'u32
+    parallel for |&invalid| 64
+    {
+        let symbol = Swag.symbolizeStackAddress(cast(*void, &symbolizationFixture))
+        if symbol.found and not symbol.name.count do
+            invalid.add(1)
+    }
+
+    Swag.require(invalid.load() == 0)
+}
+
 #test
 {
     var bytes = validDebugTable()

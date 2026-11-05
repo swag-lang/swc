@@ -77,6 +77,8 @@ private struct LinuxDebugImage
 private var linuxDebugImages: *LinuxDebugImage?
 private var linuxDebugMutex:  MutexRW
 
+func __hostAllocateDebugImage()->*SwagDebugImage? => cast(*SwagDebugImage?, __LinuxRT.malloc(#sizeof(SwagDebugImage)))
+
 #[Swag.Safety(.ValueBorrow, false)]
 private func __linuxFindDebugSection(mapping: *void, length: u64, size: *u64)->[*] u8?
 {

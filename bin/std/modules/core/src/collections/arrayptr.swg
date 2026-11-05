@@ -6,6 +6,8 @@ using Swag
 //
 // It extends [[Core.Array]] with the allocation and deletion of the pointed-to objects, which all
 // come from the array's allocator. Dropping or clearing the array deletes every object it holds.
+// Store each object only once and allocate it with this array's allocator. Inherited insertion
+// methods such as [[Core.Array.add]] copy pointer values without checking either condition.
 struct(T) ArrayPtr
 {
     public using base: Array'(*T?)     // Embedded base state.

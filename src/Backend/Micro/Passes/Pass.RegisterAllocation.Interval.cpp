@@ -351,7 +351,7 @@ namespace
         std::vector<uint32_t>                                   active;
         std::vector<uint32_t>                                   inactive;
         const std::vector<uint32_t>*                            loopDepth  = nullptr;
-        const std::vector<LoopRange>*                           loops      = nullptr;
+        const SmallVector<LoopRange, 8>*                         loops      = nullptr;
         uint32_t                                                splitCount = 0;
         uint32_t                                                spillCount = 0;
         bool                                                    failed     = false;
@@ -669,7 +669,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
 
     // The loops, from the back-edges of the instruction CFG, for the
     // election's view of a loop-carried access.
-    std::vector<LoopRange> loops;
+    SmallVector<LoopRange, 8> loops;
     if (hasControlFlow_ && functionHasLoop_)
     {
         SWC_ASSERT(predecessors_.size() == instructionCount_);

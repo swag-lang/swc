@@ -48,9 +48,10 @@ namespace
 
     struct SlotInfo
     {
-        uint64_t                maxAccessEnd       = 0;
-        bool                    hasWrite           = false;
-        bool                    stackPointerAccess = false;
+        uint64_t                maxAccessEnd         = 0;
+        bool                    hasWrite             = false;
+        bool                    stackPointerAccess   = false;
+        bool                    selectedForPromotion = false;
         SmallVector<SlotAccess> accesses;
     };
 
@@ -1560,6 +1561,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             filtered.push_back(p);
     }
     promotions = std::move(filtered);
+    for (const Promotion& promotion : promotions)
+    {
+        auto slot = slots.find(promotion.offset);
+        SWC_ASSERT(slot != slots.end());
+        if (slot != slots.end())
+            slot->second.selectedForPromotion = true;
+    }
 
     // ---- A word-sized object written once and read field by field. ----
     // A small aggregate passed by value arrives in one register and is spilled
@@ -1740,7 +1748,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             if (!usable || !write || write->bits != MicroOpBits::B128)
                 continue;
-            if (std::ranges::any_of(promotions, [&](const Promotion& p) { return p.offset == offset; }))
+            if (slot.selectedForPromotion)
                 continue;
             const MicroInstr* writeInst = storage.ptr(write->ref);
             if (!writeInst || (writeInst->op != MicroInstrOpcode::LoadMemReg && writeInst->op != MicroInstrOpcode::StoreVecMemReg) ||

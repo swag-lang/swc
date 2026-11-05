@@ -100,6 +100,12 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
+    let validInput: string = "\"busy\""
+    var validDecoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = expect validDecoder.readAll'JsonStringState(cast(const [..] u8, validInput))
+    defer Memory.delete(decoded)
+    Swag.require(decoded[] == .Busy)
+
     let input = "\"missing\""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     var errorOutcome: Swag.Error

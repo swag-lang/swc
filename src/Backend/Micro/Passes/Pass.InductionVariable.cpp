@@ -337,13 +337,14 @@ namespace
             // whose flags nothing reads before they are redefined (a carrier's
             // step lands right behind it and writes them too).
             thread_local std::vector<Induction> inductions;
+            thread_local FlatKeyMap<uint32_t>   inductionIndexByReg;
             inductions.clear();
+            inductionIndexByReg.clear();
             auto inductionIndexOf = [&](const MicroReg reg) -> uint32_t {
-                for (uint32_t k = 0; k < inductions.size(); ++k)
-                    if (inductions[k].reg == reg)
-                        return k;
                 if (!reg.isVirtualInt())
                     return K_INVALID;
+                if (const uint32_t* index = inductionIndexByReg.find(reg.packed))
+                    return *index;
                 const RegOccurrences* countIt = scan.defs.find(reg.packed);
                 if (!countIt || countIt->count != 1)
                     return K_INVALID;
@@ -386,7 +387,9 @@ namespace
                     return K_INVALID;
 
                 inductions.push_back(induction);
-                return static_cast<uint32_t>(inductions.size() - 1);
+                const uint32_t index = static_cast<uint32_t>(inductions.size() - 1);
+                inductionIndexByReg.emplace(reg.packed, index);
+                return index;
             };
 
             // Splits a pair of registers into the induction and the invariant,

@@ -405,15 +405,7 @@ act_ShowRecent         Captures récentes
 act_ResetSteps         Réinitialiser la numérotation
 ui_PropStyle           Style
 lens_Dates             Dates
-ui_ModeArea            Zone
-ui_ModeActiveWindow    Fenêtre active
-ui_ModeFullScreen      Écran entier
-ui_ModeLastArea        Dernière zone
 hint_Capture           capturer
-ui_Delay               Délai : %
-ui_DelayNone           aucun
-ui_DelaySeconds        % s
-ui_Cursor              Curseur
 hint_Cancel            annuler
 tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide

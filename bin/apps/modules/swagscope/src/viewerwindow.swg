@@ -1016,8 +1016,6 @@ impl ViewerWindow
         Lens.Launcher.create(result, ViewerCommands.Lens)
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
         {
-            .focusPolicy = .Tab
-            .wndFlags.add(.ActivatesOnKey)
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
             .hide()
         }
@@ -1327,6 +1325,7 @@ impl ViewerWindow
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
+        .surface?.clearFocus()
         if not .explorer do
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
@@ -1336,6 +1335,7 @@ impl ViewerWindow
         .home.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
+        .surface?.clearFocus()
         .refreshTitle()
         .applyLayout()
     }

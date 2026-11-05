@@ -43,11 +43,24 @@ impl MainWnd
             .margin          = {me.themeMetrics().floating_Inset, me.stripInset(), me.themeMetrics().floating_Inset, 4}
         }
 
-        for command, index in [ActionCapture.Area, ActionGlobal.ShowLibrary, ActionCopyPaste.CopyAsImage, ActionFile.SaveAsImage]
+        with let captureButton = IconButton.createQuiet(.taskBar, ActionCapture.Area, menu: false)
+        {
+            .focusPolicy = .None
+        }
+        with .captureChoice = IconButton.createQuiet(.taskBar, menu: false)
+        {
+            .focusPolicy = .None
+            .margin.x    = -12
+            .setIcon(.theme().icon(.ChevronDown))
+            .sigPressed += func|main = me|(button) { main.showCaptureMenu(button) }
+        }
+
+        for command, index in [ActionGlobal.ShowLibrary, ActionCopyPaste.CopyAsImage, ActionFile.SaveAsImage]
         {
             with let button = IconButton.createQuiet(.taskBar, command, menu: false)
             {
-                if index == 2 do
+                .focusPolicy = .None
+                if index == 1 do
                     .margin.x = 24
             }
         }

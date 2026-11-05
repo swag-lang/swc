@@ -4,8 +4,7 @@
 using Swag, Core
 
 // The area overlay of the charter: the desktop dimmed but the chosen zone, a 1 px Voltage edge, the
-// size in a mono chip, the pixel loupe by the pointer, the modes on a floating bar and the keys at
-// the foot.
+// size in a mono chip, the pixel loupe by the pointer, and the keys at the foot.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -39,13 +38,5 @@ using Swag, Core
     var image = f.gui.render(wnd)
     Pixel.Testing.assertImageGolden(&image, "area")
 
-    // The bar takes its own clicks: the tabs of the modes stand on it, the area first.
-    Swag.require(wnd.modeTabs.count == AreaModes.count)
-    Swag.require(wnd.barRect.contains(wnd.modeTabs[1].center()))
-    Swag.require(wnd.modeAt(wnd.modeTabs[2].center()) == 2)
-
-    // After the modes, how the screen is read: the delay, then the cursor, on the same bar.
     Swag.require(wnd.hintLine.grounded)
-    Swag.require(wnd.barRect.contains(wnd.delayRect.center()) and wnd.barRect.contains(wnd.cursorRect.center()))
-    Swag.require(wnd.delayRect.x > wnd.modeTabs.back().right() and wnd.cursorRect.x > wnd.delayRect.right() - 1)
 }

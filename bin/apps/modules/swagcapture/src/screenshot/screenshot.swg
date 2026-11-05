@@ -82,8 +82,9 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
 
     with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     {
-        .main   = main
-        .cursor = Cursor.from(CursorShape.Cross)
+        .main        = main
+        .cursor      = Cursor.from(CursorShape.Cross)
+        .focusPolicy = .Click
         .setPosition(0, 0, sf.size().x, sf.size().y)
         .captureMouse()
     }
@@ -91,6 +92,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     captureWnd.createHintLine()
 
     sf.setView(captureWnd)
+    captureWnd.setFocus()
     sf.show()
     sf.bringToFront()
 

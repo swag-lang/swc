@@ -320,12 +320,16 @@ impl View
     // itself once closed.
     mtd doModal(button: *IconButton, autoDestroy = false)
     {
+        let returnFocus = button.hasFocus()
+        let focused     = .focusedWindow()
+        let hadFocus    = focused and focused.surface == .surface
         .anchorButton      = button
         .anchorSurfaceRect = button.surfaceRect()
-        .runModal(autoDestroy)
+        .runModal(autoDestroy, clearAfter: not hadFocus)
 
-        // The keyboard comes back to where the reader opened the sheet from.
-        if button.focusPolicy != .None and not button.isPendingDestroy do
+        // Return to the opener only when the keyboard opened the sheet. A pointer-opened sheet
+        // must not leave its opener selected after it closes.
+        if returnFocus and button.focusPolicy != .None and not button.isPendingDestroy do
             button.setFocus()
     }
 
@@ -335,9 +339,11 @@ impl View
     // destroys itself once closed.
     mtd doModal(surfacePos: Math.Point, autoDestroy = false)
     {
+        let focused  = .focusedWindow()
+        let hadFocus = focused and focused.surface == .surface
         .anchorButton      = null
         .anchorSurfaceRect = {surfacePos.x, surfacePos.y, 0, 0}
-        .runModal(autoDestroy)
+        .runModal(autoDestroy, clearAfter: not hadFocus)
     }
 
     // Closes the sheet and ends its modal loop.
@@ -413,7 +419,7 @@ impl View
 
 private impl View
 {
-    mtd runModal(autoDestroy: bool)
+    mtd runModal(autoDestroy: bool, clearAfter: bool)
     {
         let metrics = .themeMetrics()
 
@@ -445,6 +451,8 @@ private impl View
         .releaseMouse()
         .hide()
         .resetPresentation()
+        if clearAfter do
+            surface.clearFocus()
 
         // An action that opens something else does it once nothing of the sheet is left on screen.
         if .deferredRun

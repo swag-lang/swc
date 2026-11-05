@@ -70,7 +70,7 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     host.thenActivateOptionRow(MarkdownText.texts().ui_Theme)
     host.thenActivateOptionRow("Whitey")
     MarkdownText.showOptions(firstOptions, firstMarkdown, firstZoom)
-    Swag.require(host.autoHandled and firstMarkdown.hasFocus())
+    Swag.require(host.autoHandled and not firstMarkdown.hasFocus())
     Swag.require(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
 
     var second = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
@@ -130,14 +130,14 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     let commands = result.actions
     commands.applyLayout()
 
-    // Pointer use of the document options must return focus to the Markdown canvas once the sheet
-    // closes, leaving navigation keys attached to the document.
+    // Opening a document and using its options with the pointer leave the keyboard unassigned.
     let optionsButton = assume cast(*IconButton, commands.children[0])
-    Swag.require(assume cast(*Markdown.View, wnd).hasFocus())
+    Swag.require(not assume cast(*Markdown.View, wnd).hasFocus())
     host.activateOptionRowWhenShown(MarkdownText.texts().ui_Width)
     host.clickWnd(optionsButton)
     Swag.require(host.autoHandled)
-    Swag.require(assume cast(*Markdown.View, wnd).hasFocus() and not optionsButton.hasFocus())
+    Swag.require(not assume cast(*Markdown.View, wnd).hasFocus())
+    Swag.require(not optionsButton.hasFocus())
 
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading() do

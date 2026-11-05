@@ -1042,6 +1042,24 @@ impl Surface
         .wnd.ownerNotifyEvent(.ChildFocusChanged)
     }
 
+    // Clears the keyboard focus and its saved return point on this surface.
+    //
+    // Use this when replacing a page: the next page starts without a chosen control, while its
+    // first Tab can still enter the traversal. A temporary native deactivation instead uses
+    // [[Gui.Surface.restoreFocus]] to return to the control the reader was using.
+    mtd clearFocus()
+    {
+        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
+            .loseKeyboardFocus()
+        // A Lost callback can deliberately choose another control. Its transition owns the
+        // new saved point; clearing it here would make the next native activation forget it.
+        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
+            return
+        .focusRoot  = null
+        .focusWnd   = null
+        .focusIndex = -1
+    }
+
     // Gives the keyboard back to where it stood on this surface, and reports whether it landed.
     //
     // The control it left is preferred when it still belongs to the reachable tree, even when it
@@ -1059,6 +1077,16 @@ impl Surface
         {
             focused.setFocus()
             return true
+        }
+
+        if .focusIndex < 0
+        {
+            if focused and FocusOrder.contains(root, focused)
+            {
+                focused.setSurfaceFallbackFocus()
+                return true
+            }
+            return false
         }
 
         if order.stops.isEmpty()
@@ -1107,9 +1135,13 @@ impl Surface
             return from.focusNextInGroup(forward)
 
         case .Return:
+            if modifiers != .None do
+                return false
             return .pressStandardButton(.defaultButton)
 
         case .Escape:
+            if modifiers != .None do
+                return false
             if .view() is Dialog
             {
                 var field: *Wnd? = from

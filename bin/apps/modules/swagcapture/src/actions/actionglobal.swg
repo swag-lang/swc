@@ -112,9 +112,10 @@ impl MainWnd
 
         // Slide the incoming page without fading it: opacity would record the whole
         // editor or library into an off-screen layer on every animation frame.
-        outgoing.hide()
-        outgoing.resetPresentation()
         incoming.show()
+        outgoing.hide()
+        .surface?.clearFocus()
+        outgoing.resetPresentation()
         let travel = Math.Point{0, .themeMetrics().motion_PageOffset}
         incoming.setPresentationOffset(travel)
         var options: AnimationOptions

@@ -77,7 +77,7 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 
     let check = CheckButton.create(&host.root, "Key", {20, 20, 120, 30})
     check.sigChanged += &checkButtonHeadlessChanged
-    host.focus(check)
+    check.setFocus()
 
     host.keyPress(Input.Key.Space)
     Swag.require(check.isChecked())

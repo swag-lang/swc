@@ -257,6 +257,7 @@ enum WndFlags
     // such a control, because the first key its reader pressed would act instead of answering the
     // question; see [[Gui.Dialog.keyboardEntry]].
     ActivatesOnKey
+    NoPointerFocus          // Keeps pointer presses from assigning focus; explicit keyboard focus still works.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -1103,22 +1104,41 @@ impl Wnd
             painter.popState()
         }
 
-        // Where the keyboard is, drawn once for every control instead of once per widget: the
-        // ring belongs to the traversal stop, which is the whole control the user is standing on,
-        // and it goes over the content so a filled button still shows it. A control that already
-        // says it another way — a caret, a selected row, a highlighted cell — carries
-        // [[Gui.WndFlags.NoFocusRing]] and paints nothing here.
-        if .focusPolicy == .Tab and
-           not .wndFlags.has(.NoFocusRing) and
-           not bc.isDisabled and
-           .showsFocusRing()
+        // Focus rings sit outside controls. Draw them after the root has left every child clip,
+        // so a button touching the edge of a panel keeps all four sides of its ring.
+        let surface = .surface
+        if not .parent and surface and
+           (surface.app.options.showFocusRings or
+            (surface.app.focusVisible and surface.app.keyboardFocusWnd and
+             surface.app.keyboardFocusWnd.surface == surface))
         {
             painter.setTransform(curTrs)
-            theme.drawFocusRing(painter, .clientRect(), .focusRingRadius)
+            .paintFocusOverlays(painter, .surfaceRect())
         }
 
         bc.isDisabled = lastDisabled
         .style.dirty  = false
+    }
+
+    // Paints traversal rings above the completed surface, beyond the clipping of child panels.
+    private mtd paintFocusOverlays(painter: *Painter, root: Math.Rectangle)
+    {
+        if .isPendingDestroy or not .isLocallyVisible() or not .isLocallyEnabled() do
+            return
+
+        if .focusPolicy == .Tab and not .wndFlags.has(.NoFocusRing) and .showsFocusRing()
+        {
+            var rect = .surfaceRect()
+            rect.offset(-root.x, -root.y)
+            .theme().drawFocusRing(painter, rect, .focusRingRadius)
+        }
+
+        for child in .children
+        {
+            if .wndFlags.has(.ClipChildren) and not child.surfaceRect().intersects(.surfaceRect()) do
+                continue
+            child.paintFocusOverlays(painter, root)
+        }
     }
 
     private mtd paintChild(bc: *PaintContext, child: *Wnd)
@@ -2153,7 +2173,8 @@ impl Wnd
     // The focus goes to [[Gui.Wnd.focusTarget]], so asking a composite for the focus reaches
     // the part of it that reads the keys. A disabled window or surface cannot take focus.
     // Scrolling ancestors reveal the accepted control before it receives the focus event. A
-    // window with [[Gui.FocusPolicy.None]] ignores this request.
+    // window with [[Gui.FocusPolicy.None]] ignores this request. A keyboard-activated control
+    // shows its focus ring as soon as it accepts an explicit keyboard focus request.
     mtd setFocus()
     {
         .setFocusImpl(false)
@@ -2178,8 +2199,12 @@ impl Wnd
         }
 
         let srfn = unwrap .surface
-        if srfn.app.keyboardFocusWnd == me do
+        if srfn.app.keyboardFocusWnd == me
+        {
+            if .wndFlags.has(.ActivatesOnKey) do
+                srfn.app.setFocusVisible(true)
             return
+        }
         if not .isEnabled() or srfn.isDisabled do
             return
 
@@ -2231,6 +2256,8 @@ impl Wnd
         if .isPendingDestroy or srfn.app.keyboardFocusWnd != me do
             return
 
+        if .wndFlags.has(.ActivatesOnKey) do
+            srfn.app.setFocusVisible(true)
         var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         .sendEvent(&evt)
         .invalidate()
@@ -2271,9 +2298,9 @@ impl Wnd
 
     // Reports whether this window must show the keyboard focus.
     //
-    // True only while the focus arrived from the keyboard: a control pressed with the pointer
-    // keeps the focus without drawing a ring around it, the way the pointer already said which
-    // control was acted on. See [[Gui.Application.focusVisible]].
+    // Keyboard-activated controls show their ring whenever focused, so a later key cannot
+    // activate an action whose focus was invisible. Other controls
+    // show their focus only after keyboard navigation. See [[Gui.Application.focusVisible]].
     mtd hasVisibleFocus()->bool
     {
         let surface = .surface

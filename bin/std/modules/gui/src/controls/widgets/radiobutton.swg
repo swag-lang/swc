@@ -161,7 +161,8 @@ impl IWnd for RadioButton
         if evt.kind != .Pressed do
             return
 
-        if evt.key == .Space or evt.key == .Return
+        if evt.modifiers == .None and
+           (evt.key == .Return or (evt.key == .Space and .hasVisibleFocus()))
         {
             .selectFromUser()
             evt.accepted = true

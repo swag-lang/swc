@@ -170,7 +170,6 @@ private impl IWnd for Panel
         .grid.refreshLayout()
         .refreshInspector()
         .analysisButton.enable(.grid.doc.fileSize != 0)
-        .setInitialFocus(.grid)
         .services.loadingChanged(me)
     }
 
@@ -661,7 +660,6 @@ impl Panel
         result.grid.refreshLayout()
         result.refreshInspector()
         result.refreshZoom()
-        result.setInitialFocus(result.grid)
         result.load.start(host.fileName(), &loadDocument, result)
         return result
     }

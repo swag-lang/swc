@@ -180,7 +180,8 @@ impl IWnd for CheckButton
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed or evt.modifiers != .None or
+           (evt.key == .Space and not .hasVisibleFocus()) do
             return
 
         switch evt.key

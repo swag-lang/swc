@@ -323,7 +323,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
             let value = try decoder.readU8()
             // Exercise the post-hook validation path with a forged closed enum.
-            cast(*TagBinModeU8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF'u8 : value
+            cast(*u8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF'u8 : value
             return true
         }
 

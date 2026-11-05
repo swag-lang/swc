@@ -29,6 +29,7 @@ impl Duration
     #[Inline]
     {
         // Returns the duration rounded to the nearest whole millisecond.
+        //
         // Panics when the value is negative, non-finite, or too large for a u64 millisecond count.
         mtd const milliseconds()->u64
         {

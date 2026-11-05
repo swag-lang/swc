@@ -236,7 +236,7 @@ private impl TagBin
         var end = .stream.length()
         var firstSection = 0'u64
         if not .outStack.isEmpty() do
-            firstSection = .outStack.back()!.sectionDepth
+            firstSection = .outStack.back().sectionDepth
         var index = .sections.count
         while index > firstSection
         {

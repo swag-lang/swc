@@ -729,6 +729,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         }
     }
 
+    walk.unhandled.reserve(out.nodes.size());
     for (uint32_t nodeIndex = 0; nodeIndex < out.nodes.size(); ++nodeIndex)
     {
         if (!out.nodes[nodeIndex].ranges.empty() && nodeIndex != pinnedIndex)

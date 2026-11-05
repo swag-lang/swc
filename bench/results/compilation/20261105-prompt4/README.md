@@ -44,6 +44,7 @@ without slot-count evidence.
 | Gate loop-carried use scans by loop depth | Scanning all back-edge ranges for allocation positions outside every loop | The allocator's existing depth sweep counts precisely the back-edge ranges covering each instruction; zero depth proves no loop can match the election position. | DevMode build; all 1,678 C++ tests passed. |
 | Reserve the initial interval worklist | Repeated vector growth while adding the original intervals to the allocator's unhandled queue | The upper bound is already `out.nodes.size()`; reserving once removes geometric growth during initial population while split children can still expand it later. | DevMode build; all 1,678 C++ tests passed. |
 | Keep small loop-range lists inline | Allocating heap storage for the interval walk's temporary back-edge range list | `SmallVector` stores up to eight loop ranges inline and retains the same ordered list for larger functions. | DevMode build; all 1,678 C++ tests passed. |
+| Keep the active interval set inline | Heap allocation for the linear scan's active intervals | At most one allocated interval owns each physical register, and the x64 register file has at most 31 pool registers; 32 inline entries cover the complete active set. | DevMode build; all 1,678 C++ tests passed. |
 
 At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite

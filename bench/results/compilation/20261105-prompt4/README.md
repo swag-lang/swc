@@ -4,6 +4,21 @@ This session follows the existing compiler profiles and the retained DevMode
 campaign report. It uses structural evidence from the current implementation.
 No elapsed-time, profiling, benchmark, or load-test run was made.
 
+## Earlier retained batches
+
+The campaign branch also merged the following work after the previous
+compilation report:
+
+| Area | Retained work | Compiler work removed |
+| --- | --- | --- |
+| Loop, SLP, MemToReg and post-RA state | Flattened register, label, relocation, induction, block-membership and nested-loop lookup tables; indexed selected loop candidates. | Repeated linear or nested-table searches and per-candidate container construction on optimizer paths. |
+| LICM, spills and record promotion | Reused worklists, eligibility sets, spill reachability marks, candidate buffers and record-state storage; released converged filters and skipped empty state setup. | Repeated scratch allocation, initialization and scans across acceptance rounds or candidates. |
+| Early analysis gates | Skipped empty-pass setup, label-dependent CFG work without labels, branch SSA without flag producers, and constant-fold scans without known values or constant addresses. | Pass setup and whole-function analysis when the required instruction shape or input facts are absent. |
+| Shared instruction and relocation walks | Collected local-base definitions and copies in existing walks, reused instruction-stream scans for sink analysis, propagated upper halves linearly, and shared linker alias and relocation facts. | Duplicate instruction, CFG and relocation traversals for facts produced by the same input walk. |
+
+The address-taken label list remains in instruction order. Binary search on that
+unsorted list was rejected; membership checks keep their original semantics.
+
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |
 | Index loop induction candidates | Repeatedly scanning the discovered induction list for each register candidate | A packed-register `FlatKeyMap` records each candidate's existing vector index. Candidate order and the selected induction are unchanged. | DevMode build; all 1,678 C++ tests passed. |

@@ -1434,7 +1434,7 @@ namespace
     class DeletionOracle
     {
     public:
-        DeletionOracle(SlpFunctionContext& fn, const std::unordered_set<uint32_t>& deletedStoreRefs, const std::unordered_set<uint32_t>& scalarDefinitions) :
+        DeletionOracle(SlpFunctionContext& fn, const FlatKeySet& deletedStoreRefs, const FlatKeySet& scalarDefinitions) :
             fn_(&fn),
             deletedStoreRefs_(&deletedStoreRefs),
             scalarDefinitions_(&scalarDefinitions)
@@ -1541,8 +1541,8 @@ namespace
         };
 
         SlpFunctionContext*                 fn_                = nullptr;
-        const std::unordered_set<uint32_t>* deletedStoreRefs_  = nullptr;
-        const std::unordered_set<uint32_t>* scalarDefinitions_ = nullptr;
+        const FlatKeySet*                  deletedStoreRefs_  = nullptr;
+        const FlatKeySet*                  scalarDefinitions_ = nullptr;
         FlatKeyMap<State> states_;
     };
 
@@ -2268,7 +2268,8 @@ namespace
                 vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * fn.shape.bytes));
         }
 
-        std::unordered_set<uint32_t> deletedStoreRefs;
+        FlatKeySet                   deletedStoreRefs;
+        SmallVector<uint32_t, 16>    deletedStoreRefsInOrder;
         uint32_t                     firstDeletedPos = K_INVALID_ID;
         MicroInstrRef                firstDeletedRef = MicroInstrRef::invalid();
         for (const StoreRecord& record : scan.stores)
@@ -2279,7 +2280,8 @@ namespace
             if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(*store, store->ops(*fn.operands)) &&
                 !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*fn.context->builder, record.instRef))
                 return false;
-            deletedStoreRefs.insert(record.instRef.get());
+            if (deletedStoreRefs.insert(record.instRef.get()))
+                deletedStoreRefsInOrder.push_back(record.instRef.get());
             if (record.pos < firstDeletedPos)
             {
                 firstDeletedPos = record.pos;
@@ -2336,7 +2338,7 @@ namespace
             if (!fn.ssa)
                 return false;
         }
-        std::unordered_set<uint32_t> scalarDefinitions;
+        FlatKeySet                   scalarDefinitions;
         for (const PlanInstr& operation : plan.ops)
             for (const MicroInstrRef definition : {operation.scalarDefinition, operation.scalarDefinition2})
                 if (definition.isValid())
@@ -2785,7 +2787,7 @@ namespace
             emitPlanInstr(store);
         }
 
-        for (const uint32_t refValue : deletedStoreRefs)
+        for (const uint32_t refValue : deletedStoreRefsInOrder)
             fn.storage->erase(MicroInstrRef(refValue));
         fn.context->builder->invalidateControlFlowGraph();
 

@@ -1649,7 +1649,7 @@ namespace
             SmallVector<const NaturalLoop*, 4> cacheLoops;
             for (const auto& loop : loopsByHeader | std::views::values)
                 cacheLoops.push_back(&loop);
-            std::stable_sort(cacheLoops.begin(), cacheLoops.end(), [](const NaturalLoop* a, const NaturalLoop* b) {
+            std::ranges::sort(cacheLoops, [](const NaturalLoop* a, const NaturalLoop* b) {
                 return a->bodySize != b->bodySize ? a->bodySize < b->bodySize : a->header < b->header;
             });
             std::vector<uint8_t> visited;

@@ -138,47 +138,51 @@ impl HashSet
 
     // Replaces the content with copies of the keys in `slice`, ignoring duplicates.
     mtd opSet(slice: const [..] K)
+        where Reflection.canCopy(K)
     {
         .clear()
         for v in slice do
             .add(v)
     }
 
-    // Gives a copied set its own slots holding copies of the keys.
-    mtd opPostCopy()
+    #static if Reflection.canCopy(K)
     {
-        if not .table do
-            return
-
-        if not .allocator do
-            .allocator = Swag.getContext().allocator
-
-        let storageBytes = .capacity * #sizeof(HashSetEntry'(K))
-        let oldTable     = .tablePtr()
-        let newTable     = cast([*] HashSetEntry'(K), Memory.alloc(storageBytes, .allocator))
-        #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
-            Swag.init(newTable, .capacity)
-        else do
-            Memory.clear(newTable, storageBytes)
-
-        #static if Reflection.hasPostCopy(K)
+        // Gives a copied set its own slots holding copies of the keys.
+        mtd opPostCopy()
         {
-            for i in .capacity
+            if not .table do
+                return
+
+            if not .allocator do
+                .allocator = Swag.getContext().allocator
+
+            let storageBytes = .capacity * #sizeof(HashSetEntry'(K))
+            let oldTable     = .tablePtr()
+            let newTable     = cast([*] HashSetEntry'(K), Memory.alloc(storageBytes, .allocator))
+            #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
+                Swag.init(newTable, .capacity)
+            else do
+                Memory.clear(newTable, storageBytes)
+
+            #static if Reflection.hasPostCopy(K)
             {
-                let hashVal = oldTable[i].hash
-                if hashVal < HashSet.HASH_DELETED do
-                    continue
+                for i in .capacity
+                {
+                    let hashVal = oldTable[i].hash
+                    if hashVal < HashSet.HASH_DELETED do
+                        continue
 
-                newTable[i].hash = hashVal
-                newTable[i].key  = #nodrop oldTable[i].key
+                    newTable[i].hash = hashVal
+                    newTable[i].key  = #nodrop oldTable[i].key
+                }
             }
-        }
-        else
-        {
-            Memory.copy(newTable, oldTable, storageBytes)
-        }
+            else
+            {
+                Memory.copy(newTable, oldTable, storageBytes)
+            }
 
-        .table = newTable
+            .table = newTable
+        }
     }
 
     // Visits every key in storage-slot order, binding it to `key`.
@@ -327,7 +331,7 @@ impl HashSet
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A set that has never seen
     // a removal takes the shorter loop, which has no deleted slot to remember.
-    private mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
+    private mtd getNewIndex(key: const *K, idx: u64, hashVal: u64)->u64
     {
         let mask  = .capacity - 1
         var index = idx
@@ -340,7 +344,7 @@ impl HashSet
                 let entryHash = table[index].hash
                 if entryHash == hashVal
                 {
-                    if table[index].key == key do
+                    if table[index].key == key[] do
                         return index
                 }
                 elif entryHash == HashSet.HASH_FREE
@@ -358,7 +362,7 @@ impl HashSet
             let entryHash = table[index].hash
             if entryHash == hashVal
             {
-                if table[index].key == key do
+                if table[index].key == key[] do
                     return index
             }
             elif entryHash < HashSet.HASH_FIRST
@@ -388,7 +392,7 @@ impl HashSet
         let hashVal = hashKey(key)
         var index   = cast(u64, hashVal) & (.capacity - 1)
 
-        index = .getNewIndex(key, index, hashVal)
+        index = .getNewIndex(&key, index, hashVal)
         scope
         {
             let table = .tablePtr()
@@ -432,14 +436,13 @@ impl HashSet
     // Relocates `key` into the set under a precomputed hash.
     #[Discardable]
     private mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
-        where Reflection.canCopy(#typeof(K))
     {
         .grow()
 
         var index = cast(u64, hashVal) & (.capacity - 1)
         let table = .tablePtr()
 
-        index = .getNewIndex(key[], index, hashVal)
+        index = .getNewIndex(key, index, hashVal)
         if table[index].hash >= HashSet.HASH_FIRST do
             return table + index
 

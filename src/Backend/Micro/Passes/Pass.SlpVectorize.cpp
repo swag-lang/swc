@@ -890,7 +890,7 @@ namespace
         std::unordered_map<TupleKey, TupleKey, TupleKeyHash> firstTupleBySortedKey;
         // A scalar immediate has the same four-lane representation in every
         // group, so one materialized splat feeds all of its vector uses.
-        std::unordered_map<uint64_t, uint32_t> splatRegs;
+        FlatKeyMap<uint32_t, uint64_t> splatRegs;
 
         size_t totalInstrs() const { return loads.size() + ops.size() + stores.size(); }
     };
@@ -1178,11 +1178,11 @@ namespace
                             }
 
                             const uint64_t splatValue = n0.imm;
-                            const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                            const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
                             uint32_t       splatReg   = K_INVALID_ID;
-                            if (splatIt != plan_->splatRegs.end())
+                            if (knownSplat)
                             {
-                                splatReg = splatIt->second;
+                                splatReg = *knownSplat;
                             }
                             else
                             {
@@ -1282,11 +1282,11 @@ namespace
                         return K_INVALID_ID;
 
                     const uint64_t splatValue = n0.imm;
-                    const auto     splatIt    = plan_->splatRegs.find(splatValue);
+                    const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
                     uint32_t       splatReg   = K_INVALID_ID;
-                    if (splatIt != plan_->splatRegs.end())
+                    if (knownSplat)
                     {
-                        splatReg = splatIt->second;
+                        splatReg = *knownSplat;
                     }
                     else
                     {

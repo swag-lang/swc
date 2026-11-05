@@ -3,6 +3,16 @@
 
 using Swag, Core.Errors
 
+private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
+{
+    if not Reflection.isEnum(enumType) or
+       Reflection.hasAttribute(enumType, EnumFlags) or
+       Reflection.hasAttribute(enumType, Incomplete) do
+        return
+    if not Reflection.hasDeclaredValue(enumType, data) do
+        fail SerializationError{"serialized value is not a member of the requested enum"}
+}
+
 // Reads serialized values, as seen from [[Core.Serialization.ISerialize]] and [[Core.Serialization.Serializer]].
 interface IDecoder
 {
@@ -205,11 +215,7 @@ impl Decoder
                     fail SerializationError{"serialized value is not a member of the requested enum"}
             }
 
-            if isEnum and
-               not Reflection.hasAttribute(enumType, EnumFlags) and
-               not Reflection.hasAttribute(enumType, Incomplete) and
-               not Reflection.hasDeclaredValue(enumType, data) do
-                fail SerializationError{"serialized value is not a member of the requested enum"}
+            try validateDecodedEnumValue(enumType, data)
 
             return
         }
@@ -219,6 +225,7 @@ impl Decoder
             let crc      = try .serializer.readNative'u32()
             let typeType = Reflection.typeFromCrc(crc)
             cast(*(typeinfo?), data)[] = typeType
+            try validateDecodedEnumValue(enumType, data)
             return
         }
 
@@ -281,11 +288,7 @@ impl Decoder
                 strBuf[] = #nodrop try .serializer.readNative'String()
                 strBuf.opPostMove()
 
-                if isEnum and
-                   not Reflection.hasAttribute(enumType, EnumFlags) and
-                   not Reflection.hasAttribute(enumType, Incomplete) and
-                   not Reflection.hasDeclaredValue(enumType, data) do
-                    fail SerializationError{"serialized value is not a member of the requested enum"}
+                try validateDecodedEnumValue(enumType, data)
                 return
             }
 
@@ -307,6 +310,7 @@ impl Decoder
                     }
                 }
 
+                try validateDecodedEnumValue(enumType, data)
                 return
             }
 
@@ -315,16 +319,22 @@ impl Decoder
             let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if try itf.read(idecoder) do
+                if try itf.read(idecoder)
+                {
+                    try validateDecodedEnumValue(enumType, data)
                     return
+                }
             }
 
             // Generic struct load, driven by the shared per-type plan.
             let structType = assume cast(const *TypeInfoStruct, type)
             let treated    = try .serializer.beginStruct(structType, data)
             defer #nofail try .serializer.endStruct()
-            if treated do
+            if treated
+            {
+                try validateDecodedEnumValue(enumType, data)
                 return
+            }
 
             let plan = try planFor(structType)
             for &field in plan.fields
@@ -368,6 +378,7 @@ impl Decoder
             if itf do
                 try itf.postRead(data, idecoder)
 
+            try validateDecodedEnumValue(enumType, data)
             return
         }
 
@@ -379,8 +390,11 @@ impl Decoder
             var count    = typeArr.count
             let treated  = try .serializer.beginSequence(elemType, data, &count)
             defer #nofail try .serializer.endSequence()
-            if treated do
+            if treated
+            {
+                try validateDecodedEnumValue(enumType, data)
                 return
+            }
 
             var bufArr = cast([*] u8, data)
             for count
@@ -389,6 +403,7 @@ impl Decoder
                 bufArr += elemType.sizeof
             }
 
+            try validateDecodedEnumValue(enumType, data)
             return
         }
     }

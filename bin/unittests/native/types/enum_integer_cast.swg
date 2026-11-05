@@ -6,6 +6,12 @@ enum Color: s32
     Green = 4
 }
 
+enum Ratio: f32
+{
+    Normal = 1.0
+    Fast   = 2.0
+}
+
 #[Swag.EnumFlags]
 enum Access: u32
 {
@@ -23,6 +29,8 @@ enum OpenCode: u32
 {
     const green: Color = cast(Color, 4's32)
     Swag.require(green == .Green)
+    const fast: Ratio = cast(Ratio, 2.0'f32)
+    Swag.require(fast == .Fast)
 
     var raw: u32 = 3
     var both: Access = cast(Access, raw)

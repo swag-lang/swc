@@ -21,6 +21,12 @@ unsorted list was rejected; membership checks keep their original semantics.
 Moving indirect-jump detection into the common branch layout scan was also
 rejected: it removes a partial mention scan for indirect functions but adds an
 opcode check to every instruction, and the net effect is unmeasured.
+Searching split-child register hints only among active intervals was rejected:
+a source interval may end at the output slot yet still cover the preceding
+input slot used by the copy hint.
+Indexing MemToReg slot overlaps was rejected for now: bounded overlap queries
+need extra sorted and prefix-maximum storage, and their net tradeoff is unclear
+without slot-count evidence.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |
@@ -37,6 +43,7 @@ opcode check to every instruction, and the net effect is unmeasured.
 | Stop loop-range scans past the current header | Checking every later loop range when finding loop-carried next uses | Loop ranges are collected by ascending header; once a header is beyond the current position, all following ranges are also ineligible. | DevMode build; all 1,678 C++ tests passed. |
 | Gate loop-carried use scans by loop depth | Scanning all back-edge ranges for allocation positions outside every loop | The allocator's existing depth sweep counts precisely the back-edge ranges covering each instruction; zero depth proves no loop can match the election position. | DevMode build; all 1,678 C++ tests passed. |
 | Reserve the initial interval worklist | Repeated vector growth while adding the original intervals to the allocator's unhandled queue | The upper bound is already `out.nodes.size()`; reserving once removes geometric growth during initial population while split children can still expand it later. | DevMode build; all 1,678 C++ tests passed. |
+| Keep small loop-range lists inline | Allocating heap storage for the interval walk's temporary back-edge range list | `SmallVector` stores up to eight loop ranges inline and retains the same ordered list for larger functions. | DevMode build; all 1,678 C++ tests passed. |
 
 At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite

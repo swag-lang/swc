@@ -27,7 +27,7 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// Returns whether the value stored as an enum's underlying value names a declared member.
+// Returns whether an underlying enum value stored at `valueAddress` names a declared member.
 func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
 {
     if not isEnum(type) or not valueAddress do
@@ -61,7 +61,7 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
             if cast(const *u64, caseInfo.value)[] == value do
                 return true
 
-    default:
+    case 16:
         if rawType == string
         {
             let value = cast(const *(string?), valueAddress)[]
@@ -72,9 +72,16 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
         }
 
         for &caseInfo in typeEnum.values where caseInfo.value do
-            if Memory.compare(cast(const [*] void, valueAddress),
-                              cast(const [*] void, caseInfo.value),
-                              rawType.sizeof) == 0 do
+            if Swag.memcmp(cast(const [*] void, valueAddress),
+                           cast(const [*] void, caseInfo.value),
+                           cast(u64, rawType.sizeof)) == 0 do
+                return true
+
+    default:
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if Swag.memcmp(cast(const [*] void, valueAddress),
+                           cast(const [*] void, caseInfo.value),
+                           cast(u64, rawType.sizeof)) == 0 do
                 return true
     }
 

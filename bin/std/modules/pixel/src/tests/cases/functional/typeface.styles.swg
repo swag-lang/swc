@@ -43,6 +43,7 @@ using Core
 #test
 {
     var outcome: Swag.Error
-    discard catch FontFamily.createTypeFace("Missing family", cast(FontFamilyStyle, 255)) as outcome
+    var invalidStyleNumber = 255
+    discard catch FontFamily.createTypeFace("Missing family", cast(FontFamilyStyle, invalidStyleNumber)) as outcome
     Swag.require(outcome.value() is Errors.BadParameterError)
 }

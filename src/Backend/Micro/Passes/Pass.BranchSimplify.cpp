@@ -317,7 +317,7 @@ namespace
             if (!layoutBuilt)
             {
                 RetainedCountTable* labelReferences = countMentions ? nullptr : &scan.labelReferences;
-                bool*               indirectJump    = countMentions ? nullptr : &scan.indirectJump;
+                bool*               indirectJump    = &scan.indirectJump;
                 buildProgramLayout(scan.layout, storage, operands, labelReferences, indirectJump);
                 layoutBuilt = true;
             }
@@ -420,8 +420,16 @@ namespace
                 return scan.indirectJump ? nullptr : &scan;
             }
 
+            // The layout walk already recorded computed jumps. None of the
+            // shared branch scans can reason about them, so avoid the second
+            // full instruction walk when one is present.
+            if (scan.indirectJump)
+            {
+                cache.built = true;
+                return nullptr;
+            }
+
             cache.built            = true;
-            scan.indirectJump      = false;
             scan.diamondScanUsable = true;
             scan.labelReferences.clear();
             scan.mentions.clear();
@@ -431,11 +439,6 @@ namespace
                 const MicroInstr* inst = storage.ptr(ref);
                 if (!inst)
                     continue;
-                if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                {
-                    scan.indirectJump = true;
-                    break;
-                }
 
                 const MicroInstrOperand* ops     = cache.countMentions || inst->op == MicroInstrOpcode::JumpCond ? inst->ops(operands) : nullptr;
                 uint32_t                 labelId = 0;

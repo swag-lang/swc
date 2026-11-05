@@ -679,10 +679,12 @@ namespace
 
             thread_local std::vector<Carrier>         carriers;
             thread_local std::vector<MicroInstrRef>   erased;
-            thread_local std::unordered_set<uint32_t> inductionsCarried;
+            thread_local FlatKeySet                   inductionsCarried;
+            thread_local std::vector<uint32_t>        carriedInductionOrder;
             carriers.clear();
             erased.clear();
             inductionsCarried.clear();
+            carriedInductionOrder.clear();
             for (const Candidate& candidate : *chosen)
             {
                 const Induction& induction = inductions[candidate.inductionIx];
@@ -803,14 +805,17 @@ namespace
                 if (candidate.copyOfInductionRef.isValid())
                     erased.push_back(candidate.copyOfInductionRef);
                 if (candidate.isSum)
-                    inductionsCarried.insert(candidate.inductionIx);
+                {
+                    if (inductionsCarried.insert(candidate.inductionIx))
+                        carriedInductionOrder.push_back(candidate.inductionIx);
+                }
                 changed = true;
             }
 
             // An induction whose every use now reads a carrier is dead, and
             // its step with it: nothing else reads the register the step
             // defines, and liveness alone never sees through the cycle.
-            for (const uint32_t inductionIx : inductionsCarried)
+            for (const uint32_t inductionIx : carriedInductionOrder)
                 erased.push_back(inductions[inductionIx].stepRef);
 
             for (const MicroInstrRef ref : erased)

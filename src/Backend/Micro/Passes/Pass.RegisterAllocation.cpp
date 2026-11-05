@@ -1149,12 +1149,13 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     LoopResidency residency;
     residency.header = region.header;
     residency.tail   = region.tail;
+    // The CFG builds predecessor lists in increasing source-instruction order,
+    // so filtering the back-edges preserves the order needed by the cursor.
     for (const uint32_t pred : predecessors_[region.header])
     {
         if (pred >= region.header)
             residency.backEdges.push_back(pred);
     }
-    std::ranges::sort(residency.backEdges);
 
     // Registers each class must keep out of the committed pairs: the pairs
     // are protected from eviction at the back-edge, and preloads must not

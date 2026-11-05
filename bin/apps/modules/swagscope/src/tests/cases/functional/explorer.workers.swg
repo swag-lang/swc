@@ -136,7 +136,7 @@ using Core, Gui, Pixel
         Swag.require(entry.texture.isValid())
 }
 
-// Each standard spinner animates on its own window until a completed preview replaces it.
+// A pending tile keeps its generic picture under the spinner, including between local and online work.
 #test
 {
     var host: Testing.HeadlessHost
@@ -147,6 +147,22 @@ using Core, Gui, Pixel
     window.explorerActive = true
     explorer.entries.add({name: "Loading.txt", attempted: true})
     explorer.fill()
+    let generic = host.render(window)
+    explorer.entries[0].path      = "queued.mkv"
+    explorer.entries[0].attempted = false
+    for &worker in explorer.previews
+    {
+        worker.index      = Swag.U64.Max
+        worker.generation = explorer.generation
+        worker.submit(func() {})
+    }
+    explorer.grid.invalidate()
+    discard host.render(window)
+    Swag.require(explorer.previewSlot(0) == Swag.U64.Max and explorer.grid.spinners[0].isLocallyVisible())
+    for &worker in explorer.previews do
+        worker.wait()
+
+    explorer.entries[0].attempted = true
     let preview = &explorer.previews[0]
     preview.index      = 0
     preview.generation = explorer.generation
@@ -156,6 +172,8 @@ using Core, Gui, Pixel
     let second = host.render(window)
     var changed: u32
     let rect   = explorer.grid.spinners[0].surfaceRect()
+    let tile   = explorer.grid.tileRect(0)
+    let origin = explorer.grid.localToSurface(Math.Point{tile.x, tile.y})
     for y in cast(s32, rect.height)
     {
         for x in cast(s32, rect.width)
@@ -169,11 +187,84 @@ using Core, Gui, Pixel
 
     Swag.require(changed > 0)
 
+    // The worker mark is the only difference: the file glyph remains beneath it.
+    for y in cast(s32, tile.height)
+    {
+        for x in cast(s32, tile.width)
+        {
+            let px = cast(s32, origin.x) + x
+            let py = cast(s32, origin.y) + y
+            if not rect.contains(Math.Point{cast(f32, px), cast(f32, py)}) do
+                Swag.require(generic.pixelColor(px, py) == first.pixelColor(px, py))
+        }
+    }
+
     preview.wait()
+    explorer.entries[0].onlinePending = true
+    for &worker in explorer.previews
+    {
+        worker.index      = Swag.U64.Max
+        worker.generation = explorer.generation
+        worker.submit(func() {})
+    }
+    explorer.grid.invalidate()
+    discard host.render(window)
+    Swag.require(explorer.previewSlot(0) == Swag.U64.Max and explorer.grid.spinners[0].isLocallyVisible())
+    for &worker in explorer.previews do
+        worker.wait()
+
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
     explorer.entries[0].texture = host.app.renderer.addImage(&image)
+    explorer.entries[0].onlinePending = false
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
+}
+
+// Visible films keep their waiting marks even when every preview worker is occupied.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 600)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
+    defer
+    {
+        for &worker in explorer.previews do
+            worker.wait()
+        host.shutdown()
+    }
+
+    for &worker in explorer.previews
+    {
+        worker.index      = Swag.U64.Max
+        worker.generation = explorer.generation
+        worker.submit(func() {})
+    }
+    for index in 8
+    {
+        let name = Format.toString("Film-%.mkv", index)
+        explorer.entries.add({name: name, path: name})
+    }
+    explorer.fill()
+    discard host.render(window)
+
+    let range = explorer.grid.visibleRange()
+    let count = range.end - range.first
+    Swag.require(count > explorer.previews.count and explorer.grid.spinners.count >= count)
+    for index in count do
+        Swag.require(explorer.grid.spinners[index].isLocallyVisible())
+
+    var image = Image.create(24, 18, .RGB8)
+    image.fill(Color.fromRgb(56, 189, 248))
+    explorer.entries[explorer.shown[range.first]].texture = host.app.renderer.addImage(&image)
+    explorer.grid.invalidate()
+    discard host.render(window)
+    var busy: u64
+    for spinner in explorer.grid.spinners where spinner.isLocallyVisible() do
+        busy += 1
+    Swag.require(busy == count - 1)
 }

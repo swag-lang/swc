@@ -345,6 +345,9 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.require(explorer.grid.hovered == 0)
 
         // Keep one publication pending to photograph its indicator without starting a decoder.
+        explorer.refreshPreviewSettings()
+        for &entry in explorer.entries do
+            entry.attempted = true
         host.app.renderer.removeTexture(&explorer.entries[2].texture)
         explorer.previews[0].index      = 2
         explorer.previews[0].generation = explorer.generation

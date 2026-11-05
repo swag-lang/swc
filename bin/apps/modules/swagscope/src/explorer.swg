@@ -247,27 +247,7 @@ impl Explorer
 
         result.retranslate()
         result.previews.resize(Math.min(cast(u64, Swag.workerCount()), ExplorerPreviewTasks))
-        result.grid.busy.resize(result.previews.count)
-        for result.previews.count
-        {
-            with let spinner = Spinner.create(result.grid)
-            {
-                .backgroundStyle = .Transparent
-                .hide()
-                .hookOnEvent = func|result|(_, evt)
-                {
-                    if evt is MouseEvent as mouse
-                    {
-                        result.grid.itf.onMouseEvent(mouse)
-                        return true
-                    }
-
-                    return false
-                }
-            }
-
-            result.grid.spinners.add(spinner)
-        }
+        result.grid.ensureSpinners(result.previews.count)
 
         result.setMode(.Medium)
         return result
@@ -1962,11 +1942,10 @@ impl IWnd for Explorer
         }
         else
         {
-            for &preview, slot in .previews where preview.claim(evt)
+            for &preview in .previews where preview.claim(evt)
             {
                 preview.wait()
                 .refreshPreviewSettings()
-                .grid.spinners[slot].hide()
                 .grid.invalidate()
                 if preview.generation != .generation and not preview.temporary.isEmpty()
                 {
@@ -2124,6 +2103,7 @@ struct ExplorerGrid
     hovered:       u64        = Swag.U64.Max
     spinners:      Array'(*Spinner)
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
+    spinnerUse:    u64
     nameTimer:     *Timer?
     nameTick:      u64
     rows:          bool     // Whether the entries stand one per line, as an archive lists them.
@@ -2172,6 +2152,33 @@ impl ExplorerGrid
     const RatioWidth = 64.0
     const DateColumn = 136.0
     const SizeColumn = 96.0
+
+    // Reuses standard animated marks for every visible tile waiting for a final preview.
+    mtd ensureSpinners(count: u64)
+    {
+        while .spinners.count < count
+        {
+            with let spinner = Spinner.create(me)
+            {
+                .backgroundStyle = .Transparent
+                .hide()
+                .hookOnEvent = func|grid = me|(_, evt)
+                {
+                    if evt is MouseEvent as mouse
+                    {
+                        grid.itf.onMouseEvent(mouse)
+                        return true
+                    }
+
+                    return false
+                }
+            }
+
+            .spinners.add(spinner)
+        }
+
+        .busy.resize(.spinners.count)
+    }
 
     mtd rowAt(point: Math.Point)->u64
     {
@@ -2456,7 +2463,7 @@ impl ExplorerGrid
         options.selected       = .explorer.selected == index
         options.showCaption    = caption
         options.nameTick       = .nameTick
-        options.previewPainter = func|grid = me, index, slot|(_, painter, tile)->bool
+        options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
             let entry = &grid.explorer.entries[index]
             if grid.board == .Grid and grid.paintCard(painter, tile, entry) do
@@ -2467,18 +2474,28 @@ impl ExplorerGrid
                 return true
             }
 
-            if not entry.texture.isValid() and slot != Swag.U64.Max
-            {
-                let size = grid.themeMetrics().spinner_Size
-                grid.spinners[slot].setPosition(Math.Rectangle{tile.horzCenter() - size / 2, tile.vertCenter() - size / 2, size, size}, computeLayout: false)
-                grid.busy[slot] = true
-                return true
-            }
-
             return false
         }
 
         FileTile.paint(me, painter, tile, &content, options)
+
+        // Keep the generic tile under the spinner until the local and optional online passes
+        // have produced one image. A queued online pass has no worker slot yet, but is still busy.
+        let eligible = not entry.path.isEmpty() and
+                       (not entry.directory or not entry.albumTrack.isEmpty() or
+                        (.board == .Covers and entry.children == Swag.U64.Max))
+        if not entry.texture.isValid() and
+           (slot != Swag.U64.Max or entry.onlinePending or (eligible and not entry.attempted))
+        {
+            let metrics = .themeMetrics()
+            let size    = metrics.spinner_Size
+            let spinner = .spinners[.spinnerUse]
+            spinner.setPosition(Math.Rectangle{tile.right() - size - metrics.fileTile_Inset,
+                                               tile.y + metrics.fileTile_Inset,
+                                               size, size}, computeLayout: false)
+            .busy[.spinnerUse] = true
+            .spinnerUse += 1
+        }
     }
 
     // A missing album image stays a neutral sleeve, never a byte-map page masquerading as art.
@@ -3017,7 +3034,9 @@ impl IWnd for ExplorerGrid
             return
         }
 
+        .ensureSpinners(range.end - range.first)
         .busy.fill(false)
+        .spinnerUse = 0
         if .board == .Album
         {
             .paintAlbum(painter)

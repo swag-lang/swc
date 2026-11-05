@@ -1320,7 +1320,22 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     if (underlyingRequest.constantFoldingResult().isValid())
     {
-        if (!dstType.isEnumFlags())
+        bool castIsAttributeArgument = false;
+        for (size_t up = 0;; ++up)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (!parentRef.isValid())
+                break;
+            if (sema.node(parentRef).is(AstNodeId::Attribute))
+            {
+                castIsAttributeArgument = true;
+                break;
+            }
+        }
+
+        // Attribute validators need to report their own, more specific diagnostic
+        // for invalid enum payloads such as a calling convention value.
+        if (!castRequest.probing && !castIsAttributeArgument && !dstType.isEnumFlags())
         {
             const ConstantValue& castValue = sema.cstMgr().get(underlyingRequest.constantFoldingResult());
             std::vector<const Symbol*> enumMembers;

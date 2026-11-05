@@ -257,12 +257,11 @@ is the current scorecard.
   avoids invalid values for closed enums regardless of runtime safety settings while a checked
   conversion API is unspecified.
 - Evidence: semantic checks reject runtime ordinary-enum casts and preserve flags-enum casts.
-- The binary serializer reads an enum through its underlying type, so untrusted encoded values can
-  still introduce an undeclared member. Decide whether serialized ordinary enums must reject such
-  values or opt into `#[Swag.Incomplete]` for forward compatibility.
-- Next: audit generic and reflection-based conversions for runtime enum construction, resolve the
-  binary deserialization rule, then run the focused JIT/native, sema, standard-library, and
-  application tests for the migrated shipped code.
+- Binary and TagBin deserialization now reject undeclared members of closed enums; flags and
+  `#[Swag.Incomplete]` enums retain their declared semantics. TagBin validates enums in raw arrays,
+  including enums nested in raw structs and fixed arrays.
+- Next: finish the generic/reflection conversion audit, then run the focused JIT/native, sema,
+  standard-library, and application tests for the migrated shipped code.
 - Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime
   values, a runtime flags combination, an open enum, and the migrated shipped call sites; the cast
   reference documents the rule.

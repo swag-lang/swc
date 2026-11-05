@@ -432,6 +432,7 @@ impl String
     // `value` must not be zero.
     mtd insert(byteIndex: u64, value: u8)
     {
+        Swag.assert(value != 0)
         if byteIndex == .length
         {
             .append(value)
@@ -439,7 +440,6 @@ impl String
         }
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
-        Swag.assert(value != 0)
 
         .grow(.length + 2)
         let buffer = unwrap .buffer

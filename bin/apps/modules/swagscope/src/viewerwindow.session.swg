@@ -178,9 +178,10 @@ impl ViewerWindow
     }
 
     // Closes the current file and forgets its reading state, stops the slide show and the change
-    // watch, and returns to the empty window with focus on the open button.
+    // watch, and returns to the empty window without choosing a control.
     mtd closeFile()
     {
+        .surface?.clearFocus()
         .explorerTransition = false
         if .explorer and .explorer.isLocallyVisible()
         {
@@ -200,8 +201,6 @@ impl ViewerWindow
 
         .searchBox.setText("", notify: false)
         .showEmpty(appStrings().ui_DropTitle)
-        if .explorerActive do
-            .explorer!.focusContent()
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a

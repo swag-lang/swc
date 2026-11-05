@@ -212,7 +212,6 @@ private impl IWnd for Panel
         .details     = #move content.details
         .refreshPageCommands()
         .applyLayout()
-        .setInitialFocus(.document)
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
     }

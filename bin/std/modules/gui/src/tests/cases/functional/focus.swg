@@ -117,8 +117,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(card.submit.hasFocus())
 }
 
-// Actions always show the focus that lets a later key activate them; fields still reveal
-// their focus when the keyboard moves into them.
+// A pointer action leaves the surface without a keyboard selection; Tab starts the traversal.
 #test
 {
     var host: Testing.HeadlessHost
@@ -127,15 +126,15 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     let card = focusHeadlessCard(&host.root, {10, 10, 200, 180})
 
     host.clickWnd(card.submit)
-    Swag.require(card.submit.hasFocus())
-    Swag.require(card.submit.hasVisibleFocus())
+    Swag.require(not card.submit.hasFocus())
+    Swag.require(not card.submit.hasVisibleFocus())
 
     host.keyPress(.Tab)
     Swag.require(card.field.hasFocus())
     Swag.require(card.field.hasVisibleFocus())
 
     host.clickWnd(card.submit)
-    Swag.require(card.submit.hasVisibleFocus())
+    Swag.require(not card.submit.hasFocus() and not card.field.hasFocus())
 }
 
 // Native surface deactivation removes the logical focus and its caret, then activation restores
@@ -167,6 +166,31 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(focusRestored)
     Swag.require(edit.hasFocus())
     Swag.require(edit.timerCaret != null)
+}
+
+// Activation cannot invent a focus on a surface that has never chosen one, and clearing a page
+// removes both its live focus and the saved point that native activation could restore.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+
+    let first = PushButton.create(&host.root, "First", {10, 10, 80, 24})
+    Swag.require(not host.surface.restoreFocus())
+    Swag.require(host.app.keyboardFocusWnd == null)
+
+    first.setFocus()
+    host.surface.clearFocus()
+    Swag.require(host.app.keyboardFocusWnd == null)
+    Swag.require(not host.surface.restoreFocus())
+
+    // Enter on a fresh page cannot silently select and press its first button.
+    host.keyPress(.Return)
+    Swag.require(not first.hasFocus())
+    host.surface.clearFocus()
+
+    host.keyPress(.Tab)
+    Swag.require(first.hasVisibleFocus())
 }
 
 // A hidden or disabled control hands the keyboard to what follows it.

@@ -335,7 +335,6 @@ impl Panel
         result.applyLayout()
         result.setZoom(g_ZoomPercent)
         result.scheduleMore()
-        result.setInitialFocus(result.editor)
         return result
     }
 

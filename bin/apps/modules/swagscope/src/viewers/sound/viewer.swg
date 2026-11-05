@@ -999,7 +999,6 @@ impl Panel
         result.refreshTransport()
         result.applyLayout()
         result.arrangeWave()
-        result.setInitialFocus(result.playButton)
         result.openFileName = host.fileName()
 
         // A worker allocates with the default allocator, so the owned packet table it builds can

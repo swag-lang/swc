@@ -172,6 +172,9 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         host.finishAnimations()
         main.applyLayout()
         Swag.require(main.taskBar.children.count == 5)
+        Swag.require(main.taskBar.children[0].name == appStrings().act_CaptureArea)
+        Swag.require(main.taskBar.children[0].position.width > 100)
+        Swag.require(main.taskBar.children[0].isLocallyVisible())
         var right = 0'f32
         for child in main.taskBar.children
         {
@@ -187,7 +190,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     Swag.require(main.libraryMode)
 }
 
-// The first keyboard press belongs to the editor, not the capture action on the task bar.
+// The editor starts without focus; a first key cannot activate a task-bar action.
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -199,7 +202,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     }
 
     host.recordCommands()
-    Swag.require(main.editWnd.editView.hasFocus())
+    Swag.require(main.focusedWindow() == null)
     for button in main.taskBar.children
     {
         Swag.require(button.focusPolicy == .None)
@@ -209,7 +212,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
     host.keyPress(.Space)
     Swag.require(host.commandCount == 0)
-    Swag.require(main.editWnd.editView.hasFocus())
+    Swag.require(not main.editWnd.editView.hasFocus())
 }
 
 // The named command door shares the caption with the native window buttons.
@@ -288,12 +291,12 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     g_Library.loaded = true
     main.swapLibraryMode()
     Swag.require(main.libraryMode and main.libWnd.presentationOpacity == 1)
-    Swag.require(main.libWnd.view.hasFocus())
+    Swag.require(not main.libWnd.view.hasFocus())
     Swag.require(main.propWnd.topLayout.children[0] == controls)
     text.fontSize = 36
     main.swapLibraryMode()
     Swag.require(not main.libraryMode and main.editArea.presentationOpacity == 1)
-    Swag.require(main.editWnd.editView.hasFocus())
+    Swag.require(not main.editWnd.editView.hasFocus())
     var fontSize: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontSize) do
         fontSize = item

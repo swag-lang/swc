@@ -1154,9 +1154,6 @@ impl MainWnd
             .updateState()
         }
 
-        // The document owns the opening keyboard context; the task bar never takes focus.
-        result.editWnd.editView.setFocus()
-
         // The ground around the picture moves the window, as the strip does.
         result.surface!.wnd.groundHitTest = func|result|(pos) => result.editWnd.editView.isWindowGround(pos)
 

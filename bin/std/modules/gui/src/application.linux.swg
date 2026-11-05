@@ -661,9 +661,7 @@ impl Application
             {
                 .lastClickTime[button]     = packet.time
                 .lastClickPosition[button] = position
-                .setFocusVisible(false)
-                if target.focusPolicy != .None do
-                    target.setFocus()
+                .focusPointerTarget(target)
             }
 
             .toolTip.hide()

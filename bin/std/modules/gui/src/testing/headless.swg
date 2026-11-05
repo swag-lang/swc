@@ -1328,13 +1328,10 @@ impl HeadlessHost
         .setModifierKeys(modifiers, true)
         defer me.setModifierKeys(modifiers, false)
 
-        // A press moves the keyboard focus exactly as the run loop moves it, so a test that
-        // clicks a control finds the focus where a user would.
+        // A press follows the same focus policy as the run loop.
         if kind == .Pressed
         {
-            .app.setFocusVisible(false)
-            if target.focusPolicy != .None do
-                target.setFocus()
+            .app.focusPointerTarget(target)
         }
 
         // Like the runtime loop, positions travel in physical screen pixels and the

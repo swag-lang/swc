@@ -391,11 +391,7 @@ private impl Application
                 {
                     evt.kind = .Pressed
 
-                    // The pointer says which control is being acted on, so the ring the
-                    // keyboard needs would only add noise from here on.
-                    .setFocusVisible(false)
-                    if targetWnd.focusPolicy != .None do
-                        targetWnd.setFocus()
+                    .focusPointerTarget(targetWnd)
                 }
 
                 evt.button = cast(Input.MouseButton, i)
@@ -411,12 +407,13 @@ private impl Application
         }
     }
 
-    // Puts the keyboard on the first traversal stop, or on the root view of a focusless surface.
+    // Gives a focusless surface's root view a keyboard receiver when its first key arrives.
     //
     // The innermost modal owns the keyboard while one is up; otherwise the main surface does. This
     // is a last resort for a surface that never placed its own focus — see
-    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately. A canvas-style surface has no
-    // traversal stops, but its root still needs keys for a game or another direct-input view.
+    // [[Gui.Wnd.setInitialFocus]] for saying it deliberately. The first key must not choose a
+    // button or field on behalf of the reader: Tab enters the traversal from the root, while
+    // a canvas can still read direct input and a root can still route shortcuts.
     internal mtd seedKeyboardFocus()
     {
         var surface = .mainSurface
@@ -425,9 +422,25 @@ private impl Application
         if not surface do
             return
 
-        surface.wnd.setInitialFocus()
-        if not .keyboardFocusWnd do
-            surface.wnd.view.setSurfaceFallbackFocus()
+        surface.wnd.view.setSurfaceFallbackFocus()
+    }
+
+    // An action pressed by the pointer does not become a keyboard selection.
+    //
+    // Fields and canvases still take focus for typing and direct input. Buttons stay in Tab
+    // traversal, but a click clears the prior keyboard owner rather than marking the button.
+    internal mtd focusPointerTarget(target: *Wnd)
+    {
+        .setFocusVisible(false)
+        if target.wndFlags.has(.NoPointerFocus) do
+            return
+        if target.wndFlags.has(.ActivatesOnKey)
+        {
+            target.surface?.clearFocus()
+            return
+        }
+        if target.focusPolicy != .None do
+            target.setFocus()
     }
 
     internal mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)

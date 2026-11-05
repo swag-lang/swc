@@ -677,7 +677,6 @@ impl Panel
         result.timeButton.setQuietText(Viewer.durationText(result.duration))
         result.applyLayout()
         result.sheet.relayout()
-        result.setInitialFocus(result.sheet)
         return result
     }
 }

@@ -1028,7 +1028,6 @@ impl ViewerWindow
         result.updateDocumentInsets()
         result.applyLayout()
         result.layoutFloatingParts()
-        result.home.setFocus()
         return result
     }
 
@@ -1326,6 +1325,7 @@ impl ViewerWindow
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
+        .surface?.clearFocus()
         if not .explorer do
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
@@ -1335,6 +1335,7 @@ impl ViewerWindow
         .home.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)
+        .surface?.clearFocus()
         .refreshTitle()
         .applyLayout()
     }

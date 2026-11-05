@@ -3,10 +3,28 @@
 
 using Swag, Core, Pixel
 
+// A panel may place a button against its own edge without cutting off the focus ring.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 100)
+
+    let panel  = Wnd.create'Wnd(&host.root, {20, 20, 80, 40})
+    let button = PushButton.create(panel, "Go", {0, 4, 80, 32})
+    let idle   = host.render()
+
+    button.setFocus()
+    host.app.setFocusVisible(true)
+    let focused = host.render()
+
+    Swag.require(focused.pixelColor(17, 40) != idle.pixelColor(17, 40))
+    Swag.require(focused.pixelColor(103, 40) != idle.pixelColor(103, 40))
+}
+
 // What the ring looks like on a control that has nothing else to show for the focus.
 //
 // The image is the contract: a rule inside the button, one accent, and the same visible focus
-// after the pointer presses it, because a later key can still activate it.
+// only while the keyboard selected it; a pointer press leaves no ring.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -25,10 +43,9 @@ using Swag, Core, Pixel
     Swag.require(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton")
 
-    // A pointer press keeps the ring because the button keeps keyboard focus. The pointer also
-    // gives the button its hover state, so its image differs from the keyboard state.
+    // A pointer press clears the keyboard selection, while keeping its own hover state.
     host.clickWnd(button)
-    Swag.require(button.hasFocus() and button.hasVisibleFocus())
+    Swag.require(not button.hasFocus() and not button.hasVisibleFocus())
     let pressed = host.render()
     Swag.require(not Slice.equals(pressed.pixels.toSlice(), ringed.pixels.toSlice()))
 }

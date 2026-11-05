@@ -3,14 +3,14 @@
 
 using Swag, Gui, Viewers
 
-// The empty document owns the opening keyboard context; caption commands never take focus.
+// The empty document opens without a chosen control; caption commands never take focus.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(880, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
 
-    Swag.require(window.home.hasFocus())
+    Swag.require(window.focusedWindow() == null)
     Swag.require(window.outlineCaptionButton.focusPolicy == .None)
     var launchers: u32
     for child in host.surfaceWnd.children

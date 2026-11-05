@@ -177,8 +177,8 @@ namespace
             int64_t   offset = 0;
             int64_t   value  = 0;
         };
-        std::unordered_map<uint32_t, InnerLoop> innerByHeader;
-        std::unordered_map<uint32_t, Guard>     guardByJump;
+        FlatKeyMap<InnerLoop>                   innerByHeader;
+        FlatKeyMap<Guard>                       guardByJump;
         std::unordered_map<MicroReg, int64_t>   offsets;
         offsets.emplace(outer.counter, 0);
 
@@ -241,13 +241,13 @@ namespace
             if (inst->op == MicroInstrOpcode::Label)
             {
                 const auto innerIt = innerByHeader.find(o);
-                if (innerIt == innerByHeader.end())
+                if (!innerIt)
                     continue;
-                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->second.jump - 1])->ops(operands);
+                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->jump - 1])->ops(operands);
                 const auto               offsetIt = offsets.find(cmpOps[0].reg);
                 if (offsetIt == offsets.end())
                     return false;
-                innerIt->second.initOffset = offsetIt->second;
+                innerIt->initOffset = offsetIt->second;
                 continue;
             }
 
@@ -303,23 +303,23 @@ namespace
             const int64_t outerValue = static_cast<int64_t>(outer.initValue + k * outer.step);
             for (uint32_t o = outer.bodyBegin; o < outer.bodyEnd;)
             {
-                if (const auto guardIt = guardByJump.find(o); guardIt != guardByJump.end())
+                if (const Guard* guardIt = guardByJump.find(o))
                 {
                     bool taken = false;
-                    evaluateCompare(taken, guardIt->second.cond, outerValue + guardIt->second.offset, guardIt->second.value);
-                    o = taken ? guardIt->second.target : o + 1;
+                    evaluateCompare(taken, guardIt->cond, outerValue + guardIt->offset, guardIt->value);
+                    o = taken ? guardIt->target : o + 1;
                     continue;
                 }
 
                 const auto innerIt = innerByHeader.find(o);
-                if (innerIt == innerByHeader.end())
+                if (!innerIt)
                 {
                     ++total;
                     ++o;
                     continue;
                 }
 
-                const InnerLoop& inner     = innerIt->second;
+                const InnerLoop& inner     = *innerIt;
                 const int64_t    start     = outerValue + inner.initOffset;
                 const uint64_t   bodyCount = inner.jump - 2 - (o + 1);
                 if (start < 0 || static_cast<uint64_t>(start) >= inner.bound || (inner.bound - static_cast<uint64_t>(start)) % inner.step != 0)
@@ -1273,7 +1273,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Body scan: collect internal labels, verify every branch is either
             // internal (remappable) or a forward exit, and that nothing but the
             // latch touches the counter.
-            std::unordered_set<uint64_t> internalLabels;
+            FlatKey64Set                 internalLabels;
+            SmallVector<uint64_t, 4>     internalLabelOrder;
             bool                         ok = true;
             SmallVector<MicroReg, 4>     constantTableBases;
             SmallVector<MicroReg, 4>     indexValues;
@@ -1317,8 +1318,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     case MicroInstrOpcode::Label:
                         if (!ops || relocLabels.contains(ops[0].valueU64))
                             ok = false;
-                        else
-                            internalLabels.insert(ops[0].valueU64);
+                        else if (internalLabels.insert(ops[0].valueU64))
+                            internalLabelOrder.push_back(ops[0].valueU64);
                         break;
 
                     case MicroInstrOpcode::JumpCond:
@@ -1398,7 +1399,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // No jump from outside the body may land on an internal label.
             // The layout is ordered, so its first and last incoming jumps
             // bound every source without rescanning all function jumps.
-            for (const uint64_t target : internalLabels)
+            for (const uint64_t target : internalLabelOrder)
             {
                 const LabelInfo& internal = *findLabel(labels, target);
                 if (internal.firstJump != std::numeric_limits<uint32_t>::max() &&
@@ -1497,7 +1498,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             SmallVector<MicroReg, 4> steppedPointers;
             if (!partial && internalLabels.empty())
             {
-                std::unordered_map<MicroReg, uint32_t> definitions;
+                FlatKeyMap<uint32_t>                   definitions;
                 FlatKeySet                             addressBases;
                 bool                                   readsFlags = false;
                 for (uint32_t o = bodyBegin; o < bodyEnd && !readsFlags; ++o)
@@ -1511,7 +1512,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
                     for (const MicroReg reg : useDef.defs)
                         if (reg.isVirtualInt())
-                            definitions[reg]++;
+                            definitions.getOrInsert(reg.packed)++;
                     if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 && !ops[3].hasWideImmediateValue() &&
                         (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract) && ops[0].reg.isVirtualInt() && ops[0].reg != counter &&
                         std::ranges::find(steppedPointers, ops[0].reg) == steppedPointers.end())
@@ -1519,8 +1520,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
                 SmallVector<MicroReg, 4> kept;
                 for (const MicroReg reg : steppedPointers)
-                    if (!readsFlags && definitions[reg] == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
+                {
+                    const uint32_t* definitionCount = definitions.find(reg.packed);
+                    if (!readsFlags && definitionCount && *definitionCount == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
                         kept.push_back(reg);
+                }
                 steppedPointers = kept;
             }
 
@@ -1533,9 +1537,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             else
                 firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            std::unordered_map<MicroReg, MicroReg>                currentName;
+            FlatKeyMap<uint32_t, uint32_t>                        currentName;
             uint32_t                                              nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
-            std::optional<std::unordered_map<uint64_t, uint64_t>> labelMap;
+            std::optional<FlatKeyMap<uint64_t, uint64_t>> labelMap;
             if (!internalLabels.empty())
                 labelMap.emplace().reserve(internalLabels.size());
             SmallVector<MicroInstrOperand, 8> newOps;
@@ -1561,8 +1565,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                 // The keys are the same for every copy. Replace their labels
                 // without destroying and allocating the map's nodes again.
-                for (const uint64_t id : internalLabels)
-                    labelMap->insert_or_assign(id, builder.createLabel().get());
+                for (const uint64_t id : internalLabelOrder)
+                    labelMap->getOrInsert(id) = builder.createLabel().get();
 
                 for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
@@ -1575,29 +1579,31 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                     if (src->op == MicroInstrOpcode::Label)
                     {
-                        newOps[0].valueU64 = (*labelMap)[newOps[0].valueU64];
+                        const uint64_t* remapped = labelMap->find(newOps[0].valueU64);
+                        SWC_ASSERT(remapped);
+                        newOps[0].valueU64 = *remapped;
                     }
                     else if (src->op == MicroInstrOpcode::JumpCond && labelMap)
                     {
-                        const auto remapIt = labelMap->find(newOps[2].valueU64);
-                        if (remapIt != labelMap->end())
-                            newOps[2].valueU64 = remapIt->second;
+                        const uint64_t* remapped = labelMap->find(newOps[2].valueU64);
+                        if (remapped)
+                            newOps[2].valueU64 = *remapped;
                     }
 
                     if (src->op == MicroInstrOpcode::OpBinaryRegImm && std::ranges::find(steppedPointers, newOps[0].reg) != steppedPointers.end())
                     {
                         const MicroReg pointer = newOps[0].reg;
-                        const auto     nameIt  = currentName.find(pointer);
+                        const uint32_t* nameIt = currentName.find(pointer.packed);
                         SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
                         const MicroReg    fresh = MicroReg::virtualIntReg(nextFreshInt++);
                         const uint64_t    delta = newOps[2].microOp == MicroOp::Add ? newOps[3].valueU64 : 0 - newOps[3].valueU64;
                         MicroInstrOperand address[4];
                         address[0].reg      = fresh;
-                        address[1].reg      = nameIt != currentName.end() ? nameIt->second : pointer;
+                        address[1].reg      = nameIt ? MicroReg::fromPacked(*nameIt) : pointer;
                         address[2].opBits   = MicroOpBits::B64;
                         address[3].valueU64 = delta;
                         storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadAddrRegMem, address);
-                        currentName[pointer] = fresh;
+                        currentName.getOrInsert(pointer.packed) = fresh.packed;
                         continue;
                     }
 
@@ -1620,9 +1626,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                             else if (regOp.use)
                             {
                                 // Only renamable definitions enter this map.
-                                const auto nameIt = currentName.find(*regOp.reg);
-                                if (nameIt != currentName.end())
-                                    *regOp.reg = nameIt->second;
+                                const uint32_t* nameIt = currentName.find(regOp.reg->packed);
+                                if (nameIt)
+                                    *regOp.reg = MicroReg::fromPacked(*nameIt);
                             }
                         }
                         for (const MicroInstrRegOperandRef& regOp : regOps)
@@ -1641,7 +1647,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                                 SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
                                 fresh = MicroReg::virtualIntReg(nextFreshInt++);
                             }
-                            currentName[original] = fresh;
+                            currentName.getOrInsert(original.packed) = fresh.packed;
                             *regOp.reg            = fresh;
                         }
                     }
@@ -1663,12 +1669,12 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 // Post-loop readers of a stepped pointer see the last copy's value.
                 for (const MicroReg pointer : steppedPointers)
                 {
-                    const auto nameIt = currentName.find(pointer);
-                    if (nameIt == currentName.end())
+                    const uint32_t* nameIt = currentName.find(pointer.packed);
+                    if (!nameIt)
                         continue;
                     MicroInstrOperand copyOps[3];
                     copyOps[0].reg    = pointer;
-                    copyOps[1].reg    = nameIt->second;
+                    copyOps[1].reg    = MicroReg::fromPacked(*nameIt);
                     copyOps[2].opBits = MicroOpBits::B64;
                     storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegReg, copyOps);
                 }

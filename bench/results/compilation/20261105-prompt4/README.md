@@ -21,6 +21,9 @@ unsorted list was rejected; membership checks keep their original semantics.
 Moving indirect-jump detection into the common branch layout scan was also
 rejected: it removes a partial mention scan for indirect functions but adds an
 opcode check to every instruction, and the net effect is unmeasured.
+Searching split-child register hints only among active intervals was rejected:
+a source interval may end at the output slot yet still cover the preceding
+input slot used by the copy hint.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |

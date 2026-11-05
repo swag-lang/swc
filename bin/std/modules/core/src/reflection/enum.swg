@@ -58,14 +58,25 @@ func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
             if cast(const *u64, caseInfo.value)[] == value do
                 return true
     case 16:
-        if rawType != string do
+        if rawType == string
+        {
+            let value = cast(const *(string?), valueAddress)[]
+            for &caseInfo in typeEnum.values where caseInfo.value do
+                if cast(const *(string?), caseInfo.value)[] == value do
+                    return true
             return false
-        let value = cast(const *(string?), valueAddress)[]
+        }
         for &caseInfo in typeEnum.values where caseInfo.value do
-            if cast(const *(string?), caseInfo.value)[] == value do
+            if Swag.memcmp(cast(const [*] void, valueAddress),
+                           cast(const [*] void, unwrap caseInfo.value),
+                           cast(u64, rawType.sizeof)) == 0 do
                 return true
     default:
-        return false
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if Swag.memcmp(cast(const [*] void, valueAddress),
+                           cast(const [*] void, unwrap caseInfo.value),
+                           cast(u64, rawType.sizeof)) == 0 do
+                return true
     }
     return false
 }

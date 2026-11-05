@@ -43,6 +43,22 @@ enum JsonStringState: string
     Busy = "busy"
 }
 
+enum JsonArrayState: const [3] u32
+{
+    Idle = [1, 2, 3]
+    Busy = [4, 5, 6]
+}
+
+struct JsonStringEnumPayload
+{
+    state: JsonStringState
+}
+
+struct JsonArrayEnumPayload
+{
+    state: JsonArrayState
+}
+
 struct JsonKeyPayload
 {
     #[Serialization.Key("wireName")]
@@ -100,16 +116,31 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    let validInput: string = "\"busy\""
+    let validInput: string = "{\"state\":[4,5,6]}"
     var validDecoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect validDecoder.readAll'JsonStringState(cast(const [..] u8, validInput))
+    let decoded = expect validDecoder.readAll'JsonArrayEnumPayload(cast(const [..] u8, validInput))
     defer Memory.delete(decoded)
-    Swag.require(decoded[] == .Busy)
+    Swag.require(decoded.state == .Busy)
 
-    let input = "\"missing\""
+    let invalidInput: string = "{\"state\":[4,5,7]}"
+    var invalidDecoder: Serialization.Decoder'Serialization.Read.Json
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(JsonArrayEnumPayload, Serialization.Read.Json)(&invalidDecoder, cast(const [..] u8, invalidInput)) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
+    let validInput: string = "{\"state\":\"busy\"}"
+    var validDecoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = expect validDecoder.readAll'JsonStringEnumPayload(cast(const [..] u8, validInput))
+    defer Memory.delete(decoded)
+    Swag.require(decoded.state == .Busy)
+
+    let input = "{\"state\":\"missing\"}"
     var decoder: Serialization.Decoder'Serialization.Read.Json
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringState, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
+    catch CoreTests.readAndDelete'(JsonStringEnumPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 

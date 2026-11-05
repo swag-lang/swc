@@ -334,6 +334,23 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     reserved.grow(128)
     Swag.require(reserved.capacity >= 128)
     Swag.require(assertString(reserved, "reserve"))
+
+    var truncated: String = "reserve"
+    truncated.reserve(4)
+    Swag.require(assertString(truncated, "res"))
+    Swag.require(truncated.capacity == StringSmallSize)
+    Swag.require(truncated.storage()[truncated.length] == 0)
+
+    truncated.reserve(0)
+    Swag.require(truncated.isEmpty())
+    Swag.require(truncated.storage()[0] == 0)
+    Swag.require(cast(cstring?, truncated).count == 0)
+
+    var allocatedEmpty: String
+    allocatedEmpty.reserve(64)
+    Swag.require(allocatedEmpty.isEmpty())
+    Swag.require(allocatedEmpty.storage()[0] == 0)
+    Swag.require(cast(cstring?, allocatedEmpty).count == 0)
 }
 
 #test

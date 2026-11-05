@@ -40,7 +40,8 @@ struct ReadOnlyDynamicWrapper
     var value: DynamicBase
     var wrapper = ReadOnlyDynamicWrapper{&value}
     Swag.require((catch cast(const *DynamicBase?, &wrapper)) == &value)
-    Swag.require(not (&wrapper is DynamicBase))
+    Swag.require((catch cast(*DynamicBase?, &wrapper)) == null)
+    Swag.require(&wrapper is DynamicBase)
 }
 
 func copyDynamicBase(value: DynamicBase)->DynamicBase

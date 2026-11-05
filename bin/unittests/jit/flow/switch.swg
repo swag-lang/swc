@@ -464,7 +464,7 @@ const SwitchPointerValues = [11, 22, 33]
 
 #test
 {
-    func switchAnyUsingBaseBinding(x: any)->s32
+    func switchAnyUsingBaseBinding(x: const any)->s32
     {
         switch x
         {
@@ -481,7 +481,7 @@ const SwitchPointerValues = [11, 22, 33]
 
 #test
 {
-    func switchAnyStringBinding(x: any)->bool
+    func switchAnyStringBinding(x: const any)->bool
     {
         switch x
         {

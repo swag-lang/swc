@@ -399,9 +399,15 @@ namespace
             const TypeRef      resultTypeRef = resultView.typeRef();
             const TypeInfo&    resultType    = *resultView.type();
 
-            const TypeRef targetTypeRef = resultType.isInterface()
-                                              ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
-                                              : resultTypeRef;
+            TypeRef targetTypeRef = resultType.isInterface()
+                                        ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
+                                        : resultTypeRef;
+            if (!casePayload->bindingSymbol)
+            {
+                TypeInfo matchType = codeGen.typeMgr().get(targetTypeRef);
+                matchType.addFlag(TypeInfoFlagsE::Const);
+                targetTypeRef = codeGen.typeMgr().addType(matchType);
+            }
 
             MicroReg targetTypeReg = MicroReg::invalid();
             SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetTypeRef));

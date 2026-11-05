@@ -94,7 +94,8 @@ using Core, Gui, Pixel
     Swag.require(opened and window.currentFile.isEmpty())
 }
 
-// A short absolute path stays visible at minimum width, and its current segment opens editing.
+// A short absolute path stays visible at minimum width without a redundant centered title, and
+// its current segment opens editing.
 #test
 {
     for light in [false, true]
@@ -115,8 +116,8 @@ using Core, Gui, Pixel
         Swag.require(address.breadcrumb.items[0].name == "Z:/")
         Swag.require(address.breadcrumb.items[1].name == "Films")
         Swag.require(address.breadcrumb.scrollPos.x == 0)
-        Swag.require(address.surfaceRect().bottom() <= explorer.title.surfaceRect().y)
-        Swag.require(explorer.title.position.width >= explorer.title.itf.measureContent({}).x)
+        Swag.require(address.isLocallyVisible())
+        Swag.require(not explorer.title.isLocallyVisible())
         let information = window.informationCaptionButton.surfaceRect()
         Swag.require(information.x > window.clientRect().width / 2)
         Swag.require(window.backCaptionButton.surfaceRect().right() < information.x)

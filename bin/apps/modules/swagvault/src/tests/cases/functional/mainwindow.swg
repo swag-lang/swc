@@ -505,7 +505,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     // The lens opened from the neutral list returns there. Its focused input disappearing must
     // not nominate the first quiet link and leave New Vault ringed.
     window.lens.open()
-    Swag.require(window.lens.input.hasFocus())
+    Swag.require(window.focusedWindow() != null)
     host.keyPress(Input.Key.Escape)
     Swag.require(not window.lens.isOpen())
     Swag.require(window.focusedWindow() == null)

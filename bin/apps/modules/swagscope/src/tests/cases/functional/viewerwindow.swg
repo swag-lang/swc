@@ -1279,12 +1279,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     window.applyLayout()
 
-    // The find bar waits for its command, then floats at the trailing top corner of the document.
+    // The find bar waits for its command, then floats at the horizontal centre of the document.
     Swag.require(not window.searchBar.isLocallyVisible() and window.searchBox.isEnabled())
     window.sendCommandEvent(ViewerCommands.Find)
     Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
     let area = window.documentArea()
-    Swag.require(Math.abs(window.searchBar.position.right() - (area.right() - window.themeMetrics().floating_Inset)) <= 1)
+    Swag.require(Math.abs(window.searchBar.position.horzCenter() - area.horzCenter()) <= 1)
+    Swag.require(window.searchBar.position.x >= area.x and window.searchBar.position.right() <= area.right())
     Swag.require(window.searchBar.position.y >= area.y)
     let actionSize = themeActionButtonSize(window.themeMetrics())
     Swag.require(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == themeActionIconSize(window.themeMetrics()))

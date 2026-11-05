@@ -58,6 +58,7 @@ struct ViewerWindow
         findCaptionButton:           *CaptionButton
         informationCaptionButton:    *CaptionButton
         lens:                        *Lens.View
+        lensLauncher:                *Lens.Launcher
         infoSheet:                   *InfoSheet
         hintLine:                    *HintLine
         readingLine:                 *ViewerReadingLine
@@ -228,6 +229,7 @@ func reportViewerChromeChanged(view: *Wnd)
         return
     window.layoutViewerBar()
     window.layoutFileInfo()
+    window.refreshExplorerCaption()
     window.applyLayout()
 }
 
@@ -725,8 +727,12 @@ impl ViewerWindow
     mtd refreshExplorerCaption()
     {
         let text = appStrings()
+        var videoControls = true
+        if .currentView is Viewers.Film.Panel as film do
+            videoControls = film.veilsShown
+        .lensLauncher.captionButton.show(videoControls)
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
-        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
+        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen and videoControls)
 
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
@@ -734,7 +740,7 @@ impl ViewerWindow
         .upCaptionButton.show(exploring)
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.show(exploring)
-        .informationCaptionButton.show(exploring)
+        .informationCaptionButton.show(not .fullScreen and videoControls)
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
@@ -863,7 +869,7 @@ impl ViewerWindow
         .explorer?.layoutFilter()
     }
 
-    // Places the find bar at the trailing top corner of the document, sized to the search group.
+    // Places the find bar at the center of the page, clear of the information sheet.
     mtd layoutSearchBar()
     {
         let metrics = .themeMetrics()
@@ -873,7 +879,7 @@ impl ViewerWindow
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
         let height  = .searchGroup.position.height + pad.y + pad.w
         let top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
-        .searchBar.setPosition(Math.Rectangle{area.right() - metrics.floating_Inset - width - pad.x - pad.z, top, width + pad.x + pad.z, height}, computeLayout: false)
+        .searchBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), top, width + pad.x + pad.z, height}, computeLayout: false)
         .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
         .searchGroup.computeLayout()
         if .searchBar.isLocallyVisible() do
@@ -1013,7 +1019,7 @@ impl ViewerWindow
         result.createViewerBar()
         result.createSheetAndHint()
         result.createLens()
-        Lens.Launcher.create(result, ViewerCommands.Lens)
+        result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
         {
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }
@@ -1231,7 +1237,7 @@ impl ViewerWindow
             .hintLine.addHint(texts.hint_KeyBack, texts.hint_Parent)
         }
 
-        // Music is opened and played from its page; a mosaic is pictures alone.
+        // Music is opened and played from its page; pictures use the common grid.
         let board = roomy and not archive ? .explorer!.grid.board : ExplorerBoard.Grid
         if board == .Covers
         {

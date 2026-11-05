@@ -28,14 +28,9 @@ enum MediaInfoField
     Unavailable
 }
 
-// Visible strings of the media information panel.
+// Visible strings of the media readings added to the application information sheet.
 struct MediaInfoStrings
 {
-    title:       string = "Information"
-    close:       string = "Close Information"
-    copy:        string = "Copy Information"
-    property:    string = "Property"
-    value:       string = "Value"
     image:       string = "Image"
     video:       string = "Video"
     metadata:    string = "Metadata"
@@ -199,172 +194,18 @@ impl MediaInfoData
             .addText(tag, text)
         }
     }
-}
 
-// Host-owned side panel shared by the two visual media viewers.
-struct MediaInfoPanel
-{
-    using wnd: Wnd
-
-    late
+    // Adds these viewer-owned readings to the application information sheet.
+    mtd describe(sheet: *InfoSheet)
     {
-        title:       *Label
-        closeButton: *IconButton
-        copyButton:  *IconButton
-        toggle:      *IconButton
-        list:        *ListCtrl
-    }
-
-    data:  MediaInfoData
-    lines: Array'(*ListLine)
-}
-
-impl MediaInfoPanel
-{
-    // Creates the panel and its toggle in the side lane of the viewer `host` is building.
-    func create(host: Viewer.Host)->*MediaInfoPanel
-    {
-        registerMediaInfoStrings(host.application())
-        let theme = host.contentParent().theme()
-        let side  = host.createSidePanel(368,
-                                         theme.icon(.Information, themeActionIconSize(&theme.metrics)),
-                                         g_MediaInfoStrings.title,
-                                         floatingSurface: false)
-
-        with let result = Wnd.create'MediaInfoPanel(side.content)
+        for row in .rows
         {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-            .padding         = {12, 8, 12, 8}
-            .toggle          = side.toggle
+            if row.group do
+                sheet.addSection(row.label())
+            elif row.value.isEmpty() do
+                sheet.addText(row.label())
+            else do
+                sheet.addReading(row.label(), row.value)
         }
-
-        let size = themeCompactButtonSize(result.themeMetrics())
-
-        with let header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, size})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-        }
-
-        with result.closeButton = IconButton.create(header,
-                                                    theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())),
-                                                    Math.Rectangle{0, 0, size, size})
-        {
-            .dockStyle  = .Right
-            .sigPressed += func|panel = result|(_)
-            {
-                panel.toggle.setChecked(false)
-                panel.toggle.sigCheckedChanged.call(panel.toggle)
-            }
-        }
-
-        with result.copyButton = IconButton.create(header,
-                                                   theme.icon(.Copy, themeRowIconSize(result.themeMetrics())),
-                                                   Math.Rectangle{0, 0, size, size})
-        {
-            .dockStyle  = .Right
-            .sigPressed += func|panel = result|(_) { Clipboard.addString(panel.text()) }
-        }
-
-        with result.title = Label.create(header, "")
-        {
-            .dockStyle = .Center
-            .setTextAlignment(.Left, .Center)
-            .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
-        }
-
-        with result.list = ListCtrl.createSimple(result)
-        {
-            .dockStyle       = .Center
-            .margin.y        = 8
-            .backgroundStyle = .Transparent
-            .listView.backgroundStyle = .Transparent
-            .setSelectionMode(.Single)
-            .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .Ellipsis)
-        }
-
-        result.retranslate()
-        return result
-    }
-
-    // Returns each quiet reading as one line of text, for the clipboard.
-    mtd text()->String
-    {
-        var result: #returntype
-        for row in .data.rows
-        {
-            result += row.label()
-            if not row.value.isEmpty() do
-                result += Format.toString(": %", row.value)
-            result += "\n"
-        }
-
-        return result
-    }
-
-    // Takes the rows of `data` and shows them, every group expanded.
-    mtd publish(data: *MediaInfoData)
-    {
-        .data = #move data[]
-        .lines.clear()
-        .list.clear()
-        var parent: *ListLine?
-        var groups: Array'*ListLine
-        for row in .data.rows
-        {
-            let line = .list.createLine(row.group ? null : parent)
-            .lines.add(line)
-            let text = row.group or row.value.isEmpty() ? row.label() :
-                       Format.toString("%: %", row.label(), row.value)
-            line.setItem(0, text)
-            if row.group
-            {
-                parent = line
-                groups.add(line)
-            }
-        }
-
-        for group in groups do
-            .list.expand(group)
-        .retranslate()
-    }
-
-    mtd retranslate()
-    {
-        .title.setText(g_MediaInfoStrings.title)
-        .toggle.toolTip      = g_MediaInfoStrings.title
-        .closeButton.toolTip = g_MediaInfoStrings.close
-        .copyButton.toolTip  = g_MediaInfoStrings.copy
-        .copyButton.enable(not .data.rows.isEmpty())
-        for row, index in .data.rows
-        {
-            let text = row.group or row.value.isEmpty() ? row.label() :
-                       Format.toString("%: %", row.label(), row.value)
-            .lines[index].setItem(0, text)
-        }
-
-        .list.computeLayout()
-        .applyLayout()
-        .invalidate()
-    }
-}
-
-private impl IWnd for MediaInfoPanel
-{
-    mtd impl onResizeEvent(_: *ResizeEvent)
-    {
-        if .list == null do
-            return
-        .applyLayout()
-    }
-
-    mtd impl onNotifyEvent(evt: *NotifyEvent)
-    {
-        if evt.kind == .LanguageChanged do
-            .retranslate()
-        else do
-            evt.accepted = false
     }
 }

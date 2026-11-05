@@ -3,7 +3,8 @@
 
 using Core, Pixel, Gui, Viewers
 
-// A real PNG contributes its metadata to the host side panel, with localized chrome and copyable values.
+// A real PNG contributes its metadata to the same application information sheet as every other
+// viewer, with the shared caption trigger, close action and translated section labels.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -20,51 +21,30 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     host.setup(960, 540)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
-
     host.theme.setDark()
     host.notify(.ThemeChanged)
-    var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
-    let view    = assume cast(*Picture.Panel, session.view)
-    completeViewerBackgroundLoad(&host, &view.load)
-    view.dockStyle = .Center
-    session.commands!.hide()
-    session.info!.hide()
-    Swag.require(session.sidePanel != null and session.sidePanelButton != null)
-    Swag.require(not session.sidePanelHost!.isLocallyVisible())
-    session.sidePanelButton.setChecked(true)
-    session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
-    Swag.require(session.sidePanelHost.isLocallyVisible())
-    Swag.require(Utf8.contains(view.information.text(), "Author: Camera owner"))
-    Swag.require(view.information.list.lineCount() == view.information.data.rows.count)
-    Swag.require(Utf8.contains(view.information.text(), "96 × 64 px"))
-    view.information.copyButton.sigPressed.call(view.information.copyButton)
 
-    host.root.applyLayout()
-    let originalWidth = session.sidePanelHost.position.width
-    session.sidePanelHost.resize(224, session.sidePanelHost.position.height)
-    host.root.applyLayout()
-    let narrowListWidth = view.information.list.listView.position.width
-    Swag.require(view.information.list.header == null)
-    Testing.assertContentFits(view.information)
-    session.sidePanelHost.resize(564, session.sidePanelHost.position.height)
-    host.root.applyLayout()
-    Swag.require(view.information.list.listView.position.width > narrowListWidth + 100)
-    Testing.assertContentFits(view.information)
-    session.sidePanelHost.resize(originalWidth, session.sidePanelHost.position.height)
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
-    Testing.assertContentFits(&host.root)
-    Swag.require(view.position.width > session.sidePanelHost.position.width)
-    var image = host.render(&host.root)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*Picture.Panel, window.currentView)
+    completeViewerBackgroundLoad(&host, &view.load)
+    window.toggleInformation()
+    window.infoSheet.setTitle("scope-metadata.png")
+    window.infoSheet.setIdentity("fixtures / images")
+    window.applyLayout()
+
+    let information = window.infoSheet.text()
+    Swag.require(Utf8.contains(information, "Author\nCamera owner"))
+    Swag.require(Utf8.contains(information, "96 × 64 px"))
+    Swag.require(window.informationCaptionButton.isLocallyVisible())
+    host.settleAnimations(window)
+    var image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.media.information")
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.information.title.text() == "Informations")
-    for row, index in view.information.data.rows where row.field == .PixelFormat do
-        Swag.require(Utf8.startsWith(view.information.lines[index].itemAt(0).name.raw, "Format des pixels: "))
-    Swag.require(Utf8.contains(view.information.text(), "Author: Camera owner"))
-    Testing.assertContentFits(&host.root)
-    host.clickWnd(view.information.closeButton)
-    Swag.require(not session.sidePanelHost.isLocallyVisible() and not session.sidePanelButton.isChecked)
+    window.refreshInformation()
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Format des pixels"))
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Author\nCamera owner"))
 }

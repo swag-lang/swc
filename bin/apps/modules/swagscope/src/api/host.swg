@@ -9,6 +9,9 @@ alias ReportFailure = func(*Wnd, string)
 // Hands format statistics that changed after creation back to the host information band.
 alias ReportDetails = func(*Wnd, string)
 
+// Adds format-specific readings to the application's information sheet.
+alias DescribeInformation = func||(*InfoSheet)
+
 // Requests a re-measure after plugin-owned action or information content changes shape.
 alias ReportChromeChanged = func(*Wnd)
 
@@ -196,6 +199,12 @@ interface Host
 
     // Sets the short format-specific summary shown by the host.
     mtd setDetails(details: string)
+
+    // Sets the format-specific contribution to the shared information sheet.
+    //
+    // The callback captures the concrete viewer by value. The host calls it only while that
+    // viewer is attached and after it has written the file identity and common readings.
+    mtd setInformation(source: DescribeInformation)
 
     // Rejects the file, discards contributed chrome, and records the exact decoder explanation.
     mtd reject(reason: string)

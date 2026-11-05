@@ -50,7 +50,7 @@ impl Launcher
     private mtd refreshLabel()
     {
         let metrics = .themeMetrics()
-        .captionButton.button.setIcon(.theme().icon(.Search, metrics.wnd_CaptionButtonGlyph))
+        .captionButton.button.setIcon(.theme().icon(.More, metrics.wnd_CaptionButtonGlyph))
         .setText(strings().lens_Commands)
         .padding         = metrics.btnIcon_Padding
         .toolTip         = Format.toString("% (Ctrl Space)", strings().lens_Commands)

@@ -73,15 +73,14 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         Swag.require(title.right() <= tools.x and address.width > 0)
 
         host.clickWnd(&window.findCaptionButton.button)
-        Swag.require(explorer.filter.isVisible() and explorer.filter.hasFocus())
-        Swag.require(explorer.filter.surfaceRect().y < explorer.sortMenu.surfaceRect().y)
-        Swag.require(Math.abs(explorer.filterPanel.surfaceRect().x - window.findCaptionButton.surfaceRect().x) < 1)
-        explorer.filter.setText("missing")
+        Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
+        Swag.require(Math.abs(window.searchBar.position.horzCenter() - window.documentArea().horzCenter()) < 1)
+        window.searchBox.setText("missing")
         Swag.require(explorer.shown.isEmpty())
         host.settleAnimations(window)
         var empty = host.render(&host.surfaceWnd)
         Pixel.Testing.assertImageGolden(&empty, Format.toString("explorer.empty.encre.%", language == "fr" ? "fr" : "en"))
-        explorer.filter.setText("")
+        window.searchBox.setText("")
         Swag.require(explorer.shown.count == 4)
         host.settleAnimations(window)
         var image = host.render(&host.surfaceWnd)
@@ -113,7 +112,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.places[0].y > grid.albumCover.bottom())
     Swag.require(grid.places[0].width > grid.albumText.width)
     Swag.require(grid.albumText.right() <= grid.clientRect().width)
-    Swag.require(explorer.filter.surfaceRect().bottom() <= explorer.header.surfaceRect().bottom())
+    Swag.require(Math.abs(window.searchBar.position.horzCenter() - window.documentArea().horzCenter()) < 1)
     Swag.require(grid.playButton!.text() == appStrings().explore_Play)
     Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.AlbumPlay).hidden)
     host.settleAnimations(window)
@@ -169,13 +168,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     let grid = explorer.grid
     Swag.require(not grid.posters and grid.columns == 6)
     Swag.require(grid.tileRect(1).x - grid.tileRect(0).right() == ExplorerGrid.Gap)
-    Swag.require(not explorer.filter.isLocallyVisible())
+    Swag.require(not window.searchBar.isLocallyVisible())
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.mixed.paper")
 
     // A forced presentation does not turn a mixed folder's total into the number of films,
     // albums or photos found among its files.
-    for board in [ExplorerBoard.Posters, .Covers, .Mosaic]
+    for board in [ExplorerBoard.Posters, .Covers, .Grid]
     {
         explorer.forceBoard(true, board)
         Swag.require(grid.board == board)
@@ -331,8 +330,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Pixel.Testing.assertImageGolden(&image, "explorer.album")
 }
 
-// Photographs: a justified mosaic that keeps every shape, a day after another under its label
-// and its count.
+// Photographs use the same grid as other files, with their names and readings visible.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -353,12 +351,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     showBoard(&host, window, "Pictures", "Brittany 2026")
     let grid = explorer.grid
 
-    // What is known of the picture under the pointer stands in a mono tip over it.
     grid.hovered = 5
     grid.invalidate()
-    Swag.require(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Photos, 12)))
-    Swag.require(grid.board == .Mosaic and grid.days.count == 2 and grid.days[0].count == 8)
-    Swag.require(grid.days[0].text == "Wednesday 21 October")
+    Swag.require(grid.board == .Grid and grid.columns > 1)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.photos.paper")
 }

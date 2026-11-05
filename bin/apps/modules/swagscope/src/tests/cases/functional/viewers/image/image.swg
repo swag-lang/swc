@@ -113,16 +113,12 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         let oldTip     = String.from(view.transformButton.toolTip)
         let oldDetails = String.from(view.details)
         let frameIndex = view.imageView.movie.frameIndex
-        view.information.list.selectLine(1)
-        let selectedFact = view.information.list.selectedLine()
-        Swag.require(selectedFact != null)
         expect host.app.setLanguage("fr")
         host.notify(.LanguageChanged)
         Swag.require(view.transformButton.toolTip == Picture.texts().ui_TipTransform and view.transformButton.toolTip != oldTip)
         Swag.require(view.zoomLabel.toolTip == Picture.texts().ui_ZoomMenu and view.playButton.toolTip == Picture.texts().ui_TipPlay)
         Swag.require(Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
         Swag.require(view.details != oldDetails)
-        Swag.require(view.information.list.selectedLine() == selectedFact)
         Swag.require(view.imageView.zoom == 1.5 and
                      view.imageView.isMirrored and
                      view.imageView.movie.frameIndex == frameIndex)
@@ -234,7 +230,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     Swag.require(window.currentActions == null)
     Swag.require(window.currentInfo != null and window.currentInfo.parent == window.readingLine)
-    Swag.require(window.currentSidePanelButton != null and not window.currentSidePanelButton.isLocallyVisible())
+    Swag.require(window.currentSidePanelButton == null)
     Swag.require(window.currentInfo.themeColors().label_TextLight == window.themeColors().label_TextFaint)
     Swag.require(Math.abs(window.readingLine.details.position.right() + ViewerReadingLine.GroupSpacing - window.currentInfo.position.x) < 0.01)
     Swag.require(Math.abs(window.currentInfo.position.right() - window.readingLine.clientRect().right()) < 0.01)

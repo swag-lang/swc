@@ -26,6 +26,7 @@ struct ViewerSession
     needsLoadingOverlay: Viewer.NeedsLoadingOverlay?
     retire:              Viewer.Retire?
     lensSource:          Viewer.LensSource?
+    describeInformation: Viewer.DescribeInformation?
     details:             String
     failureReason:       String
 }
@@ -284,6 +285,11 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl setDetails(details: string)
     {
         .session.details = details
+    }
+
+    mtd impl setInformation(source: Viewer.DescribeInformation)
+    {
+        .session.describeInformation = source
     }
 
     mtd impl reject(reason: string)

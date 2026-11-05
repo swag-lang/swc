@@ -167,7 +167,6 @@ struct Panel
     {
         imageView:        *ImageView
         subtitleOverlay:  *SubtitleOverlay
-        information:      *MediaInfoPanel
         topVeil:          *TopVeil
         bottomVeil:       *BottomVeil
         timeline:         *VideoTimeline
@@ -200,6 +199,7 @@ struct Panel
     informationFrames:    u64
     informationAudio:     u32
     informationSubtitles: u32
+    information:          MediaInfoData
 
     // Opening retains bounded metadata while progressive indexes and payloads stay in the file.
     video:               Reader
@@ -391,6 +391,11 @@ private impl Panel
 
 impl Panel
 {
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        .information.describe(sheet)
+    }
+
     mtd frameSeconds(index: u64)->f64 => .video.frameTimestamp(index)
 
     // Reports whether the file is still opening or a requested picture has not reached the screen.
@@ -754,7 +759,7 @@ private impl Panel
             data.add(.Format, subtitleFormatText(track.format))
         }
 
-        .information.publish(&data)
+        .information = #move data
     }
 
     // Rebuilds the host summary in the active language and reports it.
@@ -771,6 +776,7 @@ private impl Panel
         // At rest nothing stands over the picture, so the facts read in the top veil, not at the foot.
         .topVeil.facts = .facts()
         .topVeil.invalidate()
+        .services.showDetails(me, .details)
     }
 
     // Returns the facts the top veil writes after the title: the picture, its rate and its length.
@@ -1033,6 +1039,7 @@ private impl Panel
         if .veilsShown do
             return
         .veilsShown = true
+        .services.chromeChanged(me)
 
         // They fade in over a state change, at once reachable by the hand.
         let animator = &.app().animator
@@ -1065,6 +1072,7 @@ private impl Panel
         if not .veilsShown do
             return
         .veilsShown = false
+        .services.chromeChanged(me)
         discard .app().animator.leave(.topVeil)
         discard .app().animator.leave(.bottomVeil)
     }
@@ -1108,7 +1116,6 @@ private impl Panel
             .services        = services
         }
 
-        result.information         = MediaInfoPanel.create(host)
         result.imageView           = ImageView.create(result)
         result.imageView.dockStyle = .Center
         result.style.setStyleSheetColors(BackdropColors)
@@ -1175,11 +1182,13 @@ private func runViewerDecode(view: *Panel)
 // Creates the integrated video playback view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
+    registerMediaInfoStrings(host.application())
     catch
     {
         let view = try Panel.create(host)
         host.attachView(view)
         host.setDetails(view.details)
+        host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
         host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
         with var lifecycle: Viewer.LifecycleApi

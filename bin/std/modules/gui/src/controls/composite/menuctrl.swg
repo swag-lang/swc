@@ -238,10 +238,9 @@ public impl IWnd for MenuCtrl
                 continue
             }
 
-            // A label opens a group in small spaced capitals, where the wording of the entries starts.
+            // A label opens a group at the menu's leading edge, including when rows have glyphs.
             if it.label
             {
-                labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
                 SectionLabel.paint(me, painter, labelPos, it.name.raw)
                 continue
             }

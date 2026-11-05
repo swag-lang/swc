@@ -15,18 +15,9 @@ enum ExplorerBoard
     Grid        // Anything: one even grid, with wide cells for folders of films.
     Posters     // Films: upright posters.
     Covers      // Music: square covers, the album then who made it and when.
-    Mosaic      // Pictures: a justified mosaic keeping every shape, by day.
     Album       // One album: the cover large, then its tracks.
 }
-const ExplorerBoardValues: [5] ExplorerBoard = [.Grid, .Posters, .Covers, .Mosaic, .Album]
-
-// A day of a mosaic of pictures: where its label stands, its words and how many pictures it holds.
-struct ExplorerDayLabel
-{
-    y:     f32
-    text:  String
-    count: u64
-}
+const ExplorerBoardValues: [4] ExplorerBoard = [.Grid, .Posters, .Covers, .Album]
 
 // Width over height of a tile's picture: a page for a folder of documents, a screen for a folder
 // that is mostly films.
@@ -399,11 +390,7 @@ impl Explorer
     // Shows the filter of the listing and gives it the keyboard.
     mtd revealFilter()
     {
-        .filter.show()
-        .layoutFilter()
-        .filterPanel.bringToFront()
-        discard .app().animator.arrive(.filterPanel, {0, -.themeMetrics().motion_AnchorTravel})
-        .filter.setFocus()
+        .window.showSearch()
     }
 
     // Keep the edit beside the gesture that revealed it, including after a resize or pane change.
@@ -447,8 +434,7 @@ impl Explorer
         let line  = unwrap .tools.parent
         let gap   = metrics.infoSheet_BlockGap
         let space = line.clientRect().width
-        let titleFullWidth = Math.ceil(.title.itf.measureContent({}).x)
-        .title.show(not album)
+        .title.hide()
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
@@ -462,7 +448,7 @@ impl Explorer
         .artworkMenu.setQuietText(compact ? "" :
                                   (.artworkSource == .Online ? appStrings().artwork_OnlineShort : appStrings().artwork_LocalShort))
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width + titleFullWidth + gap > space
+        if .status.isLocallyVisible() and width > space
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
@@ -485,9 +471,6 @@ impl Explorer
 
         .applyLayout()
         let bounds     = line.clientRect()
-        let titleWidth = album ? 0 : Math.min(titleFullWidth,
-                                              Math.max(bounds.width - width - gap, 0))
-        .title.setPosition({bounds.x, bounds.y, titleWidth, bounds.height})
         .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
         .tools.computeLayout()
         .address.refreshPath()
@@ -511,8 +494,8 @@ impl Explorer
         {
             menu.addSeparator()
             menu.addLabel(text.explore_Organization)
-            let boardNames = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers, text.board_Mosaic]
-            let boardIcons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio, ThemeIcons.FileImage]
+            let boardNames = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers]
+            let boardIcons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio]
             for id, index in ViewerCommands.Boards
             {
                 let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
@@ -667,9 +650,6 @@ impl Explorer
                 boardName = text.board_Covers
                 boardIcon = .FileAudio
 
-            case .Mosaic:
-                boardName = text.board_Mosaic
-                boardIcon = .FileImage
             }
         }
 
@@ -693,8 +673,6 @@ impl Explorer
     mtd sortName()->string
     {
         let text = appStrings()
-        if .grid.board == .Mosaic do
-            return text.sort_Modified
         switch .sortColumn
         {
         case 1:  return text.sort_Type
@@ -737,6 +715,7 @@ impl Explorer
         .show(visible)
         .window.teachHints(visible)
         .showMediaInfo()
+        .window.updateSearchAvailability()
     }
 
     // Reports what the location holds, or why it holds nothing, on the title's line.
@@ -1373,7 +1352,7 @@ impl Explorer
 
     // Returns the shape of the tiles, from what most of the folder holds: films whose posters are
     // looked up stand upright, pieces of music show their covers, or one album when they all
-    // belong to the same, pictures make a mosaic, and anything else an even grid.
+    // belong to the same, and anything else uses an even grid.
     mtd listingBoard()->ExplorerBoard
     {
         if .listing.isArchive do
@@ -1383,10 +1362,10 @@ impl Explorer
         if .kindFilter == .Videos do
             return .Posters
         if .kindFilter == .Images do
-            return .Mosaic
+            return .Grid
         if .kindFilter == .Audio do
             return .Covers
-        var files, films, sounds, pictures: u64
+        var files, films, sounds: u64
         var album: String
         var oneAlbum = true
         for index in .shown
@@ -1418,10 +1397,6 @@ impl Explorer
                 elif album != entry.music.title do
                     oneAlbum = false
             }
-            elif kind == cast(s32, ThemeIcons.FileImage)
-            {
-                pictures += 1
-            }
         }
 
         if not files do
@@ -1430,8 +1405,6 @@ impl Explorer
             return .Posters
         if sounds * 2 > files do
             return oneAlbum and sounds >= 2 ? .Album : .Covers
-        if pictures * 2 > files do
-            return .Mosaic
         return .Grid
     }
 
@@ -1510,18 +1483,7 @@ impl Explorer
             .selected = Swag.U64.Max
         .previewAspect = .listingPreviewAspect()
 
-        // Pictures are seen in the order they were taken.
         let board = .listingBoard()
-        if board == .Mosaic
-        {
-            .shown.sort(func|explorer = me|(a, b)->s32
-            {
-                let order = Latin1.compareNatural(explorer.entries[a].modified, explorer.entries[b].modified)
-                if order != 0 do
-                    return order
-                return a < b ? -1 : (a > b ? 1 : 0)
-            })
-        }
 
         var count: String
         switch .shown.count
@@ -1536,7 +1498,7 @@ impl Explorer
         if .shown.count > 1 and not .forced
         {
             var albums: Array'String
-            var tracks, albumFolders, photos: u64
+            var tracks, albumFolders: u64
             for index in .shown
             {
                 let entry = &.entries[index]
@@ -1556,10 +1518,6 @@ impl Explorer
                     if not known do
                         albums.add(entry.music.title.isEmpty() ? entry.name : entry.music.title)
                 }
-                elif kind == cast(s32, ThemeIcons.FileImage)
-                {
-                    photos += 1
-                }
             }
 
             if board == .Covers and albumFolders == .shown.count do
@@ -1568,8 +1526,6 @@ impl Explorer
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
             elif board == .Album and tracks == .shown.count do
                 count = Format.toString(appStrings().explore_Tracks, tracks)
-            elif board == .Mosaic and photos == .shown.count do
-                count = Format.toString(appStrings().explore_Photos, photos)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will
@@ -2025,7 +1981,7 @@ impl IWnd for Explorer
                             .showMediaInfo()
                         if not replacing do
                             .cached.add(preview.index)
-                        if .grid.board == .Mosaic or .grid.board == .Album or .grid.board == .Covers do
+                        if .grid.board == .Album or .grid.board == .Covers do
                             .grid.refreshLayout()
                         .grid.invalidate()
                     }
@@ -2114,8 +2070,7 @@ struct ExplorerGrid
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
     board:         ExplorerBoard
-    places:        Array'Math.Rectangle       // Where each shown item stands in a mosaic or an album.
-    days:          Array'ExplorerDayLabel     // The days of a mosaic.
+    places:        Array'Math.Rectangle       // Where each album track stands.
     contentHeight: f32
     albumCover:    Math.Rectangle
     albumText:     Math.Rectangle
@@ -2136,12 +2091,6 @@ impl ExplorerGrid
     const TileAspect   = 3.0 / 4.0
     const PosterWidth  = 170.0
     const PosterAspect = 1.38
-
-    // The mosaic: the height a row aims at, the air between its pictures, and the room of the
-    // label of a day.
-    const MosaicHeight = 170.0
-    const MosaicGap    = 8.0
-    const DayHeight    = 36.0
 
     // One album: the side of its cover, the air between the cover and the tracks, and the pitch of
     // a track.
@@ -2186,7 +2135,7 @@ impl ExplorerGrid
 
     mtd rowAt(point: Math.Point)->u64
     {
-        if .board == .Mosaic or .board == .Album
+        if .board == .Album
         {
             let at = point + .scrollPos
             for place, row in .places where place.width > 0 and place.contains(at) do
@@ -2229,13 +2178,6 @@ impl ExplorerGrid
         .board   = .explorer.listingBoard()
         .posters = .board == .Posters
         .refreshAlbumButtons()
-        if .board == .Mosaic
-        {
-            .stopTimer(&.nameTimer)
-            .layoutMosaic()
-            return
-        }
-
         if .board == .Album
         {
             .stopTimer(&.nameTimer)
@@ -2265,110 +2207,6 @@ impl ExplorerGrid
         .startNameScroll()
     }
 
-    // Lays the pictures out as a justified mosaic, a day after another under its label: each row
-    // as tall as fills the width with the shapes it holds, the last one of a day at its aim.
-    mtd layoutMosaic()
-    {
-        let explorer = .explorer
-        let width    = Math.max(.clientRect().width - 2 * CellInset, 200)
-        .places.clear()
-        .places.resize(explorer.shown.count)
-        .days.clear()
-        .columns = 1
-        .cell    = Math.Point{width, MosaicHeight}
-
-        var y     = CellInset
-        var row: Array'u64
-        var shape = 0.0'f32
-        var day: String
-        for index, at in explorer.shown
-        {
-            let entry   = &explorer.entries[index]
-            let dayText = String.from(entry.modified.toString()[0 until Math.min(entry.modified.length, 10)])
-            if at == 0 or dayText != day
-            {
-                y     = .flushMosaicRow(&row, shape, y, width, true)
-                shape = 0
-                if at do
-                    y += DayHeight * 0.5
-                day = dayText
-                .days.add(ExplorerDayLabel{y: y, text: .dayLabel(dayText)})
-                y += DayHeight
-            }
-
-            .days[.days.count - 1].count += 1
-            row.add(at)
-            shape += .shapeOf(entry)
-            if shape * MosaicHeight + MosaicGap * cast(f32, row.count - 1) >= width
-            {
-                y     = .flushMosaicRow(&row, shape, y, width, false)
-                shape = 0
-            }
-        }
-
-        y = .flushMosaicRow(&row, shape, y, width, true)
-        .contentHeight = y + CellInset
-        explorer.scroll.setScrollSize(0, .contentHeight)
-        .invalidate()
-    }
-
-    // Stands the pictures of `row` side by side and returns the top of the next row: as tall as
-    // fills `width`, or at the aim when the row ends a day short of the width.
-    mtd flushMosaicRow(row: *Array'u64, shape: f32, y, width: f32, last: bool)->f32
-    {
-        if row.isEmpty() do
-            return y
-
-        // The last row of a day fills the width too, unless it holds too little to stand that tall.
-        let gaps   = MosaicGap * cast(f32, row.count - 1)
-        var height = (width - gaps) / Math.max(shape, 0.01)
-        let short  = last and height > MosaicHeight * 1.25
-        if short do
-            height = MosaicHeight
-        height = Math.round(height)
-        var x = CellInset
-        for at, i in row[]
-        {
-            let entry = &.explorer.entries[.explorer.shown[at]]
-            var w     = Math.round(.shapeOf(entry) * height)
-            if i + 1 == row.count and not short do
-                w = CellInset + width - x
-            .places[at] = Math.Rectangle{x, y, w, height}
-            x += w + MosaicGap
-        }
-
-        row.clear()
-        return y + height + MosaicGap
-    }
-
-    // Returns the width over the height of what `entry` shows: its picture once rendered, the
-    // shape of a photograph until then.
-    mtd shapeOf(entry: const *ExplorerEntry)->f32
-    {
-        if entry.texture.isValid() and entry.texture.height do
-            return cast(f32, entry.texture.width) / cast(f32, entry.texture.height)
-        return 1.5
-    }
-
-    // Writes the day `iso` (YYYY-MM-DD) as a mosaic names it: its weekday, its day and its month.
-    mtd dayLabel(iso: string)->String
-    {
-        if iso.count < 10 do
-            return String.from(iso)
-        let year  = catch StrConv.toU64(iso[0 until 4])
-        let month = catch StrConv.toU64(iso[5 until 7])
-        let day   = catch StrConv.toU64(iso[8 until 10])
-        if not month or month > 12 or not day do
-            return String.from(iso)
-        let date     = Time.DateTime{year: cast(u16, year), month: cast(u16, month), day: cast(u16, day)}
-        let weekdays = Tokenize.split(appStrings().explore_Weekdays, ' 'rune)
-        let months   = Tokenize.split(appStrings().explore_Months, ' 'rune)
-        let weekday  = cast(u64, date.dayOfWeek())
-        if weekdays.count < 7 or months.count < 12 do
-            return String.from(iso)
-        return Format.toString("% % %", weekdays[weekday], day, months[month - 1])
-    }
-
     // Lays one album out: its cover at the left, then at its right its title over its tracks, one
     // per line.
     mtd layoutAlbum()
@@ -2383,7 +2221,6 @@ impl ExplorerGrid
         .albumText = Math.Rectangle{textX, CellInset, Math.max(width - cover - gap, 1), AlbumHead}
         .places.clear()
         .places.resize(explorer.shown.count)
-        .days.clear()
         .columns = 1
         .cell    = Math.Point{stacked ? width : .albumText.width, TrackPitch}
         var y = stacked ? Math.max(.albumText.bottom(), .albumCover.bottom() + .themeMetrics().btnPush_Height + AlbumGap) : .albumText.bottom()
@@ -2430,7 +2267,7 @@ impl ExplorerGrid
     // Returns where the tile of `row` stands in the grid.
     mtd tileRect(row: u64)->Math.Rectangle
     {
-        if (.board == .Mosaic or .board == .Album) and row < .places.count do
+        if .board == .Album and row < .places.count do
             return .places[row]
         return Math.Rectangle{CellInset + cast(f32, row % .columns) * .cell.x,
                               CellInset + cast(f32, row / .columns) * .cell.y, .tile.x, .tile.y}
@@ -2443,10 +2280,9 @@ impl ExplorerGrid
         let entry   = &.explorer.entries[index]
         let tile    = .tileRect(row)
         let glyph   = .theme().fileGlyph(entry.name, entry.directory, 32)
-        let caption = .board != .Mosaic
-        let name    = caption ? safeMediaText(.tileName(entry)) : String{}
-        let facts   = caption ? .reading(entry) : String{}
-        let size    = caption ? .sizeText(entry) : String{}
+        let name    = safeMediaText(.tileName(entry))
+        let facts   = .reading(entry)
+        let size    = .sizeText(entry)
         let badge   = entry.duration and not .posters ? formatDuration(entry.duration) : String{}
         let ext     = entry.directory ? "" : (Path.extension(entry.name) orelse "")
         let slot    = .explorer.previewSlot(index)
@@ -2461,11 +2297,10 @@ impl ExplorerGrid
         var options: FileTile.Options
         options.fit = .posters ? .Poster :
                       (.board == .Covers or
-                       .board == .Mosaic or
                        glyph.index == cast(s32, ThemeIcons.FileImage) ? .Cover : .Contain)
         options.hovered        = .hovered == row
         options.selected       = .explorer.selected == index
-        options.showCaption    = caption
+        options.showCaption    = true
         options.nameTick       = .nameTick
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
@@ -2631,44 +2466,6 @@ impl ExplorerGrid
         if .board == .Covers and entry.music.title.length do
             return entry.music.title
         return entry.name
-    }
-
-    // Writes what is known of the picture under the pointer in a mono tip over its middle: its
-    // name, its size on screen once rendered, and its weight.
-    mtd paintPictureTip(painter: *Painter)
-    {
-        if .hovered >= .explorer.shown.count or .hovered >= .places.count do
-            return
-        let entry = &.explorer.entries[.explorer.shown[.hovered]]
-        let place = .places[.hovered]
-        var tip   = String.from(entry.name)
-        if entry.size do
-            tip = Format.toString("% · %", tip, StrConv.toDisplaySize(entry.size))
-        let mono   = .theme().createDefaultFontFs(11)
-        let width  = Painter.measureString(tip, mono).width + 28
-        let pill   = Math.Rectangle{Math.round(place.horzCenter() - width * 0.5), Math.round(place.vertCenter() - 14), Math.ceil(width), 28}
-        let radius = .themeMetrics().corner_Control
-        .theme().drawFloatingShadow(painter, pill, radius)
-        painter.fillRoundRect(pill, radius, radius, .themeColors().raised)
-        painter.drawRoundRect(pill, radius, radius, .themeColors().line)
-        painter.drawString(pill.x + 14, mono.opticalLineTop(pill.vertCenter()), tip, mono, .themeColors().softText)
-    }
-
-    // Paints the label of each day of a mosaic: its words in spaced capitals, then how many
-    // pictures it holds.
-    mtd paintDays(painter: *Painter)
-    {
-        let metrics = .themeMetrics()
-        let colors  = .themeColors()
-        let count   = .theme().createDefaultFont(metrics.sectionLabel_FontSize)
-        let width   = .clientRect().width
-        for &day in .days
-        {
-            let centerY = day.y + DayHeight * 0.5
-            let words   = SectionLabel.paint(me, painter, Math.Rectangle{CellInset, day.y, Math.max(width - 2 * CellInset, 0), DayHeight}, day.text.toString())
-            let label   = Format.toString("%", day.count)
-            painter.drawString(CellInset + words + 12, count.opticalLineTop(centerY), label, count, colors.faintText)
-        }
     }
 
     // Paints one album: its cover at the left, then its kind and year, its title, who made it and
@@ -2927,7 +2724,7 @@ impl ExplorerGrid
 
     mtd visibleRange()->{first: u64, end: u64}
     {
-        if .board == .Mosaic or .board == .Album
+        if .board == .Album
         {
             let top    = .scrollPos.y
             let bottom = top + .clientRect().height
@@ -2951,7 +2748,7 @@ impl ExplorerGrid
 
     mtd startNameScroll()
     {
-        if .rows or .board == .Mosaic or .board == .Album
+        if .rows or .board == .Album
         {
             .stopTimer(&.nameTimer)
             return
@@ -2989,7 +2786,7 @@ impl ExplorerGrid
             .explorer.requestPreview()
         let place = .tileRect(row)
         let top   = .rows ? CellInset + cast(f32, row) * .cell.y : place.y - CellInset
-        let reach = .rows ? .cell.y : place.height + (.board == .Mosaic or .board == .Album ? 0 : FileTile.captionHeight(me) + Gap)
+        let reach = .rows ? .cell.y : place.height + (.board == .Album ? 0 : FileTile.captionHeight(me) + Gap)
         if top < .scrollPos.y do
             .explorer.scroll.setScrollPos(0, top)
         elif top + reach > .scrollPos.y + .clientRect().height do
@@ -3047,12 +2844,8 @@ impl IWnd for ExplorerGrid
         }
         else
         {
-            if .board == .Mosaic do
-                .paintDays(painter)
             for row in range.first until range.end do
                 .paintTile(painter, row)
-            if .board == .Mosaic do
-                .paintPictureTip(painter)
         }
 
         for spinner, slot in .spinners do

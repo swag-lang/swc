@@ -233,8 +233,8 @@ the work when asked for.
 
 The explorer keeps Back, Forward and Parent Folder beside its path, with Refresh, Filter Files
 and Information at the other end. Sort and view remain quiet menus. The view menu and the lens
-share the same choices and checked state, including automatic layout, grid, covers, posters and
-mosaic. At narrow widths, counts move below the title and actions take their own line; an album
+share the same choices and checked state, including automatic layout, grid, covers and posters.
+At narrow widths, counts move below the title and actions take their own line; an album
 stacks its cover and tracks when the information sheet needs the space beside it.
 
 Without a file the window is its home: the Scope mark, large and faint, one line inviting a drop or

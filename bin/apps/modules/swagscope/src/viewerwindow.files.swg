@@ -37,7 +37,7 @@ impl ViewerWindow
         }
 
         .readingLine.details.setText(line)
-        .readingLine.details.toolTip = line
+        .readingLine.details.toolTip = ""
     }
 
     mtd updateFileInfo(details: string)

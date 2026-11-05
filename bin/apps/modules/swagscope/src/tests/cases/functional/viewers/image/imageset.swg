@@ -25,10 +25,8 @@ using Core, Pixel, Gui, Viewers
         Swag.require(movie.frameIndex == movie.frameCount - 1 and movie.frame.isValid())
         view.imageView.setFrameIndex(0)
         Swag.require(movie.frameIndex == 0 and movie.failureReason.isEmpty())
-        session.sidePanelButton!.setChecked(true)
-        session.sidePanelButton.sigCheckedChanged.call(session.sidePanelButton)
-        Swag.require(Utf8.contains(view.information.text(), Format.toString("%", movie.frameCount).toString()))
-        view.information.closeButton.sigPressed.call(view.information.closeButton)
-        Swag.require(not session.sidePanelHost!.isLocallyVisible())
+        var information = InfoSheet.create(&host.root)
+        view.information.describe(information)
+        Swag.require(Utf8.contains(information.text(), Format.toString("%", movie.frameCount).toString()))
     }
 }

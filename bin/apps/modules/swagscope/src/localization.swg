@@ -61,8 +61,6 @@ struct AppStrings
     explore_Tracks:            string = "% tracks"       // How many tracks an album holds.
     explore_Play:              string = "Play"           // Button playing an album from its first track.
     explore_Shuffle:           string = "Shuffle"        // Button playing an album in an order drawn by chance.
-    explore_Weekdays:          string = "Sunday Monday Tuesday Wednesday Thursday Friday Saturday"     // Days of a mosaic of pictures, from Sunday, separated by spaces.
-    explore_Months:            string = "January February March April May June July August September October November December"     // Months of a mosaic of pictures, separated by spaces.
     explore_File:              string = "File"           // Reading of the kind and weight of the file a film is in.
     explore_Artist:            string = "Artist"
     explore_AlbumArtist:       string = "Album artist"
@@ -241,7 +239,6 @@ struct AppStrings
     board_Grid:           string = "Grid"                      // Organization choice arranging tiles in an even grid.
     board_Covers:         string = "Covers"                    // Organization choice arranging tiles as square covers.
     board_Posters:        string = "Posters"                   // Organization choice arranging tiles as upright posters.
-    board_Mosaic:         string = "Mosaic"                    // Organization choice arranging pictures as a mosaic.
     artwork_Online:       string = "Online Artwork"            // Media illustration source using online artwork when available.
     artwork_Local:        string = "Local Previews"            // Media illustration source using local frames and artwork without network lookups.
     artwork_OnlineShort:  string = "Online"                    // Compact current value of the media illustration source.

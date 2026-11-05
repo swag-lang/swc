@@ -95,8 +95,6 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
                 Swag.require(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
             if index == 3 do
                 Swag.require(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
-            if index == 4 do
-                Swag.require(state.name == appStrings().board_Mosaic and explorer.grid.board == .Mosaic)
             window.lens.open(state.name)
             var found = false
             for section in window.lens.results.sections

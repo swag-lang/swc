@@ -69,6 +69,22 @@ impl ViewerWindow
     // tooltip, options button and field width. Leaves filter mode when the viewer cannot filter.
     private mtd refreshSearchPresentation()
     {
+        if .isExploring()
+        {
+            .searchToolTip = appStrings().ui_FilterFiles
+            .searchBox.setPlaceholder(.searchToolTip)
+            .searchBox.toolTip = .searchToolTip
+            .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
+            .searchOptionsButton.hide()
+            .searchNavigation.hide()
+            .searchGroup.spacing = 0
+            .searchBox.resize(SearchNoOptionsFieldWidth, 36)
+            .searchGroup.computeLayout()
+            .layoutSearchBar()
+            return
+        }
+
+        .searchNavigation.show()
         var presentation: Viewer.SearchPresentation
         presentation.placeholder = appStrings().ui_Search
         if .activeChoiceIndex < .instances.count
@@ -127,6 +143,12 @@ impl ViewerWindow
     // `selectLast` selects the last one instead of the first.
     mtd restartSearch(selectLast = false)
     {
+        if .isExploring()
+        {
+            .explorer!.filter.setText(.searchBox.text())
+            return
+        }
+
         .forgetSearch()
         .searchSelectLast = selectLast
         .searchQuery      = .searchBox.text()
@@ -401,16 +423,9 @@ impl ViewerWindow
         .refreshSearchReadout()
     }
 
-    // Brings the find bar over the document and gives it the keyboard; while a folder is
-    // explored, its filter takes the query instead.
+    // Brings the shared find bar over the document and gives it the keyboard.
     mtd showSearch()
     {
-        if .explorerActive and .explorer and .explorer.isLocallyVisible()
-        {
-            .explorer.revealFilter()
-            return
-        }
-
         if not .searchBox.isEnabled() do
             return
         .searchShown = true
@@ -426,6 +441,12 @@ impl ViewerWindow
     {
         .searchShown = false
         .searchBar.hide()
+        if .isExploring()
+        {
+            .searchBox.setText("")
+            .explorer!.focusContent()
+            return
+        }
         .viewerFocusTarget()?.setFocus()
     }
 
@@ -454,7 +475,7 @@ impl ViewerWindow
     mtd updateSearchAvailability()
     {
         let active         = .activeChoiceIndex < .instances.count
-        let available      = active and .instances[.activeChoiceIndex].revealMatch != null
+        let available      = .isExploring() or (active and .instances[.activeChoiceIndex].revealMatch != null)
         let focused        = .focusedWindow()
         let searchHadFocus = focused and (focused == .searchGroup or .searchGroup.isOwnerOf(focused))
 

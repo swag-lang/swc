@@ -264,6 +264,7 @@ impl InfoSheet
                                                     Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
         {
             .toolTip    = Gui.strings().dlg_Close
+            .focusPolicy = .None
             .sigPressed += func|sheet = result|(_)
             {
                 sheet.close()

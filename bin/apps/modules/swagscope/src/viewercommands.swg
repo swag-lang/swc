@@ -74,7 +74,7 @@ namespace ViewerCommands
     const Modes = ["scope.explore.mode.0", "scope.explore.mode.1", "scope.explore.mode.2",
                    "scope.explore.mode.3", "scope.explore.mode.4"]
     const Boards = ["scope.explore.board.0", "scope.explore.board.1", "scope.explore.board.2",
-                    "scope.explore.board.3", "scope.explore.board.4"]
+                    "scope.explore.board.3"]
     const Artwork     = [ArtworkOnline, ArtworkLocal]
     const KindFilters = [FilterAll, FilterVideos, FilterImages, FilterAudio,
                          FilterDocuments, FilterSubtitles, FilterArchives, FilterFolders]
@@ -510,10 +510,8 @@ impl ViewerWindow
 
         case ViewerCommands.Dismiss:
             name     = Gui.strings().dlg_Close
-            disabled = not .infoSheet.isLocallyVisible() and
-                       not .searchShown and
-                       not .fullScreen and
-                       not exploring
+            disabled = not .searchShown and
+                       not .fullScreen
 
         case ViewerCommands.Reload:
             name   = texts.cmd_Reload
@@ -800,9 +798,9 @@ impl ViewerWindow
             for id, index in ViewerCommands.Boards where evt.id == id
             {
                 let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters,
-                             texts.board_Covers, texts.board_Mosaic]
+                             texts.board_Covers]
                 let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo,
-                             ThemeIcons.FileAudio, ThemeIcons.FileImage]
+                             ThemeIcons.FileAudio]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
                 hidden  = not exploring or not .explorer!.isThumbnailView()
@@ -906,14 +904,10 @@ impl ViewerWindow
             .closeFile()
 
         case ViewerCommands.Dismiss:
-            if .infoSheet.isLocallyVisible() do
-                .closeInformation()
-            elif .searchShown do
+            if .searchShown do
                 .hideSearch()
             elif .fullScreen do
                 .setFullScreen(false)
-            elif .isExploring() do
-                .closeFile()
 
         case ViewerCommands.Reload:
             .reloadCurrentFile()
@@ -1174,9 +1168,9 @@ impl ViewerWindow
         if details.count do
             .infoSheet.addText(details)
 
-        .infoSheet.addLink(texts.ui_MenuLocate, ViewerCommands.Locate)
-        .infoSheet.addLink(texts.ui_MenuCopyPath, ViewerCommands.CopyPath)
-        .infoSheet.setAction(texts.ui_MenuOpenDefault, ViewerCommands.OpenDefault)
+        if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].describeInformation do
+            .instances[.activeChoiceIndex].describeInformation!(.infoSheet)
+
     }
 
     // Applies one choice of the search options and runs the search again under it.

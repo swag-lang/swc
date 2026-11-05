@@ -70,6 +70,40 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
 
+// A section label names the whole group from the popup's leading edge. Row glyphs may move the
+// command wording into a shared column, but must not drag the heading with them.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 260)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Names", Menu_Open, host.theme.icon(.Search, 16))
+    popup.addItem("Details", Menu_New, host.theme.icon(.Options, 16))
+    popup.addSeparator()
+    popup.addLabel("Arrange thumbnails")
+    popup.addItem("Automatic", Menu_Quit, host.theme.icon(.RepeatOne, 16), checked: true)
+    popup.addItem("Grid", "Menu.Grid", host.theme.icon(.Shuffle, 16))
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.section-label.light")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    discard popup.doModal({24, 20}, .TopLeft, autoDestroy: true)
+    Swag.require(captured)
+    host.pump()
+}
+
 // An icon-button menu keeps a clear gap from its selected opener.
 #[Swag.TestTag("golden")]
 #test

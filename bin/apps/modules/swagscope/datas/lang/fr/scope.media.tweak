@@ -1,9 +1,4 @@
-# French strings of the shared image and video information panel.
-title       Informations
-close       Fermer les informations
-copy        Copier les informations
-property    Propriété
-value       Valeur
+# French strings of the shared image and video information readings.
 image       Image
 video       Vidéo
 metadata    Métadonnées

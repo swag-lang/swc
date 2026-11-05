@@ -202,10 +202,10 @@ struct Panel
         playButton:      *IconButton
         timeline:        *Slider
         frameLabel:      *Label
-        information:     *MediaInfoPanel
     }
 
     services:           Viewer.HostServices
+    information:        MediaInfoData
     lastCompletedLoops: u32      // Playback cycles observed by the latest frame refresh.
     handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:               Viewer.BackgroundLoad'ViewerContent
@@ -214,6 +214,11 @@ struct Panel
 
 impl Panel
 {
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        .information.describe(sheet)
+    }
+
     // Shows the zoom in the zoom label, with the rotation and mirroring when the image is
     // transformed.
     mtd refreshZoom()
@@ -472,7 +477,7 @@ private impl IWnd for Panel
 
         .facts   = #move content.facts
         .details = .facts.text()
-        .information.publish(&content.information)
+        .information = #move content.information
         .refreshZoom()
         .applyLayout()
         .services.showDetails(me, .details)
@@ -566,7 +571,6 @@ private impl Panel
 
         result.actions     = host.createCommandGroup(commandWidth(result.themeMetrics()))
         result.info        = host.createInfoGroup(InfoWidth)
-        result.information = MediaInfoPanel.create(host)
 
         result.createCommandBar(services.playback)
         result.createFrameControls()
@@ -680,8 +684,10 @@ private impl Panel
 // Creates the integrated image view.
 func createViewer(host: Viewer.Host)
 {
+    registerMediaInfoStrings(host.application())
     let view = Panel.create(host)
     host.attachView(view)
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))

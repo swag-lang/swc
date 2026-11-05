@@ -385,7 +385,8 @@ private impl Application
             let curP  = .mouse.currentState.pressed[i]
             if not lastP and curP
             {
-                if .mouse.isButtonDoubleClick(cast(Input.MouseButton, i))
+                let button = Input.mouseButtonFromStorageIndex(i)
+                if .mouse.isButtonDoubleClick(button)
                 {
                     evt.kind = .DoubleClick
                 }
@@ -396,14 +397,15 @@ private impl Application
                     .focusPointerTarget(targetWnd)
                 }
 
-                evt.button = cast(Input.MouseButton, i)
+                evt.button = button
                 targetWnd.sendEvent(&evt)
                 .toolTip.hide()
             }
             elif lastP and not curP
             {
+                let button = Input.mouseButtonFromStorageIndex(i)
                 evt.kind   = .Released
-                evt.button = cast(Input.MouseButton, i)
+                evt.button = button
                 targetWnd.sendEvent(&evt)
             }
         }
@@ -503,17 +505,19 @@ private impl Application
 
             if not lastP and curP
             {
+                let key = Input.keyFromStorageIndex(i)
                 var evt = KeyEvent{kind: .Pressed}
-                evt.key       = cast(Input.Key, i)
+                evt.key       = key
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
                 if not evt.accepted do
-                    .routeUnhandledKey(targetWnd, cast(Input.Key, i), modifiers)
+                    .routeUnhandledKey(targetWnd, key, modifiers)
             }
             elif lastP and not curP
             {
+                let key = Input.keyFromStorageIndex(i)
                 var evt = KeyEvent{kind: .Released}
-                evt.key       = cast(Input.Key, i)
+                evt.key       = key
                 evt.modifiers = modifiers
                 targetWnd.sendEvent(&evt)
             }

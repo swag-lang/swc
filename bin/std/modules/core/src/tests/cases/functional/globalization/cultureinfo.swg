@@ -69,6 +69,12 @@ using Swag
     Swag.require(ru.cardinalPlural(11) == .Many)
     Swag.require(ru.cardinalPlural(21) == .One)
 
+    let pl = Globalization.CultureInfo.fromName("pl-PL")
+    Swag.require(pl.cardinalPlural(1) == .One)
+    Swag.require(pl.cardinalPlural(2) == .Few)
+    Swag.require(pl.cardinalPlural(5) == .Many)
+    Swag.require(pl.cardinalPlural(1.5) == .Many)
+
     let ar = Globalization.CultureInfo.fromName("ar-EG")
     Swag.require(ar.cardinalPlural(0) == .Zero)
     Swag.require(ar.cardinalPlural(2) == .Two)

@@ -250,8 +250,10 @@ public impl CultureInfo
             return .Other
         }
 
-        if .isLanguage("pl") and integral
+        if .isLanguage("pl")
         {
+            if not integral do
+                return .Many
             if integer == 1 do
                 return .One
             let mod10  = integer % 10

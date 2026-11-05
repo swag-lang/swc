@@ -995,8 +995,8 @@ impl Application
 
     // Turns the keyboard-focus ring on or off, and repaints what showed it.
     //
-    // Keyboard traversal turns it on, a pointer press turns it off. See
-    // [[Gui.Application.focusVisible]].
+    // Keyboard traversal turns it on, and a pointer press clears it before target focus is
+    // assigned. A keyboard-activated control turns it back on when it takes that focus.
     internal mtd setFocusVisible(visible: bool)
     {
         if .focusVisible == visible do

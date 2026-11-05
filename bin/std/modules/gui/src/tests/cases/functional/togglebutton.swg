@@ -72,7 +72,7 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     Swag.require(toggle.isChecked())
     Swag.require(ToggleButtonHeadlessChangedCount == 0 and host.commandCount == 0)
 
-    host.focus(toggle)
+    toggle.setFocus()
     host.keyPress(Input.Key.Space)
     Swag.require(not toggle.isChecked())
     Swag.require(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)

@@ -669,11 +669,11 @@ the screen to its work.
   captures and the library; secondary choices may use adjacent menus. The size and zoom readings
   at the foot of the editor are quiet menu anchors: size opens image-size commands and zoom opens
   zoom, actual-size and fit commands. These menus reuse the commands already in the lens.
-- Area capture: the screen dimmed except the chosen zone, a 1 px Voltage edge, its size in a
-  mono chip, a pixel loupe with a Voltage crosshair, modes as text tabs on a floating bar, then
-  after a hairline how the screen is read: `Delay: none ▾` (a list of delays; one waits, then
-  reads the screen again) and `Cursor` (a switch, on in the text ink over an Arc underline). The
-  keys at the foot stand on the floating ground, since the frozen screen can be any picture.
+- The capture control starts an area capture directly; its adjacent chevron opens the capture
+  modes and the delay and cursor choices before the screen is read. Area capture shows the screen
+  dimmed except the chosen zone, a 1 px Voltage edge, its size in a mono chip, and a pixel loupe
+  with a Voltage crosshair. The keys at the foot stand on the floating ground, since the frozen
+  screen can be any picture.
 - Editing in place, right after a capture: the desktop stays dimmed and the captured zone
   stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under
@@ -753,7 +753,7 @@ the screen to its work.
 ![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)
 ![Multiple](imgs/capture.edit.multi.png) ![Colour](imgs/capture.edit.color.paper.png)
-![Area](imgs/capture.area.png) ![Library](imgs/capture.library.png) ![Lens](imgs/capture.lens.paper.png)
+![Area](../../bin/apps/modules/swagcapture/src/tests/goldens/area.png) ![Library](imgs/capture.library.png) ![Lens](imgs/capture.lens.paper.png)
 
 - Quick styles: each preset is a small picture of the shape it draws, in its own colours — a
   rectangle or an ellipse with its outline, fill and weight, an arrow with its curve and head,

@@ -655,7 +655,9 @@ impl IWnd for IconButton
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or (evt.key != .Space and evt.key != .Return) do
+        if evt.kind != .Pressed or evt.modifiers != .None or
+           (evt.key == .Space and not .hasVisibleFocus()) or
+           (evt.key != .Space and evt.key != .Return) do
             return
 
         .sigPressed.call(cast(*Button, me))

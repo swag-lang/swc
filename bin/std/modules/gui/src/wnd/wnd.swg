@@ -2153,7 +2153,8 @@ impl Wnd
     // The focus goes to [[Gui.Wnd.focusTarget]], so asking a composite for the focus reaches
     // the part of it that reads the keys. A disabled window or surface cannot take focus.
     // Scrolling ancestors reveal the accepted control before it receives the focus event. A
-    // window with [[Gui.FocusPolicy.None]] ignores this request.
+    // window with [[Gui.FocusPolicy.None]] ignores this request. A keyboard-activated control
+    // shows its focus ring as soon as it accepts focus, including after a pointer press.
     mtd setFocus()
     {
         .setFocusImpl(false)
@@ -2178,8 +2179,12 @@ impl Wnd
         }
 
         let srfn = unwrap .surface
-        if srfn.app.keyboardFocusWnd == me do
+        if srfn.app.keyboardFocusWnd == me
+        {
+            if .wndFlags.has(.ActivatesOnKey) do
+                srfn.app.setFocusVisible(true)
             return
+        }
         if not .isEnabled() or srfn.isDisabled do
             return
 
@@ -2231,6 +2236,8 @@ impl Wnd
         if .isPendingDestroy or srfn.app.keyboardFocusWnd != me do
             return
 
+        if .wndFlags.has(.ActivatesOnKey) do
+            srfn.app.setFocusVisible(true)
         var evt = FocusEvent{kind: FocusEvent.Kind.Gained, other: last}
         .sendEvent(&evt)
         .invalidate()
@@ -2271,9 +2278,9 @@ impl Wnd
 
     // Reports whether this window must show the keyboard focus.
     //
-    // True only while the focus arrived from the keyboard: a control pressed with the pointer
-    // keeps the focus without drawing a ring around it, the way the pointer already said which
-    // control was acted on. See [[Gui.Application.focusVisible]].
+    // Keyboard-activated controls show their ring whenever focused, including after a pointer
+    // press, so a later key cannot activate an action whose focus was invisible. Other controls
+    // show their focus only after keyboard navigation. See [[Gui.Application.focusVisible]].
     mtd hasVisibleFocus()->bool
     {
         let surface = .surface

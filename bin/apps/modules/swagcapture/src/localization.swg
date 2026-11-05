@@ -174,15 +174,7 @@ struct AppStrings
     lens_Selection:             string = "Selection"                                                     // Lens section of the actions of the selected shapes, at rest.
     lens_LibraryLink:           string = "Library →"                                                     // Link ending the recent captures of the lens: opens the library.
     lens_Dates:                 string = "Dates"                                                         // Lens section of the dates the library can be narrowed to.
-    ui_ModeArea:                string = "Area"                                                          // Capture mode of the area overlay: the zone the reader draws.
-    ui_ModeActiveWindow:        string = "Active Window"                                                 // Capture mode of the area overlay: the window in front.
-    ui_ModeFullScreen:          string = "Full Screen"                                                   // Capture mode of the area overlay: every screen.
-    ui_ModeLastArea:            string = "Last Area"                                                     // Capture mode of the area overlay: the zone of the previous capture.
     hint_Capture:               string = "capture"                                                       // What Enter does on the area overlay.
-    ui_Delay:                   string = "Delay: %"                                                      // How long the area overlay waits before reading the screen, with that delay.
-    ui_DelayNone:               string = "none"                                                          // No delay before the screen is read.
-    ui_DelaySeconds:            string = "% s"                                                           // A delay before the screen is read, in seconds.
-    ui_Cursor:                  string = "Cursor"                                                        // Switch of the area overlay: whether the screen is read with the cursor.
     hint_Cancel:                string = "cancel"                                                        // What Escape does on the area overlay.
     act_OpenLens:               string = "Search Commands"                                               // Opens the lens.
     act_ShowInspector:          string = "Properties"                                                    // Folds or unfolds the inspector.

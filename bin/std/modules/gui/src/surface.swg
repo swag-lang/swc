@@ -1107,9 +1107,13 @@ impl Surface
             return from.focusNextInGroup(forward)
 
         case .Return:
+            if modifiers != .None do
+                return false
             return .pressStandardButton(.defaultButton)
 
         case .Escape:
+            if modifiers != .None do
+                return false
             if .view() is Dialog
             {
                 var field: *Wnd? = from

@@ -8,6 +8,94 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitorAt(main, Math.Rectangle{cast(f32, idx) * 320, 0, 320, 240})
 }
 
+// The capture arrow offers modes and settings before opening any capture overlay.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.monitors.clear()
+    testAddMonitor(main, 0)
+    testAddMonitor(main, 1)
+
+    var inspected: bool
+    host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
+    {
+        if inspected[] do
+            return
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items.count == 9)
+        Swag.require(menu.items[0]!.id == ActionCapture.Area)
+        Swag.require(menu.items[1]!.id == ActionCapture.ActiveWnd)
+        Swag.require(menu.items[2]!.id == ActionCapture.FullScreen)
+        Swag.require(menu.items[3]!.id == ActionCapture.LastArea)
+        Swag.require(menu.items[4]!.id == ActionCapture.screenId(0))
+        Swag.require(menu.items[5]!.id == ActionCapture.screenId(1))
+        Swag.require(menu.items[7]!.id == ActionCapture.CaptureCursor)
+        let delays = menu.items[8]!.popup
+        Swag.require(delays.items.count == 5)
+        Swag.require(delays.items[0]!.id == ActionCaptureDelay.Delay0)
+        Swag.require(delays.items[4]!.id == ActionCaptureDelay.Delay9)
+        inspected[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    host.click(main.captureChoice.surfaceRect().center())
+    Swag.require(inspected)
+    Swag.require(not main.captureChoice.hasFocus())
+}
+
+// The selection owns both keys and pointer gestures. Releasing the left button fixes the
+// rectangle on release; Escape and right click leave without a grab.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(320, 240)
+    defer f.shutdown()
+
+    g_DesktopX, g_DesktopY = 0
+    g_Exit, g_GrabDone      = false
+    let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 320, 240})
+    wnd.main        = f.main
+    wnd.focusPolicy = .Click
+    wnd.setFocus()
+    Swag.require(wnd.hasFocus())
+
+    var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {80, 100}}
+    wnd.sendEvent(&evt)
+    evt.kind       = .Move
+    evt.surfacePos = {180, 90}
+    wnd.sendEvent(&evt)
+    Swag.require(wnd.startGrab and not g_Exit)
+
+    evt.kind       = .Released
+    evt.surfacePos = {200, 20}
+    wnd.sendEvent(&evt)
+    Swag.require(g_Exit and g_GrabDone)
+    Swag.require(getGrabRect() == {80, 20, 120, 80})
+
+    g_Exit, g_GrabDone = false
+    wnd.startGrab      = false
+    wnd.tryStartGrab   = false
+    evt.kind           = .Pressed
+    evt.button         = .Right
+    wnd.sendEvent(&evt)
+    Swag.require(g_Exit and not g_GrabDone)
+
+    g_Exit, g_GrabDone = false
+    var key = Gui.KeyEvent{kind: .Pressed, key: .Escape, modifiers: .Control}
+    wnd.sendEvent(&key)
+    Swag.require(not g_Exit)
+    key.modifiers = .None
+    wnd.sendEvent(&key)
+    Swag.require(g_Exit and not g_GrabDone)
+}
+
 // Capture command states cover every toolbar/menu entry, including monitor
 // entries, without starting the interactive capture overlay.
 #test

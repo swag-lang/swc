@@ -117,7 +117,8 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     Swag.require(card.submit.hasFocus())
 }
 
-// The ring shows only while the keyboard is what moved the focus.
+// Actions always show the focus that lets a later key activate them; fields still reveal
+// their focus when the keyboard moves into them.
 #test
 {
     var host: Testing.HeadlessHost
@@ -127,14 +128,14 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 
     host.clickWnd(card.submit)
     Swag.require(card.submit.hasFocus())
-    Swag.require(not card.submit.hasVisibleFocus())
+    Swag.require(card.submit.hasVisibleFocus())
 
     host.keyPress(.Tab)
     Swag.require(card.field.hasFocus())
     Swag.require(card.field.hasVisibleFocus())
 
     host.clickWnd(card.submit)
-    Swag.require(not card.submit.hasVisibleFocus())
+    Swag.require(card.submit.hasVisibleFocus())
 }
 
 // Native surface deactivation removes the logical focus and its caret, then activation restores

@@ -5,8 +5,8 @@ using Swag, Core, Pixel
 
 // What the ring looks like on a control that has nothing else to show for the focus.
 //
-// The image is the contract: a rule inside the button, one accent, and nothing on the same button
-// when the pointer is what pressed it.
+// The image is the contract: a rule inside the button, one accent, and the same visible focus
+// after the pointer presses it, because a later key can still activate it.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -25,10 +25,10 @@ using Swag, Core, Pixel
     Swag.require(not Slice.equals(ringed.pixels.toSlice(), idle.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&ringed, "focus.ring.pushbutton")
 
-    // A press takes the ring away again without taking the focus. The image is not compared
-    // against the idle one: the pointer is over the button now, which is a state of its own.
+    // A pointer press keeps the ring because the button keeps keyboard focus. The pointer also
+    // gives the button its hover state, so its image differs from the keyboard state.
     host.clickWnd(button)
-    Swag.require(button.hasFocus() and not button.hasVisibleFocus())
+    Swag.require(button.hasFocus() and button.hasVisibleFocus())
     let pressed = host.render()
     Swag.require(not Slice.equals(pressed.pixels.toSlice(), ringed.pixels.toSlice()))
 }

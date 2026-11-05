@@ -165,7 +165,12 @@ func decode(text: string)->Array'u8 fail
         // Scalar decoding also handles whitespace and padding.
         let value = text[index]
         index += 1
-        if value == ' ' or value == '\t' or value == '\r' or value == '\n' do
+        if value == ' ' or
+           value == '\t' or
+           value == '\n' or
+           value == '\v' or
+           value == '\f' or
+           value == '\r' do
             continue
         if value == '='
         {

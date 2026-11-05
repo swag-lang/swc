@@ -64,7 +64,7 @@ impl Timer
            delay.seconds <= 0 or
            delay.seconds >= cast(f64, Swag.U32.Max) / 1000 do
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
-        let delayMs = delay.milliseconds()
+        let delayMs = delay.millisecondsCeiling()
         if not delayMs or delayMs >= Swag.U32.Max do
             fail Errors.OverflowError{"timer delay must be between 1 and 4294967294 milliseconds"}
 

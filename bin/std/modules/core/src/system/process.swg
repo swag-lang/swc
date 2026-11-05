@@ -310,7 +310,7 @@ impl Process
         if .exited do
             return true
         Swag.assert(.handle != null, "invalid process handle")
-        let duration = timeout.milliseconds()
+        let duration = timeout.millisecondsCeiling()
         var clock: Time.Stopwatch
         clock.start()
         for

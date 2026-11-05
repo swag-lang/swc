@@ -39,6 +39,15 @@ impl Duration
             return cast(u64, value)
         }
 
+        // Returns whole milliseconds rounded up, so waiting at least this duration cannot end early.
+        internal mtd const millisecondsCeiling()->u64
+        {
+            Swag.assert(.seconds >= 0 and Math.isFinite(.seconds), "duration is invalid")
+            let value = Math.ceil(.seconds * 1000)
+            Swag.assert(value < cast(f64, Swag.U64.Max), "duration is too large in milliseconds")
+            return cast(u64, value)
+        }
+
         // Creates a duration from seconds.
         func fromSeconds(value: f64)->Duration
         {

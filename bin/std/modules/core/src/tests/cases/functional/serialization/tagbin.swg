@@ -300,6 +300,7 @@ public struct TagBinHookPayload
     {
         direct:   s32
         remapped: s32
+        customEnum: TagBinModeU8
         bytes:    Array'u8
 
         #[Serialization.NoSerialize]
@@ -314,6 +315,18 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
     mtd impl readElement(type: TypeValue, data: *void?, decoder: Serialization.IDecoder)->bool fail
     {
+        if type.name == "customEnum"
+        {
+            if not (try decoder.beginField(type)) do
+                return true
+            defer #nofail try decoder.endField(type)
+
+            let value = try decoder.readU8()
+            // Exercise the post-hook validation path with a forged closed enum.
+            cast(*u8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF'u8 : value
+            return true
+        }
+
         if type.name == "remapped"
         {
             if not (try decoder.beginField(type)) do
@@ -941,12 +954,26 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     defer Memory.delete(decoded)
     Swag.require(decoded.direct == 21)
     Swag.require(decoded.remapped == 34)
+    Swag.require(decoded.customEnum == .Off)
     Swag.require(decoded.bytes.count == 4)
     Swag.require(decoded.bytes[0] == 7)
     Swag.require(decoded.bytes[1] == 5)
     Swag.require(decoded.bytes[2] == 3)
     Swag.require(decoded.bytes[3] == 1)
     Swag.require(decoded.postReadSeen)
+}
+
+#test
+{
+    var payload: TagBinHookPayload
+    payload.customEnum = .Precise
+
+    let bytes = encodeTagBin(payload)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    discard catch decoder.readAll'TagBinHookPayload(bytes.toSlice()) as errOutcome
+    Swag.require(errOutcome.hasError)
+    Swag.require(Utf8.contains(Errors.message(errOutcome.error), "not a member of the requested enum"))
 }
 
 #test

@@ -13,6 +13,55 @@ private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
         fail SerializationError{"serialized value is not a member of the requested enum"}
 }
 
+// Checks closed enums inside values filled by a custom ISerialize hook.
+private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
+{
+    if not dataType do
+        return
+
+    let type = Reflection.resolveAliases(dataType)
+    if Reflection.isEnum(type)
+    {
+        try validateDecodedEnumValue(type, data)
+        return
+    }
+
+    let elementType = Reflection.dynamicArrayElementType(type)
+    if elementType
+    {
+        let array = cast(*Array'u8, data)
+        if not array.count do
+            return
+        var element = unwrap array.buffer
+        for array.count
+        {
+            try validateDecodedEnumValues(elementType, element)
+            element += elementType.sizeof
+        }
+        return
+    }
+
+    if Reflection.isStaticArray(type)
+    {
+        let arrayType = assume cast(const *TypeInfoArray, type)
+        var element = data
+        for arrayType.count
+        {
+            try validateDecodedEnumValues(arrayType.pointedType, element)
+            element += arrayType.pointedType.sizeof
+        }
+        return
+    }
+
+    if Reflection.isStruct(type) and type != String
+    {
+        let structType = assume cast(const *TypeInfoStruct, type)
+        for &field in structType.fields where field.pointedType
+            try validateDecodedEnumValues(field.pointedType,
+                                          data + field.offset)
+    }
+}
+
 // Reads serialized values, as seen from [[Core.Serialization.ISerialize]] and [[Core.Serialization.Serializer]].
 interface IDecoder
 {
@@ -321,7 +370,7 @@ impl Decoder
             {
                 if try itf.read(idecoder)
                 {
-                    try validateDecodedEnumValue(enumType, data)
+                    try validateDecodedEnumValues(type, cast([*] u8, data))
                     return
                 }
             }
@@ -340,37 +389,44 @@ impl Decoder
             for &field in plan.fields
             {
                 let fieldType = field.value.pointedType
-                if not itf or
-                   not (try itf.readElement(field.value,
-                                            cast([*] u8, data) + field.value.offset,
-                                            idecoder))
+                let fieldData = cast([*] u8, data) + field.value.offset
+                if itf and
+                   (try itf.readElement(field.value, fieldData, idecoder))
                 {
-                    let fieldData = cast([*] u8, data) + field.value.offset
-
-                    // A failed beginElement has already unwound itself. Pair it with
-                    // endElement only after it has returned successfully.
-                    let readField = catch .serializer.beginElement(field.value)
-                    {
-                        if not (.flags & .IgnoreStructFieldError) do
-                            fail Swag.err
-                        #static if T == Read.TagBin do
-                            .serializer.diag.fieldErrors += 1
-                        continue
-                    }
-
-                    defer #nofail try .serializer.endElement(field.value)
-                    if not readField do
-                        continue
-
-                    catch .readTypedContent(fieldData, fieldType)
+                    catch validateDecodedEnumValues(fieldType, fieldData)
                     {
                         if not (.flags & .IgnoreStructFieldError) do
                             fail Swag.err
                         #static if T == Read.TagBin do
                             .serializer.diag.fieldErrors += 1
                         Reflection.reset(fieldData, fieldType)
-                        continue
                     }
+                    continue
+                }
+
+                // A failed beginElement has already unwound itself. Pair it with
+                // endElement only after it has returned successfully.
+                let readField = catch .serializer.beginElement(field.value)
+                {
+                    if not (.flags & .IgnoreStructFieldError) do
+                        fail Swag.err
+                    #static if T == Read.TagBin do
+                        .serializer.diag.fieldErrors += 1
+                    continue
+                }
+
+                defer #nofail try .serializer.endElement(field.value)
+                if not readField do
+                    continue
+
+                catch .readTypedContent(fieldData, fieldType)
+                {
+                    if not (.flags & .IgnoreStructFieldError) do
+                        fail Swag.err
+                    #static if T == Read.TagBin do
+                        .serializer.diag.fieldErrors += 1
+                    Reflection.reset(fieldData, fieldType)
+                    continue
                 }
             }
 

@@ -348,7 +348,7 @@ namespace
     {
         std::vector<MicroRegisterAllocationPass::LiveInterval>* nodes = nullptr;
         std::vector<uint32_t>                                   unhandled; // node indices, sorted by start DESCENDING
-        std::vector<uint32_t>                                   active;
+        SmallVector<uint32_t, 32>                               active;
         std::vector<uint32_t>                                   inactive;
         const std::vector<uint32_t>*                            loopDepth  = nullptr;
         const SmallVector<LoopRange, 8>*                         loops      = nullptr;
@@ -776,7 +776,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         };
 
         // Retire and reclassify.
-        const auto refresh = [&](std::vector<uint32_t>& list, const bool wantCovers) {
+        const auto refresh = [&](auto& list, const bool wantCovers) {
             for (size_t i = 0; i < list.size();)
             {
                 const LiveInterval& node = out.nodes[list[i]];
@@ -788,7 +788,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
                 }
                 if (node.covers(position) != wantCovers)
                 {
-                    (wantCovers ? walk.inactive : walk.active).push_back(list[i]);
+                    if (wantCovers)
+                        walk.inactive.push_back(list[i]);
+                    else
+                        walk.active.push_back(list[i]);
                     list[i] = list.back();
                     list.pop_back();
                     continue;

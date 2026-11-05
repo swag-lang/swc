@@ -215,7 +215,7 @@ impl Vector2
     {
         let xn = (.x - dest.x)
         let yn = (.y - dest.y)
-        return sqrt((xn * xn) + (yn * yn))
+        return Vector2{xn, yn}.length()
     }
 
     // Returns the squared distance between this vector and `dest`.
@@ -341,7 +341,7 @@ impl Vector2
     {
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
-        let cosine = .dot(other) / (.length() * other.length())
+        let cosine = normalizedVector2(me).dot(normalizedVector2(other))
         if cosine > 1 do
             return 1
         if cosine < -1 do
@@ -360,8 +360,10 @@ impl Vector2
     // is NaN when either vector is zero.
     mtd const orientedAngleTo(other: Vector2)->f32
     {
-        var angle = Math.acos(.angleCosineTo(other))
-        let sign  = (.x * other.y) - (.y * other.x)
+        var angle          = Math.acos(.angleCosineTo(other))
+        let direction      = normalizedVector2(me)
+        let otherDirection = normalizedVector2(other)
+        let sign           = (direction.x * otherDirection.y) - (direction.y * otherDirection.x)
         if sign < 0 do
             angle = ConstF32.TwoPi - angle
         return angle

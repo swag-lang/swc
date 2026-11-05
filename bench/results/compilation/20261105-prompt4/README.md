@@ -45,17 +45,8 @@ without slot-count evidence.
 | Reserve the initial interval worklist | Repeated vector growth while adding the original intervals to the allocator's unhandled queue | The upper bound is already `out.nodes.size()`; reserving once removes geometric growth during initial population while split children can still expand it later. | DevMode build; all 1,678 C++ tests passed. |
 | Keep small loop-range lists inline | Allocating heap storage for the interval walk's temporary back-edge range list | `SmallVector` stores up to eight loop ranges inline and retains the same ordered list for larger functions. | DevMode build; all 1,678 C++ tests passed. |
 | Keep the active interval set inline | Heap allocation for the linear scan's active intervals | At most one allocated interval owns each physical register, and the x64 register file has at most 31 pool registers; 32 inline entries cover the complete active set. | DevMode build; all 1,678 C++ tests passed. |
-
-At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
-with one warning; 114 filesystem tests were skipped by the default suite
-configuration. The changes are structural; no speed or memory improvement is
-claimed without a benchmark.
 | Visit only the back-edge suffix | Testing every predecessor against its instruction index while building loop depth, loop candidates and loop headers | CFG predecessor lists are source-ordered, so back-edges are the suffix; reverse traversal stops at the first earlier predecessor, and the final-element check detects loop headers. | DevMode build; all 1,678 C++ tests passed. |
 | Stop rejected guarded-call predecessor scans | Inspecting label predecessors after unsupported control flow, an address-taken label, or one invalid incoming edge has already rejected the slow-call guard candidate | Eligibility is a conjunction: the initial control-flow and address-taken checks must pass, and every non-fallthrough predecessor must be an earlier conditional jump. A failed check cannot be restored by later predecessors. | DevMode build; all 1,678 C++ tests passed. |
-
-The address-taken label list was not switched to binary search: it is appended in
-LoadLabelAddress source order, while its label instruction indices need not be
-sorted.
 | Reuse post-RA reload proof worklists | Reconstructing four temporary vectors and flat tables for each eligible label | All four structures are reset before each edge walk; keeping them at pass scope preserves the same bounded walk and proof while reusing capacity across labels. | DevMode build; all 1,678 C++ tests passed. |
 | Reuse frame-store proof visit marks | Clearing one byte for every CFG instruction before each candidate graph walk | A per-walk 8-bit generation distinguishes visited instructions in the same existing byte array; after initial zero-initialization, full clears occur only when the generation wraps. | DevMode build; all 1,678 C++ tests passed. |
 | Index escaped-store object containment | Testing every known frame-object extent for each store byte range | Extents are sorted and disjoint; `lower_bound` by the end offset finds the only possible containing object, followed by the same inclusion checks. | DevMode build; all 1,678 C++ tests passed. |
@@ -63,3 +54,8 @@ sorted.
 | Index zero-extended frame-object membership | Scanning every zero-extended object for each frame read | The set is appended in the sorted frame-object order and only cleared before rebuilding; binary search by object offset preserves the membership result. | DevMode build; all 1,678 C++ tests passed. |
 | Reuse MemToReg record reachability marks | Zeroing one byte per CFG instruction before analyzing each promoted partial-word record | A per-record 8-bit epoch distinguishes reached instructions in the same byte array; after initial zero-initialization, full clears occur only when the epoch wraps, and each reached node still receives its full state before reads. | DevMode build; all 1,678 C++ tests passed. |
 | Bitset the bounded compared-load walk | Linear visited-list membership checks in a backward walk limited to 96 instructions | The walk validates `first < index < last` and `last - first <= 96`; two stack words cover every possible relative index and preserve the same revisit skip without a heap-backed visited vector. | DevMode build; all 1,678 C++ tests passed. |
+
+At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
+with one warning; 114 filesystem tests were skipped by the default suite
+configuration. The changes are structural; no speed or memory improvement is
+claimed without a benchmark.

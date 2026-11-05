@@ -1497,7 +1497,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             SmallVector<MicroReg, 4> steppedPointers;
             if (!partial && internalLabels.empty())
             {
-                std::unordered_map<MicroReg, uint32_t> definitions;
+                FlatKeyMap<uint32_t>                   definitions;
                 FlatKeySet                             addressBases;
                 bool                                   readsFlags = false;
                 for (uint32_t o = bodyBegin; o < bodyEnd && !readsFlags; ++o)
@@ -1511,7 +1511,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
                     for (const MicroReg reg : useDef.defs)
                         if (reg.isVirtualInt())
-                            definitions[reg]++;
+                            definitions.getOrInsert(reg.packed)++;
                     if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 && !ops[3].hasWideImmediateValue() &&
                         (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract) && ops[0].reg.isVirtualInt() && ops[0].reg != counter &&
                         std::ranges::find(steppedPointers, ops[0].reg) == steppedPointers.end())
@@ -1519,8 +1519,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
                 SmallVector<MicroReg, 4> kept;
                 for (const MicroReg reg : steppedPointers)
-                    if (!readsFlags && definitions[reg] == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
+                {
+                    const uint32_t* definitionCount = definitions.find(reg.packed);
+                    if (!readsFlags && definitionCount && *definitionCount == 1 && !renamable.contains(reg) && addressBases.contains(reg.packed))
                         kept.push_back(reg);
+                }
                 steppedPointers = kept;
             }
 
@@ -1533,7 +1536,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             else
                 firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            std::unordered_map<MicroReg, MicroReg>                currentName;
+            FlatKeyMap<uint32_t, uint32_t>                        currentName;
             uint32_t                                              nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
             std::optional<std::unordered_map<uint64_t, uint64_t>> labelMap;
             if (!internalLabels.empty())
@@ -1587,17 +1590,17 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     if (src->op == MicroInstrOpcode::OpBinaryRegImm && std::ranges::find(steppedPointers, newOps[0].reg) != steppedPointers.end())
                     {
                         const MicroReg pointer = newOps[0].reg;
-                        const auto     nameIt  = currentName.find(pointer);
+                        const uint32_t* nameIt = currentName.find(pointer.packed);
                         SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
                         const MicroReg    fresh = MicroReg::virtualIntReg(nextFreshInt++);
                         const uint64_t    delta = newOps[2].microOp == MicroOp::Add ? newOps[3].valueU64 : 0 - newOps[3].valueU64;
                         MicroInstrOperand address[4];
                         address[0].reg      = fresh;
-                        address[1].reg      = nameIt != currentName.end() ? nameIt->second : pointer;
+                        address[1].reg      = nameIt ? MicroReg::fromPacked(*nameIt) : pointer;
                         address[2].opBits   = MicroOpBits::B64;
                         address[3].valueU64 = delta;
                         storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadAddrRegMem, address);
-                        currentName[pointer] = fresh;
+                        currentName.getOrInsert(pointer.packed) = fresh.packed;
                         continue;
                     }
 
@@ -1620,9 +1623,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                             else if (regOp.use)
                             {
                                 // Only renamable definitions enter this map.
-                                const auto nameIt = currentName.find(*regOp.reg);
-                                if (nameIt != currentName.end())
-                                    *regOp.reg = nameIt->second;
+                                const uint32_t* nameIt = currentName.find(regOp.reg->packed);
+                                if (nameIt)
+                                    *regOp.reg = MicroReg::fromPacked(*nameIt);
                             }
                         }
                         for (const MicroInstrRegOperandRef& regOp : regOps)
@@ -1641,7 +1644,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                                 SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
                                 fresh = MicroReg::virtualIntReg(nextFreshInt++);
                             }
-                            currentName[original] = fresh;
+                            currentName.getOrInsert(original.packed) = fresh.packed;
                             *regOp.reg            = fresh;
                         }
                     }
@@ -1663,12 +1666,12 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 // Post-loop readers of a stepped pointer see the last copy's value.
                 for (const MicroReg pointer : steppedPointers)
                 {
-                    const auto nameIt = currentName.find(pointer);
-                    if (nameIt == currentName.end())
+                    const uint32_t* nameIt = currentName.find(pointer.packed);
+                    if (!nameIt)
                         continue;
                     MicroInstrOperand copyOps[3];
                     copyOps[0].reg    = pointer;
-                    copyOps[1].reg    = nameIt->second;
+                    copyOps[1].reg    = MicroReg::fromPacked(*nameIt);
                     copyOps[2].opBits = MicroOpBits::B64;
                     storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegReg, copyOps);
                 }

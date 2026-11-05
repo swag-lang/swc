@@ -51,7 +51,7 @@ enum JsonArrayState: const [3] u32
 
 struct JsonStringEnumPayload
 {
-    state: JsonStringState
+    state: JsonStringState = .Idle
 }
 
 struct JsonArrayEnumPayload

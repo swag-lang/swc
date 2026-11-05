@@ -91,8 +91,8 @@ internal func wireTypeCrc(type: typeinfo?)->u32
 
 // Returns whether values of `type` serialize as a raw copy of their bytes, with their size in bytes.
 //
-// Integers, floats, Booleans, and runes do, and so does a plain-data struct marked
-// [[Core.Serialization.Final]]. Any other type, or a null one, returns false and zero.
+// Integers, floats, Booleans, runes, and enums backed by those types do, as does a
+// plain-data struct marked [[Core.Serialization.Final]]. Other types return false and zero.
 public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
 {
     if type
@@ -103,6 +103,15 @@ public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
            Reflection.isRune(type)
         {
             return {raw: true, sizeof: type.sizeof}
+        }
+
+        if Reflection.isEnum(type) and Reflection.isPod(type)
+        {
+            let enumType = assume cast(const *TypeInfoEnum, type)
+            let rawType  = enumType.rawType
+            if Reflection.isInteger(rawType) or Reflection.isFloat(rawType) or
+               Reflection.isBool(rawType) or Reflection.isRune(rawType) do
+                return {raw: true, sizeof: type.sizeof}
         }
 
         if not Reflection.isPod(type) do

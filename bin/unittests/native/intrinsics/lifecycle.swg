@@ -773,10 +773,10 @@ func intrinsicInitInfo()->InitInfo
     Swag.init(y)(3.14)
 
     var arr = [1, 2]
-    Swag.init(&arr, 2)
+    Swag.init(&arr[0], 2)
     let arrDefaultTrace = arr[0] * 10 + arr[1]
 
-    Swag.init(&arr, 2)(555)
+    Swag.init(&arr[0], 2)(555)
     let arrExplicitTrace = arr[0] * 1000 + arr[1]
 
     var rgb = InitRgb{10, 20, 30}
@@ -787,7 +787,7 @@ func intrinsicInitInfo()->InitInfo
     let rgbExplicitTrace = rgb.r * 100 + rgb.g * 10 + rgb.b
 
     var rgbArr: [4] InitRgb
-    Swag.init(&rgbArr, 4)(5, 6, 7)
+    Swag.init(&rgbArr[0], 4)(5, 6, 7)
     let rgbArrayCountTrace = rgbArr[3].r * 100 + rgbArr[3].g * 10 + rgbArr[3].b
 
     Swag.init(rgbArr)(50, 60, 70)
@@ -799,8 +799,8 @@ func intrinsicInitInfo()->InitInfo
 func intrinsicDropThenInitArrayInfo()->s32
 {
     var rgb: [4] InitRgb
-    Swag.drop(&rgb, 4)
-    Swag.init(&rgb, 4)(5, 6, 7)
+    Swag.drop(&rgb[0], 4)
+    Swag.init(&rgb[0], 4)(5, 6, 7)
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
@@ -1539,7 +1539,7 @@ func intrinsicInitStrictEnumInfo()->bool
     Swag.init(value)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B))
 
     var values: [3] IntrinsicStrictEnumAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A))
+    Swag.init(&values[0], 3)(cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A))
 
     return value == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.B) and
            values[0] == cast(IntrinsicStrictEnumAlias, IntrinsicStrictEnum.A) and
@@ -1552,7 +1552,7 @@ func intrinsicInitStrictIntInfo()->bool
     Swag.init(value)(cast(IntrinsicStrictIntAlias, 42))
 
     var values: [3] IntrinsicStrictIntAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictIntAlias, 7))
+    Swag.init(&values[0], 3)(cast(IntrinsicStrictIntAlias, 7))
 
     return value == cast(IntrinsicStrictIntAlias, 42) and
            values[0] == cast(IntrinsicStrictIntAlias, 7) and
@@ -1565,7 +1565,7 @@ func intrinsicInitStrictFloatInfo()->bool
     Swag.init(value)(cast(IntrinsicStrictFloatAlias, 1.5))
 
     var values: [3] IntrinsicStrictFloatAlias
-    Swag.init(&values, 3)(cast(IntrinsicStrictFloatAlias, 2.5))
+    Swag.init(&values[0], 3)(cast(IntrinsicStrictFloatAlias, 2.5))
 
     return value == cast(IntrinsicStrictFloatAlias, 1.5) and
            values[0] == cast(IntrinsicStrictFloatAlias, 2.5) and

@@ -744,7 +744,12 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     for (const auto& child : elements)
     {
         SemaNodeView view = sema.viewTypeConstant(child);
-        SWC_ASSERT(view.typeRef().isValid());
+        if (!view.typeRef().isValid())
+        {
+            if (sema.node(child).is(AstNodeId::AutoMemberAccessExpr))
+                return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, child);
+            return Result::Error;
+        }
 
         // A bare type expression ('MyStruct') becomes a TypeValue constant, exactly
         // like in a scalar initialization, so it can later cast to a 'typeinfo' element.

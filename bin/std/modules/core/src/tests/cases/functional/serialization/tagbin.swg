@@ -972,9 +972,11 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes = encodeTagBin(payload)
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var errOutcome: Swag.Error
     discard catch decoder.readAll'TagBinHookPayload(bytes.toSlice()) as errOutcome
-    Swag.require(errOutcome.hasError)
-    Swag.require(Utf8.contains(Errors.message(errOutcome.error), "not a member of the requested enum"))
+    let err = errOutcome.value()
+    Swag.require(err != null)
+    Swag.require(Utf8.contains(Errors.message(err), "not a member of the requested enum"))
 }
 
 #test
@@ -1045,7 +1047,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 {
     var source: TagBinEnumArrays
     source.fixed = [.Off, .Fast, .Precise]
-    source.values.add([.Off, .Fast, .Precise])
+    source.values.add([TagBinModeU8.Off, .Fast, .Precise])
     source.records[0] = {mode: .Off, extra: [.Fast, .Precise]}
     source.records[1] = {mode: .Fast, extra: [.Off, .Precise]}
     source.recordValues.add(source.records)

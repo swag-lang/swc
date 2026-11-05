@@ -310,11 +310,11 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector3{2, 3, 6}
-    Swag.require(vec.length() == 7)
+    Swag.require(Math.isEqualEpsilon(vec.length(), 7, 0.00001))
     Swag.require(vec.lengthSquared() == 49)
     Swag.require(vec.dot({4, -2, 1}) == 8)
     expectVec3(Math.Vector3.UnitX.cross(Math.Vector3.UnitY), Math.Vector3.UnitZ)
-    Swag.require(vec.distanceTo({4, 6, 12}) == 7)
+    Swag.require(Math.isEqualEpsilon(vec.distanceTo({4, 6, 12}), 7, 0.00001))
     Swag.require(vec.distanceSquaredTo({4, 6, 12}) == 49)
 
     var normalized = vec

@@ -93,13 +93,13 @@ func drawScene(painter: *Pixel.Painter)
     painter.fillRect(COLW + 9, 0, 2, H, Argb.Gainsboro)
 }
 
-func display()
+func display() fail
 {
     g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Painter.render()
+    try g_Painter.render()
     g_Render.end()
 }
 
@@ -142,6 +142,6 @@ var g_RC:          Pixel.RenderContext
     var loop: Env.WindowLoop
     while loop.next()
     {
-        display()
+        try display()
     }
 }

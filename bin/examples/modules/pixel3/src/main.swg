@@ -109,7 +109,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.popClippingRect()
 }
 
-func display()
+func display() fail
 {
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
@@ -121,7 +121,7 @@ func display()
     g_Painter.begin()
     drawScene(&g_Painter, layout)
     g_Painter.end()
-    g_Painter.render()
+    try g_Painter.render()
     g_Render.end()
 }
 
@@ -158,6 +158,6 @@ func onResize(window: *Env.Window, width, height: s32)
     var loop: Env.WindowLoop
     while loop.next()
     {
-        display()
+        try display()
     }
 }

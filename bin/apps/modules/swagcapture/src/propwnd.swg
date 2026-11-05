@@ -13,10 +13,17 @@ const GridRowInset = 8.0
 // Wider, the track shortens and the value stands apart from it.
 const SliderValueWidth = 44.0
 
-// The enum popup buttons stash the value they represent in the untyped `userData`
-// slot of the widget; these two helpers keep the double cast in one place.
-func(T) enumToUserData(value: T)->*void   => cast(*void, cast(u64, value))
-func(T) enumFromUserData(data: *void?)->T => cast(T, cast(u64, data))
+// The enum popup buttons stash the value they represent in the untyped `userData` slot.
+func(T) enumToUserData(value: T)->*void => cast(*void, cast(u64, value))
+
+func(T) enumFromStoredValue(raw: u64)->T
+{
+    for value in T where cast(u64, value) == raw do
+        return value
+    Swag.panic("stored value is not a declared enum member", #curlocation)
+}
+
+func(T) enumFromUserData(data: *void?)->T => enumFromStoredValue'T(cast(u64, data))
 
 // Reports whether a line end is one the "Start Size" and "End Size" rows can resize.
 //
@@ -420,7 +427,6 @@ impl PropWnd
         .topLayout.computeLayout()
         .grid.layoutHeader()
         .applyLayout()
-
     }
 
     // Builds the property panel: the row of style cells above the grid of fields.

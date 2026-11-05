@@ -279,7 +279,7 @@ func drawScene(painter: *Pixel.Painter)
     drawFooter(painter)
 }
 
-func display()
+func display() fail
 {
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
@@ -297,7 +297,7 @@ func display()
     g_Painter.popTransform()
     g_Painter.popClippingRect()
     g_Painter.end()
-    g_Painter.render()
+    try g_Painter.render()
     g_Render.end()
 }
 
@@ -360,7 +360,7 @@ func updateTestMode()
     while loop.next()
     {
         updateShortcuts()
-        display()
+        try display()
         updateTestMode()
     }
 }

@@ -360,13 +360,13 @@ func drawScene(painter: *Pixel.Painter)
     drawFooter(painter)
 }
 
-func display()
+func display() fail
 {
     g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Painter.render()
+    try g_Painter.render()
     g_Render.end()
 }
 
@@ -431,7 +431,7 @@ func updateTestMode()
     while loop.next()
     {
         updateShortcuts()
-        display()
+        try display()
         updateTestMode()
     }
 }

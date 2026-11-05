@@ -304,17 +304,17 @@ impl PropWnd
             {
                 let colors = btn.themeColors()
                 let color  = flags & .Checked ? colors.btnIcon_CheckedIcon : colors.btnIcon_Icon
-                paintChoice(bc.painter, row, enumFromUserData'u32(btn.userData), btn.clientRect(), color)
+                paintChoice(bc.painter, row, cast(u32, cast(u64, btn.userData)), btn.clientRect(), color)
             }
 
             button.sigPressed += func|prop = me, row, stack|(btn)
             {
-                let value = enumFromUserData'u32(btn.userData)
+                let value = cast(u32, cast(u64, btn.userData))
                 prop.applyChoice(row, value)
                 for other in stack.children
                 {
                     let glyph = assume cast(*IconButton, other)
-                    glyph.setChecked(enumFromUserData'u32(glyph.userData) == value)
+                    glyph.setChecked(cast(u32, cast(u64, glyph.userData)) == value)
                 }
             }
         }

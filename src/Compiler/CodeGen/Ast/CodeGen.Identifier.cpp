@@ -781,6 +781,16 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;
+
+        // A generic enum type used as the source of a foreach has no runtime
+        // identifier symbol. The foreach emits its reflected members itself.
+        if (parentRef.isValid() && codeGen.node(parentRef).is(AstNodeId::ForeachStmt) &&
+            codeGen.node(parentRef).cast<AstForeachStmt>().nodeExprRef == codeGen.curNodeRef())
+        {
+            const SemaNodeView typeView = codeGen.viewType(codeGen.curNodeRef());
+            if (typeView.type() && SemaHelpers::enumSymbolFromType(codeGen.sema(), *typeView.type()))
+                return Result::Continue;
+        }
     }
 
     // CodeGen::postNode already handles live constants. Only a stored constant

@@ -510,13 +510,13 @@ func drawScene(painter: *Pixel.Painter)
                    .OffsetFill)
 }
 
-func display()
+func display() fail
 {
     g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Painter.render()
+    try g_Painter.render()
     g_Render.end()
 }
 
@@ -556,7 +556,7 @@ func onResize(window: *Env.Window, width, height: s32)
         loop.smokeFrames = TestFrames
     while loop.next()
     {
-        display()
+        try display()
     }
 
     shutdownGdiPlus()

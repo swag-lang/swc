@@ -718,7 +718,7 @@ impl Undo
                 if not np do
                     continue
                 np[]  = .oldText[idx]
-                sp![] = cast(.oldU32[idx])
+                sp![] = enumFromStoredValue'FontFamilyStyle(cast(u64, .oldU32[idx]))
                 formFontDirty(itf)
             }
 
@@ -728,7 +728,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if not sp do
                     continue
-                sp[] = cast(.oldU32[idx])
+                sp[] = enumFromStoredValue'FontFamilyStyle(cast(u64, .oldU32[idx]))
                 formFontDirty(itf)
             }
 

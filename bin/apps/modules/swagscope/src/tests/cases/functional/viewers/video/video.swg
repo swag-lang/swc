@@ -528,13 +528,22 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     Swag.require(not view.veilsShown and
                  not view.topVeil.isLocallyVisible() and
                  not view.bottomVeil.isLocallyVisible())
-    host.moveMouse(view.localToSurface(Math.Point{640, 300}))
+    let picturePoint = view.localToSurface(Math.Point{640, 300})
+    host.moveMouse(picturePoint)
     Swag.require(view.veilsShown and view.bottomVeil.isLocallyVisible() and view.topVeil.isLocallyVisible())
     Swag.require(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset + 16)
 
     // Still over the picture, the veils leave.
     view.settleVeils(10_000)
     Swag.require(not view.veilsShown and not view.bottomVeil.isLocallyVisible())
+
+    // Another move event at the same position is not new movement. The next pixel is.
+    host.moveMouse(picturePoint)
+    Swag.require(not view.veilsShown)
+    host.moveMouse(picturePoint + Math.Point{1, 0})
+    Swag.require(view.veilsShown)
+    view.settleVeils(10_000)
+    Swag.require(not view.veilsShown)
 
     // The first movement brings the veils back, the next one lands on their controls.
     host.moveMouse(view.playButton.surfaceRect().center())
@@ -574,6 +583,14 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     let volume = view.volume
     host.keyPress(.Down)
     Swag.require(view.volume < volume)
+
+    // Playback moves the timeline without keeping the pointer chrome on screen.
+    host.keyPress(.Space)
+    Swag.require(view.playing)
+    host.moveMouse(picturePoint)
+    view.settleVeils(10_000)
+    Swag.require(view.playing and not view.veilsShown)
+    host.keyPress(.Space)
 
     // At rest the lens offers what the film is watched with, and nothing it cannot do: this film
     // has neither subtitles nor a second sound track.

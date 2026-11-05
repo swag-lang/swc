@@ -183,8 +183,10 @@ struct Panel
 
     // The veils show while the hand moves and leave once it has been still a moment, unless a
     // timeline is being dragged or an options page is open.
-    veilsShown: bool
-    veilClock:  Time.Stopwatch     // Time since the pointer last moved.
+    veilsShown:      bool
+    veilClock:       Time.Stopwatch     // Time since the pointer last moved.
+    pointerKnown:    bool
+    pointerPosition: Math.Point
 
     // Opening and decoding run on the same persistent worker, preserving codec allocator and
     // thread affinity. `openState` holds one of the `Open` states.
@@ -631,7 +633,7 @@ private impl IWnd for Panel
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Move do
-            .pointerMoved()
+            .notePointer(evt.surfacePos)
         evt.accepted = false
     }
 
@@ -991,7 +993,7 @@ private impl Panel
         .hookOnChildEvent = func|view = me|(_, evt)->bool
         {
             if evt is MouseEvent as mouse where mouse.kind == .Move do
-                view.pointerMoved()
+                view.notePointer(mouse.surfacePos)
 
             return false
         }
@@ -1004,6 +1006,16 @@ private impl Panel
         .topVeil.setPosition(Math.Rectangle{room.x, room.y, room.width, TopVeilHeight})
         .bottomVeil.setPosition(Math.Rectangle{room.x, room.bottom() - BottomHeight, room.width, BottomHeight})
         .bottomVeil.arrange()
+    }
+
+    // Only a change of position counts as movement, even if a control receives another event.
+    mtd notePointer(position: Math.Point)
+    {
+        if .pointerKnown and position.x == .pointerPosition.x and position.y == .pointerPosition.y do
+            return
+        .pointerKnown    = true
+        .pointerPosition = position
+        .pointerMoved()
     }
 
     // Shows the veils, and restarts the stillness after which they leave.

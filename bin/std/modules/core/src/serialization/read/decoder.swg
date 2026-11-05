@@ -137,7 +137,7 @@ impl Decoder
             fail SerializationError{"missing data type"}
         let enumType = Reflection.resolveAliases(dataType)
         let isEnum   = Reflection.isEnum(enumType)
-        var type = Reflection.resolveAliases(dataType)
+        var type     = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
         try .serializer.beginValue()
@@ -165,7 +165,7 @@ impl Decoder
             if isEnum and
                not Reflection.hasAttribute(enumType, EnumFlags) and
                not Reflection.hasAttribute(enumType, Incomplete) and
-               not Reflection.hasDeclaredIntegerValue(enumType, data) do
+               not Reflection.hasDeclaredValue(enumType, data) do
                 fail SerializationError{"serialized value is not a member of the requested enum"}
 
             return

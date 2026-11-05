@@ -27,8 +27,8 @@ func enumValue(type: typeinfo?, name: string?)->const *TypeValue?
     return null
 }
 
-// Returns whether an integer stored as an enum's underlying value names a declared member.
-func hasDeclaredIntegerValue(type: typeinfo?, valueAddress: const *void?)->bool
+// Returns whether the value stored as an enum's underlying value names a declared member.
+func hasDeclaredValue(type: typeinfo?, valueAddress: const *void?)->bool
 {
     if not isEnum(type) or not valueAddress do
         return false
@@ -42,24 +42,42 @@ func hasDeclaredIntegerValue(type: typeinfo?, valueAddress: const *void?)->bool
         for &caseInfo in typeEnum.values where caseInfo.value do
             if cast(const *u8, caseInfo.value)[] == value do
                 return true
+
     case 2:
         let value = cast(const *u16, valueAddress)[]
         for &caseInfo in typeEnum.values where caseInfo.value do
             if cast(const *u16, caseInfo.value)[] == value do
                 return true
+
     case 4:
         let value = cast(const *u32, valueAddress)[]
         for &caseInfo in typeEnum.values where caseInfo.value do
             if cast(const *u32, caseInfo.value)[] == value do
                 return true
+
     case 8:
         let value = cast(const *u64, valueAddress)[]
         for &caseInfo in typeEnum.values where caseInfo.value do
             if cast(const *u64, caseInfo.value)[] == value do
                 return true
+
     default:
-        return true
+        if rawType == string
+        {
+            let value = cast(const *string, valueAddress)[]
+            for &caseInfo in typeEnum.values where caseInfo.value do
+                if cast(const *string, caseInfo.value)[] == value do
+                    return true
+            return false
+        }
+
+        for &caseInfo in typeEnum.values where caseInfo.value do
+            if Memory.compare(cast(const [*] void, valueAddress),
+                              cast(const [*] void, caseInfo.value),
+                              rawType.sizeof) == 0 do
+                return true
     }
+
     return false
 }
 

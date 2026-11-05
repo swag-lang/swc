@@ -70,6 +70,23 @@ SWC_TEST_BEGIN(BranchSimplify_EmptyStreamIsUnchanged)
 }
 SWC_TEST_END()
 
+// A physical integer clear decides flags even when the function has no SSA values.
+SWC_TEST_BEGIN(BranchSimplify_FoldsPhysicalClearWithoutSsaValues)
+{
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef label = builder.createLabel();
+
+    builder.emitClearReg(MicroReg::intReg(0), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, label);
+    builder.emitLoadRegImm(MicroReg::intReg(1), ApInt(1, 64), MicroOpBits::B64);
+    builder.placeLabel(label);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    return countConditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 // je L0 ; L0: -> erase jump.
 SWC_TEST_BEGIN(BranchSimplify_ErasesJumpToImmediateLabel)
 {
@@ -271,6 +288,27 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownTrueBranch)
         return Result::Error;
 
     return Result::Continue;
+}
+SWC_TEST_END()
+
+// Equal SSA values also keep the register-to-register compare path eligible.
+SWC_TEST_BEGIN(BranchSimplify_FoldsKnownRegRegBranch)
+{
+    constexpr MicroReg vA = MicroReg::virtualIntReg(1);
+    constexpr MicroReg vB = MicroReg::virtualIntReg(2);
+    MicroBuilder      builder(ctx);
+    const MicroLabelRef labelThen = builder.createLabel();
+
+    builder.emitLoadRegImm(vA, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(vB, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, labelThen);
+    builder.emitRet();
+    builder.placeLabel(labelThen);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    return countConditionalJumps(builder) == 0 ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

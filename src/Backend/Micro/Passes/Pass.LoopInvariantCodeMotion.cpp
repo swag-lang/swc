@@ -1022,6 +1022,8 @@ namespace
             FlatKeyMap<uint32_t> inLoopUse;
             FlatKeySet           nestedLoopUses;
             bool                 countedLoopUses = false;
+            FlatKeySet           keep;
+            std::vector<uint32_t> worklist;
             for (;;)
             {
                 runAcceptance();
@@ -1040,6 +1042,8 @@ namespace
                 // then moves only with a kept value that reads it.
                 if (!hoistSet.empty())
                 {
+                    keep.clear();
+                    worklist.clear();
                     // Acceptance changes only the hoist plan, not the IR or its uses.
                     if (!countedLoopUses)
                     {
@@ -1055,8 +1059,6 @@ namespace
                         countedLoopUses = true;
                     }
 
-                    FlatKeySet            keep;
-                    std::vector<uint32_t> worklist;
                     for (const uint32_t i : hoistOrder)
                     {
                         const MicroInstr*       inst = storage.ptr(instrRefs[i]);
@@ -1131,7 +1133,7 @@ namespace
                     }
 
                     std::erase_if(hoistOrder, [&keep](const uint32_t i) { return !keep.contains(i); });
-                    hoistSet = std::move(keep);
+                    std::swap(hoistSet, keep);
                 }
 
                 // Violations only feed the banned set, so the registers are read in the order
@@ -1229,7 +1231,11 @@ namespace
                 }
 
                 if (violations.empty())
+                {
+                    keep = {};
+                    std::vector<uint32_t>().swap(worklist);
                     break;
+                }
                 for (const MicroReg reg : violations)
                     banned.insert(reg.packed);
             }

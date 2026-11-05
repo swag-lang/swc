@@ -11,6 +11,15 @@ struct Vector2
     public x, y: f32     // Components along the X and Y axes
 }
 
+private func normalizedVector2(value: Vector2)->Vector2
+{
+    let scale = Math.max(Math.abs(value.x), Math.abs(value.y))
+    let x     = value.x / scale
+    let y     = value.y / scale
+    let norm  = sqrt((x * x) + (y * y))
+    return Vector2{x / norm, y / norm}
+}
+
 impl Vector2
 {
     const Zero     = Vector2{0, 0}      // Zero vector (0, 0)
@@ -130,7 +139,17 @@ impl Vector2
 
     // Returns the Euclidean length of the vector.
     #[Swag.Inline]
-    mtd const length()->f32 => sqrt((.x * .x) + (.y * .y))
+    mtd const length()->f32
+    {
+        if Math.isNaN(.x) or Math.isNaN(.y) do
+            return Swag.F32.NaN
+        if not Math.isFinite(.x) or not Math.isFinite(.y) do
+            return Swag.F32.Inf
+        let scale = Math.max(Math.abs(.x), Math.abs(.y))
+        if scale == 0 do
+            return 0'f32
+        return scale * sqrt(((.x / scale) * (.x / scale)) + ((.y / scale) * (.y / scale)))
+    }
 
     // Returns the squared length of the vector.
     //
@@ -215,11 +234,8 @@ impl Vector2
     // [[Core.Math.Vector2.normalizeOrZero]] when it can be.
     mtd normalize()
     {
-        var norm = sqrt((.x * .x) + (.y * .y))
-        Swag.assert(not Math.isZeroEpsilon(norm))
-        norm = 1 / norm
-        .x   *= norm
-        .y   *= norm
+        Swag.assert(not Math.isZeroEpsilon(.length()))
+        me[] = normalizedVector2(me)
     }
 
     // Returns this vector scaled to unit length.
@@ -228,10 +244,8 @@ impl Vector2
     // [[Core.Math.Vector2.normalizedOrZero]] when it can be.
     mtd const normalized()->Vector2
     {
-        var norm = sqrt((.x * .x) + (.y * .y))
-        Swag.assert(not Math.isZeroEpsilon(norm))
-        norm = 1 / norm
-        return Vector2{.x * norm, .y * norm}
+        Swag.assert(not Math.isZeroEpsilon(.length()))
+        return normalizedVector2(me)
     }
 
     // Scales this vector to the length `newLength`, or sets it to zero when its length is near zero.
@@ -255,26 +269,21 @@ impl Vector2
     // Scales this vector to unit length in place, or sets it to zero when its length is near zero.
     mtd normalizeOrZero()
     {
-        var norm = sqrt((.x * .x) + (.y * .y))
-        if Math.isZeroEpsilon(norm)
+        if Math.isZeroEpsilon(.length())
         {
             .x, .y = 0
             return
         }
 
-        norm = 1 / norm
-        .x   *= norm
-        .y   *= norm
+        me[] = normalizedVector2(me)
     }
 
     // Returns this vector scaled to unit length, or the zero vector when its length is near zero.
     mtd const normalizedOrZero()->Vector2
     {
-        var norm = sqrt((.x * .x) + (.y * .y))
-        if Math.isZeroEpsilon(norm) do
+        if Math.isZeroEpsilon(.length()) do
             return Zero
-        norm = 1 / norm
-        return Vector2{.x * norm, .y * norm}
+        return normalizedVector2(me)
     }
 
     // Returns the component-wise minimum of `a` and `b`.

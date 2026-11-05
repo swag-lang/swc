@@ -10,6 +10,16 @@ struct Vector3
     public x, y, z: f32     // Components along the X, Y, and Z axes
 }
 
+private func normalizedVector3(value: Vector3)->Vector3
+{
+    let scale = Math.max(Math.abs(value.x), Math.abs(value.y), Math.abs(value.z))
+    let x     = value.x / scale
+    let y     = value.y / scale
+    let z     = value.z / scale
+    let norm  = sqrt((x * x) + (y * y) + (z * z))
+    return Vector3{x / norm, y / norm, z / norm}
+}
+
 impl Vector3
 {
     const Zero     = Vector3{0, 0, 0}      // Zero vector (0, 0, 0)
@@ -140,7 +150,17 @@ impl Vector3
 
     // Returns the Euclidean length of the vector.
     #[Swag.Inline]
-    mtd const length()->f32 => sqrt((.x * .x) + (.y * .y) + (.z * .z))
+    mtd const length()->f32
+    {
+        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) do
+            return Swag.F32.NaN
+        if not Math.isFinite(.x) or not Math.isFinite(.y) or not Math.isFinite(.z) do
+            return Swag.F32.Inf
+        let scale = Math.max(Math.abs(.x), Math.abs(.y), Math.abs(.z))
+        if scale == 0 do
+            return 0'f32
+        return scale * sqrt(((.x / scale) * (.x / scale)) + ((.y / scale) * (.y / scale)) + ((.z / scale) * (.z / scale)))
+    }
 
     // Returns the squared length of the vector.
     //
@@ -229,12 +249,8 @@ impl Vector3
     // [[Core.Math.Vector3.normalizeOrZero]] when it can be.
     mtd normalize()
     {
-        var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z))
-        Swag.assert(not Math.isZeroEpsilon(norm))
-        norm = 1 / norm
-        .x   *= norm
-        .y   *= norm
-        .z   *= norm
+        Swag.assert(not Math.isZeroEpsilon(.length()))
+        me[] = normalizedVector3(me)
     }
 
     // Returns this vector scaled to unit length.
@@ -243,10 +259,8 @@ impl Vector3
     // [[Core.Math.Vector3.normalizedOrZero]] when it can be.
     mtd const normalized()->Vector3
     {
-        var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z))
-        Swag.assert(not Math.isZeroEpsilon(norm))
-        norm = 1 / norm
-        return Vector3{.x * norm, .y * norm, .z * norm}
+        Swag.assert(not Math.isZeroEpsilon(.length()))
+        return normalizedVector3(me)
     }
 
     // Scales this vector to the length `newLength`, or sets it to zero when its length is near zero.
@@ -272,27 +286,21 @@ impl Vector3
     // Scales this vector to unit length in place, or sets it to zero when its length is near zero.
     mtd normalizeOrZero()
     {
-        var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z))
-        if Math.isZeroEpsilon(norm)
+        if Math.isZeroEpsilon(.length())
         {
             .x, .y, .z = 0
             return
         }
 
-        norm = 1 / norm
-        .x   *= norm
-        .y   *= norm
-        .z   *= norm
+        me[] = normalizedVector3(me)
     }
 
     // Returns this vector scaled to unit length, or the zero vector when its length is near zero.
     mtd const normalizedOrZero()->Vector3
     {
-        var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z))
-        if Math.isZeroEpsilon(norm) do
+        if Math.isZeroEpsilon(.length()) do
             return Zero
-        norm = 1 / norm
-        return Vector3{.x * norm, .y * norm, .z * norm}
+        return normalizedVector3(me)
     }
 
     // Returns the component-wise minimum of `a` and `b`.

@@ -8149,15 +8149,19 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     // The pre-RA loop provides shared SSA. Construct a fallback only when this
     // pass runs standalone, instead of initializing its many buffers every run.
+    // Branch-value folds need SSA only when a conditional branch has a compare
+    // or clear that can produce its flags.
     std::optional<MicroSsaState> localSsaState;
     MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*         ssaState   = hasConditionalJump ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
+    const bool                   hasSsaBranchWork = hasConditionalJump &&
+                                   (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare || scanCache.scan.layout.hasIntegerClear);
+    const MicroSsaState*         ssaState         = hasSsaBranchWork ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
-    if (ssaState && ssaState->isValid())
+    if (ssaState && ssaState->isValid() && (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare))
         computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     bool changed = false;

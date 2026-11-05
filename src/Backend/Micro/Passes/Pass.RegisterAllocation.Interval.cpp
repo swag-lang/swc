@@ -675,11 +675,16 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         SWC_ASSERT(predecessors_.size() == instructionCount_);
         for (uint32_t s = 0; s < instructionCount_; ++s)
         {
-            for (const uint32_t p : predecessors_[s])
+            const auto& predecessors = predecessors_[s];
+            for (size_t predIndex = predecessors.size(); predIndex > 0; --predIndex)
             {
+                const uint32_t p = predecessors[predIndex - 1];
                 SWC_ASSERT(p < instructionCount_);
-                if (p >= s)
-                    loops.push_back({.head = s, .tail = p});
+                // CFG predecessor lists are source-ordered; stop at the
+                // first forward edge and visit only the back-edge suffix.
+                if (p < s)
+                    break;
+                loops.push_back({.head = s, .tail = p});
             }
         }
     }

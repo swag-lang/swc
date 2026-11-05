@@ -98,6 +98,8 @@ void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target
     SWC_ASSERT(source < successors_.size());
     SWC_ASSERT(target < predecessors_.size());
     successors_[source].push_back(target);
+    // build calls addEdge in ascending source-instruction order, so each
+    // predecessor list stays sorted for suffix queries such as back-edges.
     predecessors_[target].push_back(source);
     // A cycle requires an edge pointing backward in instruction order.
     if (target <= source)

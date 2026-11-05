@@ -988,6 +988,7 @@ void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const u
 
     auto&       ranges = globalRangesByPhysDense_[denseIndex];
     const auto  at     = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::lo);
+    // Callers check for overlap first, so ordering by lo also orders hi.
     SWC_ASSERT(at == ranges.begin() || std::prev(at)->hi < lo);
     SWC_ASSERT(at == ranges.end() || hi < at->lo);
     ranges.insert(at, {.lo = lo, .hi = hi, .ownerDense = ownerDense});

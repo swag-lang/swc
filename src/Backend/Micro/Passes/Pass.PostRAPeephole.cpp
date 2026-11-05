@@ -385,6 +385,16 @@ namespace
         std::vector<uint8_t>       reachesRead;
         std::vector<uint8_t>       seen;
         std::vector<uint32_t>      pending;
+        uint8_t                    seenStamp = 0;
+        const auto nextSeenStamp = [&] {
+            seenStamp = static_cast<uint8_t>(seenStamp + 1);
+            if (!seenStamp)
+            {
+                std::ranges::fill(seen, uint8_t{0});
+                seenStamp = 1;
+            }
+            return seenStamp;
+        };
         const auto            collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
@@ -562,15 +572,17 @@ namespace
                 // loop back edge. Otherwise delaying the write leaves a path
                 // that can observe an older slot value.
                 pending.assign(1, 0);
-                seen.assign(refs.size(), 0);
+                if (seen.empty())
+                    seen.assign(refs.size(), 0);
+                const uint8_t dominatesStamp = nextSeenStamp();
                 bool dominates = true;
                 while (!pending.empty() && dominates)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (index == labelIndex || seen[index])
+                    if (index == labelIndex || seen[index] == dominatesStamp)
                         continue;
-                    seen[index] = 1;
+                    seen[index] = dominatesStamp;
                     if (index == reloadIndex)
                     {
                         dominates = false;
@@ -606,15 +618,15 @@ namespace
                     }
                 }
                 pending.assign(1, labelIndex);
-                std::fill(seen.begin(), seen.end(), 0);
+                const uint8_t stableStackStamp = nextSeenStamp();
                 bool stableStack = true;
                 while (!pending.empty() && stableStack)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!reachesRead[index] || seen[index])
+                    if (!reachesRead[index] || seen[index] == stableStackStamp)
                         continue;
-                    seen[index] = 1;
+                    seen[index] = stableStackStamp;
                     if (frameDepth[index] > frameDepth[labelIndex])
                     {
                         stableStack = false;
@@ -636,21 +648,21 @@ namespace
                 // slot's last value. A later loop-latch store is also a valid
                 // source; the store we move is the source on the first trip.
                 pending.assign(1, branchIndex);
+                const uint8_t valueStamp = nextSeenStamp();
                 size_t visitedCount = 0;
                 bool   valid        = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    // The previous traversal marked its visited nodes as 1. Mark this walk as 2;
-                    // a repeated index still rejects the proof, without a separate hash set.
-                    if (index >= seen.size() || seen[index] == 2 ||
+                    // A repeated index still rejects the proof, without a separate hash set.
+                    if (index >= seen.size() || seen[index] == valueStamp ||
                         ++visitedCount > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
                     {
                         valid = false;
                         break;
                     }
-                    seen[index]            = 2;
+                    seen[index]            = valueStamp;
                     const MicroInstr* inst = storage.ptr(refs[index]);
                     if (!inst)
                     {
@@ -695,15 +707,15 @@ namespace
                     pending.clear();
                     for (const uint32_t successor : cfg.successors(otherStore))
                         pending.push_back(successor);
-                    std::fill(seen.begin(), seen.end(), 0);
+                    const uint8_t otherStoreStamp = nextSeenStamp();
                     bool readBeforeCold = false;
                     while (!pending.empty() && !readBeforeCold)
                     {
                         const uint32_t index = pending.back();
                         pending.pop_back();
-                        if (index == labelIndex || seen[index])
+                        if (index == labelIndex || seen[index] == otherStoreStamp)
                             continue;
-                        seen[index] = 1;
+                        seen[index] = otherStoreStamp;
                         if (index == reloadIndex)
                         {
                             readBeforeCold = true;

@@ -57,3 +57,4 @@ The address-taken label list was not switched to binary search: it is appended i
 LoadLabelAddress source order, while its label instruction indices need not be
 sorted.
 | Reuse post-RA reload proof worklists | Reconstructing four temporary vectors and flat tables for each eligible label | All four structures are reset before each edge walk; keeping them at pass scope preserves the same bounded walk and proof while reusing capacity across labels. | DevMode build; all 1,678 C++ tests passed. |
+| Reuse frame-store proof visit marks | Clearing one byte for every CFG instruction before each candidate graph walk | A per-walk 8-bit generation distinguishes visited instructions in the same existing byte array; a full clear occurs only when the generation wraps. | DevMode build; all 1,678 C++ tests passed. |

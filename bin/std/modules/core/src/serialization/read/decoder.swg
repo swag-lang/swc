@@ -13,7 +13,7 @@ private func validateDecodedEnumValue(enumType: typeinfo?, data: [*] void) fail
         fail SerializationError{"serialized value is not a member of the requested enum"}
 }
 
-// Checks closed enums inside values filled by a custom ISerialize hook.
+// Checks closed enums inside values filled outside the regular field path.
 private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
 {
     if not dataType do
@@ -383,7 +383,9 @@ impl Decoder
             defer #nofail try .serializer.endStruct()
             if treated
             {
-                try validateDecodedEnumValue(enumType, data)
+                if itf do
+                    try itf.postRead(data, idecoder)
+                try validateDecodedEnumValues(type, cast([*] u8, data))
                 return
             }
 

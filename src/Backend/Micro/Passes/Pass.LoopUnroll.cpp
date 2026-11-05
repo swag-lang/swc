@@ -61,6 +61,40 @@ namespace
     // builder indices; a wider one sits the function out before reaching the table.
     using LabelTable = FlatKeyMap<LabelInfo>;
 
+    class RelocationsBySlot
+    {
+        struct Group
+        {
+            SmallVector<MicroRelocation, 2> relocations;
+        };
+
+    public:
+        void append(const uint32_t slot, const MicroRelocation& relocation)
+        {
+            uint32_t* index = indices_.find(slot);
+            if (!index)
+            {
+                const uint32_t newIndex = static_cast<uint32_t>(groups_.size());
+                groups_.emplace_back();
+                indices_.getOrInsert(slot) = newIndex;
+                index = indices_.find(slot);
+            }
+            groups_[*index].relocations.push_back(relocation);
+        }
+
+        bool contains(const uint32_t slot) const noexcept { return indices_.find(slot) != nullptr; }
+
+        const SmallVector<MicroRelocation, 2>* find(const uint32_t slot) const noexcept
+        {
+            const uint32_t* index = indices_.find(slot);
+            return index ? &groups_[*index].relocations : nullptr;
+        }
+
+    private:
+        FlatKeyMap<uint32_t> indices_;
+        std::vector<Group>   groups_;
+    };
+
     constexpr uint64_t K_MAX_LABEL_ID = std::numeric_limits<uint32_t>::max() - 1;
 
     const LabelInfo* findLabel(const LabelTable& labels, const uint64_t id)
@@ -339,7 +373,7 @@ namespace
     // A counted XOR checksum over 32-bit words can process four consecutive
     // words at once. The add wraps at 32 bits before each word is XORed into
     // the 64-bit accumulator, so the four packed lanes have identical values.
-    bool vectorizeIndexedXorLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal)
+    bool vectorizeIndexedXorLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const RelocationsBySlot& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal)
     {
         const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         if (jumpOrdinal != headerOrdinal + 7 || jumpOrdinal + 1 >= order.size())
@@ -617,7 +651,7 @@ namespace
     // A short indexed read or copy loop can pay one bound test for four
     // elements. Keep the original loop as the scalar tail. Copy elements stay
     // in source order so overlapping ranges retain their original behavior.
-    bool partiallyUnrollIndexedLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
+    bool partiallyUnrollIndexedLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const RelocationsBySlot& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
     {
         const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         if (headerOrdinal + 4 > jumpOrdinal || jumpOrdinal + 1 >= order.size())
@@ -1035,7 +1069,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
         // Labels a relocation points at are pinned; relocations by owning slot
         // let clones keep the tables and constants the body reads.
         FlatKey64Set                                                  relocLabels;
-        std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>> relocsBySlot;
+        RelocationsBySlot                                             relocsBySlot;
         bool                                                          relocationsIndexed = false;
 
         for (const auto& [jccOrdinal, headerId] : jumps)
@@ -1074,7 +1108,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 {
                     if (!reloc.instructionRef.isValid())
                         continue;
-                    relocsBySlot[reloc.instructionRef.get()].push_back(reloc);
+                    relocsBySlot.append(reloc.instructionRef.get(), reloc);
                     const MicroInstr* inst = storage.ptr(reloc.instructionRef);
                     if (inst && inst->op == MicroInstrOpcode::Label)
                     {
@@ -1299,8 +1333,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
                 if (ops && inst->op == MicroInstrOpcode::LoadRegPtrReloc)
                 {
-                    const auto relocIt = relocsBySlot.find(order[o].get());
-                    if (relocIt != relocsBySlot.end() && std::ranges::any_of(relocIt->second, [](const MicroRelocation& reloc) {
+                    const auto* relocations = relocsBySlot.find(order[o].get());
+                    if (relocations && std::ranges::any_of(*relocations, [](const MicroRelocation& reloc) {
                             return reloc.kind == MicroRelocation::Kind::ConstantAddress;
                         }))
                         constantTableBases.push_back(ops[0].reg);
@@ -1662,10 +1696,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         }
                     }
 
-                    const auto relocIt = relocsBySlot.find(srcRef.get());
-                    if (relocIt != relocsBySlot.end())
+                    const auto* relocations = relocsBySlot.find(srcRef.get());
+                    if (relocations)
                     {
-                        for (MicroRelocation reloc : relocIt->second)
+                        for (MicroRelocation reloc : *relocations)
                         {
                             reloc.instructionRef = newRef;
                             builder.addRelocation(reloc);

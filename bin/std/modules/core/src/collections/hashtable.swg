@@ -18,6 +18,8 @@ struct(K, V) HashTableEntry
 //
 // Lookups, insertions, and removals take expected constant time. The table grows by rehashing,
 // which moves every entry and invalidates every entry and value pointer borrowed from it.
+// Keys are compared with `==` after their hashes match, so equal keys must produce the same
+// [[Core.Hash.hash32]]. Do not mutate data that affects hashing or equality while a key is stored.
 struct(K, V) HashTable
 {
     // Special hash values to indicate the state of a slot in the table.

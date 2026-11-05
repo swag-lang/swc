@@ -17,6 +17,8 @@ struct(K) HashSetEntry
 //
 // Lookups, insertions, and removals take expected constant time. The set grows by rehashing, which
 // moves every key and invalidates every entry pointer borrowed from it.
+// Keys are compared with `==` after their hashes match, so equal keys must produce the same
+// [[Core.Hash.hash32]]. Do not mutate data that affects hashing or equality while a key is stored.
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.

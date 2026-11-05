@@ -235,7 +235,8 @@ func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
 //
 // An optional leading sign is spelled as in the current culture's number format. Returns the
 // value, the number of bytes consumed in `eat`, and `ovf` set when the value does not fit in an
-// `s64`. Fails with [[Core.Errors.ParseIncompleteError]] when `str` holds only a sign, and with
+// `s64`; on overflow, `value` saturates to the signed bound. Fails with
+// [[Core.Errors.ParseIncompleteError]] when `str` holds only a sign, and with
 // [[Core.Errors.SyntaxError]] when no digit follows.
 func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 {
@@ -304,6 +305,14 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
         {
             result.value = cast(s64, value)
         }
+    }
+    elif negative
+    {
+        result.value = Swag.S64.Min
+    }
+    else
+    {
+        result.value = Swag.S64.Max
     }
 
     result.eat = consumedBytes

@@ -121,4 +121,9 @@ func(T) checkCompleteNumberConversion(overflowText: string)
 
     let negative = expect StrConv.parseS64("-25000000000000000000")
     Swag.require(negative.ovf and negative.eat == 21)
+
+    let narrowPositive = expect StrConv.parseS8("999999999999999999999999")
+    Swag.require(narrowPositive.value == Swag.S8.Max and narrowPositive.ovf)
+    let narrowNegative = expect StrConv.parseS8("-999999999999999999999999")
+    Swag.require(narrowNegative.value == Swag.S8.Min and narrowNegative.ovf)
 }

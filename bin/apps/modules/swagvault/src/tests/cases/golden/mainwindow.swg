@@ -40,6 +40,29 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     assertSurfaceGolden(&host, window, true, "list")
 }
 
+// The pointer on a locked vault raises its row and names what choosing it does, against
+// `vault.list.hover.paper`.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    fillPictureList(window)
+    window.applyLayout()
+    host.moveMouse(window.list.rows[1].surfaceRect().center())
+    Swag.require(window.list.rows[1].hovered)
+    assertSurfaceGolden(&host, window, false, "list.hover")
+}
+
+// The window without a vault, as privacy mode leaves it at every start, against `vault.home.paper`.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    assertSurfaceGolden(&host, window, false, "home")
+}
+
 // A locked vault unfolded in place, against `vault.unlock.paper`.
 #[Swag.TestTag("golden")]
 #test

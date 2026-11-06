@@ -793,15 +793,29 @@ the screen to its work.
 
 ### Swag Vault
 
-- The window is a list of vaults under a page title: name 20/600, a mono identity line, a dot
-  (mounted: green; locked: ring). Choosing a locked vault unfolds it in place (password, drive,
-  key files link, read-only, primary "Mount"). With privacy mode on, the list stays empty and
-  vaults open through the lens.
+- The window is a list of vaults under a page title. The two ways to another vault end the
+  title's line: "New Vault" as a secondary button with its `+`, and "Open a File…" in quiet words
+  with its glyph. The vaults follow in two groups, each under a section label with its count in
+  faint mono: the mounted ones first, then the locked ones. A row gives the name 20/600, a mono
+  line of where the container is and how it opens, and a dot (mounted: live; locked: ring); the
+  line does not repeat what the row shows otherwise.
+- A mounted vault stands on the surface ground. Its drive is a large light figure (Inter Light 34)
+  that opens it; a destination too long to read at a glance is named in ordinary words instead.
+  An Arc thread under the words says how full the drive is, with the room left in faint mono, and
+  "Unmount" stands last.
+- A locked vault rests on the ground with a faint chevron. The pointer or the keyboard raises its
+  ground and names what choosing it does, "Unlock". Choosing it unfolds it in place (password,
+  drive, key files link, read-only, primary "Mount").
+- Without a vault — the first visit, and every start while privacy mode keeps no list — the page
+  is the home: the mark, large and faint, gives the page its centre; one sentence says what a vault
+  is, or that privacy mode keeps no list; under it "New Vault" is the one primary action of the
+  screen, with "Open a File…" beside it as a secondary button.
 - Create, progress and options are pages with a back link, not tabs: a calm form with the
   capacity in large type; the randomisation progress as a huge percentage over an Arc line;
   options as rows with a title, a help paragraph and an Arc switch.
 
-![List](imgs/vault.list.png) ![Unlock](imgs/vault.unlock.paper.png)
+![List](imgs/vault.list.png) ![A locked vault under the pointer](imgs/vault.list.hover.paper.png)
+![Home](imgs/vault.home.paper.png) ![Unlock](imgs/vault.unlock.paper.png)
 ![Create](imgs/vault.create.paper.png) ![Progress](imgs/vault.progress.png) ![Options](imgs/vault.options.png)
 
 ## Icons

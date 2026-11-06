@@ -102,7 +102,7 @@ internal func fillPictureList(window: *MainWindow)
     window.vaults.add(KnownVault{"C:\\Users\\vault\\papiers.bin", "D:", false})
     window.vaults.add(KnownVault{"C:\\vault.bin", "D:", false})
     window.vaults.add(KnownVault{"E:\\archives-2025.bin", "D:", false})
-    window.mountedDrives.drives.add(MountedDrive{null, "C:\\Users\\vault\\papiers.bin", "P:", "P:", true, false, false, 2 * 1024 * 1024 * 1024, 0})
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\Users\\vault\\papiers.bin", "P:", "P:", true, false, false, 2 * 1024 * 1024 * 1024, 780 * 1024 * 1024})
     window.refreshVaults()
 }
 
@@ -326,7 +326,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(window.list.title.text() == "Coffres")
     Swag.require(row.unmount.text() == "Démonter")
-    Swag.require(row.open.text() == "Ouvrir P:")
+    Swag.require(row.open.text() == "P:" and row.open.toolTip == "Ouvrir P:")
     Swag.require(window.createButton.text() == "Créer le coffre chiffré")
     Swag.require(window.mountButton.text() == "Monter")
     Swag.require(window.optionsPage.head.title.text() == "Vie privée")
@@ -873,6 +873,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.require(window.vaultIdentity("C:\\Users\\vault\\papiers.bin") == "mounted on P: · 2 GiB · read and write")
     Swag.require(Utf8.endsWith(window.vaultIdentity("E:\\archives-2025.bin"), "locked"))
 
+    // In the list, the line under a name leaves out what the row already shows: the drive is the
+    // large figure, the room is the thread, the state is the dot and its group.
+    Swag.require(window.vaultPlace("C:\\Users\\vault\\papiers.bin", 0) == "C:\\Users\\vault · read and write")
+    Swag.require(window.vaultPlace("E:\\archives-2025.bin", 0) == "E:\\")
+    Swag.require(window.vaultPlace("E:\\archives-2025.bin", 4 * 1024 * 1024 * 1024) == "E:\\ · 4 GiB")
+    Swag.require(mounted.position.height == VaultRow.MountedHeight and window.list.rows[1].position.height == VaultRow.Height)
+
     // The rows stand under the title, one under the other, in the order of the list.
     Swag.require(window.list.rows[0].position.y > window.list.title.position.bottom())
     Swag.require(window.list.rows[1].position.y >= window.list.rows[0].position.bottom())
@@ -887,6 +894,81 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     // Choosing the mounted one folds the card: a mounted vault has nothing to unlock.
     window.chooseVault("C:\\Users\\vault\\papiers.bin")
     Swag.require(not window.list.card.panel.isLocallyVisible())
+}
+
+// The list opens with its title, the two ways to another vault at the end of its line, then the
+// vaults in two groups under their labels: the mounted ones first, whatever the order of the list.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    fillPictureList(window)
+
+    // A vault mounted after the others still heads the list.
+    window.vaults.removeAtOrdered(0)
+    window.vaults.add(KnownVault{"C:\\Users\\vault\\papiers.bin", "D:", false})
+    window.refreshVaults()
+
+    let list = window.list
+    Swag.require(list.title.isLocallyVisible() and not list.welcome.isLocallyVisible())
+    Swag.require(list.rows[0].path == "C:\\Users\\vault\\papiers.bin")
+    Swag.require(list.rows[1].path == "C:\\vault.bin" and list.rows[2].path == "E:\\archives-2025.bin")
+    Swag.require(list.mountedCount == 1)
+
+    // Beside vaults, both ways are secondary, and they end the title's line on the column's edge.
+    Swag.require(list.newVault.form == .Normal and list.openFile.form == .Flat)
+    Swag.require(Math.abs(list.newVault.position.right() - list.title.position.right()) < 0.5)
+    Swag.require(list.openFile.position.right() < list.newVault.position.x)
+    Swag.require(list.newVault.position.y >= list.title.position.y and list.newVault.position.bottom() <= list.title.position.bottom())
+
+    // Each group opens with its label, on the column's edge, above its first row.
+    Swag.require(list.mountedHead.x == list.title.position.x)
+    Swag.require(list.mountedHead.bottom() <= list.rows[0].position.y)
+    Swag.require(list.lockedHead.y >= list.rows[0].position.bottom())
+    Swag.require(list.lockedHead.bottom() <= list.rows[1].position.y)
+
+    // Without a mounted vault, the list has one group only.
+    window.mountedDrives.drives.clear()
+    window.refreshVaults()
+    Swag.require(list.mountedCount == 0 and list.mountedHead.width == 0 and list.lockedHead.width > 0)
+}
+
+// Without a vault, the page is the home: the mark at its centre, one sentence, and a new vault as
+// its one primary action, with opening a file beside it. In French as in English, it fits.
+#test
+{
+    defer discard catch g_App.setLanguage(ReferenceLanguage)
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let list   = window.list
+
+    for french in [false, true]
+    {
+        expect host.app.setLanguage(french ? "fr" : ReferenceLanguage)
+        host.notify(.LanguageChanged)
+        window.applyLayout()
+
+        Swag.require(list.rows.isEmpty())
+        Swag.require(not list.title.isLocallyVisible() and list.welcome.isLocallyVisible())
+        Swag.require(list.welcome.text() == appStrings().ui_HomePrivacy)
+        Swag.require(list.newVault.form == .Strong and list.openFile.form == .Normal)
+
+        // The mark, the sentence and the ways stand one under the other, on the page's centre line.
+        let center = list.clientRect().horzCenter()
+        Swag.require(Math.abs(list.markRect.horzCenter() - center) < 1)
+        Swag.require(list.welcome.position.y >= list.markRect.bottom())
+        Swag.require(list.newVault.position.y >= list.welcome.position.bottom())
+        Swag.require(list.newVault.position.right() < list.openFile.position.x)
+        Swag.require(Math.abs((list.newVault.position.x + list.openFile.position.right()) * 0.5 - center) < 1)
+        Swag.require(list.openFile.position.bottom() <= window.hintLine.position.y)
+        Testing.assertContentFits(window)
+    }
+
+    // With privacy mode off, the sentence says what a vault is.
+    window.privacyMode = false
+    window.applyPrivacyControl()
+    window.refreshVaults()
+    Swag.require(list.welcome.text() == appStrings().ui_HomeWelcome)
 }
 
 // The card opens its height over the place of its vault while the rows below follow it, and

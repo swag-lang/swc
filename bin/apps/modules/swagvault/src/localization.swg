@@ -28,7 +28,13 @@ struct AppStrings
     ui_StateReadOnly:  string = "read only"
     ui_StateAtStartup: string = "at startup"
     ui_StateProtected: string = "hidden volume protected"
-    ui_OpenDrive:      string = "Open %"     // '%' is the drive the vault is mounted on.
+    ui_OpenDrive:      string = "Open %"          // '%' is the drive the vault is mounted on.
+    ui_Unlock:         string = "Unlock"          // What choosing a locked vault does, at the end of its row.
+    ui_DriveFree:      string = "% free of %"     // Under a mounted vault's thread: the room left, then its capacity.
+    ui_SectionMounted: string = "Mounted"
+    ui_SectionLocked:  string = "Locked"
+    ui_HomeWelcome:    string = "A vault is an encrypted file that opens as a drive."
+    ui_HomePrivacy:    string = "Privacy mode keeps no list of vaults: open one from its file, or create a new one."
     ui_Mount:          string = "Mount"
     ui_Unmount:        string = "Unmount"
     ui_Drive:          string = "Drive"

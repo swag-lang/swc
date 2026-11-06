@@ -81,3 +81,15 @@ func ctxDynamicSetDropCounter(counter: *u32)
 }
 
 func ctxDynamicReadContext()->*Swag.Context => Swag.getContext()
+
+#static if #os == Swag.TargetOs.Linux
+{
+    // Closes a live child so Core must retain its reaper across this module's unload.
+    func ctxDynamicCloseLiveChild()->u64
+    {
+        var process = expect Env.startProcess("/bin/sleep", ["2"])
+        let pid = process.processId
+        process.close()
+        return pid
+    }
+}

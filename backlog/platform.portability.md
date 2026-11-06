@@ -265,11 +265,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   A continuously writing child exercises the finite wait deadline in JIT and native execution;
   a child that exits while a grandchild retains its output pipes does not wait for pipe EOF.
   All ten cases in the public process file pass in both modes.
+  A separate native stress peer opens 64 processes with three redirected streams and attempts
+  64 missing executables; its /proc/self/fd count returns to baseline after owner close.
+  A native peer stops Core's reaper before closing a live process owner; close waits and reaps
+  that child synchronously, and the later Core shutdown remains safe.
+  A dynamically loaded module also closes a live child before unloading; the consumer observes
+  the child leave procfs while its shared Core dependency keeps the reaper alive.
   Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
   Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
   audit finding remains. These checks do not prove the reaper's JIT/unload or native lifetime.
-- Next: add unload/late-destructor and descriptor-leak stress, and run Windows process
-  regressions. Do not mark lifecycle conformance from raw tests.
+- Next: validate the process reaper through JIT module unload with a live child and run Windows
+  process regressions. Do not mark lifecycle conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 

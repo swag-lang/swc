@@ -97,10 +97,31 @@ func verifyDynamicallyLoadedRuntimeContext()
     let setDropCounter = cast(func(*u32), setDropCounterSymbol)
     setDropCounter(&dropCount)
 
+    #static if #os == Swag.TargetOs.Linux do
+        var closedChildId = 0'u64
+    #static if #os == Swag.TargetOs.Linux
+    {
+        let closeChildSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_close_live_child"))
+        Swag.assert(closeChildSymbol != null)
+        let closeChild = cast(func()->u64, closeChildSymbol)
+        closedChildId = closeChild()
+        Swag.assert(closedChildId != 0)
+    }
+
     library.close()
     Swag.assert(dropCount == 0)
     second.close()
     Swag.assert(dropCount == 1)
+
+    #static if #os == Swag.TargetOs.Linux
+    {
+        let childPath = Format.toString("/proc/%", closedChildId)
+        var clock: Time.Stopwatch
+        clock.start()
+        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000 do
+            Threading.Thread.sleep(10'ms)
+        Swag.assert(not Directory.exists(childPath.toString()))
+    }
 
     var reloaded = expect NativeLibrary.load(path)
     let reloadedCountsSymbol = reloaded.symbol(#stringof(ExportPrefix, "ctx_dynamic_lifecycle_counts"))

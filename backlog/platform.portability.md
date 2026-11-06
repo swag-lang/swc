@@ -869,6 +869,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The Scope folder-history journey also passes JIT/native Linux: it presents the toolkit
   folder dialog, chooses a recent folder from its menu and navigates to the selected path,
   with native pixel checkpoints.
+  The offline media-library fixture is now platform-neutral. Scope's recent-video journey
+  passes as a native Linux executable twice through playback beyond frame 18 and back to
+  history with native pixel checks. On this Linux host its JIT execution remains blocked
+  during the first playback stage even with the SDL disk audio device; native execution is
+  the validated path for that journey while the JIT wait is investigated.
   Broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox

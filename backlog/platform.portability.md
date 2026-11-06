@@ -108,7 +108,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.057 — No second-platform GUI packaging
 
-- Next: package the GUI runtime and native dependencies for the chosen second platform.
+- Progress (Linux): `tools/package-linux.py` stages built Capture or Scope ELF files, published
+  sibling libraries, desktop launchers and shipped 512 px icons under a chosen install prefix.
+  A real Capture DevMode build produced an archive whose executable, launcher and PNG were checked.
+- Next: audit required EGL/OpenGL, X11 and font dependencies, then exercise installed archives on
+  a clean target with open, render and close smoke coverage.
 - Related: platform.portability.050, platform.portability.058
 - Done when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
 

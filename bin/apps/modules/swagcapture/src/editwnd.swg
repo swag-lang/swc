@@ -3,6 +3,19 @@ struct EditWnd
 {
     using scrollWnd: ScrollWnd
     late editView:   *EditView
+    late main:       *MainWnd
+}
+
+impl IWnd for EditWnd
+{
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .scrollWnd.IWnd.onResizeEvent(evt)
+        if .main.hintLine != null do
+            .main.placeReadings()
+        if .main.miniBar != null do
+            .main.placeMiniBar()
+    }
 }
 
 impl EditWnd
@@ -10,6 +23,7 @@ impl EditWnd
     func create(main: *MainWnd, parent: *Wnd)->*EditWnd
     {
         let scroll = Wnd.create'EditWnd(parent)
+        scroll.main = main
 
         with let view = Wnd.create'EditView(scroll)
         {

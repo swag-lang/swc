@@ -142,6 +142,8 @@ impl MainWnd
         {
             .dockStyle       = .Center
             .backgroundStyle = .Window
+            // Floating shadows need to reach across the edge where the recent strip begins.
+            .wndFlags.remove(.ClipChildren)
         }
 
         with .editWnd = EditWnd.create(me, me.editArea)
@@ -946,17 +948,27 @@ impl MainWnd
     }
 
     // The strip of recent captures, shown on demand at the foot of the window. Its preview size
-    // is a View choice of the lens; its captures are also lens entries.
+    // is a View choice in the strip and lens; its captures are also lens entries.
     mtd createRecentBar()
     {
         let gutter = .themeMetrics().panel_GutterSize
         with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136})
         {
             .dockStyle       = .Bottom
-            .backgroundStyle = .Window
+            .backgroundStyle = .Panel
             .padding         = Math.Vector4{gutter, gutter, gutter, gutter}
             .wndFlags.add(.Hidden)
         }
+
+        with let sizes = StackLayoutCtrl.create(.recentBar, .Left)
+        {
+            .dockStyle = .Top
+            .spacing   = .themeMetrics().tabItem_WordGap
+        }
+
+        with .recentSmall = IconButton.createQuiet(sizes, ActionRecentSize.RecentSmall, menu: false)
+        with .recentMedium = IconButton.createQuiet(sizes, ActionRecentSize.RecentMedium, menu: false)
+        with .recentBig = IconButton.createQuiet(sizes, ActionRecentSize.RecentBig, menu: false)
 
         with .recentWnd = RecentWnd.create(me.recentBar, me)
         {

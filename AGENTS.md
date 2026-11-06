@@ -2,6 +2,14 @@
 
 All AI instructions for modifying this repository live in `.agents/skills/`.
 
+## Cloud Work Branches
+
+Do all work in a cloud workspace on a task-specific branch; never make cloud changes directly on
+`master`. Use a descriptive branch name, commit the task's changes, and push the branch to the
+repository's remote so the work remains archived there. After the changes are ready to integrate,
+merge them into `master` and push the merge. Keep the task branch on the remote after merging as
+the archive of that cloud work.
+
 ## Start Here
 
 The compiler lives in [src/](src): `src/Compiler/` handles the language pipeline, `src/Backend/`

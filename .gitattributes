@@ -4,6 +4,9 @@
 # Windows batch files require CRLF
 *.bat text eol=crlf
 
+# Linux setup must keep an LF shebang after checkout.
+tools/setup.sh text eol=lf
+
 
 # Test and application fixtures are byte-exact: a test compares their sizes and hashes
 bin/**/datas/** -text

@@ -260,11 +260,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Eight Linux public process tests cover context, argv/env/cwd/status, 256 KiB duplex I/O,
   timeout/kill, broken stdin, close/reaping, unsupported options and simultaneous output/error.
   All eight public cases pass in JIT/native, including natural child reaping after close.
+  A native child with descriptors 0, 1 and 2 closed passes a public stdin/stdout/stderr pipe
+  roundtrip, confirming that pipe endpoints are moved above the standard descriptor range.
+  A continuously writing child exercises the finite wait deadline in JIT and native execution;
+  a child that exits while a grandchild retains its output pipes does not wait for pipe EOF.
+  All ten cases in the public process file pass in both modes.
   Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
   Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
   audit finding remains. These checks do not prove the reaper's JIT/unload or native lifetime.
-- Next: add unload/late-destructor and descriptor-leak stress, exercise closed standard descriptors, continuous-output deadlines and descendant-held
-  pipes, and run Windows process regressions. Do not mark lifecycle conformance from raw tests.
+- Next: add unload/late-destructor and descriptor-leak stress, and run Windows process
+  regressions. Do not mark lifecycle conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 

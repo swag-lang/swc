@@ -939,8 +939,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: `tools/setup.bat` registers the checkout's `bin/` directory and `SWAG_PATH` for the
   current user. It no longer claims a file association; `.swgs` examples continue to require an
   explicit compiler command, while tools launch as `.bat` files.
-- Next: define shell and desktop-launch integration per host without making Windows file
-  associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
+- Progress (Linux): `tools/setup.sh` installs, refreshes and removes a marked Bash/Zsh profile
+  block containing the compiler path and this checkout's `SWAG_PATH`. It reports that bare
+  `.swgs` execution is unsupported and prints the explicit compiler command. A temporary profile
+  has executed a representative script through `swc.dm` with the configured standard library.
+- Next: validate Windows bare-script behavior in fresh shells and define desktop-launch behavior
+  per host. Machine-wide mutation remains explicit and opt-in.
 - Done when: setup reports whether bare execution is supported for the current shell and either
   configures it safely or prints the exact remaining elevated step; a fresh `cmd.exe` and
   Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that

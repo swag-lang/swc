@@ -188,6 +188,8 @@ internal func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWind
     window.updateCommandState()
     Swag.require(back.position.right() <= forward.position.x)
     Swag.require(forward.position.right() <= up.position.x)
+    Swag.require(not window.lensLauncher.captionButton.isLocallyVisible())
+    Swag.require(window.informationCaptionButton.isLocallyVisible())
     Swag.require(window.informationCaptionButton.position.x > window.clientRect().width / 2)
     Swag.require(not back.isEnabled() and not forward.isEnabled())
     explorer.navigate(explorer.listing.path, "docs/")

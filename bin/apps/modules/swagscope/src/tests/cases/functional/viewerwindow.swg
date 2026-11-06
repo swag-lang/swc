@@ -1216,6 +1216,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     // The window without a file is its home.
     Swag.require(window.home.isLocallyVisible())
+    Swag.require(not window.lensLauncher.captionButton.isLocallyVisible())
+    Swag.require(not window.informationCaptionButton.isLocallyVisible())
     Swag.require(window.currentView == null and window.currentCommands == null)
     Swag.require(window.currentActions == null and window.currentInfo == null)
     Swag.require(not window.loadingOverlay.isLocallyVisible())

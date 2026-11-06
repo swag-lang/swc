@@ -216,6 +216,7 @@ struct MainWindow
     {
         appearanceButton: *AppearanceButton
         lens:             *Lens.View
+        lensLauncher:     *Lens.Launcher
         hintLine:         *HintLine
         list:             *VaultList
         createPage:       *CreatePage
@@ -487,7 +488,8 @@ impl MainWindow
         result.createAppearanceButton()
         result.createPages()
         result.createLens()
-        Lens.Launcher.create(result, VaultCommands.Lens)
+        result.lensLauncher = Lens.Launcher.create(result, VaultCommands.Lens)
+        result.lensLauncher.captionButton.hide()
         result.createHint()
         result.fillDriveChoice()
         result.applyLanguage()

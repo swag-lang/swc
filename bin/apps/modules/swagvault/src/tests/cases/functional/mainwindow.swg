@@ -690,6 +690,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.applyPrivacyControl()
 
     let texts = appStrings()
+    Swag.require(not window.lensLauncher.captionButton.isLocallyVisible())
     let commandIds = [VaultCommands.NewVault, VaultCommands.OpenFile, VaultCommands.Vaults, VaultCommands.Options,
                       VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.OpenDrive, VaultCommands.ReadOnly,
                       VaultCommands.ProtectHidden, VaultCommands.AtStartup, VaultCommands.ChangePassword,

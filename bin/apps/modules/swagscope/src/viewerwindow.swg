@@ -730,7 +730,6 @@ impl ViewerWindow
         var videoControls = true
         if .currentView is Viewers.Film.Panel as film do
             videoControls = film.veilsShown
-        .lensLauncher.captionButton.show(videoControls)
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen and videoControls)
 
@@ -740,7 +739,7 @@ impl ViewerWindow
         .upCaptionButton.show(exploring)
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.show(exploring)
-        .informationCaptionButton.show(not .fullScreen and videoControls)
+        .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen and videoControls)
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
@@ -1025,6 +1024,7 @@ impl ViewerWindow
         result.createSheetAndHint()
         result.createLens()
         result.lensLauncher = Lens.Launcher.create(result, ViewerCommands.Lens)
+        result.lensLauncher.captionButton.hide()
         with result.outlineCaptionButton = CaptionButton.create(result.surface, .Outline)
         {
             .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.Outline) }

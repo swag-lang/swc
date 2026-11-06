@@ -122,8 +122,8 @@ checked in both.
 | Chip, swatch, keycap, inner segment corner | 4–5 |
 | Button and field height | 32 (34 in dialogs, 28 in inspectors) |
 | List row | 30–32; condensed property row 26 |
-| Icon | 16 logical, outline, 1.4 stroke, round caps; 18–20 in a dock |
-| Dock cell | 36 |
+| Icon | 16 logical, outline, 1.4 stroke, round caps, in a dock too |
+| Dock cell | 30 |
 | Spacing | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 |
 | Reading column | ~900 for code, ~640 for prose |
 
@@ -688,7 +688,7 @@ the screen to its work.
 
 ### Swag Capture
 
-![Annotating](imgs/capture.annotate.png)
+![Annotating](imgs/capture.annotate.png) ![In its window, French, Papier](imgs/capture.frame.paper.png)
 
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
   selection and the inspector at the right (foldable). Its compact task controls stand in the top
@@ -785,15 +785,24 @@ the screen to its work.
   | `Print`, `Ctrl Print`, `Alt Print`, `Ctrl Shift Print` | capture an area, the screen, the active window, the last area again |
   | `Ctrl Alt O` | options |
 
-![Arrow](imgs/capture.edit.arrow.png) ![Callout](imgs/capture.edit.callout.png)
+![Arrow, Papier](imgs/capture.edit.arrow.paper.png) ![Callout](imgs/capture.edit.callout.png)
 ![Mask](imgs/capture.edit.mask.png) ![Steps](imgs/capture.edit.steps.png)
 ![Multiple](imgs/capture.edit.multi.png) ![Colour](imgs/capture.edit.color.paper.png)
-![Area](../../bin/apps/modules/swagcapture/src/tests/goldens/area.png) ![Library](imgs/capture.library.png) ![Lens](imgs/capture.lens.paper.png)
+![Area](imgs/capture.area.png) ![Library](imgs/capture.library.png) ![Lens](imgs/capture.lens.paper.png)
+![Recent captures](imgs/capture.recent.png)
+
+- The strip of recent captures, shown on demand at the foot of the editor, offers its three
+  sizes in words above the pictures, and its key, `Ctrl Shift H`, in the View menu. Each capture
+  is a file tile without a caption, as in the library: the picture fills its cell, the pointer
+  draws a hairline round it, and the capture being edited is ringed in Arc outside its picture.
+  A capture linked to an image file carries a link chip inside its picture's corner, soft while
+  the image matches and in the caution tone once the capture changed since.
 
 - Quick styles: each preset is a small picture of the shape it draws, in its own colours — a
   rectangle or an ellipse with its outline, fill and weight, an arrow with its curve and head,
   "Aa" with its fill and outline, a callout bubble with its tail, a numbered step, a marker stroke,
-  a mask's pattern — in a 44 × 36 cell on the raised ground, corner 7. The preset in force has the
+  a mask's pattern — in a 38 × 31 cell on the raised ground, corner 6, so that five presets and
+  the cell after them fill the inspector's column. The preset in force has the
   Arc ring at a 2 px gap; "+" (a hairline cell) saves the selected shape as a new preset. The
   inspector shows only the row of the tool in use, under its title; never letters, glows or bare
   outlined squares standing for a shape.

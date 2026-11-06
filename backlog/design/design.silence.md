@@ -132,20 +132,6 @@ dialogs, then each application, then the written rules.
   "Aa" in the font's own face, a film's picture size in its facts, and an ExtraBold page title.
 - Done when: every Scope golden matches its picture as a whole screen.
 
-### design.silence.008 — Swag Capture's preset cells are smaller than in their pictures
-
-- Evidence: the `capture.*` pictures and their goldens agree, but for one choice: a preset cell
-  is 38 by 31 where the pictures draw 44 by 36, so that five presets and their chip fit across
-  the 264 the inspector leaves; at 44 by 36 a row holds four presets.
-- Evidence, left when the campaign closed:
-  - The tool letters (`V R P A L T C D H N M X F`) were registered on the main window and
-    answered in the library, changing the editor's tool unseen; the tool commands are now
-    disabled while the library is on screen (`global.swg`).
-  - The full gui suite runs 5 to 7 minutes, past a `--run-timeout 300`; it needs about 420.
-- Next: decide with the charter owner between five smaller presets and four of the pictures'
-  size.
-- Done when: the preset row of the inspector matches its picture.
-
 ### design.silence.017 — All examples use Swag-drawn windows
 
 - Decision: examples are teaching programs, not Silence applications. Every top-level example
@@ -167,8 +153,6 @@ dialogs, then each application, then the written rules.
 - Evidence, found while the skills were rewritten on the charter:
   - Floating shadow: the charter says `0 30px 80px` at 45–60 % (Encre) and 12–16 % (Papier); the
     code blurs 64 at offset 24, about 27 % and 10 % (`FloatingShadowDarkShare`, `LightShare`).
-  - Dock: the Measures table says a 36 cell and an 18–20 glyph, the Capture section 30; the code
-    has `toolDock_CellSize` 30 and `toolDock_Glyph` 16.
   - Scroll bar: 6 px under Window chrome, 8 px under Controls; `scrollBar_Size` is 8.
   - The lens foot does not list `Tab`.
   - Section label: the charter says 10.5, `sectionLabel_FontSize` is 10.

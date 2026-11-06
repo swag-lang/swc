@@ -627,9 +627,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark   = true
     var host: Gui.Testing.HeadlessHost
-    let editor = testSetupInPlace(&host, dark)
+    let editor = testSetupInPlace(&host, dark: true)
     defer
     {
         g_Main?.libWnd.requestClose()
@@ -641,7 +640,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(editor.bar.isLocallyVisible())
     Swag.require(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
     var image = host.render(editor)
-    Pixel.Testing.assertImageGolden(&image, dark ? "inplace" : "inplace.paper")
+    Pixel.Testing.assertImageGolden(&image, "inplace")
 }
 
 // A callout whose words are typed in place: the field over its body, the hint of the tail, in
@@ -691,9 +690,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
     defer
     {
         main.libWnd.requestClose()
@@ -719,7 +717,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(main.editWnd.editView.textLines.count == 2 and Math.isZeroEpsilon(text.rotate))
 
     var image = host.render(main)
-    Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
+    Pixel.Testing.assertImageGolden(&image, "edit.text.paper")
 
     let scroll = main.propWnd.grid.scrollWnd
     Swag.require(not main.propWnd.scrollEdges().above)
@@ -905,9 +903,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = true
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
     defer
     {
         main.libWnd.requestClose()
@@ -954,13 +951,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
     host.finishAnimations()
     var image = host.render(panel)
-    Pixel.Testing.assertImageGolden(&image, dark ? "presets" : "presets.paper")
+    Pixel.Testing.assertImageGolden(&image, "presets")
 
     let cell = unwrap hoverCell
     host.moveMouse(cell.surfaceRect().center())
     host.finishAnimations()
     image = host.render(panel)
-    Pixel.Testing.assertImageGolden(&image, dark ? "presets.hover" : "presets.hover.paper")
+    Pixel.Testing.assertImageGolden(&image, "presets.hover")
 }
 
 // The shape overflow in Papier shows the light, dark, filled and outlined choices on one
@@ -995,9 +992,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: dark, text: false)
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
     defer
     {
         main.libWnd.requestClose()
@@ -1014,7 +1010,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     host.finishAnimations()
 
     var image = host.render(main)
-    Pixel.Testing.assertImageGolden(&image, dark ? "quickstyle.selection.encre" : "quickstyle.selection.paper")
+    Pixel.Testing.assertImageGolden(&image, "quickstyle.selection.paper")
 }
 
 // The lens as a reader meets it in the editor, with its stable capture and output actions.

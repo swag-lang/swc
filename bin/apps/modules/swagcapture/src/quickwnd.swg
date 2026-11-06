@@ -1,8 +1,8 @@
 // A preset is a small picture of the shape it draws, in its own colours, painted by the painter
 // of the canvas. Its IconButton supplies the same chosen ground and ring as the tool dock.
 //
-// Five presets and the chip after them fill the width of the inspector, so the cell keeps the
-// proportions of the pictures' 44 by 36 at a smaller size.
+// Five presets and the chip after them fill the width of the inspector: the cell the charter
+// states, 38 by 31.
 const QuickCellWidth  = 38.0     // Width of the cell of a preset.
 const QuickCellHeight = 31.0     // Height of the cell of a preset.
 const QuickCellCorner = 6.0      // Corner of the cell.

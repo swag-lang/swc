@@ -41,9 +41,10 @@
     <path d="M4.5 8v3.5M8 8v3.5M11.5 8v3.5M2.5 13.5h11"/>
   </g>
   <g id="Highlight" transform="translate(24 24) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M9 2.8l4.2 4.2-4.7 4.7-1.7.3-2.8-2.8.3-1.7z"/>
-    <path d="M4.3 10.2L2.5 12v1.5h3.2l.8-.8"/>
-    <path d="M9 13.5h4.5"/>
+    <path d="M12.6 1.8L9.2 6.3 8.5 7.8 10 8.2 11.3 7.9 14.6 3.4z"/>
+    <path d="M9.2 6.3l2.1 1.6"/>
+    <rect x="2.5" y="8.6" width="6.4" height="2.8" rx="0.5" fill="#ffffff" stroke="none"/>
+    <path d="M2.5 13.6h11"/>
   </g>
   <g id="Select" transform="translate(48 24) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 2.5v10l2.7-2.5 1.9 4 1.9-.9-1.9-4h3.9z"/>

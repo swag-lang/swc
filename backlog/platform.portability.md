@@ -124,7 +124,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   and style metadata through `enumerateSystemFonts` and `findSystemFont`. Two focused cases pass
   JIT/native, and the complete Pixel API page passes its structure and link audit.
   Native GUI application, surface, cursor and clipboard services now execute on X11; Capture
-  and Vault startup smokes render their font consumers successfully.
+  and Vault startup smokes render their font consumers successfully. Swag Scope now starts
+  natively on isolated X11 and opens all 15 registered viewer fixtures through its own
+  review loop, including text, Markdown, HTML, PDF and image consumers.
 - Validation: the multilingual HTML golden now owns small, renamed SIL-licensed CJK and
   outline-emoji subsets and disables system fallback for that fixture. Its reviewed reference
   changed only around those runs and their spacing; all 85 HTML cases pass with the existing
@@ -858,11 +860,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   under Xvfb/Openbox, with captured window pixels inspected. Capture reports unavailable
   shortcuts when the window manager owns Print/Alt+Print; Ctrl+Print is exercised by real XTEST
   input after canonical Linux key mapping was corrected. Scope now also passes native startup,
-  WAV loading, waveform display and PCM playback through FAudio's SDL disk device. Broader
-  application workflows and physical desktop/device validation remain.
+  WAV loading, waveform display and PCM playback through FAudio's SDL disk device. A fresh
+  native Linux Scope smoke also completes 40 frames, then reviews all 15 registered viewer
+  fixtures on isolated X11. The review opens real documents and waits for presentable content;
+  broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
-  implemented. Thirteen JIT/native cases compare complete window pixels under Xvfb/Openbox
-  with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard
+  implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox
+  with a compositor, real XTEST events, XSettings, headless rendering, clipboard
   UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
   they do not replace the full application workflows.
   An isolated Xorg dummy server also passes clipboard owner exit and empty text roundtrips

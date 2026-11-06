@@ -891,6 +891,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   zero runtime workers, so Explorer now retains one preview slot and submits that work
   on the caller. A Linux Scope placement journey also passes JIT/native across three
   full-screen entry/exit cycles, checking X11 origin, window pixels and restored insets.
+  After the information-sheet redesign, the full media journey also opens a cached film's
+  media and technical pages, checks X11 pixels, then closes the sheet before continuing.
+  The 44-file library probe still passes all eight stages JIT/native after that upstream merge.
   Broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox

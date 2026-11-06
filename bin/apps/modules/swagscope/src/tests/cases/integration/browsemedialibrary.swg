@@ -29,6 +29,25 @@ using Core, Gui, Pixel
     let explorer = unwrap window.explorer
 
     expect library.verifyPosters(window)
+    var selectedName = String.from(explorer.entries[explorer.shown[0]].name)
+    Swag.require(not explorer.entries[explorer.shown[0]].movie.title.isEmpty())
+    explorer.grid.select(0)
+    window.toggleInformation()
+    let sheetReady = func|window, &selectedName|()->bool
+    {
+        return window.infoSheet.isLocallyVisible() and
+               Utf8.contains(window.infoSheet.text(), selectedName.toString())
+    }
+    expect library.waitFor(window, "film information sheet", sheetReady)
+    window.infoSheet.selectPage(1)
+    let technicalReady = func|window|()->bool
+    {
+        return window.infoSheet.pageIndex == 1 and not window.infoSheet.text().isEmpty()
+    }
+    expect library.waitFor(window, "film technical sheet", technicalReady)
+    window.closeInformation()
+    expect library.waitForLibrary(window, "close film information", films)
+
     for 2
     {
         explorer.setArtworkSource(.Local)

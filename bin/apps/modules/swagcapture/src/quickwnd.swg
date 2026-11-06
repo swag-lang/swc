@@ -745,20 +745,14 @@ impl QuickWnd
         const BorderSize = 10.0
         const ArrowSize  = 5.0
 
-        .add(0, BorderSize, ArrowSize, ColorRed)
-        .add(0, BorderSize, ArrowSize, ColorGreen)
-        .add(0, BorderSize, ArrowSize, ColorBlue)
-        .add(0, BorderSize, ArrowSize, ColorYellow)
-
-        .add(ArrowSize, BorderSize, ArrowSize, ColorRed)
-        .add(ArrowSize, BorderSize, ArrowSize, ColorGreen)
-        .add(ArrowSize, BorderSize, ArrowSize, ColorBlue)
-        .add(ArrowSize, BorderSize, ArrowSize, ColorYellow)
-
-        .add(ArrowSize * 0.5, BorderSize, ArrowSize, ColorRed, .RoundAnchor, .Dot)
-        .add(ArrowSize * 0.5, BorderSize, ArrowSize, ColorGreen, .RoundAnchor, .Dot)
-        .add(ArrowSize * 0.5, BorderSize, ArrowSize, ColorBlue, .RoundAnchor, .Dot)
-        .add(ArrowSize * 0.5, BorderSize, ArrowSize, ColorYellow, .RoundAnchor, .Dot)
+        // Colour by colour, each with its three kinds of ends, so the visible cells offer different
+        // arrows before they offer the same arrow in another colour.
+        for color in [ColorRed, ColorBlue, ColorGreen, ColorYellow]
+        {
+            .add(0, BorderSize, ArrowSize, color)
+            .add(ArrowSize, BorderSize, ArrowSize, color)
+            .add(ArrowSize * 0.5, BorderSize, ArrowSize, color, .RoundAnchor, .Dot)
+        }
     }
 
     // Fills the line quick styles with the shipped set.
@@ -789,7 +783,7 @@ impl QuickWnd
     // Fills the shape quick styles with the shipped set.
     mtd defaultQuickStyleShape()
     {
-        mtd add(borderSize: f32, kind: FormShapeKind, color: Color, backColor: Color)
+        mtd add(borderSize: f32, kind: FormShapeKind, color: Color, backColor: Color, dash = DashStyle.None)
         {
             with let form = Memory.new'FormShape()
             {
@@ -797,6 +791,7 @@ impl QuickWnd
                 .borderColor = color
                 .backColor   = backColor
                 .kind        = kind
+                .dashStyle   = dash
             }
 
             .qsShape.add(form)
@@ -804,22 +799,22 @@ impl QuickWnd
 
         const BorderSize = 10.0
 
+        // The visible cells show different shapes until use reorders them: the outlines of the
+        // three kinds, a dashed one and a filled badge in red, then the same set in the other
+        // inks, so no cell reads as its neighbour again in another colour.
         .add(BorderSize, .RoundRectangle, ColorRed, Argb.Zero)
-        .add(BorderSize, .RoundRectangle, ColorGreen, Argb.Zero)
-        .add(BorderSize, .RoundRectangle, ColorBlue, Argb.Zero)
-        .add(BorderSize, .RoundRectangle, ColorYellow, Argb.Zero)
-
-        // The row shows the first five until use reorders them: the fifth is another shape, so
-        // it does not read as the first one again.
         .add(BorderSize, .Ellipse, ColorRed, Argb.Zero)
-        .add(BorderSize, .Ellipse, ColorGreen, Argb.Zero)
-        .add(BorderSize, .Ellipse, ColorBlue, Argb.Zero)
-        .add(BorderSize, .Ellipse, ColorYellow, Argb.Zero)
-
         .add(BorderSize, .Rectangle, ColorRed, Argb.Zero)
-        .add(BorderSize, .Rectangle, ColorGreen, Argb.Zero)
+        .add(BorderSize * 0.5, .RoundRectangle, ColorRed, Argb.Zero, .Dash)
+        .add(BorderSize * 0.5, .RoundRectangle, Argb.White, ColorRed)
+
+        for color in [ColorBlue, ColorGreen, ColorYellow]
+        {
+            .add(BorderSize, .RoundRectangle, color, Argb.Zero)
+            .add(BorderSize, .Ellipse, color, Argb.Zero)
+        }
+
         .add(BorderSize, .Rectangle, ColorBlue, Argb.Zero)
-        .add(BorderSize, .Rectangle, ColorYellow, Argb.Zero)
 
         .add(BorderSize, .Rectangle, Argb.White, Argb.Zero)
         .add(BorderSize, .Rectangle, Argb.Black, Argb.Zero)
@@ -868,15 +863,12 @@ impl QuickWnd
             .qsStep.add(form)
         }
 
-        .add(.Ellipse, Argb.White, ColorRed)
-        .add(.Ellipse, Argb.White, ColorGreen)
-        .add(.Ellipse, Argb.White, ColorBlue)
-        .add(.Ellipse, Argb.White, ColorYellow)
-
-        .add(.RoundRectangle, Argb.White, ColorRed)
-        .add(.RoundRectangle, Argb.White, ColorGreen)
-        .add(.RoundRectangle, Argb.White, ColorBlue)
-        .add(.RoundRectangle, Argb.White, ColorYellow)
+        // Each colour as a disc, then as a tile, so the row offers both forms from the start.
+        for color in [ColorRed, ColorBlue, ColorGreen, ColorYellow]
+        {
+            .add(.Ellipse, Argb.White, color)
+            .add(.RoundRectangle, Argb.White, color)
+        }
     }
 
     // Fills the polygon quick styles with the shipped set, straight and curved.
@@ -897,15 +889,12 @@ impl QuickWnd
 
         const BorderSize = 5.0
 
-        .add(BorderSize, ColorRed)
-        .add(BorderSize, ColorGreen)
-        .add(BorderSize, ColorBlue)
-        .add(BorderSize, ColorYellow)
-
-        .add(BorderSize, ColorRed, true)
-        .add(BorderSize, ColorGreen, true)
-        .add(BorderSize, ColorBlue, true)
-        .add(BorderSize, ColorYellow, true)
+        // Each colour straight, then curved.
+        for color in [ColorRed, ColorBlue, ColorGreen, ColorYellow]
+        {
+            .add(BorderSize, color)
+            .add(BorderSize, color, true)
+        }
 
         .add(BorderSize, Argb.White)
         .add(BorderSize, Argb.Black)
@@ -1812,8 +1801,9 @@ impl QuickWnd
         .fitChips()
     }
 
-    // Lays the chips in two rows across the width of the inspector column: the presets the row
-    // holds, the most recently chosen first, then "+", or "•••" when some are left out.
+    // Lays the chips in two rows across the width of the inspector column: the style in force
+    // when no preset carries it, the presets the row holds, the most recently chosen first,
+    // "•••" when some are left out, and "+" last.
     mtd fitChips()
     {
         if .layout == null do
@@ -1862,13 +1852,6 @@ impl QuickWnd
             index += 1
         }
 
-        if model
-        {
-            model.show(true)
-            model.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
-            index += 1
-        }
-
         for c, i in presets
         {
             c.show(i < shown)
@@ -1888,6 +1871,14 @@ impl QuickWnd
                 more.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
                 index += 1
             }
+        }
+
+        // "+" ends the row: it keeps the style in force, which stands first, as one more preset.
+        if model
+        {
+            model.show(true)
+            model.setPosition(Math.Rectangle{cast(f32, index % perRow) * QuickChipWidth, cast(f32, index / perRow) * QuickChipHeight, QuickChipWidth, QuickChipHeight})
+            index += 1
         }
 
         let rows = Math.max(1, (index + perRow - 1) / perRow)

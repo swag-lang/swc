@@ -150,6 +150,8 @@ struct AppStrings
 
     // How many objects of one kind a selection holds, as "singular|plural" words around the count;
     // the inspector details a selection of several objects with them, such as "2 rectangles · 1 text".
+    kind_Rectangle:             string = "Rectangle"                                                     // Name of a rectangle in the layers of the inspector.
+    kind_Ellipse:               string = "Ellipse"                                                       // Name of an ellipse in the layers of the inspector.
     count_Rectangle:            string = "% rectangle|% rectangles"
     count_Ellipse:              string = "% ellipse|% ellipses"
     count_Arrow:                string = "% arrow|% arrows"

@@ -354,8 +354,9 @@ impl PropWnd
             return
         }
 
+        // A pixel selection has no fill of its own: its colour is the one its Fill command lays.
         if hasFill do
-            .addColorRow(appStrings().ui_PropFill, .Fill)
+            .addColorRow(pixSel ? appStrings().ui_PropColor : appStrings().ui_PropFill, .Fill)
         if formType == FormCallout do
             .addColorRow(appStrings().act_Text, .CalloutText)
         if hasBorder do
@@ -515,11 +516,14 @@ impl PropWnd
             shown += 1
 
             let form = capture.forms[i]
-            let mode = MainWnd.formToEditMode(form)
+            let mode = MainWnd.formToolMode(form)
 
-            // A layer is named by its words when it has some, by its kind otherwise.
+            // A layer is named by its words when it has some, by its kind otherwise: a shape is a
+            // rectangle or an ellipse, as the title of the inspector counts it.
             var name: String = MainWnd.editModeName(mode)
-            let words        = formEditableText(form)
+            if form is FormShape as shape where mode == .Shape do
+                name = shape.kind == .Ellipse ? texts.kind_Ellipse : texts.kind_Rectangle
+            let words = formEditableText(form)
             if words and not words.isEmpty() do
                 name = words[]
             with let button = IconButton.create(.addHeadRow(""), .main.icon(MainWnd.editModeIcon(mode), metrics.menuPopup_IconSize), {}, flags: .Radio)

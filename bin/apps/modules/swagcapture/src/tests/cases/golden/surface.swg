@@ -724,9 +724,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
 
     let scroll = main.propWnd.grid.scrollWnd
+    Swag.require(not main.propWnd.scrollEdges().above)
     scroll.setScrollPos(0, scroll.scrollSize.y)
     host.finishAnimations()
     Swag.require(scroll.scrollPosition().y > 0)
+
+    // The settings passing under the presets are cut by a hairline, and none waits below.
+    Swag.require(main.propWnd.scrollEdges().above and not main.propWnd.scrollEdges().below)
     image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.text.scrolled.paper")
     main.editWnd.editView.endTextEdit(keep: false)

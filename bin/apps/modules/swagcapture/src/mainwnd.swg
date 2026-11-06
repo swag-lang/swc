@@ -902,9 +902,22 @@ impl MainWnd
 
         // One object is named by the tool that draws it: a highlighter stroke is a highlight and a
         // pixel selection a pixel selection, though they are a drawing and a shape underneath.
+        var duplicates = true
         if count == 1
         {
-            .inspector.setTitle(editModeName(formToolMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
+            // A pixel selection is a region of the picture, not an object: it is measured, not
+            // counted, and duplicating it means nothing.
+            let form = capture!.forms[capture.selection.back()]
+            let base: *BaseForm = form
+            if .isPixelSelection()
+            {
+                .inspector.setTitle(editModeName(.PixSel), Format.toString("% × %", base.w, base.h))
+                duplicates = false
+            }
+            else
+            {
+                .inspector.setTitle(editModeName(formToolMode(form)), appStrings().ui_OneObject)
+            }
         }
         else
         {
@@ -920,6 +933,8 @@ impl MainWnd
         // Bind the inspector to the same wording, glyph and destructive state as every command presenter.
         for id in [ActionCopyPaste.Duplicate, ActionSelection.DeleteSelection]
         {
+            if id == ActionCopyPaste.Duplicate and not duplicates do
+                continue
             let state  = .sendComputeCommandStateEvent(id)
             let button = .inspector.addAction(state.name, id)
             let size   = .themeMetrics().menuPopup_IconSize

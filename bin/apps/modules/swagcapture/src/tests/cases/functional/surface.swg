@@ -1170,3 +1170,27 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     return null
 }
+
+// The dock shows the tool in hand, whatever the selection holds: a text chosen while the arrow is
+// in hand leaves the arrow in its cell, since the next drag draws an arrow; the selection tool
+// takes the cell back once it is in hand.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    for mode in [EditMode.Arrow, EditMode.Callout, EditMode.Selection]
+    {
+        main.editMode = mode
+        main.updateState()
+        let active = unwrap main.dock.activeTool()
+        Swag.require(active.id == MainWnd.toolCommand(mode))
+        Swag.require(main.inspector.title == appStrings().act_Text)
+    }
+}

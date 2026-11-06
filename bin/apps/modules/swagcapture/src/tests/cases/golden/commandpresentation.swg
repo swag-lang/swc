@@ -40,6 +40,16 @@ using Core
     capture.selection.add(0)
     capture.selectionHasChanged()
     main.updateState()
+
+    // A region is measured, not counted, and is not duplicated: its head offers Delete alone,
+    // and the hint line does not teach Ctrl D for it.
+    Swag.require(main.inspector.title == appStrings().act_PixSel)
+    Swag.require(main.inspector.detail == "160 × 100")
+    Swag.require(main.inspector.childById(ActionCopyPaste.Duplicate) == null)
+    Swag.require(main.inspector.childById(ActionSelection.DeleteSelection) != null)
+    for hint in main.hintLine.hints do
+        Swag.require(hint.text != appStrings().hint_Duplicate)
+
     var image = host.renderSettled(main)
     Pixel.Testing.assertImageGolden(&image, "commands.pixels.ink")
 }

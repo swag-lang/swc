@@ -723,6 +723,16 @@ impl MainWnd
 
     // Writes the foot line: what the tool in hand does, the key of the inspector while it is
     // folded, and the searchable lens.
+    // Reports whether the selection is one pixel selection, a region of the picture.
+    mtd isPixelSelection()->bool
+    {
+        let capture = .getCapture()
+        if not capture or capture.selection.count != 1 do
+            return false
+        let base: *BaseForm = capture.forms[capture.selection[0]]
+        return base.subKind == .PixSel
+    }
+
     mtd fillHintLine()
     {
         if .hintLine == null do
@@ -751,8 +761,10 @@ impl MainWnd
         let selected = not .libraryMode and capture and not capture.selection.isEmpty()
         if selected
         {
+            // A pixel selection is a region, not an object: it is not duplicated.
             .hintLine.addHint(appStrings().key_Arrows, appStrings().hint_Nudge)
-            .hintLine.addHint(Input.formatKeyShortcut(.Control, .D), appStrings().hint_Duplicate)
+            if not .isPixelSelection() do
+                .hintLine.addHint(Input.formatKeyShortcut(.Control, .D), appStrings().hint_Duplicate)
             if capture!.selection.count == 1 and inlineTextOf(capture.forms[capture.selection[0]]).found do
                 .hintLine.addHint(strings().key_Enter, appStrings().hint_TypeWords)
             else do

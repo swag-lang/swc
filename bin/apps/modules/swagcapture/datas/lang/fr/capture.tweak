@@ -378,6 +378,8 @@ prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
 ui_OneObject           1 objet
 ui_Objects             % objets
+kind_Rectangle         Rectangle
+kind_Ellipse           Ellipse
 count_Rectangle        % rectangle|% rectangles
 count_Ellipse          % ellipse|% ellipses
 count_Arrow            % flèche|% flèches

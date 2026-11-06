@@ -866,6 +866,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   the existing Scope document-recovery journey now passes in JIT/native Linux after moving
   its native-presentation verifier to the XCB window path. It presents an image error and
   then a valid Markdown document in the same surface, comparing X11 pixels with OpenGL.
+  The Scope folder-history journey also passes JIT/native Linux: it presents the toolkit
+  folder dialog, chooses a recent folder from its menu and navigates to the selected path,
+  with native pixel checkpoints.
   Broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox

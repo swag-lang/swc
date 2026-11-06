@@ -297,7 +297,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   opening modes, preservation on failed opens, inheritance flags, append seeks, directory rejection,
   concurrent handles, unlink-while-open, root links and owned mappings. A public FileStream pipe
   test proves that a short first read is completed from a later fragment in JIT/native.
-  Interrupted I/O, partial writes, permissions and broader common conformance remain.
+  A second pipe test signals a blocked 128 KiB write with SA_RESTART disabled and confirms
+  that the public stream delivers every byte in JIT/native. Other interrupted I/O, permissions
+  and broader common conformance remain.
 - Linux sharing contract: this port adopts documented POSIX sharing. Read/Write/Delete/Zero
   impose no Windows-style exclusion; Inheritable controls exec inheritance. The public FileShare,
   open and openWrite documentation states this explicitly. No advisory lock is presented as a
@@ -325,7 +327,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `fstatvfs` available blocks, rejects non-directories and checks byte-count overflow; real temporary
   storage, procfs and invalid paths pass JIT/native. Three FileStream descriptor cases also pass
   JIT/native with the Release compiler, including borrowed descriptor ownership.
-- Next: exercise kernel-overflow stress, interrupted and partial writes, and permissions; run the remaining
+- Next: exercise kernel-overflow stress, interrupted reads and permissions; run the remaining
   common filesystem/stream/mapping cases, and compare Windows ownership behavior.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 

@@ -323,6 +323,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Ten public integration cases pass JIT/native for cancellation, repeated close, timeout continuity,
   filtering, recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal
   and link exclusion. Recursive fixture setup now explicitly requests parent creation.
+  A separately tagged kernel-queue stress test exceeds the observed inotify queue limit
+  with alternating create/delete events, then verifies public Overflow followed by
+  permanent Cancelled in JIT/native.
   Broader common coverage now passes 40 ordinary filesystem/path/stream/mapping cases and
   four tagged watcher cases in JIT/native. This includes file mutation, text decoding,
   mapped ownership, SCC and cancellation; Windows-only directory/junction cases remain
@@ -333,7 +336,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `fstatvfs` available blocks, rejects non-directories and checks byte-count overflow; real temporary
   storage, procfs and invalid paths pass JIT/native. Three FileStream descriptor cases also pass
   JIT/native with the Release compiler, including borrowed descriptor ownership.
-- Next: exercise kernel-overflow stress, remaining interrupted operations and permission races; run the remaining
+- Next: exercise remaining interrupted operations and permission races; run the remaining
   common filesystem/stream/mapping cases, and compare Windows ownership behavior.
 - Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 

@@ -616,12 +616,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The GUI enables XKB detectable repeat per client. A genuinely held XTEST key produces
   multiple character events with one physical press/release pair in JIT/native; a rapid
   release and press during remapping remains two distinct transitions.
+  XTEST Shift+A and Ctrl+A sequences preserve modifier flags on physical events, produce
+  uppercase text only for Shift and suppress text under Control in JIT/native.
   The existing XTEST keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
   these are protocol tests, not normalized input routing or real-device key transitions.
-- Next: validate modifier transitions and full input-language changes
+- Next: validate layout-dependent shortcuts and full input-language changes
   through portable keyboard events.
 - Related: platform.portability.050, platform.portability.085, platform.portability.054
 - Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.

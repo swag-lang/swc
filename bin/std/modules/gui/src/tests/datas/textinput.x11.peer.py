@@ -56,13 +56,24 @@ try:
         for code, _ in codes:
             change(code, previous[str(code)])
         x11.XSync(display, 0)
-    elif mode in ('send', 'remap', 'held-remap', 'repeat'):
+    elif mode in ('send', 'remap', 'held-remap', 'repeat', 'modifiers'):
         x11.XSetInputFocus(display, int(sys.argv[3]), 2, 0)
         def tap(code):
             assert code
             assert xtst.XTestFakeKeyEvent(display, code, 1, 0)
             assert xtst.XTestFakeKeyEvent(display, code, 0, 0)
-        if mode == 'repeat':
+        if mode == 'modifiers':
+            code = x11.XKeysymToKeycode(display, ord('a'))
+            shift = x11.XKeysymToKeycode(display, 0xffe1)
+            control = x11.XKeysymToKeycode(display, 0xffe3)
+            assert code and shift and control
+            assert xtst.XTestFakeKeyEvent(display, shift, 1, 0)
+            tap(code)
+            assert xtst.XTestFakeKeyEvent(display, shift, 0, 0)
+            assert xtst.XTestFakeKeyEvent(display, control, 1, 0)
+            tap(code)
+            assert xtst.XTestFakeKeyEvent(display, control, 0, 0)
+        elif mode == 'repeat':
             code = x11.XKeysymToKeycode(display, ord('a'))
             old_delay, old_interval = c.c_uint(), c.c_uint()
             assert x11.XkbGetAutoRepeatRate(display, 0x100, c.byref(old_delay), c.byref(old_interval))

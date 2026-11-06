@@ -82,8 +82,10 @@ Information notices use Arc. Syntax colouring keeps the shared lexical palette o
 - the keyboard focus ring: 2 px, Voltage on Encre, ink on Papier;
 - the text caret: Voltage on Encre, ink on Papier;
 - the current search occurrence: Voltage fill with ink text (on Papier, the highlight with an ink
-  underline);
-- the window's current tool when it is a mode (a dock cell) — see Dock.
+  underline).
+
+The tool in hand is chosen, not acting: its dock cell takes Arc, like any checked glyph — see
+Dock.
 
 **Arc** marks what is chosen, elsewhere, on or in progress: the selected row, thumbnail, segment
 or tab underline; links; a checked checkbox, radio, switch; slider fill; progress bars;
@@ -439,8 +441,8 @@ selection, and `•••` opens the inspector.
 ### Dock
 
 A vertical floating tool rail at the left edge, vertically centred: surface, corner 10, 6 px
-padding, 36 px cells, glyphs 18. The active tool sits on the Arc selection ground with an Arc
-glyph.
+padding, 30 px cells, glyphs 16 (`toolDock_CellSize`, `toolDock_Glyph`). The active tool sits on
+the Arc selection ground with an Arc glyph.
 
 ### Toast
 
@@ -695,11 +697,16 @@ the screen to its work.
 ![Annotating](imgs/capture.annotate.png)
 
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
-  selection and the inspector at the right (foldable). Its compact task controls offer capture
-  and image output directly. Every command remains in the lens, including capture modes, recent
-  captures and the library; secondary choices may use adjacent menus. The size and zoom readings
-  at the foot of the editor are quiet menu anchors: size opens image-size commands and zoom opens
-  zoom, actual-size and fit commands. These menus reuse the commands already in the lens.
+  selection and the inspector at the right (foldable). Its compact task controls stand in the top
+  strip, with no band of their own: capture and the library after the command glyph, where work
+  comes in; Save Image… and Copy Image, the editor's one primary action, before the window
+  buttons, where it goes out; the title centred between the two. The library leaves the output
+  out. The picture's own resize handles show only while the pointer is near its edges, so at rest
+  the only handles are the selection's. Every command remains in the lens, including capture
+  modes, recent captures and the library; secondary choices may use adjacent menus. The size and
+  zoom readings at the foot of the editor are quiet menu anchors: size opens image-size commands
+  and zoom opens zoom, actual-size and fit commands. These menus reuse the commands already in
+  the lens.
 - The capture control starts an area capture directly; its adjacent chevron opens the capture
   modes and the delay and cursor choices before the screen is read. Area capture shows the screen
   dimmed except the chosen zone, a 1 px Voltage edge, its size in a mono chip, and a pixel loupe
@@ -711,7 +718,8 @@ the screen to its work.
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under
   the zone (above it, or beside it, when the screen has no room): the tools as glyphs with the
   chosen one on the Arc ground, the colour, then the destinations in words — Pin, Editor,
-  Save… — and Copy as the primary action, and a faint `×`. The keys stand at the foot: Enter
+  Save… — and Copy as the primary action, and a faint `×`. The tools end with Pixelate, which
+  hides what must not leave the screen before the copy. The keys stand at the foot: Enter
   copies and closes, `Ctrl+S` saves, `Esc` cancels.
 
   ![Editing in place](imgs/capture.inplace.png) ![Editing in place, Papier](imgs/capture.inplace.paper.png)
@@ -741,8 +749,9 @@ the screen to its work.
   reaches the strip, `←` `→` go along it, Enter opens the one ringed in Arc. Library also has its
   own basic action, so an empty recent strip never removes that route.
 - The inspector shows the presets of the selection's kind (of the tool in hand without a
-  selection; none for a selection of several kinds): one row of five and `+`, or five and `•••`
-  opening every preset with `+`, ordered by use. The row is one stop of Tab, entered on the
+  selection; none for a selection of several kinds) in up to two rows across the column: the
+  style in force when no preset carries it, the presets ordered by use, `•••` opening every
+  preset when some are left out, and `+` last. The row is one stop of Tab, entered on the
   preset in force: `←` `→` go along it, Enter applies the preset ringed in the focus ink, and
   Enter or `↓` on `•••` opens the popover, where the arrows, Enter and `Esc` go on; `Esc` gives
   the keys back to the row. The preset in force is named under the row; a right click
@@ -813,9 +822,12 @@ the screen to its work.
   ground and names what choosing it does, "Unlock". Choosing it unfolds it in place (password,
   drive, key files link, read-only, primary "Mount").
 - Without a vault — the first visit, and every start while privacy mode keeps no list — the page
-  is the home: the mark, large and faint, gives the page its centre; one sentence says what a vault
-  is, or that privacy mode keeps no list; under it "New Vault" is the one primary action of the
-  screen, with "Open a File…" beside it as a secondary button.
+  is the home: the mark, large and faint, gives the page its centre; a title (22, bold) says that no
+  vault is there or open, and two soft lines say what a vault is, then what it keeps or that
+  privacy mode keeps no list. Under them "New Vault" is the one primary action of the screen, with
+  "Open a File…" beside it as a secondary button. Under a hairline, a faint foot names the ciphers
+  in mono and recalls that a container can be dropped on the window. The hint line teaches
+  `Ctrl N` and `Ctrl O` before `Ctrl Space`.
 - Create, progress and options are pages with a back link, not tabs: a calm form with the
   capacity in large type; the randomisation progress as a huge percentage over an Arc line;
   options as rows with a title, a help paragraph and an Arc switch.

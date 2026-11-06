@@ -141,12 +141,15 @@ impl IWnd for Inspector
             painter.popClippingRect()
         }
 
-        // A middle dot between two actions of the head.
+        // A middle dot between two actions of the head that are written in words. Glyphs need
+        // none: the air between their cells already parts them.
         let dotFont = theme.createDefaultFont(metrics.defaultFontSize - 1)
         for i in 1 until .actions.count
         {
             let action = .actions[i]
             if not action.isLocallyVisible() do
+                continue
+            if action.flags.has(.IconOnly) or .actions[i - 1].flags.has(.IconOnly) do
                 continue
             let width = Painter.measureString(ActionDot, dotFont).width
             let x     = action.position.x - .actionDotWidth() * 0.5 - width * 0.5

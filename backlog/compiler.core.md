@@ -621,7 +621,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   2026-10-28. The bytes read as freed memory: the returned temporary seems dropped while the
   declared variable still points at its buffer. `log.swg` declares `let rendered: String =`
   `.buf.toString()` with a `String`-returning call; other typed declarations in `bin/` convert
-  a `string` and are not affected.
+  a `string` and are not affected. Only a short result fails: `let d: String =`
+  `Format.toString("a long enough text to leave any small buffer %", 3)` reads correctly, so the
+  zeroed bytes are the inline storage of the dropped temporary.
 - Next: reduce `var b: String = make()` with `make()->String` building its result in a local,
   compare the semantic tree and the emitted code with the untyped declaration, and repair the
   path that binds the declared type to the returned temporary.

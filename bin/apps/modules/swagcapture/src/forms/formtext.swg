@@ -30,7 +30,7 @@ struct FormText
     alignHorz = FormTextAlign.Center
     #[Name("")]
     alignVert = FormTextAlign.Center
-    #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize), Category("Text")]
+    #[Name("Weight"), SliderMinMax(MinBoldSize, MaxBoldSize), Category("Text")]
     boldSize: f32 = 0
     #[Name("Line Spacing"), SliderMinMax(MinLineSpacing, MaxLineSpacing), Category("Text")]
     lineSpacing: f32 = 14

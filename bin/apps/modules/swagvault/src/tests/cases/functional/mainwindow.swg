@@ -933,8 +933,9 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.require(list.mountedCount == 0 and list.mountedHead.width == 0 and list.lockedHead.width > 0)
 }
 
-// Without a vault, the page is the home: the mark at its centre, one sentence, and a new vault as
-// its one primary action, with opening a file beside it. In French as in English, it fits.
+// Without a vault, the page is the home: the mark at its centre, a title and two lines, a new vault
+// as its one primary action with opening a file beside it, and a foot under a hairline. The hint
+// line teaches the keys of both ways before the lens. In French as in English, it fits.
 #test
 {
     defer discard catch g_App.setLanguage(ReferenceLanguage)
@@ -948,27 +949,55 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
         host.notify(.LanguageChanged)
         window.applyLayout()
 
+        // Privacy mode is the default, so the home says why the list is empty.
+        let texts = appStrings()
         Swag.require(list.rows.isEmpty())
-        Swag.require(not list.title.isLocallyVisible() and list.welcome.isLocallyVisible())
-        Swag.require(list.welcome.text() == appStrings().ui_HomePrivacy)
+        Swag.require(not list.title.isLocallyVisible() and
+                     list.heading.isLocallyVisible() and
+                     list.welcome.isLocallyVisible())
+        Swag.require(list.heading.text() == texts.ui_HomeTitlePrivacy)
+        let welcome = Format.toString("%\n%", texts.ui_HomeWelcome, texts.ui_HomePrivacy)
+        Swag.require(list.welcome.text() == welcome.toString())
         Swag.require(list.newVault.form == .Strong and list.openFile.form == .Normal)
 
-        // The mark, the sentence and the ways stand one under the other, on the page's centre line.
+        // The mark, the words, the ways and the hairline stand one under the other, on the page's
+        // centre line, above the hint line.
         let center = list.clientRect().horzCenter()
         Swag.require(Math.abs(list.markRect.horzCenter() - center) < 1)
-        Swag.require(list.welcome.position.y >= list.markRect.bottom())
+        Swag.require(list.heading.position.y >= list.markRect.bottom())
+        Swag.require(list.welcome.position.y >= list.heading.position.bottom())
         Swag.require(list.newVault.position.y >= list.welcome.position.bottom())
         Swag.require(list.newVault.position.right() < list.openFile.position.x)
         Swag.require(Math.abs((list.newVault.position.x + list.openFile.position.right()) * 0.5 - center) < 1)
-        Swag.require(list.openFile.position.bottom() <= window.hintLine.position.y)
+        Swag.require(list.ruleRect.y > list.openFile.position.bottom())
+        Swag.require(Math.abs(list.ruleRect.horzCenter() - center) < 1)
+        Swag.require(list.ruleRect.y + VaultList.RuleToFoot + VaultList.FootLineGap < window.hintLine.position.y)
         Testing.assertContentFits(window)
+
+        let hints = window.hintLine.hints
+        Swag.require(hints.count == 3)
+        Swag.require(hints[0].key == Input.formatKeyShortcut(.Control, .N) and hints[0].text == texts.ui_HintNewVault)
+        Swag.require(hints[1].key == Input.formatKeyShortcut(.Control, .O) and hints[1].text == texts.ui_HintOpenFile)
+        Swag.require(hints[2].key == Input.formatKeyShortcut(.Control, .Space))
+
+        // A hint line too long for the window would drop its last hints, the lens's first.
+        Swag.require(window.hintLine.contentWidth() <= window.clientRect().width - 2 * PageGutter)
     }
 
-    // With privacy mode off, the sentence says what a vault is.
+    // With privacy mode off, the home says what a vault keeps.
     window.privacyMode = false
     window.applyPrivacyControl()
     window.refreshVaults()
-    Swag.require(list.welcome.text() == appStrings().ui_HomeWelcome)
+    Swag.require(list.heading.text() == appStrings().ui_HomeTitle)
+    let welcome = Format.toString("%\n%", appStrings().ui_HomeWelcome, appStrings().ui_HomeKeeps)
+    Swag.require(list.welcome.text() == welcome.toString())
+
+    // A container dropped on the home is what its foot says: it joins the list, unfolded, and the
+    // keys of the home leave the hint line with it.
+    Swag.require(host.dropFilesOnWnd(list, ["C:\\vaults\\dropped.bin"]) != DropEffect.None)
+    Swag.require(window.chosenPath == "C:\\vaults\\dropped.bin" and list.card.panel.isLocallyVisible())
+    window.foldVault()
+    Swag.require(list.rows.count == 1 and window.hintLine.hints.count == 1)
 }
 
 // The card opens its height over the place of its vault while the rows below follow it, and

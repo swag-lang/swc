@@ -190,7 +190,7 @@ impl LibraryWnd
                 describeAction(results, "", family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
             }
 
-            describeAction(results, "", family, texts.act_MoveSelected, .theme().icon(.Folder), func|libWnd = me|() { libWnd.moveSelected() })
+            describeAction(results, "", family, texts.act_MoveSelected, .commandFolderIcon(), func|libWnd = me|() { libWnd.moveSelected() })
             .describeCommands(results, "", family, [ActionFile.DeleteCapture])
 
             // The rating is one choice among six, with each value drawn as its familiar star score.
@@ -333,9 +333,9 @@ impl LibraryWnd
     {
         let texts  = appStrings()
         let family = texts.ui_BarFolders
-        describeAction(results, query, family, texts.act_OpenLibraryFolder, .theme().icon(.Folder), func|libWnd = me|() { libWnd.navigateFolder(Library.getFolder()) })
+        describeAction(results, query, family, texts.act_OpenLibraryFolder, .commandFolderIcon(), func|libWnd = me|() { libWnd.navigateFolder(Library.getFolder()) })
         describeAction(results, query, family, texts.act_BrowseFolder, .theme().icon(.ExploreFolder), func|libWnd = me|() { libWnd.chooseFolder(false) })
-        describeAction(results, query, family, texts.act_ChooseLibraryFolder, .theme().icon(.Folder), func|libWnd = me|() { libWnd.chooseFolder(true) })
+        describeAction(results, query, family, texts.act_ChooseLibraryFolder, .commandFolderIcon(), func|libWnd = me|() { libWnd.chooseFolder(true) })
         describeAction(results, query, family, texts.act_UseDefaultLibrary, .theme().icon(.Undo), func|libWnd = me|() { libWnd.setLibraryFolder("") })
         .describeCommands(results, query, family, FolderIds)
     }

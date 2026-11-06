@@ -118,7 +118,7 @@ impl IForm for FormDraw
         if flags.has(.Hot | .Selected)
         {
             let anchorSize2 = .anchorSize * 0.5
-            let ink         = .subKind == .PixSel ? Argb.Yellow : selectionInk()
+            let ink         = selectionInk()
             let hot         = flags.has(.Hot) and not flags.has(.Selected)
 
             let start = .points[0] * z

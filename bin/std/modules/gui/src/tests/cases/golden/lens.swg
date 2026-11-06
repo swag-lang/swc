@@ -148,6 +148,12 @@ using Swag, Core, Pixel
     }
 
     Swag.require(lens.scroll > 0 and lens.previousPage.isEnabled() and not lens.nextPage.isEnabled())
+
+    // At its end, the list still opens on a whole row: its top is the start of one.
+    var whole = false
+    for row in lens.rows where Math.abs(row.top - lens.themeMetrics().lens_RowInset - lens.scroll) < 0.5 do
+        whole = true
+    Swag.require(whole)
     Swag.require(host.app.keyboardFocusWnd == &lens.input.wnd)
     host.clickWnd(lens.previousPage)
     Swag.require(lens.nextPage.isEnabled())

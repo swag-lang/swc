@@ -391,7 +391,7 @@ using Swag, Core
 
     Swag.require(shown == 4 and hidden > 0 and moreShown and addShown)
     let cells = quick.rowCells()
-    Swag.require(cells[0].isTransient and cells[1].isModel)
+    Swag.require(cells[0].isTransient and cells.back().isModel and cells[cells.count - 2].isMore)
     Swag.require(cells.back().position.y == QuickChipHeight)
     Swag.require(quick.position.height == 2 * QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
@@ -424,7 +424,7 @@ using Swag, Core
 
     Swag.require(quick.canAddCurrentStyle() and quick.qsImage.forms.count == 5)
     let cells = quick.rowCells()
-    Swag.require(cells.count == 6 and cells[0].isTransient and cells[1].isModel and cells.back().isMore)
+    Swag.require(cells.count == 6 and cells[0].isTransient and cells[4].isMore and cells.back().isModel)
     for cell in cells do
         Swag.require(cell.position.y == 0)
     Swag.require(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
@@ -488,7 +488,7 @@ using Swag, Core
 }
 
 // A selection whose properties are not saved is the first quick-style cell, followed by the
-// saved presets and a separate control that keeps it. Saving removes the transient cell.
+// saved presets, "•••", and a separate control that keeps it, last. Saving removes the transient cell.
 #test
 {
     var f: HeadlessFixture
@@ -507,9 +507,9 @@ using Swag, Core
 
     var cells = quick.rowCells()
     Swag.require(cells[0].isTransient and cells[0].isChecked)
-    Swag.require(cells[1].isModel and cells[1].position.x == QuickChipWidth)
+    Swag.require(not cells[1].isModel and not cells[1].isMore)
     Swag.require(quick.canAddCurrentStyle())
-    Swag.require(cells.back().isMore)
+    Swag.require(cells.back().isModel and cells[cells.count - 2].isMore)
     Swag.require(cells.back().position.y == QuickChipHeight)
 
     quick.openAllPresets(unwrap quick.moreButton)

@@ -113,15 +113,14 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark, text: false, caption: true, dpiScale: 1.25)
+    let main = testSetupEditorSurface(&host, dark: false, text: false, caption: true, dpiScale: 1.25)
     defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
-    expect main.appearanceButton.setAppearanceLanguage(dark ? Gui.ReferenceLanguage : "fr")
+    expect main.appearanceButton.setAppearanceLanguage("fr")
     main.updateState()
     host.finishAnimations()
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
+    Pixel.Testing.assertImageGolden(&image, "tasks.frame.fr.papier")
 }
 
 // The caption glyph opens the generated application menu beside the mark in Encre.
@@ -455,9 +454,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark, text: false)
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
     defer
     {
         main.libWnd.requestClose()
@@ -472,7 +470,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         .endCap      = .ArrowAnchor
     }
 
-    testAssertEditGolden(&host, main, [0], dark ? "edit.arrow" : "edit.arrow.paper")
+    testAssertEditGolden(&host, main, [0], "edit.arrow.paper")
 }
 
 // Several objects: their common settings, the alignment, the order and the layers, in Encre.
@@ -612,6 +610,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     swatches[0].sigPopupRequested.call(swatches[0])
     host.finishAnimations()
 
+    // The colour being picked shows on the shape it changes: the popover, too tall to stand
+    // beside it here, leaves its middle in view, and keeps off the inspector.
+    let popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    let frame   = unwrap popover.parent
+    Swag.require(not frame.surfaceRect().contains(main.selectionSurfaceRect().center()))
+    Swag.require(not frame.surfaceRect().intersects(main.inspector.surfaceRect()))
+
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "edit.color.paper")
     swatches[0].hidePopup()
@@ -717,9 +722,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, dark ? "edit.text" : "edit.text.paper")
 
     let scroll = main.propWnd.grid.scrollWnd
+    Swag.require(not main.propWnd.scrollEdges().above)
     scroll.setScrollPos(0, scroll.scrollSize.y)
     host.finishAnimations()
     Swag.require(scroll.scrollPosition().y > 0)
+
+    // The settings passing under the presets are cut by a hairline, and none waits below.
+    Swag.require(main.propWnd.scrollEdges().above and not main.propWnd.scrollEdges().below)
     image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.text.scrolled.paper")
     main.editWnd.editView.endTextEdit(keep: false)
@@ -1048,4 +1057,40 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     testAssertLibraryMenuGolden(&host, main, main.sizeReading, "editor.menu.size.paper")
     host.app.sigFrame.clear()
     testAssertLibraryMenuGolden(&host, main, main.zoomReading, "editor.menu.zoom.paper")
+}
+
+// The strip of recent captures at the foot of the editor, in Encre: pictures of several shapes,
+// the one being edited, one under the pointer, and one whose linked image changed since.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let sizes: [5] Math.Point = [{320, 200}, {200, 200}, {400, 160}, {160, 240}, {320, 180}]
+    let inks:  [5] u32        = [0xFF3A6EA5, 0xFFE8E6E1, 0xFF2A2C33, 0xFFB0532B, 0xFF4F7A4A]
+    for size, i in sizes
+    {
+        var preview = Image.create(cast(s32, size.x), cast(s32, size.y), .BGRA8)
+        preview.fill(Color.fromArgb(inks[i]))
+        // Untyped: a short String declared with its type from a call reads zeroed (compiler.core.094).
+        var file = Format.toString("recent%", i)
+        file += ".scc"
+        main.recentWnd.addRecent(file, preview, front: false, linkedUpToDate: i != 3, linked: i == 3 ? "linked.png" : "")
+    }
+
+    main.recentWnd.recentView.selected = 1
+    main.recentWnd.recentView.hotItem  = 2
+    main.showRecentBar(true)
+    host.finishAnimations()
+    main.applyLayout()
+
+    var image = host.renderSettled(main)
+    Pixel.Testing.assertImageGolden(&image, "recent.bar")
 }

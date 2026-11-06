@@ -109,8 +109,7 @@ struct MainWnd
     late
     {
         editArea, recentBar: *Wnd
-        taskBar:             *StackLayoutCtrl
-        captureChoice:       *IconButton
+        taskStrip:           *TaskStrip
         editWnd:             *EditWnd
         dock:                *ToolDock
         inspector:           *Inspector
@@ -242,6 +241,9 @@ impl IWnd for MainWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
+        // Without a strip to hold them, the task controls take a band of their own over the work.
+        if .editArea != null do
+            .editArea.margin.y = TaskStrip.bandHeight(me)
         if .miniBar != null do
             .placeMiniBar()
         if .sizeReading != null do
@@ -592,8 +594,11 @@ impl MainWnd
         if .dock != null do
             discard .dock.selectTool(toolCommand(.editMode))
         .updateCommandState()
-        if .taskBar != null do
-            .taskBar.invalidateLayout()
+        if .taskStrip != null
+        {
+            .taskStrip.showOutput(not .libraryMode)
+            .taskStrip.itf.onLayout()
+        }
 
         // The library owns its selection and controls. Rebuild the editor when it
         // becomes visible again, not while its whole subtree is hidden.
@@ -707,11 +712,8 @@ impl MainWnd
 
         with let delays = MenuCtrl.createPopup(me)
         {
-            .addItem(ActionCaptureDelay.Delay0)
-            .addItem(ActionCaptureDelay.Delay1)
-            .addItem(ActionCaptureDelay.Delay2)
-            .addItem(ActionCaptureDelay.Delay5)
-            .addItem(ActionCaptureDelay.Delay9)
+            for id in CaptureDelayIds do
+                .addItem(id)
         }
         menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
 
@@ -897,9 +899,28 @@ impl MainWnd
 
         // One object is named by the tool that draws it: a highlighter stroke is a highlight and a
         // pixel selection a pixel selection, though they are a drawing and a shape underneath.
+        var duplicates = true
         if count == 1
         {
-            .inspector.setTitle(editModeName(formToolMode(capture!.forms[capture.selection.back()])), appStrings().ui_OneObject)
+            // A pixel selection is a region of the picture, not an object: it is measured, not
+            // counted, and duplicating it means nothing.
+            let form = capture!.forms[capture.selection.back()]
+            let base: *BaseForm = form
+            if .isPixelSelection()
+            {
+                .inspector.setTitle(editModeName(.PixSel), Format.toString("% × %", base.w, base.h))
+                duplicates = false
+            }
+            elif form is FormImage as image where image.kind != .Image
+            {
+                // An image that hides or magnifies what it covers is named by what it does: a
+                // blur, a pixelation, a magnifier, a snapshot.
+                .inspector.setTitle(quickStyleKindName(image.kind), appStrings().ui_OneObject)
+            }
+            else
+            {
+                .inspector.setTitle(editModeName(formToolMode(form)), appStrings().ui_OneObject)
+            }
         }
         else
         {
@@ -915,6 +936,8 @@ impl MainWnd
         // Bind the inspector to the same wording, glyph and destructive state as every command presenter.
         for id in [ActionCopyPaste.Duplicate, ActionSelection.DeleteSelection]
         {
+            if id == ActionCopyPaste.Duplicate and not duplicates do
+                continue
             let state  = .sendComputeCommandStateEvent(id)
             let button = .inspector.addAction(state.name, id)
             let size   = .themeMetrics().menuPopup_IconSize
@@ -1129,7 +1152,6 @@ impl MainWnd
         result.setTheme()
         result.setLanguage()
         result.createRecentBar()
-        result.createTaskBar()
         result.createEditArea()
         result.createDock()
         result.createInspector()
@@ -1149,6 +1171,7 @@ impl MainWnd
             .setBottomSize(.Medium, animated: false)
             .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
+            .createTaskStrip()
             .createLens()
             .menuLauncher = Lens.Launcher.createMenu(result, .lens)
             .updateReading()

@@ -1,9 +1,8 @@
 const MaxRecent = 15
 
+// Air between two thumbnails, and around the strip. It holds the selection ring the shared
+// file tile draws outside the picture (`fileTile_RingWidth` and `fileTile_RingGap`).
 const RecentPadding = 8.0
-
-// Width of the Voltage frame marking the selected capture.
-const SelectedFrameSize = 3.0
 
 // The linked-image badge, at the inline-badge size of the application chart.
 const LinkBadgeSize  = 16.0
@@ -118,82 +117,51 @@ impl RecentView
 
     // Paints the mark of a capture linked to an image file at the top-left corner of `rect`: on the
     // ground when the image is up to date, on yellow when it is not.
+    // Marks a capture linked to an image file, inside the leading top corner of its picture `rect`:
+    // a chip on the floating ground, which reads over any picture, with a soft link while the
+    // image matches the capture and a caution link once the capture changed since the image was
+    // written. Caution is a state, not the accent: the yellow of the window stays the primary
+    // action's.
     func paintLinkBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
     {
-        if not infos.showLinked or infos.linked == null do
+        if not infos.showLinked or infos.linked.isEmpty() do
             return
 
-        let colors    = parent.themeColors()
-        let backColor = infos.linkedUpToDate ? colors.ground : ColorYellow
-        painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
+        let colors = parent.themeColors()
+        let gap    = parent.themeMetrics().fileTile_NameGap
+        if rect.width < LinkBadgeSize + 2 * gap or rect.height < LinkBadgeSize + 2 * gap do
+            return
+
+        let chip   = Math.Rectangle{rect.x + gap, rect.y + gap, LinkBadgeSize, LinkBadgeSize}
+        let ink    = infos.linkedUpToDate ? colors.softText : colors.caution
+        painter.fillRoundRect(chip, corner, corner, colors.surface)
 
         var icon = parent.theme().icon(.Link)
         icon.sizeX, icon.sizeY = LinkBadgeGlyph
         let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
-        icon.paint(painter, rect.x + inset, rect.y + inset, backColor.contrasting())
+        icon.paint(painter, chip.x + inset, chip.y + inset, ink)
     }
 
-    // Paints one capture of the recent strip.
+    // Paints one capture of the recent strip in the cell `rect`.
+    //
+    // It is a file tile without a caption, as the library and the lens draw their captures: the
+    // picture fills the cell around its centre, so a row of pictures of several shapes keeps one
+    // rhythm; a strong hairline marks it under the pointer, and the capture being edited is ringed
+    // in Arc outside its picture, which stays intact.
     func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
-        let colors = parent.themeColors()
+        var content: Gui.FileTile.Content
+        content.texture = texture
+        content.icon    = parent.theme().icon(.FileImage, parent.themeMetrics().menuPopup_IconSize)
 
-        painter.setParams(.Antialiased)
+        var options: Gui.FileTile.Options
+        options.fit         = .Cover
+        options.hovered     = infos.hot
+        options.selected    = infos.selected
+        options.showCaption = false
+        Gui.FileTile.paint(parent, painter, rect, &content, options)
 
-        // The corner the theme already gives a raised cell, taken from the tile rather than
-        // named again here, so a thumbnail carries the same corner as the tool button beside it.
-        // A hard right angle on a repeated cell reads as unfinished, and a selection frame drawn
-        // square around a picture reads as a crop mark rather than as a state.
-        let corner = parent.themeRects().btnIcon_RoundSquareBk.radius
-
-        // State is what the cell sits on, not a ring drawn around it: hovering and
-        // selecting raise the fill, and the accent is spent on the frame alone.
-        var cellColor = colors.wnd_Bk
-        if infos.selected do
-            cellColor = colors.btnIcon_PressedBk
-        elif infos.hot do
-            cellColor = colors.btnIcon_HotBk
-        painter.fillRoundRect(rect, corner, corner, cellColor)
-
-        if texture.isValid()
-        {
-            var txtRect = rect
-            txtRect.inflate(-RecentPadding * 0.5)
-
-            let ratio = Math.min(txtRect.width / texture.width, txtRect.height / texture.height)
-
-            txtRect.x      = rect.horzCenter() - (texture.width * 0.5 * ratio)
-            txtRect.y      = rect.vertCenter() - (texture.height * 0.5 * ratio)
-            txtRect.width  = texture.width * ratio
-            txtRect.height = texture.height * ratio
-
-            with painter
-            {
-                .fillRect(txtRect, Argb.LightGray)
-                .fillRect(txtRect, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
-                .setInterpolationMode(.Linear)
-                .drawTexture(txtRect, texture)
-            }
-        }
-
-        paintLinkBadge(parent, painter, rect, infos, corner)
-
-        // The selected capture is framed. A corner cut would say the same thing in the mark's
-        // own vocabulary, but it sits exactly where the linked badge sits and eats into it, and a
-        // cut on one corner is easy to miss on a strip of thumbnails: what a reader looks for
-        // here is which picture is being edited, and a frame says that at a glance. Nothing else
-        // in this bar is allowed the accent.
-        if infos.selected
-        {
-            var frame = rect
-            frame.inflate(-SelectedFrameSize * 0.5)
-
-            // The frame is inset by half its own weight, so its centre line runs where the cell's
-            // edge runs — and its corner is the cell's corner stepped in by that same half weight,
-            // which is what keeps the two concentric instead of crossing at four places.
-            let frameCorner = Math.max(corner - SelectedFrameSize * 0.5, 0.0)
-            painter.drawRoundRect(frame, frameCorner, frameCorner, colors.arc, SelectedFrameSize)
-        }
+        paintLinkBadge(parent, painter, rect, infos, parent.themeMetrics().corner_Chip)
     }
 }
 

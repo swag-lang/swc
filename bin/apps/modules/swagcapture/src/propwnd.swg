@@ -131,6 +131,15 @@ struct PropWnd
 
 impl PropWnd
 {
+    // Reports whether the settings are scrolled under the presets above them, and whether more
+    // of them lie below the visible part.
+    mtd scrollEdges()->{above: bool, below: bool}
+    {
+        let scroll = .grid.scrollWnd
+        let shown  = scroll.view.clientRect().height
+        return {scroll.view.scrollPos.y > 0.5, scroll.view.scrollPos.y + shown < scroll.scrollSize.y - 0.5}
+    }
+
     mtd hasRealSelection()->bool
     {
         let capture = .main.getCapture()
@@ -466,6 +475,11 @@ impl PropWnd
             // Always show a small vertical bar so the row width does not jump with the content
             .grid.scrollWnd.updateFlags(.AlwaysShowVertical)
 
+            // The edges the panel marks follow the scroll (see `scrollEdges`), over the grid.
+            prop.wndFlags.add(.AfterChildrenPaint)
+            .grid.scrollWnd.sigScrollPositionChanged += func|prop|(_, _, _) { prop.invalidate() }
+            .grid.scrollWnd.sigScrollSizeChanged += func|prop|(_, _, _) { prop.invalidate() }
+
             .main = main
             .grid.setNotify(prop)
 
@@ -630,6 +644,19 @@ impl IWnd for PropWnd
     mtd impl onAfterPaint(evt: *PaintEvent)
     {
         .frameWnd.IWnd.onAfterPaint(evt)
+
+        // A hairline marks where the settings pass under the presets, and where more of them
+        // wait below: the cut stays an edge, not a row sliced through its words.
+        let edges = .scrollEdges()
+        if not edges.above and not edges.below do
+            return
+        let painter = evt.paintContext.painter
+        let color   = .themeColors().line
+        let width   = .clientRect().width
+        if edges.above do
+            painter.fillRect(Math.Rectangle{GridRowInset, 0, width - 2 * GridRowInset, 1}, color)
+        if edges.below do
+            painter.fillRect(Math.Rectangle{GridRowInset, .clientRect().height - 1, width - 2 * GridRowInset, 1}, color)
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)

@@ -5,6 +5,11 @@ const InPlaceDimAlpha = 110'u8
 // Air around the picture where a press still reaches its edges and their handles, not the ground.
 const GroundPictureMargin = 12.0
 
+// How near the edges of the picture, inside or out, the pointer brings out the handles that
+// resize it. Away from them the picture shows no handle, so the only handles on screen are those
+// of the selection.
+const CaptureEdgeReach = 28.0
+
 struct EditView
 {
     using wnd:   Wnd
@@ -25,6 +30,9 @@ struct EditView
     textSpec:   InlineText
     textFont:   FontFamily
     textRotate: f32
+
+    // Whether the pointer is near the edges of the picture, which shows the handles resizing it.
+    pointerNearEdges: bool
 }
 
 impl IWnd for EditView
@@ -34,6 +42,8 @@ impl IWnd for EditView
         evt.accepted = false
         if not .capture do
             return
+
+        .followPointerNearEdges(evt)
 
         // A double click on a form with words types them in place.
         if evt.kind == .DoubleClick and evt.button == .Left and .capture.hotForm < .capture.forms.count
@@ -140,14 +150,49 @@ impl IWnd for EditView
         .capture.gizmo.minSizeX = Capture.MinSize * .zoom
         .capture.gizmo.minSizeY = Capture.MinSize * .zoom
 
-        // The handles that resize the capture take the selection ink, like those of a form.
-        .capture.gizmo.paint(painter, false, selectionInk())
+        // The handles that resize the capture take the selection ink, like those of a form. They
+        // stand where they serve: near the pointer at the edges, during their own drag, and all
+        // the time in place, where the zone is what the reader adjusts.
+        if .showsCaptureHandles() do
+            .capture.gizmo.paint(painter, false, selectionInk())
+        else do
+            .capture.gizmo.placeAnchors()
         painter.popTransform()
     }
 }
 
 impl EditView
 {
+    // Reports whether the handles that resize the picture are shown.
+    mtd showsCaptureHandles()->bool
+    {
+        let capture = .capture
+        if not capture do
+            return false
+        return .inPlaceEdit or .pointerNearEdges or capture.gizmo.moving or capture.gizmo.hotAnchor != Swag.U32.Max
+    }
+
+    // Follows the pointer near the edges of the picture, and repaints when the handles come or go.
+    mtd followPointerNearEdges(evt: *MouseEvent)
+    {
+        var near = false
+        if evt.kind != .Leave and .capture
+        {
+            let pos   = .surfaceToLocal(evt.surfacePos) + .scrollPos
+            let picture = .getCaptureRect()
+            var outer   = picture
+            outer.inflate(CaptureEdgeReach)
+            var inner = picture
+            inner.inflate(-CaptureEdgeReach)
+            near = outer.contains(pos) and (inner.width <= 0 or inner.height <= 0 or not inner.contains(pos))
+        }
+
+        if near == .pointerNearEdges do
+            return
+        .pointerNearEdges = near
+        .invalidate()
+    }
+
     // Reports whether `surfacePos` falls on the ground around the picture, which moves the window
     // rather than the work.
     //

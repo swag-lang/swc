@@ -39,4 +39,7 @@ using Swag, Core
     Pixel.Testing.assertImageGolden(&image, "area")
 
     Swag.require(wnd.hintLine.grounded)
+
+    // The keys teach the right click too, which abandons the rectangle for another.
+    Swag.require(wnd.hintLine.hints.count == 3 and wnd.hintLine.hints.back().text == appStrings().hint_RedrawArea)
 }

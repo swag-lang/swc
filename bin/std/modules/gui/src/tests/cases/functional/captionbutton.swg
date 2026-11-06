@@ -70,3 +70,31 @@ using Swag, Core
     host.pump()
     Swag.require(host.surfaceWnd.leadingCaptionButtons.isEmpty())
 }
+
+// Room the view keeps for its own strip controls leaves the title area, at each end, and only
+// there: the raw room between the leading actions and the window buttons does not move.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 240)
+    host.surface.flags = SurfaceFlags.StandardWindow
+    host.surfaceWnd.create(&host.root, null)
+    host.surfaceWnd.sendResizeEvent()
+
+    let room = host.surfaceWnd.captionRoomRect()
+    Swag.require(room.width > 200)
+    Swag.require(host.surfaceWnd.captionContentRect() == room)
+
+    host.surfaceWnd.reserveCaptionRoom(120, 80)
+    let content = host.surfaceWnd.captionContentRect()
+    Swag.require(host.surfaceWnd.captionRoomRect() == room)
+    Swag.require(content.x == room.x + 120)
+    Swag.require(content.right() == room.right() - 80)
+
+    // A reservation wider than the room leaves an empty title area, never a negative one.
+    host.surfaceWnd.reserveCaptionRoom(room.width, room.width)
+    Swag.require(host.surfaceWnd.captionContentRect().width == 0)
+
+    host.surfaceWnd.reserveCaptionRoom(0, 0)
+    Swag.require(host.surfaceWnd.captionContentRect() == room)
+}

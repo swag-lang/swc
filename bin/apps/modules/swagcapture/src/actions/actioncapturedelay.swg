@@ -7,73 +7,55 @@ impl ActionCaptureDelay
 {
     newCmdId("Delay")
     newCmdId("Delay0")
-    newCmdId("Delay1")
-    newCmdId("Delay2")
+    newCmdId("Delay3")
     newCmdId("Delay5")
-    newCmdId("Delay9")
+    newCmdId("Delay10")
+}
+
+// One wait the capture menu offers: its seconds and the command that chooses it.
+struct CaptureDelayChoice
+{
+    seconds: s32
+    id:      WndId
+}
+
+// The waits the capture menu offers. Any other number can still be set in the options, and the
+// menu names it all the same.
+const CaptureDelays: [4] CaptureDelayChoice = [{0, ActionCaptureDelay.Delay0}, {3, ActionCaptureDelay.Delay3}, {5, ActionCaptureDelay.Delay5}, {10, ActionCaptureDelay.Delay10}]
+
+// Returns the words naming a wait of `seconds`: "No Delay", or "5 Seconds".
+func captureDelayName(seconds: s32)->String
+{
+    if seconds <= 0 do
+        return appStrings().act_NoDelay
+    return MainWnd.countWords(appStrings().count_Seconds, cast(u64, seconds))
 }
 
 impl IActionUI for ActionCaptureDelay
 {
     acceptOwnCmdIds()
 
+    // The menu entry names the wait in force; its choices name their own, the one in force
+    // checked. Every one carries the hourglass, as every command of the lens has its glyph.
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main = mainWndOf(cxt)
-        switch cxt.id
+        let main  = mainWndOf(cxt)
+        let delay = main.captureOptions.delay
+        if cxt.id == ActionCaptureDelay.Delay
         {
-        case .Delay:
-            evt.updatedFields |= .Icon
-            evt.icon = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name
-            switch main.captureOptions.delay
-            {
-            case 0: evt.name = appStrings().act_DelayBefore
-            case 1: evt.name = appStrings().act_Delay1
-            case 2: evt.name = appStrings().act_Delay2
-            case 5: evt.name = appStrings().act_Delay5
-            case 9: evt.name = appStrings().act_Delay9
-            }
-
-        case .Delay0:
-            evt.updatedFields |= .Icon
+            evt.updatedFields |= .Icon | .Name
             evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name | .Checked | .RenderingHint
-            evt.renderingHint = .ExclusiveGroup
-            evt.name          = appStrings().act_NoDelay
-            evt.checked       = main.captureOptions.delay == 0
+            evt.name          = delay == 0 ? appStrings().act_DelayBefore : Format.toString(appStrings().act_DelayDuration, captureDelayName(delay))
+            return true
+        }
 
-        case .Delay1:
-            evt.updatedFields |= .Icon
+        for choice in CaptureDelays where choice.id == cxt.id
+        {
+            evt.updatedFields |= .Icon | .Name | .Checked | .RenderingHint
             evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
-            evt.name          = appStrings().act_OneSecond
-            evt.checked       = main.captureOptions.delay == 1
-
-        case .Delay2:
-            evt.updatedFields |= .Icon
-            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name | .Checked | .RenderingHint
-            evt.renderingHint = .ExclusiveGroup
-            evt.name          = appStrings().act_TwoSeconds
-            evt.checked       = main.captureOptions.delay == 2
-
-        case .Delay5:
-            evt.updatedFields |= .Icon
-            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name | .Checked | .RenderingHint
-            evt.renderingHint = .ExclusiveGroup
-            evt.name          = appStrings().act_FiveSeconds
-            evt.checked       = main.captureOptions.delay == 5
-
-        case .Delay9:
-            evt.updatedFields |= .Icon
-            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.updatedFields |= .Name | .Checked | .RenderingHint
-            evt.renderingHint = .ExclusiveGroup
-            evt.name          = appStrings().act_NineSeconds
-            evt.checked       = main.captureOptions.delay == 9
+            evt.name          = captureDelayName(choice.seconds)
+            evt.checked       = delay == choice.seconds
         }
 
         return true
@@ -82,15 +64,8 @@ impl IActionUI for ActionCaptureDelay
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main = mainWndOf(cxt)
-        switch cxt.id
-        {
-        case .Delay0: main.captureOptions.delay = 0
-        case .Delay1: main.captureOptions.delay = 1
-        case .Delay2: main.captureOptions.delay = 2
-        case .Delay5: main.captureOptions.delay = 5
-        case .Delay9: main.captureOptions.delay = 9
-        }
-
+        for choice in CaptureDelays where choice.id == cxt.id do
+            main.captureOptions.delay = choice.seconds
         return true
     }
 }

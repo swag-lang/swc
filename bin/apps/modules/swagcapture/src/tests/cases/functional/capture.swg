@@ -38,16 +38,16 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         Swag.require(menu.items[5]!.id == ActionCapture.screenId(1))
         Swag.require(menu.items[7]!.id == ActionCapture.CaptureCursor)
         let delays = menu.items[8]!.popup
-        Swag.require(delays.items.count == 5)
+        Swag.require(delays.items.count == 4)
         Swag.require(delays.items[0]!.id == ActionCaptureDelay.Delay0)
-        Swag.require(delays.items[4]!.id == ActionCaptureDelay.Delay9)
+        Swag.require(delays.items[3]!.id == ActionCaptureDelay.Delay10)
         inspected[] = true
         Swag.require(host.dismissPopupMenu())
     }
 
-    host.click(main.captureChoice.surfaceRect().center())
+    host.click(main.taskStrip.captureChoice.surfaceRect().center())
     Swag.require(inspected)
-    Swag.require(not main.captureChoice.hasFocus())
+    Swag.require(not main.taskStrip.captureChoice.hasFocus())
 }
 
 // Releasing the left button fixes the rectangle. Right click restarts a drag, while Escape

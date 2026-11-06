@@ -340,17 +340,15 @@ impl IForm for FormImage
             .gizmo.rect          = .boundRect() * z
             .gizmo.rotateValue   = .rotate
             .gizmo.rotateEnabled = .canRotate()
+            // Editing inside, the handles move the part of the source the form shows.
             if .mustEditInside()
             {
                 .gizmo.rect.offset(.freePos.x * z, .freePos.y * z)
                 .gizmo.rect.width  = .freePos.width * z
                 .gizmo.rect.height = .freePos.height * z
-                .gizmo.paint(painter, not flags.has(.Selected), Argb.Yellow)
             }
-            else
-            {
-                .gizmo.paint(painter, not flags.has(.Selected), selectionInk())
-            }
+
+            .gizmo.paint(painter, not flags.has(.Selected), selectionInk())
         }
         else
         {

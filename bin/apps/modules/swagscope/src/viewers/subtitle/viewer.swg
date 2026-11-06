@@ -716,6 +716,22 @@ func timeSeconds(text: string, result: *f64)->bool
 }
 
 // Creates the integrated timed-subtitle document view and connects it to the host.
+impl Panel
+{
+    // Describes the subtitles in the information sheet: how many cues, over how long.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        let track = .track
+        if not track do
+            return
+        var data: MediaInfoData
+        data.addFigure(.Custom, cueCountText(track.cueCount()))
+        if .duration > 0 do
+            data.addFigure(.Duration, Viewer.durationText(.duration))
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     catch
@@ -723,6 +739,7 @@ func createViewer(host: Viewer.Host)
         let view = try Panel.create(host)
         host.attachView(view)
         host.setDetails(cueCountText(view.track!.cueCount()))
+        host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
         host.setSearch(Viewer.searchApi(view))
         host.setLensSource(func|view|(entries) { view.describeLens(entries) })

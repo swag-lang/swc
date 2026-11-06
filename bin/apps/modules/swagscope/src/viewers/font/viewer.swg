@@ -303,12 +303,35 @@ impl Panel
 }
 
 // Creates the integrated TrueType specimen and character-map view.
+impl Panel
+{
+    // Describes the face in the information sheet, titled by its family with the file name
+    // leading its identity: how many glyphs it draws, then its style and its design grid.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        if .details.isEmpty() do
+            return
+        let face = .document.face
+        if not face or face.familyName.isEmpty() do
+            return
+        sheet.setIdentity(Format.toString("% · %", sheet.title, sheet.identity))
+        sheet.setTitle(face.familyName)
+        var data: MediaInfoData
+        data.addFigure(.Custom, glyphCountText(face.glyphCount))
+        data.add(.Font, group: true)
+        data.add(.Style, face.styleName.isEmpty() ? texts().ui_Regular : face.styleName.toString())
+        data.add(.UnitsPerEm, Format.toString("%", face.unitsPerEm))
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()
     let view     = Panel.create(host.contentParent(), host.createCommandGroup(CommandWidth), host.fileName(), services)
     host.attachView(view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

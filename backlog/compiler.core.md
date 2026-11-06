@@ -781,6 +781,20 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the reduced form either resets both members correctly or receives a precise
   source-level rejection, with a regression at the owning compiler boundary.
 
+### compiler.core.107 — Name the real mistake in two misleading rejections
+
+- Evidence: while writing the information sheet tests, `let cast = sheet.blocks[4]` followed by
+  `cast.wrapped` was rejected with `expected '(' before '.'` and a cascade of unrelated errors,
+  without saying that `cast` is a keyword. In `swagscope/src/mediainfo.swg`,
+  `result += measure` with `result: String` and `measure: const *String` (a `for` over a slice of
+  `String`) was rejected as `pointer arithmetic needs an arithmetic pointer, found value pointer`,
+  although no pointer arithmetic was intended: the loop variable is a pointer to the element.
+- Next: reduce both forms; for the first, report that a keyword cannot name a variable at the
+  `let`; for the second, name the operand that is a pointer to a `String` and suggest
+  dereferencing it, following `write-swag-compiler-messages`.
+- Done when: each reduced form receives one diagnostic naming its cause, with a regression in the
+  compiler diagnostic suites.
+
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.

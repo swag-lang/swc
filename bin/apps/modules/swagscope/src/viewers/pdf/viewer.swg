@@ -498,6 +498,28 @@ private impl Panel
 }
 
 // Creates the integrated PDF view.
+impl Panel
+{
+    // Describes the document in the information sheet: its pages and their size, then its title
+    // and author when it records them.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        if not .facts.pageCount do
+            return
+        var data: MediaInfoData
+        let pages = .facts.pageCount == 1 ? String.from(texts().ui_OnePage) : Format.toString(texts().ui_Pages, .facts.pageCount)
+        data.addFigure(.Pages, pages)
+        if .facts.pageSize.x > 0 and .facts.pageSize.y > 0 do
+            data.addFigure(.Dimensions, paperText(.facts.pageSize))
+        data.add(.Document, group: true)
+        if not .facts.title.isEmpty() do
+            data.add(.Title, .facts.title)
+        if not .facts.author.isEmpty() do
+            data.add(.Author, .facts.author)
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let services  = host.services()
@@ -536,6 +558,7 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(search)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

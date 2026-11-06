@@ -8,12 +8,17 @@ using Core, Pixel
 // This is the sheet of the charter (`I`): the surface ground on the floating corner,
 // [[Gui.ThemeMetrics.infoSheet_Width]] wide, [[Gui.ThemeMetrics.floating_Inset]] from the
 // trailing and bottom edges of its parent and clear of the window chrome at the top. It holds
-// what an information band used to show, and only while the reader asks for it: a title, a mono
-// line of identity, the facts the reader came for set large and light, readings as a label and a
-// value, section labels, a paragraph, links in Arc, and at most one primary action, which a
-// secondary one may follow. A picture of what the sheet describes — a poster, a cover, a
-// capture — may head it. When media readings and technical readings would make one long sheet,
-// [[Gui.InfoSheet.beginPage]] separates them and a small arrow moves between pages.
+// what an information band used to show, and only while the reader asks for it: a title on up to
+// two lines, a mono line of identity led by the glyph of the file it describes, the figures the
+// reader came for set large and light on one line, at most one primary action right under them,
+// which a secondary one may follow, then section labels, readings as a label and a value, tracks,
+// a paragraph, a note, links in Arc, and footnotes saying where the readings came from.
+//
+// The sheet speaks in the neutral inks. Its only hue is the file-kind glyph of its identity line;
+// Arc marks a link and the page shown, and Voltage the primary action. Sections are separated by
+// air alone. A picture of what the sheet describes — a poster, a cover, a capture — may head it.
+// When media readings and technical readings would make one long sheet,
+// [[Gui.InfoSheet.beginPage]] separates them, and their names stand as tabs on the top line.
 //
 // The sheet floats over the work ([[Gui.DockStyle.Float]]) and stays hidden until
 // [[Gui.InfoSheet.open]]; the application binds the key that toggles it. Describe the content
@@ -25,7 +30,7 @@ using Core, Pixel
 //     .setTitle("viewerchrome.swg")
 //     .setIdentity("swagscope / src")
 //     .addFact("612", "lines")
-//     .addReading("Encoding", "UTF-8")
+//     .addReading("Encoding", "UTF-8", mono: false)
 //     .addReading("Size", "24.1 KB")
 // }
 //
@@ -53,18 +58,20 @@ struct InfoSheet
 
     blocks:           Array'InfoSheetBlock
     pages:            Array'String
+    tabRects:         Array'Math.Rectangle     // Hit area of each page name, from the latest layout.
+    titleLines:       Array'String             // The title as it is set, from the latest layout.
     subjectFile:      String
     subjectDirectory: bool
     writingPage:      u32
     picturePage:      u32
     actionPage:       u32
-    pageTop:          f32
     hotLink:          u64 = Swag.U64.Max
-    actionTop:        f32     // Top of the action when it follows the head, from the latest layout.
+    hotTab:           u64 = Swag.U64.Max
+    headTop:          f32     // Top of the picture or the title, from the latest layout.
+    actionTop:        f32     // Top of the action, from the latest layout.
     contentHeight:    f32     // Body height before the window clips it to the available room.
     scrollOffset:     f32     // Portion of a long body already passed by the reader.
     late closeButton: *IconButton
-    late pageButton:  *IconButton
 }
 
 internal enum InfoSheetBlockKind
@@ -74,19 +81,27 @@ internal enum InfoSheetBlockKind
     Section
     Text
     Link
+    Track
+    Note
+    Footnote
 }
 
 internal struct InfoSheetBlock
 {
-    kind:   InfoSheetBlockKind
-    label:  String     // Label of a reading, unit of a fact, words of a section, a paragraph or a link.
-    value:  String     // Value of a reading or of a fact.
-    mono:   bool       // Whether the value is a measure, set in the fixed-width face.
-    id:     WndId?     // Command a link posts.
-    left:   f32        // Indent of the block in the body, beside the picture, from the latest layout.
-    top:    f32        // Top of the block in the body, from the latest layout.
-    height: f32        // Height of the block, from the latest layout.
-    page:   u32        // Page containing this block.
+    kind:      InfoSheetBlockKind
+    label:     String     // Label of a reading, unit of a fact, name of a track, words of a section, a paragraph, a note, a link or a footnote.
+    value:     String     // Value of a reading or of a fact, measures of a track, link of a footnote.
+    number:    String     // Number of a track.
+    mono:      bool       // Whether the value is a measure, set in the fixed-width face.
+    wrapped:   bool       // Whether the value of a reading runs on several lines, from the latest layout.
+    id:        WndId?     // Command a link posts.
+    left:      f32        // Indent of the block in the body, from the latest layout.
+    top:       f32        // Top of the block in the body, from the latest layout.
+    width:     f32        // Width of a fact, or of the link of a footnote, from the latest layout.
+    height:    f32        // Height of the block, from the latest layout.
+    valueLeft: f32        // Indent of a reading's value or of a footnote's link, from the latest layout.
+    valueTop:  f32        // Offset of a footnote's link below the top of the block, from the latest layout.
+    page:      u32        // Page containing this block.
 }
 
 impl IWnd for InfoSheet
@@ -107,31 +122,19 @@ impl IWnd for InfoSheet
         .scrollOffset = Math.clamp(.scrollOffset, 0, Math.max(.contentHeight - height, 0))
         let left      = bounds.right() - inset - width
         let closeSize = metrics.embInfo_CloseSize
-        let controlInset = metrics.infoSheet_Padding - metrics.embInfo_CloseMargin
-        let controlTop   = controlInset - metrics.embInfo_CloseMargin
-        let closeX       = width - controlInset - closeSize
+        let closeX    = width - .controlInset() - closeSize
         liftFloating(me)
         .setPosition(Math.Rectangle{left, top, width, height})
-        .closeButton.setPosition(Math.Rectangle{closeX, controlTop, closeSize, closeSize})
-        .pageButton.show(.pages.count > 1)
-        if .pages.count > 1
-        {
-            let next = .pageIndex + 1 < .pages.count ? .pageIndex + 1 : 0
-            .pageButton.setPosition(Math.Rectangle{closeX - closeSize - metrics.embInfo_CloseMargin,
-                                                    controlTop, closeSize, closeSize})
-            .pageButton.setIcon(.theme().icon(next ? .ChevronRight : .ChevronLeft, themeRowIconSize(metrics)))
-            .pageButton.toolTip = .pages[next]
-        }
+        .closeButton.setPosition(Math.Rectangle{closeX, .controlTop(), closeSize, closeSize})
 
-        // The primary action takes the foot of the sheet, or follows the head beside a picture;
-        // with a secondary one, each takes half.
+        // The action follows the head, the secondary one sharing its line half and half.
         let actionVisible = .action != null and .actionPage == .pageIndex
         .action?.show(actionVisible)
         .secondary?.show(actionVisible)
         if actionVisible
         {
             let pad  = metrics.infoSheet_Padding
-            let y    = .besidePicture() ? .actionTop - .scrollOffset : height - pad - metrics.btnPush_Height
+            let y    = .actionTop - .scrollOffset
             let room = width - 2 * pad
             if .secondary
             {
@@ -160,24 +163,32 @@ impl IWnd for InfoSheet
         let theme   = .theme()
         let body    = .body()
         let pad     = metrics.infoSheet_Padding
-        let accent  = .accentColor()
+        let scale   = .deviceScale()
 
         paintFloatingGround(me, painter, body, metrics.corner_Floating)
-
-        // A sheet shorter than its blocks keeps its action whole: the blocks stop above it.
-        var blocksArea = body
-        if .action and .actionPage == .pageIndex and not .besidePicture() do
-            blocksArea.height = Math.max(.action.position.y - metrics.infoSheet_BlockGap * 0.5 - body.y, 0)
-        painter.pushClippingRect(blocksArea)
+        painter.pushClippingRect(body)
         defer painter.popClippingRect()
 
         let x     = body.x + pad
         let width = body.width - 2 * pad
-        let pageHeight = .pages.count > 1 ? metrics.inspector_SectionHeight + metrics.infoSheet_BlockGap * 0.5 : 0
-        var y     = body.y + pad + pageHeight - .scrollOffset
+        let right = x + width
+        let shift = body.y - .scrollOffset
+
+        // The page shown is the name in the ink of the text, on an Arc underline.
+        let tabFont = .tabFont()
+        for rect, index in .tabRects
+        {
+            let shown = index == .pageIndex
+            let color = shown or index == .hotTab ? colors.text : colors.softText
+            let top   = rect.y + shift
+            discard paintTextLine(painter, body.x + rect.x, top + rect.height * 0.5, .pages[index], tabFont, color, rect.width + 1, scale)
+            if shown do
+                painter.fillRect(body.x + rect.x, top + rect.height - 2, rect.width, 2, colors.arc)
+        }
 
         // The picture keeps its proportions, on the corner of a control, at the head of the sheet
         // or at the left of the title.
+        var y     = shift + .headTop
         var headX = x
         if .picture.isValid() and .picturePage == .pageIndex
         {
@@ -185,91 +196,109 @@ impl IWnd for InfoSheet
             painter.setParams(.Antialiased)
             painter.fillRoundRect(Math.Rectangle{x, y, size.x, size.y}, metrics.corner_Control, metrics.corner_Control, Brush.createTexture(.picture))
             if .besidePicture() do
-                headX = x + size.x + metrics.infoSheet_Padding * 0.5
+                headX = x + size.x + pad * 0.5
             else do
                 y += size.y + metrics.infoSheet_BlockGap
         }
 
-        // Nothing runs past the padding: a line longer than the sheet ends with an ellipsis.
-        let right      = x + width
-        let controlInset = metrics.infoSheet_Padding - metrics.embInfo_CloseMargin
-        let controls = .pages.count > 1 ? metrics.embInfo_CloseSize * 2 + controlInset + metrics.embInfo_CloseMargin :
-                                        metrics.embInfo_CloseSize + controlInset
-        // Paged sheets put their controls on the page line, above the title.
-        let titleRight = .pages.count > 1 ? right : right - controls
-        let scale      = .deviceScale()
-        let titleFont  = theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold)
-        if .pages.isEmpty() and (not .title.isEmpty() or not .identity.isEmpty())
+        let titleFont = .titleFont()
+        for index in .titleLines.count
         {
-            painter.drawLine(x, y - metrics.infoSheet_LineGap * 2,
-                             x + metrics.inspector_SectionHeight, y - metrics.infoSheet_LineGap * 2,
-                             Pen.createSolid(accent, 2))
-        }
-        if not .title.isEmpty()
-        {
-            painter.drawString(headX, y, Painter.elideString(.title, titleFont, titleRight - headX, scale), titleFont, colors.text)
+            painter.drawString(headX, y, .titleLines[index], titleFont, colors.text)
             y += titleFont.height
         }
 
+        // The identity is led by the glyph of the kind of file the sheet describes, the one hue
+        // of the sheet.
         let monoFont = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
         if not .identity.isEmpty()
         {
-            painter.drawString(headX, y + metrics.infoSheet_LineGap, Painter.elideString(.identity, monoFont, titleRight - headX, scale), monoFont, colors.faintText)
-        }
+            let lineTop = y + metrics.infoSheet_LineGap
+            let centerY = lineTop + monoFont.height * 0.5
+            var textX   = headX
+            if not .subjectFile.isEmpty()
+            {
+                let glyph = theme.fileGlyph(.subjectFile, .subjectDirectory, .identityGlyphSize())
+                glyph.paint(painter, headX, Math.round(centerY - glyph.sizeY * 0.5), colors.faintText)
+                textX += glyph.sizeX + metrics.infoSheet_LineGap * 1.5
+            }
 
-        if .pages.count > 1
-        {
-            let pageY = body.y + .pageTop - .scrollOffset
-            let mark  = metrics.sectionLabel_FontSize
-            painter.drawLine(x, pageY + metrics.inspector_SectionHeight * 0.5 - mark * 0.5,
-                             x, pageY + metrics.inspector_SectionHeight * 0.5 + mark * 0.5,
-                             Pen.createSolid(accent, 2))
-            SectionLabel.paint(me, painter,
-                               Math.Rectangle{x + metrics.iconText_Margin, pageY, width - metrics.iconText_Margin, metrics.inspector_SectionHeight},
-                               .pages[.pageIndex])
+            discard paintTextLine(painter, textX, centerY, .identity, monoFont, colors.faintText, right - textX, scale)
         }
 
         let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
         let valueMono = theme.createDefaultFontFs(metrics.defaultFontSize)
-        let factFont  = theme.createDefaultFont(metrics.infoSheet_FactFontSize, .Light)
+        let factFont  = .factFont()
         for block, index in .blocks where block.page == .pageIndex
         {
-            let top     = body.y + block.top - .scrollOffset
+            let top     = shift + block.top
             let centerY = top + block.height * 0.5
             switch block.kind
             {
             case .Fact:
                 let left = x + block.left
-                painter.setAntialiased(true)
-                painter.fillRoundRect(Math.Rectangle{left - metrics.infoSheet_LineGap, top,
-                                                     right - left + metrics.infoSheet_LineGap, block.height},
-                                      metrics.corner_Control, metrics.corner_Control, accent.withAlpha(0x20))
-                let used = paintTextLine(painter, left, centerY, block.value, factFont, accent, right - left, scale)
+                let used = paintTextLine(painter, left, centerY, block.value, factFont, colors.text, right - left, scale)
                 let unit = left + used + metrics.iconText_Margin * 0.5
                 discard paintTextLine(painter, unit, centerY, block.label, monoFont, colors.faintText, right - unit, scale)
 
             case .Reading:
-
                 // A label longer than its column pushes its value along rather than running into it.
-                let used   = paintTextLine(painter, x, centerY, block.label, bodyFont, colors.softText)
-                let valueX = Math.max(x + metrics.infoSheet_LabelWidth, Math.ceil(x + used + metrics.iconText_Margin))
-                discard paintTextLine(painter, valueX, centerY, block.value, block.mono ? valueMono : bodyFont, colors.text, right - valueX, scale)
+                let lineCenter = top + metrics.infoSheet_LineHeight * 0.5
+                discard paintTextLine(painter, x, lineCenter, block.label, bodyFont, colors.softText, block.valueLeft, scale)
+                let valueX = x + block.valueLeft
+                if block.wrapped
+                {
+                    var text = .plainRich(block.value)
+                    let rect = .wrappedValueRect(valueX, top, right - valueX, block.height)
+                    painter.drawRichString(rect, &text, .valueFormat(block.mono, colors.text))
+                }
+                else
+                {
+                    discard paintTextLine(painter, valueX, lineCenter, block.value, block.mono ? valueMono : bodyFont, colors.text, right - valueX, scale)
+                }
 
             case .Section:
-                let mark = metrics.sectionLabel_FontSize * 0.5
-                painter.drawLine(x - metrics.iconText_Margin, centerY - mark * 0.5,
-                                 x - metrics.iconText_Margin, centerY + mark * 0.5,
-                                 Pen.createSolid(accent, 2))
                 SectionLabel.paint(me, painter, Math.Rectangle{x, top, width, block.height}, block.label)
 
             case .Text:
                 var text: RichString
                 text.set(block.label)
-                painter.drawRichString(Math.Rectangle{x, top, width, block.height}, &text, .paragraphFormat())
+                painter.drawRichString(Math.Rectangle{x, top, width, block.height}, &text, .paragraphFormat(colors.softText))
 
             case .Link:
                 let color = index == .hotLink ? colors.arc : colors.link
                 discard paintTextLine(painter, x, centerY, block.label, bodyFont, color, width, scale)
+
+            case .Track:
+                let lineCenter = top + metrics.infoSheet_LineHeight * 0.5
+                discard paintTextLine(painter, x, lineCenter, block.number, monoFont, colors.faintText, block.valueLeft, scale)
+                let nameX = x + block.valueLeft
+                discard paintTextLine(painter, nameX, lineCenter, block.label, bodyFont, colors.text, right - nameX, scale)
+                if not block.value.isEmpty()
+                {
+                    let measures = top + metrics.infoSheet_LineHeight + monoFont.height * 0.5 - metrics.infoSheet_LineGap
+                    discard paintTextLine(painter, nameX, measures, block.value, monoFont, colors.softText, right - nameX, scale)
+                }
+
+            case .Note:
+                // A caution dot leads what the sheet could not read.
+                let lineCenter = top + metrics.infoSheet_LineHeight * 0.5 - metrics.infoSheet_LineGap * 0.5
+                painter.setAntialiased(true)
+                painter.fillCircle(x + 3, lineCenter, 3, colors.caution)
+                var text: RichString
+                text.set(block.label)
+                let indent = .noteIndent()
+                painter.drawRichString(Math.Rectangle{x + indent, top, width - indent, block.height}, &text, .paragraphFormat(colors.softText))
+
+            case .Footnote:
+                let lineHeight = monoFont.height
+                discard paintTextLine(painter, x, top + lineHeight * 0.5, block.label, .footFont(), colors.faintText, width, scale)
+                if not block.value.isEmpty()
+                {
+                    let color = index == .hotLink ? colors.arc : colors.link
+                    let linkX = x + block.valueLeft
+                    discard paintTextLine(painter, linkX, top + block.valueTop + lineHeight * 0.5, block.value, .footFont(), color, right - linkX, scale)
+                }
             }
         }
 
@@ -293,20 +322,32 @@ impl IWnd for InfoSheet
         switch evt.kind
         {
         case .Move:
-            let hot = .linkAt(pos)
-            if hot != .hotLink
+            let hot    = .linkAt(pos)
+            let hotTab = .tabAt(pos)
+            if hot != .hotLink or hotTab != .hotTab
             {
                 .hotLink = hot
+                .hotTab  = hotTab
                 .invalidate()
             }
 
         case .Leave:
             .hotLink = Swag.U64.Max
+            .hotTab  = Swag.U64.Max
             .invalidate()
 
         case .Pressed:
+            if evt.button != .Left do
+                break
+            let tab = .tabAt(pos)
+            if tab != Swag.U64.Max
+            {
+                .selectPage(cast(u32, tab))
+                break
+            }
+
             let link = .linkAt(pos)
-            if evt.button == .Left and link != Swag.U64.Max do
+            if link != Swag.U64.Max do
                 .postCommandEvent(.blocks[link].id)
 
         case .Wheel:
@@ -357,18 +398,6 @@ impl InfoSheet
             }
         }
 
-        with result.pageButton = IconButton.create(result,
-                                                   theme.icon(.ChevronRight, themeRowIconSize(theme.metrics)),
-                                                   Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
-        {
-            .hide()
-            .focusPolicy = .None
-            .sigPressed += func|sheet = result|(_)
-            {
-                sheet.selectPage(cast(u32, (sheet.pageIndex + 1) % sheet.pages.count))
-            }
-        }
-
         return result
     }
 
@@ -398,14 +427,17 @@ impl InfoSheet
     }
 
     // Sets the title of the sheet.
+    //
+    // A title wider than the sheet runs on a second line, and a second line still too long keeps
+    // its end, so a file name keeps its extension.
     mtd setTitle(title: string)
     {
         .title = title
         .relayout()
     }
 
-    // Uses the theme's file-kind hue for this sheet's marks and prominent facts.
-    // An empty file name restores the ordinary information hue.
+    // Names the file or folder the sheet describes; the glyph of its kind leads the identity line.
+    // An empty file name removes the glyph.
     mtd setSubjectFile(fileName: string, directory = false)
     {
         .subjectFile = fileName
@@ -431,8 +463,8 @@ impl InfoSheet
         .relayout()
     }
 
-    // Begins a named page; readings added afterward belong to it. A single page shows no arrow.
-    // The next-page arrow cycles through the pages without closing the sheet.
+    // Begins a named page; readings added afterward belong to it. A single page shows no tabs.
+    // The name of every page stands on the top line of the sheet, and a click shows its page.
     mtd beginPage(name: string)
     {
         .pages.add(name)
@@ -450,16 +482,20 @@ impl InfoSheet
         .relayout()
     }
 
-    // Stands the picture at the left of the title, the title, the identity and the facts that
-    // follow them beside it, and the action right under them, as a poster or a cover heads what
-    // it describes; or back at the head of the sheet.
+    // Stands the picture at the left of the title, the title, the identity and the figures beside
+    // it, and the action right under them, as a poster or a cover heads what it describes; or back
+    // at the head of the sheet.
     mtd setPictureBeside(beside: bool)
     {
         .beside = beside
         .relayout()
     }
 
-    // Appends a fact the reader came for, set large and light, with an optional faint unit.
+    // Appends a figure the reader came for, set large and light, with an optional faint unit.
+    //
+    // The figures of a page stand on one line under the title, in the order they were added,
+    // wherever they were added among the other readings: a viewer adds what its file is about and
+    // the window adds the size after it.
     mtd addFact(value: string, unit: string? = null)
     {
         .blocks.add(InfoSheetBlock{kind: .Fact, label: unit orelse "", value: value, page: .writingPage})
@@ -467,6 +503,8 @@ impl InfoSheet
     }
 
     // Appends a reading: a soft label and its value, in the fixed-width face when it is a measure.
+    //
+    // A value wider than its column runs on the lines below it.
     mtd addReading(label: string, value: string, mono = true)
     {
         .blocks.add(InfoSheetBlock{kind: .Reading, label: label, value: value, mono: mono, page: .writingPage})
@@ -480,10 +518,24 @@ impl InfoSheet
         .relayout()
     }
 
+    // Appends a track of a section: its faint number, its name, and its measures in mono under it.
+    mtd addTrack(number, name: string, measures: string = "")
+    {
+        .blocks.add(InfoSheetBlock{kind: .Track, number: number, label: name, value: measures, page: .writingPage})
+        .relayout()
+    }
+
     // Appends a paragraph in the soft ink, wrapped to the width of the sheet.
     mtd addText(text: string)
     {
         .blocks.add(InfoSheetBlock{kind: .Text, label: text, page: .writingPage})
+        .relayout()
+    }
+
+    // Appends what the sheet could not read, led by a caution dot, wrapped to its width.
+    mtd addNote(text: string)
+    {
+        .blocks.add(InfoSheetBlock{kind: .Note, label: text, page: .writingPage})
         .relayout()
     }
 
@@ -494,15 +546,25 @@ impl InfoSheet
         .relayout()
     }
 
-    // Sets the one primary action of the sheet, at its foot, and returns its button.
+    // Appends a faint footnote, such as where the readings came from, followed by a link in Arc
+    // posting the command `id` when `link` is not empty.
+    mtd addFootnote(text: string, link: string = "", id: WndId? = null)
+    {
+        .blocks.add(InfoSheetBlock{kind: .Footnote, label: text, value: link, id: id, page: .writingPage})
+        .relayout()
+    }
+
+    // Sets the one primary action of the sheet, under its head, and returns its button.
     //
-    // A sheet has at most one: calling this again replaces the caption and the command.
+    // A sheet has at most one: calling this again replaces the caption and the command. A
+    // `quiet` action wears the secondary form, for a screen where another primary action already
+    // stands in Voltage.
     #[Swag.Discardable]
-    mtd setAction(caption: string, id: WndId)->*PushButton
+    mtd setAction(caption: string, id: WndId, quiet = false)->*PushButton
     {
         if .action do
             .action.destroy()
-        .action = PushButton.create(me, caption, {}, id, .Strong)
+        .action = PushButton.create(me, caption, {}, id, quiet ? .Normal : .Strong)
         .actionPage = .writingPage
         .relayout()
         return .action
@@ -530,6 +592,7 @@ impl InfoSheet
         .beside  = false
         .blocks.clear()
         .pages.clear()
+        .tabRects.clear()
         .subjectFile.clear()
         .subjectDirectory = false
         .pageIndex = 0
@@ -547,12 +610,14 @@ impl InfoSheet
         }
 
         .hotLink = Swag.U64.Max
+        .hotTab  = Swag.U64.Max
         .scrollOffset = 0
         .relayout()
     }
 
     // Returns every word on the visible page, one line per piece in reading order: the title,
-    // identity, page name, then each block, a reading as its label over its value.
+    // identity, page name, then each block, a reading as its label over its value and a track as
+    // its number and name over its measures.
     //
     // This is what a screen reader or a test reads of the sheet; the picture has no words.
     mtd text()->String
@@ -587,6 +652,24 @@ impl InfoSheet
                 result += "\n"
                 result += block.value
 
+            case .Track:
+                result += block.number
+                result += " "
+                result += block.label
+                if not block.value.isEmpty()
+                {
+                    result += "\n"
+                    result += block.value
+                }
+
+            case .Footnote:
+                result += block.label
+                if not block.value.isEmpty()
+                {
+                    result += " "
+                    result += block.value
+                }
+
             default:
                 result += block.label
             }
@@ -615,97 +698,200 @@ impl InfoSheet
         let metrics = .themeMetrics()
         let theme   = .theme()
         let pad     = metrics.infoSheet_Padding
+        let inner   = width - 2 * pad
+        let scale   = .deviceScale()
 
-        .pageTop = pad
-        let pageHeight = .pages.count > 1 ? metrics.inspector_SectionHeight + metrics.infoSheet_BlockGap * 0.5 : 0
-        var y      = pad + pageHeight
-        let beside = .besidePicture()
-        if .picture.isValid() and .picturePage == .pageIndex and not beside do
-            y += .pictureSize(width - 2 * pad).y + metrics.infoSheet_BlockGap
-        if not .title.isEmpty() do
-            y += theme.createDefaultFont(metrics.infoSheet_TitleFontSize, .Bold).height
-        if not .identity.isEmpty() do
-            y += metrics.infoSheet_LineGap + theme.createDefaultFontFs(metrics.defaultFontSize - 1).height
-        if not .title.isEmpty() or not .identity.isEmpty() do
-            y += metrics.infoSheet_BlockGap
-
-        let factHeight = theme.createDefaultFont(metrics.infoSheet_FactFontSize, .Light).height
-        var first      = 0'u64
-        if beside
+        // The names of the pages stand on the line of the close button.
+        var y = pad
+        .tabRects.clear()
+        if .pages.count > 1
         {
-            // The facts that follow the title stand beside the picture with it, and the action
-            // comes right under whichever ends lower.
-            let left = .besideSize().x + pad * 0.5
-            for &block in .blocks where block.page == .pageIndex
+            let tabFont = .tabFont()
+            var tabX    = pad
+            for index in .pages.count
             {
-                if block.kind != .Fact do
-                    break
-                block.left   = left
-                block.top    = y
-                block.height = factHeight
-                y            += factHeight
-                first        += 1
+                let tabWidth = Math.ceil(Painter.measureString(.pages[index], tabFont).width)
+                .tabRects.add(Math.Rectangle{tabX, .controlTop(), tabWidth, metrics.embInfo_CloseSize})
+                tabX += tabWidth + metrics.infoSheet_BlockGap + metrics.infoSheet_LineGap
             }
 
-            y = Math.max(y, pad + pageHeight + .besideSize().y) + metrics.infoSheet_BlockGap
-            if .action and .actionPage == .pageIndex
-            {
-                .actionTop = y
-                y += metrics.btnPush_Height + metrics.infoSheet_BlockGap
-            }
+            y = .controlTop() + metrics.embInfo_CloseSize + metrics.infoSheet_BlockGap * 0.5
         }
 
-        var visibleIndex = 0'u64
-        for &block in .blocks where block.page == .pageIndex
+        // A picture across the sheet starts under the close button, as the page names do.
+        let beside = .besidePicture()
+        if .picture.isValid() and .picturePage == .pageIndex and not beside do
+            y = Math.max(y, .controlTop() + metrics.embInfo_CloseSize + metrics.infoSheet_BlockGap * 0.5)
+        .headTop = y
+        if .picture.isValid() and .picturePage == .pageIndex and not beside do
+            y += .pictureSize(inner).y + metrics.infoSheet_BlockGap
+
+        // The title, the identity and the figures, beside the picture when it stands beside them.
+        let headLeft  = beside ? .besideSize().x + pad * 0.5 : 0
+        let headWidth = inner - headLeft
+        let titleFont = .titleFont()
+        let controls  = .pages.count > 1 ? 0 : metrics.embInfo_CloseSize + .controlInset() - pad
+        .titleLines = .splitTitle(.title, titleFont, headWidth - controls, scale)
+        var headY = y + cast(f32, .titleLines.count) * titleFont.height
+        if not .identity.isEmpty() do
+            headY += metrics.infoSheet_LineGap + theme.createDefaultFontFs(metrics.defaultFontSize - 1).height
+
+        let factFont   = .factFont()
+        let unitFont   = theme.createDefaultFontFs(metrics.defaultFontSize - 1)
+        let factHeight = factFont.height
+        let factGap    = metrics.infoSheet_BlockGap + metrics.infoSheet_LineGap
+        var factX      = 0'f32
+        var factTop    = headY + metrics.infoSheet_LineGap * 2
+        var hasFacts   = false
+        for &block in .blocks where block.page == .pageIndex and block.kind == .Fact
         {
-            if visibleIndex < first
+            var factWidth = Painter.measureString(block.value, factFont).width
+            if not block.label.isEmpty() do
+                factWidth += metrics.iconText_Margin * 0.5 + Painter.measureString(block.label, unitFont).width
+            factWidth = Math.ceil(factWidth)
+            if factX > 0 and factX + factWidth > headWidth
             {
-                visibleIndex += 1
-                continue
+                factX   = 0
+                factTop += factHeight
             }
+
+            block.left   = headLeft + factX
+            block.top    = factTop
+            block.width  = factWidth
+            block.height = factHeight
+            factX        += factWidth + factGap
+            hasFacts     = true
+        }
+
+        if hasFacts do
+            headY = factTop + factHeight
+        y = beside ? Math.max(headY, .headTop + .besideSize().y) : headY
+
+        // What follows the head is separated from it by a block of air, and nothing ends on one.
+        var trailingGap = 0'f32
+        if .titleLines.count or not .identity.isEmpty() or hasFacts or beside
+        {
+            y           += metrics.infoSheet_BlockGap
+            trailingGap = metrics.infoSheet_BlockGap
+        }
+
+        if .action and .actionPage == .pageIndex
+        {
+            .actionTop  = y
+            y           += metrics.btnPush_Height + metrics.infoSheet_BlockGap
+            trailingGap = metrics.infoSheet_BlockGap
+        }
+
+        let bodyFont  = theme.createDefaultFont(metrics.defaultFontSize)
+        let valueMono = theme.createDefaultFontFs(metrics.defaultFontSize)
+        let footFont  = .footFont()
+        var first     = true
+        var afterText = false
+        for &block in .blocks where block.page == .pageIndex and block.kind != .Fact
+        {
+            // Readings that follow a paragraph or a note keep the air a paragraph is given.
             block.left = 0
+            if afterText and (block.kind == .Reading or block.kind == .Link or block.kind == .Track) do
+                y += metrics.infoSheet_BlockGap * 0.5
+            afterText = block.kind == .Text or block.kind == .Note
             switch block.kind
             {
-            case .Fact:
-                block.height = factHeight
+            case .Reading:
+                let labelWidth = Painter.measureString(block.label, bodyFont).width
+                block.valueLeft = Math.max(metrics.infoSheet_LabelWidth, Math.ceil(labelWidth + metrics.iconText_Margin))
+                let room       = Math.max(inner - block.valueLeft, 1)
+                let valueWidth = Painter.measureString(block.value, block.mono ? valueMono : bodyFont).width
+                block.wrapped = valueWidth > room
+                block.height  = metrics.infoSheet_LineHeight
+                if block.wrapped
+                {
+                    var text = .plainRich(block.value)
+                    text.compute()
+                    let rect = .wrappedValueRect(0, 0, room, MaxTextLayoutExtent)
+                    Painter.computeLayout(rect, &text, .valueFormat(block.mono, .themeColors().text), scale)
+                    block.height = Math.max(block.height, Math.ceil(text.boundRect.height) + metrics.infoSheet_LineGap)
+                }
 
-            case .Reading, .Link:
+            case .Link:
                 block.height = metrics.infoSheet_LineHeight
 
             case .Section:
-                y += visibleIndex == 0 ? 0 : metrics.infoSheet_BlockGap * 0.5
+                y += first ? 0 : metrics.infoSheet_BlockGap * 0.5
                 block.height = metrics.inspector_SectionHeight
 
-            case .Text:
-                y += visibleIndex == 0 ? 0 : metrics.infoSheet_BlockGap * 0.5
+            case .Track:
+                block.valueLeft = Math.ceil(Painter.measureString("00", valueMono).width + metrics.iconText_Margin)
+                block.height    = metrics.infoSheet_LineHeight
+                if not block.value.isEmpty() do
+                    block.height += theme.createDefaultFontFs(metrics.defaultFontSize - 1).height
+
+            case .Text, .Note:
+                y += first ? 0 : metrics.infoSheet_BlockGap * 0.5
+                let indent = block.kind == .Note ? .noteIndent() : 0
                 var text: RichString
                 text.set(block.label)
                 text.compute()
-                Painter.computeLayout(Math.Rectangle{0, 0, Math.max(width - 2 * pad, 1), MaxTextLayoutExtent}, &text, .paragraphFormat(), .deviceScale())
+                Painter.computeLayout(Math.Rectangle{0, 0, Math.max(inner - indent, 1), MaxTextLayoutExtent}, &text, .paragraphFormat(.themeColors().softText), scale)
                 block.height = Math.ceil(text.boundRect.height) + metrics.infoSheet_LineGap
+
+            case .Footnote:
+                y += first ? 0 : metrics.infoSheet_BlockGap
+                let lineHeight = unitFont.height
+                block.valueLeft = 0
+                block.valueTop  = 0
+                block.width     = 0
+                block.height    = lineHeight
+                if not block.value.isEmpty()
+                {
+                    // The link follows its words on their line, or takes the next one.
+                    let textWidth = Painter.measureString(block.label, footFont).width
+                    let spaceWidth = Painter.measureString(" ", footFont).width
+                    block.width = Math.ceil(Painter.measureString(block.value, footFont).width)
+                    if block.label.isEmpty()
+                    {
+                        block.valueLeft = 0
+                    }
+                    elif textWidth + spaceWidth + block.width <= inner
+                    {
+                        block.valueLeft = Math.ceil(textWidth + spaceWidth)
+                    }
+                    else
+                    {
+                        block.valueTop = lineHeight
+                        block.height   += lineHeight
+                    }
+                }
+
+                block.height += metrics.infoSheet_LineGap
+
+            default:
+                break
             }
 
-            block.top = y
-            y         += block.height
-            visibleIndex += 1
+            block.top   = y
+            y           += block.height
+            first       = false
+            trailingGap = 0
         }
 
-        if .action and .actionPage == .pageIndex and not beside do
-            y += metrics.infoSheet_BlockGap + metrics.btnPush_Height
-        return Math.ceil(y + pad)
+        return Math.ceil(y - trailingGap + pad)
     }
 
     // Returns the visible sheet: the window holds nothing else, its shadow falls outside it.
     private mtd body()->Math.Rectangle => .clientRect()
 
-    // Resolves the kind on every paint so theme changes keep the correct palette role.
-    private mtd accentColor()->Color
-    {
-        if .subjectFile.isEmpty() do
-            return .themeColors().info
-        let color = .theme().fileGlyph(.subjectFile, .subjectDirectory, 16).color
-        return color == .themeColors().text ? .themeColors().info : color
-    }
+    // Returns the top of the close button and of the page names, inside the padding.
+    private mtd controlTop()->f32 => .controlInset() - .themeMetrics().embInfo_CloseMargin
+
+    // Returns the air between the close button and the trailing edge.
+    private mtd controlInset()->f32 => .themeMetrics().infoSheet_Padding - .themeMetrics().embInfo_CloseMargin
+
+    private mtd titleFont()->*Font => .theme().createDefaultFont(.themeMetrics().infoSheet_TitleFontSize, .Bold)
+    private mtd factFont()->*Font => .theme().createDefaultFont(.themeMetrics().infoSheet_FactFontSize, .Light)
+    private mtd tabFont()->*Font => .theme().createDefaultFont(.themeMetrics().defaultFontSize, .SemiBold)
+    private mtd footFont()->*Font => .theme().createDefaultFont(.themeMetrics().defaultFontSize - 1)
+    private mtd identityGlyphSize()->f32 => .themeMetrics().defaultFontSize + 1
+    private mtd noteIndent()->f32 => .themeMetrics().iconText_Margin + 6
 
     // Reports whether the picture stands at the left of the title.
     private mtd besidePicture()->bool => .beside and .picture.isValid() and .picturePage == .pageIndex
@@ -728,10 +914,102 @@ impl InfoSheet
         return {Math.round(height / Math.max(ratio, 0.01)), height}
     }
 
-    private mtd paragraphFormat()->RichStringFormat
+    // Splits `title` into the lines it is set on within `room`: one when it fits, else a first line
+    // cut at the last separator that fits and a second line that keeps its end when it is still
+    // too long, so a file name keeps its extension.
+    private mtd splitTitle(title: string, font: *Font, room: f32, scale: f32)->Array'String
     {
         var result: #returntype
-        .theme().setTextColors(&result, .themeColors().softText)
+        if title.count == 0 do
+            return result
+        if Painter.measureString(title, font).width <= room
+        {
+            result.add(title)
+            return result
+        }
+
+        // The longest prefix that fits, ending at a character boundary, then at a separator when
+        // one stands in its second half.
+        var cut = 0'u64
+        for index in 1 to title.count
+        {
+            if index < title.count and (title[index] & 0xC0) == 0x80 do
+                continue
+            if Painter.measureString(title[until index], font).width > room do
+                break
+            cut = index
+        }
+
+        if cut == 0 do
+            cut = 1
+        let half = cut / 2
+        var at   = cut
+        while at > half
+        {
+            let c = title[at - 1]
+            if c == ' ' or c == '-' or c == '_' or c == '.' or c == '/'
+            {
+                cut = at
+                break
+            }
+
+            at -= 1
+        }
+
+        result.add(title[until cut])
+        let rest = title[cut to]
+        if Painter.measureString(rest, font).width <= room
+        {
+            result.add(rest)
+            return result
+        }
+
+        // The end of the name stays: the extension and the characters before it.
+        let extension = Path.extension(rest) orelse ""
+        var keep      = Math.min(rest.count, extension.count + 6)
+        while keep < rest.count and (rest[rest.count - keep] & 0xC0) == 0x80 do
+            keep += 1
+        let tail = rest[rest.count - keep to]
+        var line = Painter.elideString(rest[until rest.count - keep], font, Math.max(room - Painter.measureString(tail, font).width, 0), scale)
+        line += tail
+        result.add(line)
+        return result
+    }
+
+    // Returns where the wrapped value of a reading is drawn, its first line on the line of its label.
+    private mtd wrappedValueRect(x, top, width, height: f32)->Math.Rectangle
+    {
+        let lead = (.themeMetrics().infoSheet_LineHeight - .valueLineHeight()) * 0.5
+        return Math.Rectangle{x, top + lead, width, height}
+    }
+
+    private mtd valueLineHeight()->f32 => .themeMetrics().infoSheet_LineHeight - .themeMetrics().infoSheet_LineGap
+
+    // Returns the text of a value as rich text that shows every character as written.
+    private mtd plainRich(value: string)->RichString
+    {
+        var result: #returntype
+        result.set(value)
+        return result
+    }
+
+    private mtd valueFormat(mono: bool, color: Color)->RichStringFormat
+    {
+        var result: #returntype
+        let size = .themeMetrics().defaultFontSize
+        .theme().setTextColors(&result, color)
+        result.font          = mono ? .theme().createDefaultFontFamilyFs(size) : .theme().createDefaultFontFamily(size)
+        result.horzAlignment = .Left
+        result.vertAlignment = .Top
+        result.flags         = StringFormatFlags.WordWrap | StringFormatFlags.Ellipsis
+        result.minLineHeight = .valueLineHeight()
+        return result
+    }
+
+    private mtd paragraphFormat(color: Color)->RichStringFormat
+    {
+        var result: #returntype
+        .theme().setTextColors(&result, color)
         result.font          = .theme().createDefaultFontFamily(.themeMetrics().defaultFontSize)
         result.horzAlignment = .Left
         result.vertAlignment = .Top
@@ -739,13 +1017,45 @@ impl InfoSheet
         return result
     }
 
-    private mtd linkAt(pos: Math.Point)->u64
+    // Returns the index of the link under `pos`: a link row, or the link of a footnote.
+    mtd linkAt(pos: Math.Point)->u64
     {
         let body = .body()
-        for block, index in .blocks where block.kind == .Link and block.page == .pageIndex
+        let pad  = .themeMetrics().infoSheet_Padding
+        for block, index in .blocks where block.page == .pageIndex
         {
-            let rect = Math.Rectangle{body.x, body.y + block.top - .scrollOffset, body.width, block.height}
+            var rect: Math.Rectangle
+            switch block.kind
+            {
+            case .Link:
+                rect = Math.Rectangle{body.x, body.y + block.top - .scrollOffset, body.width, block.height}
+
+            case .Footnote:
+                if block.value.isEmpty() or not block.id do
+                    continue
+                let lineHeight = block.height - .themeMetrics().infoSheet_LineGap - block.valueTop
+                rect = Math.Rectangle{body.x + pad + block.valueLeft, body.y + block.top + block.valueTop - .scrollOffset,
+                                      block.width, lineHeight}
+
+            default:
+                continue
+            }
+
             if rect.contains(pos) do
+                return index
+        }
+
+        return Swag.U64.Max
+    }
+
+    // Returns the index of the page name under `pos`.
+    private mtd tabAt(pos: Math.Point)->u64
+    {
+        let body = .body()
+        for rect, index in .tabRects
+        {
+            let hit = Math.Rectangle{body.x + rect.x, body.y + rect.y - .scrollOffset, rect.width, rect.height}
+            if hit.contains(pos) do
                 return index
         }
 

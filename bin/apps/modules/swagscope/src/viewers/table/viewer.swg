@@ -971,6 +971,22 @@ private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
 }
 
 // Creates the integrated CSV/TSV table view.
+impl Panel
+{
+    // Describes the table in the information sheet: its rows and columns, then how they are
+    // separated and encoded.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        data.addFigure(.Custom, countText(.document.rows.count, texts().ui_Row, texts().ui_Rows))
+        data.addFigure(.Custom, countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns))
+        data.add(.Table, group: true)
+        data.add(.Separator, delimiterKind(.document.delimiter))
+        data.add(.Encoding, "UTF-8")
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()
@@ -978,6 +994,7 @@ func createViewer(host: Viewer.Host)
     host.attachView(view)
 
     host.setSearch(Viewer.searchApi(view))
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

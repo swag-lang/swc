@@ -107,7 +107,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     {
         explorer.selected = index
         window.infoSheet.clear()
-        explorer.describeSelection(window.infoSheet, includeAction: false, includeTechnical: false)
+        explorer.describeSelection(window.infoSheet, includeAction: false, includeTechnical: false, includeFile: false)
         exploredInformation = window.infoSheet.text()
         explorer.activate(index)
         break

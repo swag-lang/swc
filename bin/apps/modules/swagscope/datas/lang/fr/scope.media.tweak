@@ -30,3 +30,23 @@ sampleRate  Échantillonnage
 channels    Canaux
 empty       Aucune
 unavailable Erreur de lecture
+mono        mono
+stereo      stéréo
+channelCount % canaux
+track       Piste %
+document    Document
+text        Texte
+sound       Son
+font        Police
+table       Tableau
+music       Musique
+binary      Binaire
+sampleSize  Taille d'échantillon
+title       Titre
+author      Auteur
+style       Style
+unitsPerEm  Unités par em
+faces       Faces
+separator   Séparateur
+meter       Mesure
+glyphCount  % glyphes

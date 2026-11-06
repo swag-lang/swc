@@ -234,7 +234,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.posters and grid.tile.y > grid.tile.x)
     Swag.require(window.infoSheet.beside and
                  Utf8.contains(window.infoSheet.text(), "1982") and
-                 Utf8.contains(window.infoSheet.text(), "1:57"))
+                 Utf8.contains(window.infoSheet.text(), "1 h 57"))
     Swag.require(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.films.paper")

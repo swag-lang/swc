@@ -588,6 +588,19 @@ impl IWnd for Panel
 }
 
 // Creates the integrated syntax-colored source view.
+impl Panel
+{
+    // Describes the source in the information sheet: its language and its encoding.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        data.add(.Text, group: true)
+        data.add(.Language, .languageName)
+        data.add(.Encoding, "UTF-8")
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host.contentParent(), host.fileName(), host.services(), host.createInfoGroup(Viewer.ZoomSlotWidth))
@@ -610,6 +623,7 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(search)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null})
 }

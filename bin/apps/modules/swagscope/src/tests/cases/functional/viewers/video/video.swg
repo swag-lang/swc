@@ -61,8 +61,8 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     if view.video.frameRate().denominator() > 1 do
         Swag.require(Utf8.contains(information, "Exact frame rate"))
     Swag.require(Utf8.contains(information, "Approx. bitrate"))
-    Swag.require(Utf8.contains(information, "Audio tracks\n2"))
-    Swag.require(Utf8.contains(information, "Sample rate"))
+    Swag.require(Utf8.contains(information, "Audio tracks · 2\n1 "))
+    Swag.require(Utf8.contains(information, " Hz · ") and not Utf8.contains(information, "Subtitle tracks"))
 }
 
 // The first lively picture is kept without decoding the other positions: contrast decides, a flat
@@ -1068,8 +1068,8 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.video.audioTrackCount() == 2)
     var information = InfoSheet.create(&host.root)
     view.information.describe(information)
-    Swag.require(Utf8.contains(information.text(), "Name\nPrimary"))
-    Swag.require(Utf8.contains(information.text(), "Name\nAlternate"))
+    Swag.require(Utf8.contains(information.text(), "1 Primary\n"))
+    Swag.require(Utf8.contains(information.text(), "2 Alternate\n"))
     Swag.require(Utf8.contains(information.text(), "44100 Hz"))
     Swag.require(view.audioTrackIndex == 0)
     Swag.require(Film.audioTrackName(0, unwrap view.video.audioTrack(0)) == "Primary")

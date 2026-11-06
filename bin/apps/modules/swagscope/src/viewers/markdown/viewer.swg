@@ -540,6 +540,16 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
 }
 
 // Creates the integrated Markdown view.
+// Describes a Markdown document in the information sheet: its format and its encoding.
+private func describeMarkdown(sheet: *InfoSheet)
+{
+    var data: MediaInfoData
+    data.add(.Text, group: true)
+    data.add(.Format, "Markdown")
+    data.add(.Encoding, "UTF-8")
+    data.describe(sheet)
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
@@ -612,6 +622,7 @@ func createViewer(host: Viewer.Host)
     applyViewerStyle(view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, zoomButton.zoomPercent)
     host.attachView(view)
     host.setDetails(texts().ui_Details)
+    host.setInformation(func(sheet) { describeMarkdown(sheet) })
 
     with var search: Viewer.SearchApi
     {

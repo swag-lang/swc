@@ -110,4 +110,21 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
                                          0, 1, func(_, _) {}, options)
     Swag.require(app.animator.isActive(second), "desktop animation preference did not recover")
     app.animator.cancel(second)
+
+    discard expect File.writeAllText(command, "dark")
+    Swag.require(waitForNativeTheme(&app, ack.toString(), "dark", false))
+    discard expect File.writeAllText(command, "reduce")
+    Swag.require(waitForNativeMotion(&app, ack.toString(), "reduce", true))
+    let changesBeforeExit = themeChanges
+    discard expect peer.kill()
+    discard expect peer.waitForExit()
+    let fallbackDeadline = Time.monotonicMilliseconds() + 4000
+    while (not app.usesLightTheme() or app.isReducedMotion()) and Time.monotonicMilliseconds() < fallbackDeadline do
+        app.runFrame()
+    Swag.require(app.usesLightTheme() and not app.isReducedMotion(), "XSettings owner loss did not restore defaults")
+    Swag.require(themeChanges > changesBeforeExit, "XSettings owner loss did not notify the theme change")
+    for 4 do
+        app.runFrame()
+    let fallbackPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
+    Swag.require(fallbackPixel == lightPixel, "XSettings owner loss did not repaint the native surface")
 }

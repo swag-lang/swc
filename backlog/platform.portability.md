@@ -632,6 +632,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Progress (Linux): the same independent owner changes Gtk/EnableAnimations live. A native
   application following the system preference finishes an in-flight decorative animation
   when motion is reduced and accepts another animation when motion is restored in JIT/native.
+- Progress (Linux): killing the independent XSETTINGS owner while dark theme and reduced
+  motion are active restores the default light palette and full motion. The surface repaints
+  and receives ThemeChanged in JIT/native.
 - Next: translate the platform's live theme and high-contrast changes into the portable settings
   event.
 - Related: platform.portability.082, platform.portability.050, platform.portability.083

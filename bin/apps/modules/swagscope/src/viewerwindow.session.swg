@@ -178,14 +178,15 @@ impl ViewerWindow
     }
 
     // Closes the current file and forgets its reading state, stops the slide show and the change
-    // watch, and returns to the empty window without choosing a control.
-    mtd closeFile()
+    // watch, and returns to the empty window or its explorer without choosing a control.
+    mtd closeFile(forExplorer = false)
     {
         .surface?.clearFocus()
         .explorerTransition = false
         if .explorer and .explorer.isLocallyVisible()
         {
-            .explorerActive = false
+            if not forExplorer do
+                .explorerActive = false
             .explorer.leave()
             .explorer.setShown(false)
         }
@@ -237,13 +238,16 @@ impl ViewerWindow
         .resetFolderReading()
         .showFileInfo("", "")
         .layoutFileInfo()
-        .closeInformation()
+        if not .explorerActive do
+            .closeInformation()
         .updateViewerBar()
         if .explorerActive
         {
             .home.hide()
             .hintLine.hide()
             .explorer!.setShown(true)
+            if .infoSheet.isLocallyVisible() do
+                .refreshInformation()
         }
 
         .refreshTitle()

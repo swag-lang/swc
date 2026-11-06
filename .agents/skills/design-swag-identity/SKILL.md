@@ -38,9 +38,10 @@ of a rule but breaks one of these laws is wrong.
 3. **A visible fact can open its operation.** When a displayed value describes an object with a
    natural operation, let it open the relevant actions for that object. Reuse existing commands
    and keep the menu anchor quiet; do not make labels clickable without a clear operation.
-4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
-   open the same complete lens. Frequent actions also have direct controls; command names and
-   keyboard shortcuts must not be prerequisites for using the application.
+4. **One command catalog, two ways in.** `Ctrl Space` opens the complete lens. An optional quiet
+   menu glyph beside the application mark opens a classic popup built from those command
+   registrations. Frequent actions also have direct controls; command names and keyboard
+   shortcuts must not be prerequisites for using the application.
 5. **One accent at a time.** Voltage acts and Arc chooses. Voltage means *this is the thing to
    do*, so two Voltage marks on one screen mean nothing.
 6. **Air is a material.** A Swag surface is recognized as much by what it leaves empty as by

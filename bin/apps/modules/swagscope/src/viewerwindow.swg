@@ -827,7 +827,10 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible  = commands != null and .viewerBarShown
+        let imageOnce = .playMode == .Once and
+                        .activeChoiceIndex < .choices.count and
+                        .choices[.activeChoiceIndex].key == "image"
+        let visible  = commands != null and (.viewerBarShown or imageOnce)
         .viewerBar.show(visible)
         if not commands do
             return
@@ -873,7 +876,9 @@ impl ViewerWindow
     mtd layoutSearchBar()
     {
         let metrics = .themeMetrics()
-        let area    = .documentArea()
+        var area    = .documentArea()
+        if .infoSheet.isLocallyVisible() do
+            area.width = Math.max(Math.min(area.right(), .infoSheet.position.x - metrics.floating_Inset) - area.x, 0)
         let pad     = .searchBar.padding
         let group   = .searchGroup.itf.measureContent({})
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
@@ -1336,8 +1341,7 @@ impl ViewerWindow
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
-        .closeFile()
-        .explorerActive = true
+        .closeFile(forExplorer: true)
         .home.hide()
         .explorer.setShown(true)
         .explorer.navigate(source)

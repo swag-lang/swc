@@ -1123,16 +1123,27 @@ impl ViewerWindow
     {
         if .explorer do
             .explorer.fitToSheet(open)
+        .layoutSearchBar()
     }
 
     // Describes what the window shows in the information sheet: the open file, or the item chosen
     // in the explored folder.
     mtd refreshInformation()
     {
+        let page = .infoSheet.pageIndex
         .infoSheet.clear()
-        if .isExploring()
+        if .isExploring() or (.currentFile.isEmpty() and .explorerActive and .explorer)
         {
-            .explorer!.describeSelection(.infoSheet)
+            let explorer = unwrap .explorer
+            if explorer.hasMediaSelection() do
+                .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
+            explorer.describeSelection(.infoSheet, includeTechnical: not explorer.hasMediaSelection())
+            if explorer.hasMediaSelection()
+            {
+                .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
+                explorer.describeSelectedTechnical(.infoSheet)
+                .infoSheet.selectPage(page)
+            }
             return
         }
 
@@ -1143,20 +1154,36 @@ impl ViewerWindow
         }
 
         let texts = appStrings()
+        let media = .explorer and .explorer.describesFile(.currentFile) and .explorer.hasMediaSelection()
+        if media do
+            .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
+        if .explorer and .explorer.describesFile(.currentFile)
+        {
+            .explorer.describeSelection(.infoSheet, includeAction: false, includeTechnical: false)
+        }
+        else
+        {
+            // A direct open has no explored selection to describe it.
+            let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
+            .infoSheet.setSubjectFile(path)
+            .infoSheet.setTitle(Path.fileName(path) orelse path)
+            .infoSheet.setIdentity(ViewerHome.folderText(path))
 
-        // The file is placed by its last folders, as the home names them; the whole path is
-        // one link away.
-        let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
-        .infoSheet.setTitle(Path.fileName(path) orelse path)
-        .infoSheet.setIdentity(ViewerHome.folderText(path))
+            let size  = .currentFileSize.toString()
+            let space = Utf8.lastIndexOf(size, " ")
+            if space != Swag.U64.Max do
+                .infoSheet.addFact(size[0 until space], size[space + 1 to])
+            elif size.count do
+                .infoSheet.addFact(size)
+        }
 
-        // A size reads as a figure and its unit: the figure is what the reader came for.
-        let size  = .currentFileSize.toString()
-        let space = Utf8.lastIndexOf(size, " ")
-        if space != Swag.U64.Max do
-            .infoSheet.addFact(size[0 until space], size[space + 1 to])
-        elif size.count do
-            .infoSheet.addFact(size)
+        if media
+        {
+            .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
+            let decodedMedia = .activeChoiceIndex < .choices.count and
+                               (.choices[.activeChoiceIndex].key == "video" or .choices[.activeChoiceIndex].key == "image")
+            .explorer!.describeSelectedTechnical(.infoSheet, includePreview: not decodedMedia)
+        }
 
         if .activeChoiceIndex < .choices.count
         {
@@ -1165,11 +1192,14 @@ impl ViewerWindow
         }
 
         let details = .activeChoiceIndex < .instances.count ? .instances[.activeChoiceIndex].details.toString() : ""
-        if details.count do
+        if details.count and (.activeChoiceIndex >= .instances.count or not .instances[.activeChoiceIndex].describeInformation) do
             .infoSheet.addText(details)
 
         if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].describeInformation do
             .instances[.activeChoiceIndex].describeInformation!(.infoSheet)
+
+        if media do
+            .infoSheet.selectPage(page)
 
     }
 

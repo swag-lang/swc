@@ -2097,11 +2097,16 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.require(button.parent == window.currentCommands)
     window.revealViewerBar()
     Swag.require(button.isVisible())
+    window.pointerPosition = {0, 0}
+    window.concealViewerBar()
+    Swag.require(window.viewerBar.isLocallyVisible())
 
     host.activateOptionRowWhenShown(appStrings().ui_PlayMode)
     host.thenActivateOptionRow(appStrings().ui_PlayShuffle)
     button.showOptions()
     Swag.require(window.playMode == .Shuffle and button.icon.index == cast(s32, ThemeIcons.Shuffle))
+    Swag.require(not window.viewerBar.isLocallyVisible())
+    window.revealViewerBar()
 
     host.activateOptionRowWhenShown(appStrings().ui_PlayMode)
     host.thenActivateOptionRow(appStrings().ui_PlayFolder)

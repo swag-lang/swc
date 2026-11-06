@@ -238,9 +238,17 @@ public impl IWnd for MenuCtrl
                 continue
             }
 
-            // A label opens a group at the menu's leading edge, including when rows have glyphs.
+            // A heading starts with the leftmost signs of its rows: glyphs when present, or
+            // wording otherwise. It does not drift into the text column after the glyphs.
             if it.label
             {
+                labelPos.x += metrics.menuPopup_IconMargin
+                labelPos.width -= metrics.menuPopup_IconMargin
+                if .popupHasGlyphs and .popupHasMarkerColumn
+                {
+                    labelPos.x += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                    labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                }
                 SectionLabel.paint(me, painter, labelPos, it.name.raw)
                 continue
             }

@@ -772,17 +772,15 @@ impl Explorer
     {
         if not .window.infoSheet.isLocallyVisible() do
             return
-        .window.infoSheet.clear()
-        .describeSelection(.window.infoSheet)
+        .window.refreshInformation()
     }
 
     // Opens the window's sheet on the chosen item.
     mtd showInformation()
     {
-        .window.infoSheet.clear()
-        .describeSelection(.window.infoSheet)
+        .window.refreshInformation()
         .window.infoSheet.open()
-        .fitToSheet(true)
+        .window.sheetToggled(true)
     }
 
     // Leaves the sheet its room at the trailing edge while it is open, so the page never runs
@@ -799,11 +797,12 @@ impl Explorer
 
     // Describes the chosen item in `sheet`: its picture, its title and what is known of it, then
     // the file itself; with nothing chosen, the location and how much it holds.
-    mtd describeSelection(sheet: *InfoSheet)
+    mtd describeSelection(sheet: *InfoSheet, includeAction = true, includeTechnical = true)
     {
         let strings = appStrings()
         if .selected >= .entries.count
         {
+            sheet.setSubjectFile(.listing.path, directory: not .listing.isArchive)
             sheet.setTitle(.locationName())
             sheet.setIdentity(.locationText())
             sheet.addText(.status.text())
@@ -811,6 +810,7 @@ impl Explorer
         }
 
         let entry = &.entries[.selected]
+        sheet.setSubjectFile(entry.name, directory: entry.directory)
         if entry.texture.isValid() and entry.texture.width > 1 do
             sheet.setPicture(entry.texture)
 
@@ -854,7 +854,8 @@ impl Explorer
                 sheet.addFact(rating, entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
             }
 
-            sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+            if includeAction do
+                sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
             if entry.movie.overview.length
             {
                 sheet.addSection(strings.explore_Synopsis)
@@ -875,10 +876,13 @@ impl Explorer
                 file += StrConv.toDisplaySize(entry.size)
             }
 
-            if file.length do
+            if includeTechnical and file.length
+            {
                 sheet.addSection(strings.explore_FileProperties)
-            if file.length do
                 sheet.addReading(strings.explore_File, file)
+            }
+            if includeTechnical do
+                .describeTechnical(sheet, entry)
             return
         }
 
@@ -928,7 +932,7 @@ impl Explorer
             let crc = Format.toString("%{X08}", member.crc32)
             sheet.addReading("CRC-32", Format.toString("% %", crc.toString()[0 until 4], crc.toString()[4 to]))
         }
-        else
+        elif includeTechnical or not .hasMediaSelection()
         {
             sheet.addSection(strings.explore_FileProperties)
             addSheetReading(sheet, strings.explore_Type, entry.directory ? strings.ui_Folder : (Path.extension(entry.name) orelse ""))
@@ -939,9 +943,69 @@ impl Explorer
 
         if entry.duration and entry.music.title.isEmpty() and entry.music.track.isEmpty() do
             addSheetReading(sheet, strings.explore_Duration, formatDuration(entry.duration))
-        sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
-        if .listing.isArchive do
-            sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+        if includeTechnical do
+            .describeTechnical(sheet, entry)
+        if includeAction
+        {
+            sheet.setAction(appStrings().cmd_OpenChosen, ViewerCommands.OpenChosen)
+            if .listing.isArchive do
+                sheet.setSecondaryAction(appStrings().cmd_Extract, ViewerCommands.ExtractChosen)
+        }
+    }
+
+    // Adds the measurements already read for a thumbnail or a listing cell.
+    private mtd describeTechnical(sheet: *InfoSheet, entry: const *ExplorerEntry)
+    {
+        var data = MediaInfoData{}
+        for row in entry.technical.rows do
+            data.rows.add(row)
+        if entry.width and entry.height do
+            data.add(.Dimensions, Format.toString("% × % px", entry.width, entry.height))
+        if entry.pages do
+            data.add(.Pages, Format.toString("%", entry.pages))
+        if entry.lines do
+            data.add(.Lines, Format.toString("%", entry.lines))
+        if entry.sections do
+            data.add(.Sections, Format.toString("%", entry.sections))
+        if entry.members do
+            data.add(.Members, Format.toString("%", entry.members))
+        if not entry.face.isEmpty() do
+            data.add(.Typeface, entry.face)
+        if data.rows.isEmpty() do
+            return
+        sheet.addSection(MediaInfoRow{field: .Technical}.label())
+        data.describe(sheet)
+    }
+
+    // Returns whether the selected filesystem item is the file now shown by the window.
+    mtd describesFile(path: string)->bool
+    {
+        if .listing.isArchive or .selected >= .entries.count do
+            return false
+        var selectedPath = String.from(.entries[.selected].path)
+        Path.normalize(&selectedPath)
+        return Path.equals(selectedPath, path)
+    }
+
+    // A media selection has a second page for its file and decoded measurements.
+    mtd hasMediaSelection()->bool => .selected < .entries.count and
+                                    (not .entries[.selected].movie.title.isEmpty() or
+                                     not .entries[.selected].music.title.isEmpty() or
+                                     not .entries[.selected].music.track.isEmpty() or
+                                     not .entries[.selected].technical.rows.isEmpty())
+
+    mtd describeSelectedTechnical(sheet: *InfoSheet, includePreview = true)
+    {
+        if .selected >= .entries.count do
+            return
+        let entry   = &.entries[.selected]
+        let strings = appStrings()
+        sheet.addSection(strings.explore_FileProperties)
+        addSheetReading(sheet, strings.explore_Type, Path.extension(entry.name) orelse "")
+        addSheetReading(sheet, strings.explore_Size, StrConv.toDisplaySize(entry.size))
+        addSheetReading(sheet, strings.explore_Modified, entry.modified)
+        if includePreview do
+            .describeTechnical(sheet, entry)
     }
 
     // Plays what is chosen: an album from its first track, a piece of music with the folder
@@ -1467,12 +1531,36 @@ impl Explorer
         .shown.clear()
         .list.clear()
         let query = .filter.text()
+        var options = Viewer.SearchOptions{matchCase: .window.searchMatchCaseOption,
+                                           wholeWord: .window.searchWholeWordOption,
+                                           regularExpression: .window.searchRegexOption}
+        var expression: Parser.RegExp
+        var validPattern = true
+        if query.count and options.regularExpression
+        {
+            catch expression.compile(query, ignoreCase: not options.matchCase)
+            {
+                validPattern = false
+            }
+
+            if validPattern do
+                options.expression = &expression
+        }
+
+        var matches: Array'Viewer.SearchMatch
         for &entry, index in .entries
         {
             if not .matchesKind(index) do
                 continue
-            if query.count and Utf8.indexOf(entry.name, query, comparisonType: .Latin1NoCase) == Swag.U64.Max do
-                continue
+            if query.count
+            {
+                if not validPattern do
+                    continue
+                matches.clear()
+                Viewer.collectTextMatches(entry.name, query, options, 0, 0, 0, &matches)
+                if matches.isEmpty() do
+                    continue
+            }
             .shown.add(index)
         }
 
@@ -1962,6 +2050,9 @@ impl IWnd for Explorer
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration
                         .entries[preview.index].movie = MovieSummary.fromImage(&preview.image)
+                        let technical = MediaInfoData.fromVideoThumbnail(&preview.image)
+                        if technical.rows.count do
+                            .entries[preview.index].technical = #move technical
                         var music      = MusicSummary.fromImage(&preview.image)
                         let localMusic = &.entries[preview.index].music
                         if not localMusic.track.isEmpty() do

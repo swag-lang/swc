@@ -114,6 +114,7 @@ enum ThemeIcons
     RegularExpression     // Interpret a search as a regular expression.
     GoTo                  // Jump to a specified position in a document.
     SelectAll             // Select every item in the current content.
+    MainMenu              // Opens the application's complete command menu.
 }
 
 // Extensions read as each kind of file, compared without case.

@@ -131,7 +131,9 @@ bind an application like this:
   [task walkthroughs](../../../backlog/design/README.md#direct-controls-and-task-walkthroughs).
 - **Secondary readings, metadata and settings are asked for.** Keep the current mode, selection,
   progress, failures and next essential action understandable without an undiscovered gesture.
-- **A visible Commands control and `Ctrl Space` open the same lens; every command is in it.**
+- **`Ctrl Space` opens the complete lens.** An application may also open a classic command menu
+  from an icon beside its mark. Register its entries with the lens once and use their optional
+  menu placement; do not build a second command list.
 - **One accent at a time**: one primary action per surface, and everything chosen is Arc (see
   [design-swag-themes](../design-swag-themes/SKILL.md#voltage-acts-arc-chooses)).
 - **Air before lines**: measured columns, reading margins, nothing flush with an edge, nothing
@@ -282,7 +284,8 @@ the three share:
   viewer controls stand on a floating bar. Explorer pages use a page title with quiet sort and
   view menus, and the cells take the shape of what the folder holds.
 - **Swag Capture**: the editor composes the dock, the mini-bar, the inspector and the hint line.
-  There are no menus. The charter's key table is the contract for its keys.
+  Its permanent caption glyph opens the generated application command menu; `Ctrl Space` opens
+  the complete lens. The charter's key table is the contract for its keys.
 - **Swag Vault**: a list of vaults under a page title, the live dot (`ThemeColors.live`) for a
   mounted vault and a soft ring for a locked one, and pages with a back link instead of tabs.
 

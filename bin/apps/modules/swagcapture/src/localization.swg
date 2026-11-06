@@ -17,6 +17,10 @@ struct AppStrings
 
     ui_MenuFile:               string = "File"
     ui_MenuCapture:            string = "Capture"
+    ui_MenuCaptureSetup:       string = "Capture Setup"
+    ui_MenuLinkedImage:        string = "Linked Image"
+    ui_MenuCaptureFile:        string = "Capture File"
+    ui_MenuObject:             string = "Object"
     ui_MenuEdit:               string = "Edit"
     ui_MenuImage:              string = "Image"
     ui_MenuView:               string = "View"

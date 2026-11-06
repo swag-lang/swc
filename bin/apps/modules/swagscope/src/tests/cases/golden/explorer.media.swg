@@ -57,6 +57,42 @@ using Core, Gui, Pixel
     Swag.require(Utf8.contains(window.infoSheet.text(), "notes.txt"))
 }
 
+// The film's technical page uses the same sheet and clear readings in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 640)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    shipFrame(&host)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
+    explorer.entries.add({name: "Northbound.mp4", size: 82_000_000, attempted: true,
+                          movie: {title: "Northbound", date: "2024"}})
+    with let technical = &explorer.entries[0].technical
+    {
+        .add(.Format, "MPEG-4")
+        .add(.Codec, "H.264 / AVC")
+        .add(.Dimensions, "1920 × 1080 px")
+        .add(.AspectRatio, "16:9")
+        .add(.FrameRate, "23.98 fps")
+        .add(.ExactFrameRate, "24000/1001")
+        .add(.Frames, "2,880")
+        .add(.Bitrate, "4,560 kb/s")
+    }
+    explorer.fill()
+    explorer.setShown(true)
+    explorer.grid.select(0)
+    explorer.showInformation()
+    window.infoSheet.selectPage(1)
+    window.applyLayout()
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "explorer.movie.technical.paper")
+}
+
 // The correction prompt fits a two-sentence explanation at normal and scaled DPI.
 #[Swag.TestTag("golden")]
 #test

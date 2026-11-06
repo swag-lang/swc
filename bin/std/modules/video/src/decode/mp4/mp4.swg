@@ -949,6 +949,9 @@ impl IDecoder for Decoder
 
         .info.frameRate  = try layout.track.frameRate()
         .info.frameCount = frames.count
+        .info.codecName  = layout.track.isHevc ? "H.265 / HEVC" :
+                           (layout.track.isAvc ? "H.264 / AVC" :
+                            (layout.track.isJpeg ? "Motion JPEG" : "MPEG-4 Part 2"))
         .nextIndex       = 0
 
         if layout.track.isCodedVideo()

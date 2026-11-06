@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui, Pixel
+using Core, Gui, Pixel, Audio
 
 // Accepting the correction dialogs preserves their existing IDs and retires old previews.
 #test
@@ -96,6 +96,8 @@ using Core, Gui, Pixel
     window.explorerActive = true
     explorer.entries.add({name: "Film.mkv", size: 123, attempted: true,
                           movie: {title: "Film", director: "A director", overview: "A long synopsis"}})
+    explorer.entries[0].technical.add(.Format, "Matroska")
+    explorer.entries[0].technical.add(.Dimensions, "1920 × 1080 px")
     explorer.entries.add({name: "notes.txt", size: 10, attempted: true})
     explorer.fill()
     explorer.show()
@@ -104,10 +106,56 @@ using Core, Gui, Pixel
     explorer.grid.select(0)
     let sheet = window.infoSheet
     Swag.require(Utf8.contains(sheet.text(), "Director\nA director"))
+    Swag.require(sheet.pageIndex == 0 and not Utf8.contains(sheet.text(), "Matroska"))
+    sheet.selectPage(1)
+    Swag.require(Utf8.contains(sheet.text(), "Technical\nFile\nType\n.mkv"))
+    Swag.require(Utf8.contains(sheet.text(), "Format\nMatroska"))
+    sheet.selectPage(0)
     Swag.require(not Utf8.contains(sheet.text(), "IMDb rating"))
     explorer.grid.select(1)
     Swag.require(not Utf8.contains(sheet.text(), "A director"))
     Swag.require(Utf8.contains(sheet.text(), "notes.txt"))
     sheet.close()
     Swag.require(not sheet.isLocallyVisible())
+}
+
+// The selected film keeps its media page when opened, while technical readings remain on the
+// second page in both places.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let video  = Path.combine(Path.combine(testSourceRoot(#curlocation), "datas"), "glint-aac-mjpeg.mp4")
+    window.openExplorer(unwrap Path.directoryName(video))
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+    var selected = Swag.U64.Max
+    for &entry, index in explorer.entries where entry.name == "glint-aac-mjpeg.mp4"
+    {
+        selected = index
+        entry.movie.title = "Glint"
+        entry.movie.director = "A director"
+        entry.movie.overview = "A short film"
+        entry.technical.add(.Format, "MPEG-4")
+        break
+    }
+
+    Swag.require(selected != Swag.U64.Max)
+    explorer.selected = selected
+    window.toggleInformation()
+    Swag.require(Utf8.contains(window.infoSheet.text(), "A short film"))
+    window.infoSheet.selectPage(1)
+    Swag.require(Utf8.contains(window.infoSheet.text(), "MPEG-4"))
+    window.infoSheet.selectPage(0)
+
+    explorer.activate(selected)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.infoSheet.isLocallyVisible() and window.infoSheet.pageIndex == 0)
+    Swag.require(Utf8.contains(window.infoSheet.text(), "A short film"))
+    window.infoSheet.selectPage(1)
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Frame rate"))
+    Swag.require(not Utf8.contains(window.infoSheet.text(), "A short film"))
 }

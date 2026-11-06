@@ -64,3 +64,30 @@ using Swag, Core, Pixel
     lens.runChosen()
     Swag.require(aboutRequests == 1)
 }
+
+// Any application with an appearance owner can expose its registered choices in a command menu.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 400)
+    host.surface.flags = SurfaceFlags.StandardWindow
+    host.surfaceWnd.create(&host.root, null)
+
+    let button = AppearanceButton.create(&host.surface)
+    let lens   = Lens.View.create(&host.root)
+    button.addToLens(lens)
+
+    let menu = lens.createCommandMenu()
+    menu.updateState()
+    Swag.require(menu.items.count == 1 and menu.items[0]!.name.raw == strings().lens_Application)
+    let application = menu.items[0]!.popup
+    Swag.require(application.items.count == 2)
+    Swag.require(application.items[0]!.name.raw == strings().appearance_Theme)
+    Swag.require(application.items[1]!.name.raw == strings().appearance_Language)
+    let themes = application.items[0]!.popup
+    themes.updateState()
+    Swag.require(themes.items.count == 3 and themes.items[0]!.checked)
+
+    host.root.sendCommandEvent(themes.items[1]!.id)
+    Swag.require(button.appearanceTheme == .Light)
+}

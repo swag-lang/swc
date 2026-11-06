@@ -3,11 +3,12 @@
 
 using Core, Pixel
 
-// Opens an application's lens through a named Commands button in its caption strip.
+// Opens a command menu beside the application mark, or the lens from the ordinary caption door.
 struct Launcher
 {
     public using captionButton: Gui.CaptionButton     // Embedded caption-button behavior and presentation.
     command: String
+    menuLens: *View?
 }
 
 impl IWnd for Launcher
@@ -22,13 +23,21 @@ impl IWnd for Launcher
 
 impl Launcher
 {
-    // Creates a caption action that posts `command` to `owner`.
+    // Creates a named caption control that posts `command` to `owner`.
     //
-    // The surface owns the button, and `owner` must outlive it. The command identifier is copied.
-    // Route the same command from Ctrl Space; the caption button itself does not take keyboard
-    // focus. The label follows the application language and its width follows the theme metrics.
+    // The surface owns the button and the owner must outlive it. The control does not take
+    // keyboard focus; applications can also route `Ctrl Space` to their lens.
     #[Swag.Discardable]
-    func create(owner: *Wnd, command: WndId)->*Launcher
+    func create(owner: *Wnd, command: WndId)->*Launcher => Launcher.createImpl(owner, command, null)
+
+    // Creates an icon-only caption control beside the application mark.
+    //
+    // It opens a popup built solely from `menuLens`'s registered commands. The surface owns the
+    // button; `owner` and `menuLens` must outlive it. Route `Ctrl Space` to the lens separately.
+    #[Swag.Discardable]
+    func createMenu(owner: *Wnd, menuLens: *View)->*Launcher => Launcher.createImpl(owner, "", menuLens)
+
+    private func createImpl(owner: *Wnd, command: WndId, menuLens: *View?)->*Launcher
     {
         let surface     = unwrap owner.surface
         let parent      = assume cast(*SurfaceWnd, surface.wnd)
@@ -36,24 +45,36 @@ impl Launcher
         {
             .owner   = owner
             .command = command
+            .menuLens = menuLens
+            .captionButton.leading = menuLens != null
             .setForm(.RoundedRectangle)
-            .setTextPosition(.Right)
             .focusPolicy = .None
-            .sigPressed += func|result|(_) { result.owner!.postCommandEvent(result.command) }
+            .sigPressed += func|result|(_)
+            {
+                if result.menuLens do
+                    result.menuLens.openCommandMenu(&result.captionButton.button)
+                else do
+                    result.owner!.postCommandEvent(result.command)
+            }
             .refreshLabel()
         }
 
-        parent.registerCaptionButton(result)
+        if menuLens do
+            parent.registerLeadingCaptionButton(result)
+        else do
+            parent.registerCaptionButton(result)
         return result
     }
 
     private mtd refreshLabel()
     {
         let metrics = .themeMetrics()
-        .captionButton.button.setIcon(.theme().icon(.More, metrics.wnd_CaptionButtonGlyph))
-        .setText(strings().lens_Commands)
+        .captionButton.button.setIcon(.theme().icon(.menuLens ? ThemeIcons.MainMenu : .More, metrics.wnd_CaptionButtonGlyph))
+        .setText(.menuLens ? "" : strings().lens_Commands)
+        if not .menuLens do
+            .setTextPosition(.Right)
         .padding         = metrics.btnIcon_Padding
-        .toolTip         = Format.toString("% (Ctrl Space)", strings().lens_Commands)
+        .toolTip         = .menuLens ? strings().lens_Commands : Format.toString("% (Ctrl Space)", strings().lens_Commands)
         .preferredSize.x = Math.ceil(.itf.measureContent({}).x)
         .parent?.sendResizeEvent()
     }

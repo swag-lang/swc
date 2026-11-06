@@ -89,6 +89,51 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
+// The information sheet follows the reader from a folder to its file and back, then to another
+// explored location without changing its visibility.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(unwrap Path.directoryName(fixture("comprehensive.txt")))
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+    window.toggleInformation()
+    Swag.require(window.infoSheet.isLocallyVisible())
+
+    var exploredInformation: String
+    for &entry, index in explorer.entries where entry.name == "comprehensive.txt"
+    {
+        explorer.selected = index
+        window.infoSheet.clear()
+        explorer.describeSelection(window.infoSheet, includeAction: false, includeTechnical: false)
+        exploredInformation = window.infoSheet.text()
+        explorer.activate(index)
+        break
+    }
+
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.infoSheet.isLocallyVisible())
+    Swag.require(Utf8.contains(window.infoSheet.text(), "comprehensive.txt"))
+    Swag.require(explorer.describesFile(window.currentFile))
+    Swag.require(Utf8.startsWith(window.infoSheet.text(), exploredInformation))
+    window.closeFile(forExplorer: true)
+    host.pump()
+    Swag.require(window.isExploring())
+    Swag.require(window.infoSheet.isLocallyVisible())
+    Swag.require(Utf8.contains(window.infoSheet.text(), "comprehensive.txt"))
+
+    window.openExplorer(fixture("viewer.archive.zip"))
+    Swag.require(window.infoSheet.isLocallyVisible())
+    completeExplorer(&host, explorer)
+    Swag.require(window.isExploring())
+    Swag.require(window.infoSheet.isLocallyVisible())
+    Swag.require(Utf8.contains(window.infoSheet.text(), "viewer.archive.zip"))
+    window.closeFile()
+    Swag.require(window.home.isLocallyVisible() and not window.infoSheet.isLocallyVisible())
+}
+
 // A later location wins even when the preceding enumeration has not returned yet.
 #test
 {

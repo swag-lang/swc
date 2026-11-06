@@ -8,7 +8,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 {
     let path = Path.combine(Env.getSpecialDirectory(.Temp), "thumbnail-fade.y4m")
     defer catch File.delete(path)
-    var clip = expect Clip.create(64, 48, expect FrameRate.create(4, 1))
+    var clip = expect Clip.create(64, 48, expect FrameRate.create(24_000, 1_001))
     for index in 20
     {
         var image = Image.create(64, 48, .RGB8)
@@ -20,6 +20,14 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     let thumbnail = expect Film.loadThumbnail(path)
     let color     = thumbnail.pixelColor(32, 24)
     Swag.require(color.g > 160 and color.b > 200)
+    let information = MediaInfoData.fromVideoThumbnail(&thumbnail)
+    Swag.require(information.rows.count == 8)
+    Swag.require(information.rows[1].field == .Codec and information.rows[1].value == "Uncompressed YUV")
+    Swag.require(information.rows[2].field == .Dimensions and information.rows[2].value == "64 × 48 px")
+    Swag.require(information.rows[3].field == .AspectRatio and information.rows[3].value == "4:3")
+    Swag.require(information.rows[4].field == .FrameRate)
+    Swag.require(information.rows[5].field == .ExactFrameRate and information.rows[5].value == "24000/1001")
+    Swag.require(information.rows[6].field == .Frames and information.rows[7].field == .Bitrate)
 
     var candidates: Array'Film.ThumbnailCandidate
     for color in [Color.fromRgb(0, 0, 0), Color.fromRgb(255, 255, 255), Color.fromRgb(56, 189, 248)]
@@ -33,6 +41,28 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 
     Swag.require(not candidates[0].usable and not candidates[1].usable and candidates[2].usable)
     Swag.require(Film.representativeThumbnail(candidates.toSlice()) == 2)
+}
+
+// The file's technical reading includes its picture codec, exact geometry and rate, overall
+// throughput, and the audio tracks discovered after the first frame.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+    waitForVideoAudio(view, 2)
+    window.toggleInformation()
+    let information = window.infoSheet.text()
+    Swag.require(Utf8.contains(information, "H.264 / AVC"))
+    Swag.require(Utf8.contains(information, "Aspect ratio"))
+    if view.video.frameRate().denominator() > 1 do
+        Swag.require(Utf8.contains(information, "Exact frame rate"))
+    Swag.require(Utf8.contains(information, "Approx. bitrate"))
+    Swag.require(Utf8.contains(information, "Audio tracks\n2"))
+    Swag.require(Utf8.contains(information, "Sample rate"))
 }
 
 // The first lively picture is kept without decoding the other positions: contrast decides, a flat
@@ -433,7 +463,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     Swag.require(result.sidePanelButton == null and result.sidePanelHost == null)
     var information = InfoSheet.create(&host.root)
     view.information.describe(information)
-    Swag.require(Utf8.contains(information.text(), "Dimensions\n160 × 90 px"))
+    Swag.require(Utf8.contains(information.text(), "160 × 90 px"))
     Swag.require(Utf8.contains(information.text(), "Frames\n4"))
     Swag.require(view.frameIndex == 0 and view.playing)
     Swag.require(view.playButton.icon.index == cast(s32, ThemeIcons.Pause))

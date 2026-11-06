@@ -43,6 +43,8 @@ public struct SurfaceWnd
 
     captionButtons:        Array'(*IconButton)     // Application actions immediately before the native caption controls.
     leadingCaptionButtons: Array'(*IconButton)     // Application actions after the app glyph and before the title.
+    appearanceButton:      *AppearanceButton?       // Appearance command owner on this surface, if present.
+    appearanceActionRegistered: bool                // Whether this surface already routes appearance commands.
     chromePalette:         ThemePalette            // Document palette copied by setChromePalette.
     hasChromePalette:      bool                    // Whether chrome follows the document rather than the application.
 }

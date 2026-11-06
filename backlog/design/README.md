@@ -31,10 +31,12 @@ rules they follow. Where a picture and a rule disagree, the rule wins.
    dimensions can open resize commands; its zoom can open zoom and fit commands. Keep the value
    as a quiet menu anchor and reuse the existing commands. Do not make labels clickable when no
    clear operation follows from them.
-4. **One complete door, several direct gestures.** A visible Commands control and `Ctrl Space`
-   open the same lens: search, go to, open, switch view, run any command. Every command remains
-   reachable from it. Frequent actions also have direct controls; the lens never makes learning
-   command names a prerequisite for using an application.
+4. **One command catalog, two ways in.** `Ctrl Space` opens the complete lens: search, go to,
+   open, switch view, run any command. An application may also expose a permanent menu glyph
+   beside its mark. It opens a classic popup built from the lens's registered commands, grouped
+   by family and, where useful, one further submenu. The menu chooses discoverable actions;
+   contextual and fine-grained commands may stay in the lens alone. Frequent actions also have
+   direct controls, so neither a command name nor a shortcut is needed for the basic task.
 5. **One accent at a time.** Voltage acts, Arc chooses. Two yellow things on one screen is one too
    many.
 6. **Air is a material.** Measured columns, reading margins, nothing flush with an edge, nothing
@@ -181,10 +183,12 @@ duplicating screenshots.
 - The top 52 px is part of the content area and draggable wherever no control sits;
   double-click maximizes.
 - The non-interactive application mark is 24 px, centred vertically in the top strip. It shows the glyph alone, in Voltage on Encre and Arc on Papier, distinct from the monochrome command glyphs. It has no tile or interaction feedback.
-- The document's name is centred at the top, 12 px, faint. A quiet Commands control gives the
-  lens a visible pointer entrance in the existing strip, with its shortcut in the tooltip. It
-  stays available without hovering an invisible target; at narrow widths it keeps a named
-  accessible target and a recognizable glyph. It does not require a second caption band.
+- The document's name is centred at the top, 12 px, faint. An application using the command menu
+  places one quiet, icon-only menu button immediately after its mark on the left. Three horizontal
+  strokes identify a list of commands, distinct from the application glyph. Its tooltip names
+  "Commands" in the current language. It remains visible at every window width and opens an
+  anchored popup; it does not require a second caption band. Applications without this menu may
+  keep a named lens entrance in the existing strip.
 - The window buttons are faint glyphs at the top right; they reach full contrast on hover.
 - The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
   from its surroundings without competing with the work. Floating panels and sheets use the
@@ -297,7 +301,7 @@ from observed user sessions. They set the acceptance tasks for lens and applicat
 
 | Task | Cost when everything goes through the lens | Required direct route |
 | --- | --- | --- |
-| First Capture launch, mouse only | A shortcut hint explains a key, but offers no visible command entrance | A named Commands control; Capture Area is immediately visible in the empty state |
+| First Capture launch, mouse only | A shortcut hint explains a key, but offers no visible command entrance | A permanent command-menu glyph beside the app mark; Capture Area is immediately visible in the empty state |
 | Capture a region, add an arrow, copy into a message | Opening a modal palette to finish interrupts work on the canvas; Copy can mean an object or the finished picture | Keep the tool dock; offer explicit Copy Image and Save as Image together beside the work |
 | Annotate three successive captures | Selecting an annotation must not replace the route to the next capture | Capture Area and Last Area keep their positions; expose delay/cursor/output choices in one capture settings group |
 | Correct an annotation and undo | Reopening the lens for each correction hides the effect behind a dimmed canvas | Direct selection tools and Undo/Redo; keep settings open while adjusting, with visible feedback |
@@ -319,6 +323,27 @@ uninterrupted playback, but appear immediately on pointer movement, remain while
 keyboard-focused, and are visible when paused. Pointer use, keyboard traversal and tooltips must
 agree. A novice must be able to open, browse, perform and leave the main task using only the
 pointer; an experienced reader must be able to complete it without the pointer.
+
+### Application command menu
+
+The menu button opens a popup anchored to the button, with the menu ground, gap, shadow, row
+height, shortcuts, checks and disabled states defined under Controls. The root lists a small set
+of familiar application families. Put ordinary actions directly in their family. Reserve a named
+subgroup for a long or subordinate set that would obscure those actions: at most three popup
+levels including the root. Keep every popup within the minimum window height. The builder
+separates adjacent sections of direct actions and the transition to submenus automatically.
+A menu selection uses the same identifier
+and current state as the lens; hidden commands are omitted and unavailable ones remain faint.
+
+The menu is generated from command registrations. Each registration can specify its menu family,
+subgroup or exclusion; an application does not maintain a second menu command list. The lens stays
+complete, including commands omitted from the menu and actions supplied by contextual sources.
+The popup closes after a choice or `Esc`, and it leaves the image or document undimmed.
+
+An application that registers the shared appearance owner exposes Theme and Language as menu
+subgroups. Their entries come from the shipped palettes and registered languages, show the current
+exclusive choice, and apply it directly. The appearance sheet remains the presentation of a
+dedicated appearance button; a menu entry does not open that sheet.
 
 #### Search intent and predictable ranking
 

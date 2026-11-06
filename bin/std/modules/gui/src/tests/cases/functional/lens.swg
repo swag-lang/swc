@@ -46,6 +46,66 @@ using Swag, Core, Pixel
     Swag.require(Lens.prefixText(.Action) == ">")
 }
 
+// The optional application menu is derived from command registrations, including their
+// visibility, placement and exclusions; the lens retains every registered command.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    host.root.hookOnEvent = &lensCommandState
+
+    with let lens = Lens.View.create(&host.root)
+    {
+        .addCommand("File", LensOpen)
+        .addCommand("File", LensSave, menuGroup: func()->string => "Export")
+        .addCommand("File", LensHidden)
+        .addCommand("View", LensTheme, inMenu: false)
+        .addCommand("View", LensDisabled)
+    }
+
+    let menu = lens.createCommandMenu()
+    Swag.require(menu.items.count == 3)
+    Swag.require(menu.items[0]!.name.raw == "File")
+    Swag.require(menu.items[1]!.separator)
+
+    let file = menu.items[0]!.popup
+    Swag.require(file.items.count == 3 and file.items[0]!.id == LensOpen)
+    Swag.require(file.items[1]!.separator and file.items[2]!.name.raw == "Export")
+    let export = file.items[2]!.popup
+    Swag.require(export.items.count == 1 and export.items[0]!.id == LensSave)
+
+    menu.updateState()
+    Swag.require(menu.items[2]!.id == LensDisabled and menu.items[2]!.name.raw == "Center Disabled" and menu.items[2]!.disabled)
+
+    lens.open(">")
+    var foundExcluded: bool
+    for section in lens.results.sections where section do
+        for entry in section.entries where entry.id == LensTheme do
+            foundExcluded = true
+    Swag.require(foundExcluded)
+    lens.close()
+}
+
+// A change of section between direct commands creates one separator without a menu-only entry.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    host.root.hookOnEvent = &lensCommandState
+
+    with let lens = Lens.View.create(&host.root)
+    {
+        .addCommand("File", LensOpen)
+        .addCommand("File", LensSave, menuSection: 1)
+    }
+
+    let menu = lens.createCommandMenu()
+    Swag.require(menu.items.count == 1)
+    let file = menu.items[0]!.popup
+    Swag.require(file.items.count == 3)
+    Swag.require(file.items[0]!.id == LensOpen and file.items[1]!.separator and file.items[2]!.id == LensSave)
+}
+
 // Opening the lens shows every source and the commands grouped by family; a hidden command is
 // left out and a disabled one cannot be chosen. Typing narrows the rows and marks what matched.
 #test

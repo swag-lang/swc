@@ -721,14 +721,24 @@ private impl Panel
         var data: MediaInfoData
         data.add(.Video, group: true)
         data.add(.Format, .video.streamFormat().name)
+        if .video.streamInfo().codecName.count do
+            data.add(.Codec, .video.streamInfo().codecName)
         data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()))
-        data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
+        if .video.displayWidth() != .video.width() or .video.displayHeight() != .video.height() do
+            data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
+        data.add(.AspectRatio, videoAspectRatio(.video.displayWidth(), .video.displayHeight()))
         let rate = .video.frameRate()
         data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()))
+        if rate.denominator() > 1 do
+            data.add(.ExactFrameRate, Format.toString("%/%", rate.numerator(), rate.denominator()))
         if frames do
             data.add(.Frames, Format.toString("%", frames))
-        if .video.durationInSeconds() > 0 do
-            data.add(.Duration, Viewer.durationText(.video.durationInSeconds()))
+        let duration = .video.durationInSeconds()
+        if duration > 0 do
+            data.add(.Duration, Viewer.durationText(duration))
+        let bitrate = videoBitrate(.video.sourceSizeBytes(), duration)
+        if bitrate.count do
+            data.add(.Bitrate, bitrate)
         data.add(.Audio, Format.toString("%", audio))
         data.add(.Subtitles, Format.toString("%", subtitles))
         for index in audio
@@ -886,6 +896,8 @@ private impl Panel
         .subtitleTrackIndex  = 0
         .subtitleLastSeconds = -1
         .refreshChips()
+        .refreshInformation()
+        .refreshDetails()
     }
 
     // Writes on the chips what is in force: the subtitles, the sound track and the speed. A chip

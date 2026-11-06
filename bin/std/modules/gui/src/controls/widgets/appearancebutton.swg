@@ -26,11 +26,101 @@ struct AppearanceButton
     }
 }
 
+private const AppearanceDarkCommand           = "Gui.Appearance.Theme.Dark"
+private const AppearanceLightCommand          = "Gui.Appearance.Theme.Light"
+private const AppearanceSystemCommand         = "Gui.Appearance.Theme.System"
+private const AppearanceSystemLanguageCommand = "Gui.Appearance.Language.System"
+
+private struct AppearanceLanguageCommand
+{
+    id:  String
+    tag: String
+}
+
+private var g_AppearanceLanguageCommands: Array'AppearanceLanguageCommand
+
+// Routes registered theme and language choices through the same state and command events as
+// every application action. The surface owns the AppearanceButton that applies each choice.
+internal struct ActionAppearance {}
+
+internal impl IActionUI for ActionAppearance
+{
+    mtd impl accept(cxt: ActionContext)->bool => appearanceThemeCommandIndex(cxt.id) != Swag.U32.Max or
+                                                  cxt.id == AppearanceSystemLanguageCommand or
+                                                  appearanceLanguageForCommand(cxt.id) != null
+
+    mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    {
+        let button = assume cast (*SurfaceWnd, cxt.wnd).appearanceButton
+        if not button do
+            return false
+
+        evt.updatedFields |= .Name | .Checked | .RenderingHint
+        evt.renderingHint = .ExclusiveGroup
+
+        let themeIndex = appearanceThemeCommandIndex(cxt.id)
+        if themeIndex != Swag.U32.Max
+        {
+            let theme   = AppearanceThemeValues[themeIndex]
+            evt.name    = appearanceThemeName(theme)
+            evt.checked = button.appearanceTheme == theme
+            return true
+        }
+
+        if cxt.id == AppearanceSystemLanguageCommand
+        {
+            evt.name    = strings().appearance_SystemLanguage
+            evt.checked = button.language.isEmpty()
+            return true
+        }
+
+        if let choice = appearanceLanguageForCommand(cxt.id)
+        {
+            evt.name    = findLanguage(choice.tag)?.nativeName.toString() orelse choice.tag.toString()
+            evt.checked = button.language == choice.tag
+            return true
+        }
+
+        return false
+    }
+
+    mtd impl execute(cxt: ActionContext)->bool
+    {
+        let button = assume cast (*SurfaceWnd, cxt.wnd).appearanceButton
+        if not button do
+            return false
+
+        let themeIndex = appearanceThemeCommandIndex(cxt.id)
+        if themeIndex != Swag.U32.Max
+        {
+            button.setAppearanceTheme(AppearanceThemeValues[themeIndex], notify: true)
+            return true
+        }
+
+        if cxt.id == AppearanceSystemLanguageCommand
+        {
+            discard catch button.setAppearanceLanguage("", notify: true)
+            return true
+        }
+
+        if let choice = appearanceLanguageForCommand(cxt.id)
+        {
+            discard catch button.setAppearanceLanguage(choice.tag, notify: true)
+            return true
+        }
+
+        return false
+    }
+}
+
 impl IWnd for AppearanceButton
 {
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        assume cast (*SurfaceWnd, .parent).unregisterCaptionButton(me)
+        let parent = assume cast (*SurfaceWnd, .parent)
+        parent.unregisterCaptionButton(me)
+        if parent.appearanceButton == me do
+            parent.appearanceButton = null
         .button.IWnd.onDestroyEvent(evt)
     }
 
@@ -64,6 +154,12 @@ impl AppearanceButton
         }
 
         parent.registerCaptionButton(result)
+        if not parent.appearanceActionRegistered
+        {
+            parent.registerAction'ActionAppearance()
+            parent.appearanceActionRegistered = true
+        }
+        parent.appearanceButton = result
         return result
     }
 
@@ -93,10 +189,9 @@ impl AppearanceButton
             .sigLanguageChanged.call(me)
     }
 
-    // Opens the theme, the language and the information about the application below the button.
+    // Opens the theme, language and application information beside this button.
     //
-    // A theme or a language applies as soon as it is chosen, so the sheet itself is redrawn in it
-    // and the reader sees the choice before closing.
+    // Changes apply as soon as they are chosen, so the open sheet redraws in the new theme or language.
     private mtd showAppearanceOptions()
     {
         let sheet = OptionSheet.View.create(me, func|button = me|(page) { button.describeAppearance(page) }, owner: me)
@@ -141,17 +236,27 @@ impl AppearanceButton
             page.addAction(texts.appearance_About, func|button = me|() { button.sigAboutRequested.call(button) }, closesSheet: true)
     }
 
-    // Offers the theme, the language and the About box as rows of `lens`.
+    // Offers the theme, language and About box as rows of `lens` and registers menu choices.
     //
-    // The appearance is a command like any other, so it is found through the one door: the
-    // themes under the theme label, the languages under the language label, and About under the
-    // application label when [[Gui.AppearanceButton.sigAboutRequested]] has a callback. The themes
-    // and the languages are exclusive choices, each shown as one row of segments; a segment
-    // applies its choice exactly as the options of the button do, and the choice in force is
-    // underlined. A query naming a group, such as "theme", lists the whole group.
+    // The lens shows themes and languages as exclusive segments; a query naming a group lists
+    // all its choices. The same choices are registered as commands for an optional application
+    // menu, where they appear under Theme and Language submenus. Each menu entry reports its
+    // current selection and applies it through this button. About remains a lens row when
+    // [[Gui.AppearanceButton.sigAboutRequested]] has a callback.
     mtd addToLens(lens: *Lens.View)
     {
         lens.addSource(.None, func|button = me|(results) { button.describeLens(results) })
+        lens.addCommands(func()->string => strings().lens_Application,
+                         [AppearanceDarkCommand, AppearanceLightCommand, AppearanceSystemCommand],
+                         menuGroup: func()->string => strings().appearance_Theme,
+                         menuSection: 1, inLens: false)
+        lens.addCommand(func()->string => strings().lens_Application, AppearanceSystemLanguageCommand,
+                        menuGroup: func()->string => strings().appearance_Language,
+                        menuSection: 1, inLens: false)
+        for &one in languages() do
+            lens.addCommand(func()->string => strings().lens_Application, appearanceLanguageCommandId(one.tag),
+                            menuGroup: func()->string => strings().appearance_Language,
+                            menuSection: 1, inLens: false)
     }
 
     internal mtd describeLens(results: *Lens.Results)
@@ -231,4 +336,33 @@ private func appearanceThemeName(theme: AppearanceTheme)->string
     case .Light:  return strings().appearance_Light
     case .System: return strings().appearance_System
     }
+}
+
+private func appearanceThemeCommandIndex(id: WndId)->u32
+{
+    switch id
+    {
+    case AppearanceDarkCommand:   return 0
+    case AppearanceLightCommand:  return 1
+    case AppearanceSystemCommand: return 2
+    }
+
+    return Swag.U32.Max
+}
+
+private func appearanceLanguageCommandId(tag: string)->WndId
+{
+    for &choice in g_AppearanceLanguageCommands where choice.tag == tag do
+        return choice.id
+
+    g_AppearanceLanguageCommands.add(AppearanceLanguageCommand{
+        Format.toString("Gui.Appearance.Language.%", tag), String.from(tag)})
+    return g_AppearanceLanguageCommands[g_AppearanceLanguageCommands.count - 1].id
+}
+
+private func appearanceLanguageForCommand(id: WndId)->const *AppearanceLanguageCommand?
+{
+    for &choice in g_AppearanceLanguageCommands where choice.id == id do
+        return choice
+    return null
 }

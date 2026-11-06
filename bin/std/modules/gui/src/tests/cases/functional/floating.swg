@@ -224,6 +224,50 @@ using Swag, Core, Pixel
     Swag.require(not sheet.beside)
 }
 
+// A small arrow changes pages without carrying the media action onto technical readings.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setTitle("Film")
+    sheet.beginPage("Media")
+    sheet.addFact("8.1", "IMDb")
+    discard sheet.setAction("Open", "sheet.open")
+    sheet.beginPage("Technical")
+    sheet.addReading("Frame rate", "24 fps")
+    sheet.open()
+    Swag.require(sheet.pageButton.isLocallyVisible() and sheet.pageIndex == 0)
+    Swag.require(sheet.pageButton.position.y == sheet.closeButton.position.y and
+                 sheet.pageButton.position.right() + host.theme.metrics.embInfo_CloseMargin == sheet.closeButton.position.x)
+    Swag.require(sheet.closeButton.position.y < host.theme.metrics.infoSheet_Padding)
+    Swag.require(Utf8.contains(sheet.text(), "8.1 IMDb") and not Utf8.contains(sheet.text(), "24 fps"))
+    host.clickWnd(sheet.pageButton)
+    Swag.require(sheet.pageIndex == 1 and not sheet.action!.isLocallyVisible())
+    Swag.require(Utf8.contains(sheet.text(), "24 fps") and not Utf8.contains(sheet.text(), "8.1 IMDb"))
+    host.clickWnd(sheet.pageButton)
+    Swag.require(sheet.pageIndex == 0 and sheet.action!.isLocallyVisible())
+}
+
+// Long information remains reachable when the sheet fills the available height.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 400, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setTitle("Film")
+    for index in 40 do
+        sheet.addReading("Track", Format.toString("%", index))
+    sheet.open()
+    Swag.require(sheet.contentHeight > sheet.position.height)
+    host.mouseWheel({400, 200}, -1)
+    Swag.require(sheet.scrollOffset > 0)
+    host.mouseWheel({400, 200}, -100)
+    Swag.require(sheet.scrollOffset == sheet.contentHeight - sheet.position.height)
+    sheet.clear()
+    Swag.require(sheet.scrollOffset == 0)
+}
+
 // A sheet arrives from its edge and fades out, reachable at once on the way in and gone at
 // once on the way out; the mini-bar leaves its selection rising, and follows it once it is up.
 #test

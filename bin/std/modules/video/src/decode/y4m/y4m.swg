@@ -252,6 +252,7 @@ impl IDecoder for Decoder
         // and reports no frame count rather than a computed one that would be wrong.
         let span = source.size() - .firstMarker
         var result: #returntype = .header.info
+        result.codecName = "Uncompressed YUV"
         result.frameCount = span / .frameStride
         .isRandomAccess   = not (span % .frameStride) and .probeLastFrame(source, result.frameCount)
         if not .isRandomAccess do

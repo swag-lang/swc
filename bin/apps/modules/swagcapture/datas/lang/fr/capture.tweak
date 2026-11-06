@@ -2,6 +2,10 @@
 
 ui_MenuFile            Fichier
 ui_MenuCapture         Capture
+ui_MenuCaptureSetup    Réglages de capture
+ui_MenuLinkedImage     Image liée
+ui_MenuCaptureFile     Fichier de capture
+ui_MenuObject          Objet
 ui_MenuEdit            Édition
 ui_MenuImage           Image
 ui_MenuView            Affichage

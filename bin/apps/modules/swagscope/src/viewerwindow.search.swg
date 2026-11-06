@@ -75,10 +75,12 @@ impl ViewerWindow
             .searchBox.setPlaceholder(.searchToolTip)
             .searchBox.toolTip = .searchToolTip
             .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
-            .searchOptionsButton.hide()
+            .searchOptionsButton.show()
+            .searchOptionsButton.setIcon(.theme().icon(.MatchWholeWord, themeActionIconSize(.themeMetrics())))
+            .searchOptionsButton.toolTip = appStrings().ui_SearchOptions
             .searchNavigation.hide()
-            .searchGroup.spacing = 0
-            .searchBox.resize(SearchNoOptionsFieldWidth, 36)
+            .searchGroup.spacing = SearchGroupSpacing
+            .searchBox.resize(SearchFieldWidth, 36)
             .searchGroup.computeLayout()
             .layoutSearchBar()
             return
@@ -145,7 +147,11 @@ impl ViewerWindow
     {
         if .isExploring()
         {
-            .explorer!.filter.setText(.searchBox.text())
+            if .explorer!.filter.text() == .searchBox.text() do
+                .explorer.fill()
+            else do
+                .explorer.filter.setText(.searchBox.text())
+            .refreshSearchReadout()
             return
         }
 
@@ -295,6 +301,16 @@ impl ViewerWindow
     // an invalid pattern, a running count, no match, or the current position.
     private mtd refreshSearchReadout()
     {
+        if .isExploring()
+        {
+            .searchCountLabel.setText("")
+            .searchCountLabel.toolTip = ""
+            .searchPrevious.enable(false)
+            .searchNext.enable(false)
+            .searchBox.toolTip = .searchToolTip
+            return
+        }
+
         if .searchFilterMode
         {
             .searchCountLabel.setText("")

@@ -1,15 +1,26 @@
 # French strings of the shared image and video information readings.
+media       Média
 image       Image
 video       Vidéo
 metadata    Métadonnées
+technical   Technique
 format      Format
+codec       Codec vidéo
 dimensions  Dimensions
 displaySize Taille d'affichage
+aspectRatio Format d'image
 pixelFormat Format des pixels
 depth       Bits par pixel
 frames      Images
+pages       Pages
+lines       Lignes
+sections    Sections
+members     Fichiers
+typeface    Police
 duration    Durée
 frameRate   Cadence
+exactFrameRate Cadence exacte
+bitrate     Débit estimé
 audio       Pistes audio
 subtitles   Sous-titres
 name        Nom

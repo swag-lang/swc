@@ -17,6 +17,7 @@ impl ViewerWindow
                   preserveReading = false,
                   offerForgetMissing = false)
     {
+        .captureResume()
         if .isExploring() and not preserveReading do
             .explorerTransition = true
         .reloading = preserveReading
@@ -181,6 +182,7 @@ impl ViewerWindow
     // watch, and returns to the empty window or its explorer without choosing a control.
     mtd closeFile(forExplorer = false)
     {
+        .captureResume()
         .showPointer()
         .surface?.clearFocus()
         .explorerTransition = false

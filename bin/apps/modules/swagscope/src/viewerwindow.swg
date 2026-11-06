@@ -171,6 +171,9 @@ struct ViewerWindow
     recent:              Array'String
     recentOpened:        Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
     folderHistory:       Array'ViewerFolderHistory
+    resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
+    exploredFolders:     Array'String                // Folders and archives explored lately, most recent first.
+    systemPlaces:        Array'String                // The system's own folders a first launch offers to explore.
     folderFilter:        String
     preferences:         Array'ViewerPreference
     musicChoices:        Array'MusicChoice
@@ -506,6 +509,10 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
         catch evt.serializer.serialize("ViewerWindow.recentOpened", &me.recentOpened)
         catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
+        if not evt.serializer.isReading() do
+            .captureResume()
+        catch evt.serializer.serialize("ViewerWindow.resumePoints", &me.resumePoints)
+        catch evt.serializer.serialize("ViewerWindow.exploredFolders", &me.exploredFolders)
         catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
@@ -551,6 +558,9 @@ impl IWnd for ViewerWindow
             while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
             .recentOpened.resize(.recent.count)
+            .pruneResume()
+            while .exploredFolders.count > FolderHistoryCount do
+                .exploredFolders.removeBack()
             while .folderHistory.count > FolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(not .folderHistory.isEmpty())
@@ -984,6 +994,9 @@ impl ViewerWindow
         result.index           = #move index
         result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
+        for kind in [Env.SpecialDirectory.UserPictures, Env.SpecialDirectory.UserVideos, Env.SpecialDirectory.UserMusic,
+                     Env.SpecialDirectory.UserDocuments, Env.SpecialDirectory.Downloads] do
+            result.systemPlaces.add(Env.getSpecialDirectory(kind))
 
         with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
         {
@@ -1366,6 +1379,7 @@ impl ViewerWindow
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
+        .rememberExplored(source)
         .closeFile(forExplorer: true)
         .home.hide()
         .explorer.setShown(true)

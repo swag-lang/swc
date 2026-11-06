@@ -469,6 +469,7 @@ impl ViewerWindow
         let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
 
         var name:     string = ""
+        var owned:    String     // Keeps a name the command composes alive until it is read.
         var icon:     Icon
         var hidden:   bool
         var disabled: bool
@@ -738,7 +739,8 @@ impl ViewerWindow
             checked = .onlineMusic
 
         case ViewerCommands.OpenChosen:
-            name     = texts.cmd_OpenChosen
+            owned    = exploring ? .explorer!.openActionName() : String.from(texts.cmd_OpenChosen)
+            name     = owned
             icon     = .commandGlyph(.OpenFile)
             hidden   = not exploring
             disabled = not exploring or .explorer!.selected >= .explorer.entries.count

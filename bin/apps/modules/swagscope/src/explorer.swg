@@ -113,7 +113,6 @@ struct Explorer
         kindMenu:    *IconButton
         sortMenu:    *IconButton
         modeMenu:    *IconButton
-        artworkMenu: *IconButton
         filter:      *EditBox
         list:        *ListCtrl
         scroll:      *ScrollWnd
@@ -184,7 +183,7 @@ impl Explorer
             .updateFlags(.Ellipsis | .HotTrack)
             .addColumn(appStrings().explore_Name, 320)
             .addColumn(appStrings().explore_Type, 96)
-            .addColumn(appStrings().explore_Size, 88)
+            .addColumn(appStrings().explore_Size, 88, align: .Right)
             .addColumn(appStrings().explore_Modified, 130)
             .addColumn(appStrings().explore_Duration, 80, align: .Right)
             .header.itemAt(4).isClickable = false
@@ -208,10 +207,28 @@ impl Explorer
                 line.setItem(0, entry.name, explorer.entryIcon(index))
                 if explorer.mode == .Details
                 {
-                    line.setItem(1, entry.directory ? appStrings().ui_Folder : (Path.extension(entry.name) orelse ""))
-                    line.setItem(2, entry.directory ? {} : StrConv.toDisplaySize(entry.size))
-                    line.setItem(3, entry.modified)
-                    line.setItem(4, entry.duration ? formatDuration(entry.duration) : "")
+                    // The measures read in faint mono, each aligned as its column's title is.
+                    let faint = explorer.themeColors().faintText
+                    line.setItem(1, entry.directory ? appStrings().ui_Folder : (Path.extension(entry.name) orelse "")).colorFg = faint
+                    with let size = line.setItem(2, entry.directory ? {} : StrConv.toDisplaySize(entry.size))
+                    {
+                        .horzAlign = .Right
+                        .colorFg   = faint
+                        .mono      = true
+                    }
+
+                    with let modified = line.setItem(3, entry.modified)
+                    {
+                        .colorFg = faint
+                        .mono    = true
+                    }
+
+                    with let duration = line.setItem(4, entry.duration ? formatDuration(entry.duration) : "")
+                    {
+                        .horzAlign = .Right
+                        .colorFg   = faint
+                        .mono      = true
+                    }
                 }
             }
 
@@ -373,12 +390,6 @@ impl Explorer
             .sigPressed        += func|view = me|(_) { view.showModeMenu() }
         }
 
-        with .artworkMenu = IconButton.createQuiet(.tools)
-        {
-            .layoutSpec.alignY = .End
-            .sigPressed        += func|view = me|(_) { view.showArtworkMenu() }
-        }
-
         with .address = PathBar.create(.header, "scope.explorer.address")
         {
             .dockStyle              = .Top
@@ -438,6 +449,10 @@ impl Explorer
         .list.margin.z    = inset - ExplorerGrid.CellInset
         .scroll.margin.x  = .list.margin.x
         .scroll.margin.z  = .list.margin.z
+
+        // The words of the path stand on the edge of the grid; the ground of a level reaches
+        // out of it by its own padding, as a hovered row does.
+        .address.margin.x = -.address.breadcrumb.padX
         .applyLayout()
 
         let album = .grid.board == .Album and .scroll.isLocallyVisible()
@@ -454,9 +469,6 @@ impl Explorer
         .sortMenu.setQuietText(compact ? "" : .sortName())
         .kindMenu.setQuietText(compact ? "" : .filterKindName())
         .modeMenu.setQuietText("")
-        .artworkMenu.show(not compact)
-        .artworkMenu.setQuietText(compact ? "" :
-                                  (.artworkSource == .Online ? appStrings().artwork_OnlineShort : appStrings().artwork_LocalShort))
         var width = Math.ceil(.tools.itf.measureContent({}).x)
         if .status.isLocallyVisible() and width > space
         {
@@ -487,31 +499,36 @@ impl Explorer
         .layoutFilter()
     }
 
-    // Shows the listing presentation and, for thumbnails, their organization in one menu.
+    // Shows the listing presentation, for thumbnails their organization, and for media where their
+    // illustrations come from, in one menu. Each group is one exclusive choice whose current answer
+    // carries the check, as every exclusive choice of Scope's menus does.
     mtd showModeMenu()
     {
         let text  = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
-        let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
         let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        for id, index in ViewerCommands.Modes
-        {
-            let item = menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
-            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
-        }
+        for id, index in ViewerCommands.Modes do
+            discard menu.addItem(names[index], id, checked: cast(u64, .mode) == index)
 
         if .isThumbnailView()
         {
             menu.addSeparator()
             menu.addLabel(text.explore_Organization)
             let boardNames = [text.board_Automatic, text.board_Grid, text.board_Posters, text.board_Covers]
-            let boardIcons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileAudio]
             for id, index in ViewerCommands.Boards
             {
                 let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-                let item    = menu.addRadioItem(boardNames[index], id, checked: checked)
-                item.icon = .theme().icon(boardIcons[index], themeRowIconSize(.themeMetrics()))
+                discard menu.addItem(boardNames[index], id, checked: checked)
             }
+        }
+
+        if .showsMedia()
+        {
+            menu.addSeparator()
+            menu.addLabel(text.explore_ArtworkSection)
+            let artworkNames = [text.artwork_Online, text.artwork_Local]
+            for id, index in ViewerCommands.Artwork do
+                discard menu.addItem(artworkNames[index], id, checked: cast(u64, .artworkSource) == index)
         }
 
         let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
@@ -519,23 +536,8 @@ impl Explorer
             discard .window.runCommand(chosen)
     }
 
-    // Chooses where media illustrations come from, independently of their layout.
-    mtd showArtworkMenu()
-    {
-        let text = appStrings()
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        for id, index in ViewerCommands.Artwork
-        {
-            let names = [text.artwork_Online, text.artwork_Local]
-            let icons = [ThemeIcons.Link, ThemeIcons.FileImage]
-            let item  = menu.addRadioItem(names[index], id, checked: cast(u64, .artworkSource) == index)
-            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
-        }
-
-        let chosen = menu.doModal(.artworkMenu, autoDestroy: true) orelse ""
-        if chosen.count do
-            discard .window.runCommand(chosen)
-    }
+    // Reports whether the page shows films or music, whose illustrations may come from online.
+    mtd showsMedia()->bool => .grid.board == .Posters or .grid.board == .Covers or .grid.board == .Album
 
     mtd setArtworkSource(source: ExplorerArtworkSource)
     {
@@ -669,10 +671,6 @@ impl Explorer
             .modeMenu.toolTip = Format.toString("% · % · %", text.explore_View, viewNames[modeIndex], boardName)
         else do
             .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[modeIndex])
-        let artworkName = .artworkSource == .Online ? text.artwork_Online : text.artwork_Local
-        let artworkIcon = .artworkSource == .Online ? ThemeIcons.Link : ThemeIcons.FileImage
-        .artworkMenu.setIcon(.theme().icon(artworkIcon, themeRowIconSize(.themeMetrics())))
-        .artworkMenu.toolTip = Format.toString("% · %", text.explore_Artwork, artworkName)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         .window.refreshExplorerCaption()
 
@@ -846,7 +844,7 @@ impl Explorer
             }
 
             if includeAction do
-                sheet.setAction(strings.cmd_OpenChosen, ViewerCommands.OpenChosen)
+                sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
             if entry.movie.overview.length do
                 sheet.addText(safeMediaText(entry.movie.overview))
             addSheetReading(sheet, strings.explore_MovieGenre, entry.movie.genre)
@@ -870,7 +868,7 @@ impl Explorer
 
             // The album page already offers Play in Voltage: its sheet keeps the quiet form.
             if includeAction do
-                sheet.setAction(strings.cmd_OpenChosen, ViewerCommands.OpenChosen, quiet: .grid.board == .Album)
+                sheet.setAction(.openActionName(), ViewerCommands.OpenChosen, quiet: .grid.board == .Album)
             if not entry.directory and not entry.music.track.isEmpty() do
                 addSheetReading(sheet, strings.explore_Album, entry.music.title)
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
@@ -917,7 +915,7 @@ impl Explorer
 
         if includeAction
         {
-            sheet.setAction(strings.cmd_OpenChosen, ViewerCommands.OpenChosen)
+            sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
             if .listing.isArchive do
                 sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
         }
@@ -1835,8 +1833,17 @@ impl Explorer
         }
         else
         {
-            .window.queueFile(entry.path)
+            .window.resumeFile(entry.path, fromHistory: false)
         }
+    }
+
+    // Names the action opening the chosen item, in the sheet and in the lens alike: where it takes
+    // a file up again, or only Open.
+    mtd openActionName()->String
+    {
+        let entry = .selected < .entries.count ? &.entries[.selected] : null
+        let point = entry and not entry.directory ? .window.resumePoint(entry.path) : null
+        return point ? point.positionText() : String.from(appStrings().cmd_OpenChosen)
     }
 
     // Keep every independent renderer busy on visible tiles, with at most 128 uploaded previews.
@@ -2475,6 +2482,16 @@ impl ExplorerGrid
 
         FileTile.paint(me, painter, tile, &content, options)
 
+        // A file left in its middle carries how far it was read along the foot of its picture.
+        if not entry.directory
+        {
+            if let point = .explorer.window.resumePoint(entry.path)
+            {
+                let thread = .themeMetrics().fileTile_RingWidth + 1
+                painter.fillRect(Math.Rectangle{tile.x, tile.bottom() - thread, Math.round(tile.width * point.progress), thread}, .themeColors().arc)
+            }
+        }
+
         // Keep the generic tile under the spinner until the local and optional online passes
         // have produced one image. A queued online pass has no worker slot yet, but is still busy.
         let eligible = not entry.path.isEmpty() and
@@ -2791,12 +2808,16 @@ impl ExplorerGrid
                 if explorer.listing.isArchive and entry.archiveIndex < explorer.listing.archive.entries.count
                 {
                     let member = &explorer.listing.archive.entries[entry.archiveIndex]
+                    // The bar measures what packing saved: a stored member keeps an empty track, so a
+                    // full bar never reads as a member that did not pack at all.
                     if member.uncompressedSize
                     {
-                        let ratio = Math.clamp(cast(f32, member.compressedSize) / cast(f32, member.uncompressedSize), 0, 1)
+                        let saved = 1 - Math.clamp(cast(f32, member.compressedSize) / cast(f32, member.uncompressedSize), 0, 1)
                         let track = Math.Rectangle{barRight - RatioWidth, Math.round(centerY - 1.5), RatioWidth, 3}
+                        let fill  = Math.round(RatioWidth * saved)
                         painter.fillRoundRect(track, 1.5, 1.5, colors.raised)
-                        painter.fillRoundRect(Math.Rectangle{track.x, track.y, Math.max(Math.round(RatioWidth * ratio), 3), 3}, 1.5, 1.5, colors.arc)
+                        if fill >= 1 do
+                            painter.fillRoundRect(Math.Rectangle{track.x, track.y, Math.max(fill, 3), 3}, 1.5, 1.5, colors.arc)
                     }
                 }
             }

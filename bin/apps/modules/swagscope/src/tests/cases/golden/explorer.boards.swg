@@ -188,7 +188,9 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 }
 
 // A folder of films: upright posters in their own shape, title then year and length, and the
-// sheet headed by the poster beside the title, the year and length, and the rating.
+// sheet headed by the poster beside the title, the year and length, and the rating. A film left in
+// its middle carries how far it was watched along the foot of its poster, and the sheet's action
+// takes it up again there.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -224,6 +226,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         .movie.sources    = "Wikipedia · Wikidata"
     }
 
+    var point: ViewerResumePoint
+    point.file     = explorer.entries[0].path
+    point.seconds  = 4332
+    point.length   = 7020
+    point.progress = cast(f32, point.seconds / point.length)
+    window.resumePoints.add(#move point)
+
     explorer.selected = 0
     showBoard(&host, window, "Videos", "Films")
     explorer.showInformation()
@@ -234,7 +243,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.posters and grid.tile.y > grid.tile.x)
     Swag.require(window.infoSheet.beside and
                  Utf8.contains(window.infoSheet.text(), "1982") and
-                 Utf8.contains(window.infoSheet.text(), "1 h 57"))
+                 Utf8.contains(window.infoSheet.text(), "1 h 57") and
+                 Utf8.contains(window.infoSheet.text(), Format.toString(appStrings().home_ResumeAt, "1:12:12").toString()))
     Swag.require(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.films.paper")

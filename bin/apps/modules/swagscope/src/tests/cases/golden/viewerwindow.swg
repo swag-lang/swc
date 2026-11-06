@@ -181,6 +181,8 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         .choices.add(ViewerPluginChoice{pluginIndex: 0, key: "html"})
         .choices.add(ViewerPluginChoice{pluginIndex: 1, key: "code"})
         .instances.resize(2)
+        .systemPlaces.clear()
+        .home.refresh()
     }
 
     let loading = Wnd.create'RetiringTestView(window.documentPanel)
@@ -256,8 +258,9 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Swag.require(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
 }
 
-// Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file and
-// the faint hint teaching the door, with no history yet and no format-specific controls.
+// Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file or a
+// folder, the two direct actions, the system's places to explore, centred together, and the faint
+// hint teaching the door, with no history yet and no format-specific controls.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -269,12 +272,25 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
+    let datas = scopeTestDataDirectory()
+    window.systemPlaces.clear()
+    window.systemPlaces.add(datas)
+    window.systemPlaces.add(Path.directoryName(datas) orelse "")
 
     host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
+    window.home.refresh()
     window.applyLayout()
+
+    let home = window.home
+    Swag.require(home.rows.isEmpty() and home.places.count == 2 and not home.explored)
+    Swag.require(home.openButton.isLocallyVisible() and home.exploreButton.isLocallyVisible())
+    let actions = home.exploreButton.position.right() - home.openButton.position.x
+    Swag.require(Math.abs(home.openButton.position.x + actions * 0.5 - home.clientRect().horzCenter()) <= 1)
+    let chips = home.placeRect(1).right() - home.placeRect(0).x
+    Swag.require(Math.abs(home.placeRect(0).x + chips * 0.5 - home.clientRect().horzCenter()) <= 1)
     var image = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }

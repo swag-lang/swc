@@ -216,7 +216,9 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     let window   = boardWindow(&host, true, films: true)
     let explorer = unwrap window.explorer
     showBoard(&host, window, "Projects", "Films")
-    assertScopeAnchoredMenu(&host, window, explorer.artworkMenu, "menus.explorer.artwork.paper")
+    explorer.forceBoard(true, .Posters)
+    Swag.require(explorer.showsMedia())
+    assertScopeAnchoredMenu(&host, window, explorer.modeMenu, "menus.explorer.mode.films.paper")
 }
 
 #[Swag.TestTag("golden")]

@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func saveViewerState(window: *ViewerWindow)->String
+internal func saveViewerState(window: *ViewerWindow)->String
 {
     var result:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
@@ -28,7 +28,7 @@ internal func lensHasEntry(window: *ViewerWindow, title: string)->bool
     return false
 }
 
-func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
+internal func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var serializer: Serialization.Serializer

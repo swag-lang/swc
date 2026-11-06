@@ -165,3 +165,70 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     Swag.require(image.width == 64 and image.height == 48)
     Swag.require(image.pixelColor(4, 5).argb == Argb.Blue)
 }
+
+// A native application surface must keep presenting after its capture command opens the image.
+#[Swag.TestTag("integration.capture.application")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1")
+    // Earlier headless fixtures bind their renderer to this global application.
+    // Reset it before creating a native surface and after retiring that surface.
+    Swag.drop(&g_App, 1)
+    Swag.init(&g_App, 1)
+    defer
+    {
+        Swag.drop(&g_App, 1)
+        Swag.init(&g_App, 1)
+        g_Main = null
+    }
+    testUseScratchLibrary()
+    expect Library.init()
+    g_Library.loaded = true
+
+    let stateFile = Gui.Testing.tempFilePath("capture-app-state-", ".scc")
+    defer discard catch File.delete(stateFile)
+    g_App.setStatePath(stateFile)
+    registerAppStrings(&g_App.resources)
+    let surface = expect g_App.createSurface(100, 100, 1100, 700, surfaceId: "capture-linux-app-journey")
+    let main    = MainWnd.create(surface.wnd)
+    surface.show()
+    for 12 do
+        g_App.runFrame()
+    Swag.require(expect Gui.Testing.verifyNativePresentation(surface))
+
+    var window = expect Env.createWindow({identifier: "capture-gui-target", title: "Capture GUI fixture", width: 64, height: 48, stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintCaptureWindow(&window, 0xFF0000)
+
+    main.captureOptions.hideEditorBefore = false
+    main.captureOptions.captureCursor    = false
+    main.captureOptions.sendToClipboard  = false
+    main.captureOptions.sendToEditor     = true
+    main.captureOptions.inPlaceEdit      = false
+    main.captureOptions.delay            = 0
+    g_StartGrabX = 10
+    g_StartGrabY = 20
+    g_EndGrabX   = 74
+    g_EndGrabY   = 68
+
+    main.sendCommandEvent(ActionCapture.LastArea)
+    let capture = unwrap main.editWnd.getCapture()
+    let path    = capture.file
+    defer discard catch File.delete(path)
+    Swag.require(capture.sourceKind == .Screen)
+    Swag.require(capture.backImg.pixelColor(4, 5).argb == Argb.Red)
+    Swag.require(File.exists(path))
+
+    var presented = false
+    for 40
+    {
+        g_App.runFrame()
+        if expect Gui.Testing.verifyNativePresentation(surface)
+        {
+            presented = true
+            break
+        }
+    }
+    Swag.require(presented, "the capture editor never reached its native X11 surface")
+}

@@ -129,7 +129,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   review loop, including text, Markdown, HTML, PDF and image consumers. Its thumbnail
   renderer now falls back to installed Linux families when Segoe UI is absent; the
   complete offline media-library journey renders posters, local video frames and picture
-  thumbnails in a native Linux executable.
+  thumbnails in JIT/native Linux execution.
 - Validation: the multilingual HTML golden now owns small, renamed SIL-licensed CJK and
   outline-emoji subsets and disables system fallback for that fixture. Its reviewed reference
   changed only around those runs and their spacing; all 85 HTML cases pass with the existing
@@ -873,19 +873,18 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   folder dialog, chooses a recent folder from its menu and navigates to the selected path,
   with native pixel checkpoints.
   The offline media-library fixture is now platform-neutral. Scope's recent-video journey
-  passes as a native Linux executable twice through playback beyond frame 18 and back to
-  history with native pixel checks. On this Linux host its JIT execution remains blocked
-  during the first playback stage even with the SDL disk audio device; native execution is
-  the validated path for that journey while the JIT wait is investigated.
-  The full Scope media-library journey now also passes natively: repeated local-frame and
+  passes JIT/native Linux twice through playback beyond frame 18 and back to history,
+  with native pixel checks. Compile-time executors run submissions inline, so the video
+  viewer opens there without its persistent decode task and fills its bounded frame
+  queue on GUI ticks; native execution retains the dedicated decoder thread.
+  The full Scope media-library journey also passes JIT/native: repeated local-frame and
   cached-poster switching, refresh, details/poster/filter modes, film open and return,
   pending-folder replacement, odd-size resize, and both appearance modes. The thumbnail
   renderer selects an installed Linux font when Segoe UI is absent. The journey exposed
   an EGL/XCB window surface that kept its original back-buffer size after X11 resize;
   Linux presentation now recreates that surface while preserving the shared GL context
   and copies the visible render-target rectangle directly. The X11 pixel verifier waits
-  for asynchronous swap publication. A focused GUI resize case passes JIT/native; the
-  full media-library journey passes native.
+  for asynchronous swap publication. A focused GUI resize case passes JIT/native.
   An optional read-only probe of a supplied media directory is now available on Linux.
   On the 44-file Scope corpus, all eight scroll/artwork/refresh stages pass in JIT/native,
   with 23-24 exact cache-to-GPU preview matches per stage. Compile-time execution has

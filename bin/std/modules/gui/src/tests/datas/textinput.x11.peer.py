@@ -51,7 +51,7 @@ try:
         for code, _ in codes:
             change(code, previous[str(code)])
         x11.XSync(display, 0)
-    elif mode in ('send', 'remap'):
+    elif mode in ('send', 'remap', 'held-remap'):
         x11.XSetInputFocus(display, int(sys.argv[3]), 2, 0)
         def tap(code):
             assert code
@@ -60,6 +60,13 @@ try:
         if mode == 'remap':
             change(230, [ord('b')] + [0] * (len(mapping(230)) - 1))
             x11.XSync(display, 0)
+            tap(230)
+        elif mode == 'held-remap':
+            assert xtst.XTestFakeKeyEvent(display, 230, 1, 0)
+            x11.XSync(display, 0)
+            change(230, [ord('c')] + [0] * (len(mapping(230)) - 1))
+            x11.XSync(display, 0)
+            assert xtst.XTestFakeKeyEvent(display, 230, 0, 0)
             tap(230)
         else:
             tap(x11.XKeysymToKeycode(display, ord('a')))

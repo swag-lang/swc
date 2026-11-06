@@ -34,15 +34,17 @@ func runTextInputPeer(script, mode, saved: string)
     surface.wnd.view.focusPolicy = .Click
     surface.wnd.view.setFocus()
     var characters: String
-    var physicalPresses: u32
-    surface.wnd.view.hookOnEvent = func|&characters, &physicalPresses|(_, event)->bool
+    var presses, releases: Array'Input.Key
+    surface.wnd.view.hookOnEvent = func|&characters, &presses, &releases|(_, event)->bool
     {
         if event is KeyEvent as key
         {
             if key.kind == .Character do
                 characters.append(key.character)
             elif key.kind == .Pressed do
-                physicalPresses += 1
+                presses.add(key.key)
+            elif key.kind == .Released do
+                releases.add(key.key)
             return true
         }
 
@@ -51,7 +53,7 @@ func runTextInputPeer(script, mode, saved: string)
 
     defer surface.wnd.view.hookOnEvent = null
     let id = Format.toString("%", surface.windowId)
-    for mode in ["send", "remap"]
+    for mode in ["send", "remap", "held-remap"]
     {
         var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), mode, saved.toString(), id.toString()],
                                                          standardOutput: .Pipe, standardError: .Pipe})
@@ -66,8 +68,9 @@ func runTextInputPeer(script, mode, saved: string)
         for 8 do
             app.runFrame()
         Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
-        Swag.require(physicalPresses == (mode == "send" ? 7 : 8),
-                     Format.toString("physical presses in %: %, text %", mode, physicalPresses, characters))
+        let expectedPresses = mode == "send" ? 7 : (mode == "remap" ? 8 : 10)
+        Swag.require(presses.count == expectedPresses,
+                     Format.toString("physical presses in %: %, text %", mode, presses.count, characters))
         if mode == "remap"
         {
             let context = expect LinuxDesktop.ensure()
@@ -75,7 +78,12 @@ func runTextInputPeer(script, mode, saved: string)
             Swag.require(mapped == .B, Format.toString("mapped key after X11 change: %", mapped))
         }
 
-        Swag.require(characters == (mode == "send" ? "aéJ\u0301" : "aéJ\u0301b"),
-                     Format.toString("text in %: %", mode, characters))
+        let expectedText = mode == "send" ? "aéJ\u0301" : (mode == "remap" ? "aéJ\u0301b" : "aéJ\u0301bbc")
+        Swag.require(characters == expectedText, Format.toString("text in %: %", mode, characters))
+        if mode == "held-remap"
+        {
+            Swag.require(presses[presses.count - 2] == .B and presses.back() == .C)
+            Swag.require(releases[releases.count - 2] == .B and releases.back() == .C)
+        }
     }
 }

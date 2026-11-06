@@ -603,8 +603,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   composition now sends every committed Unicode scalar as a separate portable character event;
   real XTEST input covers ordinary, dead-key and multi-scalar compose sequences in JIT/native.
   XKB map notifications now reload the keymap and state together; an active GUI accepts a
-  remapped key while preserving physical transition events in JIT/native. The existing XTEST
-  keypad case remains green in both modes.
+  remapped key while preserving physical transition events in JIT/native. A key held across
+  another remap retains its old release identity and uses the new identity on the next press.
+  The existing XTEST keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;

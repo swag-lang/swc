@@ -41,23 +41,18 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 - Done when: repeatable cached-run measurements show lower native test time with the same
   visual assertions and reviewed golden pixels, and individual test costs remain observable.
 
-### app.scope.010 — Explorer intermittently presents corrupted library pixels
+### app.scope.010 — Explorer previews stay generic after a graphics device reset
 
-- Evidence: a user capture of a large Films folder shows repeated horizontal colored streaks
-  across the content while the page title remains legible. The responsible rendering or
-  presentation boundary is not established. The reported trigger includes repeated Online/Local
-  preview switches, refreshes and waiting on a network library. Native checks of odd-width RGB
-  uploads, texture eviction and the 639-entry library have not reproduced the corruption. The
-  extended library probe completed eight Online/Local phases and two refreshes in 95 seconds,
-  comparing settled cached pixels with uploaded textures and checking native presentation.
-- Next: extend `browsemedialibrary.swg` and the opt-in
-  `explorerlibrary.swg` toward longer refresh sequences on the failing library.
-  Compare decoded pixels, uploaded textures, the GPU target, native presentation bitmap and,
-  in an explicit interactive run if necessary, displayed pixels. Extend resize checks with DPI transitions and partial repaint
-  checkpoints. Reduce any failure to the owning renderer or transfer test before changing it.
-- Done when: the corruption is reproduced and fixed with a regression that fails without the
-  fix; a green smoke alone does not close this report.
-- Related: repo.tooling.012
+- Evidence: after a GPU reset, `RenderOgl.recoverLostDevice` retires every texture, and the
+  explorer's preview textures read as invalid. `explorer.swg` then draws the generic tile, but
+  its entries are already `attempted`, so the previews are only decoded again by a refresh.
+  The theme, icons and glyphs come back on their own; only the library previews do not.
+- Next: on `NotifyEvent.Kind.ThemeChanged` or a first paint that finds an entry with a handle
+  whose texture is no longer valid, clear `attempted` for those entries so the preview workers
+  decode them again; cover it with `Pixel.Testing.submitDeviceHang` in an opt-in
+  `integration.renderer.reset` journey.
+- Done when: previews visible before a device reset reappear without a manual refresh.
+- Related: std.gui.057
 
 ### app.scope.001 — One document per window
 

@@ -860,6 +860,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Nine Ogl JIT/native cases now cover independent XCB connections, shared contexts and resources,
   worker-thread contexts and pbuffer lifetimes. Two surfaceless cases pass without a display.
   Core still has no mandatory GL/EGL dependency. Physical GPUs and native Wayland remain open.
+  EGL contexts are not created with lose-on-reset robustness, so `RenderOgl.recoverLostDevice`
+  never sees a GPU reset on Linux: a reset leaves the windows on a context that draws nothing.
 - Evidence: the filenames already expose most of the seam: `surface.win32.swg`,
   `application.win32.swg`, `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with
   shared Windows clipboard text conversion in `nativetext.win32.swg`. The retained tree, layouts,
@@ -870,7 +872,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   are retired and explicitly decide when its application quits; there is no implicit last-window
   shutdown. Existing WindowLoop consumers retain their default close behavior.
 - Next: validate complete application workflows and physical desktop/GPU behavior, finish dynamic
-  keyboard-map updates and investigate connection-loss/module-unload stress. Native Wayland,
+  keyboard-map updates and investigate connection-loss/module-unload stress. Create the shared EGL
+  context with `EGL_EXT_create_context_robustness` and implement its `replaceLostContext`, then
+  run the `integration.renderer.reset` tests on a physical GPU. Native Wayland,
   text composition and accessibility remain distinct capabilities. The X11 GUI uses explicit
   compositor-backed presentation; retain pixel-level tests when changing visual/alpha selection.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the

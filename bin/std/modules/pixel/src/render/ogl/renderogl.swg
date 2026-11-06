@@ -30,6 +30,12 @@ private
     const AdvancedBlendingKhrBarrier:  u8 = 3
     const AdvancedBlendingNvBarrier:   u8 = 4
 
+    // How the context answers whether the driver reset the device: not at all, through the core
+    // entry point of OpenGL 4.5, or through `GL_ARB_robustness`.
+    const ResetQueryNone: u8 = 0
+    const ResetQueryCore: u8 = 1
+    const ResetQueryArb:  u8 = 2
+
     // Coverage masks kept alive at once. A mask costs a full render-target plane, and only the
     // surface and the layers open over it are ever sampled together.
     const MaxClipMasks = 4'u64
@@ -129,6 +135,9 @@ struct RenderOgl
         // This is the reference cost for [[Pixel.RenderOgl.scratchClearedPixels]], accumulated
         // since the last call to [[Pixel.RenderOgl.resetScratchCounters]].
         readonly scratchFullPixels: u64
+
+        // Times [[Pixel.RenderOgl.recoverLostDevice]] rebuilt this renderer after a device reset.
+        readonly deviceResets: u32
     }
 
     // The GPU objects and the state mirror of the context. Everything here belongs to the
@@ -149,6 +158,7 @@ struct RenderOgl
         orthoMatrix:     Matrix4x4     // Current surface projection matrix.
         modelMatrix:     Matrix4x4     // Current model matrix.
         whiteTexture:    GLuint        // Built-in one-pixel white texture.
+        clearTexture:    GLuint        // Built-in one-pixel transparent texture, drawn for a lost texture.
         hatchTextures:   [HatchStyle] GLuint     // Built-in hatch texture handles.
         // The two chroma planes of every planar texture, keyed by the luma handle the caller
         // holds. A texture is one handle everywhere else in this module, and a planar picture is
@@ -178,17 +188,21 @@ struct RenderOgl
         // The clipping region, rendered as coverage into a texture the size of the target and read
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
         // and a region cut along a curve needs the fraction of each pixel its edge covers.
-        clipMasks:             Array'ClipMask     // One mask per target size a region was drawn for.
-        clipMaskClock:         u64                // Counter stamping each mask request, for reuse order.
-        clipMaskIndex:         s32 = -1           // Mask of the region in force, or none yet.
-        clipMaskOn:            bool               // Whether fragments are cut by the region.
-        clipMaskWriting:       bool               // Whether fragments are writing the region.
-        stackClipMaskOn:       Array'bool         // Regions suspended by the render targets bound inside them.
-        nativeContext:         const *void?       // Shared native OpenGL context owned by interface-created drawables.
-        offscreen:             bool               // Contexts own invisible drawables and never present to the desktop.
-        contextCount:          u32                // Number of live interface-created drawables.
-        advancedBlending:      u8                 // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool               // Whether this context must keep later framebuffer touches in separate passes.
+        clipMasks:             Array'ClipMask          // One mask per target size a region was drawn for.
+        clipMaskClock:         u64                     // Counter stamping each mask request, for reuse order.
+        clipMaskIndex:         s32 = -1                // Mask of the region in force, or none yet.
+        clipMaskOn:            bool                    // Whether fragments are cut by the region.
+        clipMaskWriting:       bool                    // Whether fragments are writing the region.
+        stackClipMaskOn:       Array'bool              // Regions suspended by the render targets bound inside them.
+        nativeContext:         const *void?            // Shared native OpenGL context owned by interface-created drawables.
+        offscreen:             bool                    // Contexts own invisible drawables and never present to the desktop.
+        contextCount:          u32                     // Number of live interface-created drawables.
+        contexts:              Array'(*OglContext)     // The live interface-created drawables, which share `nativeContext`.
+        generation:            TextureGeneration       // Device generation stamped on every texture and target.
+        resetQuery:            u8                      // How the context reports a device reset, if it does.
+        deviceLost:            bool                    // Whether a reported reset still waits for a replacement context.
+        advancedBlending:      u8                      // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool                    // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -666,6 +680,97 @@ impl RenderOgl
     // this OpenGL context can use the traditional modes only.
     mtd const supportsAdvancedBlending()->bool => .advancedBlending != AdvancedBlendingNone
 
+    // Rebuilds the renderer after the driver reset its graphics device, and reports whether it had to.
+    //
+    // A reset — a GPU timeout under heavy load, a driver update, an adapter removal — destroys
+    // every resource of the context without making a single call fail: drawing then produces
+    // nothing and every readback returns stale bytes, for good. Call this before recording a
+    // frame. It answers `false` while the device is healthy, and always on a context that cannot
+    // report a reset.
+    //
+    // After it answers `true`, every [[Pixel.Texture]] and [[Pixel.RenderTarget]] created before
+    // reads as invalid. The renderer restores its own shaders, buffers and glyph atlases; owners
+    // upload their textures again, and every drawable must be repainted completely. It fails when
+    // no replacement context can be created: the renderer then draws nothing, and the next call
+    // tries again.
+    mtd recoverLostDevice()->bool fail
+    {
+        if .resetQuery == ResetQueryNone or .contexts.count == 0 do
+            return false
+
+        let first = .contexts[0]
+        if not .deviceLost
+        {
+            .native.setCurrentContext(first[])
+            if .deviceResetStatus() == GL_NO_ERROR do
+                return false
+
+            // Retire everything at once, so nothing of the lost device is drawn or released
+            // while the replacement is not there yet.
+            .deviceLost = true
+            .generation = .generation.next()
+            .forgetDeviceResources()
+        }
+
+        .nativeContext = try .native.replaceLostContext(.contexts.toSlice(), .nativeContext)
+        .deviceLost    = false
+        .native.setCurrentContext(first[])
+        .initImpl()
+        .deviceResets += 1
+        return true
+    }
+
+    // Returns what the context reports about a device reset, `GL_NO_ERROR` when nothing happened.
+    private mtd deviceResetStatus()->GLenum
+    {
+        switch .resetQuery
+        {
+        case ResetQueryCore: return glGetGraphicsResetStatus()
+        case ResetQueryArb:  return glGetGraphicsResetStatusARB()
+        }
+
+        return GL_NO_ERROR
+    }
+
+    // Forgets every object of a lost context without handing it back.
+    //
+    // Their names died with the context, and the replacement may give the same names to new
+    // objects: releasing one now would destroy someone else's resource.
+    private mtd forgetDeviceResources()
+    {
+        // Glyph atlases keep their pixels, so each page is uploaded again, whole, on next use.
+        for it in .fonts.glyphCaches
+        {
+            let cache = unwrap it
+            for &atlas in cache.atlases
+            {
+                atlas.texture.clear()
+                atlas.markDirty(0, 0, atlas.width / atlas.bytesPerPixel, atlas.height)
+            }
+
+            cache.dirty = cache.atlases.count != 0
+        }
+
+        // Pooled targets are this renderer's own; bound ones belong to their callers.
+        for rt in .stackReleasedRT do
+            Memory.delete(rt)
+        .stackReleasedRT.clear()
+        .stackRT.clear()
+        .curRT = null
+
+        .clipMasks.clear()
+        .clipMaskIndex   = -1
+        .clipMaskOn      = false
+        .clipMaskWriting = false
+        .stackClipMaskOn.clear()
+
+        .chromaPlanes.clear()
+        .gradientTextureCapacity = 0
+        .curShader               = null
+        .planarPrevShader        = null
+        .advancedBarrierActive   = false
+    }
+
     // Releases queued and currently bound render-target descriptors, and the glyph atlases.
     mtd opDrop()
     {
@@ -893,6 +998,20 @@ impl RenderOgl
         glInitExtensions()
         .applyPresentPolicy()
 
+        // Only a context created to report resets is asked about them, and only through an entry
+        // point it publishes: the extension wrappers end the process on a missing one.
+        .resetQuery = ResetQueryNone
+        if .native.notifiesReset
+        {
+            var major, minor: GLint
+            glGetIntegerv(GL_MAJOR_VERSION, &major)
+            glGetIntegerv(GL_MINOR_VERSION, &minor)
+            if major > 4 or (major == 4 and minor >= 5) do
+                .resetQuery = ResetQueryCore
+            elif hasExtension("GL_ARB_robustness") do
+                .resetQuery = ResetQueryArb
+        }
+
         if hasExtension("GL_KHR_blend_equation_advanced_coherent")
         {
             .advancedBlending = AdvancedBlendingKhrCoherent
@@ -934,6 +1053,7 @@ impl RenderOgl
 
         // Generate predefined textures
         .whiteTexture = generateTexture([1], 1, 1)
+        .clearTexture = generateTexture([0], 1, 1)
         glGenTextures(1, &.gradientTexture)
         let gradientNameError = glGetError()
         if not .gradientTexture or gradientNameError != GL_NO_ERROR do
@@ -1145,15 +1265,22 @@ impl RenderOgl
 
         // Clipping uses coverage textures; no draw enables hardware depth or stencil tests.
         var result: #returntype
-        result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h)
+        result.attach(cast(RenderTargetHandle, fbo), cast(TextureHandle, colorID), .RGBA8, w, h, .generation)
         return result
     }
 
     // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle or not rt.colorBuffer.isValid() do
+        if rt.handle == InvalidRenderTargetHandle do
             return
+
+        // A target of a lost device went with it; its names may already belong to new resources.
+        if not rt.colorBuffer.isValid()
+        {
+            rt.clear()
+            return
+        }
 
         var cb: GLuint = cast(rt.colorBuffer.handle)
         glDeleteTextures(1, &cb)
@@ -1265,7 +1392,7 @@ impl RenderOgl
         }
 
         var result: #returntype
-        result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height)
+        result.attach(cast(TextureHandle, luma), view.chromaShift == 0 ? .Yuv444 : .Yuv420, view.width, view.height, .generation)
         .chromaPlanes.add(result.handle, planes)
         if not .updatePlanarImpl(result, view)
         {
@@ -1367,7 +1494,7 @@ impl RenderOgl
         }
 
         var result: #returntype
-        result.attach(cast(TextureHandle, textureID), source.pixelFormat, source.width, source.height)
+        result.attach(cast(TextureHandle, textureID), source.pixelFormat, source.width, source.height, .generation)
         return result
     }
 
@@ -1824,7 +1951,7 @@ impl RenderOgl
                 if not textureID or textureNameError != GL_NO_ERROR do
                     fail RenderResourceError{"OpenGL cannot allocate a glyph atlas"}
 
-                atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height)
+                atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height, .generation)
 
                 // An atlas keeps fixed dimensions for its whole life, so allocate the
                 // texture storage once and stream new glyphs in with glTexSubImage2D.
@@ -1941,7 +2068,11 @@ impl RenderOgl
                 glUniform1i(cast(GLint, curShader.gradientCount), 0)
 
             case .Texture:
-                glBindTexture(GL_TEXTURE_2D, cast(GLuint, params.texture.handle))
+
+                // A texture of a lost device names nothing in this context, or someone else's
+                // storage once the name is reused: draw nothing rather than the wrong picture.
+                let lost = params.texture.handle != InvalidTextureHandle and not params.texture.isValid()
+                glBindTexture(GL_TEXTURE_2D, lost ? .clearTexture : cast(GLuint, params.texture.handle))
                 glUniform1f(cast(GLint, curShader.textureW), cast(GLfloat, params.texture.width))
                 glUniform1f(cast(GLint, curShader.textureH), cast(GLfloat, params.texture.height))
                 glUniform1i(cast(GLint, curShader.gradientCount), 0)

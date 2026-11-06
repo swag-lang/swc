@@ -214,6 +214,17 @@ impl RenderOglReadback
         .releaseBuffer()
         .failed = false
     }
+
+    // Forgets the buffer, its mapping and any pending transfer without a single OpenGL call.
+    //
+    // Use it after [[Pixel.RenderOgl.recoverLostDevice]] reported a reset: the objects died with
+    // the lost context, a pending transfer will never write its pixels even though its fence
+    // reads as signaled, and the replacement context may already reuse their names. The value
+    // is empty afterwards, ready for another submission.
+    mtd abandon()
+    {
+        Swag.init(me, 1)
+    }
 }
 
 private impl RenderOglReadback

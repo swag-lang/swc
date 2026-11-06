@@ -183,15 +183,30 @@ impl IconSet
             .scale = wanted
         }
 
+        // A list whose texture a device reset took is uploaded again in place, so the icons that
+        // already borrow it come back with it.
         let key   = cast(s32, Math.max(Math.round(size), 1.0))
         let found = .lists.tryFind(key)
-        if found do
+        if found
+        {
+            if not found.value.texture.isValid() do
+                .updateList(found.value, key, .scale)
             return found.value
+        }
 
         let list = Memory.new'ImageList()
         .updateList(list, key, .scale)
         .lists.add(key, list)
         return list
+    }
+
+    // Uploads again every frame list whose texture a reset of the graphics device took with it.
+    //
+    // Lists keep their address, so icons created earlier come back without being requested again.
+    mtd restoreLostTextures()
+    {
+        for key, value in .lists where not value.texture.isValid() do
+            .updateList(value, key, .scale)
     }
 
     private mtd updateList(list: *ImageList, size: s32, scale: f32)

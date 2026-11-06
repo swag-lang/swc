@@ -32,11 +32,11 @@ internal impl RenderTarget
     }
 
     // Establishes a descriptor for resources created by a renderer.
-    mtd attach(handle: RenderTargetHandle, textureHandle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, depthStencil = InvalidRenderTargetSurfaceHandle)
+    mtd attach(handle: RenderTargetHandle, textureHandle: TextureHandle, pixelFormat: PixelFormat, width, height: s32, generation: TextureGeneration = {}, depthStencil = InvalidRenderTargetSurfaceHandle)
     {
         .handle       = handle
         .depthStencil = depthStencil
-        .colorBuffer.attach(textureHandle, pixelFormat, width, height)
+        .colorBuffer.attach(textureHandle, pixelFormat, width, height, generation)
     }
 
     // Invalidates a descriptor after its renderer has released the resources.

@@ -692,7 +692,9 @@ impl Surface
 
     internal mtd bindNativePresentationTarget()->bool
     {
-        if .presentationTarget.colorBuffer.width != .rc.width or .presentationTarget.colorBuffer.height != .rc.height
+        if not .presentationTarget.colorBuffer.isValid() or
+           .presentationTarget.colorBuffer.width != .rc.width or
+           .presentationTarget.colorBuffer.height != .rc.height
         {
             let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
             if not replacement.colorBuffer.isValid() do
@@ -721,6 +723,13 @@ impl Surface
         if .readback.isPending() do
             .invalidate()
         .readback.cancel()
+    }
+
+    // Drops a pending transfer of a lost device without touching OpenGL: it will never write its
+    // pixels, and publishing it would show whatever its buffer held before.
+    internal mtd abandonNativePresentation()
+    {
+        .readback.abandon()
     }
 
     internal mtd queueNativePresentation(target: const *Pixel.RenderTarget)->bool

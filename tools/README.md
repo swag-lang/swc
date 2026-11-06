@@ -402,6 +402,16 @@ visibility in the reproduction boundary. Use `tools/apps.bat smoke swagscope -bc
 the shipped executable's startup smoke. `--run-timeout` bounds the test process; each individual
 journey must still finish within its own deadline below 40 seconds.
 
+Tests tagged `integration.renderer.reset` make their own OpenGL context stall until the system
+resets the graphics device, then check that the renderer and a native window recover exactly. The
+reset is real: run one at a time, on purpose, and expect displays driven through a USB graphics
+adapter to go dark for a few seconds while the driver recovers.
+
+```powershell
+tools/std.bat dm test pixel --test-file devicereset.ogl.swg --test-tag integration.renderer.reset --run-timeout 120
+tools/std.bat dm test gui --test-file devicereset.win32.swg --test-tag integration.renderer.reset --run-timeout 120
+```
+
 | Launcher | Purpose |
 | --- | --- |
 | `unittests.bat [dm] [suite] [options...]` | C++, lexer, parser, semantic, JIT, safety, sanity, native, and workspace input suites |

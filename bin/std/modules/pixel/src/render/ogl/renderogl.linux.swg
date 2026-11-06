@@ -57,6 +57,13 @@ internal impl NativeRenderOgl
             Memory.delete(cast #unconst (*Ogl.Platform.Xcb.Context, handle))
     }
 
+    // EGL contexts here are not created to report device resets, so the renderer never asks for
+    // a replacement; see [[Pixel.RenderOgl.recoverLostDevice]].
+    mtd replaceLostContext(_: const [..] *OglContext, _: const *void?)->const *void? fail
+    {
+        fail RenderResourceError{"OpenGL device reset recovery is not available with EGL"}
+    }
+
     mtd setCurrentContext(rc: OglContext) { expect xcbSurface(rc).makeCurrent() }
     mtd swapBuffers(rc: OglContext) { expect xcbSurface(rc).swapBuffers() }
     mtd applyPresentPolicy() { expect Ogl.Platform.Xcb.setSwapInterval(1) }

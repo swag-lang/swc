@@ -275,6 +275,7 @@ impl Surface
     internal mtd queueNativePresentation(_: const *RenderTarget)->bool => false
     internal mtd advanceNativePresentation()->bool  => true
     internal mtd cancelNativePresentation() { .preparedFrame = false }
+    internal mtd abandonNativePresentation() { .preparedFrame = false }
 
     internal mtd prepareNativePresentation(target: const *RenderTarget)->bool
     {
@@ -293,6 +294,7 @@ impl Surface
             .renderFailure = Errors.message(Swag.err)
             return false
         }
+
         .preparedFrame = true
         return true
     }

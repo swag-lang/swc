@@ -77,3 +77,23 @@ using Swag, Core, Pixel
     Swag.require(style.font.italic == null)
     Swag.require(style.font.boldItalic == null)
 }
+
+// A window drawing from a private copy of the theme follows the sharper atlas a denser display
+// brings, instead of keeping the texture that atlas replaced and released.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+
+    // Under the surface window, as every window of an application is: the standalone test root
+    // is outside the application's tree.
+    let styled = Wnd.create'Wnd(&host.surfaceWnd)
+    styled.style.setStyleSheetColors("btn_Text $white")
+    styled.computeStyle()
+    Swag.require(styled.theme() != host.app.theme)
+
+    let scale = host.app.theme.res.atlasScale
+    host.surface.setDpiScaleRaw(scale + 1)
+    Swag.require(host.app.theme.res.atlasScale > scale)
+    Swag.require(styled.theme().res.imgWidgets.handle == host.app.theme.res.imgWidgets.handle)
+}

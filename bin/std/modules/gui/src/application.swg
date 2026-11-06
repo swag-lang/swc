@@ -449,6 +449,7 @@ private impl Application
             target.surface?.clearFocus()
             return
         }
+
         if target.focusPolicy != .None do
             target.setFocus()
     }
@@ -745,6 +746,8 @@ private impl Application
     // on.
     internal mtd paintSurfaces()
     {
+        .recoverLostRenderer()
+
         // A stress run measures what a complete repaint of a full-screen window costs, so it
         // maximizes what it is about to measure and asks for a complete repaint every frame
         // instead of depending on what the user happened to move.
@@ -762,6 +765,34 @@ private impl Application
 
         for surface in .surfaces do
             surface.paint()
+    }
+
+    // Rebuilds what a reset of the graphics device took with it, before any surface paints again.
+    //
+    // A heavily loaded GPU can be reset by the system without one drawing call failing; every
+    // window would then go on publishing stale or empty pixels for good. The renderer rebuilds
+    // its own state and retires every texture it had created; the theme textures, the pending
+    // presentations and the picture of every surface are rebuilt here.
+    mtd recoverLostRenderer()
+    {
+        if not .mainSurface do
+            return
+
+        if .renderer is Pixel.RenderOgl as ogl
+        {
+            // A renderer that cannot create a replacement context yet stays lost and draws
+            // nothing; the next frame asks again.
+            if not catch ogl.recoverLostDevice() do
+                return
+
+            .theme.restoreLostTextures(.renderer)
+            for surface in .surfaces do
+                surface.recoverLostRendering()
+
+            // A window with local style overrides draws from a private copy of the theme, lost
+            // textures included: resolving every style again copies the restored ones.
+            .notifyThemeChanged()
+        }
     }
 
     // Advances the clock, and the time each surface with a pending repaint has waited for it.
@@ -1183,7 +1214,7 @@ impl Application
         }
 
         // A surface on a scaled display needs the theme atlas at least at its density.
-        .theme.ensureAtlasScale(.renderer, surface.dpiScale)
+        .ensureThemeAtlasScale(surface.dpiScale)
 
         // The first surface initializes the theme only just above, so the caption and
         // border paddings computed during Surface.create were still zero. Apply them
@@ -1454,6 +1485,18 @@ impl Application
 
         for s in .surfaces do
             updateLanguage(me, s.wnd)
+    }
+
+    // Sharpens the shared theme atlas for a surface at `scale`, and resolves every style again when it changed.
+    //
+    // A window with local style overrides draws from a private copy of the theme, and that copy
+    // still names the texture the sharper atlas has just replaced and released.
+    internal mtd ensureThemeAtlasScale(scale: f32)
+    {
+        let previous = .theme.res.atlasScale
+        .theme.ensureAtlasScale(.renderer, scale)
+        if .theme.res.atlasScale != previous do
+            .notifyThemeChanged()
     }
 
     // Recomputes styles and emits a theme-change notification throughout every surface tree.

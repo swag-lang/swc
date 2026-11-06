@@ -24,6 +24,46 @@ public func wglSwapIntervalEXT(interval: s32)->bool
     return entry(interval) != 0
 }
 
+#[Swag.CallingConvention(.C)]
+alias WglGetExtensionsStringProc  = func(HDC)->const *u8?
+#[Swag.CallingConvention(.C)]
+alias WglCreateContextAttribsProc = func(HDC, HGLRC, const *s32)->HGLRC
+
+// `WGL_ARB_create_context` and `WGL_ARB_create_context_robustness` attribute names and values.
+const WGL_CONTEXT_FLAGS_ARB             = 0x2094
+const WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB = 0x00000004
+const WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB = 0x8256
+const WGL_LOSE_CONTEXT_ON_RESET_ARB     = 0x8252
+
+// Returns the WGL extension names published for `hDc`, separated by spaces.
+//
+// `WGL_ARB_extensions_string` is resolved against the context current on the calling thread, so
+// this answers `null` before there is one and on a driver that does not publish the extension.
+public func wglGetExtensionsStringARB(hDc: HDC)->string?
+{
+    let entry = cast(WglGetExtensionsStringProc?, getExtensionAddress(("wglGetExtensionsStringARB").buffer))
+    if not entry do
+        return null
+    let names = entry(hDc)
+    if not names do
+        return null
+    return cast(string, cast(const cstring, names))
+}
+
+// Creates a context for `hDc` described by the zero-terminated attribute list `attribs`.
+//
+// `WGL_ARB_create_context` is resolved against the context current on the calling thread, so a
+// context must be current first. Returns `null` when the driver does not publish the extension
+// or refuses the attributes; `GetLastError` then tells why. `shareContext` may be `null`.
+public func wglCreateContextAttribsARB(hDc: HDC, shareContext: HGLRC, attribs: const [..] s32)->HGLRC
+{
+    Swag.assert(attribs.count != 0 and attribs[attribs.count - 1] == 0, "the attribute list must end with zero")
+    let entry = cast(WglCreateContextAttribsProc?, getExtensionAddress(("wglCreateContextAttribsARB").buffer))
+    if not entry do
+        return null
+    return entry(hDc, shareContext, &attribs[0])
+}
+
 #[Foreign("opengl32", callconv: Swag.CallConv.C)]
 {
     func wglGetProcAddress(arg1: LPCSTR)->const *void?

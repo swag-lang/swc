@@ -4,7 +4,10 @@ using Core, Core.Math
 
 // Platform context operations. Each backend supplies the implementation used by RenderOgl.
 #[Swag.Opaque]
-internal struct NativeRenderOgl {}
+internal struct NativeRenderOgl
+{
+    notifiesReset: bool     // Whether the shared context reports that the driver reset the device.
+}
 
 // Describes a platform rendering context and drawable.
 #[Swag.Opaque]
@@ -43,12 +46,14 @@ impl IRenderer for RenderOgl
         if not .nativeContext
         {
             .nativeContext = ogl.hRC
+            .generation    = TextureGeneration.claim()
             ogl.ownsRC     = false
         }
 
         let storage = Memory.new'OglContext()
         storage[]     = ogl
         .contextCount += 1
+        .contexts.add(storage)
         return RenderContext{renderHandle, storage, width, height}
     }
 
@@ -63,6 +68,12 @@ impl IRenderer for RenderOgl
         let ogl = oglContext(context[])
         Swag.assert(.contextCount > 0)
         .contextCount -= 1
+        for registered, index in .contexts where registered == ogl
+        {
+            .contexts.removeAt(index)
+            break
+        }
+
         if not .contextCount
         {
             .native.setCurrentContext(ogl[])
@@ -77,6 +88,7 @@ impl IRenderer for RenderOgl
         {
             .native.deleteContextHandle(.nativeContext)
             .nativeContext = null
+            .generation.release()
         }
 
         context[] = {}

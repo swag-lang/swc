@@ -200,7 +200,7 @@ impl Surface
 
         // A move to a denser monitor must resharpen the shared theme atlas.
         if .app.theme != null and .app.theme.initialized and (.app.renderer != null) do
-            .app.theme.ensureAtlasScale(.app.renderer, scale)
+            .app.ensureThemeAtlasScale(scale)
     }
 
     // Returns the drawable and viewport of this surface.
@@ -335,6 +335,17 @@ impl Surface
     {
         .wnd.name.set(name)
         .applyNativeTitle()
+        .invalidate()
+    }
+
+    // Forgets what a reset of the graphics device took from this surface, and repaints it whole.
+    //
+    // Its render targets now read as invalid and the next paint creates them again; a pending
+    // presentation is dropped, because its pixels will never arrive.
+    internal mtd recoverLostRendering()
+    {
+        .abandonNativePresentation()
+        .renderFailure.clear()
         .invalidate()
     }
 
@@ -1051,6 +1062,7 @@ impl Surface
     {
         if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
             .loseKeyboardFocus()
+
         // A Lost callback can deliberately choose another control. Its transition owns the
         // new saved point; clearing it here would make the next native activation forget it.
         if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
@@ -1086,6 +1098,7 @@ impl Surface
                 focused.setSurfaceFallbackFocus()
                 return true
             }
+
             return false
         }
 

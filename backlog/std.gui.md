@@ -49,32 +49,16 @@ prove it. Operating-system integrations live in
   A call that omits position and size still succeeds, but the screen keeps the previous
   image (4e7ee4e873 froze every repaint after the first that way).
   Existing captures ran at 12–30 fps under load, so they cannot exclude a one-refresh artifact.
-- Reported failure: Swag Scope's explorer and Swag Vault intermittently flicker with horizontal
-  corruption on a DisplayLink-connected monitor. The user associates it with high GPU load;
-  it can disappear and return without restarting the application. The supplied 2751 x 1891
-  capture retains the top of the window while lower content is repeated or scrambled. The
-  original host report names Intel Arc graphics (32.0.101.8860) and DisplayLink USB devices
-  (11.5.6380.0). Neither GPU load nor
-  thumbnail decoding is established as the cause; the second application points to the shared
-  presentation path. The large native presentation test compares the GPU target with the CPU
-  bitmap across monitor placements, but cannot validate DisplayLink's final displayed pixels.
-- Windows also records `dlidusb4.dll` user-mode driver host termination and takes the DisplayLink
-  device and USB graphics dock offline (DriverFrameworks events 10121 and 10111). An OpenGL SVG
-  mask comparison failed during the same validation period and passed in isolation and in its
-  complete suite afterwards. That correlation does not establish the first corrupt stage.
-- An offscreen Scope golden also produced a mostly black, diagonally torn
-  `viewer.outline.markdown` image after `HeadlessHost.render` and `Image.crop`; the following
-  whole-window and translated-panel captures passed, as did the isolated outline test.
-  Its reference remains unchanged. This path does not publish a visible layered window,
-  so a displayed-pixels-only explanation cannot account for every observed failure.
+- A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
+  it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
+  out mostly black and diagonally torn (`viewer.outline.markdown`). `HeadlessHost` never runs
+  `RenderOgl.recoverLostDevice`, so it reports such a run as an ordinary golden mismatch.
+- Every reset on the Intel Arc host also takes the `dlidusb4.dll` DisplayLink driver down with
+  its displays (DriverFrameworks events 10121 and 10111); that driver fault is outside Swag.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.
-- Next: capture the GPU target, CPU presentation bitmap and desktop image from the same failing
-  frame on DisplayLink, comparing asynchronous dirty-region presentation with the existing
-  synchronous diagnostic path. Locate the first corrupt stage before changing synchronization,
-  row packing or render-target reuse. For the offscreen outline failure, preserve the uncropped
-  readback and compare the cropped region before attributing the fault to GPU readback or CPU
-  image transformation. Measure physical border-drag latency against std.gui.056 on both displays,
+- Next: make `HeadlessHost` ask the renderer for a reset after each render and fail with a
+  device-reset message rather than a pixel mismatch. Measure physical border-drag latency against std.gui.056 on both displays,
   and capture discrete placement at verified display cadence across DPI and adapter boundaries. Measure
   sustained repaint cost with asynchronous dirty-region transfers. Keep the
   single-HWND publication contract for any faster presenter.

@@ -442,6 +442,22 @@ impl Theme
         .res.atlasScale = wanted
     }
 
+    // Uploads again the theme textures a reset of the graphics device took with it.
+    //
+    // The atlas comes back at the density it had, from the vector document it caches; the icon
+    // frames come back from their own atlas. Textures that are still valid are left alone.
+    internal mtd restoreLostTextures(renderer: IRenderer)
+    {
+        if .res.atlasScale > 0 and not .res.imgWidgets.isValid()
+        {
+            let scale = .res.atlasScale
+            .res.atlasScale = 0
+            .ensureAtlasScale(renderer, scale)
+        }
+
+        .res.icons.restoreLostTextures()
+    }
+
     // Loads the default typefaces and builds the default font families, resolving each
     // font resource through `resources` so a disk folder can override the embedded ones.
     //

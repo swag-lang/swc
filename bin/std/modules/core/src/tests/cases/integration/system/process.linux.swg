@@ -120,6 +120,7 @@
     var outcome: Swag.Error
     discard catch Env.startProcess(Env.StartInfo{fileName: "/swag-missing-process", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe}) as outcome
     Swag.require(outcome.value() is Errors.FileNotFoundError)
+    Swag.require((assume cast(const *Errors.FileNotFoundError, outcome.value())).nativeErrorID == cast(u64, Linux.ENOENT))
 }
 
 #[Swag.TestTag("integration.process")]

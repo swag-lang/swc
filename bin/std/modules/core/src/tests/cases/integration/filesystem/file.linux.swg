@@ -18,6 +18,10 @@
         discard catch File.open(path, .CreateNew, .Write, .Zero) as collision
         let collisionError = assume cast(const *Swag.SystemError, collision.value())
         Swag.require(collisionError.errorID == cast(u64, Linux.EEXIST))
+        var nested: Swag.Error
+        discard catch File.openRead(Path.combine(path, "child")) as nested
+        Swag.require(nested.value() is Errors.FileNotFoundError)
+        Swag.require((assume cast(const *Errors.FileNotFoundError, nested.value())).nativeErrorID == cast(u64, Linux.ENOTDIR))
         let size = expect stream.size()
         Swag.require(size == 3)
     }
@@ -91,6 +95,8 @@
         var missing: Swag.Error
         discard catch File.open(path, mode, .ReadWrite, .Zero) as missing
         Swag.require(missing.value() is Errors.FileNotFoundError)
+        let missingError = assume cast(const *Errors.FileNotFoundError, missing.value())
+        Swag.require(missingError.nativeErrorID == cast(u64, Linux.ENOENT) and missingError.fileName == path.toString())
         Swag.require(not File.exists(path))
     }
 

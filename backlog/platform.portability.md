@@ -433,12 +433,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 
-### platform.portability.039 — Native errors have no second-platform mapping
-
-- Next: map the second platform's error domain into the portable `core` failure contract, preserving
-  native detail without leaking native codes into portable callers.
-- Done when: Representative filesystem and process failures on the chosen second host map to portable core failures while retaining inspectable native detail, and common callers branch only on portable errors.
-
 ### platform.portability.040 — Validate Linux sandbox enforcement and startup
 
 - Progress: Linux early lookup uses runtime argv through common name/value matching. Existing

@@ -966,9 +966,9 @@ impl MainWnd
             .spacing   = .themeMetrics().tabItem_WordGap
         }
 
-        with .recentSmall = IconButton.createQuiet(sizes, ActionRecentSize.RecentSmall, menu: false)
-        with .recentMedium = IconButton.createQuiet(sizes, ActionRecentSize.RecentMedium, menu: false)
-        with .recentBig = IconButton.createQuiet(sizes, ActionRecentSize.RecentBig, menu: false)
+        .recentSmall  = IconButton.createQuiet(sizes, ActionRecentSize.RecentSmall, menu: false)
+        .recentMedium = IconButton.createQuiet(sizes, ActionRecentSize.RecentMedium, menu: false)
+        .recentBig    = IconButton.createQuiet(sizes, ActionRecentSize.RecentBig, menu: false)
 
         with .recentWnd = RecentWnd.create(me.recentBar, me)
         {

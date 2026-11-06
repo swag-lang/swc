@@ -109,6 +109,8 @@ internal struct Context
     late xkb_x11_keymap_new_from_device:          Linux.xkb_x11_keymap_new_from_device_fn
     late xkb_x11_state_new_from_device:           Linux.xkb_x11_state_new_from_device_fn
     late xcb_xkb_select_events_checked:           Linux.xcb_xkb_select_events_checked_fn
+    late xcb_xkb_per_client_flags:                Linux.xcb_xkb_per_client_flags_fn
+    late xcb_xkb_per_client_flags_reply:          Linux.xcb_xkb_per_client_flags_reply_fn
     late xcb_create_gc_checked:                   Linux.xcb_create_gc_checked_fn
     late xcb_free_gc_checked:                     Linux.xcb_free_gc_checked_fn
     late xcb_put_image_checked:                   Linux.xcb_put_image_checked_fn
@@ -349,12 +351,22 @@ internal func initializeKeyboard(context: *Context) fail
     context.xkb_x11_keymap_new_from_device      = try symbol'Linux.xkb_x11_keymap_new_from_device_fn(adapter, "xkb_x11_keymap_new_from_device")
     context.xkb_x11_state_new_from_device       = try symbol'Linux.xkb_x11_state_new_from_device_fn(adapter, "xkb_x11_state_new_from_device")
     context.xcb_xkb_select_events_checked       = try symbol'Linux.xcb_xkb_select_events_checked_fn(events, "xcb_xkb_select_events_checked")
+    context.xcb_xkb_per_client_flags            = try symbol'Linux.xcb_xkb_per_client_flags_fn(events, "xcb_xkb_per_client_flags")
+    context.xcb_xkb_per_client_flags_reply      = try symbol'Linux.xcb_xkb_per_client_flags_reply_fn(events, "xcb_xkb_per_client_flags_reply")
     let connection = unwrap context.connection
     if context.xkb_x11_setup_xkb_extension(connection, 1, 0, 0, null, null, &context.xkbEventBase, null) == 0 do
         fail Swag.SystemError{"X11 keyboard extension is unavailable"}
     // XKB clients do not receive ordinary MappingNotify until they select XKB map updates.
     // Map parts 0xff cover key types, symbols, modifiers, actions and virtual modifiers.
     try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 3, 0, 3, 0xff, 0xff, null))
+    let repeatReply = context.xcb_xkb_per_client_flags_reply(connection,
+                                                            context.xcb_xkb_per_client_flags(connection, 0x100, 1, 1, 0, 0, 0),
+                                                            null)
+    if not repeatReply do
+        fail Swag.SystemError{"cannot configure X11 detectable key repeat"}
+    defer Linux.free(repeatReply)
+    if repeatReply.supported & 1 == 0 or repeatReply.value & 1 == 0 do
+        fail Swag.SystemError{"X11 detectable key repeat is unavailable"}
     let keyboard = context.xkb_context_new(0)
     if not keyboard do
         fail Swag.SystemError{"cannot create XKB context"}

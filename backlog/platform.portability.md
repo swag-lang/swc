@@ -613,12 +613,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   XKB map notifications now reload the keymap and state together; an active GUI accepts a
   remapped key while preserving physical transition events in JIT/native. A key held across
   another remap retains its old release identity and uses the new identity on the next press.
+  The GUI enables XKB detectable repeat per client. A genuinely held XTEST key produces
+  multiple character events with one physical press/release pair in JIT/native; a rapid
+  release and press during remapping remains two distinct transitions.
   The existing XTEST keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
   these are protocol tests, not normalized input routing or real-device key transitions.
-- Next: validate repeated keys, modifier transitions and full input-language changes
+- Next: validate modifier transitions and full input-language changes
   through portable keyboard events.
 - Related: platform.portability.050, platform.portability.085, platform.portability.054
 - Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.

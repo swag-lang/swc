@@ -3,6 +3,7 @@ import ctypes as c
 import json
 import os
 import sys
+import time
 
 assert os.environ.get('SWAG_TEST_ISOLATED_X11') == '1'
 x11 = c.CDLL('libX11.so.6')
@@ -19,6 +20,10 @@ x11.XSync.argtypes = [P, c.c_int]
 x11.XSetInputFocus.argtypes = [P, U, c.c_int, U]
 x11.XKeysymToKeycode.argtypes = [P, U]
 x11.XKeysymToKeycode.restype = c.c_ubyte
+x11.XkbSetAutoRepeatRate.argtypes = [P, c.c_uint, c.c_uint, c.c_uint]
+x11.XkbSetAutoRepeatRate.restype = c.c_int
+x11.XkbGetAutoRepeatRate.argtypes = [P, c.c_uint, c.POINTER(c.c_uint), c.POINTER(c.c_uint)]
+x11.XkbGetAutoRepeatRate.restype = c.c_int
 xtst.XTestFakeKeyEvent.argtypes = [P, c.c_uint, c.c_int, U]
 display = x11.XOpenDisplay(None)
 assert display
@@ -51,13 +56,26 @@ try:
         for code, _ in codes:
             change(code, previous[str(code)])
         x11.XSync(display, 0)
-    elif mode in ('send', 'remap', 'held-remap'):
+    elif mode in ('send', 'remap', 'held-remap', 'repeat'):
         x11.XSetInputFocus(display, int(sys.argv[3]), 2, 0)
         def tap(code):
             assert code
             assert xtst.XTestFakeKeyEvent(display, code, 1, 0)
             assert xtst.XTestFakeKeyEvent(display, code, 0, 0)
-        if mode == 'remap':
+        if mode == 'repeat':
+            code = x11.XKeysymToKeycode(display, ord('a'))
+            old_delay, old_interval = c.c_uint(), c.c_uint()
+            assert x11.XkbGetAutoRepeatRate(display, 0x100, c.byref(old_delay), c.byref(old_interval))
+            assert x11.XkbSetAutoRepeatRate(display, 0x100, 150, 40)
+            try:
+                assert xtst.XTestFakeKeyEvent(display, code, 1, 0)
+                x11.XSync(display, 0)
+                time.sleep(.7)
+            finally:
+                assert xtst.XTestFakeKeyEvent(display, code, 0, 0)
+                assert x11.XkbSetAutoRepeatRate(display, 0x100, old_delay.value,
+                                                old_interval.value)
+        elif mode == 'remap':
             change(230, [ord('b')] + [0] * (len(mapping(230)) - 1))
             x11.XSync(display, 0)
             tap(230)

@@ -53,8 +53,9 @@ func runTextInputPeer(script, mode, saved: string)
 
     defer surface.wnd.view.hookOnEvent = null
     let id = Format.toString("%", surface.windowId)
-    for mode in ["send", "remap", "held-remap"]
+    for mode in ["send", "remap", "held-remap", "repeat"]
     {
+        let priorCharacterCount = characters.count
         var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), mode, saved.toString(), id.toString()],
                                                          standardOutput: .Pipe, standardError: .Pipe})
         defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
@@ -68,7 +69,7 @@ func runTextInputPeer(script, mode, saved: string)
         for 8 do
             app.runFrame()
         Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
-        let expectedPresses = mode == "send" ? 7 : (mode == "remap" ? 8 : 10)
+        let expectedPresses = mode == "send" ? 7 : (mode == "remap" ? 8 : (mode == "held-remap" ? 10 : 11))
         Swag.require(presses.count == expectedPresses,
                      Format.toString("physical presses in %: %, text %", mode, presses.count, characters))
         if mode == "remap"
@@ -78,12 +79,25 @@ func runTextInputPeer(script, mode, saved: string)
             Swag.require(mapped == .B, Format.toString("mapped key after X11 change: %", mapped))
         }
 
-        let expectedText = mode == "send" ? "aéJ\u0301" : (mode == "remap" ? "aéJ\u0301b" : "aéJ\u0301bbc")
-        Swag.require(characters == expectedText, Format.toString("text in %: %", mode, characters))
+        if mode == "repeat"
+        {
+            Swag.require(characters.count >= priorCharacterCount + 2 and Utf8.endsWith(characters.toString(), "aa"),
+                         Format.toString("repeated text: %", characters))
+        }
+        else
+        {
+            let expectedText = mode == "send" ? "aéJ\u0301" : (mode == "remap" ? "aéJ\u0301b" : "aéJ\u0301bbc")
+            Swag.require(characters == expectedText, Format.toString("text in %: %", mode, characters))
+        }
         if mode == "held-remap"
         {
             Swag.require(presses[presses.count - 2] == .B and presses.back() == .C)
             Swag.require(releases[releases.count - 2] == .B and releases.back() == .C)
+        }
+        if mode == "repeat"
+        {
+            Swag.require(presses.back() == .A and releases.back() == .A)
+            Swag.require(releases.count == presses.count, "a repeated key changed the number of physical transitions")
         }
     }
 }

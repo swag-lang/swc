@@ -320,8 +320,11 @@ impl Application
             switch kind
             {
             case 2, 3:
-                if not surface.isDisabled do
-                    LinuxDesktop.dispatchKey(context, surface, cast(*Linux.xcb_key_press_event_t, cast(*void, event)), kind == 2)
+                if not surface.isDisabled
+                {
+                    let packet = cast(*Linux.xcb_key_press_event_t, cast(*void, event))
+                    LinuxDesktop.dispatchKey(context, surface, packet, kind == 2)
+                }
 
             case 4, 5:
                 let packet = cast(*Linux.xcb_button_press_event_t, cast(*void, event))
@@ -475,6 +478,7 @@ namespace LinuxDesktop
     {
         let app = surface.app
         var key = app.nativeKeyPresses[packet.detail]
+        let wasPressed = key != .None
         if key == .None do
             key = portableKey(context, packet.detail, packet.state)
 
@@ -493,10 +497,15 @@ namespace LinuxDesktop
             modifiers |= .Control
         if packet.state & 8 do
             modifiers |= .Alt
-        var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
-        target.sendEvent(&event)
-        if pressed and not event.accepted do
-            app.routeUnhandledKey(target, key, event.modifiers)
+        // X11 can deliver another KeyPress while the key remains held. Keep the physical
+        // transition single, while still delivering the repeated text below.
+        if not pressed or not wasPressed
+        {
+            var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
+            target.sendEvent(&event)
+            if pressed and not event.accepted do
+                app.routeUnhandledKey(target, key, event.modifiers)
+        }
         if not pressed do
             return
         let keyboardState = unwrap context.keyboardState

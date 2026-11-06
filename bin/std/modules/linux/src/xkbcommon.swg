@@ -67,3 +67,32 @@ alias xkb_x11_state_new_from_device_fn       = func(*void, *void, s32)->*void?
 // libxcb-xkb 1.x: subscribe to core-keyboard map and device replacement notifications.
 #[Swag.CallingConvention(.C)]
 alias xcb_xkb_select_events_checked_fn       = func(*void, u16, u16, u16, u16, u16, u16, const *void?)->xcb_void_cookie_t
+
+// Per-client detectable repeat omits synthetic KeyRelease/KeyPress pairs while a key is held.
+alias xcb_xkb_per_client_flags_cookie_t = xcb_void_cookie_t
+
+struct xcb_xkb_per_client_flags_reply_t
+{
+    public
+    {
+        response_type:   u8
+        deviceID:        u8
+        sequence:        u16
+        length:          u32
+        supported:       u32
+        value:           u32
+        autoCtrls:       u32
+        autoCtrlsValues: u32
+        pad0:            [8]u8
+    }
+}
+
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_per_client_flags_fn       = func(*void, u16, u32, u32, u32, u32, u32)->xcb_xkb_per_client_flags_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_per_client_flags_reply_fn = func(*void, xcb_xkb_per_client_flags_cookie_t, *(*xcb_generic_error_t?)?)->*xcb_xkb_per_client_flags_reply_t?
+
+#assert(#sizeof(xcb_xkb_per_client_flags_cookie_t) == 4)
+#assert(#sizeof(xcb_xkb_per_client_flags_reply_t) == 32)
+#assert(#offsetof(xcb_xkb_per_client_flags_reply_t.supported) == 8)

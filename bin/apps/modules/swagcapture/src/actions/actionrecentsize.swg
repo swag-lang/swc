@@ -103,11 +103,12 @@ impl MainWnd
     // Returns the height of the recent strip at the preview size in force.
     mtd bottomHeight()->f32
     {
+        let controls = .themeMetrics().miniBar_ButtonSize
         switch #complete .bottomSize
         {
-        case .Small:  return 88
-        case .Medium: return 136
-        case .Big:    return 232
+        case .Small:  return 88 + controls
+        case .Medium: return 136 + controls
+        case .Big:    return 232 + controls
         }
     }
 
@@ -126,5 +127,7 @@ impl MainWnd
             .recentBar.resize(0, height)
             .applyLayout(Math.Point{.position.width, .position.height})
         }
+
+        .updateCommandState()
     }
 }

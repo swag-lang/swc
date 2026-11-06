@@ -141,7 +141,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   orientation its camera recorded asks, in the viewer and in its thumbnail. Ctrl+C, or Copy image in
   the orientation menu, puts the upright picture on the clipboard. PSD layer effects and masks are not rendered;
   unsupported compression and image layouts report a decoder error. Its centered lower group
-  provides sibling navigation, orientation commands, and playback. The clickable
+  provides sibling navigation, orientation commands, and playback. A picture played once keeps that group
+  on screen; in the modes that move on to the next file, it comes with the pointer. The clickable
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,

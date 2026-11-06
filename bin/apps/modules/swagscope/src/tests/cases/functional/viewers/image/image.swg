@@ -235,6 +235,11 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(Math.abs(window.readingLine.details.position.right() + ViewerReadingLine.GroupSpacing - window.currentInfo.position.x) < 0.01)
     Swag.require(Math.abs(window.currentInfo.position.right() - window.readingLine.clientRect().right()) < 0.01)
     Swag.require(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
+
+    // A picture played once has nothing coming after it: its commands stay on screen. In a mode
+    // that moves on to the next file, they wait for the pointer like every other viewer's.
+    Swag.require(window.playMode == .Once and window.viewerBar.isLocallyVisible())
+    window.setPlayMode(.Folder)
     Swag.require(not window.viewerBar.isLocallyVisible())
     window.revealViewerBar()
     Swag.require(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)

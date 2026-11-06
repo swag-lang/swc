@@ -310,6 +310,7 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
     // The file name here becomes `lang/<tag>/scope.tweak`, which must be the exact resource
     // name published above: a mismatch does not fail, it silently shows English.
     Gui.registerStrings'AppStrings(&g_AppStrings, "scope")
+    registerMediaInfoStrings(bundle)
     Gui.Properties.setTextResolver(&resolveScopePropertyText)
 }
 

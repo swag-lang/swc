@@ -1205,7 +1205,7 @@ private func runViewerDecode(view: *Panel)
 // Creates the integrated video playback view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
-    registerMediaInfoStrings(host.application())
+    registerMediaInfoStrings(&host.application().resources)
     catch
     {
         let view = try Panel.create(host)

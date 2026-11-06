@@ -500,8 +500,8 @@ private impl Panel
 // Creates the integrated PDF view.
 impl Panel
 {
-    // Describes the document in the information sheet: its pages and their size, then its title
-    // and author when it records them.
+    // Describes the document in the information sheet: its pages and their size, then its title,
+    // author and bookmarks when it records them.
     mtd describeInformation(sheet: *InfoSheet)
     {
         if not .facts.pageCount do
@@ -516,6 +516,8 @@ impl Panel
             data.add(.Title, .facts.title)
         if not .facts.author.isEmpty() do
             data.add(.Author, .facts.author)
+        if .bookmarks.count do
+            data.add(.Bookmarks, Format.toString("%", .bookmarks.count))
         data.describe(sheet)
     }
 }

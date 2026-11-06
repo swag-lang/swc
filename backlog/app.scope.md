@@ -120,7 +120,7 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   are spaced and cached like MusicBrainz's. TMDB (key required, attribution in About, cache under six
   months) is the later option for series and better coverage.
 - Next: query iTunes for posters and synopses, keep the Wikipedia/Wikidata credits, offer a
-  searchable list of candidates, improve filename interpretation and cover TV series separately
+  searchable list of candidates and cover TV series separately
   from films, retaining source attribution, privacy, cancellation and bounded requests.
 - Done when: users can review candidate matches in the application and correct one without
   looking up an ID elsewhere; series identification remains distinct from film matching.

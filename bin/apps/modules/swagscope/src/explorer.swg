@@ -827,10 +827,7 @@ impl Explorer
         if entry.texture.isValid() and entry.texture.width > 1 do
             sheet.setPicture(entry.texture)
 
-        let title = not entry.movie.title.isEmpty() ? entry.movie.title.toString() :
-                    (not entry.directory and not entry.music.track.isEmpty() ? entry.music.track.toString() :
-                     (not entry.music.title.isEmpty() ? entry.music.title.toString() : entry.name.toString()))
-        sheet.setTitle(safeMediaText(title))
+        sheet.setTitle(safeMediaText(.selectionTitle(entry)))
         sheet.setIdentity(.selectionIdentity(entry))
 
         // A film is headed by its poster, its title, its year and length, and its rating, the
@@ -934,12 +931,32 @@ impl Explorer
         }
 
         // A film without online details says how to get them.
-        if not entry.directory and not .window.onlineMovies and not albumAudio(entry.name) and Reader.canOpen(entry.name) do
+        if isFilmFile(entry) and not .window.onlineMovies do
             sheet.addFootnote(strings.explore_OnlineOff, strings.explore_TurnOn, ViewerCommands.OnlineMovies)
     }
 
+    // Returns the title the sheet gives `entry`: what a film or a recording is called, the title
+    // a film's own file name gives, or its name.
+    private mtd selectionTitle(entry: const *ExplorerEntry)->String
+    {
+        if not entry.movie.title.isEmpty() do
+            return String.from(entry.movie.title)
+        if not entry.directory and not entry.music.track.isEmpty() do
+            return String.from(entry.music.track)
+        if not entry.music.title.isEmpty() do
+            return String.from(entry.music.title)
+        if isFilmFile(entry)
+        {
+            let query = MovieQuery.fromFile(entry.name)
+            if not query.title.isEmpty() do
+                return query.title
+        }
+
+        return String.from(entry.name)
+    }
+
     // Returns the identity line of `entry`: a film's year and length, a recording's artist and
-    // album, or the kind of a file and where it stands.
+    // album, or the kind of a file and where it stands, after the year a film's file name gives.
     private mtd selectionIdentity(entry: const *ExplorerEntry)->String
     {
         let strings = appStrings()
@@ -976,7 +993,9 @@ impl Explorer
         let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
         if entry.directory or kind.length <= 1 do
             return place
-        return Format.toString("% · %", kind.toString()[1 to], place)
+        let identity = Format.toString("% · %", kind.toString()[1 to], place)
+        let year     = isFilmFile(entry) ? MovieQuery.fromFile(entry.name).year : String.from("")
+        return year.isEmpty() ? identity : Format.toString("% · %", year, identity)
     }
 
     // Adds the measurements already read for a thumbnail or a listing cell; the size of a picture
@@ -1011,7 +1030,7 @@ impl Explorer
             return
         let entry   = &.entries[.selected]
         let strings = appStrings()
-        if not entry.movie.title.isEmpty() or not entry.music.track.isEmpty() do
+        if .selectionTitle(entry) != entry.name do
             sheet.addReading(strings.explore_Name, entry.name)
         addSheetReading(sheet, strings.explore_Modified, entry.modified, mono: true)
     }
@@ -2180,6 +2199,9 @@ impl IWnd for Explorer
         }
     }
 }
+
+// Reports whether `entry` is a film file: what the video reader opens, apart from album audio.
+private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.directory and not albumAudio(entry.name) and Reader.canOpen(entry.name)
 
 // Adds a reading of `value` under `label` to the sheet, unless nothing is known of it.
 private func addSheetReading(sheet: *InfoSheet, label, value: string, mono = false)

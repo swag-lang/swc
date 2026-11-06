@@ -44,6 +44,7 @@ binary      Binaire
 sampleSize  Taille d'échantillon
 title       Titre
 author      Auteur
+bookmarks   Signets
 style       Style
 unitsPerEm  Unités par em
 faces       Faces

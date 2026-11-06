@@ -45,6 +45,7 @@ enum MediaInfoField
     SampleSize
     Title
     Author
+    Bookmarks
     Style
     UnitsPerEm
     Faces
@@ -97,6 +98,7 @@ struct MediaInfoStrings
     sampleSize:  string = "Sample size"
     title:       string = "Title"
     author:      string = "Author"
+    bookmarks:   string = "Bookmarks"
     style:       string = "Style"
     unitsPerEm:  string = "Units per em"
     faces:       string = "Faces"
@@ -127,9 +129,12 @@ const VideoInfoFramesTag      = "ScopeVideoFrames"
 const VideoInfoBitrateTag     = "ScopeVideoBitrate"
 
 // Registers the media information string table and its embedded translation.
-func registerMediaInfoStrings(app: *Application)
+//
+// The application registers it with its own strings: every sheet speaks this vocabulary, the
+// explorer's pages included, before any viewer has been opened.
+func registerMediaInfoStrings(bundle: *Core.Resources.Bundle)
 {
-    app.resources.addEmbedded(FrenchMediaStringsName, FrenchMediaStrings)
+    bundle.addEmbedded(FrenchMediaStringsName, FrenchMediaStrings)
     Gui.registerStrings'MediaInfoStrings(&g_MediaInfoStrings, "scope.media")
 }
 
@@ -197,6 +202,7 @@ impl MediaInfoRow
         case .SampleSize:  return s.sampleSize
         case .Title:       return s.title
         case .Author:      return s.author
+        case .Bookmarks:   return s.bookmarks
         case .Style:       return s.style
         case .UnitsPerEm:  return s.unitsPerEm
         case .Faces:       return s.faces
@@ -215,7 +221,7 @@ impl MediaInfoRow
         {
         case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines, .Sections,
              .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate, .Channels,
-             .SampleSize, .UnitsPerEm, .Faces, .Meter:
+             .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter:
             return true
         }
 

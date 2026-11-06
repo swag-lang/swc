@@ -85,6 +85,30 @@ using Core, Gui, Pixel, Audio
     }
 }
 
+// A film without online details is titled and dated by its release name, keeps that name in its
+// file readings, and says how to turn the lookups on.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(880, 420)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.onlineMovies = false
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
+    explorer.entries.add({name: "Blade.Runner.1982.Final.Cut.1080p.mkv", size: 123, attempted: true})
+    explorer.fill()
+    explorer.show()
+    explorer.showInformation()
+    window.applyLayout()
+    explorer.grid.select(0)
+    let text = window.infoSheet.text()
+    Swag.require(Utf8.startsWith(text, "Blade Runner\n1982 · MKV"))
+    Swag.require(Utf8.contains(text, "Name\nBlade.Runner.1982.Final.Cut.1080p.mkv"))
+    let foot = Format.toString("% %", appStrings().explore_OnlineOff, appStrings().explore_TurnOn)
+    Swag.require(Utf8.contains(text, foot.toString()))
+}
+
 // Available facts make separate readings; selecting another file describes it instead.
 #test
 {

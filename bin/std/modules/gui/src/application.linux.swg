@@ -502,9 +502,27 @@ namespace LinuxDesktop
             let status = context.xkb_compose_state_get_status(surface.compose)
             if status == 1 do
                 return
-            if status == 2 do
-                symbol = context.xkb_compose_state_get_one_sym(surface.compose)
-            if status == 2 or status == 3 do
+            if status == 2
+            {
+                // A compose result can contain several Unicode scalars and have no keysym.
+                let size = context.xkb_compose_state_get_utf8(surface.compose, null, 0)
+                if size > 0 and not (packet.state & (4 | 8))
+                {
+                    var bytes: Array'u8
+                    bytes.resize(cast(u64, size) + 1)
+                    let count = context.xkb_compose_state_get_utf8(surface.compose, bytes.buffer, bytes.count)
+                    if count > 0 and count <= size
+                    {
+                        let runes = Unicode.fromUtf8(Swag.makeSlice(bytes.buffer, cast(u64, count)))
+                        for r in runes do
+                            app.sendRuneEvent(key, r)
+                    }
+                }
+
+                context.xkb_compose_state_reset(surface.compose)
+                return
+            }
+            if status == 3 do
                 context.xkb_compose_state_reset(surface.compose)
             if status == 3 do
                 return

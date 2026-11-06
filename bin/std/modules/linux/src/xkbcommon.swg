@@ -47,7 +47,7 @@ alias xkb_compose_state_feed_fn              = func(*void, u32)->u32
 alias xkb_compose_state_get_status_fn        = func(*void)->u32
 
 #[Swag.CallingConvention(.C)]
-alias xkb_compose_state_get_one_sym_fn       = func(*void)->u32
+alias xkb_compose_state_get_utf8_fn          = func(*void, [*]u8?, u64)->s32
 
 #[Swag.CallingConvention(.C)]
 alias xkb_compose_state_reset_fn             = func(*void)

@@ -100,7 +100,7 @@ internal struct Context
     late xkb_compose_state_unref:                 Linux.xkb_compose_state_unref_fn
     late xkb_compose_state_feed:                  Linux.xkb_compose_state_feed_fn
     late xkb_compose_state_get_status:            Linux.xkb_compose_state_get_status_fn
-    late xkb_compose_state_get_one_sym:           Linux.xkb_compose_state_get_one_sym_fn
+    late xkb_compose_state_get_utf8:              Linux.xkb_compose_state_get_utf8_fn
     late xkb_compose_state_reset:                 Linux.xkb_compose_state_reset_fn
     late xkb_x11_setup_xkb_extension:             Linux.xkb_x11_setup_xkb_extension_fn
     late xkb_x11_get_core_keyboard_device_id:     Linux.xkb_x11_get_core_keyboard_device_id_fn
@@ -335,7 +335,7 @@ internal func initializeKeyboard(context: *Context) fail
     context.xkb_compose_state_unref             = try symbol'Linux.xkb_compose_state_unref_fn(library, "xkb_compose_state_unref")
     context.xkb_compose_state_feed              = try symbol'Linux.xkb_compose_state_feed_fn(library, "xkb_compose_state_feed")
     context.xkb_compose_state_get_status        = try symbol'Linux.xkb_compose_state_get_status_fn(library, "xkb_compose_state_get_status")
-    context.xkb_compose_state_get_one_sym       = try symbol'Linux.xkb_compose_state_get_one_sym_fn(library, "xkb_compose_state_get_one_sym")
+    context.xkb_compose_state_get_utf8          = try symbol'Linux.xkb_compose_state_get_utf8_fn(library, "xkb_compose_state_get_utf8")
     context.xkb_compose_state_reset             = try symbol'Linux.xkb_compose_state_reset_fn(library, "xkb_compose_state_reset")
     context.xkb_x11_setup_xkb_extension         = try symbol'Linux.xkb_x11_setup_xkb_extension_fn(adapter, "xkb_x11_setup_xkb_extension")
     context.xkb_x11_get_core_keyboard_device_id = try symbol'Linux.xkb_x11_get_core_keyboard_device_id_fn(adapter, "xkb_x11_get_core_keyboard_device_id")

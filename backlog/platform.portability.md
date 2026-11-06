@@ -106,13 +106,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   policy common.
 - Done when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
 
-### platform.portability.053 — No second-platform text-input routing
-
-- Next: translate committed native text input into the portable text event independently of IME
-  composition.
-- Related: platform.portability.049, platform.portability.052, platform.portability.061
-- Done when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
-
 ### platform.portability.057 — No second-platform GUI packaging
 
 - Next: package the GUI runtime and native dependencies for the chosen second platform.
@@ -609,15 +602,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
   implemented. Standard PC keypad NumLock/Shift selection and held-key release identity pass
   real XTEST integration in both polling and GUI paths. Extra buttons, additional groups,
-  dead keys/compose, IME and layout-change routing remain pending;
-  polling snapshots are separate native requests, not one atomic input sample.
+  IME and layout-change routing remain pending;
+  polling snapshots are separate native requests, not one atomic input sample. GUI XKB
+  composition now sends every committed Unicode scalar as a separate portable character event;
+  real XTEST input covers ordinary, dead-key and multi-scalar compose sequences in JIT/native.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
   these are protocol tests, not normalized input routing or real-device key transitions.
 - Next: translate native key identity, modifier, repeat, and layout state into the portable keyboard
   events.
-- Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
+- Related: platform.portability.050, platform.portability.085, platform.portability.054
 - Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
 
 ### platform.portability.056 — No second-platform system-theme notifications

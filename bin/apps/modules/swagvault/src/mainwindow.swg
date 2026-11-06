@@ -624,13 +624,22 @@ impl MainWindow
     // Teaches the door while the list is on screen, and on the privacy page, where privacy mode
     // empties the list, says where the vaults open from instead. While a vault is unfolded the
     // hand is already at work, and the line steps aside so the actions under the list keep their room.
+    //
+    // Without a vault, the line first teaches the keys of the two ways the home offers.
     mtd refreshHint()
     {
+        let texts = appStrings()
         .hintLine.clearHints()
+        if .page == .List and .vaults.isEmpty()
+        {
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .N), texts.ui_HintNewVault)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .O), texts.ui_HintOpenFile)
+        }
+
         switch .page
         {
-        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintList)
-        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintPrivacy)
+        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
+        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintPrivacy)
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())
@@ -646,7 +655,7 @@ impl MainWindow
     mtd applyTheme()
     {
         .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
-    .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
+        .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
     }
 
     // Returns the vault the list knows at `path`, or null.
@@ -769,8 +778,8 @@ impl MainWindow
         .refreshHint()
     }
 
-    // The mono line under a vault's name: where its drive is and how it is open, or where its
-    // container is and that it is locked.
+    // The mono line the lens writes beside a vault: where its drive is and how it is open, or where
+    // its container is and that it is locked.
     mtd vaultIdentity(path: string)->String
     {
         let texts = appStrings()
@@ -780,23 +789,63 @@ impl MainWindow
         {
             result = Format.toString(texts.ui_StateMounted, drive.mountLabel)
             result += Format.toString(" · %", capacityText(drive.totalBytes))
-            result += Format.toString(" · %", drive.readOnly ? texts.ui_StateReadOnly : texts.ui_StateReadWrite)
-            if drive.protectHidden do
-                result += Format.toString(" · %", texts.ui_StateProtected)
-            if drive.atStartup do
-                result += Format.toString(" · %", texts.ui_StateAtStartup)
-            return result
+        }
+        else
+        {
+            result = Path.directoryName(path) orelse ""
+            if not result.isEmpty() do
+                result += " · "
+            result += texts.ui_StateLocked
         }
 
-        result = Path.directoryName(path) orelse ""
-        if not result.isEmpty() do
-            result += " · "
-        result += texts.ui_StateLocked
-        if .startupIndex(path) != Swag.U64.Max do
-            result += Format.toString(" · %", texts.ui_StateAtStartup)
-        if .chosenPath == path and .protectHiddenOnMount do
-            result += Format.toString(" · %", texts.ui_StateProtected)
+        .addVaultStates(&result, path)
         return result
+    }
+
+    // The mono line under a vault's name in the list: where its container is, how large it is when
+    // locked, then how it is open. The row says the rest itself — the dot and its section the state,
+    // the large figure the drive, the thread the room — so the line does not say it again.
+    mtd vaultPlace(path: string, containerSize: u64)->String
+    {
+        var result: #returntype = Path.directoryName(path) orelse ""
+        if containerSize and not .isMounted(path)
+        {
+            if not result.isEmpty() do
+                result += " · "
+            result += capacityText(containerSize)
+        }
+
+        .addVaultStates(&result, path)
+        return result
+    }
+
+    // Adds to `line` the words of how the vault at `path` is or will be open: for reading alone or
+    // not, with its hidden volume protected, at startup.
+    mtd addVaultStates(line: *String, path: string)
+    {
+        let texts = appStrings()
+
+        func add(text: *String, words: string)
+        {
+            if not text.isEmpty() do
+                text[] += " · "
+            text[] += words
+        }
+
+        if let drive = .mountedDrives.find(path)
+        {
+            add(line, drive.readOnly ? texts.ui_StateReadOnly : texts.ui_StateReadWrite)
+            if drive.protectHidden do
+                add(line, texts.ui_StateProtected)
+            if drive.atStartup do
+                add(line, texts.ui_StateAtStartup)
+            return
+        }
+
+        if .startupIndex(path) != Swag.U64.Max do
+            add(line, texts.ui_StateAtStartup)
+        if .chosenPath == path and .protectHiddenOnMount do
+            add(line, texts.ui_StateProtected)
     }
 
     // Whether the create page holds everything a container needs.

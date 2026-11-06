@@ -14,6 +14,17 @@ ui_StateReadOnly       lecture seule
 ui_StateAtStartup      au démarrage
 ui_StateProtected      volume caché protégé
 ui_OpenDrive           Ouvrir %
+ui_Unlock              Déverrouiller
+ui_DriveFree           % libres sur %
+ui_SectionMounted      Montés
+ui_SectionLocked       Verrouillés
+ui_HomeTitle           Aucun coffre pour l'instant
+ui_HomeTitlePrivacy    Aucun coffre ouvert
+ui_HomeWelcome         Un coffre est un fichier chiffré qui s'ouvre comme un lecteur.
+ui_HomeKeeps           Ce qu'on y range n'est lisible que tant qu'il est monté.
+ui_HomePrivacy         Le mode vie privée ne garde aucune liste : ouvrez un coffre depuis son fichier.
+ui_HomeHidden          volumes cachés
+ui_HomeDrop            ou déposez un conteneur sur la fenêtre
 ui_Mount               Monter
 ui_Unmount             Démonter
 ui_Drive               Lecteur
@@ -30,6 +41,8 @@ ui_CreateHidden        Créer un volume caché…
 ui_StopCreating        Arrêter la création
 ui_StopResizing        Arrêter le redimensionnement
 ui_HintList            options, démontage automatique, à propos
+ui_HintNewVault        nouveau coffre
+ui_HintOpenFile        ouvrir un fichier
 ui_HintPrivacy         avec le mode vie privée, la liste reste vide : les coffres s'ouvrent ici
 
 lens_File              Fichier

@@ -52,6 +52,13 @@ impl NoticeLine
         .busy.show(busy)
         .invalidate()
     }
+
+    // Returns the width the line takes: the lane of its mark, and its sentence.
+    mtd measureWidth()->f32
+    {
+        let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        return MarkSize + TextGap + Painter.measureString(.text, font).width
+    }
 }
 
 impl IWnd for NoticeLine
@@ -77,10 +84,17 @@ impl IWnd for NoticeLine
 
 // The window's first page: the vaults Swag Vault knows, under the page title.
 //
-// It is the view of a scroll window, so a long list scrolls. Each vault is a row; the chosen locked
-// vault unfolds into the card that unlocks it, laid over its row: the card opens its height while
-// the rows below follow it, and the others recede. Two quiet words end the list: a new vault, or
-// one to open from a file.
+// It is the view of a scroll window, so a long list scrolls. The two ways to another vault, a new
+// one or one to open from a file, stand at the end of the title's line. The vaults follow in two
+// groups, each under its section label and its count: the mounted ones first, on their own ground,
+// then the locked ones. The chosen locked vault unfolds into the card that unlocks it, laid over its
+// row: the card opens its height while the rows below follow it, and the others recede.
+//
+// Without a vault — the first visit, and every visit while privacy mode keeps no list — the page is
+// the home of the application: its mark, large and faint, gives the page its centre; a short title
+// and two lines say what a vault is, and where the vaults went when privacy mode keeps none; the
+// two ways stand under them, a new vault as the one primary action of the screen. Under a hairline,
+// a faint foot names what protects a container and recalls that one can be dropped on the window.
 struct VaultList
 {
     using wnd: Wnd
@@ -91,8 +105,10 @@ struct VaultList
         scroll:   *ScrollWnd
         title:    *Label
         notice:   *NoticeLine
-        newVault: *IconButton
-        openFile: *IconButton
+        heading:  *Label
+        welcome:  *Label
+        newVault: *PushButton
+        openFile: *PushButton
     }
 
     card:      UnlockCard
@@ -104,18 +120,44 @@ struct VaultList
     openPath:   String
     openHeight: f32     // Height that place takes now.
     openTarget: f32     // Height it is opening or closing to.
+
+    // Where the arrangement put what the page paints itself: the section label of each group, empty
+    // when the group is; and the mark and the hairline of the home's foot, empty while the list has
+    // vaults.
+    mountedHead:  Math.Rectangle
+    lockedHead:   Math.Rectangle
+    mountedCount: u64
+    markRect:     Math.Rectangle
+    ruleRect:     Math.Rectangle
 }
 
 impl VaultList
 {
     const NoticeGap     = 8'f32        // Air between the title and the notice under it.
-    const RowsGap       = 40'f32       // Air between the head of the page and the first row.
+    const ActionsGap    = 8'f32        // Air between the two ways to another vault.
+    const RowsGap       = 36'f32       // Air between the head of the page and the first group.
+    const HeadHeight    = 20'f32       // Height of the line a group's section label stands on.
+    const HeadGap       = 8'f32        // Air between a section label and the first row of its group.
+    const GroupGap      = 28'f32       // Air between the last row of a group and the next label.
+    const CountGap      = 8'f32        // Air between a section label and its count.
     const RowGap        = 4'f32        // Air between two rows.
-    const LinksGap      = 44'f32       // Air between the last row and the two quiet words.
-    const LinksSpacing  = 12'f32       // Air between the two quiet words.
-    const BottomRoom    = 72'f32       // Room kept under the words for the hint line.
+    const BottomRoom    = 72'f32       // Room kept under the page for the hint line.
     const RecedeOpacity = 0.45'f32     // Opacity of the rows behind an unfolded vault.
     const OpenChannel   = "Vault.Card.Height"
+
+    // The home: the mark, the title and its two lines, the two ways, then the foot under a hairline.
+    const MarkSize         = 64'f32
+    const MarkToHeading    = 28'f32
+    const HeadingSize      = 22'u32
+    const HeadingToWelcome = 10'f32
+    const WelcomeToWays    = 28'f32
+    const WaysToRule       = 44'f32
+    const RuleWidth        = 400'f32
+    const RuleToFoot       = 26'f32     // From the hairline to the middle of the first line of the foot.
+    const FootLineGap      = 22'f32     // From the middle of one line of the foot to the next.
+
+    // What protects a container, named as its specifications spell it: format identifiers, not prose.
+    const CipherNames = "ChaCha20-Poly1305 · Argon2id"
 
     // Creates the page in `window`, empty.
     func create(window: *MainWindow)->*VaultList
@@ -137,17 +179,30 @@ impl VaultList
         result.notice = NoticeLine.create(result)
         result.card   = UnlockCard.create(result, window)
 
-        // The way to a new vault is the first thing the page offers: its words in the text ink,
-        // underlined; opening an existing file stays a quiet word beside it.
-        with result.newVault = createQuietLink(result, texts.ui_NewVault)
+        let headingFont = result.theme().createDefaultFont(HeadingSize, .Bold)
+        with result.heading = Label.create(result, "", {0, 0, 0, headingFont.height})
         {
-            .updateFlags(add: .Underline)
-            .style.addStyleSheetColors("btnIcon_Text $label_Text")
+            .setTextAlignment(.Center, .Top)
+            .style.setFont(headingFont, .Regular)
+        }
+
+        with result.welcome = Label.create(result, "", {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        {
+            .setTextAlignment(.Center, .Top)
+        }
+
+        // A new vault and an existing file are two buttons with their glyphs: the frequent first
+        // task of the window needs no hidden key. Their forms follow the page, in `arrange`.
+        let iconSize = themeRowIconSize(result.themeMetrics())
+        with result.newVault = PushButton.create(result, texts.ui_NewVault)
+        {
+            .setIcon(.theme().icon(.Plus, iconSize))
             .sigPressed += func|window|(_) { window.showPage(.Create) }
         }
 
-        with result.openFile = createQuietLink(result, texts.ui_OpenFile)
+        with result.openFile = PushButton.create(result, texts.ui_OpenFile, form: .Flat)
         {
+            .setIcon(.theme().icon(.OpenFile, iconSize))
             .sigPressed += func|window|(_) { window.openVaultFile() }
         }
 
@@ -158,7 +213,8 @@ impl VaultList
     // Says the list again from the vaults the window knows, and unfolds the chosen one.
     //
     // Rows are reused rather than rebuilt, so saying the list again never takes the keyboard off
-    // the row it is on.
+    // the row it is on. They take the vaults mounted ones first, each group in the order of the
+    // list, which is also the order of the keyboard.
     mtd refresh()
     {
         while .rows.count > .window.vaults.count do
@@ -166,14 +222,32 @@ impl VaultList
         while .rows.count < .window.vaults.count do
             .rows.add(VaultRow.create(me, .window))
 
-        let chosen = .window.chosenLockedPath()
-        for index in .rows.count
+        .mountedCount = 0
+        for vault in .window.vaults where .window.isMounted(vault.path)
         {
-            let row = .rows[index]
-            row.setPath(.window.vaults[index].path)
+            .rows[.mountedCount].setPath(vault.path)
+            .mountedCount += 1
+        }
+
+        var index = .mountedCount
+        for vault in .window.vaults where not .window.isMounted(vault.path)
+        {
+            .rows[index].setPath(vault.path)
+            index += 1
+        }
+
+        let chosen = .window.chosenLockedPath()
+        for row in .rows
+        {
             row.refresh()
             row.show(row.path != chosen)
         }
+
+        // The home says what a vault is; with privacy mode on, it also says why the list is empty.
+        let texts   = appStrings()
+        let privacy = .window.privacyMode
+        .heading.setText(privacy ? texts.ui_HomeTitlePrivacy : texts.ui_HomeTitle)
+        .welcome.setText(Format.toString("%\n%", texts.ui_HomeWelcome, privacy ? texts.ui_HomePrivacy : texts.ui_HomeKeeps))
 
         .card.header.setPath(chosen)
         .card.header.refresh()
@@ -254,8 +328,8 @@ impl VaultList
         .refresh()
     }
 
-    // Lays the page out at the width of the view: the title, the notice, the rows with the card
-    // over the chosen one, then the two quiet words; and tells the scroll window how tall it is.
+    // Lays the page out at the width of the view, as the list or as the home, and tells the scroll
+    // window how tall it is.
     mtd arrange()
     {
         if .arranging or not .built do
@@ -263,13 +337,34 @@ impl VaultList
         .arranging = true
         defer .arranging = false
 
-        let room  = .clientRect()
-        let rowW  = .rowWidth()
-        let width = rowW - 2 * RowOutset
-        let x     = Math.round((room.width - width) * 0.5)
-        var y     = ListTop + .stripInset()
+        let width = .rowWidth() - 2 * RowOutset
+        let x     = Math.round((.clientRect().width - width) * 0.5)
+        let home  = .rows.isEmpty()
+        .title.show(not home)
+        .heading.show(home)
+        .welcome.show(home)
 
+        let bottom = home ? .arrangeHome(x, width) : .arrangeList(x, width)
+        .scroll.setScrollSize(0, bottom + BottomRoom)
+    }
+
+    // Lays out the list: the title with the two ways at the end of its line, the notice, then each
+    // group under its label, with the card over the chosen row. Returns the foot of what it placed.
+    mtd arrangeList(x, width: f32)->f32
+    {
+        .markRect = {}
+        .ruleRect = {}
+        var y = ListTop + .stripInset()
         .title.arrange(Math.Rectangle{x, y, width, .title.position.height})
+
+        // Beside the vaults, the ways to another one are secondary: a hairline ring, then words.
+        .newVault.setForm(.Normal)
+        .openFile.setForm(.Flat)
+        let newSize  = .newVault.measure({}).preferred
+        let openSize = .openFile.measure({}).preferred
+        let waysY    = Math.round(.title.position.vertCenter() - newSize.y * 0.5)
+        .newVault.arrange(Math.Rectangle{x + width - newSize.x, waysY, newSize.x, newSize.y})
+        .openFile.arrange(Math.Rectangle{.newVault.position.x - ActionsGap - openSize.x, waysY, openSize.x, openSize.y})
         y += .title.position.height
 
         if .notice.isLocallyVisible()
@@ -283,6 +378,7 @@ impl VaultList
 
         // At rest, an open place follows what its card holds at this width, and a place whose vault
         // was folded is a row again.
+        let rowW   = .rowWidth()
         let chosen = .window.chosenLockedPath()
         if not .app().animator.isActive(me, AnimationChannel.from(OpenChannel))
         {
@@ -297,30 +393,123 @@ impl VaultList
             }
         }
 
-        // The rows reach past the column on both sides, so their words stand on its edge. The open
-        // place holds the card while its vault is chosen, and its row while it closes.
+        // The rows reach past the column on both sides, so their words stand on its edge. A group
+        // opens with its label; the open place holds the card while its vault is chosen, and its
+        // row while it closes.
+        .mountedHead = {}
+        .lockedHead  = {}
         let rowX = x - RowOutset
-        for row in .rows
+        for row, index in .rows
         {
+            if index == 0 and .mountedCount
+            {
+                .mountedHead = Math.Rectangle{x, y, width, HeadHeight}
+                y += HeadHeight + HeadGap
+            }
+
+            if index == .mountedCount
+            {
+                if index do
+                    y += GroupGap - RowGap
+                .lockedHead = Math.Rectangle{x, y, width, HeadHeight}
+                y += HeadHeight + HeadGap
+            }
+
             let open = not .openPath.isEmpty() and row.path == .openPath
             if open and row.path == chosen do
                 .card.place(Math.Rectangle{rowX, y, rowW, .openHeight})
             else do
-                row.arrange(Math.Rectangle{rowX, y, rowW, VaultRow.Height})
-            y += (open ? .openHeight : VaultRow.Height) + RowGap
+                row.arrange(Math.Rectangle{rowX, y, rowW, row.height()})
+            y += (open ? .openHeight : row.height()) + RowGap
         }
 
-        if not .rows.isEmpty() do
-            y += LinksGap - RowGap
+        return y - RowGap
+    }
 
-        let pad      = .themeMetrics().btnIcon_Padding
+    // Lays out the home: the mark, the title and its lines, the two ways and the notice under them,
+    // then the hairline of the foot, centred together in the room the hint line leaves. Returns the
+    // foot of what it placed.
+    mtd arrangeHome(x, width: f32)->f32
+    {
+        .mountedHead = {}
+        .lockedHead  = {}
+
+        // Alone on the page, a new vault is the primary action; opening a file stays beside it.
+        .newVault.setForm(.Strong)
+        .openFile.setForm(.Normal)
         let newSize  = .newVault.measure({}).preferred
         let openSize = .openFile.measure({}).preferred
-        .newVault.arrange(Math.Rectangle{x - pad, y, newSize.x, newSize.y})
-        .openFile.arrange(Math.Rectangle{.newVault.position.right() + LinksSpacing, y, openSize.x, openSize.y})
-        y += newSize.y + BottomRoom
+        let headingH = .heading.position.height
+        let welcomeH = Math.ceil(.welcome.measure(Math.Point{width, 0}).preferred.y)
+        let noticeH  = .notice.isLocallyVisible() ? NoticeGap + NoticeLine.Height : 0
+        let footH    = WaysToRule + RuleToFoot + FootLineGap + NoticeLine.Height * 0.5
 
-        .scroll.setScrollSize(0, y)
+        let height = MarkSize + MarkToHeading + headingH + HeadingToWelcome + welcomeH + WelcomeToWays + newSize.y + noticeH + footH
+        let room   = .scroll.clientRect()
+        let center = Math.round(room.width * 0.5)
+        var y      = Math.max(ListTop + .stripInset(), Math.round((room.height - PageFoot - height) * 0.5))
+
+        .markRect = Math.Rectangle{center - MarkSize * 0.5, y, MarkSize, MarkSize}
+        y         += MarkSize + MarkToHeading
+
+        .heading.arrange(Math.Rectangle{x, y, width, headingH})
+        y += headingH + HeadingToWelcome
+
+        .welcome.arrange(Math.Rectangle{x, y, width, welcomeH})
+        y += welcomeH + WelcomeToWays
+
+        let waysX = Math.round(center - (newSize.x + ActionsGap + openSize.x) * 0.5)
+        .newVault.arrange(Math.Rectangle{waysX, y, newSize.x, newSize.y})
+        .openFile.arrange(Math.Rectangle{.newVault.position.right() + ActionsGap, y, openSize.x, openSize.y})
+        y += newSize.y
+
+        if .notice.isLocallyVisible()
+        {
+            y += NoticeGap
+            let noticeW = Math.min(width, Math.ceil(.notice.measureWidth()))
+            .notice.arrange(Math.Rectangle{Math.round(center - noticeW * 0.5), y, noticeW, NoticeLine.Height})
+            y += NoticeLine.Height
+        }
+
+        y += WaysToRule
+        let ruleW = Math.min(width, RuleWidth)
+        .ruleRect = Math.Rectangle{Math.round(center - ruleW * 0.5), y, ruleW, 1}
+        return y + footH - WaysToRule
+    }
+
+    // Draws the foot of the home under its hairline: what protects a container, in faint mono, then
+    // the reminder that one can be dropped on the window.
+    mtd paintHomeFoot(painter: *Painter)
+    {
+        let colors = .themeColors()
+        let center = .ruleRect.horzCenter()
+        painter.fillRect(.ruleRect, colors.line)
+
+        func centred(painter: *Painter, center, middle: f32, text: string, font: *Font, color: Color)
+        {
+            let textW = Painter.measureString(text, font).width
+            painter.drawString(Math.round(center - textW * 0.5), font.opticalLineTop(middle), text, font, color)
+        }
+
+        let texts = appStrings()
+        let mono  = .theme().createDefaultFontFs(12)
+        let font  = .theme().createDefaultFont(.themeMetrics().defaultFontSize)
+        let first = .ruleRect.y + RuleToFoot
+        centred(painter, center, first, Format.toString("% · %", CipherNames, texts.ui_HomeHidden), mono, colors.faintText)
+        centred(painter, center, first + FootLineGap, texts.ui_HomeDrop, font, colors.faintText)
+    }
+
+    // Draws the section label of a group in `rect`, and its count after it in faint mono. An empty
+    // `rect` is a group with no vault, which says nothing.
+    mtd paintGroupHead(painter: *Painter, rect: Math.Rectangle, label: string, count: u64)
+    {
+        if rect.width <= 0 do
+            return
+
+        let labelW = SectionLabel.paint(me, painter, rect, label)
+        let mono   = .theme().createDefaultFontFs(.themeMetrics().sectionLabel_FontSize)
+        let words  = Format.toString("%", count)
+        painter.drawString(rect.x + labelW + CountGap, mono.opticalLineTop(rect.vertCenter()), words, mono, .themeColors().faintText)
     }
 
     // Returns the row showing the vault at `path`, or null.
@@ -337,6 +526,26 @@ impl IWnd for VaultList
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .arrange()
+    }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        painter.setParams(.Antialiased)
+
+        // The mark gives the home its centre, as faint as a line.
+        if .markRect.width > 0
+        {
+            let mark = .app().appGlyph(MarkSize)
+            if mark.isValid() do
+                mark.paint(painter, .markRect.x, .markRect.y, .themeColors().strongLine)
+            .paintHomeFoot(painter)
+            return
+        }
+
+        let texts = appStrings()
+        .paintGroupHead(painter, .mountedHead, texts.ui_SectionMounted, .mountedCount)
+        .paintGroupHead(painter, .lockedHead, texts.ui_SectionLocked, .rows.count - .mountedCount)
     }
 
     // A press on the ground of the page folds the unfolded vault, as Escape does.

@@ -635,6 +635,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Progress (Linux): killing the independent XSETTINGS owner while dark theme and reduced
   motion are active restores the default light palette and full motion. The surface repaints
   and receives ThemeChanged in JIT/native.
+- Progress (Linux): a replacement owner announces the selection with a MANAGER client message.
+  The already open surface adopts its dark theme and reduced-motion setting, repaints and
+  receives ThemeChanged in JIT/native.
 - Next: translate the platform's live theme and high-contrast changes into the portable settings
   event.
 - Related: platform.portability.082, platform.portability.050, platform.portability.083

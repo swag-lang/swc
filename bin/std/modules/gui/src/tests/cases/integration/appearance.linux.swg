@@ -127,4 +127,20 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
         app.runFrame()
     let fallbackPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(fallbackPixel == lightPixel, "XSettings owner loss did not repaint the native surface")
+
+    // The next selection owner announces itself with a MANAGER event. A running surface must
+    // take up its settings without reopening the display or creating another application.
+    let changesBeforeHandoff = themeChanges
+    peer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
+                                                arguments: [script.toString(), temporary.toString(), "dark", "reduce"],
+                                                standardOutput: .Pipe, standardError: .Pipe})
+    let handoffDeadline = Time.monotonicMilliseconds() + 4000
+    while (app.usesLightTheme() or not app.isReducedMotion()) and Time.monotonicMilliseconds() < handoffDeadline do
+        app.runFrame()
+    Swag.require(not app.usesLightTheme() and app.isReducedMotion(), peer.standardError())
+    Swag.require(themeChanges > changesBeforeHandoff, "new XSettings owner did not notify the theme change")
+    for 4 do
+        app.runFrame()
+    let handoffPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
+    Swag.require(handoffPixel == darkPixel, "new XSettings owner did not repaint the native surface")
 }

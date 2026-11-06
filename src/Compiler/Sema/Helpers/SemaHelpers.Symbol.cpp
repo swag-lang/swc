@@ -73,6 +73,26 @@ namespace
         return sema.waitSemaCompleted(payloadType, operandRef);
     }
 
+    // A pointer beside a struct is not pointer arithmetic: it reaches here when none of the
+    // struct's operator overloads accepts a pointer, so the operator does not apply to the pair.
+    // Report that rather than a pointer-arithmetic rule, and say how to reach the value when the
+    // pointer points to the struct's own type.
+    Result checkPointerOperandPair(Sema& sema, AstNodeRef nodeRef, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView, const TypeInfo& leftType, const TypeInfo& rightType)
+    {
+        const bool structPair = (leftType.isAnyPointer() && rightType.isStruct()) || (rightType.isAnyPointer() && leftType.isStruct());
+        if (!structPair)
+            return Result::Continue;
+
+        const bool          pointerRight  = rightType.isAnyPointer();
+        const TypeInfo&     pointerType   = pointerRight ? rightType : leftType;
+        const SemaNodeView& otherView     = pointerRight ? leftView : rightView;
+        const AstNodeRef    pointerRef    = pointerRight ? rightRef : leftRef;
+        const TypeRef       pointeeRef    = sema.typeMgr().unwrapAliasEnum(sema.ctx(), pointerType.payloadTypeRef());
+        const TypeRef       otherRef      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), otherView.typeRef());
+        const bool          pointsToOther = pointeeRef.isValid() && pointeeRef == otherRef;
+        return SemaError::raiseBinaryOperandType(sema, nodeRef, pointerRef, leftView.typeRef(), rightView.typeRef(), pointsToOther ? pointeeRef : TypeRef::invalid());
+    }
+
     bool blockPointerPayloadsMatch(Sema& sema, const TypeInfo& leftType, const TypeInfo& rightType)
     {
         TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
@@ -464,6 +484,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         {
             const TypeInfo& leftType  = aliasEnumType(sema, leftView);
             const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            SWC_RESULT(checkPointerOperandPair(sema, nodeRef, leftRef, rightRef, leftView, rightView, leftType, rightType));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView, leftType));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView, rightType));
 
@@ -480,6 +501,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         {
             const TypeInfo& leftType  = aliasEnumType(sema, leftView);
             const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            SWC_RESULT(checkPointerOperandPair(sema, nodeRef, leftRef, rightRef, leftView, rightView, leftType, rightType));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView, leftType));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView, rightType));
 

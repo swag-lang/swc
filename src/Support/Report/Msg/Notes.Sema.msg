@@ -78,3 +78,4 @@ SWC_DIAG_DEF(sema_note_enclosing_scope_here, Note, "the enclosing 'scope' starts
 SWC_DIAG_DEF(sema_note_capture_declared_here, Note, "capture '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_global_declared_here, Note, "global '{sym}' is declared here")
 SWC_DIAG_DEF(sema_help_missing_spec_op, Help, "operator overload '{spec-op}' is not implemented for current-module type '{decl-sym}'")
+SWC_DIAG_DEF(sema_help_dereference_pointer_operand, Help, "the operand points to a '{type}': write '[]' after it to use the value it points to")

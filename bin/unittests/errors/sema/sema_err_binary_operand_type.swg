@@ -45,3 +45,32 @@ impl WhereRestrictedOperator
     let right  = WhereRestrictedOperator{2}
     let result = left - right     // swc-expected-error {{sema_err_binary_operand_type}}
 }
+
+// A compound operator overloaded for a value, given a pointer: the operator does not apply to the
+// pair, and the pointer beside a struct is not read as pointer arithmetic.
+struct PointerAccumulator
+{
+    total: s32
+}
+
+impl PointerAccumulator
+{
+    mtd(op: Swag.Operator) opAssign(value: s32)
+    {
+        .total += value
+    }
+}
+
+#test
+{
+    var acc:   PointerAccumulator
+    var other: PointerAccumulator
+    acc += &other     // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
+    var acc:    PointerAccumulator
+    var number: s32
+    acc += &number     // swc-expected-error {{sema_err_binary_operand_type}}
+}

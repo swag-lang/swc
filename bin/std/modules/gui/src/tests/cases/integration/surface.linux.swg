@@ -62,6 +62,7 @@ using Core, Pixel
     for index in saved.byteCount do
         Swag.require(Math.abs(cast(s32, saved.pixels[index]) - reference.pixels[index]) <= 1,
                     "native presentation differs from its render target")
+    Swag.require(expect Testing.verifyNativePresentation(surface))
     if Env.variable("SWAG_GUI_NATIVE_CAPTURE") == "1"
     {
         let capturePath = Path.combine(Env.getSpecialDirectory(.Temp), "gui-native-window.png")

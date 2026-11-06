@@ -863,7 +863,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   WAV loading, waveform display and PCM playback through FAudio's SDL disk device. A fresh
   native Linux Scope smoke also completes 40 frames, then reviews all 15 registered viewer
   fixtures on isolated X11. The review opens real documents and waits for presentable content;
-  broader application journeys and physical desktop/device validation remain.
+  the existing Scope document-recovery journey now passes in JIT/native Linux after moving
+  its native-presentation verifier to the XCB window path. It presents an image error and
+  then a valid Markdown document in the same surface, comparing X11 pixels with OpenGL.
+  Broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox
   with a compositor, real XTEST events, XSettings, headless rendering, clipboard

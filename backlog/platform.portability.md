@@ -243,6 +243,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   image spelling. Procfs failures propagate. The 22 raw tests pass JIT/native and an imported
   consumer, including truncated readlink without a terminator, image inode identity, missing
   procfs links and environ/getenv agreement. The public snapshot/ownership case passes JIT/native.
+  An isolated native peer checks live setenv/unsetenv changes, case-sensitive names, empty versus
+  absent values and the stability of snapshots taken before later mutations.
 - Owner implemented: posix_spawnp receives owned argv/environment strings and native file actions
   for redirection/chdir. Pipe sources are normalized above fd 2; only parent endpoints are
   nonblocking, and all intermediate descriptors close on failure. Linux rejects raw native
@@ -424,7 +426,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   the isolated Core-only output still lacks the existing linked Gui page. No default-application
   fallback substitutes for the chooser. Sandboxed
   target applications receive no writable document-portal grant.
-- Next: finish environment mutation and validate chooser presentation on a real desktop. The
+- Next: validate chooser presentation on a real desktop. The
   return value reports request acknowledgement, not eventual user selection or application launch.
 - Related: platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.

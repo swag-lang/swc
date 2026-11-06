@@ -625,6 +625,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.056 — No second-platform system-theme notifications
 
+- Progress (Linux): a real XSETTINGS owner changes Gtk/ApplicationPreferDarkTheme while an
+  X11 surface remains open. The application emits portable ThemeChanged notifications,
+  repaints dark pixels and restores its light palette in JIT/native. High-contrast policy
+  and other desktop setting sources still need an explicit contract and validation.
 - Next: translate the platform's live theme and high-contrast changes into the portable settings
   event.
 - Related: platform.portability.082, platform.portability.050, platform.portability.083
@@ -834,7 +838,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
   they do not replace the full application workflows.
   An isolated Xorg dummy server also passes clipboard owner exit and empty text roundtrips
-  against an independent client in JIT/native. The toolkit-owned file dialog selects existing
+  against an independent client in JIT/native. A separate XSETTINGS peer switches a live
+  surface between light and dark themes, with pixel and ThemeChanged checks in both modes.
+  The toolkit-owned file dialog selects existing
   Linux names containing colons and Unicode, proposes new paths, rejects invalid selections and
   returns cancellation on a native X11 surface in JIT/native.
   Native artifact work remains in .093.

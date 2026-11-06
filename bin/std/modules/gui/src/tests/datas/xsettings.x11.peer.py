@@ -1,0 +1,66 @@
+"""Own XSETTINGS on an isolated X server and publish live theme changes."""
+import ctypes as c
+import os
+import pathlib
+import struct
+import sys
+import time
+
+assert os.environ.get('SWAG_TEST_ISOLATED_X11') == '1'
+root = pathlib.Path(sys.argv[1])
+x11 = c.CDLL('libX11.so.6')
+P, U = c.c_void_p, c.c_ulong
+x11.XOpenDisplay.argtypes = [c.c_char_p]
+x11.XOpenDisplay.restype = P
+x11.XDefaultRootWindow.argtypes = [P]
+x11.XDefaultRootWindow.restype = U
+x11.XCreateSimpleWindow.argtypes = [P, U, c.c_int, c.c_int, c.c_uint, c.c_uint,
+                                    c.c_uint, U, U]
+x11.XCreateSimpleWindow.restype = U
+x11.XInternAtom.argtypes = [P, c.c_char_p, c.c_int]
+x11.XInternAtom.restype = U
+x11.XSetSelectionOwner.argtypes = [P, U, U, U]
+x11.XGetSelectionOwner.argtypes = [P, U]
+x11.XGetSelectionOwner.restype = U
+x11.XChangeProperty.argtypes = [P, U, U, U, c.c_int, c.c_int, P, c.c_int]
+x11.XSync.argtypes = [P, c.c_int]
+x11.XDestroyWindow.argtypes = [P, U]
+x11.XCloseDisplay.argtypes = [P]
+display = x11.XOpenDisplay(None)
+assert display
+window = x11.XCreateSimpleWindow(display, x11.XDefaultRootWindow(display),
+                                 0, 0, 1, 1, 0, 0, 0)
+selection = x11.XInternAtom(display, b'_XSETTINGS_S0', 0)
+property_atom = x11.XInternAtom(display, b'_XSETTINGS_SETTINGS', 0)
+x11.XSetSelectionOwner(display, selection, window, 0)
+x11.XSync(display, 0)
+assert x11.XGetSelectionOwner(display, selection) == window
+
+def publish(dark, serial):
+    name = b'Gtk/ApplicationPreferDarkTheme'
+    entry = struct.pack('<BBH', 0, 0, len(name)) + name
+    entry += b'\0' * ((-len(entry)) % 4)
+    entry += struct.pack('<II', serial, int(dark))
+    data = struct.pack('<B3xII', 0, serial, 1) + entry
+    buffer = c.create_string_buffer(data)
+    x11.XChangeProperty(display, window, property_atom, property_atom, 8, 0,
+                        buffer, len(data))
+    x11.XSync(display, 0)
+
+try:
+    publish(False, 1)
+    (root / 'ready').write_text('ready', encoding='ascii')
+    previous = ''
+    serial = 1
+    while True:
+        command = root / 'command'
+        value = command.read_text(encoding='ascii') if command.exists() else ''
+        if value != previous and value in ('dark', 'light'):
+            serial += 1
+            publish(value == 'dark', serial)
+            (root / 'ack').write_text(value, encoding='ascii')
+            previous = value
+        time.sleep(.005)
+finally:
+    x11.XDestroyWindow(display, window)
+    x11.XCloseDisplay(display)

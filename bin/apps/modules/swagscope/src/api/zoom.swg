@@ -37,7 +37,7 @@ func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)-
         .margin    = {ZoomButtonInset, 0, ZoomButtonInset, 0}
         .toolTip   = toolTip
         .setText(zoomText(100))
-        .setArrowPosition(.RightDownward)
+        .setArrowPosition(.RightUpward)
         .setForm(.Rectangle)
         .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
     }

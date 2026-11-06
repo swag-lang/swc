@@ -453,6 +453,7 @@ impl ViewerWindow
             errorView.dockStyle    = .Center
             instance.view          = errorView
             instance.failureReason = #move message
+            errorView.offer(me, cast(u32, index))
 
             if index != .activeChoiceIndex
             {
@@ -678,6 +679,7 @@ impl ViewerWindow
             if next.view and next.retire do
                 discard next.retire()
             next.replaceWithFailure(.documentPanel)
+            assume cast(*ViewerErrorView, next.view).offer(me, index)
         }
 
         if not next.view

@@ -61,9 +61,9 @@ dialogs, then each application, then the written rules.
     and time at the foot (`viewer.subtitle.{ink,paper}`, in the shipped frame). A MIDI score reads
     as one lane per track under the bar numbers, each track in its series hue with its name and
     channel (`viewer.midi.{ink,paper}`); it has no transport nor play head, because Scope plays no
-    MIDI. A recording is laid out around its cover (`viewer.sound.{ink,paper}`); the tags carry no
-    picture yet, so the cover is a raised tile with the glyph of a sound, and the transport is
-    still the floating command bar rather than the compact one of the picture. A film takes the
+    MIDI. A recording is laid out around its cover (`viewer.sound.{ink,paper}`): the sleeve stored beside
+    it, or a neutral record when there is none (the tags' own pictures are not read yet); the
+    transport is still the floating command bar rather than the compact one of the picture. A film takes the
     whole window and nothing stands over it at rest; the pointer brings a top veil (title, facts
     in mono) and a bottom veil (timeline with Arc progress, indexed part, white knob and a mono
     time tip; play, time, chips for subtitles, sound track and speed)
@@ -76,9 +76,7 @@ dialogs, then each application, then the written rules.
   - Mixed board: a sound cell shows the thumbnailer's preview or its glyph, not a drawn
     waveform; "Aa" is in the interface face, not the font's own; a film's facts have no size of
     its picture. The title is Bold, not 800.
-  - Films: no playback progress thread at the poster's foot and no "Resume at 1 h 12" / "or from
-    the start" — Scope keeps no resume position for a film yet; the count says "items", not
-    "films".
+  - Films: the resume time reads "1:12:12", not "1 h 12".
   - Photos: the last row of a day stays at its aim when stretching it would make it much taller
     than its aim; the tip names the file and its weight, not the camera's facts (Scope reads no
     EXIF yet); "taken" is the file's modification date.

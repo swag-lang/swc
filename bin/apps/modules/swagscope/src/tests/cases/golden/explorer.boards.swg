@@ -241,6 +241,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 
     let grid = explorer.grid
     Swag.require(grid.posters and grid.tile.y > grid.tile.x)
+    Swag.require(Utf8.startsWith(explorer.status.text(), Format.toString(appStrings().explore_Films, 8).toString()))
     Swag.require(window.infoSheet.beside and
                  Utf8.contains(window.infoSheet.text(), "1982") and
                  Utf8.contains(window.infoSheet.text(), "1 h 57") and

@@ -89,7 +89,6 @@ struct Panel
 
     late
     {
-        commands:      *Wnd
         info:          *Wnd
         editor:        *RichEditCtrl
         optionsButton: *IconButton
@@ -693,7 +692,7 @@ impl IWnd for Panel
 
 impl Panel
 {
-    // Creates the streamed text view of the host's file, with its commands and zoom control.
+    // Creates the streamed text view of the host's file, with its options and zoom on the line of readings.
     func create(host: Viewer.Host)->*Panel
     {
         with let result = Wnd.create'Panel(host.contentParent(), "scope.text")
@@ -710,8 +709,7 @@ impl Panel
         result.contentStart = probed.contentStart
         result.lineNumbers  = g_LineNumbers
 
-        result.createCommandBar(host)
-        result.createZoomControl(host)
+        result.createReadingControls(host)
         result.createEditor()
         result.hookEvents()
         result.startReading()
@@ -771,17 +769,6 @@ impl Panel
         .scheduleMore()
     }
 
-    // Creates the options button in the viewer's command group.
-    private mtd createCommandBar(host: Viewer.Host)
-    {
-        .commands = host.createCommandGroup(themeDropDownButtonWidth(.themeMetrics()))
-
-        with .optionsButton = Viewer.createOptionsButton(.commands)
-        {
-            .dockStyle  = .Left
-            .sigPressed += func|view = me|(_) { view.showOptions() }
-        }
-    }
 
     // Gives the lens the layout of the text, its encodings and its zoom.
     mtd describeLens(entries: *Viewer.LensEntries)
@@ -826,13 +813,20 @@ impl Panel
                      icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
     }
 
-    // Creates the zoom menu button in the viewer's information group.
-    private mtd createZoomControl(host: Viewer.Host)
+    // Creates the options and the zoom of the text on the line of readings.
+    private mtd createReadingControls(host: Viewer.Host)
     {
-        .info = host.createInfoGroup(Viewer.ZoomSlotWidth)
+        .info = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
+        with .optionsButton = Viewer.createInfoOptionsButton(.info)
+        {
+            .sigPressed += func|view = me|(_) { view.showOptions() }
+        }
 
-        .zoomLabel = Viewer.createZoomButton(.info, "scope.text.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
+        with .zoomLabel = Viewer.createZoomButton(.info, "scope.text.zoom", texts().ui_ZoomMenu)
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|view = me|(_) { view.showZoomMenu() }
+        }
     }
 
     // Creates the read-only editor that shows the resident window of the file.

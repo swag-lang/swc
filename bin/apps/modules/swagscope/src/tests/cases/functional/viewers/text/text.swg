@@ -76,7 +76,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let fileName = textViewerFixturePath()
     var result   = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
-    Swag.require(result.view != null and result.commands != null and result.info != null)
+    Swag.require(result.view != null and result.commands == null and result.info != null)
     Swag.require(result.revealMatch != null and
                  result.searchBounds != null and
                  result.clearSearch != null and
@@ -85,7 +85,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let view = assume cast(*PlainText.Panel, result.view)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
     finishTextStatistics(&host, view)
     let lineDetails = Format.toString(PlainText.texts().ui_Lines, view.statistics.lines)
     Swag.require(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))

@@ -19,7 +19,7 @@ struct Texts
     ui_Symbols:           string = "General Punctuation and Symbols"
     ui_Specimen:          string = "SPECIMEN"
     ui_Glyphs:            string = "Glyphs"
-    ui_CharacterMap:      string = "CHARACTER MAP"
+    ui_CharacterMap:      string = "Character Map"
     ui_NoCharacters:      string = "No mapped characters"
     ui_Regular:           string = "Regular"
     ui_Metrics:           string = "% · % glyphs · % UPM"

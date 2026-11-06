@@ -212,7 +212,10 @@ private impl IWnd for Panel
         .details     = #move content.details
         .refreshPageCommands()
         .applyLayout()
-        .services.showDetails(me, .details)
+
+        // The specimen page already names the family, its style, its glyphs and its units: the
+        // line at the foot keeps the weight of the file alone.
+        .services.showDetails(me, "")
         .services.loadingChanged(me)
     }
 

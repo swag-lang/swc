@@ -713,6 +713,22 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: the reference states what `"\xFF"` holds, a fixture pins it, and no source under
   `bin/` relies on the other reading.
 
+### language.design.043 — `string == String` is rejected though `String == string` compiles
+
+- Evidence: equality and ordering resolve `opEquals` and `opCompare` on the left operand only
+  (`SemaSpecOp::tryResolveRelational` in `src/Compiler/Sema/Helpers/SemaSpecOp.Resolve.cpp`), so
+  `button.text() == Format.toString(...)` fails with "cannot compare 'string' with 'String'
+  using '=='" and no help, while the same comparison written the other way compiles. Writing the
+  Swag Scope home and error-page tests hit it four times; each was fixed by swapping operands.
+- Elsewhere: C++20 rewrites `a == b` as `b == a` when only the reversed `operator==` exists; C#
+  and Kotlin dispatch on the left operand but give a string one equality; Rust needs
+  `impl PartialEq<String> for str`, which its standard library provides in both directions.
+- Next: decide whether `==` and `!=` try the right operand's `opEquals` when the left one has none
+  (ordering would also have to invert its answer), or keep left dispatch and add a help to
+  `sema_err_compare_operand_type` naming the right operand's `opEquals` and telling to write it
+  first; add sema fixtures for both directions.
+- Done when: `string == String` either compiles or its diagnostic says which operand to write first.
+
 ---
 
 ## Generic contracts and execution semantics

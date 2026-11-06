@@ -50,9 +50,11 @@ struct Panel
     built:       bool          // Whether the parts exist: a resize reaches the panel while it is built.
 }
 
-// The reading measure of a page, and the air of the band its address stands in.
+// The reading measure of a page, the air of the band its address stands in, and the air the
+// address keeps above the page: a title at the top of a page has no margin of its own to give.
 const ReadingColumn = 680.0
-const BandHeight    = 56.0
+const BandHeight    = 64.0
+const AddressGap    = 12.0
 
 private impl IWnd for Panel
 {
@@ -120,7 +122,7 @@ private impl Panel
     mtd placeMargins()
     {
         let column = .column()
-        .address.setPosition(Math.Rectangle{column.x, 0, column.width, BandHeight}, computeLayout: false)
+        .address.setPosition(Math.Rectangle{column.x, 0, column.width, BandHeight - AddressGap}, computeLayout: false)
         let left = column.x + column.width + 48
         .margin.place(left, BandHeight + 24, .clientRect().width - left - 24)
     }

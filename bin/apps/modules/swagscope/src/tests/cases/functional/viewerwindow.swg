@@ -1373,7 +1373,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.openFile(viewerFixturePath(), remember: false)
+    window.openFile(scopeTestDataPath("segoeui.ttf"), remember: false)
     completeQueuedViewerFile(&host, window)
     window.setFilePanelVisible(true)
     let position = host.surface.position
@@ -1427,6 +1427,73 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.instances[0].failureReason == "payload ends before its declared length")
     let errorView = assume cast(*ViewerErrorView, window.currentView)
     Swag.require(errorView.reasonLabel.text() == window.instances[0].failureReason.toString())
+}
+
+// Counts the buttons under `wnd` whose arrow points down.
+func downwardArrows(wnd: *Wnd)->u64
+{
+    var result = 0'u64
+    if wnd is IconButton as button
+    {
+        if button.arrowPosition == .RightDownward do
+            result += 1
+    }
+    for child in wnd.children do
+        result += downwardArrows(child[])
+    return result
+}
+
+// The line of readings stands at the foot of the window, so every menu it opens opens upward and
+// every arrow on it says so: no viewer mixes an arrow pointing down among them.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    for name in ["comprehensive.txt", "sample.cpp", "viewer.hex", "viewer.groove.mid", "viewer.pdf", "title.png", "viewer.page.html"]
+    {
+        window.openFile(scopeTestDataPath(name), remember: false)
+        completeQueuedViewerFile(&host, window)
+        Swag.require(window.readingLine.isLocallyVisible())
+        Swag.require(downwardArrows(window.readingLine) == 0)
+    }
+}
+
+// A picture whose decoder refuses it is not a dead end: the failure offers the other viewers of
+// the file and its own application, and an offer opens the file in that viewer.
+#test
+{
+    var bytes = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    bytes[29] ^= 0xFF     // Breaks the checksum of the IHDR chunk.
+    let fileName = writeTempFile("broken.png", bytes.toSlice())
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(800, 560)
+    window.openFile(fileName, remember: false)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "image")
+    let errorView = assume cast(*ViewerErrorView, window.currentView)
+    Swag.require(errorView.actions.isLocallyVisible() and errorView.actions.children.count >= 2)
+    Swag.require(assume cast(*PushButton, errorView.actions.children.back()).text() == appStrings().ui_MenuOpenDefault)
+
+    var hex = Swag.U64.Max
+    for child, i in errorView.actions.children
+    {
+        let button = assume cast(*PushButton, child[])
+        for choice in window.choices where choice.key == "hex" and
+                                           Format.toString(appStrings().ui_ViewAsChoice, window.index.plugins[choice.pluginIndex].displayName()) == button.text() do
+            hex = i
+    }
+
+    Swag.require(hex != Swag.U64.Max)
+    window.applyLayout()
+    host.click(errorView.actions.children[hex].surfaceRect().center())
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
+    Swag.require(not (window.currentView is ViewerErrorView))
 }
 
 // File selection never waits for a viewer that needs another event-loop turn to retire. The
@@ -2169,7 +2236,9 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     let view = assume cast(*PlainText.Panel, window.currentView)
     window.sendCommandEvent(ViewerCommands.Lens)
-    Swag.require(window.lens.isOpen() and window.viewerBar.isLocallyVisible())
+
+    // Plain text keeps its options on the line of readings: no floating group comes with the lens.
+    Swag.require(window.lens.isOpen() and window.currentCommands == null and not window.viewerBar.isLocallyVisible())
     window.lens.setQuery(">")
     Swag.require(lensHasEntry(window, PlainText.texts().ui_Wrap) and lensHasEntry(window, appStrings().cmd_ZoomIn))
     Swag.require(lensHasEntry(window, appStrings().cmd_Options))

@@ -60,11 +60,11 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let foot     = createTestViewerFoot(&host.root)
     let fileName = midiViewerFixturePath()
     var result   = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: foot.commands, infoParent: foot.readings)
-    Swag.require(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands == null and result.info != null)
 
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
-    Swag.require(result.info!.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
     Swag.require(Utf8.contains(viewer.details.toSlice(), "7 notes"))
     viewer.dockStyle = .Center
     var options: OptionSheet.Page
@@ -84,7 +84,7 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
-    standTestCommands(foot, viewer.commands)
+    Swag.require(viewer.optionsButton.parent == viewer.info and viewer.zoomLabel.parent == viewer.info)
     viewer.roll.refreshLayout()
     Swag.require(viewer.roll.mode == .Tracks and viewer.roll.lanes.count == 1)
 
@@ -92,12 +92,11 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     host.notify(.LanguageChanged)
     host.root.applyLayout()
     discard host.render(&host.root)
-    standTestCommands(foot, viewer.commands)
     var translated: OptionSheet.Page
     viewer.describeOptions(&translated)
     Swag.require(translated.rows[0].value == "Toutes les pistes")
     Swag.require(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
-    Testing.assertContentFits(viewer.commands)
+    Testing.assertContentFits(viewer.info)
 }
 
 #test
@@ -109,8 +108,19 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.require(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands == null and result.info != null)
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(not viewer.failureReason.isEmpty())
+}
+
+// The tenth channel is percussion: its notes are hits drawn where they strike, whatever their
+// note-off says; every other channel holds its pitch for its length.
+#test
+{
+    var drum: Midi.Note
+    drum.channel = 9
+    var piano: Midi.Note
+    piano.channel = 0
+    Swag.require(drum.isHit() and not piano.isHit())
 }

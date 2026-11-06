@@ -141,9 +141,10 @@ private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open
         if not label.count do
             continue
 
-        // Windows records every name in UTF-16, and the older platforms in single bytes; the
-        // platform identifier is the only thing that says which.
-        let text = platform == 3 ? image.wideTextAt(valueAt, length / 2) : image.fixedTextAt(valueAt, length)
+        // The Unicode and Windows platforms record every name in big-endian UTF-16, and the
+        // Macintosh one in single bytes; the platform identifier is the only thing that says which.
+        let wide = platform == 0 or platform == 3
+        let text = wide ? image.wideTextAt(valueAt, length / 2) : image.fixedTextAt(valueAt, length)
         if text.isEmpty() do
             continue
 

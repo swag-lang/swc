@@ -38,7 +38,7 @@ func writeStreamedFile(size: u64)->String
     host.setup(640, 420)
 
     var result = openTestViewer(Hex.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
-    Swag.require(result.view != null and result.commands != null)
+    Swag.require(result.view != null and result.commands == null and result.info != null)
     let view = assume cast(*Hex.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(not view.failureReason.isEmpty())
@@ -665,7 +665,7 @@ func writeStreamedFile(size: u64)->String
     Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
     discard host.render(view)
-    Testing.assertContentFits(view.commands)
+    Testing.assertContentFits(unwrap view.optionsButton.parent)
 }
 
 // The clipboard contract names and enforces its exact bound before a large selection is copied.

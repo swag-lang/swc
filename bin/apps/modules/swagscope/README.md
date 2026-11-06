@@ -319,7 +319,9 @@ The creation callback calls `attachView` for its document and can create at most
 information, and command group through the host, plus one optional side panel: the window writes
 the information and action groups on the faint line at the foot of the document, floats the
 command group over it while the pointer moves, and names the side panel in the lens. The window
-has no toolbar, so a viewer gives the lens a row for every command it offers through
+has no toolbar. A viewer whose only command is its options puts them on the line of readings,
+before its zoom, with `Viewer.createInfoOptionsButton`, rather than floating a group of one button
+over the document. A viewer gives the lens a row for every command it offers through
 `setLensSource`, answering a `Viewer.LensEntries` under its name. It declares
 optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;
 retained asynchronous notifications come only from `host.services()`. A viewer that plays its

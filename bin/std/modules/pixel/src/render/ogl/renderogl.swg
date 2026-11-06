@@ -47,6 +47,11 @@ const FontGamma = 1.0'f32 / 0.75
 // The value must remain twice the font atlas spread.
 const MsdfRange = 16.0'f32
 
+// Last mip level of a distance-field atlas: a level averages blocks of 2^level texels, and glyphs
+// sit on cells of the 8-texel spread (`RefEmSpread`), so level 3 is the last one whose blocks stay
+// inside one glyph.
+const FontAtlasMaxLevel: GLint = 3
+
 #[Swag.Strict]
 alias TextureHandle = u64     // Opaque renderer texture identifier.
 const InvalidTextureHandle: TextureHandle = cast(0)     // Sentinel that identifies no texture.
@@ -1835,6 +1840,8 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
+                    if isDF do
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, FontAtlasMaxLevel)
                     glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei, atlas.texture.width), cast(GLsizei, atlas.texture.height), 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
                     if glGetError() != GL_NO_ERROR do
                         fail RenderResourceError{"OpenGL cannot initialize a glyph atlas"}
@@ -1853,7 +1860,8 @@ impl RenderOgl
                 }
 
                 // Build the mip chain for distance-field atlases. Each glyph keeps a
-                // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.
+                // 'spread'-texel margin and starts on a 'spread'-texel cell, and the chain stops
+                // at that size, so no level blends a neighbouring glyph into this one.
                 if isDF do
                     glGenerateMipmap(GL_TEXTURE_2D)
                 if glGetError() != GL_NO_ERROR do

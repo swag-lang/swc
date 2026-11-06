@@ -37,7 +37,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.revealViewerBar()
     Swag.require(not window.viewerBar.isLocallyVisible())
     let options = assume cast(*IconButton, actions.children[0])
-    Swag.require(options.arrowPosition == .RightDownward)
+    Swag.require(options.arrowPosition == .RightUpward)
 }
 
 internal func markdownFixturePath()->String       => scopeTestDataPath("comprehensive.md")

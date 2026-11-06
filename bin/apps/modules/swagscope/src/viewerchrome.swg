@@ -97,6 +97,10 @@ impl ViewerReadingLine
 }
 
 // Application-owned presentation for every viewer failure.
+//
+// A failure reads as the charter's failures do: a critical dot before what happened, the exact
+// reason of the decoder in faint mono under it, then the ways on: the other viewers the file can
+// be seen in, and its own application. It is never a dead end.
 struct ViewerErrorView
 {
     using wnd: Wnd
@@ -105,7 +109,7 @@ struct ViewerErrorView
     {
         summaryLabel: *Label
         reasonLabel:  *Label
-        iconLabel:    *Label
+        actions:      *StackLayoutCtrl
     }
 }
 
@@ -260,13 +264,17 @@ impl ViewerLoadingOverlay
 
 impl ViewerErrorView
 {
-    // Width the failure text wraps at.
-    const TextWidth = 512.0
+    // Width the failure text wraps at, the diameter of the dot before it and the air between them.
+    const TextWidth  = 512.0
+    const DotSize    = 8.0
+    const DotGap     = 10.0
+    const MaxViewers = 2'u64     // Other viewers offered at most, beside the file's own application.
 
     // Creates the error surface that states `reason` under the standard decoder-failure heading.
     func create(parent: *Wnd, reason: string)->*ViewerErrorView
     {
-        let result = Wnd.create'ViewerErrorView(parent, "scope.error")
+        let result  = Wnd.create'ViewerErrorView(parent, "scope.error")
+        let metrics = result.themeMetrics()
         result.backgroundStyle = .View
 
         with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
@@ -276,27 +284,66 @@ impl ViewerErrorView
             .spacing   = 8
         }
 
-        with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
+        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
-            .setIcon(result.theme().icon(.Critical, 48))
-            .setIconColor(result.themeColors().critical)
-        }
-
-        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
-        {
-            .layoutSpec.alignX = .Center
+            .style.setFont(result.theme().createDefaultFont(metrics.defaultFontSize + 2, .SemiBold), .Regular)
             .setTextAlignment(.Center, .Center)
         }
 
-        with result.reasonLabel = Label.create(stack, reason, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
+        with result.reasonLabel = Label.create(stack, reason, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
+            .style.setFont(result.theme().createDefaultFontFs(metrics.defaultFontSize - 1), .Regular)
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
             .setTextAlignment(.Center, .Center)
+        }
+
+        with result.actions = StackLayoutCtrl.create(stack, .HorizontalCenter, {0, 0, TextWidth, metrics.btnPush_Height})
+        {
+            .layoutSpec.alignX = .Center
+            .margin.y          = 16
+            .spacing           = 8
+            .backgroundStyle   = .Transparent
+            .hide()
         }
 
         result.applyLayout()
         return result
+    }
+
+    // Offers the viewers of `window` other than `failing` that have not failed on the file, and
+    // the file's own application, as direct actions under the reason.
+    mtd offer(window: *ViewerWindow, failing: u32)
+    {
+        while not .actions.children.isEmpty() do
+            .actions.children.back().destroyNow()
+
+        var offered = 0'u64
+        for choice, index in window.choices where index != failing and offered < MaxViewers
+        {
+            if index < window.instances.count and not window.instances[index].failureReason.isEmpty() do
+                continue
+            let name   = window.index.plugins[choice.pluginIndex].displayName()
+            let button = PushButton.create(.actions, Format.toString(appStrings().ui_ViewAsChoice, name), {}, null)
+            let target = cast(u32, index)
+            button.sigPressed += func|window, target|(_) { window.selectViewer(target) }
+            button.fitWidthToLabel()
+            offered += 1
+        }
+
+        let external = PushButton.create(.actions, appStrings().ui_MenuOpenDefault, {}, ViewerCommands.OpenDefault, .Flat)
+        external.fitWidthToLabel()
+
+        // The row is as wide as its buttons, which a language with longer words widens.
+        var width = 0.0
+        for child, i in .actions.children do
+            width += child.position.width + (i ? .actions.spacing : 0)
+        .actions.position.width  = Math.max(width, TextWidth)
+        .actions.preferredSize.x = .actions.position.width
+        .actions.show()
+        .applyLayout()
+        .invalidate()
     }
 
     mtd retranslate()
@@ -306,7 +353,23 @@ impl ViewerErrorView
 
     mtd refreshTheme()
     {
-        .iconLabel.setIcon(.theme().icon(.Critical, 48))
-        .iconLabel.setIconColor(.themeColors().critical)
+        .invalidate()
+    }
+}
+
+impl IWnd for ViewerErrorView
+{
+    // The critical dot stands before the first word of what happened.
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let label   = .summaryLabel
+        let font    = .theme().createDefaultFont(.themeMetrics().defaultFontSize + 2, .SemiBold)
+        let width   = Math.min(Painter.measureString(label.text(), font).width, label.position.width)
+        let rect    = label.surfaceRect()
+        let origin  = .surfaceToLocal(Math.Point{rect.horzCenter() - width * 0.5, rect.y})
+        let lineY   = origin.y + Math.min(font.height, rect.height) * 0.5
+        painter.setAntialiased(true)
+        painter.fillCircle(origin.x - DotGap - DotSize * 0.5, lineY, DotSize * 0.5, .themeColors().critical)
     }
 }

@@ -17,6 +17,14 @@ struct Note
     velocity:  u8
 }
 
+impl Note
+{
+    // Reports whether the note is a hit rather than a held pitch: General MIDI reserves the tenth
+    // channel for percussion, whose note-off says nothing a reader hears, so its notes are drawn
+    // where they strike and nothing longer.
+    mtd const isHit()->bool => .channel == 9
+}
+
 // Name and event counts of one track chunk.
 struct Track
 {

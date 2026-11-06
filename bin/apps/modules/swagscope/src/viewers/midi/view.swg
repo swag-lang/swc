@@ -325,7 +325,7 @@ impl RollView
                 let x = left + cast(f32, note.startTick) * .pixelsPerTick
                 if x > .scrollPos.x + .clientRect().width do
                     break
-                let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+                let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
                 if x + width < .scrollPos.x + left do
                     continue
                 let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
@@ -408,13 +408,14 @@ impl RollView
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break
-            let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            let height   = Math.max(.rowHeight - 2, 1)
+            let width    = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
             if x + width < .scrollPos.x + .keyboardWidth do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
             let color    = Color.lerp(colors.view_Bk, alternate, strength)
-            painter.fillRoundRect(Math.Rectangle{x, y, width, Math.max(.rowHeight - 2, 1)}, 2, 2, color)
+            painter.fillRoundRect(Math.Rectangle{x, y, width, height}, 2, 2, color)
         }
     }
 

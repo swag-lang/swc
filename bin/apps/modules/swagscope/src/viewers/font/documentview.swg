@@ -279,7 +279,7 @@ private impl DocumentView
     mtd paintCharacterMap(painter: *Painter, band: Math.Rectangle)
     {
         let colors = .themeColors()
-        painter.drawString(ContentInset, .layout.mapTop, texts().ui_CharacterMap, .fontLabel, colors.label_TextFaint)
+        SectionLabel.paint(me, painter, Math.Rectangle{ContentInset, .layout.mapTop, Math.max(.clientRect().width - 2 * ContentInset, 0), .fontLabel.height}, texts().ui_CharacterMap)
 
         if .cells.isEmpty()
         {

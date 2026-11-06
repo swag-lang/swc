@@ -1,7 +1,6 @@
 # French strings of the Swag Scope tabular-text viewer.
 
 ui_Column          Colonne %
-ui_Details         % · % · %
 ui_Row             1 ligne
 ui_Rows            % lignes
 ui_OneColumn       1 colonne

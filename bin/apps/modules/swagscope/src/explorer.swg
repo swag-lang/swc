@@ -1647,10 +1647,12 @@ impl Explorer
         if .shown.count > 1 and not .forced
         {
             var albums: Array'String
-            var tracks, albumFolders: u64
+            var tracks, albumFolders, films: u64
             for index in .shown
             {
                 let entry = &.entries[index]
+                if isFilmFile(entry) do
+                    films += 1
                 if not entry.albumTrack.isEmpty()
                 {
                     albumFolders += 1
@@ -1675,6 +1677,8 @@ impl Explorer
                 count = Format.toString("% · %", Format.toString(appStrings().explore_Albums, albums.count), Format.toString(appStrings().explore_Tracks, tracks))
             elif board == .Album and tracks == .shown.count do
                 count = Format.toString(appStrings().explore_Tracks, tracks)
+            elif board == .Posters and films == .shown.count do
+                count = Format.toString(appStrings().explore_Films, films)
         }
 
         // A folder says what its files weigh; an archive what it weighs packed and what it will

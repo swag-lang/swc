@@ -87,7 +87,6 @@ struct Panel
 
     late
     {
-        commands:       *Wnd
         analysisButton: *IconButton
         optionsButton:  *IconButton
         analysisView:   *AnalysisView
@@ -647,9 +646,8 @@ impl Panel
             .fileName        = host.fileName()
         }
 
-        result.createCommandBar(host)
         result.createAnalysisPanel(host)
-        result.createZoomControl(host)
+        result.createReadingControls(host)
         result.createTabs()
         result.createGrid()
         result.createInspector()
@@ -664,16 +662,6 @@ impl Panel
         return result
     }
 
-    // Creates the command group: the options of the layout and reading of the bytes.
-    private mtd createCommandBar(host: Viewer.Host)
-    {
-        .commands = host.createCommandGroup(themeDropDownButtonWidth(.themeMetrics()))
-        with .optionsButton = Viewer.createOptionsButton(.commands)
-        {
-            .dockStyle  = .Left
-            .sigPressed += func|view = me|(_) { view.showOptions() }
-        }
-    }
 
     // Creates the analysis side panel, and wires the host toggle that opens it.
     private mtd createAnalysisPanel(host: Viewer.Host)
@@ -717,10 +705,16 @@ impl Panel
         }
     }
 
-    // Creates the zoom menu at the right of the reading line.
-    private mtd createZoomControl(host: Viewer.Host)
+    // Creates the options of the layout and reading of the bytes, and the zoom, at the right of
+    // the reading line.
+    private mtd createReadingControls(host: Viewer.Host)
     {
-        let info = host.createInfoGroup(Viewer.ZoomSlotWidth)
+        let info = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
+        with .optionsButton = Viewer.createInfoOptionsButton(info)
+        {
+            .sigPressed += func|view = me|(_) { view.showOptions() }
+        }
+
         with .zoomLabel = Viewer.createZoomButton(info, "scope.hex.zoom", texts().ui_ZoomMenu)
         {
             .dockStyle  = .Right

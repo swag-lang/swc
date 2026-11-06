@@ -136,6 +136,7 @@ lens_File Fichier
 lens_Find Rechercher
 lens_View Affichage
 lens_ViewAs Voir comme
+ui_ViewAsChoice Voir comme %
 lens_Playback Lecture
 lens_Folder Dossier
 lens_InFolder Dans ce dossier
@@ -246,6 +247,7 @@ artwork_Online Illustrations en ligne
 artwork_Local Aperçus locaux
 lens_Artwork Visuels média
 explore_Albums % albums
+explore_Films % films
 explore_Photos % photos
 explore_OnePage 1 page
 explore_Pages % pages

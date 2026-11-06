@@ -214,7 +214,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.require(view.analysisView.result.range.length == selectionLength and view.analysisView.result.scanned == selectionLength)
 }
 
-// The typed command group stays bounded and keeps byte order beside the representation controls.
+// The options of the bytes stand on the line of readings before the zoom, a quiet glyph like it:
+// the viewer has no other command to float over the grid.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -225,8 +226,8 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.setup(900, 600)
 
     let view = hexTestViewer(&host, fileName, 900, 560)
-    Swag.require(view.commands.position.width <= 640)
-    Swag.require(view.optionsButton.parent == view.commands)
+    Swag.require(view.optionsButton.parent == view.zoomLabel!.parent)
+    Swag.require(view.optionsButton.position.right() <= view.zoomLabel.position.x)
     Swag.require(not view.bigEndian and view.rowWidthIndex == 0)
     Swag.require(view.details == "0x00000000")
     Testing.assertContentFits(view)
@@ -239,9 +240,10 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     Swag.require(view.grid.clientRect().width > 640 * 0.6)
     Swag.require(view.grid.bytesPerRow >= Hex.MinBytesPerRow)
     Swag.require(view.grid.contentWidth() <= view.grid.clientRect().width)
-    var image = host.renderSettled(view.commands)
-    image.crop(view.commands.surfaceRect())
-    assertScopeImageGolden(&image, "viewer.hex.command-bar")
+    let readings = unwrap view.optionsButton.parent
+    var image    = host.renderSettled(readings)
+    image.crop(readings.surfaceRect())
+    assertScopeImageGolden(&image, "viewer.hex.reading-controls")
     discard host.render(view)
 }
 

@@ -11,6 +11,8 @@ impl IWnd for EditWnd
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .scrollWnd.IWnd.onResizeEvent(evt)
+        if .main == null do
+            return
         if .main.hintLine != null do
             .main.placeReadings()
         if .main.miniBar != null do

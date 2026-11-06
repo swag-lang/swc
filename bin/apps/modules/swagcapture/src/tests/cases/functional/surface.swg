@@ -125,6 +125,49 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     return main
 }
 
+// The recent strip keeps its view controls beside the thumbnails and returns the editor's
+// bottom readings to the resized work area whenever its height changes.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let editorHeight = main.editArea.position.height
+    Swag.require(main.keyShortcut(.CtrlShift, .H) == ActionView.Recent)
+    Swag.require(not main.recentBar.isLocallyVisible())
+    Swag.require(not main.editArea.wndFlags.has(.ClipChildren))
+
+    host.shortcut(Input.Key.H, Input.KeyModifiers.Control | .Shift)
+    host.finishAnimations()
+    Swag.require(main.showRecent and main.recentBar.isLocallyVisible())
+    Swag.require(main.editArea.position.height < editorHeight)
+    Swag.require(main.recentBar.position.height == main.bottomHeight())
+    Swag.require(main.sizeReading.surfaceRect().bottom() <= main.editArea.surfaceRect().bottom())
+    Swag.require(main.zoomReading.surfaceRect().bottom() <= main.editArea.surfaceRect().bottom())
+
+    host.clickWnd(main.recentSmall)
+    Swag.require(main.bottomSize == .Small and main.recentSmall.isChecked)
+    Swag.require(not main.recentMedium.isChecked and not main.recentBig.isChecked)
+    host.clickWnd(main.recentMedium)
+    Swag.require(main.bottomSize == .Medium and main.recentMedium.isChecked)
+    host.clickWnd(main.recentBig)
+    Swag.require(main.bottomSize == .Big and main.recentBig.isChecked)
+    Swag.require(main.recentBar.position.height == main.bottomHeight())
+
+    host.shortcut(Input.Key.H, Input.KeyModifiers.Control | .Shift)
+    host.finishAnimations()
+    Swag.require(not main.showRecent and not main.recentBar.isLocallyVisible())
+    Swag.require(main.editArea.position.height == editorHeight)
+    Swag.require(main.sizeReading.surfaceRect().bottom() <= main.editArea.surfaceRect().bottom())
+    Swag.require(main.zoomReading.surfaceRect().bottom() <= main.editArea.surfaceRect().bottom())
+}
+
 // The selection tool only opens the inspector when an object has properties to inspect.
 #test
 {

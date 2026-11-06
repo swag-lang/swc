@@ -77,13 +77,13 @@ using Swag, Core
             return
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
         Swag.require(host.openPopupSubMenu(appStrings().act_DelayBefore))
-        Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay2))
+        Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay3))
         chosen[] = true
     }
     main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
     host.app.sigFrame.clear()
     host.pump()
-    Swag.require(chosen and main.captureOptions.delay == 2)
+    Swag.require(chosen and main.captureOptions.delay == 3)
 }
 
 // Theme and language choices are commands in the shared menu, without opening the appearance sheet.
@@ -251,10 +251,13 @@ using Swag, Core
         {
             Swag.require(item.icon.isValid(), item.id)
             Swag.require(item.critical == (item.id == ActionLibTrash.Empty))
+
+            // The recycle bin is a tab of the page: the menu only empties it.
+            Swag.require(item.id != ActionLibTrash.Toggle)
             actions += 1
         }
 
-        Swag.require(actions == 6)
+        Swag.require(actions == 5)
         inspected[] = true
         Swag.require(host.dismissPopupMenu())
     }

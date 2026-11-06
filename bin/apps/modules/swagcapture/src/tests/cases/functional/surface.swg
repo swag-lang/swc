@@ -683,6 +683,50 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     Swag.require(editor.bar.position.right() <= 688)
 }
 
+// Something that must not leave the screen is hidden in place, before the copy: the bar has a
+// pixelate tool, and a drag with it lays a pixelation over the zone.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: false)
+    defer
+    {
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var pixelate: *Gui.IconButton?
+    for item in editor.bar.items
+    {
+        if item.wnd is Gui.IconButton as button where button.flags.has(.Radio) and enumFromUserData'InPlaceEditMode(button.userData) == .Pixelate do
+            pixelate = button
+    }
+
+    let button = unwrap pixelate
+    Swag.require(button.toolTip == appStrings().tip_InpPixelate)
+    host.clickWnd(button)
+    host.pump()
+    Swag.require(editor.editMode == .Pixelate and button.isChecked)
+    Swag.require(editor.newMain.editMode == .Image and editor.newMain.mdlFormImage.kind == .Pixelate)
+
+    let capture = unwrap editor.capture
+    let count   = capture.forms.count
+    let view    = editor.editWnd.editView
+    let zone    = view.getCaptureRect()
+    var start   = view.localToSurface(Math.Point{zone.x + 40 - view.scrollPos.x, zone.y + 40 - view.scrollPos.y})
+    var end     = view.localToSurface(Math.Point{zone.x + 160 - view.scrollPos.x, zone.y + 90 - view.scrollPos.y})
+    let surface = unwrap view.surface
+    surface.surfaceToScreen(&start)
+    surface.surfaceToScreen(&end)
+    host.drag(start, end)
+    Swag.require(capture.forms.count == count + 1)
+    let made = capture.forms.back()
+    Swag.require(made is FormImage)
+    Swag.require((assume cast(*FormImage, made)).kind == .Pixelate)
+}
+
 // Repeated painted document replacement exercises the ownership boundary between Capture,
 // EditView and renderer-owned background/form textures.
 #test
@@ -1193,4 +1237,51 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         Swag.require(active.id == MainWnd.toolCommand(mode))
         Swag.require(main.inspector.title == appStrings().act_Text)
     }
+}
+
+// An empty library says so and offers the first capture beside the sentence, as its primary
+// action; its hint line keeps the lens alone, with nothing yet to open, delete or rate. The
+// recycle bin, empty as well, is not a place to capture into.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    // The page as it stands with nothing in the library, whatever the shared sandbox holds.
+    main.swapLibraryMode()
+    host.pump()
+    let libWnd = main.libWnd
+    libWnd.view.stopLoading()
+    libWnd.view.items.clear()
+    libWnd.view.allItems.clear()
+    libWnd.updateEmptyState()
+    let button = unwrap libWnd.emptyCapture
+    Swag.require(button.isLocallyVisible() and button.form == .Strong)
+    Swag.require(button.name == appStrings().act_CaptureArea)
+    Swag.require(libWnd.hintLine.hints.count == 1)
+
+    var captures: u32
+    main.hookOnEvent = func|captures = &captures|(_, evt)->bool
+    {
+        if evt is CommandEvent as cmd where cmd.id == ActionCapture.Area
+        {
+            captures[] += 1
+            return true
+        }
+        return false
+    }
+
+    host.clickWnd(button)
+    host.pump()
+    Swag.require(captures == 1)
+
+    libWnd.trashMode = true
+    libWnd.updateEmptyState()
+    Swag.require(not button.isLocallyVisible())
 }

@@ -17,6 +17,19 @@ using Core
     }
 
     main.lens.open("delete")
+
+    // Deleting the capture and deleting the selection never read alike.
+    var titles: Array'String
+    for section in main.lens.results.sections
+    {
+        for entry in section!.entries
+        {
+            Swag.require(not titles.contains(entry.title), entry.title)
+            titles.add(entry.title)
+        }
+    }
+    Swag.require(titles.contains(appStrings().act_DeleteCapture) and titles.contains(appStrings().act_Delete))
+
     var image = host.renderSettled(main)
     Pixel.Testing.assertImageGolden(&image, "commands.delete.paper")
     main.lens.close()

@@ -114,15 +114,20 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionCaptureDelay.Delay0)
     Swag.require(f.main.captureOptions.delay == 0)
-    f.main.sendCommandEvent(ActionCaptureDelay.Delay1)
-    Swag.require(f.main.captureOptions.delay == 1)
-    f.main.sendCommandEvent(ActionCaptureDelay.Delay2)
-    Swag.require(f.main.captureOptions.delay == 2)
-    f.main.sendCommandEvent(ActionCaptureDelay.Delay9)
-    Swag.require(f.main.captureOptions.delay == 9)
-    delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay9)
-    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay9, &delayEvt))
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay3)
+    Swag.require(f.main.captureOptions.delay == 3)
+    f.main.sendCommandEvent(ActionCaptureDelay.Delay10)
+    Swag.require(f.main.captureOptions.delay == 10)
+    delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay10)
+    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay10, &delayEvt))
     Swag.require(delayEvt.checked)
+    Swag.require(delayEvt.name == "10 Seconds")
+
+    // A wait set in the options that the menu does not offer is still named by the menu entry.
+    f.main.captureOptions.delay = 7
+    delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay)
+    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
+    Swag.require(delayEvt.name == "Delay Before Capture (7 Seconds)")
 
     let hideEditor     = f.main.captureOptions.hideEditorBefore
     var actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.HideEditor)

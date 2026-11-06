@@ -1,5 +1,14 @@
 impl LibraryWnd
 {
+    // Returns the folder glyph of a command, in the ink of its row: the theme gives a folder
+    // Arc, the mark of a place to go in a listing, and a command that acts on a folder is not one.
+    mtd commandFolderIcon()->Icon
+    {
+        var result = .theme().icon(.Folder)
+        result.color = Argb.Zero
+        return result
+    }
+
     // Names the page after the folder it now shows, and chooses that folder's tab.
     mtd updateFolderMode()
     {
@@ -50,19 +59,20 @@ impl LibraryWnd
         .main.saveAppState()
     }
 
-    // Shows the folder menu under `btn`: open, browse, or choose the library folder, and the
-    // recycle bin.
+    // Shows the folder menu under `btn`: back to the library, another folder to browse, the folder
+    // the library keeps its captures in, and the emptying of the recycle bin, whose tab is on
+    // the page already.
     mtd showFolderMenu(btn: *IconButton)
     {
+        let folderIcon = .commandFolderIcon()
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(appStrings().act_OpenLibraryFolder, "capture.library.root", icon: .theme().icon(.Folder))
+            .addItem(appStrings().act_OpenLibraryFolder, "capture.library.root", icon: folderIcon)
             .addSeparator()
             .addItem(appStrings().act_BrowseFolder, "capture.library.browse", icon: .theme().icon(.ExploreFolder))
-            .addItem(appStrings().act_ChooseLibraryFolder, "capture.library.choose", icon: .theme().icon(.Folder))
+            .addItem(appStrings().act_ChooseLibraryFolder, "capture.library.choose", icon: folderIcon)
             .addItem(appStrings().act_UseDefaultLibrary, "capture.library.default", icon: .theme().icon(.Undo))
             .addSeparator()
-            .addItem(ActionLibTrash.Toggle)
             .addItem(ActionLibTrash.Empty)
         }
 

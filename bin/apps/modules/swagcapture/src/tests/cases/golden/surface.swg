@@ -113,15 +113,14 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark, text: false, caption: true, dpiScale: 1.25)
+    let main = testSetupEditorSurface(&host, dark: false, text: false, caption: true, dpiScale: 1.25)
     defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
-    expect main.appearanceButton.setAppearanceLanguage(dark ? Gui.ReferenceLanguage : "fr")
+    expect main.appearanceButton.setAppearanceLanguage("fr")
     main.updateState()
     host.finishAnimations()
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
+    Pixel.Testing.assertImageGolden(&image, "tasks.frame.fr.papier")
 }
 
 // The caption glyph opens the generated application menu beside the mark in Encre.
@@ -455,9 +454,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
-    let dark = false
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark, text: false)
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
     defer
     {
         main.libWnd.requestClose()
@@ -472,7 +470,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         .endCap      = .ArrowAnchor
     }
 
-    testAssertEditGolden(&host, main, [0], dark ? "edit.arrow" : "edit.arrow.paper")
+    testAssertEditGolden(&host, main, [0], "edit.arrow.paper")
 }
 
 // Several objects: their common settings, the alignment, the order and the layers, in Encre.

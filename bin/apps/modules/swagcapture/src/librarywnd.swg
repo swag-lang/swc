@@ -83,6 +83,9 @@ struct LibraryWnd
         hintLine:    *HintLine
     }
 
+    // The first capture, offered where an empty library says it holds none.
+    emptyCapture: *PushButton?
+
     // The folder each tab opens, in the order of the tabs.
     tabFolders:   Array'String
     updatingTabs: bool
@@ -279,11 +282,18 @@ impl LibraryWnd
     }
 
     // Teaches the keys of the page on its hint line: open, delete, rename, rate and search the
-    // chosen captures, then Ctrl Space, which opens the lens.
+    // chosen captures, then Ctrl Space, which opens the lens. An empty page has none of those to
+    // act on: it keeps the lens, and the ways in that it offers.
     mtd fillHintLine()
     {
         let texts = appStrings()
         .hintLine.clearHints()
+        if .view != null and .view.allItems.isEmpty()
+        {
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_Space)
+            return
+        }
+
         .hintLine.addHint(strings().key_Enter, texts.hint_Open)
         .hintLine.addHint(Input.formatKeyShortcut(.None, .Delete), texts.hint_Delete)
         .hintLine.addHint(Input.formatKeyShortcut(.None, .F2), texts.hint_Rename)
@@ -300,6 +310,30 @@ impl LibraryWnd
         .invalidate()
     }
 
+    // Shows the first capture where the page is the empty library, and nowhere else: an empty
+    // recycle bin or an empty folder being browsed is not a place to capture into. The hint line
+    // follows, since an empty page has no capture to open, delete or rate.
+    mtd updateEmptyState()
+    {
+        if .hintLine != null do
+            .fillHintLine()
+        let button = .emptyCapture
+        if not button do
+            return
+
+        let shown = .view.allItems.isEmpty() and not .trashMode and .currentFolder() == Library.getFolder()
+        button.show(shown)
+        if not shown do
+            return
+
+        // Under the sentence that says the library is empty, against the same edge, a line of
+        // air below it.
+        let metrics = .themeMetrics()
+        let width   = Math.max(button.itf.measureContent({}).x, metrics.btnPush_Width)
+        let client  = .view.paddedClientRect()
+        button.setPosition(Math.Rectangle{client.x, client.y + 2 * metrics.fileTile_NameHeight + 12, width, metrics.btnPush_Height})
+    }
+
     // Builds the library page: the header over the thumbnail grid, on the ground of the window.
     func create(parent: *MainWnd)->*LibraryWnd
     {
@@ -313,6 +347,12 @@ impl LibraryWnd
 
         result.createHeader()
         result.createCaptureGrid()
+        with result.emptyCapture = PushButton.create(result.view, "", id: ActionCapture.Area, form: .Strong)
+        {
+            .owner = parent
+            .hide()
+        }
+
         result.createSpinner()
         result.setPreviewSize(.Small)
         result.setSortMethod(result.sortMethod)

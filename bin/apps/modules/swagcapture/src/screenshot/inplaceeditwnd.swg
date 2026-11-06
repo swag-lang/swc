@@ -13,6 +13,7 @@ enum InPlaceEditMode
     Step
     Draw
     Marker
+    Pixelate
 }
 
 // One tool of the bar of the in-place editor: the mode it selects, its glyph and tooltip.
@@ -24,7 +25,7 @@ struct InPlaceEditTool
 }
 
 // Returns the tools of the bar of the in-place editor, in the order the bar shows them.
-func inPlaceEditTools()->[10] InPlaceEditTool
+func inPlaceEditTools()->[11] InPlaceEditTool
 {
     let texts = appStrings()
     return [InPlaceEditTool{.Select, .Select, texts.act_Select},
@@ -36,7 +37,8 @@ func inPlaceEditTools()->[10] InPlaceEditTool
             InPlaceEditTool{.Callout, .Text, texts.act_Callout},
             InPlaceEditTool{.Step, .Step, texts.act_Step},
             InPlaceEditTool{.Draw, .Draw, texts.tip_InpDraw},
-            InPlaceEditTool{.Marker, .Highlight, texts.tip_InpMarker}]
+            InPlaceEditTool{.Marker, .Highlight, texts.tip_InpMarker},
+            InPlaceEditTool{.Pixelate, .Pixelate, texts.tip_InpPixelate}]
 }
 
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
@@ -369,6 +371,13 @@ impl InPlaceEditWnd
                 .editMode = .Draw
                 .mdlFormDraw.borderSize  = markerSize
                 .mdlFormDraw.borderColor = me.editColorHilight.withAlpha(160)
+
+            // What must not leave the screen is hidden before the copy: a password, a name.
+            case .Pixelate:
+                .editMode = .Image
+                .mdlFormImage.kind        = .Pixelate
+                .mdlFormImage.borderSize  = 0
+                .mdlFormImage.paintShadow = false
             }
         }
     }

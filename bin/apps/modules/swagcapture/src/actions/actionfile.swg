@@ -96,13 +96,16 @@ impl IActionUI for ActionFile
                 evt.shortcut      = main.libWnd.keyShortcutName(ActionLibSel.Delete)
             }
 
-            evt.name     = appStrings().act_Delete
-            evt.disabled = not capture
-            evt.icon     = main.theme().icon(.Remove)
+            evt.updatedFields |= .LongName
+            evt.name          = appStrings().act_Delete
+            evt.longName      = appStrings().act_DeleteCapture
+            evt.disabled      = not capture
+            evt.icon          = main.theme().icon(.Remove)
 
         case .DupCapture:
-            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
             evt.name          = appStrings().act_Duplicate
+            evt.longName      = appStrings().act_DuplicateCapture
             evt.disabled      = not capture
             evt.icon          = main.theme().icon(.Duplicate)
 
@@ -321,7 +324,7 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
     addDetail(rows, texts.ui_DetailFile, capture.file)
     if not capture.linkedImage.isEmpty() do
         addDetail(rows, texts.ui_DetailLinkedImage, capture.linkedImage)
-    addDetail(rows, texts.ui_DetailImageSize, Format.toString("%x%", capture.width, capture.height))
+    addDetail(rows, texts.ui_DetailImageSize, Format.toString("% × %", capture.width, capture.height))
     if capture.capturedAt.isValid() do
         addDetail(rows, texts.ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
     if not capture.sourceApplication.isEmpty() do

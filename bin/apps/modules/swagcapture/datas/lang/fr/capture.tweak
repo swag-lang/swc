@@ -65,7 +65,7 @@ dlg_TitleExportCaptures Exporter les captures
 dlg_TitleMoveCaptures  Déplacer les captures
 dlg_TitleResizeImage   Redimensionner l'image
 dlg_TitleExpandImage   Étendre l'image
-dlg_TitleExpandCapture Étendre la capture
+dlg_TitleExpandCapture Étendre le canevas
 dlg_BtnCreate          Créer
 dlg_BtnResize          Redimensionner
 dlg_BtnLoad            Charger
@@ -112,21 +112,17 @@ act_CopyImage          Copier l'image
 act_CopyImageToClipboard Copier l'image dans le presse-papiers
 act_Copy               Copier
 act_Cut                Couper
-act_Delay1             Délai avant capture (1 seconde)
-act_Delay2             Délai avant capture (2 secondes)
-act_Delay5             Délai avant capture (5 secondes)
-act_Delay9             Délai avant capture (9 secondes)
+act_DelayDuration      Délai avant capture (%)
 act_DelayBefore        Délai avant capture
-act_OneSecond          1 seconde
-act_TwoSeconds         2 secondes
-act_FiveSeconds        5 secondes
-act_NineSeconds        9 secondes
+count_Seconds          % seconde|% secondes
 act_NoDelay            Sans délai
 act_DeletePermanently  Supprimer définitivement
 act_Delete             Supprimer
+act_DeleteCapture      Supprimer la capture
+act_DuplicateCapture   Dupliquer la capture
 act_DeselectAll        Désélectionner tous les objets
 act_FilterNoLinked     Sans image liée
-act_ExpandCapture      Agrandir la capture…
+act_ExpandCapture      Agrandir le canevas…
 act_ExpandImage        Agrandir l'image…
 act_Draw               Dessin
 act_Duplicate          Dupliquer
@@ -150,10 +146,10 @@ act_Rating4            4 étoiles
 act_Rating5            5 étoiles
 act_ShowRatings        Notes
 act_ShowLinkMarkers    Marqueurs de lien
-act_BrowseFolder       Parcourir un dossier…
-act_OpenLibraryFolder  Ouvrir le dossier de la bibliothèque
-act_ChooseLibraryFolder Utiliser un autre dossier de bibliothèque…
-act_UseDefaultLibrary  Utiliser le dossier de bibliothèque par défaut
+act_BrowseFolder       Parcourir un autre dossier…
+act_OpenLibraryFolder  Revenir à la bibliothèque
+act_ChooseLibraryFolder Changer le dossier de la bibliothèque…
+act_UseDefaultLibrary  Rétablir le dossier par défaut
 act_Application        Application
 act_AllApplications    Toutes les applications
 act_Tags               Étiquettes
@@ -242,7 +238,7 @@ act_SmallerFirst       Plus petites d'abord
 act_SnapToForms        Aimanter aux formes
 act_Step               Étape
 act_Text               Texte
-act_TrimCapture        Rogner la capture
+act_TrimCapture        Rogner le canevas
 act_UnsavedLinked      Image liée non enregistrée
 act_Undo               Annuler
 act_Ungroup            Dégrouper
@@ -286,6 +282,7 @@ tip_InpRect            Tracer un rectangle ou un carré
 tip_InpArrow           Tracer une flèche
 tip_InpText            Ajouter une annotation texte
 tip_InpMarker          Surligner au marqueur
+tip_InpPixelate        Pixeliser pour masquer
 msg_ResetStyles        Les styles seront réinitialisés aux valeurs par défaut.
 dlg_TitleRenameCapture Renommer la capture
 ui_Outline             Contour
@@ -299,7 +296,7 @@ ui_PropPosition        Position
 ui_PropSize            Taille
 ui_ResetSteps          Réinitialiser
 act_CaptureMonitor     Capturer l'écran %
-act_CaptureMonitorSize Capturer l'écran % (%x%)
+act_CaptureMonitorSize Capturer l'écran % · % × %
 
 # Rows the property grid generates from reflection.
 prop_EndSize               Taille de fin
@@ -312,7 +309,7 @@ prop_Outline               Contour
 prop_Place                 Placement
 prop_Rotate                Rotation
 prop_Round                 Arrondi
-prop_Scale                 Échelle
+prop_Enlarge               Agrandir
 prop_Shadow                Ombre
 prop_Size                  Taille
 prop_Shape                 Forme
@@ -324,6 +321,7 @@ prop_Style                 Style
 prop_StartSize             Taille de début
 prop_Step                  Numérotation
 prop_Strength              Intensité
+prop_Weight                Graisse
 prop_Text                  Texte
 prop_Thickness             Épaisseur
 
@@ -349,7 +347,7 @@ prop_KindImage             Image
 prop_KindBlur              Flou
 prop_KindPixelate          Pixelisation
 prop_KindZoom              Loupe
-prop_KindCapture           Capture
+prop_KindCapture           Instantané
 
 prop_PlaceFrame            Cadre
 prop_PlaceFree             Libre
@@ -415,6 +413,7 @@ ui_PropStyle           Style
 lens_Dates             Dates
 hint_Capture           capturer
 hint_Cancel            annuler
+hint_RedrawArea        clic droit pour recommencer
 tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide
 tip_QuickStyleActions  Clic droit pour renommer, remplacer ou supprimer ce style rapide

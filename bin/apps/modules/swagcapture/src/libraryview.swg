@@ -303,9 +303,9 @@ impl IWnd for LibraryView
             facts += Format.toString(" · ★ %", capture.rating)
         var size: String = ""
         if capture do
-            size = Format.toString("%×%", capture.width, capture.height)
+            size = Format.toString("% × %", capture.width, capture.height)
         elif it.image.isValid() do
-            size = Format.toString("%×%", it.image.width, it.image.height)
+            size = Format.toString("% × %", it.image.width, it.image.height)
 
         var content: FileTile.Content
         content.texture     = it.texture
@@ -770,6 +770,7 @@ impl LibraryView
         }
 
         .restoreSelection(selection)
+        .libWnd.updateEmptyState()
         .invalidate()
     }
 

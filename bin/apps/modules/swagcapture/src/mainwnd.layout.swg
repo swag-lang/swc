@@ -6,7 +6,7 @@ const MaxLensRecents = 6
 
 // Register each command once; the lens and its optional application menu use the same entries.
 const CaptureModeIds = [ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd]
-const CaptureDelayIds = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay1, ActionCaptureDelay.Delay2, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay9]
+const CaptureDelayIds = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay3, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay10]
 const CaptureOptionIds = [ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard]
 const FileStartIds = [ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage]
 const FileLinkedIds = [ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage]

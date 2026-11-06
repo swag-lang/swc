@@ -80,7 +80,7 @@ struct AppStrings
     dlg_TitleMoveCaptures:     string = "Move Captures"
     dlg_TitleResizeImage:      string = "Resize Image"
     dlg_TitleExpandImage:      string = "Expand Image"
-    dlg_TitleExpandCapture:    string = "Expand Capture"
+    dlg_TitleExpandCapture:    string = "Expand Canvas"
     dlg_BtnCreate:             string = "Create"
     dlg_BtnResize:             string = "Resize"
     dlg_BtnLoad:               string = "Load"
@@ -182,6 +182,7 @@ struct AppStrings
     lens_Dates:                 string = "Dates"                                                         // Lens section of the dates the library can be narrowed to.
     hint_Capture:               string = "capture"                                                       // What Enter does on the area overlay.
     hint_Cancel:                string = "cancel"                                                        // What Escape does on the area overlay.
+    hint_RedrawArea:            string = "right click to draw again"                                     // What a right click does while an area is drawn.
     act_OpenLens:               string = "Search Commands"                                               // Opens the lens.
     act_ShowInspector:          string = "Properties"                                                    // Folds or unfolds the inspector.
     act_ShowRecent:             string = "Recent Captures"                                               // Shows or hides the strip of recent captures.
@@ -210,8 +211,8 @@ struct AppStrings
     hint_ToolPixSel:            string = "Drag to choose pixels"                                         // Hint of the pixel selection tool.
     hint_ToolFavorites:         string = "Pick a style, then drag to draw it"                            // Hint of the favorites tool.
     hint_ToolStep:              string = "The next click places %"                                       // Hint of the step tool, with the next number.
-    act_CaptureMonitor:         string = "Capture Monitor %"                                             // Capture one monitor, by index.
-    act_CaptureMonitorSize:     string = "Capture Monitor % (%x%)"                                       // Capture one monitor, with its size.
+    act_CaptureMonitor:         string = "Capture Screen %"                                              // Capture one screen, numbered from 1.
+    act_CaptureMonitorSize:     string = "Capture Screen % · % × %"                                      // Capture one screen, numbered from 1, with its size.
     act_ActualSize:             string = "Actual Size"
     act_Arrow:                  string = "Arrow"
     act_BigView:                string = "Big View"
@@ -227,21 +228,17 @@ struct AppStrings
     act_CopyImageToClipboard:   string = "Copy Image to Clipboard"
     act_Copy:                   string = "Copy"
     act_Cut:                    string = "Cut"
-    act_Delay1:                 string = "Delay Before Capture (1 Second)"
-    act_Delay2:                 string = "Delay Before Capture (2 Seconds)"
-    act_Delay5:                 string = "Delay Before Capture (5 Seconds)"
-    act_Delay9:                 string = "Delay Before Capture (9 Seconds)"
+    act_DelayDuration:          string = "Delay Before Capture (%)"                                      // The capture menu entry, with the wait in force.
     act_DelayBefore:            string = "Delay Before Capture"
-    act_OneSecond:              string = "1 Second"
-    act_TwoSeconds:             string = "2 Seconds"
-    act_FiveSeconds:            string = "5 Seconds"
-    act_NineSeconds:            string = "9 Seconds"
+    count_Seconds:              string = "% Second|% Seconds"                                            // A wait before a capture, as the menu lists it.
     act_NoDelay:                string = "No Delay"
     act_DeletePermanently:      string = "Delete Permanently"
     act_Delete:                 string = "Delete"
+    act_DeleteCapture:          string = "Delete Capture"                                                // Full name of Delete for the whole capture, as the lens lists it beside Delete for the selection.
+    act_DuplicateCapture:       string = "Duplicate Capture"                                             // Full name of Duplicate for the whole capture.
     act_DeselectAll:            string = "Deselect All Objects"
     act_FilterNoLinked:         string = "Doesn't Have Linked Image"
-    act_ExpandCapture:          string = "Expand Capture…"
+    act_ExpandCapture:          string = "Expand Canvas…"                                                // Grows the canvas around the picture.
     act_ExpandImage:            string = "Expand Image…"
     act_Draw:                   string = "Draw"
     act_Duplicate:              string = "Duplicate"
@@ -265,10 +262,10 @@ struct AppStrings
     act_Rating5:                string = "5 Stars"
     act_ShowRatings:            string = "Ratings"
     act_ShowLinkMarkers:        string = "Link Markers"
-    act_BrowseFolder:           string = "Browse Folder…"
-    act_OpenLibraryFolder:      string = "Open Library Folder"
-    act_ChooseLibraryFolder:    string = "Use Another Library Folder…"
-    act_UseDefaultLibrary:      string = "Use Default Library Folder"
+    act_BrowseFolder:           string = "Browse Another Folder…"                                       // Shows the images of any folder in the library page.
+    act_OpenLibraryFolder:      string = "Back to Library"                                               // Shows the captures of the library again, after another folder.
+    act_ChooseLibraryFolder:    string = "Change Library Folder…"                                        // Chooses the folder the library keeps its captures in.
+    act_UseDefaultLibrary:      string = "Reset Library Folder"                                          // Keeps the captures in the default folder again.
     act_Application:            string = "Application"
     act_AllApplications:        string = "All Applications"
     act_Tags:                   string = "Tags"
@@ -297,10 +294,10 @@ struct AppStrings
     act_FitToView:              string = "Fit to View"
     act_Flatten:                string = "Flatten"
     act_FlattenAll:             string = "Flatten All"
-    act_FlipImage:              string = "Flip Image"
+    act_FlipImage:              string = "Flip Vertically"
     act_FreezeSelection:        string = "Freeze Selection"
     act_Group:                  string = "Group"
-    act_MirrorImage:            string = "Mirror Image"
+    act_MirrorImage:            string = "Flip Horizontally"
     act_FilterHasLinked:        string = "Has Linked Image"
     act_HideEditorBefore:       string = "Hide Editor Before Capture"
     act_HideOutsideBox:         string = "Hide Outside Box"
@@ -357,7 +354,7 @@ struct AppStrings
     act_SnapToForms:            string = "Snap to Forms"
     act_Step:                   string = "Step"
     act_Text:                   string = "Text"
-    act_TrimCapture:            string = "Trim Capture"
+    act_TrimCapture:            string = "Trim Canvas"                                                   // Shrinks the canvas to what it shows.
     act_UnsavedLinked:          string = "Unsaved Linked Image"
     act_Undo:                   string = "Undo"
     act_Ungroup:                string = "Ungroup"
@@ -401,6 +398,7 @@ struct AppStrings
     tip_InpArrow:               string = "Draw Arrow"
     tip_InpText:                string = "Add Text Annotation"
     tip_InpMarker:              string = "Highlight with Marker"
+    tip_InpPixelate:            string = "Pixelate to Hide"                                              // The in-place tool that hides a part of the zone before it is copied.
 
     // Wording of the rows the property grid generates from reflection. A property attribute
     // carries a compile-time literal, so the declared English below *is* the key
@@ -416,12 +414,13 @@ struct AppStrings
     prop_Place:       string = "Place"            // Label of the image placement.
     prop_Rotate:      string = "Rotate"           // Label of the rotation slider.
     prop_Round:       string = "Round"            // Corner-rounding slider, and the join style using a circular arc.
-    prop_Scale:       string = "Scale"            // Label of the scale slider.
+    prop_Enlarge:     string = "Enlarge"          // Label of the slider that enlarges a text, by a percentage of its size.
     prop_Shadow:      string = "Shadow"           // Label of the drop-shadow choice.
     prop_Size:        string = "Size"             // Label of the font size.
     prop_StartSize:   string = "Start Size"       // Label of the start-cap size of a line.
     prop_Step:        string = "Numbering"        // Label of the step-numbering choice.
     prop_Strength:    string = "Strength"         // Label of the effect strength.
+    prop_Weight:      string = "Weight"           // Label of how much bolder a text is drawn.
     prop_Style:       string = "Style"            // Label of the font style: regular, bold, italic or both.
     prop_Text:        string = "Text"             // Label of the edited text, and section of the settings of the words.
     prop_Shape:       string = "Shape"            // Section of the settings of the body of a shape.
@@ -452,8 +451,8 @@ struct AppStrings
     prop_KindImage:    string = "Image"        // Image form showing a picture.
     prop_KindBlur:     string = "Blur"         // Image form blurring what it covers.
     prop_KindPixelate: string = "Pixelate"     // Image form pixelating what it covers.
-    prop_KindZoom:     string = "Zoom"         // Image form magnifying what it covers.
-    prop_KindCapture:  string = "Capture"      // Image form showing another capture.
+    prop_KindZoom:     string = "Magnifier"    // Image form magnifying what it covers.
+    prop_KindCapture:  string = "Snapshot"     // Image form holding a copy of the pixels it was drawn over.
 
     prop_PlaceFrame: string = "Frame"     // Image placement filling the frame.
     prop_PlaceFree:  string = "Free"      // Image placement left to the reader.

@@ -383,7 +383,10 @@ func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, l
 
     it.capture = capture
 
+    // The page follows its items as a refill would leave it: no longer empty, so no first capture
+    // to offer and the keys of the captures on the hint line.
     view.items.add(it)
+    view.libWnd.updateEmptyState()
     return it
 }
 

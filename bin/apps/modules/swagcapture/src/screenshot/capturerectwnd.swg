@@ -243,6 +243,7 @@ impl CaptureRectWnd
             .setGrounded(true)
             .addHint(Gui.strings().key_Enter, appStrings().hint_Capture)
             .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
+            .addHint("", appStrings().hint_RedrawArea)
         }
     }
 

@@ -712,11 +712,8 @@ impl MainWnd
 
         with let delays = MenuCtrl.createPopup(me)
         {
-            .addItem(ActionCaptureDelay.Delay0)
-            .addItem(ActionCaptureDelay.Delay1)
-            .addItem(ActionCaptureDelay.Delay2)
-            .addItem(ActionCaptureDelay.Delay5)
-            .addItem(ActionCaptureDelay.Delay9)
+            for id in CaptureDelayIds do
+                .addItem(id)
         }
         menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
 
@@ -913,6 +910,12 @@ impl MainWnd
             {
                 .inspector.setTitle(editModeName(.PixSel), Format.toString("% × %", base.w, base.h))
                 duplicates = false
+            }
+            elif form is FormImage as image where image.kind != .Image
+            {
+                // An image that hides or magnifies what it covers is named by what it does: a
+                // blur, a pixelation, a magnifier, a snapshot.
+                .inspector.setTitle(quickStyleKindName(image.kind), appStrings().ui_OneObject)
             }
             else
             {

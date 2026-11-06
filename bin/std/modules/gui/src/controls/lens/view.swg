@@ -1300,7 +1300,7 @@ private impl View
         if .previousPage == null or .nextPage == null do
             return
         let list = .listRect()
-        .scroll = Math.clamp(.scroll, 0, Math.max(.contentHeight() - list.height, 0))
+        .scroll = Math.clamp(.scroll, 0, .maxScroll())
         .placeInlineChoices()
         let overflow = .contentHeight() > list.height
         .previousPage.show(overflow)
@@ -1313,12 +1313,45 @@ private impl View
         .previousPage.setPosition({list.x + metrics.lens_TextInset, list.bottom(), .previousPage.position.width, metrics.quiet_Height})
         .nextPage.setPosition({list.right() - metrics.lens_TextInset - .nextPage.position.width, list.bottom(), .nextPage.position.width, metrics.quiet_Height})
         .previousPage.enable(.scroll > 0)
-        .nextPage.enable(.scroll < .contentHeight() - list.height)
+        .nextPage.enable(.scroll < .maxScroll())
+    }
+
+    // Returns how far the list scrolls: far enough for its last row, and on to the start of a
+    // row, so that the list scrolled to its end does not open on the lower half of one.
+    mtd maxScroll()->f32
+    {
+        let reach = Math.max(.contentHeight() - .listRect().height, 0)
+        return reach > 0 ? .rowAlignedScroll(reach, forward: true) : 0
+    }
+
+    // Returns `scroll` moved to the start of a row, so the list opens on a whole row rather than
+    // on the lower half of one cut by the field above it: `forward`, to the first row that starts
+    // at or after it; otherwise to the last row that starts at or before it.
+    mtd rowAlignedScroll(scroll: f32, forward: bool)->f32
+    {
+        let inset  = .themeMetrics().lens_RowInset
+        var result = forward ? scroll : 0
+        for row in .rows
+        {
+            let top = row.top - inset
+            if forward and top >= scroll - 0.5 do
+                return top
+            if not forward and top <= scroll + 0.5 do
+                result = Math.max(top, 0)
+        }
+
+        return result
     }
 
     mtd pageResults(direction: f32)
     {
-        .scrollBy(direction * Math.max(.listRect().height - .themeMetrics().lens_RowHeight, .themeMetrics().lens_RowHeight))
+        let step = direction * Math.max(.listRect().height - .themeMetrics().lens_RowHeight, .themeMetrics().lens_RowHeight)
+        // Back to the start of a row, so a page still overlaps the last one by a row at least;
+        // past the start of the next row when one row is taller than a page.
+        var target = .rowAlignedScroll(.scroll + step, forward: false)
+        if direction > 0 and target <= .scroll do
+            target = .rowAlignedScroll(.scroll + 1, forward: true)
+        .scrollBy(target - .scroll)
         .chosen = Swag.U64.Max
         let list = .listRect()
         for row, index in .rows where .isSelectable(index) and
@@ -1349,8 +1382,7 @@ private impl View
 
     mtd scrollBy(delta: f32)
     {
-        let list = .listRect()
-        .scroll = Math.clamp(.scroll + delta, 0, Math.max(.contentHeight() - list.height, 0))
+        .scroll = Math.clamp(.scroll + delta, 0, .maxScroll())
         .placePaging()
         .invalidate()
     }
@@ -1369,8 +1401,8 @@ private impl View
         if top < .scroll do
             .scroll = top - .themeMetrics().lens_RowInset
         elif row.top + row.height > .scroll + list.height do
-            .scroll = row.top + row.height - list.height + .themeMetrics().lens_RowInset
-        .scroll = Math.clamp(.scroll, 0, Math.max(.contentHeight() - list.height, 0))
+            .scroll = .rowAlignedScroll(row.top + row.height - list.height + .themeMetrics().lens_RowInset, forward: true)
+        .scroll = Math.clamp(.scroll, 0, .maxScroll())
         .placePaging()
     }
 

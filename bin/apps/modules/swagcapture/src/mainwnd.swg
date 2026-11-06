@@ -115,6 +115,7 @@ struct MainWnd
         inspector:           *Inspector
         miniBar:             *MiniBar
         hintLine:            *HintLine
+        recentSmall, recentMedium, recentBig: *IconButton
         sizeReading:         *IconButton
         zoomReading:         *IconButton
         toast:               *Toast
@@ -1046,6 +1047,7 @@ impl MainWnd
         // The searchable lens keeps its chord so Space remains available to the work and text fields.
         .registerKeyShortcut(.Control, .Space, ActionView.Lens)
         .registerKeyShortcut(.None, .I, ActionView.Inspector)
+        .registerKeyShortcut(.CtrlShift, .H, ActionView.Recent)
 
         // Every shortcut another application already owns is named in one information bar.
         var taken: Array'String

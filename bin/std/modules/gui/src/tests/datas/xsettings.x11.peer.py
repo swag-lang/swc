@@ -1,4 +1,4 @@
-"""Own XSETTINGS on an isolated X server and publish live theme changes."""
+"""Own XSETTINGS on an isolated X server and publish live desktop settings."""
 import ctypes as c
 import os
 import pathlib
@@ -36,28 +36,36 @@ x11.XSetSelectionOwner(display, selection, window, 0)
 x11.XSync(display, 0)
 assert x11.XGetSelectionOwner(display, selection) == window
 
-def publish(dark, serial):
-    name = b'Gtk/ApplicationPreferDarkTheme'
-    entry = struct.pack('<BBH', 0, 0, len(name)) + name
-    entry += b'\0' * ((-len(entry)) % 4)
-    entry += struct.pack('<II', serial, int(dark))
-    data = struct.pack('<B3xII', 0, serial, 1) + entry
+def publish(dark, animations, serial):
+    entries = b''
+    for name, value in ((b'Gtk/ApplicationPreferDarkTheme', int(dark)),
+                        (b'Gtk/EnableAnimations', int(animations))):
+        entry = struct.pack('<BBH', 0, 0, len(name)) + name
+        entry += b'\0' * ((-len(entry)) % 4)
+        entries += entry + struct.pack('<II', serial, value)
+    data = struct.pack('<B3xII', 0, serial, 2) + entries
     buffer = c.create_string_buffer(data)
     x11.XChangeProperty(display, window, property_atom, property_atom, 8, 0,
                         buffer, len(data))
     x11.XSync(display, 0)
 
 try:
-    publish(False, 1)
+    dark = False
+    animations = True
+    publish(dark, animations, 1)
     (root / 'ready').write_text('ready', encoding='ascii')
     previous = ''
     serial = 1
     while True:
         command = root / 'command'
         value = command.read_text(encoding='ascii') if command.exists() else ''
-        if value != previous and value in ('dark', 'light'):
+        if value != previous and value in ('dark', 'light', 'reduce', 'restore'):
             serial += 1
-            publish(value == 'dark', serial)
+            if value in ('dark', 'light'):
+                dark = value == 'dark'
+            else:
+                animations = value == 'restore'
+            publish(dark, animations, serial)
             (root / 'ack').write_text(value, encoding='ascii')
             previous = value
         time.sleep(.005)

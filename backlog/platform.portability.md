@@ -629,6 +629,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   X11 surface remains open. The application emits portable ThemeChanged notifications,
   repaints dark pixels and restores its light palette in JIT/native. High-contrast policy
   and other desktop setting sources still need an explicit contract and validation.
+- Progress (Linux): the same independent owner changes Gtk/EnableAnimations live. A native
+  application following the system preference finishes an in-flight decorative animation
+  when motion is reduced and accepts another animation when motion is restored in JIT/native.
 - Next: translate the platform's live theme and high-contrast changes into the portable settings
   event.
 - Related: platform.portability.082, platform.portability.050, platform.portability.083

@@ -17,6 +17,20 @@ func waitForNativeTheme(app: *Application, ack, wanted: string, light: bool)->bo
     return false
 }
 
+func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)->bool
+{
+    let deadline = Time.monotonicMilliseconds() + 4000
+    while Time.monotonicMilliseconds() < deadline
+    {
+        app.runFrame()
+        let response = catch File.readAllText(ack) orelse String.from("")
+        if response == wanted and app.isReducedMotion() == reduced do
+            return true
+    }
+
+    return false
+}
+
 // An independent XSETTINGS owner changes the actual native GUI while it remains open.
 #[Swag.TestTag("integration.desktop")]
 #test
@@ -74,4 +88,26 @@ func waitForNativeTheme(app: *Application, ack, wanted: string, light: bool)->bo
     let restoredPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(restoredPixel == lightPixel, "native surface did not restore the light theme")
     Swag.require(themeChanges > changesAfterDark, "light theme did not emit a portable notification")
+
+    // A live desktop motion change must finish already running decoration and allow it again
+    // when animations are reenabled.
+    app.setMotionPreference(.System)
+    Swag.require(not app.isReducedMotion())
+    var options: AnimationOptions
+    options.duration = 10000'ms
+    let first = app.animator.animateF32(surface.wnd.view,
+                                        AnimationChannel.from("linux.native.motion.first"),
+                                        0, 1, func(_, _) {}, options)
+    Swag.require(app.animator.isActive(first))
+    discard expect File.writeAllText(command, "reduce")
+    Swag.require(waitForNativeMotion(&app, ack.toString(), "reduce", true))
+    Swag.require(not app.animator.isActive(first), "running decoration survived reduced motion")
+
+    discard expect File.writeAllText(command, "restore")
+    Swag.require(waitForNativeMotion(&app, ack.toString(), "restore", false))
+    let second = app.animator.animateF32(surface.wnd.view,
+                                         AnimationChannel.from("linux.native.motion.second"),
+                                         0, 1, func(_, _) {}, options)
+    Swag.require(app.animator.isActive(second), "desktop animation preference did not recover")
+    app.animator.cancel(second)
 }

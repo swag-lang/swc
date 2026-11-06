@@ -1249,9 +1249,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   publish a selected monitor's pixels through the clipboard, and capture the EWMH active window
   with its title. The native Capture window opens, executes a fixed capture and an area drag, and
   presents both results through EGL/X11. Cancelling a subsequent area selection preserves the
-  editor and releases the overlay. X11 pointer capture now starts after the overlay is shown.
+  editor and releases the overlay. A separate XTEST drag crosses the actual X11 pointer-input
+  path and captures its selected pixels. X11 pointer capture now starts after the overlay is shown.
 - Next: exercise the complete capture application with a compositor and window manager, including
-  physical pointer input and actual window-manager focus changes. Account for native Wayland capture
+  actual window-manager focus changes and decorated windows. Account for native Wayland capture
   through the desktop portal rather than reading the XWayland root alone.
 - Done when: one chosen non-Windows backend captures the supported screen/window/region set and
   the application imports no raw OS binding outside named capture backends.

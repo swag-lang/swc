@@ -328,7 +328,8 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     g_App.sigFrame.clear()
     Swag.require(areaDriven, "the area selector did not open")
     let area = unwrap main.editWnd.getCapture()
-    defer discard catch File.delete(area.file)
+    let areaPath = area.file
+    defer discard catch File.delete(areaPath)
     Swag.require(area.width == 33 and area.height == 27)
     Swag.require(area.sourceWindowTitle == "Capture GUI fixture")
     Swag.require(area.backImg.pixelColor(4, 5).argb == Argb.Red)
@@ -372,4 +373,26 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         g_App.runFrame()
     Swag.require(g_App.surfaces.count == 1)
     Swag.require(expect Gui.Testing.verifyNativePresentation(surface))
+
+    // The next selection uses XTEST motion and button events through the Linux input backend.
+    let script = Path.combine(testSourceRoot(), "datas/capture-area.x11.peer.py")
+    var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString()],
+                                                    standardError: .Pipe})
+    defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
+    let deadline = Time.monotonicMilliseconds() + 5000
+    g_App.sigFrame += func|deadline|(_)
+    {
+        if Time.monotonicMilliseconds() > deadline do
+            g_Exit = true
+    }
+
+    main.sendCommandEvent(ActionCapture.Area)
+    g_App.sigFrame.clear()
+    Swag.require(expect peer.tryWaitForExit(3000'ms))
+    Swag.require(peer.exitCode() == 0, peer.standardError())
+    let physical = unwrap main.editWnd.getCapture()
+    let physicalPath = physical.file
+    defer discard catch File.delete(physicalPath)
+    Swag.require(physical.width == 32 and physical.height == 27)
+    Swag.require(physical.backImg.pixelColor(4, 5).argb == Argb.Red)
 }

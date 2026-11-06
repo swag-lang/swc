@@ -114,3 +114,55 @@
         expect File.delete(path)
     }
 }
+
+// Permission checks apply to new opens; a descriptor obtained earlier keeps its access.
+#[Swag.TestTag("integration.filesystem")]
+#test
+{
+    if Linux.geteuid() == 0 do
+        return
+    var root = Path.combine(Env.getSpecialDirectory(.Temp), "swag-file-permissions-XXXXXX")
+    Swag.require(Linux.mkdtemp(root.storage()) == root.buffer)
+    let folder = Path.combine(root, "restricted")
+    let file   = Path.combine(root, "saved.txt")
+    let child  = Path.combine(folder, "child.txt")
+    defer
+    {
+        discard Linux.chmod(folder.storage(), 0x1C0)
+        discard Linux.chmod(file.storage(), 0x180)
+        expect Directory.delete(root, recurse: true)
+    }
+    expect Directory.create(folder)
+    discard expect File.writeAllText(file.toString(), "saved")
+    discard expect File.writeAllText(child.toString(), "child")
+
+    var held = expect File.openRead(file.toString())
+    Swag.require(Linux.chmod(file.storage(), 0) == 0)
+    var bytes: [5]u8
+    Swag.require(expect held.readExact(bytes) and cast(string, bytes) == "saved")
+    held.close()
+    var deniedRead: Swag.Error
+    discard catch File.openRead(file.toString()) as deniedRead
+    let readError = assume cast(const *Swag.SystemError, deniedRead.value())
+    Swag.require(readError.errorID == cast(u64, Linux.EACCES) and File.exists(file.toString()))
+
+    Swag.require(Linux.chmod(file.storage(), 0x100) == 0) // Owner read only.
+    var deniedWrite: Swag.Error
+    discard catch File.open(file.toString(), .Create, .Write, .Zero) as deniedWrite
+    let writeError = assume cast(const *Swag.SystemError, deniedWrite.value())
+    Swag.require(writeError.errorID == cast(u64, Linux.EACCES))
+    Swag.require(expect File.readAllText(file.toString()) == "saved")
+
+    Swag.require(Linux.chmod(folder.storage(), 0x140) == 0) // Owner read/search only.
+    var deniedCreate: Swag.Error
+    discard catch File.open(Path.combine(folder, "new.txt").toString(), .CreateNew, .Write, .Zero) as deniedCreate
+    let createError = assume cast(const *Swag.SystemError, deniedCreate.value())
+    Swag.require(createError.errorID == cast(u64, Linux.EACCES))
+    Swag.require(not File.exists(Path.combine(folder, "new.txt").toString()))
+
+    Swag.require(Linux.chmod(folder.storage(), 0) == 0)
+    var deniedTraverse: Swag.Error
+    discard catch File.openRead(child.toString()) as deniedTraverse
+    let traverseError = assume cast(const *Swag.SystemError, deniedTraverse.value())
+    Swag.require(traverseError.errorID == cast(u64, Linux.EACCES))
+}

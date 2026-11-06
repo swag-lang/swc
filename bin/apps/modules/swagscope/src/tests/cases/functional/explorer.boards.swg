@@ -107,6 +107,15 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
             window.lens.close()
         }
 
+        // The source of the pictures is a choice only where films or albums take pictures.
+        if language == ReferenceLanguage
+        {
+            for command in ViewerCommands.Artwork do
+                Swag.require(window.sendComputeCommandStateEvent(command).hidden)
+            explorer.entries.add({name: "Film.mkv", path: "Film.mkv", attempted: true})
+            explorer.fill()
+        }
+
         for command, index in ViewerCommands.Artwork
         {
             window.sendCommandEvent(command)
@@ -127,7 +136,6 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
             }
         }
 
-        explorer.entries.add({name: "Film.mkv", path: "Film.mkv", attempted: true})
         window.onlineMovies = true
         window.onlineMusic  = true
         explorer.setKindFilter(.Videos)

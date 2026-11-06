@@ -215,6 +215,8 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, true, films: true)
     let explorer = unwrap window.explorer
+    for name in ["Alien.mkv", "Arrival.mkv", "Heat.mkv"] do
+        explorer.entries.add({name: name, path: name, attempted: true})
     showBoard(&host, window, "Projects", "Films")
     explorer.forceBoard(true, .Posters)
     Swag.require(explorer.showsMedia())

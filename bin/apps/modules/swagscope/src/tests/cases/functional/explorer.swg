@@ -383,10 +383,12 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.revealFilter()
         Swag.require(window.searchBox.position.width > 100 and window.searchBox.hasFocus())
 
-        // Filtering floats over the page; sort and view remain in the header.
+        // Filtering floats over the page; sort and view remain in the header, clear of it.
         let filterRect = window.searchBox.surfaceRect()
         let sortRect   = explorer.sortMenu.surfaceRect()
-        Swag.require(filterRect.y < sortRect.y and filterRect.height == 36)
+        let toolsRect  = explorer.tools.surfaceRect()
+        Swag.require(filterRect.height == 36)
+        Swag.require(filterRect.right() <= toolsRect.x or filterRect.bottom() <= toolsRect.y or filterRect.y >= toolsRect.bottom())
         Swag.require(explorer.modeMenu.surfaceRect().y == sortRect.y)
         host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
         Swag.require(explorer.grid.hovered == 0)

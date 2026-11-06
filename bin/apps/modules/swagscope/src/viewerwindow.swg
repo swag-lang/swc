@@ -917,7 +917,17 @@ impl ViewerWindow
         let group   = .searchGroup.itf.measureContent({})
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
         let height  = .searchGroup.position.height + pad.y + pad.w
-        let top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
+        var top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
+
+        // Over a folder, the bar floats over the page under the line of the path, leaving the
+        // path and the menus beside it in reach.
+        if .explorer and .explorer.isVisible() and .searchBar.parent
+        {
+            let header = .explorer.header.surfaceRect()
+            let below  = .searchBar.parent.surfaceToLocal(Math.Point{header.x, header.bottom() - Explorer.HeaderGap})
+            top = Math.max(top, below.y + metrics.floating_Inset * 0.5)
+        }
+
         .searchBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), top, width + pad.x + pad.z, height}, computeLayout: false)
         .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
         .searchGroup.computeLayout()

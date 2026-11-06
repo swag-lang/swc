@@ -145,25 +145,18 @@ impl BreadcrumbCtrl
     // Recomputes per-level bounds in control-local coordinates.
     mtd layout()
     {
-        let font   = nnFont(.font().regular)
-        let m      = .themeMetrics()
         let client = .clientRect()
 
         var x = client.x
         for &it in .items
         {
-            var w = .padX
-            if it.icon.isValid() do
-                w += (.iconSize != 0 ? .iconSize : it.icon.sizeX) + .iconGap
-            w += Math.ceil(Painter.measureStringSnapped(it.name, font, deviceScale: .deviceScale())) + .padX
-
+            let w = .bodyWidth(it)
             it.bodyRect = Math.Rectangle{x, client.y, w, client.height}
             x += w
 
             if it.hasArrow
             {
-                let mark = .quiet ? Painter.measureString(QuietSeparator, font).width : m.chevron_Size
-                let aw   = .arrowPad + mark + .arrowPad
+                let aw = .arrowWidth()
                 it.arrowRect = Math.Rectangle{x, client.y, aw, client.height}
                 x += aw
             }
@@ -179,7 +172,7 @@ impl BreadcrumbCtrl
             return
 
         // Keep whole ancestors, never the trailing letters of one. The leaf always stays.
-        let overflowWidth = Math.min(m.control_DialogHeight, client.width)
+        let overflowWidth = Math.min(.themeMetrics().control_DialogHeight, client.width)
         let available     = Math.max(client.width - overflowWidth, 0)
         .firstVisible = .items.count - 1
         var used = .items.back().bodyRect.width + .items.back().arrowRect.width
@@ -212,6 +205,23 @@ impl BreadcrumbCtrl
             it.arrowRect.width = arrowWidth
             x                  += arrowWidth
         }
+    }
+
+    // Returns the width of the body of `item`: its icon, its name, and their padding.
+    private mtd bodyWidth(item: const *BreadcrumbItem)->f32
+    {
+        var width = .padX
+        if item.icon.isValid() do
+            width += (.iconSize != 0 ? .iconSize : item.icon.sizeX) + .iconGap
+        let font = nnFont(.font().regular)
+        return width + Math.ceil(Painter.measureStringSnapped(item.name, font, deviceScale: .deviceScale())) + .padX
+    }
+
+    // Returns the width of the mark opening the child menu of a level, with its padding.
+    private mtd arrowWidth()->f32
+    {
+        let mark = .quiet ? Painter.measureString(QuietSeparator, nnFont(.font().regular)).width : .themeMetrics().chevron_Size
+        return .arrowPad + mark + .arrowPad
     }
 
     // Opens the child menu of the level at `index` and reports the command chosen in it.
@@ -274,6 +284,21 @@ private impl BreadcrumbCtrl
 
 impl IWnd for BreadcrumbCtrl
 {
+    // Reports the width every level takes when none is gathered into the overflow menu, so a host
+    // can share a line between the path and its neighbours before it fits the path to its room.
+    mtd impl measureContent(_: Math.Point)->Math.Point
+    {
+        var width: f32
+        for &it in .items
+        {
+            width += .bodyWidth(it)
+            if it.hasArrow do
+                width += .arrowWidth()
+        }
+
+        return {width, 0}
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         if evt.kind == .Leave

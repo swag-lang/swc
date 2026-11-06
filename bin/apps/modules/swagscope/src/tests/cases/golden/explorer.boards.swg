@@ -66,11 +66,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         explorer.layoutTools()
         window.applyLayout()
 
-        let title   = explorer.title.surfaceRect()
         let address = explorer.address.surfaceRect()
         let tools   = explorer.tools.surfaceRect()
-        Swag.require(address.bottom() <= title.y and address.bottom() <= tools.y)
-        Swag.require(title.right() <= tools.x and address.width > 0)
+        Swag.require(not explorer.title.isLocallyVisible())
+        Swag.require(Math.abs(address.vertCenter() - tools.vertCenter()) < 0.5)
+        Swag.require(address.right() <= tools.x and address.width > 0)
 
         host.clickWnd(&window.findCaptionButton.button)
         Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())

@@ -147,14 +147,31 @@ struct Explorer
     toast:           *Toast?
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
     forced:          bool
+    holdsMedia:      bool              // Whether the page shows films or albums, whose pictures may come from online.
+}
+
+// Returns the glyph of the kinds of file `filter` keeps.
+func kindFilterIcon(filter: ExplorerKindFilter)->ThemeIcons
+{
+    switch filter
+    {
+    case .Videos:    return .FileVideo
+    case .Images:    return .FileImage
+    case .Audio:     return .FileAudio
+    case .Documents: return .FileCode
+    case .Subtitles: return .FileCode
+    case .Archives:  return .FileArchive
+    case .Folders:   return .Folder
+    default:         return .File
+    }
 }
 
 impl Explorer
 {
-    // The air between the page and the edges of the document, the height of its header, and the
-    // size its title is set in.
+    // The air between the page and the edges of the document, the air between the line of the
+    // path and the page under it, and the size the title of an album is set in.
     const PageMargin       = 72.0
-    const HeaderHeight     = 64.0
+    const HeaderGap        = 8.0
     const TitleFontSize    = 36'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight       = 32.0
@@ -278,11 +295,11 @@ impl Explorer
     // Builds one compact head for the breadcrumb, folder name, count, filters and sort menus.
     private mtd createHeader()
     {
-        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, HeaderHeight}, "scope.explorer.header")
+        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, ToolHeight + HeaderGap}, "scope.explorer.header")
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{PageMargin, 0, PageMargin, 8}
+            .padding         = Math.Vector4{PageMargin, 0, PageMargin, HeaderGap}
         }
 
         // An archive writes what it holds and weighs on a mono line under its title.
@@ -301,11 +318,9 @@ impl Explorer
             .backgroundStyle = .Transparent
         }
 
-        // The tools stand on the baseline of the title, at the end of its line.
+        // The tools stand at the end of the line of the path.
         with .tools = StackLayoutCtrl.create(line, .Left, {0, 0, 0, 0})
         {
-            .dockStyle       = .Right
-            .anchorStyle     = .Right | .Bottom
             .backgroundStyle = .Transparent
             .spacing         = 8
         }
@@ -390,9 +405,8 @@ impl Explorer
             .sigPressed        += func|view = me|(_) { view.showModeMenu() }
         }
 
-        with .address = PathBar.create(.header, "scope.explorer.address")
+        with .address = PathBar.create(line, "scope.explorer.address")
         {
-            .dockStyle              = .Top
             .position.height        = ToolHeight
             .sigNavigate            += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
             .sigSubmitted           += func|explorer = me|(_, path) { explorer.navigateTyped(path) }
@@ -400,11 +414,13 @@ impl Explorer
             .breadcrumb.sigFillMenu += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
         }
 
+        // The breadcrumb names the folder: the title stays hidden and only holds the location's
+        // name.
         with .title = Label.create(line, "", {}, null, .Ellipsis)
         {
-            .dockStyle = .Left
             .style.setFont(me.theme().createDefaultFont(TitleFontSize, .Bold), .Regular)
             .setTextAlignment(.Left, .Bottom)
+            .hide()
         }
     }
 
@@ -431,7 +447,8 @@ impl Explorer
         .filterPanel.applyLayout()
     }
 
-    // The full address has its own line; the title and tools share the line below it.
+    // The path and the tools share one line above the page: the path at the left, and at the
+    // right what the page holds, its order, its kinds and its view.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -450,65 +467,65 @@ impl Explorer
         .scroll.margin.x  = .list.margin.x
         .scroll.margin.z  = .list.margin.z
 
-        // The words of the path stand on the edge of the grid; the ground of a level reaches
-        // out of it by its own padding, as a hovered row does.
-        .address.margin.x = -.address.breadcrumb.padX
-        .applyLayout()
-
         let album = .grid.board == .Album and .scroll.isLocallyVisible()
-        let line  = unwrap .tools.parent
-        let gap   = metrics.infoSheet_BlockGap
-        let space = line.clientRect().width
         .title.hide()
         .tools.show()
         .extractAll.show(.listing.isArchive)
         .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
-        let compact     = space < 900
-        let veryCompact = space < 500
-        .tools.spacing = veryCompact ? 0 : (compact ? 4 : 8)
-        .sortMenu.setQuietText(compact ? "" : .sortName())
-        .kindMenu.setQuietText(compact ? "" : .filterKindName())
-        .modeMenu.setQuietText("")
+
+        // Counts and failures of an archive move under the line instead of disappearing.
+        let summary = .listing.isArchive and not album and .status.text().count != 0
+        .summary.setText(summary ? .status.text() : "")
+        .summary.show(summary)
+        .header.position.height = ToolHeight + HeaderGap + (summary ? SummaryHeight : 0)
+        .applyLayout()
+
+        // The tools keep their words while the path keeps most of the line; past that the count
+        // goes first, then the words, the glyphs naming what each menu holds.
+        let line  = unwrap .tools.parent
+        let space = line.clientRect().width
+        let room  = Math.max(space - Math.min(.address.breadcrumb.itf.measureContent({}).x, space * 0.45), 0)
+        .tools.spacing = 8
+        .sortMenu.setQuietText(.sortName())
+        .kindMenu.setQuietText(.filterKindName())
+        .modeMenu.setQuietText(.viewName())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if .status.isLocallyVisible() and width > space
+        if width > room and .status.isLocallyVisible()
         {
             .status.hide()
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
-        // Counts and failures move under the title instead of disappearing when space is tight.
-        let summary = .listing.isArchive and
-                      not album and
-                      not .status.isLocallyVisible() and
-                      .status.text().count != 0
-        .summary.setText(summary ? .status.text() : "")
-        .summary.show(summary)
-        var height = (album ? ToolHeight + gap : HeaderHeight) + ToolHeight
-        if summary do
-            height += SummaryHeight
-        .header.position.height = height
-        .address.dockStyle      = .Top
-        .title.dockStyle        = .None
-        .tools.dockStyle        = .None
+        if width > room
+        {
+            .sortMenu.setQuietText("")
+            .kindMenu.setQuietText("")
+            .modeMenu.setQuietText("")
+            .tools.spacing = 4
+            width = Math.ceil(.tools.itf.measureContent({}).x)
+        }
 
-        .applyLayout()
-        let bounds     = line.clientRect()
-        .tools.setPosition({Math.max(bounds.right() - width, 0), Math.max(bounds.bottom() - ToolHeight, 0), width, ToolHeight})
+        // The words of the path stand on the edge of the grid; the ground of a level reaches out
+        // of it by its own padding, as a hovered row does.
+        let padX  = .address.breadcrumb.padX
+        let right = Math.max(space - width, 0)
+        .tools.setPosition({right, 0, width, ToolHeight})
         .tools.computeLayout()
+        .address.setPosition({-padX, 0, Math.max(right - metrics.infoSheet_BlockGap + padX, 0), ToolHeight})
         .address.refreshPath()
         .layoutFilter()
     }
 
     // Shows the listing presentation, for thumbnails their organization, and for media where their
     // illustrations come from, in one menu. Each group is one exclusive choice whose current answer
-    // carries the check, as every exclusive choice of Scope's menus does.
+    // carries the dot of a radio choice, as in the sort and kind menus beside it.
     mtd showModeMenu()
     {
         let text  = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
         let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
         for id, index in ViewerCommands.Modes do
-            discard menu.addItem(names[index], id, checked: cast(u64, .mode) == index)
+            discard menu.addRadioItem(names[index], id, checked: cast(u64, .mode) == index)
 
         if .isThumbnailView()
         {
@@ -518,7 +535,7 @@ impl Explorer
             for id, index in ViewerCommands.Boards
             {
                 let checked = index == 0 ? not .forced : (.forced and cast(u64, .forcedBoard) == index - 1)
-                discard menu.addItem(boardNames[index], id, checked: checked)
+                discard menu.addRadioItem(boardNames[index], id, checked: checked)
             }
         }
 
@@ -528,16 +545,16 @@ impl Explorer
             menu.addLabel(text.explore_ArtworkSection)
             let artworkNames = [text.artwork_Online, text.artwork_Local]
             for id, index in ViewerCommands.Artwork do
-                discard menu.addItem(artworkNames[index], id, checked: cast(u64, .artworkSource) == index)
+                discard menu.addRadioItem(artworkNames[index], id, checked: cast(u64, .artworkSource) == index)
         }
 
-        let chosen = menu.doModal(.modeMenu, autoDestroy: true) orelse ""
-        if chosen.count do
-            discard .window.runCommand(chosen)
+        discard menu.doModal(.modeMenu, autoDestroy: true)
     }
 
-    // Reports whether the page shows films or music, whose illustrations may come from online.
-    mtd showsMedia()->bool => .grid.board == .Posters or .grid.board == .Covers or .grid.board == .Album
+    // Reports whether the thumbnails show films or music, whose illustrations may come from
+    // online. The choice holds in every arrangement, an even grid included, because the films
+    // and the albums of the page take their pictures from it whatever shape their tiles have.
+    mtd showsMedia()->bool => .holdsMedia and .isThumbnailView() and not .listing.isArchive
 
     mtd setArtworkSource(source: ExplorerArtworkSource)
     {
@@ -561,7 +578,12 @@ impl Explorer
             .fill()
     }
 
-    // Shows the orders of the listing under its menu: the column, and whether it runs backward.
+    // Shows the orders of the listing under its menu: the column, then the direction, each one
+    // exclusive choice.
+    //
+    // The menu posts the chosen command to its owner, which routes it to the window: running it
+    // here as well would apply it twice, and a choice that depends on the current state would
+    // undo itself.
     mtd showSortMenu()
     {
         let text = appStrings()
@@ -569,16 +591,13 @@ impl Explorer
         for id in [ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize, ViewerCommands.SortModified] do
             menu.addRadioItem(sortCommandName(sortColumnOf(id)), id, checked: .sortColumn == sortColumnOf(id))
         menu.addSeparator()
-        menu.addItem(text.cmd_SortDescending, ViewerCommands.SortDescending, checked: .descending)
-
-        let chosen = menu.doModal(.sortMenu, autoDestroy: true) orelse ""
-        if chosen == ViewerCommands.SortDescending do
-            .sortBy(.sortColumn, not .descending)
-        elif chosen.count do
-            .sortBy(sortColumnOf(chosen), .descending)
+        menu.addRadioItem(text.cmd_SortAscending, ViewerCommands.SortAscending, checked: not .descending)
+        menu.addRadioItem(text.cmd_SortDescending, ViewerCommands.SortDescending, checked: .descending)
+        discard menu.doModal(.sortMenu, autoDestroy: true)
     }
 
-    // Filters the folder by the kind of file the reader wants to see.
+    // Filters the folder by the kind of file the reader wants to see. The choice of every item
+    // stands apart from the kinds that narrow the listing.
     mtd showKindFilterMenu()
     {
         let text  = appStrings()
@@ -586,17 +605,15 @@ impl Explorer
         let names = [text.explore_FilterAll, text.explore_FilterVideos, text.explore_FilterImages,
                      text.explore_FilterAudio, text.explore_FilterDocuments, text.explore_FilterSubtitles,
                      text.explore_FilterArchives, text.explore_FilterFolders]
-        let icons = [ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileImage, ThemeIcons.FileAudio,
-                     ThemeIcons.FileCode, ThemeIcons.FileCode, ThemeIcons.FileArchive, ThemeIcons.Folder]
         for id, index in ViewerCommands.KindFilters
         {
             let item = menu.addRadioItem(names[index], id, checked: cast(u64, .kindFilter) == index)
-            item.icon = .theme().icon(icons[index], themeRowIconSize(.themeMetrics()))
+            item.icon = .theme().icon(kindFilterIcon(ExplorerKindFilterValues[index]), themeRowIconSize(.themeMetrics()))
+            if index == 0 do
+                menu.addSeparator()
         }
 
-        let chosen = menu.doModal(.kindMenu, autoDestroy: true) orelse ""
-        if chosen.count do
-            discard .window.runCommand(chosen)
+        discard menu.doModal(.kindMenu, autoDestroy: true)
     }
 
     // Writes the chosen kind on its menu so the active filter stays visible.
@@ -634,59 +651,78 @@ impl Explorer
         .navigate(.listing.path, .folder, false)
     }
 
-    // Writes the order, filter, and presentation on their menus.
+    // Writes the order, filter, and presentation on their menus. The words of each name what the
+    // page shows now; the glyphs of the order and the filter name what their menu does, and the
+    // glyph of the view the shape of the page, as a view switch shows it.
     mtd refreshQuietMenus()
     {
         let text = appStrings()
-        .sortMenu.setQuietText(.sortName())
-        .sortMenu.setIcon(.theme().icon(.Sort, themeRowIconSize(.themeMetrics())))
-        .kindMenu.setQuietText(.filterKindName())
-        .kindMenu.setIcon(.theme().icon(.Filter, themeRowIconSize(.themeMetrics())))
+        let size = themeRowIconSize(.themeMetrics())
+        .sortMenu.setIcon(.theme().icon(.Sort, size))
+        .kindMenu.setIcon(.theme().icon(.Filter, size))
+        .modeMenu.setIcon(.theme().icon(.viewIcon(), size))
         let viewNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        let viewIcons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.FitView, ThemeIcons.ZoomIn]
-        var boardName = text.board_Automatic
-        var boardIcon = ThemeIcons.ExploreFolder
-        if .forced
-        {
-            switch .forcedBoard
-            {
-            case .Grid:
-                boardName = text.board_Grid
-                boardIcon = .File
-
-            case .Posters:
-                boardName = text.board_Posters
-                boardIcon = .FileVideo
-
-            case .Covers:
-                boardName = text.board_Covers
-                boardIcon = .FileAudio
-
-            }
-        }
-
         let modeIndex = cast(u64, .mode)
-        .modeMenu.setIcon(.theme().icon(.isThumbnailView() ? boardIcon : viewIcons[modeIndex], themeRowIconSize(.themeMetrics())))
         if .isThumbnailView() do
-            .modeMenu.toolTip = Format.toString("% · % · %", text.explore_View, viewNames[modeIndex], boardName)
+            .modeMenu.toolTip = Format.toString("% · % · %", text.explore_View, viewNames[modeIndex], .forced ? .viewName() : text.board_Automatic)
         else do
             .modeMenu.toolTip = Format.toString("% · %", text.explore_View, viewNames[modeIndex])
+        .sortMenu.toolTip = Format.toString("% · %", sortCommandName(.sortColumn), .descending ? text.cmd_SortDescending : text.cmd_SortAscending)
         .extractAll.setQuietText(text.cmd_ExtractAll)
         .window.refreshExplorerCaption()
 
         .layoutTools()
     }
 
-    // Writes the selected sort order as a short label for the Explorer line.
-    mtd sortName()->string
+    // Writes the selected sort order and its direction as a short label for the Explorer line.
+    mtd sortName()->String
     {
         let text = appStrings()
+        var name: string
         switch .sortColumn
         {
-        case 1:  return text.sort_Type
-        case 2:  return text.sort_Size
-        case 3:  return text.sort_Modified
-        default: return text.sort_Name
+        case 1:  name = text.sort_Type
+        case 2:  name = text.sort_Size
+        case 3:  name = text.sort_Modified
+        default: name = text.sort_Name
+        }
+
+        return Format.toString("% %", name, .descending ? "↓" : "↑")
+    }
+
+    // Names what the page shows: the list it is, or the shape of its thumbnails.
+    mtd viewName()->string
+    {
+        let text = appStrings()
+        switch .mode
+        {
+        case .Names:   return text.explore_Names
+        case .Details: return text.explore_Details
+        }
+
+        switch .listingBoard()
+        {
+        case .Posters: return text.board_Posters
+        case .Covers:  return text.board_Covers
+        case .Album:   return text.explore_Album
+        default:       return text.board_Grid
+        }
+    }
+
+    // Returns the glyph of what the page shows, as the view menu's entries draw it.
+    mtd viewIcon()->ThemeIcons
+    {
+        switch .mode
+        {
+        case .Names:   return .File
+        case .Details: return .Outline
+        }
+
+        switch .listingBoard()
+        {
+        case .Posters:        return .FileVideo
+        case .Covers, .Album: return .FileAudio
+        default:              return .ExploreFolder
         }
     }
 
@@ -1631,6 +1667,16 @@ impl Explorer
         if not selectionVisible do
             .selected = Swag.U64.Max
         .previewAspect = .listingPreviewAspect()
+        .holdsMedia    = false
+        for index in .shown
+        {
+            let entry = &.entries[index]
+            if isFilmFile(entry) or not entry.albumTrack.isEmpty() or (not entry.directory and albumAudio(entry.name))
+            {
+                .holdsMedia = true
+                break
+            }
+        }
 
         let board = .listingBoard()
 
@@ -2211,6 +2257,21 @@ impl IWnd for Explorer
     }
 }
 
+// Reports whether the picture of a film or a sound fills its tile edge to edge rather than standing
+// inside it. A frame or a cover close to the shape of the tile loses little to the crop and gains
+// the whole tile; a poster in a wide tile keeps its whole shape.
+private func fillsTile(glyph: Icon, texture: Texture, tile: Math.Rectangle)->bool
+{
+    const MaxStretch = 1.4'f32
+    if glyph.index != cast(s32, ThemeIcons.FileVideo) and glyph.index != cast(s32, ThemeIcons.FileAudio) do
+        return false
+    if not texture.isValid() or texture.width <= 1 or texture.height <= 1 or tile.width <= 0 or tile.height <= 0 do
+        return false
+    let picture = cast(f32, texture.width) / cast(f32, texture.height)
+    let cell    = tile.width / tile.height
+    return Math.max(picture, cell) <= Math.min(picture, cell) * MaxStretch
+}
+
 // Reports whether `entry` is a film file: what the video reader opens, apart from album audio.
 private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.directory and not albumAudio(entry.name) and Reader.canOpen(entry.name)
 
@@ -2465,7 +2526,8 @@ impl ExplorerGrid
         var options: FileTile.Options
         options.fit = .posters ? .Poster :
                       (.board == .Covers or
-                       glyph.index == cast(s32, ThemeIcons.FileImage) ? .Cover : .Contain)
+                       glyph.index == cast(s32, ThemeIcons.FileImage) or
+                       fillsTile(glyph, entry.texture, tile) ? .Cover : .Contain)
         options.hovered        = .hovered == row
         options.selected       = .explorer.selected == index
         options.showCaption    = true
@@ -3003,7 +3065,19 @@ impl IWnd for ExplorerGrid
             let text = .explorer.filter.text().count ? appStrings().explore_NoMatches : appStrings().explore_Empty
             let font = unwrap .font().regular
             let x    = Math.max(CellInset, (.clientRect().width - Painter.measureString(text, font).width) * 0.5)
-            painter.drawString(x, font.opticalLineTop(.themeMetrics().floating_Inset * 2), text, font, .themeColors().faintText)
+
+            // The sentence answers the filter, so it stands under the find bar floating over
+            // the page rather than behind it.
+            let inset = .themeMetrics().floating_Inset
+            var y     = inset * 2
+            let bar   = .explorer.window.searchBar
+            if bar.isLocallyVisible()
+            {
+                let below = .surfaceToLocal(Math.Point{0, bar.surfaceRect().bottom()}).y + .scrollPos.y
+                y = Math.max(y, below + inset * 1.5)
+            }
+
+            painter.drawString(x, font.opticalLineTop(y), text, font, .themeColors().faintText)
             for spinner in .spinners do
                 spinner.hide()
             return

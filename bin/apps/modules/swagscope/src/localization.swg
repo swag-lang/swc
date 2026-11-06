@@ -240,6 +240,7 @@ struct AppStrings
     cmd_SortType:         string = "Sort by Type"              // Command ordering the explored folder by type.
     cmd_SortSize:         string = "Sort by Size"              // Command ordering the explored folder by size.
     cmd_SortModified:     string = "Sort by Date Modified"     // Command ordering the explored folder by modification date.
+    cmd_SortAscending:    string = "Ascending Order"           // Command ordering the explored folder from its first item to its last.
     cmd_SortDescending:   string = "Descending Order"          // Command reversing the order of the explored folder.
     cmd_Options:          string = "Options…"                  // Command opening the options sheet of the viewer.
     cmd_Play:             string = "Play"                      // Command starting playback.

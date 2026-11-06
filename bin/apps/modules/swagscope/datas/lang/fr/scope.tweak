@@ -157,6 +157,7 @@ cmd_SortName Trier par nom
 cmd_SortType Trier par type
 cmd_SortSize Trier par taille
 cmd_SortModified Trier par date de modification
+cmd_SortAscending Ordre croissant
 cmd_SortDescending Ordre décroissant
 sort_Name Par nom
 sort_Type Par type

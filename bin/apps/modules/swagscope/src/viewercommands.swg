@@ -49,6 +49,7 @@ namespace ViewerCommands
     const SortType          = "scope.explore.sort.type"
     const SortSize          = "scope.explore.sort.size"
     const SortModified      = "scope.explore.sort.modified"
+    const SortAscending     = "scope.explore.sort.ascending"
     const SortDescending    = "scope.explore.sort.descending"
     const FilterAll         = "scope.explore.filter.all"
     const FilterVideos      = "scope.explore.filter.videos"
@@ -144,7 +145,7 @@ impl ViewerWindow
                                                                     ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                                                                       ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
-                                                                      ViewerCommands.SortModified, ViewerCommands.SortDescending,
+                                                                      ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending,
                                                                       ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
                                                                       ViewerCommands.FilterAudio, ViewerCommands.FilterDocuments, ViewerCommands.FilterSubtitles,
                                                                       ViewerCommands.FilterArchives, ViewerCommands.FilterFolders, ViewerCommands.OnlineMovies,
@@ -717,12 +718,13 @@ impl ViewerWindow
             toggle  = true
             checked = exploring and .explorer!.sortColumn == column
 
-        case ViewerCommands.SortDescending:
-            name    = texts.cmd_SortDescending
-            icon    = .commandGlyph(.ChevronDown)
+        case ViewerCommands.SortAscending, ViewerCommands.SortDescending:
+            let descending = evt.id == ViewerCommands.SortDescending
+            name    = descending ? texts.cmd_SortDescending : texts.cmd_SortAscending
+            icon    = .commandGlyph(descending ? .ChevronDown : .ChevronUp)
             hidden  = not exploring
             toggle  = true
-            checked = exploring and .explorer!.descending
+            checked = exploring and .explorer!.descending == descending
 
         case ViewerCommands.OnlineMovies:
             name    = texts.explore_OnlineMovies
@@ -788,10 +790,8 @@ impl ViewerWindow
                 let names = [texts.explore_FilterAll, texts.explore_FilterVideos, texts.explore_FilterImages,
                              texts.explore_FilterAudio, texts.explore_FilterDocuments, texts.explore_FilterSubtitles,
                              texts.explore_FilterArchives, texts.explore_FilterFolders]
-                let icons = [ThemeIcons.File, ThemeIcons.FileVideo, ThemeIcons.FileImage, ThemeIcons.FileAudio,
-                             ThemeIcons.FileCode, ThemeIcons.FileCode, ThemeIcons.FileArchive, ThemeIcons.Folder]
                 name    = names[index]
-                icon    = .commandGlyph(icons[index])
+                icon    = .commandGlyph(kindFilterIcon(ExplorerKindFilterValues[index]))
                 hidden  = not exploring
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.kindFilter) == index
@@ -801,7 +801,7 @@ impl ViewerWindow
             {
                 let names = [texts.board_Automatic, texts.board_Grid, texts.board_Posters,
                              texts.board_Covers]
-                let icons = [ThemeIcons.ExploreFolder, ThemeIcons.File, ThemeIcons.FileVideo,
+                let icons = [ThemeIcons.Folder, ThemeIcons.ExploreFolder, ThemeIcons.FileVideo,
                              ThemeIcons.FileAudio]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
@@ -818,7 +818,7 @@ impl ViewerWindow
                 let icons = [ThemeIcons.Link, ThemeIcons.FileImage]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
-                hidden  = not exploring
+                hidden  = not exploring or not .explorer!.showsMedia()
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.artworkSource) == index
             }
@@ -1043,8 +1043,8 @@ impl ViewerWindow
                 return true
             }
 
-        case ViewerCommands.SortDescending:
-            explorer.sortBy(explorer.sortColumn, not explorer.descending)
+        case ViewerCommands.SortAscending, ViewerCommands.SortDescending:
+            explorer.sortBy(explorer.sortColumn, id == ViewerCommands.SortDescending)
 
         case ViewerCommands.OnlineMovies:
             explorer.setOnlineMedia(not .onlineMovies, .onlineMusic)

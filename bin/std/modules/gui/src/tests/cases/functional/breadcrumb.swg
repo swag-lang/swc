@@ -6,6 +6,27 @@ using Swag, Core
 var BreadcrumbPressedIndex: u64 = Swag.U64.Max
 var BreadcrumbPressedCount: u32
 
+// The measured width is every level laid out whole, whatever room the control has, so a host can
+// share a line between the path and its neighbours.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(700, 160)
+    let path = BreadcrumbCtrl.create(&host.root, {0, 0, 700, 34})
+    path.fitToWidth = true
+    path.addItem("Root")
+    path.addItem("A long ancestor folder")
+    path.addItem("Current", hasArrow: false)
+    path.layout()
+    let whole = path.items.back().bodyRect.right()
+    Swag.require(Math.abs(path.itf.measureContent({}).x - whole) < 0.5)
+
+    path.resize(110, 34)
+    path.layout()
+    Swag.require(path.firstVisible > 0)
+    Swag.require(Math.abs(path.itf.measureContent({}).x - whole) < 0.5)
+}
+
 // Fitting keeps whole trailing levels and makes every hidden parent reachable.
 #test
 {

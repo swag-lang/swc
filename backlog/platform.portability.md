@@ -109,7 +109,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.057 — No second-platform GUI packaging
 
 - Next: package the GUI runtime and native dependencies for the chosen second platform.
-- Related: platform.portability.050, platform.portability.058, platform.portability.059
+- Related: platform.portability.050, platform.portability.058
 - Done when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
 
 ### platform.portability.058 — Finish Linux mixed-script font validation
@@ -135,12 +135,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   installed fallback.
 - Related: platform.portability.016, platform.portability.057
 - Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
-
-### platform.portability.059 — No second-platform file-dialog integration
-
-- Next: connect the toolkit-owned file dialog to the target filesystem and native path expectations.
-- Related: platform.portability.033, platform.portability.057
-- Done when: The toolkit file dialog on the chosen second host opens and saves paths using native filesystem rules, reports cancellation and failure distinctly, and retains its common selection behavior in tests.
 
 ### platform.portability.060 — Accessibility has no second-platform integration
 
@@ -828,7 +822,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
   they do not replace the full application workflows.
   An isolated Xorg dummy server also passes clipboard owner exit and empty text roundtrips
-  against an independent client in JIT/native.
+  against an independent client in JIT/native. The toolkit-owned file dialog selects existing
+  Linux names containing colons and Unicode, proposes new paths, rejects invalid selections and
+  returns cancellation on a native X11 surface in JIT/native.
   Native artifact work remains in .093.
   Nine Ogl JIT/native cases now cover independent XCB connections, shared contexts and resources,
   worker-thread contexts and pbuffer lifetimes. Two surfaceless cases pass without a display.
@@ -844,7 +840,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   shutdown. Existing WindowLoop consumers retain their default close behavior.
 - Next: validate complete application workflows and physical desktop/GPU behavior, finish dynamic
   keyboard-map updates and investigate connection-loss/module-unload stress. Native Wayland,
-  text composition and accessibility remain distinct capabilities. The X11 GUI uses explicit
+  IME composition and accessibility remain distinct capabilities. The X11 GUI uses explicit
   compositor-backed presentation; retain pixel-level tests when changing visual/alpha selection.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and

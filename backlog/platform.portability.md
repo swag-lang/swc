@@ -113,10 +113,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.049, platform.portability.052, platform.portability.061
 - Done when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
 
-### platform.portability.055 — No second-platform clipboard integration
+### platform.portability.055 — Finish Linux clipboard owner-lifetime validation
 
-- Next: implement clipboard ownership and platform-format conversion behind the portable typed-value
-  contract.
+- Progress: the XCB selection backend reads and writes UTF-8 text, PNG images and registered
+  typed values. An independent peer exercises ordinary and incremental transfers, large payloads,
+  invalid data, timeouts, owner replacement and clear in JIT/native under an isolated Xvfb server.
+- Next: verify that an owner process exiting without an explicit clear releases its selection,
+  including a waiting reader and an empty payload.
 - Related: platform.portability.050
 - Done when: The chosen second-platform GUI reads and writes the supported typed clipboard values with clear ownership and format conversion, and round-trip tests cover text, empty data, and owner shutdown.
 
@@ -495,10 +498,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Validation: raw Linux spawn probes preserve exact argv in JIT/native and an imported consumer.
   Whole-Core test/doc compilation succeeds. Windows semantic/test compilation on this Linux host
   stops at the known foreign log/logf imports.
-  The public argument-validation tests, native Windows quoting path and application consumers
-  still need execution with a complete Core backend; formatting is not their runtime validation.
-- Next: execute public Linux child roundtrips and focused
-  Scope/Pixel/Vault consumers on supported hosts.
+  Public Linux process cases now pass JIT/native with exact empty, spaced, quoted, backslash and
+  UTF-8 child arguments, and the separate importer executes through complete Core. Native Windows
+  quoting and focused Scope/Pixel/Vault consumers still need execution on supported hosts.
+- Next: run the Windows quoting path and focused Scope/Pixel/Vault consumers on supported hosts.
 - Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix
   direct argv preserve empty, spaced, quoted, and backslash-containing arguments in
   child-process tests, with any raw command-line form explicitly named.
@@ -985,8 +988,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Name/value matching now lives in `findRunArgumentIn`, shared by both backends. Linux uses argv
   directly because ELF startup publishes it before module initialization. Windows still searches
   `Swag.args()` first, then parses `GetCommandLineA` when native early startup needs the fallback.
-- Next: validate Linux sandbox startup with complete Core, make Windows argv available before
-  native module initialization, and remove that platform's early command-line fallback.
+- Linux startup now passes a native peer that sees the sandbox armed before #init/#premain and
+  a separate importing executable that sees it armed before its own hooks.
+- Next: make Windows argv available before native module initialization and remove that
+  platform's early command-line fallback.
 - Done when: native and compile-time early argument lookup use the same populated vector
   and preserve sandbox, smoke, and corpus argument behavior.
 - Related: platform.portability.008

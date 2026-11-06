@@ -124,4 +124,29 @@ func runTextInputPeer(script, mode, saved: string)
             Swag.require(releases.count == presses.count, "a repeated key changed the number of physical transitions")
         }
     }
+
+    runTextInputPeer(script.toString(), "group-setup", saved.toString())
+    defer runTextInputPeer(script.toString(), "group-restore", saved.toString())
+    for 8 do
+        app.runFrame()
+    let countBeforeGroups = characters.count
+    let pressesBeforeGroups = presses.count
+    var groupPeer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
+                                                          arguments: [script.toString(), "group-send", saved.toString(), id.toString()],
+                                                          standardOutput: .Pipe, standardError: .Pipe})
+    defer { discard catch groupPeer.kill(); discard catch groupPeer.waitForExit(); }
+    let groupDeadline = Time.monotonicMilliseconds() + 4000
+    while groupPeer.isRunning() and Time.monotonicMilliseconds() < groupDeadline
+    {
+        app.runFrame()
+        discard expect groupPeer.tryWaitForExit(5'ms)
+    }
+    for 8 do
+        app.runFrame()
+    Swag.require(not groupPeer.isRunning() and groupPeer.exitCode() == 0, groupPeer.standardError())
+    Swag.require(characters.count == countBeforeGroups + 2 and Utf8.endsWith(characters.toString(), "zy"),
+                 Format.toString("XKB group text: %", characters))
+    Swag.require(presses.count == pressesBeforeGroups + 2 and releases.count == presses.count)
+    Swag.require(presses[presses.count - 2] == .Y and presses.back() == .Y and
+                 releases[releases.count - 2] == .Y and releases.back() == .Y)
 }

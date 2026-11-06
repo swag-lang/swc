@@ -2,6 +2,7 @@
 import ctypes as c
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -24,6 +25,8 @@ x11.XkbSetAutoRepeatRate.argtypes = [P, c.c_uint, c.c_uint, c.c_uint]
 x11.XkbSetAutoRepeatRate.restype = c.c_int
 x11.XkbGetAutoRepeatRate.argtypes = [P, c.c_uint, c.POINTER(c.c_uint), c.POINTER(c.c_uint)]
 x11.XkbGetAutoRepeatRate.restype = c.c_int
+x11.XkbLockGroup.argtypes = [P, c.c_uint, c.c_uint]
+x11.XkbLockGroup.restype = c.c_int
 xtst.XTestFakeKeyEvent.argtypes = [P, c.c_uint, c.c_int, U]
 display = x11.XOpenDisplay(None)
 assert display
@@ -56,13 +59,47 @@ try:
         for code, _ in codes:
             change(code, previous[str(code)])
         x11.XSync(display, 0)
-    elif mode in ('send', 'remap', 'held-remap', 'repeat', 'modifiers'):
+    elif mode == 'group-setup':
+        query = subprocess.run(['setxkbmap', '-display', os.environ['DISPLAY'], '-query'],
+                               check=True, capture_output=True, text=True).stdout
+        rules = dict(line.split(':', 1) for line in query.splitlines() if ':' in line)
+        rules = {key.strip(): value.strip() for key, value in rules.items()}
+        with open(saved + '.rules.json', 'w', encoding='utf-8') as f:
+            json.dump(rules, f)
+        subprocess.run(['xkbcomp', '-xkb', os.environ['DISPLAY'], saved + '.xkb'],
+                       check=True, capture_output=True)
+        subprocess.run(['setxkbmap', '-display', os.environ['DISPLAY'], '-layout', 'us,de'],
+                       check=True, capture_output=True)
+    elif mode == 'group-restore':
+        with open(saved + '.rules.json', encoding='utf-8') as f:
+            rules = json.load(f)
+        arguments = ['setxkbmap', '-display', os.environ['DISPLAY']]
+        for field in ('rules', 'model', 'layout', 'variant'):
+            if rules.get(field):
+                arguments += ['-' + field, rules[field]]
+        arguments += ['-option', '']
+        for option in rules.get('options', '').split(','):
+            if option:
+                arguments += ['-option', option]
+        subprocess.run(arguments, check=True, capture_output=True)
+        subprocess.run(['xkbcomp', saved + '.xkb', os.environ['DISPLAY']],
+                       check=True, capture_output=True)
+    elif mode in ('send', 'remap', 'held-remap', 'repeat', 'modifiers', 'group-send'):
         x11.XSetInputFocus(display, int(sys.argv[3]), 2, 0)
         def tap(code):
             assert code
             assert xtst.XTestFakeKeyEvent(display, code, 1, 0)
             assert xtst.XTestFakeKeyEvent(display, code, 0, 0)
-        if mode == 'modifiers':
+        if mode == 'group-send':
+            code = x11.XKeysymToKeycode(display, ord('y'))
+            assert code
+            assert x11.XkbLockGroup(display, 0x100, 1)
+            x11.XSync(display, 0)
+            tap(code)
+            assert x11.XkbLockGroup(display, 0x100, 0)
+            x11.XSync(display, 0)
+            tap(code)
+        elif mode == 'modifiers':
             code = x11.XKeysymToKeycode(display, ord('a'))
             shift = x11.XKeysymToKeycode(display, 0xffe1)
             control = x11.XKeysymToKeycode(display, 0xffe3)

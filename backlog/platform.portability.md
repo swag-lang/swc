@@ -605,8 +605,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   VirtualKey values, maps common modifiers and the first three mouse buttons, and snapshots basic
   Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
   implemented. Standard PC keypad NumLock/Shift selection and held-key release identity pass
-  real XTEST integration in both polling and GUI paths. Extra buttons, additional groups,
-  IME and broader input-language routing remain pending;
+  real XTEST integration in both polling and GUI paths. Extra buttons, IME and broader
+  input-language routing remain pending;
   polling snapshots are separate native requests, not one atomic input sample. GUI XKB
   composition now sends every committed Unicode scalar as a separate portable character event;
   real XTEST input covers ordinary, dead-key and multi-scalar compose sequences in JIT/native.
@@ -618,6 +618,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   release and press during remapping remains two distinct transitions.
   XTEST Shift+A and Ctrl+A sequences preserve modifier flags on physical events, produce
   uppercase text only for Shift and suppress text under Control in JIT/native.
+  An independent XKB client installs US+DE groups and locks each in turn. The same physical
+  Y key produces `z` then `y` while retaining its Y transition identity in JIT/native;
+  the fixture restores the server's original keymap and layout property.
   The existing XTEST keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed

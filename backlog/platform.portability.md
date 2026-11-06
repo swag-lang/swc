@@ -365,8 +365,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
   Seven public Core thread cases pass in JIT/native with DevMode and Release compilers, covering
   nice values, inheritance, permission failures, exited identities, reuse, completion and waits. Four common thread/timer cases also pass in
-  JIT/native for context inheritance, one-shot and periodic behavior. Windows execution is unavailable.
-- Next: exercise start failures, additional lifetime stress and the batching boundary,
+  JIT/native for context inheritance, one-shot and periodic behavior. A native 65-thread stress
+  case crosses the 64-handle wait batch and verifies every owner is released. Windows execution is unavailable.
+- Next: exercise start failures and additional lifetime stress,
   and decide whether to extend Linux priority support.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.

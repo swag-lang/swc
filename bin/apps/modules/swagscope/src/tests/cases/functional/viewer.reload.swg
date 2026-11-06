@@ -199,3 +199,23 @@ using Core, Gui, Viewers
     let result = counter.finish()
     Swag.require(result.lines == 3 and result.words == 5 and result.characters == 24)
 }
+
+// Line ends are counted by convention, a carriage return pairing with a line feed that arrives
+// in the next chunk, and named alone or each with its count.
+#test
+{
+    var mixed: TextStatisticsCounter
+    mixed.append("one\r")
+    mixed.append("\ntwo\nthree\rfour\r\n")
+    let ends = mixed.finish()
+    Swag.require(ends.crlf == 2 and ends.lf == 1 and ends.cr == 1 and ends.lines == 4)
+    Swag.require(ends.lineEnds() == "CRLF 2 · LF 1 · CR 1")
+
+    var unix: TextStatisticsCounter
+    unix.append("a\nb\n")
+    Swag.require(unix.finish().lineEnds() == "LF")
+
+    var single: TextStatisticsCounter
+    single.append("no break")
+    Swag.require(single.finish().lineEnds().isEmpty())
+}

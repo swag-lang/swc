@@ -540,13 +540,16 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
 }
 
 // Creates the integrated Markdown view.
-// Describes a Markdown document in the information sheet: its format and its encoding.
-private func describeMarkdown(sheet: *InfoSheet)
+// Describes a Markdown document in the information sheet: its lines, words and characters once
+// they are counted, then its format, its encoding and how its lines end.
+private func describeMarkdown(sheet: *InfoSheet, zoomButton: *ZoomButton)
 {
     var data: MediaInfoData
     data.add(.Text, group: true)
     data.add(.Format, "Markdown")
     data.add(.Encoding, "UTF-8")
+    if zoomButton.hasStatistics do
+        data.addTextStatistics(&zoomButton.statistics)
     data.describe(sheet)
 }
 
@@ -622,7 +625,6 @@ func createViewer(host: Viewer.Host)
     applyViewerStyle(view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, zoomButton.zoomPercent)
     host.attachView(view)
     host.setDetails(texts().ui_Details)
-    host.setInformation(func(sheet) { describeMarkdown(sheet) })
 
     with var search: Viewer.SearchApi
     {
@@ -636,6 +638,7 @@ func createViewer(host: Viewer.Host)
     view.userData       = zoomButton
     zoomButton.services = services
     zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, zoomButton)
+    host.setInformation(func|zoomButton|(sheet) { describeMarkdown(sheet, zoomButton) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

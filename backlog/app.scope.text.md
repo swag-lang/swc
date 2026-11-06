@@ -480,14 +480,3 @@ large-file work without editing, implicit network access, macros or source mutat
 - Next: define source and view coordinates before adding a name/address box and navigation history.
 - Done when: direct jumps identify their coordinate space, headers are searchable, current cell
   and source row remain visible, and back/forward survives sort and filter changes where possible.
-
-### app.scope.text.045 — The information sheet cannot count a code file's lines or name its line ends
-
-- Evidence: the sheet of Basic text gives lines, words and characters once its background count
-  ends, but Code streams its source and its `Viewer.LineCounter` only numbers lines up to the
-  window it has read, so the sheet shows no line count for code. Neither viewer records whether the
-  file ends its lines with LF, CRLF or a mix.
-- Next: let Code reuse the cancellable statistics worker of Basic text for its line total, and count
-  LF, CRLF and CR line ends in the same pass for both viewers.
-- Done when: the sheet of a code or text file shows its exact line count as a figure and its line
-  ends as a reading, both from one bounded background pass that never delays the first screen.

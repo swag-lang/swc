@@ -88,6 +88,12 @@ struct Panel
     lines:             Viewer.LineCounter
     services:          Viewer.HostServices
     failureReason:     String
+
+    // The whole file counted in the background for the information sheet, apart from the window
+    // the editor streams.
+    statisticsLoad:    Viewer.BackgroundLoad'TextStatistics
+    statistics:        TextStatistics
+    hasStatistics:     bool
 }
 
 impl Panel
@@ -534,6 +540,16 @@ impl Panel
 
 impl IWnd for Panel
 {
+    // The count of the whole file arrives: the sheet can give its lines and how they end.
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if not .statisticsLoad.claim(evt) do
+            return
+        let error = .statisticsLoad.finish(&.statistics)
+        .hasStatistics = error.isEmpty()
+        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
+    }
+
     // The column stays centred whatever the width of the window.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
@@ -590,13 +606,16 @@ impl IWnd for Panel
 // Creates the integrated syntax-colored source view.
 impl Panel
 {
-    // Describes the source in the information sheet: its language and its encoding.
+    // Describes the source in the information sheet: its lines once the whole file is counted,
+    // then its language, its encoding and how its lines end.
     mtd describeInformation(sheet: *InfoSheet)
     {
         var data: MediaInfoData
         data.add(.Text, group: true)
         data.add(.Language, .languageName)
         data.add(.Encoding, "UTF-8")
+        if .hasStatistics do
+            data.addTextStatistics(&.statistics, withWords: false)
         data.describe(sheet)
     }
 }
@@ -625,5 +644,7 @@ func createViewer(host: Viewer.Host)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
-    host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null})
+    view.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, view)
+    host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null,
+                       retire:    func|view|()->bool => view.statisticsLoad.retire()})
 }

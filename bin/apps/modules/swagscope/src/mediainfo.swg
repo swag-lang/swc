@@ -51,6 +51,7 @@ enum MediaInfoField
     Faces
     Separator
     Meter
+    LineEnds
     Track
     Empty
     Unavailable
@@ -104,6 +105,13 @@ struct MediaInfoStrings
     faces:       string = "Faces"
     separator:   string = "Separator"
     meter:       string = "Time signature"
+    lineEnds:    string = "Line ends"
+    oneLine:     string = "1 line"
+    lineCount:   string = "% lines"
+    oneWord:     string = "1 word"
+    wordCount:   string = "% words"
+    oneCharacter: string = "1 character"
+    characterCount: string = "% characters"
     glyphCount:  string = "% glyphs"
     mono:        string = "mono"
     stereo:      string = "stereo"
@@ -208,6 +216,7 @@ impl MediaInfoRow
         case .Faces:       return s.faces
         case .Separator:   return s.separator
         case .Meter:       return s.meter
+        case .LineEnds:    return s.lineEnds
         case .Track:       return .name.toString()
         case .Empty:       return s.empty
         case .Unavailable: return s.unavailable
@@ -221,7 +230,7 @@ impl MediaInfoRow
         {
         case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines, .Sections,
              .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate, .Channels,
-             .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter:
+             .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
             return true
         }
 
@@ -332,6 +341,23 @@ impl MediaInfoData
         row.name   = name
         row.value  = measures
         .rows.add(#move row)
+    }
+
+    // Appends the figures of a counted text, its lines first, then its words and characters when
+    // `withWords`, and how its lines end as a reading of the current section.
+    mtd addTextStatistics(statistics: const *TextStatistics, withWords = true)
+    {
+        let s = &g_MediaInfoStrings
+        .addFigure(.Lines, statistics.lines == 1 ? String.from(s.oneLine) : Format.toString(s.lineCount, statistics.lines))
+        if withWords
+        {
+            .addFigure(.Custom, statistics.words == 1 ? String.from(s.oneWord) : Format.toString(s.wordCount, statistics.words))
+            .addFigure(.Custom, statistics.characters == 1 ? String.from(s.oneCharacter) : Format.toString(s.characterCount, statistics.characters))
+        }
+
+        let ends = statistics.lineEnds()
+        if ends.count do
+            .add(.LineEnds, ends)
     }
 
     // Appends a row whose name the format owns, shown as written.

@@ -51,3 +51,10 @@ faces       Faces
 separator   Séparateur
 meter       Mesure
 glyphCount  % glyphes
+lineEnds    Fins de ligne
+oneLine     1 ligne
+lineCount   % lignes
+oneWord     1 mot
+wordCount   % mots
+oneCharacter 1 caractère
+characterCount % caractères

@@ -351,11 +351,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   retired before kernel reuse, and real-time policies are left unchanged.
 - Validation: 14 raw Linux tests pass in JIT/native, including gated C callbacks, distinct kernel
   identities, EBUSY from a live nonblocking join, scheduler validation and join result publication.
-  Seven public Core thread cases pass in JIT/native with DevMode and Release compilers, covering
-  nice values, inheritance, permission failures, exited identities, reuse, completion and waits. Four common thread/timer cases also pass in
-  JIT/native for context inheritance, one-shot and periodic behavior. A native 65-thread stress
+  Seven public Core thread cases pass in JIT/native with DevMode and Release compilers,
+  covering nice values, inheritance, permission failures, exited identities, reuse,
+  completion and waits. An eighth DevMode case rejects a second start, keeps its owner
+  joinable, and runs the body once across 64 reuse cycles in JIT/native. Four common
+  thread/timer cases also pass in JIT/native for context inheritance, one-shot and periodic behavior. A native 65-thread stress
   case crosses the 64-handle wait batch and verifies every owner is released. Windows execution is unavailable.
-- Next: exercise start failures and additional lifetime stress,
+- Next: exercise thread-creation failures under resource pressure and additional lifetime stress,
   and decide whether to extend Linux priority support.
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.

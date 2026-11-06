@@ -453,9 +453,9 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   followed by '..' and ELOOP. Public tests for argv matching, case, root containment, invalid paths,
   escaped writes/deletes and safe link removal pass in the public Linux integration case in
   JIT/native. An isolated native peer verifies arming before a later #init and #premain and refuses
-  an outside write without creating its target; native Windows validation is unavailable.
-- Next: validate sandbox startup in a separately imported module, then run the remaining
-  common sandbox and filesystem conformance cases.
+  an outside write without creating its target. A separate native executable importing Core
+  sees the sandbox already armed in its own #init and #premain; native Windows validation is unavailable.
+- Next: run the remaining common sandbox and filesystem conformance cases.
   The guards protect Core's operations; they are not an OS security boundary for arbitrary native
   calls and do not make path checks and subsequent mutations atomic against concurrent renames.
 - Related: platform.portability.038, platform.portability.010

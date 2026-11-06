@@ -552,16 +552,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.016
 - Done when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
 
-### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
-
-- Evidence: `crypto/security.win32.swg` calls the foreign `RtlZeroMemory` routine. The Linux
-  leaf uses glibc explicit_bzero; raw tests verify zeroed bytes and surrounding canaries in
-  JIT and native ELF. Five public crypto cases pass JIT/native, including empty buffers,
-  getentropy chunk boundaries, canaries and clearing.
-- Next: inspect optimized secureClear calls to establish the no-elide guarantee end to end.
-- Related: platform.portability.075
-- Done when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
-
 ### platform.portability.009 — Finish shared process orchestration and conformance
 
 - Progress: input validation, start/run overloads, close/drop dispatch, paired output draining,

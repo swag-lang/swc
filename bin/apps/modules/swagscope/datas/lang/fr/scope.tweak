@@ -178,6 +178,9 @@ cmd_ZoomMenu Zoom…
 home_Invite Déposez un fichier, ou ouvrez-en un
 home_InviteFolder Ouvrir un dossier
 home_Clear Effacer
+home_RemoveRecent Retirer des fichiers récents
+home_RemoveRecentTitle Retirer le fichier récent
+home_AskRemoveRecent Retirer ce fichier de la liste des fichiers récents ?
 home_ClearMissing Retirer les introuvables
 home_MissingTitle Fichier introuvable.
 home_AskForgetMissing Le retirer de l'historique des fichiers ?

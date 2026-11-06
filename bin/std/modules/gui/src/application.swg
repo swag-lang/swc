@@ -164,6 +164,7 @@ struct Application
     systemReducedMotion: bool                 // Platform client-area-animation preference.
     systemPrefersLight:  bool                 // Whether the platform asks applications for a light theme.
     inClockFrame:        bool                 // Whether a clock frame runs inside a desktop loop.
+    cursorHidden:        bool                 // Whether the application hides the native pointer until it moves.
 
     public
     {
@@ -261,6 +262,9 @@ private impl Application
     mtd sendMouseEvents()
     {
         .mouse.update()
+        let physicalMovement = .mouse.movement()
+        if Math.abs(physicalMovement.x) >= 0.5 or Math.abs(physicalMovement.y) >= 0.5 do
+            .cursorHidden = false
 
         // A renderer without native windows has no native pointer either: what the system mouse
         // reports belongs to whoever is using the desktop while the test runs. Headless hosts
@@ -364,7 +368,9 @@ private impl Application
                 .toolTip.resetTimer(evt.surfacePos)
         }
 
-        if .frameCursor.isValid() do
+        if .cursorHidden do
+            Cursor.activate(Cursor.from(CursorShape.Hidden))
+        elif .frameCursor.isValid() do
             Cursor.activate(.frameCursor)
         elif targetWnd and targetWnd.cursor.isValid() do
             Cursor.activate(targetWnd.cursor)
@@ -1770,6 +1776,21 @@ impl Application
     {
         .frameCursor = cursor
     }
+
+    // Hides the native pointer until the next physical pointer movement.
+    //
+    // A movement restores automatic cursor selection from the window under the pointer.
+    mtd setCursorHidden(hidden: bool)
+    {
+        .cursorHidden = hidden
+        if hidden do
+            Cursor.activate(Cursor.from(CursorShape.Hidden))
+        else do
+            Cursor.activate(Cursor.from(CursorShape.Arrow))
+    }
+
+    // Whether the native pointer is hidden until it moves.
+    mtd isCursorHidden()->bool => .cursorHidden
 
     // Processes frames until a quit event is received and returns its exit code.
     //

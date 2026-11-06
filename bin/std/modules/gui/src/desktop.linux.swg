@@ -80,6 +80,9 @@ internal struct Context
     late xcb_open_font_checked:                   Linux.xcb_open_font_checked_fn
     late xcb_close_font_checked:                  Linux.xcb_close_font_checked_fn
     late xcb_create_glyph_cursor_checked:         Linux.xcb_create_glyph_cursor_checked_fn
+    late xcb_create_pixmap_checked:               Linux.xcb_create_pixmap_checked_fn
+    late xcb_create_cursor_checked:               Linux.xcb_create_cursor_checked_fn
+    late xcb_free_pixmap_checked:                 Linux.xcb_free_pixmap_checked_fn
     late xcb_free_cursor_checked:                 Linux.xcb_free_cursor_checked_fn
     late xcb_grab_pointer:                        Linux.xcb_grab_pointer_fn
     late xcb_grab_pointer_reply:                  Linux.xcb_grab_pointer_reply_fn
@@ -222,6 +225,9 @@ internal func ensure()->*Context fail
     result.xcb_open_font_checked                   = try symbol'Linux.xcb_open_font_checked_fn(library, "xcb_open_font_checked")
     result.xcb_close_font_checked                  = try symbol'Linux.xcb_close_font_checked_fn(library, "xcb_close_font_checked")
     result.xcb_create_glyph_cursor_checked         = try symbol'Linux.xcb_create_glyph_cursor_checked_fn(library, "xcb_create_glyph_cursor_checked")
+    result.xcb_create_pixmap_checked               = try symbol'Linux.xcb_create_pixmap_checked_fn(library, "xcb_create_pixmap_checked")
+    result.xcb_create_cursor_checked               = try symbol'Linux.xcb_create_cursor_checked_fn(library, "xcb_create_cursor_checked")
+    result.xcb_free_pixmap_checked                 = try symbol'Linux.xcb_free_pixmap_checked_fn(library, "xcb_free_pixmap_checked")
     result.xcb_free_cursor_checked                 = try symbol'Linux.xcb_free_cursor_checked_fn(library, "xcb_free_cursor_checked")
     result.xcb_grab_pointer                        = try symbol'Linux.xcb_grab_pointer_fn(library, "xcb_grab_pointer")
     result.xcb_grab_pointer_reply                  = try symbol'Linux.xcb_grab_pointer_reply_fn(library, "xcb_grab_pointer_reply")

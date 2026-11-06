@@ -448,6 +448,7 @@ impl IWnd for ViewerWindow
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .showPointer()
         if .fullScreen do
             .setFullScreen(false)
         catch .saveState()
@@ -788,6 +789,7 @@ impl ViewerWindow
     {
         if not .currentCommands do
             return
+        .showPointer()
         .viewerBarShown = true
         .layoutViewerBar()
         .stopTimer(&.viewerBarTimer)
@@ -810,6 +812,13 @@ impl ViewerWindow
 
         .viewerBarShown = false
         .layoutViewerBar()
+        if .currentView is Viewers.Film.Panel as film
+        {
+            if film.veilsShown do
+                return
+        }
+        if not .imageCommandsStayVisible() do
+            .setPointerHidden(true)
     }
 
     // Remembers where the pointer is, and brings the viewer's commands back.
@@ -818,7 +827,24 @@ impl ViewerWindow
         if position.x == .pointerPosition.x and position.y == .pointerPosition.y do
             return
         .pointerPosition = position
+        .showPointer()
         .revealViewerBar()
+    }
+
+    // Keeps a still picture's one-shot commands visible while other viewer bars may rest away.
+    mtd imageCommandsStayVisible()->bool => .playMode == .Once and
+                                            .activeChoiceIndex < .choices.count and
+                                            .choices[.activeChoiceIndex].key == "image"
+
+    // Hides the system pointer with the resting viewer chrome, then restores it on activity.
+    mtd setPointerHidden(hidden: bool)
+    {
+        .app().setCursorHidden(hidden)
+    }
+
+    mtd showPointer()
+    {
+        .app().setCursorHidden(false)
     }
 
     // Places the floating bar of the viewer's commands at the foot of the document, as wide as
@@ -826,11 +852,10 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let imageOnce = .playMode == .Once and
-                        .activeChoiceIndex < .choices.count and
-                        .choices[.activeChoiceIndex].key == "image"
-        let visible  = commands != null and (.viewerBarShown or imageOnce)
+        let visible  = commands != null and (.viewerBarShown or .imageCommandsStayVisible())
         .viewerBar.show(visible)
+        if .imageCommandsStayVisible() do
+            .showPointer()
         if not commands do
             return
 

@@ -33,12 +33,21 @@ impl NativeCursor
 
 public impl Cursor
 {
-    // Returns the shared native cursor for a standard cursor shape.
-    func from(shape: CursorShape)->Cursor => NativeCursor.defaultCursors[shape]
+    // Returns a descriptor for a cursor shape.
+    func from(shape: CursorShape)->Cursor
+    {
+        if shape == .Hidden do
+            return {hidden: true}
+        return NativeCursor.defaultCursors[shape]
+    }
 
     // Restores an invalid cursor descriptor without destroying the shared system cursor.
-    mtd clear() { .cursor = null }
+    mtd clear()
+    {
+        .cursor = null
+        .hidden = false
+    }
 
     // Activates the cursor for the current thread.
-    func activate(cursor: Cursor) { SetCursor(cursor.native.cursor) }
+    func activate(cursor: Cursor) { SetCursor(cursor.isHidden() ? null : cursor.native.cursor) }
 }

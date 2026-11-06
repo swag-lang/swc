@@ -14,7 +14,7 @@ struct ViewerHomeRow
 // last files read as quiet rows.
 //
 // It stays quiet on purpose: no title, no path at rest, no groups. The row under the pointer comes
-// up on the raised ground with its folder and a faint `×` that takes it out of the history;
+// up on the raised ground with its folder and a remove button that takes it out of the history;
 // the Clear menu stays below the list and offers the partial clears and, apart, the
 // whole one. Everything older is in the lens, under `/`.
 struct ViewerHome
@@ -23,6 +23,7 @@ struct ViewerHome
 
     late window:      *ViewerWindow
     late clearButton: *IconButton
+    late removeButton: *IconButton
 
     message:   String     // Sentence standing in for the invitation, such as why a file did not open.
     rows:      Array'ViewerHomeRow
@@ -65,6 +66,18 @@ impl ViewerHome
             .hide()
         }
 
+        with result.removeButton = IconButton.create(result,
+                                                     result.theme().icon(.Remove, themeRowIconSize(result.themeMetrics())),
+                                                     Math.Rectangle{0, 0,
+                                                                    result.themeMetrics().control_InspectorHeight,
+                                                                    result.themeMetrics().control_InspectorHeight},
+                                                     "scope.home.remove")
+        {
+            .toolTip = appStrings().home_RemoveRecent
+            .sigPressed += func|home = result|(_) { home.confirmRemoveHovered() }
+            .hide()
+        }
+
         return result
     }
 
@@ -98,6 +111,7 @@ impl ViewerHome
         .clearButton.setQuietText(appStrings().home_Clear)
         .clearButton.show(not .rows.isEmpty())
         .layoutClearButton()
+        .removeButton.hide()
         .invalidate()
     }
 
@@ -138,8 +152,22 @@ impl ViewerHome
 
     private mtd removeRect(index: u64)->Math.Rectangle
     {
-        let row = .rowRect(index)
-        return {row.right() - 20, row.vertCenter() - 10, 20, 20}
+        let row  = .rowRect(index)
+        let size = .themeMetrics().control_InspectorHeight
+        return {row.right() - size, row.vertCenter() - size * 0.5, size, size}
+    }
+
+    private mtd layoutRemoveButton()
+    {
+        let index = .hovered
+        if index >= .rows.count
+        {
+            .removeButton.hide()
+            return
+        }
+
+        .removeButton.setPosition(.removeRect(index))
+        .removeButton.show()
     }
 
     // Writes when a file was opened: the time today, "yesterday", the day within the week, and
@@ -193,6 +221,27 @@ impl ViewerHome
             return
         let file = String.from(.rows[index].file)
         .window.forgetRecent(file)
+    }
+
+    // Confirms the named row before taking it out of the recent-file list.
+    mtd confirmRemoveRow(index: u64)
+    {
+        if index >= .rows.count do
+            return
+
+        let file = String.from(.rows[index].file)
+        var options: MessageDlgOptions
+        options.title = appStrings().home_RemoveRecentTitle
+        if MessageDlg.confirm(unwrap .window.surface,
+                              Format.toString("%", Path.fileName(file) orelse file),
+                              appStrings().home_AskRemoveRecent,
+                              options: options) == Dialog.BtnYes do
+            .window.forgetRecent(file)
+    }
+
+    private mtd confirmRemoveHovered()
+    {
+        .confirmRemoveRow(.hovered)
     }
 
     // Opens the partial clears and, apart, the whole one.
@@ -314,13 +363,8 @@ impl IWnd for ViewerHome
             let nameX = rect.x + NameLeft
             let used  = Painter.measureString(name, body).width
             var right = rect.right()
-            if hot
-            {
-                let cross = .removeRect(index)
-                let x     = theme.icon(.WndClose, 12)
-                x.paint(painter, Math.round(cross.horzCenter() - 6), Math.round(cross.vertCenter() - 6), colors.faintText)
-                right = cross.x - 8
-            }
+            if hot do
+                right = .removeRect(index).x - 8
             else
             {
                 let time  = ViewerHome.openedText(row.opened, .now ? .now : Time.Timestamp.now().ticks)
@@ -361,14 +405,17 @@ impl IWnd for ViewerHome
             {
                 .hovered   = row
                 .pointerIn = true
+                .layoutRemoveButton()
                 .invalidate()
             }
 
             evt.accepted = false
 
         case .Leave:
-            .hovered   = Swag.U64.Max
-            .pointerIn = false
+            let row = .rowAt(pos)
+            .hovered   = row
+            .pointerIn = row < .rows.count
+            .layoutRemoveButton()
             .invalidate()
 
         case .Pressed where evt.button == .Left:
@@ -378,7 +425,7 @@ impl IWnd for ViewerHome
                 return
             if .removeRect(row).contains(pos)
             {
-                .removeRow(row)
+                .confirmRemoveRow(row)
                 return
             }
 
@@ -410,7 +457,7 @@ impl IWnd for ViewerHome
             .window.queueFile(String.from(.rows[.chosen].file), offerForgetMissing: true)
 
         case .Delete where .chosen < .rows.count:
-            .removeRow(.chosen)
+            .confirmRemoveRow(.chosen)
 
         default:
             evt.accepted = false

@@ -90,15 +90,34 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     Swag.require(not button.isLocallyVisible())
 }
 
-// A row opens its file; its cross and Delete take it out of the history, and the clears take
-// the files that are gone or the ones opened more than a month ago.
+// A row opens its file; its remove button and Delete ask before taking it out of the history.
 #test
 {
     var host: Testing.HeadlessHost
     let window = homeWindow(&host, false)
 
+    let button = window.home.removeButton
+    Swag.require(not button.isLocallyVisible())
+    let row = window.home.rowRect(1)
+    let size = host.theme.metrics.control_InspectorHeight
+    let buttonRect = Math.Rectangle{row.right() - size, row.vertCenter() - size * 0.5, size, size}
+    let point = buttonRect.center()
+    let screenPoint = window.home.localToSurface(point)
+    host.moveMouse(screenPoint)
+    Swag.require(window.home.hovered == 1 and button.isLocallyVisible())
+    Swag.require(button.position == buttonRect)
+    let clickPoint = window.home.localToSurface(button.position.center())
+    Swag.require(host.mouseTargetAt(clickPoint) == button)
+    host.moveMouse(clickPoint)
+    Swag.require(window.home.pointerIn and window.home.hovered == 1 and button.isLocallyVisible())
+
     let second = String.from(window.home.rows[1].file)
-    window.home.removeRow(1)
+    host.clickModalButtonWhenShown(Dialog.BtnNo)
+    host.click(clickPoint)
+    Swag.require(window.recent.count == 6 and window.recent.contains(second))
+
+    host.clickModalButtonWhenShown(Dialog.BtnYes)
+    host.click(clickPoint)
     Swag.require(window.recent.count == 5 and
                  window.recentOpened.count == 5 and
                  not window.recent.contains(second))
@@ -106,17 +125,18 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
 
     window.home.setFocus()
     window.home.chosen = 0
+    host.clickModalButtonWhenShown(Dialog.BtnNo)
     host.keyPress(.Delete)
-    Swag.require(window.recent.count == 4 and window.home.rows.count == 4)
+    Swag.require(window.recent.count == 5 and window.home.rows.count == 5)
 
     window.recent.add(homeFixture("gone-for-good.txt"))
     window.recentOpened.add(HomeNow)
     Swag.require(window.missingRecentCount() == 1)
     window.removeMissingRecent()
-    Swag.require(window.recent.count == 4 and window.missingRecentCount() == 0)
+    Swag.require(window.recent.count == 5 and window.missingRecentCount() == 0)
 
     // The fixtures were opened in the year 2025 of the fixed clock; the real one is later.
-    Swag.require(window.olderRecentCount() == 4)
+    Swag.require(window.olderRecentCount() == 5)
     window.removeOlderRecent()
     Swag.require(window.recent.isEmpty() and window.recentOpened.isEmpty() and window.home.rows.isEmpty())
 }

@@ -181,6 +181,7 @@ impl ViewerWindow
     // watch, and returns to the empty window or its explorer without choosing a control.
     mtd closeFile(forExplorer = false)
     {
+        .showPointer()
         .surface?.clearFocus()
         .explorerTransition = false
         if .explorer and .explorer.isLocallyVisible()

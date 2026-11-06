@@ -645,6 +645,7 @@ private impl IWnd for Panel
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .showPointer()
         .retireBlocking()
     }
 
@@ -652,8 +653,12 @@ private impl IWnd for Panel
     // hidden player pauses: neither its sound nor its end may go on behind another viewer.
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide and .playing do
-            .togglePlayback()
+        if evt.kind == .Hide
+        {
+            .showPointer()
+            if .playing do
+                .togglePlayback()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -1058,6 +1063,7 @@ private impl Panel
     // Shows the veils, and restarts the stillness after which they leave.
     mtd pointerMoved()
     {
+        .showPointer()
         .veilClock.restart()
         if .veilsShown do
             return
@@ -1095,10 +1101,19 @@ private impl Panel
         if not .veilsShown do
             return
         .veilsShown = false
+        .setPointerHidden(true)
         .services.chromeChanged(me)
         discard .app().animator.leave(.topVeil)
         discard .app().animator.leave(.bottomVeil)
     }
+
+    // Hides the pointer with the veils and restores it on movement or when the viewer leaves.
+    mtd setPointerHidden(hidden: bool)
+    {
+        .app().setCursorHidden(hidden)
+    }
+
+    mtd showPointer() { .setPointerHidden(false) }
 
     // Asks the window to take the whole screen for the film, or to give it back.
     mtd toggleFullScreen()

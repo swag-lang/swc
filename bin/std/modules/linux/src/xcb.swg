@@ -296,6 +296,15 @@ alias xcb_poll_for_event_fn                      = func(*void)->*xcb_generic_eve
 alias xcb_create_window_checked_fn               = func(*void, u8, u32, u32, s16, s16, u16, u16, u16, u16, u32, u32, const *void?)->xcb_void_cookie_t
 
 #[Swag.CallingConvention(.C)]
+alias xcb_create_pixmap_checked_fn               = func(*void, u8, u32, u32, u16, u16)->xcb_void_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_create_cursor_checked_fn               = func(*void, u32, u32, u32, u16, u16, u16, u16, u16, u16, u16, u16)->xcb_void_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_free_pixmap_checked_fn                 = func(*void, u32)->xcb_void_cookie_t
+
+#[Swag.CallingConvention(.C)]
 alias xcb_destroy_window_checked_fn              = func(*void, u32)->xcb_void_cookie_t
 
 #[Swag.CallingConvention(.C)]

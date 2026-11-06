@@ -96,9 +96,12 @@ using Core, Pixel
     Swag.require(surface.isHidden)
     surface.show()
     surface.setPosition({90, 80, 400, 280})
+    Swag.require(not surface.presentedFrame)
+    Swag.require(not (expect Testing.verifyNativePresentation(surface)))
     for 8 do
         app.runFrame()
     Swag.require(surface.rc.width == 400 and surface.rc.height == 280)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
     var point = Math.Point{20, 30}
     surface.surfaceToScreen(&point)
     surface.screenToSurface(&point)

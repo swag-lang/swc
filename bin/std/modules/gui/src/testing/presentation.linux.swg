@@ -5,7 +5,8 @@
 using Core, Pixel
 
 // Compares an X11 surface's presented pixels with its completed OpenGL render target.
-// Call on the window thread between frames; false means no frame has been presented yet.
+// Call on the window thread between frames; false means the latest frame has not
+// reached the X11 drawable yet (EGL swap and X11 presentation can be asynchronous).
 // This inspects the native window drawable, not the composited desktop image.
 func verifyNativePresentation(surface: *Surface)->bool fail
 {
@@ -43,7 +44,7 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     for index in expected.byteCount
     {
         if Math.abs(cast(s32, actual.pixels[index]) - expected.pixels[index]) > 1 do
-            fail Errors.InvalidFormatError{Errors.mkString(Format.toString("presented pixels differ from the GPU target (% x %)", width, height))}
+            return false
     }
 
     return true

@@ -278,19 +278,10 @@ impl Surface
 
     internal mtd prepareNativePresentation(target: const *RenderTarget)->bool
     {
-        .painter.begin()
-        .painter.setContentScale(1)
-        .painter.setDefaultShader(.Simple)
-        .painter.setColorMaskFull()
-        .painter.setInterpolationMode(.Pixel)
-        .painter.setBlendingMode(.Copy)
-        let area = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
-        .painter.drawTexture(area, area, target.colorBuffer, Argb.White)
-        .painter.end()
         .app.renderer.unbindRenderTarget()
-        catch .app.renderer.draw(&.painter)
+        if not (catch .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height))
         {
-            .renderFailure = Errors.message(Swag.err)
+            .renderFailure = "OpenGL could not copy the window presentation target"
             return false
         }
         .preparedFrame = true
@@ -378,6 +369,8 @@ impl Surface
     mtd setPosition(pos: Math.Rectangle)
     {
         let next = .clampToSizeLimits(pos)
+        if .rc.width != cast(s32, next.width) or .rc.height != cast(s32, next.height) do
+            .presentedFrame = false
         .position = next
         if .windowId != 0
         {
@@ -865,8 +858,11 @@ impl Surface
         .surfaceToScreen(&origin)
         .position.x = origin.x
         .position.y = origin.y
-        if .rc.width != width or .rc.height != height do
+        if .rc.width != width or .rc.height != height
+        {
+            .presentedFrame = false
             .sendResizeEvent(cast(f32, width), cast(f32, height))
+        }
     }
 }
 

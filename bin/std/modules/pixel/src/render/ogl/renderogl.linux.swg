@@ -1,6 +1,7 @@
+#global public
 #global if #os == Swag.TargetOs.Linux
 
-using Core
+using Core, Ogl
 
 private func xcbSurface(rc: OglContext)->*Ogl.Platform.Xcb.Surface => cast #unconst (*Ogl.Platform.Xcb.Surface, unwrap rc.hDC)
 
@@ -60,4 +61,52 @@ internal impl NativeRenderOgl
     mtd setCurrentContext(rc: OglContext) { expect xcbSurface(rc).makeCurrent() }
     mtd swapBuffers(rc: OglContext) { expect xcbSurface(rc).swapBuffers() }
     mtd applyPresentPolicy() { expect Ogl.Platform.Xcb.setSwapInterval(1) }
+}
+
+impl RenderOgl
+{
+    // The GUI render target may be padded beyond the current window size. Copy its
+    // visible top-left rectangle directly into the EGL back buffer, preserving texels.
+    mtd blitRenderTargetToWindow(target: const *RenderTarget, width, height: s32)->bool fail
+    {
+        if not target.colorBuffer.isValid() or width <= 0 or height <= 0 or
+           width > target.colorBuffer.width or height > target.colorBuffer.height do
+            return false
+
+        let context = oglContext(.curRC)
+        if context.width != width or context.height != height
+        {
+            // Mesa's XCB EGL window surface retains its original back-buffer size after
+            // xcb_configure_window. Replace that drawable without replacing the GL context.
+            let nativeContext = cast #unconst (*Ogl.Platform.Xcb.Context, unwrap context.hRC)
+            let drawable      = cast(const *Env.XcbDrawable, unwrap context.hWnd)[]
+            let surface       = xcbSurface(context[])
+            surface.destroy()
+            surface[] = try nativeContext.createSurface(drawable)
+            try surface.makeCurrent()
+            context.width  = width
+            context.height = height
+        }
+
+        var previousRead, previousDraw: GLint
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead)
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previousDraw)
+        let scissorEnabled = glIsEnabled(GL_SCISSOR_TEST) != 0
+        defer
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, previousDraw))
+            if scissorEnabled do
+                glEnable(GL_SCISSOR_TEST)
+        }
+
+        glDisable(GL_SCISSOR_TEST)
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, target.handle))
+        glReadBuffer(GL_COLOR_ATTACHMENT0)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
+        glBlitFramebuffer(0, target.colorBuffer.height - height,
+                          width, target.colorBuffer.height,
+                          0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST)
+        return glGetError() == GL_NO_ERROR
+    }
 }

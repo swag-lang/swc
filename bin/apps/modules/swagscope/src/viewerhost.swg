@@ -121,9 +121,11 @@ impl IWnd for ViewerInfoGroup
         var center:     f32
         for child in .children where child.isLocallyVisible()
         {
+            // A control docked on a side keeps its own width whatever its words need.
             let size  = child.itf.measureContent(available)
-            let width = size.x + child.margin.x + child.margin.z
-            if child.dockStyle == .Left or child.dockStyle == .Right do
+            let side  = child.dockStyle == .Left or child.dockStyle == .Right
+            let width = (side ? Math.max(size.x, child.position.width) : size.x) + child.margin.x + child.margin.z
+            if side do
                 horizontal += width
             else do
                 center = Math.max(center, width)

@@ -33,6 +33,33 @@ func createOptionsButton(parent: *Wnd)->*IconButton
     return result
 }
 
+// Width the options button of the line of readings takes beside the zoom.
+const InfoOptionsWidth = 48.0
+
+// Creates the options button of a viewer whose options are its only command, on the line of
+// readings at the foot of the document, before the zoom.
+//
+// Such a viewer has nothing to float over its document: a lone button standing in the middle of
+// the foot would be a toolbar of one. On the line of readings it is a quiet glyph like the zoom
+// beside it, whose arrow points up, where its sheet opens. A viewer with real commands keeps its
+// options among them, in its command group.
+func createInfoOptionsButton(info: *Wnd)->*IconButton
+{
+    let metrics = info.themeMetrics()
+    with let result = IconButton.create(info,
+                                        info.theme().icon(.Settings, themeRowIconSize(metrics)),
+                                        Math.Rectangle{0, 0, InfoOptionsWidth, 32},
+                                        flags: .CenterContent)
+    {
+        .dockStyle = .Left
+        .toolTip   = appStrings().ui_Options
+        .setArrowPosition(.RightUpward)
+        .setForm(.Rectangle)
+    }
+
+    return result
+}
+
 // Writes `badge` beside the icon of an options button, or nothing when it is empty.
 //
 // A badge reports a setting the reader would want to see without opening the sheet, such as a

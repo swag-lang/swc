@@ -7,7 +7,6 @@ using Core, Gui
 struct Texts
 {
     ui_Column:          string = "Column %"
-    ui_Details:         string = "% · % · %"
     ui_Row:             string = "1 row"
     ui_Rows:            string = "% rows"
     ui_OneColumn:       string = "1 column"

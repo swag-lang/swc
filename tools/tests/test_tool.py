@@ -113,6 +113,17 @@ class ToolTests(unittest.TestCase):
         self.assertIn('--no-test-jit', command)
         self.assertFalse(any(arg.startswith('--run-arg=--compiler') for arg in command))
 
+    def test_module_tests_get_a_suite_sized_run_limit_unless_one_is_given(self):
+        self.invoke(['apps', 'test', 'swagscope'])
+        command = self.stages[0].command
+        self.assertEqual(command[command.index('--run-timeout') + 1], str(tool.WORKSPACE_TEST_TIMEOUT_SECONDS))
+        self.invoke(['std', 'dm', 'test', 'gui', '--run-timeout', '60'])
+        command = self.stages[0].command
+        self.assertEqual(command.count('--run-timeout'), 1)
+        self.assertEqual(command[command.index('--run-timeout') + 1], '60')
+        self.invoke(['apps', 'build', 'swagscope'])
+        self.assertNotIn('--run-timeout', self.stages[0].command)
+
     def test_standard_native_default_can_be_overridden(self):
         self.invoke(['std', 'dm', 'test', 'pixel', '--test-jit', '--no-test-native', '--test-file', 'two words.swg'])
         command = self.stages[0].command

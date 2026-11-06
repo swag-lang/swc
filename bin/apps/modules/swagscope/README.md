@@ -239,12 +239,19 @@ share the same choices and checked state, including automatic layout, grid, cove
 At narrow widths, counts move below the title and actions take their own line; an album
 stacks its cover and tracks when the information sheet needs the space beside it.
 
-Without a file the window is its home: the Scope mark, large and faint, one line inviting a drop or
-`Ctrl+O`, and under a hairline the last six files opened, each a quiet row with the faint glyph of
-its kind, its name, and when it was opened. The row under the pointer rises, shows its folder and a
-cross that removes it; `Delete` removes the chosen row and `Enter` opens it. "Clear…" under the list
-removes the files that no longer exist or those opened more than a month ago, and, apart, clears
-the whole history after asking. Older files are in the lens under `/`.
+Without a file the window is its home, a page of what was read lately. The last file stands as a
+card with its preview, its folder and when it was opened, and the action that takes it up again
+where it was left: the time in a film or a recording, the page of a PDF, the share read of any
+other document. Leaving a file of the history records that point; a file read through, or left at
+its very start, keeps none, and "Start Over" opens it from the beginning. The five files before it
+are tiles with their previews, which are rendered in the background and only for formats that
+decode a picture or read as text; `Enter` opens the chosen tile where it was left, `Delete` or the
+cross on the tile under the pointer removes it, and "Clear…" at the end of their label removes the
+files that no longer exist or those opened more than a month ago, and, apart, clears the whole
+history after asking. Under them, the folders and archives explored lately are chips that explore
+them again. A first launch shows the Scope mark, an invitation to drop a file or a folder, the
+Open… and Explore Folder actions, and the system's own Pictures, Videos, Music, Documents and
+Downloads folders. Older files are in the lens under `/`.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full
@@ -312,7 +319,9 @@ The creation callback calls `attachView` for its document and can create at most
 information, and command group through the host, plus one optional side panel: the window writes
 the information and action groups on the faint line at the foot of the document, floats the
 command group over it while the pointer moves, and names the side panel in the lens. The window
-has no toolbar, so a viewer gives the lens a row for every command it offers through
+has no toolbar. A viewer whose only command is its options puts them on the line of readings,
+before its zoom, with `Viewer.createInfoOptionsButton`, rather than floating a group of one button
+over the document. A viewer gives the lens a row for every command it offers through
 `setLensSource`, answering a `Viewer.LensEntries` under its name. It declares
 optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;
 retained asynchronous notifications come only from `host.services()`. A viewer that plays its

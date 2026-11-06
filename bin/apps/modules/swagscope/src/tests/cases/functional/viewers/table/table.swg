@@ -197,8 +197,11 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.list.header.items[0]!.name.raw != oldHeading)
     Swag.require(view.list.header.items[1]!.name.raw == "Column 2")
     Swag.require(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
-    Swag.require(Utf8.contains(details, Table.texts().ui_Row))
-    Swag.require(Utf8.startsWith(details, Table.texts().ui_SemicolonKind) and not Utf8.contains(details, "CSV"))
+    // What the table holds is written under its title, in the language in force; the foot keeps
+    // only what the title line does not say.
+    Swag.require(Utf8.contains(view.facts.text(), Table.texts().ui_Row))
+    Swag.require(Utf8.contains(view.facts.text(), Table.texts().ui_SemicolonKind))
+    Swag.require(not Utf8.contains(details, Table.texts().ui_SemicolonKind) and not Utf8.contains(details, "CSV"))
     Swag.require(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)

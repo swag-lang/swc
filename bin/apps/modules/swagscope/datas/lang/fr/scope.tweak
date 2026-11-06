@@ -136,6 +136,7 @@ lens_File Fichier
 lens_Find Rechercher
 lens_View Affichage
 lens_ViewAs Voir comme
+ui_ViewAsChoice Voir comme %
 lens_Playback Lecture
 lens_Folder Dossier
 lens_InFolder Dans ce dossier
@@ -175,8 +176,17 @@ cmd_ZoomIn Zoom avant
 cmd_ZoomOut Zoom arrière
 cmd_ZoomReset Taille réelle
 cmd_ZoomMenu Zoom…
-home_Invite Déposez un fichier, ou ouvrez-en un
-home_InviteFolder Ouvrir un dossier
+home_Invite Déposez un fichier ou un dossier pour le regarder
+home_Continue Reprendre
+home_LastOpened Dernier ouvert
+home_Open Ouvrir
+home_StartOver Depuis le début
+home_ResumeAt Reprendre à %
+home_ResumePage Reprendre page % sur %
+home_ResumeShare Reprendre à % %%
+home_PageShort p. % / %
+home_Folders Dossiers
+home_Places Emplacements
 home_Clear Effacer
 home_RemoveRecent Retirer des fichiers récents
 home_RemoveRecentTitle Retirer le fichier récent
@@ -232,13 +242,12 @@ board_Automatic Automatique
 board_Grid Grille
 board_Covers Pochettes
 board_Posters Affiches
-explore_Artwork Choisir la source des illustrations
+explore_ArtworkSection Illustrations
 artwork_Online Illustrations en ligne
 artwork_Local Aperçus locaux
-artwork_OnlineShort En ligne
-artwork_LocalShort Local
 lens_Artwork Visuels média
 explore_Albums % albums
+explore_Films % films
 explore_Photos % photos
 explore_OnePage 1 page
 explore_Pages % pages

@@ -1131,7 +1131,7 @@ impl Panel
             .style.setFont(me.theme().createDefaultFontFamilyFs(me.themeMetrics().defaultFixedFontSize))
             .setSelectionMode(.Single)
             .setFirstColumnIconMargin(false)
-            .updateFlags(.HotTrack | .AlternateLines)
+            .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
             .addColumn(texts.ui_ColField, 320)
             .addColumn(texts.ui_ColValue, 200)
             .addColumn(texts.ui_ColOffset, OffsetWidth)

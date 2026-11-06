@@ -363,3 +363,29 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     view.finishPlayback()
     Swag.require(not view.playing and not view.voice.isPlaying())
 }
+
+// A recording stored beside its sleeve shows that sleeve as its cover; without one the cover stays
+// the neutral record, and a sleeve too large to be a picture of the album is passed over.
+#test
+{
+    let folder = Gui.Testing.tempFilePath("scope-sleeve-", "")
+    expect Directory.create(folder, recurse: true)
+    let fileName = Path.combine(folder, "track.wav")
+    expect File.writeAllBytes(fileName, TinyWav)
+    defer discard catch File.delete(fileName)
+    Swag.require(not Sound.localSleeve(fileName).isValid())
+
+    let sleeve = Path.combine(folder, "cover.png")
+    let picture = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    expect File.writeAllBytes(sleeve, picture.toSlice())
+    defer discard catch File.delete(sleeve)
+    let image = Sound.localSleeve(fileName)
+    Swag.require(image.isValid() and Math.max(image.width, image.height) <= cast(s32, Sound.CoverSize * 2))
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.opened and view.cover.isValid() and not view.coverImage.isValid())
+}

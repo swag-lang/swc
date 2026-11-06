@@ -17,6 +17,7 @@ impl ViewerWindow
                   preserveReading = false,
                   offerForgetMissing = false)
     {
+        .captureResume()
         if .isExploring() and not preserveReading do
             .explorerTransition = true
         .reloading = preserveReading
@@ -181,6 +182,7 @@ impl ViewerWindow
     // watch, and returns to the empty window or its explorer without choosing a control.
     mtd closeFile(forExplorer = false)
     {
+        .captureResume()
         .showPointer()
         .surface?.clearFocus()
         .explorerTransition = false
@@ -451,6 +453,7 @@ impl ViewerWindow
             errorView.dockStyle    = .Center
             instance.view          = errorView
             instance.failureReason = #move message
+            errorView.offer(me, cast(u32, index))
 
             if index != .activeChoiceIndex
             {
@@ -676,6 +679,7 @@ impl ViewerWindow
             if next.view and next.retire do
                 discard next.retire()
             next.replaceWithFailure(.documentPanel)
+            assume cast(*ViewerErrorView, next.view).offer(me, index)
         }
 
         if not next.view

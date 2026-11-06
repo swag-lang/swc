@@ -8,7 +8,11 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Testing.tempFilePath("scope-metadata-", ".png")
+    // The picture stands alone in its folder: a rank among whatever else the temporary folder
+    // holds would make the line of readings depend on the machine.
+    let folder = Testing.tempFilePath("scope-metadata-", "")
+    expect Directory.create(folder, recurse: true)
+    let fileName = Path.combine(folder, "scope-metadata.png")
     defer discard catch File.delete(fileName)
     var source = Image.create(96, 64, .RGB8)
     source.fill(Color.fromRgb(45, 70, 96))

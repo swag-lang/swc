@@ -629,19 +629,25 @@ the screen to its work.
 
 ![Markdown](imgs/scope.markdown.paper.png) ![Hex](imgs/scope.hex.png) ![Font](imgs/scope.font.paper.png)
 
-![Home](imgs/scope.home.png) ![Home, clearing the history](imgs/scope.home.paper.png)
+![Home](imgs/scope.home.paper.png) ![Home, a first launch](imgs/scope.home.png)
 
-- Home: the empty window stays quiet. The Scope mark, large and faint, gives the page its
-  centre; one line under it invites a drop or `Ctrl+O`, and recalls opening a folder with
-  `Ctrl+E`; under a hairline, the last six files as
-  plain rows — a small line glyph in its file-kind colour and never a thumbnail — the name in
-  soft, the time in faint mono, and nothing else: no title, no paths, no
-  groups. The row under the pointer comes up on the raised
-  ground with its folder in faint mono and a faint `×` that removes it from the history (Delete
-  does the same on the chosen row). "Clear…", faint under the list, appears with the pointer and
-  offers the partial clears — the entries whose file is gone, with their count, the entries
-  older than a month — and, apart and in critical ink, clearing everything, which asks first.
-  Older entries are in the lens under `/`.
+- Home: a page of what was read lately, in one measured column (at most 880) whose parts share
+  its left edge, each under a section label. **Continue** (or **Last opened**) is the last file
+  as a card: its preview at 16:10 with how far it was read as an Arc thread along its foot, its
+  name 22/Bold, its folder and time in faint mono, and at the foot of the words the one primary
+  action that names where it takes the file up again ("Resume at 1:12", "Resume at Page 3 of
+  40", "Resume at 38 %") with a quiet "Start Over" beside it, or "Open" when there is nothing
+  to resume. **Recent** holds the five files before it as shared file tiles at 4:3, with the time
+  and, when they have one, where they were left in faint mono; only a decoded picture or a page
+  of text is a preview, anything else keeps the glyph of its kind. The tile under the pointer is
+  ringed and offers a `×` on its own ground that removes it from the history (Delete does the
+  same on the chosen tile). "Clear…" ends the label of the tiles and offers the partial clears —
+  the entries whose file is gone, with their count, the entries older than a month — and, apart
+  and in critical ink, clearing everything, which asks first. **Folders** lists the folders and
+  archives explored lately as quiet chips that explore them; it is the first part to give way
+  when the window is too short. Without any history the page keeps the Scope mark, large and
+  faint, one line inviting a drop, the two direct actions Open… and Explore Folder, and the
+  system's **Places** to explore, centred together. Older entries are in the lens under `/`.
 
 ![Archive](imgs/scope.archive.png) ![Archive on Papier](imgs/scope.archive.paper.png)
 

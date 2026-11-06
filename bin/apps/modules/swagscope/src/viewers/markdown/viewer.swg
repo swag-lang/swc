@@ -76,9 +76,15 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     {
     // The application's own theme and Whitey set their body column flush on both edges. The four
     // themes between them follow Typora's ragged paragraph edges.
+    // A heading belongs to the text it opens: the air above it is several times the air under it,
+    // and paragraphs stand a line's fraction apart, as the reading picture of the charter sets them.
     case 0:
-        result.maxContentWidth    = 640
-        result.paragraphAlignment = .Justify
+        result.maxContentWidth      = 640
+        result.paragraphAlignment   = .Justify
+        result.blockMargins         = {14, 14}
+        result.headingTopSpacing    = [16, 40, 32, 28, 24, 24]
+        result.headingBottomSpacing = [12, 8, 6, 6, 4, 4]
+        result.headingLineHeights   = [44, 34, 30, 26, 22, 22]
 
     case 1:
         result.bodyTypeFaces      = systemFaces(["Open Sans", "Clear Sans", "Helvetica Neue", "Helvetica", "Arial"])
@@ -455,7 +461,7 @@ impl ZoomButton
             .toolTip     = texts().ui_ZoomMenu
             .updateFlags(.CenterContent)
             .setText(Viewer.zoomText(.zoomPercent))
-            .setArrowPosition(.RightDownward)
+            .setArrowPosition(.RightUpward)
             .setForm(.Rectangle)
             .style.setFont(result.theme().createDefaultFontFs(11), .Regular)
             .sigPressed += func(button) { button.showZoomMenu() }
@@ -568,7 +574,6 @@ func createViewer(host: Viewer.Host)
     actionGroup.margin.z  = 12
     let optionsButton = Viewer.createOptionsButton(actionGroup)
     optionsButton.dockStyle = .Right
-    optionsButton.setArrowPosition(.RightDownward)
 
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {

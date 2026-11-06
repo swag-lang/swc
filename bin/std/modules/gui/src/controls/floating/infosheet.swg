@@ -787,6 +787,13 @@ impl InfoSheet
         let footFont  = .footFont()
         var first     = true
         var afterText = false
+
+        // The values of a page share one column, wide enough for its longest label, so a long
+        // label moves every value with it rather than its own alone.
+        var valueLeft = metrics.infoSheet_LabelWidth
+        for &block in .blocks where block.page == .pageIndex and block.kind == .Reading do
+            valueLeft = Math.max(valueLeft, Math.ceil(Painter.measureString(block.label, bodyFont).width + metrics.iconText_Margin * 2))
+
         for &block in .blocks where block.page == .pageIndex and block.kind != .Fact
         {
             // Readings that follow a paragraph or a note keep the air a paragraph is given.
@@ -797,8 +804,7 @@ impl InfoSheet
             switch block.kind
             {
             case .Reading:
-                let labelWidth = Painter.measureString(block.label, bodyFont).width
-                block.valueLeft = Math.max(metrics.infoSheet_LabelWidth, Math.ceil(labelWidth + metrics.iconText_Margin))
+                block.valueLeft = valueLeft
                 let room       = Math.max(inner - block.valueLeft, 1)
                 let valueWidth = Painter.measureString(block.value, block.mono ? valueMono : bodyFont).width
                 block.wrapped = valueWidth > room

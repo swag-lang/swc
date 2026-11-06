@@ -936,3 +936,15 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     Swag.require(navigated)
     Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
 }
+
+// A font names itself in big-endian UTF-16 on the Unicode platform as on the Windows one, so the
+// report reads the family as words, never as bytes parted by dots.
+#test
+{
+    var doc: Binary.Document
+    Swag.require(doc.open(binaryFixturePath("segoeui.ttf")))
+    Swag.require(doc.report.formatName == Binary.texts().font_Font)
+    Swag.require(Utf8.contains(doc.report.summary.toSlice(), "Segoe UI"))
+    Swag.require(not Utf8.contains(doc.report.summary.toSlice(), ".S.e"))
+    Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Segoe UI")
+}

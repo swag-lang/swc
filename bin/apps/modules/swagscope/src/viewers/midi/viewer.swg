@@ -26,8 +26,6 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth = 64.0
-
 // Display preferences of the MIDI viewer, persisted with the main window.
 struct ViewerSettings
 {
@@ -58,7 +56,6 @@ struct Panel
 
     late
     {
-        commands:      *Wnd
         info:          *Wnd
         optionsButton: *IconButton
         zoomLabel:     *IconButton
@@ -75,9 +72,14 @@ struct Panel
 
 private impl Panel
 {
+    // Writes the horizontal scale: a whole score fitted to the window says so, since the share of
+    // an arbitrary reference width it stands at means nothing to a reader.
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %%", cast(u32, Math.round(.roll.zoom * 100))))
+        if .roll.fit do
+            .zoomLabel.setText(texts().ui_FitShort)
+        else do
+            .zoomLabel.setText(Format.toString("% %%", cast(u32, Math.round(.roll.zoom * 100))))
     }
 
     mtd retranslate()
@@ -267,27 +269,27 @@ impl Panel
     func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
-        let commands = host.createCommandGroup(CommandWidth)
-        let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
+        let info     = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View
             .services          = services
-            .commands          = commands
             .info              = info
             .pitchLabelMode    = g_ViewerSettings.pitchLabelMode
             .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
         }
 
-        with result.optionsButton = Viewer.createOptionsButton(result.commands)
+        with result.optionsButton = Viewer.createInfoOptionsButton(result.info)
         {
-            .dockStyle  = .Left
             .sigPressed += func|view = result|(_) { view.showOptions() }
         }
 
-        result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)
-        result.zoomLabel.sigPressed += func|view = result|(_) { view.showZoomMenu() }
+        with result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|view = result|(_) { view.showZoomMenu() }
+        }
 
         result.applyLayout()
         result.load.start(host.fileName(), &loadDocument, result)

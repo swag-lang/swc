@@ -642,20 +642,28 @@ impl GlyphCache
         // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)
         let rowBytes = bmpRef.width * bpp
 
+        // A distance-field atlas is mipmapped, and each level of its chain averages blocks of
+        // texels. A glyph that starts on a block boundary and fills whole blocks reads the same
+        // whatever was packed beside it, so a text renders alike whichever texts came first. The
+        // cell is the spread every glyph keeps as its margin, and the chain stops at that size.
+        let cell      = .renderMode.isDistanceField() ? RefEmSpread : 1'u32
+        let cellBytes = ((bmpRef.width + cell - 1) / cell) * cell * bpp
+        let cellRows  = ((bmpRef.rows + cell - 1) / cell) * cell
+
         // Creates a new atlas if this is the first time, or if the last atlas is full
         var atlas = .atlases.count ? &.atlases.storage()[.atlases.count - 1] : null
         if atlas
         {
             let a = atlas
-            if a.curX + rowBytes > a.width
+            if a.curX + cellBytes > a.width
             {
                 a.curX = 0
-                if a.nextY + bmpRef.rows > a.height do
+                if a.nextY + cellRows > a.height do
                     atlas = null
                 else do
                     a.curY = a.nextY
             }
-            elif a.curY + bmpRef.rows > a.height
+            elif a.curY + cellRows > a.height
             {
                 atlas = null
             }
@@ -678,8 +686,8 @@ impl GlyphCache
         let ca = atlas
         let x  = ca.curX
         let y  = ca.curY
-        ca.curX  += rowBytes
-        ca.nextY = Math.max(ca.nextY, ca.curY + bmpRef.rows)
+        ca.curX  += cellBytes
+        ca.nextY = Math.max(ca.nextY, ca.curY + cellRows)
 
         // Copy the rendered glyph to the atlas datas
         var buffer = ca.data.storage() + x + (ca.width * (ca.height - 1))

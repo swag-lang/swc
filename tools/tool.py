@@ -122,6 +122,14 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     return stages
 
 
+# A module's native test executable runs all of its tests in one process. The compiler's default
+# limit of five minutes guards a single hung program, but the largest application suites take
+# about that long on an idle machine and longer on a loaded one, so a sound run was reported as a
+# hang. Module tests get twenty minutes unless the caller sets its own limit; each test still has
+# to finish within its own deadline.
+WORKSPACE_TEST_TIMEOUT_SECONDS = 1200
+
+
 def module_stage(compiler, bin_root, workspace, action, module, options, *, child_compiler=False):
     command = [str(compiler), action, '--workspace', str(bin_root / workspace)]
     if module:
@@ -129,6 +137,8 @@ def module_stage(compiler, bin_root, workspace, action, module, options, *, chil
     if action == 'test':
         if workspace in ('apps', 'std'):
             command.append('--no-test-jit')
+            if option_value(options, ('--run-timeout',), None) is None:
+                command += ['--run-timeout', str(WORKSPACE_TEST_TIMEOUT_SECONDS)]
         if workspace == 'std':
             command += ['--artifact-kind', 'executable']
     if workspace == 'apps' and action != 'build' and (not module or child_compiler):

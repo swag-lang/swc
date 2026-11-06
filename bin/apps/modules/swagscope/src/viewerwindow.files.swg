@@ -157,6 +157,22 @@ impl ViewerWindow
         }
     }
 
+    // Puts an explored folder or archive at the head of the folders the home offers.
+    mtd rememberExplored(location: string)
+    {
+        if .thumbnailMode or not location.count do
+            return
+        for one, index in .exploredFolders where Utf8.compare(one.toSlice(), location, .Latin1NoCase) == 0
+        {
+            .exploredFolders.removeAtOrdered(index)
+            break
+        }
+
+        .exploredFolders.insertAt(0, location)
+        while .exploredFolders.count > FolderHistoryCount do
+            .exploredFolders.removeBack()
+    }
+
     // Puts the file's folder at the head of the bounded folder history.
     mtd rememberFolder(fileName: string)
     {
@@ -405,11 +421,13 @@ impl ViewerWindow
         .historyChanged()
     }
 
-    // Empties the history. What is open stays open: the list says what was read, not what is.
+    // Empties the history and the folders explored with it. What is open stays open: the list
+    // says what was read, not what is.
     mtd clearRecent()
     {
         .recent.clear()
         .recentOpened.clear()
+        .exploredFolders.clear()
         .historyChanged()
     }
 
@@ -444,6 +462,9 @@ impl ViewerWindow
             .recentOpened.removeAtOrdered(i)
         }
 
+        for i in reversed(.exploredFolders.count) where not Directory.exists(.exploredFolders[i]) and not File.exists(.exploredFolders[i]) do
+            .exploredFolders.removeAtOrdered(i)
+
         .historyChanged()
     }
 
@@ -471,6 +492,7 @@ impl ViewerWindow
     // Shows the history as it now stands, and keeps it.
     private mtd historyChanged()
     {
+        .pruneResume()
         .refreshFileLists()
         .refreshHome()
         catch .saveState()

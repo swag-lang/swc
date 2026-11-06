@@ -30,7 +30,7 @@ struct AppStrings
     explore_FilterByType:      string = "Filter by type"            // Tooltip of the file-kind menu in the explorer.
     explore_View:              string = "Choose view"               // Tooltip of the view choice in the window title bar.
     explore_Organization:      string = "Arrange thumbnails"        // Tooltip of the thumbnail arrangement choice.
-    explore_Artwork:           string = "Choose artwork source"     // Tooltip of the media illustration source choice.
+    explore_ArtworkSection:    string = "Artwork"                   // View-menu label of the media illustration source choice.
     explore_FilterAll:         string = "All items"                 // Explorer file-kind filter.
     explore_FilterVideos:      string = "Videos"                    // Explorer file-kind filter.
     explore_FilterImages:      string = "Images"                    // Explorer file-kind filter.
@@ -59,6 +59,7 @@ struct AppStrings
     explore_Photos:            string = "% photos"       // How many pictures a folder of photographs holds.
     explore_Album:             string = "Album"          // Kind of the folder an album page shows, before its year.
     explore_Tracks:            string = "% tracks"       // How many tracks an album holds.
+    explore_Films:             string = "% films"        // How many films a folder of films holds.
     explore_Play:              string = "Play"           // Button playing an album from its first track.
     explore_Shuffle:           string = "Shuffle"        // Button playing an album in an order drawn by chance.
     explore_File:              string = "File"           // Reading of the kind and weight of the file a film is in.
@@ -170,8 +171,17 @@ struct AppStrings
     ui_NoMatch:                        string = "No match"                                    // Status line when a search reached the end with nothing.
     ui_Searching:                      string = "Searching…"                                  // Status line while a search scans the file.
     ui_DropTitle:                      string = "Drop a file to view it"                      // Invitation shown while no file is open.
-    home_Invite:                       string = "Drop a file, or open one"                    // File invitation on the home page; the key follows it.
-    home_InviteFolder:                 string = "Open a folder"                               // Folder invitation on the home page; the key follows it.
+    home_Invite:                       string = "Drop a file or a folder to look at it"       // Invitation of the home page before anything was read.
+    home_Continue:                     string = "Continue"                                    // Section label of the home card when the last file can be taken up again.
+    home_LastOpened:                   string = "Last Opened"                                 // Section label of the home card when the last file has nothing to resume.
+    home_Open:                         string = "Open"                                        // Action of the home card when the last file has nothing to resume.
+    home_StartOver:                    string = "Start Over"                                  // Quiet action of the home card opening the last file from its start.
+    home_ResumeAt:                     string = "Resume at %"                                 // Action of the home card taking a recording up again at a time.
+    home_ResumePage:                   string = "Resume at Page % of %"                       // Action of the home card taking a paged document up again.
+    home_ResumeShare:                  string = "Resume at % %%"                              // Action of the home card taking a document up again at a share read.
+    home_PageShort:                    string = "p. % / %"                                    // Page a document was left at, on a home tile.
+    home_Folders:                      string = "Folders"                                     // Section label of the folders explored lately, on the home page.
+    home_Places:                       string = "Places"                                      // Section label of the system's folders, on a first launch.
     home_Clear:                        string = "Clear"                                       // Quiet menu button under the last files.
     home_RemoveRecent:                string = "Remove from Recent Files"                   // Tooltip for removing a home-page recent file.
     home_RemoveRecentTitle:           string = "Remove Recent File"                          // Confirmation title before removing a home-page recent file.
@@ -186,6 +196,7 @@ struct AppStrings
     ui_Unsupported:                    string = "No viewer can show this file."               // No viewer claimed the file.
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.
+    ui_ViewAsChoice:                   string = "View as %"                                   // Action under a viewer's failure showing the file in another viewer, named after it.
     ui_FailureNotFound:                string = "The file could not be found."                // A file that is gone, above the technical detail.
     ui_FailureUnreadable:              string = "The file could not be read."                 // A file the system or a decoder could not read, above the technical detail.
     ui_FailureFormat:                  string = "The file is damaged, or its format is not supported."     // A file whose content a decoder refused, above the technical detail.
@@ -250,8 +261,6 @@ struct AppStrings
     board_Posters:        string = "Posters"                   // Organization choice arranging tiles as upright posters.
     artwork_Online:       string = "Online Artwork"            // Media illustration source using online artwork when available.
     artwork_Local:        string = "Local Previews"            // Media illustration source using local frames and artwork without network lookups.
-    artwork_OnlineShort:  string = "Online"                    // Compact current value of the media illustration source.
-    artwork_LocalShort:   string = "Local"                     // Compact current value of the media illustration source.
     sort_Name:            string = "By name"                   // Quiet sort menu of the explored folder, ordered by name.
     sort_Type:            string = "By type"                   // Quiet sort menu of the explored folder, ordered by type.
     sort_Size:            string = "By size"                   // Quiet sort menu of the explored folder, ordered by size.

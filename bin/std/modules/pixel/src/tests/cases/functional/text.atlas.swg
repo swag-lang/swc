@@ -62,3 +62,46 @@ private func testAtlasUpload(mode: FontRenderMode)
 
 #test { testAtlasUpload(.Bitmap) }
 #test { testAtlasUpload(.Msdf) }
+
+// Returns where `desc` stands in its atlas of `font`, in texels, and the bytes of its first texel.
+private func glyphCell(font: *Font, desc: const *GlyphDesc)->{x: u64, y: u64, atlas: *GlyphAtlas}
+{
+    let atlas = &font.cache.atlases[desc.atlasIndex]
+    let x     = cast(u64, Math.round(desc.uv.x * cast(f32, atlas.width))) / cast(u64, atlas.bytesPerPixel)
+    let y     = cast(u64, Math.round(desc.uv.y * cast(f32, atlas.height)))
+    return {x, y, atlas}
+}
+
+// A distance-field atlas is mipmapped: every glyph starts on a cell of the spread and takes whole
+// cells, so a mip level never averages two glyphs together, and a glyph's texels are the same
+// whatever was packed before it. A text drawn after other texts renders as it does alone.
+#test
+{
+    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
+    var alone, crowded: FontCache
+    let first  = alone.createFont(face, 40, .Msdf)
+    let second = crowded.createFont(face, 40, .Msdf)
+    for c in "Wide glyphs arrive first, then the title." do
+        discard second.getGlyphDesc(c)
+
+    for c in "Ownership"
+    {
+        let a     = first.getGlyphDesc(c)
+        let b     = second.getGlyphDesc(c)
+        let cellA = glyphCell(first, a)
+        let cellB = glyphCell(second, b)
+        Swag.require(cellA.x % RefEmSpread == 0 and cellA.y % RefEmSpread == 0)
+        Swag.require(cellB.x % RefEmSpread == 0 and cellB.y % RefEmSpread == 0)
+
+        // The same glyph holds the same texels in both atlases.
+        let bpp      = cast(u64, cellA.atlas.bytesPerPixel)
+        let rowBytes = cast(u64, a.width) * bpp
+        for row in cast(u64, a.height)
+        {
+            let rowA = (cast(u64, cellA.atlas.height) - 1 - cellA.y - row) * cast(u64, cellA.atlas.width) + cellA.x * bpp
+            let rowB = (cast(u64, cellB.atlas.height) - 1 - cellB.y - row) * cast(u64, cellB.atlas.width) + cellB.x * bpp
+            for i in rowBytes do
+                Swag.require(cellA.atlas.data[rowA + i] == cellB.atlas.data[rowB + i])
+        }
+    }
+}

@@ -138,26 +138,44 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     surface.destroy()
 }
 
-// The framework owns one centered, themed presentation for every viewer decoder reason.
+// The framework owns one centered, themed presentation for every viewer decoder reason: a critical
+// dot before what happened, the reason in faint mono, and the ways on — the other viewers of the
+// file and its own application — so a failure is never a dead end.
 #[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(640, 420)
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
 
-    let view = ViewerErrorView.create(&host.root, "PNG chunk CRC does not match its payload")
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(640, 420)
+    window.currentFile = "broken.png"
+    for key in ["image", "hex", "binary"]
+    {
+        for &plugin, index in window.index.plugins where plugin.key == key do
+            window.choices.add(ViewerPluginChoice{pluginIndex: cast(u32, index), key: key})
+    }
+
+    window.instances.resize(window.choices.count)
+    window.home.hide()
+    let view = ViewerErrorView.create(window.documentPanel, "PNG chunk CRC does not match its payload")
     view.dockStyle = .Center
-    host.root.applyLayout()
-    host.settleAnimations(&host.root, 4)
+    view.offer(window, 0)
+    window.applyLayout()
+    host.settleAnimations(window, 4)
 
-    Swag.require(view.iconLabel.icon.isValid())
-    Swag.require(view.iconLabel.iconColor == view.themeColors().critical)
     Swag.require(view.summaryLabel.text() == appStrings().ui_ViewerError)
     Swag.require(view.reasonLabel.text() == "PNG chunk CRC does not match its payload")
-    Swag.require(Math.abs(view.iconLabel.position.center().x - view.position.center().x) <= 1)
+    Swag.require(view.actions.isLocallyVisible() and view.actions.children.count == 3)
+    let first = assume cast(*PushButton, view.actions.children[0])
+    Swag.require(Format.toString(appStrings().ui_ViewAsChoice, window.index.plugins[window.choices[1].pluginIndex].displayName()) == first.text())
+    Swag.require(Math.abs(view.summaryLabel.surfaceRect().center().x - view.surfaceRect().center().x) <= 1)
+    Swag.require(Math.abs(view.actions.surfaceRect().center().x - view.surfaceRect().center().x) <= 1)
     Testing.assertContentFits(view)
 
-    var image = host.render(&host.root)
+    var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "error")
 }
 
@@ -181,6 +199,8 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
         .choices.add(ViewerPluginChoice{pluginIndex: 0, key: "html"})
         .choices.add(ViewerPluginChoice{pluginIndex: 1, key: "code"})
         .instances.resize(2)
+        .systemPlaces.clear()
+        .home.refresh()
     }
 
     let loading = Wnd.create'RetiringTestView(window.documentPanel)
@@ -256,8 +276,9 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Swag.require(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer == null)
 }
 
-// Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file and
-// the faint hint teaching the door, with no history yet and no format-specific controls.
+// Pins the shipped empty surface of a first launch: the mark, the invitation to drop a file or a
+// folder, the two direct actions, the system's places to explore, centred together, and the faint
+// hint teaching the door, with no history yet and no format-specific controls.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -269,12 +290,25 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
+    let datas = scopeTestDataDirectory()
+    window.systemPlaces.clear()
+    window.systemPlaces.add(datas)
+    window.systemPlaces.add(Path.directoryName(datas) orelse "")
 
     host.theme.setDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
+    window.home.refresh()
     window.applyLayout()
+
+    let home = window.home
+    Swag.require(home.rows.isEmpty() and home.places.count == 2 and not home.explored)
+    Swag.require(home.openButton.isLocallyVisible() and home.exploreButton.isLocallyVisible())
+    let actions = home.exploreButton.position.right() - home.openButton.position.x
+    Swag.require(Math.abs(home.openButton.position.x + actions * 0.5 - home.clientRect().horzCenter()) <= 1)
+    let chips = home.placeRect(1).right() - home.placeRect(0).x
+    Swag.require(Math.abs(home.placeRect(0).x + chips * 0.5 - home.clientRect().horzCenter()) <= 1)
     var image = host.renderSettled(window)
     Pixel.Testing.assertImageGolden(&image, "surface")
 }
@@ -310,8 +344,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Swag.require(window.readingLine.isLocallyVisible() and not window.home.isLocallyVisible())
     Swag.require(not window.hintLine.isLocallyVisible())
     Swag.require(window.currentView!.parent == window.documentPanel)
-    Swag.require(window.currentCommands!.parent == window.viewerBar and not window.viewerBar.isLocallyVisible())
-    Swag.require(window.currentCommands.backgroundStyle == .Transparent)
+    Swag.require(window.currentCommands == null and not window.viewerBar.isLocallyVisible())
     Swag.require(window.searchBox.isEnabled() and not window.searchBar.isLocallyVisible())
     var image = host.render(window)
     assertViewerPanelCorner(&image, window.documentPanel)

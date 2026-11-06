@@ -619,10 +619,22 @@ private impl Panel
         .refreshDetails()
     }
 
-    // Keeps the table as wide as its columns, its hairlines ending with its last column.
+    // Keeps the table as wide as its columns, its hairlines ending with its last column, and the
+    // words of its first column on the edge of the title: the ground of a row reaches out of that
+    // edge by its own inset, as a hovered row does.
     mtd fitWidth()
     {
-        let room = .clientRect().width - .padding.x - .padding.z
+        if .list.header.items.isEmpty() do
+            return
+        let textLeft = .list.header.surfaceRect().x + .list.header.itemPositionForColumn(0) + .list.header.itemPadding
+        let delta    = Math.round(textLeft - .head.surfaceRect().x)
+        if delta != 0
+        {
+            .list.margin.x -= delta
+            .applyLayout()
+        }
+
+        let room = .clientRect().width - .padding.x - .padding.z - .list.margin.x
         let used = .list.header.contentWidth() + 8
         let rest = Math.max(room - used, 0)
         if .list.margin.z == rest do
@@ -743,8 +755,8 @@ private impl Panel
         .list.invalidate()
     }
 
-    // Writes what the table holds under its title, and at the foot the row the keyboard is on
-    // and the sum of the column of quantities.
+    // Writes what the table holds under its title, and at the foot only what the title line does
+    // not say: the row the keyboard is on and the sum of the column of quantities.
     mtd refreshDetails()
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
@@ -759,14 +771,13 @@ private impl Panel
             if row.cells.count and row.cells[0].length do
                 foot = Format.toString("% · %", foot, row.cells[0].toString())
         }
-        else
-        {
-            foot = Format.toString(texts().ui_Details, delimiterKind(.document.delimiter), rows, columns)
-        }
 
         let column = .sumColumn()
-        if column != Swag.U64.Max and column < .document.columns.count do
-            foot = Format.toString("% · Σ % %", foot, .document.columns[column].toString(), .sumText(column))
+        if column != Swag.U64.Max and column < .document.columns.count
+        {
+            let sum = Format.toString("Σ % %", .document.columns[column].toString(), .sumText(column))
+            foot = foot.isEmpty() ? sum : Format.toString("% · %", foot, sum)
+        }
         .services.showDetails(me, foot)
     }
 

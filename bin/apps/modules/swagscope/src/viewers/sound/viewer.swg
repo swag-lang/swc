@@ -384,8 +384,10 @@ struct Panel
     retireRequested: bool
     retired:         bool
 
-    tags:     SoundTags     // Written by the open worker; read only once it has finished.
-    details:  String
+    tags:       SoundTags     // Written by the open worker; read only once it has finished.
+    coverImage: Image         // The sleeve found beside the file, decoded by the open worker.
+    cover:      Texture       // That sleeve, uploaded once the open has finished.
+    details:    String
     services: Viewer.HostServices
 }
 
@@ -412,6 +414,12 @@ impl Panel
 
         .openFinished      = true
         .sound             = try .openTask.take()
+        if .coverImage.isValid() and not .thumbnail
+        {
+            .cover      = .app().renderer.addImage(.coverImage)
+            .coverImage = {}
+        }
+
         .opened            = true
         .duration          = .sound.durationInSeconds()
         .waveform.duration = .duration
@@ -829,6 +837,8 @@ impl IWnd for Panel
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .retireBlocking()
+        if .cover.isValid() do
+            .app().renderer.removeTexture(&.cover)
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -839,8 +849,9 @@ impl IWnd for Panel
 
     // Draws the cover, and under it the name of the recording and who made it, centered.
     //
-    // The tags carry no picture yet, so the cover is a tile of the raised ground with the glyph
-    // of a sound in it, lifted by the shadow of a floating surface.
+    // The cover is the sleeve stored beside the file, cropped square, lifted by the shadow of a
+    // floating surface. Without one it is a neutral sleeve: the rings of a record on the raised
+    // ground, as the explorer draws an album without artwork.
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
@@ -851,9 +862,25 @@ impl IWnd for Panel
 
         painter.setParams(.Antialiased)
         .theme().drawFloatingShadow(painter, cover, CoverCorner)
-        painter.fillRoundRect(cover, CoverCorner, CoverCorner, colors.raised)
-        let glyph = .theme().icon(.Volume, 48)
-        glyph.paint(painter, cover.horzCenter() - glyph.sizeX * 0.5, cover.vertCenter() - glyph.sizeY * 0.5, colors.faintText)
+        if .cover.isValid()
+        {
+            let width  = cast(f32, .cover.width)
+            let height = cast(f32, .cover.height)
+            let side   = Math.min(width, height)
+            var brush  = Brush.createTexture(.cover)
+            brush.uvMode = .FillSubRect
+            brush.uvRect = Math.Rectangle{(width - side) * 0.5, (height - side) * 0.5, side, side}
+            painter.fillRoundRect(cover, CoverCorner, CoverCorner, brush)
+        }
+        else
+        {
+            painter.fillRoundRect(cover, CoverCorner, CoverCorner, colors.raised)
+            let center = Math.Point{cover.horzCenter(), cover.vertCenter()}
+            let radius = cover.width * 0.32
+            painter.drawCircle(center.x, center.y, radius, colors.faintText, 1.5)
+            painter.drawCircle(center.x, center.y, radius * 0.68, colors.line)
+            painter.fillCircle(center.x, center.y, 5, colors.softText)
+        }
 
         let titleFont = .theme().createDefaultFont(TitleSize, .Bold)
         let title     = .title()
@@ -1008,7 +1035,8 @@ impl Panel
         {
             // The tags are read beside the sound, and the GUI thread reads neither until the
             // task has finished.
-            view.tags = SoundTags.read(view.openFileName)
+            view.tags       = SoundTags.read(view.openFileName)
+            view.coverImage = localSleeve(view.openFileName)
             return try SoundFile.load(view.openFileName, preloadData: false)
         },
                                result.taskNotifier(&result.openTask))
@@ -1049,4 +1077,35 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setLifecycle(lifecycle)
+}
+
+// Returns the sleeve stored beside `fileName` — `cover`, `folder` or `front`, in JPEG or PNG —
+// decoded and brought down to twice the side of the cover, or an invalid image when there is none.
+//
+// The sleeve is read from the folder only: the tags carry no picture yet.
+func localSleeve(fileName: string)->Image
+{
+    const MaxBytes = 16'u64 * 1024 * 1024
+    let folder = Path.directoryName(fileName) orelse ""
+    for name in ["cover.jpg", "folder.jpg", "front.jpg", "cover.png", "folder.png", "front.png"]
+    {
+        let candidate = Path.combine(folder, name)
+        if not File.exists(candidate) do
+            continue
+        let info = catch File.info(candidate)
+        if info.size > MaxBytes do
+            continue
+        var image = catch Image.load(candidate) { continue }
+        let side    = cast(s32, CoverSize * 2)
+        let largest = Math.max(image.width, image.height)
+        if largest > side
+        {
+            let scale = cast(f32, side) / cast(f32, largest)
+            image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
+        }
+
+        return image
+    }
+
+    return {}
 }

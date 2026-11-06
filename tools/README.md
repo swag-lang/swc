@@ -285,7 +285,8 @@ Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
 with the smoke frame budget, isolation arguments, and executable timeout.
 For module and application tests, `--test-file` and `--test-tag` select which tests execute; the complete
-owning module is still compiled. Standard module and application tests use native executables,
+owning module is still compiled. Module and application tests run with a twenty-minute `--run-timeout` unless one is given:
+the compiler's five-minute default suits one program, not a whole suite in one process. Standard module and application tests use native executables,
 which the compiler reuses while their inputs and dependencies are unchanged. Standard module
 tests override the library artifact kind only for the selected test module; dependencies retain
 their normal library artifacts. Add `--test-jit --no-test-native` to exercise the JIT explicitly.

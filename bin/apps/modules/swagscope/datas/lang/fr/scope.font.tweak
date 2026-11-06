@@ -12,7 +12,7 @@ ui_Greek              Grec et copte
 ui_Cyrillic           Cyrillique
 ui_Symbols            Ponctuation et symboles
 ui_Specimen           SPÉCIMEN
-ui_CharacterMap       TABLE DES CARACTÈRES
+ui_CharacterMap       Table des caractères
 ui_NoCharacters       Aucun caractère associé
 ui_Regular            Normal
 ui_Metrics            % · % glyphes · % unités/em

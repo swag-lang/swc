@@ -8,11 +8,11 @@ internal const HomeNow = 17'u64 * Time.TicksPerHour + 50 * Time.TicksPerMinute +
 
 func homeFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
 
-// Builds a window whose history holds six fixtures opened over the last days, on the theme of
-// `light`, with the application mark the home shows.
-internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindow
+// Builds a window whose history holds six fixtures opened over the last days and two explored
+// folders, on the theme of `light`, with the application mark the home shows.
+internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)->*ViewerWindow
 {
-    host.setup(960, 640)
+    host.setup(960, height)
     shipFrame(host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     if light do
@@ -24,9 +24,9 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     host.notify(.ThemeChanged)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.resize(960, 640)
+    window.resize(960, height)
 
-    const Names: [6] string = ["sample.cpp", "comprehensive.md", "title.png", "viewer.pdf", "pacman_beginning.wav", "ffmpeg-h264-two-aac.mkv"]
+    const Names: [6] string = ["comprehensive.md", "sample.cpp", "title.png", "viewer.pdf", "pacman_beginning.wav", "ffmpeg-h264-two-aac.mkv"]
     let hours: [6] u64 = [0, 1, 6, 30, 32, 100]
     for name, i in Names
     {
@@ -34,11 +34,28 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
         window.recentOpened.add(HomeNow - hours[i] * Time.TicksPerHour - 8 * Time.TicksPerMinute)
     }
 
+    let datas = Path.directoryName(homeFixture(Names[0])) orelse ""
+    window.systemPlaces.clear()
+    window.rememberExplored(Path.combine(datas, "viewer.archive.zip"))
+    window.rememberExplored(datas)
     window.home.now = HomeNow
     window.showEmpty(appStrings().ui_DropTitle)
 
     window.applyLayout()
+    completeHomePreviews(host, window.home)
     return window
+}
+
+// Lets every picture the home asked for arrive, so a capture does not depend on worker speed.
+internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHome)
+{
+    for 64 where not home.previewsSettled()
+    {
+        home.preview.task.wait()
+        host.pump()
+    }
+
+    Swag.require(home.previewsSettled())
 }
 
 // Clear opens after a completed click, supports cancelling the gesture, and keeps its trigger
@@ -98,9 +115,10 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
 
     let button = window.home.removeButton
     Swag.require(not button.isLocallyVisible())
-    let row = window.home.rowRect(1)
+    let picture = window.home.pictureRect(1)
     let size = host.theme.metrics.control_InspectorHeight
-    let buttonRect = Math.Rectangle{row.right() - size, row.vertCenter() - size * 0.5, size, size}
+    let buttonRect = Math.Rectangle{picture.right() - size - 4, picture.y + 4, size, size}
+    Swag.require(window.home.removeRect(1) == buttonRect and window.home.rowRect(1).contains(buttonRect.center()))
     let point = buttonRect.center()
     let screenPoint = window.home.localToSurface(point)
     host.moveMouse(screenPoint)
@@ -168,6 +186,23 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool)->*ViewerWindo
     completeViewerWindowClassification(&host, window)
     Swag.require(host.autoHandled and window.home.isLocallyVisible())
     Swag.require(window.home.message.isEmpty() and not window.recent.contains(missing))
+}
+
+// A short window lets the folders give way before the tiles, and a taller one gives them back.
+#test
+{
+    var host: Testing.HeadlessHost
+    let home  = homeWindow(&host, false).home
+    let place = home.layout()
+    Swag.require(home.places.count == 2 and not place.showPlaces and not home.placeShown(0))
+    Swag.require(home.rowRect(5).bottom() <= home.clientRect().bottom() - ViewerHome.BottomReserve)
+
+    var tallHost: Testing.HeadlessHost
+    let tall      = homeWindow(&tallHost, false, height: 760).home
+    let tallPlace = tall.layout()
+    Swag.require(tallPlace.showPlaces and tall.placeShown(1))
+    Swag.require(tall.placeRect(0).x + ViewerHome.PlaceInset == tallPlace.column.x)
+    Swag.require(tall.placeRect(1).bottom() <= tall.clientRect().bottom() - ViewerHome.BottomReserve)
 }
 
 // A recent row stays visible while classification runs, then gives way to the file when it opens.

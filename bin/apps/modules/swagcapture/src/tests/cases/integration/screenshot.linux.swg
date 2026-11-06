@@ -296,4 +296,51 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         }
     }
     Swag.require(presented, "the capture editor never reached its native X11 surface")
+
+    // Drive the full-screen area overlay through its real window tree. A bounded frame
+    // budget prevents a broken selector from leaving the test inside its modal loop.
+    var areaDriven = false
+    var areaFrames: u32
+    g_App.sigFrame += func|areaDriven = &areaDriven, areaFrames = &areaFrames|(_)
+    {
+        areaFrames[] += 1
+        for candidate in g_App.surfaces
+        {
+            if candidate.view() is CaptureRectWnd as overlay
+            {
+                var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {15, 25}}
+                overlay.sendEvent(&evt)
+                evt.kind       = .Move
+                evt.surfacePos = {48, 52}
+                overlay.sendEvent(&evt)
+                evt.kind = .Released
+                overlay.sendEvent(&evt)
+                areaDriven[] = true
+                return
+            }
+        }
+
+        if areaFrames[] > 100 do
+            g_Exit = true
+    }
+
+    main.sendCommandEvent(ActionCapture.Area)
+    g_App.sigFrame.clear()
+    Swag.require(areaDriven, "the area selector did not open")
+    let area = unwrap main.editWnd.getCapture()
+    defer discard catch File.delete(area.file)
+    Swag.require(area.width == 33 and area.height == 27)
+    Swag.require(area.sourceWindowTitle == "Capture GUI fixture")
+    Swag.require(area.backImg.pixelColor(4, 5).argb == Argb.Red)
+    var areaPresented = false
+    for 40
+    {
+        g_App.runFrame()
+        if expect Gui.Testing.verifyNativePresentation(surface)
+        {
+            areaPresented = true
+            break
+        }
+    }
+    Swag.require(areaPresented, "the selected area never reached the native editor surface")
 }

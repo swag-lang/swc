@@ -86,7 +86,6 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
         .cursor      = Cursor.from(CursorShape.Cross)
         .focusPolicy = .Click
         .setPosition(0, 0, sf.size().x, sf.size().y)
-        .captureMouse()
     }
 
     captureWnd.createHintLine()
@@ -95,6 +94,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     captureWnd.setFocus()
     sf.show()
     sf.bringToFront()
+    captureWnd.captureMouse()
 
     if not waitForCapture()
     {

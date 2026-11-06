@@ -3,6 +3,143 @@
 
 using Swag, Core
 
+// The caption menu reads the lens registrations, opens three levels where a family needs them,
+// and sends a chosen command through the application's normal route.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    Swag.require(main.menuLauncher.name.isEmpty())
+    Swag.require(main.menuLauncher.position.x < main.position.width * 0.5)
+    let menu = main.lens.createCommandMenu()
+    menu.updateState()
+    let expected = [appStrings().ui_MenuCapture, appStrings().ui_MenuFile, appStrings().ui_MenuEdit,
+                    appStrings().ui_MenuImage, appStrings().ui_MenuView, Gui.strings().lens_Application]
+    Swag.require(menu.items.count == expected.count)
+    for name, index in expected do
+        Swag.require(menu.items[index]!.name.raw == name and menu.items[index]!.popup != null)
+
+    let capture = menu.items[0]!.popup
+    let captureDirect = 1 + CaptureModeIds.count + main.monitors.count
+    Swag.require(capture.items[0]!.id == ActionCapture.Area)
+    Swag.require(capture.items[captureDirect]!.separator)
+    var delay: *MenuCtrl?
+    for item in capture.items where item and item.name.raw == appStrings().act_DelayBefore do
+        delay = item.popup
+    Swag.require(delay and delay.items.count == CaptureDelayIds.count)
+
+    let file = menu.items[1]!.popup
+    Swag.require(file.items[0]!.id == ActionFile.SaveAsImage and file.items[1 + FileStartIds.count]!.separator)
+
+    let edit = menu.items[2]!.popup
+    Swag.require(edit.items[0]!.id == ActionUndo.DoUndo and edit.items[2]!.separator)
+    Swag.require(edit.items[3]!.id == ActionCopyPaste.Copy and edit.items[7]!.separator)
+    var selection: *MenuCtrl?
+    for item in edit.items where item and item.name.raw == appStrings().lens_Selection do
+        selection = item.popup
+    Swag.require(selection and selection.items.count == EditorSelectionIds.count)
+
+    let image = menu.items[3]!.popup
+    Swag.require(image.items[0]!.id == ActionCopyPaste.CopyAsImage)
+    Swag.require(image.items[1]!.separator)
+    Swag.require(image.items[2 + ImageGeometryIds.count]!.separator)
+    Swag.require(image.items[3 + ImageGeometryIds.count + ImageFlattenIds.count]!.separator)
+    for item in image.items where item and not item.separator do
+        Swag.require(item.popup == null)
+
+    let view = menu.items[4]!.popup
+    Swag.require(view.items[0]!.id == ActionView.Inspector)
+    Swag.require(view.items[ViewPanelIds.count]!.id == ActionGlobal.ShowLibrary)
+    Swag.require(view.items[ViewPanelIds.count + 1]!.separator)
+    Swag.require(view.items.count == ViewPanelIds.count + 1 + ViewZoomIds.count + 1)
+    for item in view.items where item and not item.separator do
+        Swag.require(item.popup == null)
+
+    let application = menu.items[5]!.popup
+    Swag.require(application.items.count == 8)
+    Swag.require(application.items[1]!.separator and application.items[4]!.separator and application.items[6]!.separator)
+    Swag.require(application.items[2]!.name.raw == Gui.strings().appearance_Theme)
+    Swag.require(application.items[3]!.name.raw == Gui.strings().appearance_Language)
+    Swag.require(application.items[2]!.popup.items.count == 3)
+    Swag.require(application.items[3]!.popup.items.count == Gui.languages().count + 1)
+
+    var chosen: bool
+    host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
+    {
+        if chosen[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
+        Swag.require(host.openPopupSubMenu(appStrings().act_DelayBefore))
+        Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay2))
+        chosen[] = true
+    }
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    host.pump()
+    Swag.require(chosen and main.captureOptions.delay == 2)
+}
+
+// Theme and language choices are commands in the shared menu, without opening the appearance sheet.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var selected: bool
+    host.app.sigFrame += func|host = &host, selected = &selected|(_)
+    {
+        if selected[] or not host.capturedPopupMenu() do
+            return
+        selected[] = true
+        Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
+        Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Theme))
+        let theme = unwrap host.capturedPopupMenu()
+        Swag.require(host.clickPopupMenuItem(unwrap theme.items[1]!.id))
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.pump()
+    host.app.sigFrame.clear()
+    Swag.require(selected and main.appearanceButton.appearanceTheme == .Light)
+    Swag.require(host.capturedOptionSheet() == null)
+
+    selected = false
+    host.app.sigFrame += func|host = &host, selected = &selected|(_)
+    {
+        if selected[] or not host.capturedPopupMenu() do
+            return
+        selected[] = true
+        Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
+        Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Language))
+        let languages = unwrap host.capturedPopupMenu()
+        var french: WndId?
+        for item in languages.items where item and item.name.raw == "Français" do
+            french = item.id
+        Swag.require(french != null)
+        Swag.require(host.clickPopupMenuItem(french))
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.pump()
+    host.app.sigFrame.clear()
+    Swag.require(selected and main.appearanceButton.language == "fr")
+    Swag.require(host.capturedOptionSheet() == null)
+}
+
 // Audit the live command catalog rather than a second list that could miss a newly added action.
 #test
 {

@@ -21,6 +21,8 @@ struct StreamInfo
         displayWidth:  s32
         displayHeight: s32     // Display height in pixels; zero uses the stored frame height.
 
+        codecName: string = ""     // Name of the decoded picture codec; empty when the stream did not identify it.
+
         frameRate: FrameRate     // Exact playback rate.
 
         // Number of frames in the stream, or zero when the format cannot report it without decoding the whole stream.

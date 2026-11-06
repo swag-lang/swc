@@ -684,7 +684,7 @@ private impl Panel
 // Creates the integrated image view.
 func createViewer(host: Viewer.Host)
 {
-    registerMediaInfoStrings(host.application())
+    registerMediaInfoStrings(&host.application().resources)
     let view = Panel.create(host)
     host.attachView(view)
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })

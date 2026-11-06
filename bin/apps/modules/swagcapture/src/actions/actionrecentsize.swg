@@ -23,9 +23,8 @@ impl IActionUI for ActionRecentSize
 
         switch cxt.id
         {
-        // The three preview sizes live in the View menu, so each one says its name and
-        // reads as one choice among three. Announced without a wording, they were three
-        // blank lines carrying a mark and nothing a reader could act on.
+        // These choices still size the recent-capture strip. The complete lens keeps them
+        // under Recent, while the general View menu stays focused on the current surface.
         case .RecentSmall:
             evt.updatedFields |= .Icon
             evt.icon          = mainWndOf(cxt).icon(.ViewSmall)

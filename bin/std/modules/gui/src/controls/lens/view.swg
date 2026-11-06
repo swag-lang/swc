@@ -3,7 +3,7 @@
 
 using Core, Pixel
 
-// The one door of an application: a floating input that finds and runs everything.
+// The searchable command door of an application, and the source of its optional command menu.
 //
 // This is the lens of the charter. It opens near the top third of its window, at most
 // [[Gui.ThemeMetrics.lens_Width]] wide, on the surface ground with the floating corner and shadow,
@@ -32,6 +32,8 @@ using Core, Pixel
 // matched only by scattered letters or a typo are left out when usable commands answer precisely.
 //
 // Applications open the lens with `Ctrl Space` by calling [[Gui.Lens.View.open]].
+// [[Gui.Lens.View.createCommandMenu]] builds a classic popup from the same command registrations;
+// a command may name a menu subgroup or stay in the lens alone.
 //
 // ```swag
 // with let lens = Lens.View.create(mainWnd)
@@ -129,6 +131,20 @@ internal struct Command
     family:     String
     familyText: MenuLabelResolver?
     aliases:    MenuLabelResolver?
+    menuFamily: MenuLabelResolver?
+    menuGroup:  MenuLabelResolver?
+    menuSection: u32
+    inLens:     bool = true
+    inMenu:     bool = true
+}
+
+// One currently visible command, with the two menu levels it belongs to.
+internal struct MenuCommand
+{
+    id:     WndId = ""
+    family: String
+    group:  String
+    section: u32
 }
 
 // A source registered on a [[Gui.Lens.View]].
@@ -391,31 +407,153 @@ impl View
     // out while the command is hidden. A disabled command shows faint and cannot be chosen.
     // `aliases` resolves semicolon-separated alternative phrases in the current language. They
     // find the same command below precise title matches, without highlighting unrelated title bytes.
-    mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null)
+    // `menuFamily` and `menuGroup` place it in the optional popup; `inMenu: false` keeps it in
+    // the lens alone, while `inLens: false` keeps a choice supplied by a lens source in the menu
+    // alone. A missing menu family uses the lens family, and a missing group is direct.
+    // Adjacent direct commands with different `menuSection` values receive a separator.
+    mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null,
+                   menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
+                   menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        .commands.add(Command{id: id, family: family, aliases: aliases})
+        .commands.add(Command{id: id, family: family, aliases: aliases,
+                              menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
+                              inLens: inLens, inMenu: inMenu})
     }
 
     // Registers the command `id` under a section label read from `family` each time the lens
     // opens, so it follows the language of the application. `aliases` follows the same contract
     // as the overload with a fixed family label.
-    mtd addCommand(family: MenuLabelResolver, id: WndId, aliases: MenuLabelResolver? = null)
+    mtd addCommand(family: MenuLabelResolver, id: WndId, aliases: MenuLabelResolver? = null,
+                   menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
+                   menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        .commands.add(Command{id: id, familyText: family, aliases: aliases})
+        .commands.add(Command{id: id, familyText: family, aliases: aliases,
+                              menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
+                              inLens: inLens, inMenu: inMenu})
     }
 
     // Registers several commands under the section label `family`.
-    mtd addCommands(family: string, ids: const [..] WndId)
+    mtd addCommands(family: string, ids: const [..] WndId,
+                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
+                    menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         for id in ids do
-            .addCommand(family, id)
+            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup,
+                        menuSection: menuSection, inLens: inLens, inMenu: inMenu)
     }
 
     // Registers several commands under a section label read from `family` each time the lens opens.
-    mtd addCommands(family: MenuLabelResolver, ids: const [..] WndId)
+    mtd addCommands(family: MenuLabelResolver, ids: const [..] WndId,
+                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
+                    menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         for id in ids do
-            .addCommand(family, id)
+            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup,
+                        menuSection: menuSection, inLens: inLens, inMenu: inMenu)
+    }
+
+    // Builds a popup menu solely from the registered commands and their current state.
+    //
+    // Families open from the root, and an optional group opens one further submenu. A family
+    // holding one direct command becomes a root action. Separators follow direct command
+    // sections and the boundary between direct actions and submenus. Hidden commands are omitted; disabled
+    // commands remain visible. The caller opens the result with
+    // [[Gui.MenuCtrl.doModal]] and `autoDestroy: true`, or destroys it when no longer needed.
+    mtd createCommandMenu()->*MenuCtrl
+    {
+        let owner = unwrap .ownerOrParent()
+        let menu  = MenuCtrl.createPopup(owner, owner: owner)
+        var entries: Array'MenuCommand
+        var families: Array'String
+        var lastRootWasDirect: bool
+        var hasRootEntry: bool
+
+        // Resolve localized placement and visibility before allocating any menu branches.
+        for &command in .commands where command.inMenu
+        {
+            let state = owner.sendComputeCommandStateEvent(command.id)
+            if state.updatedFields.has(.Hidden) and state.hidden do
+                continue
+            if (not state.updatedFields.has(.Name) or state.name.isEmpty()) and
+               (not state.updatedFields.has(.LongName) or state.longName.isEmpty()) do
+                continue
+
+            let family = command.menuFamily ? command.menuFamily() :
+                         (command.familyText ? command.familyText() : command.family.toString())
+            if not families.contains(family) do
+                families.add(family)
+            entries.add(MenuCommand{command.id, family, command.menuGroup ? command.menuGroup() : "", command.menuSection})
+        }
+
+        for family in families
+        {
+            var one: const *MenuCommand?
+            var count: u32
+            for &entry in entries where entry.family == family
+            {
+                one = entry
+                count += 1
+            }
+            let direct = count == 1 and one and one.group.isEmpty()
+            if hasRootEntry and direct != lastRootWasDirect do
+                menu.addSeparator()
+            hasRootEntry = true
+            lastRootWasDirect = direct
+            if direct
+            {
+                menu.addItem(one!.id)
+                continue
+            }
+
+            let branch = MenuCtrl.createPopup(menu, owner: owner)
+            var groups: Array'String
+            var groupMenus: Array'(*MenuCtrl)
+            var hasRow: bool
+            var lastWasGroup: bool
+            var lastSection: u32
+            for &entry in entries where entry.family == family
+            {
+                if entry.group.isEmpty()
+                {
+                    if hasRow and (lastWasGroup or entry.section != lastSection) do
+                        branch.addSeparator()
+                    branch.addItem(entry.id)
+                    hasRow       = true
+                    lastWasGroup = false
+                    lastSection  = entry.section
+                    continue
+                }
+
+                var group: *MenuCtrl?
+                for name, index in groups where name[] == entry.group
+                {
+                    group = groupMenus[index]
+                    break
+                }
+                if not group
+                {
+                    group = MenuCtrl.createPopup(branch, owner: owner)
+                    if hasRow and (not lastWasGroup or entry.section != lastSection) do
+                        branch.addSeparator()
+                    groups.add(entry.group)
+                    groupMenus.add(group)
+                    branch.addPopup(entry.group, group)
+                    hasRow       = true
+                    lastWasGroup = true
+                    lastSection  = entry.section
+                }
+                group.addItem(entry.id)
+            }
+            menu.addPopup(family[], branch)
+        }
+
+        return menu
+    }
+
+    // Opens the registered command menu from the caption's icon button.
+    mtd openCommandMenu(button: *IconButton)
+    {
+        discard .createCommandMenu().doModal(button, autoDestroy: true)
     }
 
     // Registers a source of rows answering the unprefixed query and the query of `prefix`.
@@ -813,7 +951,7 @@ private impl View
             return
 
         var families: Array'String
-        for &command in .commands
+        for &command in .commands where command.inLens
         {
             if command.familyText do
                 command.family = command.familyText()
@@ -824,7 +962,7 @@ private impl View
         for family in families
         {
             var section: *Section?
-            for command in .commands where command.family == family[]
+            for command in .commands where command.inLens and command.family == family[]
             {
                 let state = owner.sendComputeCommandStateEvent(command.id)
                 if state.updatedFields.has(.Hidden) and state.hidden do
@@ -1471,8 +1609,11 @@ private impl View
     {
         if prefix == .None do
             return .results.prefix != .None
-        if prefix == .Action and not .commands.isEmpty() do
-            return true
+        if prefix == .Action
+        {
+            for command in .commands where command.inLens do
+                return true
+        }
         for source in .sources where source.prefix == prefix do
             return true
         return false
@@ -1546,7 +1687,7 @@ private impl View
         var section: *Section?
         for text in .recent
         {
-            for command in .commands where text[] == command.id
+            for command in .commands where command.inLens and text[] == command.id
             {
                 let state = owner.sendComputeCommandStateEvent(command.id)
                 if state.updatedFields.has(.Hidden) and state.hidden do

@@ -189,11 +189,12 @@ using Swag, Core, Pixel
     Swag.require(sheet.position.y == metrics.floating_Inset)
     Swag.require(sheet.position.width == metrics.infoSheet_Width)
 
-    // Its height follows what it holds, and a primary action stands at its foot.
+    // Its height follows what it holds, and a primary action follows its head, above the readings.
     let before = sheet.position.height
     let action = sheet.setAction("Open", "sheet.open")
     Swag.require(sheet.position.height == before + metrics.infoSheet_BlockGap + metrics.btnPush_Height)
-    Swag.require(action.position.bottom() == sheet.position.height - metrics.infoSheet_Padding)
+    Swag.require(action.position.bottom() < sheet.blocks[1].top)
+    Swag.require(sheet.blocks[0].top + sheet.blocks[0].height < action.position.y)
 
     // A secondary action shares the foot with it, each on half of the line.
     let secondary = sheet.setSecondaryAction("Extract…", "sheet.extract")
@@ -222,6 +223,97 @@ using Swag, Core, Pixel
     Swag.require(open.position.bottom() < sheet.blocks[1].top)
     sheet.clear()
     Swag.require(not sheet.beside)
+}
+
+// The names of the pages stand as tabs on the line of the close button, and a click on one shows
+// its page without carrying the media action onto technical readings.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setTitle("Film")
+    sheet.beginPage("Media")
+    sheet.addFact("8.1", "IMDb")
+    discard sheet.setAction("Open", "sheet.open")
+    sheet.beginPage("Technical")
+    sheet.addReading("Frame rate", "24 fps")
+    sheet.open()
+    Swag.require(sheet.tabRects.count == 2 and sheet.pageIndex == 0)
+    Swag.require(sheet.tabRects[0].y == sheet.closeButton.position.y and
+                 sheet.tabRects[0].height == sheet.closeButton.position.height)
+    Swag.require(sheet.tabRects[0].x == host.theme.metrics.infoSheet_Padding and
+                 sheet.tabRects[1].x > sheet.tabRects[0].right())
+    Swag.require(sheet.closeButton.position.y < host.theme.metrics.infoSheet_Padding)
+    Swag.require(Utf8.contains(sheet.text(), "8.1 IMDb") and not Utf8.contains(sheet.text(), "24 fps"))
+    func clickTab(host: *Testing.HeadlessHost, sheet: *InfoSheet, index: u64)
+    {
+        let origin = sheet.surfaceRect()
+        var pt     = Math.Point{origin.x + sheet.tabRects[index].horzCenter(), origin.y + sheet.tabRects[index].vertCenter()}
+        sheet.surface!.surfaceToScreen(&pt)
+        host.click(pt)
+    }
+
+    clickTab(&host, sheet, 1)
+    Swag.require(sheet.pageIndex == 1 and not sheet.action!.isLocallyVisible())
+    Swag.require(Utf8.contains(sheet.text(), "24 fps") and not Utf8.contains(sheet.text(), "8.1 IMDb"))
+    clickTab(&host, sheet, 0)
+    Swag.require(sheet.pageIndex == 0 and sheet.action!.isLocallyVisible())
+}
+
+// The figures stand on one line under the title wherever they were added, a long title runs on a
+// second line that keeps its extension, and a long value wraps under its label.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let metrics = host.theme.metrics
+    with let sheet = InfoSheet.create(&host.root)
+    {
+        .setTitle("ffmpeg-h264-two-aac-with-a-very-long-descriptive-name-for-the-test.mkv")
+        .setIdentity("MKV · datas")
+        .addFact("0:01")
+        .addSection("Video")
+        .addReading("Codec", "H.264 / AVC", mono: false)
+        .addFact("64 × 48", "px")
+        .addReading("Cast", "Harrison Ford, Rutger Hauer, Sean Young, Edward James Olmos, Daryl Hannah", mono: false)
+        .addTrack("1", "Primary", "AAC-LC · 44.1 kHz · stereo")
+        .addNote("The Exif header has no TIFF byte order.")
+        .addFootnote("Online lookups are off.", "Turn On", "sheet.online")
+        .open()
+    }
+
+    Swag.require(sheet.titleLines.count == 2 and Utf8.endsWith(sheet.titleLines[1], "test.mkv"))
+    let duration = sheet.blocks[0]
+    let size     = sheet.blocks[3]
+    Swag.require(duration.top == size.top and size.left > duration.left + duration.width)
+    Swag.require(duration.top + duration.height < sheet.blocks[1].top)
+    let people = sheet.blocks[4]
+    Swag.require(people.wrapped and people.height > metrics.infoSheet_LineHeight)
+    Swag.require(people.valueLeft == metrics.infoSheet_LabelWidth)
+    Swag.require(Utf8.contains(sheet.text(), "1 Primary\nAAC-LC · 44.1 kHz · stereo"))
+    Swag.require(Utf8.contains(sheet.text(), "Online lookups are off. Turn On"))
+    let foot = sheet.blocks[7]
+    Swag.require(sheet.linkAt({metrics.infoSheet_Padding + foot.valueLeft + 2, foot.top + foot.valueTop + 4}) == 7)
+}
+
+// Long information remains reachable when the sheet fills the available height.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 400, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setTitle("Film")
+    for index in 40 do
+        sheet.addReading("Track", Format.toString("%", index))
+    sheet.open()
+    Swag.require(sheet.contentHeight > sheet.position.height)
+    host.mouseWheel({400, 200}, -1)
+    Swag.require(sheet.scrollOffset > 0)
+    host.mouseWheel({400, 200}, -100)
+    Swag.require(sheet.scrollOffset == sheet.contentHeight - sheet.position.height)
+    sheet.clear()
+    Swag.require(sheet.scrollOffset == 0)
 }
 
 // A sheet arrives from its edge and fades out, reachable at once on the way in and gone at

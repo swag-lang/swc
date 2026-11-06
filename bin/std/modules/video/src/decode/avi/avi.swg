@@ -580,12 +580,14 @@ private impl Decoder
         if Slice.contains(MotionJpegIds, compression)
         {
             .isJpeg = true
+            .info.codecName = "Motion JPEG"
             return
         }
 
         if Video.isMpeg4FourCc(compression)
         {
             .isCoded = true
+            .info.codecName = "MPEG-4 Part 2"
             return
         }
 
@@ -593,6 +595,7 @@ private impl Decoder
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the AVI '%' video codec", describeId(compression)))}
 
         let bitCount = layout.format.biBitCount
+        .info.codecName = "Uncompressed RGB"
         if bitCount != 24 and bitCount != 32 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support uncompressed AVI frames of % bits per pixel", bitCount))}
 

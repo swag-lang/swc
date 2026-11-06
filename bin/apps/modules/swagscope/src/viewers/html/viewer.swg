@@ -201,6 +201,16 @@ func addressOf(fileName: string)->String
 }
 
 // Creates the integrated reusable HTML view.
+// Describes an HTML page in the information sheet: its format and its encoding.
+private func describeHtml(sheet: *InfoSheet)
+{
+    var data: MediaInfoData
+    data.add(.Text, group: true)
+    data.add(.Format, "HTML")
+    data.add(.Encoding, "UTF-8")
+    data.describe(sheet)
+}
+
 func createViewer(host: Viewer.Host)
 {
     with let result = Wnd.create'Panel(host.contentParent(), "scope.html")
@@ -263,6 +273,7 @@ func createViewer(host: Viewer.Host)
     host.attachView(result)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(texts().ui_Details)
+    host.setInformation(func(sheet) { describeHtml(sheet) })
 
     with var search: Viewer.SearchApi
     {

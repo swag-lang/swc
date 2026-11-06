@@ -1169,11 +1169,26 @@ impl Panel
 }
 
 // Creates the integrated binary format view.
+impl Panel
+{
+    // Describes the binary in the information sheet: the structure its report recognized.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        if .doc.report.summary.isEmpty() do
+            return
+        var data: MediaInfoData
+        data.add(.Binary, group: true)
+        data.add(.Format, .doc.report.summary)
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
     host.setDetails(view.details)
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     with var search = Viewer.searchApi(view)
     {

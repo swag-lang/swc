@@ -187,6 +187,12 @@ home_Yesterday hier
 home_Weekdays dim. lun. mar. mer. jeu. ven. sam.
 explore_ArchiveSummary % · % compressés · % une fois extraits
 explore_Compression Compression
+explore_Archive Archive
+explore_Compressed Compressé
+explore_Stored Stocké, sans compression
+explore_Deflated Deflate
+explore_OnlineOff Infos en ligne désactivées.
+explore_TurnOn Activer
 cmd_OpenChosen Ouvrir
 hint_Open ouvrir
 hint_Parent dossier parent

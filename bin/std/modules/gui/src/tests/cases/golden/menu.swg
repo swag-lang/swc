@@ -70,8 +70,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
 }
 
-// A section label names the whole group from the popup's leading edge. Row glyphs may move the
-// command wording into a shared column, but must not drag the heading with them.
+// A section label lines up with row glyphs, at the leftmost aligned column of the popup.
 #[Swag.TestTag("golden")]
 #test
 {

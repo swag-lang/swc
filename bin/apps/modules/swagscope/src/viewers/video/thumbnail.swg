@@ -124,6 +124,7 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
         if candidate.lively
         {
             labelDuration(&candidate.image, duration)
+            labelVideoInformation(&candidate.image, &reader)
             return #move candidate.image
         }
 
@@ -134,7 +135,37 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
         fail Errors.InvalidFormatError{}
     let selected = representativeThumbnail(candidates.toSlice())
     labelDuration(&candidates[selected].image, duration)
+    labelVideoInformation(&candidates[selected].image, &reader)
     return #move candidates[selected].image
+}
+
+// Carries stream facts through the thumbnail cache to the explorer's technical reading.
+private func labelVideoInformation(image: *Image, reader: *Reader)
+{
+    addVideoInformation(image, VideoInfoFormatTag, reader.streamFormat().name)
+    if reader.streamInfo().codecName.count do
+        addVideoInformation(image, VideoInfoCodecTag, reader.streamInfo().codecName)
+    addVideoInformation(image, VideoInfoDimensionsTag, Format.toString("% × % px", reader.width(), reader.height()))
+    if reader.displayWidth() != reader.width() or reader.displayHeight() != reader.height() do
+        addVideoInformation(image, VideoInfoDisplaySizeTag, Format.toString("% × % px", reader.displayWidth(), reader.displayHeight()))
+    addVideoInformation(image, VideoInfoAspectRatioTag, videoAspectRatio(reader.displayWidth(), reader.displayHeight()))
+    let rate = reader.frameRate()
+    addVideoInformation(image, VideoInfoFrameRateTag, Format.toString("%{f2} fps", rate.framesPerSecond()))
+    if rate.denominator() > 1 do
+        addVideoInformation(image, VideoInfoExactRateTag, Format.toString("%/%", rate.numerator(), rate.denominator()))
+    if reader.frameCount() do
+        addVideoInformation(image, VideoInfoFramesTag, Format.toString("%", reader.frameCount()))
+    let bitrate = videoBitrate(reader.sourceSizeBytes(), reader.durationInSeconds())
+    if bitrate.count do
+        addVideoInformation(image, VideoInfoBitrateTag, bitrate)
+}
+
+private func addVideoInformation(image: *Image, tag, value: string)
+{
+    var record: ImageMetadata
+    record.tag   = tag
+    record.value = value
+    image.metadata.add(#move record)
 }
 
 // Trims the black bands a film was encoded with, so the thumbnail shows the picture rather than the

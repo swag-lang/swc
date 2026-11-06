@@ -770,6 +770,10 @@ func createViewer(host: Viewer.Host)
     host.attachView(view)
     host.setDetails(view.details)
 
+    // The caret offset and the selection are readings of the foot of the document, not of the
+    // file: the sheet keeps the file's own readings only.
+    host.setInformation(func(_) {})
+
     with var search: Viewer.SearchApi
     {
         .revealMatch        = func|view|(match, _) => view.revealOffset(match.offset, match.length)

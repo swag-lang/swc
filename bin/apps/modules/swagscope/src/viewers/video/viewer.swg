@@ -718,45 +718,66 @@ private impl Panel
         .informationAudio     = audio
         .informationSubtitles = subtitles
 
+        // The length and the picture size head the sheet; the window adds the size of the file.
         var data: MediaInfoData
+        let duration = .video.durationInSeconds()
+        if duration > 0 do
+            data.addFigure(.Duration, Viewer.durationText(duration))
         data.add(.Video, group: true)
         data.add(.Format, .video.streamFormat().name)
+        if .video.streamInfo().codecName.count do
+            data.add(.Codec, .video.streamInfo().codecName)
         data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()))
-        data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
+        if .video.displayWidth() != .video.width() or .video.displayHeight() != .video.height() do
+            data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
+        data.add(.AspectRatio, videoAspectRatio(.video.displayWidth(), .video.displayHeight()))
         let rate = .video.frameRate()
         data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()))
+        if rate.denominator() > 1 do
+            data.add(.ExactFrameRate, Format.toString("%/%", rate.numerator(), rate.denominator()))
         if frames do
             data.add(.Frames, Format.toString("%", frames))
-        if .video.durationInSeconds() > 0 do
-            data.add(.Duration, Viewer.durationText(.video.durationInSeconds()))
-        data.add(.Audio, Format.toString("%", audio))
-        data.add(.Subtitles, Format.toString("%", subtitles))
+        let bitrate = videoBitrate(.video.sourceSizeBytes(), duration)
+        if bitrate.count do
+            data.add(.Bitrate, bitrate)
+
+        // One row per track: its name, then what it is in mono. An undetermined language says nothing.
+        if audio do
+            data.add(.Audio, Format.toString("%", audio), group: true)
         for index in audio
         {
             let track = .video.audioTrack(index)
             if not track do
                 continue
-            data.add(.Audio, Format.toString("%", index + 1), group: true)
-            if track.displayName().count do
-                data.add(.Name, track.displayName())
-            if track.language().count do
-                data.add(.Language, track.language())
-            data.add(.Encoding, audioEncodingText(track.sampleEncoding()))
-            data.add(.SampleRate, Format.toString("% Hz", track.sampleRateHz()))
-            data.add(.Channels, Format.toString("%", track.numChannels()))
+            var measures: Array'String
+            let language = knownLanguage(track.language())
+            var name     = String.from(track.displayName())
+            if name.isEmpty() do
+                name = language.isEmpty() ? trackText(index + 1) : language
+            elif not language.isEmpty() do
+                measures.add(language)
+            measures.add(String.from(audioEncodingText(track.sampleEncoding())))
+            measures.add(Format.toString("% Hz", track.sampleRateHz()))
+            measures.add(channelsText(cast(u32, track.numChannels())))
+            data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
         }
 
+        if subtitles do
+            data.add(.Subtitles, Format.toString("%", subtitles), group: true)
         for index in subtitles
         {
             let track = .video.subtitleTrack(index)
             if not track do
                 continue
-            data.add(.Subtitles, Format.toString("%", index + 1), group: true)
-            if not track.name.isEmpty() do
-                data.add(.Name, track.name)
-            if not track.language.isEmpty() do
-                data.add(.Language, track.language)
-            data.add(.Format, subtitleFormatText(track.format))
+            var measures: Array'String
+            let language = knownLanguage(track.language)
+            var name     = String.from(track.name)
+            if name.isEmpty() do
+                name = language.isEmpty() ? trackText(index + 1) : language
+            elif not language.isEmpty() do
+                measures.add(language)
+            measures.add(String.from(subtitleFormatText(track.format)))
+            data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
         }
 
         .information = #move data
@@ -886,6 +907,8 @@ private impl Panel
         .subtitleTrackIndex  = 0
         .subtitleLastSeconds = -1
         .refreshChips()
+        .refreshInformation()
+        .refreshDetails()
     }
 
     // Writes on the chips what is in force: the subtitles, the sound track and the speed. A chip
@@ -1198,7 +1221,7 @@ private func runViewerDecode(view: *Panel)
 // Creates the integrated video playback view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
-    registerMediaInfoStrings(host.application())
+    registerMediaInfoStrings(&host.application().resources)
     catch
     {
         let view = try Panel.create(host)

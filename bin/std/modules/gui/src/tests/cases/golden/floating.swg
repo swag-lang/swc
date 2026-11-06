@@ -67,6 +67,32 @@ using Swag, Core, Pixel
     Pixel.Testing.assertImageGolden(&image, light ? "floating.sheet.paper" : "floating.sheet.ink")
 }
 
+// The technical page keeps its own quiet hierarchy beside the page arrow, in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 560, 400, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setTitle("Northbound.mp4")
+    sheet.setIdentity("Films / Northbound")
+    sheet.beginPage("Media")
+    sheet.addFact("8.1", "IMDb")
+    sheet.addText("A film crossing a long winter landscape.")
+    sheet.beginPage("Technical")
+    sheet.addSection("Video")
+    sheet.addReading("Format", "MPEG-4")
+    sheet.addReading("Dimensions", "1920 × 1080 px")
+    sheet.addReading("Frame rate", "23.98 fps")
+    sheet.addSection("Audio")
+    sheet.addReading("Encoding", "AAC")
+    sheet.addReading("Sample rate", "48000 Hz")
+    sheet.selectPage(1)
+    sheet.open()
+    var image = host.render()
+    Pixel.Testing.assertImageGolden(&image, "floating.sheet.technical.ink")
+}
+
 // The inspector, unfolded and folded, in Encre.
 #[Swag.TestTag("golden")]
 #test

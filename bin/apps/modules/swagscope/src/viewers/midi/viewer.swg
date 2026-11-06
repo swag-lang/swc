@@ -296,11 +296,32 @@ impl Panel
 }
 
 // Creates the integrated MIDI score view and connects it to the host.
+impl Panel
+{
+    // Describes the score in the information sheet: its length, tracks and notes, then its meter.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
+        data.addFigure(.Custom, trackCountText(.roll.lanes.count))
+        data.addFigure(.Custom, noteCountText(.roll.document.notes.count))
+        let meter = .roll.document.meterText()
+        if meter.count
+        {
+            data.add(.Music, group: true)
+            data.add(.Meter, meter)
+        }
+
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

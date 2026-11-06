@@ -1123,16 +1123,27 @@ impl ViewerWindow
     {
         if .explorer do
             .explorer.fitToSheet(open)
+        .layoutSearchBar()
     }
 
     // Describes what the window shows in the information sheet: the open file, or the item chosen
     // in the explored folder.
     mtd refreshInformation()
     {
+        let page = .infoSheet.pageIndex
         .infoSheet.clear()
-        if .isExploring()
+        if .isExploring() or (.currentFile.isEmpty() and .explorerActive and .explorer)
         {
-            .explorer!.describeSelection(.infoSheet)
+            let explorer = unwrap .explorer
+            if explorer.hasMediaSelection() do
+                .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
+            explorer.describeSelection(.infoSheet, includeTechnical: not explorer.hasMediaSelection())
+            if explorer.hasMediaSelection()
+            {
+                .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
+                explorer.describeSelectedTechnical(.infoSheet, labelled: false)
+                .infoSheet.selectPage(page)
+            }
             return
         }
 
@@ -1142,35 +1153,53 @@ impl ViewerWindow
             return
         }
 
-        let texts = appStrings()
+        // The viewer says what the file is about, its figures first; the window adds the size
+        // after them, then the file section with the viewer showing it.
+        let texts     = appStrings()
+        let described = .explorer and .explorer.describesFile(.currentFile)
+        let media     = described and .explorer!.hasMediaSelection()
+        if media do
+            .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
+        if described
+        {
+            .explorer!.describeSelection(.infoSheet, includeAction: false, includeTechnical: false, includeFile: false)
+        }
+        else
+        {
+            // A direct open has no explored selection to describe it.
+            let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
+            .infoSheet.setSubjectFile(path)
+            .infoSheet.setTitle(Path.fileName(path) orelse path)
+            .infoSheet.setIdentity(ViewerHome.folderText(path))
+        }
 
-        // The file is placed by its last folders, as the home names them; the whole path is
-        // one link away.
-        let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
-        .infoSheet.setTitle(Path.fileName(path) orelse path)
-        .infoSheet.setIdentity(ViewerHome.folderText(path))
+        let decodedMedia = .activeChoiceIndex < .choices.count and
+                           (.choices[.activeChoiceIndex].key == "video" or .choices[.activeChoiceIndex].key == "image")
+        if media
+        {
+            .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
+            if not decodedMedia do
+                .explorer!.describeSelectedTechnical(.infoSheet, includeFile: false, labelled: false)
+        }
 
-        // A size reads as a figure and its unit: the figure is what the reader came for.
-        let size  = .currentFileSize.toString()
-        let space = Utf8.lastIndexOf(size, " ")
-        if space != Swag.U64.Max do
-            .infoSheet.addFact(size[0 until space], size[space + 1 to])
-        elif size.count do
-            .infoSheet.addFact(size)
+        let instance = .activeChoiceIndex < .instances.count ? &.instances[.activeChoiceIndex] : null
+        if instance and instance.describeInformation do
+            instance.describeInformation(.infoSheet)
+        elif instance and instance.details.count do
+            .infoSheet.addText(instance.details)
 
+        addFigure(.infoSheet, .currentFileSize)
+        .infoSheet.addSection(texts.explore_FileProperties)
+        if described do
+            .explorer!.describeSelectedFile(.infoSheet)
         if .activeChoiceIndex < .choices.count
         {
             let plugin = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
             .infoSheet.addReading(texts.ui_Viewer, plugin.displayName(), mono: false)
         }
 
-        let details = .activeChoiceIndex < .instances.count ? .instances[.activeChoiceIndex].details.toString() : ""
-        if details.count do
-            .infoSheet.addText(details)
-
-        if .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].describeInformation do
-            .instances[.activeChoiceIndex].describeInformation!(.infoSheet)
-
+        if media do
+            .infoSheet.selectPage(page)
     }
 
     // Applies one choice of the search options and runs the search again under it.

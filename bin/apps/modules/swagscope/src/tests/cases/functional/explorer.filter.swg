@@ -23,6 +23,8 @@ using Core, Gui
     window.searchBox.setText("Alpha")
     Swag.require(explorer.shown.count == 1)
     window.toggleInformation()
+    Swag.require(window.searchBar.position.right() <= window.infoSheet.position.x)
+    Swag.require(window.searchBar.position.horzCenter() < bar.horzCenter())
     host.keyPress(.Escape)
     Swag.require(window.isExploring() and not window.searchShown)
     Swag.require(window.infoSheet.isLocallyVisible())
@@ -49,6 +51,35 @@ using Core, Gui
     Swag.require(window.isExploring() and not window.fullScreen)
     host.keyPress(.Escape)
     Swag.require(window.isExploring())
+}
+
+// The folder filter uses the same case, word and expression rules as document search.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false, width: 960, height: 640)
+    let explorer = unwrap window.explorer
+    for name in ["Alpha.txt", "alpha.md", "Alphabet.png", "Beta.txt"] do
+        explorer.entries.add({name: name, attempted: true})
+    showBoard(&host, window, "Documents", "Notes")
+    window.sendCommandEvent(ViewerCommands.Find)
+    Swag.require(window.searchOptionsButton.isLocallyVisible())
+    let menu = window.createSearchOptionsMenu()
+    Swag.require(menu.items.count == 3)
+    menu.destroy()
+
+    window.searchBox.setText("alpha")
+    Swag.require(explorer.shown.count == 3)
+    window.setSearchOption(ViewerCommands.MatchCase)
+    Swag.require(explorer.shown.count == 1)
+    window.setSearchOption(ViewerCommands.MatchCase)
+    window.setSearchOption(ViewerCommands.WholeWord)
+    Swag.require(explorer.shown.count == 2)
+    window.setSearchOption(ViewerCommands.RegularExpression)
+    window.searchBox.setText("^Alpha.*\\.txt$")
+    Swag.require(explorer.shown.count == 1)
+    window.searchBox.setText("(")
+    Swag.require(not window.searchBox.isValid() and explorer.shown.isEmpty())
 }
 
 // Resizing and opening the folder pane keep the same search bar centered on the document.

@@ -52,6 +52,29 @@ struct CodeLanguageSample
     Swag.require(view.lines.lineAt(fileName, 0) == 1)
 }
 
+// The whole file is counted in the background apart from the streamed window, so the sheet gives
+// its lines and how they end once the count arrives.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-ends-", ".cpp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int a;\r\nint b;\r\nint c;\r\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Code.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.statisticsLoad)
+    Swag.require(view.hasStatistics and view.statistics.crlf == 3)
+
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "3 lines\n"))
+    Swag.require(Utf8.contains(text, "Line ends\nCRLF"))
+    Swag.require(not Utf8.contains(text, "words"))
+}
+
 // The code zoom value keeps the shared information-band air outside its button frame.
 #test
 {

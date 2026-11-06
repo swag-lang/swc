@@ -1017,12 +1017,29 @@ impl Panel
 }
 
 // Creates the integrated sound playback and waveform view and connects it to the host.
+impl Panel
+{
+    // Describes the recording in the information sheet: its length, then how it is stored.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        if .duration > 0 do
+            data.addFigure(.Duration, durationText(.duration))
+        data.add(.Sound, group: true)
+        data.add(.SampleRate, Format.toString("% Hz", .sound.sampleRateHz()))
+        data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
+        data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
     host.setDetails(view.details)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     with var lifecycle: Viewer.LifecycleApi
     {

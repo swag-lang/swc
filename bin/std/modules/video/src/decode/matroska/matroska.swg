@@ -1889,12 +1889,14 @@ private impl Decoder
 
         if video.pictureKind() == PictureRealVideo
         {
+            .info.codecName = "RealVideo 4"
             let size = try RealVideo.configurationSize(video.videoConfiguration())
             .info.width  = size.width
             .info.height = size.height
         }
         elif video.pictureKind() == PictureMpeg4
         {
+            .info.codecName = "MPEG-4 Part 2"
             // The setup headers state the geometry outright.
             var probe: Mpeg4.Decoder
             try probe.configure(video.videoConfiguration())
@@ -1903,6 +1905,7 @@ private impl Decoder
         }
         elif video.isHevcVideo()
         {
+            .info.codecName = "H.265 / HEVC"
             // The stream answers its own geometry, so the parameter sets are read once here and
             // once more when the sample table exists.
             var probe: Hevc.HevcStream
@@ -1914,6 +1917,7 @@ private impl Decoder
         }
         else
         {
+            .info.codecName = "H.264 / AVC"
             var probe: H264.Decoder
             try probe.configure(video.codecPrivate.toSlice())
             let sps = probe.firstSps()

@@ -112,7 +112,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.places[0].y > grid.albumCover.bottom())
     Swag.require(grid.places[0].width > grid.albumText.width)
     Swag.require(grid.albumText.right() <= grid.clientRect().width)
-    Swag.require(Math.abs(window.searchBar.position.horzCenter() - window.documentArea().horzCenter()) < 1)
+    Swag.require(window.searchBar.position.right() <= window.infoSheet.position.x)
+    Swag.require(window.searchBar.position.horzCenter() < window.documentArea().horzCenter())
     Swag.require(grid.playButton!.text() == appStrings().explore_Play)
     Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.AlbumPlay).hidden)
     host.settleAnimations(window)
@@ -233,7 +234,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     Swag.require(grid.posters and grid.tile.y > grid.tile.x)
     Swag.require(window.infoSheet.beside and
                  Utf8.contains(window.infoSheet.text(), "1982") and
-                 Utf8.contains(window.infoSheet.text(), "1:57"))
+                 Utf8.contains(window.infoSheet.text(), "1 h 57"))
     Swag.require(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "explorer.films.paper")

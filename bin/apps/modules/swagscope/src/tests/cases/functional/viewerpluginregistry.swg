@@ -83,6 +83,38 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     }
 }
 
+// Every document viewer describes its current file through the one application information sheet.
+// Archives enter Explorer directly and are covered by its selection information tests.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    let registry = createViewerPluginRegistry()
+    for plugin in registry.plugins where plugin.key != "archive"
+    {
+        let file = viewerRegistryFixturePath(plugin.smokeFixture)
+        var host: Testing.HeadlessHost
+        let window = framedViewerWindow(&host, file, false)
+        Swag.require(window.choices.count != 0, plugin.key.toString())
+        for choice, index in window.choices where choice.key == plugin.key
+        {
+            window.selectViewer(cast(u32, index))
+            completeQueuedViewerFile(&host, window)
+            break
+        }
+
+        Swag.require(window.choices[window.activeChoiceIndex].key == plugin.key)
+        window.toggleInformation()
+        let information = window.infoSheet.text()
+        Swag.require(window.infoSheet.isLocallyVisible())
+        Swag.require(Utf8.contains(information, plugin.displayName()))
+        Swag.require(Utf8.contains(information, plugin.smokeFixture.toString()))
+        Swag.require(window.infoSheet.action == null and window.infoSheet.secondary == null)
+        window.closeInformation()
+    }
+}
+
 #test
 {
     let registry = createViewerPluginRegistry()

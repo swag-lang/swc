@@ -4,6 +4,36 @@ const StepperWidth = 88.0
 // The most recent captures the lens shows as pictures.
 const MaxLensRecents = 6
 
+// Register each command once; the lens and its optional application menu use the same entries.
+const CaptureModeIds = [ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd]
+const CaptureDelayIds = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay1, ActionCaptureDelay.Delay2, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay9]
+const CaptureOptionIds = [ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard]
+const FileStartIds = [ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage]
+const FileLinkedIds = [ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage]
+const FileCaptureIds = [ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
+                        ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails]
+const EditHistoryIds = [ActionUndo.DoUndo, ActionUndo.DoRedo]
+const EditClipboardIds = [ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste, ActionCopyPaste.Duplicate]
+const EditObjectIds = [ActionSelection.DeleteSelection, ActionEdit.EditText, ActionEdit.Bold, ActionEdit.Italic,
+                       ActionEdit.ResetSteps, ActionCopyPaste.PasteImageInside, ActionEdit.ClearImageInside]
+const EditorSelectionIds = [ActionSelection.SelectAll, ActionSelection.SelectSameAll, ActionSelection.DeSelectAll,
+                            ActionSelection.InvertSelection, ActionGroup.Group, ActionGroup.Ungroup,
+                            ActionEdit.ResetRotation, ActionSelection.Freeze, ActionSelection.Snap]
+const PixelSelectionIds = [ActionPixSel.Fill, ActionPixSel.SmartFill, ActionPixSel.Clear, ActionPixSel.SmartMove]
+const AlignMenuIds = [ActionAlign.AlignLeft, ActionAlign.AlignCenter, ActionAlign.AlignRight,
+                      ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom]
+const ArrangeMenuIds = [ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward]
+const ImageGeometryIds = [ActionImage.RestoreOrg, ActionImage.ResizeImage, ActionImage.ExpandImage,
+                          ActionImage.ExpandCapture, ActionImage.TrimCapture]
+const ImageFlattenIds = [ActionFlatten.Flatten, ActionFlatten.FlattenAll]
+const ImageTransformIds = [ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft]
+const ToolMenuIds = [ActionToolMode.Selection, ActionToolMode.Shape, ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
+                     ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight, ActionToolMode.Step,
+                     ActionToolMode.Img, ActionToolMode.PixSel, ActionToolMode.Favorites, ActionQuickStyle.Reset]
+const ViewPanelIds = [ActionView.Inspector, ActionView.Recent]
+const ViewZoomIds = [ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit]
+const RecentSizeIds = [ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig]
+
 // Paints the preview of a recent capture into a picture of the lens, filling it.
 func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
 {
@@ -690,7 +720,7 @@ impl MainWnd
     }
 
     // Writes the foot line: what the tool in hand does, the key of the inspector while it is
-    // folded, and the one door.
+    // folded, and the searchable lens.
     mtd fillHintLine()
     {
         if .hintLine == null do
@@ -801,49 +831,58 @@ impl MainWnd
                 if main.libraryMode do
                     main.libWnd.describeLens(results)
             })
-            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
-            .addCommands(func()->string => appStrings().ui_MenuCapture, [
-                ActionCapture.DoIt, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd])
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area,
+                        func()->string => appStrings().search_Capture)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
-            .addCommands(func()->string => appStrings().ui_MenuCapture, [
-                ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay1, ActionCaptureDelay.Delay2, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay9,
-                ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard])
-            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
-            .addCommands(func()->string => appStrings().ui_MenuFile, [
-                ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage,
-                ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage,
-                ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
-                ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails])
-            .addCommands(func()->string => appStrings().ui_MenuEdit, [
-                ActionUndo.DoUndo, ActionUndo.DoRedo, ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste,
-                ActionCopyPaste.Duplicate, ActionSelection.DeleteSelection, ActionEdit.EditText,
-                ActionEdit.Bold, ActionEdit.Italic, ActionEdit.ResetSteps,
-                ActionCopyPaste.PasteImageInside, ActionEdit.ClearImageInside,
-                ActionSelection.SelectAll, ActionSelection.SelectSameAll, ActionSelection.DeSelectAll, ActionSelection.InvertSelection,
-                ActionGroup.Group, ActionGroup.Ungroup, ActionEdit.ResetRotation, ActionSelection.Freeze, ActionSelection.Snap,
-                ActionPixSel.Fill, ActionPixSel.SmartFill, ActionPixSel.Clear, ActionPixSel.SmartMove])
-            .addCommands(func()->string => appStrings().ui_MenuAlign, [
-                ActionAlign.AlignLeft, ActionAlign.AlignCenter, ActionAlign.AlignRight,
-                ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom])
-            .addCommands(func()->string => appStrings().ui_MenuArrange, [
-                ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward])
-            .addCommands(func()->string => appStrings().ui_MenuImage, [
-                ActionCopyPaste.CopyAsImage, ActionImage.RestoreOrg, ActionImage.ResizeImage, ActionImage.ExpandImage,
-                ActionImage.ExpandCapture, ActionImage.TrimCapture, ActionFlatten.Flatten, ActionFlatten.FlattenAll,
-                ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft])
-            .addCommands(func()->string => appStrings().lens_Tools, [
-                ActionToolMode.Selection, ActionToolMode.Shape, ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
-                ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight, ActionToolMode.Step,
-                ActionToolMode.Img, ActionToolMode.PixSel, ActionToolMode.Favorites, ActionQuickStyle.Reset])
-            .addCommands(func()->string => appStrings().ui_MenuView, [
-                ActionView.Inspector, ActionView.Recent, ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit,
-                ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig, ActionView.Clip])
-            .addCommand(func()->string => appStrings().act_Library, ActionGlobal.ShowLibrary, func()->string => appStrings().search_Library)
-            .addCommands(func()->string => strings().lens_Application, [ActionOptions.Options, ActionGlobal.Minimize, ActionGlobal.Exit])
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds,
+                         menuGroup: func()->string => appStrings().act_DelayBefore)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds,
+                         menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
+            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage,
+                        func()->string => appStrings().search_Export)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileStartIds)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds,
+                         menuGroup: func()->string => appStrings().ui_MenuLinkedImage)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileCaptureIds,
+                         menuGroup: func()->string => appStrings().ui_MenuCaptureFile)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditHistoryIds)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditClipboardIds, menuSection: 1)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditObjectIds,
+                         menuGroup: func()->string => appStrings().ui_MenuObject)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditorSelectionIds,
+                         menuGroup: func()->string => appStrings().lens_Selection)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, PixelSelectionIds, inMenu: false)
+            .addCommands(func()->string => appStrings().ui_MenuAlign, AlignMenuIds,
+                         menuFamily: func()->string => appStrings().ui_MenuEdit,
+                         menuGroup: func()->string => appStrings().ui_MenuAlign)
+            .addCommands(func()->string => appStrings().ui_MenuArrange, ArrangeMenuIds,
+                         menuFamily: func()->string => appStrings().ui_MenuEdit,
+                         menuGroup: func()->string => appStrings().ui_MenuArrange)
+            .addCommand(func()->string => appStrings().ui_MenuImage, ActionCopyPaste.CopyAsImage)
+            .addCommands(func()->string => appStrings().ui_MenuImage, ImageGeometryIds, menuSection: 1)
+            .addCommands(func()->string => appStrings().ui_MenuImage, ImageFlattenIds, menuSection: 2)
+            .addCommands(func()->string => appStrings().ui_MenuImage, ImageTransformIds, menuSection: 3)
+            .addCommands(func()->string => appStrings().lens_Tools, ToolMenuIds, inMenu: false)
+            .addCommands(func()->string => appStrings().ui_MenuView, ViewPanelIds)
+            .addCommand(func()->string => appStrings().act_Library, ActionGlobal.ShowLibrary,
+                        func()->string => appStrings().search_Library,
+                        menuFamily: func()->string => appStrings().ui_MenuView)
+            .addCommands(func()->string => appStrings().ui_MenuView, ViewZoomIds, menuSection: 1)
+            .addCommands(func()->string => appStrings().lens_Recent, RecentSizeIds, inMenu: false)
+            .addCommand(func()->string => appStrings().ui_MenuView, ActionView.Clip, inMenu: false)
+            .addCommand(func()->string => strings().lens_Application, ActionOptions.Options)
+            .addCommand(func()->string => strings().lens_Application, ActionGlobal.Minimize, inMenu: false)
         }
 
         .appearanceButton.addToLens(.lens)
+        with .lens
+        {
+            .addCommand(func()->string => strings().lens_Application, ActionAbout.About, menuSection: 2)
+            .addCommand(func()->string => strings().lens_Application, ActionGlobal.Exit, menuSection: 3)
+        }
     }
 
     // Keeps the capture and output actions in stable positions while a selection changes.

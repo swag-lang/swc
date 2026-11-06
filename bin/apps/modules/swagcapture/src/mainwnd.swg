@@ -120,6 +120,7 @@ struct MainWnd
         zoomReading:         *IconButton
         toast:               *Toast
         lens:                *Lens.View
+        menuLauncher:        *Lens.Launcher
         quickWnd:            *QuickWnd
         propWnd:             *PropWnd
         libWnd:              *LibraryWnd
@@ -1019,7 +1020,7 @@ impl MainWnd
         .registerKeyShortcut(.None, .X, ActionToolMode.PixSel)
         .registerKeyShortcut(.None, .F, ActionToolMode.Favorites)
 
-        // The one door is a chord so Space remains available to the work and to text fields.
+        // The searchable lens keeps its chord so Space remains available to the work and text fields.
         .registerKeyShortcut(.Control, .Space, ActionView.Lens)
         .registerKeyShortcut(.None, .I, ActionView.Inspector)
 
@@ -1149,7 +1150,7 @@ impl MainWnd
             .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
             .createLens()
-            Lens.Launcher.create(result, ActionView.Lens)
+            .menuLauncher = Lens.Launcher.createMenu(result, .lens)
             .updateReading()
             .updateState()
         }

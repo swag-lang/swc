@@ -33,6 +33,7 @@ struct ExplorerEntry
     excerpt:       String
     movie:         MovieSummary
     music:         MusicSummary
+    technical:     MediaInfoData     // Readings carried by a decoded thumbnail, when available.
     attempted:     bool
     onlinePending: bool
 }

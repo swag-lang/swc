@@ -365,7 +365,17 @@ AstNodeRef Parser::parseCast()
 {
     const TokenRef   tknOp         = expectAndConsume(TokenId::KwdCast, DiagnosticId::parser_err_expected_token_before);
     AstModifierFlags modifierFlags = parseModifiers();
-    const TokenRef   openRef       = ref();
+
+    // 'cast' only opens a conversion. Followed by anything else, as in 'cast.field' or
+    // 'cast + 1', it stands where a name was meant: report that once and read it as a name, so
+    // the member access or operator after it parses without a cascade of delimiter errors.
+    if (isNot(TokenId::SymLeftParen))
+    {
+        raiseError(DiagnosticId::parser_err_keyword_cast_as_name, tknOp);
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Identifier>(tknOp);
+        return nodeRef;
+    }
+    const TokenRef openRef = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 

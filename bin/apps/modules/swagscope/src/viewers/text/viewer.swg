@@ -977,11 +977,28 @@ impl Panel
 }
 
 // Creates the streamed plain-text view.
+impl Panel
+{
+    // Describes the text in the information sheet: its lines, words and characters once they are
+    // counted for the encoding in force, then that encoding and how its lines end. Where the
+    // cursor stands is a reading of the foot of the document, not of the file.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        data.add(.Text, group: true)
+        data.add(.Encoding, .encodingName())
+        if .hasStatistics and .statisticsEncoding == .encoding and .statisticsStart == .contentStart do
+            data.addTextStatistics(&.statistics)
+        data.describe(sheet)
+    }
+}
+
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
     host.setDetails(view.detailsText())
+    host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
     with var search: Viewer.SearchApi
     {

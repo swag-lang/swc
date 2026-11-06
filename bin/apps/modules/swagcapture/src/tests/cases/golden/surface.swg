@@ -124,6 +124,234 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, dark ? "tasks.frame.encre" : "tasks.frame.fr.papier")
 }
 
+// The caption glyph opens the generated application menu beside the mark in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        let menu = host.capturedPopupMenu()
+        Swag.require(menu and menu.items.count > 0)
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.root.encre")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// Common capture actions stay one click from the root; the long settings get separate branches.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.capture.encre")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// A nested capture choice stays within the window in Papier and keeps each menu level legible.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
+        Swag.require(host.openPopupSubMenu(appStrings().act_DelayBefore))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.delay.papier")
+        Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay0))
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// Image operations use direct rows with one section break, without another popup level.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuImage))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.image.papier")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// The View family holds the current surface and zoom actions without old recent-strip sizes.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuView))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.view.encre")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// The shared application menu offers each theme directly as an exclusive choice.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
+        Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Theme))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.theme.encre")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
+// The language submenu lists the system choice and every registered language in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
+        Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Language))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.language.papier")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
 // Right-clicking a selection opens the editor's contextual actions in Encre.
 #[Swag.TestTag("golden")]
 #test

@@ -422,34 +422,102 @@ func validWikiId(id: string)->bool
     return id[1] != '0'
 }
 
+// Returns the year `word` writes when a film can have been released in it, or zero.
+private func movieYear(word: string)->u32
+{
+    if word.count != 4 do
+        return 0
+    for c in word where not Latin1.isDigit(c) do
+        return 0
+    let year = cast(u32, word[0] - '0') * 1000 + cast(u32, word[1] - '0') * 100 + cast(u32, word[2] - '0') * 10 + cast(u32, word[3] - '0')
+    return year >= 1888 and year <= 2099 ? year : 0
+}
+
+// Reports whether `word` is a tag a release name adds after the title: a resolution, a source or
+// a codec.
+private func isReleaseTag(word: string)->bool
+{
+    const Tags = ["480p", "576p", "720p", "1080p", "1080i", "2160p", "4k", "uhd", "hdr", "bluray", "brrip", "bdrip",
+                  "dvdrip", "webrip", "web-dl", "webdl", "hdtv", "remux", "x264", "x265", "h264", "h265", "hevc", "xvid"]
+    let lower = String.toLower(word)
+    for tag in Tags where lower == tag do
+        return true
+    return false
+}
+
 impl MovieQuery
 {
+    // Reads the title and the year a film's file name gives, as release names write them:
+    // `Blade Runner (1982)`, `Blade.Runner.1982.Final.Cut.1080p` or `Blade_Runner_1080p`.
+    //
+    // Dots, underscores, spaces and brackets separate the words. The title runs until the year:
+    // the last one that stands in brackets, before more words, or at the end of the name when it
+    // is already past, so `Blade Runner 2049` and `Blade Runner 2049 (2017)` keep their number.
+    // Without a year the title runs until the first release tag, such as `1080p`.
     func fromFile(path: string)->MovieQuery
     {
         let stem = Path.fileNameWithoutExtension(path) orelse ""
-        var result: #returntype
-        var end  = stem.count
-        if stem.count >= 6
+        var words:     Array'String
+        var bracketed: Array'bool
+        var word:      String
+        var depth      = 0
+        for byte in stem
         {
-            for index in 0 until stem.count - 5
+            let opens  = byte == '(' or byte == '['
+            let closes = byte == ')' or byte == ']'
+            if opens or closes or byte == '.' or byte == '_' or byte == ' '
             {
-                if stem[index] != '(' or stem[index + 5] != ')' do
-                    continue
-                var valid = true
-                for at in index + 1 until index + 5 where not Latin1.isDigit(stem[at]) do
-                    valid = false
-                if valid
+                if word.length
                 {
-                    result.year = stem[index + 1 until index + 5]
-                    end         = index
-                    break
+                    words.add(word)
+                    bracketed.add(depth > 0)
+                    word.clear()
                 }
+
+                if opens do
+                    depth += 1
+                elif closes and depth > 0 do
+                    depth -= 1
+                continue
+            }
+
+            word.append(byte)
+        }
+
+        if word.length
+        {
+            words.add(word)
+            bracketed.add(depth > 0)
+        }
+
+        var result: #returntype
+        var end      = words.count
+        let thisYear = cast(u32, Time.DateTime.now().year)
+        for index in 1 until words.count
+        {
+            let year = movieYear(words[index])
+            if not year or not (bracketed[index] or index + 1 < words.count or year <= thisYear) do
+                continue
+            end         = index
+            result.year = words[index]
+        }
+
+        if result.year.isEmpty()
+        {
+            for index in 1 until words.count where isReleaseTag(words[index])
+            {
+                end = index
+                break
             }
         }
 
-        for byte in stem[0 until end] do
-            result.title.append(byte == '.' or byte == '_' ? ' 'u8 : byte)
-        result.title = Latin1.trim(result.title.toString())
+        for index in end
+        {
+            if result.title.length do
+                result.title += " "
+            result.title += words[index]
+        }
+
         return result
     }
 

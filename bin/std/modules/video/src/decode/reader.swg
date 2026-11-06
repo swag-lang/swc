@@ -323,6 +323,9 @@ impl Reader
     // Returns the file the reader streams, or an empty string for a memory stream.
     mtd const sourcePath()->string => .source.path()
 
+    // Returns the encoded stream size in bytes, including its container and every track.
+    mtd const sourceSizeBytes()->u64 => .source.size()
+
     // Returns the frame width, in pixels.
     mtd const width()->s32 => .info.width
 

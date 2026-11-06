@@ -214,7 +214,7 @@ struct ThemeMetrics
         infoSheet_Padding:       f32 = 28      // Air between the edge of an information sheet and what it holds.
         infoSheet_TitleFontSize: u32 = 21      // Size of the title of an information sheet.
         infoSheet_FactFontSize:  u32 = 28      // Size of a fact the reader came for.
-        infoSheet_LabelWidth:    f32 = 96      // Width of the label column of the readings.
+        infoSheet_LabelWidth:    f32 = 108     // Width of the label column of the readings.
         infoSheet_LineHeight:    f32 = 24      // Pitch of a reading.
         infoSheet_BlockGap:      f32 = 16      // Air between two blocks of an information sheet.
         infoSheet_LineGap:       f32 = 4       // Air under the title, and under a paragraph.

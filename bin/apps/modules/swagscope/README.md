@@ -100,7 +100,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   other extensions and common exact file names declared by the registry. An otherwise unregistered
   script with a shebang is recognized from its first line. Swag vocabulary follows the compiler's
   current keywords, intrinsics, directives, and modifiers. A gutter numbers the lines of the whole
-  file, including a window streamed from deep inside a long one. HTML keeps its rendered viewer first
+  file, including a window streamed from deep inside a long one. A background pass counts the
+  lines of the whole file and how they end for the information sheet. HTML keeps its rendered viewer first
   and offers Code as the source alternative. Its zoom uses the same percentage
   menu and keyboard gestures as the other text readers. Code reads in a centered column of at most
   900 pixels, and Basic text as prose: a 680-pixel column of the body face at 16 on a 29 pitch.
@@ -141,7 +142,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   orientation its camera recorded asks, in the viewer and in its thumbnail. Ctrl+C, or Copy image in
   the orientation menu, puts the upright picture on the clipboard. PSD layer effects and masks are not rendered;
   unsupported compression and image layouts report a decoder error. Its centered lower group
-  provides sibling navigation, orientation commands, and playback. The clickable
+  provides sibling navigation, orientation commands, and playback. A picture played once keeps that group
+  on screen; in the modes that move on to the next file, it comes with the pointer. The clickable
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,

@@ -62,3 +62,4 @@ SWC_DIAG_DEF(parser_err_bare_scope, Error, "a '{' cannot open a scope by itself;
 SWC_DIAG_DEF(parser_err_catch_else, Error, "'catch' does not accept 'else'; [help] write 'orelse <value>' for a replacement value, or put a handler block directly after the operand; a catch statement also accepts 'do <statement>'")
 SWC_DIAG_DEF(parser_err_discard_list_not_variable, Error, "a 'discard' list can only hold variable names; [help] discard this expression with its own 'discard'")
 SWC_DIAG_DEF(parser_err_simd_expected_array, Error, "'#simd' needs a fixed-size array type; [help] write the vector shape as '#simd [16] u8', '#simd [4] f32', or another 16-byte form")
+SWC_DIAG_DEF(parser_err_keyword_cast_as_name, Error, "keyword 'cast' cannot name a value; [help] rename the value, or write 'cast(Type, value)' to convert one")

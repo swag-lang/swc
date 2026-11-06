@@ -73,7 +73,13 @@ struct AppStrings
     explore_OneItem:           string = "1 item"                                  // Exploration control or status.
     explore_Count:             string = "% items"                                 // Exploration control or status.
     explore_ArchiveSummary:    string = "% · % compressed · % once extracted"     // Contents of an archive: its count, its packed and its extracted weight.
-    explore_Compression:       string = "Compression"                             // Reading of how much an archive member packed.
+    explore_Compression:       string = "Compression"                             // Reading of how an archive member was packed.
+    explore_Archive:           string = "Archive"                                 // Section of the sheet describing how an archive member is stored.
+    explore_Compressed:        string = "Packed"                                  // Reading of what an archive member weighs in its archive.
+    explore_Stored:            string = "Stored, not compressed"                  // Compression of an archive member kept as it was.
+    explore_Deflated:          string = "Deflate"                                 // Compression of an archive member packed with Deflate.
+    explore_OnlineOff:         string = "Online details are off."                 // Footnote of a film's sheet while online lookups are off.
+    explore_TurnOn:            string = "Turn On"                                 // Link of that footnote, turning online movie lookups on.
     explore_Extracted:         string = "% files extracted"                       // Toast after an extraction from an archive.
     explore_ExtractedOne:      string = "1 file extracted"                        // Toast after extracting one file from an archive.
     explore_ExtractedKept:     string = "%, % already there kept"                 // Toast after an extraction that left files already in the folder as they were.
@@ -304,6 +310,7 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
     // The file name here becomes `lang/<tag>/scope.tweak`, which must be the exact resource
     // name published above: a mismatch does not fail, it silently shows English.
     Gui.registerStrings'AppStrings(&g_AppStrings, "scope")
+    registerMediaInfoStrings(bundle)
     Gui.Properties.setTextResolver(&resolveScopePropertyText)
 }
 

@@ -272,12 +272,17 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
     return Result::Error;
 }
 
-Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef)
+Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef, TypeRef pointeeTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_LEFT, leftTypeRef);
     diag.addArgument(Diagnostic::ARG_RIGHT, rightTypeRef);
     addTypedOperandSpan(sema, diag.last(), nodeValueRef);
+    if (pointeeTypeRef.isValid())
+    {
+        diag.addElement(DiagnosticId::sema_help_dereference_pointer_operand);
+        diag.addArgument(Diagnostic::ARG_TYPE, pointeeTypeRef);
+    }
 
     diag.report(sema.ctx());
     return Result::Error;

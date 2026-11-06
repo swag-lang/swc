@@ -174,6 +174,19 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.require(validWikiId("Q184843") and not validWikiId("Q1/../other"))
     let query = MovieQuery.fromFile("D:/Films/Blade.Runner (1982).mkv")
     Swag.require(query.title == "Blade Runner" and query.year == "1982")
+
+    // Release names: the title stops at the year, or at the first tag without one; a number that
+    // ends the name and is still to come, or that starts it, belongs to the title.
+    let release = MovieQuery.fromFile("Blade.Runner.1982.Final.Cut.1080p.mkv")
+    Swag.require(release.title == "Blade Runner" and release.year == "1982")
+    let sequel = MovieQuery.fromFile("Blade_Runner_2049_[2017]_2160p.mkv")
+    Swag.require(sequel.title == "Blade Runner 2049" and sequel.year == "2017")
+    let tagged = MovieQuery.fromFile("Heat.1080p.BluRay.x264.mkv")
+    Swag.require(tagged.title == "Heat" and tagged.year.isEmpty())
+    let numbered = MovieQuery.fromFile("Space Station 2099.mkv")
+    Swag.require(numbered.title == "Space Station 2099" and numbered.year.isEmpty())
+    let leading = MovieQuery.fromFile("2001.A.Space.Odyssey.1968.mkv")
+    Swag.require(leading.title == "2001 A Space Odyssey" and leading.year == "1968")
     let json   = """{"query":{"pages":[{"title":"Blade Runner","description":"1982 film","pageprops":{"wikibase_item":"Q1"}},{"title":"Blade Runner (film)","description":"1982 film","pageprops":{"wikibase_item":"Q2"}}]}}"""
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let search = expect decoder.readAll'MovieSearch(cast(const [..] u8, json))

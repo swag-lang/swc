@@ -323,6 +323,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Ten public integration cases pass JIT/native for cancellation, repeated close, timeout continuity,
   filtering, recursive rename paths, subtree gaps, move-out expiry/name reuse, ancestor/root removal
   and link exclusion. Recursive fixture setup now explicitly requests parent creation.
+  Broader common coverage now passes 40 ordinary filesystem/path/stream/mapping cases and
+  four tagged watcher cases in JIT/native. This includes file mutation, text decoding,
+  mapped ownership, SCC and cancellation; Windows-only directory/junction cases remain
+  outside this Linux run.
 - Additional Linux services: `Directory.isRemote` identifies the mounted filesystem through the
   descriptor mount ID, follows links and resolves the nearest existing ancestor. Fixtures cover
   network filesystem names; actual NFS/SMB mounts remain untested. `Directory.freeSpace` uses

@@ -343,4 +343,33 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         }
     }
     Swag.require(areaPresented, "the selected area never reached the native editor surface")
+
+    // Cancelling the next overlay must return to the existing capture and release its surface.
+    var cancelled = false
+    var cancelFrames: u32
+    g_App.sigFrame += func|cancelled = &cancelled, cancelFrames = &cancelFrames|(_)
+    {
+        cancelFrames[] += 1
+        for candidate in g_App.surfaces
+        {
+            if candidate.view() is CaptureRectWnd as overlay
+            {
+                var key = Gui.KeyEvent{kind: .Pressed, key: .Escape, modifiers: .None}
+                overlay.sendEvent(&key)
+                cancelled[] = true
+                return
+            }
+        }
+
+        if cancelFrames[] > 100 do
+            g_Exit = true
+    }
+
+    main.sendCommandEvent(ActionCapture.Area)
+    g_App.sigFrame.clear()
+    Swag.require(cancelled and main.editWnd.getCapture() == area)
+    for 8 do
+        g_App.runFrame()
+    Swag.require(g_App.surfaces.count == 1)
+    Swag.require(expect Gui.Testing.verifyNativePresentation(surface))
 }

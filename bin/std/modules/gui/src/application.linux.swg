@@ -230,9 +230,24 @@ impl Application
                 break
             defer Linux.free(event)
             let kind = event.response_type & 0x7F
-            if kind == 34 or (context.xkbEventBase != 0 and kind == context.xkbEventBase and event.pad0 <= 1)
+            if kind == 34 or (context.xkbEventBase != 0 and kind == context.xkbEventBase and event.pad0 <= 2)
             {
-                discard LinuxDesktop.refreshKeyboardMap(context)
+                var changed: bool
+                if kind == 34 or event.pad0 <= 1
+                {
+                    changed = LinuxDesktop.refreshKeyboardMap(context)
+                }
+                else
+                {
+                    let state = cast(*Linux.xcb_xkb_state_notify_event_t, cast(*void, event))
+                    changed = state.changed & 0xF0 != 0
+                }
+
+                if changed
+                {
+                    for owned in context.surfaces do
+                        owned.app.notifyKeyboardLayoutChanged(owned.wnd)
+                }
                 continue
             }
 

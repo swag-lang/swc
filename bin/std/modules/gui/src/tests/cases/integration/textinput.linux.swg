@@ -36,8 +36,14 @@ func runTextInputPeer(script, mode, saved: string)
     var characters: String
     var presses, releases: Array'Input.Key
     var letterPressModifiers, letterCharacterModifiers: Array'Input.KeyModifiers
-    surface.wnd.view.hookOnEvent = func|&characters, &presses, &releases, &letterPressModifiers, &letterCharacterModifiers|(_, event)->bool
+    var layoutChanges: u32
+    surface.wnd.view.hookOnEvent = func|&characters, &presses, &releases, &letterPressModifiers, &letterCharacterModifiers, &layoutChanges|(_, event)->bool
     {
+        if event is NotifyEvent as notice where notice.kind == .KeyboardLayoutChanged
+        {
+            layoutChanges += 1
+            return false
+        }
         if event is KeyEvent as key
         {
             if key.kind == .Character
@@ -65,6 +71,7 @@ func runTextInputPeer(script, mode, saved: string)
     for mode in ["send", "remap", "held-remap", "repeat", "modifiers"]
     {
         let priorCharacterCount = characters.count
+        let priorLayoutChanges = layoutChanges
         var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), mode, saved.toString(), id.toString()],
                                                          standardOutput: .Pipe, standardError: .Pipe})
         defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
@@ -102,6 +109,7 @@ func runTextInputPeer(script, mode, saved: string)
                          presses[presses.count - 2] == .LControl and
                          presses.back() == .A)
             Swag.require(releases.count == presses.count)
+            Swag.require(layoutChanges == priorLayoutChanges, "modifier-only changes notified a new keyboard layout")
         }
         elif mode == "repeat"
         {
@@ -129,6 +137,8 @@ func runTextInputPeer(script, mode, saved: string)
     defer runTextInputPeer(script.toString(), "group-restore", saved.toString())
     for 8 do
         app.runFrame()
+    Swag.require(layoutChanges > 0, "XKB keymap replacement did not notify the surface")
+    let changesBeforeGroupSwitch = layoutChanges
     let countBeforeGroups = characters.count
     let pressesBeforeGroups = presses.count
     var groupPeer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
@@ -149,4 +159,5 @@ func runTextInputPeer(script, mode, saved: string)
     Swag.require(presses.count == pressesBeforeGroups + 2 and releases.count == presses.count)
     Swag.require(presses[presses.count - 2] == .Y and presses.back() == .Y and
                  releases[releases.count - 2] == .Y and releases.back() == .Y)
+    Swag.require(layoutChanges >= changesBeforeGroupSwitch + 2, "XKB group switches did not notify the surface")
 }

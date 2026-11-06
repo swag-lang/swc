@@ -621,15 +621,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   An independent XKB client installs US+DE groups and locks each in turn. The same physical
   Y key produces `z` then `y` while retaining its Y transition identity in JIT/native;
   the fixture restores the server's original keymap and layout property.
+  XKB map and group changes now emit the separate portable KeyboardLayoutChanged notification
+  to active surfaces; modifier-only state changes do not. The independent layout fixture
+  validates this in JIT/native.
   The existing XTEST keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
   these are protocol tests, not normalized input routing or real-device key transitions.
-- Next: validate layout-dependent shortcuts and full input-language changes
-  through portable keyboard events.
+- Next: validate layout-dependent shortcuts and input-method transitions beyond XKB groups.
 - Related: platform.portability.050, platform.portability.085, platform.portability.054
-- Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
+- Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable GUI events, with tests covering key-down/up, repeated keys, and text input independently.
 
 ### platform.portability.056 — No second-platform system-theme notifications
 
@@ -681,8 +683,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.085 — Input-language changes are ignored
 
 - Owner: std/gui
-- Evidence: `gui/src/surface.win32.swg` handles key and character messages but has no `WM_INPUTLANGCHANGE` route.
-- Next: handle the platform input-language notification and update keyboard-layout-dependent state.
+- Progress: Gui.NotifyEvent.Kind.KeyboardLayoutChanged is separate from LanguageChanged, which
+  belongs to application string tables. Windows WM_INPUTLANGCHANGE now forwards the notification
+  through its surface tree. Linux XKB map and group changes notify active surfaces; a native
+  US+DE layout switch checks the event and distinct physical key/text in JIT/native. Windows
+  syntax passes, but Windows semantic analysis on the Linux compiler host stops in the existing
+  runtime log/logf foreign-library JIT gate before reaching Gui.
+- Next: validate the Windows message with a native layout-switch integration test and define
+  input-method transitions beyond keyboard groups.
 - Related: platform.portability.049
 - Done when: A Windows input-language change updates layout-dependent keyboard state before the next key event, keeps key identity distinct from produced text, and is covered by a layout-switch integration test.
 

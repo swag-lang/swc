@@ -235,6 +235,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             surface.app.refreshSystemAppearance()
             return 0
 
+        case WM_INPUTLANGCHANGE:
+            surface.app.notifyKeyboardLayoutChanged(surface.wnd)
+            break
+
         case WM_ERASEBKGND:
             return 0
 

@@ -356,9 +356,9 @@ internal func initializeKeyboard(context: *Context) fail
     let connection = unwrap context.connection
     if context.xkb_x11_setup_xkb_extension(connection, 1, 0, 0, null, null, &context.xkbEventBase, null) == 0 do
         fail Swag.SystemError{"X11 keyboard extension is unavailable"}
-    // XKB clients do not receive ordinary MappingNotify until they select XKB map updates.
-    // Map parts 0xff cover key types, symbols, modifiers, actions and virtual modifiers.
-    try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 3, 0, 3, 0xff, 0xff, null))
+    // Subscribe to new keyboards, map updates and group state changes. Map parts 0xff cover
+    // key types, symbols, modifiers, actions and virtual modifiers.
+    try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 7, 0, 7, 0xff, 0xff, null))
     let repeatReply = context.xcb_xkb_per_client_flags_reply(connection,
                                                             context.xcb_xkb_per_client_flags(connection, 0x100, 1, 1, 0, 0, 0),
                                                             null)

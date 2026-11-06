@@ -96,3 +96,38 @@ alias xcb_xkb_per_client_flags_reply_fn = func(*void, xcb_xkb_per_client_flags_c
 #assert(#sizeof(xcb_xkb_per_client_flags_cookie_t) == 4)
 #assert(#sizeof(xcb_xkb_per_client_flags_reply_t) == 32)
 #assert(#offsetof(xcb_xkb_per_client_flags_reply_t.supported) == 8)
+
+// XKB StateNotify reports changed group components separately from modifier-only updates.
+struct xcb_xkb_state_notify_event_t
+{
+    public
+    {
+        response_type:    u8
+        xkbType:          u8
+        sequence:         u16
+        time:             u32
+        deviceID:         u8
+        mods:             u8
+        baseMods:         u8
+        latchedMods:      u8
+        lockedMods:       u8
+        group:            u8
+        baseGroup:        s16
+        latchedGroup:     s16
+        lockedGroup:      u8
+        compatState:      u8
+        grabMods:         u8
+        compatGrabMods:   u8
+        lookupMods:       u8
+        compatLookupMods: u8
+        ptrBtnState:      u16
+        changed:          u16
+        keycode:          u8
+        eventType:        u8
+        requestMajor:     u8
+        requestMinor:     u8
+    }
+}
+
+#assert(#sizeof(xcb_xkb_state_notify_event_t) == 32)
+#assert(#offsetof(xcb_xkb_state_notify_event_t.changed) == 26)

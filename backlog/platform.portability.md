@@ -598,16 +598,19 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Latin-1/Unicode characters with Shift/Caps Lock in the first group. Pointer query/warp is also
   implemented. Standard PC keypad NumLock/Shift selection and held-key release identity pass
   real XTEST integration in both polling and GUI paths. Extra buttons, additional groups,
-  IME and layout-change routing remain pending;
+  IME and broader input-language routing remain pending;
   polling snapshots are separate native requests, not one atomic input sample. GUI XKB
   composition now sends every committed Unicode scalar as a separate portable character event;
   real XTEST input covers ordinary, dead-key and multi-scalar compose sequences in JIT/native.
+  XKB map notifications now reload the keymap and state together; an active GUI accepts a
+  remapped key while preserving physical transition events in JIT/native. The existing XTEST
+  keypad case remains green in both modes.
   Raw key/button/motion/crossing/focus packets now match xcb/xproto.h sizes and offsets.
   The opt-in XCB suite round-trips all nine event kinds through SendEvent, preserving signed
   coordinates, masks and focus fields in JIT/native. A separate importer checks exported layouts;
   these are protocol tests, not normalized input routing or real-device key transitions.
-- Next: translate native key identity, modifier, repeat, and layout state into the portable keyboard
-  events.
+- Next: validate repeated keys, modifier transitions and full input-language changes
+  through portable keyboard events.
 - Related: platform.portability.050, platform.portability.085, platform.portability.054
 - Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
 
@@ -816,7 +819,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   input after canonical Linux key mapping was corrected. Scope now also passes native startup,
   WAV loading, waveform display and PCM playback through FAudio's SDL disk device. Broader
   application workflows and physical desktop/device validation remain.
-  GUI application/surface/cursor services, XKB input, clipboard selections and XDND/XDS are
+  GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Thirteen JIT/native cases compare complete window pixels under Xvfb/Openbox
   with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard
   UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
@@ -839,7 +842,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   are retired and explicitly decide when its application quits; there is no implicit last-window
   shutdown. Existing WindowLoop consumers retain their default close behavior.
 - Next: validate complete application workflows and physical desktop/GPU behavior, finish dynamic
-  keyboard-map updates and investigate connection-loss/module-unload stress. Native Wayland,
+  input-language changes and investigate connection-loss/module-unload stress. Native Wayland,
   IME composition and accessibility remain distinct capabilities. The X11 GUI uses explicit
   compositor-backed presentation; retain pixel-level tests when changing visual/alpha selection.
 - Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the

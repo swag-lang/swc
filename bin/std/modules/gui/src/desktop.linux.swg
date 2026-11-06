@@ -25,6 +25,8 @@ internal struct Context
     pendingEvent:                                 *Linux.xcb_generic_event_t?
     keyboardLibrary:                              *void?
     keyboardX11Library:                           *void?
+    keyboardXcbLibrary:                           *void?
+    xkbEventBase:                                 u8
     keyboardContext:                              *void?
     keyboardMap:                                  *void?
     keyboardState:                                *void?
@@ -106,6 +108,7 @@ internal struct Context
     late xkb_x11_get_core_keyboard_device_id:     Linux.xkb_x11_get_core_keyboard_device_id_fn
     late xkb_x11_keymap_new_from_device:          Linux.xkb_x11_keymap_new_from_device_fn
     late xkb_x11_state_new_from_device:           Linux.xkb_x11_state_new_from_device_fn
+    late xcb_xkb_select_events_checked:           Linux.xcb_xkb_select_events_checked_fn
     late xcb_create_gc_checked:                   Linux.xcb_create_gc_checked_fn
     late xcb_free_gc_checked:                     Linux.xcb_free_gc_checked_fn
     late xcb_put_image_checked:                   Linux.xcb_put_image_checked_fn
@@ -321,6 +324,10 @@ internal func initializeKeyboard(context: *Context) fail
     if not adapter do
         fail Swag.SystemError{"cannot load libxkbcommon-x11.so.0"}
     defer #fail discard Linux.dlclose(unwrap adapter)
+    let events = Linux.dlopen("libxcb-xkb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
+    if not events do
+        fail Swag.SystemError{"cannot load libxcb-xkb.so.1"}
+    defer #fail discard Linux.dlclose(unwrap events)
     context.xkb_context_new                     = try symbol'Linux.xkb_context_new_fn(library, "xkb_context_new")
     context.xkb_context_unref                   = try symbol'Linux.xkb_context_unref_fn(library, "xkb_context_unref")
     context.xkb_keymap_unref                    = try symbol'Linux.xkb_keymap_unref_fn(library, "xkb_keymap_unref")
@@ -341,9 +348,13 @@ internal func initializeKeyboard(context: *Context) fail
     context.xkb_x11_get_core_keyboard_device_id = try symbol'Linux.xkb_x11_get_core_keyboard_device_id_fn(adapter, "xkb_x11_get_core_keyboard_device_id")
     context.xkb_x11_keymap_new_from_device      = try symbol'Linux.xkb_x11_keymap_new_from_device_fn(adapter, "xkb_x11_keymap_new_from_device")
     context.xkb_x11_state_new_from_device       = try symbol'Linux.xkb_x11_state_new_from_device_fn(adapter, "xkb_x11_state_new_from_device")
+    context.xcb_xkb_select_events_checked       = try symbol'Linux.xcb_xkb_select_events_checked_fn(events, "xcb_xkb_select_events_checked")
     let connection = unwrap context.connection
-    if context.xkb_x11_setup_xkb_extension(connection, 1, 0, 0, null, null, null, null) == 0 do
+    if context.xkb_x11_setup_xkb_extension(connection, 1, 0, 0, null, null, &context.xkbEventBase, null) == 0 do
         fail Swag.SystemError{"X11 keyboard extension is unavailable"}
+    // XKB clients do not receive ordinary MappingNotify until they select XKB map updates.
+    // Map parts 0xff cover key types, symbols, modifiers, actions and virtual modifiers.
+    try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 3, 0, 3, 0xff, 0xff, null))
     let keyboard = context.xkb_context_new(0)
     if not keyboard do
         fail Swag.SystemError{"cannot create XKB context"}
@@ -371,10 +382,38 @@ internal func initializeKeyboard(context: *Context) fail
         fail Swag.SystemError{"cannot load keyboard composition rules"}
     context.keyboardLibrary    = library
     context.keyboardX11Library = adapter
+    context.keyboardXcbLibrary = events
     context.keyboardContext    = keyboard
     context.keyboardMap        = keymap
     context.keyboardState      = state
     context.composeTable       = compose
+}
+
+// MappingNotify announces a changed X11 keymap. Keep the old map if rebuilding fails, and
+// replace both XKB objects together so later key events use matching key and state data.
+internal func refreshKeyboardMap(context: *Context)->bool
+{
+    if not context.keyboardMap do
+        return false
+    let connection = unwrap context.connection
+    let device = context.xkb_x11_get_core_keyboard_device_id(connection)
+    if device < 0 do
+        return false
+    let keymap = context.xkb_x11_keymap_new_from_device(unwrap context.keyboardContext, connection, device, 0)
+    if not keymap do
+        return false
+    let state = context.xkb_x11_state_new_from_device(keymap, connection, device)
+    if not state
+    {
+        context.xkb_keymap_unref(keymap)
+        return false
+    }
+
+    context.xkb_state_unref(unwrap context.keyboardState)
+    context.xkb_keymap_unref(context.keyboardMap)
+    context.keyboardMap = keymap
+    context.keyboardState = state
+    return true
 }
 
 #drop
@@ -394,6 +433,8 @@ internal func initializeKeyboard(context: *Context) fail
             context.xkb_context_unref(context.keyboardContext)
         if context.keyboardX11Library do
             discard Linux.dlclose(context.keyboardX11Library)
+        if context.keyboardXcbLibrary do
+            discard Linux.dlclose(context.keyboardXcbLibrary)
         if context.keyboardLibrary do
             discard Linux.dlclose(context.keyboardLibrary)
         context.xcb_disconnect(unwrap context.connection)

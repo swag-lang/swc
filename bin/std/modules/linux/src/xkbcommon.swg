@@ -63,3 +63,7 @@ alias xkb_x11_keymap_new_from_device_fn      = func(*void, *void, s32, u32)->*vo
 
 #[Swag.CallingConvention(.C)]
 alias xkb_x11_state_new_from_device_fn       = func(*void, *void, s32)->*void?
+
+// libxcb-xkb 1.x: subscribe to core-keyboard map and device replacement notifications.
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_select_events_checked_fn       = func(*void, u16, u16, u16, u16, u16, u16, const *void?)->xcb_void_cookie_t

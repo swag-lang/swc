@@ -51,21 +51,26 @@ try:
         for code, _ in codes:
             change(code, previous[str(code)])
         x11.XSync(display, 0)
-    elif mode == 'send':
+    elif mode in ('send', 'remap'):
         x11.XSetInputFocus(display, int(sys.argv[3]), 2, 0)
         def tap(code):
             assert code
             assert xtst.XTestFakeKeyEvent(display, code, 1, 0)
             assert xtst.XTestFakeKeyEvent(display, code, 0, 0)
-        tap(x11.XKeysymToKeycode(display, ord('a')))
-        tap(248)
-        tap(x11.XKeysymToKeycode(display, ord('e')))
-        tap(230)
-        tap(x11.XKeysymToKeycode(display, ord("'")))
-        shift = x11.XKeysymToKeycode(display, 0xffe1)
-        assert xtst.XTestFakeKeyEvent(display, shift, 1, 0)
-        tap(x11.XKeysymToKeycode(display, ord('j')))
-        assert xtst.XTestFakeKeyEvent(display, shift, 0, 0)
+        if mode == 'remap':
+            change(230, [ord('b')] + [0] * (len(mapping(230)) - 1))
+            x11.XSync(display, 0)
+            tap(230)
+        else:
+            tap(x11.XKeysymToKeycode(display, ord('a')))
+            tap(248)
+            tap(x11.XKeysymToKeycode(display, ord('e')))
+            tap(230)
+            tap(x11.XKeysymToKeycode(display, ord("'")))
+            shift = x11.XKeysymToKeycode(display, 0xffe1)
+            assert xtst.XTestFakeKeyEvent(display, shift, 1, 0)
+            tap(x11.XKeysymToKeycode(display, ord('j')))
+            assert xtst.XTestFakeKeyEvent(display, shift, 0, 0)
         x11.XSync(display, 0)
     else:
         raise ValueError(mode)

@@ -51,19 +51,31 @@ func runTextInputPeer(script, mode, saved: string)
 
     defer surface.wnd.view.hookOnEvent = null
     let id = Format.toString("%", surface.windowId)
-    var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), "send", saved.toString(), id.toString()],
-                                                     standardOutput: .Pipe, standardError: .Pipe})
-    defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
-    let deadline = Time.monotonicMilliseconds() + 4000
-    while peer.isRunning() and Time.monotonicMilliseconds() < deadline
+    for mode in ["send", "remap"]
     {
-        app.runFrame()
-        discard expect peer.tryWaitForExit(5'ms)
-    }
+        var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), mode, saved.toString(), id.toString()],
+                                                         standardOutput: .Pipe, standardError: .Pipe})
+        defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
+        let deadline = Time.monotonicMilliseconds() + 4000
+        while peer.isRunning() and Time.monotonicMilliseconds() < deadline
+        {
+            app.runFrame()
+            discard expect peer.tryWaitForExit(5'ms)
+        }
 
-    for 8 do
-        app.runFrame()
-    Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
-    Swag.require(characters == "aéJ\u0301", characters.toString())
-    Swag.require(physicalPresses == 7, Format.toString("physical presses: %", physicalPresses))
+        for 8 do
+            app.runFrame()
+        Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
+        Swag.require(physicalPresses == (mode == "send" ? 7 : 8),
+                     Format.toString("physical presses in %: %, text %", mode, physicalPresses, characters))
+        if mode == "remap"
+        {
+            let context = expect LinuxDesktop.ensure()
+            let mapped = LinuxDesktop.portableKey(context, 230, 0)
+            Swag.require(mapped == .B, Format.toString("mapped key after X11 change: %", mapped))
+        }
+
+        Swag.require(characters == (mode == "send" ? "aéJ\u0301" : "aéJ\u0301b"),
+                     Format.toString("text in %: %", mode, characters))
+    }
 }

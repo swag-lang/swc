@@ -230,6 +230,12 @@ impl Application
                 break
             defer Linux.free(event)
             let kind = event.response_type & 0x7F
+            if kind == 34 or (context.xkbEventBase != 0 and kind == context.xkbEventBase and event.pad0 <= 1)
+            {
+                discard LinuxDesktop.refreshKeyboardMap(context)
+                continue
+            }
+
             var id: u32
             switch kind
             {

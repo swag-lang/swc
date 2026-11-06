@@ -113,16 +113,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.049, platform.portability.052, platform.portability.061
 - Done when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
 
-### platform.portability.055 — Finish Linux clipboard owner-lifetime validation
-
-- Progress: the XCB selection backend reads and writes UTF-8 text, PNG images and registered
-  typed values. An independent peer exercises ordinary and incremental transfers, large payloads,
-  invalid data, timeouts, owner replacement and clear in JIT/native under an isolated Xvfb server.
-- Next: verify that an owner process exiting without an explicit clear releases its selection,
-  including a waiting reader and an empty payload.
-- Related: platform.portability.050
-- Done when: The chosen second-platform GUI reads and writes the supported typed clipboard values with clear ownership and format conversion, and round-trip tests cover text, empty data, and owner shutdown.
-
 ### platform.portability.057 — No second-platform GUI packaging
 
 - Next: package the GUI runtime and native dependencies for the chosen second platform.
@@ -609,7 +599,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   one; physical dimensions are not used to invent scaling. Xvfb JIT/native coverage passes.
 - Next: implement monitor enumeration and per-monitor scale for the platform whose surface exists
   under platform.portability.050.
-- Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
+- Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.056
 - Done when: The chosen second-platform surface enumerates active monitors, uses the correct per-monitor scale during open, move, and resize, and updates placement after topology or scale changes without exposing native monitor handles.
 
 ### platform.portability.052 — No second-platform keyboard routing
@@ -840,6 +830,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   with a compositor and exercise real XTEST events, XSettings, headless rendering, clipboard
   UTF-8/PNG/INCR and independent drag/drop peers. These fixtures validate GUI font consumers;
   they do not replace the full application workflows.
+  An isolated Xorg dummy server also passes clipboard owner exit and empty text roundtrips
+  against an independent client in JIT/native.
   Native artifact work remains in .093.
   Nine Ogl JIT/native cases now cover independent XCB connections, shared contexts and resources,
   worker-thread contexts and pbuffer lifetimes. Two surfaceless cases pass without a display.

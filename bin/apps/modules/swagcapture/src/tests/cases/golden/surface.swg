@@ -1058,3 +1058,39 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     host.app.sigFrame.clear()
     testAssertLibraryMenuGolden(&host, main, main.zoomReading, "editor.menu.zoom.paper")
 }
+
+// The strip of recent captures at the foot of the editor, in Encre: pictures of several shapes,
+// the one being edited, one under the pointer, and one whose linked image changed since.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let sizes: [5] Math.Point = [{320, 200}, {200, 200}, {400, 160}, {160, 240}, {320, 180}]
+    let inks:  [5] u32        = [0xFF3A6EA5, 0xFFE8E6E1, 0xFF2A2C33, 0xFFB0532B, 0xFF4F7A4A]
+    for size, i in sizes
+    {
+        var preview = Image.create(cast(s32, size.x), cast(s32, size.y), .BGRA8)
+        preview.fill(Color.fromArgb(inks[i]))
+        // Untyped: a short String declared with its type from a call reads zeroed (compiler.core.094).
+        var file = Format.toString("recent%", i)
+        file += ".scc"
+        main.recentWnd.addRecent(file, preview, front: false, linkedUpToDate: i != 3, linked: i == 3 ? "linked.png" : "")
+    }
+
+    main.recentWnd.recentView.selected = 1
+    main.recentWnd.recentView.hotItem  = 2
+    main.showRecentBar(true)
+    host.finishAnimations()
+    main.applyLayout()
+
+    var image = host.renderSettled(main)
+    Pixel.Testing.assertImageGolden(&image, "recent.bar")
+}

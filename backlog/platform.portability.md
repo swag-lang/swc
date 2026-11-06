@@ -274,12 +274,13 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   A native peer stops Core's reaper before closing a live process owner; close waits and reaps
   that child synchronously, and the later Core shutdown remains safe.
   A dynamically loaded module also closes a live child before unloading; the consumer observes
-  the child leave procfs while its shared Core dependency keeps the reaper alive.
+  the child leave procfs while its shared Core dependency keeps the reaper alive. Both native and
+  JIT consumers now exercise that unload boundary with a live child.
   Windows shared-policy checking reaches only the known log/logf cross-host foreign failures.
   Raw API HTML has no broken anchors/duplicate IDs; the existing __errno_location synthetic-name
-  audit finding remains. These checks do not prove the reaper's JIT/unload or native lifetime.
-- Next: validate the process reaper through JIT module unload with a live child and run Windows
-  process regressions. Do not mark lifecycle conformance from raw tests.
+  audit finding remains. These checks do not prove the reaper's broader native lifetime.
+- Next: run Windows process regressions and broader lifetime stress. Do not mark lifecycle
+  conformance from raw tests.
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 - Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 

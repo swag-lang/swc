@@ -89,7 +89,7 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
     return stages
 
 
-def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None, script=True):
+def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None, script=True, execution=None):
     workspace = bin_root / 'unittests/workspace'
     cfg = option_value(options, ('-bc', '--build-cfg'), 'devmode')
     workers = option_value(options, ('-j', '--num-cores'), '3')
@@ -106,6 +106,10 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         requires = []
         if module == 'sandbox_consumer':
             command += ['--rebuild', '--no-test-native']
+        elif module == 'runtime_context_dynamic_consumer' and execution == 'jit':
+            command += ['--test-jit', '--no-test-native']
+        elif module == 'runtime_context_dynamic_consumer' and execution == 'both':
+            command.append('--test-jit')
         else:
             command.append('--no-test-jit')
         if module == 'runtime_context_dynamic_consumer':

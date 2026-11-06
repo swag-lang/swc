@@ -159,5 +159,38 @@ func verifyDynamicallyLoadedRuntimeContext()
 
 #test
 {
+    if Swag.jit() do return
     verifyDynamicallyLoadedRuntimeContext()
+}
+
+#static if #os == Swag.TargetOs.Linux
+{
+    // The JIT runtime has its own context, but the loaded DLL still leaves a live child
+    // with Core's shared reaper when it unloads.
+    #test
+    {
+        if not Swag.jit() do return
+        const Prefix = "--dynamic-runtime-library="
+        var path = ""
+        for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
+            path = argument[Prefix.count until argument.count]
+        Swag.require(path.count != 0)
+
+        var library = expect NativeLibrary.load(path)
+        let disableSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_disable_library_arg_check"))
+        let closeChildSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_close_live_child"))
+        Swag.require(disableSymbol != null and closeChildSymbol != null)
+        cast(func(), disableSymbol)()
+        let closeChild = cast(func()->u64, closeChildSymbol)
+        let childId = closeChild()
+        Swag.require(childId != 0)
+        library.close()
+
+        let childPath = Format.toString("/proc/%", childId)
+        var clock: Time.Stopwatch
+        clock.start()
+        while Directory.exists(childPath.toString()) and clock.elapsedMilliseconds() < 5000 do
+            Threading.Thread.sleep(10'ms)
+        Swag.require(not Directory.exists(childPath.toString()))
+    }
 }

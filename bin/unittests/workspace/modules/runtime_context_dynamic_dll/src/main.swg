@@ -7,6 +7,7 @@ private var g_PreMainCount: u32
 private var g_DropCounter:  *u32?
 private var g_ArgumentCount: u64
 private var g_ArgumentHash:  u64
+private var g_CheckLibraryPath = true
 
 #static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics") do
     private var g_ElectricAllocator: Swag.Allocator
@@ -53,11 +54,14 @@ private func argumentFingerprint(arguments: const [..] string)->u64
         let arguments = Swag.args()
         Swag.assert(arguments.count == g_ArgumentCount)
         Swag.assert(argumentFingerprint(arguments) == g_ArgumentHash)
-        var foundLibraryPath = false
-        const Prefix = "--dynamic-runtime-library="
-        for argument in arguments where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
-            foundLibraryPath = true
-        Swag.assert(foundLibraryPath)
+        if g_CheckLibraryPath
+        {
+            var foundLibraryPath = false
+            const Prefix = "--dynamic-runtime-library="
+            for argument in arguments where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
+                foundLibraryPath = true
+            Swag.assert(foundLibraryPath)
+        }
     }
 
     if g_DropCounter
@@ -95,6 +99,9 @@ func ctxDynamicReadContext()->*Swag.Context => Swag.getContext()
         process.close()
         return pid
     }
+
+    // JIT passes the fixture path as a test argument, not as a process argv entry.
+    func ctxDynamicDisableLibraryArgCheck() { g_CheckLibraryPath = false }
 }
 
 #static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")

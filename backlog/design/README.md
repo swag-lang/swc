@@ -807,9 +807,12 @@ the screen to its work.
   ground and names what choosing it does, "Unlock". Choosing it unfolds it in place (password,
   drive, key files link, read-only, primary "Mount").
 - Without a vault — the first visit, and every start while privacy mode keeps no list — the page
-  is the home: the mark, large and faint, gives the page its centre; one sentence says what a vault
-  is, or that privacy mode keeps no list; under it "New Vault" is the one primary action of the
-  screen, with "Open a File…" beside it as a secondary button.
+  is the home: the mark, large and faint, gives the page its centre; a title (22, bold) says that no
+  vault is there or open, and two soft lines say what a vault is, then what it keeps or that
+  privacy mode keeps no list. Under them "New Vault" is the one primary action of the screen, with
+  "Open a File…" beside it as a secondary button. Under a hairline, a faint foot names the ciphers
+  in mono and recalls that a container can be dropped on the window. The hint line teaches
+  `Ctrl N` and `Ctrl O` before `Ctrl Space`.
 - Create, progress and options are pages with a back link, not tabs: a calm form with the
   capacity in large type; the randomisation progress as a huge percentage over an Arc line;
   options as rows with a title, a help paragraph and an Arc switch.

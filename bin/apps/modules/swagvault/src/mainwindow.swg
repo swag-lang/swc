@@ -624,13 +624,22 @@ impl MainWindow
     // Teaches the door while the list is on screen, and on the privacy page, where privacy mode
     // empties the list, says where the vaults open from instead. While a vault is unfolded the
     // hand is already at work, and the line steps aside so the actions under the list keep their room.
+    //
+    // Without a vault, the line first teaches the keys of the two ways the home offers.
     mtd refreshHint()
     {
+        let texts = appStrings()
         .hintLine.clearHints()
+        if .page == .List and .vaults.isEmpty()
+        {
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .N), texts.ui_HintNewVault)
+            .hintLine.addHint(Input.formatKeyShortcut(.Control, .O), texts.ui_HintOpenFile)
+        }
+
         switch .page
         {
-        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintList)
-        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintPrivacy)
+        case .List where .chosenPath.isEmpty(): .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintList)
+        case .Options where .privacyMode:       .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.ui_HintPrivacy)
         }
 
         .hintLine.show(not .hintLine.hints.isEmpty())

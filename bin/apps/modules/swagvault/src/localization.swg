@@ -33,9 +33,7 @@ struct AppStrings
     ui_DriveFree:      string = "% free of %"     // Under a mounted vault's thread: the room left, then its capacity.
     ui_SectionMounted: string = "Mounted"
     ui_SectionLocked:  string = "Locked"
-    ui_HomeWelcome:    string = "A vault is an encrypted file that opens as a drive."
-    ui_HomePrivacy:    string = "Privacy mode keeps no list of vaults: open one from its file, or create a new one."
-    ui_Mount:          string = "Mount"
+    ui_Mount:         string = "Mount"
     ui_Unmount:        string = "Unmount"
     ui_Drive:          string = "Drive"
     ui_KeyFilesLink:   string = "Key Files…"
@@ -51,7 +49,19 @@ struct AppStrings
     ui_StopCreating:   string = "Stop Creating"
     ui_StopResizing:   string = "Stop Resizing"
     ui_HintList:       string = "options, automatic unmounting, about"
+    ui_HintNewVault:   string = "new vault"
+    ui_HintOpenFile:   string = "open a file"
     ui_HintPrivacy:    string = "privacy mode keeps the list empty: vaults open from here"
+
+    // The home: the window without a vault. Its second line keeps to the first one's length, and
+    // its foot follows the names of the ciphers.
+    ui_HomeTitle:        string = "No vault yet"
+    ui_HomeTitlePrivacy: string = "No vault open"
+    ui_HomeWelcome:      string = "A vault is an encrypted file that opens as a drive."
+    ui_HomeKeeps:        string = "What you keep in it can be read only while it is mounted."
+    ui_HomePrivacy:      string = "Privacy mode keeps no list: open a vault from its file."
+    ui_HomeHidden:       string = "hidden volumes"
+    ui_HomeDrop:         string = "or drop a container on the window"
 
     // The families the lens groups the commands under.
     lens_File:    string = "File"

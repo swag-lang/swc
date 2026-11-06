@@ -39,8 +39,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   The page-reservation registry now reopens its process-specific storage after fork, so a child
   cannot publish private reservation addresses into the parent's registry. A native ELF fork
   probe covers an unreleased child reservation and the surviving parent allocation lookup.
-- Next: validate electric-mode faults and cross-module ownership, then define how a child may
-  release allocations inherited from its parent after fork.
+  A native Core peer verifies that an electric block's guard page and its freed payload fault.
+  A dynamic-library consumer resolves the DLL allocator's electric header with its own runtime
+  code, frees the block across the image boundary and verifies clean allocator teardown.
+- Next: define how a child may release allocations inherited from its parent after fork.
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.

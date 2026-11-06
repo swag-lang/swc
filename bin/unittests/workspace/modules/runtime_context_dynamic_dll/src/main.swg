@@ -8,6 +8,9 @@ private var g_DropCounter:  *u32?
 private var g_ArgumentCount: u64
 private var g_ArgumentHash:  u64
 
+#static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics") do
+    private var g_ElectricAllocator: Swag.Allocator
+
 private func argumentFingerprint(arguments: const [..] string)->u64
 {
     var hash = 0xCBF29CE484222325'u64
@@ -91,5 +94,26 @@ func ctxDynamicReadContext()->*Swag.Context => Swag.getContext()
         let pid = process.processId
         process.close()
         return pid
+    }
+}
+
+#static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")
+{
+    // The consumer uses its own runtime code to inspect and free this DLL-owned block.
+    func ctxDynamicCreateElectricBlock(address: *u64)->*Swag.Allocator
+    {
+        g_ElectricAllocator.setup()
+        g_ElectricAllocator.configure(true, false, false, false, false)
+        var request = Swag.AllocatorRequest{size: 4096}
+        g_ElectricAllocator.allocate(&request)
+        Swag.assert(request.address != null)
+        address[] = cast(u64, request.address)
+        return &g_ElectricAllocator
+    }
+
+    func ctxDynamicReleaseElectricAllocator()
+    {
+        Swag.assert(g_ElectricAllocator.stats().countAlloc == 0)
+        g_ElectricAllocator.releaseAll()
     }
 }

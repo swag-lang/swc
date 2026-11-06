@@ -108,6 +108,24 @@ func verifyDynamicallyLoadedRuntimeContext()
         Swag.assert(closedChildId != 0)
     }
 
+    #static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")
+    {
+        let createSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_create_electric_block"))
+        let releaseSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_release_electric_allocator"))
+        Swag.assert(createSymbol != null and releaseSymbol != null)
+        let createBlock = cast(func(*u64)->*Swag.Allocator, createSymbol)
+        let releaseAllocator = cast(func(), releaseSymbol)
+        var address = 0'u64
+        let allocator = createBlock(&address)
+        Swag.assert(address != 0)
+        let header = allocator.headerOf(address)
+        Swag.assert(header.isElectric and header.userAddr == address)
+        var request = Swag.AllocatorRequest{address: cast(*void, address), size: 4096}
+        allocator.freeBlock(&request)
+        Swag.assert(request.address == null)
+        releaseAllocator()
+    }
+
     library.close()
     Swag.assert(dropCount == 0)
     second.close()

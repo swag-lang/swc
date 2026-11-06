@@ -99,9 +99,12 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     build_options = ['--build-cfg', cfg, '--num-cores', workers]
     if '--rebuild' in options:
         build_options.append('--rebuild')
-    stages = [Stage(build_name, [str(compiler), 'build', '--workspace', str(workspace),
-                                '--workspace-module', 'runtime_context_dynamic_dll', *build_options])]
-    for module in module_names(workspace) if modules is None else modules:
+    selected = module_names(workspace) if modules is None else modules
+    stages = []
+    if 'runtime_context_dynamic_consumer' in selected:
+        stages.append(Stage(build_name, [str(compiler), 'build', '--workspace', str(workspace),
+                                         '--workspace-module', 'runtime_context_dynamic_dll', *build_options]))
+    for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
         requires = []
         if module == 'sandbox_consumer':

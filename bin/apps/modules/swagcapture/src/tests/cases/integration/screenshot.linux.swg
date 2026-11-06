@@ -82,3 +82,86 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     Swag.require(changed)
     Swag.require(cursor.pixelColor(0, 0).argb == Argb.Red)
 }
+
+// The application command must carry real X11 pixels into the editor and its saved document.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-app-red", title: "Capture application fixture", width: 64, height: 48, stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintCaptureWindow(&window, 0xFF0000)
+
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+
+    f.main.captureOptions.hideEditorBefore = false
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = false
+    f.main.captureOptions.sendToEditor     = true
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
+
+    g_StartGrabX = 10
+    g_StartGrabY = 20
+    g_EndGrabX   = 74
+    g_EndGrabY   = 68
+
+    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
+    f.gui.pump()
+
+    let capture = unwrap f.main.getCapture()
+    let path    = capture.file
+    defer
+    {
+        discard catch File.delete(path)
+        g_Library.files.clear()
+    }
+
+    Swag.require(capture.sourceKind == .Screen)
+    Swag.require(capture.width == 64 and capture.height == 48)
+    Swag.require(capture.backImg.pixelColor(4, 5).argb == Argb.Red)
+    Swag.require(File.exists(path))
+
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.require(loaded.width == 64 and loaded.height == 48)
+    Swag.require(loaded.sourceKind == .Screen)
+    Swag.require(loaded.backImg.pixelColor(4, 5).argb == Argb.Red)
+}
+
+// A later monitor command must select its own bounds and publish the acquired pixels.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-app-blue", title: "Capture monitor fixture", width: 64, height: 48, stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintCaptureWindow(&window, 0x0000FF)
+
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+
+    f.main.captureOptions.hideEditorBefore = false
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = true
+    f.main.captureOptions.sendToEditor     = false
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
+
+    f.main.monitors.clear()
+    for 4 do
+        testAddMonitorAt(f.main, {0, 0, 8, 8})
+    testAddMonitorAt(f.main, {10, 20, 64, 48})
+
+    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4)))
+    let image = Clipboard.getImage()
+    Swag.require(image.isValid())
+    Swag.require(image.width == 64 and image.height == 48)
+    Swag.require(image.pixelColor(4, 5).argb == Argb.Blue)
+}

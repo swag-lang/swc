@@ -27,8 +27,8 @@ private func timerEntry(param: *void?)
 {
     let timer = cast(*Timer, unwrap param)
 
-    // A periodic callback can overlap another one. Its mutable runtime state belongs to this
-    // invocation; the stored timer context contains only inherited policy and user values.
+    // Each callback gets fresh mutable runtime state; the stored timer context contains only
+    // inherited policy and user values.
     let previous = Swag.getContext()
     defer Swag.setContext(previous)
     var context = timer.context

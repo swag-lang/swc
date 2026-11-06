@@ -36,7 +36,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Allocator borrow callbacks explicitly use the Swag ABI on Linux. pthread cleanup works
   on a joined runtime thread. Compiler-owned cleanup is drained before JIT code is unmapped;
   tests cover rearming, explicit deletion, live threads and waiting for active destructors.
-- Next: validate electric-mode faults, cross-module and fork ownership.
+  The page-reservation registry now reopens its process-specific storage after fork, so a child
+  cannot publish private reservation addresses into the parent's registry. A native ELF fork
+  probe covers an unreleased child reservation and the surviving parent allocation lookup.
+- Next: validate electric-mode faults and cross-module ownership, then define how a child may
+  release allocations inherited from its parent after fork.
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.
@@ -352,19 +356,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.035
 - Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 
-### platform.portability.036 — Validate the Linux calendar and monotonic clocks
-
-- Evidence: Linux monotonic ticks use clock_gettime with nanosecond frequency. UTC/local calendar
-  fields use reentrant glibc conversions, preserving milliseconds and historical zone offsets.
-  Raw clock tests execute in JIT with UTC and native ELF with America/New_York, including negative
-  epochs, leap days, summer/winter offsets and post-2038 dates. All 31 public DateTime, Timestamp,
-  stopwatch and time cases pass in JIT/native in both UTC and America/New_York. Linux also
-  supplies absolute-deadline sleep.
-- Next: add a focused public local-calendar case spanning a DST transition; running the existing
-  public suite under two zones does not establish that transition boundary.
-- Related: platform.portability.037
-- Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
-
 ### platform.portability.037 — Validate the Linux timer backend
 
 - Progress: the shared timer worker now owns monotonic deadlines, serialized callbacks, missed-
@@ -377,7 +368,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   execution is unavailable.
   Four common thread/timer cases also pass JIT/native, including inherited callback context.
 - Next: validate the Windows leaf and stress shutdown/concurrent-owner behavior.
-- Related: platform.portability.036, platform.portability.029
+- Related: platform.portability.029
 - Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
 ### platform.portability.038 — Finish Linux environment services and validation
@@ -422,7 +413,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   target applications receive no writable document-portal grant.
 - Next: finish environment mutation and validate chooser presentation on a real desktop. The
   return value reports request acknowledgement, not eventual user selection or application launch.
-- Related: platform.portability.005, platform.portability.010, platform.portability.015
+- Related: platform.portability.010, platform.portability.015
 - Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 
 ### platform.portability.039 — Native errors have no second-platform mapping
@@ -475,19 +466,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: one documented Linux command executes every applicable repository test family,
   produces a complete report with no unexplained failure or unexecuted stage, and rejects
   accidental Windows dependencies in neutral sources.
-
-### platform.portability.005 — Validate argument lifetime across native Unix modules
-
-- Evidence: ELF startup passes argc/argv into `ProcessInfo.arguments` before runtime setup.
-  Native executable probes preserve empty values, spaces, quotes, trailing backslashes, tabs
-  and UTF-8. Shared-module consumers compare the full argument vector with their provider,
-  including after relocating a published executable/library pair. Core's command-line string
-  fallback now lives entirely in the Windows leaf; Linux retains the runtime's original argv.
-- Next: validate argument lifetime through dynamic module unload. Retain the Windows
-  command-line path.
-- Related: platform.portability.003, platform.portability.008, platform.portability.010
-- Done when: shared Unix modules observe the original argument order and bytes through
-  initialization, calls and cleanup without reading storage owned by an unloaded module.
 
 ### platform.portability.008 — Validate the argv-first process API
 
@@ -974,7 +952,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Next: run the same cases on Windows and assess the dedicated-thread cost for many timers.
 - Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
-- Related: platform.portability.036
 
 ### platform.portability.003 — Finish the runtime host ABI boundary
 
@@ -987,7 +964,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   byte output, library loading, and process termination as explicit host mechanisms.
 - Done when: another host can implement the same documented operations without copying
   command-line or debug-data parsing policy, and Windows runtime tests retain their behavior.
-- Related: platform.portability.004, platform.portability.005
+- Related: platform.portability.004
 
 ### platform.portability.010 — Early argument lookup retains a Windows command-line fallback
 
@@ -999,7 +976,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   native module initialization, and remove that platform's early command-line fallback.
 - Done when: native and compile-time early argument lookup use the same populated vector
   and preserve sandbox, smoke, and corpus argument behavior.
-- Related: platform.portability.005, platform.portability.008
+- Related: platform.portability.008
 
 ### platform.portability.014 — The Windows virtual-key alias remains in portable input declarations
 
@@ -1260,7 +1237,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   emitted records and stop in GDB to verify values and scope boundaries.
 - Done when: richer Linux debug records describe the surviving values and scopes without
   inventing locations for optimized-away storage.
-- Related: platform.portability.005
 
 ### platform.portability.095 — Extend foreign ELF archive ABI coverage
 

@@ -147,8 +147,9 @@ private struct LinuxPageReservation
 
 private struct LinuxPageRegistry
 {
-    lock:  *void?
-    first: *LinuxPageReservation?
+    lock:      *void?
+    first:     *LinuxPageReservation?
+    processId: s32
 }
 
 private const LinuxPageRegistryKey = 4'u32
@@ -157,19 +158,25 @@ private var linuxPageRegistryCache: u64
 #[Swag.Safety(.ValueBorrow, false)]
 private func __linuxPageRegistry()->*LinuxPageRegistry?
 {
+    let processId = __LinuxRT.getpid()
     let known = Swag.atomicLoad(&linuxPageRegistryCache)
-    if known do
+    if known and cast(*LinuxPageRegistry, known).processId == processId do
         return cast(*LinuxPageRegistry, known)
     let registry = __hostProcessStorage(LinuxPageRegistryKey, #sizeof(LinuxPageRegistry))
     if not registry do
         return null
-    let previous = Swag.atomicCompareExchange(&linuxPageRegistryCache, 0, cast(u64, registry))
-    if previous
+    cast(*LinuxPageRegistry, registry).processId = processId
+    let previous = Swag.atomicCompareExchange(&linuxPageRegistryCache, known, cast(u64, registry))
+    if previous != known
     {
         discard __LinuxRT.munmap(registry, #sizeof(LinuxPageRegistry))
         return cast(*LinuxPageRegistry, previous)
     }
 
+    // A forked child has its own process-storage anchor. The inherited mapping still belongs to
+    // the parent's reservation list and must not receive the child's private mapping addresses.
+    if known do
+        discard __LinuxRT.munmap(cast(*void, known), #sizeof(LinuxPageRegistry))
     return cast(*LinuxPageRegistry, registry)
 }
 

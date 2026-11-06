@@ -71,38 +71,12 @@ struct FloatingInsets
 
 impl MainWnd
 {
-    // The repeated capture and output gestures stay visible in both the editor and the library.
-    mtd createTaskBar()
+    // The repeated capture and output gestures, in the top strip over the editor and the library.
+    //
+    // It is built once the library exists, so that it stands in front of both pages.
+    mtd createTaskStrip()
     {
-        with .taskBar = StackLayoutCtrl.create(me, .Left)
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-            .spacing         = 12
-            .margin          = {me.themeMetrics().floating_Inset, me.stripInset(), me.themeMetrics().floating_Inset, 4}
-        }
-
-        with let captureButton = IconButton.createQuiet(.taskBar, ActionCapture.Area, menu: false)
-        {
-            .focusPolicy = .None
-        }
-        with .captureChoice = IconButton.createQuiet(.taskBar, menu: false)
-        {
-            .focusPolicy = .None
-            .margin.x    = -12
-            .setIcon(.theme().icon(.ChevronDown))
-            .sigPressed += func|main = me|(button) { main.showCaptureMenu(button) }
-        }
-
-        for command, index in [ActionGlobal.ShowLibrary, ActionCopyPaste.CopyAsImage, ActionFile.SaveAsImage]
-        {
-            with let button = IconButton.createQuiet(.taskBar, command, menu: false)
-            {
-                .focusPolicy = .None
-                if index == 1 do
-                    .margin.x = 24
-            }
-        }
+        .taskStrip = TaskStrip.create(me)
     }
 
     // Speech-bubble glyph drawn for the Callout tool: the icon sheet has no sprite for this
@@ -207,7 +181,6 @@ impl MainWnd
     mtd createInspector()
     {
         .inspector = Inspector.create(.editArea)
-        .inspector.topOffset      = -.themeMetrics().floating_Inset * 0.5
         .inspector.sigFoldChanged += func|main = me|(inspector)
         {
             main.inspectorFolded = inspector.folded
@@ -375,6 +348,7 @@ impl MainWnd
                 .sigPopupRequested += func|main = me|(button)
                 {
                     let popover = ColorPopover.open(assume cast(*IconButton, button), appStrings().ui_PropColor, main.miniBarColor(), &main.recentColors)
+                    popover.standClearOf(main.selectionSurfaceRect(), main.inspector.surfaceRect())
                     popover.sigColorChanged += func|main, button, var first = true|(pop)
                     {
                         let field = main.miniBarColorField()
@@ -627,16 +601,11 @@ impl MainWnd
             return
         }
 
-        // The selection is measured in capture pixels: the view places the capture at its zoom,
-        // and the work area holds the view.
-        let view  = .editWnd.editView
-        let bound = capture.getSelectionBoundRect()
-        let place = view.getCaptureRect()
-        let zoom  = view.zoom
-        var rect  = Math.Rectangle{place.x + bound.x * zoom - view.scrollPos.x, place.y + bound.y * zoom - view.scrollPos.y, bound.width * zoom, bound.height * zoom}
-        let local = .editArea.surfaceToLocal(view.localToSurface(Math.Point{rect.x, rect.y}))
-        rect.x = local.x
-        rect.y = local.y
+        let view    = .editWnd.editView
+        let place   = view.getCaptureRect()
+        let surface = .selectionSurfaceRect()
+        let local   = .editArea.surfaceToLocal(surface.topLeft())
+        let rect    = Math.Rectangle{local.x, local.y, surface.width, surface.height}
 
         // The bar keeps clear of the dock and of the inspector, and goes below the words being
         // typed in place, where the reader is not looking.
@@ -644,7 +613,40 @@ impl MainWnd
         var room   = .editArea.clientRect()
         room.x     += insets.left
         room.width -= insets.left + insets.right
+
+        // Across, it stands within the picture when the picture is wide enough for it, so that it
+        // never straddles a side edge of the capture: a gap of the bar's own distance is the most
+        // it reaches past the edge, which the bar keeps clear of anyway.
+        let gap     = .themeMetrics().miniBar_Distance
+        let corner  = .editArea.surfaceToLocal(view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y}))
+        let picture = Math.Rectangle{corner.x, corner.y, place.width, place.height}
+        if picture.width >= .miniBar.bodySize().x
+        {
+            let left  = Math.max(room.x, picture.x - gap)
+            let right = Math.min(room.right(), picture.right() + gap)
+            if right - left >= .miniBar.bodySize().x + 2 * gap
+            {
+                room.x     = left
+                room.width = right - left
+            }
+        }
+
         .miniBar.showNear(.miniBarAnchor(rect, place, view), below: view.isEditingText(), room: room)
+    }
+
+    // Returns the bounds of the selection in surface coordinates. The selection is measured in
+    // capture pixels: the view places the capture at its zoom, and scrolls it.
+    mtd selectionSurfaceRect()->Math.Rectangle
+    {
+        let capture = .getCapture()
+        if not capture or capture.selection.isEmpty() do
+            return {}
+        let view   = .editWnd.editView
+        let bound  = capture.getSelectionBoundRect()
+        let place  = view.getCaptureRect()
+        let zoom   = view.zoom
+        let corner = view.localToSurface(Math.Point{place.x + bound.x * zoom - view.scrollPos.x, place.y + bound.y * zoom - view.scrollPos.y})
+        return Math.Rectangle{corner.x, corner.y, bound.width * zoom, bound.height * zoom}
     }
 
     // Returns the rectangle the mini-bar stands next to, for a selection at `rect`: the

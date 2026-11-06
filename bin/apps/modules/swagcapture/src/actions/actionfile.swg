@@ -58,8 +58,9 @@ impl IActionUI for ActionFile
             }
 
         case .SaveAsImage:
-            evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = appStrings().act_SaveAsImage
+            evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
+            evt.name          = appStrings().act_SaveImage
+            evt.longName      = appStrings().act_SaveAsImage
             evt.disabled      = not capture
             evt.icon          = main.theme().icon(.SaveAs)
 

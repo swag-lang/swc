@@ -221,6 +221,7 @@ struct AppStrings
     act_CaptureCursor:          string = "Capture Mouse Cursor"
     act_Clear:                  string = "Clear"
     act_ClearInsideImage:       string = "Clear Inside Image"
+    act_CopyImage:              string = "Copy Image"                                                   // Short name of Copy Image to Clipboard, in the top strip.
     act_CopyImageToClipboard:   string = "Copy Image to Clipboard"
     act_Copy:                   string = "Copy"
     act_Cut:                    string = "Cut"
@@ -332,6 +333,7 @@ struct AppStrings
     act_RestoreOriginal:        string = "Restore to Original"
     act_Restore:                string = "Restore"
     act_SaveAsImage:            string = "Save as Image…"
+    act_SaveImage:              string = "Save Image…"                                                  // Short name of Save as Image, in the top strip.
     act_SaveAsLinkedImage:      string = "Save as Linked Image…"
     act_SelectAll:              string = "Select All Objects"
     act_SelectSimilar:          string = "Select Similar Objects"

@@ -612,6 +612,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     swatches[0].sigPopupRequested.call(swatches[0])
     host.finishAnimations()
 
+    // The colour being picked shows on the shape it changes: the popover, too tall to stand
+    // beside it here, leaves its middle in view, and keeps off the inspector.
+    let popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    let frame   = unwrap popover.parent
+    Swag.require(not frame.surfaceRect().contains(main.selectionSurfaceRect().center()))
+    Swag.require(not frame.surfaceRect().intersects(main.inspector.surfaceRect()))
+
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "edit.color.paper")
     swatches[0].hidePopup()

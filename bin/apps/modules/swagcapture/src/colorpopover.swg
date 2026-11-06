@@ -134,6 +134,71 @@ impl ColorPopover
         frame.setPosition(Math.Rectangle{x: x, y: y, width: size.width, height: size.height})
     }
 
+    // Keeps the popover off `selection`, a rectangle in surface coordinates, so the colour being
+    // picked shows on the work it changes.
+    //
+    // The popover stays where it opened when it already leaves the selection clear; otherwise it
+    // stands beside the selection, on its trailing side first, then on its leading side, above or
+    // below it, never over `panel` (the inspector, in surface coordinates). When no side has the
+    // room, it slides along its row to where it covers the least of the selection. It keeps
+    // inside the window.
+    mtd standClearOf(selection: Math.Rectangle, panel: Math.Rectangle = {})
+    {
+        // The area of `a` that `b` covers.
+        func covered(a, b: Math.Rectangle)->f32
+        {
+            let common = Math.Rectangle.intersect(a, b)
+            return common.width * common.height
+        }
+
+        let frame  = assume cast(*FrameWnd, unwrap .parent)
+        let view   = unwrap frame.parent
+        let inset  = .themeMetrics().floating_Inset
+        let opened = frame.position
+        let avoid  = .surfaceToView(view, selection)
+        if not opened.intersects(avoid) do
+            return
+
+        let keepClear = .surfaceToView(view, panel)
+        var bounds    = view.clientRect()
+        bounds.inflate(-inset)
+        let w = opened.width
+        let h = opened.height
+        let y = Math.clamp(opened.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
+        let x = Math.clamp(opened.x, bounds.x, Math.max(bounds.right() - w, bounds.x))
+        let right = keepClear.width > 0 ? Math.min(bounds.right(), keepClear.x - inset) : bounds.right()
+        let candidates = [Math.Rectangle{avoid.right() + inset, y, w, h},
+                          Math.Rectangle{avoid.x - inset - w, y, w, h},
+                          Math.Rectangle{x, avoid.y - inset - h, w, h},
+                          Math.Rectangle{x, avoid.bottom() + inset, w, h},
+                          Math.Rectangle{bounds.x, y, w, h},
+                          Math.Rectangle{right - w, y, w, h}]
+
+        var best     = opened
+        var bestArea = covered(opened, avoid)
+        for place in candidates where bounds.contains(place) and not place.intersects(keepClear)
+        {
+            let area = covered(place, avoid)
+            if area < bestArea
+            {
+                best     = place
+                bestArea = area
+            }
+
+            if area == 0 do
+                break
+        }
+
+        frame.anchor = .None
+        frame.setPosition(best)
+    }
+
+    private mtd surfaceToView(view: *Wnd, rect: Math.Rectangle)->Math.Rectangle
+    {
+        let corner = view.surfaceToLocal(rect.topLeft())
+        return Math.Rectangle{corner.x, corner.y, rect.width, rect.height}
+    }
+
     // Lays out the swatches, the hex field and the opacity slider.
     mtd build()
     {

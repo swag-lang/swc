@@ -45,6 +45,8 @@ public struct SurfaceWnd
     leadingCaptionButtons: Array'(*IconButton)     // Application actions after the app glyph and before the title.
     appearanceButton:      *AppearanceButton?       // Appearance command owner on this surface, if present.
     appearanceActionRegistered: bool                // Whether this surface already routes appearance commands.
+    stripLeadingRoom:      f32                     // Room the view's own strip controls take after the leading actions.
+    stripTrailingRoom:     f32                     // Room the view's own strip controls take before the trailing actions.
     chromePalette:         ThemePalette            // Document palette copied by setChromePalette.
     hasChromePalette:      bool                    // Whether chrome follows the document rather than the application.
 }
@@ -356,11 +358,43 @@ impl SurfaceWnd
         painter.drawRichString(Math.Rectangle{center - halfSpan, strip.y, 2 * halfSpan, strip.height}, &.name, sf)
     }
 
-    // Returns the logical caption area left between the application mark and visible buttons.
+    // Returns the logical caption area left between the application mark and visible buttons,
+    // less the room the view keeps for its own controls there.
     //
     // Coordinates are local to this window. A document drawing its own title uses this same
     // area; an empty rectangle means the surface has no caption, as in full screen.
     public mtd captionContentRect()->Math.Rectangle
+    {
+        var room = .captionRoomRect()
+        if room.height <= 0 do
+            return {}
+        let reserved = Math.min(.stripLeadingRoom + .stripTrailingRoom, room.width)
+        room.x     += Math.min(.stripLeadingRoom, room.width)
+        room.width = Math.max(room.width - reserved, 0)
+        return room
+    }
+
+    // Keeps the title clear of controls the view sets in the strip itself.
+    //
+    // `leading` and `trailing` are the widths those controls take, air included, from each end
+    // of [[Gui.SurfaceWnd.captionRoomRect]]. The title and [[Gui.SurfaceWnd.captionContentRect]]
+    // leave them out; pass zeros when the controls go.
+    public mtd reserveCaptionRoom(leading: f32, trailing: f32)
+    {
+        if .stripLeadingRoom == leading and .stripTrailingRoom == trailing do
+            return
+        .stripLeadingRoom  = leading
+        .stripTrailingRoom = trailing
+        .invalidate()
+    }
+
+    // Returns the logical caption area between the application mark, with the actions after it,
+    // and the actions before the window buttons.
+    //
+    // Coordinates are local to this window. A view setting controls of its own in the strip
+    // places them here and keeps the title clear of them with
+    // [[Gui.SurfaceWnd.reserveCaptionRoom]]; an empty rectangle means the surface has no caption.
+    public mtd captionRoomRect()->Math.Rectangle
     {
         var room = .clientRect()
         room.height = .stripHeight()

@@ -45,9 +45,9 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         Swag.require(host.dismissPopupMenu())
     }
 
-    host.click(main.captureChoice.surfaceRect().center())
+    host.click(main.taskStrip.captureChoice.surfaceRect().center())
     Swag.require(inspected)
-    Swag.require(not main.captureChoice.hasFocus())
+    Swag.require(not main.taskStrip.captureChoice.hasFocus())
 }
 
 // Releasing the left button fixes the rectangle. Right click restarts a drag, while Escape

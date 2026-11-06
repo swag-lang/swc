@@ -314,6 +314,21 @@ impl GizmoRect
         return Math.Point{cx + r.x, cy + r.y}
     }
 
+    // Sets the eight anchors on the corners and the middles of the edges of `rect`, where the
+    // pointer finds them, whether or not they are painted.
+    mtd placeAnchors()
+    {
+        let anchorSize2 = .anchorSize * 0.5
+        .anchors[0] = Math.Rectangle{.rect.x - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[1] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[2] = Math.Rectangle{.rect.right() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[3] = Math.Rectangle{.rect.x - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[4] = Math.Rectangle{.rect.right() - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[5] = Math.Rectangle{.rect.x - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[6] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[7] = Math.Rectangle{.rect.right() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+    }
+
     // Paints the box, its anchors, and the rotation handle, turned with the form.
     //
     // Drawn in the selection ink, as the charter marks what is chosen on a canvas: a form's gizmo
@@ -348,14 +363,7 @@ impl GizmoRect
                 painter.drawRect(.rect, col, 1)
         }
 
-        .anchors[0] = Math.Rectangle{.rect.x - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[1] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[2] = Math.Rectangle{.rect.right() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[3] = Math.Rectangle{.rect.x - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[4] = Math.Rectangle{.rect.right() - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[5] = Math.Rectangle{.rect.x - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[6] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[7] = Math.Rectangle{.rect.right() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .placeAnchors()
 
         for c in .anchors
         {

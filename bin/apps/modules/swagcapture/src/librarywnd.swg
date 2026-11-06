@@ -123,10 +123,11 @@ struct LibraryWnd
 impl IWnd for LibraryWnd
 {
     // The page keeps its side margins, and its header keeps clear of the strip the window glyph,
-    // the title and the window buttons float in.
+    // the title, the window buttons and the task controls float in, or of the band those controls
+    // take without a strip.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        .padding = {LibraryPageMargin - LibraryCellRing, .stripInset(), LibraryPageMargin - LibraryCellRing, 0}
+        .padding = {LibraryPageMargin - LibraryCellRing, .stripInset() + TaskStrip.bandHeight(me), LibraryPageMargin - LibraryCellRing, 0}
     }
 
     // The three drop-down buttons and the search placeholder take their wording once, when

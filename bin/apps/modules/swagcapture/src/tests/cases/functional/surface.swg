@@ -159,35 +159,109 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     Swag.require(main.inspector.title == appStrings().act_Arrow)
 }
 
-// Frequent actions fit at the minimum width in both languages, and Library works by pointer.
+// Frequent actions stand in the top strip at the minimum width, in both languages and at a
+// display scale: capture and the library after the command menu, the output before the window
+// buttons, each control whole, and the title kept clear of both groups. Library works by
+// pointer, and the library leaves the output of the picture out.
 #test
 {
     var host: Gui.Testing.HeadlessHost
-    let main = testSetupEditorSurface(&host, dark: true, text: false)
+    let main = testSetupEditorSurface(&host, dark: true, text: false, caption: true, dpiScale: 1.25)
     defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    let strip = host.theme.metrics.wnd_StripHeight
     for language in [Gui.ReferenceLanguage, "fr"]
     {
         expect main.appearanceButton.setAppearanceLanguage(language)
         main.updateState()
         host.finishAnimations()
         main.applyLayout()
-        Swag.require(main.taskBar.children.count == 5)
-        Swag.require(main.taskBar.children[0].name == appStrings().act_CaptureArea)
-        Swag.require(main.taskBar.children[0].position.width > 100)
-        Swag.require(main.taskBar.children[0].isLocallyVisible())
-        var right = 0'f32
-        for child in main.taskBar.children
+
+        let leading  = main.taskStrip.leading
+        let trailing = main.taskStrip.trailing
+        Swag.require(leading.children.count == 3 and trailing.children.count == 2)
+        Swag.require(leading.children[0].name == appStrings().act_CaptureArea)
+        Swag.require(trailing.children[0].name == appStrings().act_SaveImage)
+        Swag.require(trailing.children[1] == main.taskStrip.copyButton)
+        Swag.require(main.taskStrip.copyButton.name == appStrings().act_CopyImage)
+        Swag.require(main.taskStrip.copyButton.form == .Strong)
+
+        // Both groups stand on the middle line of the strip, after the menu glyph and before
+        // the window buttons, and leave the title its room between them.
+        let room         = host.surfaceWnd.captionRoomRect()
+        let leadingRect  = testRectInFrame(&host.surfaceWnd, leading)
+        let trailingRect = testRectInFrame(&host.surfaceWnd, trailing)
+        for rect in [leadingRect, trailingRect]
         {
-            Swag.require(child.position.x >= right)
-            Swag.require(child.position.width >= Math.floor(child.itf.measureContent({}).x))
-            Swag.require(child.position.right() <= main.taskBar.clientRect().right())
-            right = child.position.right()
+            Swag.require(rect.y >= 0 and rect.bottom() <= strip)
+            Swag.require(Math.abs(rect.vertCenter() - strip * 0.5) <= 1)
+        }
+
+        Swag.require(leadingRect.x >= main.menuLauncher.position.right())
+        Swag.require(trailingRect.right() <= room.right() + 0.5)
+        let title = host.surfaceWnd.captionContentRect()
+        Swag.require(title.x >= leadingRect.right())
+        Swag.require(title.right() <= trailingRect.x)
+        Swag.require(title.width > 0)
+
+        for bar in [leading, trailing]
+        {
+            var right = 0'f32
+            for child in bar.children
+            {
+                Swag.require(child.isLocallyVisible())
+                Swag.require(child.position.x >= right - host.theme.metrics.wnd_CaptionActionGap)
+                Swag.require(child.position.width >= Math.floor(child.itf.measureContent({}).x))
+                Swag.require(child.position.right() <= bar.clientRect().right() + 0.5)
+                right = child.position.right()
+            }
         }
     }
 
-    host.click(main.taskBar.children[2].surfaceRect().center())
+    host.clickWnd(main.taskStrip.leading.children[2])
     host.pump()
     Swag.require(main.libraryMode)
+    Swag.require(not main.taskStrip.trailing.isLocallyVisible())
+    Swag.require(host.surfaceWnd.captionContentRect().right() > host.surfaceWnd.captionRoomRect().right() - host.theme.metrics.wnd_CaptionMarginTitle - 0.5)
+}
+
+// The task controls send their commands to the window, and the copy is the editor's one primary
+// action: it copies the finished picture, not the selection.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var copies: u32
+    main.hookOnEvent = func|copies = &copies|(_, evt)->bool
+    {
+        if evt is CommandEvent as cmd where cmd.id == ActionCopyPaste.CopyAsImage
+        {
+            copies[] += 1
+            return true
+        }
+        return false
+    }
+
+    host.clickWnd(main.taskStrip.copyButton)
+    host.pump()
+    Swag.require(copies == 1)
+    Swag.require(not main.taskStrip.copyButton.hasFocus())
+}
+
+// Returns where `wnd` stands in the local coordinates of the window frame.
+func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
+{
+    var result = wnd.surfaceRect()
+    let origin = frame.surfaceRect()
+    result.x -= origin.x
+    result.y -= origin.y
+    return result
 }
 
 // The editor starts without focus; a first key cannot activate a task-bar action.
@@ -203,12 +277,14 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
     host.recordCommands()
     Swag.require(main.focusedWindow() == null)
-    for button in main.taskBar.children
+    for bar in [main.taskStrip.leading, main.taskStrip.trailing]
     {
-        Swag.require(button.focusPolicy == .None)
-        Swag.require(not button.hasFocus())
+        for button in bar.children
+        {
+            Swag.require(button.focusPolicy == .None)
+            Swag.require(not button.hasFocus())
+        }
     }
-    Swag.require(main.captureChoice.focusPolicy == .None and not main.captureChoice.hasFocus())
 
     host.keyPress(.Space)
     Swag.require(host.commandCount == 0)
@@ -246,7 +322,9 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         let state = main.sendComputeCommandStateEvent(id)
         if state.updatedFields.has(.Hidden) and state.hidden do
             continue
-        Swag.require(titles.contains(state.name), state.name)
+        // The lens names a command in full when it has a longer name than its control shows.
+        let title = state.updatedFields.has(.LongName) and not state.longName.isEmpty() ? state.longName : state.name
+        Swag.require(titles.contains(title), title)
     }
 }
 
@@ -1030,4 +1108,65 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         Swag.require(window.lens.chosenEntry()!.id == ActionFile.SaveAsImage)
         window.lens.close()
     }
+}
+
+// The mini-bar of a form against a side edge of the capture stands within the picture rather
+// than across its edge, and the colour it opens leaves the selection in view.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 0, 100, 24, 24)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    main.updateState()
+    host.finishAnimations()
+
+    let view    = main.editWnd.editView
+    let place   = view.getCaptureRect()
+    let picture = view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y})
+    let bar     = main.miniBar.surfaceRect()
+    Swag.require(main.miniBar.isLocallyVisible())
+    Swag.require(bar.x >= picture.x and bar.right() <= picture.x + place.width)
+
+    var swatch: *IconButton?
+    for item in main.miniBar.items
+    {
+        if item.wnd is IconButton as button where button.flags.has(.Popup)
+        {
+            swatch = button
+            break
+        }
+    }
+
+    let button = unwrap swatch
+    button.sigPopupRequested.call(button)
+    host.finishAnimations()
+    let popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    let frame   = unwrap popover.parent
+    Swag.require(not frame.surfaceRect().intersects(main.selectionSurfaceRect()))
+    button.hidePopup()
+}
+
+// Returns the colour popover open under `wnd`, if any.
+internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
+{
+    for child in wnd.children
+    {
+        if child is ColorPopover as popover do
+            return popover
+        if let found = testFindColorPopover(child) do
+            return found
+    }
+
+    return null
 }

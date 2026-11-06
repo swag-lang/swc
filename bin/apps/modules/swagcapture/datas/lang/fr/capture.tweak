@@ -108,6 +108,7 @@ act_CaptureLastArea    Capturer la dernière zone
 act_CaptureCursor      Capturer le curseur de la souris
 act_Clear              Effacer
 act_ClearInsideImage   Effacer l'intérieur de l'image
+act_CopyImage          Copier l'image
 act_CopyImageToClipboard Copier l'image dans le presse-papiers
 act_Copy               Copier
 act_Cut                Couper
@@ -219,6 +220,7 @@ act_RestoreDefaultStyles Rétablir les styles par défaut
 act_RestoreOriginal    Restaurer l'original
 act_Restore            Restaurer
 act_SaveAsImage        Enregistrer comme image…
+act_SaveImage          Enregistrer l'image…
 act_SaveAsLinkedImage  Enregistrer comme image liée…
 act_SelectAll          Sélectionner tous les objets
 act_SelectSimilar      Sélectionner les objets similaires

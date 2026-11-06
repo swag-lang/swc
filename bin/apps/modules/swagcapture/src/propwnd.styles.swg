@@ -172,6 +172,7 @@ impl PropWnd
         {
             let popover = ColorPopover.open(assume cast(*IconButton, button), label, prop.slotColor(slot), &prop.main.recentColors)
             popover.standBeside(prop.main.inspector, button)
+            popover.standClearOf(prop.main.selectionSurfaceRect(), prop.main.inspector.surfaceRect())
 
             // The undo step waits for the colour to change: opening the popover and closing it
             // without a pick leaves none, and later picks replace the step of the first.

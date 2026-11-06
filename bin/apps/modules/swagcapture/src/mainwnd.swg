@@ -109,8 +109,7 @@ struct MainWnd
     late
     {
         editArea, recentBar: *Wnd
-        taskBar:             *StackLayoutCtrl
-        captureChoice:       *IconButton
+        taskStrip:           *TaskStrip
         editWnd:             *EditWnd
         dock:                *ToolDock
         inspector:           *Inspector
@@ -242,6 +241,9 @@ impl IWnd for MainWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
+        // Without a strip to hold them, the task controls take a band of their own over the work.
+        if .editArea != null do
+            .editArea.margin.y = TaskStrip.bandHeight(me)
         if .miniBar != null do
             .placeMiniBar()
         if .sizeReading != null do
@@ -592,8 +594,11 @@ impl MainWnd
         if .dock != null do
             discard .dock.selectTool(toolCommand(.editMode))
         .updateCommandState()
-        if .taskBar != null do
-            .taskBar.invalidateLayout()
+        if .taskStrip != null
+        {
+            .taskStrip.showOutput(not .libraryMode)
+            .taskStrip.itf.onLayout()
+        }
 
         // The library owns its selection and controls. Rebuild the editor when it
         // becomes visible again, not while its whole subtree is hidden.
@@ -1129,7 +1134,6 @@ impl MainWnd
         result.setTheme()
         result.setLanguage()
         result.createRecentBar()
-        result.createTaskBar()
         result.createEditArea()
         result.createDock()
         result.createInspector()
@@ -1149,6 +1153,7 @@ impl MainWnd
             .setBottomSize(.Medium, animated: false)
             .libWnd = LibraryWnd.create(result)
             .libWnd.hide()
+            .createTaskStrip()
             .createLens()
             .menuLauncher = Lens.Launcher.createMenu(result, .lens)
             .updateReading()

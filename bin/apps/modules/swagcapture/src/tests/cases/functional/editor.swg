@@ -488,3 +488,33 @@ using Swag, Core
     Swag.require(f.main.miniBarColorField().name == #nameof(BaseForm.backColor))
     Swag.require(f.main.miniBarColor() == Argb.Blue)
 }
+
+// The handles that resize the picture come out only near its edges, inside or out, and leave
+// the picture alone elsewhere: at rest the only handles on screen are those of the selection.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.editView.setZoom(1)
+    Swag.require(not f.editView.showsCaptureHandles())
+
+    func moveTo(f: *HeadlessFixture, scrolled: Math.Point)
+    {
+        f.gui.moveMouse(f.editView.localToSurface(scrolled - f.editView.scrollPos))
+    }
+
+    let picture = f.editView.getCaptureRect()
+    moveTo(&f, Math.Point{picture.horzCenter(), picture.vertCenter()})
+    Swag.require(not f.editView.showsCaptureHandles())
+
+    // Just inside the right edge, and just outside the bottom one.
+    moveTo(&f, Math.Point{picture.right() - 6, picture.vertCenter()})
+    Swag.require(f.editView.showsCaptureHandles())
+    moveTo(&f, Math.Point{picture.horzCenter(), picture.bottom() + 10})
+    Swag.require(f.editView.showsCaptureHandles())
+
+    // Back in its middle, they go again.
+    moveTo(&f, Math.Point{picture.horzCenter(), picture.vertCenter()})
+    Swag.require(not f.editView.showsCaptureHandles())
+}

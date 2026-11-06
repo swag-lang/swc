@@ -885,8 +885,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   Linux presentation now recreates that surface while preserving the shared GL context
   and copies the visible render-target rectangle directly. The X11 pixel verifier waits
   for asynchronous swap publication. A focused GUI resize case passes JIT/native; the
-  full media-library journey passes native. Broader application journeys and physical
-  desktop/device validation remain.
+  full media-library journey passes native.
+  An optional read-only probe of a supplied media directory is now available on Linux.
+  On the 44-file Scope corpus, all eight scroll/artwork/refresh stages pass in JIT/native,
+  with 23-24 exact cache-to-GPU preview matches per stage. Compile-time execution has
+  zero runtime workers, so Explorer now retains one preview slot and submits that work
+  on the caller. A Linux Scope placement journey also passes JIT/native across three
+  full-screen entry/exit cycles, checking X11 origin, window pixels and restored insets.
+  Broader application journeys and physical desktop/device validation remain.
   GUI application/surface/cursor services, XKB input and map updates, clipboard selections and XDND/XDS are
   implemented. Seventeen JIT/native cases cover complete window pixels under Xvfb/Openbox
   with a compositor, real XTEST events, XSettings, headless rendering, clipboard

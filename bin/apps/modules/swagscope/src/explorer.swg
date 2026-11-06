@@ -241,7 +241,9 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.resize(Math.min(cast(u64, Swag.workerCount()), ExplorerPreviewTasks))
+        // Compile-time execution has no worker pool, but submitted work still runs on
+        // the caller. Keep one slot so JIT journeys can produce previews there too.
+        result.previews.resize(Math.max(1'u64, Math.min(cast(u64, Swag.workerCount()), ExplorerPreviewTasks)))
         result.grid.ensureSpinners(result.previews.count)
 
         result.setMode(.Medium)

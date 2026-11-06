@@ -21,6 +21,33 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     Swag.require(cleared == null)
 }
 
+// An isolated X server has no window manager; publish the EWMH active-window property it owns.
+func setActiveCaptureWindow(capture: *X11Capture, window: u32)
+{
+    let library    = unwrap capture.library
+    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let connection = unwrap capture.connection
+    let property   = capture.atom("_NET_ACTIVE_WINDOW")
+    Swag.require(property != 0)
+    var request: Linux.xcb_void_cookie_t
+    if window
+    {
+        let change = expect X11Capture.symbol'Linux.xcb_change_property_checked_fn(library, "xcb_change_property_checked")
+        let kind   = capture.atom("WINDOW")
+        Swag.require(kind != 0)
+        request = change(connection, 0, capture.screen.root, property, kind, 32, 1, &window)
+    }
+    else
+    {
+        let remove = expect X11Capture.symbol'Linux.xcb_delete_property_checked_fn(library, "xcb_delete_property_checked")
+        request = remove(connection, capture.screen.root, property)
+    }
+
+    let error = check(connection, request)
+    defer Linux.free(error)
+    Swag.require(error == null)
+}
+
 // Run on an isolated X11 display: this exercises actual root pixels, never the test image fake.
 #[Swag.TestTag("integration.capture.x11")]
 #test
@@ -164,6 +191,44 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     Swag.require(image.isValid())
     Swag.require(image.width == 64 and image.height == 48)
     Swag.require(image.pixelColor(4, 5).argb == Argb.Blue)
+}
+
+// The active-window command reads WM metadata and captures that window's exact X11 bounds.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-active", title: "Active capture fixture", width: 64, height: 48, stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintCaptureWindow(&window, 0xFF0000)
+    let windowId = (expect window.xcbDrawable()).window
+    var x11 = expect X11Capture.create()
+    setActiveCaptureWindow(&x11, windowId)
+    defer setActiveCaptureWindow(&x11, 0)
+
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+    f.main.captureOptions.hideEditorBefore = false
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = false
+    f.main.captureOptions.sendToEditor     = true
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
+
+    Swag.require(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ActiveWnd))
+    f.gui.pump()
+    let capture = unwrap f.main.getCapture()
+    defer
+    {
+        discard catch File.delete(capture.file)
+        g_Library.files.clear()
+    }
+    Swag.require(capture.width == 64 and capture.height == 48)
+    Swag.require(capture.sourceWindowTitle == "Active capture fixture")
+    Swag.require(capture.backImg.pixelColor(4, 5).argb == Argb.Red)
 }
 
 // A native application surface must keep presenting after its capture command opens the image.

@@ -1244,13 +1244,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Evidence: `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform
   boundary on the capture side. The editor, the forms, the library, and the serialization are
   already portable.
-- Progress (Linux): five isolated JIT/native X11 cases cover root pixels, regions, cursor overlay
-  and window queries, plus application commands that save/reload a screen capture in the editor
-  and publish a selected monitor's pixels through the clipboard. The native Capture window also
-  opens, executes the capture command and presents the resulting editor through EGL/X11.
+- Progress (Linux): six isolated JIT/native X11 cases cover root pixels, regions, cursor overlay
+  and window queries, plus application commands that save/reload a screen capture in the editor,
+  publish a selected monitor's pixels through the clipboard, and capture the EWMH active window
+  with its title. The native Capture window also opens, executes the capture command and presents
+  the resulting editor through EGL/X11.
 - Next: exercise the complete capture application with a compositor and window manager, including
-  interactive area selection and active-window capture. Account for native Wayland capture through
-  the desktop portal rather than reading the XWayland root alone.
+  interactive area selection and actual window-manager focus changes. Account for native Wayland
+  capture through the desktop portal rather than reading the XWayland root alone.
 - Done when: one chosen non-Windows backend captures the supported screen/window/region set and
   the application imports no raw OS binding outside named capture backends.
 

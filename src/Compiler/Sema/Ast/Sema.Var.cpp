@@ -528,6 +528,11 @@ namespace
             return Result::Continue;
         if (!nodeInitView.typeRef().isValid())
             return Result::Continue;
+        // A value of the declared type already initializes the variable directly.
+        // Choosing opSet through an implicit conversion can borrow its own temporary
+        // and then clear that temporary before copying the borrowed bytes.
+        if (nodeInitView.typeRef() == explicitTypeRef)
+            return Result::Continue;
 
         auto* symVar = getVariableSymbol(symbols.front());
         if (!symVar)

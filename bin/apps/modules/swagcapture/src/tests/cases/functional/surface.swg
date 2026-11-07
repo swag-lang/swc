@@ -1237,7 +1237,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
 }
 
 // The mini-bar of a form against a side edge of the capture stands within the picture rather
-// than across its edge, and the colour it opens leaves the selection in view.
+// than across its edge, and the colour it opens hangs from the button that opened it.
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -1277,9 +1277,18 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let button = unwrap swatch
     button.sigPopupRequested.call(button)
     host.finishAnimations()
+    // The popover stands by the button that opened it, without covering it.
+    button.hidePopup()
+    host.clickWnd(button)
+    host.pump()
+    host.finishAnimations()
     let popover = unwrap testFindColorPopover(&host.surfaceWnd)
-    let frame   = unwrap popover.parent
-    Swag.require(not frame.surfaceRect().intersects(main.selectionSurfaceRect()))
+    let frame   = (unwrap popover.parent).surfaceRect()
+    let anchor  = button.surfaceRect()
+    Swag.require(not frame.intersects(anchor))
+    var near = anchor
+    near.inflate(16)
+    Swag.require(frame.intersects(near))
     button.hidePopup()
 }
 

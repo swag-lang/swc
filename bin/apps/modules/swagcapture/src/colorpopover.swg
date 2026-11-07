@@ -135,9 +135,9 @@ impl ColorPopover
     }
 
     // Hangs the popover from `button`, level with it: under it, or over it when under covers
-    // `selection` (in surface coordinates) or leaves the window and over does neither, or beside
-    // the selection, in the same row, when both cover it. The popover stays by the button the
-    // reader clicked; it keeps inside the window.
+    // `selection` (in surface coordinates) or leaves the window and over does neither, beside it
+    // when neither has the room. The popover stays by the button the reader clicked, even over
+    // the selection; it keeps inside the window.
     mtd hangFrom(button: *Wnd, selection: Math.Rectangle)
     {
         let frame   = assume cast(*FrameWnd, unwrap .parent)
@@ -164,18 +164,17 @@ impl ColorPopover
         elif aboveFits and not belowFits do
             place = above
 
-        place.y = Math.clamp(place.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
-
-        // A selection right against the bar is covered on both sides of the button: the popover
-        // then slides along its row, just past the selection.
-        if place.intersects(avoid)
+        // With room neither under nor over the button, the popover stands beside it, from its
+        // top: on its trailing side, or its leading side when the window ends there.
+        if not belowFits and not aboveFits
         {
-            if avoid.right() + gap + w <= bounds.right() do
-                place.x = avoid.right() + gap
-            elif avoid.x - gap - w >= bounds.x do
-                place.x = avoid.x - gap - w
+            place.x = anchor.right() + gap
+            if place.right() > bounds.right() do
+                place.x = Math.max(anchor.x - gap - w, bounds.x)
+            place.y = anchor.y
         }
 
+        place.y = Math.clamp(place.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
         frame.anchor = .None
         frame.setPosition(place)
     }

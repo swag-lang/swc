@@ -196,6 +196,10 @@ impl IWnd for IconButton
                 return
             .hidePopup()
         }
+
+        // A click in another application is a click outside the popup too.
+        if evt is NotifyEvent as ptr where ptr.kind == .Deactivated do
+            .hidePopup()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)

@@ -1510,3 +1510,103 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     for form in result.forms do
         Swag.require(form.capture == result)
 }
+
+// The colour popover of the inspector stays open while the colour changes, by a swatch or by the
+// opacity, and a click outside it closes it.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 60, 60, 220, 110)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    host.finishAnimations()
+
+    var swatches: Array'(*IconButton)
+    testCollectSwatches(main.propWnd.topLayout, &swatches)
+    host.clickWnd(swatches[0])
+    host.pump()
+    host.finishAnimations()
+
+    var popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    var color   = popover.color
+    color.a = 128
+    popover.apply(color)
+    host.runFrames(2)
+    Swag.require(testFindColorPopover(&host.surfaceWnd) != null)
+
+    popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    host.clickWnd(popover.swatches[5])
+    host.runFrames(2)
+    Swag.require(testFindColorPopover(&host.surfaceWnd) != null)
+
+    testClickViewCorner(&host, main)
+    host.runFrames(2)
+    Swag.require(testFindColorPopover(&host.surfaceWnd) == null)
+}
+
+// The colour popover of the bar over a selected form closes on a click outside it.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    discard testAddShape(capture, 60, 60, 220, 110)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.applyLayout()
+    main.updateState()
+    host.finishAnimations()
+
+    var swatch: *IconButton?
+    for item in main.miniBar.items
+    {
+        if item.wnd is IconButton as button where button.flags.has(.Popup)
+        {
+            swatch = button
+            break
+        }
+    }
+
+    host.clickWnd(unwrap swatch)
+    host.pump()
+    host.finishAnimations()
+    let popover = unwrap testFindColorPopover(&host.surfaceWnd)
+    var color   = popover.color
+    color.a = 128
+    popover.apply(color)
+    host.runFrames(2)
+    Swag.require(testFindColorPopover(&host.surfaceWnd) != null)
+
+    testClickViewCorner(&host, main)
+    host.runFrames(2)
+    Swag.require(testFindColorPopover(&host.surfaceWnd) == null)
+}
+
+// Clicks the top left corner of the edit view, away from the popovers and the selection.
+internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWnd)
+{
+    let view = main.editWnd.editView
+    let rect = view.surfaceRect()
+    var pt   = Math.Point{rect.x + 8, rect.y + 8}
+    view.surface!.surfaceToScreen(&pt)
+    host.click(pt)
+}

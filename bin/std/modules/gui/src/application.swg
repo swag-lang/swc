@@ -1689,6 +1689,18 @@ impl Application
         .isActivated = activated
         for s in .modalSurfaces do
             s.bringToFront()
+
+        // A click in another application reaches none of these windows, so the hooks that close a
+        // transient popup on a click outside it hear of the change instead. A hook may unregister
+        // itself on it: walk a copy.
+        if not activated
+        {
+            var evt = NotifyEvent{kind: .Deactivated}
+            let hooks = .hookOnEvent
+            for hook in hooks do
+                hook.itf.onHookEvent(&evt)
+        }
+
         .invalidate()
     }
 

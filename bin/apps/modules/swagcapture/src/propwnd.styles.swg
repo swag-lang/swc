@@ -168,9 +168,15 @@ impl PropWnd
             painter.drawString(swatch.right() + metrics.inspector_LabelGap, font.opticalLineTop(pos.vertCenter()), hex, font, colors.softText)
         }
 
+        button.sigPopupClosed += func|prop = me|(_)
+        {
+            prop.colorPicking = false
+        }
+
         button.sigPopupRequested += func|prop = me, slot, label|(button)
         {
             let popover = ColorPopover.open(assume cast(*IconButton, button), label, prop.slotColor(slot), &prop.main.recentColors)
+            prop.colorPicking = true
             popover.standBeside(prop.main.inspector, button)
             popover.standClearOf(prop.main.selectionSurfaceRect(), prop.main.inspector.surfaceRect())
 

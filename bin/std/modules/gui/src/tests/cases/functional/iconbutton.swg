@@ -347,3 +347,29 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.setText("A much longer caption nobody sees")
     Swag.require(btn.itf.measureContent({320, 200}).x == hidden.x)
 }
+
+// A popup anchored to a button closes on a click outside it, and when another application becomes
+// the active one, since a click there reaches none of the windows of this one.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 240)
+    defer host.shutdown()
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Popup)
+    btn.sigPopupRequested += func(b)
+    {
+        discard (assume cast(*IconButton, b)).createAnchorPopup(80, 60)
+    }
+
+    host.click({40, 40})
+    Swag.require(btn.popup != null)
+    host.click({200, 200})
+    Swag.require(btn.popup == null)
+
+    host.click({40, 40})
+    Swag.require(btn.popup != null)
+    host.app.setActivated(true)
+    host.app.setActivated(false)
+    Swag.require(btn.popup == null)
+}

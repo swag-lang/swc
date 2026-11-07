@@ -96,7 +96,7 @@ func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indic
 }
 
 // Collects the colour swatches of the head of the inspector, in display order.
-func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
+internal func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
 {
     for child in wnd.children
     {

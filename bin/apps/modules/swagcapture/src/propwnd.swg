@@ -127,6 +127,11 @@ struct PropWnd
     // Set when a change handler needs the whole panel rebuilt: done on the next frame,
     // never from inside the grid's own change notification.
     needRebuild: bool
+
+    // A colour popover of the panel is open. Its button stands in a row, and a rebuild would
+    // destroy the row, the button and the popover with it while the colour is still being
+    // picked: the rebuild waits for the popover to close.
+    colorPicking: bool
 }
 
 impl PropWnd
@@ -666,7 +671,7 @@ impl IWnd for PropWnd
 
     mtd impl onFrameEvent(_: *FrameEvent)
     {
-        if .needRebuild
+        if .needRebuild and not .colorPicking
         {
             .needRebuild = false
             .selectionHasChanged()

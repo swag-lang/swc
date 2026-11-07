@@ -340,4 +340,14 @@ new module rather than growth inside `core`.
   or the measurement rejects the change and this entry is removed.
 - Related: language.design.002.
 
+### std.core.037 — Format.toString ignores arguments its format does not use
+
+- Evidence: in Swag Capture, Format.toString("%:%%", minutes, tens, units) printed "0:%" for
+  every time: "%%" is a literal percent sign, so the format had one placeholder and the two
+  other arguments were dropped without a word.
+- Next: report a format whose placeholders and arguments disagree, at compile time when the
+  format is a constant and through an assertion otherwise, and offer a zero-padded integer field
+  so two-digit times need no digit-by-digit workaround.
+- Done when: the call above is rejected or asserts, and a padded field writes "0:07".
+
 ---

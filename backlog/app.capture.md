@@ -231,17 +231,15 @@ whole recording loaded at once.
   unchanged.
 - Related: app.capture.031, app.capture.012, app.capture.011, app.capture.037
 
-### app.capture.033 — The library cannot filter by media, and a dragged animation leaves as a picture
+### app.capture.033 — The library cannot filter by media
 
 - Evidence: animations carry a duration badge in the recent strip and the library, an animated
   GIF opens as an animation, and missing frames are reported; but the library filters
-  (`librarywnd.filters.swg`) have no media facet, and `MainWnd.dragFileName` names every capture
-  dragged out `.png`, so an animation leaves as its current frame.
-- Next: add a media facet (all, pictures, animations) to the library filters, and make a drag out
-  of an animation carry the exported GIF.
-- Done when: an animation can be found by media in the library, and dropping a dragged animation
-  in the file explorer writes its GIF.
-- Related: app.capture.012, std.pixel.image.052
+  (`librarywnd.filters.swg`) have no media facet.
+- Next: add a media facet (all, pictures, animations) to the library filters, kept in the
+  application state like the other filters.
+- Done when: an animation can be found by media in the library, and the facet survives restart.
+- Related: app.capture.012
 
 ### app.capture.011 — No video recording
 

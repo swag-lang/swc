@@ -104,8 +104,8 @@ ended up asymmetric that way.
   `ThemeColors` only as the ground under the `WndStyle` bands that still exist. Never give them a
   value of their own, and never build a new surface on a band.
 - **Every state differs from the one before it.** Rest, hover, press, focus, checked and disabled
-  must each resolve to a different value. Disabled is always *weaker* than rest: 40–45 % opacity
-  for a button, a faint ring on a transparent ground for a field.
+  must each resolve to a different value. Disabled is always *weaker* than rest: an opaque 55 %
+  mix of body text over the ground for a button, a faint ring on a transparent ground for a field.
 - **A mark drawn around a control takes that control's shape.** The focus ring is
   `focusRing_Size` (2) at `focusRing_Offset` (2), outside the control, in `focusRing`. A tile
   publishes its corner in `ThemeImageRect.radius`, and a widget passes it on through

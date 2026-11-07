@@ -757,11 +757,13 @@ impl ViewerWindow
         .refreshCaptionButton.toolTip     = text.explore_Refresh
         .findCaptionButton.toolTip        = text.ui_FilterFiles
         .informationCaptionButton.toolTip = text.cmd_Information
+        .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible())
         if not .explorer do
             return
 
         .backCaptionButton.enable(.explorer.history.canGoBack())
         .forwardCaptionButton.enable(.explorer.history.canGoForward())
+        .upCaptionButton.enable(.explorer.canGoUp())
     }
 
     // Lays the home out again for the history, the theme or the language in force.
@@ -1053,7 +1055,8 @@ impl ViewerWindow
         with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)
         {
             .toolTip    = appStrings().cmd_Information
-            .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
+            .updateFlags(.Toggle)
+            .sigCheckedChanged += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
             .hide()
         }
 

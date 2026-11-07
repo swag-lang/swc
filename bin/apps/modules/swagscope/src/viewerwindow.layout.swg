@@ -112,8 +112,7 @@ impl ViewerWindow
     // empty.
     private mtd createSheetAndHint()
     {
-        .infoSheet = InfoSheet.create(me, "scope.information")
-        .infoSheet.sigCloseRequested += func|window = me|(_) { window.sheetToggled(false) }
+        .infoSheet = InfoSheet.create(me, "scope.information", closeButton: false)
         with .hintLine = HintLine.create(me, "scope.hint")
         {
             .addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)

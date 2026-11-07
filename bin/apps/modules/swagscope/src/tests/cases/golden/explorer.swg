@@ -35,3 +35,29 @@ using Core, Gui, Pixel
     var frame = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&frame, "explorer.frame.encre")
 }
+
+// A listing failure uses the page's readable center instead of the narrow status line.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(Path.combine(testSourceRoot(#curlocation), "datas"))
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+    explorer.setStatus("")
+    explorer.failure.setText("The folder could not be read.\nThe filename, directory name, or volume label syntax is incorrect.")
+    explorer.list.hide()
+    explorer.scroll.hide()
+    explorer.failure.show()
+    explorer.applyLayout()
+    window.applyLayout()
+
+    var image = host.renderSettled(window)
+    Pixel.Testing.assertImageGolden(&image, "explorer.failure.paper")
+}

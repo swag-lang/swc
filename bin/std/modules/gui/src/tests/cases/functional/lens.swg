@@ -436,6 +436,35 @@ using Swag, Core, Pixel
     Swag.require(not lens.isOpen() and chosen == 3)
 }
 
+// A single matching segment still runs when it is already selected in the child control.
+#test
+{
+    var chosen = Swag.U64.Max
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    defer host.shutdown()
+
+    let lens = lensSetup(&host)
+    lens.addSource(.None, func|chosen = &chosen|(results)
+    {
+        let section = results.addSection("View As")
+        section.inline = true
+        with let entry = section.addEntry("Binary")
+        {
+            .run = func|chosen|() { chosen[] = 3 }
+        }
+    })
+    lens.open("binary")
+    let combo = lens.inlineChoices[0].combo
+    Swag.require(combo.items.count == 1 and combo.selectedIndex == 0)
+
+    var point = combo.localToSurface(Math.Point{combo.position.width * 0.5, combo.position.height * 0.5})
+    combo.surface!.surfaceToScreen(&point)
+    host.click(point)
+
+    Swag.require(not lens.isOpen() and chosen == 3)
+}
+
 // Refreshing from a populated inline section to none leaves its pooled child out of selection sync.
 #test
 {

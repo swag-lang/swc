@@ -374,8 +374,10 @@ impl IWnd for InfoSheet
 impl InfoSheet
 {
     // Creates an empty, hidden information sheet floating over `parent`.
+    //
+    // Set `closeButton` to false when a persistent opener toggles the sheet instead.
     #[Swag.Discardable]
-    func create(parent: *Wnd, id: WndId? = null)->*InfoSheet
+    func create(parent: *Wnd, id: WndId? = null, closeButton = true)->*InfoSheet
     {
         with let result = Wnd.create'InfoSheet(parent, null, {}, id)
         {
@@ -397,6 +399,9 @@ impl InfoSheet
                 sheet.sigCloseRequested.call(sheet)
             }
         }
+
+        if not closeButton do
+            result.closeButton.hide()
 
         return result
     }
@@ -730,7 +735,7 @@ impl InfoSheet
         let headLeft  = beside ? .besideSize().x + pad * 0.5 : 0
         let headWidth = inner - headLeft
         let titleFont = .titleFont()
-        let controls  = .pages.count > 1 ? 0 : metrics.embInfo_CloseSize + .controlInset() - pad
+        let controls  = .pages.count > 1 or not .closeButton.isLocallyVisible() ? 0 : metrics.embInfo_CloseSize + .controlInset() - pad
         .titleLines = .splitTitle(.title, titleFont, headWidth - controls, scale)
         var headY = y + cast(f32, .titleLines.count) * titleFont.height
         if not .identity.isEmpty() do

@@ -1192,6 +1192,7 @@ private impl View
                 combo.setTextAlignment(.Center)
                 combo.style.setFont(.theme().createDefaultFontFamily(metrics.lens_RowFontSize))
                 combo.sigChanged += func|lens = me, choiceIndex = index|(_, selected) { lens.activateInlineChoice(choiceIndex, cast(u64, selected)) }
+                combo.sigSegmentReselected += func|lens = me, choiceIndex = index|(_, selected) { lens.activateInlineChoice(choiceIndex, cast(u64, selected)) }
                 .inlineChoices.add(InlineChoice{combo, row.section, rowIndex})
             }
 

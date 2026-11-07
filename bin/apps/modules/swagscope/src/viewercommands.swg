@@ -695,9 +695,10 @@ impl ViewerWindow
             disabled = exploring and not .explorer!.history.canGoForward()
 
         case ViewerCommands.Up:
-            name   = texts.explore_Up
-            icon   = .commandGlyph(.ParentFolder)
-            hidden = not exploring
+            name     = texts.explore_Up
+            icon     = .commandGlyph(.ParentFolder)
+            hidden   = not exploring
+            disabled = exploring and not .explorer!.canGoUp()
 
         case ViewerCommands.Refresh:
             name   = texts.explore_Refresh
@@ -1123,6 +1124,7 @@ impl ViewerWindow
     // Lets the explored page make room for the sheet beside it, or take that room back.
     mtd sheetToggled(open: bool)
     {
+        .refreshExplorerCaption()
         if .explorer do
             .explorer.fitToSheet(open)
         .layoutSearchBar()

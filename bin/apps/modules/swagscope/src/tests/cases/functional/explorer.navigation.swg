@@ -3,6 +3,32 @@
 
 using Core, Gui, Pixel
 
+// A failed listing gives its reason the document area and keeps unavailable navigation inert.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.setPosition(Math.Rectangle{0, 0, 960, 640})
+    explorer.listing.path = "C:/"
+    Swag.require(not explorer.canGoUp())
+    explorer.goUp()
+    Swag.require(explorer.requested.isEmpty())
+
+    let missing = Path.combine(Env.getSpecialDirectory(.Temp), Guid64.random().toString())
+    explorer.navigate(missing)
+    completeExplorer(&host, explorer)
+    Swag.require(explorer.failure.isLocallyVisible())
+    Swag.require(not explorer.list.isLocallyVisible() and not explorer.scroll.isLocallyVisible())
+    Swag.require(explorer.failure.text().count != 0 and explorer.status.text().count == 0)
+
+    explorer.setMode(.Names)
+    explorer.navigate(testSourceRoot(#curlocation))
+    completeExplorer(&host, explorer)
+    Swag.require(not explorer.failure.isLocallyVisible() and explorer.list.isLocallyVisible())
+}
+
 // Every filesystem ancestor and every archive folder can be selected independently.
 #test
 {

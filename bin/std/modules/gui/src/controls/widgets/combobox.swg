@@ -75,6 +75,7 @@ struct ComboBox
     maxIconSize:        s32                    // Widest item icon, sizing the icon column.
     hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
     segmentWidths:      Array'f32              // Optional content widths for a hosted segmented choice.
+    sigSegmentReselected: SigArray'func||(*Wnd, u32)     // A pressed segment that was already selected.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -287,8 +288,13 @@ impl IWnd for ComboBox
             if .showsSegments()
             {
                 let index = .segmentAt(.surfaceToLocal(evt.surfacePos))
-                if index < .items.count and not .items[index]!.disabled and index != .selectedIndex do
-                    .applySelectedIndex(index, notify: true)
+                if index < .items.count and not .items[index]!.disabled
+                {
+                    if index == .selectedIndex do
+                        .sigSegmentReselected.call(me, index)
+                    else do
+                        .applySelectedIndex(index, notify: true)
+                }
                 break
             }
 

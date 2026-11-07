@@ -496,6 +496,8 @@ different contracts; none replaces the other two. Keep maintained snapshots in
    `tools/goldens.bat accept`, which promotes every snapshot on disk.
 4. Build with `tools/apps.bat dm build <application>` when module setup, linking, resources
    or packaging changed.
+   For each SwagScope delivery, also compile its shipped release configuration with
+   `tools/apps.bat build swagscope -bc release` before delivery.
 5. Run `tools/apps.bat dm smoke <application>` when startup, the main loop or packaged
    runtime behaviour changed.
 6. Run any dedicated integration tool that applies, such as `tools/vault.bat dm` for Swag

@@ -109,6 +109,7 @@ struct Explorer
         address:     *PathBar
         title:       *Label
         status:      *Label
+        failure:     *Label
         extractAll:  *IconButton
         kindMenu:    *IconButton
         sortMenu:    *IconButton
@@ -282,6 +283,15 @@ impl Explorer
             .explorer        = result
             .backgroundStyle = .View
             .focusPolicy     = .Tab
+        }
+
+        with result.failure = Label.create(result, "", {}, null, .WordWrap | .SecondaryText)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .View
+            .margin          = Math.Vector4{PageMargin, 0, PageMargin, 0}
+            .setTextAlignment(.Center, .Center)
+            .hide()
         }
 
         result.retranslate()
@@ -1256,6 +1266,7 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
+        .failure.hide()
         .generation += 1
         .suspend()
         .pendingOpen     = Swag.U64.Max
@@ -1440,6 +1451,8 @@ impl Explorer
 
     mtd goUp()
     {
+        if not .canGoUp() do
+            return
         if .listing.isArchive and not .folder.isEmpty()
         {
             let trimmed = .folder.toString()[0 until .folder.length - 1]
@@ -1459,6 +1472,14 @@ impl Explorer
                     .navigate(parent)
             }
         }
+    }
+
+    mtd canGoUp()->bool
+    {
+        if .listing.isArchive and (not .folder.isEmpty() or .history.canGoBack()) do
+            return true
+        let parent = Path.directoryName(.listing.path) orelse ""
+        return parent.count != 0 and parent != .listing.path.toString()
     }
 
     private mtd clearTextures()
@@ -1482,7 +1503,7 @@ impl Explorer
         .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
         if entering do
             .setMode(.Details)
-        elif not .listing.isArchive and .grid.rows do
+        else do
             .setMode(.mode)
         .window.teachHints(.isLocallyVisible())
         .fill()
@@ -2100,10 +2121,15 @@ impl IWnd for Explorer
 
             if not error.isEmpty()
             {
-                .setStatus(error)
+                .setStatus("")
+                .failure.setText(error)
+                .list.hide()
+                .scroll.hide()
+                .failure.show()
                 return
             }
 
+            .failure.hide()
             .listing = #move listing
             .folder  = .requestedFolder
             .publish()

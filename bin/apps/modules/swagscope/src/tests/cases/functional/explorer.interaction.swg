@@ -23,12 +23,13 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(changed == 0)
 }
 
-// Closing the information sheet returns its reserved width to the explorer page.
+// The caption action stays selected while the information sheet is open and closes it again.
 #[Swag.TestTag("explorer-info-close")]
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(960, 640)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let data   = Path.combine(testSourceRoot(#curlocation), "datas")
@@ -51,13 +52,12 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     explorer.showInformation()
     Swag.require(explorer.padding.z == window.themeMetrics().infoSheet_Width + window.themeMetrics().floating_Inset)
     Swag.require(explorer.grid.position.width < pageWidth)
+    Swag.require(window.informationCaptionButton.isChecked)
+    Swag.require(window.informationCaptionButton.isLocallyVisible())
 
-    let sheet  = window.infoSheet.surfaceRect()
-    let metric = window.themeMetrics()
-    var point  = Math.Point{sheet.right() - metric.infoSheet_Padding - metric.embInfo_CloseSize * 0.5,
-                            sheet.y + metric.infoSheet_Padding - metric.embInfo_CloseMargin + metric.embInfo_CloseSize * 0.5}
-    window.infoSheet.surface!.surfaceToScreen(&point)
-    host.click(point)
+    host.clickWnd(window.informationCaptionButton)
+    host.pump()
+    Swag.require(not window.informationCaptionButton.isChecked)
 
     Swag.require(not window.infoSheet.isLocallyVisible())
     Swag.require(explorer.padding.z == 0)

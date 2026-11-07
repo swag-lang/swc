@@ -11,8 +11,20 @@ belongs in [compiler.core.md](compiler.core.md) and [language.design.md](languag
 
 ## Entries
 
-Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
-still-image editing and output work.
+Swag Capture is the universal capture, as Swag Scope is the universal viewer: one gesture aims at
+a screen, a window, an area or an area anchored to a window, one key chooses what is kept (picture,
+animation, video, sound, scrolling page), and the same editor annotates the result. A capture is a
+timeline; a picture is a timeline of zero length. The animated GIF is the first timed medium
+(app.capture.012): it carries the whole interaction and document change with short, bounded
+recordings, before video (app.capture.011) and sound (app.capture.013) add their encoders. The
+order is app.capture.028, app.capture.029, app.capture.030, app.capture.012, then
+app.capture.031, app.capture.032, app.capture.014 and app.capture.033.
+
+Recordings of several hours are a requirement from the first timed medium on, even though the GIF
+itself stays short: the recorded media is an append-only file written while recording and only
+referenced by the capture document, so a save never rewrites it; no memory grows with the
+duration; and the timeline, trimming and export work from indexes and streams, never from a
+whole recording loaded at once.
 
 ### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
 
@@ -151,36 +163,191 @@ still-image editing and output work.
   app.capture.009 can bind a hotkey to it.
 - Related: app.capture.009
 
-### app.capture.011 — No video recording
+### app.capture.028 — The capture document has no notion of time or media kind
 
-- Next: decide whether recording is a product goal; if it is, design a timed frame-capture loop
-  and hardware encoder with bounded buffering and observable dropped-frame behavior.
-- Done when: the decision is recorded, and a chosen recorder produces a playable file with
-  bounded memory and reported dropped frames, or the entry and its dependants are dropped.
-- Related: app.capture.012, app.capture.013, app.capture.014
+- Evidence: `Capture` in `src/capture.swg` holds one `backImg` and `backImgOriginal`, a size, and
+  forms without time; `CaptureLibraryMetadata` stores a size and a `CaptureSourceKind` only;
+  `writeScc` in `src/capture.file.swg` writes model, background, original and preview chunks,
+  and every save, automatic ones included, rewrites the whole container through `saveAtomic`.
+  Nothing can hold frames, a duration or sound, and a recording of several hours could not live
+  in a file rewritten by each save.
+- Next: add a media kind (picture, animation, later video and sound) and an optional timeline
+  (duration, frame rate, in and out points, tracks) to the document and to the library metadata.
+  Keep timed media out of the SCC rewrite: the recording is an append-only media file beside the
+  capture, referenced with its identity (size, hash of its header, duration) the way
+  `linkedImage` references a picture, and moved, trashed and restored with it by the library.
+  Read it through one frame source by time with a seek index, the picture being its zero-length
+  case. Keep the canvas painting `backImg`, refreshed from the frame at the playhead, so the
+  editing paths stay shared. Raise `CaptureProfileVersion` and keep version 1 files loading as
+  pictures.
+- Done when: a picture capture saves and loads unchanged; an animation capture round-trips its
+  timing and forms while saving it leaves its media file untouched; a missing or replaced media
+  file is reported instead of being read; and the library reads media kind and duration from the
+  profile without opening the media.
+- Related: app.capture.012, app.capture.029, app.capture.031, app.capture.032, app.capture.037
+
+### app.capture.029 — The capture overlay produces a picture instead of a target
+
+- Evidence: `screenShot` and `performScreenCapture` in `src/screenshot/screenshot.swg` grab the
+  frozen desktop, let the reader aim on it, then crop straight into `Capture.backImg`. The chosen
+  window (`g_CaptureWindow`) is only metadata, and `CaptureMode` mixes what is aimed (area,
+  monitor, window) with how it is taken.
+- Next: make the overlay return a capture target (monitor, window, free area, or area anchored to
+  a window as an offset in its frame) and hand it to an acquisition chosen with one key (`Tab`:
+  picture, animation, later video, sound and scrolling), remembered between captures. Keep the
+  frozen desktop for aiming; let `getCaptureWindowForRect` anchor an area drawn inside one window,
+  with a key to detach it.
+- Done when: every current picture mode goes through the target, the media key switches the
+  acquisition before the capture starts, and an anchored area keeps its offset when its window
+  moves.
+- Related: app.capture.028, app.capture.030, app.capture.009
+
+### app.capture.030 — No recording session, frame or start-stop hotkey
+
+- Next: add a recorder state machine (armed, countdown, recording, paused, finishing, cancelled)
+  driving a timed acquisition worker clocked on the performance counter. While recording, draw a
+  thin frame just outside the target and a small pill beside it (elapsed time against the limit,
+  pause, stop, cancel), both outside the captured pixels. The hotkey that starts a recording stops
+  it (`Shift+PrintScreen` proposed). A window-anchored target follows its window and pauses while
+  it is minimized.
+- Done when: a recording starts, pauses, resumes, stops and cancels from the pill, the keyboard
+  and the global hotkey; neither the frame nor the pill appears in the frames; and stopping opens
+  the result in the editor.
+- Related: app.capture.029, app.capture.012
 
 ### app.capture.012 — No animated GIF recording
 
-- Next: specify frame rate, palette, dithering and size limits, then record and export a GIF
-  independently of the video codec pipeline.
-- Done when: a recording exports a GIF that follows those stated limits and plays correctly.
-- Related: app.capture.011
+- Evidence: the first timed medium. It exercises app.capture.028 through app.capture.033 with the
+  existing `BitBlt` acquisition, whose cost follows the grabbed area, and needs no new platform
+  binding, so it validates the interaction and the document before video encoders exist.
+- Next: record into an append-only frame file streamed to disk by a writer thread behind a bounded
+  queue: a lossless key frame about every second, then only the rectangle changed since the
+  previous frame, each timestamped, with a seek index. It follows the media contract of
+  app.capture.028, so the limits below are a property of the GIF medium, not of the store: 10, 15
+  or 20 frames per second (15 by default), 30 seconds by default and 60 at most, and a maximum
+  stored dimension. Export through std.pixel.image.051 with looping and frame delays taken from
+  the timestamps.
+- Done when: memory stays flat while recording and the same store, run without the GIF limit for
+  an hour in a test, keeps memory flat and seeks to any instant in bounded time; the export
+  decodes back through Pixel's GIF decoder with the same frame count and timing; and dropped
+  frames are reported.
+- Related: app.capture.011, app.capture.028, app.capture.030, app.capture.031, std.pixel.image.051
 
-### app.capture.013 — Recordings cannot include audio
+### app.capture.031 — The editor has no playhead
 
-- Next: after app.capture.011 produces video, capture microphone or loopback audio and mux it in,
-  keeping silent recording independent of audio.
-- Done when: a recording with audio stays in sync, and recording without an audio device still
-  works.
-- Related: std.audio.011, std.audio.013, app.capture.011
+- Next: show a thin timeline under the canvas for a timed capture only: play and pause,
+  scrubbing, frame stepping (`Space`, `Left`, `Right`), elapsed and total time, every command also
+  in the lens. The canvas shows the frame at the playhead. A picture shows no timeline. Scale it
+  from seconds to hours from the start: zoom around the playhead, markers, thumbnails decoded
+  lazily for the visible range only, and seeking through the media index.
+- Done when: an animation can be played, scrubbed and stepped, a synthetic recording of several
+  hours scrubs and zooms without decoding outside the visible range, the picture editor is
+  unchanged, and goldens cover both, each in one palette.
+- Related: app.capture.028, app.capture.032, app.capture.014
+
+### app.capture.032 — Annotations have no time span
+
+- Evidence: `BaseForm` and the form models serialize no time, so on a timed capture every form
+  would show for the whole duration.
+- Next: give every form a span (start and end, the whole capture by default), shown on the
+  timeline for the selected form and set from the playhead (`[` and `]`), and honored by the
+  canvas and every export. Crop and flatten of a timed capture stay non-destructive across frames.
+- Done when: a form shows only inside its span in the editor and in the exported GIF, spans
+  survive save, reload and undo, and picture captures keep their current behavior.
+- Related: app.capture.028, app.capture.031
 
 ### app.capture.014 — Recordings cannot be trimmed in the editor
 
-- Next: once the recorder produces a playable file, add non-destructive in/out trimming and
-  trimmed export.
-- Done when: trimmed export contains exactly the chosen range and the original recording is
+- Next: add non-destructive in and out points, then cut ranges, on the app.capture.031 timeline,
+  for animations first and video next, and export only what is kept.
+- Done when: trimmed export contains exactly the chosen ranges and the stored recording is
   unchanged.
-- Related: app.capture.011, app.capture.012
+- Related: app.capture.031, app.capture.012, app.capture.011, app.capture.037
+
+### app.capture.033 — Timed captures are invisible in the library and the output gestures
+
+- Evidence: `Library.enumerateSupportedFiles` lists SCC captures and loadable images, so an
+  animated `.gif` opens as one picture. The strip's primary action copies a picture through
+  `Clipboard.addImage`, and the clipboard cannot publish a file (std.gui.063).
+- Next: mark timed captures in the recent strip and the library (duration badge, a media facet
+  in the filters), open an animated GIF as an animation capture, and make Copy and Save follow
+  the media: picture formats for a picture; GIF, later APNG and MP4, for an animation, copied as a
+  file.
+- Done when: an animation can be found by media in the library, a dropped animated GIF opens with
+  its frames, and Copy puts the exported GIF on the clipboard in a form that Explorer and
+  messaging applications accept.
+- Related: app.capture.012, app.capture.028, std.gui.063, std.pixel.image.052
+
+### app.capture.011 — No video recording
+
+- Evidence: video recording is a product goal of the universal capture. `Video.Writer` writes
+  only Motion JPEG in MP4 and AVI, plus Y4M, with no sound track, and `BitBlt` acquisition cannot
+  sustain large areas at 60 frames per second.
+- Next: once app.capture.012 has proven the session, timeline and document, add video as a
+  medium: Desktop Duplication acquisition (platform.portability.097), H.264 encoding
+  (std.video.015), and a fragmented MP4 master (std.video.016) read back by the existing H.264
+  decoder for the timeline and re-export.
+  Long recordings need, beside the stream: a recording folder that may differ from the library,
+  free-space watching that stops cleanly before the disk is full, optional automatic splitting by
+  duration or size, and recovery when the source is lost (secure desktop, display change, GPU
+  reset) by repeating the last frame and reacquiring instead of ending the recording.
+- Done when: a four-hour recording of a 1080p monitor at 60 frames per second, and a 4K one at 60
+  for an hour, produce playable MP4 files with memory independent of the duration and reported
+  dropped frames; the recording continues across a lock screen, an elevation prompt and a display
+  mode change; and the file stays playable after the process is killed mid-recording.
+- Related: app.capture.012, app.capture.013, app.capture.014, app.capture.034, app.capture.037,
+  platform.portability.097, std.video.015, std.video.016
+
+### app.capture.013 — Recordings cannot include audio
+
+- Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
+  sound, or this application's sound only for a window target. Keep each source on its own track,
+  timestamped on the performance counter and mixed only at export. Add a sound-only medium with a
+  waveform timeline.
+- Done when: a recording with sound stays within one video frame of sync over four hours, each
+  source's level can be changed after recording, unplugging and replugging a device mid-recording
+  leaves silence on its track instead of ending the recording, recording without any audio device
+  still works, and a sound-only capture exports a playable file.
+- Related: std.audio.011, std.audio.013, std.audio.015, std.audio.016, app.capture.011
+
+### app.capture.034 — The cursor is burned into the recorded pixels
+
+- Evidence: `drawCursorInto` in `src/screenshot/screenshot.win32.swg` paints the cursor into the
+  grabbed pixels; Desktop Duplication delivers pointer shape and position separately.
+- Next: keep the cursor as a track (position, shape, clicks) beside the frames. Burn it in at
+  export by default, and offer a Studio choice that keeps a cursor-free master and edits the track
+  afterwards: hide, enlarge, smooth, mark clicks, zoom towards clicks.
+- Done when: one master exports with the cursor hidden, enlarged, or with clicks marked, in GIF
+  and in MP4.
+- Related: app.capture.011, app.capture.012, platform.portability.097
+
+### app.capture.035 — No scrolling capture
+
+- Next: take successive frames of a window or area while it scrolls, by the reader's wheel or by
+  synthetic input, register their overlap, and stitch one tall picture capture.
+- Done when: long documents scrolled in a browser and in an editor stitch without seams or
+  repeated rows, and an overlap that cannot be registered stops with a clear message.
+- Related: app.capture.029, app.capture.030
+
+### app.capture.036 — No camera overlay
+
+- Next: after app.capture.011, add a camera source (platform.portability.100) drawn as a movable,
+  resizable overlay over the recording and kept as its own track until export.
+- Done when: a recording with a camera overlay exports it where it was placed, and the overlay can
+  be moved or hidden after recording.
+- Related: app.capture.011, platform.portability.100
+
+### app.capture.037 — Exporting a long recording re-encodes all of it
+
+- Evidence: trimming, cutting and annotating an hours-long recording would otherwise re-encode
+  every frame, which costs about as long as the recording.
+- Next: export by packet copy (std.video.017) wherever nothing changes the pixels, and re-encode
+  only the groups of pictures that a cut point, an annotation span, the cursor track or a crop
+  touches, with matching encoder parameters.
+- Done when: a trimmed three-hour recording with a few annotations exports in a small fraction of
+  its duration, the result plays seamlessly across copied and re-encoded segments, and the stored
+  recording is unchanged.
+- Related: app.capture.011, app.capture.014, app.capture.032, std.video.017
 
 ### app.capture.016 — No reusable capture layout templates
 

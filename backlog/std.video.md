@@ -185,3 +185,47 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: several refreshes keep only the active and genuinely referenced windows, and a
   seek cannot read freed packet storage.
 - Related: std.video.002
+
+### std.video.015 — No H.264 encoding
+
+- Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. Screen recording in Swag
+  Capture (app.capture.011) needs a modern codec at 4K and 60 frames per second, while the
+  module already decodes H.264.
+- Next: add a packet-producing H.264 encoder contract (access units with presentation and
+  decoding times, key-frame flag, parameter sets). Implement it first over the Media Foundation
+  encoder (platform.portability.099), hardware when present and Windows' software encoder
+  otherwise, fed NV12 surfaces; then a Swag encoder (constrained baseline, then main) for
+  portability, tuned for screen content where most macroblocks are skipped.
+- Done when: a captured sequence encodes in real time at 1080p60 on the Media Foundation path,
+  the Swag encoder produces a stream that the module's decoder and a reference player both read,
+  and both paths report their rate control and dropped frames.
+- Related: app.capture.011, std.video.016, platform.portability.099
+
+### std.video.016 — Encoding cannot mux several tracks or survive interruption
+
+- Evidence: `Video.Writer` drives one `IEncoder` that owns both codec and container, and the MP4
+  writer emits Motion JPEG samples only, with no sound track, and a sample table written at the
+  end, so a killed recording leaves an unreadable file.
+- Next: separate codec encoders, which produce packets, from containers. Add an MP4 muxer with
+  `avc1`/`avcC` video and `mp4a` sound tracks, interleaving, timed metadata tracks (cursor,
+  markers), and a fragmented mode (`moof`/`mdat`) that keeps the file playable up to the last
+  fragment. Size it for recordings of several hours: 64-bit offsets and timestamps on a timescale
+  that does not accumulate rounding, a key-frame index (`mfra`/`tfra`) for seeking without a scan,
+  and muxer memory independent of the duration. Keep the current single-stream writer as a facade.
+- Done when: a recording with video, two sound tracks and a metadata track plays in the module's
+  decoder and in reference players; a file cut at any fragment boundary still plays to it; and a
+  synthetic four-hour, multi-gigabyte stream seeks to any instant from its index while the muxer's
+  memory stays flat.
+- Related: std.video.015, std.video.017, std.audio.015, app.capture.011, app.capture.013,
+  app.capture.034
+
+### std.video.017 — Packets cannot be copied between files
+
+- Evidence: every path through `std/video` either decodes or encodes pictures. Trimming or cutting
+  an hours-long recording (app.capture.037) must not re-encode the parts it keeps unchanged.
+- Next: read demuxed packets (H.264 access units, sound packets, metadata samples) with their
+  timestamps and write them to the muxer of std.video.016 unchanged, cutting on key frames, with
+  timestamps rebased across removed ranges and parameter sets carried over.
+- Done when: a recording cut into kept ranges on key frames produces a file whose packets are
+  byte-identical to the source's, with continuous timestamps and sound in sync across each join.
+- Related: std.video.016, app.capture.037

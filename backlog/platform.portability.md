@@ -1277,3 +1277,56 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   pointers agree in executables and shared objects, and these tests pass without external
   link tools. Imported DSOs may continue to handle their own TLS and IFUNC implementations.
 
+### platform.portability.097 — No GPU screen acquisition
+
+- Evidence: Swag Capture grabs the screen with `BitBlt` and `CAPTUREBLT` into a DIB
+  (`screenshot.win32.swg`), whose cost grows with the area and which paints the cursor into the
+  pixels; there are no Direct3D 11 or DXGI bindings under `bin/`. `DwmGetWindowAttribute` and
+  `SetWindowDisplayAffinity` are not bound either.
+- Next: decide the owning module (a `screen` module proposed, under `design-swag-bin-modules`),
+  then bind Direct3D 11 and DXGI and expose Desktop Duplication: GPU frames with changed and
+  moved rectangles, performance-counter timestamps, pointer shape and position apart, crop, scale
+  and NV12 conversion on the GPU, and capture across several monitors. Move the still-picture
+  `BitBlt` and X11 paths behind the same source. Bind the window bounds and display affinity
+  calls used for window targets and for excluding overlays. Report lost access (secure desktop,
+  display mode or monitor change, GPU reset) as an event on the source and reacquire, so a
+  recording of several hours continues through it.
+- Done when: a 4K monitor is acquired at 60 frames per second with low CPU, frames carry changed
+  rectangles and timestamps, the pointer is delivered separately from the pixels, and acquisition
+  resumes by itself after a lock screen, an elevation prompt and a display mode change.
+- Related: app.capture.011, app.capture.034, platform.portability.098
+
+### platform.portability.098 — An occluded window cannot be captured
+
+- Next: add Windows.Graphics.Capture (WinRT activation, a frame pool on Direct3D 11) as a window
+  source behind platform.portability.097, without the capture border where the system allows it.
+- Done when: a window covered by another one, or partly off screen, records its own content.
+- Related: platform.portability.097, app.capture.029
+
+### platform.portability.099 — No Media Foundation bindings
+
+- Evidence: H.264 and AAC encoding are provided by Windows through Media Foundation transforms,
+  including vendor hardware encoders, and nothing under `bin/` binds them.
+- Next: bind the subset needed for encoder transforms: enumeration with hardware preference,
+  media types, samples on Direct3D 11 surfaces, and the asynchronous event model of hardware
+  transforms. Report editions without media features explicitly.
+- Done when: an H.264 and an AAC transform can be found, configured and driven from Swag, with a
+  clear failure where they are absent.
+- Related: std.video.015, std.audio.015
+
+### platform.portability.100 — No camera source
+
+- Next: add camera enumeration and capture (Media Foundation source reader on Windows, V4L2 or
+  PipeWire on Linux) delivering timestamped frames.
+- Done when: a caller can list cameras, choose a resolution and receive frames with timestamps on
+  both platforms.
+- Related: app.capture.036, platform.portability.099
+
+### platform.portability.101 — Linux has no screen recording or sound capture source
+
+- Evidence: Swag Capture on Linux grabs still pictures through X11 only.
+- Next: add the XDG desktop portal with PipeWire for Wayland screen and window recording, X11
+  shared-memory grabbing with damage for X11 sessions, and PipeWire or PulseAudio capture and
+  monitor sources for std.audio.011 and std.audio.013.
+- Done when: a Linux session records a window with its sound under Wayland and under X11.
+- Related: platform.portability.097, std.audio.011, std.audio.013

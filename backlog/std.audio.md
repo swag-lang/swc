@@ -113,9 +113,15 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 - Evidence: a recorder, a voice-chat path, a level meter, and Swag Capture recording with
   sound ([app.capture.011](app.capture.md#appcapture011--no-video-recording)) all need input.
-- Next: add capture-device enumeration and a recording stream as a peer of playback.
-- Done when: a caller can open a capture device and receive its samples through the public API.
-- Related: std.audio.012, std.audio.013, app.capture.013
+- Next: add capture-device enumeration and a recording stream as a peer of playback, over WASAPI
+  shared mode on Windows (event-driven), each buffer stamped with its performance-counter time so
+  it can be aligned with screen frames. Report discontinuities and device loss on the stream, and
+  reopen a device that comes back, so a recording of several hours outlives an unplugged headset.
+- Done when: a caller can open a capture device and receive its samples, with timestamps, through
+  the public API, and removing then restoring the device yields a reported gap and resumed samples
+  instead of a dead stream.
+- Related: std.audio.012, std.audio.013, std.audio.016, app.capture.013,
+  platform.portability.101
 
 ### std.audio.012 — No full-duplex audio session
 
@@ -127,10 +133,11 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 ### std.audio.013 — No system-output loopback capture
 
 - Next: expose desktop/output loopback as a distinct capture source where the backend
-  supports it.
-- Done when: a caller can record the system output mix, and unsupported backends report it
-  explicitly.
-- Related: std.audio.011, app.capture.013
+  supports it, and the output of one process tree (WASAPI process loopback, Windows 10 2004 and
+  later) so a window recording can keep only that application's sound.
+- Done when: a caller can record the system output mix and one application's output, and
+  unsupported backends report each explicitly.
+- Related: std.audio.011, app.capture.013, platform.portability.101
 
 ### std.audio.014 — Effects graph
 
@@ -142,5 +149,27 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 - Done when: Effects can be inserted on a bus through a stated DSP or node-graph contract sequenced
   after the per-voice filter boundary.
 - Related: platform.portability.064, std.audio.008, std.audio.009
+
+### std.audio.015 — No sound encoding
+
+- Evidence: every codec under `codec/` decodes, and no file format writes, not even WAV. Swag
+  Capture recordings (app.capture.013) need a compressed track for MP4 and lossless files for
+  sound-only captures.
+- Next: add an encoder contract mirroring the decoder registry, producing packets with
+  timestamps. Implement WAV writing and FLAC first, then AAC-LC over the Media Foundation encoder
+  (platform.portability.099) and later in Swag on the decoder's MDCT and tables.
+- Done when: WAV and FLAC round-trip bit-exactly through the module's decoders, and AAC-LC
+  packets mux into MP4 (std.video.016) and play in reference players.
+- Related: app.capture.013, std.video.016, platform.portability.099
+
+### std.audio.016 — No general resampler with drift correction
+
+- Evidence: only the SILK decoder resamples internally. Several capture devices and a video clock
+  drift apart over a long recording, and capture rates differ from the rate of the exported track.
+- Next: add a streaming resampler with a bounded-quality windowed filter and a ratio that can be
+  adjusted continuously, so a capture stream can follow a master clock.
+- Done when: rate conversions between 44.1 and 48 kHz meet a stated passband and alias bound, and
+  a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
+- Related: std.audio.011, app.capture.013
 
 ---

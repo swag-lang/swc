@@ -627,3 +627,14 @@ preview. Validate requested settings against the capabilities supplied by platfo
   renderer state or keep unowned test textures alive between tests.
 - Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
   parity, multi-host teardown and cross-test resource/state isolation covered.
+
+### std.gui.063 — The clipboard cannot publish files
+
+- Evidence: `clipboard.win32.swg` publishes typed data, images and strings; `CF_HDROP` is only
+  used by drag and drop. Copying an exported GIF or video from Swag Capture (app.capture.033)
+  needs the file itself on the clipboard.
+- Next: add publishing of a file list (`CF_HDROP` on Windows, `text/uri-list` on Linux),
+  optionally beside a typed representation of the same content.
+- Done when: a copied file pastes into Explorer and into an application that accepts dropped
+  files, on both platforms.
+- Related: app.capture.033

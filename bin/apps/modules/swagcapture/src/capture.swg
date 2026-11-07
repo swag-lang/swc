@@ -36,16 +36,16 @@ const MaxFormCacheRefresh = 3
 // [Capture.pruneFormCaches] before the form's memory can be recycled.
 struct FormCache
 {
-    form:    IForm?          // The rendered form; the key of this entry. Set at creation.
-    layer:   Layer           // Retained sharp content at the current view zoom.
-    shadow:  Layer           // Blurred mask retained across view zooms.
-    shadowScale: f32          // Capture-to-mask scale used for the shadow bake.
-    zoom:    f32             // View zoom the content was rendered at.
-    scale:   f32             // Painter content scale the content was rendered at.
-    samples: s32             // Samples per pixel the content was rendered with.
-    dirty:   bool = true     // The content changed; re-render before the next draw.
-    clipped: bool             // The retained layer covers the view rather than the whole form.
-    origin:  Math.Vector2     // Layer origin relative to the capture rectangle when clipped.
+    form:        IForm?           // The rendered form; the key of this entry. Set at creation.
+    layer:       Layer            // Retained sharp content at the current view zoom.
+    shadow:      Layer            // Blurred mask retained across view zooms.
+    shadowScale: f32              // Capture-to-mask scale used for the shadow bake.
+    zoom:        f32              // View zoom the content was rendered at.
+    scale:       f32              // Painter content scale the content was rendered at.
+    samples:     s32              // Samples per pixel the content was rendered with.
+    dirty:       bool = true      // The content changed; re-render before the next draw.
+    clipped:     bool             // The retained layer covers the view rather than the whole form.
+    origin:      Math.Vector2     // Layer origin relative to the capture rectangle when clipped.
 }
 
 impl FormCache
@@ -63,7 +63,17 @@ impl FormCache
 // distinguishes a capture from another SCC document.
 const CaptureFileExtension = ".scc"
 
-const CaptureProfileVersion = 1'u32
+// The frames of a timed capture live beside it, named after it with this extension, so moving,
+// trashing or restoring the capture carries them along and a save of the capture never rewrites
+// them.
+const CaptureMediaExtension = ".frames"
+
+// Profile written for a picture, which every earlier Swag Capture reads.
+const CapturePictureProfileVersion = 1'u32
+
+// Newest profile this version reads and the one written for a timed capture, whose frames an
+// earlier version could not show.
+const CaptureProfileVersion = 2'u32
 
 // Where the pixels of a capture came from. Stored with the capture so the library can
 // distinguish a screen grab from a picture opened for annotation or a blank canvas.
@@ -74,6 +84,24 @@ enum CaptureSourceKind
     ImageFile       // Image file opened or dropped into Swag Capture.
     Clipboard       // Bitmap pasted or dragged without a source file.
     BlankCanvas     // Empty image created in Swag Capture.
+}
+
+// What a capture keeps of its source. A picture is the zero-length case of a timeline: the canvas
+// always shows `Capture.backImg`, which a timed capture refreshes from the frame at its playhead,
+// so every editing path stays shared between media.
+enum CaptureMedia
+{
+    Picture       // One picture.
+    Animation     // A short silent recording, exported as an animated picture.
+}
+
+// The time of a timed capture. Its frames are in the frame file beside the capture
+// ([[CaptureMediaExtension]]).
+struct CaptureTimeline
+{
+    frameCount: u64     // Number of frames recorded.
+    duration:   u64     // Time from the first frame to the end of the last one, in microseconds.
+    mediaSize:  u64     // Size of the frame file when it was recorded; another size means it was replaced.
 }
 
 // Small profile header read by the library without touching the editable document or pixels.
@@ -92,6 +120,8 @@ struct CaptureLibraryMetadata
     sourceWindowClass: String
     favorite:          bool
     rating:            u8
+    media:             CaptureMedia
+    duration:          u64     // Length of a timed capture, in microseconds.
 }
 
 impl CaptureLibraryMetadata
@@ -150,6 +180,8 @@ struct CaptureFileModel
     tags:                Array'String
     favorite:            bool
     rating:              u8
+    media:               CaptureMedia
+    timeline:            CaptureTimeline
 }
 
 // A capture document: the image, the forms drawn over it, the image file it may be linked to,
@@ -188,9 +220,20 @@ struct Capture
     favorite:          bool
     rating:            u8
 
+    // What the capture keeps, and the time of a timed one.
+    media:    CaptureMedia
+    timeline: CaptureTimeline
+
     // Editing state, rebuilt at run time rather than stored with the capture.
     #[NoSerialize]
     {
+        // Frames of a timed capture, open while it is edited, and the frame `backImg` shows.
+        frames:   *Frames.Reader?
+        playhead: u64
+
+        // The frame file of a timed capture is missing, unreadable or was replaced.
+        mediaMissing: bool
+
         // Anomalies the tolerant load had to swallow: reset fields, unknown types,
         // corrupt payloads. Nonzero means the file did not fully match the current
         // schema and a save would not preserve everything it held.
@@ -539,6 +582,7 @@ impl Capture
         if .backTexture.isValid() do
             g_App.renderer.removeTexture(&.backTexture)
         freeForms(.forms)
+        .closeMedia()
     }
 
     // Attaches the capture to `view`, and makes a drag of the canvas gizmo resize the canvas as

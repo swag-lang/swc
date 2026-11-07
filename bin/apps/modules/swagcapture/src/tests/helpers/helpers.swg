@@ -412,3 +412,36 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
     f.main.quickWnd.setDefault()
     return f.main.propWnd
 }
+
+// A small picture whose content depends on `seed`, with a square at `squareX` that moves.
+func testFramePicture(seed: u8, squareX: s32)->Image
+{
+    var result = Image.create(64, 48, .BGRA8)
+    let pixels = result.pixels.storage()
+    for i in result.byteCount do
+        pixels[i] = cast(u8, (i % 7) * 30)
+    for y in 10 to 19
+    {
+        for x in squareX to squareX + 9
+        {
+            let at = cast(u64, (result.height - 1 - y) * result.rowStride + x * 4)
+            pixels[at]     = seed
+            pixels[at + 1] = 200
+            pixels[at + 2] = 255 - seed
+            pixels[at + 3] = 255
+        }
+    }
+
+    return result
+}
+
+func testSamePixels(a, b: const *Image)->bool => a.byteCount == b.byteCount and Memory.compare(a.pixels.storage(), b.pixels.storage(), a.byteCount) == 0
+
+// Writes `pictures` to the frame file `path`, `step` microseconds apart.
+func testWriteFrames(path: string, pictures: const [..] Image, step: u64) fail
+{
+    var writer = try Frames.Writer.create(path, 64, 48, .BGRA8)
+    for picture, i in pictures do
+        try writer.add(picture, i * step)
+    try writer.close(pictures.count * step)
+}

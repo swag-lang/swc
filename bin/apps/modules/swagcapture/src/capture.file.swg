@@ -113,6 +113,8 @@ impl Capture
         result.sourceWindowClass = .sourceWindowClass
         result.favorite          = .favorite
         result.rating            = .rating
+        result.media             = .media
+        result.duration          = .timeline.duration
         return result
     }
 
@@ -140,6 +142,8 @@ impl Capture
         result.tags              = .tags
         result.favorite          = .favorite
         result.rating            = .rating
+        result.media             = .media
+        result.timeline          = .timeline
         return result
     }
 
@@ -162,6 +166,8 @@ impl Capture
             .tags              = manifest.tags
             .favorite          = metadata.favorite
             .rating            = metadata.rating
+            .media             = metadata.media
+            .timeline.duration = metadata.duration
         }
 
         return result
@@ -192,6 +198,8 @@ impl Capture
             .tags              = #move model.tags
             .favorite          = model.favorite
             .rating            = model.rating
+            .media             = model.media
+            .timeline          = model.timeline
         }
 
         return result
@@ -242,16 +250,22 @@ impl Capture
 
         let job = Memory.new'CaptureSaveJob()
         job.file                    = .file
-        job.manifest.profileVersion = CaptureProfileVersion
+        job.manifest.profileVersion = .isTimed() ? CaptureProfileVersion : CapturePictureProfileVersion
         job.manifest.name           = .title
         job.manifest.createdAt      = .capturedAt
         job.manifest.modifiedAt     = Time.DateTime.now()
         job.manifest.tags           = .tags
         job.manifest.profileData    = #move profileBytes
         job.modelBytes              = #move modelBytes
-        job.backImg                 = .backImg
-        job.backOrig                = .backImgOriginal
         job.preview                 = .preview
+
+        // The frames of a timed capture stay in their own file, which a save never rewrites.
+        if not .isTimed()
+        {
+            job.backImg  = .backImg
+            job.backOrig = .backImgOriginal
+        }
+
         return job
     }
 
@@ -388,6 +402,9 @@ impl Capture
         for itf in capture.forms do
             itf.setup(capture)
         reader.close()
+
+        if not preview and capture.isTimed() do
+            capture.openMedia()
         return capture
     }
 }

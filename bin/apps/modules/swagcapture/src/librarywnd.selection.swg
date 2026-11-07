@@ -42,7 +42,7 @@ impl LibraryWnd
     mtd deleteForeverSelected()
     {
         for name in .selectedFiles() do
-            discard catch File.delete(name[])
+            discard catch Capture.deleteFiles(name[])
 
         catch .view.fill()
         .invalidate()

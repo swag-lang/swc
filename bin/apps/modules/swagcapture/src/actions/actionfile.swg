@@ -194,7 +194,7 @@ impl IActionUI for ActionFile
             main.saveCapture(capture)
 
             let file = Library.newFileName()
-            catch File.duplicate(file, capture.file)
+            catch Capture.duplicateFiles(file, capture.file)
 
             catch
             {

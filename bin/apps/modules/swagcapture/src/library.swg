@@ -105,14 +105,15 @@ impl Library
     }
 
     // Picks a destination inside `folder` for `name` that does not collide with an
-    // existing file, prefixing "<n>_" as needed. Both the trash and the restore paths
-    // must stay unique so one delete/restore never overwrites another capture.
+    // existing file, nor with the frame file of a capture, prefixing "<n>_" as needed.
+    // Both the trash and the restore paths must stay unique so one delete/restore never
+    // overwrites another capture.
     func uniqueName(folder: String, name: String)->String
     {
         let base = Path.fileName(name) orelse ""
         var dst  = Path.combine(folder, base)
         var n    = 1
-        while File.exists(dst)
+        while File.exists(dst) or File.exists(Capture.mediaPathOf(dst))
         {
             // Build "<n>_<base>" without passing the name through a formatted `any` arg,
             // then combine (Path.combine wants a plain string, so convert the String).
@@ -127,16 +128,17 @@ impl Library
 
     // Copy+delete because the filesystem module has no atomic move; on any failure we
     // leave the source untouched and remove the partial copy, so a capture is never lost.
+    // A timed capture moves with its frame file.
     func moveFile(dstFolder: String, srcFile: String)->String
     {
         let dst = uniqueName(dstFolder, srcFile)
 
-        catch File.duplicate(dst, srcFile) do
+        catch Capture.duplicateFiles(dst, srcFile) do
             return ""
 
-        catch File.delete(srcFile)
+        catch Capture.deleteFiles(srcFile)
         {
-            discard catch File.delete(dst)
+            discard catch Capture.deleteFiles(dst)
             return ""
         }
 
@@ -151,7 +153,7 @@ impl Library
         }
 
         for fi in files do
-            discard catch File.delete(fi.fullName)
+            discard catch Capture.deleteFiles(fi.fullName)
     }
 
     // Brings a trashed capture back into the library folder. Returns the restored path

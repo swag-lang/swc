@@ -635,5 +635,5 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Next: build the gui module and its clipboard test on Linux, and copy a file to a Linux file
   manager.
 - Done when: the clipboard test passes on Linux and a copied file pastes into a file manager.
-- Related: app.capture.033, platform.portability.101
+- Related: platform.portability.101
 

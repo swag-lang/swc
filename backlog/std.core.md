@@ -350,4 +350,20 @@ new module rather than growth inside `core`.
   so two-digit times need no digit-by-digit workaround.
 - Done when: the call above is rejected or asserts, and a padded field writes "0:07".
 
+### std.core.038 — TagBin stores an enum by its rank, which ties stored data to declaration order
+
+- Evidence: `serialization/helpers.swg` identifies an enum by its underlying type and writes its
+  value, which for an ordinary enum is the rank of its case. Inserting, reordering or removing a
+  case changes the meaning of every stored value: Swag Capture had to put
+  `LibraryContentFilter.Animations` last instead of where the filter menu shows it, and
+  `EditorLanguage` warns that "the order is the stored one". Application states, capture documents
+  (`CaptureMedia`, `CaptureSourceKind`, `FormSubKind`) and options all store enums this way.
+- Next: give TagBin a policy for enums: write a stable identity of the case, such as a CRC of its
+  name (overridable by an attribute for a renamed case), read it back to the matching case, and
+  keep reading the value written by earlier versions; `#[Swag.EnumFlags]` and enums with explicit
+  values that are a wire format (`TagBin` flags) keep their value.
+- Done when: inserting or reordering cases of a stored enum reads earlier files back to the same
+  cases, a renamed case can keep its identity, and unknown identities are reported rather than
+  mapped to a wrong case, with tests at the serializer boundary.
+
 ---

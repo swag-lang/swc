@@ -11,6 +11,7 @@ impl ActionLibFilter
     newCmdId("ScreenCaptures")
     newCmdId("ImportedCaptures")
     newCmdId("Images")
+    newCmdId("Animations")
     newCmdId("FavoritesOnly")
     newCmdId("RatingAny")
     newCmdId("Rating1")
@@ -40,7 +41,7 @@ impl IActionUI for ActionLibFilter
             evt.updatedFields |= .Name
             evt.name          = appStrings().act_ResetFilters
 
-        case .AllItems, .Captures, .ScreenCaptures, .ImportedCaptures, .Images:
+        case .AllItems, .Captures, .Animations, .ScreenCaptures, .ImportedCaptures, .Images:
             evt.updatedFields |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             switch cxt.id
@@ -56,6 +57,12 @@ impl IActionUI for ActionLibFilter
                 evt.icon          = cxt.wnd!.theme().icon(.FileImage)
                 evt.name          = appStrings().act_FilterCaptures
                 evt.checked       = libWnd.contentFilter == .Captures
+
+            case .Animations:
+                evt.updatedFields |= .Icon
+                evt.icon          = cxt.wnd!.theme().icon(.Play)
+                evt.name          = appStrings().act_FilterAnimations
+                evt.checked       = libWnd.contentFilter == .Animations
 
             case .ScreenCaptures:
                 evt.updatedFields |= .Icon
@@ -181,6 +188,10 @@ impl IActionUI for ActionLibFilter
 
         case .Captures:
             libWnd.contentFilter = .Captures
+            libWnd.view.filter()
+
+        case .Animations:
+            libWnd.contentFilter = .Animations
             libWnd.view.filter()
 
         case .ScreenCaptures:

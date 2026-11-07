@@ -701,7 +701,7 @@ impl LibraryView
 
         switch lib.contentFilter
         {
-        case .Captures, .ScreenCaptures, .ImportedCaptures where it.kind != .Capture: return false
+        case .Captures, .Animations, .ScreenCaptures, .ImportedCaptures where it.kind != .Capture: return false
         case .Images where it.kind != .Image: return false
         }
 
@@ -712,12 +712,14 @@ impl LibraryView
             return search.count == 0 and
                    lib.contentFilter != .ScreenCaptures and
                    lib.contentFilter != .ImportedCaptures and
+                   lib.contentFilter != .Animations and
                    not lib.filtersMetadata()
 
         switch lib.contentFilter
         {
         case .ScreenCaptures where not capture or capture.sourceKind != .Screen: return false
         case .ImportedCaptures where not capture or (capture.sourceKind != .ImageFile and capture.sourceKind != .Clipboard): return false
+        case .Animations where not capture or not capture.isTimed(): return false
         }
 
         if it.kind == .Image do

@@ -228,6 +228,6 @@ ships; history lives in Git, not here.
   reusing the changed-rectangle reduction of std.pixel.image.051.
 - Done when: an animation written as APNG decodes back with identical pixels and timing, and
   viewers without APNG support show its first frame.
-- Related: std.pixel.image.051, app.capture.033
+- Related: std.pixel.image.051, app.capture.012
 
 ---

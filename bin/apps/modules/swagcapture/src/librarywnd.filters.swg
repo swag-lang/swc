@@ -566,7 +566,7 @@ const RatingStarGap  = 2'f32
 // borrows its identifiers, which these constants keep alive for as long as the program runs.
 const ThumbnailSizeIds = [ActionRecentSize.LibSmall, ActionRecentSize.LibMedium, ActionRecentSize.LibBig]
 const SortIds          = [ActionLibSort.Recent, ActionLibSort.Modified, ActionLibSort.Name, ActionLibSort.Application, ActionLibSort.WindowTitle, ActionLibSort.Dimensions, ActionLibSort.FileSize, ActionLibSort.Similar]
-const ContentFilterIds = [ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images]
+const ContentFilterIds = [ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.Animations, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images]
 const RatingFilterIds  = [ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5]
 const LinkFilterIds    = [ActionLibFilter.UpToDateLinkedImage, ActionLibFilter.UnSavedLinkedImage, ActionLibFilter.LinkedImage, ActionLibFilter.UnLinkedImage]
 const OverlayIds       = [ActionLibSort.Invert, ActionLibView.Ratings, ActionLibView.LinkMarkers]

@@ -300,6 +300,7 @@ struct AppStrings
     act_FilterScreenCaptures:     string = "Screen Captures"
     act_FilterImportedCaptures:   string = "Imported Captures"
     act_FilterImages:             string = "External Images"
+    act_FilterAnimations:         string = "Animations"     // Library filter keeping the captures with a length.
     act_FilterFavorites:          string = "Favorites Only"
     act_FilterAnyRating:          string = "Any Rating"
     act_FilterRating1:            string = "At Least 1 Star"

@@ -24,7 +24,8 @@ enum SortMethod
     Similar
 }
 
-// Which kinds of entries the library shows.
+// Which kinds of entries the library shows. The application state stores the choice by value
+// (std.core.038), so a new kind goes last whatever its place in the menu.
 enum LibraryContentFilter
 {
     All
@@ -32,6 +33,7 @@ enum LibraryContentFilter
     ScreenCaptures
     ImportedCaptures
     Images
+    Animations     // Captures with a length.
 }
 
 // One date the library can be narrowed to: a year, a month of a year, or a day of a month, with

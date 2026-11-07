@@ -488,6 +488,15 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(view.items.count == 1)
     Swag.require(view.items[0] == image)
 
+    // An animation is a capture with a length.
+    slack.capture.media = .Animation
+    slack.capture.timeline.duration = 12_000_000
+    lib.contentFilter   = .Animations
+    view.filter()
+    Swag.require(view.items.count == 1)
+    Swag.require(view.items[0] == slack)
+    slack.capture.media = .Picture
+
     lib.contentFilter     = .All
     lib.applicationFilter = "CHROME"
     view.filter()

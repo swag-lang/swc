@@ -177,6 +177,7 @@ act_FilterCaptures     Captures
 act_FilterScreenCaptures Captures d'écran
 act_FilterImportedCaptures Captures importées
 act_FilterImages       Images externes
+act_FilterAnimations   Animations
 act_FilterFavorites    Favoris uniquement
 act_FilterAnyRating    Toutes les notes
 act_FilterRating1      Au moins 1 étoile

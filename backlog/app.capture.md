@@ -18,8 +18,7 @@ timeline; a picture is a timeline of zero length. The animated GIF is the first 
 (app.capture.012): it carries the whole interaction and document change with short, bounded
 recordings, before video (app.capture.011) and sound (app.capture.013) add their encoders. The
 proof of concept records, plays, saves and copies animations; what remains of it is
-app.capture.029, app.capture.030, app.capture.012, app.capture.031, app.capture.032,
-app.capture.014 and app.capture.033.
+app.capture.029, app.capture.030, app.capture.012, app.capture.031 and app.capture.032.
 
 Recordings of several hours are a requirement from the first timed medium on, even though the GIF
 itself stays short: the recorded media is an append-only file written while recording and only
@@ -223,23 +222,15 @@ whole recording loaded at once.
   both.
 - Related: app.capture.031
 
-### app.capture.014 — Recordings cannot be trimmed in the editor
+### app.capture.014 — A passage cannot be cut out of the middle of a recording
 
-- Next: add non-destructive in and out points, then cut ranges, on the app.capture.031 timeline,
-  for animations first and video next, and export only what is kept.
-- Done when: trimmed export contains exactly the chosen ranges and the stored recording is
-  unchanged.
-- Related: app.capture.031, app.capture.012, app.capture.011, app.capture.037
-
-### app.capture.033 — The library cannot filter by media
-
-- Evidence: animations carry a duration badge in the recent strip and the library, an animated
-  GIF opens as an animation, and missing frames are reported; but the library filters
-  (`librarywnd.filters.swg`) have no media facet.
-- Next: add a media facet (all, pictures, animations) to the library filters, kept in the
-  application state like the other filters.
-- Done when: an animation can be found by media in the library, and the facet survives restart.
-- Related: app.capture.012
+- Evidence: an animation keeps the part between an in point and an out point (`Capture.setTrim`,
+  the brackets of the timeline), but a passage inside it cannot be removed.
+- Next: add cut ranges inside the kept part, drawn and dragged on the timeline, skipped by playback
+  and the export, as one undoable edit each; then the same for video.
+- Done when: an export leaves out exactly the cut ranges, the timing of what follows is joined, and
+  the stored recording is unchanged.
+- Related: app.capture.031, app.capture.011, app.capture.037
 
 ### app.capture.011 — No video recording
 

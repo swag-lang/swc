@@ -164,6 +164,7 @@ SWC_DIAG_DEF(sema_err_calling_convention_invalid_callconv, Error, "'#[Swag.Calli
 SWC_DIAG_DEF(sema_err_foreign_needs_module, Error, "'#[Swag.Foreign]' needs a module; only a generated module API takes it from the file it belongs to; [help] name the library or module the function comes from")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "expected a value expression here")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "'{sym}' is not a value expression; it is {a-sym-fam}")
+SWC_DIAG_DEF(sema_err_not_value_expr, Error, "'{sym}' is not a value expression; it is {a-sym-fam}; [help] pass '&{value}' to use the function as a value")
 SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "array dimension needs an integer, found '{type}'")
 SWC_DIAG_DEF(sema_err_array_dim_enum_not_dense, Error, "array index enum '{type}' needs unique integer values from 0 through {value}; [help] use a zero-based contiguous enum, or specify an integer array dimension")
 SWC_DIAG_DEF(sema_err_array_num_dims, Error, "array access provides {value} indices, but the array needs {count}")

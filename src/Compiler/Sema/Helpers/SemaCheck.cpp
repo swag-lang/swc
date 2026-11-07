@@ -549,7 +549,12 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
     if (isIgnoredValuePoison(sema, nodeRef))
         return Result::Error;
 
-    return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
+    const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
+    if (view.sym() && view.sym()->isFunction())
+        diag.addArgument(Diagnostic::ARG_VALUE, view.sym()->name(sema.ctx()));
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef)

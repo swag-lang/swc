@@ -26,6 +26,28 @@ namespace
         return leftView.typeRef();
     }
 
+    TypeRef commonMultiAssignTargetTypeRef(Sema& sema, const AstAssignList& assignList)
+    {
+        if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
+            return TypeRef::invalid();
+
+        TypeRef result = TypeRef::invalid();
+        SmallVector<AstNodeRef> leftRefs;
+        sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
+        for (const AstNodeRef leftRef : leftRefs)
+        {
+            if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
+                continue;
+
+            const TypeRef target = assignmentTargetTypeRef(sema.viewNodeTypeSymbol(leftRef));
+            if (target.isInvalid() || (result.isValid() && target != result))
+                return TypeRef::invalid();
+            result = target;
+        }
+
+        return result;
+    }
+
     SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView)
     {
         SemaNodeView  targetView    = leftView;
@@ -357,6 +379,15 @@ namespace
                 SWC_RESULT(tryCompoundAssignmentCast(sema, tok.id, leftRef, leftView, nodeRightView, nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
         }
 
+        if (tok.id == TokenId::SymEqual)
+        {
+            // The shared source must be converted, not just checked against each target.
+            // Otherwise an empty brace literal remains a zero-sized aggregate in codegen.
+            const TypeRef targetTypeRef = commonMultiAssignTargetTypeRef(sema, assignList);
+            if (targetTypeRef.isValid())
+                SWC_RESULT(Cast::cast(sema, nodeRightView, targetTypeRef, CastKind::Assignment));
+        }
+
         return Result::Continue;
     }
 }
@@ -373,13 +404,17 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         // Provide a type hint to the RHS: `a = expr` should type `expr` as `typeof(a)` when possible.
         const SemaNodeView leftView = sema.viewType(nodeLeftRef);
-        if (leftView.typeRef().isValid())
+        TypeRef            bindingTypeRef = leftView.typeRef();
+        if (sema.node(nodeLeftRef).is(AstNodeId::AssignList))
+            bindingTypeRef = commonMultiAssignTargetTypeRef(sema, sema.node(nodeLeftRef).cast<AstAssignList>());
+        if (bindingTypeRef.isValid())
         {
             TypeRef specOpBindingTypeRef = TypeRef::invalid();
-            SWC_RESULT(SemaSpecOp::resolveAssignLambdaBindingType(sema, *this, leftView, specOpBindingTypeRef));
+            if (leftView.typeRef().isValid())
+                SWC_RESULT(SemaSpecOp::resolveAssignLambdaBindingType(sema, *this, leftView, specOpBindingTypeRef));
 
             auto frame = sema.frame();
-            frame.pushBindingType(leftView.typeRef());
+            frame.pushBindingType(bindingTypeRef);
             frame.pushBindingType(specOpBindingTypeRef);
             SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeRightRef);
             frame.setBindingScoped();

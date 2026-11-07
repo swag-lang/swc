@@ -63,7 +63,8 @@ impl TextChoicePopover
             .kind            = kind
         }
 
-        result.build(width, frame.position.height)
+        let content = frame.paddedClientRect()
+        result.build(content.width, content.height)
         return result
     }
 
@@ -176,7 +177,7 @@ impl TextChoicePopover
         let above = frame.surfaceRect().bottom() <= .button.surfaceRect().y
         let y     = above ? old.y + old.height - height : old.y
         frame.setPosition({old.x, y, old.width, height})
-        .list.resize(.list.position.width, height - .list.position.y - TextChoicePadding)
+        .list.resize(.list.position.width, frame.paddedClientRect().height - .list.position.y - TextChoicePadding)
     }
 
     // A click chooses at once; keyboard movement only changes the focused row until Enter.

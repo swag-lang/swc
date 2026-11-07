@@ -187,17 +187,20 @@ whole recording loaded at once.
   recording follows its window and pauses while it is minimized.
 - Related: app.capture.029, platform.portability.097
 
-### app.capture.038 — A zone waiting on the aiming row cannot be adjusted
+### app.capture.038 — The bar of a fresh zone offers only picture and animation
 
-- Evidence: the row of `src/screenshot/aimbar.swg` lists the kinds of capture, the cursor and the
-  countdown, and its action takes the zone. For an animation, a chosen zone waits under it
-  (`CaptureRectWnd.settled`), but a waiting zone can only be redrawn, not moved or resized by its
-  edges, and the row has a speaker icon only, no microphone, while the theme has no glyph for it.
-- Next: give a waiting zone handles on its corners and edges and a drag inside to move it, and
-  add microphone and speaker glyphs once app.capture.013 brings sound.
-- Done when: a waiting zone can be moved and resized before the recording starts, and the row
-  shows both sources of sound.
-- Related: app.capture.013, app.capture.029
+- Evidence: the bar of the in-place editor (`src/screenshot/inplaceeditwnd.swg`) starts with the
+  kinds of capture (`KindSegments` in `src/screenshot/capturekind.swg`, ordered by `KindMedia`):
+  a picture keeps the tools and Copy, an animation shows the cursor, the countdown, the sound out
+  of reach and Record. Video, sound alone and scrolling capture are not listed, since the bar
+  already holds about 790 logical pixels for a picture, and the theme has a speaker glyph but no
+  microphone.
+- Next: add each kind to `KindMedia` when it can be taken, with its own options in the bar, and
+  keep the picture bar within a 1280-pixel logical screen when they come (fold the destinations
+  into one menu if needed); add microphone and speaker glyphs with app.capture.013.
+- Done when: every kind Swag Capture can take is chosen from the bar of the zone, and the bar
+  shows both sources of sound for a kind that records them.
+- Related: app.capture.011, app.capture.013, app.capture.035
 
 ### app.capture.012 — Animation recording limits are fixed and dropped frames are silent
 

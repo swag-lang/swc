@@ -41,11 +41,16 @@ func inPlaceEditTools()->[11] InPlaceEditTool
             InPlaceEditTool{.Pixelate, .Pixelate, texts.tip_InpPixelate}]
 }
 
+// Side of the dot of a recording on Record.
+const RecordDotSize = 8.0
+
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
 //
 // The desktop stays dimmed and the zone stands in full light, its edges still movable. One bar
-// hangs under the zone: the tools as glyphs, the colour, then where the capture goes — pinned on
-// the screen, to the editor, to a file — and Copy, the primary action; the keys are at the foot.
+// hangs under the zone, and starts with what the zone becomes: a picture or an animation. For a
+// picture, the tools as glyphs, the colour, then where the capture goes — pinned on the screen,
+// to the editor, to a file — and Copy, the primary action. For an animation, the options of the
+// recording, the sound out of reach, and Record. The keys are at the foot.
 struct InPlaceEditWnd
 {
     using wnd: Wnd
@@ -58,6 +63,7 @@ struct InPlaceEditWnd
     }
 
     capture:          *Capture?
+    late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
     editColor:        Color = Argb.Red
@@ -98,7 +104,8 @@ impl InPlaceEditWnd
                 break
             }
 
-            .createBar(main)
+            .source = main
+            .createBar()
             .createHintLine()
             .setupCapture(capture)
             .app().registerFrameEvent(frame)
@@ -145,15 +152,38 @@ impl InPlaceEditWnd
         return frame
     }
 
-    // The one bar under the zone: the tools, the colour, the destinations in words, Copy, and the
-    // faint cross that leaves without keeping anything.
-    mtd createBar(main: *MainWnd)
+    // The one bar under the zone.
+    mtd createBar()
+    {
+        .bar = MiniBar.create(.editWnd.editView)
+        .fillBar()
+    }
+
+    // Fills the bar for what the zone becomes: the kinds, then, for a picture, the tools, the
+    // colour, the destinations in words and Copy; for an animation, the options of the recording,
+    // the sound and Record; and the faint cross that leaves without keeping anything.
+    mtd fillBar()
     {
         let texts   = appStrings()
         let metrics = .themeMetrics()
         let size    = metrics.menuPopup_IconSize
-        .bar = MiniBar.create(.editWnd.editView)
+        .bar.clear()
 
+        with let kinds = KindSegments.create(.bar, g_CaptureMedia)
+        {
+            .sigChosen += func|editor = me|(seg) { editor.setMedia(seg.chosen) }
+        }
+
+        .bar.addItem(kinds)
+        .bar.addSeparator()
+
+        if g_CaptureMedia == .Animation
+        {
+            .fillRecordingBar()
+            return
+        }
+
+        let main = .source
         for tool in inPlaceEditTools()
         {
             with let button = .bar.addButton(main.icon(tool.icon, size), toolTip: tool.tip, flags: .Radio)
@@ -210,6 +240,86 @@ impl InPlaceEditWnd
 
         .bar.addItem(copy)
         .bar.addButton(.theme().icon(.WndClose, size), toolTip: texts.tip_InpClose).sigPressed += func(_) { exitWithResult(false) }
+        .updateEditMode()
+    }
+
+    // The bar of a zone waiting to be recorded: the cursor and the countdown, the sound out of
+    // reach and why, Record, and the cross.
+    mtd fillRecordingBar()
+    {
+        let texts   = appStrings()
+        let metrics = .themeMetrics()
+        let options = &.source.captureOptions
+
+        with let cursor = OptionChip.create(.bar, .source.icon(.Select), texts.ui_AimCursor, options.captureCursor)
+        {
+            .sigPressed += func|editor = me|(btn) { editor.setCursorShown(not editor.source.captureOptions.captureCursor, btn) }
+        }
+
+        .bar.addItem(cursor)
+
+        with let countdown = OptionChip.create(.bar, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
+        {
+            .sigPressed += func|editor = me|(btn)
+            {
+                let chip = btn
+                editor.source.captureOptions.recordCountdown = not editor.source.captureOptions.recordCountdown
+                chip.on = editor.source.captureOptions.recordCountdown
+                chip.invalidate()
+            }
+        }
+
+        .bar.addItem(countdown)
+        .bar.addSeparator()
+        .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, inert: true))
+
+        let font        = .theme().createDefaultFont(metrics.defaultFontSize)
+        let width       = Math.ceil(Painter.measureString(texts.ui_AimRecord, font).width + 2 * metrics.btnPush_TextMargin + RecordDotSize + OptionChipGap)
+        with let record = PushButton.create(.bar, texts.ui_AimRecord, {0, 0, width, metrics.miniBar_ButtonSize}, form: .Strong)
+        {
+            // The dot of a recording, small beside the word.
+            .setIcon(.theme().icon(.Dot, RecordDotSize))
+            .setIconSize(RecordDotSize, RecordDotSize)
+            .sigPressed += func|editor = me|(_) { editor.record() }
+        }
+
+        .bar.addItem(record)
+        .bar.addButton(.theme().icon(.WndClose, metrics.menuPopup_IconSize), toolTip: texts.tip_InpClose).sigPressed += func(_) { exitWithResult(false) }
+    }
+
+    // Makes the zone a picture or an animation, and fills the bar and the keys again for it. An
+    // animation keeps what was drawn, and the pointer only selects it.
+    mtd setMedia(media: CaptureMedia)
+    {
+        if media == g_CaptureMedia do
+            return
+        g_CaptureMedia = media
+        if media == .Animation do
+            .editMode = .Select
+        .fillBar()
+        .configureMainWindowEditMode()
+        .hintLine.destroy()
+        .createHintLine()
+        .placeBar()
+    }
+
+    // Puts the cursor in the zone or takes it out, as the capture option says from now on.
+    mtd setCursorShown(shown: bool, chip: *OptionChip)
+    {
+        .source.captureOptions.captureCursor = shown
+        chip.on = shown
+        chip.invalidate()
+
+        let capture = unwrap .capture
+        setCursorIn(&capture.backImg, shown)
+        capture.dirtyBackImg = true
+        .editWnd.editView.invalidate()
+    }
+
+    // Starts the recording of the zone, where it now stands.
+    mtd record()
+    {
+        exitWithResult(true)
     }
 
     // The keys of the editor at the foot of the screen, on the dimmed desktop.
@@ -218,8 +328,17 @@ impl InPlaceEditWnd
         let texts = appStrings()
         with .hintLine = HintLine.create(.editWnd.editView)
         {
-            .addHint(strings().key_Enter, texts.hint_CopyClose)
-            .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
+            if g_CaptureMedia == .Animation
+            {
+                .addHint(strings().key_Enter, texts.hint_Record)
+            }
+            else
+            {
+                .addHint(strings().key_Enter, texts.hint_CopyClose)
+                .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
+            }
+
+            .addHint(strings().key_Tab, kindName(g_CaptureMedia == .Animation ? .Picture : .Animation))
             .addHint(strings().key_Escape, texts.hint_Cancel)
         }
     }
@@ -410,11 +529,14 @@ impl IWnd for InPlaceEditWnd
         if evt.kind != .Pressed do
             return
 
+        let recording = g_CaptureMedia == .Animation
         switch
         {
         case evt.key == .Escape: exitWithResult(false)
-        case evt.key == .Return and evt.modifiers == .None: .copy()
-        case evt.key == .S and evt.modifiers == .Control:   .save()
+        case evt.key == .Return and evt.modifiers == .None and recording:   .record()
+        case evt.key == .Return and evt.modifiers == .None:                 .copy()
+        case evt.key == .S and evt.modifiers == .Control and not recording: .save()
+        case evt.key == .Tab and evt.modifiers == .None:                    .setMedia(recording ? .Picture : .Animation)
         default: return
         }
 

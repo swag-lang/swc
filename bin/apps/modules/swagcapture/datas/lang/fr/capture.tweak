@@ -88,13 +88,9 @@ msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
 ui_MediaPicture        Photo
 ui_MediaAnimation      GIF
-ui_MediaVideo          Vidéo
-ui_MediaSound          Son
-ui_MediaScroll         Défilement
 ui_AimCursor           Curseur
 ui_AimCountdown        Compte à rebours
 ui_AimNoSound          Pas de son dans un GIF
-ui_AimCapture          Capturer
 ui_AimRecord           Enregistrer
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
@@ -484,6 +480,7 @@ hint_CopyClose         copier et fermer
 hint_Save              enregistrer
 hint_CalloutTail       Glisser le point de la queue pour la diriger
 hint_NewLine           nouvelle ligne
+hint_Record            enregistrer
 hint_KeepText          garder le texte
 key_Arrows             ← ↑ → ↓
 hint_Nudge             décaler, Maj ×10

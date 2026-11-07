@@ -652,11 +652,35 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    // One bar: the ten tools, the colour, the three destinations, Copy and the cross.
+    // One bar: the kinds of capture, the ten tools, the colour, the three destinations, Copy and
+    // the cross.
     Swag.require(editor.bar.isLocallyVisible())
     Swag.require(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, "inplace")
+}
+
+// A fresh zone made an animation waits for its recording: the kinds, the cursor and the countdown,
+// the sound out of reach and why, Record and the cross, in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: false)
+    defer
+    {
+        g_CaptureMedia = .Picture
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    editor.source.captureOptions.recordCountdown = true
+    editor.setMedia(.Animation)
+    host.runFrames(1)
+    host.finishAnimations()
+    var image = host.render(editor)
+    Pixel.Testing.assertImageGolden(&image, "inplace.record")
 }
 
 // A callout whose words are typed in place: the field over its body, the hint of the tail, in
@@ -1091,6 +1115,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     {
         var preview = Image.create(cast(s32, size.x), cast(s32, size.y), .BGRA8)
         preview.fill(Color.fromArgb(inks[i]))
+
         // Untyped: a short String declared with its type from a call reads zeroed (compiler.core.094).
         var file = Format.toString("recent%", i)
         file += ".scc"

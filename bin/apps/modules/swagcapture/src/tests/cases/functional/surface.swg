@@ -661,6 +661,7 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     g_StartGrabY           = 160
     g_EndGrabX             = 740
     g_EndGrabY             = 400
+    g_CaptureMedia         = .Picture
 
     with let capture = Memory.new'Capture()
     {
@@ -715,17 +716,17 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
             Swag.require(bar.bottom() <= zone.y or bar.y >= zone.bottom())
     }
 
-    editor.resize(800, 600)
+    editor.resize(1000, 600)
     host.runFrames(1)
-    Swag.require(editor.bar.position.right() <= 788 and editor.bar.position.bottom() <= 588)
+    Swag.require(editor.bar.position.right() <= 988 and editor.bar.position.bottom() <= 588)
 
     // A virtual desktop can extend past the captured monitor. Keep its bar on that
     // monitor even when centring on the capture would cross the display boundary.
-    editor.barRoom       = {0, 0, 700, 600}
+    editor.barRoom       = {0, 0, 900, 600}
     capture.width, capture.height = 100
     capture.backImagePos = {-580, -180}
     host.runFrames(1)
-    Swag.require(editor.bar.position.right() <= 688)
+    Swag.require(editor.bar.position.right() <= 888)
 }
 
 // Something that must not leave the screen is hidden in place, before the copy: the bar has a
@@ -1385,4 +1386,88 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     Swag.require(view.capture == null)
     view.setZoom(2)
     Swag.require(view.zoom == 2)
+}
+
+// The bar of a fresh zone starts with what the zone becomes. Choosing the animation fills it with
+// the options of the recording and Record, keeps what was drawn, and Enter then starts the
+// recording; Tab gives the picture and its tools back.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: false)
+    defer
+    {
+        g_CaptureMedia = .Picture
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    func kinds(editor: *InPlaceEditWnd)->*KindSegments?
+    {
+        for item in editor.bar.items
+        {
+            if item.wnd is KindSegments as seg do
+                return seg
+        }
+
+        return null
+    }
+
+    func chips(editor: *InPlaceEditWnd)->u32
+    {
+        var count = 0'u32
+        for item in editor.bar.items where item.wnd is OptionChip do
+            count += 1
+        return count
+    }
+
+    g_CaptureMedia = .Picture
+    editor.setMedia(.Picture)
+    Swag.require(chips(editor) == 0)
+    let forms = editor.capture!.forms.count
+    Swag.require(forms > 0)
+
+    // A click on the second kind makes the zone an animation.
+    let seg = unwrap kinds(editor)
+    var pos = seg.surfaceRect()
+    let at  = seg.segmentRect(1)
+    var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {pos.x + at.horzCenter(), pos.y + at.vertCenter()}}
+    seg.sendEvent(&evt)
+    host.runFrames(1)
+    host.finishAnimations()
+    Swag.require(g_CaptureMedia == .Animation)
+    Swag.require(chips(editor) == 3)
+    Swag.require(editor.editMode == .Select and editor.newMain.editMode == .Selection)
+    Swag.require(editor.capture.forms.count == forms)
+
+    // The cursor option changes the capture setting.
+    var cursorChip: *OptionChip?
+    for item in editor.bar.items
+    {
+        if item.wnd is OptionChip as chip where not chip.inert
+        {
+            cursorChip = chip
+            break
+        }
+    }
+
+    let cursor = editor.source.captureOptions.captureCursor
+    host.clickWnd(unwrap cursorChip)
+    host.pump()
+    Swag.require(editor.source.captureOptions.captureCursor != cursor)
+    editor.source.captureOptions.captureCursor = cursor
+
+    // Tab gives the picture back, with its tools.
+    var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
+    editor.sendEvent(&key)
+    Swag.require(g_CaptureMedia == .Picture and chips(editor) == 0)
+
+    // In an animation, Enter starts the recording of the zone.
+    editor.setMedia(.Animation)
+    g_Exit, g_GrabDone = false
+    key.key = .Return
+    editor.sendEvent(&key)
+    Swag.require(g_Exit and g_GrabDone)
 }

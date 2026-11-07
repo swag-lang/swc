@@ -33,13 +33,15 @@ var g_DesktopTexture: Texture
 var g_CaptureWindow:  CaptureWindowInfo
 
 // The cursor as it stood when the desktop was grabbed: a patch of the desktop with the cursor
-// drawn in, laid over the grabbed picture when the capture keeps the cursor. The overlay shows it
-// or not as the option changes, before the picture is taken.
+// drawn in, laid over the grabbed picture when the capture keeps the cursor, and the same pixels
+// without it, which take it out again. The overlay shows it or not as the option changes.
 const CursorPatchSide = 192's32     // Side of the patch, in physical pixels.
 const CursorPatchLead = 64's32      // Part of the patch above and left of the pointer.
 
 var g_CursorPatch:     Image
 var g_CursorPatchRect: Math.Rectangle     // In physical virtual-desktop pixels.
+var g_CursorBare:      Image     // The desktop under the patch, without the cursor.
+var g_CursorBareRect:  Math.Rectangle     // The part of the patch inside the desktop.
 var g_CursorTexture:   Texture
 
 // What the next capture keeps of the aimed area: the command that opens the overlay chooses it,
@@ -67,11 +69,11 @@ func screenToDesktopRect(rect: Math.Rectangle)->Math.Rectangle
     return result
 }
 
-// Grabs the cursor patch around the pointer; no patch when it cannot be read.
-func grabCursorPatch()
+// Grabs the cursor patch around the pointer over `desktop`, the grab of the whole virtual desktop
+// without the cursor; no patch when it cannot be read.
+func grabCursorPatch(desktop: Image)
 {
-    g_CursorPatch     = {}
-    g_CursorPatchRect = {}
+    clearCursorPatch()
     let pos = Input.mousePosition()
     let x   = cast(s32, pos.x) - CursorPatchLead
     let y   = cast(s32, pos.y) - CursorPatchLead
@@ -82,18 +84,46 @@ func grabCursorPatch()
     }
 
     g_CursorPatchRect = {cast(f32, x - g_DesktopX), cast(f32, y - g_DesktopY), cast(f32, CursorPatchSide), cast(f32, CursorPatchSide)}
+
+    var bare = Math.Rectangle.intersect(g_CursorPatchRect, {0, 0, cast(f32, desktop.width), cast(f32, desktop.height)})
+    if bare.isEmpty()
+    {
+        clearCursorPatch()
+        return
+    }
+
+    g_CursorBareRect = bare
+    g_CursorBare     = desktop.cropped(bare)
 }
 
-// Lays the cursor patch over `img`, a grab of the whole virtual desktop.
-func applyCursorPatch(img: *Image)
+// Forgets the cursor patch.
+func clearCursorPatch()
 {
-    if not g_CursorPatch.width do
+    g_CursorPatch     = {}
+    g_CursorPatchRect = {}
+    g_CursorBare      = {}
+    g_CursorBareRect  = {}
+}
+
+// Puts the cursor in `img`, a grab of the whole virtual desktop, or takes it out again.
+func setCursorIn(img: *Image, shown: bool)
+{
+    if not g_CursorPatch.width or not g_CursorBare.width do
         return
 
     // An image counts its rows from the bottom.
-    let x = cast(s32, g_CursorPatchRect.x)
-    let y = img.height - cast(s32, g_CursorPatchRect.y) - g_CursorPatch.height
-    img.mix(g_CursorPatch, x, y, .Copy)
+    if shown
+    {
+        let x = cast(s32, g_CursorPatchRect.x)
+        let y = img.height - cast(s32, g_CursorPatchRect.y) - g_CursorPatch.height
+        img.mix(g_CursorPatch, x, y, .Copy)
+    }
+    else
+    {
+        let x = cast(s32, g_CursorBareRect.x)
+        let y = img.height - cast(s32, g_CursorBareRect.y) - g_CursorBare.height
+        img.mix(g_CursorBare, x, y, .Copy)
+    }
 }
 
 func waitForCapture()->bool
@@ -119,7 +149,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     // The desktop is grabbed without the cursor, and the cursor apart, so the overlay can still
     // put it in or leave it out.
     result.img = try getDesktopImage(false)
-    grabCursorPatch()
+    grabCursorPatch(result.img)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
     if g_CursorPatch.width do
@@ -128,7 +158,6 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     {
         if g_CursorTexture.isValid() do
             g_App.renderer.removeTexture(&g_CursorTexture)
-        g_CursorPatch = {}
     }
 
     // The overlay must cover the virtual desktop in *physical* pixels, and the
@@ -141,7 +170,6 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     {
         .main        = main
-        .bar.main    = main
         .cursor      = Cursor.from(CursorShape.Cross)
         .focusPolicy = .Click
         .setPosition(0, 0, sf.size().x, sf.size().y)
@@ -157,10 +185,6 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     {
         sf.destroy()
         result.sf = null
-    }
-    elif g_CaptureMedia == .Picture and main.captureOptions.captureCursor
-    {
-        applyCursorPatch(&result.img)
     }
 
     return result
@@ -182,7 +206,11 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
         .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
     }
 
-    if not main.captureOptions.inPlaceEdit
+    if main.captureOptions.captureCursor do
+        setCursorIn(&capture.backImg, true)
+
+    // A picture can leave at once; a recording always waits on the zone to be started.
+    if not main.captureOptions.inPlaceEdit and g_CaptureMedia == .Picture
     {
         capture.cropToGrab()
         surface.destroy()
@@ -203,21 +231,39 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
 
     inPlaceWnd.editWnd.editView.capture = null
     surface.destroy()
+    if g_CaptureMedia == .Animation do
+        return try recordZone(main, capture)
     return capture
+}
+
+// Records the zone `zone` was taken from, where it now stands, and returns the new animation
+// capture, or null when nothing was kept. What was drawn on the zone annotates the whole
+// recording. `zone` is freed.
+func recordZone(main: *MainWnd, zone: *Capture)->*Capture? fail
+{
+    defer Memory.delete(zone)
+
+    let area   = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y, cast(f32, zone.width), cast(f32, zone.height)}
+    let result = try Recorder.record(main, desktopToScreenRect(area))
+    if not result do
+        return null
+
+    zone.selection.clear()
+    zone.gizmo.sigHasChanged = null
+    result.forms             = #move zone.forms
+    result.nextStepIndex     = zone.nextStepIndex
+    result.nextGroupId       = zone.nextGroupId
+    for form in result.forms do
+        form.capture = result
+    return result
 }
 
 func captureRect(main: *MainWnd)->*Capture? fail
 {
+    defer clearCursorPatch()
     let {img, sf} = try performScreenCapture(main)
     if not sf do
         return null
-
-    if g_CaptureMedia == .Animation
-    {
-        sf.destroy()
-        return try Recorder.record(main, desktopToScreenRect(getGrabRect()))
-    }
-
     return try performInPlaceEdit(img, sf, main)
 }
 

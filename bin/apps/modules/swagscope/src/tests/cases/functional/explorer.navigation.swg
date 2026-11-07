@@ -21,7 +21,8 @@ using Core, Gui, Pixel
     completeExplorer(&host, explorer)
     Swag.require(explorer.failure.isLocallyVisible())
     Swag.require(not explorer.list.isLocallyVisible() and not explorer.scroll.isLocallyVisible())
-    Swag.require(explorer.failure.text().count != 0 and explorer.status.text().count == 0)
+    Swag.require(explorer.failure.summaryLabel.text() == appStrings().explore_ReadFailed)
+    Swag.require(explorer.failure.reasonLabel.text().count != 0 and explorer.status.text().count == 0)
 
     explorer.setMode(.Names)
     explorer.navigate(testSourceRoot(#curlocation))

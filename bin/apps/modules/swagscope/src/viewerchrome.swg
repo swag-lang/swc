@@ -96,14 +96,18 @@ impl ViewerReadingLine
     }
 }
 
-// Application-owned presentation for every viewer failure.
+enum ScopeErrorSource { Viewer, Folder }
+
+// Application-owned presentation for a viewer or folder failure.
 //
-// A failure reads as the charter's failures do: a critical dot before what happened, the exact
-// reason of the decoder in faint mono under it, then the ways on: the other viewers the file can
-// be seen in, and its own application. It is never a dead end.
+// A failure reads as the charter's failures do: a critical dot before what happened, then the
+// exact reason in faint mono. Viewer failures also offer other viewers and the file's application;
+// folder failures keep the explorer's navigation controls.
 struct ViewerErrorView
 {
     using wnd: Wnd
+
+    source: ScopeErrorSource
 
     late
     {
@@ -270,12 +274,13 @@ impl ViewerErrorView
     const DotGap     = 10.0
     const MaxViewers = 2'u64     // Other viewers offered at most, beside the file's own application.
 
-    // Creates the error surface that states `reason` under the standard decoder-failure heading.
-    func create(parent: *Wnd, reason: string)->*ViewerErrorView
+    // Creates a failure surface with the heading for the affected viewer or folder.
+    func create(parent: *Wnd, reason: string, source = ScopeErrorSource.Viewer)->*ViewerErrorView
     {
         let result  = Wnd.create'ViewerErrorView(parent, "scope.error")
         let metrics = result.themeMetrics()
         result.backgroundStyle = .View
+        result.source = source
 
         with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
         {
@@ -284,7 +289,7 @@ impl ViewerErrorView
             .spacing   = 8
         }
 
-        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
+        with result.summaryLabel = Label.create(stack, result.summaryText(), {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .style.setFont(result.theme().createDefaultFont(metrics.defaultFontSize + 2, .SemiBold), .Regular)
@@ -348,7 +353,17 @@ impl ViewerErrorView
 
     mtd retranslate()
     {
-        .summaryLabel.setText(appStrings().ui_ViewerError)
+        .summaryLabel.setText(.summaryText())
+    }
+
+    mtd setReason(reason: string)
+    {
+        .reasonLabel.setText(reason)
+    }
+
+    private mtd summaryText()->string
+    {
+        return .source == .Folder ? appStrings().explore_ReadFailed : appStrings().ui_ViewerError
     }
 
     mtd refreshTheme()

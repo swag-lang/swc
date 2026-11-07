@@ -79,6 +79,7 @@ explore_FirstRelease Première sortie
 explore_Source Source
 explore_FileTags Métadonnées du fichier
 explore_Loading Lecture du dossier…
+explore_ReadFailed Le dossier n’a pas pu être lu.
 explore_Empty Aucun fichier à afficher
 explore_OneItem 1 élément
 explore_Count % éléments

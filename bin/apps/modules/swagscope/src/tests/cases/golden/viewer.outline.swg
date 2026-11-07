@@ -73,7 +73,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(Math.abs(firstHeading.surfaceRect().y - scroll.surfaceRect().y - inset) < 2)
     Swag.require(not (outline.parent is FloatingPanel))
     Swag.require(outline.surfaceRect().y - window.surfaceRect().y >= window.stripInset() + window.themeMetrics().floating_Inset)
-    var image = host.render(window)
+    var image = host.renderSettled(window)
     image.crop(outline.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "viewer.outline.markdown")
     var whole = host.render(window)

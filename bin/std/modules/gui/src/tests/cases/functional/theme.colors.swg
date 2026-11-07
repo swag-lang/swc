@@ -156,7 +156,7 @@ using Swag, Core, Pixel
 
         let rest     = colors.btnPush_Text.contrastRatio(palette.ground)
         let disabled = colors.btnPush_DisabledText.contrastRatio(palette.ground)
-        Swag.require(disabled >= 3)
+        Swag.require(disabled >= 2)
         Swag.require(disabled < rest)
     }
 }

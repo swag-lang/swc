@@ -51,7 +51,7 @@ using Core, Gui, Pixel
     let explorer = unwrap window.explorer
     completeExplorer(&host, explorer)
     explorer.setStatus("")
-    explorer.failure.setText("The folder could not be read.\nThe filename, directory name, or volume label syntax is incorrect.")
+    explorer.failure.setReason("The filename, directory name, or volume label syntax is incorrect.")
     explorer.list.hide()
     explorer.scroll.hide()
     explorer.failure.show()

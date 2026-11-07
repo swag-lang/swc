@@ -69,6 +69,7 @@ struct AppStrings
     explore_Source:            string = "Source"
     explore_FileTags:          string = "File tags"
     explore_Loading:           string = "Reading folder…"                         // Exploration control or status.
+    explore_ReadFailed:        string = "The folder could not be read."            // Heading above a folder-listing error.
     explore_Empty:             string = "No files to show"                        // Exploration control or status.
     explore_NoMatches:         string = "No files match this filter."             // Empty filtered folder.
     explore_OneItem:           string = "1 item"                                  // Exploration control or status.

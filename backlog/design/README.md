@@ -467,7 +467,7 @@ Anything that needs an answer is a dialog, not a toast.
 
 - **Buttons**: primary (see roles), secondary (transparent, 1 px line ring, text colour), quiet
   (text only, soft), destructive (secondary with critical text). Disabled ink is an opaque
-  55 % mix of body text over the ground, readable while still weaker than an available button.
+  40–45 % mix of body text over the ground, quieter than an available button.
   Focus: 2 px ring offset by 2 px.
 - **Icon buttons**: 32 cells, glyph soft; hover raised ground; checked: Arc selection ground,
   Arc glyph, faint Arc ring.

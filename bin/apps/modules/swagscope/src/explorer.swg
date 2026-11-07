@@ -109,7 +109,7 @@ struct Explorer
         address:     *PathBar
         title:       *Label
         status:      *Label
-        failure:     *Label
+        failure:     *ViewerErrorView
         extractAll:  *IconButton
         kindMenu:    *IconButton
         sortMenu:    *IconButton
@@ -285,12 +285,10 @@ impl Explorer
             .focusPolicy     = .Tab
         }
 
-        with result.failure = Label.create(result, "", {}, null, .WordWrap | .SecondaryText)
+        with result.failure = ViewerErrorView.create(result, "", .Folder)
         {
             .dockStyle       = .Center
-            .backgroundStyle = .View
             .margin          = Math.Vector4{PageMargin, 0, PageMargin, 0}
-            .setTextAlignment(.Center, .Center)
             .hide()
         }
 
@@ -1251,6 +1249,7 @@ impl Explorer
     mtd retranslate()
     {
         let text = appStrings()
+        .failure.retranslate()
         .showMediaInfo()
         .filter.setPlaceholder(text.ui_FilterFiles)
         .kindMenu.toolTip = text.explore_FilterByType
@@ -2122,7 +2121,7 @@ impl IWnd for Explorer
             if not error.isEmpty()
             {
                 .setStatus("")
-                .failure.setText(error)
+                .failure.setReason(error)
                 .list.hide()
                 .scroll.hide()
                 .failure.show()

@@ -194,3 +194,33 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     Swag.require(not evt.name.isEmpty())
     Swag.require(evt.disabled)
 }
+
+// The capture control of the top strip names the last capture taken, the area capture before the
+// first one and when the last one names a monitor no longer connected.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.main.registerAction'ActionCapture()
+
+    func repeatName(main: *MainWnd)->String
+    {
+        var evt = Gui.Testing.commandState(ActionCapture.Repeat)
+        Swag.require(Gui.Testing.actionUpdate'ActionCapture(main, ActionCapture.Repeat, &evt))
+        return evt.name
+    }
+
+    Swag.require(f.main.lastCaptureCommand() == ActionCapture.Area)
+    Swag.require(repeatName(f.main) == appStrings().act_CaptureArea)
+
+    f.main.lastCapture = ActionCapture.Record
+    Swag.require(repeatName(f.main) == appStrings().act_RecordAnimation)
+
+    f.main.monitors.clear()
+    testAddMonitor(f.main, 0)
+    f.main.lastCapture = ActionCapture.screenId(0)
+    Swag.require(f.main.lastCaptureCommand() == ActionCapture.screenId(0))
+    f.main.lastCapture = "ActionCapture.Screen7"
+    Swag.require(f.main.lastCaptureCommand() == ActionCapture.Area)
+}

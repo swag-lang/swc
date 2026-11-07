@@ -7,6 +7,7 @@ struct ActionCapture {}
 impl ActionCapture
 {
     newCmdId("DoIt")
+    newCmdId("Repeat")
     newCmdId("Area")
     newCmdId("Record")
     newCmdId("CancelRecording")
@@ -79,6 +80,14 @@ impl IActionUI for ActionCapture
             evt.updatedFields |= .Name | .Icon
             evt.name = appStrings().ui_MenuCapture
             evt.icon = main.icon(.Capture)
+
+        // The capture control of the top strip names the last capture taken, and takes it again.
+        case .Repeat:
+            let last = main.sendComputeCommandStateEvent(main.lastCaptureCommand())
+            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.name          = last.name
+            evt.icon          = last.icon
+            evt.disabled      = last.disabled
 
         case .Area:
             evt.updatedFields |= .Name | .Icon
@@ -157,8 +166,21 @@ impl IActionUI for ActionCapture
         let monitor = ActionCapture.screenIndex(cxt.id)
         if monitor != Swag.U64.Max
         {
+            main.lastCapture = cxt.id
             main.captureScreen(.Monitor, monitor)
             return true
+        }
+
+        // The capture control of the top strip follows the last capture taken.
+        switch cxt.id
+        {
+        case .Repeat:
+            main.sendCommandEvent(main.lastCaptureCommand())
+            return true
+
+        case .Area, .Record, .LastArea, .FullScreen, .ActiveWnd:
+            if not g_Recorder do
+                main.lastCapture = cxt.id
         }
 
         switch cxt.id
@@ -257,6 +279,25 @@ impl MainWnd
             .swapLibraryMode()
             .updateState()
         }
+    }
+
+    // Returns the command of the last capture taken, the area capture before the first; a monitor
+    // that is no longer connected falls back to it too.
+    mtd lastCaptureCommand()->WndId
+    {
+        if .lastCapture.isEmpty() do
+            return ActionCapture.Area
+
+        // The per-monitor commands are minted from the monitor list; mint them before matching.
+        for index in .monitors.count do
+            discard ActionCapture.screenId(index)
+        let monitor = ActionCapture.screenIndex(.lastCapture)
+        if monitor != Swag.U64.Max do
+            return ActionCapture.screenId(monitor)
+
+        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
+            return id
+        return ActionCapture.Area
     }
 
     // Takes a picture of the screen in `mode`, `monitorIndex` naming the monitor of `.Monitor`.

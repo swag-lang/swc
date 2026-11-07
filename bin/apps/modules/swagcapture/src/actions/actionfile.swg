@@ -450,61 +450,6 @@ impl MainWnd
             .newCapture(image[])
     }
 
-    // Returns the file name the capture travels under when it leaves the application.
-    //
-    // A library file is a capture, which nothing outside this application reads; what a folder, a
-    // mail client or a document editor is handed has to be a picture. The name is the capture's,
-    // so the file that lands where it is dropped is recognizable rather than a generated
-    // identifier.
-    mtd dragFileName(capture: *Capture)->String
-    {
-        var result = String.from(Path.fileNameWithoutExtension(capture.file) orelse "capture")
-        result += ".png"
-        return result
-    }
-
-    // Fills `data` with what a drag of `capture` carries: the picture, and the same picture as a
-    // file named after the capture.
-    //
-    // Both are offered because the two useful destinations want different things — a folder or a
-    // mail draft takes the file, a picture editor pastes the bitmap — and neither costs anything
-    // until a target asks for it. The file has no path: it is a name and the bytes behind it, and
-    // those bytes are encoded on that first request.
-    //
-    // `img` is borrowed by the producer, so it has to outlive the gesture the payload is used for.
-    mtd fillDragData(data: *DragData, capture: *Capture, img: *Image)
-    {
-        data.setImage(img[])
-        data.addContent(.dragFileName(capture), func|img|()
-        {
-            var opt: Png.EncodeOptions
-            opt.compressionLevel = .BestSpeed
-            return catch img.encodeToBytes("drag.png", opt)
-        })
-    }
-
-    // Hands the current capture to another application, as a file and as a picture.
-    //
-    // `from` is the window the gesture started on, which is what the desktop anchors it to. A drag
-    // released over nothing costs nothing and leaves nothing behind, where writing the PNG to the
-    // temporary folder up front left one file per abandoned gesture.
-    //
-    // This blocks until the drop, so the caller must have forgotten its own press first: the
-    // button comes back up inside the loop the desktop runs and no release event follows.
-    mtd dragOutCapture(from: *Wnd)
-    {
-        let capture = .getCapture()
-        if not capture do
-            return
-
-        Cursor.activateWait()
-        var image = capture.toImage()
-
-        var data: DragData
-        .fillDragData(&data, capture, &image)
-        discard from.startDrag(&data, .Copy)
-    }
-
     // Writes `img` to `nameFile` in the format its extension names, tuning the PNG and JPEG
     // encoders, then offers to show the file, or reports why it could not be written.
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)

@@ -80,7 +80,7 @@ impl TaskStrip
             .spacing         = main.themeMetrics().wnd_CaptionActionGap
         }
 
-        with let captureButton = IconButton.createQuiet(result.leading, ActionCapture.Area, menu: false)
+        with let captureButton = IconButton.createQuiet(result.leading, ActionCapture.Repeat, menu: false)
         {
             .owner       = main
             .focusPolicy = .None

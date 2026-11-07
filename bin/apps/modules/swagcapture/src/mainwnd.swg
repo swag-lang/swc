@@ -163,6 +163,7 @@ struct MainWnd
     exportFolderDlgState:  FileDlgState
     libraryFolder:         String
     captureOptions:        CaptureOptions
+    lastCapture:           String     // Command of the last capture taken, which the top strip offers again.
     editorOptions:         EditorOptions
 
     // Form models
@@ -321,6 +322,7 @@ impl IWnd for MainWnd
                 try .serialize("MainWnd.recentColors", &me.recentColors)
                 try .serialize("MainWnd.inspectorFolded", &me.inspectorFolded)
                 try .serialize("MainWnd.captureOptions", &me.captureOptions)
+                try .serialize("MainWnd.lastCapture", &me.lastCapture)
                 try .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
         }

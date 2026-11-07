@@ -174,68 +174,6 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
-// Dragging a capture out offers it as a PNG named after it, encoded only when a target asks.
-#test
-{
-    var f: HeadlessFixture
-    f.setup(registerHeadlessCommands: true)
-    defer f.shutdown()
-    testRegisterIoActions(f.main)
-    testPrepareRecentLibrary(f.main)
-
-    f.capture.width   = 18
-    f.capture.height  = 11
-    f.capture.backImg = Gui.Testing.indexedImage(18, 11)
-    f.capture.file    = testTempCapturePath()
-
-    var image = f.capture.toImage()
-
-    var data: Gui.DragData
-    f.main.fillDragData(&data, f.capture, &image)
-
-    // The gesture announces a file named after the capture, and has encoded nothing to do it.
-    Swag.require(data.hasImage())
-    Swag.require(data.contents.count == 1)
-    Swag.require(Path.lowercaseExtension(data.contents[0].name) == ".png")
-    Swag.require(Path.fileNameWithoutExtension(data.contents[0].name) == Path.fileNameWithoutExtension(f.capture.file))
-    Swag.require(not data.contents[0].isReady())
-
-    // Asking for the file is what produces it, and what it holds is the capture, readable by
-    // anything that reads a PNG.
-    let bytes = data.contentData(0)
-    Swag.require(bytes.count != 0)
-
-    let readBack = expect Image.decode("drag.png", bytes, {})
-    Swag.require(readBack.width == 18)
-    Swag.require(readBack.height == 11)
-}
-
-// The whole drag-out path runs with no desktop under it, and leaves nothing behind.
-//
-// This is the point of producing the file on demand: no target ever asks, so the PNG is never
-// encoded and never written, where exporting it up front left one file per abandoned gesture.
-#test
-{
-    var f: HeadlessFixture
-    f.setup(registerHeadlessCommands: true)
-    defer f.shutdown()
-    testRegisterIoActions(f.main)
-    testPrepareRecentLibrary(f.main)
-
-    f.capture.width   = 9
-    f.capture.height  = 6
-    f.capture.backImg = Gui.Testing.indexedImage(9, 6)
-    f.capture.file    = testTempCapturePath()
-
-    f.main.dragOutCapture(f.editView)
-
-    let temp     = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
-    var expected = String.from(Path.fileNameWithoutExtension(f.capture.file) orelse "capture")
-    expected += ".png"
-    let exported = Path.combine(Path.combine(temp, "Swag Capture"), expected)
-    Swag.require(not File.exists(exported))
-}
-
 // A picture dropped on the editor opens it, exactly as the Open command does.
 #test
 {

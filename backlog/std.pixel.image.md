@@ -208,18 +208,16 @@ ships; history lives in Git, not here.
 - Done when: grayscale and RGB fixtures encode with multiple valid scans, decode identically to
   their baseline equivalents within JPEG tolerance, and malformed scan plans are rejected.
 
-### std.pixel.image.051 — GIF encoding writes a single frame
+### std.pixel.image.051 — Animated GIF frames lose colours beyond 128
 
-- Evidence: `image/encode/gif` writes one indexed frame with a generated palette, LZW and binary
-  transparency, while the GIF decoder already reads palettes, disposal, timing, loops and
-  animation frames. Swag Capture's first timed medium (app.capture.012) needs an animated writer.
-- Next: add a streamed animated writer: per-frame delays in hundredths of a second with rounding
-  carried across frames, a loop count (NETSCAPE2.0), disposal, frames reduced to the rectangle
-  changed since the previous one with unchanged pixels made transparent, and a palette policy
-  (global sampled or per-frame local) with optional dithering that screen content can turn off.
-- Done when: an animation written frame by frame, without holding the whole sequence, decodes
-  back through the existing decoder with identical frame count, delays, loop and pixels within
-  the palette error, and memory stays bounded by one frame.
+- Evidence: `Gif.AnimationWriter` reuses the still encoder's palette: an exact palette up to 128
+  colours, otherwise a fixed quantization, with no dithering choice. Screen content with
+  anti-aliased text or gradients bands visibly.
+- Next: build an adaptive palette (median cut or octree) per frame, up to 256 colours, with an
+  optional ordered dither that screen content can turn off, and share it across frames when they
+  agree.
+- Done when: a screen recording with anti-aliased text exports without visible banding at a size
+  comparable to the current one, and still frames keep their exact palette.
 - Related: app.capture.012, std.pixel.image.052
 
 ### std.pixel.image.052 — No animated PNG encoding

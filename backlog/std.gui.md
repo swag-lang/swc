@@ -628,13 +628,12 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
   parity, multi-host teardown and cross-test resource/state isolation covered.
 
-### std.gui.063 — The clipboard cannot publish files
+### std.gui.063 — The Linux clipboard file list has never been compiled
 
-- Evidence: `clipboard.win32.swg` publishes typed data, images and strings; `CF_HDROP` is only
-  used by drag and drop. Copying an exported GIF or video from Swag Capture (app.capture.033)
-  needs the file itself on the clipboard.
-- Next: add publishing of a file list (`CF_HDROP` on Windows, `text/uri-list` on Linux),
-  optionally beside a typed representation of the same content.
-- Done when: a copied file pastes into Explorer and into an application that accepts dropped
-  files, on both platforms.
-- Related: app.capture.033
+- Evidence: `Clipboard.setFiles` and `Clipboard.getFiles` are tested on Windows and in the sandbox
+  store; their Linux implementation (`text/uri-list`) was written without a Linux build.
+- Next: build the gui module and its clipboard test on Linux, and copy a file to a Linux file
+  manager.
+- Done when: the clipboard test passes on Linux and a copied file pastes into a file manager.
+- Related: app.capture.033, platform.portability.101
+

@@ -1324,9 +1324,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.101 — Linux has no screen recording or sound capture source
 
-- Evidence: Swag Capture on Linux grabs still pictures through X11 only.
-- Next: add the XDG desktop portal with PipeWire for Wayland screen and window recording, X11
-  shared-memory grabbing with damage for X11 sessions, and PipeWire or PulseAudio capture and
-  monitor sources for std.audio.011 and std.audio.013.
-- Done when: a Linux session records a window with its sound under Wayland and under X11.
-- Related: platform.portability.097, std.audio.011, std.audio.013
+- Evidence: Swag Capture on Linux grabs still pictures through X11 only. The animation recorder
+  grabs each frame through the same `getScreenRectImage`, which on X11 copies the whole area per
+  frame, and its frame and pill, the timeline and the clipboard file list have not been built or
+  run on Linux.
+- Next: build and run the animation recorder on an X11 session first; then add the XDG desktop
+  portal with PipeWire for Wayland screen and window recording, X11 shared-memory grabbing with
+  damage, and PipeWire or PulseAudio capture and monitor sources for std.audio.011 and
+  std.audio.013.
+- Done when: a Linux session records an animation, then a window with its sound, under X11 and
+  under Wayland.
+- Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063
+

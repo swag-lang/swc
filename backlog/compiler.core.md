@@ -815,3 +815,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reproduce it before choosing a source-suite or compiler filesystem regression.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.108 — A bare `return` before `}` on one line reports the brace
+
+- Evidence: `let info = catch File.info(path) { return }` reports "symbol '}' does not belong
+  here" on the brace, while `{ return; }` is accepted. The reader is not told that `return` reads
+  an expression up to the end of the line.
+- Next: when `return` is followed by a closing brace on the same line, report at the `return` that
+  its value is missing and suggest `;` or a line break, following `write-swag-compiler-messages`.
+- Done when: the one-line form reports a diagnostic that names `return` and the fix, with a parser
+  suite fixture.

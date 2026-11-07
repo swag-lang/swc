@@ -82,13 +82,13 @@ msg_EraseSelected      La ou les captures sélectionnées seront définitivement
 msg_FailedDuplicate    Impossible de dupliquer la capture
 msg_FailedLocateCapture Impossible de localiser le fichier de capture
 msg_FailedLocateLinked Impossible de localiser l'image liée
-msg_FailedLoadImage    Impossible de charger l'image
 msg_FailedSaveFile     Impossible d'enregistrer le fichier
 msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
+msg_MissingFrames      Les images de cette animation sont introuvables ou ont été remplacées
 msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
 msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture

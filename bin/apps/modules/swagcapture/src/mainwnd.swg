@@ -504,9 +504,23 @@ impl MainWnd
     // otherwise a new capture linked to the file.
     mtd loadExternalImage(arg: String)
     {
+        // An animated picture opens as an animation, its frames kept in the library.
+        let surface   = unwrap .surface
+        let animation = catch Capture.importAnimation(arg)
+        {
+            MessageDlg.error(surface, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
+            return
+        }
+
+        if animation
+        {
+            .newCapture(animation.backImg, "", animation)
+            return
+        }
+
         let imgToLoad = catch Image.load(arg)
         {
-            MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
+            MessageDlg.error(surface, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
             return
         }
 
@@ -883,6 +897,15 @@ impl MainWnd
             return
         .toastAction = onAction
         .toast.show(message, detail, .Done, action)
+    }
+
+    // Says in a toast with a critical dot that `message` could not be done.
+    mtd reportFailure(message: string, detail: string = "")
+    {
+        if .toast == null do
+            return
+        .toastAction = null
+        .toast.show(message, detail, .Failure)
     }
 
     // Returns the glyph of a tool, as the dock and the layers of the inspector show it.

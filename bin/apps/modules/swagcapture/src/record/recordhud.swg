@@ -80,13 +80,13 @@ impl IWnd for RecordHud
         let font  = timeFont(me)
         let top   = font.opticalLineTop(cy)
         var x     = RecordHudLeft + RecordHudRing + RecordHudTextMargin
-        let shown = clockText(elapsed)
+        let shown = Capture.clockText(elapsed)
         painter.drawString(x, top, shown, font, colors.text)
         if limit
         {
             x += Painter.measureString(shown, font).width
             var rest = String.from(" / ")
-            rest += clockText(limit)
+            rest += Capture.clockText(limit)
             painter.drawString(x, top, rest, font, colors.faintText)
         }
 
@@ -167,43 +167,16 @@ impl RecordHud
     // for none: room for the longest time it can show, so the pill never changes size.
     func widthFor(limit: u64)->f32
     {
-        var widest = limit ? clockText(limit) : String.from("0:00:00")
+        var widest = limit ? Capture.clockText(limit) : String.from("0:00:00")
         if limit
         {
             widest += " / "
-            widest += clockText(limit)
+            widest += Capture.clockText(limit)
         }
 
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
         let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
         return Math.ceil(RecordHudLeft + RecordHudRing + 2 * RecordHudTextMargin + Painter.measureString(widest, font).width + commands + RecordHudRight)
-    }
-
-    // Writes `time`, in microseconds, as minutes and seconds, with the hours in front past an hour.
-    func clockText(time: u64)->String
-    {
-        // `%%` is a literal percent sign in a format: two-digit fields are written digit by digit.
-        func twoDigits(result: *String, value: u64)
-        {
-            result[] += Format.toString("%", value / 10)
-            result[] += Format.toString("%", value % 10)
-        }
-
-        let seconds = time / 1_000_000
-        var result: String
-        if seconds >= 3600
-        {
-            result = Format.toString("%:", seconds / 3600)
-            twoDigits(&result, (seconds / 60) % 60)
-        }
-        else
-        {
-            result = Format.toString("%", seconds / 60)
-        }
-
-        result += ":"
-        twoDigits(&result, seconds % 60)
-        return result
     }
 
     // Creates the commands of the recording; [[RecordHud.onResizeEvent]] places them.

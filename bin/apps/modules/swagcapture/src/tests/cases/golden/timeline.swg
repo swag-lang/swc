@@ -4,7 +4,7 @@
 using Swag, Core, Pixel
 
 // An animation in the editor: the timeline floats under the canvas on a panel of its own, clear of
-// the dock and of the inspector, above the hint line.
+// the dock and of the inspector, above the hint line, and the recent strip marks its length.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -32,6 +32,16 @@ using Swag, Core, Pixel
     expect capture.showFrame(1)
 
     main.editWnd.editView.setCapture(capture)
+
+    // The recent strip marks the animation with its length; a picture beside it has no mark.
+    var picture = Image.create(320, 200, .BGRA8)
+    picture.fill(Color.fromArgb(0xFF3A6EA5))
+    capture.computePreview()
+    main.recentWnd.addRecent(file, capture.preview, front: false, duration: capture.timeline.duration)
+    main.recentWnd.addRecent("picture.scc", picture, front: false)
+    main.recentWnd.recentView.selected = 0
+    main.showRecentBar(true)
+
     main.applyLayout()
     main.updateState()
     host.finishAnimations()

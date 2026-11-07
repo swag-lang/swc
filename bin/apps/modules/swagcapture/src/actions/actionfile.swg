@@ -409,14 +409,7 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        var errOutcome: Swag.Error
-        var image:      #decltype(expect Image.load(dialog.selectedPath()))
-        catch { image = try Image.load(dialog.selectedPath()) } as errOutcome
-        let err = errOutcome.value()
-        if err != null do
-            MessageDlg.error(.surface, appStrings().msg_FailedLoadImage, err)
-        else do
-            .newCapture(image, dialog.selectedPath())
+        .loadExternalImage(dialog.selectedPath())
     }
 
     // Whether a dragged payload holds anything this editor can open.

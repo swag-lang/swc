@@ -1,5 +1,35 @@
 impl Capture
 {
+    // Writes `time`, in microseconds, as minutes and two-digit seconds, with the hours in front past
+    // an hour and the tenth of a second when `tenths` is set.
+    func clockText(time: u64, tenths = false)->String
+    {
+        // `%%` is a literal percent sign in a format: two-digit fields are written digit by digit.
+        func twoDigits(result: *String, value: u64)
+        {
+            result[] += Format.toString("%", value / 10)
+            result[] += Format.toString("%", value % 10)
+        }
+
+        let seconds = time / 1_000_000
+        var result: String
+        if seconds >= 3600
+        {
+            result = Format.toString("%:", seconds / 3600)
+            twoDigits(&result, (seconds / 60) % 60)
+        }
+        else
+        {
+            result = Format.toString("%", seconds / 60)
+        }
+
+        result += ":"
+        twoDigits(&result, seconds % 60)
+        if tenths do
+            result += Format.toString(".%", (time / 100_000) % 10)
+        return result
+    }
+
     // Returns whether the capture has a duration, rather than one picture.
     mtd const isTimed()->bool => .media != .Picture
 
@@ -30,6 +60,50 @@ impl Capture
         if File.exists(media) do
             try File.delete(media)
         try File.delete(file)
+    }
+
+    // Makes a new animation capture in the library from the animated picture at `path`, its frames
+    // written to a frame file; null when the picture holds fewer than two frames of animation.
+    func importAnimation(path: string)->*Capture? fail
+    {
+        let bytes  = try File.readAllBytes(path)
+        var reader = try ImageReader.decode(path, bytes.toSlice())
+        let info   = &reader.info
+
+        var animated = 0
+        for frame in info.frames where frame.kind == .Animation do
+            animated += 1
+        if animated < 2 or info.canvasWidth <= 0 or info.canvasHeight <= 0 do
+            return null
+
+        // The frames are the composited canvas of each step, held for their encoded duration; an
+        // unspecified one shows for a tenth of a second, as viewers do.
+        let file   = Library.newFileName()
+        let media  = mediaPathOf(file)
+        var writer = try Frames.Writer.create(media, info.canvasWidth, info.canvasHeight, .RGBA8)
+        defer #fail discard catch File.delete(media)
+
+        var time = 0'u64
+        for index in info.frames.count where info.frames[index].kind == .Animation
+        {
+            var picture = try reader.read(cast(u32, index))
+            if picture.pixelFormat != .RGBA8 do
+                picture.convertTo(.RGBA8)
+            try writer.add(picture, time)
+
+            let seconds = info.frames[index].durationSeconds
+            time += seconds > 0 ? cast(u64, seconds * 1_000_000) : 100_000
+        }
+
+        try writer.close(time)
+
+        let result = Memory.new'Capture()
+        defer #fail Memory.delete(result)
+        result.file       = file
+        result.sourceKind = .ImageFile
+        result.capturedAt = Time.DateTime.now()
+        try result.adoptRecording()
+        return result
     }
 
     // Makes the capture an animation over the frame file recorded beside its file, and shows the

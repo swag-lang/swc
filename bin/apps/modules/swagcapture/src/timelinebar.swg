@@ -39,9 +39,9 @@ impl IWnd for TimelineBar
         // The time at the playhead, with tenths, against the length of the capture.
         let frames = capture.frames
         let time   = frames.timeOf(capture.playhead)
-        var text   = clockText(time, tenths: true)
+        var text   = Capture.clockText(time, tenths: true)
         text += " / "
-        text += clockText(frames.endTime, tenths: false)
+        text += Capture.clockText(frames.endTime)
         let font  = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
         let textX = TimelinePadding + TimelineButton + TimelinePadding
         painter.drawString(textX, font.opticalLineTop(client.vertCenter()), text, font, colors.softText)
@@ -191,19 +191,5 @@ impl TimelineBar
         let client = .clientRect()
         let left   = TimelinePadding + TimelineButton + TimelinePadding + TimelineTextWidth
         return {left, client.y, Math.max(client.width - left - TimelinePadding - 6, 0), client.height}
-    }
-
-    // Writes `time`, in microseconds, as minutes and seconds, with the tenth when asked.
-    func clockText(time: u64, tenths: bool)->String
-    {
-        // `%%` is a literal percent sign in a format: the two digits of the seconds are written
-        // one by one.
-        let seconds = time / 1_000_000
-        var result  = Format.toString("%:", seconds / 60)
-        result += Format.toString("%", (seconds % 60) / 10)
-        result += Format.toString("%", seconds % 10)
-        if tenths do
-            result += Format.toString(".%", (time / 100_000) % 10)
-        return result
     }
 }

@@ -201,3 +201,34 @@ func testProfileVersion(file: string)->u32
     Swag.require(File.exists(trashed) and File.exists(Capture.mediaPathOf(trashed)))
     expect Capture.deleteFiles(trashed)
 }
+
+// An animated GIF opens as an animation, with its frames and their timing; a still picture does
+// not.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let gif = Gui.Testing.tempFilePath("animated-", ".gif")
+    defer catch File.delete(gif)
+    var writer = expect Gif.AnimationWriter.create(gif, 64, 48)
+    expect writer.addFrame(testFramePicture(10, 0), 200_000)
+    expect writer.addFrame(testFramePicture(40, 8), 300_000)
+    expect writer.end()
+
+    let capture = expect Capture.importAnimation(gif)
+    Swag.require(capture != null)
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer Memory.delete(capture)
+
+    Swag.require(capture.isTimed() and capture.sourceKind == .ImageFile)
+    Swag.require(capture.width == 64 and capture.height == 48)
+    Swag.require(capture.timeline.frameCount == 2 and capture.timeline.duration == 500_000)
+
+    let still = Gui.Testing.tempFilePath("still-", ".png")
+    defer catch File.delete(still)
+    expect testFramePicture(10, 0).save(still)
+    Swag.require(expect Capture.importAnimation(still) == null)
+}

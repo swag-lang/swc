@@ -326,10 +326,11 @@ impl IWnd for LibraryView
         let {w, h}  = .getPreviewSize()
         let rect    = Math.Rectangle{it.rect.x, it.rect.y, w, h}
         let animate = FileTile.paint(me, painter, rect, &content, options)
-        if capture and .libWnd.showLinkOverlay
+        if capture
         {
-            let infos = RecentInfos{linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, showLinked: true}
+            let infos = RecentInfos{linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, showLinked: .libWnd.showLinkOverlay, duration: capture.timeline.duration}
             RecentView.paintLinkBadge(me, painter, rect, infos, .themeMetrics().corner_Control)
+            RecentView.paintDurationBadge(me, painter, rect, infos, .themeMetrics().corner_Control)
         }
 
         return animate
@@ -568,7 +569,7 @@ impl LibraryView
 
         catch capture.materializePreview()
         catch File.touch(item.fi.fullName)
-        .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, sel: true, linked: capture.linkedImage)
+        .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, sel: true, linked: capture.linkedImage, duration: capture.timeline.duration)
         if not capture.previewBytes.isEmpty() do
             capture.preview = {}
         .mainWnd.recentWnd.setScrollPos(0, 0)

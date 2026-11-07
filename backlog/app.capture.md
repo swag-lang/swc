@@ -232,17 +232,16 @@ whole recording loaded at once.
   unchanged.
 - Related: app.capture.031, app.capture.012, app.capture.011, app.capture.037
 
-### app.capture.033 — Timed captures are not told apart in the library
+### app.capture.033 — The library cannot filter by media, and a dragged animation leaves as a picture
 
-- Evidence: Save and Copy follow the media (an animation saves and copies as a GIF file), but the
-  recent strip and the library show an animation like a picture, `Library.enumerateSupportedFiles`
-  opens an animated `.gif` as one picture, and `Capture.mediaMissing` is set without telling the
-  reader.
-- Next: mark timed captures in the recent strip and the library (duration badge, a media facet in
-  the filters), open an animated GIF as an animation capture, and say in a sentence when the frames
-  of a capture are missing or were replaced.
-- Done when: an animation can be found by media in the library, a dropped animated GIF opens with
-  its frames, and a capture whose frame file is gone says so instead of showing an empty canvas.
+- Evidence: animations carry a duration badge in the recent strip and the library, an animated
+  GIF opens as an animation, and missing frames are reported; but the library filters
+  (`librarywnd.filters.swg`) have no media facet, and `MainWnd.dragFileName` names every capture
+  dragged out `.png`, so an animation leaves as its current frame.
+- Next: add a media facet (all, pictures, animations) to the library filters, and make a drag out
+  of an animation carry the exported GIF.
+- Done when: an animation can be found by media in the library, and dropping a dragged animation
+  in the file explorer writes its GIF.
 - Related: app.capture.012, std.pixel.image.052
 
 ### app.capture.011 — No video recording

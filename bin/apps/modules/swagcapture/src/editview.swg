@@ -186,7 +186,10 @@ impl EditView
         let capture = .capture
         if not capture do
             return false
-        return .inPlaceEdit or .pointerNearEdges or capture.gizmo.moving or capture.gizmo.hotAnchor != Swag.U32.Max
+        return .inPlaceEdit or
+               .pointerNearEdges or
+               capture.gizmo.moving or
+               capture.gizmo.hotAnchor != Swag.U32.Max
     }
 
     // Follows the pointer near the edges of the picture, and repaints when the handles come or go.
@@ -195,7 +198,7 @@ impl EditView
         var near = false
         if evt.kind != .Leave and .capture
         {
-            let pos   = .surfaceToLocal(evt.surfacePos) + .scrollPos
+            let pos     = .surfaceToLocal(evt.surfacePos) + .scrollPos
             let picture = .getCaptureRect()
             var outer   = picture
             outer.inflate(CaptureEdgeReach)
@@ -354,7 +357,10 @@ impl EditView
         }
 
         let capture = .capture
-        if not .inPlaceEdit and previousZoom != .zoom and capture != null and capture.formCaches.count != 0
+        if not .inPlaceEdit and
+           previousZoom != .zoom and
+           capture != null and
+           capture.formCaches.count != 0
         {
             .stopTimer(&.zoomTimer)
             .zoomTimer = .addTimer(ZoomRefineDelay)
@@ -413,6 +419,10 @@ impl EditView
         {
             .main.captureHasChanged()
             .main.updateState()
+
+            // An animation whose frame file is gone opens empty: say why.
+            if c.isTimed() and c.mediaMissing do
+                .main.reportFailure(appStrings().msg_MissingFrames, Path.fileName(Capture.mediaPathOf(c.file)) orelse "")
         }
 
         .invalidate()

@@ -14,6 +14,7 @@ struct RecentItem
     file:           String
     linked:         String
     linkedUpToDate: bool
+    duration:       u64     // Length of an animation, in microseconds; zero for a picture.
     preview:        Texture
     rect:           Math.Rectangle
     zoom:           f32
@@ -36,6 +37,7 @@ struct RecentInfos
     linkedUpToDate: bool
     linked:         String
     showLinked:     bool = true
+    duration:       u64     // Length of an animation, in microseconds; zero for a picture.
 }
 
 // The thumbnails of the recent strip, which open, select, and drag captures out.
@@ -142,6 +144,33 @@ impl RecentView
         icon.paint(painter, chip.x + inset, chip.y + inset, ink)
     }
 
+    // Marks an animation inside the trailing bottom corner of its picture `rect`: a chip on the
+    // floating ground, which reads over any picture, with a play glyph and the length in the
+    // fixed-width family.
+    func paintDurationBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
+    {
+        if not infos.duration do
+            return
+
+        let colors  = parent.themeColors()
+        let metrics = parent.themeMetrics()
+        let gap     = metrics.fileTile_NameGap
+        let font    = parent.theme().createDefaultFontFs(metrics.defaultFontSize - 2)
+        let text    = Capture.clockText(infos.duration)
+        let width   = LinkBadgeSize + Painter.measureString(text, font).width + gap
+        if rect.width < width + 2 * gap or rect.height < LinkBadgeSize + 2 * gap do
+            return
+
+        let chip = Math.Rectangle{rect.right() - gap - width, rect.bottom() - gap - LinkBadgeSize, width, LinkBadgeSize}
+        painter.fillRoundRect(chip, corner, corner, colors.surface)
+
+        var icon = parent.theme().icon(.Play)
+        icon.sizeX, icon.sizeY = LinkBadgeGlyph
+        let inset = (LinkBadgeSize - LinkBadgeGlyph) * 0.5
+        icon.paint(painter, chip.x + inset, chip.y + inset, colors.softText)
+        painter.drawString(chip.x + LinkBadgeSize, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+    }
+
     // Paints one capture of the recent strip in the cell `rect`.
     //
     // It is a file tile without a caption, as the library and the lens draw their captures: the
@@ -162,6 +191,7 @@ impl RecentView
         Gui.FileTile.paint(parent, painter, rect, &content, options)
 
         paintLinkBadge(parent, painter, rect, infos, parent.themeMetrics().corner_Chip)
+        paintDurationBadge(parent, painter, rect, infos, parent.themeMetrics().corner_Chip)
     }
 }
 
@@ -263,6 +293,7 @@ impl IWnd for RecentView
                 .selected       = idx == me.selected
                 .linkedUpToDate = it.linkedUpToDate
                 .linked         = it.linked
+                .duration       = it.duration
             }
 
             RecentView.paintRecent(me, painter, it.preview, rect, infos)
@@ -474,7 +505,7 @@ impl RecentWnd
         catch
         {
             let capture = try Capture.load(file, preview: not initialLoad)
-            .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage)
+            .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, duration: capture.timeline.duration)
             g_Library.addFile(capture.file)
 
             // The initial document already came through the full-load path above. Hand that
@@ -533,13 +564,13 @@ impl RecentWnd
         // preview chunk alone, never the image payloads. The full capture is loaded
         // by RecentView.select only, when an item actually becomes the edited one.
         let loaded = try Capture.load(file, preview: true)
-        .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage)
+        .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage, loaded.timeline.duration)
         return loaded
     }
 
     // Adds `file` to the recent strip, or moves it to the front when it is already there, and keeps
     // the strip within `MaxRecent` items.
-    mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "")
+    mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "", duration: u64 = 0)
     {
         // Already there ?
         for it, i in .recentView.items
@@ -568,7 +599,8 @@ impl RecentWnd
                 if sel do
                     .recentView.select(idxSel, true)
 
-                itn.linked = linked
+                itn.linked   = linked
+                itn.duration = duration
                 return
             }
         }
@@ -579,6 +611,7 @@ impl RecentWnd
             .file           = file
             .linked         = linked
             .linkedUpToDate = linkedUpToDate
+            .duration       = duration
         }
 
         if front

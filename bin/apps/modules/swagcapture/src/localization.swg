@@ -97,7 +97,7 @@ struct AppStrings
     msg_FailedDuplicate:       string = "Failed to duplicate capture"
     msg_FailedLocateCapture:   string = "Failed to locate capture file"
     msg_FailedLocateLinked:    string = "Failed to locate linked image"
-    msg_FailedLoadImage:       string = "Failed to load image"
+    msg_MissingFrames:         string = "The frames of this animation are missing or were replaced"
     msg_FailedSaveFile:        string = "Failed to save file"
     msg_FailedSaveCapture:     string = "Failed to save capture file: %"
     msg_FailedRename:          string = "Failed to rename capture"
@@ -227,9 +227,9 @@ struct AppStrings
     act_Callout:                  string = "Callout"
     act_CaptureActiveWindow:      string = "Capture Active Window"
     act_CaptureArea:              string = "Capture Area"
-    act_RecordAnimation:          string = "Record an Animation"     // Records a short animated picture of an area.
-    act_StopRecording:            string = "Stop Recording"          // The same command while a recording runs.
-    act_CancelRecording:          string = "Cancel the Recording"    // Abandons the recording in progress.
+    act_RecordAnimation:          string = "Record an Animation"      // Records a short animated picture of an area.
+    act_StopRecording:            string = "Stop Recording"           // The same command while a recording runs.
+    act_CancelRecording:          string = "Cancel the Recording"     // Abandons the recording in progress.
     act_CaptureFullScreen:        string = "Capture Full Screen"
     act_CaptureLastArea:          string = "Capture Last Area"
     act_CaptureCursor:            string = "Capture Mouse Cursor"

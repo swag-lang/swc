@@ -32,6 +32,10 @@ var g_GrabDone:       bool
 var g_DesktopTexture: Texture
 var g_CaptureWindow:  CaptureWindowInfo
 
+// What the next capture keeps of the aimed area: the command that opens the overlay chooses it,
+// and `Tab` changes it before the capture is taken.
+var g_CaptureMedia: CaptureMedia
+
 func getGrabRect()->Math.Rectangle
 {
     var result: #returntype
@@ -41,6 +45,9 @@ func getGrabRect()->Math.Rectangle
     result.height = Math.max(g_StartGrabY, g_EndGrabY) - result.y
     return result
 }
+
+// Returns `rect`, in physical pixels relative to the virtual desktop, in absolute screen pixels.
+func desktopToScreenRect(rect: Math.Rectangle)->Math.Rectangle => {g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
 
 func screenToDesktopRect(rect: Math.Rectangle)->Math.Rectangle
 {
@@ -150,6 +157,13 @@ func captureRect(main: *MainWnd)->*Capture? fail
     let {img, sf} = try performScreenCapture(main)
     if not sf do
         return null
+
+    if g_CaptureMedia == .Animation
+    {
+        sf.destroy()
+        return try Recorder.record(main, desktopToScreenRect(getGrabRect()))
+    }
+
     return try performInPlaceEdit(img, sf, main)
 }
 
@@ -240,28 +254,35 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         let wGrab    = Math.max(grabRect.width, 8)
         let hGrab    = Math.max(grabRect.height, 8)
 
-        // Grab bounds are desktop-relative; blit only that rectangle instead of
-        // capturing the whole virtual desktop and cropping.
-        var image = try getScreenRectImage(main.captureOptions.captureCursor,
-                                           g_DesktopX + cast(s32, grabRect.x),
-                                           g_DesktopY + cast(s32, grabRect.y),
-                                           cast(s32, wGrab),
-                                           cast(s32, hGrab))
-
-        with capture = Memory.new'Capture()
+        if g_CaptureMedia == .Animation
         {
-            .width, .widthOrg   = image.width
-            .height, .heightOrg = image.height
-            .backImg = image
-            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+            capture = try Recorder.record(main, desktopToScreenRect({grabRect.x, grabRect.y, wGrab, hGrab}))
         }
-
-        if main.captureOptions.sendToClipboard do
-            Clipboard.addImage(capture.backImg)
-        if not main.captureOptions.sendToEditor
+        else
         {
-            Memory.delete(capture)
-            capture = null
+            // Grab bounds are desktop-relative; blit only that rectangle instead of
+            // capturing the whole virtual desktop and cropping.
+            var image = try getScreenRectImage(main.captureOptions.captureCursor,
+                                               g_DesktopX + cast(s32, grabRect.x),
+                                               g_DesktopY + cast(s32, grabRect.y),
+                                               cast(s32, wGrab),
+                                               cast(s32, hGrab))
+
+            with capture = Memory.new'Capture()
+            {
+                .width, .widthOrg   = image.width
+                .height, .heightOrg = image.height
+                .backImg = image
+                .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
+            }
+
+            if main.captureOptions.sendToClipboard do
+                Clipboard.addImage(capture.backImg)
+            if not main.captureOptions.sendToEditor
+            {
+                Memory.delete(capture)
+                capture = null
+            }
         }
     }
 

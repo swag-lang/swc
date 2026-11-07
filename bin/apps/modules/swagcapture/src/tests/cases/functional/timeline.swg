@@ -140,3 +140,32 @@ func testProfileVersion(file: string)->u32
     defer Memory.delete(loaded)
     Swag.require(not loaded.mediaMissing)
 }
+
+// An animation exports as an animated GIF with its frames, its timing and its annotations, and
+// leaves the frame at the playhead on the canvas.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let capture = testRecordedCapture()
+    let file    = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    f.editView.setCapture(capture)
+    f.capture = capture
+    expect capture.showFrame(1)
+
+    let path = Gui.Testing.tempFilePath("animation-", ".gif")
+    defer catch File.delete(path)
+    expect capture.exportAnimation(path)
+    Swag.require(capture.playhead == 1)
+
+    let bytes  = expect File.readAllBytes(path)
+    var reader = expect ImageReader.decode("animation.gif", bytes.toSlice())
+    Swag.require(reader.info.frames.count == 3)
+    Swag.require(reader.info.canvasWidth == 64 and reader.info.canvasHeight == 48)
+    for frame in reader.info.frames do
+        Swag.require(Math.abs(frame.durationSeconds - 0.1) < 0.001)
+}

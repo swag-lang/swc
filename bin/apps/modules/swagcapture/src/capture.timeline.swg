@@ -95,6 +95,48 @@ impl Capture
         .editView?.invalidate()
     }
 
+    // Writes the animation, with its annotations, as an animated GIF at `path`.
+    //
+    // Each frame is shown on the canvas in turn to be rendered; the frame at the playhead is
+    // shown again afterwards.
+    mtd exportAnimation(path: string) fail
+    {
+        let frames   = unwrap .frames
+        let playhead = .playhead
+        defer catch .showFrame(playhead)
+
+        var writer = try Gif.AnimationWriter.create(path, .width, .height)
+        defer #fail discard catch File.delete(path)
+
+        let count = frames.frameCount()
+        for frame in count
+        {
+            try .showFrame(frame)
+            let end = frame + 1 < count ? frames.timeOf(frame + 1) : frames.endTime
+            try writer.addFrame(.toImage(), end - frames.timeOf(frame))
+        }
+
+        try writer.end()
+    }
+
+    // Exports the animation to a GIF named after the capture in the temporary folder, and puts
+    // that file on the clipboard.
+    mtd copyAnimation() fail
+    {
+        let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "Swag Capture")
+        if not Directory.exists(folder) do
+            try Directory.create(folder)
+
+        var name = String.from(Path.fileNameWithoutExtension(.displayName()) orelse "animation")
+        name += ".gif"
+        let path = Path.combine(folder, name)
+        try .exportAnimation(path)
+
+        var files: Array'String
+        files.add(path)
+        Clipboard.setFiles(files.toSlice())
+    }
+
     // Keeps `frames` open as the frames of the capture.
     private mtd takeFrames(frames: *Frames.Reader)
     {

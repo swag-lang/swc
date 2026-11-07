@@ -29,15 +29,16 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         if inspected[] do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.require(menu.items.count == 9)
+        Swag.require(menu.items.count == 10)
         Swag.require(menu.items[0]!.id == ActionCapture.Area)
-        Swag.require(menu.items[1]!.id == ActionCapture.ActiveWnd)
-        Swag.require(menu.items[2]!.id == ActionCapture.FullScreen)
-        Swag.require(menu.items[3]!.id == ActionCapture.LastArea)
-        Swag.require(menu.items[4]!.id == ActionCapture.screenId(0))
-        Swag.require(menu.items[5]!.id == ActionCapture.screenId(1))
-        Swag.require(menu.items[7]!.id == ActionCapture.CaptureCursor)
-        let delays = menu.items[8]!.popup
+        Swag.require(menu.items[1]!.id == ActionCapture.Record)
+        Swag.require(menu.items[2]!.id == ActionCapture.ActiveWnd)
+        Swag.require(menu.items[3]!.id == ActionCapture.FullScreen)
+        Swag.require(menu.items[4]!.id == ActionCapture.LastArea)
+        Swag.require(menu.items[5]!.id == ActionCapture.screenId(0))
+        Swag.require(menu.items[6]!.id == ActionCapture.screenId(1))
+        Swag.require(menu.items[8]!.id == ActionCapture.CaptureCursor)
+        let delays = menu.items[9]!.popup
         Swag.require(delays.items.count == 4)
         Swag.require(delays.items[0]!.id == ActionCaptureDelay.Delay0)
         Swag.require(delays.items[3]!.id == ActionCaptureDelay.Delay10)
@@ -59,7 +60,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     defer f.shutdown()
 
     g_DesktopX, g_DesktopY = 0
-    g_Exit, g_GrabDone      = false
+    g_Exit, g_GrabDone     = false
     let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 320, 240})
     wnd.main        = f.main
     wnd.focusPolicy = .Click

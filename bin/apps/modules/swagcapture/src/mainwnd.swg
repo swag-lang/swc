@@ -130,6 +130,9 @@ struct MainWnd
 
     embInfoFreeze: *InfoBar?
 
+    // The timeline floating under the canvas while a timed capture is edited.
+    timeline: *TimelineBar?
+
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
     miniBarForm:       *BaseForm?              // The form the mini-bar was filled for, whose face, size and style it shows.
@@ -364,6 +367,7 @@ impl MainWnd
             .addItem(ActionGlobal.ShowEditor)
             .addSeparator()
             .addItem(ActionCapture.Area)
+            .addItem(ActionCapture.Record)
             .addItem(ActionCapture.LastArea)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
@@ -651,6 +655,7 @@ impl MainWnd
     mtd captureHasChanged()
     {
         .updateReading()
+        .placeTimeline()
         if .recentWnd != null
         {
             .updateCommandState()
@@ -698,10 +703,11 @@ impl MainWnd
     // Offers the capture modes and screen-reading options before taking a screenshot.
     mtd showCaptureMenu(button: *IconButton)
     {
-        let main = me
+        let main      = me
         with let menu = MenuCtrl.createPopup(me)
         {
             .addItem(ActionCapture.Area)
+            .addItem(ActionCapture.Record)
             .addItem(ActionCapture.ActiveWnd)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.LastArea)
@@ -716,6 +722,7 @@ impl MainWnd
             for id in CaptureDelayIds do
                 .addItem(id)
         }
+
         menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
 
         discard menu.doModal(button, autoDestroy: true)
@@ -1060,6 +1067,7 @@ impl MainWnd
         }
 
         .registerHotKey(.None, .PrintScreen, ActionCapture.Area)
+        .registerHotKey(.Shift, .PrintScreen, ActionCapture.Record)
         .registerHotKey(.CtrlShift, .PrintScreen, ActionCapture.LastArea)
         .registerHotKey(.Control, .PrintScreen, ActionCapture.FullScreen)
         .registerHotKey(.Alt, .PrintScreen, ActionCapture.ActiveWnd)

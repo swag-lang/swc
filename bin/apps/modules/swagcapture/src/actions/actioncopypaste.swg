@@ -80,8 +80,8 @@ impl IActionUI for ActionCopyPaste
         case .CopyAsImage:
             evt.updatedFields |= .Disabled | .Name | .LongName | .Icon
             evt.disabled      = not capture
-            evt.name          = appStrings().act_CopyImage
-            evt.longName      = appStrings().act_CopyImageToClipboard
+            evt.name          = capture and capture.isTimed() ? appStrings().act_CopyAnimation : appStrings().act_CopyImage
+            evt.longName      = capture and capture.isTimed() ? appStrings().act_CopyAnimationToClipboard : appStrings().act_CopyImageToClipboard
             evt.icon          = main.theme().icon(.Copy)
 
         case .Duplicate:
@@ -114,7 +114,12 @@ impl IActionUI for ActionCopyPaste
             capture.pasteImageInside()
 
         case .CopyAsImage:
-            capture.copyAll()
+            catch capture.copyAll()
+            {
+                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedSaveFile, Swag.err)
+                return true
+            }
+
             main.confirm(appStrings().msg_Copied)
 
         case .Duplicate:

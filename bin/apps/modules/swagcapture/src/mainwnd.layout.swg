@@ -5,33 +5,33 @@ const StepperWidth = 88.0
 const MaxLensRecents = 6
 
 // Register each command once; the lens and its optional application menu use the same entries.
-const CaptureModeIds = [ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd]
-const CaptureDelayIds = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay3, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay10]
+const CaptureModeIds   = [ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd]
+const CaptureDelayIds  = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay3, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay10]
 const CaptureOptionIds = [ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard]
-const FileStartIds = [ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage]
-const FileLinkedIds = [ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage]
-const FileCaptureIds = [ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
-                        ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails]
-const EditHistoryIds = [ActionUndo.DoUndo, ActionUndo.DoRedo]
+const FileStartIds     = [ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage]
+const FileLinkedIds    = [ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage]
+const FileCaptureIds   = [ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
+                          ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails]
+const EditHistoryIds   = [ActionUndo.DoUndo, ActionUndo.DoRedo]
 const EditClipboardIds = [ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste, ActionCopyPaste.Duplicate]
-const EditObjectIds = [ActionSelection.DeleteSelection, ActionEdit.EditText, ActionEdit.Bold, ActionEdit.Italic,
-                       ActionEdit.ResetSteps, ActionCopyPaste.PasteImageInside, ActionEdit.ClearImageInside]
+const EditObjectIds    = [ActionSelection.DeleteSelection, ActionEdit.EditText, ActionEdit.Bold, ActionEdit.Italic,
+                          ActionEdit.ResetSteps, ActionCopyPaste.PasteImageInside, ActionEdit.ClearImageInside]
 const EditorSelectionIds = [ActionSelection.SelectAll, ActionSelection.SelectSameAll, ActionSelection.DeSelectAll,
                             ActionSelection.InvertSelection, ActionGroup.Group, ActionGroup.Ungroup,
                             ActionEdit.ResetRotation, ActionSelection.Freeze, ActionSelection.Snap]
 const PixelSelectionIds = [ActionPixSel.Fill, ActionPixSel.SmartFill, ActionPixSel.Clear, ActionPixSel.SmartMove]
-const AlignMenuIds = [ActionAlign.AlignLeft, ActionAlign.AlignCenter, ActionAlign.AlignRight,
-                      ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom]
-const ArrangeMenuIds = [ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward]
+const AlignMenuIds      = [ActionAlign.AlignLeft, ActionAlign.AlignCenter, ActionAlign.AlignRight,
+                           ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom]
+const ArrangeMenuIds   = [ActionAlign.SendToFront, ActionAlign.SendToBack, ActionAlign.MoveForward, ActionAlign.MoveBackward]
 const ImageGeometryIds = [ActionImage.RestoreOrg, ActionImage.ResizeImage, ActionImage.ExpandImage,
                           ActionImage.ExpandCapture, ActionImage.TrimCapture]
-const ImageFlattenIds = [ActionFlatten.Flatten, ActionFlatten.FlattenAll]
+const ImageFlattenIds   = [ActionFlatten.Flatten, ActionFlatten.FlattenAll]
 const ImageTransformIds = [ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft]
-const ToolMenuIds = [ActionToolMode.Selection, ActionToolMode.Shape, ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
-                     ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight, ActionToolMode.Step,
-                     ActionToolMode.Img, ActionToolMode.PixSel, ActionToolMode.Favorites, ActionQuickStyle.Reset]
-const ViewPanelIds = [ActionView.Inspector, ActionView.Recent]
-const ViewZoomIds = [ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit]
+const ToolMenuIds       = [ActionToolMode.Selection, ActionToolMode.Shape, ActionToolMode.Arrow, ActionToolMode.Line, ActionToolMode.Poly,
+                           ActionToolMode.Text, ActionToolMode.Callout, ActionToolMode.Draw, ActionToolMode.Highlight, ActionToolMode.Step,
+                           ActionToolMode.Img, ActionToolMode.PixSel, ActionToolMode.Favorites, ActionQuickStyle.Reset]
+const ViewPanelIds  = [ActionView.Inspector, ActionView.Recent]
+const ViewZoomIds   = [ActionZoom.ZoomIn, ActionZoom.ZoomOut, ActionZoom.Zoom1, ActionZoom.ZoomFit]
 const RecentSizeIds = [ActionRecentSize.RecentSmall, ActionRecentSize.RecentMedium, ActionRecentSize.RecentBig]
 
 // Paints the preview of a recent capture into a picture of the lens, filling it.
@@ -49,16 +49,18 @@ func paintLensRecent(painter: *Painter, rect: Math.Rectangle, preview: Texture)
 // The alignment a glyph of the text mini-bar stands for, and whether it is down the box rather
 // than across it, kept in the user data of the glyph.
 func alignUserData(align: FormTextAlign, vertical: bool)->*void => cast(*void, cast(u64, align) + (vertical ? AlignVerticalFlag : 0))
+
 func alignOfUserData(data: *void?)->FormTextAlign
 {
     switch cast(u64, data) & ~AlignVerticalFlag
     {
-    case cast(u64, FormTextAlign.LeftTop): return .LeftTop
+    case cast(u64, FormTextAlign.LeftTop):     return .LeftTop
     case cast(u64, FormTextAlign.RightBottom): return .RightBottom
-    case cast(u64, FormTextAlign.Center): return .Center
+    case cast(u64, FormTextAlign.Center):      return .Center
     default: return .Center
     }
 }
+
 func alignIsVertical(data: *void?)->bool => (cast(u64, data) & AlignVerticalFlag) != 0
 const AlignVerticalFlag = 0x100'u64
 
@@ -116,6 +118,7 @@ impl MainWnd
         {
             .dockStyle       = .Center
             .backgroundStyle = .Window
+
             // Floating shadows need to reach across the edge where the recent strip begins.
             .wndFlags.remove(.ClipChildren)
         }
@@ -183,7 +186,7 @@ impl MainWnd
     mtd createInspector()
     {
         .inspector = Inspector.create(.editArea)
-        .inspector.topOffset = .themeMetrics().floating_Inset
+        .inspector.topOffset      = .themeMetrics().floating_Inset
         .inspector.sigFoldChanged += func|main = me|(inspector)
         {
             main.inspectorFolded = inspector.folded
@@ -305,7 +308,7 @@ impl MainWnd
         if not style.found do
             return
         let defaultFace = .theme().res.defaultTypeFaceR.familyName()
-        let shown = style.face.count ? style.face : defaultFace
+        let shown       = style.face.count ? style.face : defaultFace
         .miniBarFontFace?.setText(shown)
         if .miniBarFontFace do
             .miniBarFontFace.toolTip = Format.toString("%: %", appStrings().prop_Font, shown)
@@ -406,7 +409,7 @@ impl MainWnd
         if not style.found do
             return
 
-        let metrics = .themeMetrics()
+        let metrics     = .themeMetrics()
         let defaultFace = .theme().res.defaultTypeFaceR.familyName()
         let shown       = style.face.count ? style.face : defaultFace
         with .miniBarFontFace = IconButton.createQuiet(.miniBar)
@@ -415,11 +418,8 @@ impl MainWnd
             .updateFlags(add: .Popup)
             .setText(shown)
             .resize(112, metrics.miniBar_ButtonSize)
-            .sigPopupRequested += func|main = me|(button)
-            {
-                main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Face)
-            }
-            .sigPopupClosed += func|main = me|(_) { main.textChoicePopover = null }
+            .sigPopupRequested += func|main = me|(button) { main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Face) }
+            .sigPopupClosed    += func|main = me|(_) { main.textChoicePopover = null }
         }
 
         .miniBar.addItem(.miniBarFontFace)
@@ -438,11 +438,8 @@ impl MainWnd
             .updateFlags(add: .Popup)
             .setText(Format.toString("%", cast(s32, Math.round(style.size))))
             .resize(width, metrics.miniBar_ButtonSize)
-            .sigPopupRequested += func|main = me|(button)
-            {
-                main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size)
-            }
-            .sigPopupClosed += func|main = me|(_) { main.textChoicePopover = null }
+            .sigPopupRequested += func|main = me|(button) { main.textChoicePopover = TextChoicePopover.open(main, assume cast(*IconButton, button), .Size) }
+            .sigPopupClosed    += func|main = me|(_) { main.textChoicePopover = null }
         }
 
         .miniBar.addItem(.miniBarFontSize)
@@ -616,6 +613,7 @@ impl MainWnd
         var room   = .editArea.clientRect()
         room.x     += insets.left
         room.width -= insets.left + insets.right
+
         // The caption strip covers the editor's top edge. Keep the bar below it
         // when choosing which side of the selection has room.
         let stripInset = .editArea.stripInset()
@@ -702,6 +700,35 @@ impl MainWnd
         .hintLine.setReading(null)
         .updateReading()
         .fillHintLine()
+
+        .timeline = TimelineBar.create(me, .editArea)
+        .timeline.hide()
+    }
+
+    // Shows the timeline above the hint line while a timed capture is edited, and hides it
+    // otherwise.
+    mtd placeTimeline()
+    {
+        let timeline = .timeline
+        if not timeline do
+            return
+
+        let capture = .getCapture()
+        if .libraryMode or not capture or not capture.isTimed() or not capture.frames
+        {
+            if timeline.isPlaying() do
+                timeline.stop()
+            timeline.hide()
+            return
+        }
+
+        let metrics = .themeMetrics()
+        let insets  = .floatingInsets()
+        let room    = .editArea.clientRect()
+        let bottom  = room.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height - TimelineGap
+        timeline.setPosition({insets.left, bottom - TimelineHeight, Math.max(room.width - insets.left - insets.right, 0), TimelineHeight})
+        timeline.show()
+        timeline.invalidate()
     }
 
     // Reserves the first part of the hint line for the two readings and puts each menu anchor
@@ -727,6 +754,7 @@ impl MainWnd
 
         .hintLine.margin = {x, 0, insets.right, 0}
         .hintLine.setReading(null)
+        .placeTimeline()
     }
 
     // Writes the foot line: what the tool in hand does, the key of the inspector while it is
@@ -853,45 +881,31 @@ impl MainWnd
                 if main.libraryMode do
                     main.libWnd.describeLens(results)
             })
-            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area,
-                        func()->string => appStrings().search_Capture)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
-            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds,
-                         menuGroup: func()->string => appStrings().act_DelayBefore)
-            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds,
-                         menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
-            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage,
-                        func()->string => appStrings().search_Export)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
+            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileStartIds)
-            .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds,
-                         menuGroup: func()->string => appStrings().ui_MenuLinkedImage)
-            .addCommands(func()->string => appStrings().ui_MenuFile, FileCaptureIds,
-                         menuGroup: func()->string => appStrings().ui_MenuCaptureFile)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds, menuGroup: func()->string => appStrings().ui_MenuLinkedImage)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileCaptureIds, menuGroup: func()->string => appStrings().ui_MenuCaptureFile)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditHistoryIds)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditClipboardIds, menuSection: 1)
-            .addCommands(func()->string => appStrings().ui_MenuEdit, EditObjectIds,
-                         menuGroup: func()->string => appStrings().ui_MenuObject)
-            .addCommands(func()->string => appStrings().ui_MenuEdit, EditorSelectionIds,
-                         menuGroup: func()->string => appStrings().lens_Selection)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditObjectIds, menuGroup: func()->string => appStrings().ui_MenuObject)
+            .addCommands(func()->string => appStrings().ui_MenuEdit, EditorSelectionIds, menuGroup: func()->string => appStrings().lens_Selection)
             .addCommands(func()->string => appStrings().ui_MenuEdit, PixelSelectionIds, inMenu: false)
-            .addCommands(func()->string => appStrings().ui_MenuAlign, AlignMenuIds,
-                         menuFamily: func()->string => appStrings().ui_MenuEdit,
-                         menuGroup: func()->string => appStrings().ui_MenuAlign)
-            .addCommands(func()->string => appStrings().ui_MenuArrange, ArrangeMenuIds,
-                         menuFamily: func()->string => appStrings().ui_MenuEdit,
-                         menuGroup: func()->string => appStrings().ui_MenuArrange)
+            .addCommands(func()->string => appStrings().ui_MenuAlign, AlignMenuIds, menuFamily: func()->string => appStrings().ui_MenuEdit, menuGroup: func()->string => appStrings().ui_MenuAlign)
+            .addCommands(func()->string => appStrings().ui_MenuArrange, ArrangeMenuIds, menuFamily: func()->string => appStrings().ui_MenuEdit, menuGroup: func()->string => appStrings().ui_MenuArrange)
             .addCommand(func()->string => appStrings().ui_MenuImage, ActionCopyPaste.CopyAsImage)
             .addCommands(func()->string => appStrings().ui_MenuImage, ImageGeometryIds, menuSection: 1)
             .addCommands(func()->string => appStrings().ui_MenuImage, ImageFlattenIds, menuSection: 2)
             .addCommands(func()->string => appStrings().ui_MenuImage, ImageTransformIds, menuSection: 3)
             .addCommands(func()->string => appStrings().lens_Tools, ToolMenuIds, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuView, ViewPanelIds)
-            .addCommand(func()->string => appStrings().act_Library, ActionGlobal.ShowLibrary,
-                        func()->string => appStrings().search_Library,
-                        menuFamily: func()->string => appStrings().ui_MenuView)
+            .addCommand(func()->string => appStrings().act_Library, ActionGlobal.ShowLibrary, func()->string => appStrings().search_Library, menuFamily: func()->string => appStrings().ui_MenuView)
             .addCommands(func()->string => appStrings().ui_MenuView, ViewZoomIds, menuSection: 1)
             .addCommands(func()->string => appStrings().lens_Recent, RecentSizeIds, inMenu: false)
             .addCommand(func()->string => appStrings().ui_MenuView, ActionView.Clip, inMenu: false)
@@ -917,7 +931,7 @@ impl MainWnd
         }
 
         let capture = results.addSection(appStrings().ui_MenuCapture)
-        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
+        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
         let image = results.addSection(appStrings().ui_MenuImage)
         .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage])

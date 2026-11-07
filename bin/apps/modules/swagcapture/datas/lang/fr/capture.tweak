@@ -88,6 +88,7 @@ msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
 msg_FailedCaptureScreen Impossible de capturer l'écran
+msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
 msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
@@ -103,12 +104,16 @@ act_BigView            Grandes vignettes
 act_Callout            Bulle
 act_CaptureActiveWindow Capturer la fenêtre active
 act_CaptureArea        Capturer une zone
+act_RecordAnimation    Enregistrer une animation
+act_StopRecording      Arrêter l'enregistrement
 act_CaptureFullScreen  Capturer l'écran entier
 act_CaptureLastArea    Capturer la dernière zone
 act_CaptureCursor      Capturer le curseur de la souris
 act_Clear              Effacer
 act_ClearInsideImage   Effacer l'intérieur de l'image
 act_CopyImage          Copier l'image
+act_CopyAnimation      Copier le GIF
+act_CopyAnimationToClipboard Copier l'animation comme fichier GIF
 act_CopyImageToClipboard Copier l'image dans le presse-papiers
 act_Copy               Copier
 act_Cut                Couper
@@ -253,6 +258,12 @@ act_AlignRight         Droite
 act_AlignTop           Haut
 act_AlignMiddle        Milieu
 act_AlignBottom        Bas
+tip_PlayAnimation      Lire
+tip_PauseAnimation     Pause
+tip_PauseRecording     Pause
+tip_ResumeRecording    Reprendre
+tip_StopRecording      Arrêter et garder
+tip_CancelRecording    Annuler l'enregistrement
 tip_LibraryFolders     Parcourir un dossier ou choisir où Swag Capture stocke les captures
 tip_SmallRecent        Petites vignettes récentes
 tip_MediumRecent       Vignettes récentes moyennes
@@ -413,6 +424,7 @@ ui_PropStyle           Style
 lens_Dates             Dates
 hint_Capture           capturer
 hint_Cancel            annuler
+hint_SwitchMedia       photo ou animation
 hint_RedrawArea        clic droit pour recommencer
 tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide

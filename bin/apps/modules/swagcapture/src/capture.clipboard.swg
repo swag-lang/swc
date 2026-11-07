@@ -3,10 +3,13 @@ const DuplicateOffset = 16's32
 
 impl Capture
 {
-    mtd copyAll()
+    mtd copyAll() fail
     {
         Cursor.activateWait()
-        Clipboard.addImage(.toImage())
+        if .isTimed() do
+            try .copyAnimation()
+        else do
+            Clipboard.addImage(.toImage())
     }
 
     // Puts the selected forms on the clipboard as Swag Capture forms; the first plain picture

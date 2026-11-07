@@ -8,6 +8,7 @@ impl ActionCapture
 {
     newCmdId("DoIt")
     newCmdId("Area")
+    newCmdId("Record")
     newCmdId("LastArea")
     newCmdId("FullScreen")
     newCmdId("ActiveWnd")
@@ -83,6 +84,11 @@ impl IActionUI for ActionCapture
             evt.name = appStrings().act_CaptureArea
             evt.icon = main.icon(.CaptureArea)
 
+        case .Record:
+            evt.updatedFields |= .Name | .Icon
+            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordAnimation
+            evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
+
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
             evt.name = appStrings().act_CaptureLastArea
@@ -152,6 +158,7 @@ impl IActionUI for ActionCapture
         {
         case .DoIt:          main.captureScreen(.Area)
         case .Area:          main.captureScreen(.Area)
+        case .Record:        main.recordScreen()
         case .LastArea:      main.captureScreen(.LastArea)
         case .FullScreen:    main.captureScreen(.FullScreen)
         case .ActiveWnd:     main.captureScreen(.ActiveWindow)
@@ -193,11 +200,13 @@ impl MainWnd
             }
         }
 
+        // A recording already has its file, named like the frame file written beside it.
         with capture
         {
             .changed     = true
             .linkedImage = linked
-            .file        = Library.newFileName()
+            if not .isTimed() do
+                .file = Library.newFileName()
         }
 
         .editWnd.editView.setCapture(capture)
@@ -218,8 +227,24 @@ impl MainWnd
         }
     }
 
+    // Takes a picture of the screen in `mode`, `monitorIndex` naming the monitor of `.Monitor`.
     mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
+        g_CaptureMedia = .Picture
         catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedCaptureScreen, Swag.err) }
+    }
+
+    // Records an animation of an area chosen on the screen, or ends the recording in progress:
+    // the command that starts a recording stops it.
+    mtd recordScreen()
+    {
+        if g_Recorder
+        {
+            g_Recorder!.stop()
+            return
+        }
+
+        g_CaptureMedia = .Animation
+        catch screenShot(me, .Area) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
     }
 }

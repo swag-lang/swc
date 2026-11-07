@@ -229,10 +229,19 @@ impl IActionUI for ActionFile
                 main.setCaptureTitle(file, dialog.text())
 
         case .CopyImage:
-            if main.libraryMode do
+            if main.libraryMode
+            {
                 main.copyLibraryImage(capture.file)
-            else do
-                capture.copyAll()
+            }
+            else
+            {
+                catch capture.copyAll()
+                {
+                    MessageDlg.error(unwrap main.surface, appStrings().msg_FailedSaveFile, Swag.err)
+                    return true
+                }
+            }
+
             main.confirm(appStrings().msg_Copied)
 
         case .CaptureFileLocation:
@@ -544,6 +553,12 @@ impl MainWnd
         if .recentWnd != null do
             .recentWnd.updateRecent()
 
+        .confirmSaved(nameFile)
+    }
+
+    // Says that `nameFile` was saved, with a way to show it in the file explorer.
+    mtd confirmSaved(nameFile: String)
+    {
         // The window that saved may be the in-place editor, which closes: the main window says it.
         let main = g_Main orelse me
         main.savedPaths.add(nameFile)
@@ -587,7 +602,15 @@ impl MainWnd
         if not Image.canSave(preferred) do
             preferred = ".png"
 
-        let formats = Image.encodableFormats()
+        // An animation is written as an animated picture.
+        var formats = Image.encodableFormats()
+        if capture.isTimed()
+        {
+            preferred = ".gif"
+            for i in reversed(formats.count) where not formats[i].matches(preferred) do
+                formats.removeAtOrdered(i)
+        }
+
         addImageFilters(&opt, formats.toSlice(), preferred)
 
         let dialog = FileDlg.create(unwrap .surface, opt)
@@ -602,6 +625,18 @@ impl MainWnd
     {
         let capture = unwrap .getCapture()
         Cursor.activateWait()
+        if capture.isTimed()
+        {
+            catch capture.exportAnimation(fileName)
+            {
+                MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
+                return
+            }
+
+            .confirmSaved(fileName)
+            return
+        }
+
         var image = capture.toImage()
         if linked do
             capture.linkedImage = fileName

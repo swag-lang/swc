@@ -240,7 +240,7 @@ impl InPlaceEditWnd
         with let capture = unwrap me.capture
         {
             .cropToGrab()
-            .copyAll()
+            assume .copyAll()
         }
 
         g_Main?.confirm(appStrings().msg_Copied)

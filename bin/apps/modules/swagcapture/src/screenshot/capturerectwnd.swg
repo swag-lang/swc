@@ -14,11 +14,11 @@ func easeGrab(current, target: f32)->f32
 
 // The area overlay: the chosen zone at full brightness with a 1 px Voltage edge, its
 // size in a mono chip, a pixel loupe with a Voltage crosshair, and the keys at the foot.
-const AreaChipPadding        = 8.0      // Air inside the size chip and the loupe reading.
-const AreaChipGap            = 6.0      // Air between the size chip and the zone.
-const AreaLoupeRadius        = 60.0     // Radius of the pixel loupe.
-const AreaLoupePixels        = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
-const AreaLoupeOffset        = 28.0     // Distance between the pointer and the loupe.
+const AreaChipPadding = 8.0      // Air inside the size chip and the loupe reading.
+const AreaChipGap     = 6.0      // Air between the size chip and the zone.
+const AreaLoupeRadius = 60.0     // Radius of the pixel loupe.
+const AreaLoupePixels = 21.0     // Desktop pixels across the loupe; odd, so one sits in the middle.
+const AreaLoupeOffset = 28.0     // Distance between the pointer and the loupe.
 
 // The overlay over the frozen desktop where the user drags the area to capture.
 struct CaptureRectWnd
@@ -59,8 +59,15 @@ impl IWnd for CaptureRectWnd
         if evt.kind == .Pressed and evt.key == .Escape and evt.modifiers == .None do
             g_Exit = true
 
+        // Tab changes what the capture keeps, before it is taken.
+        if evt.kind == .Pressed and evt.key == .Tab and evt.modifiers == .None do
+            g_CaptureMedia = g_CaptureMedia == .Picture ? .Animation : .Picture
+
         // Enter takes the zone on screen, as a click without a drag does.
-        if evt.kind == .Pressed and evt.key == .Enter and evt.modifiers == .None and not getGrabRect().isEmpty()
+        if evt.kind == .Pressed and
+           evt.key == .Enter and
+           evt.modifiers == .None and
+           not getGrabRect().isEmpty()
         {
             g_GrabDone = true
             g_Exit     = true
@@ -85,18 +92,20 @@ impl IWnd for CaptureRectWnd
             {
                 // Abandon only the rectangle in progress. The first drag's release must not
                 // accept the auto-detected zone, and the pointer can start a new drag.
-                .startGrab    = false
-                .tryStartGrab = false
-                .autoGrab     = true
+                .startGrab               = false
+                .tryStartGrab            = false
+                .autoGrab                = true
                 g_StartGrabX, g_EndGrabX = physPosX
                 g_StartGrabY, g_EndGrabY = physPosY
-                g_CaptureWindow = {}
+                g_CaptureWindow          = {}
                 .testAutoGrab()
                 .lerpGrab = getGrabRect()
                 .invalidate()
             }
-            else do
+            else
+            {
                 g_Exit = true
+            }
 
         case .Pressed where evt.button == .Left:
             .tryStartGrab    = true
@@ -104,6 +113,7 @@ impl IWnd for CaptureRectWnd
             .clickStartPos.y = physPosY
 
         case .Released where evt.button == .Left:
+
             // If we're still in tryStartGrab mode (didn't move mouse significantly)
             if .tryStartGrab
             {
@@ -115,6 +125,7 @@ impl IWnd for CaptureRectWnd
             {
                 g_EndGrabX = physPosX
                 g_EndGrabY = physPosY
+
                 // Resolve which window owns the manually selected rectangle.
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
@@ -124,6 +135,7 @@ impl IWnd for CaptureRectWnd
             }
 
         case .Move where .tryStartGrab:
+
             // Wait for more than one device pixel of movement before switching modes.
             if Math.abs(physPosX - .clickStartPos.x) > k or
                Math.abs(physPosY - .clickStartPos.y) > k
@@ -242,6 +254,7 @@ impl CaptureRectWnd
         {
             .setGrounded(true)
             .addHint(Gui.strings().key_Enter, appStrings().hint_Capture)
+            .addHint(Gui.strings().key_Tab, appStrings().hint_SwitchMedia)
             .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
             .addHint("", appStrings().hint_RedrawArea)
         }
@@ -249,7 +262,7 @@ impl CaptureRectWnd
 
     // Writes the size of the zone, in physical desktop pixels — the size of the captured image —
     // in a mono chip standing on the top edge of the zone, or inside it when the screen has no
-    // room above.
+    // room above. An animation names its format before the size.
     mtd paintSizeChip(painter: *Painter, grabRect, dstGrab: Math.Rectangle)
     {
         if grabRect.width <= 0 or grabRect.height <= 0 do
@@ -258,9 +271,11 @@ impl CaptureRectWnd
         let metrics = .themeMetrics()
         let colors  = .themeColors()
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        let text    = Format.toString("% × %", grabRect.width, grabRect.height)
-        let width   = Painter.measureString(text, font).width + 2 * AreaChipPadding
-        let height  = font.height + AreaChipPadding
+        var text    = Format.toString("% × %", grabRect.width, grabRect.height)
+        if g_CaptureMedia == .Animation do
+            text = Format.toString("GIF · %", text)
+        let width  = Painter.measureString(text, font).width + 2 * AreaChipPadding
+        let height = font.height + AreaChipPadding
 
         var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
         if chip.y < 0 do
@@ -326,5 +341,4 @@ impl CaptureRectWnd
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
         painter.drawString(chip.x + AreaChipPadding, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
     }
-
 }

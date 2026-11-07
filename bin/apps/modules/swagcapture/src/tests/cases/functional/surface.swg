@@ -288,6 +288,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
             copies[] += 1
             return true
         }
+
         return false
     }
 
@@ -365,6 +366,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
         let state = main.sendComputeCommandStateEvent(id)
         if state.updatedFields.has(.Hidden) and state.hidden do
             continue
+
         // The lens names a command in full when it has a longer name than its control shows.
         let title = state.updatedFields.has(.LongName) and not state.longName.isEmpty() ? state.longName : state.name
         Swag.require(titles.contains(title), title)
@@ -441,7 +443,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 
     let capture = unwrap main.getCapture()
     let text    = assume cast(*FormText, capture.forms[0])
-    let size = unwrap main.miniBarFontSize
+    let size    = unwrap main.miniBarFontSize
     host.clickWnd(size)
     let sizePopup = unwrap main.textChoicePopover
     Swag.require(sizePopup.kind == .Size and sizePopup.list.lineCount() == TextChoiceSizes.count)
@@ -548,8 +550,8 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     Swag.require(text.fontName == last and face.text() == last.toString())
 
     host.clickWnd(face)
-    let popup  = unwrap main.textChoicePopover
-    let filter = unwrap popup.filter
+    let popup      = unwrap main.textChoicePopover
+    let filter     = unwrap popup.filter
     let fullHeight = (unwrap popup.parent).position.height
     filter.setText("__missing_font__")
     Swag.require(popup.list.lineCount() == 0)
@@ -1002,11 +1004,12 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         main.updateState()
         main.lens.open()
         let sections = &main.lens.results.sections
-        Swag.require(sections[0]!.entries.count == 4)
+        Swag.require(sections[0]!.entries.count == 5)
         Swag.require(sections[0]!.entries[0].id == ActionCapture.Area)
-        Swag.require(sections[0]!.entries[1].id == ActionCapture.LastArea)
-        Swag.require(sections[0]!.entries[2].id == ActionFile.OpenImage)
-        Swag.require(sections[0]!.entries[3].id == ActionGlobal.ShowLibrary)
+        Swag.require(sections[0]!.entries[1].id == ActionCapture.Record)
+        Swag.require(sections[0]!.entries[2].id == ActionCapture.LastArea)
+        Swag.require(sections[0]!.entries[3].id == ActionFile.OpenImage)
+        Swag.require(sections[0]!.entries[4].id == ActionGlobal.ShowLibrary)
         Swag.require(sections[1]!.entries.count == 2)
         Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
         Swag.require(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
@@ -1212,12 +1215,12 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let capture = unwrap main.getCapture()
     let view    = main.editWnd.editView
     view.setZoom(3)
-    let place   = view.getCaptureRect()
-    let corner  = main.editArea.surfaceToLocal(view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y}))
-    let strip   = main.editArea.stripInset()
-    let gap     = main.themeMetrics().miniBar_Distance
-    let height  = main.miniBar.bodySize().y
-    let y       = (strip + gap + height * 0.5 - corner.y) / view.zoom
+    let place  = view.getCaptureRect()
+    let corner = main.editArea.surfaceToLocal(view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y}))
+    let strip  = main.editArea.stripInset()
+    let gap    = main.themeMetrics().miniBar_Distance
+    let height = main.miniBar.bodySize().y
+    let y      = (strip + gap + height * 0.5 - corner.y) / view.zoom
     discard testAddShape(capture, 60, y, 48, 24)
     capture.selection.add(0)
     capture.selectionHasChanged()
@@ -1352,6 +1355,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
             captures[] += 1
             return true
         }
+
         return false
     }
 

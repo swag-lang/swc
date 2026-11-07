@@ -31,6 +31,7 @@ enum UndoKind
     Group
     Ungroup
     SetTimeSpan
+    SetTrim
 }
 
 // Editable text lives on FormText and (reusing it) FormCallout. The SetText undo
@@ -133,6 +134,12 @@ struct Undo
     spanStart: bool
     spanClear: bool
     oldSpans:  Array'u64
+
+    // SetTrim: the kept part of the recording after the edit, and before it.
+    trimIn:     u64
+    trimOut:    u64
+    oldTrimIn:  u64
+    oldTrimOut: u64
 }
 
 // Undo is a command of the generic gui UndoManager (owned by Capture): redo re-applies the
@@ -356,6 +363,10 @@ impl Undo
                 .oldSpans.add(form.timeEnd)
             }
 
+        case .SetTrim:
+            .oldTrimIn  = capture.timeline.inPoint
+            .oldTrimOut = capture.timeline.outPoint
+
         case .ResetRotation:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
@@ -559,6 +570,10 @@ impl Undo
                         form.timeStart = 0
                 }
             }
+
+        case .SetTrim:
+            capture.timeline.inPoint  = .trimIn
+            capture.timeline.outPoint = .trimOut
 
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
@@ -795,6 +810,10 @@ impl Undo
                 form.timeStart = .oldSpans[idx * 2]
                 form.timeEnd   = .oldSpans[idx * 2 + 1]
             }
+
+        case .SetTrim:
+            capture.timeline.inPoint  = .oldTrimIn
+            capture.timeline.outPoint = .oldTrimOut
 
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)

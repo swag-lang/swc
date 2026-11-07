@@ -271,3 +271,43 @@ func testProfileVersion(file: string)->u32
     Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)
     Swag.require(capture.isFormShown(shape))
 }
+
+// Trimming keeps a part of the recording without cutting its frames: the export holds only that
+// part, each frame for the time it shows inside it, and undo keeps the whole recording again.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let capture = testRecordedCapture()
+    let file    = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    f.editView.setCapture(capture)
+    f.capture = capture
+
+    capture.setTrim(50_000, 250_000)
+    Swag.require(capture.isTrimmed())
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 250_000)
+    Swag.require(capture.timeline.frameCount == 3)
+
+    let path = Gui.Testing.tempFilePath("trimmed-", ".gif")
+    defer catch File.delete(path)
+    expect capture.exportAnimation(path)
+
+    let bytes  = expect File.readAllBytes(path)
+    var reader = expect ImageReader.decode("trimmed.gif", bytes.toSlice())
+    Swag.require(reader.info.frames.count == 3)
+    Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.05) < 0.001)
+    Swag.require(Math.abs(reader.info.frames[1].durationSeconds - 0.1) < 0.001)
+    Swag.require(Math.abs(reader.info.frames[2].durationSeconds - 0.05) < 0.001)
+
+    // An end set at the last instant keeps the recording to its end.
+    capture.setTrim(50_000, 300_000)
+    Swag.require(capture.timeline.outPoint == 0 and capture.trimEnd() == 300_000)
+
+    capture.undo()
+    capture.undo()
+    Swag.require(not capture.isTrimmed())
+}

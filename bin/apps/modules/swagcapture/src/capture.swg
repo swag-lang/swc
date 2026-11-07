@@ -102,6 +102,12 @@ struct CaptureTimeline
     frameCount: u64     // Number of frames recorded.
     duration:   u64     // Time from the first frame to the end of the last one, in microseconds.
     mediaSize:  u64     // Size of the frame file when it was recorded; another size means it was replaced.
+
+    // The part kept by playback and exports, in microseconds from the start: from `inPoint`,
+    // until `outPoint` excluded, or to the end when `outPoint` is zero. The frames themselves are
+    // never cut.
+    inPoint:  u64
+    outPoint: u64
 }
 
 // Small profile header read by the library without touching the editable document or pixels.

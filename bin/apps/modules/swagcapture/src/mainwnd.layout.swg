@@ -945,7 +945,8 @@ impl MainWnd
         {
             let timeline = results.addSection(appStrings().lens_Timeline)
             .lens.addCommandRows(timeline, [ActionTimeline.Play, ActionTimeline.PrevFrame, ActionTimeline.NextFrame,
-                                            ActionTimeline.ShowFrom, ActionTimeline.ShowUntil, ActionTimeline.ShowAlways])
+                                            ActionTimeline.ShowFrom, ActionTimeline.ShowUntil, ActionTimeline.ShowAlways,
+                                            ActionTimeline.TrimStart, ActionTimeline.TrimEnd, ActionTimeline.KeepAll])
         }
 
         let selection = results.addSection(appStrings().lens_Selection)

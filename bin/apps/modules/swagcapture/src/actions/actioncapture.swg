@@ -267,7 +267,7 @@ impl MainWnd
         .editWnd.editView.zoomToFit(false)
 
         capture.computePreview()
-        .recentWnd.addRecent(capture.file, capture.preview, linked: linked, duration: capture.timeline.duration)
+        .recentWnd.addRecent(capture.file, capture.preview, linked: linked, duration: capture.keptDuration())
         .recentWnd.recentView.selected = 0
 
         .saveCapture(capture)

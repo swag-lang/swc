@@ -1065,6 +1065,8 @@ impl MainWnd
         .registerKeyShortcut(.None, .OemPeriod, ActionTimeline.NextFrame)
         .registerKeyShortcut(.Shift, .Oem4, ActionTimeline.ShowFrom)
         .registerKeyShortcut(.Shift, .Oem6, ActionTimeline.ShowUntil)
+        .registerKeyShortcut(.Shift, .I, ActionTimeline.TrimStart)
+        .registerKeyShortcut(.Shift, .O, ActionTimeline.TrimEnd)
         .registerKeyShortcut(.None, .Home, ActionAlign.SendToFront)
         .registerKeyShortcut(.None, .End, ActionAlign.SendToBack)
         .registerKeyShortcut(.None, .PageUp, ActionAlign.MoveForward)

@@ -115,6 +115,9 @@ act_NextFrame          Image suivante
 act_ShowFromHere       Afficher à partir d'ici
 act_ShowUntilHere      Afficher jusqu'ici
 act_ShowAlways         Afficher tout le temps
+act_TrimStart          Commencer ici
+act_TrimEnd            Finir ici
+act_KeepAll            Garder tout l'enregistrement
 act_CaptureFullScreen  Capturer l'écran entier
 act_CaptureLastArea    Capturer la dernière zone
 act_CaptureCursor      Capturer le curseur de la souris

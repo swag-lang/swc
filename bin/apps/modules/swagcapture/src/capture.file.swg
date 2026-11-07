@@ -114,7 +114,7 @@ impl Capture
         result.favorite          = .favorite
         result.rating            = .rating
         result.media             = .media
-        result.duration          = .timeline.duration
+        result.duration          = .keptDuration()
         return result
     }
 

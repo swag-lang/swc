@@ -20,7 +20,21 @@ struct TimelineBar
     playStart:       u64     // Monotonic time playback started, in microseconds.
     playFrom:        u64     // Capture time playback started from, in microseconds.
     isDragging:      bool
+    dragEdge:        TimelineEdge     // The end of the kept part being dragged, if any.
+    dragFromIn:      u64     // Kept part when the drag of an end started, restored for its undo.
+    dragFromOut:     u64
 }
+
+// What a press on the track drags.
+enum TimelineEdge
+{
+    None      // The playhead.
+    Start     // The start of the kept part.
+    End       // The end of the kept part.
+}
+
+// Distance at which a press takes an end of the kept part rather than the playhead.
+const TimelineEdgeReach = 6.0
 
 impl IWnd for TimelineBar
 {
@@ -46,12 +60,26 @@ impl IWnd for TimelineBar
         let textX = TimelinePadding + TimelineButton + TimelinePadding
         painter.drawString(textX, font.opticalLineTop(client.vertCenter()), text, font, colors.softText)
 
-        // The track, the part already played in Arc, and the playhead.
+        // The track, the part already played in Arc, and the playhead. The parts trimmed away keep
+        // the ground of the track and lose the Arc; brackets mark the kept part.
         let track  = .trackRect()
-        let played = track.width * cast(f32, time) / cast(f32, Math.max(frames.endTime, 1'u64))
+        let played = .trackX(time)
+        let keepL  = .trackX(capture.trimStart())
+        let keepR  = .trackX(capture.trimEnd())
         painter.fillRoundRect({track.x, track.vertCenter() - 2, track.width, 4}, 2, 2, colors.raised)
-        painter.fillRoundRect({track.x, track.vertCenter() - 2, played, 4}, 2, 2, colors.arc)
-        painter.fillRoundRect({track.x + played - 1.5, track.y + 6, 3, track.height - 12}, 1.5, 1.5, colors.text)
+        if played > keepL do
+            painter.fillRoundRect({keepL, track.vertCenter() - 2, Math.min(played, keepR) - keepL, 4}, 2, 2, colors.arc)
+        if capture.isTrimmed()
+        {
+            painter.fillRect({keepL - 1, track.y + 9, 2, track.height - 18}, colors.arc)
+            painter.fillRect({keepL - 1, track.y + 9, 5, 2}, colors.arc)
+            painter.fillRect({keepL - 1, track.bottom() - 11, 5, 2}, colors.arc)
+            painter.fillRect({keepR - 1, track.y + 9, 2, track.height - 18}, colors.arc)
+            painter.fillRect({keepR - 4, track.y + 9, 5, 2}, colors.arc)
+            painter.fillRect({keepR - 4, track.bottom() - 11, 5, 2}, colors.arc)
+        }
+
+        painter.fillRoundRect({played - 1.5, track.y + 6, 3, track.height - 12}, 1.5, 1.5, colors.text)
 
         // The time span of the first selected form, under the track.
         if not capture.selection.isEmpty()
@@ -72,15 +100,23 @@ impl IWnd for TimelineBar
         {
         case .Pressed where evt.button == .Left and .trackRect().contains(position):
             .isDragging = true
+            .dragEdge   = .edgeAt(position.x)
+            if let capture = .capture()
+            {
+                .dragFromIn  = capture.timeline.inPoint
+                .dragFromOut = capture.timeline.outPoint
+            }
+
             .captureMouse()
-            .seek(position.x)
+            .drag(position.x)
 
         case .Move where .isDragging:
-            .seek(position.x)
+            .drag(position.x)
 
         case .Released where .isDragging:
             .isDragging = false
             .releaseMouse()
+            .endEdgeDrag()
         }
     }
 
@@ -96,14 +132,14 @@ impl IWnd for TimelineBar
             return
         }
 
-        // Playback loops, as the exported animation does.
+        // Playback loops over the kept part, as the exported animation does.
         let frames = capture.frames
         var time   = .playFrom + (Time.monotonicMicroseconds() - .playStart)
-        if time >= frames.endTime
+        if time >= capture.trimEnd() or time < capture.trimStart()
         {
-            .playFrom  = 0
+            .playFrom  = capture.trimStart()
             .playStart = Time.monotonicMicroseconds()
-            time       = 0
+            time       = .playFrom
         }
 
         let frame = frames.frameAt(time)
@@ -173,6 +209,78 @@ impl TimelineBar
         .stopTimer(&.playTimer)
         .playButton.setIcon(.theme().icon(.Play))
         .playButton.toolTip = appStrings().tip_PlayAnimation
+    }
+
+    // Returns where `time`, in microseconds, lies on the track, in local coordinates.
+    mtd trackX(time: u64)->f32
+    {
+        let capture = unwrap .capture()
+        let track   = .trackRect()
+        let length  = Math.max(capture.timeline.duration, 1'u64)
+        return track.x + track.width * cast(f32, Math.min(time, length)) / cast(f32, length)
+    }
+
+    // Returns the time at `x`, in local coordinates on the track, in microseconds.
+    mtd timeAt(x: f32)->u64
+    {
+        let capture = unwrap .capture()
+        let track   = .trackRect()
+        let ratio   = Math.clamp((x - track.x) / Math.max(track.width, 1), 0, 1)
+        return cast(u64, ratio * cast(f32, capture.timeline.duration))
+    }
+
+    // Returns the end of the kept part a press at `x` takes, or none for the playhead.
+    mtd edgeAt(x: f32)->TimelineEdge
+    {
+        let capture = unwrap .capture()
+        if Math.abs(x - .trackX(capture.trimStart())) <= TimelineEdgeReach do
+            return .Start
+        if Math.abs(x - .trackX(capture.trimEnd())) <= TimelineEdgeReach do
+            return .End
+        return .None
+    }
+
+    // Follows a drag on the track at `x`: an end of the kept part, or the playhead.
+    mtd drag(x: f32)
+    {
+        let capture = .capture()
+        if not capture or not capture.frames do
+            return
+
+        // The ends follow the pointer without leaving an undo step at each move; the release
+        // makes the whole drag one step.
+        switch .dragEdge
+        {
+        case .None:
+            .seek(x)
+            return
+
+        case .Start:
+            capture.timeline.inPoint = Math.min(.timeAt(x), capture.trimEnd())
+
+        case .End:
+            let finish = Math.max(.timeAt(x), capture.trimStart() + 1)
+            capture.timeline.outPoint = finish >= capture.timeline.duration ? 0 : finish
+        }
+
+        .invalidate()
+    }
+
+    // Ends the drag of an end of the kept part as one undoable edit.
+    mtd endEdgeDrag()
+    {
+        let edge = .dragEdge
+        .dragEdge = .None
+        let capture = .capture()
+        if edge == .None or not capture do
+            return
+
+        let keptIn  = capture.timeline.inPoint
+        let keptOut = capture.timeline.outPoint
+        capture.timeline.inPoint  = .dragFromIn
+        capture.timeline.outPoint = .dragFromOut
+        capture.setTrim(keptIn, keptOut)
+        .invalidate()
     }
 
     // Moves the playhead to the frame shown at `x`, in local coordinates on the track.

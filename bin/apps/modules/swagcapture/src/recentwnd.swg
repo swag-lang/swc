@@ -479,7 +479,7 @@ impl RecentWnd
         catch
         {
             let capture = try Capture.load(file, preview: not initialLoad)
-            .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, duration: capture.timeline.duration)
+            .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, duration: capture.keptDuration())
             g_Library.addFile(capture.file)
 
             // The initial document already came through the full-load path above. Hand that
@@ -512,6 +512,7 @@ impl RecentWnd
         {
             .linked         = capture.linkedImage
             .linkedUpToDate = capture.linkedUpToDate
+            .duration       = capture.keptDuration()
         }
 
         .invalidate()
@@ -538,7 +539,7 @@ impl RecentWnd
         // preview chunk alone, never the image payloads. The full capture is loaded
         // by RecentView.select only, when an item actually becomes the edited one.
         let loaded = try Capture.load(file, preview: true)
-        .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage, loaded.timeline.duration)
+        .addRecent(loaded.file, loaded.preview, front, sel, loaded.linkedUpToDate, loaded.linkedImage, loaded.keptDuration())
         return loaded
     }
 

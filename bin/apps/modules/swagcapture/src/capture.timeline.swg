@@ -172,6 +172,40 @@ impl Capture
         return time >= form.timeStart and (form.timeEnd == 0 or time < form.timeEnd)
     }
 
+    // Returns where the kept part of a timed capture starts, in microseconds.
+    mtd const trimStart()->u64 => .timeline.inPoint
+
+    // Returns where the kept part of a timed capture ends, in microseconds.
+    mtd const trimEnd()->u64 => .timeline.outPoint ? .timeline.outPoint : .timeline.duration
+
+    // Returns the length of the kept part, in microseconds; zero for a picture.
+    mtd const keptDuration()->u64 => .isTimed() ? .trimEnd() - .trimStart() : 0
+
+    // Returns whether the capture keeps less than its whole recording.
+    mtd const isTrimmed()->bool => .timeline.inPoint != 0 or .timeline.outPoint != 0
+
+    // Keeps the part of the recording from `inPoint` until `outPoint`, in microseconds, as one
+    // undoable edit. An `outPoint` of zero, or at the end, keeps the recording to its end.
+    mtd setTrim(inPoint, outPoint: u64)
+    {
+        if not .isTimed() do
+            return
+
+        let finish = outPoint == 0 or outPoint >= .timeline.duration ? 0 : outPoint
+        let start  = Math.min(inPoint, finish ? finish : .timeline.duration)
+        if start == .timeline.inPoint and finish == .timeline.outPoint do
+            return
+
+        with let undo = .newUndo(.SetTrim)
+        {
+            .trimIn  = start
+            .trimOut = finish
+        }
+
+        .pushUndo(undo)
+        .hasChanged()
+    }
+
     // Moves the playhead by `step` frames, within the capture.
     mtd stepFrame(step: s64) fail
     {
@@ -248,12 +282,19 @@ impl Capture
         var writer = try Gif.AnimationWriter.create(path, .width, .height)
         defer #fail discard catch File.delete(path)
 
-        let count = frames.frameCount()
-        for frame in count
+        // Only the kept part is written: each frame is held for the time it shows inside it.
+        let start  = .trimStart()
+        let finish = .trimEnd()
+        let count  = frames.frameCount()
+        for frame in frames.frameAt(start) until count
         {
+            let shown = Math.max(frames.timeOf(frame), start)
+            if shown >= finish do
+                break
+
+            let next = frame + 1 < count ? frames.timeOf(frame + 1) : frames.endTime
             try .showFrame(frame)
-            let end = frame + 1 < count ? frames.timeOf(frame + 1) : frames.endTime
-            try writer.addFrame(.toImage(), end - frames.timeOf(frame))
+            try writer.addFrame(.toImage(), Math.min(next, finish) - shown)
         }
 
         try writer.end()

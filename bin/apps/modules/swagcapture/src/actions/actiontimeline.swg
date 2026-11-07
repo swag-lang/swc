@@ -12,6 +12,9 @@ impl ActionTimeline
     newCmdId("ShowFrom")
     newCmdId("ShowUntil")
     newCmdId("ShowAlways")
+    newCmdId("TrimStart")
+    newCmdId("TrimEnd")
+    newCmdId("KeepAll")
 }
 
 impl IActionUI for ActionTimeline
@@ -58,6 +61,21 @@ impl IActionUI for ActionTimeline
             evt.name     = appStrings().act_ShowAlways
             evt.icon     = main.theme().icon(.Play)
             evt.disabled = not selected
+
+        case .TrimStart:
+            evt.name     = appStrings().act_TrimStart
+            evt.icon     = main.theme().icon(.ChevronRight)
+            evt.disabled = not timed
+
+        case .TrimEnd:
+            evt.name     = appStrings().act_TrimEnd
+            evt.icon     = main.theme().icon(.ChevronLeft)
+            evt.disabled = not timed
+
+        case .KeepAll:
+            evt.name     = appStrings().act_KeepAll
+            evt.icon     = main.theme().icon(.Play)
+            evt.disabled = not timed or not capture!.isTrimmed()
         }
 
         return true
@@ -93,6 +111,18 @@ impl IActionUI for ActionTimeline
 
         case .ShowAlways:
             capture.clearSelectionSpan()
+            main.timeline?.invalidate()
+
+        case .TrimStart:
+            capture.setTrim(capture.playheadTime(), capture.timeline.outPoint)
+            main.timeline?.invalidate()
+
+        case .TrimEnd:
+            capture.setTrim(capture.timeline.inPoint, capture.playheadTime())
+            main.timeline?.invalidate()
+
+        case .KeepAll:
+            capture.setTrim(0, 0)
             main.timeline?.invalidate()
         }
 

@@ -92,3 +92,22 @@ using Swag, Core, Pixel
     Clipboard.setString("")
     Swag.require(Clipboard.hasString() and Clipboard.getString().isEmpty())
 }
+
+// Copying files replaces the clipboard with their paths, in order.
+#test
+{
+    Swag.require(Clipboard.isFake())
+    expect Clipboard.resetFake()
+    defer Clipboard.clear()
+
+    Clipboard.addString("before")
+    var paths: Array'String
+    paths.add("C:/captures/demo réglages.gif")
+    paths.add("C:/captures/second.gif")
+    Clipboard.setFiles(paths.toSlice())
+
+    Swag.require(not Clipboard.hasString())
+    let files = Clipboard.getFiles()
+    Swag.require(files.count == 2)
+    Swag.require(files[0] == "C:/captures/demo réglages.gif" and files[1] == "C:/captures/second.gif")
+}

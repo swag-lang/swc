@@ -991,6 +991,130 @@ namespace Clipboard
         return {}
     }
 
+    // Replaces the clipboard content with the files at `paths`, offered as a `text/uri-list`.
+    public func setFiles(paths: const [..] String)
+    {
+        if g_Fake.enabled
+        {
+            fakeClear()
+            for path in paths do
+                g_Fake.files.add(path[])
+            return
+        }
+
+        // One `file://` URI per line, every byte outside the unreserved set percent-encoded.
+        const Hex = "0123456789ABCDEF"
+        var list: Array'u8
+        for path in paths
+        {
+            for byte in "file://" do
+                list.add(byte)
+            for byte in path.toSlice()
+            {
+                let plain = (byte >= 'a' and byte <= 'z') or
+                            (byte >= 'A' and byte <= 'Z') or
+                            (byte >= '0' and byte <= '9') or
+                            byte == '/' or byte == '-' or byte == '_' or byte == '.' or byte == '~'
+                if plain
+                {
+                    list.add(byte)
+                    continue
+                }
+
+                list.add('%')
+                list.add(Hex[byte >> 4])
+                list.add(Hex[byte & 15])
+            }
+
+            list.add('')
+            list.add('
+')
+        }
+
+        LinuxSelection.mutex.lock()
+        defer LinuxSelection.mutex.unlock()
+        catch
+        {
+            try LinuxSelection.ensure()
+            LinuxSelection.clear(LinuxSelection.service.clipboard)
+            discard LinuxSelection.publish(LinuxSelection.service.clipboard, try LinuxSelection.atom("text/uri-list"), list.toSlice())
+        }
+    }
+
+    // Returns the paths of the local files the clipboard holds, empty when it holds none.
+    public func getFiles()->Array'String
+    {
+        var result: #returntype
+        if g_Fake.enabled
+        {
+            result = g_Fake.files
+            return result
+        }
+
+        func hexDigit(c: u8)->u8
+        {
+            if c >= '0' and c <= '9' do
+                return c - '0'
+            if c >= 'a' and c <= 'f' do
+                return c - 'a' + 10
+            if c >= 'A' and c <= 'F' do
+                return c - 'A' + 10
+            return 0
+        }
+
+        LinuxSelection.mutex.lock()
+        defer LinuxSelection.mutex.unlock()
+        catch
+        {
+            try LinuxSelection.ensure()
+            let target = try LinuxSelection.atom("text/uri-list")
+            let value  = LinuxSelection.read(LinuxSelection.service.clipboard, target)
+            if not value.valid or value.format != 8 do
+                return result
+
+            // Decode each `file://` line; comments and other schemes are skipped.
+            let bytes = value.bytes.toSlice()
+            var path: Array'u8
+            var i     = 0'u64
+            while i < bytes.count
+            {
+                var lineEnd = i
+                while lineEnd < bytes.count and bytes[lineEnd] != '
+' do
+                    lineEnd += 1
+                var last = lineEnd
+                if last > i and bytes[last - 1] == '' do
+                    last -= 1
+
+                let prefix = "file://"
+                if last - i > prefix.count and Memory.compare(bytes.buffer + i, prefix.buffer, prefix.count) == 0
+                {
+                    path.clear()
+                    var at = i + prefix.count
+                    while at < last
+                    {
+                        if bytes[at] == '%' and at + 2 < last
+                        {
+                            path.add((hexDigit(bytes[at + 1]) << 4) | hexDigit(bytes[at + 2]))
+                            at += 3
+                            continue
+                        }
+
+                        path.add(bytes[at])
+                        at += 1
+                    }
+
+                    if Utf8.isValid(path.toSlice()) do
+                        result.add(String.from(cast(string, path.toSlice())))
+                }
+
+                i = lineEnd + 1
+            }
+        }
+
+        return result
+    }
+
     // Removes every offered clipboard format and takes ownership of the empty selection.
     public func clear()
     {

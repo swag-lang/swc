@@ -252,6 +252,65 @@ func hasString()->bool
     return IsClipboardFormatAvailable(CF_UNICODETEXT) != 0 or IsClipboardFormatAvailable(CF_TEXT) != 0
 }
 
+// Replaces the clipboard content with the files at `paths`, as the file explorer copies them.
+//
+// A paste in the file explorer copies the files; an application that accepts dropped files
+// receives them as if they were dropped. Nothing is published when the clipboard cannot be
+// opened.
+func setFiles(paths: const [..] String)
+{
+    if g_Fake.enabled
+    {
+        fakeClear()
+        for path in paths do
+            g_Fake.files.add(path[])
+        return
+    }
+
+    if not OpenClipboard(GetDesktopWindow()) do
+        return
+    defer discard CloseClipboard()
+    if not EmptyClipboard() do
+        return
+
+    let hglob = buildHDrop(paths)
+    if hglob and SetClipboardData(CF_HDROP, hglob) == null do
+        discard GlobalFree(hglob)
+}
+
+// Returns the paths of the files the clipboard holds, empty when it holds none.
+func getFiles()->Array'String
+{
+    var result: #returntype
+    if g_Fake.enabled
+    {
+        result = g_Fake.files
+        return result
+    }
+
+    if not OpenClipboard(GetDesktopWindow()) do
+        return result
+    defer discard CloseClipboard()
+
+    let hDrop = cast(HDROP, GetClipboardData(CF_HDROP))
+    if not hDrop do
+        return result
+
+    var buffer: Array'u16
+    let count = DragQueryFileW(hDrop, Swag.U32.Max, null, 0)
+    for i in count
+    {
+        let length = DragQueryFileW(hDrop, i, null, 0)
+        if not length do
+            continue
+        buffer.resize(length + 1)
+        discard DragQueryFileW(hDrop, i, buffer.buffer, length + 1)
+        result.add(Utf8.fromUtf16(Swag.makeSlice(buffer.storage(), cast(u64, length))))
+    }
+
+    return result
+}
+
 // Publishes `str` as clipboard text without removing the other formats.
 //
 // The UTF-8 text is stored as UTF-16 and as ANSI text in the system code page, replacing any

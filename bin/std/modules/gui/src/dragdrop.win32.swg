@@ -500,10 +500,10 @@ private func toGlobalBlock(bytes: const [..] u8)->HGLOBAL
 
 // Builds the DROPFILES block the shell reads a dropped file list out of: a fixed header, then
 // every path as zero-terminated UTF-16, then one more zero to end the list.
-private func buildHDrop(data: *DragData)->HGLOBAL
+internal func buildHDrop(files: const [..] String)->HGLOBAL
 {
     var chars = 1'u64
-    for &f in data.files do
+    for &f in files do
         chars += cast(u64, Utf16.fromUtf8(f.toString()).count) + 1
 
     let size  = cast(u64, #sizeof(DROPFILES)) + chars * 2
@@ -523,7 +523,7 @@ private func buildHDrop(data: *DragData)->HGLOBAL
     header.fWide  = TRUE
 
     var cursor = cast([*] u16, (base + #sizeof(DROPFILES)))
-    for &f in data.files
+    for &f in files
     {
         let wide = Utf16.fromUtf8(f.toString())
         Memory.copy(cursor, wide.storage(), wide.count * 2)
@@ -817,7 +817,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
 
     if format == CF_HDROP
     {
-        hglob = buildHDrop(data)
+        hglob = buildHDrop(data.files.toSlice())
     }
     elif format == CF_DIB
     {

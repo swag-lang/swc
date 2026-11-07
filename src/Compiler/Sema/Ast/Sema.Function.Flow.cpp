@@ -1826,11 +1826,14 @@ Result AstErrorManagementExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
         SWC_RESULT(registerCatchErrCapture(sema, *this, errNameTokRef));
     }
 
-    if (childRef == nodeFallbackRef && sema.node(childRef).isNot(AstNodeId::EmbeddedBlock))
+    if (childRef == nodeFallbackRef)
     {
         auto frame = sema.frame();
         frame.clearBindingScoped();
-        frame.pushBindingType(sema.viewType(nodeExprRef).typeRef());
+        // The fallback runs only on failure. Facts proved inside it cannot narrow
+        // the successful path after the catch, even when it is a braced handler.
+        if (sema.node(childRef).isNot(AstNodeId::EmbeddedBlock))
+            frame.pushBindingType(sema.viewType(nodeExprRef).typeRef());
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
     }
 

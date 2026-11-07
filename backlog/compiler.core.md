@@ -791,15 +791,3 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reproduce it before choosing a source-suite or compiler filesystem regression.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
-
-### compiler.core.109 — A null check inside a returning catch handler narrows the code after it
-
-- Evidence: in `func probe(holder: *Holder)`, `let first = catch fails() { use(unwrap holder.value); return }`
-  followed by the same statement for `second` rejects the second `unwrap holder.value` with
-  "'unwrap' asserts a value of type '*s32' that cannot be null here". The first handler runs
-  only when `fails()` fails and then returns, so on every path that reaches the second statement
-  `holder.value` was never checked. Hit in Swag Capture `MainWnd.loadExternalImage`.
-- Next: reduce the probe into a sema suite fixture, then make narrowing facts established inside
-  a catch handler that leaves the function not flow into the statement after the catch.
-- Done when: the probe compiles, an unwrap after a non-returning handler keeps its narrowing, and
-  the sema suite covers both.

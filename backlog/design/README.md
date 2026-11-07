@@ -647,9 +647,11 @@ the screen to its work.
   the entries whose file is gone, with their count, the entries older than a month — and, apart
   and in critical ink, clearing everything, which asks first. **Folders** lists the folders and
   archives explored lately as quiet chips that explore them; it is the first part to give way
-  when the window is too short. Without any history the page keeps the Scope mark, large and
-  faint, one line inviting a drop, the two direct actions Open… and Explore Folder, and the
-  system's **Places** to explore, centred together. Older entries are in the lens under `/`.
+  when the window is too short. A line between the last file and the recent tiles invites a file
+  or folder drop and keeps the direct actions **Open File…** and **Explore Folder** available.
+  Without any history the page keeps the Scope mark, large and faint, that invitation, the same
+  two actions, and the system's **Places** to explore, centred together. Older entries are in the
+  lens under `/`.
 
 ![Archive](imgs/scope.archive.png) ![Archive on Papier](imgs/scope.archive.paper.png)
 

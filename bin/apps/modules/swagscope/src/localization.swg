@@ -172,10 +172,11 @@ struct AppStrings
     ui_NoMatch:                        string = "No match"                                    // Status line when a search reached the end with nothing.
     ui_Searching:                      string = "Searching…"                                  // Status line while a search scans the file.
     ui_DropTitle:                      string = "Drop a file to view it"                      // Invitation shown while no file is open.
-    home_Invite:                       string = "Drop a file or a folder to look at it"       // Invitation of the home page before anything was read.
+    home_Invite:                       string = "Drop a file or a folder to look at it"       // Invitation beside the home actions, with or without recent files.
     home_Continue:                     string = "Continue"                                    // Section label of the home card when the last file can be taken up again.
     home_LastOpened:                   string = "Last Opened"                                 // Section label of the home card when the last file has nothing to resume.
     home_Open:                         string = "Open"                                        // Action of the home card when the last file has nothing to resume.
+    home_OpenFile:                     string = "Open File…"                                  // Direct action for choosing a file on either home page.
     home_StartOver:                    string = "Start Over"                                  // Quiet action of the home card opening the last file from its start.
     home_ResumeAt:                     string = "Resume at %"                                 // Action of the home card taking a recording up again at a time.
     home_ResumePage:                   string = "Resume at Page % of %"                       // Action of the home card taking a paged document up again.

@@ -32,8 +32,8 @@ struct ViewerHomeLayout
 {
     column:      Math.Rectangle     // The measured column every part shares an edge with.
     mark:        Math.Rectangle     // The Scope mark of a home without history.
-    line:        f32                // Middle of the invitation of a home without history.
-    actions:     f32                // Top of the direct actions of a home without history.
+    line:        f32                // Middle of the invitation beside the direct actions.
+    actions:     f32                // Top of the direct actions.
     heroLabel:   Math.Rectangle     // Section label of the card.
     hero:        Math.Rectangle     // Picture of the card.
     heroText:    Math.Rectangle     // Words of the card, beside its picture.
@@ -51,8 +51,9 @@ struct ViewerHomeLayout
 //
 // With a history it is a page of what was read lately: the last file as a card with its picture,
 // where it was left and the one action that takes it up again; the files before it as tiles with
-// their pictures; and the folders explored lately. Without one, the Scope mark, one line inviting a
-// drop, the two direct actions and the system's places. Everything older is in the lens, under `/`.
+// their pictures; and the folders explored lately. The invitation to drop and the direct actions
+// remain between the last file and the recent ones. Without history, the Scope mark joins those
+// actions and the system's places. Everything older is in the lens, under `/`.
 //
 // The tile under the pointer is ringed and offers the cross that takes it out of the history; the
 // Clear menu at the end of the label of the tiles offers the partial clears and, apart, the whole
@@ -106,6 +107,7 @@ impl ViewerHome
     const MarkSize      = 64.0
     const MarkToLine    = 34.0
     const LineToActions = 28.0
+    const ActionInset   = 10.0
     const ActionsGap    = 8.0
     const TitleSize     = 22'u32
     const FontSize      = 14'u32
@@ -153,7 +155,7 @@ impl ViewerHome
             .hide()
         }
 
-        with result.openButton = PushButton.create(result, texts.cmd_Open, {}, ViewerCommands.Open)
+        with result.openButton = PushButton.create(result, texts.home_OpenFile, {}, ViewerCommands.Open)
         {
             .toolTip = Input.formatKeyShortcut(.Control, .O)
             .hide()
@@ -260,7 +262,7 @@ impl ViewerHome
         .resumeButton.fitWidthToLabel(96)
         .restartButton.setText(texts.home_StartOver)
         .restartButton.fitWidthToLabel()
-        .openButton.setText(texts.cmd_Open)
+        .openButton.setText(texts.home_OpenFile)
         .openButton.fitWidthToLabel(120)
         .exploreButton.setText(texts.cmd_Explore)
         .exploreButton.fitWidthToLabel(120)
@@ -270,8 +272,8 @@ impl ViewerHome
         .resumeButton.show(history)
         .restartButton.show(point != null)
         .clearButton.show(history)
-        .openButton.show(not history)
-        .exploreButton.show(not history)
+        .openButton.show()
+        .exploreButton.show()
     }
 
     // Returns where every part of the home stands, from the size of the home.
@@ -319,8 +321,9 @@ impl ViewerHome
         let tiles      = .rows.count - 1
         let tileRows   = (tiles + result.columns - 1) / result.columns
         let tilesSpan  = tiles ? cast(f32, tileRows) * (result.tile.y + FileTile.captionHeight(me)) + cast(f32, tileRows - 1) * TileGap : 0
-        let recent     = tiles ? SectionGap + LabelHeight + LabelGap + tilesSpan : 0
-        var height     = LabelHeight + LabelGap + HeroHeight + recent + places
+        let actionSpan = metrics.btnPush_Height + 2 * ActionInset
+        let recent     = tiles ? LabelHeight + LabelGap + tilesSpan : 0
+        var height     = LabelHeight + LabelGap + HeroHeight + actionSpan + recent + places
         result.showPlaces = fit(&height, &places, room)
         let top = Math.round(Math.max(ceiling, client.y + (client.height - height) * 0.42))
 
@@ -328,10 +331,12 @@ impl ViewerHome
         result.heroLabel = {left, top, width, LabelHeight}
         result.hero      = {left, top + LabelHeight + LabelGap, HeroWidth, HeroHeight}
         result.heroText  = {result.hero.right() + HeroGap, result.hero.y, Math.max(width - HeroWidth - HeroGap, 0), HeroHeight}
-        var bottom = result.hero.bottom()
+        result.actions   = result.hero.bottom() + ActionInset
+        result.line      = result.actions + metrics.btnPush_Height * 0.5
+        var bottom       = result.hero.bottom() + actionSpan
         if tiles
         {
-            result.recentLabel = {left, bottom + SectionGap, width, LabelHeight}
+            result.recentLabel = {left, bottom, width, LabelHeight}
             result.tilesTop    = result.recentLabel.bottom() + LabelGap
             bottom             = result.tilesTop + tilesSpan
         }
@@ -440,6 +445,11 @@ impl ViewerHome
             .exploreButton.setPosition({left + .openButton.position.width + ActionsGap, place.actions, .exploreButton.position.width, height})
             return
         }
+
+        let actionsWidth = .openButton.position.width + ActionsGap + .exploreButton.position.width
+        let actionsLeft  = place.column.right() - actionsWidth
+        .openButton.setPosition({actionsLeft, place.actions, .openButton.position.width, height})
+        .exploreButton.setPosition({.openButton.position.right() + ActionsGap, place.actions, .exploreButton.position.width, height})
 
         let bottom = place.heroText.bottom() - height
         .resumeButton.setPosition({place.heroText.x, bottom, .resumeButton.position.width, height})
@@ -736,6 +746,13 @@ impl ViewerHome
         let width = Painter.measureString(line, body).width
         painter.drawString(Math.round(.clientRect().horzCenter() - width * 0.5), body.opticalLineTop(place.line), line, body, colors.softText)
     }
+
+    // Keeps the drop invitation visible beside the same opening controls when history exists.
+    private mtd paintDropHint(painter: *Painter, place: const *ViewerHomeLayout)
+    {
+        let body = .theme().createDefaultFont(FontSize)
+        painter.drawString(place.column.x, body.opticalLineTop(place.line), appStrings().home_Invite, body, .themeColors().softText)
+    }
 }
 
 impl IWnd for ViewerHome
@@ -810,6 +827,7 @@ impl IWnd for ViewerHome
         let point = .window.resumePoint(.rows[0].file)
         SectionLabel.paint(me, painter, place.heroLabel, point ? texts.home_Continue : texts.home_LastOpened)
         .paintHero(painter, &place)
+        .paintDropHint(painter, &place)
         if .rows.count > 1
         {
             SectionLabel.paint(me, painter, place.recentLabel, texts.ui_Recent)

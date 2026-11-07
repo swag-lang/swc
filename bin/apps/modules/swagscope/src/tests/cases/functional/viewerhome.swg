@@ -105,6 +105,7 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
     host.keyPress(.Return)
     Swag.require(host.autoHandled and window.recent.isEmpty() and window.home.rows.isEmpty())
     Swag.require(not button.isLocallyVisible())
+    Swag.require(window.home.openButton.isLocallyVisible() and window.home.exploreButton.isLocallyVisible())
 }
 
 // A row opens its file; its remove button and Delete ask before taking it out of the history.

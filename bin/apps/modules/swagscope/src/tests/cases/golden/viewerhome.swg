@@ -25,6 +25,8 @@ using Core, Pixel, Gui
     Swag.require(ViewerHome.openedText(home.rows[3].opened, HomeNow) == appStrings().home_Yesterday)
     Swag.require(Format.toString(appStrings().home_ResumeShare, 38) == home.resumeButton.text())
     Swag.require(home.restartButton.isLocallyVisible() and home.clearButton.isLocallyVisible())
+    Swag.require(home.openButton.isLocallyVisible() and home.exploreButton.isLocallyVisible())
+    Swag.require(home.openButton.text() == appStrings().home_OpenFile)
 
     // Every part shares the left edge of the column, and the Clear menu ends the tiles' label.
     let place = home.layout()
@@ -32,6 +34,10 @@ using Core, Pixel, Gui
     Swag.require(home.pictureRect(1).x == place.column.x and home.placeRect(0).x + ViewerHome.PlaceInset == place.column.x)
     Swag.require(home.clearButton.position.right() == place.recentLabel.right() and place.showPlaces)
     Swag.require(home.resumeButton.position.x == place.heroText.x)
+    Swag.require(home.openButton.position.y == place.actions and home.exploreButton.position.right() == place.column.right())
+    Swag.require(home.openButton.position.x - place.column.x > Painter.measureString(appStrings().home_Invite, home.theme().createDefaultFont(ViewerHome.FontSize)).width)
+    Swag.require(host.mouseTargetAt(home.localToSurface(home.openButton.position.center())) == home.openButton)
+    Swag.require(host.mouseTargetAt(home.localToSurface(home.exploreButton.position.center())) == home.exploreButton)
     for index in 1 until home.rows.count do
         Swag.require(home.rows[index].attempted)
 

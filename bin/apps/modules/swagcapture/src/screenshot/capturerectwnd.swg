@@ -13,7 +13,7 @@ func easeGrab(current, target: f32)->f32
 }
 
 // The area overlay: the chosen zone at full brightness with a 1 px Voltage edge, its
-// size in a mono chip, a pixel loupe with a Voltage crosshair, and the keys at the foot.
+// size in a mono chip, and, while a zone is dragged, a pixel loupe with a Voltage crosshair.
 const AreaChipPadding = 8.0      // Air inside the size chip and the loupe reading.
 const AreaChipGap     = 6.0      // Air between the size chip and the zone.
 const AreaLoupeRadius = 60.0     // Radius of the pixel loupe.
@@ -252,7 +252,11 @@ impl IWnd for CaptureRectWnd
         }
 
         .paintSizeChip(painter, grabRect, dstGrab)
-        .paintLoupe(painter)
+
+        // The loupe serves the corner being dragged; while the zone follows the windows, the
+        // pointer only names a window and the loupe would hide the work beside it.
+        if .startGrab do
+            .paintLoupe(painter)
     }
 }
 

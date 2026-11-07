@@ -9,7 +9,7 @@ var g_TestCancelAtEnd: bool
 
 // Ends the recording in progress once `frames` frames have run. The caller clears the frame
 // callbacks of the application with [[testEndRecording]].
-func testEndRecordingAfter(frames: u32, cancel: bool)
+internal func testEndRecordingAfter(frames: u32, cancel: bool)
 {
     g_TestFramesLeft  = frames
     g_TestCancelAtEnd = cancel
@@ -28,7 +28,7 @@ func testEndRecordingAfter(frames: u32, cancel: bool)
 }
 
 // Lets the application destroy the recording frame and pill, and forgets the frame callbacks.
-func testEndRecording()
+internal func testEndRecording()
 {
     g_App.runFrame()
     g_App.sigFrame.clear()

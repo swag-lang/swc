@@ -506,7 +506,11 @@ impl InPlaceEditWnd
     // draws the capture into: one conversion, and the bar cannot drift away from the zone.
     mtd placeBar()
     {
+        // Once the zone is taken, the view lets its capture go while the overlay is still being
+        // torn down: a recording runs frames before that, and there is nothing left to place.
         let view = .editWnd.editView
+        if not view.capture do
+            return
         var room = .barRoom
         room.intersect(view.clientRect())
         .bar.showNear(view.getCaptureRect(), below: true, room: room)

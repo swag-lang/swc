@@ -1471,3 +1471,42 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     editor.sendEvent(&key)
     Swag.require(g_Exit and g_GrabDone)
 }
+
+// Recording a fresh zone hands what was drawn on it to the animation. The in-place editor still
+// receives frames while the recording runs, after its capture has left: it must not reach for it.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: false)
+    defer
+    {
+        g_CaptureMedia = .Picture
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    editor.setMedia(.Animation)
+    let zone  = unwrap editor.capture
+    let forms = zone.forms.count
+    Swag.require(forms > 0)
+
+    // As the grab does once Record is chosen: the view lets the zone go, and the zone is recorded.
+    editor.editWnd.editView.capture = null
+    editor.capture = null
+    editor.placeBar()
+    testEndRecordingAfter(5, cancel: false)
+    let capture = expect recordZone(editor.source, zone)
+    testEndRecording()
+
+    let result = unwrap capture
+    let file   = String.from(result.file)
+    defer catch Capture.deleteFiles(file)
+    defer Memory.delete(result)
+
+    Swag.require(result.media == .Animation and result.width == 440 and result.height == 240)
+    Swag.require(result.forms.count == forms)
+    for form in result.forms do
+        Swag.require(form.capture == result)
+}

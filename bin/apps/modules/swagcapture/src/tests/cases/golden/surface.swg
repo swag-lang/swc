@@ -119,6 +119,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     expect main.appearanceButton.setAppearanceLanguage("fr")
     main.updateState()
     host.finishAnimations()
+    let inset = main.themeMetrics().floating_Inset
+    let panel = main.inspector.position
+    Swag.require(Math.abs(panel.y - main.editArea.stripInset() - inset) <= 1)
+    Swag.require(Math.abs(main.editArea.clientRect().bottom() - panel.bottom() - inset) <= 1)
     var image = host.render(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, "tasks.frame.fr.papier")
 }

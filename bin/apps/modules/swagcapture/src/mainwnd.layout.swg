@@ -183,6 +183,7 @@ impl MainWnd
     mtd createInspector()
     {
         .inspector = Inspector.create(.editArea)
+        .inspector.topOffset = .themeMetrics().floating_Inset
         .inspector.sigFoldChanged += func|main = me|(inspector)
         {
             main.inspectorFolded = inspector.folded

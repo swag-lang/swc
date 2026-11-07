@@ -25,6 +25,7 @@ ui_HomeKeeps           Ce qu'on y range n'est lisible que tant qu'il est monté.
 ui_HomePrivacy         Le mode vie privée ne garde aucune liste : ouvrez un coffre depuis son fichier.
 ui_HomeHidden          volumes cachés
 ui_HomeDrop            ou déposez un conteneur sur la fenêtre
+ui_DropTitle           Déposez un coffre pour l'ouvrir
 ui_Mount               Monter
 ui_Unmount             Démonter
 ui_Drive               Lecteur

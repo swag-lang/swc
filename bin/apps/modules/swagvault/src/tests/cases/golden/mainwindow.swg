@@ -63,6 +63,25 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     assertSurfaceGolden(&host, window, false, "home")
 }
 
+// The Encre home while a file is dragged over it, with the Voltage target around the content.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+    window.applyLayout()
+
+    var point = window.surfaceRect().center()
+    window.surface!.surfaceToScreen(&point)
+    Swag.require(host.dragFilesOver(point, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(window.dropHighlight.isLocallyVisible())
+    Swag.require(not window.dropHighlight.prompt.isLocallyVisible())
+    assertSurfaceGolden(&host, window, true, "drop")
+    host.cancelDrag()
+}
+
 // A locked vault unfolded in place, against `vault.unlock.paper`.
 #[Swag.TestTag("golden")]
 #test

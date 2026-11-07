@@ -68,7 +68,7 @@ struct ViewerWindow
         sidePanelPlaceholder:        *Wnd
         loadingOverlay:              *ViewerLoadingOverlay
         searchOverlay:               *ViewerSearchOverlay
-        dropHighlight:               *ViewerDropHighlight
+        dropHighlight:               *FileDropHighlight
         viewerBar:                   *FloatingPanel
         home:                        *ViewerHome
         filePanelHost:               *Wnd
@@ -580,7 +580,7 @@ impl IWnd for ViewerWindow
         {
         case .LanguageChanged:
             .retranslate()
-            .dropHighlight.retranslate()
+            .dropHighlight.setPrompt(appStrings().ui_DropTitle)
 
         case .ThemeChanged:
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do

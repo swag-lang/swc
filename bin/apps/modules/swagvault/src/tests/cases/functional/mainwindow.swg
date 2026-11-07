@@ -1222,8 +1222,22 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
 
     window.showPage(.Options, animate: false)
+    var point = window.surfaceRect().center()
+    window.surface!.surfaceToScreen(&point)
+    Swag.require(host.dragFilesOver(point, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(window.dropHighlight.isLocallyVisible())
+    Swag.require(window.dropHighlight.parent == window)
+    Swag.require(window.dropHighlight.prompt.text() == appStrings().ui_DropTitle)
+    Swag.require(window.dropHighlight.prompt.isLocallyVisible())
+    Swag.require(window.dropHighlight.wndFlags.has(.Disabled))
+    Swag.require(window.dropHighlight.clientRect().width == window.clientRect().width)
+    Swag.require(window.dropHighlight.clientRect().height == window.clientRect().height)
+    host.cancelDrag()
+    Swag.require(not window.dropHighlight.isLocallyVisible())
+
     Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
 
+    Swag.require(not window.dropHighlight.isLocallyVisible())
     Swag.require(window.page == .List)
     Swag.require(window.chosenPath == "c:/vaults/private")
     Swag.require(window.mountPassword.hasFocus())
@@ -1241,6 +1255,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     // Two files name no single vault to open.
     window.foldVault()
     Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
+    Swag.require(not window.dropHighlight.isLocallyVisible())
     Swag.require(window.chosenPath.isEmpty() and window.vaults.isEmpty())
 }
 

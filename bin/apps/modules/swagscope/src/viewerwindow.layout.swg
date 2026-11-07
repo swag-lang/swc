@@ -348,7 +348,7 @@ impl ViewerWindow
 
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
-        .dropHighlight  = ViewerDropHighlight.create(.documentPanel)
+        .dropHighlight  = FileDropHighlight.create(.documentPanel, appStrings().ui_DropTitle, "scope.drop.highlight")
         .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
         with .sidePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
         {

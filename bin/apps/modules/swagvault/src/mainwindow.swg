@@ -218,6 +218,7 @@ struct MainWindow
         lens:             *Lens.View
         lensLauncher:     *Lens.Launcher
         hintLine:         *HintLine
+        dropHighlight:    *FileDropHighlight
         list:             *VaultList
         createPage:       *CreatePage
         progressPage:     *ProgressPage
@@ -491,6 +492,7 @@ impl MainWindow
         result.lensLauncher = Lens.Launcher.create(result, VaultCommands.Lens)
         result.lensLauncher.captionButton.hide()
         result.createHint()
+        result.dropHighlight = FileDropHighlight.create(result, appStrings().ui_DropTitle, "vault.drop.highlight")
         result.fillDriveChoice()
         result.applyLanguage()
         result.applyPrivacyControl()
@@ -916,6 +918,7 @@ impl MainWindow
         .optionsPage.retranslate()
         .applyAutoUnmountControls()
         .list.retranslate()
+        .dropHighlight.setPrompt(appStrings().ui_DropTitle)
         .showOperation()
         .refreshStatus()
         .refreshHint()
@@ -987,15 +990,28 @@ impl IWnd for MainWindow
     // that field's own business and never reaches here.
     mtd impl onDragDropEvent(evt: *DragDropEvent)
     {
+        if evt.kind == .Leave
+        {
+            .dropHighlight.hide()
+            evt.accepted = true
+            return
+        }
+
         let path = evt.data.singleFile()
         if not path
         {
+            .dropHighlight.hide()
             evt.accepted = false
             return
         }
 
-        if evt.kind == .Drop do
+        .dropHighlight.showTarget(.page != .List or not .list.rows.isEmpty())
+
+        if evt.kind == .Drop
+        {
+            .dropHighlight.hide()
             .openVault(path)
+        }
 
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
     }
@@ -1101,7 +1117,9 @@ impl IWnd for MainWindow
         switch evt.kind
         {
         case .LanguageChanged: .retranslate()
-        case .ThemeChanged where .layoutReady: .refreshVaults()
+        case .ThemeChanged where .layoutReady:
+            .refreshVaults()
+            .dropHighlight.refreshTheme()
         }
 
         .wnd.IWnd.onNotifyEvent(evt)

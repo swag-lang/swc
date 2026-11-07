@@ -62,6 +62,7 @@ struct AppStrings
     ui_HomePrivacy:      string = "Privacy mode keeps no list: open a vault from its file."
     ui_HomeHidden:       string = "hidden volumes"
     ui_HomeDrop:         string = "or drop a container on the window"
+    ui_DropTitle:        string = "Drop a vault to open it"
 
     // The families the lens groups the commands under.
     lens_File:    string = "File"

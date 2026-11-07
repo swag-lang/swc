@@ -663,6 +663,23 @@ impl MainWnd
         }
     }
 
+    // Closes the frame file of the edited or focused capture stored in `file`, so the library can
+    // move or delete it.
+    mtd releaseCaptureMedia(file: string)
+    {
+        let edited = .editWnd.getCapture()
+        if edited and edited.isStoredIn(file) do
+            edited.closeMedia()
+        if .libraryMode
+        {
+            let focused = .libWnd.getCapture()
+            if focused and focused.isStoredIn(file) do
+                focused.closeMedia()
+        }
+
+        .placeTimeline()
+    }
+
     mtd getCapture()->*Capture?
     {
         if .libraryMode do

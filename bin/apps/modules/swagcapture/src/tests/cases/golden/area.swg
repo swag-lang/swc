@@ -40,6 +40,7 @@ using Swag, Core
 
     Swag.require(wnd.hintLine.grounded)
 
-    // The keys teach the right click too, which abandons the rectangle for another.
-    Swag.require(wnd.hintLine.hints.count == 3 and wnd.hintLine.hints.back().text == appStrings().hint_RedrawArea)
+    // The keys teach Tab, which chooses the picture or the animation, and the right click, which
+    // abandons the rectangle for another.
+    Swag.require(wnd.hintLine.hints.count == 4 and wnd.hintLine.hints.back().text == appStrings().hint_RedrawArea)
 }

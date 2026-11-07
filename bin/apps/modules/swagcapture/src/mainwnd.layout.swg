@@ -702,7 +702,7 @@ impl MainWnd
         .fillHintLine()
 
         .timeline = TimelineBar.create(me, .editArea)
-        .timeline.hide()
+        .timeline.panel.hide()
     }
 
     // Shows the timeline above the hint line while a timed capture is edited, and hides it
@@ -718,16 +718,19 @@ impl MainWnd
         {
             if timeline.isPlaying() do
                 timeline.stop()
-            timeline.hide()
+            timeline.panel.hide()
             return
         }
 
+        // The panel keeps the air of the other floating parts from the dock and the inspector.
         let metrics = .themeMetrics()
         let insets  = .floatingInsets()
         let room    = .editArea.clientRect()
+        let left    = insets.left + metrics.floating_Inset
+        let width   = Math.max(room.width - left - insets.right - metrics.floating_Inset, 0)
         let bottom  = room.bottom() - metrics.hintLine_Bottom - metrics.hintLine_Height - TimelineGap
-        timeline.setPosition({insets.left, bottom - TimelineHeight, Math.max(room.width - insets.left - insets.right, 0), TimelineHeight})
-        timeline.show()
+        timeline.panel.setPosition({left, bottom - TimelineHeight, width, TimelineHeight})
+        timeline.panel.show()
         timeline.invalidate()
     }
 

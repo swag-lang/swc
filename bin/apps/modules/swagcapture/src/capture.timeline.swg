@@ -76,6 +76,9 @@ impl Capture
         .mediaMissing = false
     }
 
+    // Returns whether this capture is the one stored in `file`.
+    mtd const isStoredIn(file: string)->bool => not .file.isEmpty() and Path.equals(.file, file)
+
     // Closes the frame file of a timed capture.
     mtd closeMedia()
     {

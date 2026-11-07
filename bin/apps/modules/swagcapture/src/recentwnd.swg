@@ -132,8 +132,8 @@ impl RecentView
         if rect.width < LinkBadgeSize + 2 * gap or rect.height < LinkBadgeSize + 2 * gap do
             return
 
-        let chip   = Math.Rectangle{rect.x + gap, rect.y + gap, LinkBadgeSize, LinkBadgeSize}
-        let ink    = infos.linkedUpToDate ? colors.softText : colors.caution
+        let chip = Math.Rectangle{rect.x + gap, rect.y + gap, LinkBadgeSize, LinkBadgeSize}
+        let ink  = infos.linkedUpToDate ? colors.softText : colors.caution
         painter.fillRoundRect(chip, corner, corner, colors.surface)
 
         var icon = parent.theme().icon(.Link)
@@ -301,6 +301,13 @@ impl IWnd for RecentWnd
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        // The scroll window has its own timer, which lets the bar fade once the strip is still.
+        if evt.timer != .loadTimer and evt.timer != .timer
+        {
+            .scrollWnd.IWnd.onTimerEvent(evt)
+            return
+        }
+
         if evt.timer == .loadTimer
         {
             .stopTimer(&.loadTimer)

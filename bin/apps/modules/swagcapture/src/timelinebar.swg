@@ -1,7 +1,8 @@
 using Core, Pixel
 
-// The timeline of a timed capture, floating under the canvas: play and pause, the time at the
-// playhead against the length, and a track the playhead is dragged along. A picture has none.
+// The timeline of a timed capture, on a floating panel under the canvas: play and pause, the time
+// at the playhead against the length, and a track the playhead is dragged along. A picture has
+// none.
 const TimelineHeight    = 40.0      // Logical height of the bar.
 const TimelinePadding   = 8.0       // Air inside the bar.
 const TimelineButton    = 28.0      // Side of the play command.
@@ -13,6 +14,7 @@ struct TimelineBar
     using wnd: Wnd
 
     late main:       *MainWnd
+    late panel:      *FloatingPanel     // The floating ground the bar stands on, placed by the main window.
     late playButton: *IconButton
     playTimer:       *Gui.Timer?
     playStart:       u64     // Monotonic time playback started, in microseconds.
@@ -33,7 +35,6 @@ impl IWnd for TimelineBar
         let colors  = .themeColors()
         let client  = .clientRect()
         painter.setParams(.Antialiased)
-        painter.fillRoundRect(client, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
 
         // The time at the playhead, with tenths, against the length of the capture.
         let frames = capture.frames
@@ -107,10 +108,17 @@ impl TimelineBar
 {
     func create(main: *MainWnd, parent: *Wnd)->*TimelineBar
     {
-        with let result = Wnd.create'TimelineBar(parent)
+        with let panel = FloatingPanel.create(parent)
         {
-            .main = main
+            .padding = {}
+        }
+
+        with let result = Wnd.create'TimelineBar(panel)
+        {
+            .main            = main
+            .panel           = panel
             .backgroundStyle = .Transparent
+            .dockStyle       = .Center
         }
 
         with result.playButton = IconButton.create(result, result.theme().icon(.Play), {TimelinePadding, (TimelineHeight - TimelineButton) * 0.5, TimelineButton, TimelineButton}, flags: .Flat)

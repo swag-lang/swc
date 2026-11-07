@@ -188,8 +188,10 @@ impl Library
             return
 
         // A background save may still be writing this capture; if the move happened
-        // first, the save would land its temporary right back at the removed path.
+        // first, the save would land its temporary right back at the removed path. The editor
+        // may hold its frame file open, which Windows would not let go of either.
         discard g_CaptureSaves.flush(stableName)
+        g_Main?.releaseCaptureMedia(stableName)
 
         for fi, idx in .files
         {
@@ -215,6 +217,7 @@ impl Library
     mtd moveTo(name: String, folder: String)->String
     {
         discard g_CaptureSaves.flush(name)
+        g_Main?.releaseCaptureMedia(name)
         let dst = moveFile(folder, name)
         if dst.isEmpty() do
             return dst

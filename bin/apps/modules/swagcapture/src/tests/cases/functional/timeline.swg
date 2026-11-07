@@ -169,3 +169,35 @@ func testProfileVersion(file: string)->u32
     for frame in reader.info.frames do
         Swag.require(Math.abs(frame.durationSeconds - 0.1) < 0.001)
 }
+
+// Deleting the animation being edited moves it to the trash with its frame file, although the
+// editor holds that file open.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    var pictures: [2] Image
+    pictures[0] = testFramePicture(10, 0)
+    pictures[1] = testFramePicture(40, 8)
+
+    let capture = Memory.new'Capture()
+    capture.file = Library.newFileName()
+    expect testWriteFrames(Capture.mediaPathOf(capture.file), pictures, 100_000)
+    expect capture.adoptRecording()
+    capture.changed = true
+    expect capture.save()
+    let file = String.from(capture.file)
+    f.editView.setCapture(capture)
+    f.capture = capture
+    g_Library.addFile(file)
+
+    g_Library.removeFile(file)
+    Swag.require(not File.exists(file))
+    Swag.require(not File.exists(Capture.mediaPathOf(file)))
+
+    let trashed = Path.combine(Library.getTrashFolder(), Path.fileName(file) orelse "")
+    Swag.require(File.exists(trashed) and File.exists(Capture.mediaPathOf(trashed)))
+    expect Capture.deleteFiles(trashed)
+}

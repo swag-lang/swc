@@ -232,3 +232,42 @@ func testProfileVersion(file: string)->u32
     expect testFramePicture(10, 0).save(still)
     Swag.require(expect Capture.importAnimation(still) == null)
 }
+
+// A form shown from the playhead on is hidden before it, cannot be picked there, and leaves the
+// exported frames before its start; undo shows it for the whole animation again.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let capture = testRecordedCapture()
+    let file    = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    f.editView.setCapture(capture)
+    f.capture = capture
+
+    let shape = testAddShape(capture, 4, 4, 20, 10)
+    capture.selection.clear()
+    capture.selection.add(0)
+
+    expect capture.showFrame(1)
+    capture.setSelectionSpan(start: true)
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 0)
+    Swag.require(capture.isFormShown(shape))
+
+    expect capture.showFrame(0)
+    Swag.require(not capture.isFormShown(shape))
+    Swag.require(capture.hitTests({10, 8}, false).isEmpty())
+
+    expect capture.showFrame(2)
+    capture.setSelectionSpan(start: false)
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
+    Swag.require(not capture.isFormShown(shape))
+
+    capture.undo()
+    capture.undo()
+    Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)
+    Swag.require(capture.isFormShown(shape))
+}

@@ -150,6 +150,69 @@ impl Capture
         .mediaMissing = false
     }
 
+    // Returns the time of the frame at the playhead, in microseconds; zero for a picture.
+    mtd const playheadTime()->u64
+    {
+        if not .isTimed() do
+            return 0
+        let frames = .frames
+        if not frames do
+            return 0
+        return frames.timeOf(.playhead)
+    }
+
+    // Returns whether `itf` shows at the playhead: always on a picture, inside its time span on a
+    // timed capture.
+    mtd const isFormShown(itf: IForm)->bool
+    {
+        if not .isTimed() do
+            return true
+        let form: *BaseForm = itf
+        let time = .playheadTime()
+        return time >= form.timeStart and (form.timeEnd == 0 or time < form.timeEnd)
+    }
+
+    // Moves the playhead by `step` frames, within the capture.
+    mtd stepFrame(step: s64) fail
+    {
+        let frames = .frames
+        if not frames do
+            return
+        let last   = cast(s64, frames.frameCount()) - 1
+        let target = Math.clamp(cast(s64, .playhead) + step, 0, last)
+        try .showFrame(cast(u64, target))
+    }
+
+    // Makes the selected forms start, or end, at the playhead, as one undoable edit. A span that
+    // would end before it starts is opened on its other side.
+    mtd setSelectionSpan(start: bool)
+    {
+        if not .isTimed() or .selection.isEmpty() do
+            return
+        with let undo = .newUndo(.SetTimeSpan)
+        {
+            .spanTime  = me.playheadTime()
+            .spanStart = start
+        }
+
+        .pushUndo(undo)
+        .hasChanged()
+    }
+
+    // Shows the selected forms for the whole capture again, as one undoable edit.
+    mtd clearSelectionSpan()
+    {
+        if not .isTimed() or .selection.isEmpty() do
+            return
+        with let undo = .newUndo(.SetTimeSpan)
+        {
+            .spanClear = true
+        }
+
+        .pushUndo(undo)
+        .hasChanged()
+    }
+
     // Returns whether this capture is the one stored in `file`.
     mtd const isStoredIn(file: string)->bool => not .file.isEmpty() and Path.equals(.file, file)
 

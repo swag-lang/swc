@@ -30,6 +30,7 @@ enum UndoKind
     SetImageInside
     Group
     Ungroup
+    SetTimeSpan
 }
 
 // Editable text lives on FormText and (reusing it) FormCallout. The SetText undo
@@ -125,6 +126,13 @@ struct Undo
     // saved so undo can prepend it back.
     groupId:   u64
     oldGroups: Array'u64
+
+    // SetTimeSpan: the time the span starts (`spanStart`) or ends at, or `spanClear` to show the
+    // forms for the whole capture; `oldSpans` holds each form's start and end, in pairs.
+    spanTime:  u64
+    spanStart: bool
+    spanClear: bool
+    oldSpans:  Array'u64
 }
 
 // Undo is a command of the generic gui UndoManager (owned by Capture): redo re-applies the
@@ -340,6 +348,14 @@ impl Undo
                 .oldU32.add(val)
             }
 
+        case .SetTimeSpan:
+            .selection = capture.selection
+            foreachSelected'BaseForm(capture, .selection)
+            {
+                .oldSpans.add(form.timeStart)
+                .oldSpans.add(form.timeEnd)
+            }
+
         case .ResetRotation:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
@@ -522,6 +538,27 @@ impl Undo
             }
 
             capture.updateModelFromSelection()
+
+        case .SetTimeSpan:
+            foreachSelected'BaseForm(capture, .selection)
+            {
+                if .spanClear
+                {
+                    form.timeStart, form.timeEnd = 0
+                }
+                elif .spanStart
+                {
+                    form.timeStart = .spanTime
+                    if form.timeEnd != 0 and form.timeEnd <= .spanTime do
+                        form.timeEnd = 0
+                }
+                else
+                {
+                    form.timeEnd = .spanTime
+                    if form.timeStart >= .spanTime do
+                        form.timeStart = 0
+                }
+            }
 
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
@@ -751,6 +788,13 @@ impl Undo
             }
 
             capture.updateModelFromSelection()
+
+        case .SetTimeSpan:
+            foreachSelected'BaseForm(capture, .selection)
+            {
+                form.timeStart = .oldSpans[idx * 2]
+                form.timeEnd   = .oldSpans[idx * 2 + 1]
+            }
 
         case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)

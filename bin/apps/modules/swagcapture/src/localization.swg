@@ -229,6 +229,14 @@ struct AppStrings
     act_CaptureArea:              string = "Capture Area"
     act_RecordAnimation:          string = "Record an Animation"      // Records a short animated picture of an area.
     act_StopRecording:            string = "Stop Recording"           // The same command while a recording runs.
+    lens_Timeline:                string = "Timeline"                 // Section of the lens holding the commands of an animation.
+    act_PlayAnimation:            string = "Play"                     // Plays an animation in the editor.
+    act_PauseAnimation:           string = "Pause"                    // Pauses an animation in the editor.
+    act_PreviousFrame:            string = "Previous Frame"           // Steps the playhead back one frame.
+    act_NextFrame:                string = "Next Frame"               // Steps the playhead forward one frame.
+    act_ShowFromHere:             string = "Show From Here"           // The selected forms appear at the playhead.
+    act_ShowUntilHere:            string = "Show Until Here"          // The selected forms disappear at the playhead.
+    act_ShowAlways:               string = "Show All the Time"        // The selected forms show for the whole animation.
     act_CancelRecording:          string = "Cancel the Recording"     // Abandons the recording in progress.
     act_CaptureFullScreen:        string = "Capture Full Screen"
     act_CaptureLastArea:          string = "Capture Last Area"

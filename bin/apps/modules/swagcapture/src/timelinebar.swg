@@ -52,6 +52,17 @@ impl IWnd for TimelineBar
         painter.fillRoundRect({track.x, track.vertCenter() - 2, track.width, 4}, 2, 2, colors.raised)
         painter.fillRoundRect({track.x, track.vertCenter() - 2, played, 4}, 2, 2, colors.arc)
         painter.fillRoundRect({track.x + played - 1.5, track.y + 6, 3, track.height - 12}, 1.5, 1.5, colors.text)
+
+        // The time span of the first selected form, under the track.
+        if not capture.selection.isEmpty()
+        {
+            let form: *BaseForm = capture.forms[capture.selection[0]]
+            let span   = Math.max(frames.endTime, 1'u64)
+            let finish = form.timeEnd ? form.timeEnd : frames.endTime
+            let left   = track.x + track.width * cast(f32, form.timeStart) / cast(f32, span)
+            let right  = track.x + track.width * cast(f32, finish) / cast(f32, span)
+            painter.fillRoundRect({left, track.vertCenter() + 7, Math.max(right - left, 3), 3}, 1.5, 1.5, colors.arc)
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

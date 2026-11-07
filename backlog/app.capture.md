@@ -202,26 +202,25 @@ whole recording loaded at once.
   store test keeps memory flat and seeks in bounded time.
 - Related: app.capture.011, app.capture.030, std.pixel.image.051
 
-### app.capture.031 — The timeline has no keyboard, no lens commands and no scale for hours
+### app.capture.031 — The timeline cannot scale to hours
 
-- Evidence: `TimelineBar` in `src/timelinebar.swg` plays, pauses, loops and seeks by dragging the
-  playhead, with the mouse only, over a track that maps the whole duration.
-- Next: add frame stepping and play from the keyboard (`Space`, `Left`, `Right`) and their lens
-  commands, then zoom around the playhead, markers and thumbnails decoded for the visible range,
-  and cover the bar in goldens, each in one palette.
-- Done when: the timeline is driven from the keyboard and the lens, a synthetic recording of
-  several hours scrubs and zooms without decoding outside the visible range, and goldens cover it.
+- Evidence: `TimelineBar` plays, loops and seeks by dragging, and `ActionTimeline` drives it from
+  the keyboard (`Space`, `,` and `.`) and the lens; its track maps the whole duration at once.
+- Next: zoom around the playhead, markers, and thumbnails decoded for the visible range only.
+- Done when: a synthetic recording of several hours scrubs and zooms without decoding outside the
+  visible range, with a golden of the zoomed bar.
 - Related: app.capture.032, app.capture.014
 
-### app.capture.032 — Annotations have no time span
+### app.capture.032 — A form's time span cannot be dragged or typed
 
-- Evidence: `BaseForm` and the form models serialize no time, so on a timed capture every form
-  would show for the whole duration.
-- Next: give every form a span (start and end, the whole capture by default), shown on the
-  timeline for the selected form and set from the playhead (`[` and `]`), and honored by the
-  canvas and every export. Crop and flatten of a timed capture stay non-destructive across frames.
-- Done when: a form shows only inside its span in the editor and in the exported GIF, spans
-  survive save, reload and undo, and picture captures keep their current behavior.
+- Evidence: every form has `timeStart` and `timeEnd`, honoured by the canvas, hit testing, the
+  lasso and the export, and set from the playhead (`Shift+[`, `Shift+]`, the lens) as undoable
+  edits; the timeline draws the span of the selected form, but its ends cannot be dragged and the
+  inspector has no time section.
+- Next: make the ends of the span bar draggable on the timeline, and add a time section (start,
+  end, whole duration) to the inspector of a timed capture.
+- Done when: dragging an end or typing a time changes the span as one undo step, and goldens show
+  both.
 - Related: app.capture.031
 
 ### app.capture.014 — Recordings cannot be trimmed in the editor

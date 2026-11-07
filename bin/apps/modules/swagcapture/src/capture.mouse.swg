@@ -286,7 +286,7 @@ impl Capture
         if addToSelection do
             newSel = .selection
 
-        for f, idx in .forms
+        for f, idx in .forms where .isFormShown(f)
         {
             let pp = f.boundRect() * view.zoom
             if pp.intersects(r) and not newSel.contains(idx) do
@@ -453,7 +453,7 @@ impl Capture
         for i in reversed(.forms.count)
         {
             let f = .forms[i]
-            if not f.hitTest(localPos, editView.zoom) do
+            if not .isFormShown(f) or not f.hitTest(localPos, editView.zoom) do
                 continue
             result.add(i)
             if retFirst do

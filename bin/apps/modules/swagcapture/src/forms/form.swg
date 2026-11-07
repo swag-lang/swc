@@ -92,6 +92,12 @@ struct BaseForm
     // remapped on paste; the field is style-agnostic (copyBase/isSameBase ignore it).
     groups: Array'u64
 
+    // When the form shows in a timed capture, in microseconds from its start: from `timeStart`,
+    // until `timeEnd` excluded, or to the end when `timeEnd` is zero. A picture ignores both, and
+    // style copies leave them alone.
+    timeStart: u64
+    timeEnd:   u64
+
     #[Serialization.NoSerialize]
     {
         capture:  *Capture?

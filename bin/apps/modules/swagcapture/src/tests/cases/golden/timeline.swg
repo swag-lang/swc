@@ -33,6 +33,11 @@ using Swag, Core, Pixel
 
     main.editWnd.editView.setCapture(capture)
 
+    // A selected arrow shown from the second frame on: its span lies under the track.
+    let arrow = testAddArrow(capture, 8, 40, 30, 14)
+    arrow.timeStart = 400_000
+    capture.selection.add(0)
+
     // The recent strip marks the animation with its length; a picture beside it has no mark.
     var picture = Image.create(320, 200, .BGRA8)
     picture.fill(Color.fromArgb(0xFF3A6EA5))

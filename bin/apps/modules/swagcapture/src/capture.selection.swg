@@ -58,6 +58,7 @@ impl Capture
         with let editView = unwrap .editView
         {
             .main.updateState()
+            .main.timeline?.invalidate()
             .invalidate()
         }
     }

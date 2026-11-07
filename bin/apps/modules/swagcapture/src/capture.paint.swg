@@ -122,11 +122,11 @@ impl Capture
     // shadow instead of changing its radius or rebuilding full-size targets.
     func bakeFormShadow(layer: *Layer, painter: *Painter, f: IForm, bounds: Math.Rectangle, quickMode = false)->f32
     {
-        let extent = Math.max(bounds.width, bounds.height)
+        let extent     = Math.max(bounds.width, bounds.height)
         let maxLogical = cast(f32, MaxFormShadowDim) / painter.contentScale()
-        let scale = Math.min(1.0'f32,
-                             (maxLogical - 2 * FormShadowMargin - 1) / extent)
-        let width = cast(s32, Math.ceil(bounds.width * scale)) + 2 * FormShadowMargin
+        let scale      = Math.min(1.0'f32,
+                                  (maxLogical - 2 * FormShadowMargin - 1) / extent)
+        let width  = cast(s32, Math.ceil(bounds.width * scale)) + 2 * FormShadowMargin
         let height = cast(s32, Math.ceil(bounds.height * scale)) + 2 * FormShadowMargin
 
         layer.releaseImmediate()
@@ -136,11 +136,12 @@ impl Capture
             .pushTransform()
             .translateTransform(FormShadowMargin - bounds.x * scale, FormShadowMargin - bounds.y * scale)
             var cxt: FormPaintContext
-            cxt.z = scale
+            cxt.z         = scale
             cxt.quickMode = quickMode
             f.paint(painter, cxt)
             .popTransform()
         }
+
         layer.end()
         layer.blur(Math.max((quickMode ? 4.0'f32 : FormShadowRadius) * scale * painter.contentScale(), 0.5))
         return scale
@@ -149,12 +150,11 @@ impl Capture
     // Places the blurred mask from its capture-space bake. The shadow's radius
     // and offset therefore grow with the form, even while the sharp content is
     // temporarily stretched during a zoom gesture.
-    func drawFormShadow(layer: *Layer, formRect: Math.Rectangle, zoom, shadowScale: f32,
-                        base: *BaseForm, color: Color, releaseAfterDraw, writeAlpha: bool)
+    func drawFormShadow(layer: *Layer, formRect: Math.Rectangle, zoom, shadowScale: f32, base: *BaseForm, color: Color, releaseAfterDraw, writeAlpha: bool)
     {
         let factor = zoom / shadowScale
-        let x = formRect.x + (base.shadowOffsetX * zoom) - (FormShadowMargin * factor)
-        let y = formRect.y + (base.shadowOffsetY * zoom) - (FormShadowMargin * factor)
+        let x      = formRect.x + (base.shadowOffsetX * zoom) - (FormShadowMargin * factor)
+        let y      = formRect.y + (base.shadowOffsetY * zoom) - (FormShadowMargin * factor)
         layer.draw({dstRect: {x, y, layer.width * factor, layer.height * factor},
                     color: Color.fromArgb(cast(u8, 150'u32 * color.a / 255), Argb.Black),
                     interpolationMode: .Linear,
@@ -202,13 +202,14 @@ impl Capture
         }
 
         let scale = painter.contentScale()
+
         // A large form's sharp content needs only the part around the visible
         // editor. Its separate shadow mask covers the complete form at a lower
         // resolution. The editor clip includes room for forms crossing the edge.
         var cachePos = pos
-        let clipped = not base.isRotated() and
-                      (not layerFits(cast(s32, pos.width), cast(s32, pos.height), scale, 1) or
-                       pos.width * pos.height > clip.width * clip.height * 2)
+        let clipped  = not base.isRotated() and
+                       (not layerFits(cast(s32, pos.width), cast(s32, pos.height), scale, 1) or
+                        pos.width * pos.height > clip.width * clip.height * 2)
         if clipped do
             cachePos.intersect(clip)
 
@@ -232,16 +233,21 @@ impl Capture
             entry.form = f
         }
 
-        let shadowDirty = entry.dirty or entry.shadow.contentTarget == null or
-                          entry.scale != scale or not formContentFresh(f)
+        let shadowDirty = entry.dirty or
+                          entry.shadow.contentTarget == null or
+                          entry.scale != scale or
+                          not formContentFresh(f)
 
         let fresh = not entry.dirty and
                     entry.scale == scale and
                     entry.samples == textSuperSample and
                     entry.clipped == clipped and
-                    (not clipped or (entry.zoom == zoom and
-                                     entry.origin.x == origin.x and entry.origin.y == origin.y and
-                                     entry.layer.width == wt2 and entry.layer.height == ht2)) and
+                    (not clipped or
+                     (entry.zoom == zoom and
+                      entry.origin.x == origin.x and
+                      entry.origin.y == origin.y and
+                      entry.layer.width == wt2 and
+                      entry.layer.height == ht2)) and
                     entry.layer.contentTarget != null and
                     formContentFresh(f)
         var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
@@ -249,15 +255,18 @@ impl Capture
         // A zoom gesture can stretch an existing layer immediately. A clipped
         // content layer remains usable while it covers the visible editor. The
         // timer rebuilds it once the gesture settles.
-        let view    = unwrap .editView
-        let zooming = view.zoomTimer != null
+        let view      = unwrap .editView
+        let zooming   = view.zoomTimer != null
         var reuseZoom = false
         var paintRect = cachePos
-        if zooming and not fresh and not entry.dirty and
+        if zooming and
+           not fresh and
+           not entry.dirty and
            entry.scale == scale and
-           entry.layer.contentTarget != null and formContentFresh(f)
+           entry.layer.contentTarget != null and
+           formContentFresh(f)
         {
-            let ratio = zoom / entry.zoom
+            let ratio   = zoom / entry.zoom
             let oldRect = Math.Rectangle{rect.x + entry.origin.x * ratio,
                                          rect.y + entry.origin.y * ratio,
                                          entry.layer.width * ratio,
@@ -266,6 +275,7 @@ impl Capture
             needed.offset(view.scrollPos)
             needed.inflate(32)
             needed.intersect(pos)
+
             // The cache was baked on whole pixel edges. Scaling those edges to
             // another zoom can leave a subpixel mismatch with the new rounded
             // form bounds; the separate blurred mask already covers that edge.
@@ -331,7 +341,7 @@ impl Capture
         elif not base.paintShadow and entry.shadow.contentTarget != null do
             entry.shadow.releaseImmediate()
 
-        let colForm   = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
+        let colForm = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
         painter.pushTransform()
         var shadowRect = pos
         if base.isRotated()
@@ -341,8 +351,7 @@ impl Capture
         }
 
         if base.paintShadow do
-            drawFormShadow(&entry.shadow, shadowRect, zoom, entry.shadowScale, base, colForm,
-                            releaseAfterDraw: false, writeAlpha: false)
+            drawFormShadow(&entry.shadow, shadowRect, zoom, entry.shadowScale, base, colForm, releaseAfterDraw: false, writeAlpha: false)
 
         with var drawInfo: LayerDrawInfo
         {
@@ -350,8 +359,9 @@ impl Capture
             .color             = colForm
             .interpolationMode = (base.paintShadow or not sharp) ? .Linear : .Pixel
             .releaseAfterDraw  = false
+
             // The editor painted an opaque ground before reaching any form.
-            .writeAlpha        = false
+            .writeAlpha = false
         }
 
         entry.layer.draw(drawInfo)
@@ -430,7 +440,7 @@ impl Capture
 
         layer.end()
 
-        var shadow: Layer
+        var shadow:      Layer
         var shadowScale: f32
         if base.paintShadow do
             shadowScale = bakeFormShadow(&shadow, painter, f, boundRect, quickMode)
@@ -459,8 +469,7 @@ impl Capture
         defer painter.popTransform()
 
         if base.paintShadow do
-            drawFormShadow(&shadow, shadowRect, zoom, shadowScale, base, colForm,
-                            releaseAfterDraw: true, writeAlpha: writeAlpha)
+            drawFormShadow(&shadow, shadowRect, zoom, shadowScale, base, colForm, releaseAfterDraw: true, writeAlpha: writeAlpha)
 
         with var drawInfo: LayerDrawInfo
         {
@@ -627,7 +636,8 @@ impl Capture
         painter.setAntialiased(false)
         .paintBackImage(painter, rect.x, rect.y, zoom)
 
-        for f in .forms
+        // A timed capture shows a form only inside its time span.
+        for f in .forms where .isFormShown(f)
         {
             // Cull against the form's actual painted extent. `paintForm` inflates the bound by its
             // rendered geometry (arrow caps and thick strokes can reach beyond the tight
@@ -656,7 +666,7 @@ impl Capture
                 painter.popClippingRect()
         }
 
-        for f, i in .forms
+        for f, i in .forms where .isFormShown(f)
         {
             var flags = FormFlags.Zero
             if i == .hotForm do

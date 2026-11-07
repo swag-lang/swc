@@ -55,7 +55,7 @@ impl Capture
         }
         else
         {
-            for f in .forms
+            for f in .forms where .isFormShown(f)
             {
                 let b: *BaseForm = f
                 if b.subKind == .PixSel do

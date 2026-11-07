@@ -939,6 +939,15 @@ impl MainWnd
         let image = results.addSection(appStrings().ui_MenuImage)
         .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage])
 
+        // An animation offers its playback and the time span of the selected forms.
+        let edited = .getCapture()
+        if edited and edited.isTimed()
+        {
+            let timeline = results.addSection(appStrings().lens_Timeline)
+            .lens.addCommandRows(timeline, [ActionTimeline.Play, ActionTimeline.PrevFrame, ActionTimeline.NextFrame,
+                                            ActionTimeline.ShowFrom, ActionTimeline.ShowUntil, ActionTimeline.ShowAlways])
+        }
+
         let selection = results.addSection(appStrings().lens_Selection)
         .lens.addCommandRows(selection,
                              [ActionEdit.EditText, ActionCopyPaste.Duplicate, ActionCopyPaste.Copy, ActionSelection.DeleteSelection,

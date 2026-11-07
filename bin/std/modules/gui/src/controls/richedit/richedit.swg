@@ -311,7 +311,11 @@ impl RichEditCtrl
             .wndFlags            |= .NoFocusRing
             .scrollWnd           = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
-            .scrollWnd.setAllPaddings(.themeMetrics().richEdit_Padding)
+            // Keep text and the caret clear of overlaid scroll bars with a
+            // constant edge inset, independent of whether either bar appears.
+            let pad  = .themeMetrics().richEdit_Padding
+            let edge = Math.max(pad, .themeMetrics().scrollBar_Size)
+            .scrollWnd.setPadding(pad, pad, edge, edge)
             .scrollWnd.sigScrollPositionChanged += func|ed|(_, op, np)
             {
                 if op.y != np.y do

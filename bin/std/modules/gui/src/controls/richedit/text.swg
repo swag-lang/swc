@@ -153,7 +153,7 @@ impl RichEditCtrl
         if not .font().getFont(.styles[0].fontMode) do
             return
         let line  = unwrap .lines[lineIndex]
-        let right = .scrollWnd.paddedClientRect().width - .scrollWnd.paddingZ - .rightMargin()
+        let right = .scrollWnd.paddedClientRect().width - .rightMargin()
         var cuts: Array'u64
         var start, i, wordEnd: u64
         var x     = .leftMargin()

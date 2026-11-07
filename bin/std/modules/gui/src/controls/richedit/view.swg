@@ -193,7 +193,7 @@ impl IWnd for RichEditView
         var y          = edn.residentContentOffset
         let size       = edn.xGlyphSize()
         var clientRect = .clientRect()
-        clientRect.width = edn.scrollWnd.paddedClientRect().width - edn.scrollWnd.paddingZ
+        clientRect.width = edn.scrollWnd.paddedClientRect().width
 
         // Only a wrapped document follows the viewport. Without wrapping no line's shape and no
         // scroll extent depends on the client rectangle, so a resize costs the repaint and

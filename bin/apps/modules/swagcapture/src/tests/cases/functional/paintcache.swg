@@ -165,18 +165,19 @@ func testPopulate(capture: *Capture)
 
     let bakedZoom = cache.zoom
     let bakedTexture = cache.layer.contentTarget.colorBuffer.handle
-    f.editView.setZoom(4.1)
+    f.gui.moveMouse({260, 190})
+    f.editView.setZoom(4.1, mouseCenter: true)
     Swag.require(f.editView.zoomTimer != null)
     discard f.gui.render(f.main)
     Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
-    f.editView.setZoom(4.2)
+    f.editView.setZoom(4.2, mouseCenter: true)
     discard f.gui.render(f.main)
     Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
     f.gui.fireTimer(f.editView.zoomTimer)
     discard f.gui.render(f.main)
     Swag.require(cache.zoom == 4.2)
 
-    f.editView.setZoom(4.1)
+    f.editView.setZoom(4.1, mouseCenter: true)
     discard f.gui.render(f.main)
     Swag.require(cache.zoom == 4.2)
     f.gui.fireTimer(f.editView.zoomTimer)

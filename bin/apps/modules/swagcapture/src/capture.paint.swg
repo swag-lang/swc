@@ -221,7 +221,12 @@ impl Capture
             needed.offset(view.scrollPos)
             needed.inflate(32)
             needed.intersect(pos)
-            if oldRect.contains(needed)
+            // The cache was baked on whole pixel edges. Scaling those edges to
+            // another zoom can leave a subpixel mismatch with the new rounded
+            // form bounds; the layer's shadow margin already covers it.
+            var covered = oldRect
+            covered.inflate(2)
+            if covered.contains(needed)
             {
                 reuseZoom = true
                 paintRect = oldRect
@@ -287,6 +292,8 @@ impl Capture
             .color             = colForm
             .interpolationMode = (base.paintShadow or not sharp) ? .Linear : .Pixel
             .releaseAfterDraw  = false
+            // The editor painted an opaque ground before reaching any form.
+            .writeAlpha        = false
             .shadow.enabled    = base.paintShadow
             .shadow.radius     = 8.0
             .shadow.offsetX    = base.shadowOffsetX
@@ -304,7 +311,7 @@ impl Capture
     // Paints `f` directly through a temporary layer, clipped to `clip`. `quickMode`, for previews,
     // skips text supersampling and rotation and narrows the shadow; `snapMode`, for an export,
     // leaves untouched the screen position the editor recorded for the form.
-    func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
+    func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false, writeAlpha = true)
     {
         var boundRect = f.boundRect()
         boundRect.width  = Math.max(boundRect.width, 1)
@@ -393,6 +400,7 @@ impl Capture
             .dstRect           = paintRect
             .color             = colForm
             .interpolationMode = base.paintShadow ? .Linear : .Pixel
+            .writeAlpha        = writeAlpha
             .shadow.enabled    = base.paintShadow
             .shadow.radius     = quickMode ? 4.0 : 8.0
             .shadow.offsetX    = base.shadowOffsetX
@@ -580,7 +588,7 @@ impl Capture
             }
 
             if not .paintFormCached(painter, clip, rect, f, zoom) do
-                paintForm(painter, clip, rect, f, zoom)
+                paintForm(painter, clip, rect, f, zoom, writeAlpha: false)
             if clipped do
                 painter.popClippingRect()
         }

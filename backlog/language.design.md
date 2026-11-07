@@ -685,19 +685,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.
 
-### language.design.040 — An empty slice cannot be written where a slice type is named
-
-- Evidence: with `func f(path: const [..] string = ...)`, neither `[]` nor `{}` nor `null` is
-  accepted as the default, and a call `f([])` is rejected with "array literal has no element to
-  infer from; provide explicit type context elsewhere" although the parameter names the type. The
-  option-sheet golden helper in `bin/std/modules/gui/src/tests/cases/golden/optionsheet.swg` had to take two
-  optional labels instead of one path slice.
-- Next: decide the spelling of the empty slice (`[]` typed by its destination, like a brace literal
-  typed by its target struct), accept it for parameters, defaults, returns and typed
-  declarations, and add sema fixtures for each position.
-- Done when: `f([])` and `path: const [..] string = []` compile wherever the destination names a
-  slice type, and the diagnostic only fires where nothing names one.
-
 ### language.design.041 — `"\x89"` is two bytes, though code reads it as one
 
 - Evidence: in a string literal, `\xHH` above `0x7F` names the code point U+00HH and is stored as

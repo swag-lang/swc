@@ -140,3 +140,30 @@ alias AtomicStrictU32 = u32
     #assert(G)
     #assert(H)
 }
+
+#test
+{
+    var flag = 0x100'u32
+    let isClear = func|flag = &flag|()->bool => not Swag.atomicLoad(flag)
+
+    Swag.require(not isClear())
+    flag = 0
+    Swag.require(isClear())
+    flag = 1
+    Swag.require(not isClear())
+
+    let waitForFlag = func|flag = &flag|()->u32
+    {
+        var turns = 0'u32
+        while not Swag.atomicLoad(flag)
+        {
+            turns += 1
+            if turns == 3 do break
+            Swag.atomicStore(flag, 0x100'u32)
+        }
+        return turns
+    }
+
+    flag = 0
+    Swag.require(waitForFlag() == 1)
+}

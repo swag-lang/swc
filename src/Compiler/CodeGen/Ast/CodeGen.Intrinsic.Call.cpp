@@ -696,9 +696,9 @@ namespace
     {
         const AstNodeRef          ptrRef         = codeGen.ast().oneNode(node.spanChildrenRef);
         const CodeGenNodePayload& ptrPayload     = codeGen.payload(ptrRef);
-        const SemaNodeView        resultView     = codeGen.curViewType();
-        const TypeRef             resultTypeRef  = resultView.typeRef();
-        const TypeInfo&           resultTypeInfo = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const SemaNodeView        ptrView        = codeGen.viewType(ptrRef);
+        const TypeRef             resultTypeRef  = ptrView.type()->payloadTypeRef();
+        const TypeInfo&           resultTypeInfo = codeGen.typeMgr().get(resultTypeRef).unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const MicroOpBits         opBits         = CodeGenTypeHelpers::numericBits(resultTypeInfo);
 
         SWC_ASSERT(resultTypeInfo.isIntLike());

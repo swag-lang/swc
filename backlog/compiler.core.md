@@ -4,19 +4,6 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
-### compiler.core.105 — Preserve the integer result of atomicLoad in Boolean context
-
-- Evidence: `tools/std.bat dm test pixel --rebuild-module --test-file text.concurrent.swg`
-  asserts at `CodeGen.Intrinsic.Call.cpp:702`, `resultTypeInfo.isIntLike()`, when the worker
-  closure waits with `while not Swag.atomicLoad(start)` and `start` is a captured `*u32`.
-  The Release compiler accepts and runs this code. The concurrency test now compares the
-  loaded integer explicitly with zero, preserving the test's synchronization contract.
-- Next: reduce the captured-pointer case into a compiler regression and inspect how the
-  implicit Boolean conversion changes `curViewType()` before `codeGenAtomicLoad` selects
-  the volatile load width. Cover nonzero values outside the low byte as well as zero and one.
-- Done when: both compiler executables compile the original Boolean context, and native and
-  JIT tests preserve the atomic integer load and its subsequent Boolean conversion.
-
 ### compiler.core.101 — Preserve enum context inside a generic constraint block
 
 - Evidence: in the integer-bound constraints of `bin/runtime/iteration.swg`, replacing the

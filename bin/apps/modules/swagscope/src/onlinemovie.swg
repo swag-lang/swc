@@ -650,13 +650,21 @@ impl OnlineMovie
         if query.title.isEmpty() or query.title.length > 256 do
             return {}
         var movie: OnlineMovie
+        #static if #hastag("vault.preview.benchmark") do
+            let stageStarted = Time.monotonicMicroseconds()
         catch movie.lookupTMDB(query, source, language)
+        #static if #hastag("vault.preview.benchmark") do
+            Console.println(Format.toString("movie %: TMDB % us", query.title, Time.monotonicMicroseconds() - stageStarted))
         if Swag.isCancelled() do
             return {}
         if not movie.posterUrl.isEmpty() do
             return movie
         var apple: OnlineMovie
+        #static if #hastag("vault.preview.benchmark") do
+            let appleStarted = Time.monotonicMicroseconds()
         catch apple.lookupApple(query, source, language)
+        #static if #hastag("vault.preview.benchmark") do
+            Console.println(Format.toString("movie %: Apple % us", query.title, Time.monotonicMicroseconds() - appleStarted))
         if Swag.isCancelled() do
             return {}
         if not apple.posterUrl.isEmpty()
@@ -670,7 +678,11 @@ impl OnlineMovie
 
         var article: OnlineMovie
         var articleErrorOutcome: Swag.Error
+        #static if #hastag("vault.preview.benchmark") do
+            let articleStarted = Time.monotonicMicroseconds()
         catch { article = try lookupArticle(query, source, language) } as articleErrorOutcome
+        #static if #hastag("vault.preview.benchmark") do
+            Console.println(Format.toString("movie %: Wikipedia % us", query.title, Time.monotonicMicroseconds() - articleStarted))
         if Swag.isCancelled() do
             return {}
         if article.posterUrl.isEmpty()
@@ -678,7 +690,11 @@ impl OnlineMovie
             var alternate: OnlineMovie
             let alternateLanguage = Utf8.startsWith(language, "fr") ? "en" : "fr"
             var alternateArticleErrorOutcome: Swag.Error
+            #static if #hastag("vault.preview.benchmark") do
+                let alternateStarted = Time.monotonicMicroseconds()
             catch { alternate = try lookupArticle(query, source, alternateLanguage) } as alternateArticleErrorOutcome
+            #static if #hastag("vault.preview.benchmark") do
+                Console.println(Format.toString("movie %: alternate Wikipedia % us", query.title, Time.monotonicMicroseconds() - alternateStarted))
             if not alternate.posterUrl.isEmpty() or (article.id.isEmpty() and not alternate.id.isEmpty()) do
                 article = #move alternate
         }
@@ -863,29 +879,40 @@ impl OnlineMovie
     {
         if not source.appleHost.count do
             return
-        if not lockMediaLookup(&g_MovieLookupLock) do
-            return
-        defer g_MovieLookupLock.unlock()
-
-        // Questions stand apart, and a cancelled preview stops waiting.
-        while true
+        #static if #hastag("vault.preview.benchmark") do
+            let slotStarted = Time.monotonicMicroseconds()
+        scope
         {
-            let now     = Time.Timestamp.utcNow().ticks
-            let elapsed = (now - g_AppleLastRequest) / Time.TicksPerMillisecond
-            if g_AppleLastRequest == 0 or now < g_AppleLastRequest or elapsed >= AppleRequestSpacing do
-                break
-            if Swag.isCancelled() do
+            if not lockMediaLookup(&g_MovieLookupLock) do
                 return
-            Threading.Thread.sleep(50'ms)
-        }
+            defer g_MovieLookupLock.unlock()
 
-        g_AppleLastRequest = Time.Timestamp.utcNow().ticks
+            // Reserve the next catalogue slot; the network request needs no shared state.
+            while true
+            {
+                let now     = Time.Timestamp.utcNow().ticks
+                let elapsed = (now - g_AppleLastRequest) / Time.TicksPerMillisecond
+                if g_AppleLastRequest == 0 or now < g_AppleLastRequest or elapsed >= AppleRequestSpacing do
+                    break
+                if Swag.isCancelled() do
+                    return
+                Threading.Thread.sleep(50'ms)
+            }
+
+            g_AppleLastRequest = Time.Timestamp.utcNow().ticks
+        }
+        #static if #hastag("vault.preview.benchmark") do
+            Console.println(Format.toString("movie %: Apple wait % us", query.title, Time.monotonicMicroseconds() - slotStarted))
         let country = Utf8.startsWith(language, "fr") ? "FR" : "US"
         let path    = Format.toString("/search?term=%&entity=movie&limit=10&country=%", Url.encodeComponent(cast(const [..] u8, query.title.toString())), country)
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000
+        #static if #hastag("vault.preview.benchmark") do
+            let httpStarted = Time.monotonicMicroseconds()
         let response = try Http.get(source.appleHost, source.port, path.toString(), source.secure, options)
+        #static if #hastag("vault.preview.benchmark") do
+            Console.println(Format.toString("movie %: Apple HTTP % us", query.title, Time.monotonicMicroseconds() - httpStarted))
         if response.status != 200 do
             return
         var decoder: Serialization.Decoder'Serialization.Read.Json

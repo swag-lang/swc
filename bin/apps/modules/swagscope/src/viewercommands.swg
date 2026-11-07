@@ -44,6 +44,7 @@ namespace ViewerCommands
     const Forward           = "scope.explore.forward"
     const Up                = "scope.explore.up"
     const Refresh           = "scope.explore.refresh"
+    const ClearCaches       = "scope.explore.clearCaches"
     const EditLocation      = "scope.explore.location"
     const SortName          = "scope.explore.sort.name"
     const SortType          = "scope.explore.sort.type"
@@ -144,6 +145,7 @@ impl ViewerWindow
                                                                     ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
                                                                     ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
+                                                                      ViewerCommands.ClearCaches,
                                                                       ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                                                                       ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending,
                                                                       ViewerCommands.FilterAll, ViewerCommands.FilterVideos, ViewerCommands.FilterImages,
@@ -705,6 +707,12 @@ impl ViewerWindow
             icon   = .commandGlyph(.Update)
             hidden = not exploring
 
+        case ViewerCommands.ClearCaches:
+            name     = texts.cmd_ClearCaches
+            icon     = .commandGlyph(.RemoveAll)
+            hidden   = not exploring
+            disabled = not exploring or .explorer!.clearingCaches
+
         case ViewerCommands.EditLocation:
             name   = texts.cmd_EditLocation
             icon   = .commandGlyph(.Edit)
@@ -1030,6 +1038,9 @@ impl ViewerWindow
 
         case ViewerCommands.Refresh:
             explorer.forceRefresh()
+
+        case ViewerCommands.ClearCaches:
+            explorer.clearCaches()
 
         case ViewerCommands.EditLocation:
             explorer.address.beginEdit()

@@ -288,10 +288,10 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     // A second activation supersedes the extraction even if the first worker already finished.
     explorer.previews[0].task.wait()
     explorer.activate(0)
-    for &preview in explorer.previews do
+    for preview in explorer.previews do
         preview.task.wait()
     host.pump()
-    for &preview in explorer.previews where preview.started
+    for preview in explorer.previews where preview.started
     {
         preview.task.wait()
         host.pump()

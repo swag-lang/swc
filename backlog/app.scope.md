@@ -75,33 +75,27 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   either pane leaves the other's state and input intact.
 - Related: app.scope.001, app.scope.hexa.003
 
-### app.scope.004 — Folder previews are slow and use the wrong page shape
+### app.scope.004 — Cold folder previews need latency profiling
 
-- Evidence: `Explorer` runs one isolated thumbnail renderer per logical processor, less two. On a
-  22-thread machine, the 60 visible previews of a cold 181-SVG folder took about 20 s with three
-  renderers; 8 s once SVG drawings were rasterized at the 320-pixel thumbnail size instead of their
-  own size, and with `RenderCpu` walking only the span of each triangle row; 3.8 s with twenty
-  renderers, for about 1.3 GB across the processes and a first preview at 1.4 s instead of 1 s.
-  Concurrent renderers had shared an exchange directory when their `Guid64` generators were seeded
-  in the same microsecond, losing a preview now and then. Video previews keep the first lively
-  frame of five positions, each read as a key picture (`Reader.decodeKeyPicture`: the clean point
-  a cue names, read alone), 0.3 to 1.2 MB a film instead of 3 to 9 MB. Folders on a network share
-  run six renderers, which the NAS serves faster than twenty: 100 cold tiles of Z:/Séries in 6.4 s. Film folders use screen-shaped tiles, previews trim
-  encoded black bands, stand on their names with the interface corner, and films carry their
-  duration. The former generic
-  path created a complete viewer for each uncached file. Generic thumbnails now use
-  one persistent CPU canvas and font cache per worker, reading at most 16 KiB for text or mapping
-  the first 2 KiB for binary input. Image and video plugins keep their direct decoders. The Explorer
-  no longer invalidates the full grid every 16 ms during preview work; each spinner repaints its own
-  window. Appearance changes no longer invalidate previews; viewer-selection changes still do. The
-  gallery uses larger portrait tiles and preserves intrinsic media ratios. Focused tests cover generic
-  and direct routes, bounded input, worker cache reuse, spinner frames, and the gallery golden.
-  Cold/warm child-process latency and UI frame cadence have not yet been measured.
+- Evidence: `Explorer` submits visible previews as background tasks to the runtime's shared
+  admission pool. A cold video preview opens a reader and seeks to as many as five key pictures
+  until it finds a lively frame. An isolated passwordless Swag Vault mount with eight copies of
+  a ten-minute H.264 video produced eight visible local Explorer previews in 322 ms. Warm direct
+  thumbnail extraction was 1.2–1.5 times slower through the mount than from the host filesystem;
+  parallel extraction was 1.08 times slower in one run. These measurements do not cover cold
+  storage. With online movie artwork enabled, Explorer looks up the poster before decoding a
+  fallback frame. Four fresh ten-minute H.264 files on the mount took 9.87 s to show all four
+  pictures in one warm run; the first appeared after 0.99 s. The Apple catalogue imposes about
+  20 searches per minute, so a batch of unmatched titles remains limited by its request cadence.
+  A 150 MB 1920 × 1080 Motion JPEG MP4 exposed a separate frame cost: the previous thumbnail
+  path decoded five key pictures (3.84 s local, 4.08 s mounted) because bilinear reduction made
+  the first detailed image appear flat to the contrast test. Analysing before reduction kept that
+  first picture (0.75 s local, 0.78 s mounted), without replacing the poster-first policy.
 - Next: profile cold and warm child-process latency plus spinner frame cadence for Markdown, image,
   video, and one expensive structured viewer. If direct media decoders miss the first-preview budget,
   reduce their decode work while retaining a useful representative image.
-- Done when: representative formats meet the first-preview and UI frame budgets, pages read clearly
-  in the portrait tile, and media previews retain their natural aspect ratios.
+- Done when: representative formats meet the first-preview and UI frame budgets without losing
+  useful preview content.
 - Related: app.scope.viewers.004, app.scope.viewers.009, app.scope.document.001
 
 ### app.scope.005 — Film matching needs correction and broader coverage
@@ -111,9 +105,10 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   previews when a result is unavailable. Cached results expire after 120 days.
 - Decision (2026-10-28): real posters and synopses come first from the Apple iTunes Search API,
   which needs no key (entity `movie`; the 100 px artwork URL scales to a poster size); Wikipedia and
-  Wikidata stay for direction, cast and the IMDb rating. Its rate limit is not documented: requests
-  are spaced and cached like MusicBrainz's. TMDB (key required, attribution in About, cache under six
-  months) is the later option for series and better coverage.
+  Wikidata stay for direction, cast and the IMDb rating. [Apple documents](https://performance-partners.apple.com/search-api)
+  an approximate limit of 20 searches per minute, so requests are spaced and cached. TMDB (key
+  required, attribution in About, cache under six months) is the later option for series and better
+  coverage.
 - Next: query iTunes for posters and synopses, keep the Wikipedia/Wikidata credits, offer a
   searchable list of candidates and cover TV series separately
   from films, retaining source attribution, privacy, cancellation and bounded requests.

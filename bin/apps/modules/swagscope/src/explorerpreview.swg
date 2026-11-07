@@ -59,14 +59,13 @@ struct ExplorerPreview
     archivePath:     String
     entry:           Viewers.Archive.ZipEntry
     service:         ThumbnailService
-    executor:        Swag.Executor
     image:           Image
     temporary:       String
     error:           String
     index:           u64
     generation:      u64
     opening:         bool
-    online:          bool     // The second pass looks up online artwork before publishing a movie frame.
+    online:          bool     // Movie artwork is looked up before a local frame is decoded.
     needsOnline:     bool
     settings:        String
 }
@@ -75,8 +74,6 @@ impl ExplorerPreview
 {
     mtd start(owner: *Wnd)
     {
-        if not .executor.isStarted() do
-            .executor.start()
         .image       = {}
         .needsOnline = false
         .error.clear()
@@ -87,12 +84,14 @@ impl ExplorerPreview
             catch operation.produce() { operation.error = Viewer.failureText(Swag.err) }
         },
                 owner,
-                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background,
-                executor: &.executor)
+                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
     }
 
     private mtd produce() fail
     {
+        if Swag.isCancelled() do
+            return
+
         // The listing probes only a bounded number of folders. A large library discovers the
         // remaining albums as their tiles enter the viewport.
         if .archivePath.isEmpty() and .mediaFile.isEmpty() and Directory.exists(.path)
@@ -126,6 +125,8 @@ impl ExplorerPreview
             ThumbnailCache.pruneOnce()
             cache  = catch ThumbnailCache.key(source, member, settings: .settings)
             .image = ThumbnailCache.read(cache)
+            if .image.isValid() and (.online and onlinePreviewStamped(&.image)) do
+                return
             if .image.isValid() and not .online
             {
                 let settings = try ThumbnailSettings.decode(.settings)
@@ -204,6 +205,7 @@ impl ExplorerPreview
             var music:     OnlineMusic
             var musicTags: SoundTags
             var localDuration = thumbnailDuration(&.image)
+            var posterLoaded = false
             if not localDuration and albumAudio(file) do
                 localDuration = localSoundDuration(file)
             var providerFailed    = false
@@ -221,8 +223,11 @@ impl ExplorerPreview
                     if movie.found() and not Swag.isCancelled()
                     {
                         let poster = try movie.posterBytes()
-                        if not poster.isEmpty() do
+                        if not poster.isEmpty()
+                        {
                             .image = try .renderOnlineImage(poster.toSlice())
+                            posterLoaded = .image.isValid()
+                        }
                     }
                 }
                 {
@@ -275,6 +280,15 @@ impl ExplorerPreview
             }
 
             labelPreviewDuration(&.image, localDuration)
+            if posterLoaded
+            {
+                catch
+                {
+                    var reader = try Reader.open(file, pictureOnly: true)
+                    labelPreviewDuration(&.image, cast(u64, Math.ceil(reader.durationInSeconds())))
+                    Viewers.Film.labelVideoInformation(&.image, &reader)
+                }
+            }
             if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do

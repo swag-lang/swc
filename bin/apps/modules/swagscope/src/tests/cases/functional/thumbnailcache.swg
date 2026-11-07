@@ -20,6 +20,21 @@ using Core, Pixel, Gui
     Swag.require(not File.exists(cached) and File.exists(other))
 }
 
+// Clearing removes Scope's cache entries without touching neighbouring application data.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-cache-clear-%", Guid64.random()))
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    let cached = Path.combine(root, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.png")
+    let other  = Path.combine(root, "unrelated.png")
+    discard expect File.writeAllText(cached, "cache")
+    discard expect File.writeAllText(other, "keep")
+    Swag.require((expect ThumbnailCache.clear(root)) == 1)
+    Swag.require(not File.exists(cached) and File.exists(other))
+    Swag.require((expect ThumbnailCache.clear(root)) == 0)
+}
+
 // Cache identity follows both the source and application, and separates archive members.
 #test
 {

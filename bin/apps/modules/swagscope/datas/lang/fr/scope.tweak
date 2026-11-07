@@ -55,6 +55,9 @@ explore_Back Précédent
 explore_Forward Suivant
 explore_Up Dossier parent
 explore_Refresh Actualiser
+explore_ClearingCaches Effacement des caches…
+explore_CachesCleared Caches effacés.
+explore_CacheClearFailed Impossible d’effacer les caches.
 explore_Names Noms
 explore_Details Détails
 explore_Small Petites vignettes
@@ -148,6 +151,7 @@ cmd_Reload Recharger
 cmd_PreviousFile Fichier précédent
 cmd_NextFile Fichier suivant
 cmd_ClearHistory Effacer l'historique…
+cmd_ClearCaches Effacer les caches
 cmd_Find Rechercher dans le document
 cmd_FindNext Occurrence suivante
 cmd_FindPrevious Occurrence précédente

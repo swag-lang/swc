@@ -18,6 +18,9 @@ struct AppStrings
     explore_Forward:           string = "Forward"                   // Exploration control or status.
     explore_Up:                string = "Parent Folder"             // Exploration control or status.
     explore_Refresh:           string = "Refresh"                   // Exploration control or status.
+    explore_ClearingCaches:    string = "Clearing caches…"          // Status while cached previews are being removed.
+    explore_CachesCleared:     string = "Caches cleared."           // Result of clearing Scope's previews and media lookups.
+    explore_CacheClearFailed:  string = "Could not clear caches."   // Failure while removing cached previews.
     explore_Names:             string = "Names"                     // Exploration control or status.
     explore_Details:           string = "Details"                   // Exploration control or status.
     explore_Small:             string = "Small thumbnails"          // Exploration control or status.
@@ -231,6 +234,7 @@ struct AppStrings
     cmd_PreviousFile:     string = "Previous File"             // Command opening the file before this one in its folder.
     cmd_NextFile:         string = "Next File"                 // Command opening the file after this one in its folder.
     cmd_ClearHistory:     string = "Clear History…"            // Command emptying the list of recent files, after a confirmation.
+    cmd_ClearCaches:      string = "Clear Caches"              // Command removing stored previews and media lookup caches.
     cmd_Find:             string = "Find in Document"          // Command showing the find bar.
     cmd_FilterFiles:      string = "Filter Files"              // Command showing the folder filter.
     cmd_FindNext:         string = "Next Match"                // Command moving to the next occurrence.

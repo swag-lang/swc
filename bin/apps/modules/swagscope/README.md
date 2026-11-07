@@ -368,6 +368,17 @@ through the native window, workers and presentation path. Large preview-cache ev
 `src/tests/cases/stress/previewcache.swg`. Both are excluded from default headless tests. Run the
 journeys on the normal Windows desktop with
 `tools/apps.bat test swagscope -bc release --test-tag integration.application.journey`.
+For a mounted Vault video comparison, `explorer.vault-preview.swg` is gated by the
+`vault.preview.benchmark` build tag. Set `SWAG_VAULT_PREVIEW_ROOT` to a mounted directory holding
+`film-00.mkv` through `film-07.mkv`, and `SWAG_VAULT_PREVIEW_VIDEO` to the original H.264 video.
+Select `integration.vault.preview` to compare opening, key-picture seeks, and complete thumbnails
+with host copies; select `integration.vault.explorer` to time Explorer's visible thumbnails.
+Setting `SWAG_VAULT_PREVIEW_ONLINE=1` enables poster lookup before local frame fallback in the latter test.
+The tests only read the mounted directory and put their host copies in the temporary test sandbox.
+For a heavier frame comparison, `integration.vault.frame.generate` writes a 1920 × 1080 Motion JPEG
+MP4 to an explicitly named external test sandbox. Copy that generated file to the mounted directory,
+set `SWAG_VAULT_PREVIEW_VIDEO` to its host path, then select `integration.vault.frame` to compare
+opening, one key picture, and the finished thumbnail on the two paths.
 `src/tests/cases/integration/playrecentvideo.swg` opens a recent film, checks sustained playback,
 and returns to history twice. `src/tests/cases/integration/choosefolderhistory.swg` opens the Explore
 folder dialog, checks its history popup twice with an unavailable saved location, and browses the

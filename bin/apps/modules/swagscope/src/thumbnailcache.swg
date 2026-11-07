@@ -21,6 +21,15 @@ struct ThumbnailCache {}
 private var g_CachePruneLock: Swag.Mutex
 private var g_CachePruned:    bool
 
+private func cacheFileName(name: string)->bool
+{
+    if name.count != 68 or not Utf8.endsWith(name, ".png") do
+        return false
+    for byte in name[0 until 64] where not Latin1.isHexDigit(byte) do
+        return false
+    return true
+}
+
 impl ThumbnailCache
 {
     func directory()->String => Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "scope", "thumbnails")
@@ -37,12 +46,7 @@ impl ThumbnailCache
             if file.isDirectory() do
                 continue
             let name = Path.fileName(file.fullName) orelse ""
-            if name.count != 68 or not Utf8.endsWith(name, ".png") do
-                continue
-            var valid = true
-            for byte in name[0 until 64] where not Latin1.isHexDigit(byte) do
-                valid = false
-            if not valid do
+            if not cacheFileName(name) do
                 continue
             let modified = Time.Timestamp.fromDateTime(file.lastWriteTime).ticks
             if modified and modified <= nowTicks and nowTicks - modified >= 120 * Time.TicksPerDay do
@@ -60,6 +64,35 @@ impl ThumbnailCache
             return
         g_CachePruned = true
         catch ThumbnailCache.prune(ThumbnailCache.directory(), Time.Timestamp.utcNow().ticks)
+    }
+
+    // Remove only Scope's cache-shaped files; leave other application data in place.
+    func clear(root: string)->u64 fail
+    {
+        if not Directory.exists(root) do
+            return 0
+        let files = try Directory.enumerate(root, {})
+        var removed: u64
+        for &file in files
+        {
+            if Swag.isCancelled() do
+                break
+            if file.isDirectory() or not cacheFileName(Path.fileName(file.fullName) orelse "") do
+                continue
+            try File.delete(file.fullName)
+            removed += 1
+        }
+
+        return removed
+    }
+
+    func clearAll(root: string = "")->u64 fail
+    {
+        g_CachePruneLock.lock()
+        defer g_CachePruneLock.unlock()
+        if not root.count do
+            g_CachePruned = true
+        return try clear(root.count ? root : ThumbnailCache.directory())
     }
 
     func key(source: string, member: string = "", executable: string = "", settings: string = "")->String fail

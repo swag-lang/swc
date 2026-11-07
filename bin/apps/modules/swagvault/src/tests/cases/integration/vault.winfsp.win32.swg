@@ -18,6 +18,8 @@ namespace Integration
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
+    const AccessBenchmarkArgument = "--integration-access-benchmark"
+    const PreviewMountArgument    = "--integration-preview-mount"
     const ContainerSize           = 64'u64 * 1024 * 1024
     const LargeMoveSize           = 16'u64 * 1024 * 1024 + 37
     const MaximumRenameDurationMs = 5000'u64
@@ -32,6 +34,18 @@ namespace Integration
     {
         let args = Env.arguments()
         return args.count >= 3 and args[1] == VisibilityProbeArgument
+    }
+
+    func isAccessBenchmarkInvocation()->bool
+    {
+        let args = Env.arguments()
+        return args.count >= 2 and args[1] == AccessBenchmarkArgument
+    }
+
+    func isPreviewMountInvocation()->bool
+    {
+        let args = Env.arguments()
+        return args.count >= 3 and args[1] == PreviewMountArgument
     }
 
     func runVisibilityProbe()->s32

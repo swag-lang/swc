@@ -27,13 +27,25 @@ impl Volume
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
+        #static if #hastag("vault.integration") do
+            let waitStarted = Time.monotonicMicroseconds()
         scope
         {
             Sync.scopedLock(&.ioLock)
+            #static if #hastag("vault.integration") do
+                let ioStarted = Time.monotonicMicroseconds()
+            #static if #hastag("vault.integration") do
+                Atomic.add(&Integration.g_ReadWaitMicroseconds, ioStarted - waitStarted)
+            #static if #hastag("vault.integration") do
+                Atomic.add(&Integration.g_ReadIoCount, 1)
             if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice())) do
                 fail volumeError(.Io)
+            #static if #hastag("vault.integration") do
+                Atomic.add(&Integration.g_ReadIoMicroseconds, Time.monotonicMicroseconds() - ioStarted)
         }
 
+        #static if #hastag("vault.integration") do
+            let cryptoStarted = Time.monotonicMicroseconds()
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
         parallel for |&batch| parIndex in cast(u64, count)
         {
@@ -63,6 +75,8 @@ impl Volume
         try batch.error.raise()
         if batch.invalidTags do
             fail volumeError(.Corrupted)
+        #static if #hastag("vault.integration") do
+            Atomic.add(&Integration.g_ReadCryptoMicroseconds, Time.monotonicMicroseconds() - cryptoStarted)
     }
 
     // Encrypts consecutive data blocks in parallel, each under a fresh nonce, and writes them from

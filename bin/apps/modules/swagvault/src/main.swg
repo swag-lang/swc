@@ -16,6 +16,10 @@ const SurfaceId   = "swag.vault"
     {
         if Integration.isVisibilityProbeInvocation() do
             Env.exit(Integration.runVisibilityProbe())
+        if Integration.isAccessBenchmarkInvocation() do
+            Integration.runAccessBenchmarkAndExit()
+        if Integration.isPreviewMountInvocation() do
+            Integration.runPreviewMountAndExit()
         Integration.runAndExit()
     }
 

@@ -14,6 +14,20 @@ struct ThumbnailCandidate
 
 impl ThumbnailCandidate
 {
+    mtd prepare(maxSide: u32)
+    {
+        trimLetterbox(&.image)
+        .analyze()
+        let largest = Math.max(.image.width, .image.height)
+        if largest > maxSide
+        {
+            let scale = cast(f32, maxSide) / cast(f32, largest)
+            .image.resize(Math.max(1, cast(s32, cast(f32, .image.width) * scale)),
+                          Math.max(1, cast(s32, cast(f32, .image.height) * scale)),
+                          .Bilinear)
+        }
+    }
+
     mtd analyze()
     {
         var black, white, samples: u32
@@ -110,17 +124,8 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 
         var candidate: ThumbnailCandidate
         candidate.image = catch reader.decodeKeyPicture(seconds) { continue }
-        let largest = Math.max(candidate.image.width, candidate.image.height)
-        if largest > maxSide
-        {
-            let scale = cast(f32, maxSide) / cast(f32, largest)
-            candidate.image.resize(Math.max(1, cast(s32, cast(f32, candidate.image.width) * scale)),
-                                   Math.max(1, cast(s32, cast(f32, candidate.image.height) * scale)),
-                                   .Bilinear)
-        }
+        candidate.prepare(maxSide)
 
-        trimLetterbox(&candidate.image)
-        candidate.analyze()
         if candidate.lively
         {
             labelDuration(&candidate.image, duration)
@@ -140,7 +145,7 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 }
 
 // Carries stream facts through the thumbnail cache to the explorer's technical reading.
-private func labelVideoInformation(image: *Image, reader: *Reader)
+func labelVideoInformation(image: *Image, reader: *Reader)
 {
     addVideoInformation(image, VideoInfoFormatTag, reader.streamFormat().name)
     if reader.streamInfo().codecName.count do

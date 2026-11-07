@@ -204,7 +204,7 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
 
     Swag.require(not explorer.load.started and explorer.entries.count == 1)
     explorer.suspend()
-    for &preview in explorer.previews where preview.started
+    for preview in explorer.previews where preview.started
     {
         preview.task.wait()
         host.pump()

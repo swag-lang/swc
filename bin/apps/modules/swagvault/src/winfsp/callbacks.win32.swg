@@ -208,6 +208,10 @@ namespace WinFsp
         }
 
         let volume = cast(*Volume, unwrap context)
+        #static if #hastag("vault.integration") do
+            let started = Time.monotonicMicroseconds()
+        #static if #hastag("vault.integration") do
+            defer Atomic.add(&Integration.g_ReadCallbackMicroseconds, Time.monotonicMicroseconds() - started)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)

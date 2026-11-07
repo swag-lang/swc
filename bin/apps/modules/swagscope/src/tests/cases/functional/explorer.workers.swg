@@ -3,15 +3,56 @@
 
 using Core, Gui, Pixel
 
-// A many-core host must leave scheduler capacity for opening a file while thumbnails decode.
+// The explorer submits previews independently of the runtime's worker count.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
-    Swag.require(explorer.previews.count > 0 and explorer.previews.count <= 2)
-    Swag.require(explorer.previews.count <= cast(u64, Swag.workerCount()))
+    Swag.require(explorer.previews.count == 1)
+}
+
+// Cache clearing waits for old previews and disables duplicate requests until cleanup finishes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer       = explorer
+    window.explorerActive = true
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-explorer-clear-%", Guid64.random()))
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    let cached = Path.combine(root, "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.png")
+    discard expect File.writeAllText(cached, "cache")
+
+    let state = window.sendComputeCommandStateEvent(ViewerCommands.ClearCaches)
+    Swag.require(state.name == appStrings().cmd_ClearCaches and not state.hidden and not state.disabled)
+    window.lens.open(">")
+    Swag.require(lensHasEntry(window, appStrings().cmd_ClearCaches))
+    window.lens.close()
+
+    let preview = explorer.previews[0]
+    preview.generation = Swag.U64.Max
+    preview.submit(func() {}, explorer)
+    explorer.clearCaches(root)
+    Swag.require(explorer.clearingCaches and not explorer.cacheClear.started)
+    Swag.require(explorer.status.text() == appStrings().explore_ClearingCaches)
+    Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.ClearCaches).disabled)
+    preview.task.wait()
+    for 100 where explorer.clearingCaches
+    {
+        host.pump()
+        if explorer.cacheClear.started do
+            explorer.cacheClear.task.wait()
+        Threading.Thread.sleep(1'ms)
+    }
+
+    Swag.require(not explorer.clearingCaches and not File.exists(cached))
+    Swag.require(explorer.status.text().count == 0)
+    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.ClearCaches).disabled)
 }
 
 // Selecting a media file in a row view loads its cached provider details without a gallery.
@@ -44,7 +85,7 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.list.setFocusedIndex(0, ensureVisible: false)
     explorer.list.selectLine(0)
-    for &preview in explorer.previews where preview.started do
+    for preview in explorer.previews where preview.started do
         preview.task.wait()
     for 100
     {
@@ -80,7 +121,7 @@ using Core, Gui, Pixel
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
-    let count = Math.min(explorer.previews.count, 3'u64)
+    let count = 3'u64
     for index in count
     {
         let file = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("parallel-thumbnail-%.txt", index))
@@ -95,19 +136,20 @@ using Core, Gui, Pixel
     explorer.setMode(.Medium)
     window.applyLayout()
     explorer.requestPreview()
-    for &preview, index in explorer.previews do
+    Swag.require(explorer.previews.count >= count)
+    for preview, index in explorer.previews do
         Swag.require(preview.started == (index < count) and (not preview.started or preview.index == index))
     for preview in explorer.previews where preview.started do
         Swag.require(preview.task.priority == .Background)
     explorer.hide()
     explorer.leave()
-    for &preview in explorer.previews do
+    for preview in explorer.previews do
         preview.task.wait()
     for 100
     {
         host.pump()
         var busy = false
-        for &preview in explorer.previews do
+        for preview in explorer.previews do
             busy = busy or preview.started
         if not busy do
             break
@@ -118,13 +160,13 @@ using Core, Gui, Pixel
 
     explorer.show()
     explorer.requestPreview()
-    for &preview in explorer.previews do
+    for preview in explorer.previews do
         preview.task.wait()
     for 100
     {
         host.pump()
         var busy = false
-        for &preview in explorer.previews do
+        for preview in explorer.previews do
             busy = busy or preview.started
         if not busy do
             break
@@ -150,7 +192,7 @@ using Core, Gui, Pixel
     let generic = host.render(window)
     explorer.entries[0].path      = "queued.mkv"
     explorer.entries[0].attempted = false
-    for &worker in explorer.previews
+    for worker in explorer.previews
     {
         worker.index      = Swag.U64.Max
         worker.generation = explorer.generation
@@ -158,12 +200,12 @@ using Core, Gui, Pixel
     }
     explorer.grid.invalidate()
     discard host.render(window)
-    Swag.require(explorer.previewSlot(0) == Swag.U64.Max and explorer.grid.spinners[0].isLocallyVisible())
-    for &worker in explorer.previews do
+    Swag.require(explorer.grid.spinners[0].isLocallyVisible())
+    for worker in explorer.previews do
         worker.wait()
 
     explorer.entries[0].attempted = true
-    let preview = &explorer.previews[0]
+    let preview = explorer.previews[0]
     preview.index      = 0
     preview.generation = explorer.generation
     preview.submit(func() {})
@@ -201,7 +243,7 @@ using Core, Gui, Pixel
 
     preview.wait()
     explorer.entries[0].onlinePending = true
-    for &worker in explorer.previews
+    for worker in explorer.previews
     {
         worker.index      = Swag.U64.Max
         worker.generation = explorer.generation
@@ -209,8 +251,8 @@ using Core, Gui, Pixel
     }
     explorer.grid.invalidate()
     discard host.render(window)
-    Swag.require(explorer.previewSlot(0) == Swag.U64.Max and explorer.grid.spinners[0].isLocallyVisible())
-    for &worker in explorer.previews do
+    Swag.require(explorer.grid.spinners[0].isLocallyVisible())
+    for worker in explorer.previews do
         worker.wait()
 
     var image = Image.create(24, 18, .RGB8)
@@ -222,7 +264,7 @@ using Core, Gui, Pixel
     Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
 }
 
-// Visible films keep their waiting marks even when every preview worker is occupied.
+// Visible films keep their waiting marks while their background tasks are pending.
 #test
 {
     var host: Testing.HeadlessHost
@@ -233,12 +275,12 @@ using Core, Gui, Pixel
     window.explorerActive = true
     defer
     {
-        for &worker in explorer.previews do
+        for worker in explorer.previews do
             worker.wait()
         host.shutdown()
     }
 
-    for &worker in explorer.previews
+    for worker in explorer.previews
     {
         worker.index      = Swag.U64.Max
         worker.generation = explorer.generation
@@ -254,7 +296,7 @@ using Core, Gui, Pixel
 
     let range = explorer.grid.visibleRange()
     let count = range.end - range.first
-    Swag.require(count > explorer.previews.count and explorer.grid.spinners.count >= count)
+    Swag.require(explorer.grid.spinners.count >= count)
     for index in count do
         Swag.require(explorer.grid.spinners[index].isLocallyVisible())
 

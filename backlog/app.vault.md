@@ -115,4 +115,28 @@ module's roadmap.
 - Done when: an independent audit report is published and its findings are resolved.
 - Related: app.vault.007
 
+### app.vault.013 — WinFsp directory names include a trailing NUL
+
+- Evidence: `emitFspDir` and `fspGetDirInfoByName` set `FspDirInfo.size` to the filename
+  offset plus the full zero-terminated UTF-16 array length. Windows directory enumeration
+  exposes the terminator as a character in the returned name; callers that use the returned
+  string as a path can fail to open the file.
+- Next: check the WinFsp directory-info size contract, exclude the terminator from `size`, and
+  add an integration assertion that enumerated names contain no embedded NUL and reopen.
+- Done when: WinFsp enumeration returns exact filenames and every enumerated path opens.
+
+### app.vault.014 — Container reads share one seekable cursor
+
+- Evidence: `VolumeStorage` owns one `FileStream`; `readExactAt` performs a seek followed by a
+  read. `Volume.ioLock` must therefore serialize independent physical reads. An isolated
+  passwordless WinFsp benchmark completed 1,024 warm random 4 KiB reads in about 132 ms in
+  series and 59 ms when requested concurrently; the concurrent calls accumulated about 464 ms
+  waiting for `ioLock`. The same mount's ten-minute H.264 thumbnail path showed a much smaller
+  warm overhead, so the gain for video previews is unproven.
+- Next: add true position-independent reads to Core's file abstraction on Windows and Linux,
+  preserve the volume's metadata synchronization, then compare serial and concurrent random
+  reads and video previews on the isolated mount before removing `ioLock` from reads.
+- Done when: independent reads overlap safely, concurrent access tests pass, and a repeatable
+  mounted-volume benchmark shows the gain and its effect on video preview latency.
+
 ---

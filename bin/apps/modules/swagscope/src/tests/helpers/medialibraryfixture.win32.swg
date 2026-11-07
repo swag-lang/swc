@@ -114,7 +114,7 @@ impl MediaLibraryFixture
                                     explorer.previews.count,
                                     " path=",
                                     explorer.listing.path)
-                    for &preview in explorer.previews do
+                    for preview in explorer.previews do
                         Console.println("preview running=", preview.started, " path=", preview.path, " error=", preview.error)
                     let range = explorer.grid.visibleRange()
                     Console.println("visible=", range.first, "..", range.end)

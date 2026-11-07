@@ -94,6 +94,14 @@ The harness removes its sandbox and writes `integration-result.txt` beside the i
 executable. The tool prints that report and rebuilds the ordinary application before returning.
 Use a normal terminal for this command; the helper owns the elevation request.
 
+The `vault.integration` executable also accepts `--integration-access-benchmark` to create,
+measure, and remove a passwordless temporary mount. `--integration-preview-mount <manifest>`
+creates a passwordless 512 MiB container and keeps its drive mounted. The manifest receives the
+drive letter, sandbox directory, and container path on separate lines. Create a file named `stop`
+in that sandbox directory to unmount and remove the test container. Keep the bundled WinFsp DLL
+and driver beside the executable. These modes are for isolated performance diagnosis; the
+ordinary application build has neither entry point.
+
 WinFsp — Windows File System Proxy, Copyright (C) Bill Zissimopoulos —
 [WinFsp repository](https://github.com/winfsp/winfsp). See [THIRDPARTY.md](THIRDPARTY.md) for
 the bundled version, provenance, and licence text, and [repository tools](../../../../tools/README.md)

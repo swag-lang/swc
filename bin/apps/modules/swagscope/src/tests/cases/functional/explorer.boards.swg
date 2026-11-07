@@ -45,7 +45,7 @@ internal func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool,
 
     // Retire listing/preview work before replacing the model, just as for a populated folder.
     explorer.suspend()
-    for &preview in explorer.previews do
+    for preview in explorer.previews do
         preview.wait()
     explorer.generation += 1
     explorer.entries.clear()

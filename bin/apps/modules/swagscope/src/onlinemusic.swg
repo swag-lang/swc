@@ -95,6 +95,17 @@ struct MusicCoverCacheEntry
 private var g_MusicCoverLock:  Swag.Mutex
 private var g_MusicCoverCache: Array'MusicCoverCacheEntry
 
+func clearMusicCaches()
+{
+    g_MusicLookupLock.lock()
+    g_MusicLookupCache.clear()
+    g_MusicLookupLock.unlock()
+
+    g_MusicCoverLock.lock()
+    g_MusicCoverCache.clear()
+    g_MusicCoverLock.unlock()
+}
+
 func musicSearchArtist(tags: const *SoundTags)->string
 {
     return tags.albumArtist.isEmpty() ? tags.artist.toString() : tags.albumArtist.toString()

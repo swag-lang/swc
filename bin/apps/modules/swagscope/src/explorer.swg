@@ -25,10 +25,6 @@ const ExplorerTilePreviewAspect: f32 = 0.8
 const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
 const ExplorerFilmTileAspect:    f32 = 9.0 / 16.0
 
-// Bound thumbnail decoding independently of the host's core count so opening a film keeps CPU
-// time for its viewer and the window event loop.
-const ExplorerPreviewTasks = 2'u64
-
 // Reports whether `word` opens a declaration or a statement, which a code cell sets in Arc.
 func isCardKeyword(word: string)->bool
 {
@@ -130,7 +126,7 @@ struct Explorer
     requested:       String
     requestedFolder: String
     load:            ExplorerListingLoad
-    previews:        Array'ExplorerPreview     // Sized once: a running task borrows its preview.
+    previews:        Array'*ExplorerPreview    // Stable task storage while the runtime owns each preview.
     generation:      u64
     selected:        u64 = Swag.U64.Max
     pendingOpen:     u64 = Swag.U64.Max
@@ -145,6 +141,9 @@ struct Explorer
     previewEpoch:    u64
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
     extraction:      ArchiveExtraction
+    cacheClear:      ExplorerCacheClear
+    clearingCaches:  bool
+    cacheRoot:       String
     toast:           *Toast?
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
     forced:          bool
@@ -293,9 +292,7 @@ impl Explorer
         }
 
         result.retranslate()
-        result.previews.resize(Math.min(cast(u64, Swag.workerCount()), ExplorerPreviewTasks))
-        result.grid.ensureSpinners(result.previews.count)
-
+        result.previews.add(Memory.new'ExplorerPreview())
         result.setMode(.Medium)
         return result
     }
@@ -1288,6 +1285,33 @@ impl Explorer
         .navigate(.listing.path, .folder, false)
     }
 
+    mtd clearCaches(root: string = "")
+    {
+        if .clearingCaches do
+            return
+        .clearingCaches = true
+        .cacheRoot      = root
+        .previewEpoch   = Time.Timestamp.utcNow().ticks
+        .previewSettings.clear()
+        .setStatus(appStrings().explore_ClearingCaches)
+        .retirePreviews()
+        for &entry in .entries
+        {
+            entry.duration  = 0
+            entry.technical = {}
+        }
+        .startCacheClearWhenIdle()
+    }
+
+    private mtd startCacheClearWhenIdle()
+    {
+        if not .clearingCaches or .cacheClear.started do
+            return
+        for preview in .previews where preview.started do
+            return
+        .cacheClear.start(me, .cacheRoot)
+    }
+
     private mtd startListing()
     {
         .load.start(.requested, .requestedFolder, .sortColumn, .descending, me)
@@ -1801,7 +1825,7 @@ impl Explorer
 
     mtd suspend()
     {
-        for &preview in .previews
+        for preview in .previews
         {
             if preview.started and preview.generation == .generation and preview.index < .entries.count
             {
@@ -1857,7 +1881,7 @@ impl Explorer
     private mtd prioritizeVisible()
     {
         .grid.hovered = Swag.U64.Max
-        for &preview in .previews where preview.started and not preview.opening
+        for preview in .previews where preview.started and not preview.opening
         {
             let range   = .grid.visibleRange()
             var visible = false
@@ -1916,15 +1940,25 @@ impl Explorer
         return point ? point.positionText() : String.from(appStrings().cmd_OpenChosen)
     }
 
-    // Keep every independent renderer busy on visible tiles, with at most 128 uploaded previews.
+    // Submit every useful visible preview; the runtime admits background work for the host.
     mtd requestPreview()
     {
+        if .clearingCaches do
+            return
         .refreshPreviewSettings()
 
-        // Submit useful previews; the runtime shares background admission across every owner.
-        for &preview in .previews where not preview.started
+        for preview in .previews where not preview.started
         {
-            .startPreview(preview)
+            if not .startPreview(preview) do
+                return
+        }
+
+        for
+        {
+            let preview = Memory.new'ExplorerPreview()
+            .previews.add(preview)
+            if not .startPreview(preview) do
+                return
         }
     }
 
@@ -1946,7 +1980,7 @@ impl Explorer
     private mtd retirePreviews()
     {
         // Extracting an opened archive member does not depend on its thumbnail appearance.
-        for &preview in .previews
+        for preview in .previews
         {
             if preview.opening and preview.generation == .generation do
                 preview.generation += 1
@@ -1971,7 +2005,7 @@ impl Explorer
     // Returns the active slot for a tile, including work waiting for GUI publication.
     mtd previewSlot(index: u64)->u64
     {
-        for &preview, slot in .previews where preview.started and
+        for preview, slot in .previews where preview.started and
                                               not preview.opening and
                                               preview.generation == .generation and
                                               preview.index == index do
@@ -1979,10 +2013,10 @@ impl Explorer
         return Swag.U64.Max
     }
 
-    private mtd startPreview(preview: *ExplorerPreview)
+    private mtd startPreview(preview: *ExplorerPreview)->bool
     {
         if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
-            return
+            return false
         var wanted  = .pendingOpen
         var online  = false
         let opening = wanted != Swag.U64.Max
@@ -1991,7 +2025,7 @@ impl Explorer
             if .mode == .Names or .mode == .Details
             {
                 if .selected >= .entries.count do
-                    return
+                    return false
                 let selected = &.entries[.selected]
                 var pluginIndex: u64
                 let movie    = File.exists(selected.path) and
@@ -2002,7 +2036,7 @@ impl Explorer
                    (selected.attempted and not selected.onlinePending) or
                    not (movie or music or .grid.rows) or
                    .previewSlot(.selected) != Swag.U64.Max do
-                    return
+                    return false
                 wanted = .selected
                 online = selected.onlinePending
             }
@@ -2022,8 +2056,7 @@ impl Explorer
                     }
                 }
 
-                // Every visible tile gets its local image before network enrichment occupies a
-                // worker. Scrolling away can then cancel only the remote pass.
+                // Music keeps its local cover pass before online enrichment.
                 if wanted == Swag.U64.Max
                 {
                     for row in Math.min(range.first, .shown.count) until Math.min(range.end, .shown.count)
@@ -2043,7 +2076,7 @@ impl Explorer
         }
 
         if wanted >= .entries.count do
-            return
+            return false
         if not opening and not online and .cached.count >= 128
         {
             let range = .grid.visibleRange()
@@ -2061,7 +2094,7 @@ impl Explorer
             }
 
             if evict == Swag.U64.Max do
-                return
+                return false
             let old = .cached[evict]
             .app().renderer.removeTexture(&.entries[old].texture)
             .entries[old].attempted = false
@@ -2072,24 +2105,31 @@ impl Explorer
 
         let entry = &.entries[wanted]
         if .listing.isArchive and entry.archiveIndex >= .listing.archive.entries.count do
-            return
+            return false
         .pendingOpen        = Swag.U64.Max
         preview.path        = entry.path
         preview.mediaFile   = entry.albumTrack
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
-        preview.online      = online
         preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
+        if not opening and not online and preview.archivePath.isEmpty() and
+           not albumAudio(entry.path) and Reader.canOpen(entry.path)
+        {
+            let settings = catch ThumbnailSettings.decode(preview.settings)
+            if settings.onlineMovies and not settings.localArtworkOnly do
+                online = true
+        }
+        preview.online = online
+        entry.attempted = true
         if online do
             entry.onlinePending = false
-        else do
-            entry.attempted = true
         preview.start(me)
         .grid.invalidate()
+        return true
     }
 }
 
@@ -2099,6 +2139,26 @@ impl IWnd for Explorer
 
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .cacheClear.claim(evt)
+        {
+            .cacheClear.wait()
+            .clearingCaches = false
+            .cacheRoot.clear()
+            .setStatus("")
+            for preview in .previews do
+                Memory.delete(preview)
+            .previews.clear()
+            .previews.add(Memory.new'ExplorerPreview())
+            if not .toast do
+                .toast = Toast.create(me, "scope.explorer.toast")
+            if .cacheClear.error.isEmpty() do
+                .toast.show(appStrings().explore_CachesCleared)
+            else do
+                .toast.show(appStrings().explore_CacheClearFailed, .cacheClear.error, .Failure)
+            .requestPreview()
+            return
+        }
+
         if .extraction.claim(evt)
         {
             .finishExtraction()
@@ -2135,7 +2195,7 @@ impl IWnd for Explorer
         }
         else
         {
-            for &preview in .previews where preview.claim(evt)
+            for preview in .previews where preview.claim(evt)
             {
                 preview.wait()
                 .refreshPreviewSettings()
@@ -2224,6 +2284,7 @@ impl IWnd for Explorer
                 }
 
                 .requestPreview()
+                .startCacheClearWhenIdle()
                 return
             }
 
@@ -2239,10 +2300,15 @@ impl IWnd for Explorer
         .load.wait()
         .extraction.wait()
 
-        for &preview in .previews do
+        for preview in .previews do
             preview.task.cancel()
-        for &preview in .previews do
+        for preview in .previews
+        {
             preview.wait()
+            Memory.delete(preview)
+        }
+        .cacheClear.task.cancel()
+        .cacheClear.wait()
         .clearTextures()
         for file in .temporaryFiles do
             catch File.delete(file.file)
@@ -2583,8 +2649,8 @@ impl ExplorerGrid
             }
         }
 
-        // Keep the generic tile under the spinner until the local and optional online passes
-        // have produced one image. A queued online pass has no worker slot yet, but is still busy.
+        // Keep the generic tile under the spinner until a local image or online artwork is ready.
+        // A queued online music pass has no worker slot yet, but is still busy.
         let eligible = not entry.path.isEmpty() and
                        (not entry.directory or not entry.albumTrack.isEmpty() or
                         (.board == .Covers and entry.children == Swag.U64.Max))

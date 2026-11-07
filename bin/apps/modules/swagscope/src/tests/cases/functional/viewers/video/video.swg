@@ -83,6 +83,26 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.require(bands.usable and bands.lively)
 }
 
+// Bilinear reduction can flatten a detailed picture; judge its source before shrinking the tile.
+#test
+{
+    var candidate: Film.ThumbnailCandidate
+    candidate.image = Image.create(1024, 768, .RGB8)
+    let pixels = candidate.image.pixels.storage()
+    var random = 0x12345678'u32
+    for index in candidate.image.pixels.count
+    {
+        random = random ^ (random << 13)
+        random = random ^ (random >> 17)
+        random = random ^ (random << 5)
+        pixels[index] = cast(u8, random >> 24)
+    }
+
+    candidate.prepare(256)
+    Swag.require(candidate.usable and candidate.lively)
+    Swag.require(candidate.image.width == 256 and candidate.image.height == 192)
+}
+
 // The black bands a film was encoded with are trimmed from every edge; a frame dark from edge to
 // edge is a dark scene and stays whole.
 #test

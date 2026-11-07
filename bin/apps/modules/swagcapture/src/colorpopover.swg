@@ -134,63 +134,50 @@ impl ColorPopover
         frame.setPosition(Math.Rectangle{x: x, y: y, width: size.width, height: size.height})
     }
 
-    // Keeps the popover off `selection`, a rectangle in surface coordinates, so the colour being
-    // picked shows on the work it changes.
-    //
-    // The popover stays where it opened when it already leaves the selection clear; otherwise it
-    // stands beside the selection, on its trailing side first, then on its leading side, above or
-    // below it, never over `panel` (the inspector, in surface coordinates). When no side has the
-    // room, it slides along its row to where it covers the least of the selection. It keeps
-    // inside the window.
-    mtd standClearOf(selection: Math.Rectangle, panel: Math.Rectangle = {})
+    // Hangs the popover from `button`, level with it: under it, or over it when under covers
+    // `selection` (in surface coordinates) or leaves the window and over does neither, or beside
+    // the selection, in the same row, when both cover it. The popover stays by the button the
+    // reader clicked; it keeps inside the window.
+    mtd hangFrom(button: *Wnd, selection: Math.Rectangle)
     {
-        // The area of `a` that `b` covers.
-        func covered(a, b: Math.Rectangle)->f32
-        {
-            let common = Math.Rectangle.intersect(a, b)
-            return common.width * common.height
-        }
-
-        let frame  = assume cast(*FrameWnd, unwrap .parent)
-        let view   = unwrap frame.parent
-        let inset  = .themeMetrics().floating_Inset
-        let opened = frame.position
-        let avoid  = .surfaceToView(view, selection)
-        if not opened.intersects(avoid) do
-            return
-
-        let keepClear = .surfaceToView(view, panel)
-        var bounds    = view.clientRect()
+        let frame   = assume cast(*FrameWnd, unwrap .parent)
+        let view    = unwrap frame.parent
+        let metrics = .themeMetrics()
+        let inset   = metrics.floating_Inset * 0.5
+        let gap     = metrics.menuPopup_AnchorGap
+        let anchor  = .surfaceToView(view, button.surfaceRect())
+        let avoid   = .surfaceToView(view, selection)
+        let w       = frame.position.width
+        let h       = frame.position.height
+        var bounds  = view.clientRect()
         bounds.inflate(-inset)
-        let w = opened.width
-        let h = opened.height
-        let y = Math.clamp(opened.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
-        let x = Math.clamp(opened.x, bounds.x, Math.max(bounds.right() - w, bounds.x))
-        let right = keepClear.width > 0 ? Math.min(bounds.right(), keepClear.x - inset) : bounds.right()
-        let candidates = [Math.Rectangle{avoid.right() + inset, y, w, h},
-                          Math.Rectangle{avoid.x - inset - w, y, w, h},
-                          Math.Rectangle{x, avoid.y - inset - h, w, h},
-                          Math.Rectangle{x, avoid.bottom() + inset, w, h},
-                          Math.Rectangle{bounds.x, y, w, h},
-                          Math.Rectangle{right - w, y, w, h}]
 
-        var best     = opened
-        var bestArea = covered(opened, avoid)
-        for place in candidates where bounds.contains(place) and not place.intersects(keepClear)
+        let x     = Math.clamp(anchor.x, bounds.x, Math.max(bounds.right() - w, bounds.x))
+        let below = Math.Rectangle{x, anchor.bottom() + gap, w, h}
+        let above = Math.Rectangle{x, anchor.y - gap - h, w, h}
+        let belowFits = below.bottom() <= bounds.bottom()
+        let aboveFits = above.y >= bounds.y
+
+        var place = below
+        if aboveFits and not above.intersects(avoid) and (not belowFits or below.intersects(avoid)) do
+            place = above
+        elif aboveFits and not belowFits do
+            place = above
+
+        place.y = Math.clamp(place.y, bounds.y, Math.max(bounds.bottom() - h, bounds.y))
+
+        // A selection right against the bar is covered on both sides of the button: the popover
+        // then slides along its row, just past the selection.
+        if place.intersects(avoid)
         {
-            let area = covered(place, avoid)
-            if area < bestArea
-            {
-                best     = place
-                bestArea = area
-            }
-
-            if area == 0 do
-                break
+            if avoid.right() + gap + w <= bounds.right() do
+                place.x = avoid.right() + gap
+            elif avoid.x - gap - w >= bounds.x do
+                place.x = avoid.x - gap - w
         }
 
         frame.anchor = .None
-        frame.setPosition(best)
+        frame.setPosition(place)
     }
 
     private mtd surfaceToView(view: *Wnd, rect: Math.Rectangle)->Math.Rectangle

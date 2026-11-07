@@ -20,19 +20,20 @@ const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
     defer f.shutdown()
     let arrow = testAddArrow(f.capture, 50, 50, 150, 120)
     discard f.gui.render(f.main)
-    let cache = unwrap f.capture.findFormCache(arrow)
-    let target = unwrap cache.shadow.contentTarget
-    var mask = f.editView.app().renderer.readRenderTarget(target, 0, 0, target.colorBuffer.width, target.colorBuffer.height)
+    let cache    = unwrap f.capture.findFormCache(arrow)
+    let target   = unwrap cache.shadow.contentTarget
+    var mask     = f.editView.app().renderer.readRenderTarget(target, 0, 0, target.colorBuffer.width, target.colorBuffer.height)
     var maxAlpha = 0'u8
     for y in 0 until mask.height
     {
         for x in 0 until mask.width do
             maxAlpha = Math.max(maxAlpha, mask.pixelColor(x, y).a)
     }
+
     Swag.require(maxAlpha > 40)
 
     let shadowTexture = cache.shadow.contentTarget.colorBuffer.handle
-    var exported = f.capture.toImage()
+    var exported      = f.capture.toImage()
     Swag.require(exported.pixelColor(100, 94).r < 250)
 
     arrow.paintShadow = false
@@ -197,7 +198,7 @@ func testPopulate(capture: *Capture)
     var fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &warm, "paintcache.clipped", CrossBakeTolerance)
 
-    let bakedZoom = cache.zoom
+    let bakedZoom    = cache.zoom
     let bakedTexture = cache.layer.contentTarget.colorBuffer.handle
     f.gui.moveMouse({260, 190})
     f.editView.setZoom(4.1, mouseCenter: true)
@@ -222,4 +223,37 @@ func testPopulate(capture: *Capture)
     f.editView.scrollPos.x += 40
     discard f.gui.render(f.main)
     Swag.require(cache.origin.x != oldOrigin.x)
+}
+
+// A text whose fill lets the capture through shows the capture inside its glyphs, not the colour
+// of its border: the border is a ring around the glyphs, painted only where they are not.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+
+    f.capture.width, f.capture.widthOrg   = 240
+    f.capture.height, f.capture.heightOrg = 160
+    f.capture.backImg = Image.create(240, 160, .BGRA8)
+    f.capture.backImg.fill(Color.fromArgb(0xFF0000FF))
+    f.capture.dirtyBackImg = true
+
+    with let text = testAddText(f.capture, 20, 20, 200, 120)
+    {
+        .text        = "I"
+        .fontSize    = 110
+        .boldSize    = 4
+        .borderSize  = 6
+        .borderColor = Color.fromArgb(Argb.White)
+        .backColor   = Color.fromArgb(128, Argb.Red)
+        .paintShadow = false
+    }
+
+    discard f.gui.render(f.main)
+    var exported = f.capture.toImage()
+
+    // The middle of the stem: half red over the blue capture, with no white under it.
+    let inside = exported.pixelColor(120, 80)
+    Swag.require(inside.b > 90 and inside.r > 90 and inside.g < 40)
 }

@@ -55,6 +55,11 @@ struct FormText
         paths:       Array'LinePathList
         borderPaths: Array'LinePathList
 
+        // The border without the glyphs: the border grown around them, and the glyphs as holes
+        // in it under the even-odd rule. A fill that lets the capture through shows the capture,
+        // not the colour of the border under it.
+        ringPaths: Array'LinePathList
+
         // Whether the words are being typed in place: the editor writes them, the form does not.
         editingText: bool
     }
@@ -124,8 +129,10 @@ impl FormText
 
         .paths.clear()
         .borderPaths.clear()
+        .ringPaths.clear()
         .paths.resize(tokens.count)
         .borderPaths.resize(tokens.count)
+        .ringPaths.resize(tokens.count)
 
         .totalY = 0
         for t, idx in tokens
@@ -143,6 +150,14 @@ impl FormText
                 borderPath.clean()
                 borderPath.offset(bSize, .joinStyle, 0.25)
                 borderPath.clean()
+
+                let ring = &.ringPaths[idx]
+                ring[] = borderPath[]
+                for glyph in pathl.toSlice()
+                {
+                    let hole = ring.newPath()
+                    hole[] = glyph[]
+                }
             }
 
             // With no border, the line is as tall as the glyph outline itself.
@@ -341,8 +356,15 @@ impl IForm for FormText
             painter.translateTransform(tt.tx, tt.ty)
             painter.translateTransform(drawX * rscale, drawY * rscale)
 
-            if not Math.isZeroEpsilon(bSize) and .borderColor.a do
-                painter.fillPath(borderPath, .borderColor)
+            // Under an opaque fill, the whole grown outline is painted, so the fill meets it
+            // without a seam; under a fill the capture shows through, only the ring is.
+            if not Math.isZeroEpsilon(bSize) and .borderColor.a
+            {
+                if .backColor.a == 255 do
+                    painter.fillPath(borderPath, .borderColor)
+                else do
+                    painter.fillPath(&.ringPaths[idx], .borderColor, .EvenOdd)
+            }
 
             if .backColor.a do
                 painter.fillPath(pathl, .backColor)

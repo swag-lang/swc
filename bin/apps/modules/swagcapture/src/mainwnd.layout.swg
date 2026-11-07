@@ -354,7 +354,7 @@ impl MainWnd
                 .sigPopupRequested += func|main = me|(button)
                 {
                     let popover = ColorPopover.open(assume cast(*IconButton, button), appStrings().ui_PropColor, main.miniBarColor(), &main.recentColors)
-                    popover.standClearOf(main.selectionSurfaceRect(), main.inspector.surfaceRect())
+                    popover.hangFrom(button, main.selectionSurfaceRect())
                     popover.sigColorChanged += func|main, button, var first = true|(pop)
                     {
                         let field = main.miniBarColorField()

@@ -111,6 +111,7 @@ impl MainWnd
             // builds its own. Kept, they make selecting a text form copy every contour of it.
             .mdlFormText.paths.clear()
             .mdlFormText.borderPaths.clear()
+            .mdlFormText.ringPaths.clear()
             .mdlFormText.isDirty = true
 
         case FormDraw as b:

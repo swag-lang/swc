@@ -1014,7 +1014,11 @@ namespace Clipboard
                 let plain = (byte >= 'a' and byte <= 'z') or
                             (byte >= 'A' and byte <= 'Z') or
                             (byte >= '0' and byte <= '9') or
-                            byte == '/' or byte == '-' or byte == '_' or byte == '.' or byte == '~'
+                            byte == '/' or
+                            byte == '-' or
+                            byte == '_' or
+                            byte == '.' or
+                            byte == '~'
                 if plain
                 {
                     list.add(byte)
@@ -1026,9 +1030,8 @@ namespace Clipboard
                 list.add(Hex[byte & 15])
             }
 
-            list.add('')
-            list.add('
-')
+            list.add('\r')
+            list.add('\n')
         }
 
         LinuxSelection.mutex.lock()
@@ -1079,11 +1082,10 @@ namespace Clipboard
             while i < bytes.count
             {
                 var lineEnd = i
-                while lineEnd < bytes.count and bytes[lineEnd] != '
-' do
+                while lineEnd < bytes.count and bytes[lineEnd] != '\n' do
                     lineEnd += 1
                 var last = lineEnd
-                if last > i and bytes[last - 1] == '' do
+                if last > i and bytes[last - 1] == '\r' do
                     last -= 1
 
                 let prefix = "file://"

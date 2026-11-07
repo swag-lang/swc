@@ -38,3 +38,42 @@ using Swag, Core
     var image = f.gui.render(wnd)
     Pixel.Testing.assertImageGolden(&image, "area")
 }
+
+// A zone chosen for an animation waits for its recording on the row of the capture: the kinds of
+// capture, those not built yet out of reach, the cursor and the countdown, the sound out of reach
+// and why, then the action in the primary colour.
+#[Swag.TestTag("golden")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 640)
+    defer f.shutdown()
+
+    var desktop = Gui.Testing.indexedImage(1024, 640)
+    g_DesktopTexture = f.gui.app.renderer.addImage(desktop)
+    defer f.gui.app.renderer.removeTexture(&g_DesktopTexture)
+    g_DesktopX, g_DesktopY = 0
+    g_ScreenWidth          = 1024
+    g_ScreenHeight         = 640
+    g_StartGrabX           = 140
+    g_StartGrabY           = 90
+    g_EndGrabX             = 860
+    g_EndGrabY             = 470
+    g_CaptureMedia         = .Animation
+    defer g_CaptureMedia = .Picture
+    f.main.captureOptions.recordCountdown = true
+
+    f.gui.theme.setLight()
+    f.gui.notify(.ThemeChanged)
+
+    with let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 1024, 640})
+    {
+        .main    = f.main
+        .settled = true
+        .pointer = {700, 300}
+    }
+
+    wnd.applyLayout()
+    var image = f.gui.render(wnd)
+    Pixel.Testing.assertImageGolden(&image, "area.record")
+}

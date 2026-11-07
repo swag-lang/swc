@@ -13,7 +13,7 @@ func easeGrab(current, target: f32)->f32
 }
 
 // The area overlay: the chosen zone at full brightness with a 1 px Voltage edge, its
-// size in a mono chip, a pixel loupe with a Voltage crosshair, and the keys at the foot.
+// size in a mono chip, a pixel loupe with a Voltage crosshair, and the row of the capture.
 const AreaChipPadding = 8.0      // Air inside the size chip and the loupe reading.
 const AreaChipGap     = 6.0      // Air between the size chip and the zone.
 const AreaLoupeRadius = 60.0     // Radius of the pixel loupe.
@@ -34,6 +34,11 @@ struct CaptureRectWnd
 
     // Where the pointer is, in logical units, for the loupe.
     pointer: Math.Point
+
+    // The row of the capture, and whether the zone is chosen and waits there for the recording
+    // to be started.
+    bar:     AimBar
+    settled: bool
 }
 
 impl IWnd for CaptureRectWnd
@@ -84,15 +89,20 @@ impl IWnd for CaptureRectWnd
         let physPosY = evt.surfacePos.y * k
         .pointer = evt.surfacePos
 
+        if .barTakesPointer(evt) do
+            return
+
         switch evt.kind
         {
         case .Pressed where evt.button == .Right:
-            if .startGrab or .tryStartGrab
+            if .startGrab or .tryStartGrab or .settled
             {
-                // Abandon only the rectangle in progress. The first drag's release must not
-                // accept the auto-detected zone, and the pointer can start a new drag.
+                // Abandon only the rectangle in progress, or the zone waiting to be recorded. The
+                // first drag's release must not accept the auto-detected zone, and the pointer can
+                // start a new drag.
                 .startGrab               = false
                 .tryStartGrab            = false
+                .settled                 = false
                 .autoGrab                = true
                 g_StartGrabX, g_EndGrabX = physPosX
                 g_StartGrabY, g_EndGrabY = physPosY
@@ -116,12 +126,16 @@ impl IWnd for CaptureRectWnd
             // If we're still in tryStartGrab mode (didn't move mouse significantly)
             if .tryStartGrab
             {
-                // A click without a drag accepts the auto-detected rectangle.
-                g_GrabDone = true
-                g_Exit     = true
+                // A click without a drag accepts the auto-detected rectangle. Once a zone waits
+                // to be recorded, the pointer no longer follows the windows: take the one under it.
+                .tryStartGrab = false
+                if .settled do
+                    .testAutoGrab()
+                .endAim()
             }
             elif .startGrab
             {
+                .startGrab = false
                 g_EndGrabX = physPosX
                 g_EndGrabY = physPosY
 
@@ -129,8 +143,7 @@ impl IWnd for CaptureRectWnd
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
                 g_CaptureWindow = getCaptureWindowForRect(unwrap .surface, screenRect)
-                g_GrabDone      = true
-                g_Exit          = true
+                .endAim()
             }
 
         case .Move where .tryStartGrab:
@@ -143,6 +156,7 @@ impl IWnd for CaptureRectWnd
                 .tryStartGrab = false
                 .startGrab    = true
                 .autoGrab     = false
+                .settled      = false
 
                 // Anchor the manual rectangle at the original press location.
                 g_StartGrabX = .clickStartPos.x
@@ -159,8 +173,9 @@ impl IWnd for CaptureRectWnd
 
         case .Move:
 
-            // Track the window under the pointer until a manual drag begins.
-            if not .startGrab
+            // Track the window under the pointer until a manual drag begins, and while no zone
+            // waits to be recorded.
+            if not .startGrab and not .settled
             {
                 .autoGrab = true
                 .testAutoGrab()
@@ -216,6 +231,19 @@ impl IWnd for CaptureRectWnd
         if not grabRect.isEmpty() do
             painter.drawTexture(dstGrab, grabRect, g_DesktopTexture)
 
+        // The cursor, where it stood, when the capture keeps it.
+        if .main.captureOptions.captureCursor and g_CursorTexture.isValid()
+        {
+            let patch = g_CursorPatchRect
+            painter.drawTexture({patch.x / k, patch.y / k, patch.width / k, patch.height / k}, g_CursorTexture, dimTint)
+            let inside = Math.Rectangle.intersect(patch, grabRect)
+            if not inside.isEmpty()
+            {
+                let src = Math.Rectangle{inside.x - patch.x, inside.y - patch.y, inside.width, inside.height}
+                painter.drawTexture({inside.x / k, inside.y / k, inside.width / k, inside.height / k}, src, g_CursorTexture)
+            }
+        }
+
         // A hairline in the signature states where the edge is, and nothing more lies on the
         // pixels about to be captured.
         let colors = .themeColors()
@@ -226,7 +254,7 @@ impl IWnd for CaptureRectWnd
         // corner, so split each line around the selection instead of running it along
         // (and hiding it behind) the rectangle border. The cross then meets the corner
         // and stays clearly visible over the dimmed background.
-        if .main.captureOptions.drawCross and not .autoGrab
+        if .main.captureOptions.drawCross and not .autoGrab and not .settled
         {
             // Translucent: the cross has to guide the eye without cutting the image.
             let cross: Color = {255, 255, 255, 110}
@@ -239,12 +267,102 @@ impl IWnd for CaptureRectWnd
         }
 
         .paintSizeChip(painter, grabRect, dstGrab)
-        .paintLoupe(painter)
+
+        // The row of the capture, except while a zone is drawn, where it would stand on it. It
+        // waits under a zone ready to be recorded, and otherwise at the foot of the screen the
+        // pointer is on, so the zone following the windows never moves it away from the pointer.
+        .bar.main = .main
+        if .startGrab
+        {
+            .bar.rect = {}
+        }
+        else
+        {
+            let width  = .bar.layout(me)
+            let anchor = .settled ? Math.Point{dstGrab.horzCenter(), dstGrab.vertCenter()} : .pointer
+            .bar.place(width, dstGrab, .workAreaAt(anchor), .settled)
+            .bar.paint(me, painter)
+        }
+
+        if not .bar.rect.contains(.pointer) do
+            .paintLoupe(painter)
     }
 }
 
 impl CaptureRectWnd
 {
+    // Ends the aim at the zone now chosen: a picture is taken at once; a recording waits on the
+    // row for the reader to start it, so its options can still change.
+    mtd endAim()
+    {
+        if g_CaptureMedia == .Animation
+        {
+            .settled  = true
+            .autoGrab = false
+            .invalidate()
+            return
+        }
+
+        g_GrabDone = true
+        g_Exit     = true
+    }
+
+    // Gives the pointer to the row while it is over it, or while a press that began on it lasts;
+    // the zone then stays as it is. Returns true when the row took the event.
+    mtd barTakesPointer(evt: *MouseEvent)->bool
+    {
+        if .startGrab or .tryStartGrab do
+            return false
+
+        let item = .bar.hitTest(evt.surfacePos)
+        let over = .bar.rect.contains(evt.surfacePos)
+        if item != .bar.hot or over != .bar.rect.contains(.pointer)
+        {
+            .bar.hot = item
+            .invalidate()
+        }
+
+        .cursor = Cursor.from(over ? CursorShape.Arrow : CursorShape.Cross)
+        if not over and .bar.pressed == .None do
+            return false
+
+        switch evt.kind
+        {
+        case .Pressed where evt.button == .Left:
+            .bar.pressed = item
+
+        case .Released where evt.button == .Left:
+            let pressed = .bar.pressed
+            .bar.pressed = .None
+            if pressed != .None and pressed == item and .bar.activate(item)
+            {
+                g_GrabDone = true
+                g_Exit     = true
+            }
+
+            .invalidate()
+        }
+
+        return true
+    }
+
+    // Returns the work area of the screen at `pos`, both in logical overlay units.
+    mtd workAreaAt(pos: Math.Point)->Math.Rectangle
+    {
+        let client = .clientRect()
+
+        // A headless test host has no screen under its overlay.
+        #static if #command == Swag.CompilerCommand.Test
+        {
+            return client
+        }
+
+        let k      = .deviceScale()
+        let area   = Env.monitorForPoint({g_DesktopX + pos.x * k, g_DesktopY + pos.y * k}).physicalWorkArea
+        let result = Math.Rectangle.intersect(client, {(area.x - g_DesktopX) / k, (area.y - g_DesktopY) / k, area.width / k, area.height / k})
+        return result.isEmpty() ? client : result
+    }
+
     // Writes what the capture keeps and the size of the zone, in physical desktop pixels — the size
     // of the captured image — in a mono chip standing on the top edge of the zone, or inside it
     // when the screen has no room above. The key that changes what is kept follows, fainter: the
@@ -257,7 +375,7 @@ impl CaptureRectWnd
         let metrics = .themeMetrics()
         let colors  = .themeColors()
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        let media   = g_CaptureMedia == .Animation ? "GIF" : appStrings().ui_MediaPicture
+        let media   = g_CaptureMedia == .Animation ? appStrings().ui_MediaAnimation : appStrings().ui_MediaPicture
         let text    = Format.toString("% · % × %", media, grabRect.width, grabRect.height)
         let key     = Format.toString("  %", Gui.strings().key_Tab)
         let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width + 2 * AreaChipPadding

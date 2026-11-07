@@ -32,6 +32,16 @@ var g_GrabDone:       bool
 var g_DesktopTexture: Texture
 var g_CaptureWindow:  CaptureWindowInfo
 
+// The cursor as it stood when the desktop was grabbed: a patch of the desktop with the cursor
+// drawn in, laid over the grabbed picture when the capture keeps the cursor. The overlay shows it
+// or not as the option changes, before the picture is taken.
+const CursorPatchSide = 192's32     // Side of the patch, in physical pixels.
+const CursorPatchLead = 64's32      // Part of the patch above and left of the pointer.
+
+var g_CursorPatch:     Image
+var g_CursorPatchRect: Math.Rectangle     // In physical virtual-desktop pixels.
+var g_CursorTexture:   Texture
+
 // What the next capture keeps of the aimed area: the command that opens the overlay chooses it,
 // and `Tab` changes it before the capture is taken.
 var g_CaptureMedia: CaptureMedia
@@ -57,6 +67,35 @@ func screenToDesktopRect(rect: Math.Rectangle)->Math.Rectangle
     return result
 }
 
+// Grabs the cursor patch around the pointer; no patch when it cannot be read.
+func grabCursorPatch()
+{
+    g_CursorPatch     = {}
+    g_CursorPatchRect = {}
+    let pos = Input.mousePosition()
+    let x   = cast(s32, pos.x) - CursorPatchLead
+    let y   = cast(s32, pos.y) - CursorPatchLead
+    g_CursorPatch = catch getScreenRectImage(true, x, y, CursorPatchSide, CursorPatchSide)
+    {
+        g_CursorPatch = {}
+        return
+    }
+
+    g_CursorPatchRect = {cast(f32, x - g_DesktopX), cast(f32, y - g_DesktopY), cast(f32, CursorPatchSide), cast(f32, CursorPatchSide)}
+}
+
+// Lays the cursor patch over `img`, a grab of the whole virtual desktop.
+func applyCursorPatch(img: *Image)
+{
+    if not g_CursorPatch.width do
+        return
+
+    // An image counts its rows from the bottom.
+    let x = cast(s32, g_CursorPatchRect.x)
+    let y = img.height - cast(s32, g_CursorPatchRect.y) - g_CursorPatch.height
+    img.mix(g_CursorPatch, x, y, .Copy)
+}
+
 func waitForCapture()->bool
 {
     g_Exit     = false
@@ -76,9 +115,21 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     g_CaptureWindow = {}
 
     var result: #returntype
-    result.img       = try getDesktopImage(main.captureOptions.captureCursor)
+
+    // The desktop is grabbed without the cursor, and the cursor apart, so the overlay can still
+    // put it in or leave it out.
+    result.img = try getDesktopImage(false)
+    grabCursorPatch()
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
+    if g_CursorPatch.width do
+        g_CursorTexture = g_App.renderer.addImage(g_CursorPatch)
+    defer
+    {
+        if g_CursorTexture.isValid() do
+            g_App.renderer.removeTexture(&g_CursorTexture)
+        g_CursorPatch = {}
+    }
 
     // The overlay must cover the virtual desktop in *physical* pixels, and the
     // desktop metrics are physical. Creation sizes are logical, so create small and
@@ -90,6 +141,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     {
         .main        = main
+        .bar.main    = main
         .cursor      = Cursor.from(CursorShape.Cross)
         .focusPolicy = .Click
         .setPosition(0, 0, sf.size().x, sf.size().y)
@@ -105,6 +157,10 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     {
         sf.destroy()
         result.sf = null
+    }
+    elif g_CaptureMedia == .Picture and main.captureOptions.captureCursor
+    {
+        applyCursorPatch(&result.img)
     }
 
     return result

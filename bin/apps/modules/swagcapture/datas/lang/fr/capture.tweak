@@ -87,6 +87,15 @@ msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
 ui_MediaPicture        Photo
+ui_MediaAnimation      GIF
+ui_MediaVideo          Vidéo
+ui_MediaSound          Son
+ui_MediaScroll         Défilement
+ui_AimCursor           Curseur
+ui_AimCountdown        Compte à rebours
+ui_AimNoSound          Pas de son dans un GIF
+ui_AimCapture          Capturer
+ui_AimRecord           Enregistrer
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_MissingFrames      Les images de cette animation sont introuvables ou ont été remplacées
@@ -391,6 +400,8 @@ prop_InPlaceEdit           Édition sur place
 prop_InPlaceEditDesc       Annoter la zone capturée directement sur l'écran
 prop_Delay                 Délai
 prop_DelayDesc             Définir le délai, en secondes, avant la capture
+prop_RecordCountdown       Compte à rebours
+prop_RecordCountdownDesc   Compter trois secondes avant le début d'un enregistrement
 prop_ClipToSelection       Masquer hors sélection
 prop_ClipToSelectionDesc   Masquer tout ce qui sort de la zone de capture sélectionnée
 prop_ConfirmLinked         Confirmer l'écrasement

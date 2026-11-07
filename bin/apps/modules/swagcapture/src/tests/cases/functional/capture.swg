@@ -224,3 +224,92 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.main.lastCapture = "ActionCapture.Screen7"
     Swag.require(f.main.lastCaptureCommand() == ActionCapture.Area)
 }
+
+// For an animation, the chosen zone waits on the row of the capture: the pointer no longer moves
+// it, a right click frees it, and the action of the row starts the recording. The kinds of
+// capture not built yet cannot be chosen.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 640)
+    defer f.shutdown()
+
+    var desktop = Gui.Testing.indexedImage(1024, 640)
+    g_DesktopTexture = f.gui.app.renderer.addImage(desktop)
+    defer f.gui.app.renderer.removeTexture(&g_DesktopTexture)
+    g_DesktopX, g_DesktopY = 0
+    g_ScreenWidth          = 1024
+    g_ScreenHeight         = 640
+    g_Exit, g_GrabDone     = false
+    g_CaptureMedia         = .Animation
+    defer g_CaptureMedia = .Picture
+
+    let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 1024, 640})
+    wnd.main = f.main
+    wnd.applyLayout()
+
+    func send(wnd: *CaptureRectWnd, kind: Gui.MouseEvent.Kind, button: Input.MouseButton, pos: Math.Point)
+    {
+        var evt = Gui.MouseEvent{kind: kind, button: button, surfacePos: pos}
+        wnd.sendEvent(&evt)
+    }
+
+    func center(wnd: *CaptureRectWnd, item: AimItem)->Math.Point
+    {
+        for part in wnd.bar.parts where part.item == item do
+            return {wnd.bar.rect.x + part.rect.horzCenter(), wnd.bar.rect.y + part.rect.vertCenter()}
+        return {}
+    }
+
+    send(wnd, .Pressed, .Left, {100, 100})
+    send(wnd, .Move, .Left, {300, 250})
+    send(wnd, .Released, .Left, {300, 250})
+    Swag.require(wnd.settled and not g_Exit and not g_GrabDone)
+    Swag.require(getGrabRect() == {100, 100, 200, 150})
+
+    // The row stands under the zone, and the pointer moving over the screen leaves the zone.
+    discard f.gui.render(wnd)
+    Swag.require(wnd.bar.rect.y >= 250)
+    send(wnd, .Move, .Left, {600, 40})
+    Swag.require(getGrabRect() == {100, 100, 200, 150})
+
+    // A kind of capture not built yet does nothing; the picture can still be chosen, and back.
+    var pos = center(wnd, .Video)
+    send(wnd, .Pressed, .Left, pos)
+    send(wnd, .Released, .Left, pos)
+    Swag.require(g_CaptureMedia == .Animation and not g_Exit)
+    pos = center(wnd, .Picture)
+    send(wnd, .Pressed, .Left, pos)
+    send(wnd, .Released, .Left, pos)
+    Swag.require(g_CaptureMedia == .Picture and not g_Exit)
+    discard f.gui.render(wnd)
+    pos = center(wnd, .Animation)
+    send(wnd, .Pressed, .Left, pos)
+    send(wnd, .Released, .Left, pos)
+    Swag.require(g_CaptureMedia == .Animation)
+
+    // The cursor option changes the capture setting.
+    let cursor = f.main.captureOptions.captureCursor
+    discard f.gui.render(wnd)
+    pos = center(wnd, .Cursor)
+    send(wnd, .Pressed, .Left, pos)
+    send(wnd, .Released, .Left, pos)
+    Swag.require(f.main.captureOptions.captureCursor != cursor)
+    f.main.captureOptions.captureCursor = cursor
+
+    // A right click frees the zone, without leaving.
+    send(wnd, .Pressed, .Right, {600, 40})
+    Swag.require(not wnd.settled and not g_Exit)
+
+    // The action takes the zone chosen again.
+    send(wnd, .Pressed, .Left, {100, 100})
+    send(wnd, .Move, .Left, {300, 250})
+    send(wnd, .Released, .Left, {300, 250})
+    Swag.require(wnd.settled)
+    discard f.gui.render(wnd)
+    pos = center(wnd, .Take)
+    send(wnd, .Pressed, .Left, pos)
+    send(wnd, .Released, .Left, pos)
+    Swag.require(g_Exit and g_GrabDone)
+    Swag.require(getGrabRect() == {100, 100, 200, 150})
+}

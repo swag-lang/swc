@@ -123,6 +123,15 @@ struct AppStrings
     ui_Common:                 string = "Common"                      // Section of the inspector holding what several objects share.
     ui_NoColor:                string = "none"                        // Value of a colour row whose colour is fully transparent.
     ui_MediaPicture:           string = "Picture"                     // What an area capture keeps by default, named on the aiming overlay.
+    ui_MediaAnimation:         string = "GIF"                         // An area capture kept as an animation, named on the aiming overlay.
+    ui_MediaVideo:             string = "Video"                       // An area capture kept as a video, not available yet.
+    ui_MediaSound:             string = "Sound"                       // A recording of sound alone, not available yet.
+    ui_MediaScroll:            string = "Scrolling"                   // A capture of a page longer than the screen, not available yet.
+    ui_AimCursor:              string = "Cursor"                      // Option of the aiming overlay keeping the cursor in the capture.
+    ui_AimCountdown:           string = "Countdown"                   // Option of the aiming overlay counting down before a recording.
+    ui_AimNoSound:             string = "No sound in a GIF"           // Why the sound of a recording is out of reach on the aiming overlay.
+    ui_AimCapture:             string = "Capture"                     // Action of the aiming overlay taking a picture.
+    ui_AimRecord:              string = "Record"                      // Action of the aiming overlay starting a recording.
     msg_FailedCaptureScreen:   string = "Failed to capture the screen"
     msg_FailedRecordScreen:    string = "The recording could not be written"
     msg_FailedLoadFile:        string = "Failed to load file: %"
@@ -494,6 +503,8 @@ struct AppStrings
     prop_InPlaceEditDesc:      string = "Edit captured area in place"                                        // Description of [[CaptureOptions.inPlaceEdit]].
     prop_Delay:                string = "Delay"                                                              // Label of [[CaptureOptions.delay]].
     prop_DelayDesc:            string = "Set the delay time, in seconds, before capturing"                   // Description of [[CaptureOptions.delay]].
+    prop_RecordCountdown:      string = "Countdown"                                                          // Label of [[CaptureOptions.recordCountdown]].
+    prop_RecordCountdownDesc:  string = "Count down three seconds before a recording starts"                 // Description of [[CaptureOptions.recordCountdown]].
     prop_ClipToSelection:      string = "Clip To Selection"                                                  // Label of [[EditorOptions.clipToSelection]].
     prop_ClipToSelectionDesc:  string = "Mask everything outside the selected capture area"                  // Description of [[EditorOptions.clipToSelection]].
     prop_ConfirmLinked:        string = "Confirm Linked Overwrite"                                           // Label of [[EditorOptions.confirmLinkedOverwrite]].

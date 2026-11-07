@@ -23,6 +23,9 @@ struct CaptureOptions
 
     #[Description("Set the delay time, in seconds, before capturing"), Unit("s")]
     delay = 0
+
+    #[Description("Count down three seconds before a recording starts")]
+    recordCountdown = false
 }
 
 // Languages the interface can present. `English` is the reference wording and the

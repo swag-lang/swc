@@ -3,6 +3,7 @@ using Core, Pixel
 // What an animation recording may hold: an animated picture is meant to be short and light.
 const AnimationFramesPerSecond = 15'u64
 const AnimationMaxDuration     = 30_000_000'u64     // Microseconds.
+const RecordCountdown          = 3_000_000'u64      // Wait before the first frame when the option asks for it, in microseconds.
 
 // Thickness of the frame drawn around the recorded area, in logical units, and the air between
 // the frame and the area: the frame stands outside, so it never appears in the frames.
@@ -12,6 +13,7 @@ const RecordFrameGap   = 1.0
 // Where a recording stands.
 enum RecorderState
 {
+    Counting     // Waiting for the countdown to end before the first frame.
     Recording
     Paused
     Stopped       // Ended by the reader or by its limit: the frames become a capture.
@@ -33,6 +35,7 @@ struct Recorder
     file:        String             // Capture the frames belong to.
     writer:      Frames.Writer
     state:       RecorderState
+    startsAt:    u64           // Monotonic time the countdown ends.
     resumedAt:   u64           // Monotonic time the recording last started or resumed.
     recorded:    u64           // Time recorded before the last resume, in microseconds.
     nextFrame:   u64           // Recorded time of the next frame to grab.
@@ -71,8 +74,19 @@ impl Recorder
         recorder.showChrome()
         defer recorder.hideChrome()
 
-        recorder.resumedAt = Time.monotonicMicroseconds()
-        while recorder.state == .Recording or recorder.state == .Paused
+        let now = Time.monotonicMicroseconds()
+        if main.captureOptions.recordCountdown
+        {
+            recorder.state    = .Counting
+            recorder.startsAt = now + RecordCountdown
+        }
+        else
+        {
+            recorder.state     = .Recording
+            recorder.resumedAt = now
+        }
+
+        while recorder.state == .Counting or recorder.state == .Recording or recorder.state == .Paused
         {
             g_App.runFrame()
             recorder.advance()
@@ -109,6 +123,15 @@ impl Recorder
         return .recorded + (Time.monotonicMicroseconds() - .resumedAt)
     }
 
+    // Returns the time left before the first frame, in microseconds; zero once the recording runs.
+    mtd const countdownLeft()->u64
+    {
+        if .state != .Counting do
+            return 0
+        let now = Time.monotonicMicroseconds()
+        return .startsAt > now ? .startsAt - now : 0
+    }
+
     // Suspends the recording; the time spent paused is not recorded.
     mtd pause()
     {
@@ -132,6 +155,13 @@ impl Recorder
     // Ends the recording and keeps it.
     mtd stop()
     {
+        // Nothing was recorded during the countdown: there is nothing to keep.
+        if .state == .Counting
+        {
+            .state = .Cancelled
+            return
+        }
+
         if .state != .Recording and .state != .Paused do
             return
         .recorded = .elapsed()
@@ -148,6 +178,12 @@ impl Recorder
     private mtd advance()
     {
         .hud?.invalidate()
+        if .state == .Counting and Time.monotonicMicroseconds() >= .startsAt
+        {
+            .state     = .Recording
+            .resumedAt = Time.monotonicMicroseconds()
+        }
+
         if .state != .Recording do
             return
 

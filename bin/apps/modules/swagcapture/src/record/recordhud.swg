@@ -64,27 +64,44 @@ impl IWnd for RecordHud
         painter.fillRect(client, colors.surface)
         painter.setParams(.Antialiased)
 
-        // The ring fills towards the limit; without one, it turns once a minute.
+        // The ring fills towards the limit; without one, it turns once a minute. During the
+        // countdown, it empties towards the first frame.
         let cx       = RecordHudLeft + RecordHudRing * 0.5
         let cy       = client.vertCenter()
-        let fraction = limit ? Math.min(cast(f32, elapsed) / cast(f32, limit), 1) : cast(f32, elapsed % 60_000_000) / 60_000_000
+        let counting = .recorder.state == .Counting
+        let left     = .recorder.countdownLeft()
+        var fraction = limit ? Math.min(cast(f32, elapsed) / cast(f32, limit), 1) : cast(f32, elapsed % 60_000_000) / 60_000_000
+        if counting do
+            fraction = cast(f32, left) / cast(f32, RecordCountdown)
         painter.drawCircle(cx, cy, RecordHudRingRadius, colors.raised, RecordHudRingWidth)
         if fraction > 0 do
             painter.drawArc(cx, cy, RecordHudRingRadius, Math.Angle.fromDegrees(0), Math.Angle.fromDegrees(360 * fraction), colors.arc, RecordHudRingWidth)
 
         // A paused recording keeps its dot, without the colour of a recording.
-        let dotColor = .recorder.state == .Paused ? colors.faintText : colors.critical
+        let dotColor = .recorder.state == .Paused or counting ? colors.faintText : colors.critical
         painter.fillCircle(cx, cy, RecordHudDotRadius, dotColor)
 
         // The time recorded, then the limit, fainter.
-        let font  = timeFont(me)
-        let top   = font.opticalLineTop(cy)
-        var x     = RecordHudLeft + RecordHudRing + RecordHudTextMargin
-        let shown = Capture.clockText(elapsed)
-        painter.drawString(x, top, shown, font, colors.text)
-        if limit
+        let font = timeFont(me)
+        let top  = font.opticalLineTop(cy)
+        var x    = RecordHudLeft + RecordHudRing + RecordHudTextMargin
+        if counting
         {
+            // The whole seconds left, counted down to the first frame.
+            let seconds = (left + 999_999) / 1_000_000
+            var shown   = String.from("-")
+            shown += Capture.clockText(seconds * 1_000_000)
+            painter.drawString(x, top, shown, font, colors.text)
+        }
+        else
+        {
+            let shown = Capture.clockText(elapsed)
+            painter.drawString(x, top, shown, font, colors.text)
             x += Painter.measureString(shown, font).width
+        }
+
+        if limit and not counting
+        {
             var rest = String.from(" / ")
             rest += Capture.clockText(limit)
             painter.drawString(x, top, rest, font, colors.faintText)

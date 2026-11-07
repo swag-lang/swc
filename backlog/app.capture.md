@@ -187,6 +187,18 @@ whole recording loaded at once.
   recording follows its window and pauses while it is minimized.
 - Related: app.capture.029, platform.portability.097
 
+### app.capture.038 — A zone waiting on the aiming row cannot be adjusted
+
+- Evidence: the row of `src/screenshot/aimbar.swg` lists the kinds of capture, the cursor and the
+  countdown, and its action takes the zone. For an animation, a chosen zone waits under it
+  (`CaptureRectWnd.settled`), but a waiting zone can only be redrawn, not moved or resized by its
+  edges, and the row has a speaker icon only, no microphone, while the theme has no glyph for it.
+- Next: give a waiting zone handles on its corners and edges and a drag inside to move it, and
+  add microphone and speaker glyphs once app.capture.013 brings sound.
+- Done when: a waiting zone can be moved and resized before the recording starts, and the row
+  shows both sources of sound.
+- Related: app.capture.013, app.capture.029
+
 ### app.capture.012 — Animation recording limits are fixed and dropped frames are silent
 
 - Evidence: `Recorder` records at a constant 15 frames per second for at most 30 seconds

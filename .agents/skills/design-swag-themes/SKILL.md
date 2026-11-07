@@ -105,7 +105,8 @@ ended up asymmetric that way.
   value of their own, and never build a new surface on a band.
 - **Every state differs from the one before it.** Rest, hover, press, focus, checked and disabled
   must each resolve to a different value. Disabled is always *weaker* than rest: an opaque 40–45 %
-  mix of body text over the ground for a button, a faint ring on a transparent ground for a field.
+  mix of body text over the ground for a button, a 25 % mix for an icon button's thinner glyph,
+  and a faint ring on a transparent ground for a field.
 - **A mark drawn around a control takes that control's shape.** The focus ring is
   `focusRing_Size` (2) at `focusRing_Offset` (2), outside the control, in `focusRing`. A tile
   publishes its corner in `ThemeImageRect.radius`, and a widget passes it on through

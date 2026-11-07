@@ -3,6 +3,42 @@
 
 using Swag, Core
 
+// The same caption glyph must read much quieter when unavailable in both shipped palettes.
+#test
+{
+    for light in [false, true]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(480, 240)
+        host.surface.flags = SurfaceFlags.StandardWindow
+        if light
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+
+        host.surfaceWnd.create(&host.root, null)
+        let unavailable = CaptionButton.createLeading(&host.surface, .ChevronLeft)
+        let available   = CaptionButton.createLeading(&host.surface, .ChevronLeft)
+        unavailable.disable()
+        host.surfaceWnd.sendResizeEvent()
+        Swag.require(not unavailable.isEnabled() and available.isEnabled())
+
+        let image  = host.renderSettled(&host.surfaceWnd)
+        let ground = host.theme.colors.wnd_Bk
+        var peaks: [2] f32
+        for button, index in [unavailable, available]
+        {
+            let rect = button.surfaceRect()
+            for y in cast(s32, rect.y) until cast(s32, rect.bottom()) do
+                for x in cast(s32, rect.x) until cast(s32, rect.right()) do
+                    peaks[index] = Math.max(peaks[index], image.pixelColor(x, y).contrastRatio(ground))
+        }
+
+        Swag.require(peaks[1] >= peaks[0] * 1.7)
+    }
+}
+
 #test
 {
     var host: Testing.HeadlessHost

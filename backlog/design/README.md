@@ -470,7 +470,8 @@ Anything that needs an answer is a dialog, not a toast.
   40–45 % mix of body text over the ground, quieter than an available button.
   Focus: 2 px ring offset by 2 px.
 - **Icon buttons**: 32 cells, glyph soft; hover raised ground; checked: Arc selection ground,
-  Arc glyph, faint Arc ring.
+  Arc glyph, faint Arc ring. A disabled glyph uses 25 % body ink over the ground so its thinner
+  stroke stays visibly quieter than an available glyph.
 - **Segments** (toggle groups): a raised frame, the chosen segment on the Arc selection ground
   (Encre) or lifted white with a soft shadow (Papier).
 - **Fields**: 32 high, surface ground with a 1 px line ring; hover a stronger ring; focus 2 px

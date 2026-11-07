@@ -561,9 +561,10 @@ impl ThemeColors
     // How far the stronger rule travels from the hairline toward the faint ink, and how far
     // disabled ink travels from the ground toward the body ink. The disabled value stays opaque,
     // so a label drawn twice never reads darker than one drawn once.
-    private const StrongLineMix  = 0.4'f32
-    private const FieldBorderMix = 0.25'f32
-    private const DisabledMix    = 0.42'f32
+    private const StrongLineMix   = 0.4'f32
+    private const FieldBorderMix  = 0.25'f32
+    private const DisabledMix     = 0.42'f32
+    private const IconDisabledMix = 0.25'f32
 
     // The ring of an unavailable control is the hairline at the opacity of disabled ink, so it
     // stays weaker than the ring of the same control at rest.
@@ -666,7 +667,8 @@ impl ThemeColors
         let fieldBorder = p.ground.relativeLuminance() <= 0.5 ? Color.lerpRgb(p.line, p.faintText, FieldBorderMix) : p.line
         // A popup needs a clear edge against its raised fill in both palettes.
         let popupBorder = p.ground.relativeLuminance() <= 0.5 ? fieldBorder : Color.lerpRgb(p.line, p.faintText, FieldBorderMix)
-        let disabled    = Color.lerpRgb(p.ground, p.text, DisabledMix)
+        let disabled     = Color.lerpRgb(p.ground, p.text, DisabledMix)
+        let iconDisabled = Color.lerpRgb(p.ground, p.text, IconDisabledMix)
         let faintLine   = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
         // A chosen segment is lifted when it is an opaque chip lighter than the raised frame it
@@ -830,8 +832,8 @@ impl ThemeColors
         .btnIcon_Icon         = p.softText
         .btnIcon_Text         = p.softText
         .btnIcon_Bk           = .transparent
-        .btnIcon_DisabledIcon = disabled
-        .btnIcon_DisabledText = disabled
+        .btnIcon_DisabledIcon = iconDisabled
+        .btnIcon_DisabledText = iconDisabled
         .btnIcon_DisabledBk   = .transparent
         .btnIcon_PressedIcon  = p.text
         .btnIcon_PressedText  = p.text
@@ -855,8 +857,8 @@ impl ThemeColors
         .btnIcon_CheckedPressedText  = alternate.mark
         .btnIcon_CheckedPressedBk    = pressed
         .btnIcon_CheckedPressedMark  = pressed
-        .btnIcon_CheckedDisabledIcon = disabled
-        .btnIcon_CheckedDisabledText = disabled
+        .btnIcon_CheckedDisabledIcon = iconDisabled
+        .btnIcon_CheckedDisabledText = iconDisabled
         .btnIcon_CheckedDisabledBk   = .transparent
         .btnIcon_CheckedDisabledMark = p.raised
         .btnIcon_CheckedRing         = chosenRing

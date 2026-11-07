@@ -3,6 +3,50 @@
 
 using Swag, Core
 
+// Encre compares the same leading caption glyph available and unavailable.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 160)
+    host.surface.flags = SurfaceFlags.StandardWindow | .NoShadow
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+    host.surfaceWnd.create(&host.root, null)
+
+    let unavailable = CaptionButton.createLeading(&host.surface, .ChevronLeft)
+    let available   = CaptionButton.createLeading(&host.surface, .ChevronLeft)
+    unavailable.disable()
+    host.surfaceWnd.sendResizeEvent()
+    Swag.require(not unavailable.isEnabled() and available.isEnabled())
+
+    var image = host.renderSettled(&host.surfaceWnd)
+    image.crop({0, 0, 480, host.theme.metrics.wnd_StripHeight + 20})
+    Pixel.Testing.assertImageGolden(&image, "caption.disabled.encre")
+}
+
+// Papier compares the parent-folder glyph at the trailing edge of the caption.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 160)
+    host.surface.flags = SurfaceFlags.StandardWindow | .NoShadow
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    host.surfaceWnd.create(&host.root, null)
+
+    let unavailable = CaptionButton.create(&host.surface, .ParentFolder)
+    let available   = CaptionButton.create(&host.surface, .ParentFolder)
+    unavailable.disable()
+    host.surfaceWnd.sendResizeEvent()
+    Swag.require(not unavailable.isEnabled() and available.isEnabled())
+
+    var image = host.renderSettled(&host.surfaceWnd)
+    image.crop({0, 0, 480, host.theme.metrics.wnd_StripHeight + 20})
+    Pixel.Testing.assertImageGolden(&image, "caption.disabled.paper")
+}
+
 // A named lens door fits its label, routes a pointer command without taking focus, and survives language changes.
 #[Swag.TestTag("golden")]
 #test

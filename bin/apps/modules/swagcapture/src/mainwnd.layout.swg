@@ -616,6 +616,11 @@ impl MainWnd
         var room   = .editArea.clientRect()
         room.x     += insets.left
         room.width -= insets.left + insets.right
+        // The caption strip covers the editor's top edge. Keep the bar below it
+        // when choosing which side of the selection has room.
+        let stripInset = .editArea.stripInset()
+        room.y      += stripInset
+        room.height -= stripInset
 
         // Across, it stands within the picture when the picture is wide enough for it, so that it
         // never straddles a side edge of the capture: a gap of the bar's own distance is the most

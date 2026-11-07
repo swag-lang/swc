@@ -1197,6 +1197,41 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     }
 }
 
+// The mini-bar changes sides before its upper position enters the opaque caption strip.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false, caption: true)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = unwrap main.getCapture()
+    let view    = main.editWnd.editView
+    view.setZoom(3)
+    let place   = view.getCaptureRect()
+    let corner  = main.editArea.surfaceToLocal(view.localToSurface(Math.Point{place.x - view.scrollPos.x, place.y - view.scrollPos.y}))
+    let strip   = main.editArea.stripInset()
+    let gap     = main.themeMetrics().miniBar_Distance
+    let height  = main.miniBar.bodySize().y
+    let y       = (strip + gap + height * 0.5 - corner.y) / view.zoom
+    discard testAddShape(capture, 60, y, 48, 24)
+    capture.selection.add(0)
+    capture.selectionHasChanged()
+    main.updateState()
+    host.finishAnimations()
+
+    let selected = main.selectionSurfaceRect()
+    let top      = main.editArea.surfaceToLocal(selected.topLeft()).y
+    let bar      = main.miniBar.position
+    Swag.require(top > strip and top - gap - height >= gap)
+    Swag.require(top - gap - height < strip)
+    Swag.require(bar.y >= strip and bar.y >= top + selected.height)
+}
+
 // The mini-bar of a form against a side edge of the capture stands within the picture rather
 // than across its edge, and the colour it opens leaves the selection in view.
 #test

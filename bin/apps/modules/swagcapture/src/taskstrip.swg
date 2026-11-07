@@ -71,7 +71,7 @@ impl TaskStrip
         with let result = Wnd.create'TaskStrip(main)
         {
             .dockStyle       = .Float
-            .backgroundStyle = .Transparent
+            .backgroundStyle = .Application
         }
 
         with result.leading = StackLayoutCtrl.create(result, .Left)

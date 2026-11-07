@@ -2,12 +2,12 @@
 
 All AI instructions for modifying this repository live in `.agents/skills/`.
 
-## Cloud Work Branches
+## Working Checkout
 
-Do all work in a cloud workspace on a task-specific branch; never make cloud changes directly on
-`master`. Use a descriptive branch name, commit the task's changes, and push the branch to the
-repository's remote so the work is backed up and available for review. Do not merge cloud work
-into `master`; leave integration to the user unless they explicitly ask you to merge it.
+Work in the main local checkout on `master` by default. Do not create a task branch or worktree
+unless the user explicitly asks for one. Preserve unrelated uncommitted changes, and stage only
+the task's files when committing. When the checkout is on another branch, return to `master`
+without discarding or relocating those changes; ask the user if that cannot be done safely.
 
 ## Start Here
 

@@ -36,6 +36,8 @@ struct FormCache
     scale:   f32             // Painter content scale the content was rendered at.
     samples: s32             // Samples per pixel the content was rendered with.
     dirty:   bool = true     // The content changed; re-render before the next draw.
+    clipped: bool             // The retained layer covers the view rather than the whole form.
+    origin:  Math.Vector2     // Layer origin relative to the capture rectangle when clipped.
 }
 
 impl FormCache

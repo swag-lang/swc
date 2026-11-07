@@ -130,3 +130,39 @@ func testPopulate(capture: *Capture)
     var fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &edited, "paintcache.edited", CrossBakeTolerance)
 }
+
+// A form larger than the editor retains the visible part at the current zoom.
+// Repainting it must reuse that layer, and scrolling must bake the new view.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+
+    var points: Array'Math.Vector2
+    points.add({-1000, -1000})
+    points.add({1300, -1000})
+    points.add({-1000, 1300})
+    let polygon = testAddPolygon(f.capture, points.toSlice())
+    polygon.paintShadow = true
+    polygon.borderSize  = 23
+
+    f.editView.setZoom(4)
+    discard f.gui.render(f.main)
+    let cache = unwrap f.capture.findFormCache(polygon)
+    Swag.require(cache.clipped)
+    let view = f.editView.clientRect()
+    Swag.require(cache.layer.width <= view.width + 200 and cache.layer.height <= view.height + 200)
+    let texture = cache.layer.contentTarget!.colorBuffer.handle
+
+    var warm = f.gui.render(f.main)
+    Swag.require(cache.layer.contentTarget.colorBuffer.handle == texture)
+    f.capture.invalidateAllFormCaches()
+    var fresh = f.gui.render(f.main)
+    Pixel.Testing.assertImagesNear(&fresh, &warm, "paintcache.clipped", CrossBakeTolerance)
+
+    let oldOrigin = cache.origin
+    f.editView.scrollPos.x += 40
+    discard f.gui.render(f.main)
+    Swag.require(cache.origin.x != oldOrigin.x)
+}

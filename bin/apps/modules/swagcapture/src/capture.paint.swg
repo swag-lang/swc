@@ -125,8 +125,9 @@ impl Capture
     // of forms. Here the layer lives across frames: an unchanged form composites its
     // retained texture, a zoom in flight draws it scaled (and [MaxFormCacheRefresh]
     // forms per repaint re-render sharp until none is stale), and only a content
-    // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
-    mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
+    // change forces a re-render. Large unrotated forms retain the portion around the
+    // visible editor, bounded by [MaxFormCacheDim].
+    mtd paintFormCached(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
         let base: *BaseForm = f
 
@@ -145,11 +146,6 @@ impl Capture
         pos.height += pos.y - Math.round(pos.y)
         pos.round()
 
-        let wt2 = cast(s32, pos.width)
-        let ht2 = cast(s32, pos.height)
-        if wt2 <= 0 or ht2 <= 0 do
-            return false
-
         // The retained rendering is the whole point of this. A form whose supersampled extent
         // passes the layer limit would otherwise leave the cache entirely and re-render —
         // supersampling, shadow blur and all — on every frame, which is exactly a text form on a
@@ -163,11 +159,29 @@ impl Capture
         }
 
         let scale = painter.contentScale()
+        // A large form needs only the part around the visible editor. Retaining that
+        // region also retains its shadow, so zooming or hovering does not rebuild a
+        // viewport-sized blur on every frame. The editor clip includes room for the
+        // shadow and for forms that cross the view edge.
+        var cachePos = pos
+        let clipped = not base.isRotated() and
+                      (not layerFits(cast(s32, pos.width), cast(s32, pos.height), scale, 1) or
+                       pos.width * pos.height > clip.width * clip.height * 2)
+        if clipped do
+            cachePos.intersect(clip)
+
+        let wt2 = cast(s32, cachePos.width)
+        let ht2 = cast(s32, cachePos.height)
+        if wt2 <= 0 or ht2 <= 0 do
+            return false
+
         var textSuperSample = Swag.kindOf(f) == FormText ? TextFormSuperSample : 1
         while textSuperSample > 1 and not layerFits(wt2, ht2, scale, textSuperSample) do
             textSuperSample -= 1
         if not layerFits(wt2, ht2, scale, textSuperSample) do
             return false
+
+        let origin = Math.Vector2{cachePos.x - rect.x, cachePos.y - rect.y}
 
         var entry = .findFormCache(f)
         if not entry
@@ -179,6 +193,10 @@ impl Capture
         let fresh = not entry.dirty and
                     entry.scale == scale and
                     entry.samples == textSuperSample and
+                    entry.clipped == clipped and
+                    (not clipped or (entry.zoom == zoom and
+                                     entry.origin.x == origin.x and entry.origin.y == origin.y and
+                                     entry.layer.width == wt2 and entry.layer.height == ht2)) and
                     entry.layer.contentTarget != null and
                     formContentFresh(f)
         var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
@@ -206,7 +224,10 @@ impl Capture
             with painter
             {
                 .pushTransform()
-                .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
+                if clipped do
+                    .translateTransform(-origin.x * textSuperSample, -origin.y * textSuperSample)
+                else do
+                    .translateTransform(-boundRect.x * zoom * textSuperSample, -boundRect.y * zoom * textSuperSample)
                 var cxt: FormPaintContext
                 cxt.z = zoom
                 cxt.renderScale = cast(textSuperSample)
@@ -219,11 +240,13 @@ impl Capture
             entry.scale   = scale
             entry.samples = textSuperSample
             entry.dirty   = false
+            entry.clipped = clipped
+            entry.origin  = origin
             sharp         = true
         }
 
         let colForm   = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
-        var paintRect = pos
+        var paintRect = cachePos
 
         painter.pushTransform()
         if base.isRotated() do
@@ -527,7 +550,7 @@ impl Capture
                 painter.pushClippingRect(pp)
             }
 
-            if not .paintFormCached(painter, rect, f, zoom) do
+            if not .paintFormCached(painter, clip, rect, f, zoom) do
                 paintForm(painter, clip, rect, f, zoom)
             if clipped do
                 painter.popClippingRect()

@@ -35,6 +35,27 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
 #test
 {
+    let owned: String = "middle"
+    let equal: string = "middle"
+    let before: string = "before"
+    let after: string = "zebra"
+
+    Swag.require(equal == owned)
+    Swag.require(not (equal != owned))
+    Swag.require(before != owned)
+    Swag.require(before < owned)
+    Swag.require(before <= owned)
+    Swag.require(equal <= owned)
+    Swag.require(after > owned)
+    Swag.require(after >= owned)
+    Swag.require(equal >= owned)
+    Swag.require((before <=> owned) < 0)
+    Swag.require((equal <=> owned) == 0)
+    Swag.require((after <=> owned) > 0)
+}
+
+#test
+{
     var value: String
     Swag.require(value.isNull())
     Swag.require(value.isEmpty())

@@ -1,0 +1,221 @@
+//! Format: Graphics Interchange Format (GIF89a) encoder component.
+//! Supported: Animations written frame by frame into a file, with a palette per frame, frame durations, looping, and frames reduced to the rectangle that changed.
+//! Not supported: Transparency, interlaced output, and a palette shared by every frame.
+//! Role: This file owns the public animated GIF writer.
+//
+#global namespace Gif
+
+using Swag, Core, Core.Errors
+
+// Configures an animated GIF.
+public struct AnimationOptions
+{
+    public loopCount: u16 = 0     // Times the animation plays; zero plays it forever.
+}
+
+// Writes an animated GIF frame by frame, without holding the animation in memory.
+//
+// Frames are opaque: their alpha channel is ignored. Each one carries its own palette, built from
+// its own colours, and only the rectangle that changed since the previous frame is stored. A frame
+// identical to the previous one lengthens it instead of adding a frame. GIF counts time in
+// hundredths of a second; the writer carries the rounding from frame to frame, so the total
+// duration stays exact.
+//
+// [[Gif.AnimationWriter.end]] writes what is still pending and finishes the file, so its failure
+// must be handled.
+#[Swag.NoCopy]
+public struct AnimationWriter
+{
+    sink:            ByteSink
+    width:           s32
+    height:          s32
+    previous:        Image     // Last frame added, compared with the next one.
+    pending:         Image     // Changed area of the last frame, waiting for its duration.
+    pendingX:        s32       // Position of `pending` in the frame, from the top left.
+    pendingY:        s32
+    pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
+    writtenTime:     u64     // Time covered by the frames written, in microseconds.
+    isEnded:         bool
+}
+
+public impl AnimationWriter
+{
+    // Creates `fileName` and writes the header of an animation of `width` by `height` pixels.
+    func create(fileName: string, width, height: s32, options: AnimationOptions = {})->AnimationWriter fail
+    {
+        if width <= 0 or height <= 0 do
+            fail InvalidFormatError{"invalid animation size"}
+        if width > Swag.U16.Max or height > Swag.U16.Max do
+            fail UnsupportedFormatError{"animation is too big"}
+
+        var result: #returntype
+        result.sink   = try ByteSink.createFile(fileName)
+        result.width  = width
+        result.height = height
+
+        // Logical screen without a global colour table, then the looping extension.
+        try result.sink.write("GIF89a")
+        try result.sink.writeLittleEndian(cast(u16, width))
+        try result.sink.writeLittleEndian(cast(u16, height))
+        try result.sink.write([0'u8, 0, 0])
+        try result.sink.write([0x21'u8, 0xFF, 0x0B])
+        try result.sink.write("NETSCAPE2.0")
+        try result.sink.write([0x03'u8, 0x01])
+        try result.sink.writeLittleEndian(options.loopCount)
+        try result.sink.writeByte(0)
+        return result
+    }
+
+    // Adds `image`, shown for `duration` microseconds.
+    //
+    // The image must have the size of the animation, in an 8-bit RGB or BGR format with or without
+    // alpha.
+    mtd addFrame(image: Image, duration: u64) fail
+    {
+        Swag.assert(not .isEnded)
+        if image.width != .width or image.height != .height do
+            fail InvalidFormatError{"frame size differs from the animation size"}
+        if image.pixelFormat != .BGRA8 and
+           image.pixelFormat != .RGBA8 and
+           image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGB8 do
+            fail UnsupportedFormatError{"unsupported frame pixel format"}
+
+        if not .previous.isValid()
+        {
+            .previous = image
+            .setPending(image, 0, 0, .width, .height, duration)
+            return
+        }
+
+        let area = changedArea(.previous, image)
+        if area.width <= 0
+        {
+            .pendingDuration += duration
+            return
+        }
+
+        try .flush()
+        .previous = image
+        .setPending(image, area.x, area.y, area.width, area.height, duration)
+    }
+
+    // Writes the last frame and the trailer, and closes the file.
+    mtd end() fail
+    {
+        if .isEnded do
+            return
+        .isEnded = true
+
+        try .flush()
+        try .sink.writeByte(0x3B)
+        try .sink.close()
+    }
+}
+
+private impl AnimationWriter
+{
+    // Keeps the area of `image` at `x, y` waiting for its duration, without its alpha channel.
+    mtd setPending(image: Image, x, y, w, h: s32, duration: u64)
+    {
+        let opaque = image.pixelFormat == .BGRA8 ? PixelFormat.BGR8 : image.pixelFormat == .RGBA8 ? PixelFormat.RGB8 : image.pixelFormat
+        .pending = Image.create(w, h, opaque)
+
+        let sourcePixel = cast(u64, image.bytesPerPixel)
+        let targetPixel = cast(u64, .pending.bytesPerPixel)
+        for row in h
+        {
+            let source = image.pixels.storage() + cast(u64, (image.height - 1 - (y + row)) * image.rowStride + x * image.bytesPerPixel)
+            let target = .pending.pixels.storage() + cast(u64, (h - 1 - row) * .pending.rowStride)
+            for column in cast(u64, w) do
+                Memory.copy(target + column * targetPixel, source + column * sourcePixel, 3)
+        }
+
+        .pendingX        = x
+        .pendingY        = y
+        .pendingDuration = duration
+    }
+
+    // Writes the pending area as one frame, its delay rounded so the total duration stays exact.
+    mtd flush() fail
+    {
+        if not .pending.isValid() do
+            return
+
+        let endTime = .writtenTime + .pendingDuration
+        let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
+        .writtenTime = endTime
+
+        let palette = Encoder.buildPalette(.pending)
+        var block: ConcatBuffer
+
+        // Graphic control: keep the frame in place for the next one, which covers only what changed.
+        block.addNative(0x21'u8)
+        block.addNative(0xF9'u8)
+        block.addNative(0x04'u8)
+        block.addNative(0x04'u8)
+        Encoder.writeU16(&block, cast(u16, Math.min(delay, cast(u64, Swag.U16.Max))))
+        block.addNative(0'u8)
+        block.addNative(0'u8)
+
+        // Image descriptor with its own colour table.
+        block.addNative(0x2C'u8)
+        Encoder.writeU16(&block, cast(u16, .pendingX))
+        Encoder.writeU16(&block, cast(u16, .pendingY))
+        Encoder.writeU16(&block, cast(u16, .pending.width))
+        Encoder.writeU16(&block, cast(u16, .pending.height))
+        block.addNative(0x80'u8 | (palette.tableBits - 1))
+        Encoder.writeColorTable(&block, palette)
+        block.addNative(palette.lzwMinCodeSize)
+
+        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize)
+        Encoder.writeSubBlocks(&block, compressed.toSlice())
+
+        block.makeLinear()
+        try .sink.write(unwrap block.toSlice())
+        .pending.release()
+    }
+
+    // Returns the smallest rectangle holding every pixel whose colour differs between two frames
+    // of the same size and format, alpha ignored; an empty rectangle when they look the same.
+    func changedArea(before, after: Image)->{ x: s32, y: s32, width: s32, height: s32 }
+    {
+        let pixelBytes = cast(u64, after.bytesPerPixel)
+        let first      = before.pixels.storage()
+        let second     = after.pixels.storage()
+
+        func sameColor(a, b: const [*] u8)->bool => a[0] == b[0] and a[1] == b[1] and a[2] == b[2]
+
+        var left   = after.width
+        var right  = -1
+        var top    = -1
+        var bottom = -1
+        for y in after.height
+        {
+            let offset   = cast(u64, (after.height - 1 - y) * after.rowStride)
+            var rowLeft  = -1
+            var rowRight = -1
+            for x in after.width
+            {
+                let at = offset + cast(u64, x) * pixelBytes
+                if sameColor(first + at, second + at) do
+                    continue
+                if rowLeft < 0 do
+                    rowLeft = x
+                rowRight = x
+            }
+
+            if rowLeft < 0 do
+                continue
+            if top < 0 do
+                top = y
+            bottom = y
+            left   = Math.min(left, rowLeft)
+            right  = Math.max(right, rowRight)
+        }
+
+        if top < 0 do
+            return {0, 0, 0, 0}
+        return {left, top, right - left + 1, bottom - top + 1}
+    }
+}

@@ -1,6 +1,6 @@
 //! Format: Graphics Interchange Format (GIF89a) encoder component.
 //! Supported: One indexed frame with generated palette, LZW compression, and binary transparency.
-//! Not supported: Animation, per-frame timing, interlaced output, and partial alpha.
+//! Not supported: Interlaced output and partial alpha; animations are written by [[Gif.AnimationWriter]].
 //! Role: This file owns GIF LZW dictionary encoding.
 //
 #global namespace Gif
@@ -81,19 +81,62 @@ impl LzwEncoder
 
 impl Encoder
 {
+    // Largest code of the GIF dictionary, whose codes are at most 12 bits wide.
+    const MaxLzwCode = 4095'u32
+
+    // Compresses palette indexes into GIF LZW codes.
+    //
+    // The dictionary maps a known string, as its code, followed by one more index to the code of
+    // the longer string. It is reset with a clear code once every 12-bit code is taken.
     func lzwCompress(indexes: const [..] u8, minCodeSize: u8)->Array'u8
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
-        enc.writeCode(enc.clearCode)
-
-        for i in indexes.count
+        if indexes.count == 0
         {
-            if i do
-                enc.writeCode(enc.clearCode)
-            enc.writeCode(cast(u16, indexes[i]))
+            enc.writeCode(enc.clearCode)
+            enc.writeCode(enc.endCode)
+            enc.bits.flush()
+            return enc.bits.bytes
         }
 
+        // One slot per (code, index) pair; zero means the longer string is not known yet.
+        var dictionary: Array'u16
+        dictionary.resize((MaxLzwCode + 1) * 256)
+        var nextCode = cast(u32, enc.endCode) + 1
+
+        enc.writeCode(enc.clearCode)
+        var prefix = cast(u32, indexes[0])
+        for i in 1 until indexes.count
+        {
+            let index = indexes[i]
+            let slot  = prefix * 256 + index
+            let known = dictionary[slot]
+            if known
+            {
+                prefix = known
+                continue
+            }
+
+            enc.writeCode(cast(u16, prefix))
+            if nextCode < MaxLzwCode
+            {
+                dictionary[slot] = cast(u16, nextCode)
+                nextCode         += 1
+                if nextCode > (1'u32 << enc.codeSize) and enc.codeSize < 12 do
+                    enc.codeSize += 1
+            }
+            else
+            {
+                enc.writeCode(enc.clearCode)
+                Memory.clear(dictionary.storage(), dictionary.count * #sizeof(u16))
+                nextCode = cast(u32, enc.endCode) + 1
+            }
+
+            prefix = index
+        }
+
+        enc.writeCode(cast(u16, prefix))
         enc.writeCode(enc.endCode)
         enc.bits.flush()
         return enc.bits.bytes

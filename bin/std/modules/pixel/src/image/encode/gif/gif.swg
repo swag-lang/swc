@@ -1,6 +1,6 @@
 //! Format: Graphics Interchange Format (GIF89a) encoder component.
 //! Supported: One indexed frame with generated palette, LZW compression, and binary transparency.
-//! Not supported: Animation, per-frame timing, interlaced output, and partial alpha.
+//! Not supported: Interlaced output and partial alpha; animations are written by [[Gif.AnimationWriter]].
 //! Role: This file owns encoder state and top-level GIF emission.
 //
 #global namespace Gif

@@ -22,6 +22,8 @@ prefer a focused command for the changed behavior over the full campaign in `too
 For routine `bin/std` development feedback, use `tools/coverage.bat -DevMode` (`fast` by default),
 narrowed with `-Workspace` and `-Module` as needed. For `bin/apps` iteration, use `swc.exe` by
 default: omit `-DevMode` from `tools/coverage.bat` and omit `dm` from `tools/apps.bat` commands.
+After every Swag Capture change, finish by building its Release application in the main checkout:
+`tools\apps.bat build swagcapture -bc release`.
 Reserve `swc.dm.exe` for debugging compiler problems. `-Configuration` and `-bc` select the
 compiled program configuration independently of the compiler executable. Keep large scale-boundary
 tests in `stress`; run `goldens`, `parity`, and `full` only for the validation needs described in

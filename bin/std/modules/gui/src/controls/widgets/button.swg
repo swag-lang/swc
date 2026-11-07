@@ -225,7 +225,11 @@ impl Button
         case .Pressed:
             if evt.button == .Left
             {
+                // The press itself says where the pointer is: it may have reached the button
+                // without an Enter, when the window appears under a still pointer or a menu closes
+                // over the button.
                 .isPressed, .isPressing = true
+                .isHot, .isIn = .clientRect().contains(pos)
                 .captureMouse()
                 .invalidate()
             }

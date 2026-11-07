@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-const PushButtonHeadless_Command = "PushButtonHeadless.Command"
+const PushButtonHeadless_Command  = "PushButtonHeadless.Command"
 const PushButtonHeadless_Shortcut = "PushButtonHeadless.Shortcut"
 
 var PushButtonHeadlessPressedCount:      u32
@@ -84,6 +84,7 @@ func pushButtonHeadlessResetCounters()
         host.keyPress(Input.Key.Space, modifiers)
         host.keyPress(Input.Key.Return, modifiers)
     }
+
     Swag.require(PushButtonHeadlessPressedCount == 0)
     Swag.require(host.commandCount == 0)
 
@@ -400,4 +401,25 @@ func pushButtonHeadlessResetCounters()
     Swag.require(not button.isPressed)
     Swag.require(not button.isPressing)
     Swag.require(host.app.mouseCaptureWnd == null)
+}
+
+// A click lands even when the pointer reached the button without an Enter, as when the window
+// reappears under a still pointer or a menu closes over the button.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.recordCommands()
+    pushButtonHeadlessResetCounters()
+
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
+    button.sigPressed += &pushButtonHeadlessPressed
+
+    var pt = button.surfaceRect().center()
+    button.surface!.surfaceToScreen(&pt)
+    host.sendMouseEvent(button, .Pressed, pt, .Left, .None)
+    host.sendMouseEvent(button, .Released, pt, .Left, .None)
+    host.pump()
+    Swag.require(PushButtonHeadlessPressedCount == 1)
+    Swag.require(host.commandCount == 1 and host.lastCommand == PushButtonHeadless_Command)
 }

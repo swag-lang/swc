@@ -3960,7 +3960,7 @@ impl Drawing
             switch primitive.kind
             {
             case .GaussianBlur:
-                layer.applyBlur(primitive.radius * scale)
+                layer.blur(primitive.radius * scale)
 
             case .Offset:
                 offsetX += primitive.x * scale

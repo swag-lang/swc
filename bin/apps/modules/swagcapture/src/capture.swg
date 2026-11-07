@@ -14,6 +14,12 @@ enum MouseMode
 
 const TextFormSuperSample = 3
 
+// Shadows are smooth masks in capture coordinates. Small forms keep native
+// resolution; large ones cap the mask size while the content remains sharp.
+const MaxFormShadowDim = 1536
+const FormShadowMargin = 8
+const FormShadowRadius = 8.0'f32
+
 // Ceiling of one retained form rendering, in device texels per axis, supersampling
 // included; a form drawn larger falls back to the direct, view-clipped path so a
 // pathological extent can never pin a giant texture.
@@ -23,15 +29,17 @@ const MaxFormCacheDim = 4096
 // their retained texture and sharpen over the following frames.
 const MaxFormCacheRefresh = 3
 
-// One retained off-screen rendering of a form. The layer keeps the resolved content
-// and its baked shadow alive across frames, so a repaint that did not change the
-// form composites two textured quads instead of re-rendering, supersampling, and
-// blurring it. Owned by [Capture.formCaches], keyed by the form, pruned by
+// One retained off-screen rendering of a form. Sharp content can be rebuilt
+// after zoom while its document-space shadow mask stays put. An unchanged form
+// composites two textures without supersampling or blurring again. Owned by
+// [Capture.formCaches], keyed by the form, pruned by
 // [Capture.pruneFormCaches] before the form's memory can be recycled.
 struct FormCache
 {
     form:    IForm?          // The rendered form; the key of this entry. Set at creation.
-    layer:   Layer           // Retained targets: resolved content, plus the shadow once built.
+    layer:   Layer           // Retained sharp content at the current view zoom.
+    shadow:  Layer           // Blurred mask retained across view zooms.
+    shadowScale: f32          // Capture-to-mask scale used for the shadow bake.
     zoom:    f32             // View zoom the content was rendered at.
     scale:   f32             // Painter content scale the content was rendered at.
     samples: s32             // Samples per pixel the content was rendered with.
@@ -47,6 +55,7 @@ impl FormCache
         // Entries die outside a recording scope, where a painter-recorded release
         // would be discarded with the next frame's commands.
         .layer.releaseImmediate()
+        .shadow.releaseImmediate()
     }
 }
 

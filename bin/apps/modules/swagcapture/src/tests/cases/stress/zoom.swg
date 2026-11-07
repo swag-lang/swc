@@ -53,6 +53,15 @@ using Swag, Core
     discard f.gui.render(f.main)
     Console.print("zoom initial: ", watch.elapsedMilliseconds(), " ms\n")
     Swag.require(f.capture.formCaches.count >= 2)
+    for i in 0 until 2
+    {
+        let shadow = &f.capture.formCaches[i]!.shadow
+        Swag.require(shadow.contentTarget != null and shadow.shadowTarget == null)
+        Swag.require(shadow.contentTarget.colorBuffer.width <= MaxFormShadowDim and
+                     shadow.contentTarget.colorBuffer.height <= MaxFormShadowDim)
+    }
+    let firstShadow = f.capture.formCaches[0]!.shadow.contentTarget!.colorBuffer.handle
+    let secondShadow = f.capture.formCaches[1]!.shadow.contentTarget!.colorBuffer.handle
     f.gui.moveMouse({1600, 1300})
 
     for zoom in [0.66'f32, 0.86, 1.0, 1.5, 2.0, 3.0, 4.0]
@@ -70,6 +79,8 @@ using Swag, Core
         watch.restart()
         discard f.gui.render(f.main)
         let settled = watch.elapsedMilliseconds()
+        Swag.require(first.shadow.contentTarget!.colorBuffer.handle == firstShadow and
+                     second.shadow.contentTarget!.colorBuffer.handle == secondShadow)
         Console.print("zoom ", zoom, ": preview ", preview, " ms; settled ", settled, " ms\n")
     }
 }

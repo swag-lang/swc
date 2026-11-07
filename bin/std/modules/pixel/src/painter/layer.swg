@@ -51,7 +51,7 @@ struct LayerDrawInfo
 //
 // A layer owns renderer targets until [[Pixel.Layer.release]] or a draw configured with
 // `releaseAfterDraw`. Calls must follow `begin`, drawing, `end`, then optional
-// `resolve`/`buildShadow`/`draw`.
+// `resolve`/`blur`/`buildShadow`/`draw`.
 struct Layer
 {
     public
@@ -169,8 +169,9 @@ impl Layer
 
     // Replaces the resolved content with a separable Gaussian blur.
     //
-    // Repeated calls compose, which lets importers preserve the declared order of blur nodes.
-    internal mtd applyBlur(radius: f32)
+    // `radius` is in target texels; nonpositive values leave the layer
+    // unchanged. Repeated calls compose, and the blurred result lasts until release.
+    mtd blur(radius: f32)
     {
         Swag.assert(not .active)
         if radius <= 0 do

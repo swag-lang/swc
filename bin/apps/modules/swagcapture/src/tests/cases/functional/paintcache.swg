@@ -12,6 +12,40 @@ using Swag, Core
 // deltas and still fails.
 const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
 
+// A Gaussian form shadow keeps nonzero alpha in its retained mask.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    let arrow = testAddArrow(f.capture, 50, 50, 150, 120)
+    discard f.gui.render(f.main)
+    let cache = unwrap f.capture.findFormCache(arrow)
+    let target = unwrap cache.shadow.contentTarget
+    var mask = f.editView.app().renderer.readRenderTarget(target, 0, 0, target.colorBuffer.width, target.colorBuffer.height)
+    var maxAlpha = 0'u8
+    for y in 0 until mask.height
+    {
+        for x in 0 until mask.width do
+            maxAlpha = Math.max(maxAlpha, mask.pixelColor(x, y).a)
+    }
+    Swag.require(maxAlpha > 40)
+
+    let shadowTexture = cache.shadow.contentTarget.colorBuffer.handle
+    var exported = f.capture.toImage()
+    Swag.require(exported.pixelColor(100, 94).r < 250)
+
+    arrow.paintShadow = false
+    f.capture.invalidateFormCache(arrow)
+    discard f.gui.render(f.main)
+    Swag.require(cache.shadow.contentTarget == null)
+
+    arrow.paintShadow = true
+    f.capture.invalidateFormCache(arrow)
+    discard f.gui.render(f.main)
+    Swag.require(cache.shadow.contentTarget != null and cache.shadow.contentTarget.colorBuffer.handle != shadowTexture)
+}
+
 func testPopulate(capture: *Capture)
 {
     // Cache invalidation needs varied forms and a complete 2x zoom, not a desktop-sized image.

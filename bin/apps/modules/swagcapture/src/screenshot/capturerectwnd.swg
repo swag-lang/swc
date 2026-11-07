@@ -26,7 +26,6 @@ struct CaptureRectWnd
     using wnd: Wnd
 
     late main:     *MainWnd
-    late hintLine: *HintLine
     startGrab:     bool
     tryStartGrab:  bool
     autoGrab:      bool
@@ -246,23 +245,10 @@ impl IWnd for CaptureRectWnd
 
 impl CaptureRectWnd
 {
-    // Creates the keys at the foot of the overlay. They stand over the frozen screen, which can be
-    // as busy as any picture, so they take the floating ground.
-    mtd createHintLine()
-    {
-        with .hintLine = HintLine.create(me)
-        {
-            .setGrounded(true)
-            .addHint(Gui.strings().key_Enter, appStrings().hint_Capture)
-            .addHint(Gui.strings().key_Tab, appStrings().hint_SwitchMedia)
-            .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
-            .addHint("", appStrings().hint_RedrawArea)
-        }
-    }
-
-    // Writes the size of the zone, in physical desktop pixels — the size of the captured image —
-    // in a mono chip standing on the top edge of the zone, or inside it when the screen has no
-    // room above. An animation names its format before the size.
+    // Writes what the capture keeps and the size of the zone, in physical desktop pixels — the size
+    // of the captured image — in a mono chip standing on the top edge of the zone, or inside it
+    // when the screen has no room above. The key that changes what is kept follows, fainter: the
+    // chip is where the eye already is, so the overlay needs no line of keys of its own.
     mtd paintSizeChip(painter: *Painter, grabRect, dstGrab: Math.Rectangle)
     {
         if grabRect.width <= 0 or grabRect.height <= 0 do
@@ -271,17 +257,21 @@ impl CaptureRectWnd
         let metrics = .themeMetrics()
         let colors  = .themeColors()
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        var text    = Format.toString("% × %", grabRect.width, grabRect.height)
-        if g_CaptureMedia == .Animation do
-            text = Format.toString("GIF · %", text)
-        let width  = Painter.measureString(text, font).width + 2 * AreaChipPadding
-        let height = font.height + AreaChipPadding
+        let media   = g_CaptureMedia == .Animation ? "GIF" : appStrings().ui_MediaPicture
+        let text    = Format.toString("% · % × %", media, grabRect.width, grabRect.height)
+        let key     = Format.toString("  %", Gui.strings().key_Tab)
+        let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width + 2 * AreaChipPadding
+        let height  = font.height + AreaChipPadding
 
         var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
         if chip.y < 0 do
             chip.y = dstGrab.y + AreaChipGap
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
-        painter.drawString(chip.x + AreaChipPadding, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+
+        let top = font.opticalLineTop(chip.vertCenter())
+        let x   = chip.x + AreaChipPadding
+        painter.drawString(x, top, text, font, colors.text)
+        painter.drawString(x + Painter.measureString(text, font).width, top, key, font, colors.faintText)
     }
 
     // Draws the pixels around the pointer enlarged in a round loupe beside it, on their grid, the

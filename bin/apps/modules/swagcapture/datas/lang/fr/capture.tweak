@@ -86,6 +86,7 @@ msg_FailedSaveFile     Impossible d'enregistrer le fichier
 msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
 msg_FailedCopyImage    Impossible de copier l'image
+ui_MediaPicture        Photo
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_MissingFrames      Les images de cette animation sont introuvables ou ont été remplacées
@@ -435,10 +436,7 @@ act_ShowRecent         Captures récentes
 act_ResetSteps         Réinitialiser la numérotation
 ui_PropStyle           Style
 lens_Dates             Dates
-hint_Capture           capturer
 hint_Cancel            annuler
-hint_SwitchMedia       photo ou animation
-hint_RedrawArea        clic droit pour recommencer
 tip_AllQuickStyles     Tous les styles
 tip_AddQuickStyle      Garder le style actuel comme style rapide
 tip_QuickStyleActions  Clic droit pour renommer, remplacer ou supprimer ce style rapide

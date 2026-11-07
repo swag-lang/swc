@@ -122,6 +122,7 @@ struct AppStrings
     hint_KeepText:             string = "keep the text"               // What Ctrl+Enter does while the words of a form are typed in place.
     ui_Common:                 string = "Common"                      // Section of the inspector holding what several objects share.
     ui_NoColor:                string = "none"                        // Value of a colour row whose colour is fully transparent.
+    ui_MediaPicture:           string = "Picture"                     // What an area capture keeps by default, named on the aiming overlay.
     msg_FailedCaptureScreen:   string = "Failed to capture the screen"
     msg_FailedRecordScreen:    string = "The recording could not be written"
     msg_FailedLoadFile:        string = "Failed to load file: %"
@@ -181,10 +182,7 @@ struct AppStrings
     lens_Selection:               string = "Selection"                                                     // Lens section of the actions of the selected shapes, at rest.
     lens_LibraryLink:             string = "Library →"                                                     // Link ending the recent captures of the lens: opens the library.
     lens_Dates:                   string = "Dates"                                                         // Lens section of the dates the library can be narrowed to.
-    hint_Capture:                 string = "capture"                                                       // What Enter does on the area overlay.
     hint_Cancel:                  string = "cancel"                                                        // What Escape does on the area overlay.
-    hint_SwitchMedia:             string = "picture or animation"                                          // What Tab does on the area overlay.
-    hint_RedrawArea:              string = "right click to draw again"                                     // What a right click does while an area is drawn.
     act_OpenLens:                 string = "Search Commands"                                               // Opens the lens.
     act_ShowInspector:            string = "Properties"                                                    // Folds or unfolds the inspector.
     act_ShowRecent:               string = "Recent Captures"                                               // Shows or hides the strip of recent captures.

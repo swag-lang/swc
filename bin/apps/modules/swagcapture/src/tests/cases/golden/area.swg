@@ -3,8 +3,9 @@
 
 using Swag, Core
 
-// The area overlay of the charter: the desktop dimmed but the chosen zone, a 1 px Voltage edge, the
-// size in a mono chip, the pixel loupe by the pointer, and the keys at the foot.
+// The area overlay of the charter: the desktop dimmed but the chosen zone, a 1 px Voltage edge,
+// what is kept and the size in a mono chip with the key changing it, and the pixel loupe by the
+// pointer. No line of keys stands over the screens.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -33,14 +34,7 @@ using Swag, Core
         .pointer   = {880, 520}
     }
 
-    wnd.createHintLine()
     wnd.applyLayout()
     var image = f.gui.render(wnd)
     Pixel.Testing.assertImageGolden(&image, "area")
-
-    Swag.require(wnd.hintLine.grounded)
-
-    // The keys teach Tab, which chooses the picture or the animation, and the right click, which
-    // abandons the rectangle for another.
-    Swag.require(wnd.hintLine.hints.count == 4 and wnd.hintLine.hints.back().text == appStrings().hint_RedrawArea)
 }

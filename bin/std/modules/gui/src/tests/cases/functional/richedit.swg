@@ -280,7 +280,7 @@ using Swag, Core
     Swag.require(ed.text() == "Frozen")
 }
 
-// Wrapping uses the viewport left by the vertical scrollbar, and bounds even a long token.
+// Wrapping uses the stable viewport inset beside an overlaid vertical scrollbar.
 #test
 {
     var host: Testing.HeadlessHost
@@ -297,9 +297,9 @@ using Swag, Core
     host.root.applyLayout()
     discard host.render(ed)
     discard host.render(ed)
-    Swag.require(ed.scrollWnd.paddingZ > 0)
+    Swag.require(ed.scrollWnd.barWidthV > 0)
     Swag.require(ed.lines.count > 1)
-    let right = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ - ed.marginRight
+    let right = ed.scrollWnd.paddedClientRect().width - ed.marginRight
     for line, index in ed.lines
     {
         let position = ed.cursorDisplayPosition(RichEditCursor{index, line!.length()})
@@ -440,7 +440,7 @@ impl IRichEditLexer for CountingLexer
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("a short line")
     discard host.render(ed)
-    let view = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ
+    let view = ed.scrollWnd.paddedClientRect().width
     Swag.require(ed.scrollWnd.scrollSize.x <= view)
 
     ed.setText("0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789")

@@ -426,9 +426,17 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     let popup  = unwrap main.textChoicePopover
     let filter = unwrap popup.filter
     Swag.require(popup.list.scrollWnd.scrollSize.y > popup.list.position.height)
+    let frameWnd = unwrap popup.parent
+    frameWnd.applyLayout()
+    let frame = frameWnd.surfaceRect()
+    var rows  = popup.list.listView.surfaceRect()
+    Swag.require(Math.abs((rows.x - frame.x) - (frame.right() - rows.right())) <= 0.5)
     filter.setText(main.theme().res.defaultTypeFaceR.familyName())
     Swag.require(popup.list.lineCount() > 0 and filter.hasFocus())
+    frameWnd.applyLayout()
     host.finishAnimations()
+    rows = popup.list.listView.surfaceRect()
+    Swag.require(Math.abs((rows.x - frame.x) - (frame.right() - rows.right())) <= 0.5)
     let content = popup.clientRect()
     Swag.require(Math.abs(filter.position.x - TextChoicePadding) <= 0.5)
     Swag.require(Math.abs(content.right() - filter.position.right() - TextChoicePadding) <= 0.5)

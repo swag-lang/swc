@@ -1434,15 +1434,13 @@ impl ListCtrl
     {
         let clientRect = .scrollWnd.paddedClientRect()
 
-        // The first column takes the room the others leave, so names never stop short of the edge.
-        // The room of a vertical scroll bar stays out of it whether the bar shows or not, so the
-        // columns do not move when enough rows arrive to need one; a bar already shown has taken
-        // that room from the view.
+        // The first column takes the room the others leave. Overlaid scroll bars
+        // do not narrow the viewport when rows start to overflow.
         if .listFlags.has(.StretchFirstColumn) and .header != null and not .header.items.isEmpty()
         {
             let metrics = .themeMetrics()
             let others  = .header.contentWidth() - .header.itemWidthAt(0)
-            let width   = clientRect.width - metrics.scrollBar_Size - others
+            let width   = clientRect.width - others
             .header.setItemWidth(0, Math.max(Math.floor(width), metrics.list_LineHeight * 4))
         }
 

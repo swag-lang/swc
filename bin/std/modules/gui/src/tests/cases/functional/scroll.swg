@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// Square content gets shorter when the vertical bar narrows its responsive view.
+// A responsive view keeps its full width when a vertical bar appears or goes away.
 struct ResponsiveScrollView
 {
     using wnd:  Wnd
@@ -30,7 +30,7 @@ impl IWnd for ResponsiveScrollView
     }
 }
 
-// A responsive view settles even when adding the bar makes its content fit without overflow.
+// A vertical bar overlays a stable viewport and cannot change the view's own extent.
 #test
 {
     var host: Testing.HeadlessHost
@@ -39,10 +39,10 @@ impl IWnd for ResponsiveScrollView
     scroll.updateFlags(.DisableHorizontal)
     let view = scroll.createView'ResponsiveScrollView()
     scroll.setScrollSize(0, 200)
-    Swag.require(view.position.width == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.require(view.position.width == 200)
     Swag.require(scroll.scrollSize.y == view.position.width and scroll.showBarV)
     scroll.setScrollPos(0, 100)
-    Swag.require(scroll.scrollPosition() == Math.Point{} and scroll.showBarV)
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 4} and scroll.showBarV)
 
     view.visits = 0
     scroll.resize(200, 220)
@@ -50,7 +50,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.scrollSize.y == 200)
 }
 
-// The horizontal axis has the same feedback when its bar shortens the responsive view.
+// A horizontal bar likewise leaves the view's height and extent alone.
 #test
 {
     var host: Testing.HeadlessHost
@@ -59,15 +59,63 @@ impl IWnd for ResponsiveScrollView
     let view   = scroll.createView'ResponsiveScrollView()
     view.horizontal = true
     scroll.setScrollSize(200, 0)
-    Swag.require(view.position.height == 200 - host.theme.metrics.scrollBar_Size)
+    Swag.require(view.position.height == 200)
     Swag.require(scroll.scrollSize.x == view.position.height and scroll.showBarH)
     scroll.setScrollPos(100, 0)
-    Swag.require(scroll.scrollPosition() == Math.Point{} and scroll.showBarH)
+    Swag.require(scroll.scrollPosition() == Math.Point{4, 0} and scroll.showBarH)
 
     view.visits = 0
     scroll.resize(220, 200)
     Swag.require(view.position.height == 200 and not scroll.showBarH)
     Swag.require(scroll.scrollSize.x == 200)
+}
+
+// Neither axis can create overflow on the other; the bars leave the viewport unchanged.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView'Wnd()
+    let room   = view.position
+
+    scroll.setScrollSize(200, 300)
+    Swag.require(scroll.showBarV and not scroll.showBarH and view.position == room)
+    scroll.setScrollSize(300, 200)
+    Swag.require(scroll.showBarH and not scroll.showBarV and view.position == room)
+    scroll.setScrollSize(300, 300)
+    Swag.require(scroll.showBarV and scroll.showBarH and view.position == room)
+    scroll.setScrollSize(100, 100)
+    Swag.require(not scroll.showBarV and not scroll.showBarH and view.position == room)
+}
+
+// The overlaid track remains draggable while the child owns the full viewport.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let view   = scroll.createView'Wnd()
+    scroll.setScrollSize(200, 1000)
+    let edge = Math.Point{197, 100}
+    Swag.require(host.mouseTargetAt(edge) == view)
+    host.moveMouse(edge)
+    host.finishAnimations()
+    Swag.require(scroll.isHotBarV and scroll.barPresence > 0)
+    host.mouseDown(edge)
+    Swag.require(host.app.mouseCaptureWnd == scroll and scroll.scrollPosition().y > 0)
+    host.mouseUp(edge)
+    Swag.require(host.app.mouseCaptureWnd == null)
+
+    scroll.setScrollSize(1000, 1000)
+    let bottom = Math.Point{100, 197}
+    Swag.require(host.mouseTargetAt(bottom) == view)
+    host.moveMouse(bottom)
+    Swag.require(scroll.isHotBarH)
+    host.mouseDown(bottom)
+    Swag.require(host.app.mouseCaptureWnd == scroll and scroll.scrollPosition().x > 0)
+    host.mouseUp(bottom)
+    Swag.require(view.position == Math.Rectangle{0, 0, 200, 200})
 }
 
 // A hover hint exposes existing scrollbars without moving content or changing its viewport.

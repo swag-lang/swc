@@ -1367,3 +1367,22 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     libWnd.updateEmptyState()
     Swag.require(not button.isLocallyVisible())
 }
+
+// An editor without a capture, as at the start of an empty library, keeps its zoom when the
+// inspector shows or hides instead of measuring a capture it does not have.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let view = main.editWnd.editView
+    Swag.require(view.capture == null)
+    view.setZoom(2)
+    Swag.require(view.zoom == 2)
+}

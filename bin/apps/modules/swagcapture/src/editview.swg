@@ -326,6 +326,13 @@ impl EditView
     // Sets the zoom to `z`; with `mouseCenter`, scrolls so the point under the mouse stays put.
     private mtd applyZoom(z: f32, mouseCenter = false)
     {
+        // Without a capture there is nothing to measure or scroll: keep the zoom for the next one.
+        if not .capture
+        {
+            .zoom = Math.clamp(z, MinZoom, MaxZoom)
+            return
+        }
+
         let previousZoom = .zoom
         var mousePos, mousePos1: Math.Point
         if mouseCenter

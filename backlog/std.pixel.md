@@ -15,6 +15,13 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.035 — Diagnose intermittent incomplete OpenGL frames in offscreen tests
+
+- Evidence: a Swag Scope Markdown golden sometimes has zero alpha across its outline and torn RGB text. Reading the same render target again still returns zero alpha; the CPU renderer draws the panel correctly. In the reproduced run, `RenderOgl.recoverLostDevice` returned false with `deviceResets == 0`, unlike the earlier reset described in std.gui.057. A following full repaint can produce the expected image.
+- Next: on the first bad frame, record the painter command tail, bound draw framebuffer, color mask, and uploaded vertex data before presentation. Use those values to distinguish incomplete recording, wrong OpenGL state, and corrupted submission; fix the failing boundary rather than accepting or retrying the golden.
+- Done when: a focused reproducer identifies the faulty boundary, its correction keeps the outline opaque and its text intact, and the existing Swag Scope and Pixel golden suites pass.
+- Related: std.gui.057
+
 ### std.pixel.034 — Complete renderer initialization and readback failure recovery
 
 - Evidence: `RenderOgl.initImpl` and built-in texture creation still panic when initial GPU

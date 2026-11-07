@@ -53,6 +53,8 @@ prove it. Operating-system integrations live in
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
   out mostly black and diagonally torn (`viewer.outline.markdown`). `HeadlessHost` never runs
   `RenderOgl.recoverLostDevice`, so it reports such a run as an ordinary golden mismatch.
+- A later incomplete frame in the same golden had zero alpha in the render target without a
+  reported device reset. Its OpenGL submission is tracked separately in std.pixel.035.
 - Every reset on the Intel Arc host also takes the `dlidusb4.dll` DisplayLink driver down with
   its displays (DriverFrameworks events 10121 and 10111); that driver fault is outside Swag.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
@@ -67,7 +69,7 @@ prove it. Operating-system integrations live in
 - Done when: display-cadence captures across the supported monitors show only complete old
   and new frames, and physical border dragging preserves the responsiveness measured in
   std.gui.056 with an explicit sustained-presentation budget.
-- Related: std.gui.054, std.gui.056
+- Related: std.gui.054, std.gui.056, std.pixel.035
 
 ### std.gui.042 — Text outside a framed field is still centered on its line box, so its height follows the face
 

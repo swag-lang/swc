@@ -534,31 +534,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.092 — Code generation asserts on `is`/`as` narrowing returned from a loop over window children
-
-- Evidence: `swc.dm` stops with `panic: compiler assertion does not hold` at
-  `src/Compiler/CodeGen/Core/CodeGen.cpp:43` (`expression: value`, phase "Codegen parsing",
-  function `PropWnd.fieldLabel`, token `if`) on this Swag Capture helper, inlined into its caller:
-
-  ```swag
-  func fieldComboCtrl(item: *PropertiesItem)->*ComboCtrl?
-  {
-      for child in item.line.children      // Array'(*Wnd)
-      {
-          if child is ComboCtrl as ctrl do
-              return ctrl
-      }
-
-      return null
-  }
-  ```
-
-  Writing `if child is ComboCtrl do return assume cast(*ComboCtrl, child)` compiles and runs.
-- Next: reduce it to a standalone `#test` with a two-level `using` struct hierarchy and an
-  `Array'(*Base)`, add it to the compiler suite, and fix the code generation of an `as` binding
-  returned from a `for` body.
-- Done when: the helper above compiles and returns the narrowed pointer.
-
 ### compiler.core.093 — A narrowed nullable local loses its narrowing inside a `while` nested in a `for`
 
 - Evidence: in `GridView.onPaint` of Swag Scope's hex viewer

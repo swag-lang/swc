@@ -39,6 +39,11 @@ CodeGenNodePayload CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNode
         if (variable.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && localStackBaseReg().isValid())
             return resolveLocalStackPayload(variable);
 
+        // An inlined binding returned directly through the caller's slot has no
+        // ordinary variable payload. Test the value already written in that slot.
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, variable))
+            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(*this, variable);
+
         const auto* value = variablePayload(variable);
         SWC_ASSERT(value);
         return *value;

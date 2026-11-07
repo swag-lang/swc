@@ -100,6 +100,8 @@ func testPopulate(capture: *Capture)
                  captureRect.y >= 0 and
                  captureRect.right() <= f.editView.position.width and
                  captureRect.bottom() <= f.editView.position.height)
+    Swag.require(f.editView.zoomTimer != null)
+    f.gui.fireTimer(f.editView.zoomTimer)
     for 12 do
         discard f.gui.render(f.main)
     Swag.require(not f.capture.cacheNeedsRefine)
@@ -132,7 +134,7 @@ func testPopulate(capture: *Capture)
 }
 
 // A form larger than the editor retains the visible part at the current zoom.
-// Repainting it must reuse that layer, and scrolling must bake the new view.
+// Repainting and a zoom step reuse that layer; settling and scrolling bake a new view.
 #test
 {
     var f: HeadlessFixture
@@ -160,6 +162,26 @@ func testPopulate(capture: *Capture)
     f.capture.invalidateAllFormCaches()
     var fresh = f.gui.render(f.main)
     Pixel.Testing.assertImagesNear(&fresh, &warm, "paintcache.clipped", CrossBakeTolerance)
+
+    let bakedZoom = cache.zoom
+    let bakedTexture = cache.layer.contentTarget.colorBuffer.handle
+    f.editView.setZoom(4.1)
+    Swag.require(f.editView.zoomTimer != null)
+    discard f.gui.render(f.main)
+    Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
+    f.editView.setZoom(4.2)
+    discard f.gui.render(f.main)
+    Swag.require(cache.zoom == bakedZoom and cache.layer.contentTarget.colorBuffer.handle == bakedTexture)
+    f.gui.fireTimer(f.editView.zoomTimer)
+    discard f.gui.render(f.main)
+    Swag.require(cache.zoom == 4.2)
+
+    f.editView.setZoom(4.1)
+    discard f.gui.render(f.main)
+    Swag.require(cache.zoom == 4.2)
+    f.gui.fireTimer(f.editView.zoomTimer)
+    discard f.gui.render(f.main)
+    Swag.require(cache.zoom == 4.1)
 
     let oldOrigin = cache.origin
     f.editView.scrollPos.x += 40

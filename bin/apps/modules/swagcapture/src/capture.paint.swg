@@ -201,12 +201,43 @@ impl Capture
                     formContentFresh(f)
         var sharp = fresh and entry.zoom == zoom and entry.layer.width == wt2 and entry.layer.height == ht2
 
-        var renderNow = not fresh
+        // A zoom gesture can stretch an existing layer immediately. A clipped layer
+        // remains usable only while it still covers the visible editor and its shadow
+        // fringe at the new zoom. The timer rebuilds it once the gesture settles.
+        let view    = unwrap .editView
+        let zooming = view.zoomTimer != null
+        var reuseZoom = false
+        var paintRect = cachePos
+        if zooming and not fresh and not entry.dirty and
+           entry.scale == scale and
+           entry.layer.contentTarget != null and formContentFresh(f)
+        {
+            let ratio = zoom / entry.zoom
+            let oldRect = Math.Rectangle{rect.x + entry.origin.x * ratio,
+                                         rect.y + entry.origin.y * ratio,
+                                         entry.layer.width * ratio,
+                                         entry.layer.height * ratio}
+            var needed = view.clientRect()
+            needed.offset(view.scrollPos)
+            needed.inflate(32)
+            needed.intersect(pos)
+            if oldRect.contains(needed)
+            {
+                reuseZoom = true
+                paintRect = oldRect
+            }
+        }
+
+        var renderNow = not fresh and not reuseZoom
         if fresh and not sharp
         {
             // The content is right but baked at another zoom: re-render a few forms
             // per repaint, and draw the rest scaled until their turn comes.
-            if .cacheRefreshLeft > 0
+            if zooming
+            {
+                // The refinement timer will request the final sharp frame.
+            }
+            elif .cacheRefreshLeft > 0
             {
                 .cacheRefreshLeft -= 1
                 renderNow         = true
@@ -246,8 +277,6 @@ impl Capture
         }
 
         let colForm   = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
-        var paintRect = cachePos
-
         painter.pushTransform()
         if base.isRotated() do
             turnAbout(painter, noClipPos, &paintRect, base.rotate)

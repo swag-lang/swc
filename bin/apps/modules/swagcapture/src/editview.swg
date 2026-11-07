@@ -10,6 +10,9 @@ const GroundPictureMargin = 12.0
 // of the selection.
 const CaptureEdgeReach = 28.0
 
+// Let a wheel gesture settle before rebuilding form layers at its final zoom.
+const ZoomRefineDelay: Time.Duration = 180'ms
+
 struct EditView
 {
     using wnd:   Wnd
@@ -19,6 +22,7 @@ struct EditView
     zoom:        f32  = 1
     viewMargin:  f32  = 32
     firstPaint:  bool = true
+    zoomTimer:   *Gui.Timer?
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
@@ -37,6 +41,19 @@ struct EditView
 
 impl IWnd for EditView
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .zoomTimer do
+            return
+        .stopTimer(&.zoomTimer)
+        .invalidate()
+    }
+
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        .stopTimer(&.zoomTimer)
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
@@ -306,6 +323,7 @@ impl EditView
     // Sets the zoom to `z`; with `mouseCenter`, scrolls so the point under the mouse stays put.
     private mtd applyZoom(z: f32, mouseCenter = false)
     {
+        let previousZoom = .zoom
         var mousePos, mousePos1: Math.Point
         if mouseCenter
         {
@@ -333,6 +351,13 @@ impl EditView
             mousePos1 += Math.Point{after.x, after.y}
             mousePos1 -= mousePos
             .scroll.setScrollPos(mousePos1.x, mousePos1.y)
+        }
+
+        let capture = .capture
+        if not .inPlaceEdit and previousZoom != .zoom and capture != null and capture.formCaches.count != 0
+        {
+            .stopTimer(&.zoomTimer)
+            .zoomTimer = .addTimer(ZoomRefineDelay)
         }
 
         .invalidate()
@@ -379,6 +404,7 @@ impl EditView
 
     mtd setCapture(c: *Capture)
     {
+        .stopTimer(&.zoomTimer)
         if .capture do
             Memory.delete(.capture)
         .capture = c

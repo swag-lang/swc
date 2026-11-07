@@ -106,6 +106,7 @@ act_CaptureActiveWindow Capturer la fenêtre active
 act_CaptureArea        Capturer une zone
 act_RecordAnimation    Enregistrer une animation
 act_StopRecording      Arrêter l'enregistrement
+act_CancelRecording    Annuler l'enregistrement
 act_CaptureFullScreen  Capturer l'écran entier
 act_CaptureLastArea    Capturer la dernière zone
 act_CaptureCursor      Capturer le curseur de la souris

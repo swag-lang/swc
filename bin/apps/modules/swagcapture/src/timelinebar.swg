@@ -188,8 +188,12 @@ impl TimelineBar
     // Writes `time`, in microseconds, as minutes and seconds, with the tenth when asked.
     func clockText(time: u64, tenths: bool)->String
     {
+        // `%%` is a literal percent sign in a format: the two digits of the seconds are written
+        // one by one.
         let seconds = time / 1_000_000
-        var result  = Format.toString("%:%%", seconds / 60, (seconds % 60) / 10, seconds % 10)
+        var result  = Format.toString("%:", seconds / 60)
+        result += Format.toString("%", (seconds % 60) / 10)
+        result += Format.toString("%", seconds % 10)
         if tenths do
             result += Format.toString(".%", (time / 100_000) % 10)
         return result

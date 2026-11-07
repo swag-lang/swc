@@ -42,6 +42,8 @@ struct Recorder
     writeFailed: bool     // Set by the task when the file could not be written.
     dropped:     u32      // Frames not recorded because the previous one was still being written.
     hud:         *RecordHud?
+    limit:       u64      // Longest recording, in microseconds; zero records until stopped.
+    ownsEscape:  bool     // Escape is registered as the cancel hotkey of this recording.
     edges:       Array'(*Surface)     // The frame around the area.
 }
 
@@ -59,6 +61,7 @@ impl Recorder
         recorder.main   = main
         recorder.area   = area
         recorder.file   = Library.newFileName()
+        recorder.limit  = AnimationMaxDuration
         recorder.writer = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), cast(s32, area.width), cast(s32, area.height), .BGRA8)
         defer #fail discard catch File.delete(Capture.mediaPathOf(recorder.file))
 
@@ -149,9 +152,9 @@ impl Recorder
             return
 
         let time = .elapsed()
-        if time >= AnimationMaxDuration
+        if .limit and time >= .limit
         {
-            .recorded = AnimationMaxDuration
+            .recorded = .limit
             .state    = .Stopped
             return
         }
@@ -220,11 +223,19 @@ impl Recorder
         .addEdge({outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick})
 
         .hud = RecordHud.open(me, outer, scale)
+
+        // Escape abandons the recording from any application, for as long as it runs only.
+        catch g_App.registerHotKey(.None, .Escape, ActionCapture.CancelRecording, .main)
+        .ownsEscape = true
     }
 
     // Removes the frame and the pill.
     private mtd hideChrome()
     {
+        if .ownsEscape do
+            discard g_App.unregisterHotKey(.None, .Escape)
+        .ownsEscape = false
+
         for edge in .edges do
             edge[].destroy()
         .edges.clear()
@@ -245,6 +256,8 @@ impl Recorder
             .dockStyle = .Center
         }
 
+        // A side of the frame is a few pixels thick: no default minimum size may widen it.
+        surface.minSize = {}
         surface.setView(edge)
         surface.setPosition(rect)
         surface.show()
@@ -252,7 +265,7 @@ impl Recorder
     }
 }
 
-// One side of the frame drawn around a recorded area, in the colour of something running now.
+// One side of the frame drawn around a recorded area, in the colour of a recording.
 struct RecordEdge
 {
     using wnd: Wnd
@@ -262,6 +275,6 @@ impl IWnd for RecordEdge
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().live)
+        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().critical)
     }
 }

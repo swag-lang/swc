@@ -74,3 +74,13 @@ func testEndRecording()
     let after = expect Directory.enumerateFiles(Library.getFolder(), CaptureMediaExtension)
     Swag.require(after.count == before.count)
 }
+
+// The pill and the timeline write minutes and two-digit seconds, the timeline with the tenth.
+#test
+{
+    Swag.require(RecordHud.clockText(0) == "0:00")
+    Swag.require(RecordHud.clockText(67_000_000) == "1:07")
+    Swag.require(RecordHud.clockText(3_727_000_000) == "1:02:07")
+    Swag.require(TimelineBar.clockText(3_450_000, tenths: true) == "0:03.4")
+    Swag.require(TimelineBar.clockText(12_000_000, tenths: false) == "0:12")
+}

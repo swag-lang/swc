@@ -9,6 +9,7 @@ impl ActionCapture
     newCmdId("DoIt")
     newCmdId("Area")
     newCmdId("Record")
+    newCmdId("CancelRecording")
     newCmdId("LastArea")
     newCmdId("FullScreen")
     newCmdId("ActiveWnd")
@@ -89,6 +90,12 @@ impl IActionUI for ActionCapture
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordAnimation
             evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
 
+        case .CancelRecording:
+            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.name          = appStrings().act_CancelRecording
+            evt.icon          = main.theme().icon(.WndClose)
+            evt.disabled      = g_Recorder == null
+
         case .LastArea:
             evt.updatedFields |= .Name | .Icon
             evt.name = appStrings().act_CaptureLastArea
@@ -156,17 +163,42 @@ impl IActionUI for ActionCapture
 
         switch cxt.id
         {
-        case .DoIt:          main.captureScreen(.Area)
-        case .Area:          main.captureScreen(.Area)
-        case .Record:        main.recordScreen()
-        case .LastArea:      main.captureScreen(.LastArea)
-        case .FullScreen:    main.captureScreen(.FullScreen)
-        case .ActiveWnd:     main.captureScreen(.ActiveWindow)
-        case .ToInPlace:     main.captureOptions.inPlaceEdit = not main.captureOptions.inPlaceEdit
-        case .HideEditor:    main.captureOptions.hideEditorBefore = not main.captureOptions.hideEditorBefore
-        case .CaptureCursor: main.captureOptions.captureCursor = not main.captureOptions.captureCursor
-        case .ToEditor:      main.captureOptions.sendToEditor = not main.captureOptions.sendToEditor
-        case .ToClipboard:   main.captureOptions.sendToClipboard = not main.captureOptions.sendToClipboard
+        case .DoIt:
+            main.captureScreen(.Area)
+
+        case .Area:
+            main.captureScreen(.Area)
+
+        case .Record:
+            main.recordScreen()
+
+        case .CancelRecording:
+            if g_Recorder do
+                g_Recorder!.cancel()
+
+        case .LastArea:
+            main.captureScreen(.LastArea)
+
+        case .FullScreen:
+            main.captureScreen(.FullScreen)
+
+        case .ActiveWnd:
+            main.captureScreen(.ActiveWindow)
+
+        case .ToInPlace:
+            main.captureOptions.inPlaceEdit = not main.captureOptions.inPlaceEdit
+
+        case .HideEditor:
+            main.captureOptions.hideEditorBefore = not main.captureOptions.hideEditorBefore
+
+        case .CaptureCursor:
+            main.captureOptions.captureCursor = not main.captureOptions.captureCursor
+
+        case .ToEditor:
+            main.captureOptions.sendToEditor = not main.captureOptions.sendToEditor
+
+        case .ToClipboard:
+            main.captureOptions.sendToClipboard = not main.captureOptions.sendToClipboard
         }
 
         return true

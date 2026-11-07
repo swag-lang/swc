@@ -229,6 +229,7 @@ struct AppStrings
     act_CaptureArea:              string = "Capture Area"
     act_RecordAnimation:          string = "Record an Animation"     // Records a short animated picture of an area.
     act_StopRecording:            string = "Stop Recording"          // The same command while a recording runs.
+    act_CancelRecording:          string = "Cancel the Recording"    // Abandons the recording in progress.
     act_CaptureFullScreen:        string = "Capture Full Screen"
     act_CaptureLastArea:          string = "Capture Last Area"
     act_CaptureCursor:            string = "Capture Mouse Cursor"

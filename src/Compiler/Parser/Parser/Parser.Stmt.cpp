@@ -194,11 +194,17 @@ AstNodeRef Parser::parseAlias()
 
 AstNodeRef Parser::parseReturn()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>(consume());
+    const TokenRef tokReturn = consume();
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ReturnStmt>(tokReturn);
 
     // A newline after 'return' is a bare return. This keeps automatic statement
     // termination from accidentally capturing the first expression on the next line.
-    if (is(TokenId::SymSemiColon) || tok().startsLine())
+    if (is(TokenId::SymRightCurly) && !tok().startsLine())
+    {
+        raiseError(DiagnosticId::parser_err_return_value_before_closing, tokReturn);
+        nodePtr->nodeExprRef.setInvalid();
+    }
+    else if (is(TokenId::SymSemiColon) || tok().startsLine())
         nodePtr->nodeExprRef.setInvalid();
     else
         nodePtr->nodeExprRef = parseExpression();

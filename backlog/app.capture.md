@@ -175,17 +175,16 @@ whole recording loaded at once.
   when its window moves before or during a recording.
 - Related: app.capture.030, app.capture.009
 
-### app.capture.030 — The recording pill cannot be reached from the keyboard and may be recorded
+### app.capture.030 — The recording pill may be recorded, and an anchored recording does not follow its window
 
 - Evidence: `Recorder` in `src/record/recorder.swg` starts, pauses, resumes, stops and cancels
-  from the pill and from `Shift+PrintScreen`. The pill and the frame are placed outside the area,
-  but over a full-screen area the pill lands inside it and is recorded; `Esc` does not cancel,
-  and a minimized anchored window is not followed (app.capture.029).
+  from the pill, from `Shift+PrintScreen` and from `Escape`. The pill and the frame are placed
+  outside the area, but over a full-screen area the pill lands inside it and is recorded, and an
+  anchored window is not followed (app.capture.029).
 - Next: exclude the frame and the pill from capture with `SetWindowDisplayAffinity`
-  (platform.portability.097), make `Esc` cancel while recording, follow an anchored window, and
-  pause while it is minimized.
-- Done when: a full-screen recording contains neither the frame nor the pill, `Esc` cancels, and
-  an anchored recording follows its window and pauses while it is minimized.
+  (platform.portability.097), follow an anchored window, and pause while it is minimized.
+- Done when: a full-screen recording contains neither the frame nor the pill, and an anchored
+  recording follows its window and pauses while it is minimized.
 - Related: app.capture.029, platform.portability.097
 
 ### app.capture.012 — Animation recording limits are fixed and dropped frames are silent

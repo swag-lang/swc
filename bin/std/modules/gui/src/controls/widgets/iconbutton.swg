@@ -197,8 +197,9 @@ impl IWnd for IconButton
             .hidePopup()
         }
 
-        // A click in another application is a click outside the popup too.
-        if evt is NotifyEvent as ptr where ptr.kind == .Deactivated do
+        // A press no window hears, in another application or on the ground that moves the window,
+        // is a click outside the popup too.
+        if evt is NotifyEvent as ptr where ptr.kind == .PressedElsewhere do
             .hidePopup()
     }
 

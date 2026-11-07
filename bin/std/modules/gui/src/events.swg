@@ -451,7 +451,7 @@ struct NotifyEvent
             ChildFocusChanged     // A descendant gained or lost keyboard focus.
             ThemeChanged          // The resolved theme or inherited style changed.
             LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
-            Deactivated           // Another application became the active one; sent to the global hooks only.
+            PressedElsewhere      // A press went where no window of the application hears it: in another application, or on the ground or the edge the system moves or sizes a window by; sent to the global hooks only.
         }
 
         kind: Kind      // Notification kind.

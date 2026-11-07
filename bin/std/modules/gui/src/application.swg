@@ -1690,18 +1690,22 @@ impl Application
         for s in .modalSurfaces do
             s.bringToFront()
 
-        // A click in another application reaches none of these windows, so the hooks that close a
-        // transient popup on a click outside it hear of the change instead. A hook may unregister
-        // itself on it: walk a copy.
-        if not activated
-        {
-            var evt = NotifyEvent{kind: .Deactivated}
-            let hooks = .hookOnEvent
-            for hook in hooks do
-                hook.itf.onHookEvent(&evt)
-        }
+        // A click in another application reaches none of these windows.
+        if not activated do
+            .notifyPressedElsewhere()
 
         .invalidate()
+    }
+
+    // Tells the global hooks that a press went where no window of the application hears it, so
+    // that a transient popup closing on a click outside it closes then too. A hook may unregister
+    // itself on it: walk a copy.
+    internal mtd notifyPressedElsewhere()
+    {
+        var evt   = NotifyEvent{kind: .PressedElsewhere}
+        let hooks = .hookOnEvent
+        for hook in hooks do
+            hook.itf.onHookEvent(&evt)
     }
 
     // Schedules every surface for a complete repaint.

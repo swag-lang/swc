@@ -348,8 +348,8 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     Swag.require(btn.itf.measureContent({320, 200}).x == hidden.x)
 }
 
-// A popup anchored to a button closes on a click outside it, and when another application becomes
-// the active one, since a click there reaches none of the windows of this one.
+// A popup anchored to a button closes on a click outside it, when another application becomes
+// the active one, and on a press the system takes to move the window: no window hears those.
 #test
 {
     var host: Testing.HeadlessHost
@@ -371,5 +371,10 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     Swag.require(btn.popup != null)
     host.app.setActivated(true)
     host.app.setActivated(false)
+    Swag.require(btn.popup == null)
+
+    host.click({40, 40})
+    Swag.require(btn.popup != null)
+    host.app.notifyPressedElsewhere()
     Swag.require(btn.popup == null)
 }

@@ -304,7 +304,14 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             EndPaint(hWnd, &ps)
             return 0
 
+        case WM_NCRBUTTONDOWN:
+            surface.app.notifyPressedElsewhere()
+            break
+
         case WM_NCLBUTTONDOWN:
+
+            // The system takes this press for itself, so no window hears it as a click.
+            surface.app.notifyPressedElsewhere()
 
             // A press on the caption or a border runs USER32's move or size loop inside
             // DefWindowProc. The window does not hear of it until the pointer has actually

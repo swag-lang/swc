@@ -732,7 +732,29 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> elements;
     collectChildren(elements, sema.ast());
     if (elements.empty())
+    {
+        const auto bindingTypes = sema.frame().bindingTypes();
+        for (size_t index = bindingTypes.size(); index != 0; --index)
+        {
+            const TypeRef bindingTypeRef = bindingTypes[index - 1];
+            if (bindingTypeRef.isInvalid())
+                continue;
+
+            const TypeInfo& target = sema.typeMgr().get(bindingTypeRef).unwrapAliasTypeOrSelf(sema.ctx());
+            if (!target.isSlice())
+                continue;
+
+            static constexpr std::array emptySliceStorage{std::byte{}};
+            const std::span<const std::byte> emptySlice{emptySliceStorage.data(), 0};
+            ConstantValue value = ConstantValue::makeSliceCounted(sema.ctx(), target.payloadTypeRef(), emptySlice, 0, target.flags());
+            value.setTypeRef(bindingTypeRef);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+            sema.setIsValue(*this);
+            return Result::Continue;
+        }
+
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
+    }
 
     bool allConstant = true;
 

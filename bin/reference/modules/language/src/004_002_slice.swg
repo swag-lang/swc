@@ -22,6 +22,11 @@ operations that reallocate its buffer while the slice is in use.
 
 Slices can be initialized directly with array literals. The slice will reference
 the array’s elements.
+
+Use '[]' for an empty slice when the destination names a slice type, including a
+typed declaration, a function argument, a parameter default, or a return value.
+The empty slice is present and has a count of zero. Without a destination type,
+'[]' has no element type to infer.
 */
 #test
 {
@@ -34,6 +39,20 @@ the array’s elements.
     Swag.require(a.count == 2)
     Swag.require(a[0] == 1)
     Swag.require(a[1] == 2)
+}
+
+func emptySliceCount(values: const [..] u32)->u64 => values.count
+func emptySliceDefault(values: const [..] u32 = [])->u64 => values.count
+func emptySliceReturn()->const [..] u32 => []
+
+#test
+{
+    let empty: const [..] u32 = []
+    Swag.require(empty.count == 0)
+    Swag.require(empty != null)
+    Swag.require(emptySliceCount([]) == 0)
+    Swag.require(emptySliceDefault() == 0)
+    Swag.require(emptySliceReturn().count == 0)
 }
 
 /**

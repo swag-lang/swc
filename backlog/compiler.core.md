@@ -534,19 +534,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.089 — Diagnostics name a tuple type by its generated symbol
-
-- Evidence: `TypeInfo::toName` prints a struct by its symbol name, and a tuple such as the
-  `{value: s32, eat: u32, ovf: bool}` returned by `StrConv.parseS32` is an anonymous struct
-  registered as `anonymous_struct` ([Sema.Struct.cpp](../src/Compiler/Sema/Ast/Sema.Struct.cpp)).
-  A diagnostic that names such a type, like `sema_err_catch_value_needs_fallback`, shows
-  `'__anonymous_struct_33b4699d8228f36a'` instead of the tuple the source wrote.
-- Next: find which consumers of `toName`/`toFullName` need the symbol name (reflection names,
-  generated API files, mangling) and which only display it; spell an anonymous struct as its
-  field list on the display paths, and cover it with a sema error fixture.
-- Done when: every diagnostic that names a tuple type shows its fields, and reflection and
-  generated API output are unchanged.
-
 ### compiler.core.092 — Code generation asserts on `is`/`as` narrowing returned from a loop over window children
 
 - Evidence: `swc.dm` stops with `panic: compiler assertion does not hold` at

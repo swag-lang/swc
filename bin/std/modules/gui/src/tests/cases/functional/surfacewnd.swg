@@ -174,3 +174,45 @@ using Swag, Core, Pixel
     host.surfaceWnd.showTitle(true)
     Swag.require(not host.surfaceWnd.titleHidden)
 }
+
+// A quiet icon button set in the strip, which takes no keyboard focus, keeps its clicks in every
+// part of it, inside a layout as an application strip holds it, and with the body of the window
+// set in by the margin its shadow is cast into.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 200)
+    buildChromeWindow(&host)
+
+    let margin = 18.0
+    host.surfaceWnd.setPosition(Math.Rectangle{margin, margin, 480 - 2 * margin, 200 - 2 * margin})
+    host.surfaceWnd.applyLayout()
+
+    let strip     = host.theme.metrics.wnd_StripHeight
+    with let band = Wnd.create'Wnd(&host.root, {0, 0, 440, strip - 1})
+    {
+        .dockStyle = .Float
+    }
+
+    with let layout = StackLayoutCtrl.create(band, .Left)
+    {
+        .backgroundStyle = .Transparent
+    }
+
+    with let button = IconButton.createQuiet(layout, menu: false)
+    {
+        .focusPolicy = .None
+        .setQuietText("Capture")
+    }
+
+    let size = layout.itf.measureContent({})
+    layout.setPosition(Math.Rectangle{100, Math.round((strip - 1 - size.y) * 0.5), size.x, size.y})
+    layout.applyLayout()
+
+    let rect = button.surfaceRect()
+    Swag.require(rect.x > margin and rect.y > margin)
+    Swag.require(not host.surfaceWnd.hitTestCaption({rect.x + 2, rect.y + 2}))
+    Swag.require(not host.surfaceWnd.hitTestCaption(rect.center()))
+    Swag.require(not host.surfaceWnd.hitTestCaption({rect.right() - 2, rect.bottom() - 2}))
+    Swag.require(host.surfaceWnd.hitTestCaption({rect.right() + 40, rect.vertCenter()}))
+}

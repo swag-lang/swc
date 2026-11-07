@@ -41,14 +41,14 @@ public struct SurfaceWnd
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
-    captionButtons:        Array'(*IconButton)     // Application actions immediately before the native caption controls.
-    leadingCaptionButtons: Array'(*IconButton)     // Application actions after the app glyph and before the title.
-    appearanceButton:      *AppearanceButton?       // Appearance command owner on this surface, if present.
-    appearanceActionRegistered: bool                // Whether this surface already routes appearance commands.
-    stripLeadingRoom:      f32                     // Room the view's own strip controls take after the leading actions.
-    stripTrailingRoom:     f32                     // Room the view's own strip controls take before the trailing actions.
-    chromePalette:         ThemePalette            // Document palette copied by setChromePalette.
-    hasChromePalette:      bool                    // Whether chrome follows the document rather than the application.
+    captionButtons:             Array'(*IconButton)     // Application actions immediately before the native caption controls.
+    leadingCaptionButtons:      Array'(*IconButton)     // Application actions after the app glyph and before the title.
+    appearanceButton:           *AppearanceButton?      // Appearance command owner on this surface, if present.
+    appearanceActionRegistered: bool                    // Whether this surface already routes appearance commands.
+    stripLeadingRoom:           f32                     // Room the view's own strip controls take after the leading actions.
+    stripTrailingRoom:          f32                     // Room the view's own strip controls take before the trailing actions.
+    chromePalette:              ThemePalette            // Document palette copied by setChromePalette.
+    hasChromePalette:           bool                    // Whether chrome follows the document rather than the application.
 }
 
 impl IWnd for SurfaceWnd
@@ -639,7 +639,9 @@ impl SurfaceWnd
         if pos.y < 0 or pos.y >= strip do
             return false
 
-        let target = .windowAt(pos.x, pos.y, true)
+        // A window finds its children from a point in its parent's coordinates, the surface's
+        // here: the local point would count the margin the shadow is cast into twice.
+        let target = .windowAt(surfacePos.x, surfacePos.y, true)
         if not target or target == me do
             return true
         if target is MenuCtrl as menu where menu.bar do

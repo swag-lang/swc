@@ -523,15 +523,15 @@ namespace
 
     // Probe matching rather than signatures: a comparison promoted through a using
     // member can accept the embedder without naming it in its declared parameters.
-    Result hasViableRelationalCandidate(bool& outViable, Sema& sema, const AstRelationalExpr& node, std::span<Symbol* const> candidates)
+    Result hasViableRelationalCandidate(bool& outViable, Sema& sema, AstNodeRef receiverRef, AstNodeRef argumentRef, std::span<Symbol* const> candidates)
     {
         outViable = false;
 
-        std::array args = {node.nodeRightRef};
+        std::array args = {argumentRef};
 
         const SemaNodeView            calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
         Match::FunctionCandidateProbe probe;
-        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args, node.nodeLeftRef, probe, true));
+        SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args, receiverRef, probe, true));
 
         outViable = probe.matched && probe.fn != nullptr;
         return Result::Continue;
@@ -1950,7 +1950,7 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     return Result::Continue;
 }
 
-Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled)
+Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled)
 {
     outHandled = false;
 
@@ -1963,55 +1963,74 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     else
         return Result::Continue;
 
-    if (!leftView.type())
+    const auto ownerFor = [&](const SemaNodeView& receiver, const SemaNodeView& argument) -> const SymbolStruct*
+    {
+        if (!receiver.type())
+            return nullptr;
+
+        TypeRef        typeRef = relationalOperandTypeRef(sema, receiver.typeRef());
+        const TypeInfo* type   = &sema.typeMgr().get(typeRef);
+        // A receiver cast can leave a pointer here. Compare its pointee when the
+        // other operand is a value; pointer comparisons keep their built-in meaning.
+        if (type->isNonNullValuePointer() && argument.type() &&
+            !argument.type()->isPointerLikeAliasAware(sema.ctx()) && !argument.type()->isType() && !argument.type()->isNull())
+        {
+            typeRef = relationalOperandTypeRef(sema, type->payloadTypeRef());
+            type    = &sema.typeMgr().get(typeRef);
+        }
+
+        return type->isStruct() ? &type->payloadSymStruct() : nullptr;
+    };
+
+    SmallVector<Symbol*> leftCandidates;
+    const SymbolStruct*  leftOwner = ownerFor(leftView, rightView);
+    if (leftOwner)
+    {
+        SWC_RESULT(sema.waitSemaCompleted(leftOwner, node.codeRef()));
+        SWC_RESULT(collectSpecOpCandidates(sema, *leftOwner, opIdRef, std::span<const AstNodeRef>{}, leftCandidates));
+    }
+
+    bool leftViable = false;
+    if (!leftCandidates.empty())
+        SWC_RESULT(hasViableRelationalCandidate(leftViable, sema, node.nodeLeftRef, node.nodeRightRef, leftCandidates.span()));
+
+    // An unmatched opEquals must not displace built-in equality for two values
+    // of the same struct type.
+    if (!leftViable && leftOwner && Token::isOpEquality(tok.id) &&
+        SemaSpecOp::isOwnerStructType(sema.ctx(), *leftOwner, relationalOperandTypeRef(sema, rightView.typeRef())))
         return Result::Continue;
 
-    TypeRef unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
+    SmallVector<Symbol*> rightCandidates;
+    bool                 rightViable = false;
+    if (!leftViable)
     {
-        // Paused resolution can leave a receiver cast on the left. Compare its pointee
-        // when the right operand is a value; pointer/pointer and pointer/null comparisons
-        // remain address-identity checks.
-        const TypeInfo& retryLeftType = sema.typeMgr().get(unwrappedTypeRef);
-        if (retryLeftType.isNonNullValuePointer())
+        const SymbolStruct* rightOwner = ownerFor(rightView, leftView);
+        if (rightOwner)
         {
-            const SemaNodeView rhsView = sema.viewType(node.nodeRightRef);
-            if (rhsView.type() && !rhsView.type()->isPointerLikeAliasAware(sema.ctx()) && !rhsView.type()->isType() && !rhsView.type()->isNull())
-                unwrappedTypeRef = relationalOperandTypeRef(sema, retryLeftType.payloadTypeRef());
+            SWC_RESULT(sema.waitSemaCompleted(rightOwner, node.codeRef()));
+            SWC_RESULT(collectSpecOpCandidates(sema, *rightOwner, opIdRef, std::span<const AstNodeRef>{}, rightCandidates));
+            if (!rightCandidates.empty())
+                SWC_RESULT(hasViableRelationalCandidate(rightViable, sema, node.nodeRightRef, node.nodeLeftRef, rightCandidates.span()));
         }
     }
 
-    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
-    if (!leftType.isStruct())
+    if (!leftViable && !rightViable && leftCandidates.empty())
         return Result::Continue;
 
-    const auto& ownerStruct = leftType.payloadSymStruct();
-    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
-
-    SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, std::span<const AstNodeRef>{}, candidates));
-    if (candidates.empty())
-        return Result::Continue;
-
-    // opEquals adds overloads without removing built-in equality of the same struct.
-    // Fall back when no overload accepts that struct; other operand types and ordering
-    // still report mismatches because they have no equivalent built-in answer.
-    if (Token::isOpEquality(tok.id) &&
-        SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, relationalOperandTypeRef(sema, sema.viewType(node.nodeRightRef).typeRef())))
-    {
-        bool viable = false;
-        SWC_RESULT(hasViableRelationalCandidate(viable, sema, node, candidates.span()));
-        if (!viable)
-            return Result::Continue;
-    }
+    const bool               reversed    = !leftViable && rightViable;
+    SmallVector<Symbol*>&    candidates  = reversed ? rightCandidates : leftCandidates;
+    const AstNodeRef         receiverRef = reversed ? node.nodeRightRef : node.nodeLeftRef;
+    const AstNodeRef         argumentRef = reversed ? node.nodeLeftRef : node.nodeRightRef;
 
     const AstNodeRef relRef = sema.curNodeRef();
 
-    std::array      args     = {node.nodeRightRef};
+    std::array      args     = {argumentRef};
     SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, node.nodeLeftRef, false, nullptr, true, true, &calledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, receiverRef, false, nullptr, true, true, &calledFn));
 
     auto& relationalPayload    = sema.ensureSemaPayload<RelationalSpecOpPayload>(relRef);
     relationalPayload.calledFn = calledFn;
+    relationalPayload.reversed = reversed;
 
     const SemaNodeView specOpView   = sema.viewConstant(relRef);
     const ConstantRef  specOpCstRef = specOpView.cstRef();
@@ -2043,7 +2062,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
             sema.setType(relRef, sema.typeMgr().typeBool());
             if (specOpCstRef.isValid())
             {
-                const int ordering = sema.cstMgr().get(specOpCstRef).getInt().compare(ApsInt::makeSigned32(0));
+                const int ordering = sema.cstMgr().get(specOpCstRef).getInt().compare(ApsInt::makeSigned32(0)) * (reversed ? -1 : 1);
                 bool      cmpRes   = false;
 
                 switch (tok.id)
@@ -2076,7 +2095,18 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
         case TokenId::SymLessEqualGreater:
             sema.setType(relRef, sema.typeMgr().typeS32());
             if (specOpCstRef.isValid())
-                sema.setConstant(relRef, specOpCstRef);
+            {
+                if (reversed)
+                {
+                    ApsInt value = sema.cstMgr().get(specOpCstRef).getInt();
+                    bool overflow = false;
+                    value.negate(overflow);
+                    const ConstantValue result = ConstantValue::makeInt(sema.ctx(), value, 32, TypeInfo::Sign::Signed);
+                    sema.setConstant(relRef, sema.cstMgr().addConstant(sema.ctx(), result));
+                }
+                else
+                    sema.setConstant(relRef, specOpCstRef);
+            }
             break;
 
         default:

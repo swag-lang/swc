@@ -347,6 +347,18 @@ namespace
     {
         SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
 
+        if (relationalPayload.reversed)
+        {
+            switch (tokId)
+            {
+                case TokenId::SymLess:         tokId = TokenId::SymGreater; break;
+                case TokenId::SymLessEqual:    tokId = TokenId::SymGreaterEqual; break;
+                case TokenId::SymGreater:      tokId = TokenId::SymLess; break;
+                case TokenId::SymGreaterEqual: tokId = TokenId::SymLessEqual; break;
+                default:                       SWC_UNREACHABLE();
+            }
+        }
+
         auto cond = MicroCond::Equal;
         switch (tokId)
         {
@@ -377,7 +389,9 @@ namespace
     Result emitSpecialCmpValue(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
     {
         SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
-        materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B32);
+        CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B32);
+        if (relationalPayload.reversed)
+            codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, MicroOpBits::B32);
         return Result::Continue;
     }
 

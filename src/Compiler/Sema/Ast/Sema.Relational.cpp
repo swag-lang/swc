@@ -992,7 +992,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     }
 
     bool handledSpecialOp = false;
-    SWC_RESULT(SemaSpecOp::tryResolveRelational(sema, *this, nodeLeftView, handledSpecialOp));
+    SWC_RESULT(SemaSpecOp::tryResolveRelational(sema, *this, nodeLeftView, nodeRightView, handledSpecialOp));
     if (handledSpecialOp)
         return Result::Continue;
 

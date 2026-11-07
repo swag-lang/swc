@@ -29,11 +29,45 @@ and chosen by the user rather than by the language.
 and '#[Swag.OperatorIgnore]' keeps one member out of them. A struct that asks for neither
 still receives a member-wise 'opEquals' when one of its members compares its content rather
 than its bytes, so a struct and its members never disagree about equality.
+
+For '==', '!=', '<', '<=', '>', '>=', and '<=>', the compiler first tries the left
+operand's operator. If none accepts the right operand, it tries the right operand's
+operator with the operands exchanged. An exchanged 'opCompare' reverses its result:
+'a < b' asks whether 'b > a', and 'a <=> b' has the opposite sign of 'b <=> a'.
 */
 
 struct Struct
 {
     x, y: s32     // Two properties, x and y, of type s32 (signed 32-bit integer)
+}
+
+struct ReverseOrderExample
+{
+    value: s32
+}
+
+impl ReverseOrderExample
+{
+    mtd const opEquals(other: s32)->bool => .value == other
+
+    mtd const opCompare(other: s32)->s32
+    {
+        if .value < other do return -1
+        if .value > other do return 1
+        return 0
+    }
+}
+
+#test
+{
+    let target = ReverseOrderExample{value: 2}
+    Swag.require(2 == target)
+    Swag.require(1 != target)
+    Swag.require(1 < target)
+    Swag.require(2 <= target)
+    Swag.require(3 > target)
+    Swag.require(2 >= target)
+    Swag.require((1 <=> target) < 0)
 }
 
 // Type aliases used in the examples below

@@ -47,6 +47,7 @@ struct DataOfSpecOpPayload
 struct RelationalSpecOpPayload
 {
     SymbolFunction* calledFn = nullptr;
+    bool            reversed = false;
 
     // Keep the relation node's semantic type; use the inline substitute only in codegen.
     AstNodeRef inlineSubstituteRef = AstNodeRef::invalid();
@@ -151,7 +152,7 @@ namespace SemaSpecOp
     Result tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
 
     Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled);
-    Result tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
+    Result tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled);
     Result tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
 }
 

@@ -24,6 +24,7 @@ class Stage:
     command: list[str]
     requires: list[str] = field(default_factory=list)
     expected_output: str = ''
+    forbidden_output: str = ''
     expected_returncode: int = 0
 
 
@@ -125,6 +126,13 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
             requires = [build_name]
         stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires))
     if script:
+        failed_test = workspace / 'native_failed_test'
+        stages.append(Stage('workspace-native-abandoned-test', [str(compiler), 'test',
+                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
+                            '--module-namespace', 'NativeAbandonedTest', '--artifact-kind', 'executable',
+                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
+                            expected_returncode=5))
         stages.append(Stage('workspace-import-png-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_png.swgs')],
                             expected_output='SWAG_IMPORTED_PNG_RAN'))
@@ -212,8 +220,8 @@ def package_vault(bin_root, module, options):
 def execute(stages, environment):
     for stage in stages:
         result = subprocess.run(stage.command, env=environment, check=False,
-                                stdout=subprocess.PIPE if stage.expected_output else None)
-        if stage.expected_output:
+                                stdout=subprocess.PIPE if stage.expected_output or stage.forbidden_output else None)
+        if stage.expected_output or stage.forbidden_output:
             output = result.stdout.decode('utf-8', errors='replace')
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout.buffer.write(result.stdout)
@@ -222,6 +230,9 @@ def execute(stages, environment):
                 print(output, end='', flush=True)
             if result.returncode == stage.expected_returncode and stage.expected_output not in output:
                 print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
+                return 1
+            if stage.forbidden_output and stage.forbidden_output in output:
+                print(f'forbidden output was present: {stage.forbidden_output}', file=sys.stderr)
                 return 1
         if result.returncode != stage.expected_returncode:
             return result.returncode if result.returncode > 0 else 128 - result.returncode

@@ -3,6 +3,7 @@
 // Native #test bookkeeping. The host supplies only context recovery and hardware-fault hooks;
 // selection, reporting, and the decision to continue with the next test stay platform-neutral.
 var g_TestFailed:     bool
+var g_TestAbandoned:  bool
 var g_TestRunning:    bool
 var g_TestThreadId:   u64
 var g_TestsExecuted:  u32
@@ -34,6 +35,7 @@ private func resumeFailedTest()
         __abandonErrCaptures(original)
     }
 
+    g_TestAbandoned = true
     __hostTestResume()
 }
 
@@ -199,6 +201,7 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
 
     g_TestsExecuted += 1
     g_TestFailed    = false
+    g_TestAbandoned = false
     g_TestThreadId  = __hostCurrentThreadId()
 
     let cxt = Swag.getContext()
@@ -234,6 +237,11 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
                " name=",
                testName,
                "\n")
+
+    // A panic skipped the test's defers and destructors. A later test could wait forever on
+    // abandoned state, so publish the tally and stop this process before running another one.
+    if g_TestAbandoned do
+        __testsDone()
 }
 
 func __testsDone()

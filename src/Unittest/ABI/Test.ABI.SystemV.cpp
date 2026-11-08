@@ -2515,21 +2515,29 @@ func verifyFaultCleanup()
     Swag.assert(before.handler == after.handler and (before.flags & 0xFBFFFFFF) == (after.flags & 0xFBFFFFFF))
     Swag.assert(before.mask[0] == after.mask[0])
     Swag.assert(stackBefore.address == stackAfter.address and stackBefore.flags == stackAfter.flags and stackBefore.size == stackAfter.size)
-    let previousArguments = Swag.processInfo().arguments
-    let arguments = ["swag.test"]
-    Swag.processInfo().arguments = arguments
-    let previousFailures = Swag.g_TestsFailedCnt
-    let previousExecuted = Swag.g_TestsExecuted
+    // Exercise the low-level recovery boundary directly. The native #test runner must stop
+    // after an abandoned frame; this probe checks only that the host restores the context.
+    let recoveryFilter = __hostTestInstallHardwareFilter()
     for useLocal in [false, true]
     {
         for &count in faultDrops do count.store(0)
         switchFaultContext = useLocal
-        Swag.__runTest(cast(*void, &uncaughtFaultBody), "fault".buffer, "probe".buffer, "".buffer)
-        Swag.__runTest(cast(*void, &verifyFaultCleanup), "cleanup".buffer, "probe".buffer, "".buffer)
+        let context = Swag.getContext()
+        let previousPanic = context.panic
+        Swag.g_TestFailed = false
+        Swag.g_TestAbandoned = false
+        Swag.g_TestContext = context
+        Swag.g_TestThreadId = __hostCurrentThreadId()
+        context.panic = cast(&__testPanicHandler)
+        Swag.g_TestRunning = true
+        __hostTestCall(cast(*void, &uncaughtFaultBody))
+        Swag.g_TestRunning = false
+        context.panic = previousPanic
+        Swag.g_TestContext = null
+        Swag.assert(Swag.g_TestFailed and Swag.g_TestAbandoned)
+        verifyFaultCleanup()
     }
-    Swag.processInfo().arguments = previousArguments
-    Swag.assert(Swag.g_TestsFailedCnt == previousFailures + 2)
-    Swag.assert(Swag.g_TestsExecuted == previousExecuted + 4)
+    __hostTestRestoreHardwareFilter(recoveryFilter)
     Swag.assert(__LinuxRT.munmap(faultPage, 4096) == 0)
 }
 )SWAG";

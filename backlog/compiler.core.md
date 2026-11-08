@@ -62,10 +62,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
   skips the deferred unlock. The native test runner catches the panic and starts the next GUI
   test in the same process; that test waits on the abandoned mutex until the module timeout.
-  The original failing test is reported, but subsequent tests cannot make progress.
-- Next: define the recovery boundary for an uncaught test panic. Stop the affected process or
-  isolate tests whose execution can abandon shared state; do not assume a caught panic ran
-  deferred cleanup. Keep explicit `Swag.catchPanic` tests supported.
+  The original failing test is reported, but subsequent tests cannot make progress. The native
+  runner now prints its failure tally and exits after an uncaught panic or hardware fault;
+  ordinary failed `Swag.check` calls still allow later tests. A regression holds a mutex across
+  a panic: the preceding compiler starts the next test and times out, while the corrected
+  compiler stops promptly before that test. The Linux low-level host recovery unit test still
+  passes and explicit `Swag.catchPanic` remains supported.
+- Next: verify a failed native module does not block execution of independent modules in a
+  multi-module campaign. The JIT test runner also continues after a panic and needs its own
+  recovery boundary before its retained module state can be reused.
 - Done when: a regression with a panic under a deferred mutex unlock reports the original
   failure promptly without hanging the next test, and the campaign can continue with other
   modules.

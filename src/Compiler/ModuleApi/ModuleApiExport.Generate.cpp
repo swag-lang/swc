@@ -43,7 +43,7 @@ namespace
     using ModuleApiExport::tryGetModuleApiSnippetStartOffset;
 
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
-    void   collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, bool hasExportedBody, const Utf8& snippet);
+    void   collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, bool hasExportedBody, const Utf8& snippet, const SymbolFunction* fwdMoveVariant = nullptr);
 
     bool isExportedBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
     {
@@ -758,7 +758,7 @@ namespace
         trimTrailingModuleApiWhitespace(text);
     }
 
-    void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet)
+    void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet, const SymbolFunction* fwdMoveVariant)
     {
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Macro, "Macro");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Mixin, "Mixin");
@@ -788,19 +788,20 @@ namespace
 
         // Export follows the final semantic drain, so borrow summaries include
         // transitive effects. Re-emit these computed facts for importers.
-        const uint64_t returnsMask     = symbolFunction.returnBorrowsParamsMask();
-        const uint64_t storesMask      = symbolFunction.storesParamsMask();
-        const uint64_t intoPairs       = symbolFunction.storesIntoParamPairs();
-        const uint64_t freesMask       = symbolFunction.freesParamsMask();
-        const uint64_t reallocatesMask = symbolFunction.reallocatesParamsMask();
+        const uint64_t returnsMask     = symbolFunction.returnBorrowsParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnBorrowsParamsMask() : 0);
+        const uint64_t storesMask      = symbolFunction.storesParamsMask() | (fwdMoveVariant ? fwdMoveVariant->storesParamsMask() : 0);
+        const uint64_t intoPairs       = symbolFunction.storesIntoParamPairs() | (fwdMoveVariant ? fwdMoveVariant->storesIntoParamPairs() : 0);
+        const uint64_t freesMask       = symbolFunction.freesParamsMask() | (fwdMoveVariant ? fwdMoveVariant->freesParamsMask() : 0);
+        const uint64_t reallocatesMask = symbolFunction.reallocatesParamsMask() | (fwdMoveVariant ? fwdMoveVariant->reallocatesParamsMask() : 0);
 
-        const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
-        const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask();
+        const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsPayloadParamsMask() : 0);
+        const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsStorageParamsMask() : 0);
 
-        const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask();
-        const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask();
-        const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs();
-        const uint64_t freesIndirectMask   = symbolFunction.freesIndirectParamsMask();
+        const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsIndirectParamsMask() : 0);
+        const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectParamsMask() : 0);
+        const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectIntoParamPairs() : 0);
+        const uint64_t freesIndirectMask   = symbolFunction.freesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->freesIndirectParamsMask() : 0);
+        const bool     observesExternal    = symbolFunction.observesExternalBorrows() || (fwdMoveVariant && fwdMoveVariant->observesExternalBorrows());
 
         if ((returnsMask != 0 ||
              storesMask != 0 ||
@@ -812,7 +813,7 @@ namespace
              storesIndirectMask != 0 ||
              intoIndirectPairs != 0 ||
              freesIndirectMask != 0 ||
-             !symbolFunction.observesExternalBorrows()) &&
+             !observesExternal) &&
             (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
         {
             Utf8 summary{std::format(
@@ -824,7 +825,7 @@ namespace
                 reallocatesMask,
                 returnsPayloadMask,
                 returnsStorageMask,
-                symbolFunction.observesExternalBorrows())};
+                observesExternal)};
 
             if (returnsIndirectMask)
                 summary += std::format(", returnsIndirect: {}", returnsIndirectMask);
@@ -1100,6 +1101,31 @@ namespace
         return Utf8{std::format("Foreign(function: \"{}\")", apiName.c_str())};
     }
 
+    bool isFwdCopyVariant(const SymbolFunction& function)
+    {
+        return std::ranges::any_of(function.parameters(), [](const SymbolVariable* parameter) {
+            return parameter->hasExtraFlag(SymbolVariableFlagsE::FwdCopy);
+        });
+    }
+
+    const SymbolFunction* findFwdMoveVariant(const SymbolFunction& copyVariant)
+    {
+        const SymbolMap* owner = copyVariant.declImplContext() ? static_cast<const SymbolMap*>(copyVariant.declImplContext()) : copyVariant.ownerSymMap();
+        if (!owner)
+            return nullptr;
+
+        const SymbolFunction* moveVariant = nullptr;
+        owner->forEachSymbolById(copyVariant.idRef(), false, [&](const Symbol* symbol) {
+            const auto* candidate = symbol->safeCast<SymbolFunction>();
+            if (candidate && candidate != &copyVariant &&
+                candidate->srcViewRef() == copyVariant.srcViewRef() &&
+                candidate->tokRef() == copyVariant.tokRef() &&
+                !isFwdCopyVariant(*candidate))
+                moveVariant = candidate;
+        });
+        return moveVariant;
+    }
+
     Utf8 buildFunctionSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
     {
         const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
@@ -1124,15 +1150,36 @@ namespace
         const SymbolFunction* compiledFunction = symbolFunction->isErasedGenericRoot() ? symbolFunction->erasedInstance() : symbolFunction;
         SWC_ASSERT(compiledFunction != nullptr);
 
+        const bool hasForwardingParameter = prefix.find("#fwd") != Utf8::npos;
+        if (hasForwardingParameter && !isFwdCopyVariant(*symbolFunction))
+            return {};
+
         SmallVector<Utf8> attributes;
-        if (compiledFunction != symbolFunction)
+        const SymbolFunction* compiledMoveVariant = nullptr;
+        if (hasForwardingParameter && !symbolFunction->isForeign())
+        {
+            const SymbolFunction* moveVariant = findFwdMoveVariant(*symbolFunction);
+            SWC_ASSERT(moveVariant != nullptr);
+            if (!moveVariant)
+                return {};
+            compiledMoveVariant = moveVariant->isErasedGenericRoot() ? moveVariant->erasedInstance() : moveVariant;
+            SWC_ASSERT(compiledMoveVariant != nullptr);
+            if (!compiledMoveVariant)
+                return {};
+            const Utf8 copyName = compiledFunction->computePublicApiSymbolName(ctx);
+            const Utf8 moveName = compiledMoveVariant->computePublicApiSymbolName(ctx);
+            attributes.push_back(Utf8{std::format("Foreign(function: \"{}\", fwdMoveFunction: \"{}\")", copyName.c_str(), moveName.c_str())});
+        }
+        else if (compiledFunction != symbolFunction)
             attributes.push_back(Utf8{std::format("Foreign(function: \"{}\")", compiledFunction->computePublicApiSymbolName(ctx).c_str())});
         else if (!symbolFunction->isForeign())
             attributes.push_back(buildModuleApiForeignAttribute(ctx, *symbolFunction));
         else
             appendResolvedForeignAttribute(ctx, attributes, prefix, *symbolFunction);
 
-        collectMissingFunctionAttributes(attributes, *compiledFunction, false, prefix);
+        // Both parser variants share this declaration. Their effects must form a
+        // conservative contract for either imported call.
+        collectMissingFunctionAttributes(attributes, *compiledFunction, false, prefix, compiledMoveVariant);
 
         Utf8 result = buildAttributeListLine(attributes.span(), eol);
         result += prefix;

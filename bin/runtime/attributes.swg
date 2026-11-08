@@ -216,8 +216,10 @@ namespace Swag
     // 'module' defaults to the module the declaring file belongs to, which only a generated
     // module API leaves out. 'function' defaults to the flattened public API name there, and
     // to the declaration name for a function of a native library.
+    // 'fwdMoveFunction' names the separate native symbol for the move variant of '#fwd'.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: string = "", function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.Swag)
+    attr Foreign(module: string = "", function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.Swag,
+                 fwdMoveFunction: string = "")
 
     // Chooses the ABI for functions and function values declared in this scope.
     //

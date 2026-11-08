@@ -188,11 +188,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.015 — No H.264 encoding
 
-- Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. Screen recording in Swag
-  Capture (app.capture.011) needs a modern codec at 4K and 60 frames per second, while the
-  module already decodes H.264.
-- Next: add a packet-producing H.264 encoder contract (access units with presentation and
-  decoding times, key-frame flag, parameter sets). Implement it first over the Media Foundation
+- Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
+  contract and a video-only fragmented MP4 writer now consume H.264 access units, but nothing
+  in the module produces them. Screen recording in Swag Capture (app.capture.011) needs a modern
+  codec at 4K and 60 frames per second, while the module already decodes H.264.
+- Next: add an H.264 encoder that produces `EncodedPacket` access units and AVC parameter sets.
+  Implement it first over the Media Foundation
   encoder (platform.portability.099), hardware when present and Windows' software encoder
   otherwise, fed NV12 surfaces; then a Swag encoder (constrained baseline, then main) for
   portability, tuned for screen content where most macroblocks are skipped.
@@ -201,17 +202,19 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   and both paths report their rate control and dropped frames.
 - Related: app.capture.011, std.video.016, platform.portability.099
 
-### std.video.016 — Encoding cannot mux several tracks or survive interruption
+### std.video.016 — Fragmented MP4 lacks multi-track recording and indexed playback
 
-- Evidence: `Video.Writer` drives one `IEncoder` that owns both codec and container, and the MP4
-  writer emits Motion JPEG samples only, with no sound track, and a sample table written at the
-  end, so a killed recording leaves an unreadable file.
-- Next: separate codec encoders, which produce packets, from containers. Add an MP4 muxer with
-  `avc1`/`avcC` video and `mp4a` sound tracks, interleaving, timed metadata tracks (cursor,
-  markers), and a fragmented mode (`moof`/`mdat`) that keeps the file playable up to the last
-  fragment. Size it for recordings of several hours: 64-bit offsets and timestamps on a timescale
-  that does not accumulate rounding, a key-frame index (`mfra`/`tfra`) for seeking without a scan,
-  and muxer memory independent of the duration. Keep the current single-stream writer as a facade.
+- Evidence: `Video.Writer` still drives one `IEncoder` that owns both codec and container, and
+  its MP4 path writes Motion JPEG with the sample table at the end. A separate
+  `Mp4.FragmentedWriter` now accepts length-prefixed H.264 packets with decode and presentation
+  times, writes one `moof`/`mdat` pair per packet, and flushes every completed fragment. FFmpeg
+  reads a file stopped at a fragment boundary. The writer has one video track, no audio or
+  metadata tracks, no final random-access index, and `Video.Reader` cannot read fragments.
+- Next: group packets into bounded fragments, add `mp4a` sound and timed metadata tracks with
+  interleaving, and read the fragments back through `Video.Reader`. Add a key-frame index
+  (`mfra`/`tfra`) so seeking does not scan a long file. Keep 64-bit offsets and a timescale that
+  does not accumulate rounding, with muxer memory independent of recording duration. Keep the
+  current single-stream writer as a facade.
 - Done when: a recording with video, two sound tracks and a metadata track plays in the module's
   decoder and in reference players; a file cut at any fragment boundary still plays to it; and a
   synthetic four-hour, multi-gigabyte stream seeks to any instant from its index while the muxer's

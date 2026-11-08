@@ -12,48 +12,12 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
         Swag.require(img.pixels.storage()[idx + 3] == a)
 }
 
-func quantizedGifChannel(value: u8, maxLevel: u32)->u8
-{
-    let level = cast(u32, value) * maxLevel / 255
-    return cast(u8, ((level * 255 + maxLevel / 2) / maxLevel))
-}
-
-func assertQuantizedGif24(pixelFormat: PixelFormat) fail
+func assertAdaptiveGif(pixelFormat: PixelFormat, withTransparency: bool) fail
 {
     const Width = 523
     var source    = Image.create(Width, 1, pixelFormat)
     var pix       = source.pixels.storage()
-    let blueFirst = pixelFormat == .BGR8
-    for i in Width
-    {
-        let r = cast(u8, (i & 0xFF))
-        let g = cast(u8, ((i * 37 + 11) & 0xFF))
-        let b = cast(u8, ((i * 73 + 19) & 0xFF))
-        pix[0] = blueFirst ? b : r
-        pix[1] = g
-        pix[2] = blueFirst ? r : b
-        pix    += 3
-    }
-
-    var encoded = expect source.encode("memory.gif")
-    encoded.makeLinear()
-    let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
-    Swag.require(decoded.pixelFormat == .RGB8)
-    for i in Width
-    {
-        let r = cast(u8, (i & 0xFF))
-        let g = cast(u8, ((i * 37 + 11) & 0xFF))
-        let b = cast(u8, ((i * 73 + 19) & 0xFF))
-        assertGifPixelAt(decoded, i, 0, quantizedGifChannel(r, 3), quantizedGifChannel(g, 7), quantizedGifChannel(b, 3), 255)
-    }
-}
-
-func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
-{
-    const Width = 523
-    var source    = Image.create(Width, 1, pixelFormat)
-    var pix       = source.pixels.storage()
-    let blueFirst = pixelFormat == .BGRA8
+    let blueFirst = pixelFormat == .BGR8 or pixelFormat == .BGRA8
     for i in Width
     {
         let r = cast(u8, (i & 0xFF))
@@ -63,14 +27,16 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
         pix[0] = blueFirst ? b : r
         pix[1] = g
         pix[2] = blueFirst ? r : b
-        pix[3] = a
-        pix    += 4
+        if source.bytesPerPixel == 4 do
+            pix[3] = a
+        pix += source.bytesPerPixel
     }
 
     var encoded = expect source.encode("memory.gif")
     encoded.makeLinear()
     let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
     Swag.require(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
+    var error = 0'u64
     for i in Width
     {
         let r = cast(u8, (i & 0xFF))
@@ -83,11 +49,14 @@ func assertQuantizedGif32(pixelFormat: PixelFormat, withTransparency: bool) fail
         }
         else
         {
-            let rbLevels = withTransparency ? 4'u32 : 3'u32
-            let gLevels  = withTransparency ? 4'u32 : 7'u32
-            assertGifPixelAt(decoded, i, 0, quantizedGifChannel(r, rbLevels), quantizedGifChannel(g, gLevels), quantizedGifChannel(b, rbLevels), 255)
+            let color = decoded.pixelColor(i, 0)
+            error += cast(u64, Math.abs(cast(s32, color.r) - r))
+            error += cast(u64, Math.abs(cast(s32, color.g) - g))
+            error += cast(u64, Math.abs(cast(s32, color.b) - b))
         }
     }
+
+    Swag.require(error < cast(u64, Width) * 3 * 16)
 }
 
 func assertGifHeader(bytes: const [..] u8, width, height: u16)
@@ -220,6 +189,23 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
+// All 256 GIF colour slots remain exact, including the highest index.
+#test
+{
+    var src    = Image.create(256, 1, .RGB8)
+    let pixels = src.pixels.storage()
+    for i in 256
+    {
+        pixels[i * 3]     = cast(u8, i)
+        pixels[i * 3 + 1] = cast(u8, (i * 29) & 255)
+        pixels[i * 3 + 2] = cast(u8, (i * 53) & 255)
+    }
+
+    let encoded = expect src.encodeToBytes("exact.gif")
+    let decoded = expect Image.decode("exact.gif", encoded.toSlice())
+    Swag.require(Memory.compare(src.pixels.storage(), decoded.pixels.storage(), src.pixels.count) == 0)
+}
+
 // Encode RGBA8 with GIF's single transparent index.
 #test
 {
@@ -282,23 +268,23 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         pix    += 3
     }
 
-    let cb  = expect src.encode("memory.gif")
+    var cb = expect src.encode("memory.gif")
+    cb.makeLinear()
     let img = expect Image.decode("quantized.gif", nnBytes(cb.toSlice()), {})
     Swag.require(img.width == 17)
     Swag.require(img.height == 17)
     Swag.require(img.pixelFormat == .RGB8)
-    assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
 }
 
-// Quantize red-first and blue-first sources with exact channel levels and scalar tails.
+// An adaptive palette preserves common screen colours and bounds the error of varied pixels.
 #test
 {
-    expect assertQuantizedGif24(.RGB8)
-    expect assertQuantizedGif24(.BGR8)
-    expect assertQuantizedGif32(.RGBA8, false)
-    expect assertQuantizedGif32(.BGRA8, false)
-    expect assertQuantizedGif32(.RGBA8, true)
-    expect assertQuantizedGif32(.BGRA8, true)
+    expect assertAdaptiveGif(.RGB8, false)
+    expect assertAdaptiveGif(.BGR8, false)
+    expect assertAdaptiveGif(.RGBA8, false)
+    expect assertAdaptiveGif(.BGRA8, false)
+    expect assertAdaptiveGif(.RGBA8, true)
+    expect assertAdaptiveGif(.BGRA8, true)
 }
 
 // Encode to a file path and reload through the registry.

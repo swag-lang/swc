@@ -45,9 +45,11 @@ Four codecs ship in the box:
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
   through the requested frame.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
-  Motion JPEG, and exposes AAC-LC mono/stereo audio. It expands compact sample tables into direct
-  packet offsets while payloads remain in the file. Exact composition timestamps are retained for
-  variable-rate playback and coded display reordering.
+  Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
+  writes already encoded H.264 packets as self-contained fragments; [[Video.Reader]] does not yet
+  read those fragments. The classic reader expands compact sample tables into direct packet offsets
+  while payloads remain in the file. Exact composition timestamps are retained for variable-rate
+  playback and coded display reordering.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
   independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
   channels that its decoder supports. A picture

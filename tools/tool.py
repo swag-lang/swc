@@ -133,6 +133,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage('workspace-failed-drop-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'lifecycle_failed_drop.swgs')],
                             expected_output='SWAG_SECOND_DROP_RAN', expected_returncode=5))
+        stages.append(Stage('workspace-failed-main-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_failed_main.swgs')],
+                            expected_output='SWAG_DROP_AFTER_MAIN_RAN', expected_returncode=5))
     return stages
 
 

@@ -108,6 +108,7 @@ struct AttributeList
     bool                        hasForeign = false;
     Utf8                        foreignModuleName;
     Utf8                        foreignFunctionName;
+    Utf8                        foreignFwdMoveFunctionName;
     Utf8                        foreignLinkModuleName;
     std::optional<CallConvKind> foreignCallConvKind;
     std::optional<CallConvKind> declaredCallConvKind;
@@ -140,6 +141,7 @@ struct AttributeList
                !hasForeign &&
                foreignModuleName.empty() &&
                foreignFunctionName.empty() &&
+               foreignFwdMoveFunctionName.empty() &&
                foreignLinkModuleName.empty() &&
                !foreignCallConvKind.has_value() &&
                !declaredCallConvKind.has_value() &&
@@ -251,13 +253,14 @@ struct AttributeList
         return foreignCallConvKind.value_or(declaredCallConvKind.value_or(CallConvKind::Swag));
     }
 
-    void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {}, std::optional<CallConvKind> callConvKind = std::nullopt)
+    void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {}, std::optional<CallConvKind> callConvKind = std::nullopt, std::string_view fwdMoveFunctionName = {})
     {
-        hasForeign            = true;
-        foreignModuleName     = moduleName;
-        foreignFunctionName   = functionName;
-        foreignLinkModuleName = linkModuleName;
-        foreignCallConvKind   = callConvKind;
+        hasForeign                 = true;
+        foreignModuleName          = moduleName;
+        foreignFunctionName        = functionName;
+        foreignFwdMoveFunctionName = fwdMoveFunctionName;
+        foreignLinkModuleName      = linkModuleName;
+        foreignCallConvKind        = callConvKind;
     }
 
 private:

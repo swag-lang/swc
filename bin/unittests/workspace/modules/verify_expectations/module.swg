@@ -1,5 +1,6 @@
 #import("api_export_provider")
 #import("api_static_provider")
+#import("fwd_provider")
 #import("core", location: "swag@std")
 #run
 {

@@ -59,6 +59,14 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 
 ## Written by ffmpeg, then edited
 
+`ffmpeg-h264-baseline.packets` extracts the AVC decoder configuration and the first three
+length-prefixed access units of `ffmpeg-h264-baseline.mp4` with `ffprobe -show_data`. Each item
+is preceded by its 32-bit big-endian byte length. It exercises packet submission to the
+fragmented MP4 writer without making a test depend on `ffprobe`.
+
+- SHA-256: `b3e87542fd01f592ddd70e3345e24263e777eee7e986a6ab9ed034f2b0a8d3d0`.
+- License: same as `ffmpeg-h264-baseline.mp4`.
+
 The AVI container carries shapes no single writer produces. Each of these is
 `ffmpeg-rawvideo-bgr24.avi` with one shape injected into it, so that the file under test differs
 from a real one in exactly that respect and in nothing else. Every one of them still decodes to

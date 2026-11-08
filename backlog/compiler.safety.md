@@ -70,6 +70,11 @@ is the current scorecard.
   with no remaining write check registers no borrow. Earlier same-program comparisons found
   about 1.9x for nbody, 1.4x for fannkuch and 1.3x for dijkstra; they predate the latest hoists
   and do not establish their current overhead.
+  On the full `aoc2024` console workload with always-active result checks,
+  `release-safe` took 2585 ms median versus 545 ms with only `.ValueBorrow`
+  disabled (twelve alternating samples each). The [application samples](../bench/results/safety/20261108-release-safe-aoc2024.md)
+  isolate this guard family to a 4.74x cost on that workload; dropping `.BoundCheck`
+  or `.Overflow` separately did not produce a comparable reduction.
   CPU backdrop convolution also exposes process-wide registration-lock contention: a native
   DevMode Gaussian pass exceeded 300 seconds with the default worker pool, while a single
   worker completed the scene. Small `Vector4` arithmetic repeatedly enters and leaves the
@@ -77,8 +82,8 @@ is the current scorecard.
   but ordinary parallel value calls still need a scalable guard. A sharded prototype passes
   128 native borrow tests, including cross-thread writes, but its permanently widened extent
   and empty-registry write cost need measurement before adopting that runtime design.
-- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
-  measure a representative application. Attribute remaining loop checks, argument copies,
+- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control.
+  Attribute the application's loop checks, argument copies,
   cold failure-call layout and per-value-parameter borrow registration before choosing another
   change. Include parallel small-value arithmetic, shard collisions, and writes after the last
   borrow closes; retain cross-thread conflicts and panic checkpoints. Checking a writing
@@ -131,10 +136,10 @@ is the current scorecard.
   `devmode` about 1.24x across the twelve `bench/` programs against the same build without
   runtime guards. Hot gaps: loop-bounded indices, repeatedly loaded counts, and
   loop-invariant `late` checks.
-- A full `aoc2024` console workload with identical always-active result checks measured
-  `release-safe` at 6.09x the `release` wall time on a shared Linux host; see
-  [the samples](../bench/results/safety/20261108-release-safe-aoc2024.md). This is a
-  whole-preset comparison, not an attribution to `.BoundCheck` alone.
+- A full `aoc2024` comparison found that removing `.BoundCheck` alone did not
+  reduce the measured wall time. Its large whole-preset gap is mainly
+  `.ValueBorrow`; see compiler.safety.030 and
+  [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
 - Next: prove an index against the dominating loop bound and hoist a `late` check from a
   loop that does not assign it. Measure the affected loops with guards enabled and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and

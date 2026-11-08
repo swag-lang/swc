@@ -105,6 +105,10 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     if 'runtime_context_dynamic_consumer' in selected:
         stages.append(Stage(build_name, [str(compiler), 'build', '--workspace', str(workspace),
                                          '--workspace-module', 'runtime_context_dynamic_dll', *build_options]))
+    script_dependency_build_name = 'workspace-build-lifecycle-script-dependency'
+    if script:
+        stages.append(Stage(script_dependency_build_name, [str(compiler), 'build', '--workspace', str(workspace),
+                                                          '--workspace-module', 'lifecycle_script_dep', *build_options]))
     for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
         requires = []
@@ -136,6 +140,12 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage('workspace-failed-main-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'lifecycle_failed_main.swgs')],
                             expected_output='SWAG_DROP_AFTER_MAIN_RAN', expected_returncode=5))
+        stages.append(Stage('workspace-failed-init-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_failed_init.swgs')],
+                            requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))
+        stages.append(Stage('workspace-failed-premain-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_failed_premain.swgs')],
+                            requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))
     return stages
 
 

@@ -69,11 +69,12 @@ The registered presets are the contract:
 | --- | --- | --- |
 | `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; automatic inlining | the default path and optimized code that must retain guards |
 | `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, vectorization, FP, or guard-free behavior |
+| `release-safe` | release optimization and static sanity; runtime safety guards; no allocator diagnostics; no unsafe nonfinite FP assumptions | Optimized shipped programs that retain located runtime checks |
 
-The `test` command enables `.Assert` by default in both presets; explicit local `Swag.Safety`
+The `test` command enables `.Assert` by default in every preset; explicit local `Swag.Safety`
 overrides still apply. Other runtime guards retain their configured defaults.
 
-Neither preset emits CodeView or PDB information by default. `--debug` is an orthogonal output
+No preset emits CodeView or PDB information by default. `--debug` is an orthogonal output
 request, not a third configuration: use it only for the dedicated compiler unit tests that inspect
 debug symbols, types, source checksums, line mappings, breakpoint addresses, or PDB consumption.
 Do not add it to examples, standard modules, applications, the reference, workspace tests, or a
@@ -225,7 +226,7 @@ Repeat it to select a union:
 ```text
 tools/std.bat dm test gui --test-file htmlview.swg
 tools/std.bat dm test gui --test-file htmlview.swg --test-file markdownview.swg
-tools/apps.bat test swagscope --test-file viewer.video.swg
+tools/apps.bat test swagscope --test-file cases/functional/viewers/video/video.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -241,7 +242,7 @@ Prefer a named application test file over all GUI tests:
 - Markdown parser/layout/rendering: `gui`'s `markdownview.swg`, then
   `viewer.markdown.swg` as the concrete viewer consumer.
 - Video codecs/streaming: the matching `video` file (`avi.swg`, `y4m.swg`, or
-  `streaming.swg`), then Swag Scope's `viewer.video.swg` as the concrete player.
+  `streaming.swg`), then Swag Scope's `cases/functional/viewers/video/video.swg` as the concrete player.
 - Dialog composition: `dialogs.charter.swg`, `dialogs.layout.swg`, and the exact dialog
   test such as `messagedlg.swg`; use `gui9` only for the required visual inspection.
 

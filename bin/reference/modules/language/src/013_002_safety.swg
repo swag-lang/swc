@@ -16,9 +16,9 @@ with 'buildCfg.safetyGuards'.
 
 /**
 > NOTE:
-> Swag offers two predefined build configurations: 'devmode' and 'release'.
-> Safety checks are enabled by default in 'devmode' and disabled in 'release'
-> for performance.
+> Swag offers three predefined build configurations: 'devmode', 'release', and
+> 'release-safe'. Safety checks are enabled by default in 'devmode' and
+> 'release-safe', and disabled in 'release' for performance.
 
 > NOTE:
 > Safety covers the RUNTIME guards. Their static, compile-time counterparts are
@@ -31,7 +31,7 @@ with 'buildCfg.safetyGuards'.
 
 'Swag.assert(condition, message)' is the standard assertion for programmer invariants.
 'SafetyWhat.Assert' follows the same defaults as other runtime safety guards: enabled
-in 'devmode', disabled in 'release'. Set 'buildCfg.safetyGuards |= .Assert' to keep
+in 'devmode' and 'release-safe', disabled in 'release'. Set 'buildCfg.safetyGuards |= .Assert' to keep
 assertions in a release module, or use a local 'Swag.Safety' override. The 'test'
 command enables assertions by default in every configuration, including release.
 Explicit local overrides still apply, and other runtime guards keep their configured
@@ -77,7 +77,7 @@ compare-exchange that only reads is allowed. Disjoint fields and writes after th
 returns remain allowed. Swag calls through callbacks use the same checks without user
 annotations or a static proof of the callback's effects.
 
-The guard is enabled in 'devmode' and disabled in 'release'. Keep it in a release module
+The guard is enabled in 'devmode' and 'release-safe', and disabled in 'release'. Keep it in a release module
 with 'buildCfg.safetyGuards |= .ValueBorrow', or select it with
 '#[Swag.Safety(.ValueBorrow, true)]'. Disabling the guard removes the checks; the stability
 rule still applies. The checks only cover executed, instrumented operations. Foreign code,

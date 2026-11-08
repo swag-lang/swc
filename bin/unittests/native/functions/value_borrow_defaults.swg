@@ -1,6 +1,6 @@
 #global private
 
-#assert(#safety(Swag.SafetyWhat.ValueBorrow) == (#cfg == "devmode"))
+#assert(#safety(Swag.SafetyWhat.ValueBorrow) == (#cfg != "release"))
 struct Value { first, second, third: u64 }
 #[Swag.NoInline]
 func observe(value: Value, original: const *Value)->bool => &value == original and value.first == 281

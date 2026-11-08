@@ -110,18 +110,34 @@ namespace Command
             return Result::Continue;
         }
 
-        Result runRuntimeDependencyHooks(TaskContext& ctx, std::span<const NativeRuntimeDependency> dependencies, std::span<const uint32_t> order, const ScriptRuntimeHookStage stage)
+        Result runRuntimeDependencyHooks(TaskContext& ctx, std::span<const NativeRuntimeDependency> dependencies, std::span<const uint32_t> order,
+                                         const ScriptRuntimeHookStage stage, std::span<uint8_t> initialized)
         {
+            SWC_ASSERT(initialized.size() == dependencies.size());
+            bool succeeded = true;
             for (const uint32_t dependencyIndex : order)
             {
                 SWC_ASSERT(dependencyIndex < dependencies.size());
                 if (dependencyIndex >= dependencies.size())
                     continue;
 
-                SWC_RESULT(runRuntimeDependencyHook(ctx, dependencies[dependencyIndex], stage));
+                if (stage == ScriptRuntimeHookStage::Drop && !initialized[dependencyIndex])
+                    continue;
+
+                const Result result = runRuntimeDependencyHook(ctx, dependencies[dependencyIndex], stage);
+                if (result != Result::Continue)
+                {
+                    if (stage != ScriptRuntimeHookStage::Drop)
+                        return Result::Error;
+                    succeeded = false;
+                }
+                else if (stage == ScriptRuntimeHookStage::Init)
+                {
+                    initialized[dependencyIndex] = 1;
+                }
             }
 
-            return Result::Continue;
+            return succeeded ? Result::Continue : Result::Error;
         }
 
         SymbolFunction* runtimeFunction(CompilerInstance& compiler, const IdentifierManager::RuntimeFunctionKind kind)
@@ -225,16 +241,25 @@ namespace Command
                 stage->stopProgress();
 
             SWC_RESULT(runScriptRuntimeSetup(ctx));
-            SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init));
-            SWC_RESULT(runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None));
-            SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain));
-            SWC_RESULT(runJitScriptFunctions(ctx, preMainFunctions, JITRuntimeSetupMode::None));
-            const Result mainResult = runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None);
-            // A failed entry point still owns module state. Attempt every drop hook
-            // and release dependencies before reporting the original failure.
-            const Result dropResult = runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true);
-            const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop);
-            if (mainResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
+            std::vector<uint8_t> initializedDependencies(runtimeDependencies.size());
+            Result               executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init, initializedDependencies);
+            const bool           moduleStarted    = executionResult == Result::Continue;
+            if (moduleStarted)
+            {
+                executionResult = runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None);
+                if (executionResult == Result::Continue)
+                    executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain, initializedDependencies);
+                if (executionResult == Result::Continue)
+                    executionResult = runJitScriptFunctions(ctx, preMainFunctions, JITRuntimeSetupMode::None);
+                if (executionResult == Result::Continue)
+                    executionResult = runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None);
+            }
+
+            // Cleanup also follows a failed initializer or pre-main hook. Only dependencies
+            // whose initialization completed receive a drop hook.
+            const Result dropResult = moduleStarted ? runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true) : Result::Continue;
+            const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop, initializedDependencies);
+            if (executionResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
                 return Result::Error;
 
             if (stage)

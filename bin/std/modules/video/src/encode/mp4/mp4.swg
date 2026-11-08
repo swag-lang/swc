@@ -7,9 +7,7 @@
 
 using Core, Core.Errors, Pixel
 
-const MediaDataId        = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
 const MovieHeaderId      = fourCc('m'u32, 'v'u32, 'h'u32, 'd'u32)
-const TrackHeaderId      = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
 const VideoMediaHeaderId = fourCc('v'u32, 'm'u32, 'h'u32, 'd'u32)
 const DataInfoId         = fourCc('d'u32, 'i'u32, 'n'u32, 'f'u32)
 const DataReferenceId    = fourCc('d'u32, 'r'u32, 'e'u32, 'f'u32)

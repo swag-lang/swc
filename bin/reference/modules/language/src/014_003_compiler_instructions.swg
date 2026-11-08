@@ -153,8 +153,8 @@ const TargetEndian = #gettag("Swag.Endian", string, "unknown")
 - 'Swag.CompilerCommand.Build' for 'build', 'run', 'smoke', 'syntax', 'sema', 'doc', and the
   compiler-internal 'unittest' path.
 
-'#cfg' is the selected build-configuration name, such as '"devmode"' or
-'"release"'. Use these values for genuine source differences, not as a
+'#cfg' is the selected build-configuration name, such as '"devmode"',
+'"release"', or '"release-safe"'. Use these values for genuine source differences, not as a
 replacement for safety and optimization attributes.
 
 ```swag

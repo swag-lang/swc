@@ -183,7 +183,7 @@ def main():
     parser.add_argument('--dev-compiler', type=Path, help='DevMode compiler for the C++ stage; required by all and compiler')
     parser.add_argument('--dev-full', action='store_true', help='include filesystem C++ tests (automatic in all and compiler)')
     parser.add_argument('--execution', choices=('both', 'jit', 'native'))
-    parser.add_argument('--build-cfg', choices=('devmode', 'release'), default='devmode')
+    parser.add_argument('--build-cfg', choices=('devmode', 'release', 'release-safe'), default='devmode')
     parser.add_argument('--file-filter', help='select standalone compiler source inputs')
     parser.add_argument('--module', help='select one workspace module')
     parser.add_argument('--test-file', action='append', default=[])

@@ -663,7 +663,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   remaining drop hook after one panics, while still exiting with an error; a failing-script
   regression requires the later hook's output marker. A failed script `#main` now also runs
   its drop hooks and dependency shutdown before returning the failure; a separate script
-  regression checks for the drop marker after that panic.
+  regression checks for the drop marker after that panic. Failed script `#init` and `#premain`
+  now also run module drop hooks and release dependencies whose initialization completed.
+  Both expected-failure fixtures lacked their drop marker before the correction. A dedicated
+  shared-library dependency now records that its `#drop` follows the script's `#drop`
+  after either failure, while the original error exit remains.
 - Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
   release completes after failed init/premain stages and before restoring test data or unloading
   generated code.

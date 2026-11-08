@@ -28,7 +28,14 @@ else
     #assert(not #defined(Cfg.allocatorElectricMode))
     #assert(not #defined(Cfg.allocatorFillMemory))
 }
-#assert(Cfg.registeredConfigs == "devmode|release")
+#assert(Cfg.registeredConfigs == "devmode|release|release-safe")
+#assert(Cfg.backend.optimLevel == (#cfg == "devmode" ? Swag.Build.BackendOptimLevel.O1 : Swag.Build.BackendOptimLevel.O2))
+#assert(#safety(Swag.SafetyWhat.Expect) == (#cfg != "release"))
+#assert(#safety(Swag.SafetyWhat.Null) == (#cfg != "release"))
+#static if #cfg == "release-safe"
+{
+    #assert(not Cfg.backend.math.noNaN and not Cfg.backend.math.noInf)
+}
 #assert(Cfg.backendKind == Swag.Build.BackendKind.Executable or
         Cfg.backendKind == Swag.Build.BackendKind.SharedLibrary or
         Cfg.backendKind == Swag.Build.BackendKind.StaticLibrary)
@@ -38,9 +45,33 @@ else
 // BuildCfg fields are valid at runtime
 #test
 {
-    Swag.require(Cfg.registeredConfigs == "devmode|release")
+    Swag.require(Cfg.registeredConfigs == "devmode|release|release-safe")
     Swag.require(Cfg.backendKind != Swag.Build.BackendKind.None)
     Swag.require(Cfg.moduleVersion >= 0'u32)
     Swag.require(Cfg.moduleRevision >= 0'u32)
     Swag.require(Cfg.moduleBuildNum >= 0'u32)
+}
+
+#static if #cfg == "release-safe"
+{
+    struct GuardedLateSlot { late value: *s32 }
+
+    #[Swag.NoInline]
+    func readUninitializedSlot(shouldInitialize: bool)->s32
+    {
+        var slot: GuardedLateSlot
+        var value: s32 = 42
+        if shouldInitialize do slot.value = &value
+        return slot.value[]
+    }
+
+    #test
+    {
+        var absent: *s32? = null
+        let missing = Swag.catchPanic(func|&absent|() { discard unwrap absent })
+        Swag.require(missing.raised)
+
+        let uninitialized = Swag.catchPanic(func() { discard readUninitializedSlot(false) })
+        Swag.require(uninitialized.raised)
+    }
 }

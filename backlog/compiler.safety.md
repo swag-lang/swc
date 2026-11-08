@@ -70,6 +70,11 @@ is the current scorecard.
   with no remaining write check registers no borrow. Earlier same-program comparisons found
   about 1.9x for nbody, 1.4x for fannkuch and 1.3x for dijkstra; they predate the latest hoists
   and do not establish their current overhead.
+  On the full `aoc2024` console workload with always-active result checks,
+  `release-safe` took 2585 ms median versus 545 ms with only `.ValueBorrow`
+  disabled (twelve alternating samples each). The [application samples](../bench/results/safety/20261108-release-safe-aoc2024.md)
+  isolate this guard family to a 4.74x cost on that workload; dropping `.BoundCheck`
+  or `.Overflow` separately did not produce a comparable reduction.
   CPU backdrop convolution also exposes process-wide registration-lock contention: a native
   DevMode Gaussian pass exceeded 300 seconds with the default worker pool, while a single
   worker completed the scene. Small `Vector4` arithmetic repeatedly enters and leaves the
@@ -77,8 +82,8 @@ is the current scorecard.
   but ordinary parallel value calls still need a scalable guard. A sharded prototype passes
   128 native borrow tests, including cross-thread writes, but its permanently widened extent
   and empty-registry write cost need measurement before adopting that runtime design.
-- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
-  measure a representative application. Attribute remaining loop checks, argument copies,
+- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control.
+  Attribute the application's loop checks, argument copies,
   cold failure-call layout and per-value-parameter borrow registration before choosing another
   change. Include parallel small-value arithmetic, shard collisions, and writes after the last
   borrow closes; retain cross-thread conflicts and panic checkpoints. Checking a writing
@@ -131,6 +136,10 @@ is the current scorecard.
   `devmode` about 1.24x across the twelve `bench/` programs against the same build without
   runtime guards. Hot gaps: loop-bounded indices, repeatedly loaded counts, and
   loop-invariant `late` checks.
+- A full `aoc2024` comparison found that removing `.BoundCheck` alone did not
+  reduce the measured wall time. Its large whole-preset gap is mainly
+  `.ValueBorrow`; see compiler.safety.030 and
+  [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
 - Next: prove an index against the dominating loop bound and hoist a `late` check from a
   loop that does not assign it. Measure the affected loops with guards enabled and disabled.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
@@ -168,30 +177,6 @@ is the current scorecard.
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017.
-
-### compiler.safety.011 — `!` and `late` stop asserting in release
-
-- Evidence: `unwrap p` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
-  assertions under two different flags, both off in `release` by default. A violated invariant gets a located panic in `devmode`; in unguarded `release`,
-  the assertion itself does not diagnose the null. A later dereference can fault or reach an
-  unrelated mapped address, depending on the address and offset. Naming either flag in `#[Swag.Safety]` restores its guard in `release`, so the gap is the
-  default rather than the mechanism.
-- Consequence: the located invariant diagnostic disappears exactly
-  where it is hardest to reproduce. `!` is the spelling the language recommends for "an invariant
-  makes this present, and a null here is a bug worth stopping on"; in `release` it stops on nothing
-  it can name.
-- Elsewhere: Rust's `unwrap` panics with a message in every profile. Zig makes it the difference
-  between `ReleaseSafe` and `ReleaseFast`, which is the shape Swag already has — except that Swag
-  has no named configuration for it, so every project that wants the guards has to discover
-  `buildCfg.safetyGuards` and assemble one.
-- Next: this is a packaging gap, not a default to flip. A guarded release — optimized code with
-  `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
-  "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
-  once, on an application, so the trade is a number and not a guess. Making it affordable
-  depends on compiler.safety.008.
-- Done when: a guarded release configuration exists and is documented, and its cost on one
-  application workload is recorded.
-- Related: compiler.safety.008.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 

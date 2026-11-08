@@ -22,7 +22,7 @@
         #assert(not #defined(Cfg.allocatorElectricMode))
         #assert(not #defined(Cfg.allocatorFillMemory))
     }
-    #assert(Cfg.registeredConfigs == "devmode|release")
+    #assert(Cfg.registeredConfigs == "devmode|release|release-safe")
     #assert(Cfg.name == null)
     #assert(Cfg.outDir == "" or Cfg.outDir != "")
     #assert(Cfg.workDir == "" or Cfg.workDir != "")

@@ -10,6 +10,19 @@ using Core, Core.Errors
 
 private const CursorMovieExtendsId = fourCc('m'u32, 'v'u32, 'e'u32, 'x'u32)
 
+private struct CursorScanState
+{
+    nextBoxOffset:         u64
+    currentFragmentOffset: u64
+    completeByteCount:     u64
+    currentIndex:          u64
+    currentTrackIndex:     u32
+    currentIsVideo:        bool
+    nextVideoTime:         u64
+    hasVideo:              bool
+    isEnded:               bool
+}
+
 // One compressed sample found while walking MP4 fragments in file order.
 //
 // `trackIndex` is zero for video; for audio it is the zero-based index returned by
@@ -17,9 +30,11 @@ private const CursorMovieExtendsId = fourCc('m'u32, 'v'u32, 'e'u32, 'x'u32)
 // [[Video.Mp4.FragmentedPacketCursor.readPayload]].
 struct FragmentedCursorPacket
 {
-    public info:       FragmentedPacketInfo     // Sample timing and payload location.
-    public isVideo:    bool     // Whether this packet belongs to the video track.
-    public trackIndex: u32      // Zero for video or the zero-based AAC track index.
+    public info:           FragmentedPacketInfo     // Sample timing and payload location.
+    public fragmentOffset: u64      // Absolute offset of the containing `moof`.
+    public sampleNumber:   u32      // One-based sample number in its track run.
+    public isVideo:        bool     // Whether this packet belongs to the video track.
+    public trackIndex:     u32      // Zero for video or the zero-based AAC track index.
 }
 
 // Walks a fragmented H.264 MP4 without retaining a table for the whole recording.
@@ -36,16 +51,10 @@ struct FragmentedPacketCursor
         source:              ByteSource
         layout:              Layout
         current:             Array'FragmentSample
-        nextBoxOffset:       u64
         firstFragmentOffset: u64
-        currentIndex:        u64
-        currentTrackIndex:   u32
-        currentIsVideo:      bool
-        nextVideoTime:       u64
+        scan:                CursorScanState
         audioNextTimes:      Array'u64
         audioSeen:           Array'bool
-        hasVideo:            bool
-        isEnded:             bool
     }
 }
 
@@ -79,7 +88,7 @@ impl FragmentedPacketCursor
                    result.layout.audioTracks.count > 4 do
                     fail UnsupportedFormatError{"MP4 packet cursor needs H.264 and up to four AAC tracks"}
                 result.firstFragmentOffset = box.end
-                result.nextBoxOffset       = box.end
+                result.scan = CursorScanState{box.end}
                 result.audioNextTimes.resize(result.layout.audioTracks.count)
                 result.audioSeen.resize(result.layout.audioTracks.count)
                 return result
@@ -109,6 +118,12 @@ impl FragmentedPacketCursor
     // Returns the number of AAC-LC tracks, including empty tracks.
     mtd const audioTrackCount()->u64 => .layout.audioTracks.count
 
+    // Returns the byte offset after the last completely parsed `mdat` box.
+    //
+    // Zero means no media fragment has yet been parsed. After `nextPacket` returns false on a
+    // partial final fragment, this is the last offset a recovery tool can retain.
+    mtd const completeMediaByteCount()->u64 => .scan.completeByteCount
+
     // Borrows one AAC-LC track configuration until the cursor closes.
     mtd const audioTrack(index: u64)->FragmentedAudioConfig fail
     {
@@ -124,17 +139,18 @@ impl FragmentedPacketCursor
     // `packet` receives metadata only; call `readPayload` for its encoded bytes.
     mtd nextPacket(packet: *FragmentedCursorPacket)->bool fail
     {
-        while .currentIndex == .current.count
+        while .scan.currentIndex == .current.count
         {
             if not try .nextFragment() do
                 return false
         }
 
-        let sample = .current[.currentIndex]
-        .currentIndex += 1
-        packet[]      = {FragmentedPacketInfo{sample.offset, sample.size, sample.decodeTime,
-                                              sample.presentationTime, sample.duration, sample.isKeyFrame},
-                         .currentIsVideo, .currentTrackIndex}
+        let sample = .current[.scan.currentIndex]
+        let number = cast(u32, .scan.currentIndex + 1)
+        .scan.currentIndex += 1
+        packet[] = {FragmentedPacketInfo{sample.offset, sample.size, sample.decodeTime,
+                                         sample.presentationTime, sample.duration, sample.isKeyFrame},
+                    .scan.currentFragmentOffset, number, .scan.currentIsVideo, .scan.currentTrackIndex}
         return true
     }
 
@@ -164,14 +180,10 @@ impl FragmentedPacketCursor
         let boxKind = try .source.readBigEndian'u32()
         if boxKind != FragmentId or boxSize < BoxHeaderSize or boxSize > .source.size() - offset do
             fail BadParameterError{"fragmented MP4 cursor offset does not name a movie fragment"}
-        .nextBoxOffset = offset
+        .scan = CursorScanState{offset}
         .current.clear()
-        .currentIndex  = 0
-        .hasVideo      = false
-        .nextVideoTime = 0
         for &seen in .audioSeen do
             seen[] = false
-        .isEnded = false
     }
 }
 
@@ -179,17 +191,17 @@ private impl FragmentedPacketCursor
 {
     mtd nextFragment()->bool fail
     {
-        if .isEnded do
+        if .scan.isEnded do
             return false
-        while .nextBoxOffset < .source.size()
+        while .scan.nextBoxOffset < .source.size()
         {
-            let offset    = .nextBoxOffset
+            let offset    = .scan.nextBoxOffset
             let remaining = .source.size() - offset
             if remaining < BoxHeaderSize
             {
-                if .hasVideo
+                if .scan.hasVideo
                 {
-                    .isEnded = true
+                    .scan.isEnded = true
                     return false
                 }
 
@@ -203,9 +215,9 @@ private impl FragmentedPacketCursor
                ((kind == FragmentId and not declared) or
                 (declared >= BoxHeaderSize and declared > remaining))
             {
-                if .hasVideo
+                if .scan.hasVideo
                 {
-                    .isEnded = true
+                    .scan.isEnded = true
                     return false
                 }
 
@@ -216,22 +228,22 @@ private impl FragmentedPacketCursor
             let box = try readBox(&.source, .source.size())
             if box.kind == FragmentRandomAccessId
             {
-                .isEnded = true
+                .scan.isEnded = true
                 return false
             }
 
             if box.kind != FragmentId
             {
-                .nextBoxOffset = box.end
+                .scan.nextBoxOffset = box.end
                 continue
             }
 
             var fragment = try .layout.parseFragment(&.source, offset, box.end)
             if box.end > .source.size() - BoxHeaderSize
             {
-                if .hasVideo
+                if .scan.hasVideo
                 {
-                    .isEnded = true
+                    .scan.isEnded = true
                     return false
                 }
 
@@ -245,9 +257,9 @@ private impl FragmentedPacketCursor
                 fail InvalidFormatError{"fragmented MP4 movie fragment is not followed by media data"}
             if dataSize < BoxHeaderSize or dataSize > .source.size() - box.end
             {
-                if .hasVideo
+                if .scan.hasVideo
                 {
-                    .isEnded = true
+                    .scan.isEnded = true
                     return false
                 }
 
@@ -261,15 +273,15 @@ private impl FragmentedPacketCursor
 
             if fragment.trackId == .layout.track.id
             {
-                if not .hasVideo and not fragment.samples[0].isKeyFrame do
+                if not .scan.hasVideo and not fragment.samples[0].isKeyFrame do
                     fail InvalidFormatError{"fragmented MP4 cursor video must start at a key frame"}
-                if .hasVideo and fragment.samples[0].decodeTime < .nextVideoTime do
+                if .scan.hasVideo and fragment.samples[0].decodeTime < .scan.nextVideoTime do
                     fail InvalidFormatError{"fragmented MP4 cursor video decode times overlap"}
-                .currentIsVideo    = true
-                .currentTrackIndex = 0
-                .hasVideo          = true
+                .scan.currentIsVideo    = true
+                .scan.currentTrackIndex = 0
+                .scan.hasVideo          = true
                 let last = fragment.samples.back()
-                .nextVideoTime = last.decodeTime + last.duration
+                .scan.nextVideoTime = last.decodeTime + last.duration
             }
             else
             {
@@ -288,17 +300,19 @@ private impl FragmentedPacketCursor
                 let last = fragment.samples.back()
                 .audioNextTimes[trackIndex] = last.decodeTime + last.duration
                 .audioSeen[trackIndex]      = true
-                .currentIsVideo             = false
-                .currentTrackIndex          = cast(u32, trackIndex)
+                .scan.currentIsVideo        = false
+                .scan.currentTrackIndex     = cast(u32, trackIndex)
             }
 
-            .current       = #move fragment.samples
-            .currentIndex  = 0
-            .nextBoxOffset = mediaData.end
+            .current = #move fragment.samples
+            .scan.currentIndex          = 0
+            .scan.currentFragmentOffset = offset
+            .scan.completeByteCount     = mediaData.end
+            .scan.nextBoxOffset         = mediaData.end
             return true
         }
 
-        .isEnded = true
+        .scan.isEnded = true
         return false
     }
 }

@@ -32,7 +32,7 @@ private struct BufferedPacket
     isKeyFrame:        bool
 }
 
-private struct RandomAccessEntry
+internal struct RandomAccessEntry
 {
     time:         u64
     moofOffset:   u64
@@ -110,6 +110,19 @@ struct FragmentedWriter
 
 impl FragmentedWriter
 {
+    // Returns bytes accepted by the output sink so far.
+    //
+    // This includes the initialization movie, completed fragments, and an optional final index.
+    // Pending video and AAC groups are excluded. Call `flush` first to include every submitted
+    // packet and obtain the current complete file size.
+    mtd const writtenByteCount()->u64 => .sink.position()
+
+    // Returns the decode-time end of the last submitted video packet in video timescale ticks.
+    //
+    // The value is zero before the first video packet. It advances even when that packet is still
+    // in a pending group, so a recorder can check its time threshold before flushing or splitting.
+    mtd const videoEndTime()->u64 => .nextDecodeTime
+
     // Creates a fragmented H.264 MP4 file and writes its initialization movie.
     //
     // `avcConfig` is a complete AVCDecoderConfigurationRecord with four-byte NAL lengths and is
@@ -288,6 +301,42 @@ impl FragmentedWriter
     }
 }
 
+// Emits the same bounded-memory final index for a live writer or a recovered recording.
+#[Swag.Propagate]
+internal func writeFragmentRandomAccessIndex(sink: *ByteSink, entries: *File.FileStream, count: u32) fail
+{
+    if not count do
+        return
+    if count > (Swag.U32.Max - 48) / 20 do
+        fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
+    entries.seek(.Begin, 0)
+    let randomAccess = beginBox(sink, MovieFragmentRandomAccessId)
+    let trackAccess  = beginBox(sink, TrackFragmentRandomAccessId)
+    writeFullBox(sink, 1, 0)
+    writeU32(sink, 1)
+    writeU32(sink, 1)     // One-byte traf/trun numbers and a two-byte sample number.
+    writeU32(sink, count)
+    for count
+    {
+        var entry: RandomAccessEntry
+        let bytes = Swag.makeSlice(cast([*] u8, &entry), #sizeof(RandomAccessEntry))
+        if not entries.readExact(bytes) do
+            fail InvalidFormatError{"fragmented MP4 random-access entries are truncated"}
+        writeU64(sink, entry.time)
+        writeU64(sink, entry.moofOffset)
+        writeU8(sink, 1)
+        writeU8(sink, 1)
+        writeU16(sink, cast(u16, entry.sampleNumber))
+    }
+
+    endBox(sink, trackAccess)
+    let offset = beginBox(sink, MovieFragmentRandomAccessOffsetId)
+    writeFullBox(sink, 0, 0)
+    writeU32(sink, cast(u32, sink.position() - randomAccess + 4))
+    endBox(sink, offset)
+    endBox(sink, randomAccess)
+}
+
 private impl FragmentedWriter
 {
     mtd closeIndex()
@@ -303,36 +352,7 @@ private impl FragmentedWriter
     #[Swag.Propagate]
     mtd writeRandomAccessIndex() fail
     {
-        if not .indexCount do
-            return
-        if .indexCount > (Swag.U32.Max - 48) / 20 do
-            fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
-        .indexStream.seek(.Begin, 0)
-        let randomAccess = beginBox(&.sink, MovieFragmentRandomAccessId)
-        let trackAccess  = beginBox(&.sink, TrackFragmentRandomAccessId)
-        writeFullBox(&.sink, 1, 0)
-        writeU32(&.sink, 1)
-        writeU32(&.sink, 1)     // One-byte traf/trun numbers and a two-byte sample number.
-        writeU32(&.sink, .indexCount)
-        for .indexCount
-        {
-            var entry: RandomAccessEntry
-            let bytes = Swag.makeSlice(cast([*] u8, &entry), #sizeof(RandomAccessEntry))
-            if not .indexStream.readExact(bytes) do
-                fail InvalidFormatError{"fragmented MP4 random-access entries are truncated"}
-            writeU64(&.sink, entry.time)
-            writeU64(&.sink, entry.moofOffset)
-            writeU8(&.sink, 1)
-            writeU8(&.sink, 1)
-            writeU16(&.sink, cast(u16, entry.sampleNumber))
-        }
-
-        endBox(&.sink, trackAccess)
-        let offset = beginBox(&.sink, MovieFragmentRandomAccessOffsetId)
-        writeFullBox(&.sink, 0, 0)
-        writeU32(&.sink, cast(u32, .sink.position() - randomAccess + 4))
-        endBox(&.sink, offset)
-        endBox(&.sink, randomAccess)
+        writeFragmentRandomAccessIndex(&.sink, &.indexStream, .indexCount)
     }
 
     mtd flushVideo() fail

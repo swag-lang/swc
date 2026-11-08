@@ -63,6 +63,10 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(fragmentedTagCount(raw, "mvex") == 1)
     Swag.require(fragmentedTagCount(raw, "avcC") == 1)
     Swag.require(fragmentedTagCount(raw, "moof") == 0)
+    var rejected: Swag.Error
+    discard catch Mp4.rebuildFragmentedIndex(path) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+    Swag.require((expect File.info(path)).size == file.count)
 }
 
 // Invalid AVC configuration is rejected before the destination is opened.
@@ -91,6 +95,8 @@ func fragmentedPacketSource()->ByteSource fail
     expect source.readExact(config.toSlice())
 
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice())
+    let initializationSize = writer.writtenByteCount()
+    Swag.require(initializationSize > 0 and writer.videoEndTime() == 0)
     for index in 3
     {
         let packetSize = expect source.readBigEndian'u32()
@@ -99,6 +105,8 @@ func fragmentedPacketSource()->ByteSource fail
         expect source.readExact(bytes.toSlice())
         expect writer.addPacket(EncodedPacket{bytes.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
+        Swag.require(writer.videoEndTime() == cast(u64, index + 1) * 512)
+        Swag.require(writer.writtenByteCount() > initializationSize)
     }
 
     expect writer.end()
@@ -106,6 +114,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     let file = expect File.readAllBytes(path)
     let raw  = file.toSlice()
+    Swag.require(writer.writtenByteCount() == file.count)
     Swag.require(raw[4] == 'f' and raw[5] == 't' and raw[6] == 'y' and raw[7] == 'p')
     Swag.require(fragmentedTagCount(raw, "moov") == 1)
     Swag.require(fragmentedTagCount(raw, "mvex") == 1)
@@ -154,6 +163,7 @@ func fragmentedPacketSource()->ByteSource fail
     while expect cursor.nextPacket(&packet) do
         completePackets += 1
     Swag.require(completePackets == 2)
+    Swag.require(cursor.completeMediaByteCount() == lastFragment)
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.
@@ -589,11 +599,14 @@ func fragmentedPacketSource()->ByteSource fail
     let config = expect fragmentedConfig()
     var source = expect fragmentedPacketSource()
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    let initializationSize = writer.writtenByteCount()
     for index in 3
     {
         let packet = expect fragmentedPacket(&source)
         expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
+        Swag.require(writer.videoEndTime() == cast(u64, index + 1) * 512)
+        Swag.require((writer.writtenByteCount() > initializationSize) == (index == 2))
     }
 
     expect writer.end()
@@ -1010,6 +1023,14 @@ func fragmentedPacketSource()->ByteSource fail
 
     let file = expect File.readAllBytes(path)
     Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 3)
+    let recoveredPath = videoTempPath("fragmented-two-aac-recovered", "mp4")
+    defer discard catch File.delete(recoveredPath)
+    discard expect File.writeAllBytes(recoveredPath, file.toSlice())
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 1)
+    var recoveredIndex = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(recoveredIndex.entryCount() == 1)
+    var recovered = expect Reader.open(recoveredPath)
+    Swag.require(recovered.frameCount() == 3 and recovered.audioTrackCount() == 2)
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
     Swag.require((unwrap reader.audioTrack(0)).packetCount() == 3)
@@ -1029,13 +1050,27 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(cursor.width() == packets.width() and cursor.height() == packets.height())
     Swag.require(cursor.timescale() == packets.timescale() and cursor.audioTrackCount() == 2)
     Swag.require((expect cursor.audioTrack(0)).sampleRate == 44_100)
-    var cursorPacket:  Mp4.FragmentedCursorPacket
-    var cursorBytes:   Array'u8
-    var expectedBytes: Array'u8
-    var videoIndex:    u64
-    var audioIndices:  [2] u64
+    var cursorPacket:   Mp4.FragmentedCursorPacket
+    var cursorBytes:    Array'u8
+    var expectedBytes:  Array'u8
+    var videoIndex:     u64
+    var audioIndices:   [2] u64
+    var fragmentOffset: u64
+    var sampleNumber:   u32
     while expect cursor.nextPacket(&cursorPacket)
     {
+        if cursorPacket.fragmentOffset != fragmentOffset
+        {
+            Swag.require(cursorPacket.fragmentOffset > fragmentOffset)
+            fragmentOffset = cursorPacket.fragmentOffset
+            sampleNumber   = 1
+        }
+        else
+        {
+            sampleNumber += 1
+        }
+
+        Swag.require(cursorPacket.sampleNumber == sampleNumber)
         expect cursor.readPayload(cursorPacket, &cursorBytes)
         if cursorPacket.isVideo
         {
@@ -1065,6 +1100,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     Swag.require(videoIndex == 3 and audioIndices[0] == 3 and audioIndices[1] == 2)
     Swag.require(not expect cursor.nextPacket(&cursorPacket))
+    Swag.require(cursor.completeMediaByteCount() == file.count)
     let copiedTracks: [2] Mp4.FragmentedAudioConfig = [
         {firstAudio.sampleRate,  firstAudio.channelCount,  firstAudio.decoderConfig},
         {secondAudio.sampleRate, secondAudio.channelCount, secondAudio.decoderConfig}]
@@ -1250,10 +1286,12 @@ func fragmentedPacketSource()->ByteSource fail
     discard catch cursor.seekFragment(lastPoint.moofOffset + 1) as rejected
     Swag.require(rejected.value() is BadParameterError)
     expect cursor.seekFragment(lastPoint.moofOffset)
+    Swag.require(cursor.completeMediaByteCount() == 0)
     var cursorPacket: Mp4.FragmentedCursorPacket
     Swag.require(expect cursor.nextPacket(&cursorPacket))
     Swag.require(cursorPacket.isVideo and cursorPacket.info.isKeyFrame)
-    Swag.require(cursorPacket.info.decodeTime == 1536)
+    Swag.require(cursorPacket.info.decodeTime == 1536 and cursorPacket.fragmentOffset == lastPoint.moofOffset)
+    Swag.require(cursorPacket.sampleNumber == 1)
     Swag.require(not expect cursor.nextPacket(&cursorPacket))
     var found: Mp4.FragmentedSeekPoint
     Swag.require(not expect index.tryFindAtOrBefore(511, &found))
@@ -1269,6 +1307,22 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(reader.frameCount() == 3)
     let frame = expect reader.decodeFrame(2)
     Swag.require(frame.width == 64 and frame.height == 48)
+    let recoveredPath = videoTempPath("fragmented-index-recovered", "mp4")
+    defer discard catch File.delete(recoveredPath)
+    discard expect File.writeAllBytes(recoveredPath, raw[0 until mfraOffset])
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 2)
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 2)
+    var rebuilt = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(rebuilt.entryCount() == 2)
+    Swag.require((expect rebuilt.point(1)).moofOffset == moofOffsets[1])
+    rebuilt.close()
+    discard expect File.writeAllBytes(recoveredPath, raw[0 until mfraOffset - 1])
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 1)
+    rebuilt = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(rebuilt.entryCount() == 1)
+    rebuilt.close()
+    var stopped = expect Reader.open(recoveredPath)
+    Swag.require(stopped.frameCount() == 2)
     for cut in mfraOffset to raw.count - 1
     {
         var recovered = expect Reader.openMemory("indexed-cut.mp4", raw[0 until cut])

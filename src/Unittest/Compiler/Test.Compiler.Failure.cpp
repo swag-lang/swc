@@ -394,19 +394,19 @@ func worker(current: const *Threading.Thread)
     expect thread.init(&worker)
     expect thread.start()
     if FailurePhase == 1 do
-        Swag.assert(false, "init-original")
+        Swag.check(false, "init-original")
 }
 
 #test
 {
     if FailurePhase == 2 do
-        Swag.assert(false, "test-original")
+        Swag.check(false, "test-original")
     Swag.print("test-called\n")
 }
 
 #drop
 {
-    Swag.print("drop-first\n")
+    Swag.print("drop-last\n")
     if FailurePhase == 3 do
         Swag.assert(false, "drop-original")
 }
@@ -429,10 +429,10 @@ func worker(current: const *Threading.Thread)
         const auto                                result       = Os::runProcess(exitCode, Os::getExeFullName(), arguments, module, &options);
         const uint32_t                            expectedExit = static_cast<uint32_t>(phase ? ExitCode::CompileError : ExitCode::Success);
         constexpr std::array<std::string_view, 4> diagnostics  = {"", "init-original", "test-original", "drop-original"};
-        const size_t                              firstDrop    = output.find("drop-first");
+        const size_t                              lastDrop     = output.find("drop-last");
         const size_t                              joinedDrop   = output.find("drop-joined");
         if (result != Os::ProcessRunResult::Ok || exitCode != expectedExit ||
-            firstDrop == std::string::npos || joinedDrop == std::string::npos || firstDrop >= joinedDrop ||
+            lastDrop == std::string::npos || joinedDrop == std::string::npos || joinedDrop >= lastDrop ||
             (phase && output.find(diagnostics[phase]) == std::string::npos) || output.find("compiler assertion") != std::string::npos)
         {
             std::println(stderr, "[JIT module cleanup phase {}] result={}, exit={}\n{}", phase, static_cast<uint32_t>(result), exitCode, output);

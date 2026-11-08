@@ -133,6 +133,22 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
                             '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
                             expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
                             expected_returncode=5))
+        stages.append(Stage('workspace-jit-abandoned-test', [str(compiler), 'test',
+                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
+                            '--module-namespace', 'JitAbandonedTest', '--artifact-kind', 'export',
+                            '--no-test-native', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
+                            expected_returncode=5))
+        for name, namespace, marker, forbidden in (
+                ('jit_failed_init', 'JitFailedInit', 'SWAG_JIT_INIT_PANIC', 'SWAG_JIT_DROP_AFTER_INIT'),
+                ('jit_failed_premain', 'JitFailedPreMain', 'SWAG_JIT_PREMAIN_PANIC', 'SWAG_JIT_DROP_AFTER_PREMAIN'),
+                ('jit_failed_drop', 'JitFailedDrop', 'SWAG_JIT_DROP_PANIC', 'SWAG_JIT_SECOND_DROP')):
+            fixture = workspace / name
+            stages.append(Stage('workspace-' + name.replace('_', '-'), [str(compiler), 'test',
+                                '--directory', str(fixture / 'src'), '--module-file', str(fixture / 'module.swg'),
+                                '--module-namespace', namespace, '--artifact-kind', 'export', '--no-test-native',
+                                '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                                expected_output=marker, forbidden_output=forbidden, expected_returncode=5))
         stages.append(Stage('workspace-import-png-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_png.swgs')],
                             expected_output='SWAG_IMPORTED_PNG_RAN'))

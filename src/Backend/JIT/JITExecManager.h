@@ -36,6 +36,8 @@ public:
 
         bool                runImmediate     = false;
         JITRuntimeSetupMode runtimeSetupMode = JITRuntimeSetupMode::FromCompiler;
+        // Only an immediate, argument-free call may borrow this output from its caller.
+        JITCallErrorKind*   outCallErrorKind  = nullptr;
 
         // Returned to the caller with consumeCompletion so queued requests can
         // keep companion state without a second global registry.

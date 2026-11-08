@@ -57,7 +57,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
   shared libraries apart from the image timestamp.
 
-### compiler.core.084 — Stop native test recovery from reusing state abandoned by a panic
+### compiler.core.084 — Continue test campaigns after a module abandons state
 
 - Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
   skips the deferred unlock. The native test runner catches the panic and starts the next GUI
@@ -67,10 +67,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   ordinary failed `Swag.check` calls still allow later tests. A regression holds a mutex across
   a panic: the preceding compiler starts the next test and times out, while the corrected
   compiler stops promptly before that test. The Linux low-level host recovery unit test still
-  passes and explicit `Swag.catchPanic` remains supported.
-- Next: verify a failed native module does not block execution of independent modules in a
-  multi-module campaign. The JIT test runner also continues after a panic and needs its own
-  recovery boundary before its retained module state can be reused.
+  passes and explicit `Swag.catchPanic` remains supported. The JIT runner now distinguishes
+  recoverable `Swag.check` failures from panics, stops after a panicked test, and skips drop hooks
+  that could touch abandoned state. Its old path hung on the same mutex reproducer; focused
+  `#init`, `#premain`, and `#drop` panic fixtures also demonstrate that the prior runner invoked
+  shutdown hooks after the panic, while the corrected runner stops before them.
+- Next: verify a failed native or JIT module does not block execution of independent modules in
+  a multi-module campaign. The current workspace driver stops on the first module error.
 - Done when: a regression with a panic under a deferred mutex unlock reports the original
   failure promptly without hanging the next test, and the campaign can continue with other
   modules.
@@ -672,7 +675,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   now also run module drop hooks and release dependencies whose initialization completed.
   Both expected-failure fixtures lacked their drop marker before the correction. A dedicated
   shared-library dependency now records that its `#drop` follows the script's `#drop`
-  after either failure, while the original error exit remains.
+  after either failure, while the original error exit remains. The JIT test runner now stops
+  shutdown hooks after an uncaught panic in `#init`, `#premain`, or `#drop`, because the panic
+  abandons `defer` cleanup and the remaining hooks can touch invalid state. Dedicated failing
+  JIT fixtures show the preceding compiler ran those hooks and the corrected compiler does not.
 - Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
   release completes after failed init/premain stages and before restoring test data or unloading
   generated code.

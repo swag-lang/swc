@@ -345,6 +345,73 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(index.entryCount() == 2)
 }
 
+// Interleaved fragments retain the matching AAC packets when a middle GOP is removed.
+#test
+{
+    let sourcePath = videoTempPath("fragmented-interleaved-cut-source", "mp4")
+    let targetPath = videoTempPath("fragmented-interleaved-cut-target", "mp4")
+    defer discard catch File.delete(sourcePath)
+    defer discard catch File.delete(targetPath)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(sourcePath,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 2})
+    var soundSource = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    var sounds: [3] Array'u8
+    for index in 3 do
+        sounds[index] = expect fragmentedPacket(&soundSource)
+    for group in 3
+    {
+        var video = expect fragmentedPacketSource()
+        for index in 3
+        {
+            let picture = expect fragmentedPacket(&video)
+            let time    = cast(u64, group * 3 + index) * 512
+            expect writer.addPacket(EncodedPacket{picture.toSlice(), time, time, 512, index == 0})
+        }
+
+        for index in 5
+        {
+            let soundIndex = group * 5 + index
+            let time       = cast(u64, soundIndex) * 1024
+            expect writer.addAudioPacket(EncodedPacket{sounds[soundIndex % 3].toSlice(), time, time, 1024, true})
+        }
+    }
+
+    expect writer.end()
+
+    const Kept: [2] Mp4.VideoPacketRange = [{0, 3}, {6, 9}]
+    expect Mp4.copyRanges(sourcePath, targetPath, Swag.makeSlice(&Kept[0], 2))
+    var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
+    var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
+    Swag.require(copied.packetCount() == 6 and (expect copied.audioTrack(0)).packetCount == 10)
+    var sourceBytes: Array'u8
+    var copiedBytes: Array'u8
+    for index in 6
+    {
+        let sourceIndex = index < 3 ? index : index + 3
+        let original    = expect source.readPacket(sourceIndex, &sourceBytes)
+        let result      = expect copied.readPacket(index, &copiedBytes)
+        Swag.require(result.decodeTime == index * 512 and result.bytes.count == original.bytes.count)
+        Swag.require(Memory.compare(result.bytes.buffer, original.bytes.buffer, result.bytes.count) == 0)
+    }
+
+    for index in 10
+    {
+        let sourceIndex = index < 5 ? index : index + 5
+        let original    = expect source.readAudioPacket(0, sourceIndex, &sourceBytes)
+        let result      = expect copied.readAudioPacket(0, index, &copiedBytes)
+        Swag.require(result.decodeTime == index * 1024 and result.bytes.count == original.bytes.count)
+        Swag.require(Memory.compare(result.bytes.buffer, original.bytes.buffer, result.bytes.count) == 0)
+    }
+}
+
 // Two closed GOPs join across a removed GOP with unchanged packet bytes and continuous clocks.
 #test
 {

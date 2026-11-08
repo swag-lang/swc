@@ -42,6 +42,18 @@ private struct AudioCopyState
     hasOutput:        bool
 }
 
+private struct AudioTrackSummary
+{
+    firstTime:   u64
+    packetCount: u64
+}
+
+private struct ProgressiveCopyPlan
+{
+    ranges: Array'ValidatedVideoRange
+    audio:  Array'AudioTrackSummary
+}
+
 // Copies retained video ranges from a fragmented H.264 MP4 into a new video-only MP4.
 //
 // Packets and AVC configuration are copied unchanged; decode and presentation timestamps are
@@ -54,8 +66,8 @@ private struct AudioCopyState
 // buffering limits, independent of the source recording's duration.
 func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] VideoPacketRange, options: FragmentedOptions = {}) fail
 {
-    var source  = try FragmentedPacketCursor.open(sourceFileName)
-    let checked = try validateProgressiveVideoRanges(sourceFileName, ranges)
+    var source = try FragmentedPacketCursor.open(sourceFileName)
+    let plan   = try planProgressiveVideoRanges(sourceFileName, ranges)
 
     let temporary     = Format.toString("%.swag-cut-%.tmp", targetFileName, Guid128.random())
     var ownsTemporary = true
@@ -72,11 +84,11 @@ func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] 
         var packet: FragmentedCursorPacket
         var videoIndex = 0'u64
         var rangeIndex = 0'u64
-        while rangeIndex < checked.count and try source.nextPacket(&packet)
+        while rangeIndex < plan.ranges.count and try source.nextPacket(&packet)
         {
             if not packet.isVideo do
                 continue
-            let range = checked[rangeIndex]
+            let range = plan.ranges[rangeIndex]
             if videoIndex >= range.firstPacket and videoIndex < range.afterLastPacket
             {
                 let times = try rebasedVideoTime(packet.info, range.sourceStart, range.outputStart)
@@ -98,7 +110,7 @@ func copyVideoRanges(sourceFileName, targetFileName: string, ranges: const [..] 
     ownsTemporary = false
 }
 
-private func validateProgressiveVideoRanges(fileName: string, ranges: const [..] VideoPacketRange)->Array'ValidatedVideoRange fail
+private func planProgressiveVideoRanges(fileName: string, ranges: const [..] VideoPacketRange)->ProgressiveCopyPlan fail
 {
     if not ranges.count do
         fail BadParameterError{"fragmented MP4 copy needs at least one video range"}
@@ -112,7 +124,8 @@ private func validateProgressiveVideoRanges(fileName: string, ranges: const [..]
 
     var source = try FragmentedPacketCursor.open(fileName)
     var result: #returntype
-    result.reserve(ranges.count)
+    result.ranges.reserve(ranges.count)
+    result.audio.resize(source.audioTrackCount())
     var packet: FragmentedCursorPacket
     var videoIndex    = 0'u64
     var rangeIndex    = 0'u64
@@ -123,8 +136,15 @@ private func validateProgressiveVideoRanges(fileName: string, ranges: const [..]
     var hasCompleted  = false
     while try source.nextPacket(&packet)
     {
-        if not packet.isVideo do
+        if not packet.isVideo
+        {
+            let track = &result.audio[packet.trackIndex]
+            if not track.packetCount do
+                track.firstTime = packet.info.decodeTime
+            track.packetCount += 1
             continue
+        }
+
         let info = packet.info
         if hasCompleted and videoIndex == completedEnd and not info.isKeyFrame do
             fail BadParameterError{"fragmented MP4 video range must end before a key frame"}
@@ -157,7 +177,7 @@ private func validateProgressiveVideoRanges(fileName: string, ranges: const [..]
                         fail UnsupportedFormatError{"fragmented MP4 range crosses a presentation dependency"}
                     if sourceEnd < sourceStart or sourceEnd - sourceStart > Swag.U64.Max - outputBase do
                         fail OverflowError{"fragmented MP4 rebased video duration overflows"}
-                    result.add({range.firstPacket, range.afterLastPacket, sourceStart, sourceEnd, outputBase})
+                    result.ranges.add({range.firstPacket, range.afterLastPacket, sourceStart, sourceEnd, outputBase})
                     outputBase   += sourceEnd - sourceStart
                     completedEnd = range.afterLastPacket
                     hasCompleted = true
@@ -183,14 +203,14 @@ private func validateProgressiveVideoRanges(fileName: string, ranges: const [..]
 // boundary. While sound remains available, the output audio end stays within half an access unit
 // of the video end; a source track that ends early remains shorter. Whole AAC packets can include
 // sound just outside a requested range. Empty or late-starting audio tracks remain separate. The
-// destination is replaced only after the copy completes. Beyond the source reader's per-packet
-// index, copying uses memory for the requested ranges and tracks, one encoded payload, and the
-// writer's buffering limits.
+// destination is replaced only after the copy completes. Validation scans fragment headers;
+// copying scans them again. Memory holds the requested ranges and tracks, one fragment, one
+// encoded payload, and the writer's buffering limits, independent of recording duration.
 func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] VideoPacketRange, options: FragmentedOptions = {}) fail
 {
-    var source  = try FragmentedPacketReader.open(sourceFileName)
-    let checked = try validateVideoRanges(&source, ranges)
-    let audio   = try planAudioRanges(&source, checked.toSlice())
+    var source = try FragmentedPacketCursor.open(sourceFileName)
+    let plan   = try planProgressiveVideoRanges(sourceFileName, ranges)
+    let audio  = try planAudioRanges(&source, plan.ranges.toSlice(), plan.audio.toSlice())
     var configs: Array'FragmentedAudioConfig
     for trackIndex in source.audioTrackCount()
     {
@@ -208,21 +228,60 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
 
     scope
     {
-        var writer = try createCopyWriter(temporary, &source, configs.toSlice(), options)
-        var bytes: Array'u8
-        for range, rangeIndex in checked
+        var writer     = try createCopyWriter(temporary, &source, configs.toSlice(), options)
+        var bytes:        Array'u8
+        var packet:       FragmentedCursorPacket
+        var videoIndex = 0'u64
+        var rangeIndex = 0'u64
+        var audioIndices: Array'u64
+        var audioRanges:  Array'u64
+        audioIndices.resize(source.audioTrackCount())
+        audioRanges.resize(source.audioTrackCount())
+        while try source.nextPacket(&packet)
         {
-            try copyVideoRange(&source, &writer, range, &bytes)
-            for trackIndex in source.audioTrackCount()
+            if packet.isVideo
             {
-                let span = audio[rangeIndex * source.audioTrackCount() + trackIndex]
-                for offset in span.packetCount
+                if rangeIndex < plan.ranges.count
                 {
-                    let packet = try source.readAudioPacket(trackIndex, span.firstPacket + offset, &bytes)
-                    let time   = span.outputStart + offset * 1024
-                    try writer.addAudioPacket(EncodedPacket{packet.bytes, time, time, 1024, true}, cast(u32, trackIndex))
+                    let range = plan.ranges[rangeIndex]
+                    if videoIndex >= range.firstPacket and videoIndex < range.afterLastPacket
+                    {
+                        let times = try rebasedVideoTime(packet.info, range.sourceStart, range.outputStart)
+                        try source.readPayload(packet, &bytes)
+                        try writer.addPacket(EncodedPacket{bytes.toSlice(), times.decodeTime, times.presentationTime,
+                                                           packet.info.duration, packet.info.isKeyFrame})
+                    }
+
+                    if videoIndex + 1 == range.afterLastPacket do
+                        rangeIndex += 1
+                }
+
+                videoIndex += 1
+                continue
+            }
+
+            let trackIndex = packet.trackIndex
+            let index      = audioIndices[trackIndex]
+            while audioRanges[trackIndex] < plan.ranges.count
+            {
+                let span = audio[audioRanges[trackIndex] * source.audioTrackCount() + trackIndex]
+                if index < span.firstPacket + span.packetCount do
+                    break
+                audioRanges[trackIndex] += 1
+            }
+
+            if audioRanges[trackIndex] < plan.ranges.count
+            {
+                let span = audio[audioRanges[trackIndex] * source.audioTrackCount() + trackIndex]
+                if index >= span.firstPacket
+                {
+                    let time = span.outputStart + (index - span.firstPacket) * 1024
+                    try source.readPayload(packet, &bytes)
+                    try writer.addAudioPacket(EncodedPacket{bytes.toSlice(), time, time, 1024, true}, trackIndex)
                 }
             }
+
+            audioIndices[trackIndex] += 1
         }
 
         try writer.end()
@@ -233,26 +292,14 @@ func copyRanges(sourceFileName, targetFileName: string, ranges: const [..] Video
     ownsTemporary = false
 }
 
-private func createCopyWriter(path: string, source: *FragmentedPacketReader, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
+private func createCopyWriter(path: string, source: *FragmentedPacketCursor, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
 {
     if audioTracks.count do
         return try FragmentedWriter.createWithAudioTracks(path, source.width(), source.height(), source.timescale(), source.avcConfig(), audioTracks, options)
     return try FragmentedWriter.create(path, source.width(), source.height(), source.timescale(), source.avcConfig(), options)
 }
 
-private func copyVideoRange(source: *FragmentedPacketReader, writer: *FragmentedWriter, range: ValidatedVideoRange, bytes: *Array'u8) fail
-{
-    for index in range.firstPacket until range.afterLastPacket
-    {
-        let info   = try source.packetInfo(index)
-        let times  = try rebasedVideoTime(info, range.sourceStart, range.outputStart)
-        let packet = try source.readPacket(index, bytes)
-        try writer.addPacket(EncodedPacket{packet.bytes, times.decodeTime, times.presentationTime,
-                                           packet.duration, packet.isKeyFrame})
-    }
-}
-
-private func planAudioRanges(source: *FragmentedPacketReader, ranges: const [..] ValidatedVideoRange)->Array'AudioCopySpan fail
+private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..] ValidatedVideoRange, summaries: const [..] AudioTrackSummary)->Array'AudioCopySpan fail
 {
     var result: #returntype
     let trackCount = source.audioTrackCount()
@@ -264,20 +311,22 @@ private func planAudioRanges(source: *FragmentedPacketReader, ranges: const [..]
         let videoEnd = range.outputStart + (range.sourceEnd - range.sourceStart)
         for trackIndex in trackCount
         {
-            let track = try source.audioTrack(trackIndex)
+            let track   = try source.audioTrack(trackIndex)
+            let summary = summaries[trackIndex]
             var span: AudioCopySpan
-            if not track.packetCount
+            if not summary.packetCount
             {
                 result.add(span)
                 continue
             }
 
-            let inputStart  = try roundToAudioTime(range.sourceStart, track.sampleRate, source.timescale())
-            let inputEnd    = try roundToAudioTime(range.sourceEnd, track.sampleRate, source.timescale())
-            let outputStart = try roundToAudioTime(range.outputStart, track.sampleRate, source.timescale())
-            let outputEnd   = try roundToAudioTime(videoEnd, track.sampleRate, source.timescale())
-            let firstTime   = (try source.audioPacketInfo(trackIndex, 0)).decodeTime
-            var firstIndex  = 0'u64
+            let audioTimebase = try Timebase.create(track.sampleRate)
+            let inputStart    = try audioTimebase.convertFrom(range.sourceStart, source.timescale())
+            let inputEnd      = try audioTimebase.convertFrom(range.sourceEnd, source.timescale())
+            let outputStart   = try audioTimebase.convertFrom(range.outputStart, source.timescale())
+            let outputEnd     = try audioTimebase.convertFrom(videoEnd, source.timescale())
+            let firstTime     = summary.firstTime
+            var firstIndex    = 0'u64
             if inputStart > firstTime
             {
                 let delta = inputStart - firstTime
@@ -286,13 +335,13 @@ private func planAudioRanges(source: *FragmentedPacketReader, ranges: const [..]
 
             if states[trackIndex].hasOutput and firstIndex <= states[trackIndex].lastSourcePacket do
                 firstIndex = states[trackIndex].lastSourcePacket + 1
-            if firstIndex >= track.packetCount
+            if firstIndex >= summary.packetCount
             {
                 result.add(span)
                 continue
             }
 
-            let selectedTime = (try source.audioPacketInfo(trackIndex, firstIndex)).decodeTime
+            let selectedTime = firstTime + firstIndex * 1024
             if selectedTime >= inputEnd and selectedTime - inputEnd >= 512
             {
                 result.add(span)
@@ -316,10 +365,10 @@ private func planAudioRanges(source: *FragmentedPacketReader, ranges: const [..]
 
             let wanted = outputEnd - nextOutput
             var count  = wanted / 1024 + cast(u64, wanted % 1024 >= 512)
-            count = Math.min(count, track.packetCount - firstIndex)
+            count = Math.min(count, summary.packetCount - firstIndex)
             for offset in count
             {
-                let time = (try source.audioPacketInfo(trackIndex, firstIndex + offset)).decodeTime
+                let time = selectedTime + offset * 1024
                 if time >= inputEnd and time - inputEnd >= 512
                 {
                     count = offset
@@ -342,68 +391,6 @@ private func planAudioRanges(source: *FragmentedPacketReader, ranges: const [..]
             states[trackIndex].hasOutput        = true
             result.add(span)
         }
-    }
-
-    return result
-}
-
-private func roundToAudioTime(videoTime: u64, sampleRate, videoTimescale: u32)->u64 fail
-{
-    let whole     = videoTime / videoTimescale
-    let remainder = videoTime % videoTimescale
-    if whole > Swag.U64.Max / sampleRate do
-        fail OverflowError{"fragmented MP4 audio time conversion overflows"}
-    let base    = whole * sampleRate
-    let part    = remainder * sampleRate
-    let rounded = part / videoTimescale + cast(u64, part % videoTimescale >= (cast(u64, videoTimescale) + 1) / 2)
-    if rounded > Swag.U64.Max - base do
-        fail OverflowError{"fragmented MP4 audio time conversion overflows"}
-    return base + rounded
-}
-
-private func validateVideoRanges(source: *FragmentedPacketReader, ranges: const [..] VideoPacketRange)->Array'ValidatedVideoRange fail
-{
-    if not ranges.count do
-        fail BadParameterError{"fragmented MP4 copy needs at least one video range"}
-    var result: #returntype
-    result.reserve(ranges.count)
-    var outputBase  = 0'u64
-    var previousEnd = 0'u64
-    for range in ranges
-    {
-        if range.firstPacket < previousEnd or
-           range.firstPacket >= range.afterLastPacket or
-           range.afterLastPacket > source.packetCount() do
-            fail BadParameterError{"fragmented MP4 video ranges are empty, overlapping, or outside the source"}
-        let first = try source.packetInfo(range.firstPacket)
-        if not first.isKeyFrame do
-            fail BadParameterError{"fragmented MP4 video range must start at a key frame"}
-        if range.afterLastPacket < source.packetCount() and
-           not (try source.packetInfo(range.afterLastPacket)).isKeyFrame do
-            fail BadParameterError{"fragmented MP4 video range must end before a key frame"}
-
-        let last = try source.packetInfo(range.afterLastPacket - 1)
-        if last.decodeTime > Swag.U64.Max - last.duration do
-            fail OverflowError{"fragmented MP4 video range end overflows"}
-        let sourceEnd = last.decodeTime + last.duration
-        if sourceEnd < first.decodeTime or sourceEnd - first.decodeTime > Swag.U64.Max - outputBase do
-            fail OverflowError{"fragmented MP4 rebased video duration overflows"}
-
-        for index in range.firstPacket until range.afterLastPacket
-        {
-            let packet = try source.packetInfo(index)
-            if packet.decodeTime < first.decodeTime or
-               packet.presentationTime < 0 or
-               cast(u64, packet.presentationTime) < first.decodeTime or
-               packet.duration > sourceEnd or
-               cast(u64, packet.presentationTime) > sourceEnd - packet.duration do
-                fail UnsupportedFormatError{"fragmented MP4 range crosses a presentation dependency"}
-            discard try rebasedVideoTime(packet, first.decodeTime, outputBase)
-        }
-
-        result.add({range.firstPacket, range.afterLastPacket, first.decodeTime, sourceEnd, outputBase})
-        outputBase  += sourceEnd - first.decodeTime
-        previousEnd = range.afterLastPacket
     }
 
     return result

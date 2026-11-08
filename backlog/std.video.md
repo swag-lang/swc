@@ -217,7 +217,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   temporary disk storage. `Mp4.FragmentedIndex` reads a completed file's final index directly
   from its tail and locates key frames with binary search. `Mp4.FragmentedPacketCursor` walks
   compressed video and AAC packets one fragment at a time with a bounded sample window, reads
-  payload only on request, and can start at an indexed fragment. The writer has no timed metadata tracks;
+  payload only on request, and can start at an indexed fragment. A sparse 64-bit-offset stress
+  test places a decodable indexed fragment beyond 4 GiB. `Video.Timebase` converts absolute
+  timestamps between integer clocks without per-packet rounding drift; AAC cuts use it to map
+  video boundaries to sample clocks. The writer has no timed metadata tracks;
   `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets
@@ -236,7 +239,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   source track timestamps and decoder configurations. A video and two-sound-track remux preserves
   packet bytes and times without decoding. `Mp4.copyVideoRanges` joins selected closed H.264 groups
   on key frames using two progressive fragment-header passes and bounded memory. `Mp4.copyRanges`
-  also joins AAC-LC tracks, with cumulative rounding to whole AAC
+  also uses those passes to join AAC-LC tracks, with cumulative rounding to whole AAC
   packets; a six-join test keeps the audio within half a packet of video time at every join.
   Both replace the output only after it is complete. AAC cuts remain packet-granular, and the
   writer has no timed metadata track.

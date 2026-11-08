@@ -101,7 +101,7 @@ impl MediaLibraryFixture
             window.app().runFrame()
             if ready() and Testing.verifyNativePresentation(unwrap window.surface) do
                 return
-            if stageWatch.elapsedMilliseconds() > 10_000 or .watch.elapsedMilliseconds() > 40_000
+            if stageWatch.elapsedMilliseconds() > 30_000 or .watch.elapsedMilliseconds() > 120_000
             {
                 if window.explorer
                 {

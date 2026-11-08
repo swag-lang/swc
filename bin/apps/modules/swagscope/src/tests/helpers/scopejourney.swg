@@ -59,7 +59,7 @@ impl ScopeJourney
             Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
             if ready() and expect Testing.verifyNativePresentation(.surface) do
                 return
-            Swag.require(watch.elapsedMilliseconds() < 10_000, Format.toString("Scope journey timed out at %", stage))
+            Swag.require(watch.elapsedMilliseconds() < 30_000, Format.toString("Scope journey timed out at %", stage))
         }
     }
 

@@ -166,6 +166,50 @@ impl CaptureJourney
         Swag.require(main.editWnd.getCapture() != null)
     }
 
+    // Cancel a selected picture from the in-place editor before it becomes a capture.
+    mtd cancelInPlacePicture()
+    {
+        let app = .app
+        let main = .main
+        var stage: u32
+        main.captureOptions.inPlaceEdit = true
+        defer app.sigFrame.clear()
+        app.sigFrame += func|journey = me, stage = &stage|(_)
+        {
+            Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "in-place picture journey timed out")
+            if stage[] == 0
+            {
+                for surface in journey.app.surfaces
+                {
+                    if surface.view() is CaptureRectWnd as overlay
+                    {
+                        journey.selectScreenArea(overlay)
+                        stage[] = 1
+                        return
+                    }
+                }
+            }
+            elif stage[] == 1
+            {
+                for surface in journey.app.surfaces
+                {
+                    if surface.view() is InPlaceEditWnd as editor
+                    {
+                        var key = KeyEvent{kind: .Pressed, key: .Escape, modifiers: .None}
+                        editor.sendEvent(&key)
+                        Swag.require(key.accepted)
+                        stage[] = 2
+                        return
+                    }
+                }
+            }
+        }
+
+        main.sendCommandEvent(ActionCapture.Area)
+        app.runFrame()
+        Swag.require(stage == 2 and app.surfaces.count == 1)
+    }
+
     // Select a small screen area, start recording from the in-place editor, then use the
     // recording pill. Wait for written frames before ending it.
     mtd recordAnimation(ending: RecordingJourneyEnd)

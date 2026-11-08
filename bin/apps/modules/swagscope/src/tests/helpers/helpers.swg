@@ -442,3 +442,55 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     Swag.require(false, "test source is outside tests")
     return ""
 }
+
+// Each viewer in the window the application ships, at the size of its picture, so its golden is
+// judged whole against the picture of the charter.
+func picturedViewer(fileName: string, light: bool, golden: string, width = 960, height = 600, options: Pixel.Testing.ImageGoldenOptions = {})
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, light, width, height)
+    if window.choices[window.activeChoiceIndex].key == "image"
+    {
+        let view = assume cast(*Picture.Panel, window.currentView)
+        if view.imageView.movie.isAnimated()
+        {
+            view.imageView.setPaused(true)
+            view.imageView.setFrameIndex(0)
+            Swag.require(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
+        }
+    }
+
+    photographViewer(&host, window, golden, options)
+}
+
+// Opens `fileName` in the viewer named `key` rather than the one it opens in.
+func picturedWindowAs(host: *Testing.HeadlessHost, fileName, key: string, light: bool)->*ViewerWindow
+{
+    let window = framedViewerWindow(host, fileName, light)
+    for choice, index in window.choices where choice.key == key
+    {
+        window.selectViewer(cast(u32, index))
+        break
+    }
+
+    completeQueuedViewerFile(host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == key)
+    return window
+}
+
+// Photographs `window` at rest.
+func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string, options: Pixel.Testing.ImageGoldenOptions = {})
+{
+    window.applyLayout()
+    var image = host.renderSettled(window)
+    Pixel.Testing.assertImageGolden(&image, golden, options)
+}
+
+func picturedGoldenOptions(maxDifferentPixels: u64)->Pixel.Testing.ImageGoldenOptions
+{
+    if Env.variable("SWAG_TEST_RENDERER") == "cpu" do
+        return {}
+    return {maxDifferentPixels: maxDifferentPixels}
+}
+
+func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)

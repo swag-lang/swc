@@ -295,18 +295,18 @@ layout. A new module copies it without deciding anything:
                 golden/        Maintained text and image comparisons
                 integration/   Native-host, driver, hardware and external contracts
                 stress/        Large-volume, scale and lifecycle checks
-            journeys/          Native application plans driven through in-process actions
-            desktop/           Native application plans driven by OS pointer and keyboard input
+                journeys/      Native application plans driven through in-process actions
+                desktop/       Native application plans driven by OS pointer and keyboard input
             helpers/           Shared test-only source helpers
 ```
 
 - **`src/tests/` is the only test root.** Do not nest a `unittests/` folder inside it, and do not
   put tests directly under `src/`. Put ordinary, golden, external integration and stress tests under
-  `src/tests/cases/<type>/`; put application journeys in `src/tests/journeys/` and OS input journeys
-  in `src/tests/desktop/`. Preserve an area folder below a category when
+  `src/tests/cases/<type>/`, including application journeys in `cases/journeys/` and OS input
+  journeys in `cases/desktop/`. Preserve an area folder below a category when
   that helps organize a large module. A smoke test is a bounded startup check run by the workspace
   smoke command, not a directory for user journeys.
-- **Every source under `src/tests/cases/`, `src/tests/journeys/` or `src/tests/desktop/` is a test case source**, and begins with
+- **Every source under `src/tests/cases/` is a test case source**, and begins with
   `#global if #command == Swag.CompilerCommand.Test`. Its category directory identifies the test
   type; its filename names the subject and ends in `.swg`. Shared helpers live in `src/tests/helpers/`.
   Every source below `src/` is compiled, so a case without that guard is built into the shipped module.
@@ -325,7 +325,7 @@ layout. A new module copies it without deciding anything:
   Name an application journey for its full user task, such as `journeys/browsemedialibrary.swg`,
   not `functional/explorer.swg` merely because it starts in Explorer: opening a viewer and
   returning belong to the same journey. State the user's task and checkpoints in the test. Keep
-  exactly one `#test` in each `journeys/` or `desktop/` file. Keep persistent golden
+  exactly one `#test` in each `cases/journeys/` or `cases/desktop/` file. Keep persistent golden
   comparisons in golden files; integration tests may compare live pixels or save diagnostic
   captures without becoming golden tests. Do not mix test types in one file. Platform qualifiers
   remain part of the subject, as in `integration/presentation.win32.swg`.

@@ -342,3 +342,9 @@ whole recording loaded at once.
 - Next: Trace the editor's pointer coordinates and mouse events during a native lasso drag, then add a desktop plan that selects and deletes one annotation.
 - Done when: a portable `desktop/` test selects the intended mark by native drag and passes on Windows and Linux.
 - Evidence: a Windows desktop drag from image point `{5, 5}` to `{90, 80}` selected no mark, while the in-process drag over the same plan selected one; the lasso path needs a focused input-level investigation.
+
+### app.capture.041 — Match library hints to the filtered result
+
+- Evidence: the `library.empty-search.paper` golden shows no matching capture, while the hint line still offers Open, Delete, Rename, and Rate. Those actions have no target in this state.
+- Next: derive the hint line from the filtered selection and retain only actions that can apply when the result is empty.
+- Done when an empty search or filter shows no item actions, and clearing it restores the available selection hints.

@@ -6,8 +6,8 @@ Use complementary test families. A passing startup smoke is not a completed user
 | --- | --- | --- |
 | Ordinary tests | Model, decoder, command and layout behavior | `src/tests/cases/functional/`, with an optional area folder |
 | Golden tests | Maintained text/image references | `src/tests/cases/golden/`, with snapshots in `src/tests/goldens/`, tag `golden` |
-| Application journeys | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/journeys/<plan>.swg`, tag `integration.application.journey` |
-| Desktop input journeys | Native window driven by simulated OS pointer and keyboard input, including hit testing, focus and shortcuts | `src/tests/desktop/<plan>.swg`, tag `integration.desktop.input` |
+| Application journeys | Native window, real files and workers, event loop, user actions and completed presentation | `src/tests/cases/journeys/<plan>.swg`, tag `integration.application.journey` |
+| Desktop input journeys | Native window driven by simulated OS pointer and keyboard input, including hit testing, focus and shortcuts | `src/tests/cases/desktop/<plan>.swg`, tag `integration.desktop.input` |
 | External integration tests | Native-host, driver, hardware or external-service contracts | `src/tests/cases/integration/<contract>.swg`, explicit `integration.*` tag |
 | Stress tests | Large-volume, scale, concurrency and lifecycle limits | `src/tests/cases/stress/<subject>.swg`, `stress` or a scoped `*.stress` tag |
 | Startup smoke | The shipped executable and published resources start and stop within a budget | `tools/apps.bat [dm] smoke <application>` |
@@ -22,9 +22,9 @@ that launches and controls the shipped application executable.
 The journey concept and plan format are shared across applications; setup, waiting, and cleanup
 helpers stay in the owning application's `src/tests/helpers/` when their code depends on that app.
 Do not mix test types in one file. Keep ordinary, golden, external integration and stress tests
-under `src/tests/cases/`; put application journeys and desktop input journeys directly under
-`src/tests/` in their dedicated folders. Preserve viewer-specific grouping with an area folder such as
-`src/tests/cases/functional/viewers/<viewer>/`. Put shared test helpers under `src/tests/helpers/`,
+under `src/tests/cases/` in their dedicated folders. Preserve viewer-specific grouping with an area folder such as
+`src/tests/cases/functional/viewers/<viewer>/` or `src/tests/cases/journeys/viewers/<viewer>/`.
+Keep cross-viewer plans at the family root. Put shared test helpers under `src/tests/helpers/`,
 not in production APIs. A smoke test is the bounded application startup check, not a user journey.
 Run the real application window and its normal event loop; do not replace filesystem enumeration,
 background workers, decoders or the renderer with fakes in a test intended to cover that path.
@@ -82,19 +82,19 @@ and a supported non-default DPI. Do not describe an unimplemented dimension as c
 
 ## Current executable coverage
 
-Swag Capture keeps 17 portable plans in `journeys/`, including `annotatereopen.swg`,
+Swag Capture keeps portable plans in `cases/journeys/`, including `annotatereopen.swg`,
 `exportreopen.swg`, `importreopen.swg`, `searchlibrary.swg`, and
 `transformreopen.swg`. Each uses `helpers/capturejourney.swg` for a private native
 window, library, event-loop readiness deadlines, render-failure checks, and cleanup.
 The synthetic image plans exercise the editor and document lifecycle, while the
 OS screen-grab contracts remain separate platform integrations.
-Its portable `desktop/drawandundo.swg` clicks the Shape tool, drags on the canvas, and uses
+Its portable `cases/desktop/drawandundo.swg` clicks the Shape tool, drags on the canvas, and uses
 Control+Z and Control+Y through the shared Windows or Linux desktop input backend.
-`desktop/deleteandundo.swg` covers Delete and undo on a preselected mark through native keyboard input.
+`cases/desktop/deleteandundo.swg` covers Delete and undo on a preselected mark through native keyboard input.
 
 Swag Scope's `stress/previewcache.swg` creates 160 local entries in a temporary Films folder
 from real video fixtures and exercises eviction and reload across the 128-texture preview cache.
-The separate `journeys/browsemedialibrary.swg` follows the user journey through filtering,
+The separate `cases/journeys/browsemedialibrary.swg` follows the user journey through filtering,
 viewer open/return, refresh, resize and theme changes, with visible thumbnails and native presentation
 as checkpoints. These tests use local fixtures; online artwork, network shares, monitor DPI changes
 and visible-compositor behavior are not covered.
@@ -103,16 +103,16 @@ Run it on the normal interactive desktop with the commands in [README.md](README
 stage. Keep the compiler, program configuration, fixture identities, renderer and failing stage
 with a bug report. A deterministic failure is more useful than retries that turn it green.
 
-`journeys/playrecentvideo.swg` opens a film through the history input handler, advances beyond
+`cases/journeys/viewers/video/playrecentvideo.swg` opens a film through the history input handler, advances beyond
 four seconds of real playback, returns to history, and repeats. It checks native presentation
 after playback, rather than ending at the first decoded frame. Run release regressions on the
 normal interactive desktop:
 
 ```powershell
-tools/apps.bat test swagscope -bc release --test-file playrecentvideo.swg --test-tag integration.application.journey
+tools/apps.bat test swagscope -bc release --test-file cases/journeys/viewers/video/playrecentvideo.swg --test-tag integration.application.journey
 ```
 
-`journeys/choosefolderhistory.swg` follows the Explore command into its folder dialog, opens
+`cases/journeys/choosefolderhistory.swg` follows the Explore command into its folder dialog, opens
 the recent-folder popup twice, selects a folder, and waits for Explorer to load it. History includes
 an unavailable location: opening the menu must use saved entries without probing each volume.
 It checks completed native presentation before selecting the popup row. The logged first-frame
@@ -123,7 +123,7 @@ tools/apps.bat test swagscope -bc release --test-file choosefolderhistory.swg --
 ```
 
 These commands show test windows on the current desktop. They do not send operating-system mouse
-or keyboard input; `desktop/` tests do. Preserve window visibility,
+or keyboard input; `cases/desktop/` tests do. Preserve window visibility,
 monitor configuration, pointer-driven controls, presentation timing, and runtime worker counts
 in reproduction notes. Headless rendering remains useful for bounded library tests and goldens;
 it does not establish that the shipped executable works on the normal desktop.

@@ -366,7 +366,7 @@ Realistic user journeys follow the shared plan in
 [`tools/application-scenarios.md`](../../../../tools/application-scenarios.md): one named plan and
 one `#test` per `journeys/` file, tagged `integration.application.journey`. Scope keeps its
 fixture and readiness diagnostics in `src/tests/helpers/`.
-`src/tests/journeys/browsemedialibrary.swg` exercises a temporary mixed-format media library,
+`src/tests/cases/journeys/browsemedialibrary.swg` exercises a temporary mixed-format media library,
 through the native window, workers and presentation path. Large preview-cache eviction coverage lives in
 `src/tests/cases/stress/previewcache.swg`. Both are excluded from default headless tests. Run the
 journeys on the normal Windows desktop with
@@ -382,8 +382,8 @@ For a heavier frame comparison, `integration.vault.frame.generate` writes a 1920
 MP4 to an explicitly named external test sandbox. Copy that generated file to the mounted directory,
 set `SWAG_VAULT_PREVIEW_VIDEO` to its host path, then select `integration.vault.frame` to compare
 opening, one key picture, and the finished thumbnail on the two paths.
-`src/tests/journeys/playrecentvideo.swg` opens a recent film, checks sustained playback,
-and returns to history twice. `src/tests/journeys/choosefolderhistory.swg` opens the Explore
+`src/tests/cases/journeys/viewers/video/playrecentvideo.swg` opens a recent film, checks sustained playback,
+and returns to history twice. `src/tests/cases/journeys/choosefolderhistory.swg` opens the Explore
 folder dialog, checks its history popup twice with an unavailable saved location, and browses the
 selected folder. See the
 [shared scenario contract](../../../../tools/application-scenarios.md) for its checks and limits.

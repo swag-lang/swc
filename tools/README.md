@@ -382,11 +382,11 @@ sources or rebuild a smaller test binary.
 ### Application journeys and desktop input
 
 `apps.bat smoke` is the bounded startup check of the shipped executable. User journeys belong
-in `<application>/src/tests/journeys/<plan>.swg`, guarded by `#command ==
+in `<application>/src/tests/cases/journeys/<plan>.swg`, guarded by `#command ==
 Swag.CompilerCommand.Test` and tagged `integration.application.journey`. They use the ordinary
 test runner; integration tags keep them out of default headless tests. See
 [the scenario contract](application-scenarios.md) for fixtures, checkpoints, and coverage limits.
-Simulated native pointer and keyboard plans live in `src/tests/desktop/<plan>.swg` and use
+Simulated native pointer and keyboard plans live in `src/tests/cases/desktop/<plan>.swg` and use
 the `integration.desktop.input` tag.
 
 On Windows, run native scenarios on the normal interactive desktop:

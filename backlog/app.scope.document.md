@@ -34,12 +34,20 @@ integration around those engines.
 - Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
   unreadable page. There is no extracted reading view, title/language/description summary,
   standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
-  through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings.
+  through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings. An
+  unstyled HTML page opened during the outline test starts at the left edge, where an optional
+  reading layout could supply a comfortable measure without changing faithful rendering.
 - Next: surface document metadata and engine diagnostics first, then derive a clearly labelled
   reader view from semantic blocks without replacing faithful mode.
 - Done when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
+
+### app.scope.document.023 — Keep an HTML reading inset beside its outline
+
+- Evidence: `viewer.html.filtered-outline.paper` shows the article starting at the window's left edge when the outline takes the right side. The headings and body text have no breathing room at that edge.
+- Next: define a reading inset for the hosted HTML page while the side panel is visible, without changing the document's own CSS layout or clipping its content.
+- Done when the full-window HTML golden keeps a readable gap beside the window edge at a narrow width and still preserves authored page margins.
 
 ### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 

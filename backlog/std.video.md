@@ -192,6 +192,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
   converts Annex B encoder output and extracts `avcC`. `Video.Nv12Frame` converts packed RGB and
   BGRA pictures to top-down BT.709 NV12 for an encoder, but nothing in the module encodes frames.
+  `Video.FramePacer` maps monotonic arrivals to exact frame slots and reports skipped slots over
+  long recordings without accumulating time rounding.
   The current conversion is scalar; its throughput still needs a native encoder-path benchmark
   and a SIMD or GPU path before it can serve real-time 1080p60 recording.
   Screen recording in Swag Capture (app.capture.011) needs a modern

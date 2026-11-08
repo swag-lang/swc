@@ -77,6 +77,8 @@ Four codecs ship in the box:
   [[Video.H264.AnnexBAccessUnit]] converts start-code-delimited H.264 encoder output into the
   length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
   [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder.
+  [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
+  and reports skipped frames without retaining pictures.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
   independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
   channels that its decoder supports. A picture

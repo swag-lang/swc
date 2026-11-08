@@ -1,0 +1,104 @@
+#global public
+
+using Core.Errors
+
+// One accepted picture on a constant-rate recording timeline.
+struct FrameSlot
+{
+    public index:         u64     // Zero-based frame position since the first accepted picture.
+    public decodeTime:    u64     // Start in the recording's video timescale ticks.
+    public duration:      u32     // Positive length in video timescale ticks.
+    public skippedFrames: u64     // Frame positions missed since the previous accepted picture.
+}
+
+// Assigns captured pictures to an exact frame-rate timeline without cumulative rounding.
+//
+// Input timestamps use one monotonic clock. The first picture starts slot zero; later pictures
+// that arrive in an already accepted slot are ignored. A late picture skips whole slots, which
+// the caller may count as dropped frames or fill by repeating the previous picture. The pacer
+// neither sleeps nor stores pictures. Its state has constant size for long recordings.
+#[Swag.Opaque]
+struct FramePacer
+{
+    internal
+    {
+        rate:           FrameRate
+        clockFrequency: u64
+        videoTimescale: u32
+        firstTick:      u64
+        previousTick:   u64
+        previousSlot:   u64
+        hasPicture:     bool
+    }
+}
+
+impl FramePacer
+{
+    // Creates a pacer for `rate` frames per second and a positive monotonic clock frequency.
+    //
+    // `videoTimescale` is the output MP4 video ticks per second. It must provide at least one
+    // tick per frame, including fractional rates such as 30000/1001.
+    func create(rate: FrameRate, clockFrequency: u64, videoTimescale: u32)->FramePacer fail
+    {
+        if not rate.isValid() or not clockFrequency or not videoTimescale do
+            fail BadParameterError{"frame pacer needs positive clock and frame rates"}
+        let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
+        let maxDuration   = ticksPerFrame / rate.numerator() +
+                            cast(u64, ticksPerFrame % rate.numerator() != 0)
+        if ticksPerFrame < rate.numerator() or
+           maxDuration > Swag.U32.Max or
+           clockFrequency > Swag.U64.Max / rate.denominator() do
+            fail BadParameterError{"frame pacer rate cannot fit its video or monotonic clock"}
+        return FramePacer{rate, clockFrequency, videoTimescale}
+    }
+
+    // Accepts a picture's monotonic timestamp if it enters a new frame slot.
+    //
+    // `tick` must not move backwards. On success `slot` receives exact video timing and the
+    // number of skipped slots. A picture in the current slot returns false and leaves `slot`
+    // untouched. Timestamp overflow fails before accepting the picture.
+    mtd tryAccept(tick: u64, slot: *FrameSlot)->bool fail
+    {
+        if not .hasPicture
+        {
+            let firstDuration = try .slotEnd(1)
+            slot[]        = FrameSlot{0, 0, cast(u32, firstDuration), 0}
+            .firstTick    = tick
+            .previousTick = tick
+            .hasPicture   = true
+            return true
+        }
+
+        if tick < .previousTick do
+            fail BadParameterError{"frame pacer timestamps must not move backwards"}
+        let elapsed = tick - .firstTick
+        if elapsed > Swag.U64.Max / .rate.numerator() do
+            fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
+        let current = elapsed * .rate.numerator() /
+                      (.clockFrequency * .rate.denominator())
+        if current <= .previousSlot
+        {
+            .previousTick = tick
+            return false
+        }
+
+        if current == Swag.U64.Max or current > Swag.U64.Max / .rate.denominator() - 1 do
+            fail OverflowError{"frame pacer frame position overflows"}
+        let start = try .slotEnd(current)
+        let end   = try .slotEnd(current + 1)
+        if end - start > Swag.U32.Max do
+            fail OverflowError{"frame pacer frame duration exceeds the packet range"}
+        slot[]        = FrameSlot{current, start, cast(u32, end - start), current - .previousSlot - 1}
+        .previousTick = tick
+        .previousSlot = current
+        return true
+    }
+
+    private mtd const slotEnd(index: u64)->u64 fail
+    {
+        if index > Swag.U64.Max / .rate.denominator() do
+            fail OverflowError{"frame pacer frame position overflows"}
+        let timebase = try Timebase.create(.videoTimescale)
+        return try timebase.convertFrom(index * .rate.denominator(), .rate.numerator())
+    }
+}

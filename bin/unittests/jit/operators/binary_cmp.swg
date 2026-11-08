@@ -82,6 +82,13 @@ enum CmpEnum: u16
 
 #test
 {
+    func cmpEnumOrder(value: CmpEnum)->bool { return value >= .A and value <= .B }
+    #assert(#run cmpEnumOrder(CmpEnum.A))
+    #assert(#run cmpEnumOrder(CmpEnum.B))
+}
+
+#test
+{
     func cmpPointer(a: *void?, b: *void?)->bool { return a != b }
     const V0 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x5678'u64))
     const V1 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x1234'u64))

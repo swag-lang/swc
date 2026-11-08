@@ -34,7 +34,7 @@ func(T) reversed(count: T)->ReversedCount'T
             return false
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
-        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
+        return native.nativeKind >= .S8 and native.nativeKind <= .U64
     }
 {
     return {count: count}
@@ -60,7 +60,7 @@ func(T) range(lower, upper: T)->IterationRange'T
             return false
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
-        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
+        return native.nativeKind >= .S8 and native.nativeKind <= .U64
     }
 {
     return {lower: lower, upper: upper}
@@ -78,7 +78,7 @@ func(T) rangeTo(lower, upper: T)->IterationRange'T
             return false
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
-        return native.nativeKind >= Swag.TypeInfoNativeKind.S8 and native.nativeKind <= Swag.TypeInfoNativeKind.U64
+        return native.nativeKind >= .S8 and native.nativeKind <= .U64
     }
 {
     return {lower: lower, upper: upper, inclusive: true}

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -839,10 +840,24 @@ namespace
         return Cast::castIfNeeded(sema, floatView, f64, CastKind::Promotion);
     }
 
-    Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    void convertOrderedEnumOperand(Sema& sema, AstNodeRef& operandRef, SemaNodeView& view)
     {
-        SWC_UNUSED(node);
+        const SymbolEnum* symEnum = SemaHelpers::enumSymbolFromTypeRef(sema, view.typeRef());
+        if (!symEnum)
+            return;
 
+        // A generic constraint can revisit the same expression after a semantic pause.
+        // Keep the enum-typed member intact; an underlying constant on that shared node
+        // would make the next visit compare the enum against its integer representation.
+        const AstNodeRef castRef = Cast::createCastNode(sema, symEnum->underlyingTypeRef(), operandRef);
+        if (view.cstRef().isValid())
+            sema.setConstant(castRef, view.cst()->getEnumValue());
+        operandRef = castRef;
+        view       = sema.viewNodeTypeConstant(castRef);
+    }
+
+    Result promote(Sema& sema, TokenId op, AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    {
         SWC_RESULT(widenNullableCompareOperand(sema, nodeLeftView, nodeRightView));
         SWC_RESULT(widenNullableCompareOperand(sema, nodeRightView, nodeLeftView));
         SWC_RESULT(widenIntegerMeetingF32(sema, nodeLeftView, nodeRightView));
@@ -869,8 +884,8 @@ namespace
             const TypeInfo& rightType = SemaHelpers::aliasType(sema, nodeRightView);
             if (leftType.isEnum() && rightType.isEnum())
             {
-                Cast::convertEnumToUnderlying(sema, nodeLeftView);
-                Cast::convertEnumToUnderlying(sema, nodeRightView);
+                convertOrderedEnumOperand(sema, node.nodeLeftRef, nodeLeftView);
+                convertOrderedEnumOperand(sema, node.nodeRightRef, nodeRightView);
             }
         }
 

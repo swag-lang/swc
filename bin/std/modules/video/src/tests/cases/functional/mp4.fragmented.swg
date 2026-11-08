@@ -63,6 +63,10 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(fragmentedTagCount(raw, "mvex") == 1)
     Swag.require(fragmentedTagCount(raw, "avcC") == 1)
     Swag.require(fragmentedTagCount(raw, "moof") == 0)
+    var rejected: Swag.Error
+    discard catch Mp4.rebuildFragmentedIndex(path) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+    Swag.require((expect File.info(path)).size == file.count)
 }
 
 // Invalid AVC configuration is rejected before the destination is opened.
@@ -1019,6 +1023,14 @@ func fragmentedPacketSource()->ByteSource fail
 
     let file = expect File.readAllBytes(path)
     Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 3)
+    let recoveredPath = videoTempPath("fragmented-two-aac-recovered", "mp4")
+    defer discard catch File.delete(recoveredPath)
+    discard expect File.writeAllBytes(recoveredPath, file.toSlice())
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 1)
+    var recoveredIndex = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(recoveredIndex.entryCount() == 1)
+    var recovered = expect Reader.open(recoveredPath)
+    Swag.require(recovered.frameCount() == 3 and recovered.audioTrackCount() == 2)
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
     Swag.require((unwrap reader.audioTrack(0)).packetCount() == 3)
@@ -1295,6 +1307,22 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(reader.frameCount() == 3)
     let frame = expect reader.decodeFrame(2)
     Swag.require(frame.width == 64 and frame.height == 48)
+    let recoveredPath = videoTempPath("fragmented-index-recovered", "mp4")
+    defer discard catch File.delete(recoveredPath)
+    discard expect File.writeAllBytes(recoveredPath, raw[0 until mfraOffset])
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 2)
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 2)
+    var rebuilt = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(rebuilt.entryCount() == 2)
+    Swag.require((expect rebuilt.point(1)).moofOffset == moofOffsets[1])
+    rebuilt.close()
+    discard expect File.writeAllBytes(recoveredPath, raw[0 until mfraOffset - 1])
+    Swag.require(expect Mp4.rebuildFragmentedIndex(recoveredPath) == 1)
+    rebuilt = expect Mp4.FragmentedIndex.open(recoveredPath)
+    Swag.require(rebuilt.entryCount() == 1)
+    rebuilt.close()
+    var stopped = expect Reader.open(recoveredPath)
+    Swag.require(stopped.frameCount() == 2)
     for cut in mfraOffset to raw.count - 1
     {
         var recovered = expect Reader.openMemory("indexed-cut.mp4", raw[0 until cut])

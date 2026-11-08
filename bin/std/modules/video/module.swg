@@ -61,7 +61,8 @@ Four codecs ship in the box:
   [[Video.Mp4.copyRanges]] also copies AAC-LC tracks, rounding cut edges to whole sound packets.
   [[Video.Mp4.FragmentedIndex]] reads an
   optional final key-frame index from the file tail and locates a fragment without scanning media
-  data. [[Video.Reader]] reads samples
+  data. [[Video.Mp4.rebuildFragmentedIndex]] can finalize complete fragments after an interrupted
+  write and rebuild that index using temporary disk storage. [[Video.Reader]] reads samples
   by scanning fragment headers and
   recovers complete fragments after an
   interrupted final write. The classic reader expands compact sample tables into direct packet

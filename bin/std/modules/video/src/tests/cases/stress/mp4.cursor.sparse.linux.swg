@@ -102,4 +102,10 @@ using Swag, Core, Core.Errors
     Swag.require(expect sequential.nextPacket(&found))
     Swag.require(found.info.sourceOffset > Swag.U32.Max)
     Swag.require(not expect sequential.nextPacket(&found))
+    index.close()
+    cursor.close()
+    sequential.close()
+    Swag.require(expect Mp4.rebuildFragmentedIndex(sparsePath) == 2)
+    var rebuilt = expect Mp4.FragmentedIndex.open(sparsePath)
+    Swag.require((expect rebuilt.point(1)).moofOffset == LargeOffset)
 }

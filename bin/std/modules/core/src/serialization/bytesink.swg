@@ -48,6 +48,24 @@ impl ByteSink
         return result
     }
 
+    // Opens an existing file for continued writing at its current end.
+    //
+    // `position` and `patch` use absolute file offsets, including the bytes already present.
+    // The file is left untouched until a write or patch succeeds; a missing file is an error.
+    func openAppendFile(fileName: string)->ByteSink fail
+    {
+        with var result: #returntype
+        {
+            .stream  = try File.open(fileName, .Open, .ReadWrite, .Zero)
+            .written = try .stream.size()
+            try .stream.seek(.Begin, .written)
+            .fileName = fileName
+            .isFile   = true
+        }
+
+        return result
+    }
+
     // Appends the stream to `buffer`.
     //
     // Whatever `buffer` already holds stays untouched, and stream offsets remain relative to the

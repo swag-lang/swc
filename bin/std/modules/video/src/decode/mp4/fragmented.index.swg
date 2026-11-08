@@ -175,6 +175,30 @@ impl FragmentedIndex
         return true
     }
 
+    // Finds the first indexed key frame at or after `decodeTime`.
+    //
+    // Returns false after the final entry. The query uses the indexed track's decode-time ticks;
+    // the result is suitable for starting a fragment scan when it names the first video sample.
+    mtd tryFindAtOrAfter(decodeTime: u64, point: *FragmentedSeekPoint)->bool fail
+    {
+        var low  = 0'u32
+        var high = .count
+        while low < high
+        {
+            let middle    = low + (high - low) / 2
+            let candidate = try .readPoint(middle)
+            if candidate.decodeTime < decodeTime do
+                low = middle + 1
+            else do
+                high = middle
+        }
+
+        if low == .count do
+            return false
+        point[] = try .point(low)
+        return true
+    }
+
     // Releases the indexed file; repeated calls do nothing.
     mtd close() => .source.close()
 }

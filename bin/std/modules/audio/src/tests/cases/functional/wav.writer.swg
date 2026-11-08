@@ -168,3 +168,37 @@ using Swag, Core, Core.Errors
     discard catch writer.addSilence(0) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// A stop between the two header patches rolls back to the last committed data size.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-writer-header-stop-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    var writer = expect Wav.Writer.create(path.toString(), 1, 48_000)
+    const First: [2] s16 = [100, 200]
+    expect writer.addFrames(Swag.makeSlice(&First[0], 2))
+    expect writer.end()
+
+    var interrupted = expect ByteSink.openAppendFile(path.toString())
+    expect interrupted.writeLittleEndian(300's16)
+    expect interrupted.writeLittleEndian(400's16)
+    var nextRiffSize = Math.nativeToLittleEndian(44'u32)
+    expect interrupted.patch(4, Swag.makeSlice(cast(const [*] u8, &nextRiffSize), 4))
+    expect interrupted.close()
+    Swag.require((expect File.info(path)).size == 52)
+
+    var resumed = expect Wav.Writer.resume(path.toString())
+    Swag.require(resumed.sampleFrameCount() == 2 and resumed.writtenByteCount() == 48)
+    expect resumed.addFrames([500's16])
+    expect resumed.end()
+    let sound = expect SoundFile.load(path.toString())
+    Swag.require(sound.sampleFrameCount() == 3 and sound.payloadSize() == 6)
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(Slice.equals(decoded.toSlice(), [100's16, 200, 500]))
+}

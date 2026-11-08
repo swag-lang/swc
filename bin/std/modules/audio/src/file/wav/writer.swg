@@ -89,7 +89,8 @@ impl Writer
            bitsPerSample != 16 or
            cast(u64, channels) * sampleRate * 2 != byteRate or
            dataSize > Swag.U32.Max - 36 or
-           riffSize != dataSize + 36 or
+           riffSize < dataSize + 36 or
+           riffSize > originalSize - 8 or
            dataSize % blockAlign or
            cast(u64, dataSize) + 44 > originalSize do
             fail InvalidFormatError{"WAV resume header or committed samples are invalid"}
@@ -100,6 +101,13 @@ impl Writer
             var file = try File.open(fileName, .Open, .ReadWrite, .Zero)
             if try file.size() != originalSize do
                 fail InvalidFormatError{"WAV file changed during resume"}
+            if riffSize != dataSize + 36
+            {
+                var committedSize = Math.nativeToLittleEndian(dataSize + 36)
+                try file.writeAllAt(4, Swag.makeSlice(cast(const [*] u8, &committedSize), 4))
+                try file.flush()
+            }
+
             try file.resize(cast(u64, dataSize) + 44)
             file.close()
         }

@@ -20,12 +20,26 @@ func release(ptr: *void, size: u64)
 }
 
 struct Carrier { late target: *s32 }
+struct DualCarrier
+{
+    late target: *s32
+    late owned:  *s32
+}
 
 #[Swag.NoInline]
 func create(target: *s32)->*Carrier
 {
     let carrier = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = target
+    return carrier
+}
+
+#[Swag.NoInline]
+func createDual(target: *s32)->*DualCarrier
+{
+    let carrier = cast(*DualCarrier, allocate(#sizeof(DualCarrier)))
+    carrier.target = target
+    carrier.owned = cast(*s32, allocate(#sizeof(s32)))
     return carrier
 }
 
@@ -243,6 +257,32 @@ func rejectReleaseCarrierTarget()
     let carrier = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.target = &value
     release(carrier.target, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+}
+
+func rejectReleaseReturnedCarrierTarget()
+{
+    var value: s32
+    let carrier = create(&value)
+    release(carrier.target, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+    release(carrier, #sizeof(Carrier))
+}
+
+func rejectReleaseWrappedCarrierTarget()
+{
+    var value: s32
+    let carrier = createWrapped(&value)
+    release(carrier.target, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+    release(carrier, #sizeof(Carrier))
+}
+
+// A separate allocation in the same returned carrier remains releasable.
+#test
+{
+    var value: s32 = 57
+    let carrier = createDual(&value)
+    release(carrier.owned, #sizeof(s32))
+    release(carrier, #sizeof(DualCarrier))
+    Swag.require(value == 57)
 }
 
 // Separate allocation changes the release rule, but keeps the lifetime dependency.

@@ -62,6 +62,8 @@ public:
         bool operator==(const ParamField&) const noexcept = default;
     };
 
+    using ReturnFieldBorrow = BorrowFieldOrigin;
+
     static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -100,6 +102,20 @@ public:
     // readers must wait for completion. SemaEscape::reportDeferredChecks closes opaque-call
     // chains after the final drain. Getters merge imported Swag.BorrowSummary attributes.
     uint64_t returnBorrowsParamsMask() const noexcept;
+
+    // The named first-level field in a returned carrier contains a pointer borrowed
+    // from this parameter. This is distinct from the returned carrier's own address.
+    bool hasReturnFieldBorrowParam(size_t paramIndex, std::string_view fieldName) const noexcept;
+    void addReturnFieldBorrowParam(size_t paramIndex, std::string_view fieldName)
+    {
+        if (paramIndex >= 64 || fieldName.empty())
+            return;
+        ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+        if (std::ranges::find(returnFieldBorrows_, entry) == returnFieldBorrows_.end())
+            returnFieldBorrows_.push_back(std::move(entry));
+    }
+    std::span<const ReturnFieldBorrow> returnFieldBorrows() const noexcept { return returnFieldBorrows_; }
+    std::span<const ReturnFieldBorrow> importedReturnFieldBorrows() const noexcept;
 
     // The result aliases the parameter's storage, rather than carrying a reference
     // to it in a separate allocation. Only this route can make freeing a returned
@@ -620,6 +636,7 @@ private:
     uint32_t localStackOffset_  = 0;
 
     uint64_t returnBorrowsParamsMask_  = 0;
+    std::vector<ReturnFieldBorrow> returnFieldBorrows_;
     uint64_t returnsStorageParamsMask_ = 0;
     bool     observesExternalBorrows_  = false;
     bool     borrowEffectsComputed_    = false;

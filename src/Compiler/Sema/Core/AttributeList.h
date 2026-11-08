@@ -12,6 +12,14 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 
+struct BorrowFieldOrigin
+{
+    uint8_t     paramIndex = 0;
+    std::string fieldName;
+
+    bool operator==(const BorrowFieldOrigin&) const noexcept = default;
+};
+
 enum class RtAttributeFlagsE : uint64_t
 {
     Zero           = 0,
@@ -95,6 +103,7 @@ struct AttributeList
     uint64_t storesIndirectParamsMask     = 0;
     uint64_t storesIndirectIntoParamPairs = 0;
     uint64_t freesIndirectParamsMask      = 0;
+    std::vector<BorrowFieldOrigin> returnFieldBorrows;
 
     // Debug print options are rare, but every scope copies its attribute list.
     // Keep their string storage in vectors instead of inflating each copied list.
@@ -129,6 +138,7 @@ struct AttributeList
                reallocatesParamsMask == 0 &&
                returnsPayloadParamsMask == 0 &&
                returnsStorageParamsMask == 0 &&
+               returnFieldBorrows.empty() &&
                !observesExternalBorrows.has_value() &&
                returnsIndirectParamsMask == 0 &&
                storesIndirectParamsMask == 0 &&

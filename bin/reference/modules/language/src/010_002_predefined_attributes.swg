@@ -198,7 +198,7 @@ struct AttrCounterWidget
 | 'Safety(what: SafetyWhat, value: bool)' | Enable or disable runtime guards |
 | 'Sanity(what: SafetyWhat, value: bool)' | Enable or disable static proven-fault checks |
 | 'Warning(what: string, level: WarningLevel)' | Disable, restore, or promote named warnings |
-| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0)' | Describe pointer escape, payload borrowing, and invalidation behavior |
+| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0, ..., returnsFields = "")' | Describe pointer escape, payload borrowing, and invalidation behavior |
 
 'SafetyWhat' is shared by runtime safety and static sanity, although not every
 flag has meaningful behavior in both systems. See the dedicated safety and
@@ -206,7 +206,10 @@ sanity chapters before overriding defaults.
 
 'BorrowSummary' is emitted automatically for ordinary Swag functions. Write it
 manually only for a foreign declaration whose ownership behavior the compiler
-cannot inspect.
+cannot inspect. Generated module APIs encode first-level fields of a returned
+carrier that borrow a parameter in 'returnsFields'. Each entry contains a
+parameter index, a colon, and the field name as hexadecimal UTF-8 bytes;
+multiple entries use semicolons.
 
 # Native Interoperability
 

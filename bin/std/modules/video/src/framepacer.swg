@@ -1,6 +1,6 @@
 #global public
 
-using Core.Errors
+using Core, Core.Errors
 
 // One accepted picture on a constant-rate recording timeline.
 struct FrameSlot
@@ -28,6 +28,7 @@ struct FramePacer
         firstTick:      u64
         previousTick:   u64
         previousSlot:   u64
+        hasOrigin:      bool
         hasPicture:     bool
     }
 }
@@ -45,11 +46,27 @@ impl FramePacer
         let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
         let maxDuration   = ticksPerFrame / rate.numerator() +
                             cast(u64, ticksPerFrame % rate.numerator() != 0)
+        let divisor = cast(u32, Math.gcd(rate.numerator(), rate.denominator()))
+        let reduced = try FrameRate.create(rate.numerator() / divisor, rate.denominator() / divisor)
+        let clockScale = cast(u64, reduced.numerator()) * reduced.denominator()
         if ticksPerFrame < rate.numerator() or
            maxDuration > Swag.U32.Max or
-           clockFrequency > Swag.U64.Max / rate.denominator() do
+           clockFrequency > Swag.U64.Max / clockScale do
             fail BadParameterError{"frame pacer rate cannot fit its video or monotonic clock"}
-        return FramePacer{rate, clockFrequency, videoTimescale}
+        return FramePacer{reduced, clockFrequency, videoTimescale}
+    }
+
+    // Creates a pacer whose recording timeline starts at `originTick`.
+    //
+    // A first picture captured later enters its actual frame slot and reports the missing
+    // earlier slots. Use the same origin as a sound timeline to preserve their initial offset.
+    func createWithOrigin(rate: FrameRate, clockFrequency: u64, videoTimescale: u32, originTick: u64)->FramePacer fail
+    {
+        var result = try create(rate, clockFrequency, videoTimescale)
+        result.firstTick    = originTick
+        result.previousTick = originTick
+        result.hasOrigin    = true
+        return result
     }
 
     // Returns exact timing for any frame slot, including one skipped by capture.
@@ -74,7 +91,7 @@ impl FramePacer
     // untouched. Timestamp overflow fails before accepting the picture.
     mtd tryAccept(tick: u64, slot: *FrameSlot)->bool fail
     {
-        if not .hasPicture
+        if not .hasPicture and not .hasOrigin
         {
             slot[]        = try .slotAt(0)
             .firstTick    = tick
@@ -85,22 +102,28 @@ impl FramePacer
 
         if tick < .previousTick do
             fail BadParameterError{"frame pacer timestamps must not move backwards"}
-        let elapsed = tick - .firstTick
-        if elapsed > Swag.U64.Max / .rate.numerator() do
+        let elapsed      = tick - .firstTick
+        let clockPeriod  = .clockFrequency * .rate.denominator()
+        let wholePeriods = elapsed / clockPeriod
+        if wholePeriods > Swag.U64.Max / .rate.numerator() do
             fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
-        let current = elapsed * .rate.numerator() /
-                      (.clockFrequency * .rate.denominator())
-        if current <= .previousSlot
+        let wholeFrames      = wholePeriods * .rate.numerator()
+        let fractionalFrames = (elapsed % clockPeriod) * .rate.numerator() / clockPeriod
+        if fractionalFrames > Swag.U64.Max - wholeFrames do
+            fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
+        let current = wholeFrames + fractionalFrames
+        if .hasPicture and current <= .previousSlot
         {
             .previousTick = tick
             return false
         }
 
         var accepted = try .slotAt(current)
-        accepted.skippedFrames = current - .previousSlot - 1
+        accepted.skippedFrames = .hasPicture ? current - .previousSlot - 1 : current
         slot[]        = accepted
         .previousTick = tick
         .previousSlot = current
+        .hasPicture   = true
         return true
     }
 

@@ -92,15 +92,52 @@ namespace
 {
     constexpr uint32_t K_FUNCTION_CACHE_MIN_INSTRUCTIONS = 64;
 
+    void appendGenericInstanceArgs(Utf8& key, const TaskContext& ctx, const std::span<const GenericInstanceKey> args)
+    {
+        for (const GenericInstanceKey& arg : args)
+        {
+            Utf8 valueKey;
+            if (arg.typeRef.isValid())
+                valueKey = ctx.typeMgr().get(arg.typeRef).toFullName(ctx);
+            else if (arg.cstRef.isValid())
+            {
+                const ConstantValue& value = ctx.cstMgr().get(arg.cstRef);
+                if (value.typeRef().isValid())
+                    valueKey += ctx.typeMgr().get(value.typeRef()).toFullName(ctx);
+                valueKey += "=";
+                if (value.kind() == ConstantKind::TypeValue)
+                    valueKey += ctx.typeMgr().get(value.getTypeValue()).toFullName(ctx);
+                else
+                    valueKey += value.toString(ctx);
+            }
+            key += std::format("|arg:{}:", valueKey.size());
+            key += valueKey;
+        }
+    }
+
     Utf8 locationTieKey(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        // The public API name spells generic arguments and overload signatures from their
-        // content, and the type's full name separates instances whose spelling still coincides.
-        // Both are text: type hashes and references depend on compilation scheduling.
+        // The public API name and function type do not include the generic arguments of an
+        // owning struct or constant generic function arguments. Both distinguish instances
+        // sharing one declaration and signature; use their content, not scheduling-dependent refs.
         Utf8 key = symbol.computePublicApiSymbolName(ctx);
         key += "|";
         if (symbol.typeRef().isValid())
             key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
+        if (const SymbolStruct* owner = symbol.ownerStruct())
+        {
+            key += "|owner:";
+            key += owner->getFullScopedName(ctx);
+            SmallVector<GenericInstanceKey> args;
+            if (owner->tryGetGenericInstanceArgs(args))
+                appendGenericInstanceArgs(key, ctx, args);
+        }
+        SmallVector<GenericInstanceKey> args;
+        if (symbol.tryGetGenericInstanceArgs(ctx, args))
+        {
+            key += "|function:";
+            appendGenericInstanceArgs(key, ctx, args);
+        }
         return key;
     }
 

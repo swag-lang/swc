@@ -445,16 +445,15 @@ SWC_TEST_BEGIN(Compiler_TestCommandKeepsExplicitSandboxRoot)
 }
 SWC_TEST_END()
 
-// The sources under test are granted back to the isolated process, so a test can record the
-// reference data that lives beside it. The module is the grant when there is one.
-SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheModuleAsCorpus)
+// Workspace tests can run dependency modules in one process, so the grant covers the workspace.
+SWC_TEST_BEGIN(Compiler_TestCommandGrantsTheWorkspaceForAModule)
 {
     CommandLine cmdLine;
     cmdLine.command       = CommandKind::Test;
     cmdLine.workspacePath = fs::path("C:/repo/workspaces/sample");
     cmdLine.modulePath    = fs::path("C:/repo/workspaces/sample/modules/program");
 
-    const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.modulePath.string());
+    const Utf8              expected = std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, cmdLine.workspacePath.string());
     const std::vector<Utf8> runArgs  = effectiveGeneratedArtifactRunArgs(cmdLine);
     if (runArgs.size() != 3)
         return Result::Error;

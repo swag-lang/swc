@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core, Core.Errors
+using Swag, Core, Core.Errors, Audio
 
 func fragmentedTagCount(bytes: const [..] u8, tag: string)->u64
 {
@@ -288,6 +288,47 @@ func fragmentedPacketSource()->ByteSource fail
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 3)
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(2), 2.0 / 60.0, 0.000001))
+}
+
+// Audio and video offsets from one monotonic origin survive MP4 writing and reading.
+#test
+{
+    let path = videoTempPath("fragmented-shared-origin", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var pictureSource = expect fragmentedPacketSource()
+    var soundSource   = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    let picture = expect fragmentedPacket(&pictureSource)
+    let sound   = expect fragmentedPacket(&soundSource)
+    var video   = expect FramePacer.createWithOrigin(expect FrameRate.create(30, 1),
+                                                     1_000_000_000, 90_000, 1_000_000_000)
+    var audio   = expect SampleTimeline.createWithOrigin(44_100, 1_000_000_000, 1_000_000_000)
+    var writer  = expect Mp4.FragmentedWriter.createWithAudio(path, 64, 48, 90_000,
+                                                               config.toSlice(),
+                                                               Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                         Swag.makeSlice(&AudioConfig[0], 2)})
+    var slot: FrameSlot
+    Swag.require(expect video.tryAccept(1_100_000_000, &slot))
+    let placement = expect audio.place(1_120_000_000, 1024)
+    Swag.require(slot.decodeTime == 9_000 and placement.startSample == 5_292)
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), slot.decodeTime, slot.decodeTime,
+                                          slot.duration, true})
+    expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), placement.startSample,
+                                               placement.startSample, 1024, true})
+    expect writer.end()
+
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.firstDecodeTime == 9_000)
+    Swag.require(summary.audioTracks[0].firstDecodeTime == 5_292)
+    var packets = expect Mp4.FragmentedPacketReader.open(path)
+    Swag.require((expect packets.packetInfo(0)).decodeTime == 9_000)
+    Swag.require((expect packets.audioPacketInfo(0, 0)).decodeTime == 5_292)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1)
+    Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(0), 0.0, 0.000001))
+    Swag.require(Math.isEqualEpsilon((unwrap reader.audioTrack(0)).timelineStartSeconds(),
+                                     0.02, 0.000001))
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.

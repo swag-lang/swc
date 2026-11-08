@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core.Errors
+using Swag, Core.Errors, Audio
 
 // Fractional frame rates stay on one exact clock over four hours without duration drift.
 #test
@@ -22,6 +22,8 @@ using Swag, Core.Errors
     Swag.require(expect pacer.tryAccept(Start + 4'u64 * 60 * 60 * 1_000_000_000, &slot))
     Swag.require(slot.index == 431_568 and slot.decodeTime == slot.index * 3003)
     Swag.require(slot.duration == 3003 and slot.skippedFrames == 431_564)
+    Swag.require(expect pacer.tryAccept(Start + 10'u64 * 24 * 60 * 60 * 1_000_000_000, &slot))
+    Swag.require(slot.index == 25_894_105 and slot.decodeTime == slot.index * 3003)
 }
 
 // Integer clock ticks alternate frame durations while late pictures report skipped slots.
@@ -42,6 +44,20 @@ using Swag, Core.Errors
     Swag.require(missed.duration == 17 and missed.skippedFrames == 0)
 }
 
+// A shared recording origin preserves the first sound and picture offsets.
+#test
+{
+    let rate = expect FrameRate.create(30, 1)
+    var video = expect FramePacer.createWithOrigin(rate, 1_000_000_000, 90_000, 1_000_000_000)
+    var audio = expect SampleTimeline.createWithOrigin(48_000, 1_000_000_000, 1_000_000_000)
+    var slot: FrameSlot
+    Swag.require(expect video.tryAccept(1_100_000_000, &slot))
+    let samples = expect audio.place(1_100_000_000, 480)
+    Swag.require(slot.index == 3 and slot.decodeTime == 9_000 and slot.skippedFrames == 3)
+    Swag.require(samples.startSample == 4_800 and samples.silenceFrames == 4_800)
+    Swag.require(samples.acceptedFrames == 480)
+}
+
 // Invalid clocks and a backwards timestamp leave the accepted position intact.
 #test
 {
@@ -53,6 +69,13 @@ using Swag, Core.Errors
     Swag.require(rejected.value() is BadParameterError)
     discard catch FramePacer.create(expect FrameRate.create(1, Swag.U32.Max), 1, Swag.U32.Max) as rejected
     Swag.require(rejected.value() is BadParameterError)
+
+    var reduced = expect FramePacer.create(expect FrameRate.create(1_000_000_000, 1_000_000_000),
+                                           1_000_000_000, 90_000)
+    var reducedSlot: FrameSlot
+    Swag.require(expect reduced.tryAccept(0, &reducedSlot))
+    Swag.require(expect reduced.tryAccept(1_000_000_000, &reducedSlot))
+    Swag.require(reducedSlot.index == 1 and reducedSlot.decodeTime == 90_000)
 
     var pacer = expect FramePacer.create(rate, 1_000, 90_000)
     var slot: FrameSlot

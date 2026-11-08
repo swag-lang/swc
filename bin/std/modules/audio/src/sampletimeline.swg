@@ -24,6 +24,7 @@ struct SampleTimeline
     {
         sampleRate:     u32
         clockFrequency: u64
+        tolerance:      u32
         firstTick:      u64
         previousTick:   u64
         sampleEndValue: u64
@@ -36,11 +37,13 @@ impl SampleTimeline
     // Creates a timeline for `sampleRate` frames per second and a monotonic clock frequency.
     //
     // The product of both rates must fit in 64 bits for exact fractional conversion.
-    func create(sampleRate: u32, clockFrequency: u64)->SampleTimeline fail
+    // `tolerance` snaps timestamp differences of at most this many sample frames to the
+    // continuous write position. Zero preserves exact gaps and overlaps.
+    func create(sampleRate: u32, clockFrequency: u64, tolerance: u32 = 0)->SampleTimeline fail
     {
         if not sampleRate or not clockFrequency or clockFrequency > Swag.U64.Max / sampleRate do
             fail BadParameterError{"sample timeline needs representable positive clock rates"}
-        return SampleTimeline{sampleRate, clockFrequency}
+        return SampleTimeline{sampleRate, clockFrequency, tolerance}
     }
 
     // Returns the end of the placed audio in sample frames.
@@ -76,7 +79,17 @@ impl SampleTimeline
                                       .clockFrequency / 2 + .clockFrequency % 2)
         if rounded > Swag.U64.Max - wholeSamples do
             fail OverflowError{"sample timeline position overflows"}
-        let target = wholeSamples + rounded
+        var target = wholeSamples + rounded
+        if target >= .sampleEndValue
+        {
+            if target - .sampleEndValue <= .tolerance do
+                target = .sampleEndValue
+        }
+        else
+        {
+            if .sampleEndValue - target <= .tolerance do
+                target = .sampleEndValue
+        }
         if frameCount > Swag.U64.Max - target do
             fail OverflowError{"sample timeline block end overflows"}
 

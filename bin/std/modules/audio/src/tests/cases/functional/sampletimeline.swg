@@ -35,6 +35,20 @@ using Swag, Core, Core.Errors
     Swag.require(timeline.sampleEnd() == 38_102_400_441)
 }
 
+// Small timestamp jitter can be ignored while larger gaps remain visible.
+#test
+{
+    var timeline = expect SampleTimeline.create(1_000, 1_000_000, tolerance: 1)
+    discard expect timeline.place(0, 100)
+    let early = expect timeline.place(99_000, 100)
+    Swag.require(early.startSample == 100 and early.discardedFrames == 0)
+    let delayed = expect timeline.place(201_000, 100)
+    Swag.require(delayed.startSample == 200 and delayed.silenceFrames == 0)
+    let gap = expect timeline.place(304_000, 100)
+    Swag.require(gap.startSample == 304 and gap.silenceFrames == 4)
+    Swag.require(timeline.sampleEnd() == 404)
+}
+
 // Invalid input and overflows leave the committed sample end intact.
 #test
 {

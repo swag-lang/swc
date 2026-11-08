@@ -140,8 +140,24 @@ func readSelectionPeer(mode: string)
         waitSelectionPeer(&peer, 3000)
     }
 
+    scope
+    {
+        var peer = startSelectionPeer("offer")
+        defer stopSelectionPeer(&peer)
+        Swag.require(Clipboard.getString() == "étranger")
+        // The server drops a dead owner's selection even when it never sent a clear request.
+        stopSelectionPeer(&peer)
+        let deadline = Time.monotonicMilliseconds() + 2000
+        while Clipboard.hasString() and Time.monotonicMilliseconds() < deadline do
+            Threading.Thread.sleep(10'ms)
+        Swag.require(not Clipboard.hasString() and Clipboard.getString().isEmpty())
+    }
+
     Clipboard.setString("native-é")
     readSelectionPeer("read-text")
+    Clipboard.setString("")
+    Swag.require(Clipboard.hasString() and Clipboard.getString().isEmpty())
+    readSelectionPeer("read-empty")
     Clipboard.clear()
     Swag.require(not Clipboard.hasString() and not Clipboard.hasImage() and not Clipboard.hasFormat(format))
 }

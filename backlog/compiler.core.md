@@ -723,3 +723,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reproduce it before choosing a source-suite or compiler filesystem regression.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.109 — Resolve member access through a referenced pointer in a foreach loop
+
+- Evidence: a native Swag Scope test passed semantic checking, then asserted at
+  `CodeGen.cpp:931` with `missing-codegen-payload` for `preview.started` inside
+  `for &preview in explorer.previews`, where `previews` is `Array'*ExplorerPreview`.
+  Iterating as `for preview` compiles, so the test now uses that form.
+- Next: reduce the reference-to-pointer case to a standalone source and determine whether
+  member access should lower through the pointer or receive a source diagnostic.
+- Done when the reduced case compiles and runs or receives a clear diagnostic without a
+  compiler assertion, with a regression test for the chosen contract.

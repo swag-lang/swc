@@ -52,7 +52,8 @@ def plan(args, scratch, compiler, dev_compiler):
             if suite == 'dynamic-library':
                 modules = ['runtime_context_dynamic_consumer']
             stages += workspace_stages(compiler, scratch, [*common, *filters], modules=modules,
-                                       script=suite == 'workspace' and not args.module)
+                                       script=suite == 'workspace' and not args.module,
+                                       execution=args.execution if suite == 'dynamic-library' else None)
         else:
             modules = [args.module] if args.module else module_names(scratch / suite)
             for module in modules:
@@ -201,7 +202,7 @@ def main():
         parser.error('--dev-compiler is required to include the C++ tests')
     if args.dev_full and args.suite != 'cpp':
         parser.error('--dev-full only applies to cpp; all and compiler already include it')
-    if args.execution and args.suite not in ('native', *WORKSPACES):
+    if args.execution and args.suite not in ('native', *WORKSPACES, 'dynamic-library'):
         parser.error('--execution only applies to native or a bin workspace')
     if (args.module or args.test_file or args.test_tag) and args.suite not in (*WORKSPACES, 'workspace'):
         parser.error('--module, --test-file and --test-tag need a workspace suite')

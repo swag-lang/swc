@@ -120,6 +120,7 @@
     var outcome: Swag.Error
     discard catch Env.startProcess(Env.StartInfo{fileName: "/swag-missing-process", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe}) as outcome
     Swag.require(outcome.value() is Errors.FileNotFoundError)
+    Swag.require((assume cast(const *Errors.FileNotFoundError, outcome.value())).nativeErrorID == cast(u64, Linux.ENOENT))
 }
 
 #[Swag.TestTag("integration.process")]
@@ -131,4 +132,39 @@
     Swag.require(process.exitCode() == 0)
     Swag.require(process.standardOutput().count == 131072)
     Swag.require(process.standardError().count == 131072)
+}
+
+#[Swag.TestTag("integration.process")]
+#test
+{
+    // A child that never closes either output pipe cannot extend a finite wait indefinitely.
+    const Script = "while :; do printf '0123456789abcdef'; printf 'fedcba9876543210' >&2; done"
+    var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/sh", arguments: ["-c", Script],
+                                                    standardOutput: .Pipe, standardError: .Pipe})
+    defer
+    {
+        discard catch process.kill()
+        discard catch process.waitForExit()
+    }
+
+    var clock: Time.Stopwatch
+    clock.start()
+    Swag.require(not expect process.tryWaitForExit(Time.Duration.fromMilliseconds(30)))
+    Swag.require(clock.elapsedMilliseconds() < 1000)
+    expect process.kill()
+    Swag.require(expect process.waitForExit() == 137)
+}
+
+#[Swag.TestTag("integration.process")]
+#test
+{
+    // A grandchild may retain the redirected pipes after the direct child has exited.
+    const Script = "sleep 3 & printf ready"
+    var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/sh", arguments: ["-c", Script],
+                                                    standardOutput: .Pipe, standardError: .Pipe})
+    var clock: Time.Stopwatch
+    clock.start()
+    let status  = expect process.waitForExit()
+    let elapsed = clock.elapsedMilliseconds()
+    Swag.require(status == 0 and elapsed < 2000 and process.standardOutput() == "ready")
 }

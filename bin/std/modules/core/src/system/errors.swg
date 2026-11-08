@@ -53,22 +53,30 @@ struct SerializationError
 }
 
 // Reports a file or directory that does not exist.
+//
+// Callers can branch on this portable type. `nativeErrorID` retains the original host code for
+// diagnostics; zero means Core produced the error without an operating-system failure.
 struct FileNotFoundError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
         fileName:   string?            // Path that was not found, when known.
+        nativeErrorID: u64             // Host error code, or zero for a Core-generated failure.
     }
 }
 
 // Reports a path that the operating system rejects as a file name.
+//
+// `nativeErrorID` retains a host rejection for diagnostics, or zero when Core rejected the
+// name before calling the operating system.
 struct InvalidFileNameError
 {
     public
     {
         using base: Swag.BaseError     // Embedded base state.
         fileName:   string?            // Rejected path, when known.
+        nativeErrorID: u64             // Host error code, or zero for a lexical rejection.
     }
 }
 

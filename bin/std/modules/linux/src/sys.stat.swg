@@ -47,6 +47,7 @@ struct stat
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
     func mkdirat(dirfd: s32, pathname: const [*] u8, mode: u32)->s32
+    func chmod(pathname: const [*] u8, mode: u32)->s32
     func utimensat(dirfd: s32, pathname: const [*] u8, times: const [*] timespec?, flags: s32)->s32
     func statx(dirfd: s32, pathname: const [*] u8, flags: s32, mask: u32, statxbuf: *Structs.statx)->s32
     func fstat(fd: s32, statbuf: *stat)->s32

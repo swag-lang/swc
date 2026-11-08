@@ -183,6 +183,9 @@ if __name__ == "__main__":
         elif mode == 'read-text':
             assert read(utf8) == 'native-é'.encode()
             print('ok')
+        elif mode == 'read-empty':
+            assert read(utf8) == b''
+            print('ok')
         elif mode == 'read-large':
             assert read(utf8) == b'x' * 262144
             print('ok')

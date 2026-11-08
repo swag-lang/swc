@@ -10,19 +10,18 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     for title in ["North report", "South report", "West report"]
     {
         discard journey.newCapture()
-        let capture = unwrap journey.main.editWnd.getCapture()
+        let capture = unwrap main.editWnd.getCapture()
         capture.title = title
         capture.changed = true
-        journey.main.saveCapture(capture)
+        main.saveCapture(capture)
     }
 
     journey.openLibrary(3)
-    let main = journey.main
     main.libWnd.setSearch("South")
     journey.waitFor("search captures", func|main|()->bool
     {

@@ -9,19 +9,19 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     var path = journey.newCapture(400, 300)
-    let capture = unwrap journey.main.editWnd.getCapture()
+    let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Line, .Line, {10, 10}, {80, 35})
     Swag.require(Swag.kindOf(capture.forms.back()) == FormLine)
 
     journey.drawForm(ActionToolMode.Draw, .Draw, {110, 10}, {175, 35})
     Swag.require(Swag.kindOf(capture.forms.back()) == FormDraw)
 
-    journey.main.sendCommandEvent(ActionSelection.DeSelectAll)
-    journey.main.sendCommandEvent(ActionToolMode.Highlight)
-    journey.main.quickWnd.applyPreset(journey.main.quickWnd.qsHighlight.forms[0])
+    main.sendCommandEvent(ActionSelection.DeSelectAll)
+    main.sendCommandEvent(ActionToolMode.Highlight)
+    main.quickWnd.applyPreset(main.quickWnd.qsHighlight.forms[0])
     journey.drawForm(ActionToolMode.Highlight, .Highlight, {210, 10}, {285, 35})
     Swag.require(capture.forms.back().subKind == .Highlight)
 
@@ -45,10 +45,9 @@ using Core, Gui, Pixel
     Swag.require(Swag.kindOf(capture.forms.back()) == FormPolygon)
     Swag.require(capture.forms.count == 10)
 
-    journey.main.saveCapture(capture)
+    main.saveCapture(capture)
     journey.openLibrary(1)
-    journey.main.libWnd.view.openItem(journey.main.libWnd.view.items[0])
-    let main = journey.main
+    main.libWnd.view.openItem(main.libWnd.view.items[0])
     journey.waitFor("reopen all tool marks", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()

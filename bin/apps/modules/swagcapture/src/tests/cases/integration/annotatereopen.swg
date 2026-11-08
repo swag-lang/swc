@@ -10,23 +10,22 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     var path    = journey.newCapture()
-    let capture = unwrap journey.main.editWnd.getCapture()
+    let capture = unwrap main.editWnd.getCapture()
     capture.title = "Reviewed capture"
     journey.drawForm(ActionToolMode.Shape, .Shape, {8, 10}, {38, 30})
     capture.changed = true
-    journey.main.saveCapture(capture)
+    main.saveCapture(capture)
 
     journey.openLibrary(1)
-    Swag.require(journey.main.libWnd.view.items.count == 1)
-    journey.main.libWnd.view.openItem(journey.main.libWnd.view.items[0])
-    let main = journey.main
+    Swag.require(main.libWnd.view.items.count == 1)
+    main.libWnd.view.openItem(main.libWnd.view.items[0])
     journey.waitFor("reopen annotated capture", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
         return not main.libraryMode and opened and opened.file == path and opened.forms.count == 1
     })
-    Swag.require(journey.main.editWnd.getCapture()!.title == "Reviewed capture")
+    Swag.require(main.editWnd.getCapture()!.title == "Reviewed capture")
 }

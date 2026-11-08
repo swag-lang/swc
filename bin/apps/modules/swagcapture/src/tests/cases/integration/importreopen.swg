@@ -10,13 +10,12 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     let picture = Path.combine(journey.root, "source.png")
     var image = Testing.indexedImage(72, 48)
     expect image.save(picture)
-    journey.main.loadExternalImage(picture)
-    let main = journey.main
+    main.loadExternalImage(picture)
     journey.waitFor("import local picture", func|main|()->bool
     {
         let capture = main.editWnd.getCapture()

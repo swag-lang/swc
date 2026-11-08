@@ -9,10 +9,10 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     var path = journey.newCapture(100, 80)
-    let capture = unwrap journey.main.editWnd.getCapture()
+    let capture = unwrap main.editWnd.getCapture()
     g_ResizeMode = 1
     journey.changeImageSize(ActionImage.ResizeImage, 120, 90)
     Swag.require(capture.backImg.width == 120 and capture.backImg.height == 90)
@@ -24,17 +24,16 @@ using Core, Gui, Pixel
 
     journey.changeImageSize(ActionImage.ExpandCapture, 160, 110)
     Swag.require(capture.width == 160 and capture.height == 110)
-    journey.main.sendCommandEvent(ActionImage.TrimCapture)
+    main.sendCommandEvent(ActionImage.TrimCapture)
     Swag.require(capture.width == 140 and capture.height == 100)
-    journey.main.sendCommandEvent(ActionUndo.DoUndo)
+    main.sendCommandEvent(ActionUndo.DoUndo)
     Swag.require(capture.width == 160 and capture.height == 110)
-    journey.main.sendCommandEvent(ActionUndo.DoRedo)
+    main.sendCommandEvent(ActionUndo.DoRedo)
     Swag.require(capture.width == 140 and capture.height == 100)
 
-    journey.main.saveCapture(capture)
+    main.saveCapture(capture)
     journey.openLibrary(1)
-    journey.main.libWnd.view.openItem(journey.main.libWnd.view.items[0])
-    let main = journey.main
+    main.libWnd.view.openItem(main.libWnd.view.items[0])
     journey.waitFor("reopen trimmed canvas", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()

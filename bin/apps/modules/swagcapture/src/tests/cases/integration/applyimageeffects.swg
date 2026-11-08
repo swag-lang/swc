@@ -9,28 +9,27 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    defer journey.shutdown()
+    let main = journey.main
 
     var path = journey.newCapture(420, 260)
-    let capture = unwrap journey.main.editWnd.getCapture()
+    let capture = unwrap main.editWnd.getCapture()
     let positions = [Math.Point{10, 15}, Math.Point{95, 15}, Math.Point{180, 15},
                      Math.Point{265, 15}, Math.Point{350, 15}]
     let kinds = [FormImageKind.Image, FormImageKind.Zoom, FormImageKind.Blur,
                  FormImageKind.Pixelate, FormImageKind.Capture]
     for kind, i in kinds
     {
-        journey.main.sendCommandEvent(ActionSelection.DeSelectAll)
-        journey.main.sendCommandEvent(ActionToolMode.Img)
-        journey.main.quickWnd.applyPreset(journey.main.quickWnd.qsImage.forms[i])
+        main.sendCommandEvent(ActionSelection.DeSelectAll)
+        main.sendCommandEvent(ActionToolMode.Img)
+        main.quickWnd.applyPreset(main.quickWnd.qsImage.forms[i])
         journey.drawForm(ActionToolMode.Img, .Image, positions[i], positions[i] + Math.Point{60, 70})
         let form = assume cast(*FormImage, capture.forms.back())
         Swag.require(form.kind == kind)
     }
 
-    journey.main.saveCapture(capture)
+    main.saveCapture(capture)
     journey.openLibrary(1)
-    journey.main.libWnd.view.openItem(journey.main.libWnd.view.items[0])
-    let main = journey.main
+    main.libWnd.view.openItem(main.libWnd.view.items[0])
     journey.waitFor("reopen image effects", func|main, &path, kinds|()->bool
     {
         let opened = main.editWnd.getCapture()

@@ -15,6 +15,7 @@ struct CaptureJourney
     savedKeepRatio: bool
     savedResizeMode: u64
     savedWidth, savedHeight: s32
+    started: bool
 }
 
 impl CaptureJourney
@@ -38,6 +39,7 @@ impl CaptureJourney
         .surface = expect .app.createSurface(40, 40, 1100, 760, surfaceId: "capture-test-journey")
         .surface.setTitle(ProductName)
         .main = MainWnd.create(.surface.wnd)
+        .started = true
         .surface.show()
         // Application.run sends this startup event before its first frame.
         var firstFrame = FrameEvent{firstFrame: true}
@@ -48,8 +50,10 @@ impl CaptureJourney
                                                   not main.quickWnd.qsHighlight.forms.isEmpty())
     }
 
-    mtd shutdown()
+    mtd opDrop()
     {
+        if not .started do
+            return
         .main.libWnd.requestClose()
         .surface.destroy()
         Swag.drop(&g_Library, 1)

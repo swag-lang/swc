@@ -17,7 +17,7 @@ using Swag, Core, Pixel
         let x = 10 + cast(f32, index % 16) * 23
         let y = 10 + cast(f32, index / 16) * 25
         fixture.main.editMode = .Shape
-        fixture.gui.drag({x, y}, {x + 16, y + 12})
+        fixture.dragImage({x, y}, {x + 16, y + 12})
     }
     Swag.require(capture.forms.count == 128 and capture.undoMgr.appliedCount() == 128)
     var image = fixture.gui.render(fixture.main)
@@ -39,7 +39,7 @@ using Swag, Core, Pixel
     for 64 do
         capture.undo()
     fixture.main.editMode = .Shape
-    fixture.gui.drag({12, 210}, {28, 224})
+    fixture.dragImage({12, 210}, {28, 224})
     Swag.require(capture.forms.count == 65 and capture.undoMgr.count() == 65)
     Swag.require(not capture.canRedo())
     image = fixture.gui.render(fixture.main)

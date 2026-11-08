@@ -327,14 +327,7 @@ impl CaptureJourney
 
     mtd dragSelection(start, end: Math.Point)
     {
-        // The lasso consumes view-local coordinates relative to Capture.paintRect.
-        let view = .main.editWnd.editView
-        let capture = unwrap view.capture
-        let origin = Math.Point{capture.paintRect.x - view.scrollPos.x,
-                                capture.paintRect.y - view.scrollPos.y}
-        let first = view.localToSurface(origin + start * view.zoom)
-        let last = view.localToSurface(origin + end * view.zoom)
-        .dragSurfacePoints(first, last, hover: false)
+        .dragSurfacePoints(.surfacePoint(start), .surfacePoint(end), hover: false)
     }
 
     mtd dragSurfacePoints(first, last: Math.Point, hover = true)

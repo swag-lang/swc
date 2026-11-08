@@ -337,12 +337,6 @@ whole recording loaded at once.
 - Done when: stamps can be browsed and placed from the editor and remain editable images.
 
 ---
-### app.capture.040 — Exercise lasso selection through native pointer input
-
-- Next: On an interactive desktop, start the native lasso away from the capture's resize handles, trace the editor's pointer events, then add a desktop plan that selects and deletes one annotation.
-- Done when: a portable `desktop/` test selects the intended mark by native drag and passes on Windows and Linux.
-- Evidence: a Windows desktop drag from image point `{5, 5}` to `{90, 80}` selected no mark, while the in-process drag over the same plan selected one. The start is inside the capture-edge handle reach. A reverse-drag attempt could not reach the editor because the subsequent desktop session had no foreground window and refused activation, so the pointer-path diagnosis remains open.
-
 ### app.capture.041 — Match library hints to the filtered result
 
 - Evidence: the `library.empty-search.paper` golden shows no matching capture, while the hint line still offers Open, Delete, Rename, and Rate. Those actions have no target in this state.

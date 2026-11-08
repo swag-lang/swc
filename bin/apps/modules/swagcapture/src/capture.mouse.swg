@@ -81,9 +81,10 @@ impl Capture
         }
 
         var localPos = view.surfaceToLocal(evt.surfacePos)
+        let captureRect = view.getCaptureRect()
         localPos   += view.scrollPos
-        localPos.x -= .paintRect.x
-        localPos.y -= .paintRect.y
+        localPos.x -= captureRect.x
+        localPos.y -= captureRect.y
 
         if .mouseMode == .None and .mouseHover(view, localPos, evt) do
             return true
@@ -255,7 +256,7 @@ impl Capture
         {
             .stopDrag(view)
             .drawSelRect = false
-            view.main.updateState()
+            .selectionHasChanged()
         }
 
         if .mouseMode == .Moving or .firstMouseMove
@@ -279,9 +280,8 @@ impl Capture
         var r: Math.Rectangle
         r.set(.movingStart, .movingEnd)
 
-        // Rebuild the selection from scratch, then notify only if the set actually
-        // changed: selectionHasChanged() triggers a full rebuild of the Properties
-        // and QuickStyles panels, far too heavy to run on every mouse move.
+        // Keep the selection highlight live. Updating the inspector here would move the capture
+        // as the selection changes, shifting the lasso under the pointer during the gesture.
         var newSel: Array'u64
         if addToSelection do
             newSel = .selection
@@ -300,11 +300,8 @@ impl Capture
 
         .firstMouseMove = false
         view.invalidate()
-        if selChanged
-        {
+        if selChanged do
             .selection = newSel
-            .selectionHasChanged()
-        }
 
         return true
     }

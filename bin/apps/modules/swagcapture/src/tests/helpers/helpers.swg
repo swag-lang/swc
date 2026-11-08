@@ -35,6 +35,28 @@ struct HeadlessFixture
 
 impl HeadlessFixture
 {
+    mtd imagePoint(point: Math.Point)->Math.Point
+    {
+        let rect = .editView.getCaptureRect()
+        return .editView.localToSurface(Math.Point{rect.x - .editView.scrollPos.x,
+                                                   rect.y - .editView.scrollPos.y} + point * .editView.zoom)
+    }
+
+    mtd dragImage(start, end: Math.Point, modifiers: Input.KeyModifiers = None)
+    {
+        .gui.drag(.imagePoint(start), .imagePoint(end), modifiers: modifiers)
+    }
+
+    mtd clickImage(point: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
+    {
+        .gui.click(.imagePoint(point), button, modifiers)
+    }
+
+    mtd doubleClickImage(point: Math.Point)
+    {
+        .gui.doubleClick(.imagePoint(point))
+    }
+
     mtd setup(width = 900.0, height = 700.0, registerHeadlessCommands = false)
     {
         testUseScratchLibrary()

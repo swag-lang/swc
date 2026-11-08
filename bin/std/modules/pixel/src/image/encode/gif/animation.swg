@@ -1,6 +1,6 @@
 //! Format: Graphics Interchange Format (GIF89a) encoder component.
-//! Supported: Animations written frame by frame into a file, with a palette per frame, frame durations, looping, and frames reduced to the rectangle that changed.
-//! Not supported: Transparency, interlaced output, and a palette shared by every frame.
+//! Supported: Animations written frame by frame into a file, with a global palette reused for compatible frames, frame durations, looping, and frames reduced to the rectangle that changed.
+//! Not supported: Transparency and interlaced output.
 //! Role: This file owns the public animated GIF writer.
 //
 #global namespace Gif
@@ -16,9 +16,10 @@ public struct AnimationOptions
 
 // Writes an animated GIF frame by frame, without holding the animation in memory.
 //
-// Frames are opaque: their alpha channel is ignored. Each one carries its own palette, built from
-// its own colours, and only the rectangle that changed since the previous frame is stored. A frame
-// identical to the previous one lengthens it instead of adding a frame. GIF counts time in
+// Frames are opaque: their alpha channel is ignored. The first frame supplies a global palette;
+// later frames reuse it when their colours occur in that table, or carry their own palette. Only
+// the rectangle that changed since the previous frame is stored. A frame identical to the previous
+// one lengthens it instead of adding a frame. GIF counts time in
 // hundredths of a second; the writer carries the rounding from frame to frame, so the total
 // duration stays exact.
 //
@@ -36,13 +37,18 @@ public struct AnimationWriter
     pendingY:        s32
     pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
+    globalTable:     Array'u8
+    globalBits:      u8
+    loopCount:       u16
     dither:          bool
     isEnded:         bool
 }
 
 public impl AnimationWriter
 {
-    // Creates `fileName` and writes the header of an animation of `width` by `height` pixels.
+    // Creates `fileName` for an animation of `width` by `height` pixels.
+    //
+    // The header is written when the first frame is flushed, after its global colour table is known.
     func create(fileName: string, width, height: s32, options: AnimationOptions = {})->AnimationWriter fail
     {
         if width <= 0 or height <= 0 do
@@ -50,23 +56,11 @@ public impl AnimationWriter
         if width > Swag.U16.Max or height > Swag.U16.Max do
             fail UnsupportedFormatError{"animation is too big"}
 
-        var result: #returntype
-        result.sink   = try ByteSink.createFile(fileName)
-        result.width  = width
-        result.height = height
-        result.dither = options.dither
-
-        // Logical screen without a global colour table, then the looping extension.
-        try result.sink.write("GIF89a")
-        try result.sink.writeLittleEndian(cast(u16, width))
-        try result.sink.writeLittleEndian(cast(u16, height))
-        try result.sink.write([0'u8, 0, 0])
-        try result.sink.write([0x21'u8, 0xFF, 0x0B])
-        try result.sink.write("NETSCAPE2.0")
-        try result.sink.write([0x03'u8, 0x01])
-        try result.sink.writeLittleEndian(options.loopCount)
-        try result.sink.writeByte(0)
-        return result
+        return AnimationWriter{sink: try ByteSink.createFile(fileName),
+                               width: width,
+                               height: height,
+                               loopCount: options.loopCount,
+                               dither: options.dither}
     }
 
     // Adds `image`, shown for `duration` microseconds.
@@ -111,6 +105,8 @@ public impl AnimationWriter
         .isEnded = true
 
         try .flush()
+        if .globalTable.isEmpty() do
+            try .writeHeader()
         try .sink.writeByte(0x3B)
         try .sink.close()
     }
@@ -118,6 +114,24 @@ public impl AnimationWriter
 
 private impl AnimationWriter
 {
+    // Writes the logical screen and loop count once the first frame's palette is known.
+    mtd writeHeader() fail
+    {
+        try .sink.write("GIF89a")
+        try .sink.writeLittleEndian(cast(u16, .width))
+        try .sink.writeLittleEndian(cast(u16, .height))
+        let packed = .globalTable.isEmpty() ? 0'u8 : 0x80'u8 | ((.globalBits - 1) << 4) | (.globalBits - 1)
+        try .sink.write([packed, 0, 0])
+        if not .globalTable.isEmpty() do
+            try .sink.write(.globalTable.toSlice())
+
+        try .sink.write([0x21'u8, 0xFF, 0x0B])
+        try .sink.write("NETSCAPE2.0")
+        try .sink.write([0x03'u8, 0x01])
+        try .sink.writeLittleEndian(.loopCount)
+        try .sink.writeByte(0)
+    }
+
     // Keeps the area of `image` at `x, y` waiting for its duration, without its alpha channel.
     mtd setPending(image: Image, x, y, w, h: s32, duration: u64)
     {
@@ -149,8 +163,22 @@ private impl AnimationWriter
         let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
         .writtenTime = endTime
 
-        let palette = Encoder.buildPalette(.pending, .dither)
-        var block: ConcatBuffer
+        var palette = Encoder.buildPalette(.pending, .dither)
+        var block:      ConcatBuffer
+        var colorTable: ConcatBuffer
+        Encoder.writeColorTable(&colorTable, palette)
+        colorTable.makeLinear()
+        let colors = unwrap colorTable.toSlice()
+
+        var useGlobal = not .globalTable.isEmpty() and
+                        Encoder.remapToColorTable(&palette, .globalTable.toSlice())
+        if .globalTable.isEmpty()
+        {
+            .globalTable.add(colors)
+            .globalBits = palette.tableBits
+            try .writeHeader()
+            useGlobal = true
+        }
 
         // Graphic control: keep the frame in place for the next one, which covers only what changed.
         block.addNative(0x21'u8)
@@ -161,17 +189,19 @@ private impl AnimationWriter
         block.addNative(0'u8)
         block.addNative(0'u8)
 
-        // Image descriptor with its own colour table.
+        // Image descriptor, with a local colour table only when the global one lacks a colour.
         block.addNative(0x2C'u8)
         Encoder.writeU16(&block, cast(u16, .pendingX))
         Encoder.writeU16(&block, cast(u16, .pendingY))
         Encoder.writeU16(&block, cast(u16, .pending.width))
         Encoder.writeU16(&block, cast(u16, .pending.height))
-        block.addNative(0x80'u8 | (palette.tableBits - 1))
-        Encoder.writeColorTable(&block, palette)
-        block.addNative(palette.lzwMinCodeSize)
+        block.addNative(useGlobal ? 0'u8 : 0x80'u8 | (palette.tableBits - 1))
+        if not useGlobal do
+            block.addBytes(colors)
+        let codeSize = useGlobal ? Math.max(.globalBits, 2'u8) : palette.lzwMinCodeSize
+        block.addNative(codeSize)
 
-        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize)
+        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), codeSize)
         Encoder.writeSubBlocks(&block, compressed.toSlice())
 
         block.makeLinear()

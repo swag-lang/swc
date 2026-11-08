@@ -46,6 +46,49 @@ func sameColors(decoded: Image, source: Image)->bool
 // an unchanged frame lengthens the one before it.
 #test
 {
+    func localPaletteFlags(bytes: const [..] u8)->Array'bool
+    {
+        var result: #returntype
+        let packed = bytes[10]
+        var offset = 13'u64
+        if packed & 0x80 do
+            offset += 3'u64 * (1'u64 << ((packed & 7) + 1))
+
+        while offset < bytes.count
+        {
+            let marker = bytes[offset]
+            offset += 1
+            if marker == 0x3B do
+                return result
+            if marker == 0x21
+            {
+                offset += 1     // Extension label.
+            }
+            else
+            {
+                Swag.require(marker == 0x2C)
+                let flags = bytes[offset + 8]
+                result.add((flags & 0x80) != 0)
+                offset += 9
+                if flags & 0x80 do
+                    offset += 3'u64 * (1'u64 << ((flags & 7) + 1))
+                offset += 1     // LZW minimum code size.
+            }
+
+            for
+            {
+                let size = bytes[offset]
+                offset += 1
+                if not size do
+                    break
+                offset += size
+            }
+        }
+
+        Swag.require(false)
+        return result
+    }
+
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-tests")
     if not Directory.exists(folder) do
         expect Directory.create(folder)
@@ -57,29 +100,53 @@ func sameColors(decoded: Image, source: Image)->bool
 
     let red    = Color.fromArgb(255, 220, 40, 40)
     let yellow = Color.fromArgb(255, 240, 220, 0)
-    var frames: [4] Image
+    var frames: [5] Image
     frames[0] = animationFrame(2, red)
     frames[1] = animationFrame(12, red)
     frames[2] = animationFrame(12, red)
     frames[3] = animationFrame(20, yellow)
+    frames[4] = animationFrame(20, Color.fromArgb(255, 20, 90, 160))
 
     var writer = expect Gif.AnimationWriter.create(path, 40, 30)
     for frame in frames do
         expect writer.addFrame(frame, 100_000)
     expect writer.end()
 
-    let bytes  = expect File.readAllBytes(path)
+    let bytes = expect File.readAllBytes(path)
+    Swag.require((bytes[10] & 0x80) != 0)
+    let localTables = localPaletteFlags(bytes.toSlice())
+    Swag.require(localTables.count == 4)
+    Swag.require(not localTables[0] and not localTables[1] and localTables[2] and not localTables[3])
     var reader = expect ImageReader.decode("animation.gif", bytes.toSlice())
-    Swag.require(reader.info.frames.count == 3)
+    Swag.require(reader.info.frames.count == 4)
     Swag.require(reader.info.loopCount == 0)
     Swag.require(reader.info.canvasWidth == 40 and reader.info.canvasHeight == 30)
     Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.1) < 0.001)
     Swag.require(Math.abs(reader.info.frames[1].durationSeconds - 0.2) < 0.001)
     Swag.require(Math.abs(reader.info.frames[2].durationSeconds - 0.1) < 0.001)
+    Swag.require(Math.abs(reader.info.frames[3].durationSeconds - 0.1) < 0.001)
 
     Swag.require(sameColors(expect reader.read(0), frames[0]))
     Swag.require(sameColors(expect reader.read(1), frames[1]))
     Swag.require(sameColors(expect reader.read(2), frames[3]))
+    Swag.require(sameColors(expect reader.read(3), frames[4]))
+}
+
+// Ending before the first frame still writes a complete GIF stream.
+#test
+{
+    var name = String.from("gif-empty-")
+    name += Guid64.random().toString()
+    name += ".gif"
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    var writer = expect Gif.AnimationWriter.create(path, 1, 1)
+    expect writer.end()
+    let bytes = expect File.readAllBytes(path)
+    Swag.require(bytes.count > 13)
+    Swag.require(Memory.compare(bytes.storage(), "GIF89a".buffer, 6) == 0)
+    Swag.require(bytes[bytes.count - 1] == 0x3B)
 }
 
 // A still GIF compresses repeated colours instead of storing one code per pixel.

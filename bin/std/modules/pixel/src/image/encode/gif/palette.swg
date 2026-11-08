@@ -386,6 +386,34 @@ impl Encoder
         return result
     }
 
+    // Rewrites frame indexes only when every frame colour exists in a shared GIF colour table.
+    func remapToColorTable(palette: *PaletteData, table: const [..] u8)->bool
+    {
+        var mapping: [256] u8
+        for local in palette.count
+        {
+            let color = palette.colors[local]
+            var found = false
+            for globalIndex in table.count / 3
+            {
+                let at = globalIndex * 3
+                if table[at] == color.r and table[at + 1] == color.g and table[at + 2] == color.b
+                {
+                    mapping[local] = cast(u8, globalIndex)
+                    found = true
+                    break
+                }
+            }
+
+            if not found do
+                return false
+        }
+
+        for i in palette.indexes.count do
+            palette.indexes[i] = mapping[palette.indexes[i]]
+        return true
+    }
+
     func writeColorTable(result: *ConcatBuffer, palette: PaletteData)
     {
         let tableSize = 1'u32 << palette.tableBits

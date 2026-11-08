@@ -13,8 +13,8 @@ The high-level API revolves around three objects: [[Audio.SoundFile]] describes
 decoded or streamable source data, [[Audio.Voice]] controls one playback
 instance, and [[Audio.Bus]] groups voices for shared volume and routing. The
 default Windows backend is XAudio2; Linux uses FAudio through the SDL audio device driver.
-[[Audio.Wav.Writer]] writes mono or stereo PCM16 recordings in bounded memory and updates a
-playable file prefix on every flush.
+[[Audio.Wav.Writer]] writes mono or stereo PCM16 recordings in bounded memory, updates a
+playable file prefix on every flush, and can resume from that prefix after an interruption.
 Linux requires `libFAudio.so.0` and its SDL dependencies; device acquisition failures are reported.
 The Linux backend accepts one through eight source or bus channels, including mono/stereo
 conversion and multiple or nested bus routes. Source sample rates range from 1000 to 200000 Hz,

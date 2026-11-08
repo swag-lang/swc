@@ -80,3 +80,59 @@ using Swag, Core, Core.Errors
     discard catch writer.addFrames(Swag.makeSlice(&Partial[0], 2)) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// Resume discards unflushed bytes and continues the committed sample-frame count.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-writer-resume-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    const First: [2] s16 = [100, -100]
+    const Lost:  [2] s16 = [300, -300]
+    scope
+    {
+        var writer = expect Wav.Writer.create(path.toString(), 1, 48_000)
+        expect writer.addFrames(Swag.makeSlice(&First[0], 2))
+        expect writer.flush()
+        expect writer.addFrames(Swag.makeSlice(&Lost[0], 2))
+    }
+    var tail = expect ByteSink.openAppendFile(path.toString())
+    expect tail.writeByte(0xAA)
+    expect tail.close()
+    Swag.require((expect File.info(path)).size == 49)
+
+    var resumed = expect Wav.Writer.resume(path.toString())
+    Swag.require(resumed.sampleFrameCount() == 2 and resumed.writtenByteCount() == 48)
+    expect resumed.addFrames(Swag.makeSlice(&Lost[0], 1))
+    expect resumed.end()
+    var complete = expect Wav.Writer.resume(path.toString())
+    Swag.require(complete.sampleFrameCount() == 3 and complete.writtenByteCount() == 50)
+    expect complete.end()
+    let sound = expect SoundFile.load(path.toString())
+    Swag.require(sound.sampleFrameCount() == 3)
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(Slice.equals(decoded.toSlice(), [100's16, -100, 300]))
+}
+
+// A truncated committed sample fails before resume can alter the source.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-writer-truncated-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    var writer = expect Wav.Writer.create(path.toString(), 1, 48_000)
+    const Samples: [2] s16 = [12, 34]
+    expect writer.addFrames(Swag.makeSlice(&Samples[0], 2))
+    expect writer.end()
+    let complete = expect File.readAllBytes(path)
+    discard expect File.writeAllBytes(path, complete.toSlice()[until complete.count - 1])
+    var rejected: Swag.Error
+    discard catch Wav.Writer.resume(path.toString()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+    Swag.require((expect File.info(path)).size == complete.count - 1)
+}

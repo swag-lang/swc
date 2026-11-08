@@ -52,6 +52,21 @@ impl FramePacer
         return FramePacer{rate, clockFrequency, videoTimescale}
     }
 
+    // Returns exact timing for any frame slot, including one skipped by capture.
+    //
+    // A caller can use this to timestamp a repeated picture for a missed slot. The returned
+    // `skippedFrames` is zero because this query does not accept a captured picture.
+    mtd const slotAt(index: u64)->FrameSlot fail
+    {
+        if index == Swag.U64.Max do
+            fail OverflowError{"frame pacer frame position overflows"}
+        let start = try .slotEnd(index)
+        let end   = try .slotEnd(index + 1)
+        if end - start > Swag.U32.Max do
+            fail OverflowError{"frame pacer frame duration exceeds the packet range"}
+        return FrameSlot{index, start, cast(u32, end - start), 0}
+    }
+
     // Accepts a picture's monotonic timestamp if it enters a new frame slot.
     //
     // `tick` must not move backwards. On success `slot` receives exact video timing and the
@@ -61,8 +76,7 @@ impl FramePacer
     {
         if not .hasPicture
         {
-            let firstDuration = try .slotEnd(1)
-            slot[]        = FrameSlot{0, 0, cast(u32, firstDuration), 0}
+            slot[]        = try .slotAt(0)
             .firstTick    = tick
             .previousTick = tick
             .hasPicture   = true
@@ -82,13 +96,9 @@ impl FramePacer
             return false
         }
 
-        if current == Swag.U64.Max or current > Swag.U64.Max / .rate.denominator() - 1 do
-            fail OverflowError{"frame pacer frame position overflows"}
-        let start = try .slotEnd(current)
-        let end   = try .slotEnd(current + 1)
-        if end - start > Swag.U32.Max do
-            fail OverflowError{"frame pacer frame duration exceeds the packet range"}
-        slot[]        = FrameSlot{current, start, cast(u32, end - start), current - .previousSlot - 1}
+        var accepted = try .slotAt(current)
+        accepted.skippedFrames = current - .previousSlot - 1
+        slot[]        = accepted
         .previousTick = tick
         .previousSlot = current
         return true

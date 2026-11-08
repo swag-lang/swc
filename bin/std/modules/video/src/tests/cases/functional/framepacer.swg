@@ -37,6 +37,9 @@ using Swag, Core.Errors
     Swag.require(slot.index == 2 and slot.decodeTime == 33 and slot.duration == 17)
     Swag.require(expect pacer.tryAccept(10_100, &slot))
     Swag.require(slot.index == 6 and slot.decodeTime == 100 and slot.skippedFrames == 3)
+    let missed = expect pacer.slotAt(5)
+    Swag.require(missed.index == 5 and missed.decodeTime == 83)
+    Swag.require(missed.duration == 17 and missed.skippedFrames == 0)
 }
 
 // Invalid clocks and a backwards timestamp leave the accepted position intact.

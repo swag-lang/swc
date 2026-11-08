@@ -1,0 +1,12 @@
+#import("lifecycle_script_dep", location: ".output")
+
+#init
+{
+    Swag.print("SWAG_SCRIPT_INIT\n")
+    Swag.require(false)
+}
+
+#drop
+{
+    Swag.print("SWAG_SCRIPT_DROP\n")
+}

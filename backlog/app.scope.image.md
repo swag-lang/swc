@@ -160,3 +160,13 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 - Done when: clipboard and export name dimensions, pixel format, orientation, color space,
   alpha, and frame/page; raw extraction never transcodes; rendered output declares conversions;
   and large exports are cancellable.
+
+### app.scope.image.015 — Give the transformed-image reading room to breathe
+
+- Evidence: `viewer.image.transformed.paper` shows a 300% zoom, 270° rotation and mirror in a
+  132-unit zoom control. The combined reading crowds the right edge of the information band and
+  makes the leading percentage hard to read.
+- Next: compose zoom and orientation as distinct compact readings or let the information band
+  allocate enough space for the complete value, with the full transform available on demand.
+- Done when: zoom and orientation remain readable without clipping at narrow window widths in
+  Encre and Papier, and the control still exposes its zoom actions.

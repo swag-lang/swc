@@ -16,22 +16,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: reproduce from a retained dependency artifact after changing a GUI or application test source, then compare the imported generic body and specialization state with a forced rebuild.
 - Done when: incremental and rebuilt application compilations both resolve the `opSet` parameter, with a regression that preserves the failing dependency-reuse boundary.
 
-### compiler.core.101 — Preserve enum context inside a generic constraint block
-
-- Evidence: in the integer-bound constraints of `bin/runtime/iteration.swg`, replacing the
-  qualified `Swag.TypeInfoNativeKind.S8` and `.U64` values with leading-dot `.S8` and `.U64`
-  makes a three-worker DevMode Pixel build reject `native.nativeKind >= .S8` as a comparison
-  between `TypeInfoNativeKind` and `u8`. A forced dependency rebuild reproduces it; the same
-  constraint passes the standalone `native/flow/for.swg` tests. The qualified values compile
-  the Pixel module. The constraint obtains `native` through an `assume cast` of a typeinfo
-  pointer after unwrapping aliases.
-- Next: restore that leading-dot expression in an isolated worktree and reproduce with
-  `tools/std.bat dm build pixel --rebuild`. Reduce the constraint and its importing module,
-  then inspect the expected enum type and constant type assigned to the leading-dot value
-  during generic instantiation.
-- Done when: the reduced case compiles identically with leading-dot and qualified enum values,
-  and a regression covers the failing module boundary.
-
 ### compiler.core.088 — Capture the intermittent standard-library documentation exception
 
 - Evidence: `doc --workspace <private std> --rebuild --num-cores 6` exited with code 3 and a
@@ -545,22 +529,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the executable entry point and process-only setup are absent from a reusable compiler
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
-
-### compiler.core.093 — A narrowed nullable local loses its narrowing inside a `while` nested in a `for`
-
-- Evidence: in `GridView.onPaint` of Swag Scope's hex viewer
-  (`bin/apps/modules/swagscope/src/viewers/hex/gridview.swg`), `let font = .font().regular` is
-  narrowed by `if not font ... do return` and passed to `drawBuffer(..., font: *Font, ...)` in the
-  body of `for row in visible`. The same call inside a `while column <= rowLast - rowOffset`
-  nested in that `for`, after `.writeValueText(&.cellText, offset)` and a
-  `let zero = cond ? a == 0 : (complete and .scalarAt(offset) == 0)`, is rejected with
-  "argument 5 for call to 'drawBuffer' has type '*Font?', but parameter 'font' needs '*Font'";
-  rewriting the `while` as `for value in count` compiles. Three standalone reductions (a `while`
-  in a `for`, a mutating borrow of `me` in the loop, a conditional with `and`) keep the
-  narrowing, so the trigger is still unknown.
-- Next: restore the `while` form in a copy of `onPaint` and remove statements until the
-  diagnostic goes, then add the reduced case to the `sema` suite.
-- Done when: the reduced case compiles and a `sema` fixture holds it.
 
 ### compiler.core.095 — Workspace golden tests can lose their writable corpus
 

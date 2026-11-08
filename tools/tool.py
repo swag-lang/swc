@@ -77,7 +77,12 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
     flags = {'lexer': ['--lex-only'], 'parser': ['--syntax-only'], 'sema': ['--sema-only'],
              'jit': ['--no-output'], 'safety': ['--no-output', '--tag', 'Swag.AllocatorSafety'],
              'sanity': ['--no-output'], 'native': []}[suite]
-    directories = [suite, 'errors/' + suite] if suite in ('lexer', 'parser', 'sema') else [suite]
+    if suite == 'native':
+        directories = [suite]
+        if '--no-test-native' not in options and '--no-output' not in options:
+            directories += ['errors/native/owning', 'errors/native/pointer']
+    else:
+        directories = [suite, 'errors/' + suite] if suite in ('lexer', 'parser', 'sema') else [suite]
     stages = []
     for directory in directories:
         # The expected-error semantic corpus depends on deterministic cross-file analysis.

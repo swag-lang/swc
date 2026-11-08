@@ -14,9 +14,11 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Report/Assert.h"
 
@@ -541,15 +543,19 @@ namespace
             }
 
             case ConstantKind::ValuePointer:
-            {
-                CodeGenPointerConstant::emitPointerConstant(codeGen, payload.reg, cst.getValuePointer(), cstRef);
-                payload.setIsValue();
-                return Result::Continue;
-            }
-
             case ConstantKind::BlockPointer:
             {
-                CodeGenPointerConstant::emitPointerConstant(codeGen, payload.reg, cst.getBlockPointer(), cstRef);
+                const uint64_t pointer = cst.kind() == ConstantKind::ValuePointer ? cst.getValuePointer() : cst.getBlockPointer();
+                if (pointer && cst.isCompilerRunPointer() && codeGen.isNativeBuild() && codeGen.compiler().nativeBackendStarted() &&
+                    codeGen.ctx().cmdLine().testNative && codeGen.ctx().cmdLine().output &&
+                    SemaRuntime::isRuntimeArtifactFunction(codeGen.compiler(), codeGen.function()))
+                {
+                    DataSegmentRef segmentRef;
+                    if (!codeGen.cstMgr().resolveConstantDataSegmentRef(segmentRef, cstRef, reinterpret_cast<const void*>(pointer)))
+                        return SemaError::raise(codeGen.sema(), DiagnosticId::sema_err_constant_storage_not_static, codeGenErrorNodeRef(codeGen));
+                }
+
+                CodeGenPointerConstant::emitPointerConstant(codeGen, payload.reg, pointer, cstRef);
                 payload.setIsValue();
                 return Result::Continue;
             }
@@ -609,7 +615,7 @@ namespace
                 if (safeCstRef.isInvalid())
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "cannot materialize a struct constant payload");
+                    return SemaError::raise(codeGen.sema(), DiagnosticId::sema_err_constant_storage_not_static, codeGenErrorNodeRef(codeGen));
 
                 const ConstantValue&             safeCst     = codeGen.cstMgr().get(safeCstRef);
                 const std::span<const std::byte> structBytes = safeCst.getStruct();

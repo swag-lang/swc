@@ -298,6 +298,7 @@ SWC_DIAG_DEF(sema_err_fallthrough_not_last_stmt, Error, "'fallthrough' is not th
 SWC_DIAG_DEF(sema_err_fallthrough_in_last_case, Error, "'fallthrough' is used in the last switch case; [help] remove it, because there is no next case")
 SWC_DIAG_DEF(sema_err_switch_binding_has_expr, Error, "a case binding needs a switch without an expression; [help] put the value in the case condition")
 SWC_DIAG_DEF(sema_err_run_expr_void, Error, "a '#run' expression cannot have type 'void'; [help] use '#run' as a statement, or make it return a value")
+SWC_DIAG_DEF(sema_err_constant_storage_not_static, Error, "cannot materialize this compile-time value because it points outside static storage; [help] copy the needed data into a fixed-size array in '#run'")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from void function '{sym}'; [help] remove the value, or give the function a return type")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a void function; [help] remove the value, or give the function a return type")
 SWC_DIAG_DEF(sema_err_return_value_in_run_block, Error, "a '#run' block cannot return a value; [help] remove the value, or compute it with a '#run' expression instead")

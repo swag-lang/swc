@@ -43,8 +43,16 @@ class LinuxCampaignTests(unittest.TestCase):
         names = {stage.name for stage in stages}
         self.assertEqual(names, {'cpp', 'lexer', 'errors-lexer', 'parser', 'errors-parser',
                                 'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native',
+                                'errors-native-owning', 'errors-native-pointer',
                                 'workspace-build-dynamic-library', 'workspace-sandbox_consumer',
+                                'workspace-package-dynamic-library-dependency',
                                 'workspace-runtime_context_dynamic_consumer', 'workspace-runtime_context_dynamic_dll',
+                                'workspace-build-lifecycle-script-dependency', 'workspace-lifecycle-script',
+                                'workspace-failed-init-script', 'workspace-failed-premain-script',
+                                'workspace-failed-main-script', 'workspace-failed-drop-script',
+                                'workspace-native-failed-drop', 'workspace-native-abandoned-test',
+                                'workspace-jit-abandoned-test', 'workspace-jit-failed-init',
+                                'workspace-jit-failed-premain', 'workspace-jit-failed-drop',
                                 'workspace-import-script', 'workspace-import-png-script', 'std-core', 'apps-swagcapture',
                                 'examples-gui1', 'reference-language'})
         cpp = stages[0].command
@@ -58,9 +66,10 @@ class LinuxCampaignTests(unittest.TestCase):
 
     def test_dynamic_fixture_configuration_and_dependency(self):
         stages = self.plan('dynamic-library', build_cfg='release')
-        self.assertEqual(len(stages), 2)
+        self.assertEqual(len(stages), 3)
         self.assertEqual(stages[1].requires, [stages[0].name])
-        self.assertTrue(any('/shared-library/release/x86_64/runtime_context_dynamic_dll.so' in arg for arg in stages[1].command))
+        self.assertEqual(stages[2].requires, [stages[1].name])
+        self.assertTrue(any('/shared-library/release/x86_64/runtime_context_dynamic_dll.so' in arg for arg in stages[2].command))
         workspace = self.plan('workspace')
         sandbox = next(stage.command for stage in workspace if stage.name == 'workspace-sandbox_consumer')
         self.assertIn('--rebuild', sandbox)

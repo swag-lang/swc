@@ -160,4 +160,8 @@ Example: initializing a struct in a '#run' block.
 > Complex structs that implement 'opCount' and 'opSlice' can be converted to
 > static arrays at compile time. The compiler calls 'opCount' for array size,
 > 'opSlice' for initialization, and 'opDrop' after conversion if present.
+>
+> A native program can embed fixed-size arrays returned by '#run'. A value that
+> still points into compile-time heap storage cannot be embedded directly;
+> copy its needed bytes into a fixed-size array before returning from '#run'.
 */

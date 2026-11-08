@@ -310,8 +310,8 @@ func fragmentedPacketSource()->ByteSource fail
                                                                                          Swag.makeSlice(&AudioConfig[0], 2)})
     var slot: FrameSlot
     Swag.require(expect video.tryAccept(1_100_000_000, &slot))
-    let placement = expect audio.place(1_100_000_000, 1024)
-    Swag.require(slot.decodeTime == 9_000 and placement.startSample == 4_410)
+    let placement = expect audio.place(1_120_000_000, 1024)
+    Swag.require(slot.decodeTime == 9_000 and placement.startSample == 5_292)
     expect writer.addPacket(EncodedPacket{picture.toSlice(), slot.decodeTime, slot.decodeTime,
                                           slot.duration, true})
     expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), placement.startSample,
@@ -320,10 +320,15 @@ func fragmentedPacketSource()->ByteSource fail
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.firstDecodeTime == 9_000)
-    Swag.require(summary.audioTracks[0].firstDecodeTime == 4_410)
+    Swag.require(summary.audioTracks[0].firstDecodeTime == 5_292)
     var packets = expect Mp4.FragmentedPacketReader.open(path)
     Swag.require((expect packets.packetInfo(0)).decodeTime == 9_000)
-    Swag.require((expect packets.audioPacketInfo(0, 0)).decodeTime == 4_410)
+    Swag.require((expect packets.audioPacketInfo(0, 0)).decodeTime == 5_292)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1)
+    Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(0), 0.0, 0.000001))
+    Swag.require(Math.isEqualEpsilon((unwrap reader.audioTrack(0)).timelineStartSeconds(),
+                                     0.02, 0.000001))
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.

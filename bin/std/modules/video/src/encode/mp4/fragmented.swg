@@ -1,5 +1,5 @@
 //! Format: ISO Base Media File Format (MP4) fragmented writer.
-//! Supported: One H.264 video track, one packet per fragment, and interruption-safe completed fragments.
+//! Supported: One H.264 video track, bounded packet groups per fragment, and interruption-safe completed fragments.
 //! Not supported: Audio or metadata tracks, encryption, and a final random-access index.
 //! Role: This file writes an initialization movie followed by bounded `moof`/`mdat` pairs.
 //
@@ -19,12 +19,29 @@ private const TrackRunId            = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
 private const AvcSampleEntryId      = fourCc('a'u32, 'v'u32, 'c'u32, '1'u32)
 private const Iso6BrandId           = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
 
+private struct BufferedPacket
+{
+    size:              u32
+    decodeTime:        u64
+    duration:          u32
+    compositionOffset: s32
+    isKeyFrame:        bool
+}
+
+// Controls how H.264 packets are grouped into MP4 fragments.
+struct FragmentedOptions
+{
+    public maxPacketsPerFragment: u32 = 1     // One packet per fragment by default; at most 1024.
+    public maxBufferedBytes:      u32 = 4 * 1024 * 1024     // Buffered payload limit when grouping packets.
+}
+
 // Writes H.264 access units to an MP4 file that stays playable through its last complete fragment.
 //
 // The caller supplies an AVC decoder configuration (`avcC`) with four-byte NAL lengths and submits
-// access units in decode order through [[Video.Mp4.FragmentedWriter.addPacket]]. Each call writes
-// one `moof`/`mdat` pair and flushes it before returning, so memory does not grow with duration.
-// The first packet must be a key frame. Timestamps use the `timescale` given at creation.
+// access units in decode order through [[Video.Mp4.FragmentedWriter.addPacket]]. By default every
+// call writes and flushes one `moof`/`mdat` pair. [[Video.Mp4.FragmentedOptions]] can group packets
+// within fixed byte and count limits; [[Video.Mp4.FragmentedWriter.flush]] completes a pending
+// group. The first packet must be a key frame. Timestamps use the `timescale` given at creation.
 //
 // The file has no final index; sequential playback and recovery of complete fragments work before
 // [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans their headers and ignores a partial
@@ -36,6 +53,9 @@ struct FragmentedWriter
     {
         sink:           ByteSink
         config:         Array'u8
+        pendingPackets: Array'BufferedPacket
+        pendingData:    Array'u8
+        options:        FragmentedOptions
         width:          u16
         height:         u16
         timescale:      u32
@@ -52,13 +72,19 @@ impl FragmentedWriter
     //
     // `avcConfig` is a complete AVCDecoderConfigurationRecord with four-byte NAL lengths and is
     // copied. `timescale` is positive ticks per second. Width and height must fit a visual sample
-    // entry. Failure may leave a partial destination file.
-    func create(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8)->FragmentedWriter fail
+    // entry. `options` limits a group to at most 1024 packets and bounds buffered payload bytes.
+    // A packet above the byte bound is written alone. Failure may leave a partial destination file.
+    func create(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, options: FragmentedOptions = {})->FragmentedWriter fail
     {
         if width <= 0 or width > Swag.U16.Max or height <= 0 or height > Swag.U16.Max do
             fail BadParameterError{"fragmented MP4 needs dimensions in the range 1 to 65535"}
         if not timescale do
             fail BadParameterError{"fragmented MP4 needs a positive timescale"}
+        if not options.maxPacketsPerFragment or
+           options.maxPacketsPerFragment > 1_024 or
+           not options.maxBufferedBytes or
+           options.maxBufferedBytes > Swag.U32.Max - 8 do
+            fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}
         try validateAvcConfig(avcConfig)
 
         with var result: #returntype
@@ -67,6 +93,7 @@ impl FragmentedWriter
             .width     = cast(u16, width)
             .height    = cast(u16, height)
             .timescale = timescale
+            .options   = options
             .config.resize(avcConfig.count)
             Memory.copy(.config.storage(), avcConfig.buffer, avcConfig.count)
         }
@@ -76,11 +103,12 @@ impl FragmentedWriter
         return result
     }
 
-    // Appends and flushes one H.264 access unit as a complete fragment.
+    // Appends one H.264 access unit, flushing a complete fragment when its limits are reached.
     //
     // `packet.bytes` contains four-byte-length-prefixed NAL units, not Annex B start codes.
     // Decode times must not overlap. The signed composition offset must fit 32 bits, and one
-    // packet plus its media-data header must fit a compact MP4 box.
+    // packet plus its media-data header must fit a compact MP4 box. A grouped packet is copied
+    // until its fragment is flushed; a packet larger than `maxBufferedBytes` is written alone.
     mtd addPacket(packet: EncodedPacket) fail
     {
         if .isEnded do
@@ -105,11 +133,49 @@ impl FragmentedWriter
             fail UnsupportedFormatError{"fragmented MP4 composition offset exceeds 32 bits"}
 
         try validateAvcPacket(packet.bytes)
-        try .writeFragment(packet, cast(s32, compositionOffset))
-        try .sink.flush()
+
+        if .pendingPackets.count and
+           (packet.isKeyFrame or packet.decodeTime != .nextDecodeTime or .pendingPackets.count >= .options.maxPacketsPerFragment or packet.bytes.count > .options.maxBufferedBytes - .pendingData.count) do
+            try .flush()
+
+        let sample = BufferedPacket{cast(u32, packet.bytes.count), packet.decodeTime, packet.duration,
+                                    cast(s32, compositionOffset), packet.isKeyFrame}
+        if .options.maxPacketsPerFragment == 1 or packet.bytes.count > .options.maxBufferedBytes
+        {
+            let one: [1] BufferedPacket = [sample]
+            try .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes)
+            try .sink.flush()
+            .sequence += 1
+        }
+        else
+        {
+            .pendingPackets.add(sample)
+            .pendingData.add(packet.bytes)
+            if .pendingPackets.count == .options.maxPacketsPerFragment or
+               .pendingData.count == .options.maxBufferedBytes do
+                try .flush()
+        }
+
         .nextDecodeTime = packet.decodeTime + packet.duration
         .hasPackets     = true
-        .sequence       += 1
+    }
+
+    // Writes and flushes the current group, making every packet in it recoverable.
+    mtd flush() fail
+    {
+        if .isEnded do
+            fail BadParameterError{"cannot flush an ended fragmented MP4"}
+        if .pendingPackets.count
+        {
+            if .sequence == Swag.U32.Max do
+                fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+            try .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice())
+            .pendingPackets.clear()
+            .pendingData.clear()
+            .sequence += 1
+        }
+
+        try .sink.flush()
     }
 
     // Flushes and closes the stream; repeated calls do nothing.
@@ -117,6 +183,7 @@ impl FragmentedWriter
     {
         if .isEnded do
             return
+        try .flush()
         .isEnded = true
         try .sink.close()
     }
@@ -363,7 +430,7 @@ private impl FragmentedWriter
     }
 
     #[Swag.Propagate]
-    mtd writeFragment(packet: EncodedPacket, compositionOffset: s32) fail
+    mtd writeFragment(samples: const [..] BufferedPacket, bytes: const [..] u8) fail
     {
         let fragment = beginBox(&.sink, MovieFragmentId)
         let header   = beginBox(&.sink, MovieFragmentHeaderId)
@@ -379,25 +446,32 @@ private impl FragmentedWriter
 
         let decodeTime = beginBox(&.sink, DecodeTimeId)
         writeFullBox(&.sink, 1, 0)
-        writeU64(&.sink, packet.decodeTime)
+        writeU64(&.sink, samples[0].decodeTime)
         endBox(&.sink, decodeTime)
 
         let run = beginBox(&.sink, TrackRunId)
         writeFullBox(&.sink, 1, 0x000F01)
-        writeU32(&.sink, 1)
+        writeU32(&.sink, cast(u32, samples.count))
         let dataOffset = .sink.position()
         writeU32(&.sink, 0)
-        writeU32(&.sink, packet.duration)
-        writeU32(&.sink, cast(u32, packet.bytes.count))
-        writeU32(&.sink, packet.isKeyFrame ? 0x02000000 : 0x01010000)
-        writeU32(&.sink, cast #bit(u32, compositionOffset))
+        var described = 0'u64
+        for sample in samples
+        {
+            writeU32(&.sink, sample.duration)
+            writeU32(&.sink, sample.size)
+            writeU32(&.sink, sample.isKeyFrame ? 0x02000000 : 0x01010000)
+            writeU32(&.sink, cast #bit(u32, sample.compositionOffset))
+            described += sample.size
+        }
+
         endBox(&.sink, run)
         endBox(&.sink, track)
         endBox(&.sink, fragment)
 
+        Swag.assert(described == bytes.count)
         patchU32(&.sink, dataOffset, cast(u32, .sink.position() - fragment + 8))
-        writeU32(&.sink, cast(u32, packet.bytes.count + 8))
+        writeU32(&.sink, cast(u32, bytes.count + 8))
         writeU32(&.sink, MediaDataId)
-        .sink.write(packet.bytes)
+        .sink.write(bytes)
     }
 }

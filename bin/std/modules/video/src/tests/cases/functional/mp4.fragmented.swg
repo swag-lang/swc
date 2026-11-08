@@ -28,6 +28,23 @@ func fragmentedConfig()->Array'u8 fail
     return config
 }
 
+func fragmentedPacket(source: *ByteSource)->Array'u8 fail
+{
+    let size = try source.readBigEndian'u32()
+    var result: Array'u8
+    result.resize(size)
+    try source.readExact(result.toSlice())
+    return result
+}
+
+func fragmentedPacketSource()->ByteSource fail
+{
+    var source     = try ByteSource.openFile(videoFixturePath("ffmpeg-h264-baseline.packets").toString())
+    let configSize = try source.readBigEndian'u32()
+    try source.seek(source.position() + configSize)
+    return source
+}
+
 // An initialization movie is written before the first packet.
 #test
 {
@@ -237,4 +254,130 @@ func fragmentedConfig()->Array'u8 fail
     var badOffset: Swag.Error
     discard catch Reader.openMemory("bad-offset.mp4", bytes.toSlice()) as badOffset
     Swag.require((badOffset.value() is InvalidFormatError))
+}
+
+// Three packets share one bounded fragment and retain independently seekable frame times.
+#test
+{
+    let path = videoTempPath("fragmented-grouped", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    for index in 3
+    {
+        let packet = expect fragmentedPacket(&source)
+        expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 1)
+    Swag.require(fragmentedTagCount(file.toSlice(), "mdat") == 1)
+
+    var reader   = expect Reader.open(path)
+    var original = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+    Swag.require(reader.frameCount() == 3)
+    const Order: [3] u64 = [2, 0, 1]
+    for index in Order
+    {
+        Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(index), cast(f64, index) * 0.04, 0.000001))
+        let actual   = expect reader.decodeFrame(index)
+        let expected = expect original.decodeFrame(index)
+        Swag.require(actual.byteCount == expected.byteCount)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+    }
+}
+
+// Explicit flushing keeps earlier frames playable when the following group is interrupted.
+#test
+{
+    let path = videoTempPath("fragmented-grouped-flush", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    for index in 3
+    {
+        let packet = expect fragmentedPacket(&source)
+        expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        if index == 0 do
+            expect writer.flush()
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    let raw  = file.toSlice()
+    Swag.require(fragmentedTagCount(raw, "moof") == 2)
+    Swag.require(fragmentedTagCount(raw, "mdat") == 2)
+
+    var secondFragment = raw.count
+    var found = false
+    for offset in raw.count - 3 where Memory.compare(raw.buffer + offset, "moof".buffer, 4) == 0
+    {
+        if found
+        {
+            secondFragment = offset - 4
+            break
+        }
+
+        found = true
+    }
+
+    Swag.require(secondFragment < raw.count)
+
+    var original = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+    let expected = expect original.decodeFrame(0)
+    for cut in secondFragment to raw.count - 1
+    {
+        var reader = expect Reader.openMemory("stopped-group.mp4", raw[0 until cut])
+        Swag.require(reader.frameCount() == 1)
+        let actual = expect reader.decodeFrame(0)
+        Swag.require(actual.byteCount == expected.byteCount)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+    }
+}
+
+// The byte bound emits a complete fragment before the packet-count bound is reached.
+#test
+{
+    let path = videoTempPath("fragmented-byte-bound", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    var source = expect fragmentedPacketSource()
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 1_500})
+    for index in 3
+    {
+        let packet = expect fragmentedPacket(&source)
+        expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+    }
+
+    expect writer.end()
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 2)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3)
+}
+
+// Invalid grouping limits are rejected before opening the destination.
+#test
+{
+    let path = videoTempPath("fragmented-invalid-limits", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    var rejected: Swag.Error
+    discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{0, 100}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{1_025, 100}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 0}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
 }

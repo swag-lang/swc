@@ -1,5 +1,5 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
-//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus single-sample H.264 movie fragments.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 movie fragments.
 //! Not supported: Multi-track fragments, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
@@ -100,14 +100,20 @@ private struct FragmentSample
     isKeyFrame:       bool
 }
 
-// Fields of the one-sample track run accepted by the fragmented reader.
-private struct FragmentRun
+// One explicit sample in a fragmented track run.
+private struct FragmentRunSample
 {
-    dataOffset:  u32
     duration:    u32
     size:        u32
     flags:       u32
     composition: u32
+}
+
+// The run's media-data displacement and its explicit samples.
+private struct FragmentRun
+{
+    dataOffset: u32
+    samples:    Array'FragmentRunSample
 }
 
 // One run of samples sharing a duration.
@@ -264,7 +270,7 @@ private impl Layout
     // Walks the top-level boxes and keeps the first supported video track plus playable audio.
     mtd parse(source: *ByteSource) fail
     {
-        var pending: FragmentSample
+        var pending: Array'FragmentSample
         var hasPending  = false
         var interrupted = false
         while source.position() < source.size()
@@ -318,30 +324,35 @@ private impl Layout
             case MediaDataId:
                 if hasPending
                 {
-                    if pending.offset < box.data or
-                       pending.offset > box.end or
-                       pending.size > box.end - pending.offset do
-                        fail InvalidFormatError{"MP4 fragment sample runs outside its media-data box"}
-                    if .fragments.count >= Swag.U32.Max do
+                    if pending.count > Swag.U32.Max - .fragments.count do
                         fail UnsupportedFormatError{"MP4 fragment has too many video samples"}
-                    if .fragments.isEmpty() and not pending.isKeyFrame do
+                    if .fragments.isEmpty() and not pending[0].isKeyFrame do
                         fail InvalidFormatError{"MP4 fragmented video must start with a key frame"}
-                    if .fragments.count
+                    for sample in pending
                     {
-                        let previous = .fragments.back()
-                        if pending.decodeTime < previous.decodeTime + previous.duration do
-                            fail InvalidFormatError{"MP4 fragment decode times overlap"}
-                        let delta = pending.decodeTime - previous.decodeTime
-                        if delta > Swag.U32.Max do
-                            fail UnsupportedFormatError{"MP4 fragment decode-time gap exceeds 32 bits"}
-                        .track.times[.track.times.count - 1].sampleDelta = cast(u32, delta)
+                        if sample.offset < box.data or
+                           sample.offset > box.end or
+                           sample.size > box.end - sample.offset do
+                            fail InvalidFormatError{"MP4 fragment sample runs outside its media-data box"}
+                        if .fragments.count
+                        {
+                            let previous = .fragments.back()
+                            if sample.decodeTime < previous.decodeTime + previous.duration do
+                                fail InvalidFormatError{"MP4 fragment decode times overlap"}
+                            let delta = sample.decodeTime - previous.decodeTime
+                            if delta > Swag.U32.Max do
+                                fail UnsupportedFormatError{"MP4 fragment decode-time gap exceeds 32 bits"}
+                            .track.times[.track.times.count - 1].sampleDelta = cast(u32, delta)
+                        }
+
+                        .track.times.add({1, sample.duration})
+                        .track.sizes.add(sample.size)
+                        if sample.isKeyFrame do
+                            .track.syncSamples.add(cast(u32, .fragments.count))
+                        .fragments.add(sample)
                     }
 
-                    .track.times.add({1, pending.duration})
-                    .track.sizes.add(pending.size)
-                    if pending.isKeyFrame do
-                        .track.syncSamples.add(cast(u32, .fragments.count))
-                    .fragments.add(pending)
+                    pending.clear()
                     hasPending = false
                 }
             }
@@ -395,8 +406,8 @@ private impl Layout
         }
     }
 
-    // Reads the one H.264 sample layout emitted by FragmentedWriter.
-    mtd parseFragment(source: *ByteSource, start, end: u64)->FragmentSample fail
+    // Reads the bounded H.264 sample layout emitted by FragmentedWriter.
+    mtd parseFragment(source: *ByteSource, start, end: u64)->Array'FragmentSample fail
     {
         var result: #returntype
         var found = false
@@ -421,7 +432,7 @@ private impl Layout
         return result
     }
 
-    mtd parseFragmentTrack(source: *ByteSource, start, end: u64)->FragmentSample fail
+    mtd parseFragmentTrack(source: *ByteSource, start, end: u64)->Array'FragmentSample fail
     {
         var hasHeader = false
         var hasTime   = false
@@ -454,14 +465,20 @@ private impl Layout
                 hasTime = true
 
             case FragmentRunId:
-                if hasRun or box.end - source.position() < 28 do
+                if hasRun or box.end - source.position() < 12 do
                     fail InvalidFormatError{"MP4 fragment run is incomplete or repeated"}
-                if (try source.readBigEndian'u32()) != 0x0100_0F01 or
-                   (try source.readBigEndian'u32()) != 1 do
-                    fail UnsupportedFormatError{"MP4 decoder supports one explicit sample per fragment"}
-                run = FragmentRun{try source.readBigEndian'u32(), try source.readBigEndian'u32(),
-                                  try source.readBigEndian'u32(), try source.readBigEndian'u32(),
-                                  try source.readBigEndian'u32()}
+                if (try source.readBigEndian'u32()) != 0x0100_0F01 do
+                    fail UnsupportedFormatError{"MP4 fragment sample fields are unsupported"}
+                let sampleCount = try source.readBigEndian'u32()
+                if not sampleCount or sampleCount > 1_024 do
+                    fail UnsupportedFormatError{"MP4 fragment sample count is outside the supported range"}
+                run.dataOffset = try source.readBigEndian'u32()
+                if cast(u64, sampleCount) * 16 > box.end - source.position() do
+                    fail InvalidFormatError{"MP4 fragment run has incomplete samples"}
+                run.samples.reserve(sampleCount)
+                for sampleCount do
+                    run.samples.add({try source.readBigEndian'u32(), try source.readBigEndian'u32(),
+                                     try source.readBigEndian'u32(), try source.readBigEndian'u32()})
                 hasRun = true
             }
 
@@ -470,20 +487,36 @@ private impl Layout
 
         if source.position() != end do
             fail InvalidFormatError{"MP4 track fragment ends with a partial box"}
-        if not hasHeader or not hasTime or not hasRun or not run.duration or not run.size do
-            fail InvalidFormatError{"MP4 movie fragment lacks a complete video sample"}
+        if not hasHeader or not hasTime or not hasRun do
+            fail InvalidFormatError{"MP4 movie fragment lacks a complete video run"}
         let displacement = cast #bit(s32, run.dataOffset)
         if displacement < 0 or cast(u64, displacement) > Swag.U64.Max - start do
             fail InvalidFormatError{"MP4 fragment sample offset is invalid"}
-        let offset = start + cast(u64, displacement)
+        var offset = start + cast(u64, displacement)
+        var result: #returntype
+        result.reserve(run.samples.count)
+        for sample in run.samples
+        {
+            if not sample.duration or
+               not sample.size or
+               sample.size > Swag.U64.Max - offset or
+               sample.duration > Swag.U64.Max - decodeTime do
+                fail InvalidFormatError{"MP4 fragment sample size or duration is invalid"}
+            if decodeTime > cast(u64, Swag.S64.Max) do
+                fail UnsupportedFormatError{"MP4 fragment decode time exceeds the supported range"}
+            let composition = cast #bit(s32, sample.composition)
+            let decode      = cast(s64, decodeTime)
+            if (composition < 0 and -cast(s64, composition) > decode) or
+               (composition > 0 and decode > Swag.S64.Max - composition) do
+                fail InvalidFormatError{"MP4 fragment presentation time is outside the supported range"}
 
-        let composition = cast #bit(s32, run.composition)
-        let decode      = cast(s64, decodeTime)
-        if (composition < 0 and -cast(s64, composition) > decode) or
-           (composition > 0 and decode > Swag.S64.Max - composition) do
-            fail InvalidFormatError{"MP4 fragment presentation time is outside the supported range"}
-        return FragmentSample{offset, run.size, decodeTime, decode + composition, run.duration,
-                              (run.flags & 0x0001_0000) == 0}
+            result.add({offset, sample.size, decodeTime, decode + composition, sample.duration,
+                        (sample.flags & 0x0001_0000) == 0})
+            offset     += sample.size
+            decodeTime += sample.duration
+        }
+
+        return result
     }
 }
 
@@ -1086,7 +1119,7 @@ impl Track
 
 // Reads ISO-BMFF files carrying Motion JPEG, H.264, or H.265 video samples.
 //
-// Opening expands classic sample tables or single-sample H.264 movie fragments into one direct
+// Opening expands classic sample tables or bounded H.264 movie fragments into one direct
 // offset-and-size entry per frame. A partial final fragment is ignored after earlier fragments
 // have completed. Frame payloads remain in the source and are read only when requested.
 // A Motion JPEG sample is a key frame, so seeking costs one table lookup; a coded

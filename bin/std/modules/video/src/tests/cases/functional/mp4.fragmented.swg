@@ -381,3 +381,144 @@ func fragmentedPacketSource()->ByteSource fail
     discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 0}) as rejected
     Swag.require((rejected.value() is BadParameterError))
 }
+
+// Video and AAC packets interleave in separate fragments and both tracks remain readable.
+#test
+{
+    let path = videoTempPath("fragmented-aac", "mp4")
+    defer discard catch File.delete(path)
+
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var video  = expect fragmentedPacketSource()
+    var audio  = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    for index in 3
+    {
+        let picture = expect fragmentedPacket(&video)
+        expect writer.addPacket(EncodedPacket{picture.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true})
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 6)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleEncoding() == .AacLc)
+    Swag.require(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
+    Swag.require(sound.packetCount() == 3 and sound.sampleFrameCount() == 3 * 1024)
+    Swag.require(Math.isEqualEpsilon(sound.timelineStartSeconds(), 0.0, 0.000001))
+
+    var source   = expect ByteSource.openFile(path)
+    var expected = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let bytes  = expect fragmentedPacket(&expected)
+        let packet = expect sound.packet(index)
+        Swag.require(packet.byteSize == bytes.count and packet.sampleFrameCount == 1024)
+        expect source.seek(packet.sourceOffset)
+        var actual: Array'u8
+        actual.resize(packet.byteSize)
+        expect source.readExact(actual.toSlice())
+        Swag.require(Memory.compare(actual.storage(), bytes.storage(), bytes.count) == 0)
+    }
+
+    let cutPath = videoTempPath("fragmented-aac-cut", "mp4")
+    defer discard catch File.delete(cutPath)
+    var lastFragment = file.count
+    for offset in file.count - 3 where Memory.compare(file.storage() + offset, "moof".buffer, 4) == 0 do
+        lastFragment = offset - 4
+    Swag.require(lastFragment < file.count)
+    const CutOffsets: [3] u64 = [4, 20, 1]
+    for offset in CutOffsets
+    {
+        let cut = offset == 1 ? file.count - 1 : lastFragment + offset
+        discard expect File.writeAllBytes(cutPath, file.toSlice()[0 until cut])
+        var recovered = expect Reader.open(cutPath)
+        Swag.require(recovered.frameCount() == 3 and recovered.audioTrackCount() == 1)
+        Swag.require((unwrap recovered.audioTrack(0)).packetCount() == 2)
+    }
+}
+
+// AAC configuration and packet timing errors do not produce a partial media fragment.
+#test
+{
+    let path = videoTempPath("fragmented-aac-rejected", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var rejected: Swag.Error
+    discard catch Mp4.FragmentedWriter.createWithAudio(path,
+                                                       64,
+                                                       48,
+                                                       12_800,
+                                                       config.toSlice(),
+                                                       Mp4.FragmentedAudioConfig{48_000, 2,
+                                                                                 Swag.makeSlice(&AudioConfig[0], 2)}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)})
+    var source = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    let sound  = expect fragmentedPacket(&source)
+    discard catch writer.addAudioPacket(EncodedPacket{sound.toSlice(), 0, 0, 1023, true}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), 0, 0, 1024, true})
+    discard catch writer.addAudioPacket(EncodedPacket{sound.toSlice(), 2048, 2048, 1024, true}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    expect writer.end()
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 1)
+}
+
+// Sound recorded before the first picture is trimmed to the video's presentation origin.
+#test
+{
+    let path = videoTempPath("fragmented-aac-lead", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)})
+    var video   = expect fragmentedPacketSource()
+    let picture = expect fragmentedPacket(&video)
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), 512, 512, 512, true})
+    var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true})
+    }
+
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.packetCount() == 3 and sound.sampleFrameCount() == 3 * 1024 - 1_764)
+    Swag.require(Math.isEqualEpsilon(sound.timelineStartSeconds(), 0.0, 0.000001))
+}

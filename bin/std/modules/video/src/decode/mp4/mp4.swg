@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
-//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 movie fragments.
-//! Not supported: Multi-track fragments, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments.
+//! Not supported: Multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
 #global namespace Mp4
@@ -100,6 +100,13 @@ private struct FragmentSample
     isKeyFrame:       bool
 }
 
+// One track run parsed from a movie fragment.
+private struct FragmentTrackSamples
+{
+    trackId: u32
+    samples: Array'FragmentSample
+}
+
 // One explicit sample in a fragmented track run.
 private struct FragmentRunSample
 {
@@ -178,6 +185,7 @@ private struct Layout
     track:            Track
     audioTracks:      Array'Track
     fragments:        Array'FragmentSample
+    audioFragments:   Array'FragmentSample
     hasMovie:         bool
     hasVideo:         bool
     hasFragments:     bool
@@ -267,10 +275,18 @@ private func describeId(id: u32)->String
 
 private impl Layout
 {
+    mtd validateFragmentSample(sample: FragmentSample, box: Box) fail
+    {
+        if sample.offset < box.data or
+           sample.offset > box.end or
+           sample.size > box.end - sample.offset do
+            fail InvalidFormatError{"MP4 fragment sample runs outside its media-data box"}
+    }
+
     // Walks the top-level boxes and keeps the first supported video track plus playable audio.
     mtd parse(source: *ByteSource) fail
     {
-        var pending: Array'FragmentSample
+        var pending: FragmentTrackSamples
         var hasPending  = false
         var interrupted = false
         while source.position() < source.size()
@@ -314,9 +330,10 @@ private impl Layout
                 if not .hasMovie or hasPending do
                     fail InvalidFormatError{"MP4 movie fragment is out of order"}
                 if not .track.isAvc or
-                   .audioTracks.count or
-                   (not .hasFragments and .track.sizes.count) do
-                    fail UnsupportedFormatError{"MP4 fragments need one H.264 track without classic samples"}
+                   .audioTracks.count > 1 or
+                   (not .hasFragments and .track.sizes.count) or
+                   (.audioTracks.count and .audioTracks[0].sizes.count) do
+                    fail UnsupportedFormatError{"MP4 fragments need H.264 and at most one AAC track without classic samples"}
                 pending       = try .parseFragment(source, start, box.end)
                 hasPending    = true
                 .hasFragments = true
@@ -324,35 +341,56 @@ private impl Layout
             case MediaDataId:
                 if hasPending
                 {
-                    if pending.count > Swag.U32.Max - .fragments.count do
-                        fail UnsupportedFormatError{"MP4 fragment has too many video samples"}
-                    if .fragments.isEmpty() and not pending[0].isKeyFrame do
-                        fail InvalidFormatError{"MP4 fragmented video must start with a key frame"}
-                    for sample in pending
+                    if pending.trackId == .track.id
                     {
-                        if sample.offset < box.data or
-                           sample.offset > box.end or
-                           sample.size > box.end - sample.offset do
-                            fail InvalidFormatError{"MP4 fragment sample runs outside its media-data box"}
-                        if .fragments.count
+                        if pending.samples.count > Swag.U32.Max - .fragments.count do
+                            fail UnsupportedFormatError{"MP4 fragment has too many video samples"}
+                        if .fragments.isEmpty() and not pending.samples[0].isKeyFrame do
+                            fail InvalidFormatError{"MP4 fragmented video must start with a key frame"}
+                        for sample in pending.samples
                         {
-                            let previous = .fragments.back()
-                            if sample.decodeTime < previous.decodeTime + previous.duration do
-                                fail InvalidFormatError{"MP4 fragment decode times overlap"}
-                            let delta = sample.decodeTime - previous.decodeTime
-                            if delta > Swag.U32.Max do
-                                fail UnsupportedFormatError{"MP4 fragment decode-time gap exceeds 32 bits"}
-                            .track.times[.track.times.count - 1].sampleDelta = cast(u32, delta)
-                        }
+                            try .validateFragmentSample(sample, box)
+                            if .fragments.count
+                            {
+                                let previous = .fragments.back()
+                                if sample.decodeTime < previous.decodeTime + previous.duration do
+                                    fail InvalidFormatError{"MP4 fragment decode times overlap"}
+                                let delta = sample.decodeTime - previous.decodeTime
+                                if delta > Swag.U32.Max do
+                                    fail UnsupportedFormatError{"MP4 fragment decode-time gap exceeds 32 bits"}
+                                .track.times[.track.times.count - 1].sampleDelta = cast(u32, delta)
+                            }
 
-                        .track.times.add({1, sample.duration})
-                        .track.sizes.add(sample.size)
-                        if sample.isKeyFrame do
-                            .track.syncSamples.add(cast(u32, .fragments.count))
-                        .fragments.add(sample)
+                            .track.times.add({1, sample.duration})
+                            .track.sizes.add(sample.size)
+                            if sample.isKeyFrame do
+                                .track.syncSamples.add(cast(u32, .fragments.count))
+                            .fragments.add(sample)
+                        }
+                    }
+                    elif .audioTracks.count and pending.trackId == .audioTracks[0].id
+                    {
+                        for sample in pending.samples
+                        {
+                            try .validateFragmentSample(sample, box)
+                            if sample.duration != AacFrameSamples or sample.presentationTime != cast(s64, sample.decodeTime) do
+                                fail UnsupportedFormatError{"MP4 AAC fragments need 1024-sample access units without composition offsets"}
+                            if .audioFragments.count
+                            {
+                                let previous = .audioFragments.back()
+                                if sample.decodeTime != previous.decodeTime + previous.duration do
+                                    fail UnsupportedFormatError{"MP4 AAC fragment decode times are not continuous"}
+                            }
+
+                            .audioFragments.add(sample)
+                        }
+                    }
+                    else
+                    {
+                        fail UnsupportedFormatError{"MP4 fragment refers to an unsupported track"}
                     }
 
-                    pending.clear()
+                    pending.samples.clear()
                     hasPending = false
                 }
             }
@@ -406,8 +444,8 @@ private impl Layout
         }
     }
 
-    // Reads the bounded H.264 sample layout emitted by FragmentedWriter.
-    mtd parseFragment(source: *ByteSource, start, end: u64)->Array'FragmentSample fail
+    // Reads the video or AAC-LC sample layout emitted by FragmentedWriter.
+    mtd parseFragment(source: *ByteSource, start, end: u64)->FragmentTrackSamples fail
     {
         var result: #returntype
         var found = false
@@ -432,12 +470,13 @@ private impl Layout
         return result
     }
 
-    mtd parseFragmentTrack(source: *ByteSource, start, end: u64)->Array'FragmentSample fail
+    mtd parseFragmentTrack(source: *ByteSource, start, end: u64)->FragmentTrackSamples fail
     {
         var hasHeader = false
         var hasTime   = false
         var hasRun    = false
         var decodeTime: u64
+        var trackId:    u32
         var run:        FragmentRun
 
         while source.position() + BoxHeaderSize <= end
@@ -450,8 +489,9 @@ private impl Layout
                     fail InvalidFormatError{"MP4 fragment track header is incomplete or repeated"}
                 let header = try source.readBigEndian'u32()
                 let track  = try source.readBigEndian'u32()
-                if header != 0x0002_0000 or track != .track.id do
+                if header != 0x0002_0000 or not track do
                     fail UnsupportedFormatError{"MP4 fragment track header is unsupported"}
+                trackId   = track
                 hasHeader = true
 
             case FragmentDecodeTimeId:
@@ -494,7 +534,8 @@ private impl Layout
             fail InvalidFormatError{"MP4 fragment sample offset is invalid"}
         var offset = start + cast(u64, displacement)
         var result: #returntype
-        result.reserve(run.samples.count)
+        result.trackId = trackId
+        result.samples.reserve(run.samples.count)
         for sample in run.samples
         {
             if not sample.duration or
@@ -510,8 +551,8 @@ private impl Layout
                (composition > 0 and decode > Swag.S64.Max - composition) do
                 fail InvalidFormatError{"MP4 fragment presentation time is outside the supported range"}
 
-            result.add({offset, sample.size, decodeTime, decode + composition, sample.duration,
-                        (sample.flags & 0x0001_0000) == 0})
+            result.samples.add({offset, sample.size, decodeTime, decode + composition, sample.duration,
+                                (sample.flags & 0x0001_0000) == 0})
             offset     += sample.size
             decodeTime += sample.duration
         }
@@ -1126,7 +1167,8 @@ impl Track
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
 // in display order whatever order the file stores them in.
 //
-// AAC-LC mono/stereo tracks are exposed as packetized std/audio streams. Their payload remains
+// AAC-LC mono/stereo tracks, including completed movie fragments, are exposed as packetized
+// std/audio streams. Their payload remains
 // in the MP4 file and each voice opens its own cursor, so sound and picture can stream in parallel.
 struct Decoder
 {
@@ -1192,11 +1234,12 @@ impl IDecoder for Decoder
             .presentationTimes = #move times
         }
 
+        var videoOrigin = 0's64
         if not .presentationTimes.isEmpty()
         {
-            let origin = .presentationTimes[0]
+            videoOrigin = .presentationTimes[0]
             for &time in .presentationTimes do
-                time[] -= origin
+                time[] -= videoOrigin
         }
 
         let path = source.path()
@@ -1205,9 +1248,42 @@ impl IDecoder for Decoder
             .soundTracks.reserve(layout.audioTracks.count)
             for &audioTrack in layout.audioTracks
             {
-                let packetLayout = try audioTrack.buildSoundPackets(source.size())
-                let sound        = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
-                .soundTracks.add(#move sound)
+                if layout.hasFragments
+                {
+                    if layout.audioFragments.isEmpty() do
+                        continue
+                    if layout.audioFragments.count > Swag.U64.Max / AacFrameSamples do
+                        fail UnsupportedFormatError{"MP4 AAC fragment frame count exceeds the supported range"}
+                    var packets: Array'SoundPacket
+                    packets.reserve(layout.audioFragments.count)
+                    for sample in layout.audioFragments do
+                        packets.add({sample.offset, sample.size, AacFrameSamples})
+
+                    var start = cast(f64, layout.audioFragments[0].decodeTime) / audioTrack.sampleRate -
+                                cast(f64, videoOrigin) / layout.track.timescale
+                    var trim = 0'u64
+                    if start < 0
+                    {
+                        let needed = Math.ceil(-start * audioTrack.sampleRate)
+                        if needed >= layout.audioFragments.count * AacFrameSamples do
+                            continue
+                        if needed > Swag.U32.Max do
+                            fail UnsupportedFormatError{"MP4 AAC lead-in exceeds the supported trim range"}
+                        trim  = cast(u64, needed)
+                        start += cast(f64, trim) / audioTrack.sampleRate
+                    }
+
+                    let options = PacketStreamOptions{leadingTrimFrames: trim,
+                                                      timelineStartSeconds: Math.max(start, 0.0)}
+                    let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, layout.audioFragments.count * AacFrameSamples, packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
+                    .soundTracks.add(#move sound)
+                }
+                else
+                {
+                    let packetLayout = try audioTrack.buildSoundPackets(source.size())
+                    let sound        = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
+                    .soundTracks.add(#move sound)
+                }
             }
         }
 

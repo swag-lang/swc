@@ -45,9 +45,10 @@ impl FramePacer
         let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
         let maxDuration   = ticksPerFrame / rate.numerator() +
                             cast(u64, ticksPerFrame % rate.numerator() != 0)
+        let clockScale = cast(u64, rate.numerator()) * rate.denominator()
         if ticksPerFrame < rate.numerator() or
            maxDuration > Swag.U32.Max or
-           clockFrequency > Swag.U64.Max / rate.denominator() do
+           clockFrequency > Swag.U64.Max / clockScale do
             fail BadParameterError{"frame pacer rate cannot fit its video or monotonic clock"}
         return FramePacer{rate, clockFrequency, videoTimescale}
     }
@@ -85,11 +86,16 @@ impl FramePacer
 
         if tick < .previousTick do
             fail BadParameterError{"frame pacer timestamps must not move backwards"}
-        let elapsed = tick - .firstTick
-        if elapsed > Swag.U64.Max / .rate.numerator() do
+        let elapsed      = tick - .firstTick
+        let clockPeriod  = .clockFrequency * .rate.denominator()
+        let wholePeriods = elapsed / clockPeriod
+        if wholePeriods > Swag.U64.Max / .rate.numerator() do
             fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
-        let current = elapsed * .rate.numerator() /
-                      (.clockFrequency * .rate.denominator())
+        let wholeFrames      = wholePeriods * .rate.numerator()
+        let fractionalFrames = (elapsed % clockPeriod) * .rate.numerator() / clockPeriod
+        if fractionalFrames > Swag.U64.Max - wholeFrames do
+            fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
+        let current = wholeFrames + fractionalFrames
         if current <= .previousSlot
         {
             .previousTick = tick

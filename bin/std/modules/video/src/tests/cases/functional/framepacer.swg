@@ -22,6 +22,8 @@ using Swag, Core.Errors
     Swag.require(expect pacer.tryAccept(Start + 4'u64 * 60 * 60 * 1_000_000_000, &slot))
     Swag.require(slot.index == 431_568 and slot.decodeTime == slot.index * 3003)
     Swag.require(slot.duration == 3003 and slot.skippedFrames == 431_564)
+    Swag.require(expect pacer.tryAccept(Start + 10'u64 * 24 * 60 * 60 * 1_000_000_000, &slot))
+    Swag.require(slot.index == 25_894_105 and slot.decodeTime == slot.index * 3003)
 }
 
 // Integer clock ticks alternate frame durations while late pictures report skipped slots.

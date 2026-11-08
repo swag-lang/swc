@@ -107,6 +107,11 @@ private struct FragmentTrackSamples
     samples: Array'FragmentSample
 }
 
+private struct AudioFragmentSamples
+{
+    samples: Array'FragmentSample
+}
+
 // One explicit sample in a fragmented track run.
 private struct FragmentRunSample
 {
@@ -185,7 +190,7 @@ private struct Layout
     track:            Track
     audioTracks:      Array'Track
     fragments:        Array'FragmentSample
-    audioFragments:   Array'FragmentSample
+    audioFragments:   Array'AudioFragmentSamples
     hasMovie:         bool
     hasVideo:         bool
     hasFragments:     bool
@@ -275,6 +280,20 @@ private func describeId(id: u32)->String
 
 private impl Layout
 {
+    mtd const hasClassicAudioSamples()->bool
+    {
+        for &track in .audioTracks where track.sizes.count do
+            return true
+        return false
+    }
+
+    mtd const findAudioTrack(trackId: u32)->u64
+    {
+        for index in .audioTracks.count where .audioTracks[index].id == trackId do
+            return index
+        return Swag.U64.Max
+    }
+
     mtd validateFragmentSample(sample: FragmentSample, box: Box) fail
     {
         if sample.offset < box.data or
@@ -330,10 +349,10 @@ private impl Layout
                 if not .hasMovie or hasPending do
                     fail InvalidFormatError{"MP4 movie fragment is out of order"}
                 if not .track.isAvc or
-                   .audioTracks.count > 1 or
+                   .audioTracks.count > 4 or
                    (not .hasFragments and .track.sizes.count) or
-                   (.audioTracks.count and .audioTracks[0].sizes.count) do
-                    fail UnsupportedFormatError{"MP4 fragments need H.264 and at most one AAC track without classic samples"}
+                   .hasClassicAudioSamples() do
+                    fail UnsupportedFormatError{"MP4 fragments need H.264 and at most four AAC tracks without classic samples"}
                 pending       = try .parseFragment(source, start, box.end)
                 hasPending    = true
                 .hasFragments = true
@@ -368,26 +387,25 @@ private impl Layout
                             .fragments.add(sample)
                         }
                     }
-                    elif .audioTracks.count and pending.trackId == .audioTracks[0].id
+                    else
                     {
+                        let audioIndex = .findAudioTrack(pending.trackId)
+                        if audioIndex == Swag.U64.Max do
+                            fail UnsupportedFormatError{"MP4 fragment refers to an unsupported track"}
                         for sample in pending.samples
                         {
                             try .validateFragmentSample(sample, box)
                             if sample.duration != AacFrameSamples or sample.presentationTime != cast(s64, sample.decodeTime) do
                                 fail UnsupportedFormatError{"MP4 AAC fragments need 1024-sample access units without composition offsets"}
-                            if .audioFragments.count
+                            if .audioFragments[audioIndex].samples.count
                             {
-                                let previous = .audioFragments.back()
+                                let previous = .audioFragments[audioIndex].samples.back()
                                 if sample.decodeTime != previous.decodeTime + previous.duration do
                                     fail UnsupportedFormatError{"MP4 AAC fragment decode times are not continuous"}
                             }
 
-                            .audioFragments.add(sample)
+                            .audioFragments[audioIndex].samples.add(sample)
                         }
-                    }
-                    else
-                    {
-                        fail UnsupportedFormatError{"MP4 fragment refers to an unsupported track"}
                     }
 
                     pending.samples.clear()
@@ -437,6 +455,8 @@ private impl Layout
                 elif candidate.handler == AudioHandlerId and candidate.hasDescription and candidate.isAac
                 {
                     .audioTracks.add(#move candidate)
+                    var fragments: AudioFragmentSamples
+                    .audioFragments.add(#move fragments)
                 }
             }
 
@@ -1246,26 +1266,28 @@ impl IDecoder for Decoder
         if path.count
         {
             .soundTracks.reserve(layout.audioTracks.count)
-            for &audioTrack in layout.audioTracks
+            for index in layout.audioTracks.count
             {
+                let audioTrack = &layout.audioTracks[index]
                 if layout.hasFragments
                 {
-                    if layout.audioFragments.isEmpty() do
+                    let samples = &layout.audioFragments[index].samples
+                    if samples.isEmpty() do
                         continue
-                    if layout.audioFragments.count > Swag.U64.Max / AacFrameSamples do
+                    if samples.count > Swag.U64.Max / AacFrameSamples do
                         fail UnsupportedFormatError{"MP4 AAC fragment frame count exceeds the supported range"}
                     var packets: Array'SoundPacket
-                    packets.reserve(layout.audioFragments.count)
-                    for sample in layout.audioFragments do
+                    packets.reserve(samples.count)
+                    for sample in samples[] do
                         packets.add({sample.offset, sample.size, AacFrameSamples})
 
-                    var start = cast(f64, layout.audioFragments[0].decodeTime) / audioTrack.sampleRate -
+                    var start = cast(f64, samples[0].decodeTime) / audioTrack.sampleRate -
                                 cast(f64, videoOrigin) / layout.track.timescale
                     var trim = 0'u64
                     if start < 0
                     {
                         let needed = Math.ceil(-start * audioTrack.sampleRate)
-                        if needed >= layout.audioFragments.count * AacFrameSamples do
+                        if needed >= samples.count * AacFrameSamples do
                             continue
                         if needed > Swag.U32.Max do
                             fail UnsupportedFormatError{"MP4 AAC lead-in exceeds the supported trim range"}
@@ -1275,7 +1297,7 @@ impl IDecoder for Decoder
 
                     let options = PacketStreamOptions{leadingTrimFrames: trim,
                                                       timelineStartSeconds: Math.max(start, 0.0)}
-                    let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, layout.audioFragments.count * AacFrameSamples, packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
+                    let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, samples.count * AacFrameSamples, packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
                     .soundTracks.add(#move sound)
                 }
                 else

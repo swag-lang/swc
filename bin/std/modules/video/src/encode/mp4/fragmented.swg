@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4) fragmented writer.
-//! Supported: H.264 video with optional AAC-LC audio, bounded packet groups per fragment, and interruption-safe completed fragments.
-//! Not supported: Multiple audio tracks, timed metadata, encryption, and a final random-access index.
+//! Supported: H.264 video with up to four AAC-LC audio tracks, bounded packet groups per fragment, and interruption-safe completed fragments.
+//! Not supported: Timed metadata, encryption, and a final random-access index.
 //! Role: This file writes an initialization movie followed by bounded `moof`/`mdat` pairs.
 //
 #global namespace Mp4
@@ -42,9 +42,18 @@ struct FragmentedOptions
 // configuration must match `sampleRate` and `channelCount`; the writer copies it before returning.
 struct FragmentedAudioConfig
 {
-    public sampleRate:    u32              // Sound sample frames per second, matching the AAC configuration.
-    public channelCount:  u16              // One or two channels.
-    public decoderConfig: const [..] u8 = [] // Borrowed AAC-LC AudioSpecificConfig.
+    public sampleRate:    u32     // Sound sample frames per second, matching the AAC configuration.
+    public channelCount:  u16     // One or two channels.
+    public decoderConfig: const [..] u8 = []     // Borrowed AAC-LC AudioSpecificConfig.
+}
+
+private struct FragmentedAudioTrack
+{
+    config:     Array'u8
+    sampleRate: u32
+    channels:   u16
+    nextTime:   u64
+    hasPackets: bool
 }
 
 // Writes H.264 and optional AAC-LC access units to a fragmented MP4 file.
@@ -55,9 +64,9 @@ struct FragmentedAudioConfig
 // within fixed byte and count limits; [[Video.Mp4.FragmentedWriter.flush]] completes a pending
 // group. The first packet must be a key frame. Timestamps use the `timescale` given at creation.
 //
-// [[Video.Mp4.FragmentedWriter.createWithAudio]] adds one AAC-LC track. Audio packets are submitted
-// separately and may be interleaved with video calls. The file has no final index; sequential
-// playback and recovery of complete fragments work before
+// [[Video.Mp4.FragmentedWriter.createWithAudioTracks]] adds up to four AAC-LC tracks. Audio packets
+// are submitted separately and may be interleaved with video calls. The file has no final index;
+// sequential playback and recovery of complete fragments work before
 // [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans their headers and ignores a partial
 // final fragment after at least one complete video fragment.
 #[Swag.NoCopy]
@@ -65,23 +74,19 @@ struct FragmentedWriter
 {
     private
     {
-        sink:            ByteSink
-        config:          Array'u8
-        audioConfig:     Array'u8
-        pendingPackets:  Array'BufferedPacket
-        pendingData:     Array'u8
-        options:         FragmentedOptions
-        width:           u16
-        height:          u16
-        timescale:       u32
-        audioSampleRate: u32
-        audioChannels:   u16
-        sequence:        u32
-        nextDecodeTime:  u64
-        nextAudioTime:   u64
-        hasPackets:      bool
-        hasAudioPackets: bool
-        isEnded:         bool
+        sink:           ByteSink
+        config:         Array'u8
+        audioTracks:    Array'FragmentedAudioTrack
+        pendingPackets: Array'BufferedPacket
+        pendingData:    Array'u8
+        options:        FragmentedOptions
+        width:          u16
+        height:         u16
+        timescale:      u32
+        sequence:       u32
+        nextDecodeTime: u64
+        hasPackets:     bool
+        isEnded:        bool
     }
 }
 
@@ -94,7 +99,7 @@ impl FragmentedWriter
     // entry. `options` limits a group to at most 1024 packets and bounds buffered payload bytes.
     // A packet above the byte bound is written alone. Failure may leave a partial destination file.
     func create(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, options: FragmentedOptions = {})->FragmentedWriter fail
-        => try createConfigured(fileName, width, height, timescale, avcConfig, {}, options)
+        => try createConfigured(fileName, width, height, timescale, avcConfig, [], options)
 
     // Creates a fragmented MP4 file with H.264 video and one AAC-LC sound track.
     //
@@ -105,7 +110,20 @@ impl FragmentedWriter
     {
         if not audio.decoderConfig.count do
             fail BadParameterError{"fragmented MP4 AAC configuration is empty"}
-        return try createConfigured(fileName, width, height, timescale, avcConfig, audio, options)
+        let tracks: [1] FragmentedAudioConfig = [audio]
+        return try createWithAudioTracks(fileName, width, height, timescale, avcConfig, Swag.makeSlice(&tracks[0], 1), options)
+    }
+
+    // Creates a fragmented H.264 MP4 file with up to four independent AAC-LC sound tracks.
+    //
+    // Each track has its own sample-rate timescale and packet sequence. The configurations are
+    // copied before returning. Use the zero-based `trackIndex` in
+    // [[Video.Mp4.FragmentedWriter.addAudioPacket]] to select the destination track.
+    func createWithAudioTracks(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions = {})->FragmentedWriter fail
+    {
+        if not audioTracks.count or audioTracks.count > 4 do
+            fail BadParameterError{"fragmented MP4 needs one to four AAC tracks"}
+        return try createConfigured(fileName, width, height, timescale, avcConfig, audioTracks, options)
     }
 
     // Appends one H.264 access unit, flushing a complete fragment when its limits are reached.
@@ -165,21 +183,21 @@ impl FragmentedWriter
         .hasPackets     = true
     }
 
-    // Appends one 1024-sample AAC-LC access unit to the configured sound track.
+    // Appends one 1024-sample AAC-LC access unit to sound track `trackIndex`.
     //
-    // `packet.bytes` is raw AAC payload without an ADTS header. Its decode and presentation times
-    // are equal and use the audio sample rate as their timescale. Audio packets must be continuous;
-    // the caller can interleave audio and video submissions in recording order. The key-frame flag
-    // is ignored because every AAC-LC access unit is independently decodable.
-    mtd addAudioPacket(packet: EncodedPacket) fail
+    // `packet.bytes` is raw AAC payload without an ADTS header. Index zero is the default. Decode
+    // and presentation times are equal and use the audio sample rate as their timescale. Audio
+    // packets must be continuous; the caller can interleave them with video in recording order.
+    // The key-frame flag is ignored because every AAC-LC access unit is independently decodable.
+    mtd addAudioPacket(packet: EncodedPacket, trackIndex: u32 = 0) fail
     {
-        if .isEnded or not .audioSampleRate do
-            fail BadParameterError{"fragmented MP4 has no open audio track"}
+        if .isEnded or trackIndex >= .audioTracks.count do
+            fail BadParameterError{"fragmented MP4 has no open audio track at this index"}
         if not packet.bytes.count or
            packet.bytes.count > Swag.U32.Max - 8 or
            packet.duration != 1_024 or
            packet.presentationTime != packet.decodeTime or
-           (.hasAudioPackets and packet.decodeTime != .nextAudioTime) do
+           (.audioTracks[trackIndex].hasPackets and packet.decodeTime != .audioTracks[trackIndex].nextTime) do
             fail BadParameterError{"fragmented MP4 AAC packet size or timing is invalid"}
         if .sequence == Swag.U32.Max do
             fail OverflowError{"fragmented MP4 sequence number is exhausted"}
@@ -189,11 +207,11 @@ impl FragmentedWriter
         try .flush()
         let sample: [1] BufferedPacket = [{cast(u32, packet.bytes.count), packet.decodeTime,
                                            packet.duration, 0, true}]
-        try .writeFragment(Swag.makeSlice(&sample[0], 1), packet.bytes, 2)
+        try .writeFragment(Swag.makeSlice(&sample[0], 1), packet.bytes, 2 + trackIndex)
         try .sink.flush()
-        .sequence        += 1
-        .nextAudioTime   = packet.decodeTime + packet.duration
-        .hasAudioPackets = true
+        .sequence += 1
+        .audioTracks[trackIndex].nextTime   = packet.decodeTime + packet.duration
+        .audioTracks[trackIndex].hasPackets = true
     }
 
     // Writes and flushes the current group, making every packet in it recoverable.
@@ -227,7 +245,7 @@ impl FragmentedWriter
 
 private impl FragmentedWriter
 {
-    func createConfigured(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audio: FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
+    func createConfigured(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
     {
         if width <= 0 or width > Swag.U16.Max or height <= 0 or height > Swag.U16.Max do
             fail BadParameterError{"fragmented MP4 needs dimensions in the range 1 to 65535"}
@@ -239,20 +257,26 @@ private impl FragmentedWriter
            options.maxBufferedBytes > Swag.U32.Max - 8 do
             fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}
         try validateAvcConfig(avcConfig)
-        if audio.sampleRate or audio.channelCount or audio.decoderConfig.count do
+        for audio in audioTracks do
             try validateAudioConfig(audio)
 
         with var result: #returntype
         {
-            .sink            = try ByteSink.createFile(fileName)
-            .width           = cast(u16, width)
-            .height          = cast(u16, height)
-            .timescale       = timescale
-            .options         = options
-            .audioSampleRate = audio.sampleRate
-            .audioChannels   = audio.channelCount
+            .sink      = try ByteSink.createFile(fileName)
+            .width     = cast(u16, width)
+            .height    = cast(u16, height)
+            .timescale = timescale
+            .options   = options
             .config.add(avcConfig)
-            .audioConfig.add(audio.decoderConfig)
+            .audioTracks.reserve(audioTracks.count)
+            for audio in audioTracks
+            {
+                var track: FragmentedAudioTrack
+                track.sampleRate = audio.sampleRate
+                track.channels   = audio.channelCount
+                track.config.add(audio.decoderConfig)
+                .audioTracks.add(#move track)
+            }
         }
 
         try result.writeInitialization()
@@ -345,8 +369,8 @@ private impl FragmentedWriter
         let movie = beginBox(&.sink, MovieId)
         .writeMovieHeader()
         .writeTrack()
-        if .audioSampleRate do
-            .writeAudioTrack()
+        for index in .audioTracks.count do
+            .writeAudioTrack(cast(u32, index))
         .writeMovieExtends()
         endBox(&.sink, movie)
     }
@@ -368,7 +392,7 @@ private impl FragmentedWriter
         writeIdentityMatrix(&.sink)
         for 6 do
             writeU32(&.sink, 0)
-        writeU32(&.sink, .audioSampleRate ? 3 : 2)
+        writeU32(&.sink, cast(u32, .audioTracks.count + 2))
         endBox(&.sink, box)
     }
 
@@ -515,14 +539,14 @@ private impl FragmentedWriter
     }
 
     #[Swag.Propagate]
-    mtd writeAudioTrack() fail
+    mtd writeAudioTrack(index: u32) fail
     {
         let track  = beginBox(&.sink, TrackId)
         let header = beginBox(&.sink, TrackHeaderId)
         writeFullBox(&.sink, 1, 7)
         writeU64(&.sink, 0)
         writeU64(&.sink, 0)
-        writeU32(&.sink, 2)
+        writeU32(&.sink, 2 + index)
         writeU32(&.sink, 0)
         writeU64(&.sink, 0)
         writeU32(&.sink, 0)
@@ -541,7 +565,7 @@ private impl FragmentedWriter
         writeFullBox(&.sink, 1, 0)
         writeU64(&.sink, 0)
         writeU64(&.sink, 0)
-        writeU32(&.sink, .audioSampleRate)
+        writeU32(&.sink, .audioTracks[index].sampleRate)
         writeU64(&.sink, 0)
         writeU16(&.sink, UndLanguage)
         writeU16(&.sink, 0)
@@ -563,27 +587,27 @@ private impl FragmentedWriter
         writeU16(&.sink, 0)
         endBox(&.sink, soundHeader)
         .writeDataInfo()
-        .writeAudioSampleTable()
+        .writeAudioSampleTable(index)
         endBox(&.sink, mediaInfo)
         endBox(&.sink, media)
         endBox(&.sink, track)
     }
 
     #[Swag.Propagate]
-    mtd writeAudioSampleTable() fail
+    mtd writeAudioSampleTable(index: u32) fail
     {
         let table        = beginBox(&.sink, SampleTableId)
         let descriptions = beginBox(&.sink, SampleDescriptionId)
         writeFullBox(&.sink, 0, 0)
         writeU32(&.sink, 1)
-        .writeAudioSampleEntry()
+        .writeAudioSampleEntry(index)
         endBox(&.sink, descriptions)
         .writeEmptySampleTables()
         endBox(&.sink, table)
     }
 
     #[Swag.Propagate]
-    mtd writeAudioSampleEntry() fail
+    mtd writeAudioSampleEntry(index: u32) fail
     {
         let entry = beginBox(&.sink, Mpeg4AudioId)
         for 6 do
@@ -592,20 +616,23 @@ private impl FragmentedWriter
         writeU16(&.sink, 0)
         writeU16(&.sink, 0)
         writeU32(&.sink, 0)
-        writeU16(&.sink, .audioChannels)
+        writeU16(&.sink, .audioTracks[index].channels)
         writeU16(&.sink, 16)
         writeU16(&.sink, 0)
         writeU16(&.sink, 0)
-        writeU32(&.sink, .audioSampleRate << 16)
+        writeU32(&.sink, .audioTracks[index].sampleRate << 16)
 
         let descriptor = beginBox(&.sink, ElementaryStreamId)
         writeFullBox(&.sink, 0, 0)
 
-        // ES_ID 2, MPEG-4 Audio decoder configuration, unspecified bitrates, then the ASC.
-        const Prefix: [22] u8 = [0x03, 0x19, 0, 2, 0, 0x04, 0x11, 0x40, 0x15, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0x05, 0x02]
-        .sink.write(Swag.makeSlice(&Prefix[0], Prefix.count))
-        .sink.write(.audioConfig.toSlice())
+        // ES_ID matches this track, followed by the MPEG-4 Audio decoder and its ASC.
+        writeU8(&.sink, 0x03)
+        writeU8(&.sink, 0x19)
+        writeU16(&.sink, cast(u16, 2 + index))
+        const Decoder: [18] u8 = [0, 0x04, 0x11, 0x40, 0x15, 0, 0, 0,
+                                  0, 0, 0, 0, 0, 0, 0, 0, 0x05, 0x02]
+        .sink.write(Swag.makeSlice(&Decoder[0], Decoder.count))
+        .sink.write(.audioTracks[index].config.toSlice())
         const Suffix: [3] u8 = [0x06, 0x01, 0x02]
         .sink.write(Swag.makeSlice(&Suffix[0], Suffix.count))
         endBox(&.sink, descriptor)
@@ -623,11 +650,11 @@ private impl FragmentedWriter
         for 3 do
             writeU32(&.sink, 0)
         endBox(&.sink, track)
-        if .audioSampleRate
+        for index in .audioTracks.count
         {
             let audio = beginBox(&.sink, TrackExtendsId)
             writeFullBox(&.sink, 0, 0)
-            writeU32(&.sink, 2)
+            writeU32(&.sink, cast(u32, 2 + index))
             writeU32(&.sink, 1)
             for 3 do
                 writeU32(&.sink, 0)

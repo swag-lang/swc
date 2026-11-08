@@ -7,9 +7,7 @@ owned by a viewer lives in the corresponding domain:
 
 - [app.scope.viewers.md](app.scope.viewers.md) — shared viewer contracts, coverage, and product scope
 - [app.scope.text.md](app.scope.text.md) — basic text, code, subtitle, table, diff, and log viewers
-- [app.scope.document.md](app.scope.document.md) — Markdown, HTML, PDF, office-document, and ebook viewers
-- [app.scope.indesign.md](app.scope.indesign.md) — InDesign viewer
-- [app.scope.opendocument.md](app.scope.opendocument.md) — OpenDocument viewer
+- [app.scope.document.md](app.scope.document.md) — Markdown, HTML, PDF, Office Open XML, and ebook viewers
 - [app.scope.binary.md](app.scope.binary.md) — structured binary and container viewer
 - [app.scope.hexa.md](app.scope.hexa.md) — hexadecimal viewer
 - [app.scope.image.md](app.scope.image.md) — image viewer

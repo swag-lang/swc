@@ -192,7 +192,7 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
-| OpenDocument | `.odt` `.ods` `.odp` | structure; the partial reader was withdrawn | a complete reader for text, sheets, slides, and drawings | [OpenDocument roadmap](app.scope.opendocument.md) |
+| OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
 | RTF | `.rtf` | raw text, recognized from its content | a safe document renderer | — |

@@ -248,6 +248,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
                  Utf8.contains(window.infoSheet.text(), Format.toString(appStrings().home_ResumeAt, "1:12:12").toString()))
     Swag.require(grid.tileRect(0).right() < window.infoSheet.surfaceRect().x)
     var image = host.render(&host.surfaceWnd)
+    Swag.require(grid.columns == 4 and explorer.scroll.scrollSize.y <= grid.position.height,
+                 "film tiles reflowed because an unnecessary scrollbar stayed visible")
     Pixel.Testing.assertImageGolden(&image, "explorer.films.paper")
 }
 

@@ -206,6 +206,11 @@ impl MainWnd
         with .quickWnd = QuickWnd.create(body, me)
         {
             .dockStyle = .Top
+            // Keep the six-chip row centred in the content column; the scroll gutter
+            // belongs to the property view below it.
+            let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
+            .margin.x = gutter * 0.5
+            .margin.z = gutter * 1.5
         }
 
         with .propWnd = PropWnd.create(body, me)
@@ -1001,11 +1006,12 @@ impl MainWnd
     mtd createRecentBar()
     {
         let gutter = .themeMetrics().panel_GutterSize
-        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136})
+        let barRoom = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
+        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136 + barRoom - 12})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{gutter, gutter, gutter, gutter}
+            .padding         = Math.Vector4{gutter, gutter, gutter, barRoom}
             .wndFlags.add(.Hidden)
         }
 

@@ -101,6 +101,30 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     host.pump()
 }
 
+// The popup lets the scrolling list grow into its right padding without moving its text.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    let popup = PopupListCtrl.create(&host.root)
+    popup.maximumHeight = 90
+    for index in 20 do
+        discard popup.addItem(Format.toString("Entry %", index))
+    popup.show(20, 20, 180)
+
+    let scroll = popup.scrollWnd
+    let gutter = host.theme.metrics.scrollBar_HitSize + host.theme.metrics.scrollBar_EdgeInset
+    Swag.require(scroll.scrollSize.y > scroll.view.position.height)
+    Swag.require(scroll.position.x == popup.padding.x)
+    Swag.require(scroll.position.width == popup.position.width - popup.padding.x - popup.padding.z + gutter)
+    Swag.require(scroll.view.position.x == 0 and scroll.view.position.width == scroll.position.width - gutter)
+    scroll.setScrollSize(0, 0)
+    Swag.require(scroll.position.x == popup.padding.x and scroll.position.width == popup.position.width - popup.padding.x - popup.padding.z)
+    host.app.setMouseCaptureRaw(null)
+    popup.destroy()
+    host.pump()
+}
+
 // A list whose entries are painted samples opens with nothing highlighted.
 //
 // Its check mark already says which entry is current, and the opening highlight would put the

@@ -449,6 +449,7 @@ impl PropWnd
         with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
+            let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
 
             .topLayout              = StackLayoutCtrl.create(prop)
             .topLayout.mode         = .Top
@@ -465,10 +466,13 @@ impl PropWnd
             // The settings stand at the pitch of the inspector, denser than a panel's.
             let metrics = prop.themeMetrics()
             .grid.setRowMetrics(metrics.control_InspectorHeight, metrics.inspector_RowPitch - metrics.control_InspectorHeight)
+            .grid.setRowInsets(cast(s32, GridRowInset), 0)
             .grid.setSectionRules(false)
             .grid.setRowGrounds(false)
 
-            // The rows reach the label edge, while the scrollbar gutter stays inside the panel.
+            // The grid grows into the inspector's trailing room. It lends that same
+            // room to its scroll child, so the editor width and leading edge stay fixed.
+            .grid.padding.z = gutter
             .grid.margin = {-GridRowInset, 0, 0, 0}
             .grid.setRevertButtonsVisible(false)
 

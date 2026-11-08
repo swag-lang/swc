@@ -84,7 +84,11 @@ impl IWnd for Inspector
             return
         }
 
-        let width  = Math.min(metrics.inspector_Width, bounds.width - 2 * inset)
+        // A scrolling body keeps its normal content width, with one gutter to its right.
+        let pad = .layoutPadding()
+        let gutter = .content ? metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset : 0
+        let width  = Math.min(metrics.inspector_Width + gutter + 2 * (pad - metrics.inspector_Padding),
+                              bounds.width - 2 * inset)
         let room   = Math.max(bounds.bottom() - inset - top, 0)
         let height = .content ? room : Math.min(.measureBody(), room)
         .setPosition(Math.Rectangle{bounds.right() - inset - width, top, width, height})
@@ -123,7 +127,7 @@ impl IWnd for Inspector
 
         paintFloatingGround(me, painter, body, metrics.corner_Floating)
 
-        let pad     = metrics.inspector_Padding
+        let pad     = .layoutPadding()
         let rowSize = metrics.control_InspectorHeight
         let headY   = body.y + pad + rowSize * 0.5
         if not .title.isEmpty()
@@ -317,20 +321,21 @@ impl Inspector
     mtd measureBody()->f32
     {
         let metrics = .themeMetrics()
-        var y       = metrics.inspector_Padding + metrics.control_InspectorHeight + metrics.inspector_RowGap
+        let pad     = .layoutPadding()
+        var y       = pad + metrics.control_InspectorHeight + metrics.inspector_RowGap
         for &row in .rows
         {
             row.top = y
             y       += row.editor ? metrics.control_InspectorHeight + metrics.inspector_RowGap : metrics.inspector_SectionHeight
         }
 
-        return Math.ceil(y - metrics.inspector_RowGap + metrics.inspector_Padding)
+        return Math.ceil(y - metrics.inspector_RowGap + pad)
     }
 
     private mtd arrange(width, height: f32)
     {
         let metrics = .themeMetrics()
-        let pad     = metrics.inspector_Padding
+        let pad     = .layoutPadding()
         let rowSize = metrics.control_InspectorHeight
 
         // The actions stand at the end of the header, the last one against the padding, a dot
@@ -364,7 +369,8 @@ impl Inspector
         if .content
         {
             let top = .rows.isEmpty() ? pad + rowSize + metrics.inspector_RowGap : .measureBody() - pad + metrics.inspector_RowGap
-            .content.setPosition(Math.Rectangle{pad, top, Math.max(width - 2 * pad, 0), Math.max(height - top - pad, 0)})
+            let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+            .content.setPosition(Math.Rectangle{pad, top, Math.max(width - 2 * pad + gutter, 0), Math.max(height - top - pad, 0)})
         }
     }
 
@@ -373,6 +379,14 @@ impl Inspector
     {
         let font = .theme().createDefaultFont(.themeMetrics().defaultFontSize - 1)
         return Math.ceil(Painter.measureString(ActionDot, font).width)
+    }
+
+    private mtd layoutPadding()->f32
+    {
+        let metrics = .themeMetrics()
+        if .content do
+            return Math.max(metrics.inspector_Padding, metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset)
+        return metrics.inspector_Padding
     }
 
     private mtd body()->Math.Rectangle => .clientRect()

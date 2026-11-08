@@ -1432,10 +1432,11 @@ impl ListCtrl
     // clearing rows call it themselves.
     mtd computeLayout()
     {
-        let clientRect = .scrollWnd.paddedClientRect()
+        let clientRect = .listView.paddedClientRect()
 
-        // The first column takes the room the others leave. Overlaid scroll bars
-        // do not narrow the viewport when rows start to overflow.
+        // The first column takes the room the others leave in the actual viewport.
+        // Measuring the outer scroll window would create a false horizontal overflow
+        // whenever a vertical bar reserves its gutter.
         if .listFlags.has(.StretchFirstColumn) and .header != null and not .header.items.isEmpty()
         {
             let metrics = .themeMetrics()

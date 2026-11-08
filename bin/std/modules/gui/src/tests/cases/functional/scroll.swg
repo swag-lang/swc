@@ -10,6 +10,7 @@ struct ResponsiveScrollView
     resizing:   u32
     visits:     u32
     horizontal: bool
+    threshold:  f32
 }
 
 impl IWnd for ResponsiveScrollView
@@ -23,11 +24,30 @@ impl IWnd for ResponsiveScrollView
         defer .resizing -= 1
         .visits += 1
         Swag.require(.resizing == 1 and .visits < 8)
-        if .horizontal do
+        if .threshold > 0 do
+            scroll.setScrollSize(0, .position.width < .threshold ? 300 : 100)
+        elif .horizontal do
             scroll.setScrollSize(.position.height, 0)
         else do
             scroll.setScrollSize(0, .position.width)
     }
+}
+
+// A grid that fits at full width must shed an old bar before measuring its columns.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 300)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    scroll.updateFlags(.DisableHorizontal)
+    let view = scroll.createView'ResponsiveScrollView()
+    view.threshold = 190
+    scroll.setScrollSize(0, 300)
+    Swag.require(scroll.showBarV and view.position.width < 190)
+
+    view.visits = 0
+    scroll.resize(220, 200)
+    Swag.require(not scroll.showBarV and view.position.width == 220 and scroll.scrollSize.y == 100)
 }
 
 // A vertical bar reserves width and gives it back when the view fits again.
@@ -48,6 +68,29 @@ impl IWnd for ResponsiveScrollView
     scroll.resize(200, 220)
     Swag.require(view.position.width == 200 and not scroll.showBarV)
     Swag.require(scroll.scrollSize.y == 200)
+}
+
+// A responsive view measures its original width even while its old bar is using
+// borrowed padding. A wider parent can therefore remove that bar again.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 300)
+    let parent = Wnd.create'Wnd(&host.root, "", {0, 0, 240, 240})
+    parent.padding = {24, 24, 24, 24}
+    let scroll = Wnd.create'ScrollWnd(parent)
+    scroll.dockStyle = .Center
+    scroll.updateFlags(.DisableHorizontal)
+    let view = scroll.createView'ResponsiveScrollView()
+    view.threshold = 200
+    parent.applyLayout()
+    scroll.setScrollSize(0, 300)
+    Swag.require(scroll.showBarV and view.position.width == 192)
+
+    parent.resize(260, 240)
+    parent.applyLayout()
+    Swag.require(not scroll.showBarV and scroll.scrollSize.y == 100)
+    Swag.require(scroll.position.x == 24 and scroll.position.width == 212 and view.position.width == 212)
 }
 
 // A horizontal bar reserves height and gives it back when the view fits again.
@@ -87,6 +130,36 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.showBarV and scroll.showBarH and view.position.width < room.width and view.position.height < room.height)
     scroll.setScrollSize(100, 100)
     Swag.require(not scroll.showBarV and not scroll.showBarH and view.position == room)
+}
+
+// A padded parent lends a full gutter to the scrolling child. Its leading edges and
+// the viewport dimensions remain unchanged when either bar appears or disappears.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 300)
+    let parent = Wnd.create'Wnd(&host.root, "", {0, 0, 240, 240})
+    parent.padding = {24, 24, 24, 24}
+    let scroll = Wnd.create'ScrollWnd(parent)
+    scroll.dockStyle = .Center
+    let view = scroll.createView'Wnd()
+    parent.applyLayout()
+    let original = scroll.position
+    let room = view.position
+    Swag.require(original.x == 24 and original.y == 24)
+
+    scroll.setScrollSize(0, 1000)
+    Swag.require(scroll.position.x == original.x and scroll.position.y == original.y)
+    Swag.require(scroll.position.width == original.width + 24 and scroll.position.height == original.height)
+    Swag.require(view.position == room)
+
+    scroll.setScrollSize(1000, 1000)
+    Swag.require(scroll.position.x == original.x and scroll.position.y == original.y)
+    Swag.require(scroll.position.width == original.width + 24 and scroll.position.height == original.height + 24)
+    Swag.require(view.position == room)
+
+    scroll.setScrollSize(0, 0)
+    Swag.require(scroll.position == original and view.position == room)
 }
 
 // The gutter takes the bar gesture without covering the child or the resize edge.

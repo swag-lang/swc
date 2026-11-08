@@ -130,6 +130,12 @@ struct LibraryView
 
 impl IWnd for LibraryView
 {
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .scrollWnd != null do
+            .publishScrollExtent()
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .nameTimer
@@ -388,20 +394,30 @@ impl IWnd for LibraryView
             .imgSpin.hide()
 
         let painter    = evt.paintContext.painter
-        let clientRect = .paddedClientRect()
-
-        var x = clientRect.x
-        var y = clientRect.y
-
-        let {w, h}  = .getPreviewSize()
-        let columns = .numImagesPerLine()
-        var column  = 0'u32
         if g_DirtyList and .takeListRefresh()
         {
             .filter()
             .sort()
             .libWnd.refreshAutomaticFilters()
         }
+
+        // Publish the extent before painting a cell. A newly needed scrollbar narrows the
+        // viewport; painting with the old width would put the last thumbnail under its bar.
+        for attempt in 3
+        {
+            discard attempt
+            let oldWidth = .position.width
+            .publishScrollExtent()
+            if .position.width == oldWidth do
+                break
+        }
+
+        let clientRect = .paddedClientRect()
+        var x = clientRect.x
+        var y = clientRect.y
+        let {w, h}  = .getPreviewSize()
+        let columns = .numImagesPerLine()
+        var column  = 0'u32
 
         // The viewport, and the band a thumbnail is kept decoded in. A library holds thousands
         // of captures where a viewport shows a dozen, so the loop below places every cell — the
@@ -417,13 +433,11 @@ impl IWnd for LibraryView
         var decodeBudget  = MaxPreviewDecodesPerPaint
         var decodesRemain = false
         var animateNames  = false
-        var contentBottom = 0'f32
 
         let cellHeight = h + FileTile.captionHeight(me)
         for it, i in .items
         {
             it.rect    = Math.Rectangle{x, y, w, cellHeight}
-            contentBottom = Math.max(contentBottom, it.rect.bottom())
             it.visible = y + cellHeight >= viewTop and y <= viewBottom
 
             // Next cell. The grid advances whether or not this one is painted, so a culled cell
@@ -487,8 +501,6 @@ impl IWnd for LibraryView
             painter.drawString(clientRect.x, font.opticalLineTop(clientRect.y + .themeMetrics().fileTile_NameHeight), text, font, .themeColors().faintText)
         }
 
-        .scrollWnd.setScrollSize(0, contentBottom > 0 ? contentBottom + LibraryCellRing : 0)
-
         // Cells this frame could not afford to decode. Ask for another one; the hourglass they
         // carry meanwhile is the same one they carry while their capture is still loading.
         if decodesRemain do
@@ -498,6 +510,18 @@ impl IWnd for LibraryView
 
 impl LibraryView
 {
+    mtd publishScrollExtent()
+    {
+        if .position.width <= 0 do
+            return
+        let columns = .numImagesPerLine()
+        let {h}     = .getPreviewSize()
+        let rows    = (.items.count + cast(u64, columns) - 1) / cast(u64, columns)
+        let extent  = rows > 0 ? .paddedClientRect().y + cast(f32, rows) * (h + FileTile.captionHeight(me)) +
+                                 cast(f32, rows - 1) * LibraryRowGap + LibraryCellRing : 0
+        .scrollWnd.setScrollSize(0, extent)
+    }
+
     // Answers whether this frame rebuilds the visible set, and consumes the dirty mark when it
     // does.
     //
@@ -583,7 +607,8 @@ impl LibraryView
     mtd const numImagesPerLine()->u32
     {
         let nominal = .nominalPreviewHeight() * 4.0 / 3.0
-        return Math.max(cast(u32, ((.paddedClientRect().width + LibraryCellGap) / (nominal + LibraryCellGap))), 1)
+        let room = Math.max(.paddedClientRect().width + LibraryCellGap, 0)
+        return Math.max(cast(u32, room / (nominal + LibraryCellGap)), 1)
     }
 
     // Returns the height of a preview at the size the reader chose, before the row widens it.
@@ -776,6 +801,7 @@ impl LibraryView
 
         .restoreSelection(selection)
         .libWnd.updateEmptyState()
+        .publishScrollExtent()
         .invalidate()
     }
 

@@ -524,6 +524,20 @@ impl Properties
         .updateStates()
     }
 
+    // Sets the inner left and right insets of list and panel rows.
+    //
+    // A host can align the row editors with adjacent content while keeping a separate
+    // outer gutter for its scrollbar. The insets apply to the current presentation.
+    mtd setRowInsets(left, right: s32)
+    {
+        Swag.assert(left >= 0 and right >= 0)
+        if .leftMargin == left and .rightMargin == right do
+            return
+        .leftMargin = left
+        .rightMargin = right
+        .updateStates()
+    }
+
     // Controls whether reflected `using` fields are appended after the struct's own fields.
     //
     // The option applies to structures added after this call.

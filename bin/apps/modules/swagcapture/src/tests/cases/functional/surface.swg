@@ -79,7 +79,11 @@ internal func testSetupSurfaceMain(host: *Gui.Testing.HeadlessHost, caption = fa
     if caption do
         host.surface.updateFlags(Gui.SurfaceFlags.StandardWindow)
 
-    with let main = MainWnd.create(&host.surfaceWnd)
+    var monitors: Array'Env.Monitor
+    let monitor = Math.Rectangle{0, 0, 1440, 900}
+    monitors.add({bounds: monitor, workArea: monitor, scaleFactor: 1,
+                  physicalBounds: monitor, physicalWorkArea: monitor})
+    with let main = MainWnd.create(&host.surfaceWnd, &monitors)
     {
         .setPosition(host.surfaceWnd.paddedClientRect())
         .applyLayout()
@@ -191,6 +195,16 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     capture.selectionHasChanged()
     Swag.require(main.inspector.isLocallyVisible())
     Swag.require(main.inspector.title == appStrings().act_Shape)
+
+    // The fixed style row and the property viewport balance against the inspector frame.
+    // The scrollbar occupies only the extra room on the right of that viewport.
+    let frame = main.inspector.surfaceRect()
+    let quick = main.quickWnd.surfaceRect()
+    let view = main.propWnd.grid.scrollWnd.view.surfaceRect()
+    let pad = main.inspector.themeMetrics().scrollBar_HitSize + main.inspector.themeMetrics().scrollBar_EdgeInset
+    Swag.require(Math.abs((quick.x - frame.x) - (frame.right() - quick.right())) <= 2)
+    Swag.require(Math.abs((view.x + cast(f32, GridRowInset) - frame.x) - (frame.right() - view.right())) <= 2)
+    Swag.require(Math.abs(view.x + cast(f32, GridRowInset) - frame.x - pad) <= 2)
 
     capture.selection.clear()
     capture.selectionHasChanged()

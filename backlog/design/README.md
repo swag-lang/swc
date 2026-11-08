@@ -198,6 +198,9 @@ duplicating screenshots.
 - A document shows its position with a 1 px thread on the right edge and a short mark. Scrollable
   controls reserve a narrow gutter outside their content for a quiet 6 px thumb. The thumb gains
   contrast during movement and grows on hover; its 16 px target stays clear of window resize edges.
+  A parent of scrollable content leaves a full scrollbar gutter in its trailing and bottom
+  padding. When a bar appears, the child grows into that padding on the trailing axis; its
+  leading edge and the available content size stay unchanged.
 - A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
 - `Ctrl+Space` opens the lens from any focused control. The window handles it before the focused

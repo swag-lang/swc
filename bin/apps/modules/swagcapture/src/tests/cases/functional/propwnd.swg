@@ -72,7 +72,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     let scroll  = prop.grid.scrollWnd
     let metrics = scroll.themeMetrics()
     Swag.require(scroll.scrollSize.y > scroll.position.height)
-    Swag.require(scroll.surfaceRect().right() <= prop.surfaceRect().right())
+    Swag.require(scroll.surfaceRect().right() == prop.surfaceRect().right())
     scroll.setScrollPos(0, 0)
 
     var grip = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,

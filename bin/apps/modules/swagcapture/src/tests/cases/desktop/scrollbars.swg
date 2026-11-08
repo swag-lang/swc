@@ -57,7 +57,7 @@ using Core, Gui, Pixel
 
     let scroll = main.propWnd.grid.scrollWnd
     Swag.require(scroll.scrollSize.y > scroll.view.position.height, "the compact shape inspector did not overflow")
-    Swag.require(scroll.surfaceRect().right() <= main.propWnd.surfaceRect().right())
+    Swag.require(scroll.surfaceRect().right() == main.inspector.surfaceRect().right())
     let metrics = scroll.themeMetrics()
     let x = scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5
     let first = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.45})

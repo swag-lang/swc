@@ -1579,8 +1579,17 @@ internal impl HtmlView
 
 internal impl IWnd for HtmlView
 {
-    mtd impl onPaint(_: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
+        // A CSS canvas color covers the whole document surface, including the space
+        // reserved beside its child viewport for the scrollbar.
+        if .layout.root != HtmlNoNode
+        {
+            let canvas = .painter().canvasBackground()
+            if canvas.box != HtmlNoNode do
+                evt.paintContext.painter.fillRect(.clientRect(), canvas.color)
+        }
+
         // Publish the latest thumb destination before the canvas uses its virtual origin.
         if .virtualPendingSeek
         {

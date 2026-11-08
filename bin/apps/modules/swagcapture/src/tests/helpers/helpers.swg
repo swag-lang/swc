@@ -420,7 +420,10 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
 {
     f.gui.surfaceWnd.view = f.main
 
-    let body = Wnd.create'Wnd(f.main, {600, 0, 264, 650})
+    let metrics = f.main.themeMetrics()
+    let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+    let bodyWidth = metrics.inspector_Width - 2 * metrics.inspector_Padding + 2 * gutter
+    let body = Wnd.create'Wnd(f.main, {600, 0, bodyWidth, 650})
     with f.main.quickWnd = QuickWnd.create(body, f.main)
     {
         .dockStyle = .Top

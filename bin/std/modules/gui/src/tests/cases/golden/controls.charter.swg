@@ -105,8 +105,9 @@ func buildCharterWall(host: *Testing.HeadlessHost)
 
     // A list under its header, its first row selected: the names, then the measures in faint
     // mono.
-    with let list = ListCtrl.createMultiColumns(root, {Left, 344, 400, 140})
+    with let list = ListCtrl.createMultiColumns(root, {Left, 344, 400, 144})
     {
+        .updateFlags(.StretchFirstColumn)
         .addColumn("Name", 210)
         .addColumn("Modified", 80)
         .addColumn("Size", 80, align: .Right)

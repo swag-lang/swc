@@ -4,11 +4,10 @@ const TextChoicePadding      = 8.0
 const TextChoiceFilterHeight = 32.0
 const TextChoiceFilterGap    = 8.0
 const TextChoiceRowHeight    = 28.0
-const TextChoiceListInset    = 16.0
 const TextChoiceFaceRows     = 8'u64
 const TextChoiceSizeRows     = 10'u64
-const TextChoiceFaceWidth    = 256.0
-const TextChoiceSizeWidth    = 112.0
+const TextChoiceFaceWidth    = 302.0
+const TextChoiceSizeWidth    = 158.0
 
 // Common sizes are direct choices; the property grid keeps the complete numeric range.
 const TextChoiceSizes = [12'u32, 16, 24, 32, 40, 48, 72, 96, 120, 150]
@@ -37,11 +36,12 @@ struct TextChoicePopover
 
 impl TextChoicePopover
 {
-    func heightForRows(kind: TextChoiceKind, count: u64)->f32
+    func heightForRows(kind: TextChoiceKind, count: u64, metrics: *ThemeMetrics)->f32
     {
         let header = kind == .Face ? TextChoiceFilterHeight + TextChoiceFilterGap : 0.0
         let rows   = Math.max(1'u64, Math.min(count, kind == .Face ? TextChoiceFaceRows : TextChoiceSizeRows))
-        return 2 * TextChoicePadding + header + cast(f32, rows) * TextChoiceRowHeight + TextChoiceListInset
+        return 2 * TextChoicePadding + header + cast(f32, rows) * TextChoiceRowHeight +
+               2 * metrics.frameWnd_RoundPadding + 2 * metrics.list_Padding
     }
 
     // Opens the same list surface for both properties. The font version reserves its first row
@@ -53,11 +53,16 @@ impl TextChoicePopover
 
         let width = kind == .Face ? TextChoiceFaceWidth : TextChoiceSizeWidth
         let count = kind == .Face ? g_MiniBarFonts.count + 1 : TextChoiceSizes.count
-        let frame = button.createAnchorPopup(width, heightForRows(kind, count))
+        let frame = button.createAnchorPopup(width, heightForRows(kind, count, button.themeMetrics()))
+        let gutter = button.themeMetrics().scrollBar_HitSize + button.themeMetrics().scrollBar_EdgeInset
+        frame.setPadding(gutter, button.themeMetrics().frameWnd_RoundPadding,
+                         gutter, button.themeMetrics().frameWnd_RoundPadding)
         with let result = Wnd.create'TextChoicePopover(frame, {})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
+            .margin.z        = -gutter
+            .padding.z       = gutter
             .main            = main
             .button          = button
             .kind            = kind
@@ -83,9 +88,13 @@ impl TextChoicePopover
             listTop += TextChoiceFilterHeight + TextChoiceFilterGap
         }
 
-        with .list = ListCtrl.createSimple(me, {TextChoicePadding, listTop, width - 2 * TextChoicePadding, height - listTop - TextChoicePadding})
+        let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
+        with .list = ListCtrl.createSimple(me, {TextChoicePadding, listTop, width - 2 * TextChoicePadding + gutter, height - listTop - TextChoicePadding})
         {
             .setFrameForm(.Transparent)
+            .padding.z = gutter
+            .scrollWnd.setPadding(0, .themeMetrics().list_Padding,
+                                  0, .themeMetrics().list_Padding)
             .setLineHeight(TextChoiceRowHeight)
             .setFirstColumnIconMargin(false)
             .updateFlags(add: .HotTrack | .PreserveSelectionOnEmptyClick)
@@ -170,7 +179,7 @@ impl TextChoicePopover
     {
         let frame  = assume cast(*FrameWnd, unwrap .parent)
         let old    = frame.position
-        let height = heightForRows(.kind, .values.count)
+        let height = heightForRows(.kind, .values.count, .themeMetrics())
         if height == old.height do
             return
 

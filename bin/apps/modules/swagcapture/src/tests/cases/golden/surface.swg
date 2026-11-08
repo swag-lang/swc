@@ -431,16 +431,39 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     let frame = frameWnd.surfaceRect()
     var rows  = popup.list.listView.surfaceRect()
     Swag.require(Math.abs((rows.x - frame.x) - (frame.right() - rows.right())) <= 0.5)
+    Swag.require(rows.x == filter.surfaceRect().x and rows.right() == filter.surfaceRect().right())
+    host.finishAnimations()
+    var allImage = host.render(main)
+    Pixel.Testing.assertImageGolden(&allImage, "edit.font-choice.all.paper")
+
+    let scroll = popup.list.scrollWnd
+    let metrics = scroll.themeMetrics()
+    let hit = scroll.localToSurface(Math.Point{scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5,
+                                               scroll.view.position.y + metrics.scrollBar_BoxMinSize * 0.5})
+    Swag.require(host.mouseTargetAt(hit) == scroll, "the font scrollbar is outside its parent hit region")
+    host.moveMouse(hit)
+    host.mouseDown(hit)
+    let dragged = Math.Point{hit.x, hit.y + 80}
+    host.moveMouse(dragged)
+    Swag.require(scroll.scrollPosition().y > 0, "dragging the font scrollbar did not scroll")
+    host.mouseUp(dragged)
+    scroll.setScrollPos(0, 0)
+
     filter.setText(main.theme().res.defaultTypeFaceR.familyName())
     Swag.require(popup.list.lineCount() > 0 and filter.hasFocus())
     frameWnd.applyLayout()
     host.finishAnimations()
     rows = popup.list.listView.surfaceRect()
+    Swag.require(popup.list.scrollWnd.scrollSize.y <= popup.list.listView.position.height,
+                 "a filtered font row should fit without a scrollbar")
     Swag.require(Math.abs((rows.x - frame.x) - (frame.right() - rows.right())) <= 0.5)
-    let content = popup.clientRect()
+    let content = popup.paddedClientRect()
     Swag.require(Math.abs(filter.position.x - TextChoicePadding) <= 0.5)
     Swag.require(Math.abs(content.right() - filter.position.right() - TextChoicePadding) <= 0.5)
-    Swag.require(Math.abs(content.right() - popup.list.position.right() - TextChoicePadding) <= 0.5)
+    let gutter = popup.themeMetrics().scrollBar_HitSize + popup.themeMetrics().scrollBar_EdgeInset
+    Swag.require(Math.abs(content.right() - popup.list.position.right() - TextChoicePadding + gutter) <= 0.5)
+    Swag.require(rows.x == filter.surfaceRect().x and rows.right() == filter.surfaceRect().right(),
+                 "the font list and search field must keep the same visible edges")
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.font-choice.paper")
     button.hidePopup()
@@ -588,7 +611,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     mask.kind = .Pixelate
     testAssertEditGolden(&host, main, [0], "edit.mask")
 
-    // The overflow keeps the last image styles reachable without a stranded second row.
+    // Saved styles that do not fit the normal content column stay in the overflow.
     let more = unwrap main.quickWnd.moreButton
     Swag.require(more.isLocallyVisible())
     main.quickWnd.openAllPresets(more)
@@ -825,6 +848,9 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(main.libWnd.header.surfaceRect().y >= main.libWnd.surfaceRect().y + main.libWnd.stripInset())
 
     var image = host.render(main)
+    for item in lib.view.items do
+        Swag.require(item.rect.right() <= lib.view.paddedClientRect().right() + 0.5,
+                     "a library thumbnail overlaps the scrollbar gutter")
     Pixel.Testing.assertImageGolden(&image, "library.surface")
 }
 

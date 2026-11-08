@@ -404,10 +404,11 @@ using Swag, Core, Pixel
     let content = inspector.setContent(Wnd.create'Wnd(&host.root, {}))
     host.root.applyLayout()
 
-    let pad = metrics.inspector_Padding
+    let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+    let pad = Math.max(metrics.inspector_Padding, gutter)
     Swag.require(content.parent == &inspector.wnd)
     Swag.require(inspector.position.bottom() == 480 - metrics.floating_Inset)
-    Swag.require(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad)
+    Swag.require(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad + gutter)
     Swag.require(content.position.y == swatch.position.bottom() + metrics.inspector_RowGap)
     Swag.require(content.position.bottom() == inspector.position.height - pad)
 

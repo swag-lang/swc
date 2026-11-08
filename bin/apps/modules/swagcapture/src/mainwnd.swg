@@ -1181,7 +1181,7 @@ impl MainWnd
     // Builds the main window: the work area with its dock, inspector, mini-bar and hint line,
     // the recent strip it shows on demand, the library hidden until it is asked for, and the
     // lens that reaches every command.
-    func create(parent: *Wnd)->*MainWnd
+    func create(parent: *Wnd, testMonitors: *Array'Env.Monitor? = null)->*MainWnd
     {
         let srf = unwrap parent.surface
         srf.minSize = {1024, 512}
@@ -1201,6 +1201,14 @@ impl MainWnd
             .mdlHighlight    = &result.mdlFormShape
             .mdlPixSel       = &result.mdlFormShape
             .monitors        = Env.getMonitors()
+        }
+
+        // Tests inject their display geometry before lens and menu commands are built.
+        if testMonitors
+        {
+            result.monitors.clear()
+            for monitor in testMonitors[] do
+                result.monitors.add(monitor)
         }
 
         // Establish defaults before constructing localized controls, so they do not need

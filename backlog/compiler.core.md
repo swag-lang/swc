@@ -4,6 +4,18 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.107 — Reject invalid closure captures without a host exception
+
+- Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
+- Next: reduce the two invalid capture forms to standalone semantic tests, identify which one triggers the host exception, and inspect the closure-capture diagnostic path.
+- Done when: each invalid form yields its intended diagnostic without a host exception under the Release and DevMode compilers.
+
+### compiler.core.108 — Preserve generic parameters across an incremental app build
+
+- Evidence: an incremental Release build of Swag Capture diagnosed `unknown name 'arr'` at `core`'s `Array.opSet(arr: const [..] T)` for `T = FileInfo`, although the parameter is declared in the adjacent signature. A forced dependency rebuild compiled the same source, and the following warm build was up to date.
+- Next: reproduce from a retained dependency artifact after changing a GUI or application test source, then compare the imported generic body and specialization state with a forced rebuild.
+- Done when: incremental and rebuilt application compilations both resolve the `opSet` parameter, with a regression that preserves the failing dependency-reuse boundary.
+
 ### compiler.core.101 — Preserve enum context inside a generic constraint block
 
 - Evidence: in the integer-bound constraints of `bin/runtime/iteration.swg`, replacing the

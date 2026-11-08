@@ -12,10 +12,12 @@ Use complementary test families. A passing startup smoke is not a completed user
 | Startup smoke | The shipped executable and published resources start and stop within a budget | `tools/apps.bat [dm] smoke <application>` |
 
 Integration tags opt in ordinary `#test` functions; they are not another test language or assertion
-framework. Keep the test-only guard and keep journeys out of `#main`. The directory supplies the
-test type, and filenames name the subject and end in `.swg`. Name a journey for the complete
-user plan, such as `cases/integration/browsemedialibrary.swg`; the first control or screen does
-not own the journey. Do not mix test types in one file. Keep every module test under
+framework. Keep the test-only guard and keep journeys out of `#main`. Each journey file contains
+exactly one `#test` and is named for the complete user plan, such as
+`cases/integration/browsemedialibrary.swg`; the first control or screen does not own the journey.
+The journey concept and plan format are shared across applications; setup, waiting, and cleanup
+helpers stay in the owning application's `src/tests/helpers/` when their code depends on that app.
+Do not mix test types in one file. Keep every module test under
 `src/tests/cases/`; preserve viewer-specific grouping with an area folder such as
 `src/tests/cases/functional/viewers/<viewer>/`. Put shared test helpers under `src/tests/helpers/`,
 not in production APIs. A smoke test is the bounded application startup check, not a user journey.
@@ -26,22 +28,29 @@ persisted settings into the owned temporary directory. An empty test shell can m
 Use the same commands and input handlers as the UI. OS-level input delivery remains a separate
 integration boundary: calling an action directly does not test keyboard routing or hit testing.
 Native test entry points omit `#main`. Exercise background work through the production task and
-decoder path rather than replacing it with a fake in the scenario.
+decoder path rather than replacing it with a fake in the scenario. Write a portable journey in an
+unsuffixed `.swg` file when the user task works on both Windows and Linux. Isolate OS input or
+presentation checks in a platform-specific helper or compile-time branch; reserve `.win32.swg` and
+`.linux.swg` journeys for behavior that is genuinely platform-specific.
 
 ## Write an executable test plan
 
-Give each independently finishable journey its own `#test`, with:
+Give each independently finishable journey its own file and its own `#test`, with the plan visible
+in this order:
 
 1. A short comment naming the user's task and the regression it protects.
-2. Owned temporary data, seeded from the application's immutable `src/tests/datas` fixtures.
+2. Owned temporary data, seeded from the application's immutable `src/tests/datas` fixtures or
+   generated as a small deterministic image when its pixels are the entire input contract.
    Large libraries may repeat small real files; state that this stresses volume and lifecycle,
    not format diversity. Never depend on a personal drive, live service, or private document.
 3. Explicit actions followed by observable expectations: selected file, item count, scroll
    position, active document, finished thumbnail, saved bytes, and preserved state on return.
-4. Readiness conditions and bounded deadlines. Pump the actual event loop while waiting; a sleep
-   alone proves nothing. Report the stage that timed out. Keep each test below 40 seconds; split
+4. Readiness conditions and bounded deadlines. Pump the actual event loop while waiting; native
+   `Application.runFrame` already yields on idle turns, so do not add fixed sleeps or frame counts
+   to a journey wait. Report the stage that timed out. Keep each test below 40 seconds; split
    longer plans into independent journeys rather than raising every timeout.
-5. A rendering checkpoint where visual corruption is a risk. On Windows,
+5. A rendering checkpoint where visual corruption is a risk. Keep platform-specific pixel checks
+   outside a portable journey helper. On Windows,
    `Gui.Testing.verifyNativePresentation` compares the completed native presentation bitmap with
    the GPU target and rejects a transfer error. It cannot detect identical corruption already
    present in both images, or prove what the desktop compositor displayed. CPU goldens, GPU scene
@@ -59,6 +68,13 @@ library larger than the viewport/cache, odd window widths, resize and restore, b
 and a supported non-default DPI. Do not describe an unimplemented dimension as covered.
 
 ## Current executable coverage
+
+Swag Capture keeps five portable plans in `integration/annotatereopen.swg`,
+`exportreopen.swg`, `importreopen.swg`, `searchlibrary.swg`, and
+`transformreopen.swg`. Each uses `helpers/capturejourney.swg` for a private native
+window, library, event-loop readiness deadlines, render-failure checks, and cleanup.
+The synthetic image plans exercise the editor and document lifecycle, while the
+OS screen-grab contracts remain separate platform integrations.
 
 Swag Scope's `stress/previewcache.swg` creates 160 local entries in a temporary Films folder
 from real video fixtures and exercises eviction and reload across the 128-texture preview cache.

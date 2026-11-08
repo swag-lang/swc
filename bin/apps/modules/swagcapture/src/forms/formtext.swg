@@ -101,12 +101,15 @@ impl FormText
         var result = .typeFace
         if not result
         {
+            var app = &g_App
+            if .capture and .capture.editView do
+                app = .capture.editView.app()
             switch .fontStyle
             {
-            case .Regular:    result = g_App.theme.res.defaultTypeFaceR
-            case .Bold:       result = g_App.theme.res.defaultTypeFaceB
-            case .Italic:     result = g_App.theme.res.defaultTypeFaceI
-            case .BoldItalic: result = g_App.theme.res.defaultTypeFaceBI
+            case .Regular:    result = app.theme.res.defaultTypeFaceR
+            case .Bold:       result = app.theme.res.defaultTypeFaceB
+            case .Italic:     result = app.theme.res.defaultTypeFaceI
+            case .BoldItalic: result = app.theme.res.defaultTypeFaceBI
             }
         }
 

@@ -586,7 +586,7 @@ impl Capture
     mtd opDrop()
     {
         if .backTexture.isValid() do
-            g_App.renderer.removeTexture(&.backTexture)
+            .editView!.app().renderer.removeTexture(&.backTexture)
         freeForms(.forms)
         .closeMedia()
     }

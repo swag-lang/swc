@@ -43,13 +43,13 @@ public impl Cursor
             if shape == .Hidden
             {
                 let bitmap = context.xcb_generate_id(connection)
-                try LinuxDesktop.check(context, context.xcb_create_pixmap_checked(connection, 1, bitmap, context.screen.root, 1, 1))
+                expect LinuxDesktop.check(context, context.xcb_create_pixmap_checked(connection, 1, bitmap, context.screen.root, 1, 1))
                 var bitmapOwned = true
                 defer if bitmapOwned do
                     discard catch LinuxDesktop.check(context, context.xcb_free_pixmap_checked(connection, bitmap))
 
                 let gc = context.xcb_generate_id(connection)
-                try LinuxDesktop.check(context, context.xcb_create_gc_checked(connection, gc, bitmap, 0, null))
+                expect LinuxDesktop.check(context, context.xcb_create_gc_checked(connection, gc, bitmap, 0, null))
                 var gcOwned = true
                 defer if gcOwned do
                     discard catch LinuxDesktop.check(context, context.xcb_free_gc_checked(connection, gc))
@@ -60,15 +60,15 @@ public impl Cursor
                 pixel[1] = 0
                 pixel[2] = 0
                 pixel[3] = 0
-                try LinuxDesktop.check(context,
+                expect LinuxDesktop.check(context,
                                        context.xcb_put_image_checked(connection, 2, bitmap, gc, 1, 1, 0, 0, 0, 1, cast(u32, pixel.count), pixel.buffer))
 
                 let id = context.xcb_generate_id(connection)
-                try LinuxDesktop.check(context, context.xcb_create_cursor_checked(connection, id, bitmap, bitmap, 0, 0, 0, 0, 0, 0, 0, 0))
+                expect LinuxDesktop.check(context, context.xcb_create_cursor_checked(connection, id, bitmap, bitmap, 0, 0, 0, 0, 0, 0, 0, 0))
                 context.cursors[shape] = id
-                try LinuxDesktop.check(context, context.xcb_free_gc_checked(connection, gc))
+                expect LinuxDesktop.check(context, context.xcb_free_gc_checked(connection, gc))
                 gcOwned = false
-                try LinuxDesktop.check(context, context.xcb_free_pixmap_checked(connection, bitmap))
+                expect LinuxDesktop.check(context, context.xcb_free_pixmap_checked(connection, bitmap))
                 bitmapOwned = false
             }
             else

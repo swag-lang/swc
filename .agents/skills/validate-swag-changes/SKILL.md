@@ -225,7 +225,7 @@ Repeat it to select a union:
 ```text
 tools/std.bat dm test gui --test-file htmlview.swg
 tools/std.bat dm test gui --test-file htmlview.swg --test-file markdownview.swg
-tools/apps.bat test swagscope --test-file viewer.video.swg
+tools/apps.bat test swagscope --test-file cases/functional/viewers/video/video.swg
 ```
 
 Use `--file-filter` only for standalone compiler-suite inputs or a self-contained reference page.
@@ -241,7 +241,7 @@ Prefer a named application test file over all GUI tests:
 - Markdown parser/layout/rendering: `gui`'s `markdownview.swg`, then
   `viewer.markdown.swg` as the concrete viewer consumer.
 - Video codecs/streaming: the matching `video` file (`avi.swg`, `y4m.swg`, or
-  `streaming.swg`), then Swag Scope's `viewer.video.swg` as the concrete player.
+  `streaming.swg`), then Swag Scope's `cases/functional/viewers/video/video.swg` as the concrete player.
 - Dialog composition: `dialogs.charter.swg`, `dialogs.layout.swg`, and the exact dialog
   test such as `messagedlg.swg`; use `gui9` only for the required visual inspection.
 

@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
-//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, including composition offsets and sync-sample seeking.
-//! Not supported: Fragmented or encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus single-sample H.264 movie fragments.
+//! Not supported: Multi-track fragments, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
 #global namespace Mp4
@@ -14,6 +14,8 @@ func fourCc(a, b, c, d: u32)->u32 => (a << 24) | (b << 16) | (c << 8) | d
 const FileTypeId           = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
 const MovieId              = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
 const TrackId              = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
+const TrackHeaderId        = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
+const MediaDataId          = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
 const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
 const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
 const HandlerId            = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
@@ -33,10 +35,15 @@ const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
 const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
 const Mpeg4AudioObjectType = 0x40'u8
 
-const SyncSampleId  = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
-const CompositionId = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
-const AvcConfigId   = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
-const HevcConfigId  = fourCc('h'u32, 'v'u32, 'c'u32, 'C'u32)
+const SyncSampleId          = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
+const CompositionId         = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
+const AvcConfigId           = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
+const HevcConfigId          = fourCc('h'u32, 'v'u32, 'c'u32, 'C'u32)
+const FragmentId            = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
+const FragmentTrackId       = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
+const FragmentTrackHeaderId = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
+const FragmentDecodeTimeId  = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
+const FragmentRunId         = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
 
 const JpegCodecIds: [3] u32 = [
     fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32),
@@ -82,6 +89,27 @@ struct FrameEntry
     size:   u64
 }
 
+// One complete sample described by a movie fragment.
+private struct FragmentSample
+{
+    offset:           u64
+    size:             u32
+    decodeTime:       u64
+    presentationTime: s64
+    duration:         u32
+    isKeyFrame:       bool
+}
+
+// Fields of the one-sample track run accepted by the fragmented reader.
+private struct FragmentRun
+{
+    dataOffset:  u32
+    duration:    u32
+    size:        u32
+    flags:       u32
+    composition: u32
+}
+
 // One run of samples sharing a duration.
 private struct TimeEntry
 {
@@ -100,6 +128,7 @@ private struct ChunkEntry
 // Tables describing one media track.
 struct Track
 {
+    id:             u32
     codec:          u32
     width:          s32
     height:         s32
@@ -142,8 +171,10 @@ private struct Layout
 {
     track:            Track
     audioTracks:      Array'Track
+    fragments:        Array'FragmentSample
     hasMovie:         bool
     hasVideo:         bool
+    hasFragments:     bool
     unsupportedCodec: u32
 }
 
@@ -233,18 +264,65 @@ private impl Layout
     // Walks the top-level boxes and keeps the first supported video track plus playable audio.
     mtd parse(source: *ByteSource) fail
     {
+        var pending: FragmentSample
+        var hasPending = false
         while source.position() + BoxHeaderSize <= source.size()
         {
-            let box = try readBox(source, source.size())
-            if box.kind == MovieId
+            let start = source.position()
+            let box   = try readBox(source, source.size())
+            switch box.kind
             {
+            case MovieId:
                 .hasMovie = true
                 try .parseMovie(source, box.end)
+
+            case FragmentId:
+                if not .hasMovie or hasPending do
+                    fail InvalidFormatError{"MP4 movie fragment is out of order"}
+                if not .track.isAvc or
+                   .audioTracks.count or
+                   (not .hasFragments and .track.sizes.count) do
+                    fail UnsupportedFormatError{"MP4 fragments need one H.264 track without classic samples"}
+                pending       = try .parseFragment(source, start, box.end)
+                hasPending    = true
+                .hasFragments = true
+
+            case MediaDataId:
+                if hasPending
+                {
+                    if pending.offset < box.data or
+                       pending.offset > box.end or
+                       pending.size > box.end - pending.offset do
+                        fail InvalidFormatError{"MP4 fragment sample runs outside its media-data box"}
+                    if .fragments.count >= Swag.U32.Max do
+                        fail UnsupportedFormatError{"MP4 fragment has too many video samples"}
+                    if .fragments.isEmpty() and not pending.isKeyFrame do
+                        fail InvalidFormatError{"MP4 fragmented video must start with a key frame"}
+                    if .fragments.count
+                    {
+                        let previous = .fragments.back()
+                        if pending.decodeTime < previous.decodeTime + previous.duration do
+                            fail InvalidFormatError{"MP4 fragment decode times overlap"}
+                        let delta = pending.decodeTime - previous.decodeTime
+                        if delta > Swag.U32.Max do
+                            fail UnsupportedFormatError{"MP4 fragment decode-time gap exceeds 32 bits"}
+                        .track.times[.track.times.count - 1].sampleDelta = cast(u32, delta)
+                    }
+
+                    .track.times.add({1, pending.duration})
+                    .track.sizes.add(pending.size)
+                    if pending.isKeyFrame do
+                        .track.syncSamples.add(cast(u32, .fragments.count))
+                    .fragments.add(pending)
+                    hasPending = false
+                }
             }
 
             try source.seek(box.end)
         }
 
+        if hasPending do
+            fail InvalidFormatError{"MP4 movie fragment has no complete media-data box"}
         if source.position() != source.size() do
             fail InvalidFormatError{"MP4 stream has trailing bytes outside a box"}
         if not .hasMovie do
@@ -288,6 +366,97 @@ private impl Layout
             try source.seek(box.end)
         }
     }
+
+    // Reads the one H.264 sample layout emitted by FragmentedWriter.
+    mtd parseFragment(source: *ByteSource, start, end: u64)->FragmentSample fail
+    {
+        var result: #returntype
+        var found = false
+        while source.position() + BoxHeaderSize <= end
+        {
+            let box = try readBox(source, end)
+            if box.kind == FragmentTrackId
+            {
+                if found do
+                    fail UnsupportedFormatError{"MP4 decoder supports one track per movie fragment"}
+                result = try .parseFragmentTrack(source, start, box.end)
+                found  = true
+            }
+
+            try source.seek(box.end)
+        }
+
+        if source.position() != end do
+            fail InvalidFormatError{"MP4 movie fragment ends with a partial box"}
+        if not found do
+            fail InvalidFormatError{"MP4 movie fragment has no track run"}
+        return result
+    }
+
+    mtd parseFragmentTrack(source: *ByteSource, start, end: u64)->FragmentSample fail
+    {
+        var hasHeader = false
+        var hasTime   = false
+        var hasRun    = false
+        var decodeTime: u64
+        var run:        FragmentRun
+
+        while source.position() + BoxHeaderSize <= end
+        {
+            let box = try readBox(source, end)
+            switch box.kind
+            {
+            case FragmentTrackHeaderId:
+                if hasHeader or box.end - source.position() < 8 do
+                    fail InvalidFormatError{"MP4 fragment track header is incomplete or repeated"}
+                let header = try source.readBigEndian'u32()
+                let track  = try source.readBigEndian'u32()
+                if header != 0x0002_0000 or track != .track.id do
+                    fail UnsupportedFormatError{"MP4 fragment track header is unsupported"}
+                hasHeader = true
+
+            case FragmentDecodeTimeId:
+                if hasTime or box.end - source.position() < 12 do
+                    fail InvalidFormatError{"MP4 fragment decode time is incomplete or repeated"}
+                if (try source.readBigEndian'u32()) != 0x0100_0000 do
+                    fail UnsupportedFormatError{"MP4 fragment decode-time version is unsupported"}
+                decodeTime = try source.readBigEndian'u64()
+                if decodeTime > cast(u64, Swag.S64.Max) do
+                    fail UnsupportedFormatError{"MP4 fragment decode time exceeds the supported range"}
+                hasTime = true
+
+            case FragmentRunId:
+                if hasRun or box.end - source.position() < 28 do
+                    fail InvalidFormatError{"MP4 fragment run is incomplete or repeated"}
+                if (try source.readBigEndian'u32()) != 0x0100_0F01 or
+                   (try source.readBigEndian'u32()) != 1 do
+                    fail UnsupportedFormatError{"MP4 decoder supports one explicit sample per fragment"}
+                run = FragmentRun{try source.readBigEndian'u32(), try source.readBigEndian'u32(),
+                                  try source.readBigEndian'u32(), try source.readBigEndian'u32(),
+                                  try source.readBigEndian'u32()}
+                hasRun = true
+            }
+
+            try source.seek(box.end)
+        }
+
+        if source.position() != end do
+            fail InvalidFormatError{"MP4 track fragment ends with a partial box"}
+        if not hasHeader or not hasTime or not hasRun or not run.duration or not run.size do
+            fail InvalidFormatError{"MP4 movie fragment lacks a complete video sample"}
+        let displacement = cast #bit(s32, run.dataOffset)
+        if displacement < 0 or cast(u64, displacement) > Swag.U64.Max - start do
+            fail InvalidFormatError{"MP4 fragment sample offset is invalid"}
+        let offset = start + cast(u64, displacement)
+
+        let composition = cast #bit(s32, run.composition)
+        let decode      = cast(s64, decodeTime)
+        if (composition < 0 and -cast(s64, composition) > decode) or
+           (composition > 0 and decode > Swag.S64.Max - composition) do
+            fail InvalidFormatError{"MP4 fragment presentation time is outside the supported range"}
+        return FragmentSample{offset, run.size, decodeTime, decode + composition, run.duration,
+                              (run.flags & 0x0001_0000) == 0}
+    }
 }
 
 impl Track
@@ -299,10 +468,28 @@ impl Track
         while source.position() + BoxHeaderSize <= end
         {
             let box = readBox(source, end)
-            if box.kind == MediaId do
-                .parseMedia(source, box.end)
+            switch box.kind
+            {
+            case TrackHeaderId: .parseTrackHeader(source, box.end)
+            case MediaId:       .parseMedia(source, box.end)
+            }
+
             source.seek(box.end)
         }
+    }
+
+    mtd parseTrackHeader(source: *ByteSource, end: u64) fail
+    {
+        if end - source.position() < 4 do
+            fail InvalidFormatError{"MP4 track header is truncated"}
+        let version = try readFullBox(source)
+        if version > 1 do
+            fail UnsupportedFormatError{"MP4 track-header version is unsupported"}
+        let prefix = version == 1 ? 16'u64 : 8'u64
+        if end - source.position() < prefix + 4 do
+            fail InvalidFormatError{"MP4 track header has no track identifier"}
+        try source.skip(prefix)
+        .id = try source.readBigEndian'u32()
     }
 
     mtd parseMedia(source: *ByteSource, end: u64) fail
@@ -576,7 +763,7 @@ impl Track
         {
             let sampleCount = try source.readBigEndian'u32()
             let rawOffset   = try source.readBigEndian'u32()
-            let offset      = version == 0 ? cast(s32, Math.min(rawOffset, cast(u32, Swag.S32.Max))) : cast(s32, rawOffset)
+            let offset      = version == 0 ? cast(s32, Math.min(rawOffset, cast(u32, Swag.S32.Max))) : cast #bit(s32, rawOffset)
             .ctsEntries.add({sampleCount, offset})
         }
     }
@@ -871,7 +1058,7 @@ impl Track
 
 // Reads ISO-BMFF files carrying Motion JPEG, H.264, or H.265 video samples.
 //
-// Opening walks only the movie metadata and expands its compact sample tables into one direct
+// Opening expands classic sample tables or single-sample H.264 movie fragments into one direct
 // offset-and-size entry per frame. Frame payloads remain in the source and are read only when
 // requested. A Motion JPEG sample is a key frame, so seeking costs one table lookup; a coded
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
@@ -903,9 +1090,24 @@ impl IDecoder for Decoder
     {
         var layout: Layout
         try layout.parse(source)
-        var frames = try layout.track.buildFrames(source.size())
+        var frames: Array'FrameEntry
+        var times:  Array's64
+        if layout.hasFragments
+        {
+            frames.reserve(layout.fragments.count)
+            times.reserve(layout.fragments.count)
+            for sample in layout.fragments
+            {
+                frames.add({sample.offset, sample.size})
+                times.add(sample.presentationTime)
+            }
+        }
+        else
+        {
+            frames = try layout.track.buildFrames(source.size())
+            times  = try layout.track.sampleTimes()
+        }
 
-        let times = try layout.track.sampleTimes()
         .presentationTimescale = layout.track.timescale
         .presentationTimes.reserve(times.count)
         if layout.track.isCodedVideo()
@@ -952,7 +1154,7 @@ impl IDecoder for Decoder
         .info.codecName  = layout.track.isHevc ? "H.265 / HEVC" :
                            (layout.track.isAvc ? "H.264 / AVC" :
                             (layout.track.isJpeg ? "Motion JPEG" : "MPEG-4 Part 2"))
-        .nextIndex       = 0
+        .nextIndex = 0
 
         if layout.track.isCodedVideo()
         {

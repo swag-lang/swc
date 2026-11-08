@@ -27,8 +27,8 @@ private const Iso6BrandId           = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
 // The first packet must be a key frame. Timestamps use the `timescale` given at creation.
 //
 // The file has no final index; sequential playback and recovery of complete fragments work before
-// [[Video.Mp4.FragmentedWriter.end]]. The current [[Video.Reader]] does not yet read fragmented
-// MP4, so readers that understand ISO-BMFF movie fragments are needed for playback.
+// [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] can open these complete video fragments by
+// scanning their headers.
 #[Swag.NoCopy]
 struct FragmentedWriter
 {

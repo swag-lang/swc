@@ -120,9 +120,10 @@ interface IPlanarDecoder
 // several seconds of it.
 interface IKeyPictureDecoder
 {
-    // Positions the decoder on the clean decode point at or before `seconds`, reading that point
-    // alone, so the next decoded picture is it. Returns false when the stream has no index to find
-    // one by; the reader then seeks the way it seeks to a frame.
+    // Positions the decoder on the clean decode point at or before `seconds`.
+    //
+    // Reads that point alone, so the next decoded picture is it. Returns false when the stream has
+    // no index to find one by; the reader then seeks the way it seeks to a frame.
     mtd seekKeyPicture(source: *ByteSource, seconds: f64)->bool fail
 }
 
@@ -212,10 +213,11 @@ impl Reader
         return null
     }
 
-    // Opens `fileName` and reads its stream header.
+    // Opens `fileName` and reads its stream metadata.
     //
-    // The extension selects the decoder, and only the header is read: opening a stream costs
-    // the same whatever its length. The file stays open until the reader is closed.
+    // The extension selects the decoder. A fragmented MP4 scans each fragment header at open;
+    // frame payloads remain in the file and are read only when requested. The file stays open
+    // until the reader is closed.
     //
     // `pictureOnly` opens the pictures alone: the reader reports no sound or subtitle track,
     // and a container that indexes its sound beside its pictures reads nothing for it. A

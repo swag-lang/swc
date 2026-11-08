@@ -14,6 +14,9 @@ const PowerOfTwo: [4] s32 = #run
     return arr
 }
 
+#[Swag.NoInline]
+func runReadPowerOfTwo(index: u64)->s32 => PowerOfTwo[index]
+
 const DeducePowerOfTwo = #run
 {
     return [1, 2, 3, 4]
@@ -55,6 +58,7 @@ const PersistentAnyArray: [2] any = #run
 
 #test
 {
+    Swag.require(runReadPowerOfTwo(2) == 4)
     let value = #run
     {
         var pair: AnyPair

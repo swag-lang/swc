@@ -313,7 +313,7 @@ namespace
         return result;
     }
 
-    ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr)
+    ConstantRef makeJitCallResultConstantRef(Sema& sema, const JITCallResultMeta& resultMeta, const std::byte* storagePtr, bool compilerRunResult)
     {
         const TypeInfo& exprType        = sema.typeMgr().get(resultMeta.exprTypeRef);
         const TypeInfo& storageType     = sema.typeMgr().get(resultMeta.storageTypeRef);
@@ -328,12 +328,15 @@ namespace
                 return cstRef;
         }
 
-        return sema.cstMgr().addConstant(sema.ctx(), makeRunExprConstant(sema, exprType, storageType, storagePtr));
+        ConstantValue value = makeRunExprConstant(sema, exprType, storageType, storagePtr);
+        if (compilerRunResult && value.isAnyPointer())
+            value.markCompilerRunPointer();
+        return sema.cstMgr().addConstant(sema.ctx(), value);
     }
 
     void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, JITPendingNodeData& pendingEntry)
     {
-        const ConstantRef cstRef = makeJitCallResultConstantRef(sema, pendingEntry.resultMeta, pendingEntry.payload.resultStorage.data());
+        const ConstantRef cstRef = makeJitCallResultConstantRef(sema, pendingEntry.resultMeta, pendingEntry.payload.resultStorage.data(), !pendingEntry.setFoldedTypedConst);
         if (pendingEntry.setFoldedTypedConst)
             sema.setFoldedTypedConst(nodeRef);
         sema.setConstant(nodeRef, cstRef);
@@ -1397,7 +1400,7 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
     if (jitResult != Result::Continue)
         return reportJitEvaluationFailure(sema, symFn);
 
-    sema.setConstant(nodeExprRef, makeJitCallResultConstantRef(sema, resultMeta, resultStorage.data()));
+    sema.setConstant(nodeExprRef, makeJitCallResultConstantRef(sema, resultMeta, resultStorage.data(), true));
     return Result::Continue;
 }
 
@@ -1523,7 +1526,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         SWC_RESULT(emitForeignConstExprCall(sema, calledFn, payload.jitArgs.span(), jitReturn));
         verifyJitFoldRedzones(sema, calledFn, payload.argStorage);
 
-        const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload.resultStorage.data());
+        const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload.resultStorage.data(), false);
         if (payload.constCallCacheKey)
             cacheConstCallResult(sema, std::move(*payload.constCallCacheKey), resultCstRef);
 

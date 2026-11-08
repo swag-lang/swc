@@ -207,6 +207,7 @@ void ConstantValue::constructPayloadFrom(OTHER& other)
 ConstantValue::ConstantValue(const ConstantValue& other) :
     kind_(other.kind_),
     payloadBorrowed_(other.payloadBorrowed_),
+    compilerRunPointer_(other.compilerRunPointer_),
     typeRef_(other.typeRef_),
     dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed))
 {
@@ -216,6 +217,7 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     kind_(other.kind_),
     payloadBorrowed_(other.payloadBorrowed_),
+    compilerRunPointer_(other.compilerRunPointer_),
     typeRef_(other.typeRef_),
     dataSegmentRef_(other.dataSegmentRef_.load(std::memory_order_relaxed))
 {
@@ -224,6 +226,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     other.kind_ = ConstantKind::Invalid;
     other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);
     other.payloadBorrowed_ = false;
+    other.compilerRunPointer_ = false;
 }
 
 ConstantValue::~ConstantValue()
@@ -262,6 +265,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
     if (kind_ != rhs.kind_)
         return false;
     if (typeRef_ != rhs.typeRef_)
+        return false;
+    if (isAnyPointer() && compilerRunPointer_ != rhs.compilerRunPointer_)
         return false;
 
     return compareSameKind(*this, rhs, NumericCmp::Same);
@@ -839,6 +844,8 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
             h = Math::hashCombine(h, payloadPointer_.val);
+            if (compilerRunPointer_)
+                h = Math::hashCombine(h, true);
             break;
         case ConstantKind::Null:
             break;

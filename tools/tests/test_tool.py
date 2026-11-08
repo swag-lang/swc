@@ -28,7 +28,7 @@ class ToolTests(unittest.TestCase):
         self.environment = {}
 
     def invoke(self, arguments, windows=False, environment=None, result=0):
-        def execute(stages, env):
+        def execute(stages, env, *, keep_going=False):
             self.stages = stages
             self.environment = env
             return result
@@ -66,8 +66,9 @@ class ToolTests(unittest.TestCase):
         for windows in (False, True):
             self.assertEqual(self.invoke(['tests', 'dm'], windows=windows), 0)
             names = [stage.name for stage in self.stages]
-            self.assertEqual(names[:11], ['cpp', 'lexer', 'errors-lexer', 'parser', 'errors-parser',
-                                         'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native'])
+            self.assertEqual(names[:13], ['cpp', 'lexer', 'errors-lexer', 'parser', 'errors-parser',
+                                         'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native',
+                                         'errors-native-owning', 'errors-native-pointer'])
             self.assertEqual(names[-4:], list(tool.WORKSPACES))
             self.assertTrue(self.stages[0].command[0].endswith('swc.dm.exe' if windows else 'swc.dm'))
         self.invoke(['tests'])
@@ -81,14 +82,20 @@ class ToolTests(unittest.TestCase):
             self.assertFalse(any(arg.startswith('--build-cfg') or arg == '-bc' for arg in command))
             self.assertEqual(command[-2:], ['--num-cores', '1'])
 
+    def test_native_diagnostic_fixtures_require_native_execution(self):
+        self.invoke(['unittests', 'native', '--no-test-native'])
+        self.assertEqual([stage.name for stage in self.stages], ['native'])
+
     def test_workspace_dynamic_library_tracks_host_and_configuration(self):
         for windows in (False, True):
             self.invoke(['unittests', 'dm', 'workspace', '-bc', 'release', '--num-cores', '1'], windows=windows)
-            build, consumer = self.stages[:2]
+            build, package = self.stages[:2]
+            consumer = next(stage for stage in self.stages if stage.name == 'workspace-runtime_context_dynamic_consumer')
             self.assertEqual(build.command[1], 'build')
             self.assertIn('release', build.command)
             self.assertEqual(build.command[-2:], ['--num-cores', '1'])
-            self.assertEqual(consumer.requires, [build.name])
+            self.assertEqual(package.requires, [build.name])
+            self.assertEqual(consumer.requires, [package.name])
             self.assertTrue(any(arg.endswith('runtime_context_dynamic_dll.dll' if windows else 'runtime_context_dynamic_dll.so') for arg in consumer.command))
             sandbox = next(stage for stage in self.stages if stage.name.endswith('sandbox_consumer'))
             self.assertIn('--rebuild', sandbox.command)
@@ -104,6 +111,9 @@ class ToolTests(unittest.TestCase):
             failed_main = next(stage for stage in self.stages if stage.name == 'workspace-failed-main-script')
             self.assertEqual(failed_main.expected_returncode, 5)
             self.assertEqual(failed_main.expected_output, 'SWAG_DROP_AFTER_MAIN_RAN')
+            failed_check = next(stage for stage in self.stages if stage.name == 'workspace-failed-check-script')
+            self.assertEqual(failed_check.expected_returncode, 5)
+            self.assertEqual(failed_check.expected_output, 'SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP')
 
     def test_workers_and_explicit_runtime_override(self):
         for workers, expected in (('1', '1'), ('2', '2'), ('0', '3'), ('8', '3')):

@@ -1,0 +1,22 @@
+#import("lifecycle_script_dep", location: ".output")
+
+using Swag
+
+var saved: AllocatorRequest
+
+#init
+{
+    saved.size = 1
+    Swag.getContext().allocator!.alloc(&saved)
+    cast(*u8, unwrap saved.address)[] = 37
+    Swag.check(false, "expected ordinary failure")
+}
+
+#main {}
+
+#drop
+{
+    Swag.require(cast(*u8, unwrap saved.address)[] == 37)
+    Swag.getContext().allocator!.free(&saved)
+    Swag.print("SWAG_ORDINARY_DROP_RELEASED\n")
+}

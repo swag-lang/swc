@@ -102,6 +102,11 @@ public:
     bool isStructOrArray() const { return isStruct() || isArray(); }
     bool isSpanPayload() const { return isStructOrArray() || isSlice(); }
 
+    // A pointer returned by JIT evaluation may still address the compiler's heap.
+    // Keep this distinct from an explicit numeric pointer constant when interning.
+    bool isCompilerRunPointer() const noexcept { return compilerRunPointer_; }
+    void markCompilerRunPointer() noexcept { compilerRunPointer_ = true; }
+
     // Tests absence in both literal nulls and compound runtime representations.
     bool isNullValue(const TaskContext& ctx) const noexcept;
 
@@ -292,8 +297,9 @@ private:
     // Borrowed Struct/Array/Slice spans require backing storage that outlives this
     // constant, typically a DataSegment allocation. Keep the flag beside the kind
     // instead of adding another aligned word before the payload union.
-    ConstantKind kind_            = ConstantKind::Invalid;
-    bool         payloadBorrowed_ = false;
+    ConstantKind kind_               = ConstantKind::Invalid;
+    bool         payloadBorrowed_    = false;
+    bool         compilerRunPointer_ = false;
     TypeRef      typeRef_         = TypeRef::invalid();
 
     std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};

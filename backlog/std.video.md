@@ -192,6 +192,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
   converts Annex B encoder output and extracts `avcC`. `Video.Nv12Frame` converts packed RGB and
   BGRA pictures to top-down BT.709 NV12 for an encoder, but nothing in the module encodes frames.
+  `Video.FramePacer` maps monotonic arrivals to exact frame slots and reports skipped slots over
+  long recordings without accumulating time rounding.
   The current conversion is scalar; its throughput still needs a native encoder-path benchmark
   and a SIMD or GPU path before it can serve real-time 1080p60 recording.
   Screen recording in Swag Capture (app.capture.011) needs a modern
@@ -217,9 +219,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   scans samples in video and AAC-LC audio fragments and recovers completed frames and sound packets
   when the final fragment or final index is cut. The writer has one video track, up to four sound
   tracks, and an optional 64-bit `mfra`/`tfra` key-frame index written with bounded memory through
-  temporary disk storage. It reports submitted video end time and bytes written after completed
-  groups, so a recorder can monitor duration and size. `Mp4.FragmentedIndex` reads a completed
-  file's final index from its tail and locates key frames with binary search.
+  temporary disk storage. It reports submitted video and audio packet counts, track end times,
+  and bytes written after completed groups, so a recorder can monitor duration and size.
+  `Mp4.FragmentedWriter.resume` scans the
+  complete media prefix and continues a stopped file, retaining the video and AAC clocks and
+  replacing an old or incomplete final index. `Mp4.FragmentedIndex` reads a completed file's
+  final index from its tail and locates key frames with binary search.
   `Mp4.FragmentedPacketCursor` walks compressed video and AAC packets one fragment at a time with
   a bounded sample window. It reads payload only on request, reports each packet's fragment
   location and the last complete media boundary, and can start at an indexed video key frame.

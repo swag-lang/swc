@@ -49,8 +49,9 @@ Four codecs ship in the box:
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
-  AAC-LC sound tracks. The writer reports its submitted video end time and completed byte count
-  for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
+  AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
+  The writer reports submitted video and audio packet counts, track end times, and completed byte
+  count for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
   original compressed packets and track clocks for copying without decoding.
   [[Video.Mp4.FragmentedPacketCursor]]
   walks the same video and AAC packets one fragment at a time, keeping a bounded sample window;
@@ -76,6 +77,8 @@ Four codecs ship in the box:
   [[Video.H264.AnnexBAccessUnit]] converts start-code-delimited H.264 encoder output into the
   length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
   [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder.
+  [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
+  and reports skipped frames without retaining pictures.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
   independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
   channels that its decoder supports. A picture

@@ -968,6 +968,9 @@ namespace
         // so enumerate them too — otherwise an imported struct could not be matched as a candidate.
         if (const SymbolNamespace* importRoot = codeGen.compiler().importRootNamespace())
             collectMakeInterfaceRuntimeCandidatesRec(codeGen, *importRoot, resultType.payloadSymInterface(), candidates);
+        std::ranges::sort(candidates, [&](const InterfaceMakeRuntimeCandidate& lhs, const InterfaceMakeRuntimeCandidate& rhs) {
+            return codeGen.typeMgr().get(lhs.objectTypeRef).toFullName(codeGen.ctx()) < codeGen.typeMgr().get(rhs.objectTypeRef).toFullName(codeGen.ctx());
+        });
 
         SmallVector<PreparedInterfaceMakeRuntimeCandidate> preparedCandidates;
         preparedCandidates.reserve(candidates.size());
@@ -1034,6 +1037,9 @@ namespace
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
         if (importRoot)
             collectRuntimeInterfaceSymbolsRec(*importRoot, interfaces, seenInterfaces);
+        std::ranges::sort(interfaces, [&](const SymbolInterface* lhs, const SymbolInterface* rhs) {
+            return lhs->getFullScopedName(codeGen.ctx()) < rhs->getFullScopedName(codeGen.ctx());
+        });
 
         SmallVector<InterfaceTableRuntimeCandidate> candidates;
         if (!interfaces.empty())
@@ -1044,6 +1050,13 @@ namespace
             if (importRoot)
                 collectTableOfRuntimeCandidatesRec(codeGen, *importRoot, interfaces.span(), candidates);
         }
+        std::ranges::sort(candidates, [&](const InterfaceTableRuntimeCandidate& lhs, const InterfaceTableRuntimeCandidate& rhs) {
+            const Utf8 lhsType = codeGen.typeMgr().get(lhs.objectTypeRef).toFullName(codeGen.ctx());
+            const Utf8 rhsType = codeGen.typeMgr().get(rhs.objectTypeRef).toFullName(codeGen.ctx());
+            if (lhsType != rhsType)
+                return lhsType < rhsType;
+            return codeGen.typeMgr().get(lhs.interfaceTypeRef).toFullName(codeGen.ctx()) < codeGen.typeMgr().get(rhs.interfaceTypeRef).toFullName(codeGen.ctx());
+        });
 
         SmallVector<PreparedInterfaceTableRuntimeCandidate> preparedCandidates;
         preparedCandidates.reserve(candidates.size());

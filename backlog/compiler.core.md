@@ -49,11 +49,24 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   including captures without the allocator experiment. This is semantic metadata, not an image
   timestamp; retain it in reproducibility comparisons. See the
   [memory experiment](../bench/results/memory/20261030-devmode/no-large-pages-experiment.json).
+- Linux DevMode control with three workers and frozen `std` sources: the native location sort
+  assigned the same key to distinct generic struct and constant-function instances. Including
+  both sets of arguments removed those collisions; only cloned local `isLowerUtf8` and
+  `isUpperUtf8` functions retained equal keys in `core`. A second source of variation was the
+  completion order of interface implementations in reflection: `Core.Hash.IHash32` and
+  `Core.StrConv.IConvert` swapped table slots and relocations between builds. Sorting the
+  reflection copy by full interface name removed that swap. A third source was the order of
+  static candidates for `Swag.makeInterface`: two generated checks in `StrConv.convertStruct`
+  exchanged their typeinfo pointers and CRCs. Candidates now sort by full type name before
+  code generation. Five subsequent `core.so` builds matched, but an earlier three-build control
+  with this candidate sort still produced two hashes. `truetype.so` and all generated API files
+  matched in a full two-build control; `ogl.so`, `pixel.so` and `gui.so` still differed.
 - Next: trace when `Lens.View.create` acquires its return-borrow mask and whether export observes
   completed callee effects. Log which call sites create `Core.Math.max` instances in two builds and find the
   speculative instantiation; then trace the `showInFileExplorer` string constants back to
   `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
-  lets one value materialize twice.
+  lets one value materialize twice. Compare the remaining Linux `ogl`, `pixel` and `gui`
+  section deltas before assuming they share the Windows causes.
 - Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
   shared libraries apart from the image timestamp.
 

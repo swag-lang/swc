@@ -796,7 +796,10 @@ namespace
 
         const SymbolStruct& symStruct  = type.payloadSymStruct();
         const auto&         fields     = symStruct.fields();
-        const auto          interfaces = symStruct.interfaces();
+        auto                interfaces = symStruct.interfaces();
+        // Interface implementations can finish concurrently. Reflection order must describe
+        // declaration identity, not the order in which their semantic jobs completed.
+        std::ranges::sort(interfaces, {}, [&](const SymbolImpl* impl) { return impl->symInterface()->getFullScopedName(ctx); });
 
         std::vector<const SymbolFunction*> methods;
         SmallVector<TypeRef>               methodTypes;

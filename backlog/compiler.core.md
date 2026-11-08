@@ -534,22 +534,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.095 — Workspace golden tests can lose their writable corpus
-
-- Evidence: an earlier workspace JIT golden collection with `SWAG_GOLDEN_CONTINUE=1`
-  reached the GUI tests after Pixel, but refused to write `backdrop.lens.paper.actual.png`,
-  `lens.paper.actual.png`, and `lens.inline.paper.actual.png` as outside the sandbox.
-  The collection continued without producing those images. The test command is supposed to
-  grant the module or workspace corpus through `effectiveGeneratedArtifactRunArgs`.
-- An explicit `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` allowed those
-  writes with the sandbox still enabled. The current golden tool starts a separate native test
-  command for each module, so its passing collection does not exercise that JIT transition.
-- Next: select JIT execution explicitly and reduce this to two workspace modules that record a
-  file beside their tests; trace the generated run arguments and the lifetime of Core's
-  process-wide corpus across JIT modules.
-- Done when: every module can record inside its own authorized corpus in a workspace test,
-  writes outside that corpus remain refused, and a workspace regression covers the transition.
-
 ### compiler.core.096 — Make allocator heap inspection safe for abandoned pages
 
 - Evidence: with mimalloc 3.6.0 and `MI_DEBUG=3`, a diagnostic traversal through

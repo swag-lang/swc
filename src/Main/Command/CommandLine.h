@@ -451,7 +451,9 @@ inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cm
     // records nothing and is granted nothing.
     if (cmdLine.command == CommandKind::Test && !hasRunArgNamed(result, SWAG_SANDBOX_CORPUS_RUN_ARG))
     {
-        const fs::path& corpus = cmdLine.modulePath.empty() ? cmdLine.workspacePath : cmdLine.modulePath;
+        // A workspace test runs several modules in one process. Core grants one
+        // corpus for that process, so each module must receive the workspace root.
+        const fs::path& corpus = cmdLine.workspacePath.empty() ? cmdLine.modulePath : cmdLine.workspacePath;
         if (!corpus.empty())
             result.emplace_back(std::format("{}={}", SWAG_SANDBOX_CORPUS_RUN_ARG, corpus.string()));
     }

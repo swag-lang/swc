@@ -647,9 +647,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   A native executable that imports the shared-library lifecycle fixture now records dependency
   `#init/#premain` before its own hooks and its own `#drop` before the dependency's `#drop`. A
   native `#drop` panic exits with an error before later hooks can touch abandoned state.
-- Next: cover dynamic library load/unload with dependent modules and verify resource release on
-  ordinary failed hooks before restoring test data or unloading generated code. Document the
-  panic boundary alongside the normal reverse-order lifecycle contract.
+  A dynamically loaded library with a shared-library dependency previously ran the dependency's
+  `#premain` before its own `#init`. Dynamic acquisition now completes every `#init` before
+  the dependency and library `#premain` hooks; closing the last reference drops the library
+  before its dependency. The dynamic consumer checks the complete order and repeated loading.
+  The reference documents this order and the boundary after an uncaught native or JIT panic.
+- Next: verify resource release on ordinary failed hooks before restoring test data or unloading
+  generated code, including dynamically loaded dependencies.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

@@ -64,12 +64,14 @@ namespace
 
     enum class RuntimeHookStage : uint64_t
     {
-        Sync          = 0,
-        Init          = 1,
-        PreMain       = 2,
-        Drop          = 3,
-        DynamicLoad   = 4,
-        DynamicUnload = 5,
+        Sync           = 0,
+        Init           = 1,
+        PreMain        = 2,
+        Drop           = 3,
+        DynamicLoad    = 4,
+        DynamicUnload  = 5,
+        DynamicAcquire = 6,
+        DynamicPreMain = 7,
     };
 
     constexpr uint32_t K_RUNTIME_HOOK_INIT_DONE             = 1u << 0;
@@ -91,6 +93,8 @@ namespace
             case RuntimeHookStage::Sync:
             case RuntimeHookStage::DynamicLoad:
             case RuntimeHookStage::DynamicUnload:
+            case RuntimeHookStage::DynamicAcquire:
+            case RuntimeHookStage::DynamicPreMain:
                 break;
         }
 
@@ -303,6 +307,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     const MicroLabelRef preMainCompilerLabel = builder.createLabel();
     const MicroLabelRef dropLabel            = builder.createLabel();
     const MicroLabelRef dynamicLoadLabel     = builder.createLabel();
+    const MicroLabelRef dynamicPreMainLabel  = builder.createLabel();
     const MicroLabelRef dynamicUnloadLabel   = builder.createLabel();
     const MicroLabelRef doneLabel            = builder.createLabel();
 
@@ -320,6 +325,12 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicLoad), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicLoadLabel);
+
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicAcquire), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicLoadLabel);
+
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicPreMain), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicPreMainLabel);
 
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicUnload), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicUnloadLabel);
@@ -358,7 +369,9 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, hookArgs, nextVirtualIntRegIndex); }, nextVirtualIntRegIndex);
 
     builder.placeLabel(dynamicLoadLabel);
-    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::DynamicLoad, hookArgs, nextVirtualIntRegIndex);
+    // Acquire the whole dependency graph before any premain hook runs. A single recursive
+    // DynamicLoad would run a dependency's premain before this module's init.
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::DynamicAcquire, hookArgs, nextVirtualIntRegIndex);
     {
         const MicroReg referenceReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegDataSegmentReloc(referenceReg, DataSegmentKind::GlobalZero, dynamicReferenceOffset);
@@ -370,6 +383,12 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     }
 
     emitGuardedLifecycleBody(builder, RuntimeHookStage::Init, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
+
+    builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicAcquire), 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(dynamicPreMainLabel);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::DynamicPreMain, hookArgs, nextVirtualIntRegIndex);
 
     {
         const MicroLabelRef dynamicPreMainCompilerLabel = builder.createLabel();

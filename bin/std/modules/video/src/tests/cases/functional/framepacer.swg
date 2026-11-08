@@ -56,6 +56,13 @@ using Swag, Core.Errors
     discard catch FramePacer.create(expect FrameRate.create(1, Swag.U32.Max), 1, Swag.U32.Max) as rejected
     Swag.require(rejected.value() is BadParameterError)
 
+    var reduced = expect FramePacer.create(expect FrameRate.create(1_000_000_000, 1_000_000_000),
+                                           1_000_000_000, 90_000)
+    var reducedSlot: FrameSlot
+    Swag.require(expect reduced.tryAccept(0, &reducedSlot))
+    Swag.require(expect reduced.tryAccept(1_000_000_000, &reducedSlot))
+    Swag.require(reducedSlot.index == 1 and reducedSlot.decodeTime == 90_000)
+
     var pacer = expect FramePacer.create(rate, 1_000, 90_000)
     var slot: FrameSlot
     Swag.require(expect pacer.tryAccept(0, &slot))

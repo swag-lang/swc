@@ -1,6 +1,6 @@
 #global public
 
-using Core.Errors
+using Core, Core.Errors
 
 // One accepted picture on a constant-rate recording timeline.
 struct FrameSlot
@@ -45,12 +45,14 @@ impl FramePacer
         let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
         let maxDuration   = ticksPerFrame / rate.numerator() +
                             cast(u64, ticksPerFrame % rate.numerator() != 0)
-        let clockScale = cast(u64, rate.numerator()) * rate.denominator()
+        let divisor = cast(u32, Math.gcd(rate.numerator(), rate.denominator()))
+        let reduced = try FrameRate.create(rate.numerator() / divisor, rate.denominator() / divisor)
+        let clockScale = cast(u64, reduced.numerator()) * reduced.denominator()
         if ticksPerFrame < rate.numerator() or
            maxDuration > Swag.U32.Max or
            clockFrequency > Swag.U64.Max / clockScale do
             fail BadParameterError{"frame pacer rate cannot fit its video or monotonic clock"}
-        return FramePacer{rate, clockFrequency, videoTimescale}
+        return FramePacer{reduced, clockFrequency, videoTimescale}
     }
 
     // Returns exact timing for any frame slot, including one skipped by capture.

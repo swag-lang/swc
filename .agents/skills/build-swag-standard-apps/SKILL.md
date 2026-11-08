@@ -466,8 +466,11 @@ Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed
 
 Keep test families separate using their category directories in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md#lay-out-a-modules-tests-the-same-way-every-time).
-Application journeys belong in `src/tests/cases/integration/<plan>.swg`, named for the user journey across
-the application, with the tag `integration.application.journey`. A control or the first screen is
+Application journeys belong in `src/tests/cases/integration/<plan>.swg`, one `#test` per file,
+named for the user journey across the application, with the tag `integration.application.journey`.
+Keep the plan format common across applications but app-specific setup and wait helpers in that
+application's `src/tests/helpers/`. Use an unsuffixed `.swg` journey on every supported OS where
+the user task works; reserve platform suffixes for platform-specific behavior. A control or the first screen is
 not the owner of a journey that also opens documents, returns, saves or restores state. Keep the
 plan's setup, actions, readiness deadlines and observable checkpoints readable in the `#test`;
 do not grow a scenario state machine in production startup code. Each new production regression

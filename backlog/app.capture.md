@@ -26,6 +26,12 @@ referenced by the capture document, so a save never rewrites it; no memory grows
 duration; and the timeline, trimming and export work from indexes and streams, never from a
 whole recording loaded at once.
 
+### app.capture.039 — Remove global app dependencies from attached capture content
+
+- Evidence: native user journeys with an independently owned `Gui.Application` found that `Capture.toImage`, capture texture cleanup, and `FormText.resolveFace` read the global `g_App` instead of their attached view's app. Those paths now use the view when attached, but `FormImage`, `FormStep`, and `BaseForm` still read `g_App` for rendering or theme resources.
+- Next: audit each remaining global app access in forms and capture content, then move attached rendering and theme lookup to the owning view while preserving detached model behavior.
+- Done when: all attached capture forms render and release resources in an independent native application, with no global renderer or theme dependency.
+
 ### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
 
 - Next: persist shortcut choices in the existing options and add a conflict-resolution flow for

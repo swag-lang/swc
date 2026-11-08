@@ -362,7 +362,10 @@ the workspace publisher place its standard-module runtime dependencies beside it
 and select that plugin explicitly. This optional review waits for presentable content and returns
 a nonzero exit code when a fixture is missing or a plugin cannot open it.
 
-Realistic user journeys are dedicated `#test` functions tagged `integration.application.journey`.
+Realistic user journeys follow the shared plan in
+[`tools/application-scenarios.md`](../../../../tools/application-scenarios.md): one named plan and
+one `#test` per integration file, tagged `integration.application.journey`. Scope keeps its
+fixture and readiness diagnostics in `src/tests/helpers/`.
 `src/tests/cases/integration/browsemedialibrary.swg` exercises a temporary mixed-format media library,
 through the native window, workers and presentation path. Large preview-cache eviction coverage lives in
 `src/tests/cases/stress/previewcache.swg`. Both are excluded from default headless tests. Run the

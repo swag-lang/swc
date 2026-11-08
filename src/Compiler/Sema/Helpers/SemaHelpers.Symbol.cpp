@@ -1766,13 +1766,16 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (typeInfo->isStruct())
         return memberStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *typeInfo);
 
-    // Pointer/Reference
-    const TypeInfo& leftType = aliasEnumType(sema, nodeLeftView);
-    if (leftType.isPointerOrReference())
+    // Member lookup consumed the outer indirection, but another pointer layer
+    // remains. An arbitrary member name cannot stand in for a dereference: no
+    // RHS symbol or lowering payload would be produced for code generation.
+    if (typeInfo->isPointerOrReference())
     {
-        sema.setType(memberRef, leftType.payloadTypeRef());
-        sema.setIsValue(node);
-        return Result::SkipChildren;
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_member_needs_deref, SourceCodeRef{node.srcViewRef(), tokNameRef});
+        diag.addArgument(Diagnostic::ARG_SYM, idRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     bool ufcsHandled = false;

@@ -363,6 +363,7 @@ SWC_DIAG_DEF(sema_err_definite_init_drop, Error, "'{sym}' may be dropped before 
 SWC_DIAG_DEF(sema_err_nullable_return_contract, Error, "the return type is nullable, but no return path can produce null; [help] remove the '?' suffix from the return type, or return null where it is meant to happen")
 SWC_DIAG_DEF(sema_err_nullable_local_contract, Error, "'{sym}' is declared nullable, but it can never hold null; [help] every value it receives is non-null: remove the '?' suffix")
 SWC_DIAG_DEF(sema_err_nullable_member_access, Error, "member access through '{type}' dereferences a value that can still be null; [help] test the value against null first, assert with '!', or use '?.' to skip the access when null")
+SWC_DIAG_DEF(sema_err_member_needs_deref, Error, "member '{sym}' cannot be reached through '{type}'; [help] dereference the pointer slot with '[]' before the member access")
 SWC_DIAG_DEF(sema_err_nullable_deref, Error, "cannot dereference '{type}', which can still be null; [help] test the pointer against null first, or assert with '!'")
 SWC_DIAG_DEF(sema_err_nullable_index, Error, "indexing into '{type}' dereferences a value that can still be null; [help] test the value against null first, or assert with '!'")
 SWC_DIAG_DEF(sema_err_nullable_call, Error, "calling through '{type}' dereferences a value that can still be null; [help] test the function value against null first, or assert with '!'")

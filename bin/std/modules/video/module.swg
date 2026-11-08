@@ -56,6 +56,8 @@ Four codecs ship in the box:
   walks the same video and AAC packets one fragment at a time, keeping a bounded sample window;
   it reports each packet's fragment location and the last complete media boundary, and can start
   at a key-frame fragment located through [[Video.Mp4.FragmentedIndex]].
+  [[Video.Mp4.summarizeFragmentedRecording]] scans with the same bounded memory to report track
+  packet counts, decode-time endpoints, the last complete media boundary, and an interrupted tail.
   [[Video.Mp4.copyVideoRanges]] joins
   key-frame-aligned H.264 ranges into a video-only file without re-encoding;
   [[Video.Mp4.copyRanges]] also copies AAC-LC tracks, rounding cut edges to whole sound packets.

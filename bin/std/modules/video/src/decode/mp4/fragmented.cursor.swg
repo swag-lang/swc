@@ -21,6 +21,7 @@ private struct CursorScanState
     nextVideoTime:         u64
     hasVideo:              bool
     isEnded:               bool
+    hasIncompleteTail:     bool
 }
 
 // One compressed sample found while walking MP4 fragments in file order.
@@ -124,6 +125,12 @@ impl FragmentedPacketCursor
     // partial final fragment, this is the last offset a recovery tool can retain.
     mtd const completeMediaByteCount()->u64 => .scan.completeByteCount
 
+    // Returns whether the scan stopped at an incomplete final box after complete video.
+    //
+    // The result is meaningful after `nextPacket` has returned false, and is reset by
+    // `seekFragment`. A complete final random-access index does not count as an incomplete tail.
+    mtd const endedWithIncompleteTail()->bool => .scan.hasIncompleteTail
+
     // Borrows one AAC-LC track configuration until the cursor closes.
     mtd const audioTrack(index: u64)->FragmentedAudioConfig fail
     {
@@ -202,6 +209,7 @@ private impl FragmentedPacketCursor
                 if .scan.hasVideo
                 {
                     .scan.isEnded = true
+                    .scan.hasIncompleteTail = true
                     return false
                 }
 
@@ -218,6 +226,7 @@ private impl FragmentedPacketCursor
                 if .scan.hasVideo
                 {
                     .scan.isEnded = true
+                    .scan.hasIncompleteTail = true
                     return false
                 }
 
@@ -244,6 +253,7 @@ private impl FragmentedPacketCursor
                 if .scan.hasVideo
                 {
                     .scan.isEnded = true
+                    .scan.hasIncompleteTail = true
                     return false
                 }
 
@@ -260,6 +270,7 @@ private impl FragmentedPacketCursor
                 if .scan.hasVideo
                 {
                     .scan.isEnded = true
+                    .scan.hasIncompleteTail = true
                     return false
                 }
 

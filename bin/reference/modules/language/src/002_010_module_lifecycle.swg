@@ -17,9 +17,9 @@ appropriate phase.
 
 # Initialization
 
-A module may contain several '#init' hooks. Their relative order is unspecified,
-so each hook must establish its own invariants. Dependency modules initialize
-before modules that import them.
+A module may contain several '#init' hooks. They run in source-location order
+(path, then declaration position). Dependency modules initialize before modules
+that import them.
 */
 
 var ModuleLifecycleInitialized = false
@@ -54,8 +54,8 @@ module has initialized but before '#main' begins.
 # Shutdown
 
 '#drop' hooks run when a module unloads. Use them to release resources acquired
-by '#init'. Multiple module drop hooks execute in the reverse order of their
-corresponding initialization sequence.
+by '#init'. Multiple module drop hooks execute in reverse source-location order.
+Dependency modules unload after modules that import them.
 
 ```swag
 #drop

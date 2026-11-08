@@ -534,22 +534,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.095 — Workspace golden tests can lose their writable corpus
-
-- Evidence: an earlier workspace JIT golden collection with `SWAG_GOLDEN_CONTINUE=1`
-  reached the GUI tests after Pixel, but refused to write `backdrop.lens.paper.actual.png`,
-  `lens.paper.actual.png`, and `lens.inline.paper.actual.png` as outside the sandbox.
-  The collection continued without producing those images. The test command is supposed to
-  grant the module or workspace corpus through `effectiveGeneratedArtifactRunArgs`.
-- An explicit `--run-arg=swag.sandbox.corpus=C:\Perso\swag-lang\swc\bin` allowed those
-  writes with the sandbox still enabled. The current golden tool starts a separate native test
-  command for each module, so its passing collection does not exercise that JIT transition.
-- Next: select JIT execution explicitly and reduce this to two workspace modules that record a
-  file beside their tests; trace the generated run arguments and the lifetime of Core's
-  process-wide corpus across JIT modules.
-- Done when: every module can record inside its own authorized corpus in a workspace test,
-  writes outside that corpus remain refused, and a workspace regression covers the transition.
-
 ### compiler.core.096 — Make allocator heap inspection safe for abandoned pages
 
 - Evidence: with mimalloc 3.6.0 and `MI_DEBUG=3`, a diagnostic traversal through
@@ -683,15 +667,18 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.104 — Align module drop-hook order across native, script and JIT execution
 
-- Evidence: `NativeBackendBuilder` sorts drop functions by source position, while
+- Earlier evidence: `NativeBackendBuilder` sorted drop functions by source position, while
   `NativeArtifactBuilder` and `Command.Build` invoke the list forwards. The lifecycle reference
   (`002_010_module_lifecycle.swg`) promises the reverse of the corresponding initialization
   sequence. Reversing dependency modules alone does not establish the order of hooks inside one
-  module. JIT test cleanup must initially match the existing native lifecycle to avoid introducing
-  another execution-mode difference while fixing missing shutdown.
-- Next: establish one intra-module shutdown order, implement it in native, script and JIT paths,
-  and exercise multiple hooks, dependent modules and a failing shutdown hook. Keep resource
-  release complete before restoring test data or unloading generated code.
+  module. Native artifacts, scripts and JIT tests now run multiple drop hooks in reverse
+  source-location order, with passing Linux regressions for each path. The script regression
+  failed on the preceding compiler and passes with the correction. A script now attempts every
+  remaining drop hook after one panics, while still exiting with an error; a failing-script
+  regression requires the later hook's output marker.
+- Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
+  release completes after failed entry points and before restoring test data or unloading generated
+  code.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 
@@ -707,14 +694,3 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reproduce it before choosing a source-suite or compiler filesystem regression.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
-
-### compiler.core.109 — Resolve member access through a referenced pointer in a foreach loop
-
-- Evidence: a native Swag Scope test passed semantic checking, then asserted at
-  `CodeGen.cpp:931` with `missing-codegen-payload` for `preview.started` inside
-  `for &preview in explorer.previews`, where `previews` is `Array'*ExplorerPreview`.
-  Iterating as `for preview` compiles, so the test now uses that form.
-- Next: reduce the reference-to-pointer case to a standalone source and determine whether
-  member access should lower through the pointer or receive a source diagnostic.
-- Done when the reduced case compiles and runs or receives a clear diagnostic without a
-  compiler assertion, with a regression test for the chosen contract.

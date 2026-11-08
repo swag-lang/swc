@@ -149,18 +149,23 @@ namespace Command
             return CommandRun::afterPauses(ctx, [&] { return ctx.compiler().jitExecMgr().submit(ctx, request); });
         }
 
-        Result runJitScriptFunctions(TaskContext& ctx, std::span<SymbolFunction* const> functions, const JITRuntimeSetupMode setupMode)
+        Result runJitScriptFunctions(TaskContext& ctx, std::span<SymbolFunction* const> functions, const JITRuntimeSetupMode setupMode, const bool finishAll = false)
         {
+            bool succeeded = true;
             for (const SymbolFunction* function : functions)
             {
                 if (!function)
                     continue;
-                SWC_RESULT(runJitScriptFunction(ctx, *function, setupMode));
-                if (Stats::hasError())
-                    return Result::Error;
+                const size_t errorsBefore = Stats::getNumErrors();
+                if (runJitScriptFunction(ctx, *function, setupMode) != Result::Continue || Stats::getNumErrors() != errorsBefore)
+                {
+                    if (!finishAll)
+                        return Result::Error;
+                    succeeded = false;
+                }
             }
 
-            return Result::Continue;
+            return succeeded ? Result::Continue : Result::Error;
         }
 
         Result runScriptRuntimeSetup(TaskContext& ctx)
@@ -209,6 +214,7 @@ namespace Command
             SymbolSort::sortAndUniqueByLocation(preMainFunctions, compiler);
             SymbolSort::sortAndUniqueByLocation(mainFunctions, compiler);
             SymbolSort::sortAndUniqueByLocation(dropFunctions, compiler);
+            std::ranges::reverse(dropFunctions);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return SymbolFunction::jitBatch(ctx, allFunctions); }));
 
@@ -224,7 +230,7 @@ namespace Command
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain));
             SWC_RESULT(runJitScriptFunctions(ctx, preMainFunctions, JITRuntimeSetupMode::None));
             SWC_RESULT(runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None));
-            SWC_RESULT(runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None));
+            SWC_RESULT(runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true));
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop));
 
             if (stage)

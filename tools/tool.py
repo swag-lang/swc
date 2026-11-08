@@ -24,6 +24,7 @@ class Stage:
     command: list[str]
     requires: list[str] = field(default_factory=list)
     expected_output: str = ''
+    expected_returncode: int = 0
 
 
 def option_value(options, names, default):
@@ -126,6 +127,12 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage('workspace-import-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_core_without_using.swgs')],
                             expected_output='SWAG_IMPORTED_CORE_WITHOUT_USING_RAN'))
+        stages.append(Stage('workspace-lifecycle-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_order.swgs')],
+                            expected_output='SWAG_LIFECYCLE_ORDER_RAN'))
+        stages.append(Stage('workspace-failed-drop-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_failed_drop.swgs')],
+                            expected_output='SWAG_SECOND_DROP_RAN', expected_returncode=5))
     return stages
 
 
@@ -200,10 +207,10 @@ def execute(stages, environment):
                 sys.stdout.buffer.flush()
             else:
                 print(output, end='', flush=True)
-            if result.returncode == 0 and stage.expected_output not in output:
+            if result.returncode == stage.expected_returncode and stage.expected_output not in output:
                 print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
                 return 1
-        if result.returncode:
+        if result.returncode != stage.expected_returncode:
             return result.returncode if result.returncode > 0 else 128 - result.returncode
     return 0
 

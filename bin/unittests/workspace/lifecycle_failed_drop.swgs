@@ -1,0 +1,15 @@
+#import("core", location: "swag@std")
+
+#main
+{
+}
+
+#drop
+{
+    Swag.print("SWAG_SECOND_DROP_RAN\n")
+}
+
+#drop
+{
+    Swag.require(false)
+}

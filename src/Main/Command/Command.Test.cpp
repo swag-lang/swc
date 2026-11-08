@@ -575,6 +575,7 @@ namespace
         SymbolSort::sortAndUniqueByLocation(preMainFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(testFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(dropFunctions, ctx.compiler());
+        std::ranges::reverse(dropFunctions);
 
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));

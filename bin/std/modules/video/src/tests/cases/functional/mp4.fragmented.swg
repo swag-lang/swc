@@ -393,12 +393,15 @@ func fragmentedPacketSource()->ByteSource fail
     const NotKey:  [1] Mp4.VideoPacketRange = [{1, 3}]
     const BadEnd:  [1] Mp4.VideoPacketRange = [{0, 2}]
     const Overlap: [2] Mp4.VideoPacketRange = [{0, 3}, {2, 6}]
+    const Outside: [1] Mp4.VideoPacketRange = [{6, 10}]
     var rejected: Swag.Error
     discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&NotKey[0], 1)) as rejected
     Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&BadEnd[0], 1)) as rejected
     Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&Overlap[0], 2)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&Outside[0], 1)) as rejected
     Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.copyRanges(sourcePath, sentinelPath, Swag.makeSlice(&BadEnd[0], 1)) as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -1058,6 +1061,18 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(cut.packetCount() == 3)
     Swag.require((expect cut.audioTrack(0)).packetCount == 3)
     Swag.require((expect cut.audioTrack(1)).packetCount == 2)
+    let videoOnlyPath = videoTempPath("fragmented-two-aac-video-only", "mp4")
+    defer discard catch File.delete(videoOnlyPath)
+    expect Mp4.copyVideoRanges(path, videoOnlyPath, Swag.makeSlice(&Whole[0], 1))
+    var videoOnly = expect Mp4.FragmentedPacketReader.open(videoOnlyPath)
+    Swag.require(videoOnly.packetCount() == 3 and videoOnly.audioTrackCount() == 0)
+    for index in 3
+    {
+        let original = expect packets.readPacket(index, &originalBytes)
+        let result   = expect videoOnly.readPacket(index, &copiedBytes)
+        Swag.require(result.decodeTime == original.decodeTime and result.bytes.count == original.bytes.count)
+        Swag.require(Memory.compare(result.bytes.buffer, original.bytes.buffer, result.bytes.count) == 0)
+    }
 }
 
 // The byte bound completes an AAC group before its next packet would exceed the limit.

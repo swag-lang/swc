@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core.Errors
+using Swag, Core.Errors, Audio
 
 // Fractional frame rates stay on one exact clock over four hours without duration drift.
 #test
@@ -42,6 +42,20 @@ using Swag, Core.Errors
     let missed = expect pacer.slotAt(5)
     Swag.require(missed.index == 5 and missed.decodeTime == 83)
     Swag.require(missed.duration == 17 and missed.skippedFrames == 0)
+}
+
+// A shared recording origin preserves the first sound and picture offsets.
+#test
+{
+    let rate = expect FrameRate.create(30, 1)
+    var video = expect FramePacer.createWithOrigin(rate, 1_000_000_000, 90_000, 1_000_000_000)
+    var audio = expect SampleTimeline.createWithOrigin(48_000, 1_000_000_000, 1_000_000_000)
+    var slot: FrameSlot
+    Swag.require(expect video.tryAccept(1_100_000_000, &slot))
+    let samples = expect audio.place(1_100_000_000, 480)
+    Swag.require(slot.index == 3 and slot.decodeTime == 9_000 and slot.skippedFrames == 3)
+    Swag.require(samples.startSample == 4_800 and samples.silenceFrames == 4_800)
+    Swag.require(samples.acceptedFrames == 480)
 }
 
 // Invalid clocks and a backwards timestamp leave the accepted position intact.

@@ -28,6 +28,7 @@ struct SampleTimeline
         firstTick:      u64
         previousTick:   u64
         sampleEndValue: u64
+        hasOrigin:     bool
         hasBlock:       bool
     }
 }
@@ -46,6 +47,19 @@ impl SampleTimeline
         return SampleTimeline{sampleRate, clockFrequency, tolerance}
     }
 
+    // Creates a timeline starting at `originTick` on the monotonic clock.
+    //
+    // A first block captured later reports its initial silence. Use the same origin as a video
+    // frame pacer to preserve the initial offset between sound and picture.
+    func createWithOrigin(sampleRate: u32, clockFrequency: u64, originTick: u64, tolerance: u32 = 0)->SampleTimeline fail
+    {
+        var result = try create(sampleRate, clockFrequency, tolerance)
+        result.firstTick    = originTick
+        result.previousTick = originTick
+        result.hasOrigin    = true
+        return result
+    }
+
     // Returns the end of the placed audio in sample frames.
     mtd const sampleEnd()->u64 => .sampleEndValue
 
@@ -57,7 +71,7 @@ impl SampleTimeline
     {
         if not frameCount do
             fail BadParameterError{"sample timeline blocks must contain frames"}
-        if not .hasBlock
+        if not .hasBlock and not .hasOrigin
         {
             .firstTick      = tick
             .previousTick   = tick
@@ -80,15 +94,18 @@ impl SampleTimeline
         if rounded > Swag.U64.Max - wholeSamples do
             fail OverflowError{"sample timeline position overflows"}
         var target = wholeSamples + rounded
-        if target >= .sampleEndValue
+        if .hasBlock
         {
-            if target - .sampleEndValue <= .tolerance do
-                target = .sampleEndValue
-        }
-        else
-        {
-            if .sampleEndValue - target <= .tolerance do
-                target = .sampleEndValue
+            if target >= .sampleEndValue
+            {
+                if target - .sampleEndValue <= .tolerance do
+                    target = .sampleEndValue
+            }
+            else
+            {
+                if .sampleEndValue - target <= .tolerance do
+                    target = .sampleEndValue
+            }
         }
         if frameCount > Swag.U64.Max - target do
             fail OverflowError{"sample timeline block end overflows"}
@@ -99,6 +116,7 @@ impl SampleTimeline
         let start     = Math.max(target, .sampleEndValue)
         .sampleEndValue = start + accepted
         .previousTick   = tick
+        .hasBlock       = true
         return SamplePlacement{start, silence, discarded, accepted}
     }
 }

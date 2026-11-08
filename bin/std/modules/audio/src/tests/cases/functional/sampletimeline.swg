@@ -49,6 +49,24 @@ using Swag, Core, Core.Errors
     Swag.require(timeline.sampleEnd() == 404)
 }
 
+// An explicit origin leaves the sound offset in the returned silence count.
+#test
+{
+    var timeline = expect SampleTimeline.createWithOrigin(48_000, 1_000_000_000, 1_000_000_000)
+    var rejected: Swag.Error
+    discard catch timeline.place(999_999_999, 480) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(timeline.sampleEnd() == 0)
+    let first = expect timeline.place(1_100_000_000, 480)
+    Swag.require(first.startSample == 4_800 and first.silenceFrames == 4_800)
+    Swag.require(first.discardedFrames == 0 and first.acceptedFrames == 480)
+    Swag.require(timeline.sampleEnd() == 5_280)
+
+    var jitter = expect SampleTimeline.createWithOrigin(1_000, 1_000_000, 0, tolerance: 1)
+    let offset = expect jitter.place(1_000, 1)
+    Swag.require(offset.startSample == 1 and offset.silenceFrames == 1)
+}
+
 // Invalid input and overflows leave the committed sample end intact.
 #test
 {

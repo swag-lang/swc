@@ -28,6 +28,7 @@ struct FramePacer
         firstTick:      u64
         previousTick:   u64
         previousSlot:   u64
+        hasOrigin:      bool
         hasPicture:     bool
     }
 }
@@ -55,6 +56,19 @@ impl FramePacer
         return FramePacer{reduced, clockFrequency, videoTimescale}
     }
 
+    // Creates a pacer whose recording timeline starts at `originTick`.
+    //
+    // A first picture captured later enters its actual frame slot and reports the missing
+    // earlier slots. Use the same origin as a sound timeline to preserve their initial offset.
+    func createWithOrigin(rate: FrameRate, clockFrequency: u64, videoTimescale: u32, originTick: u64)->FramePacer fail
+    {
+        var result = try create(rate, clockFrequency, videoTimescale)
+        result.firstTick    = originTick
+        result.previousTick = originTick
+        result.hasOrigin    = true
+        return result
+    }
+
     // Returns exact timing for any frame slot, including one skipped by capture.
     //
     // A caller can use this to timestamp a repeated picture for a missed slot. The returned
@@ -77,7 +91,7 @@ impl FramePacer
     // untouched. Timestamp overflow fails before accepting the picture.
     mtd tryAccept(tick: u64, slot: *FrameSlot)->bool fail
     {
-        if not .hasPicture
+        if not .hasPicture and not .hasOrigin
         {
             slot[]        = try .slotAt(0)
             .firstTick    = tick
@@ -98,17 +112,18 @@ impl FramePacer
         if fractionalFrames > Swag.U64.Max - wholeFrames do
             fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
         let current = wholeFrames + fractionalFrames
-        if current <= .previousSlot
+        if .hasPicture and current <= .previousSlot
         {
             .previousTick = tick
             return false
         }
 
         var accepted = try .slotAt(current)
-        accepted.skippedFrames = current - .previousSlot - 1
+        accepted.skippedFrames = .hasPicture ? current - .previousSlot - 1 : current
         slot[]        = accepted
         .previousTick = tick
         .previousSlot = current
+        .hasPicture   = true
         return true
     }
 

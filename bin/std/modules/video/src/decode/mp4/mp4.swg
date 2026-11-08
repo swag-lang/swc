@@ -102,7 +102,7 @@ internal struct FragmentSample
 }
 
 // One track run parsed from a movie fragment.
-private struct FragmentTrackSamples
+internal struct FragmentTrackSamples
 {
     trackId: u32
     samples: Array'FragmentSample

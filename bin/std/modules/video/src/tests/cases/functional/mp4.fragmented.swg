@@ -144,6 +144,16 @@ func fragmentedPacketSource()->ByteSource fail
         Swag.require(recovered.byteCount == expected.byteCount)
         Swag.require(Memory.compare(recovered.pixels.storage(), expected.pixels.storage(), recovered.byteCount) == 0)
     }
+
+    let stoppedPath = videoTempPath("fragmented-cursor-stopped", "mp4")
+    defer discard catch File.delete(stoppedPath)
+    discard expect File.writeAllBytes(stoppedPath, raw[0 until raw.count - 1])
+    var cursor = expect Mp4.FragmentedPacketCursor.open(stoppedPath)
+    var packet: Mp4.FragmentedCursorPacket
+    var completePackets: u64
+    while expect cursor.nextPacket(&packet) do
+        completePackets += 1
+    Swag.require(completePackets == 2)
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.
@@ -264,6 +274,8 @@ func fragmentedPacketSource()->ByteSource fail
 {
     var rejected: Swag.Error
     discard catch Mp4.FragmentedPacketReader.open(videoFixturePath("ffmpeg-mjpeg.mp4")) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+    discard catch Mp4.FragmentedPacketCursor.open(videoFixturePath("ffmpeg-mjpeg.mp4")) as rejected
     Swag.require(rejected.value() is UnsupportedFormatError)
 }
 
@@ -943,6 +955,46 @@ func fragmentedPacketSource()->ByteSource fail
     let secondSoundInfo = expect packets.audioPacketInfo(1, 0)
     Swag.require(firstSoundInfo.decodeTime == 0 and firstSoundInfo.duration == 1024)
     Swag.require(secondSoundInfo.decodeTime == 1024 and secondSoundInfo.sourceOffset != firstSoundInfo.sourceOffset)
+    var cursor = expect Mp4.FragmentedPacketCursor.open(path)
+    Swag.require(cursor.width() == packets.width() and cursor.height() == packets.height())
+    Swag.require(cursor.timescale() == packets.timescale() and cursor.audioTrackCount() == 2)
+    Swag.require((expect cursor.audioTrack(0)).sampleRate == 44_100)
+    var cursorPacket:  Mp4.FragmentedCursorPacket
+    var cursorBytes:   Array'u8
+    var expectedBytes: Array'u8
+    var videoIndex:    u64
+    var audioIndices:  [2] u64
+    while expect cursor.nextPacket(&cursorPacket)
+    {
+        expect cursor.readPayload(cursorPacket, &cursorBytes)
+        if cursorPacket.isVideo
+        {
+            let info     = expect packets.packetInfo(videoIndex)
+            let expected = expect packets.readPacket(videoIndex, &expectedBytes)
+            Swag.require(cursorPacket.trackIndex == 0 and cursorPacket.info.decodeTime == info.decodeTime)
+            Swag.require(cursorPacket.info.presentationTime == info.presentationTime)
+            Swag.require(cursorPacket.info.sourceOffset == info.sourceOffset)
+            Swag.require(cursorPacket.info.isKeyFrame == expected.isKeyFrame)
+            videoIndex += 1
+        }
+        else
+        {
+            let audioIndex = cursorPacket.trackIndex
+            Swag.require(audioIndex < 2)
+            let packetIndex = audioIndices[audioIndex]
+            let info        = expect packets.audioPacketInfo(audioIndex, packetIndex)
+            discard expect packets.readAudioPacket(audioIndex, packetIndex, &expectedBytes)
+            Swag.require(cursorPacket.info.decodeTime == info.decodeTime)
+            Swag.require(cursorPacket.info.sourceOffset == info.sourceOffset)
+            audioIndices[audioIndex] += 1
+        }
+
+        Swag.require(cursorBytes.count == expectedBytes.count)
+        Swag.require(Memory.compare(cursorBytes.storage(), expectedBytes.storage(), cursorBytes.count) == 0)
+    }
+
+    Swag.require(videoIndex == 3 and audioIndices[0] == 3 and audioIndices[1] == 2)
+    Swag.require(not expect cursor.nextPacket(&cursorPacket))
     let copiedTracks: [2] Mp4.FragmentedAudioConfig = [
         {firstAudio.sampleRate,  firstAudio.channelCount,  firstAudio.decoderConfig},
         {secondAudio.sampleRate, secondAudio.channelCount, secondAudio.decoderConfig}]
@@ -1112,6 +1164,15 @@ func fragmentedPacketSource()->ByteSource fail
     let lastPoint  = expect index.point(1)
     Swag.require(firstPoint.decodeTime == 512 and firstPoint.moofOffset == moofOffsets[0])
     Swag.require(lastPoint.decodeTime == 1536 and lastPoint.moofOffset == moofOffsets[1])
+    var cursor = expect Mp4.FragmentedPacketCursor.open(path)
+    discard catch cursor.seekFragment(lastPoint.moofOffset + 1) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    expect cursor.seekFragment(lastPoint.moofOffset)
+    var cursorPacket: Mp4.FragmentedCursorPacket
+    Swag.require(expect cursor.nextPacket(&cursorPacket))
+    Swag.require(cursorPacket.isVideo and cursorPacket.info.isKeyFrame)
+    Swag.require(cursorPacket.info.decodeTime == 1536)
+    Swag.require(not expect cursor.nextPacket(&cursorPacket))
     var found: Mp4.FragmentedSeekPoint
     Swag.require(not expect index.tryFindAtOrBefore(511, &found))
     Swag.require(expect index.tryFindAtOrBefore(1535, &found))

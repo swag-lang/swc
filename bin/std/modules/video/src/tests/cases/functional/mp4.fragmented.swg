@@ -267,6 +267,72 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(rejected.value() is UnsupportedFormatError)
 }
 
+// Cutting two GOPs keeps two AAC tracks in step through the join without copying the removed GOP.
+#test
+{
+    let sourcePath = videoTempPath("fragmented-aac-cut-source", "mp4")
+    let targetPath = videoTempPath("fragmented-aac-cut-target", "mp4")
+    defer discard catch File.delete(sourcePath)
+    defer discard catch File.delete(targetPath)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    let tracks: [2] Mp4.FragmentedAudioConfig = [
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)},
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}]
+    var writer = expect Mp4.FragmentedWriter.createWithAudioTracks(sourcePath, 64, 48, 12_800, config.toSlice(), Swag.makeSlice(&tracks[0], 2), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
+    for group in 3
+    {
+        var video = expect fragmentedPacketSource()
+        for index in 3
+        {
+            let picture = expect fragmentedPacket(&video)
+            let time    = cast(u64, group * 3 + index) * 512
+            expect writer.addPacket(EncodedPacket{picture.toSlice(), time, time, 512, index == 0})
+        }
+    }
+
+    var audio  = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    let first  = expect fragmentedPacket(&audio)
+    let second = expect fragmentedPacket(&audio)
+    let third  = expect fragmentedPacket(&audio)
+    for index in 20
+    {
+        let bytes = index % 3 == 0 ? first.toSlice() : (index % 3 == 1 ? second.toSlice() : third.toSlice())
+        let time  = cast(u64, index) * 1024
+        expect writer.addAudioPacket(EncodedPacket{bytes, time, time, 1024, true}, 0)
+        if index > 0 do
+            expect writer.addAudioPacket(EncodedPacket{bytes, time, time, 1024, true}, 1)
+    }
+
+    expect writer.end()
+
+    const Kept: [2] Mp4.VideoPacketRange = [{0, 3}, {6, 9}]
+    expect Mp4.copyRanges(sourcePath, targetPath, Swag.makeSlice(&Kept[0], 2), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3, true})
+    var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
+    var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
+    Swag.require(copied.packetCount() == 6 and copied.audioTrackCount() == 2)
+    Swag.require((expect copied.audioTrack(0)).packetCount == 10)
+    Swag.require((expect copied.audioTrack(1)).packetCount == 9)
+    var originalBytes: Array'u8
+    var copiedBytes:   Array'u8
+    for trackIndex in 2
+    {
+        let count = (expect copied.audioTrack(trackIndex)).packetCount
+        for index in count
+        {
+            let sourceIndex = index < (trackIndex == 0 ? 5 : 4) ? index : index + 5
+            let original    = expect source.readAudioPacket(trackIndex, sourceIndex, &originalBytes)
+            let result      = expect copied.readAudioPacket(trackIndex, index, &copiedBytes)
+            Swag.require(result.decodeTime == (index + (trackIndex == 0 ? 0 : 1)) * 1024)
+            Swag.require(result.bytes.count == original.bytes.count)
+            Swag.require(Memory.compare(result.bytes.buffer, original.bytes.buffer, result.bytes.count) == 0)
+        }
+    }
+
+    var index = expect Mp4.FragmentedIndex.open(targetPath)
+    Swag.require(index.entryCount() == 2)
+}
+
 // Two closed GOPs join across a removed GOP with unchanged packet bytes and continuous clocks.
 #test
 {
@@ -322,12 +388,74 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&Overlap[0], 2)) as rejected
     Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.copyRanges(sourcePath, sentinelPath, Swag.makeSlice(&BadEnd[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
     Swag.require((expect File.readAllText(sentinelPath)) == "keep")
 
     source.close()
-    expect Mp4.copyVideoRanges(sourcePath, sourcePath, Swag.makeSlice(&Kept[0], 2))
+    expect Mp4.copyRanges(sourcePath, sourcePath, Swag.makeSlice(&Kept[0], 2))
     var replaced = expect Mp4.FragmentedPacketReader.open(sourcePath)
     Swag.require(replaced.packetCount() == 6)
+}
+
+// Six joins keep the audio packet rounding error below half a packet instead of accumulating it.
+#test
+{
+    let sourcePath = videoTempPath("fragmented-multicut-source", "mp4")
+    let targetPath = videoTempPath("fragmented-multicut-target", "mp4")
+    defer discard catch File.delete(sourcePath)
+    defer discard catch File.delete(targetPath)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(sourcePath,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 100})
+    for group in 12
+    {
+        var video = expect fragmentedPacketSource()
+        for index in 3
+        {
+            let picture = expect fragmentedPacket(&video)
+            let time    = cast(u64, group * 3 + index) * 512
+            expect writer.addPacket(EncodedPacket{picture.toSlice(), time, time, 512, index == 0})
+        }
+    }
+
+    var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    var sounds: [3] Array'u8
+    for index in 3 do
+        sounds[index] = expect fragmentedPacket(&audio)
+    for index in 100
+    {
+        let time = cast(u64, index) * 1024
+        expect writer.addAudioPacket(EncodedPacket{sounds[index % 3].toSlice(), time, time, 1024, true})
+    }
+
+    expect writer.end()
+
+    const Kept: [6] Mp4.VideoPacketRange = [{0, 3}, {6, 9}, {12, 15}, {18, 21}, {24, 27}, {30, 33}]
+    expect Mp4.copyRanges(sourcePath, targetPath, Swag.makeSlice(&Kept[0], 6), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 100, true})
+    var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
+    Swag.require(copied.packetCount() == 18)
+    Swag.require((expect copied.audioTrack(0)).packetCount == 31)
+    const Joins: [6] u64 = [0, 5, 10, 16, 21, 26]
+    for group in 6
+    {
+        let actual     = (expect copied.audioPacketInfo(0, Joins[group])).decodeTime
+        let expected   = cast(u64, group) * 5_292
+        let difference = actual > expected ? actual - expected : expected - actual
+        Swag.require(difference <= 512)
+    }
+
+    let audioEnd = (expect copied.audioPacketInfo(0, 30)).decodeTime + 1024
+    Swag.require(audioEnd == 31 * 1024)
+    var index = expect Mp4.FragmentedIndex.open(targetPath)
+    Swag.require(index.entryCount() == 6)
 }
 
 // A fragment with an offset outside its media-data box or an incomplete tail is rejected.
@@ -869,6 +997,15 @@ func fragmentedPacketSource()->ByteSource fail
             Swag.require(Memory.compare(originalPacket.bytes.buffer, copiedPacket.bytes.buffer, originalPacket.bytes.count) == 0)
         }
     }
+
+    let cutPath = videoTempPath("fragmented-short-aac-cut", "mp4")
+    defer discard catch File.delete(cutPath)
+    const Whole: [1] Mp4.VideoPacketRange = [{0, 3}]
+    expect Mp4.copyRanges(path, cutPath, Swag.makeSlice(&Whole[0], 1))
+    var cut = expect Mp4.FragmentedPacketReader.open(cutPath)
+    Swag.require(cut.packetCount() == 3)
+    Swag.require((expect cut.audioTrack(0)).packetCount == 3)
+    Swag.require((expect cut.audioTrack(1)).packetCount == 2)
 }
 
 // The byte bound completes an AAC group before its next packet would exceed the limit.

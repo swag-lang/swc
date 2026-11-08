@@ -91,30 +91,8 @@ is the current scorecard.
   reports a conflict. Tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.
-- Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
+- Related: compiler.safety.006, compiler.safety.020,
   language.parallelism.005.
-
-### compiler.safety.023 — Opaque results lack pointer-field provenance
-
-- Evidence: a no-inline factory can store `&local` in `carrier.borrowed` and an independent
-  allocation in `carrier.owned`. `release(carrier.borrowed)` is then accepted with no
-  diagnostic, while a direct `release(&local)` reports `sanity_err_free_borrowed`. Copied-field
-  lifetime routes and returned payload projections (`25b9598b6`, `e1b81113e`) do not
-  distinguish the borrowed pointee of this opaque heap result. Propagating the carrier's
-  enclosing borrow wholesale would also reject releasing the independently allocated field.
-- Linux DevMode reproducer: add `release(carrier.target, #sizeof(s32))` after
-  `let carrier = create(&value)` in `bin/unittests/sanity/borrow_free_carrier.swg` and mark it
-  `swc-expected-error {{sanity_err_free_borrowed}}`; the focused sanity test reports
-  `directive declared but never raised`. The invalid release must stay outside executable tests.
-- Next: add field-indexed return origins from stores into returned carriers, propagate them
-  through wrapper calls, and serialize them in generated module APIs. The current return mask
-  names only a parameter; the whole-carrier `viaStoredField` flag then suppresses a release
-  diagnostic even when the selected field is the borrowed pointer. Judge the selected field
-  while keeping an independently allocated sibling field releasable. Never execute an invalid
-  free merely to probe its diagnostic.
-- Done when: borrowed returned fields are diagnosed without rejecting releases of
-  independently allocated fields, and the focused sanity and workspace regressions pass
-  with measured cost.
 
 ### compiler.safety.019 — Bound current sanity cost and attribute retained-state storage
 

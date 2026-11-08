@@ -934,6 +934,20 @@ uint64_t SymbolFunction::returnBorrowsParamsMask() const noexcept
     return returnBorrowsParamsMask_ | (attrs ? attrs->returnBorrowsParamsMask : 0);
 }
 
+bool SymbolFunction::hasReturnFieldBorrowParam(size_t paramIndex, std::string_view fieldName) const noexcept
+{
+    const auto matches = [paramIndex, fieldName](const ReturnFieldBorrow& entry) {
+        return entry.paramIndex == paramIndex && entry.fieldName == fieldName;
+    };
+    return std::ranges::any_of(returnFieldBorrows_, matches) || std::ranges::any_of(importedReturnFieldBorrows(), matches);
+}
+
+std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedReturnFieldBorrows() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return attrs ? std::span<const ReturnFieldBorrow>(attrs->returnFieldBorrows) : std::span<const ReturnFieldBorrow>{};
+}
+
 bool SymbolFunction::observesExternalBorrows() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();

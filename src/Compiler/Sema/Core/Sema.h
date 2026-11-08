@@ -122,6 +122,7 @@ struct SemaEscapeInfo
     bool isDeferredCallBorrow() const { return kind == SemaEscapeKind::DeferredCall; }
 
     void markStoredFieldBorrow();
+    void markSelectedReturnField(const SymbolVariable& field, TypeRef carrierType);
 
     void mergeFrom(const SemaEscapeInfo& other)
     {

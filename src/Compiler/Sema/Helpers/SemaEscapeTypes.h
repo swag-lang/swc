@@ -62,6 +62,11 @@ struct SemaEscapeDeferredCheck
     // Releasing a separate carrier does not release the data referenced by its fields.
     bool viaStoredField = false;
 
+    // A selected field of an opaque returned carrier can still be the borrowed pointer.
+    // Match the field and carrier type against the callee's final field-origin summary.
+    const SymbolVariable* selectedReturnField = nullptr;
+    TypeRef               selectedCarrierType = TypeRef::invalid();
+
     // Variable identity for provenance matching; symName supplies diagnostic text.
     const SymbolVariable* borrowedVar = nullptr;
     DiagnosticId          diagId      = {};

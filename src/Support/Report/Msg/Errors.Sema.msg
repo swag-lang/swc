@@ -155,6 +155,7 @@ SWC_DIAG_DEF(sema_err_not_type, Error, "'{sym}' cannot be used as a type; it is 
 SWC_DIAG_DEF(sema_err_not_type, Error, "this expression cannot be used as a type")
 SWC_DIAG_DEF(sema_err_not_attribute, Error, "'{sym}' cannot be used as an attribute; it is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_attribute_usage, Error, "'{sym}' does not accept {what}; [help] move the attribute onto a declaration it accepts, or widen its 'Swag.AttrUsage'")
+SWC_DIAG_DEF(sema_err_borrow_summary_invalid_fields, Error, "invalid 'Swag.BorrowSummary' returned-field origins; [help] use semicolon-separated parameter indices and hexadecimal UTF-8 field names")
 SWC_DIAG_DEF(sema_err_attribute_inline_noinline_conflict, Error, "'Swag.Inline' and 'Swag.NoInline' cannot be used together")
 SWC_DIAG_DEF(sema_err_attribute_inline_macro_mixin_conflict, Error, "'Swag.Inline', 'Swag.Macro', and 'Swag.Mixin' are mutually exclusive")
 SWC_DIAG_DEF(sema_err_attribute_propagate_macro_mixin_conflict, Error, "'Swag.Propagate' conflicts with 'Swag.Macro' and 'Swag.Mixin'; [help] remove 'Swag.Propagate': a macro or mixin body follows the error handling of the code it expands into")

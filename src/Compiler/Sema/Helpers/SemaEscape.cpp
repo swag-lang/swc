@@ -1837,6 +1837,35 @@ namespace
         }
     }
 
+    void addReturnFieldOrigins(Sema& sema, SymbolFunction& fn, AstNodeRef exprRef, TypeRef returnTypeRef)
+    {
+        if (sema.projectionEscapeInfos().empty())
+            return;
+        const TypeInfo& returnType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), returnTypeRef);
+        const TypeRef carrierTypeRef = returnType.isPointerOrReference() ? returnType.payloadTypeRef() : returnTypeRef;
+        if (!structuralBorrowCarrierType(sema, carrierTypeRef))
+            return;
+
+        SemaEscapeProjection returned;
+        if (!storageProjection(sema, exprRef, returned) || !returned.root || !returned.components.empty())
+            return;
+
+        for (const auto& [projection, fieldInfo] : sema.projectionEscapeInfos())
+        {
+            if (projection.root != returned.root || projection.components.size() != 1 ||
+                projection.components[0].kind != SemaEscapeProjectionKind::Field ||
+                !projection.components[0].field || fieldInfo.kind != SemaEscapeKind::Parameter)
+                continue;
+
+            const uint64_t origins = directParameterOriginsMask(fn, fieldInfo);
+            for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+            {
+                const size_t i = std::countr_zero(remaining);
+                fn.addReturnFieldBorrowParam(i, projection.components[0].field->name(sema.ctx()));
+            }
+        }
+    }
+
     void addStoredBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         const uint64_t origins = parameterOriginsMask(fn, info);
@@ -2840,6 +2869,12 @@ namespace
 
                             if (info.hasBorrow())
                                 info.typeRef = memberTypeRef;
+
+                            if (info.isDeferredCallBorrow())
+                            {
+                                if (const SymbolVariable* field = identifierVariable(sema, resolvedRef))
+                                    info.markSelectedReturnField(*field, leftTypeRef);
+                            }
 
                             return info;
                         }
@@ -4923,6 +4958,32 @@ void SemaEscapeInfo::markStoredFieldBorrow()
     }
 }
 
+void SemaEscapeInfo::markSelectedReturnField(const SymbolVariable& field, TypeRef carrierType)
+{
+    for (auto& snapshot : deferredCalls)
+    {
+        if (!snapshot)
+            continue;
+
+        auto copied = std::make_shared<SemaEscapeDeferredCallSnapshot>(*snapshot);
+        for (auto& check : copied->checks)
+        {
+            // Only the first field of an opaque result is described by this summary.
+            // A later member selection cannot reuse its first-field provenance.
+            if (check.selectedCarrierType.isValid())
+            {
+                check.selectedReturnField = nullptr;
+            }
+            else
+            {
+                check.selectedReturnField = &field;
+                check.selectedCarrierType = carrierType;
+            }
+        }
+        snapshot = std::move(copied);
+    }
+}
+
 namespace SemaEscape
 {
     void finalizeBorrowStores(Sema& sema, SymbolFunction& fn, AstNodeRef bodyRef)
@@ -5600,6 +5661,12 @@ namespace SemaEscape
         uint32_t             budget = K_EXPR_BUDGET;
         const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, exprRef, returnTypeRef, budget);
 
+        if (!inlineSourceFn)
+        {
+            if (SymbolFunction* currentFn = sema.currentFunction())
+                addReturnFieldOrigins(sema, *currentFn, exprRef, returnTypeRef);
+        }
+
         // A returned call result may borrow the arguments handed to the callee: defer
         // the judgement to the per-function summaries.
         if (!info.hasBorrow() && !inlineSourceFn)
@@ -6144,6 +6211,20 @@ namespace SemaEscape
                    beforeUnknown != edge.caller->returnsPayloadParamProjectionUnknown(edge.callerParamIndex);
         };
 
+        auto propagateReturnedFields = [](const SemaEscapeSummaryEdge& edge, const SymbolFunction& source, uint32_t sourceParam) {
+            const size_t before = edge.caller->returnFieldBorrows().size();
+            const auto forward = [&](std::span<const SymbolFunction::ReturnFieldBorrow> entries) {
+                for (const SymbolFunction::ReturnFieldBorrow& entry : entries)
+                {
+                    if (entry.paramIndex == sourceParam)
+                        edge.caller->addReturnFieldBorrowParam(edge.callerParamIndex, entry.fieldName);
+                }
+            };
+            forward(source.returnFieldBorrows());
+            forward(source.importedReturnFieldBorrows());
+            return before != edge.caller->returnFieldBorrows().size();
+        };
+
         // Resolve return routes first: discovering later that an intermediate result
         // is an owned payload must not leave an already-published free of its owner.
         for (const bool returnPhase : {true, false})
@@ -6212,6 +6293,28 @@ namespace SemaEscape
                             {
                                 edge.caller->addReturnsStorageParam(edge.callerParamIndex);
                                 changed = true;
+                            }
+
+                            if (!edge.callerIndirect && !edge.calleeIndirect && !edge.viaStoredField)
+                            {
+                                const bool guardsPreserveStorage = std::ranges::all_of(edge.returnGuards, [](const SemaEscapeDeferredGuard& guard) {
+                                    return guard.callee && !guard.indirect && (guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
+                                });
+                                if (guardsPreserveStorage && edge.callee->returnTypeRef() == edge.caller->returnTypeRef() &&
+                                    propagateReturnedFields(edge, *edge.callee, edge.calleeParamIndex))
+                                    changed = true;
+
+                                if ((edge.callee->returnsStorageParamsMask() & calleeBit) && !edge.returnGuards.empty())
+                                {
+                                    const SemaEscapeDeferredGuard& source = edge.returnGuards.front();
+                                    const bool laterPreserveStorage = std::ranges::all_of(edge.returnGuards.begin() + 1, edge.returnGuards.end(), [](const SemaEscapeDeferredGuard& guard) {
+                                        return guard.callee && !guard.indirect && (guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
+                                    });
+                                    if (source.callee && !source.indirect && laterPreserveStorage &&
+                                        source.callee->returnTypeRef() == edge.caller->returnTypeRef() &&
+                                        propagateReturnedFields(edge, *source.callee, source.paramIndex))
+                                        changed = true;
+                                }
                             }
 
                             // Returning an accessor's payload preserves that payload route
@@ -6465,14 +6568,51 @@ namespace SemaEscape
 
                 if (!storesHit)
                 {
-                    if (check.ownerSource || check.viaStoredField)
+                    if (check.ownerSource)
                         continue;
 
-                    // Every wrapper must return the argument's storage. Freeing a result
-                    // that merely carries the argument releases a different allocation.
-                    if (std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
-                            return !guard.callee || guard.indirect || !(guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
-                        }))
+                    if (check.selectedCarrierType.isValid())
+                    {
+                        // One selected field can contain the borrowed pointer even though
+                        // the enclosing result is a separately allocated carrier. Every
+                        // later wrapper must return that selected pointer's storage.
+                        if (!check.selectedReturnField)
+                            continue;
+                        const std::string_view fieldName = check.selectedReturnField->name(ctx);
+                        bool       foundFieldOrigin = false;
+                        bool       validFieldRoute  = true;
+                        for (const SemaEscapeDeferredGuard& guard : check.guards)
+                        {
+                            if (!guard.callee || guard.indirect)
+                            {
+                                validFieldRoute = false;
+                                break;
+                            }
+
+                            if (!foundFieldOrigin)
+                            {
+                                if (guard.callee->returnTypeRef() != check.selectedCarrierType ||
+                                    !guard.callee->hasReturnFieldBorrowParam(guard.paramIndex, fieldName))
+                                {
+                                    validFieldRoute = false;
+                                    break;
+                                }
+                                foundFieldOrigin = true;
+                            }
+                            else if (!(guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex)))
+                            {
+                                validFieldRoute = false;
+                                break;
+                            }
+                        }
+                        if (!foundFieldOrigin || !validFieldRoute)
+                            continue;
+                    }
+                    else if (check.viaStoredField)
+                        continue;
+                    else if (std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
+                                 return !guard.callee || guard.indirect || !(guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
+                             }))
                         continue;
 
                     diagId = DiagnosticId::sanity_err_free_borrowed;

@@ -370,7 +370,10 @@ namespace Swag
     // Its zero default preserves summaries generated before this mask existed.
     // Deeper indirection without a separate proof remains conservative.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0, freesIndirect: u64 = 0)
+    // 'returnsFields' lists first-level returned fields that borrow a parameter.
+    // Each entry is a parameter index, a colon, and the field name in UTF-8 hex;
+    // entries are separated by semicolons. Generated module APIs write this form.
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0, freesIndirect: u64 = 0, returnsFields: string = "")
 
     // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.
     #[Swag.EnumFlags]

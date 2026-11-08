@@ -328,6 +328,69 @@ namespace
         return Result::Error;
     }
 
+    Result collectBorrowSummaryFieldOrigins(Sema& sema, const ResolvedCallArgument& arg, AttributeList& outAttributes)
+    {
+        const ConstantValue* encoded = nullptr;
+        SWC_RESULT(collectResolvedConstantValue(sema, arg, encoded));
+        SWC_ASSERT(encoded && encoded->isString());
+
+        const auto invalid = [&]() {
+            return SemaError::raise(sema, DiagnosticId::sema_err_borrow_summary_invalid_fields,
+                                    arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
+        };
+        const auto hexDigit = [](char ch) -> int {
+            if (ch >= '0' && ch <= '9')
+                return ch - '0';
+            if (ch >= 'a' && ch <= 'f')
+                return ch - 'a' + 10;
+            if (ch >= 'A' && ch <= 'F')
+                return ch - 'A' + 10;
+            return -1;
+        };
+
+        std::string_view remaining = encoded->getString();
+        while (!remaining.empty())
+        {
+            const size_t end = remaining.find(';');
+            const std::string_view entry = remaining.substr(0, end);
+            const size_t colon = entry.find(':');
+            if (colon == std::string_view::npos || !colon || colon + 1 == entry.size() || (entry.size() - colon - 1) % 2)
+                return invalid();
+
+            uint32_t paramIndex = 0;
+            for (const char ch : entry.substr(0, colon))
+            {
+                if (ch < '0' || ch > '9')
+                    return invalid();
+                const auto digit = static_cast<uint32_t>(ch - '0');
+                if (paramIndex > (63 - digit) / 10)
+                    return invalid();
+                paramIndex = paramIndex * 10 + digit;
+            }
+
+            std::string fieldName;
+            fieldName.reserve((entry.size() - colon - 1) / 2);
+            for (size_t i = colon + 1; i < entry.size(); i += 2)
+            {
+                const int high = hexDigit(entry[i]);
+                const int low = hexDigit(entry[i + 1]);
+                if (high < 0 || low < 0)
+                    return invalid();
+                fieldName.push_back(static_cast<char>(high * 16 + low));
+            }
+            BorrowFieldOrigin origin{static_cast<uint8_t>(paramIndex), std::move(fieldName)};
+            if (std::ranges::find(outAttributes.returnFieldBorrows, origin) == outAttributes.returnFieldBorrows.end())
+                outAttributes.returnFieldBorrows.push_back(std::move(origin));
+
+            if (end == std::string_view::npos)
+                break;
+            remaining.remove_prefix(end + 1);
+            if (remaining.empty())
+                return invalid();
+        }
+        return Result::Continue;
+    }
+
     Result collectBorrowSummaryOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
         SWC_ASSERT(!args.empty());
@@ -369,6 +432,9 @@ namespace
 
         if (args.size() >= 12)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[11], freesIndirectMask));
+
+        if (args.size() >= 13 && args[12].argRef.isValid())
+            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[12], outAttributes));
 
         outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs, freesIndirectMask);
         return Result::Continue;

@@ -190,7 +190,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
-  converts Annex B encoder output and extracts `avcC`, but nothing in the module encodes frames.
+  converts Annex B encoder output and extracts `avcC`. `Video.Nv12Frame` converts packed RGB and
+  BGRA pictures to top-down BT.709 NV12 for an encoder, but nothing in the module encodes frames.
+  The current conversion is scalar; its throughput still needs a native encoder-path benchmark
+  and a SIMD or GPU path before it can serve real-time 1080p60 recording.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: add an H.264 encoder that produces `EncodedPacket` access units and AVC parameter sets.

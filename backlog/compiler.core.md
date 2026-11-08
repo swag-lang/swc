@@ -661,10 +661,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   source-location order, with passing Linux regressions for each path. The script regression
   failed on the preceding compiler and passes with the correction. A script now attempts every
   remaining drop hook after one panics, while still exiting with an error; a failing-script
-  regression requires the later hook's output marker.
+  regression requires the later hook's output marker. A failed script `#main` now also runs
+  its drop hooks and dependency shutdown before returning the failure; a separate script
+  regression checks for the drop marker after that panic.
 - Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
-  release completes after failed entry points and before restoring test data or unloading generated
-  code.
+  release completes after failed init/premain stages and before restoring test data or unloading
+  generated code.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 
@@ -678,8 +680,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Linux DevMode reductions: a nested helper in an ordinary function and the same helper in a
   temporary copy of `os.linux.process.swg`'s `__hostSetupProcessArguments` both compile and run
   as native tests. The Windows runtime path remains the failing boundary.
-- Next: reduce a nested runtime helper to a constant return and inspect runtime cloning,
-  symbol publication and native lowering. Establish whether ordinary source nesting can
-  reproduce it before choosing a source-suite or compiler filesystem regression.
+- Next: run the constant-return nested helper in the Windows runtime startup path, retain the
+  exact failure, then inspect runtime cloning, symbol publication and native lowering there.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.

@@ -229,9 +229,13 @@ namespace Command
             SWC_RESULT(runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None));
             SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain));
             SWC_RESULT(runJitScriptFunctions(ctx, preMainFunctions, JITRuntimeSetupMode::None));
-            SWC_RESULT(runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None));
-            SWC_RESULT(runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true));
-            SWC_RESULT(runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop));
+            const Result mainResult = runJitScriptFunctions(ctx, mainFunctions, JITRuntimeSetupMode::None);
+            // A failed entry point still owns module state. Attempt every drop hook
+            // and release dependencies before reporting the original failure.
+            const Result dropResult = runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true);
+            const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop);
+            if (mainResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
+                return Result::Error;
 
             if (stage)
                 stage->setStat(ScopedTimedLog::formatStatCount(ctx, mainFunctions.size(), "main"));

@@ -52,6 +52,8 @@ Four codecs ship in the box:
   interrupted final write. The classic reader expands compact sample tables into direct packet
   offsets while payloads remain in the file. Exact composition timestamps are retained for
   variable-rate playback and coded display reordering.
+  [[Video.H264.AnnexBAccessUnit]] converts start-code-delimited H.264 encoder output into the
+  length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
   independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
   channels that its decoder supports. A picture

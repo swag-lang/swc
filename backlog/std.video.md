@@ -189,8 +189,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.015 — No H.264 encoding
 
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
-  contract and a video-only fragmented MP4 writer now consume H.264 access units, but nothing
-  in the module produces them. Screen recording in Swag Capture (app.capture.011) needs a modern
+  contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
+  converts Annex B encoder output and extracts `avcC`, but nothing in the module encodes frames.
+  Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: add an H.264 encoder that produces `EncodedPacket` access units and AVC parameter sets.
   Implement it first over the Media Foundation

@@ -217,7 +217,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   temporary disk storage. `Mp4.FragmentedIndex` reads a completed file's final index directly
   from its tail and locates key frames with binary search. `Mp4.FragmentedPacketCursor` walks
   compressed video and AAC packets one fragment at a time with a bounded sample window, reads
-  payload only on request, and can start at an indexed fragment. The writer has no timed metadata tracks;
+  payload only on request, and can start at an indexed fragment. A sparse 64-bit-offset stress
+  test places a decodable indexed fragment beyond 4 GiB. The writer has no timed metadata tracks;
   `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets

@@ -57,27 +57,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
   shared libraries apart from the image timestamp.
 
-### compiler.core.084 — Continue test campaigns after a module abandons state
-
-- Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
-  skips the deferred unlock. The native test runner catches the panic and starts the next GUI
-  test in the same process; that test waits on the abandoned mutex until the module timeout.
-  The original failing test is reported, but subsequent tests cannot make progress. The native
-  runner now prints its failure tally and exits after an uncaught panic or hardware fault;
-  ordinary failed `Swag.check` calls still allow later tests. A regression holds a mutex across
-  a panic: the preceding compiler starts the next test and times out, while the corrected
-  compiler stops promptly before that test. The Linux low-level host recovery unit test still
-  passes and explicit `Swag.catchPanic` remains supported. The JIT runner now distinguishes
-  recoverable `Swag.check` failures from panics, stops after a panicked test, and skips drop hooks
-  that could touch abandoned state. Its old path hung on the same mutex reproducer; focused
-  `#init`, `#premain`, and `#drop` panic fixtures also demonstrate that the prior runner invoked
-  shutdown hooks after the panic, while the corrected runner stops before them.
-- Next: verify a failed native or JIT module does not block execution of independent modules in
-  a multi-module campaign. The current workspace driver stops on the first module error.
-- Done when: a regression with a panic under a deferred mutex unlock reports the original
-  failure promptly without hanging the next test, and the campaign can continue with other
-  modules.
-
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:

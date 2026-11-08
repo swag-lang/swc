@@ -3,6 +3,7 @@
 Usage: tool.py <tests|unittests|std|apps|examples|reference|goldens> [dm] [action|suite] [module] [swc options]
 Use `tool.py goldens accept` to promote reviewed pending snapshots without a compiler.
 Set SWC_COMPILER or SWC_DEVMODE_COMPILER to select an externally built compiler.
+Use --keep-going to continue independent test stages after a failure.
 """
 
 from dataclasses import dataclass, field
@@ -246,10 +247,19 @@ def package_vault(bin_root, module, options):
         shutil.copy2(source, output / source.name)
 
 
-def execute(stages, environment):
+def execute(stages, environment, *, keep_going=False):
+    passed = set()
+    first_failure = 0
     for stage in stages:
+        if any(name not in passed for name in stage.requires):
+            print(f'blocked {stage.name}: prerequisite did not pass', file=sys.stderr)
+            first_failure = first_failure or 1
+            if not keep_going:
+                return first_failure
+            continue
         result = subprocess.run(stage.command, env=environment, check=False,
                                 stdout=subprocess.PIPE if stage.expected_output or stage.forbidden_output else None)
+        stage_failure = 0
         if stage.expected_output or stage.forbidden_output:
             output = result.stdout.decode('utf-8', errors='replace')
             if hasattr(sys.stdout, 'buffer'):
@@ -259,13 +269,19 @@ def execute(stages, environment):
                 print(output, end='', flush=True)
             if result.returncode == stage.expected_returncode and stage.expected_output not in output:
                 print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
-                return 1
+                stage_failure = 1
             if stage.forbidden_output and stage.forbidden_output in output:
                 print(f'forbidden output was present: {stage.forbidden_output}', file=sys.stderr)
-                return 1
+                stage_failure = 1
         if result.returncode != stage.expected_returncode:
-            return result.returncode if result.returncode > 0 else 128 - result.returncode
-    return 0
+            stage_failure = result.returncode if result.returncode > 0 else 128 - result.returncode
+        if stage_failure:
+            first_failure = first_failure or stage_failure
+            if not keep_going:
+                return first_failure
+        else:
+            passed.add(stage.name)
+    return first_failure
 
 
 def accept_goldens(bin_root):
@@ -298,6 +314,8 @@ def main(arguments=None):
         print(__doc__)
         print('Compiler suites: ' + ', '.join(COMPILER_SUITES))
         return 0
+    keep_going = '--keep-going' in arguments
+    arguments = [argument for argument in arguments if argument != '--keep-going']
     root = Path(__file__).resolve().parent.parent
     bin_root = root / 'bin'
     if tool == 'goldens':
@@ -329,7 +347,7 @@ def main(arguments=None):
         stages = [module_stage(compiler, bin_root, tool, action, module, arguments)]
     if action == 'test':
         environment.setdefault('SWAG_RUNTIME_THREADS', runtime_workers(arguments))
-    result = execute(stages, environment)
+    result = execute(stages, environment, keep_going=keep_going)
     if result == 0 and windows and tool == 'apps' and action == 'build':
         package_vault(bin_root, module, arguments)
     return result

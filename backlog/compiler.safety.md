@@ -106,9 +106,12 @@ is the current scorecard.
   `let carrier = create(&value)` in `bin/unittests/sanity/borrow_free_carrier.swg` and mark it
   `swc-expected-error {{sanity_err_free_borrowed}}`; the focused sanity test reports
   `directive declared but never raised`. The invalid release must stay outside executable tests.
-- Next: trace this returned-field route through the existing projection and frees-summary
-  machinery, then preserve each field's provenance. Cover both fields through generated
-  module APIs; never execute an invalid free merely to probe its diagnostic.
+- Next: add field-indexed return origins from stores into returned carriers, propagate them
+  through wrapper calls, and serialize them in generated module APIs. The current return mask
+  names only a parameter; the whole-carrier `viaStoredField` flag then suppresses a release
+  diagnostic even when the selected field is the borrowed pointer. Judge the selected field
+  while keeping an independently allocated sibling field releasable. Never execute an invalid
+  free merely to probe its diagnostic.
 - Done when: borrowed returned fields are diagnosed without rejecting releases of
   independently allocated fields, and the focused sanity and workspace regressions pass
   with measured cost.

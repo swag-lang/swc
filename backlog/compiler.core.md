@@ -679,9 +679,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   shutdown hooks after an uncaught panic in `#init`, `#premain`, or `#drop`, because the panic
   abandons `defer` cleanup and the remaining hooks can touch invalid state. Dedicated failing
   JIT fixtures show the preceding compiler ran those hooks and the corrected compiler does not.
-- Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
-  release completes after failed init/premain stages and before restoring test data or unloading
-  generated code.
+  A native executable that imports the shared-library lifecycle fixture now records dependency
+  `#init/#premain` before its own hooks and its own `#drop` before the dependency's `#drop`. A
+  native `#drop` panic exits with an error before later hooks can touch abandoned state.
+- Next: cover dynamic library load/unload with dependent modules and verify resource release on
+  ordinary failed hooks before restoring test data or unloading generated code. Document the
+  panic boundary alongside the normal reverse-order lifecycle contract.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

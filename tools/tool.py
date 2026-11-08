@@ -113,6 +113,7 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
         requires = []
+        expected_output = ''
         if module == 'sandbox_consumer':
             command += ['--rebuild', '--no-test-native']
         elif module == 'runtime_context_dynamic_consumer' and execution == 'jit':
@@ -124,8 +125,20 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         if module == 'runtime_context_dynamic_consumer':
             command.append('--run-arg=--dynamic-runtime-library=' + str(library))
             requires = [build_name]
-        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires))
+        if module == 'lifecycle_native_consumer':
+            expected_output = ('SWAG_DEP_INIT\nSWAG_NATIVE_INIT\nSWAG_DEP_PREMAIN\n'
+                               'SWAG_NATIVE_PREMAIN\nSWAG_NATIVE_TEST\nSWAG_NATIVE_DROP\nSWAG_DEP_DROP')
+        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires,
+                            expected_output=expected_output))
     if script:
+        failed_drop = workspace / 'native_failed_drop'
+        stages.append(Stage('workspace-native-failed-drop', [str(compiler), 'test',
+                            '--directory', str(failed_drop / 'src'), '--module-file', str(failed_drop / 'module.swg'),
+                            '--module-namespace', 'NativeFailedDrop', '--artifact-kind', 'executable',
+                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg,
+                            '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_NATIVE_DROP_PANIC', forbidden_output='SWAG_NATIVE_SECOND_DROP',
+                            expected_returncode=5))
         failed_test = workspace / 'native_failed_test'
         stages.append(Stage('workspace-native-abandoned-test', [str(compiler), 'test',
                             '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),

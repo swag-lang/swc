@@ -201,12 +201,14 @@ across modules uses the workspace suite.
   packaging, resources, or link changes. Add `smoke` for startup, main-loop, or
   packaged-runtime changes. A local model or widget edit does not require all three.
 - Select application journeys by `--test-tag integration.application.journey`, optionally narrowed
-  by their `cases/integration/<plan>.swg` file. These are ordinary `#test` functions running
+  by their `journeys/<plan>.swg` file. Select desktop input journeys with
+  `--test-tag integration.desktop.input` and their `desktop/<plan>.swg` file. These are ordinary `#test` functions running
   the native application lifecycle, separate from the workspace's bounded startup `smoke` command. Name and
   select the plan, not the control where the first action happens. On Windows, run native
   journeys on the normal interactive desktop through `tools/apps.bat test` or `tools/std.bat test`.
   Keep the real windows, compositor, and event loop in the test boundary. Keep functional,
-  golden, integration and stress tests in their respective `cases/<type>/` directories; filenames
+  golden, external integration and stress tests in their respective `cases/<type>/` directories;
+  keep application journeys in `journeys/` and desktop input journeys in `desktop/`. Filenames
   end in `.swg` without a type suffix. Tags select execution and do not replace load admission.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete

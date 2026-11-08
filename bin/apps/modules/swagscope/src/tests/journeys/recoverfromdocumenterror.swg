@@ -44,7 +44,6 @@ using Core, Gui, Pixel
             break
         }
 
-        Threading.Thread.sleep(10'ms)
     }
 
     Swag.require(errorPresented, "the broken image never reached the native error surface")
@@ -74,7 +73,6 @@ using Core, Gui, Pixel
             break
         }
 
-        Threading.Thread.sleep(10'ms)
     }
 
     if not documentPresented

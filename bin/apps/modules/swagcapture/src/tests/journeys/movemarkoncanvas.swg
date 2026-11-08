@@ -13,7 +13,8 @@ using Core, Gui, Pixel
 
     var path = journey.newCapture(220, 160)
     let capture = unwrap main.editWnd.getCapture()
-    main.quickWnd.applyPreset(main.quickWnd.qsShape.forms[4])
+    var shapePreset: IForm = main.quickWnd.qsShape.forms[4]
+    main.quickWnd.applyPreset(shapePreset)
     journey.drawForm(ActionToolMode.Shape, .Shape, {25, 25}, {85, 70})
     let shape = assume cast(*FormShape, capture.forms[0])
     let x = shape.x

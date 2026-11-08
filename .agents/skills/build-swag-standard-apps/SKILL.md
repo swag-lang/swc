@@ -466,8 +466,11 @@ Apply [validate-swag-changes](../validate-swag-changes/SKILL.md) to each changed
 
 Keep test families separate using their category directories in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md#lay-out-a-modules-tests-the-same-way-every-time).
-Application journeys belong in `src/tests/cases/integration/<plan>.swg`, one `#test` per file,
+Application journeys belong in `src/tests/journeys/<plan>.swg`, one `#test` per file,
 named for the user journey across the application, with the tag `integration.application.journey`.
+Desktop input journeys belong in `src/tests/desktop/<plan>.swg`, one `#test` per file,
+with the tag `integration.desktop.input`. Use `Gui.Testing.DesktopInput` for native pointer and
+keyboard input; the plan still states user actions and observable checkpoints.
 Keep the plan format common across applications but app-specific setup and wait helpers in that
 application's `src/tests/helpers/`. Use an unsuffixed `.swg` journey on every supported OS where
 the user task works; reserve platform suffixes for platform-specific behavior. A control or the first screen is

@@ -637,3 +637,8 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: the clipboard test passes on Linux and a copied file pastes into a file manager.
 - Related: platform.portability.101
 
+### std.gui.064 — Make Linux desktop input focus setup runnable
+
+- Next: Inspect the `Display*` and Xlib call ABI in `Gui.Testing.DesktopInput.openNative`, then rerun the portable Capture desktop plan on an isolated X11 server.
+- Done when: `drawandundo.swg` passes on Linux through XTEST, including the click, drag, undo and redo.
+- Evidence: the Linux test compiles, then SIGSEGV occurs in `XGetInputFocus` after capture creation and before the first pointer action; GDB names `DesktopInput.openNative` as its caller.

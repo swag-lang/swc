@@ -13,7 +13,8 @@ using Core, Gui, Pixel
 
     var path = journey.newCapture(120, 100)
     let capture = unwrap main.editWnd.getCapture()
-    main.quickWnd.applyPreset(main.quickWnd.qsPixSel.forms[0])
+    var preset: IForm = main.quickWnd.qsPixSel.forms[0]
+    main.quickWnd.applyPreset(preset)
     journey.drawForm(ActionToolMode.PixSel, .PixSel, {20, 20}, {60, 60})
     Swag.require(capture.forms[0].subKind == .PixSel)
 

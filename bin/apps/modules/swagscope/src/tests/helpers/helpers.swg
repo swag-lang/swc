@@ -428,17 +428,17 @@ func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bo
     return window
 }
 
-// Returns the module's test root for test cases stored under cases/<type>.
+// Returns the module's test root from any test category or helper.
 func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
 {
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
-            return unwrap Path.directoryName(directory)
+        if Path.fileName(directory) == "tests" do
+            return directory
         directory = Path.directoryName(directory)
     }
 
-    Swag.require(false, "test source is outside cases or helpers")
+    Swag.require(false, "test source is outside tests")
     return ""
 }

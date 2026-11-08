@@ -379,25 +379,28 @@ and do not enable `integration.*`. File filters still intersect the tag selectio
 affect execution and reuse the same native test artifact; they do not remove implementation
 sources or rebuild a smaller test binary.
 
-### Application integration journeys
+### Application journeys and desktop input
 
 `apps.bat smoke` is the bounded startup check of the shipped executable. User journeys belong
-in `<application>/src/tests/cases/integration/<plan>.swg`, guarded by `#command ==
+in `<application>/src/tests/journeys/<plan>.swg`, guarded by `#command ==
 Swag.CompilerCommand.Test` and tagged `integration.application.journey`. They use the ordinary
 test runner; integration tags keep them out of default headless tests. See
 [the scenario contract](application-scenarios.md) for fixtures, checkpoints, and coverage limits.
+Simulated native pointer and keyboard plans live in `src/tests/desktop/<plan>.swg` and use
+the `integration.desktop.input` tag.
 
 On Windows, run native scenarios on the normal interactive desktop:
 
 ```powershell
 tools/apps.bat test swagscope -bc release --test-file browsemedialibrary.swg --test-tag integration.application.journey --run-timeout 60
 tools/apps.bat test swagscope -bc release --test-file playrecentvideo.swg --test-tag integration.application.journey --run-timeout 60
+tools/apps.bat test swagcapture -bc devmode --test-file drawandundo.swg --test-tag integration.desktop.input --run-timeout 60
 tools/std.bat test gui -bc release --test-file presentation.win32.swg --test-tag integration.host.windows --run-timeout 60
 ```
 
-These commands show real windows and may take focus. Authorization for a native desktop run
-covers those windows; the tests call application input handlers without sending operating-system
-mouse or keyboard input. Keep native presentation, monitor configuration, and ordinary window
+These commands show real windows and may take focus. Application journeys call input handlers;
+desktop input journeys send operating-system pointer and keyboard input. Keep native presentation,
+monitor configuration, and ordinary window
 visibility in the reproduction boundary. Use `tools/apps.bat smoke swagscope -bc release` for
 the shipped executable's startup smoke. `--run-timeout` bounds the test process; each individual
 journey must still finish within its own deadline below 40 seconds.

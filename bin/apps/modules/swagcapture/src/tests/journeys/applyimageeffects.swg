@@ -21,7 +21,8 @@ using Core, Gui, Pixel
     {
         main.sendCommandEvent(ActionSelection.DeSelectAll)
         main.sendCommandEvent(ActionToolMode.Img)
-        main.quickWnd.applyPreset(main.quickWnd.qsImage.forms[i])
+        var preset: IForm = main.quickWnd.qsImage.forms[i]
+        main.quickWnd.applyPreset(preset)
         journey.drawForm(ActionToolMode.Img, .Image, positions[i], positions[i] + Math.Point{60, 70})
         let form = assume cast(*FormImage, capture.forms.back())
         Swag.require(form.kind == kind)

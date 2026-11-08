@@ -21,7 +21,8 @@ using Core, Gui, Pixel
 
     main.sendCommandEvent(ActionSelection.DeSelectAll)
     main.sendCommandEvent(ActionToolMode.Highlight)
-    main.quickWnd.applyPreset(main.quickWnd.qsHighlight.forms[0])
+    var preset: IForm = main.quickWnd.qsHighlight.forms[0]
+    main.quickWnd.applyPreset(preset)
     journey.drawForm(ActionToolMode.Highlight, .Highlight, {210, 10}, {285, 35})
     Swag.require(capture.forms.back().subKind == .Highlight)
 
